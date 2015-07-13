@@ -22,23 +22,28 @@ func dockerImageReferencesList() []buildapi.BuildConfig {
 				Name:      "start-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
-							Kind: "ImageStreamTag",
-							Name: "start:latest",
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "start:latest",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "test-repo:atag",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					DockerImageReference: "test-repo:atag",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
+					},
 				},
 			},
 		},
@@ -47,23 +52,28 @@ func dockerImageReferencesList() []buildapi.BuildConfig {
 				Name:      "other-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
-							Kind: "ImageStreamTag",
-							Name: "start:latest",
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "start:latest",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "another-repo:outputtag",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					DockerImageReference: "another-repo:outputtag",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
+					},
 				},
 			},
 		},
@@ -72,23 +82,28 @@ func dockerImageReferencesList() []buildapi.BuildConfig {
 				Name:      "test-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
-							Kind: "ImageStreamTag",
-							Name: "test-repo:atag",
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "test-repo:atag",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repo:latest",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					DockerImageReference: "repo:latest",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
+					},
 				},
 			},
 		},
@@ -97,23 +112,28 @@ func dockerImageReferencesList() []buildapi.BuildConfig {
 				Name:      "dummy-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
-							Kind: "ImageStreamTag",
-							Name: "test-repo:atag",
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "test-repo:atag",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "dummy:13.0",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					DockerImageReference: "dummy:13.0",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
+					},
 				},
 			},
 		},
@@ -122,23 +142,28 @@ func dockerImageReferencesList() []buildapi.BuildConfig {
 				Name:      "some-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
-							Kind: "ImageStreamTag",
-							Name: "another-repo:outputtag",
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "another-repo:outputtag",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "some-repo:some-tag",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					DockerImageReference: "some-repo:some-tag",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
+					},
 				},
 			},
 		},
@@ -163,28 +188,30 @@ func singleNamespaceList() []buildapi.BuildConfig {
 				Name:      "start-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "start:latest",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "start:latest",
+							Name:      "test-repo:atag",
 							Namespace: "default",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "test-repo",
-						Namespace: "default",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "atag",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -193,28 +220,30 @@ func singleNamespaceList() []buildapi.BuildConfig {
 				Name:      "2nd-start-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "start:tip",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "start:tip",
+							Name:      "img-repo:scratch",
 							Namespace: "default",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "img-repo",
-						Namespace: "default",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "scratch",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -223,28 +252,30 @@ func singleNamespaceList() []buildapi.BuildConfig {
 				Name:      "test-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "start:other",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "start:other",
+							Name:      "test-repo:release",
 							Namespace: "default",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "test-repo",
-						Namespace: "default",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "release",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -253,28 +284,30 @@ func singleNamespaceList() []buildapi.BuildConfig {
 				Name:      "another-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "start:other",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "start:other",
+							Name:      "another-repo:outputtag",
 							Namespace: "default",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "another-repo",
-						Namespace: "default",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "outputtag",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -283,28 +316,30 @@ func singleNamespaceList() []buildapi.BuildConfig {
 				Name:      "other-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "test-repo:atag",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "test-repo:atag",
+							Name:      "repo:" + imageapi.DefaultImageTag,
 							Namespace: "default",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "repo",
-						Namespace: "default",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: imageapi.DefaultImageTag,
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -313,28 +348,30 @@ func singleNamespaceList() []buildapi.BuildConfig {
 				Name:      "dummy-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "test-repo:release",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "test-repo:release",
+							Name:      "dummy:13.0",
 							Namespace: "default",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "dummy",
-						Namespace: "default",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "13.0",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -343,28 +380,30 @@ func singleNamespaceList() []buildapi.BuildConfig {
 				Name:      "2nd-dummy-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "test-repo:latest",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "test-repo:latest",
+							Name:      "dummy:12.0",
 							Namespace: "default",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "dummy",
-						Namespace: "default",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "12.0",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -373,28 +412,30 @@ func singleNamespaceList() []buildapi.BuildConfig {
 				Name:      "some-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "another-repo:outputtag",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "another-repo:outputtag",
+							Name:      "some-repo:tag",
 							Namespace: "default",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "some-repo",
-						Namespace: "default",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "tag",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -419,28 +460,30 @@ func multipleNamespacesList() []buildapi.BuildConfig {
 				Name:      "start-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "start:latest",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "start:latest",
-							Namespace: "default",
+							Name:      "test-repo:atag",
+							Namespace: "test",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "test-repo",
-						Namespace: "test",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "atag",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -449,28 +492,30 @@ func multipleNamespacesList() []buildapi.BuildConfig {
 				Name:      "2nd-start-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "start:tip",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "start:tip",
-							Namespace: "default",
+							Name:      "img-repo:scratch",
+							Namespace: "img",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "img-repo",
-						Namespace: "img",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "scratch",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -479,28 +524,30 @@ func multipleNamespacesList() []buildapi.BuildConfig {
 				Name:      "test-cfg",
 				Namespace: "test",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "start:other",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "start:other",
-							Namespace: "default",
+							Name:      "test-repo:release",
+							Namespace: "test",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "test-repo",
-						Namespace: "test",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "release",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -509,28 +556,30 @@ func multipleNamespacesList() []buildapi.BuildConfig {
 				Name:      "another-cfg",
 				Namespace: "test",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
-							Kind:      "ImageStreamTag",
-							Name:      "start:other",
-							Namespace: "default",
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "start:other",
+								Namespace: "default",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "another-repo:outputtag",
+							// Namespace: "" (will default to the default Namespace)
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name: "another-repo",
-						// Namespace: "" (will default to the default Namespace)
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "outputtag",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -539,28 +588,30 @@ func multipleNamespacesList() []buildapi.BuildConfig {
 				Name:      "other-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "test-repo:atag",
+								Namespace: "test",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "test-repo:atag",
-							Namespace: "test",
+							Name:      "repo:" + imageapi.DefaultImageTag,
+							Namespace: "bench",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "repo",
-						Namespace: "bench",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: imageapi.DefaultImageTag,
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -569,28 +620,30 @@ func multipleNamespacesList() []buildapi.BuildConfig {
 				Name:      "dummy-cfg",
 				Namespace: "dummy",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "test-repo:atag",
+								Namespace: "test",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "test-repo:atag",
-							Namespace: "test",
+							Name:      "dummy:13.0",
+							Namespace: "bench",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "dummy",
-						Namespace: "bench",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "13.0",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -599,28 +652,30 @@ func multipleNamespacesList() []buildapi.BuildConfig {
 				Name:      "2nd-dummy-cfg",
 				Namespace: "dummy",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind:      "ImageStreamTag",
+								Name:      "test-repo:latest",
+								Namespace: "test",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
 							Kind:      "ImageStreamTag",
-							Name:      "test-repo:latest",
-							Namespace: "test",
+							Name:      "dummy:12.0",
+							Namespace: "bench",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "dummy",
-						Namespace: "bench",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "12.0",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},
@@ -629,27 +684,29 @@ func multipleNamespacesList() []buildapi.BuildConfig {
 				Name:      "some-cfg",
 				Namespace: "default",
 			},
-			Parameters: buildapi.BuildParameters{
-				Strategy: buildapi.BuildStrategy{
-					Type: buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{
-						From: &kapi.ObjectReference{
-							Kind: "ImageStreamTag",
-							Name: "another-repo:out",
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.DockerBuildStrategyType,
+						DockerStrategy: &buildapi.DockerBuildStrategy{
+							From: &kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "another-repo:out",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind:      "ImageStreamTag",
+							Name:      "some-repo:tag",
+							Namespace: "bench",
 						},
 					},
 				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Name:      "some-repo",
-						Namespace: "bench",
+				Triggers: []buildapi.BuildTriggerPolicy{
+					{
+						ImageChange: &buildapi.ImageChangeTrigger{},
 					},
-					Tag: "tag",
-				},
-			},
-			Triggers: []buildapi.BuildTriggerPolicy{
-				{
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 		},

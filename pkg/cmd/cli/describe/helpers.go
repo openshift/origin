@@ -126,7 +126,7 @@ func formatMeta(out *tabwriter.Writer, m api.ObjectMeta) {
 // webhookURL assembles map with of webhook type as key and webhook url and value
 func webhookURL(c *buildapi.BuildConfig, cli client.BuildConfigsNamespacer) map[string]string {
 	result := map[string]string{}
-	for _, trigger := range c.Triggers {
+	for _, trigger := range c.Spec.Triggers {
 		whTrigger := ""
 		switch trigger.Type {
 		case buildapi.GitHubWebHookBuildTriggerType:

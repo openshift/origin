@@ -19,6 +19,11 @@ type ImagePipeline struct {
 	DestinationResolved bool
 
 	Build *buildgraph.BuildConfigNode
+
+	LastSuccessfulBuild   *buildgraph.BuildNode
+	LastUnsuccessfulBuild *buildgraph.BuildNode
+	ActiveBuilds          []*buildgraph.BuildNode
+
 	// If set, the base image used by the build
 	BaseImage ImageTagLocation
 	// If set, the source repository that inputs to the build
@@ -66,9 +71,10 @@ func NewImagePipelineFromBuildConfigNode(g osgraph.Graph, bcNode *buildgraph.Bui
 
 	base, src, coveredInputs, _ := findBuildInputs(g, bcNode)
 	covered.Insert(coveredInputs.List()...)
-	flow.Build = bcNode
 	flow.BaseImage = base
 	flow.Source = src
+	flow.Build = bcNode
+	flow.LastSuccessfulBuild, flow.LastUnsuccessfulBuild, flow.ActiveBuilds = buildedges.RelevantBuilds(g, flow.Build)
 
 	return flow, covered
 }
@@ -94,9 +100,10 @@ func NewImagePipelineFromImageTagLocation(g osgraph.Graph, node graph.Node, imag
 
 		base, src, coveredInputs, _ := findBuildInputs(g, build)
 		covered.Insert(coveredInputs.List()...)
-		flow.Build = build
 		flow.BaseImage = base
 		flow.Source = src
+		flow.Build = build
+		flow.LastSuccessfulBuild, flow.LastUnsuccessfulBuild, flow.ActiveBuilds = buildedges.RelevantBuilds(g, flow.Build)
 	}
 
 	for _, input := range g.SuccessorNodesByEdgeKind(node, imageedges.ReferencedImageStreamGraphEdgeKind) {

@@ -23,7 +23,7 @@ type Environment struct {
 func GetEnvironment(config *api.Config) ([]Environment, error) {
 	envPath := filepath.Join(config.WorkingDir, api.Source, ".sti", api.Environment)
 	if _, err := os.Stat(envPath); os.IsNotExist(err) {
-		return nil, errors.New("no evironment file found in application sources")
+		return nil, errors.New("no environment file found in application sources")
 	}
 
 	f, err := os.Open(envPath)

@@ -151,6 +151,22 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
+      attributes:
+        email: null
+        id: null
+        name: null
+        preferredUsername: null
+      bindDN: ""
+      bindPassword: ""
+      ca: ""
+      insecure: false
+      kind: LDAPPasswordIdentityProvider
+      url: ""
+  - challenge: false
+    login: false
+    name: ""
+    provider:
+      apiVersion: v1
       clientCA: ""
       headers: null
       kind: RequestHeaderIdentityProvider
@@ -213,6 +229,7 @@ routingConfig:
   subdomain: ""
 serviceAccountConfig:
   managedNames: null
+  masterCA: ""
   privateKeyFile: ""
   publicKeyFiles: null
 servingInfo:
@@ -248,6 +265,7 @@ func TestMasterConfig(t *testing.T) {
 				{Provider: runtime.EmbeddedObject{Object: &internal.AllowAllPasswordIdentityProvider{}}},
 				{Provider: runtime.EmbeddedObject{Object: &internal.DenyAllPasswordIdentityProvider{}}},
 				{Provider: runtime.EmbeddedObject{Object: &internal.HTPasswdPasswordIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.LDAPPasswordIdentityProvider{}}},
 				{Provider: runtime.EmbeddedObject{Object: &internal.RequestHeaderIdentityProvider{}}},
 				{Provider: runtime.EmbeddedObject{Object: &internal.GitHubIdentityProvider{}}},
 				{Provider: runtime.EmbeddedObject{Object: &internal.GoogleIdentityProvider{}}},

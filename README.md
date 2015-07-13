@@ -78,7 +78,7 @@ Once the container is started, you can jump into a console inside the container 
     # See everything you just created!
     $ oc status
 
-Any username and password are accepted by default (with no credential system configured).  You can view the webconsole at https://localhost:8443/ in your browser - login with the same credentials you used above and you'll see the application you just created.
+Any username and password are accepted by default (with no credential system configured).  You can view the webconsole at [https://localhost:8443/console](https://localhost:8443/console) in your browser - login with the same credentials you used above and you'll see the application you just created.
 
 ![Web console overview](docs/screenshots/console_overview.png?raw=true)
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"text/tabwriter"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -11,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
@@ -35,60 +37,43 @@ type ProjectStatusDescriber struct {
 	C client.Interface
 }
 
+type GraphLoadingFunc func(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error
+
 func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, error) {
 	g := osgraph.New()
 
-	svcs, err := d.K.Services(namespace).List(labels.Everything())
-	if err != nil {
-		return g, err
+	loadingFuncs := []GraphLoadingFunc{loadServices, loadBuildConfigs, loadImageStreams, loadDeploymentConfigs, loadBuilds, loadReplicationControllers}
+
+	listingWaitGroup := sync.WaitGroup{}
+	graphLock := sync.Mutex{}
+	errorChannel := make(chan error, len(loadingFuncs))
+
+	for _, loadingFunc := range loadingFuncs {
+		listingWaitGroup.Add(1)
+		go func(loadingFunc GraphLoadingFunc) {
+			defer listingWaitGroup.Done()
+			if err := loadingFunc(g, graphLock, namespace, d.K, d.C); err != nil {
+				errorChannel <- err
+			}
+		}(loadingFunc)
+	}
+	listingWaitGroup.Wait()
+	close(errorChannel)
+
+	// if we had an error.  Aggregate them and return them
+	errlist := []error{}
+	for err := range errorChannel {
+		errlist = append(errlist, err)
+	}
+	if len(errlist) > 0 {
+		return g, utilerrors.NewAggregate(errlist)
 	}
 
-	iss, err := d.C.ImageStreams(namespace).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return g, err
-	}
-
-	bcs, err := d.C.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return g, err
-	}
-
-	dcs, err := d.C.DeploymentConfigs(namespace).List(labels.Everything(), fields.Everything())
-	if err != nil {
-		return g, err
-	}
-
-	builds := &buildapi.BuildList{}
-	if len(bcs.Items) > 0 {
-		if b, err := d.C.Builds(namespace).List(labels.Everything(), fields.Everything()); err == nil {
-			builds = b
-		}
-	}
-
-	rcs, err := d.K.ReplicationControllers(namespace).List(labels.Everything())
-	if err != nil {
-		rcs = &kapi.ReplicationControllerList{}
-	}
-
-	for i := range iss.Items {
-		imagegraph.EnsureImageStreamNode(g, &iss.Items[i])
-		imagegraph.EnsureAllImageStreamTagNodes(g, &iss.Items[i])
-	}
-	for i := range bcs.Items {
-		build := buildgraph.EnsureBuildConfigNode(g, &bcs.Items[i])
-		buildedges.AddInputOutputEdges(g, build)
-		buildedges.JoinBuilds(build, builds.Items)
-	}
-	for i := range dcs.Items {
-		deploy := deploygraph.EnsureDeploymentConfigNode(g, &dcs.Items[i])
-		deployedges.AddTriggerEdges(g, deploy)
-		deployedges.JoinDeployments(deploy, rcs.Items)
-	}
-	for i := range svcs.Items {
-		service := kubegraph.EnsureServiceNode(g, &svcs.Items[i])
-		kubeedges.AddExposedPodTemplateSpecEdges(g, service)
-	}
-
+	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
+	buildedges.AddAllInputOutputEdges(g)
+	buildedges.AddAllBuildEdges(g)
+	deployedges.AddAllTriggerEdges(g)
+	deployedges.AddAllDeploymentEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
 	return g, nil
@@ -114,8 +99,8 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	standaloneDCs, coveredByDCs := graphview.AllDeploymentConfigPipelines(g, coveredNodes)
 	coveredNodes.Insert(coveredByDCs.List()...)
 
-	standaloneBCs, coveredByBCs := graphview.AllImagePipelinesFromBuildConfig(g, coveredNodes)
-	coveredNodes.Insert(coveredByBCs.List()...)
+	standaloneImages, coveredByImages := graphview.AllImagePipelinesFromBuildConfig(g, coveredNodes)
+	coveredNodes.Insert(coveredByImages.List()...)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		indent := "  "
@@ -128,6 +113,16 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			for _, dcPipeline := range service.DeploymentConfigPipelines {
 				printLines(out, indent, 1, describeDeploymentInServiceGroup(dcPipeline)...)
 			}
+
+		rcNode:
+			for _, rcNode := range service.FulfillingRCs {
+				for _, coveredDC := range service.FulfillingDCs {
+					if deployedges.BelongsToDeploymentConfig(coveredDC.DeploymentConfig, rcNode.ReplicationController) {
+						continue rcNode
+					}
+				}
+				printLines(out, indent, 1, describeRCInServiceGroup(rcNode)...)
+			}
 		}
 
 		for _, standaloneDC := range standaloneDCs {
@@ -135,13 +130,13 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			printLines(out, indent, 0, describeDeploymentInServiceGroup(standaloneDC)...)
 		}
 
-		for _, standaloneBC := range standaloneBCs {
+		for _, standaloneImage := range standaloneImages {
 			fmt.Fprintln(out)
-			printLines(out, indent, 0, describeStandaloneBuildGroup(standaloneBC, namespace)...)
-			printLines(out, indent, 1, describeAdditionalBuildDetail(standaloneBC.Build, standaloneBC.DestinationResolved, true)...)
+			printLines(out, indent, 0, describeStandaloneBuildGroup(standaloneImage, namespace)...)
+			printLines(out, indent, 1, describeAdditionalBuildDetail(standaloneImage.Build, standaloneImage.LastSuccessfulBuild, standaloneImage.LastUnsuccessfulBuild, standaloneImage.ActiveBuilds, standaloneImage.DestinationResolved, true)...)
 		}
 
-		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneBCs) == 0) {
+		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0) {
 			fmt.Fprintln(out)
 			fmt.Fprintln(out, "You have no services, deployment configs, or build configs.")
 			fmt.Fprintln(out, "Run 'oc new-app' to create an application.")
@@ -188,7 +183,7 @@ func printLines(out io.Writer, indent string, depth int, lines ...string) {
 }
 
 func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline) []string {
-	includeLastPass := deploy.Deployment.ActiveDeployment == nil
+	includeLastPass := deploy.ActiveDeployment == nil
 	if len(deploy.Images) == 1 {
 		lines := []string{fmt.Sprintf("%s deploys %s %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 		if len(lines[0]) > 120 && strings.Contains(lines[0], " <- ") {
@@ -196,17 +191,33 @@ func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline)
 			lines[0] = segments[0] + " <-"
 			lines = append(lines, segments[1])
 		}
-		lines = append(lines, describeAdditionalBuildDetail(deploy.Images[0].Build, deploy.Images[0].DestinationResolved, includeLastPass)...)
-		lines = append(lines, describeDeployments(deploy.Deployment, 3)...)
+		lines = append(lines, describeAdditionalBuildDetail(deploy.Images[0].Build, deploy.Images[0].LastSuccessfulBuild, deploy.Images[0].LastUnsuccessfulBuild, deploy.Images[0].ActiveBuilds, deploy.Images[0].DestinationResolved, includeLastPass)...)
+		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
 		return lines
 	}
 
 	lines := []string{fmt.Sprintf("%s deploys: %s", deploy.Deployment.Name, describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 	for _, image := range deploy.Images {
 		lines = append(lines, describeImageInPipeline(image, deploy.Deployment.Namespace))
-		lines = append(lines, describeAdditionalBuildDetail(image.Build, image.DestinationResolved, includeLastPass)...)
-		lines = append(lines, describeDeployments(deploy.Deployment, 3)...)
+		lines = append(lines, describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)
+		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
 	}
+	return lines
+}
+
+func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode) []string {
+	if rcNode.ReplicationController.Spec.Template == nil {
+		return []string{}
+	}
+
+	images := []string{}
+	for _, container := range rcNode.ReplicationController.Spec.Template.Spec.Containers {
+		images = append(images, container.Image)
+	}
+
+	lines := []string{fmt.Sprintf("rc/%s runs %s", rcNode.ReplicationController.Name, strings.Join(images, ", "))}
+	lines = append(lines, describeRCStatus(rcNode.ReplicationController))
+
 	return lines
 }
 
@@ -259,16 +270,16 @@ func describeImageTagInPipeline(image graphview.ImageTagLocation, namespace stri
 }
 
 func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.ImageTagLocation) string {
-	switch build.Parameters.Strategy.Type {
+	switch build.Spec.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:
 		// TODO: handle case where no source repo
-		source, ok := describeSourceInPipeline(&build.Parameters.Source)
+		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
 			return "docker build; no source set"
 		}
 		return fmt.Sprintf("docker build of %s", source)
 	case buildapi.SourceBuildStrategyType:
-		source, ok := describeSourceInPipeline(&build.Parameters.Source)
+		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
 			return fmt.Sprintf("unconfigured source build %s", build.Name)
 		}
@@ -277,7 +288,7 @@ func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.Im
 		}
 		return fmt.Sprintf("builds %s with %s", source, baseImage.ImageSpec())
 	case buildapi.CustomBuildStrategyType:
-		source, ok := describeSourceInPipeline(&build.Parameters.Source)
+		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
 			return fmt.Sprintf("custom build %s", build.Name)
 		}
@@ -287,53 +298,55 @@ func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.Im
 	}
 }
 
-func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, pushTargetResolved bool, includeSuccess bool) []string {
+func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSuccessfulBuild *buildgraph.BuildNode, lastUnsuccessfulBuild *buildgraph.BuildNode, activeBuilds []*buildgraph.BuildNode, pushTargetResolved bool, includeSuccess bool) []string {
 	if build == nil {
 		return nil
 	}
 	out := []string{}
 
-	pass := build.LastSuccessfulBuild
-	passTime := buildTimestamp(pass)
-	fail := build.LastUnsuccessfulBuild
-	failTime := buildTimestamp(fail)
+	passTime := util.Time{}
+	if lastSuccessfulBuild != nil {
+		passTime = buildTimestamp(lastSuccessfulBuild.Build)
+	}
+	failTime := util.Time{}
+	if lastUnsuccessfulBuild != nil {
+		failTime = buildTimestamp(lastUnsuccessfulBuild.Build)
+	}
 
-	last := failTime
+	lastTime := failTime
 	if passTime.After(failTime.Time) {
-		last = passTime
-		fail = nil
+		lastTime = passTime
 	}
 
-	if pass != nil && includeSuccess {
-		out = append(out, describeBuildStatus(pass, &passTime, build.BuildConfig.Name, pushTargetResolved))
+	if lastSuccessfulBuild != nil && includeSuccess {
+		out = append(out, describeBuildPhase(lastSuccessfulBuild.Build, &passTime, build.BuildConfig.Name, pushTargetResolved))
 	}
-	if fail != nil {
-		out = append(out, describeBuildStatus(fail, &failTime, build.BuildConfig.Name, pushTargetResolved))
+	if passTime.Before(failTime) {
+		out = append(out, describeBuildPhase(lastUnsuccessfulBuild.Build, &failTime, build.BuildConfig.Name, pushTargetResolved))
 	}
 
-	active := build.ActiveBuilds
-	if len(active) > 0 {
+	if len(activeBuilds) > 0 {
 		activeOut := []string{}
-		for i := range active {
-			activeOut = append(activeOut, describeBuildStatus(&active[i], nil, build.BuildConfig.Name, pushTargetResolved))
+		for i := range activeBuilds {
+			activeOut = append(activeOut, describeBuildPhase(activeBuilds[i].Build, nil, build.BuildConfig.Name, pushTargetResolved))
 		}
 
-		if buildTimestamp(&active[0]).Before(last) {
+		if buildTimestamp(activeBuilds[0].Build).Before(lastTime) {
 			out = append(out, activeOut...)
 		} else {
 			out = append(activeOut, out...)
 		}
 	}
-	if len(out) == 0 && pass == nil {
+	if len(out) == 0 && lastSuccessfulBuild == nil {
 		out = append(out, "not built yet")
 	}
 	return out
 }
 
-func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string, pushTargetResolved bool) string {
+func describeBuildPhase(build *buildapi.Build, t *util.Time, parentName string, pushTargetResolved bool) string {
 	imageStreamFailure := ""
 	// if we're using an image stream and that image stream is the internal registry and that registry doesn't exist
-	if (build.Parameters.Output.To != nil) && !pushTargetResolved {
+	if (build.Spec.Output.To != nil) && !pushTargetResolved {
 		imageStreamFailure = " (can't push to image)"
 	}
 
@@ -352,19 +365,19 @@ func describeBuildStatus(build *buildapi.Build, t *util.Time, parentName string,
 	if strings.HasPrefix(name, prefix) {
 		name = name[len(prefix):]
 	}
-	revision := describeSourceRevision(build.Parameters.Revision)
+	revision := describeSourceRevision(build.Spec.Revision)
 	if len(revision) != 0 {
 		revision = fmt.Sprintf(" - %s", revision)
 	}
-	switch build.Status {
-	case buildapi.BuildStatusComplete:
+	switch build.Status.Phase {
+	case buildapi.BuildPhaseComplete:
 		return fmt.Sprintf("build %s succeeded %s ago%s%s", name, time, revision, imageStreamFailure)
-	case buildapi.BuildStatusError:
+	case buildapi.BuildPhaseError:
 		return fmt.Sprintf("build %s stopped with an error %s ago%s%s", name, time, revision, imageStreamFailure)
-	case buildapi.BuildStatusFailed:
+	case buildapi.BuildPhaseFailed:
 		return fmt.Sprintf("build %s failed %s ago%s%s", name, time, revision, imageStreamFailure)
 	default:
-		status := strings.ToLower(string(build.Status))
+		status := strings.ToLower(string(build.Status.Phase))
 		return fmt.Sprintf("build %s %s for %s%s%s", name, status, time, revision, imageStreamFailure)
 	}
 }
@@ -406,11 +419,11 @@ func buildTimestamp(build *buildapi.Build) util.Time {
 	if build == nil {
 		return util.Time{}
 	}
-	if !build.CompletionTimestamp.IsZero() {
-		return *build.CompletionTimestamp
+	if !build.Status.CompletionTimestamp.IsZero() {
+		return *build.Status.CompletionTimestamp
 	}
-	if !build.StartTimestamp.IsZero() {
-		return *build.StartTimestamp
+	if !build.Status.StartTimestamp.IsZero() {
+		return *build.Status.StartTimestamp
 	}
 	return build.CreationTimestamp
 }
@@ -426,27 +439,27 @@ func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 	return "", false
 }
 
-func describeDeployments(node *deploygraph.DeploymentConfigNode, count int) []string {
-	if node == nil {
+func describeDeployments(dcNode *deploygraph.DeploymentConfigNode, activeDeployment *kubegraph.ReplicationControllerNode, inactiveDeployments []*kubegraph.ReplicationControllerNode, count int) []string {
+	if dcNode == nil {
 		return nil
 	}
 	out := []string{}
-	deployments := node.Deployments
+	deploymentsToPrint := append([]*kubegraph.ReplicationControllerNode{}, inactiveDeployments...)
 
-	if node.ActiveDeployment == nil {
-		on, auto := describeDeploymentConfigTriggers(node.DeploymentConfig)
-		if node.DeploymentConfig.LatestVersion == 0 {
+	if activeDeployment == nil {
+		on, auto := describeDeploymentConfigTriggers(dcNode.DeploymentConfig)
+		if dcNode.DeploymentConfig.LatestVersion == 0 {
 			out = append(out, fmt.Sprintf("#1 deployment waiting %s", on))
 		} else if auto {
-			out = append(out, fmt.Sprintf("#%d deployment pending %s", node.DeploymentConfig.LatestVersion, on))
+			out = append(out, fmt.Sprintf("#%d deployment pending %s", dcNode.DeploymentConfig.LatestVersion, on))
 		}
 		// TODO: detect new image available?
 	} else {
-		deployments = append([]*kapi.ReplicationController{node.ActiveDeployment}, deployments...)
+		deploymentsToPrint = append([]*kubegraph.ReplicationControllerNode{activeDeployment}, inactiveDeployments...)
 	}
 
-	for i, deployment := range deployments {
-		out = append(out, describeDeploymentStatus(deployment, i == 0))
+	for i, deployment := range deploymentsToPrint {
+		out = append(out, describeDeploymentStatus(deployment.ReplicationController, i == 0))
 
 		switch {
 		case count == -1:
@@ -473,35 +486,40 @@ func describeDeploymentStatus(deploy *kapi.ReplicationController, first bool) st
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("#%d deployment failed %s ago%s%s", version, timeAt, reason, describeDeploymentPodSummaryInline(deploy, false))
+		return fmt.Sprintf("#%d deployment failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(deploy, false))
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
-		return fmt.Sprintf("#%d deployed %s ago%s", version, timeAt, describeDeploymentPodSummaryInline(deploy, first))
+		return fmt.Sprintf("#%d deployed %s ago%s", version, timeAt, describePodSummaryInline(deploy, first))
 	case deployapi.DeploymentStatusRunning:
-		return fmt.Sprintf("#%d deployment running for %s%s", version, timeAt, describeDeploymentPodSummaryInline(deploy, false))
+		return fmt.Sprintf("#%d deployment running for %s%s", version, timeAt, describePodSummaryInline(deploy, false))
 	default:
-		return fmt.Sprintf("#%d deployment %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describeDeploymentPodSummaryInline(deploy, false))
+		return fmt.Sprintf("#%d deployment %s %s ago%s", version, strings.ToLower(string(status)), timeAt, describePodSummaryInline(deploy, false))
 	}
 }
 
-func describeDeploymentPodSummaryInline(deploy *kapi.ReplicationController, includeEmpty bool) string {
-	s := describeDeploymentPodSummary(deploy, includeEmpty)
+func describeRCStatus(rc *kapi.ReplicationController) string {
+	timeAt := strings.ToLower(formatRelativeTime(rc.CreationTimestamp.Time))
+	return fmt.Sprintf("rc/%s created %s ago%s", rc.Name, timeAt, describePodSummaryInline(rc, false))
+}
+
+func describePodSummaryInline(rc *kapi.ReplicationController, includeEmpty bool) string {
+	s := describePodSummary(rc, includeEmpty)
 	if len(s) == 0 {
 		return s
 	}
 	change := ""
-	desired := deploy.Spec.Replicas
+	desired := rc.Spec.Replicas
 	switch {
-	case desired < deploy.Status.Replicas:
+	case desired < rc.Status.Replicas:
 		change = fmt.Sprintf(" reducing to %d", desired)
-	case desired > deploy.Status.Replicas:
+	case desired > rc.Status.Replicas:
 		change = fmt.Sprintf(" growing to %d", desired)
 	}
 	return fmt.Sprintf(" - %s%s", s, change)
 }
 
-func describeDeploymentPodSummary(deploy *kapi.ReplicationController, includeEmpty bool) string {
-	actual, requested := deploy.Status.Replicas, deploy.Spec.Replicas
+func describePodSummary(rc *kapi.ReplicationController, includeEmpty bool) string {
+	actual, requested := rc.Status.Replicas, rc.Spec.Replicas
 	if actual == requested {
 		switch {
 		case actual == 0:
@@ -580,4 +598,95 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 		}
 		return " ports " + strings.Join(pairs, ", ")
 	}
+}
+
+func loadServices(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
+	svcs, err := kclient.Services(namespace).List(labels.Everything())
+	if err != nil {
+		return err
+	}
+
+	graphLock.Lock()
+	defer graphLock.Unlock()
+	for i := range svcs.Items {
+		kubegraph.EnsureServiceNode(g, &svcs.Items[i])
+	}
+
+	return nil
+}
+
+func loadBuildConfigs(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
+	bcs, err := client.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	graphLock.Lock()
+	defer graphLock.Unlock()
+	for i := range bcs.Items {
+		buildgraph.EnsureBuildConfigNode(g, &bcs.Items[i])
+	}
+
+	return nil
+}
+
+func loadImageStreams(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
+	iss, err := client.ImageStreams(namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	graphLock.Lock()
+	defer graphLock.Unlock()
+	for i := range iss.Items {
+		imagegraph.EnsureImageStreamNode(g, &iss.Items[i])
+		imagegraph.EnsureAllImageStreamTagNodes(g, &iss.Items[i])
+	}
+
+	return nil
+}
+
+func loadDeploymentConfigs(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
+	dcs, err := client.DeploymentConfigs(namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	graphLock.Lock()
+	defer graphLock.Unlock()
+	for i := range dcs.Items {
+		deploygraph.EnsureDeploymentConfigNode(g, &dcs.Items[i])
+	}
+
+	return nil
+}
+
+func loadBuilds(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
+	builds, err := client.Builds(namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	graphLock.Lock()
+	defer graphLock.Unlock()
+	for i := range builds.Items {
+		buildgraph.EnsureBuildNode(g, &builds.Items[i])
+	}
+
+	return nil
+}
+
+func loadReplicationControllers(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
+	rcs, err := kclient.ReplicationControllers(namespace).List(labels.Everything())
+	if err != nil {
+		return err
+	}
+
+	graphLock.Lock()
+	defer graphLock.Unlock()
+	for i := range rcs.Items {
+		kubegraph.EnsureReplicationControllerNode(g, &rcs.Items[i])
+	}
+
+	return nil
 }

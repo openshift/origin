@@ -27,12 +27,12 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
 
-	strategy := build.Parameters.Strategy.CustomStrategy
+	strategy := build.Spec.Strategy.CustomStrategy
 	containerEnv := []kapi.EnvVar{{Name: "BUILD", Value: string(data)}}
 
-	if build.Parameters.Source.Git != nil {
+	if build.Spec.Source.Git != nil {
 		containerEnv = append(containerEnv, kapi.EnvVar{
-			Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI,
+			Name: "SOURCE_REPOSITORY", Value: build.Spec.Source.Git.URI,
 		})
 	}
 
@@ -57,7 +57,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			Labels:    getPodLabels(build),
 		},
 		Spec: kapi.PodSpec{
-			ServiceAccountName: build.Parameters.ServiceAccount,
+			ServiceAccountName: build.Spec.ServiceAccount,
 			Containers: []kapi.Container{
 				{
 					Name:  "custom-build",
@@ -78,12 +78,12 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
-	pod.Spec.Containers[0].Resources = build.Parameters.Resources
+	pod.Spec.Containers[0].Resources = build.Spec.Resources
 
 	if strategy.ExposeDockerSocket {
 		setupDockerSocket(pod)
-		setupDockerSecrets(pod, build.Parameters.Output.PushSecret, strategy.PullSecret)
+		setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret)
 	}
-	setupSourceSecrets(pod, build.Parameters.Source.SourceSecret)
+	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
 	return pod, nil
 }

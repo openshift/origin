@@ -13,22 +13,28 @@ import (
 	"strings"
 	"time"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	dockercmd "github.com/docker/docker/builder/command"
 	"github.com/docker/docker/builder/parser"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/tar"
-
-	docker "github.com/fsouza/go-dockerclient"
 )
 
-// urlCheckTimeout is the timeout used to check the source URL
-// If fetching the URL exceeds the timeout, then the build will
-// not proceed further and stop
-const urlCheckTimeout = 16 * time.Second
+const (
+	// urlCheckTimeout is the timeout used to check the source URL
+	// If fetching the URL exceeds the timeout, then the build will
+	// not proceed further and stop
+	urlCheckTimeout = 16 * time.Second
+
+	// noOutputDefaultTag is used as the tag name for docker built images that will
+	// not be pushed because no Output value was defined in the BuildConfig
+	noOutputDefaultTag = "noOutputDefaultTag"
+)
 
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
@@ -70,25 +76,37 @@ func (d *DockerBuilder) Build() error {
 	if err = d.dockerBuild(buildDir); err != nil {
 		return err
 	}
-	tag := d.build.Parameters.Output.DockerImageReference
-	defer removeImage(d.dockerClient, tag)
 
-	dockerImageRef := d.build.Parameters.Output.DockerImageReference
-	if len(dockerImageRef) != 0 {
+	var push bool
+
+	// if there is no output target, set one up so the docker build logic
+	// will still work, but we won't push it at the end.
+	if d.build.Spec.Output.To == nil || len(d.build.Spec.Output.To.Name) == 0 {
+		d.build.Spec.Output.To = &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: noOutputDefaultTag,
+		}
+		push = false
+	} else {
+		push = true
+	}
+	defer removeImage(d.dockerClient, d.build.Spec.Output.To.Name)
+
+	if push {
 		// Get the Docker push authentication
 		pushAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(
-			dockerImageRef,
+			d.build.Spec.Output.To.Name,
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
 			glog.V(3).Infof("Using Docker authentication provided")
 			d.auth = pushAuthConfig
 		}
-		glog.Infof("Pushing %s image ...", dockerImageRef)
-		if err := pushImage(d.dockerClient, tag, d.auth); err != nil {
+		glog.Infof("Pushing %s image ...", d.build.Spec.Output.To.Name)
+		if err := pushImage(d.dockerClient, d.build.Spec.Output.To.Name, d.auth); err != nil {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
-		glog.Infof("Successfully pushed %s", dockerImageRef)
+		glog.Infof("Successfully pushed %s", d.build.Spec.Output.To.Name)
 	}
 	return nil
 }
@@ -96,7 +114,7 @@ func (d *DockerBuilder) Build() error {
 // checkSourceURI performs a check on the URI associated with the build
 // to make sure that it is live before proceeding with the build.
 func (d *DockerBuilder) checkSourceURI() error {
-	rawurl := d.build.Parameters.Source.Git.URI
+	rawurl := d.build.Spec.Source.Git.URI
 	if !d.git.ValidCloneSpec(rawurl) {
 		return fmt.Errorf("Invalid git source url: %s", rawurl)
 	}
@@ -138,20 +156,20 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 	origProxy := make(map[string]string)
 	var setHttp, setHttps bool
 	// set the http proxy to be used by the git clone performed by S2I
-	if len(d.build.Parameters.Source.Git.HTTPSProxy) != 0 {
-		glog.V(2).Infof("Setting https proxy variables for Git to %s", d.build.Parameters.Source.Git.HTTPSProxy)
+	if len(d.build.Spec.Source.Git.HTTPSProxy) != 0 {
+		glog.V(2).Infof("Setting https proxy variables for Git to %s", d.build.Spec.Source.Git.HTTPSProxy)
 		origProxy["HTTPS_PROXY"] = os.Getenv("HTTPS_PROXY")
 		origProxy["https_proxy"] = os.Getenv("https_proxy")
-		os.Setenv("HTTPS_PROXY", d.build.Parameters.Source.Git.HTTPSProxy)
-		os.Setenv("https_proxy", d.build.Parameters.Source.Git.HTTPSProxy)
+		os.Setenv("HTTPS_PROXY", d.build.Spec.Source.Git.HTTPSProxy)
+		os.Setenv("https_proxy", d.build.Spec.Source.Git.HTTPSProxy)
 		setHttps = true
 	}
-	if len(d.build.Parameters.Source.Git.HTTPProxy) != 0 {
-		glog.V(2).Infof("Setting http proxy variables for Git to %s", d.build.Parameters.Source.Git.HTTPSProxy)
+	if len(d.build.Spec.Source.Git.HTTPProxy) != 0 {
+		glog.V(2).Infof("Setting http proxy variables for Git to %s", d.build.Spec.Source.Git.HTTPSProxy)
 		origProxy["HTTP_PROXY"] = os.Getenv("HTTP_PROXY")
 		origProxy["http_proxy"] = os.Getenv("http_proxy")
-		os.Setenv("HTTP_PROXY", d.build.Parameters.Source.Git.HTTPProxy)
-		os.Setenv("http_proxy", d.build.Parameters.Source.Git.HTTPProxy)
+		os.Setenv("HTTP_PROXY", d.build.Spec.Source.Git.HTTPProxy)
+		os.Setenv("http_proxy", d.build.Spec.Source.Git.HTTPProxy)
 		setHttp = true
 	}
 	defer func() {
@@ -170,22 +188,22 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 		}
 	}()
 
-	if err := d.git.Clone(d.build.Parameters.Source.Git.URI, dir); err != nil {
+	if err := d.git.Clone(d.build.Spec.Source.Git.URI, dir); err != nil {
 		return err
 	}
 
-	if d.build.Parameters.Source.Git.Ref == "" &&
-		(d.build.Parameters.Revision == nil ||
-			d.build.Parameters.Revision.Git == nil ||
-			d.build.Parameters.Revision.Git.Commit == "") {
+	if d.build.Spec.Source.Git.Ref == "" &&
+		(d.build.Spec.Revision == nil ||
+			d.build.Spec.Revision.Git == nil ||
+			d.build.Spec.Revision.Git.Commit == "") {
 		return nil
 	}
-	if d.build.Parameters.Revision != nil &&
-		d.build.Parameters.Revision.Git != nil &&
-		d.build.Parameters.Revision.Git.Commit != "" {
-		return d.git.Checkout(dir, d.build.Parameters.Revision.Git.Commit)
+	if d.build.Spec.Revision != nil &&
+		d.build.Spec.Revision.Git != nil &&
+		d.build.Spec.Revision.Git.Commit != "" {
+		return d.git.Checkout(dir, d.build.Spec.Revision.Git.Commit)
 	}
-	return d.git.Checkout(dir, d.build.Parameters.Source.Git.Ref)
+	return d.git.Checkout(dir, d.build.Spec.Source.Git.Ref)
 }
 
 // addBuildParameters checks if a Image is set to replace the default base image.
@@ -193,8 +211,8 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 // Also append the environment variables in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
 	dockerfilePath := filepath.Join(dir, "Dockerfile")
-	if d.build.Parameters.Strategy.DockerStrategy != nil && len(d.build.Parameters.Source.ContextDir) > 0 {
-		dockerfilePath = filepath.Join(dir, d.build.Parameters.Source.ContextDir, "Dockerfile")
+	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Source.ContextDir) > 0 {
+		dockerfilePath = filepath.Join(dir, d.build.Spec.Source.ContextDir, "Dockerfile")
 	}
 
 	fileStat, err := os.Lstat(dockerfilePath)
@@ -210,8 +228,8 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	var newFileData string
-	if d.build.Parameters.Strategy.DockerStrategy.From != nil && d.build.Parameters.Strategy.DockerStrategy.From.Kind == "DockerImage" {
-		newFileData, err = replaceValidCmd(dockercmd.From, d.build.Parameters.Strategy.DockerStrategy.From.Name, fileData)
+	if d.build.Spec.Strategy.DockerStrategy.From != nil && d.build.Spec.Strategy.DockerStrategy.From.Kind == "DockerImage" {
+		newFileData, err = replaceValidCmd(dockercmd.From, d.build.Spec.Strategy.DockerStrategy.From.Name, fileData)
 		if err != nil {
 			return err
 		}
@@ -394,15 +412,15 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 // dockerBuild performs a docker build on the source that has been retrieved
 func (d *DockerBuilder) dockerBuild(dir string) error {
 	var noCache bool
-	if d.build.Parameters.Strategy.DockerStrategy != nil {
-		if d.build.Parameters.Source.ContextDir != "" {
-			dir = filepath.Join(dir, d.build.Parameters.Source.ContextDir)
+	if d.build.Spec.Strategy.DockerStrategy != nil {
+		if d.build.Spec.Source.ContextDir != "" {
+			dir = filepath.Join(dir, d.build.Spec.Source.ContextDir)
 		}
-		noCache = d.build.Parameters.Strategy.DockerStrategy.NoCache
+		noCache = d.build.Spec.Strategy.DockerStrategy.NoCache
 	}
 	auth, err := d.setupPullSecret()
 	if err != nil {
 		return err
 	}
-	return buildImage(d.dockerClient, dir, noCache, d.build.Parameters.Output.DockerImageReference, d.tar, auth)
+	return buildImage(d.dockerClient, dir, noCache, d.build.Spec.Output.To.Name, d.tar, auth)
 }

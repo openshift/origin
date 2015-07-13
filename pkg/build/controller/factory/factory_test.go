@@ -26,19 +26,19 @@ func TestLimitedLogAndRetryFinish(t *testing.T) {
 
 	now := kutil.Now()
 	retry := controller.Retry{0, kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-31, now.Second(), now.Nanosecond(), now.Location())}
-	if limitedLogAndRetry(updater, 30*time.Minute)(&buildapi.Build{Status: buildapi.BuildStatusNew}, err, retry) {
+	if limitedLogAndRetry(updater, 30*time.Minute)(&buildapi.Build{Status: buildapi.BuildStatus{Phase: buildapi.BuildPhaseNew}}, err, retry) {
 		t.Error("Expected no more retries after reaching timeout!")
 	}
 	if updater.Build == nil {
 		t.Fatal("BuildUpdater wasn't called!")
 	}
-	if updater.Build.Status != buildapi.BuildStatusFailed {
-		t.Errorf("Expected status %s, got %s!", buildapi.BuildStatusFailed, updater.Build.Status)
+	if updater.Build.Status.Phase != buildapi.BuildPhaseFailed {
+		t.Errorf("Expected status %s, got %s!", buildapi.BuildPhaseFailed, updater.Build.Status.Phase)
 	}
-	if !strings.Contains(updater.Build.Message, err.Error()) {
-		t.Errorf("Expected message to contain %v, got %s!", err, updater.Build.Status)
+	if !strings.Contains(updater.Build.Status.Message, err.Error()) {
+		t.Errorf("Expected message to contain %v, got %s!", err.Error(), updater.Build.Status.Message)
 	}
-	if updater.Build.CompletionTimestamp == nil {
+	if updater.Build.Status.CompletionTimestamp == nil {
 		t.Error("Expected CompletionTimestamp to be set!")
 	}
 }
@@ -49,7 +49,7 @@ func TestLimitedLogAndRetryProcessing(t *testing.T) {
 
 	now := kutil.Now()
 	retry := controller.Retry{0, kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-10, now.Second(), now.Nanosecond(), now.Location())}
-	if !limitedLogAndRetry(updater, 30*time.Minute)(&buildapi.Build{Status: buildapi.BuildStatusNew}, err, retry) {
+	if !limitedLogAndRetry(updater, 30*time.Minute)(&buildapi.Build{Status: buildapi.BuildStatus{Phase: buildapi.BuildPhaseNew}}, err, retry) {
 		t.Error("Expected more retries!")
 	}
 	if updater.Build != nil {

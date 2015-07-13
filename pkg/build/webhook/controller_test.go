@@ -17,22 +17,24 @@ type okBuildConfigGetter struct{}
 
 func (*okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
-		Parameters: api.BuildParameters{
-			Strategy: api.BuildStrategy{
-				Type: "STI",
-				SourceStrategy: &api.SourceBuildStrategy{
-					From: kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "repository/builder-image",
+		Spec: api.BuildConfigSpec{
+			BuildSpec: api.BuildSpec{
+				Strategy: api.BuildStrategy{
+					Type: "Source",
+					SourceStrategy: &api.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/builder-image",
+						},
 					},
 				},
 			},
-		},
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &api.WebHookTrigger{
-					Secret: "secret101",
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &api.WebHookTrigger{
+						Secret: "secret101",
+					},
 				},
 			},
 		},
@@ -254,13 +256,15 @@ func (i *testBuildConfigInterface) Get(namespace, name string) (*api.BuildConfig
 func TestInvokeWebhookOK(t *testing.T) {
 	var buildRequest string
 	buildConfig := &api.BuildConfig{
-		Parameters: api.BuildParameters{
-			Strategy: api.BuildStrategy{
-				Type: "STI",
-				SourceStrategy: &api.SourceBuildStrategy{
-					From: kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "repository/builder-image",
+		Spec: api.BuildConfigSpec{
+			BuildSpec: api.BuildSpec{
+				Strategy: api.BuildStrategy{
+					Type: "Source",
+					SourceStrategy: &api.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/builder-image",
+						},
 					},
 				},
 			},

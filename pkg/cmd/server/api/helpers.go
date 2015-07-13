@@ -81,6 +81,9 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 			case (*HTPasswdPasswordIdentityProvider):
 				refs = append(refs, &provider.File)
 
+			case (*LDAPPasswordIdentityProvider):
+				refs = append(refs, &provider.CA)
+
 			case (*BasicAuthPasswordIdentityProvider):
 				refs = append(refs, &provider.RemoteConnectionInfo.CA)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
@@ -103,6 +106,7 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.KubernetesMasterConfig.SchedulerConfigFile)
 	}
 
+	refs = append(refs, &config.ServiceAccountConfig.MasterCA)
 	refs = append(refs, &config.ServiceAccountConfig.PrivateKeyFile)
 	for i := range config.ServiceAccountConfig.PublicKeyFiles {
 		refs = append(refs, &config.ServiceAccountConfig.PublicKeyFiles[i])
@@ -314,7 +318,8 @@ func IsPasswordAuthenticator(provider IdentityProvider) bool {
 		(*BasicAuthPasswordIdentityProvider),
 		(*AllowAllPasswordIdentityProvider),
 		(*DenyAllPasswordIdentityProvider),
-		(*HTPasswdPasswordIdentityProvider):
+		(*HTPasswdPasswordIdentityProvider),
+		(*LDAPPasswordIdentityProvider):
 
 		return true
 	}
@@ -330,6 +335,7 @@ func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
 		(*AllowAllPasswordIdentityProvider),
 		(*DenyAllPasswordIdentityProvider),
 		(*HTPasswdPasswordIdentityProvider),
+		(*LDAPPasswordIdentityProvider),
 		(*OpenIDIdentityProvider),
 		(*GitHubIdentityProvider),
 		(*GoogleIdentityProvider):

@@ -66,7 +66,7 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 	if err = json.Unmarshal(body, &event); err != nil {
 		return
 	}
-	proceed = webhook.GitRefMatches(event.Ref, buildCfg.Parameters.Source.Git.Ref)
+	proceed = webhook.GitRefMatches(event.Ref, buildCfg.Spec.Source.Git.Ref)
 	if !proceed {
 		glog.V(2).Infof("Skipping build for BuildConfig %s/%s.  Branch reference from '%s' does not match configuration", buildCfg.Namespace, buildCfg, event)
 	}

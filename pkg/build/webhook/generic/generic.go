@@ -37,7 +37,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		return
 	}
 
-	git := buildCfg.Parameters.Source.Git
+	git := buildCfg.Spec.Source.Git
 	if git == nil {
 		glog.V(4).Infof("No source defined for BuildConfig %s/%s, but triggering anyway", buildCfg.Namespace, buildCfg.Name)
 		return nil, true, nil

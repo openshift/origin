@@ -128,7 +128,7 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 
 	validationResults.AddErrors(ValidatePolicyConfig(config.PolicyConfig).Prefix("policyConfig")...)
 	if config.OAuthConfig != nil {
-		validationResults.AddErrors(ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig")...)
+		validationResults.Append(ValidateOAuthConfig(config.OAuthConfig).Prefix("oauthConfig"))
 	}
 
 	validationResults.Append(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig"))
@@ -226,6 +226,12 @@ func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubern
 		} else if _, err := serviceaccount.ReadPublicKey(publicKeyFile); err != nil {
 			validationResults.AddErrors(fielderrors.NewFieldInvalid(fmt.Sprintf("publicKeyFiles[%d]", i), publicKeyFile, err.Error()))
 		}
+	}
+
+	if len(config.MasterCA) > 0 {
+		validationResults.AddErrors(ValidateFile(config.MasterCA, "masterCA")...)
+	} else if builtInKubernetes {
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("masterCA", "", "master CA information will not be automatically injected into pods, which will prevent verification of the API server from inside a pod"))
 	}
 
 	return validationResults

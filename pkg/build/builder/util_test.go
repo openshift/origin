@@ -15,9 +15,12 @@ func TestImageTag(t *testing.T) {
 	tests := []tagTest{
 		{
 			build: api.Build{
-				Parameters: api.BuildParameters{
+				Spec: api.BuildSpec{
 					Output: api.BuildOutput{
-						DockerImageReference: "test/tag",
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "test/tag",
+						},
 					},
 				},
 			},
@@ -25,9 +28,12 @@ func TestImageTag(t *testing.T) {
 		},
 		{
 			build: api.Build{
-				Parameters: api.BuildParameters{
+				Spec: api.BuildSpec{
 					Output: api.BuildOutput{
-						DockerImageReference: "registry-server.test:5000/test/tag",
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "registry-server.test:5000/test/tag",
+						},
 					},
 				},
 			},
@@ -35,7 +41,7 @@ func TestImageTag(t *testing.T) {
 		},
 	}
 	for _, x := range tests {
-		result := x.build.Parameters.Output.DockerImageReference
+		result := x.build.Spec.Output.To.Name
 		if result != x.expected {
 			t.Errorf("Unexpected imageTag result. Expected: %s, Actual: %s",
 				result, x.expected)
@@ -48,7 +54,7 @@ func TestGetBuildEnvVars(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "1234",
 		},
-		Parameters: api.BuildParameters{
+		Spec: api.BuildSpec{
 			Source: api.BuildSource{
 				Git: &api.GitBuildSource{
 					URI: "github.com/build/uri",

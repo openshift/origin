@@ -1,13 +1,9 @@
 package graph
 
 import (
-	"sort"
-
-	"github.com/golang/glog"
 	"github.com/gonum/graph"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
-	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -18,26 +14,48 @@ const (
 	BuildInputImageEdgeKind = "BuildInputImage"
 	BuildOutputEdgeKind     = "BuildOutput"
 	BuildInputEdgeKind      = "BuildInput"
+
+	// BuildEdgeKind goes from a BuildConfigNode to a BuildNode and indicates that the buildConfig owns the build
+	BuildEdgeKind = "Build"
 )
+
+func AddBuildEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNode) {
+	for _, n := range g.(graph.Graph).NodeList() {
+		if buildNode, ok := n.(*buildgraph.BuildNode); ok {
+			if belongsToBuildConfig(node.BuildConfig, buildNode.Build) {
+				g.AddEdge(node, buildNode, BuildEdgeKind)
+			}
+		}
+	}
+}
+
+func AddAllBuildEdges(g osgraph.MutableUniqueGraph) {
+	for _, node := range g.(graph.Graph).NodeList() {
+		if bcNode, ok := node.(*buildgraph.BuildConfigNode); ok {
+			AddBuildEdges(g, bcNode)
+		}
+	}
+}
 
 // AddInputOutputEdges links the build config to other nodes for the images and source repositories it depends on.
 func AddInputOutputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNode) *buildgraph.BuildConfigNode {
-	output := node.BuildConfig.Parameters.Output
+	output := node.BuildConfig.Spec.Output
 	to := output.To
 	switch {
-	case to != nil && len(to.Name) > 0:
-		out := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(to.Namespace, node.BuildConfig.Namespace), to.Name, output.Tag))
+	case to == nil:
+	case to.Kind == "DockerImage":
+		out := imagegraph.EnsureDockerRepositoryNode(g, to.Name, "")
 		g.AddEdge(node, out, BuildOutputEdgeKind)
-	case len(output.DockerImageReference) > 0:
-		out := imagegraph.EnsureDockerRepositoryNode(g, output.DockerImageReference, output.Tag)
+	case to.Kind == "ImageStreamTag":
+		out := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta2(defaultNamespace(to.Namespace, node.BuildConfig.Namespace), to.Name))
 		g.AddEdge(node, out, BuildOutputEdgeKind)
 	}
 
-	if in := buildgraph.EnsureSourceRepositoryNode(g, node.BuildConfig.Parameters.Source); in != nil {
+	if in := buildgraph.EnsureSourceRepositoryNode(g, node.BuildConfig.Spec.Source); in != nil {
 		g.AddEdge(in, node, BuildInputEdgeKind)
 	}
 
-	from := buildutil.GetImageStreamForStrategy(node.BuildConfig.Parameters.Strategy)
+	from := buildutil.GetImageStreamForStrategy(node.BuildConfig.Spec.Strategy)
 	if from != nil {
 		switch from.Kind {
 		case "DockerImage":
@@ -48,15 +66,14 @@ func AddInputOutputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildCon
 				g.AddEdge(in, node, BuildInputImageEdgeKind)
 			}
 		case "ImageStream":
-			tag := imageapi.DefaultImageTag
-			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name, tag))
+			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name, imageapi.DefaultImageTag))
 			g.AddEdge(in, node, BuildInputImageEdgeKind)
 		case "ImageStreamTag":
-			name, tag, _ := imageapi.SplitImageStreamTag(from.Name)
-			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), name, tag))
+			in := imagegraph.FindOrCreateSyntheticImageStreamTagNode(g, imagegraph.MakeImageStreamTagObjectMeta2(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name))
 			g.AddEdge(in, node, BuildInputImageEdgeKind)
 		case "ImageStreamImage":
-			glog.V(4).Infof("Ignoring ImageStreamImage reference in BuildConfig %s/%s", node.BuildConfig.Namespace, node.BuildConfig.Name)
+			in := imagegraph.FindOrCreateSyntheticImageStreamImageNode(g, imagegraph.MakeImageStreamImageObjectMeta(defaultNamespace(from.Namespace, node.BuildConfig.Namespace), from.Name))
+			g.AddEdge(in, node, BuildInputImageEdgeKind)
 		}
 	}
 	return node
@@ -68,57 +85,4 @@ func AddAllInputOutputEdges(g osgraph.MutableUniqueGraph) {
 			AddInputOutputEdges(g, bcNode)
 		}
 	}
-}
-
-// TODO kill this.  It should be based on an edge traversal to loaded builds
-func JoinBuilds(node *buildgraph.BuildConfigNode, builds []buildapi.Build) {
-	matches := []*buildapi.Build{}
-	for i := range builds {
-		if belongsToBuildConfig(node.BuildConfig, &builds[i]) {
-			matches = append(matches, &builds[i])
-		}
-	}
-	if len(matches) == 0 {
-		return
-	}
-	sort.Sort(RecentBuildReferences(matches))
-	for i := range matches {
-		switch matches[i].Status {
-		case buildapi.BuildStatusComplete:
-			if node.LastSuccessfulBuild == nil {
-				node.LastSuccessfulBuild = matches[i]
-			}
-		case buildapi.BuildStatusFailed, buildapi.BuildStatusCancelled, buildapi.BuildStatusError:
-			if node.LastUnsuccessfulBuild == nil {
-				node.LastUnsuccessfulBuild = matches[i]
-			}
-		default:
-			node.ActiveBuilds = append(node.ActiveBuilds, *matches[i])
-		}
-	}
-}
-
-func belongsToBuildConfig(config *buildapi.BuildConfig, b *buildapi.Build) bool {
-	if b.Labels == nil {
-		return false
-	}
-	if b.Labels[buildapi.BuildConfigLabel] == config.Name {
-		return true
-	}
-	return false
-}
-
-type RecentBuildReferences []*buildapi.Build
-
-func (m RecentBuildReferences) Len() int      { return len(m) }
-func (m RecentBuildReferences) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
-func (m RecentBuildReferences) Less(i, j int) bool {
-	return m[i].CreationTimestamp.After(m[j].CreationTimestamp.Time)
-}
-
-func defaultNamespace(value, defaultValue string) string {
-	if len(value) == 0 {
-		return defaultValue
-	}
-	return value
 }

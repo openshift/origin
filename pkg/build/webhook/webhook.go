@@ -25,7 +25,7 @@ func GitRefMatches(eventRef, configRef string) bool {
 
 // FindTriggerPolicy retrieves the BuildTrigger of a given type from a build configuration
 func FindTriggerPolicy(triggerType api.BuildTriggerType, config *api.BuildConfig) (*api.BuildTriggerPolicy, bool) {
-	for _, p := range config.Triggers {
+	for _, p := range config.Spec.Triggers {
 		if p.Type == triggerType {
 			return &p, true
 		}

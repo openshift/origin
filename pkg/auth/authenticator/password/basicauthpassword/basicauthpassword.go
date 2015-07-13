@@ -75,6 +75,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	if err != nil {
 		return nil, false, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return nil, false, nil

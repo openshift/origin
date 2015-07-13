@@ -101,6 +101,85 @@ func TestCreateDockerfileWithAssemble(t *testing.T) {
 	}
 }
 
+func TestCheckNoRoot(t *testing.T) {
+	tests := []struct {
+		name      string
+		noRoot    bool
+		user      string
+		onbuild   []string
+		expectErr bool
+	}{
+		{
+			name:      "NoRoot is not set",
+			noRoot:    false,
+			user:      "root",
+			onbuild:   []string{},
+			expectErr: false,
+		},
+		{
+			name:      "NoRoot is set, non-numeric user",
+			noRoot:    true,
+			user:      "default",
+			onbuild:   []string{},
+			expectErr: true,
+		},
+		{
+			name:      "NoRoot is set, user 0",
+			noRoot:    true,
+			user:      "0",
+			onbuild:   []string{},
+			expectErr: true,
+		},
+		{
+			name:      "NoRoot is set, numeric user, non-numeric onbuild",
+			noRoot:    true,
+			user:      "100",
+			onbuild:   []string{"COPY test test", "USER default"},
+			expectErr: true,
+		},
+		{
+			name:      "NoRoot is set, numeric user, no onbuild user directive",
+			noRoot:    true,
+			user:      "200",
+			onbuild:   []string{"VOLUME /data"},
+			expectErr: false,
+		},
+		{
+			name:      "NoRoot is set, numeric user, onbuild numeric user directive",
+			noRoot:    true,
+			user:      "200",
+			onbuild:   []string{"USER 500", "VOLUME /data"},
+			expectErr: false,
+		},
+		{
+			name:      "NoRoot is set, numeric user, onbuild user 0",
+			noRoot:    true,
+			user:      "200",
+			onbuild:   []string{"RUN echo \"hello world\"", "USER 0"},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		cfg := &api.Config{
+			NoRoot: tc.noRoot,
+		}
+		onbuild := &OnBuild{
+			docker: &test.FakeDocker{
+				GetImageUserResult: tc.user,
+				GetOnBuildResult:   tc.onbuild,
+			},
+		}
+		err := onbuild.checkNoRoot(cfg)
+		if err != nil && !tc.expectErr {
+			t.Errorf("%s: unexpected error: %v", tc.name, err)
+		}
+		if err == nil && tc.expectErr {
+			t.Errorf("%s: expected error, but did not get any", tc.name)
+		}
+	}
+}
+
 func TestBuild(t *testing.T) {
 	fakeRequest := &api.Config{
 		BuilderImage: "fake:onbuild",

@@ -85,6 +85,7 @@
           overflow: hidden;
           text-overflow: ellipsis;
           line-height: 1.3;
+          white-space: nowrap;
         }
         &.meta-data {
           @media (min-width: @screen-sm-min) {
@@ -295,6 +296,17 @@
         font-family: @font-family-base;
         font-size: 11px;
       }
+    }
+  }
+}
+
+.build-well, .pod-well {
+  overflow: hidden;
+  margin-bottom: 10px;
+  .build-detail, .pod-detail {
+    margin-bottom: 3px;
+    .build-detail-label, .pod-detail-label {
+      margin-right: 10px;
     }
   }
 }

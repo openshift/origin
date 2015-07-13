@@ -43,7 +43,10 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 		return err
 	}
 	if waitForReplicas != nil {
-		rc := &kapi.ReplicationController{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: rcName}}
+		rc, err := scaler.c.GetReplicationController(namespace, name)
+		if err != nil {
+			return err
+		}
 		return wait.Poll(waitForReplicas.Interval, waitForReplicas.Timeout,
 			scaler.c.ControllerHasDesiredReplicas(rc))
 	}
@@ -84,8 +87,6 @@ type realScalerClient struct {
 	kc kclient.Interface
 }
 
-var rcName string
-
 // GetReplicationController returns the most recent replication controller associated with the deploymentConfig
 // with the provided namespace/name combination
 func (c *realScalerClient) GetReplicationController(namespace, name string) (*kapi.ReplicationController, error) {
@@ -93,8 +94,7 @@ func (c *realScalerClient) GetReplicationController(namespace, name string) (*ka
 	if err != nil {
 		return nil, err
 	}
-	rcName = util.LatestDeploymentNameForConfig(dc)
-	return c.kc.ReplicationControllers(namespace).Get(rcName)
+	return c.kc.ReplicationControllers(namespace).Get(util.LatestDeploymentNameForConfig(dc))
 }
 
 // UpdateReplicationController updates the provided replication controller

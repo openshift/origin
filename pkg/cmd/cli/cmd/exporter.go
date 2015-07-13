@@ -127,25 +127,24 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 	case *buildapi.BuildConfig:
 		buildconfigrest.Strategy.PrepareForCreate(obj)
 		// TODO: should be handled by prepare for create
-		t.LastVersion = 0
-		for i := range t.Triggers {
-			if p := t.Triggers[i].ImageChange; p != nil {
+		t.Status.LastVersion = 0
+		for i := range t.Spec.Triggers {
+			if p := t.Spec.Triggers[i].ImageChange; p != nil {
 				p.LastTriggeredImageID = ""
 			}
 		}
 	case *buildapi.Build:
 		buildrest.Strategy.PrepareForCreate(obj)
 		// TODO: should be handled by prepare for create
-		t.Duration = 0
-		t.Message = ""
-		t.Status = buildapi.BuildStatusNew
-		t.StartTimestamp = nil
-		t.CompletionTimestamp = nil
+		t.Status.Duration = 0
+		t.Status.Phase = buildapi.BuildPhaseNew
+		t.Status.StartTimestamp = nil
+		t.Status.CompletionTimestamp = nil
 		if exact {
 			return nil
 		}
-		if t.Config != nil {
-			t.Config = &kapi.ObjectReference{Name: t.Config.Name}
+		if t.Status.Config != nil {
+			t.Status.Config = &kapi.ObjectReference{Name: t.Status.Config.Name}
 		}
 	case *routeapi.Route:
 	case *imageapi.Image:

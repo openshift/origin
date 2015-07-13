@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	ImageStreamNodeKind    = reflect.TypeOf(imageapi.ImageStream{}).Name()
-	ImageNodeKind          = reflect.TypeOf(imageapi.Image{}).Name()
-	ImageStreamTagNodeKind = reflect.TypeOf(imageapi.ImageStreamTag{}).Name()
+	ImageStreamNodeKind      = reflect.TypeOf(imageapi.ImageStream{}).Name()
+	ImageNodeKind            = reflect.TypeOf(imageapi.Image{}).Name()
+	ImageStreamTagNodeKind   = reflect.TypeOf(imageapi.ImageStreamTag{}).Name()
+	ImageStreamImageNodeKind = reflect.TypeOf(imageapi.ImageStreamImage{}).Name()
 
 	// non-api types
 	DockerRepositoryNodeKind = reflect.TypeOf(imageapi.DockerImageReference{}).Name()
@@ -80,6 +81,29 @@ func (n ImageStreamTagNode) String() string {
 
 func (*ImageStreamTagNode) Kind() string {
 	return ImageStreamTagNodeKind
+}
+
+func ImageStreamImageNodeName(o *imageapi.ImageStreamImage) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(ImageStreamImageNodeKind, o)
+}
+
+type ImageStreamImageNode struct {
+	osgraph.Node
+	*imageapi.ImageStreamImage
+
+	IsFound bool
+}
+
+func (n ImageStreamImageNode) Object() interface{} {
+	return n.ImageStreamImage
+}
+
+func (n ImageStreamImageNode) String() string {
+	return string(ImageStreamImageNodeName(n.ImageStreamImage))
+}
+
+func (*ImageStreamImageNode) Kind() string {
+	return ImageStreamImageNodeKind
 }
 
 func DockerImageRepositoryNodeName(o imageapi.DockerImageReference) osgraph.UniqueName {

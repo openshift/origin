@@ -346,6 +346,10 @@ type ServiceAccountConfig struct {
 	// Each key is tried in order until the list is exhausted or verification succeeds.
 	// If no keys are specified, no service account authentication will be available.
 	PublicKeyFiles []string
+
+	// MasterCA is the CA for verifying the TLS connection back to the master.  The service account controller will automatically
+	// inject the contents of this file into pods so they can verify connections to the master.
+	MasterCA string
 }
 
 type TokenConfig struct {
@@ -414,6 +418,42 @@ type HTPasswdPasswordIdentityProvider struct {
 
 	// File is a reference to your htpasswd file
 	File string
+}
+
+type LDAPPasswordIdentityProvider struct {
+	api.TypeMeta
+	// URL is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is
+	//    ldap://host:port/basedn?attribute?scope?filter
+	URL string
+	// BindDN is an optional DN to bind with during the search phase.
+	BindDN string
+	// BindPassword is an optional password to bind with during the search phase.
+	BindPassword string
+	// Insecure, if true, indicates the connection should not use TLS.
+	// Cannot be set to true with a URL scheme of "ldaps://"
+	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830
+	Insecure bool
+	// CA is the optional trusted certificate authority bundle to use when making requests to the server
+	// If empty, the default system roots are used
+	CA string
+	// Attributes maps LDAP attributes to identities
+	Attributes LDAPAttributes
+}
+
+type LDAPAttributes struct {
+	// ID is the list of attributes whose values should be used as the user ID. Required.
+	// LDAP standard identity attribute is "dn"
+	ID []string
+	// PreferredUsername is the list of attributes whose values should be used as the preferred username.
+	// LDAP standard login attribute is "uid"
+	PreferredUsername []string
+	// Name is the list of attributes whose values should be used as the display name. Optional.
+	// If unspecified, no display name is set for the identity
+	// LDAP standard display name attribute is "cn"
+	Name []string
+	// Email is the list of attributes whose values should be used as the email address. Optional.
+	// If unspecified, no email is set for the identity
+	Email []string
 }
 
 type RequestHeaderIdentityProvider struct {

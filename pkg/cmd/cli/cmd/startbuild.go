@@ -168,7 +168,7 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 		if err != nil {
 			return err
 		}
-		ref := build.Config
+		ref := build.Status.Config
 		if ref == nil {
 			return fmt.Errorf("the provided Build %q was not created from a BuildConfig and cannot have webhooks", name)
 		}
@@ -182,7 +182,7 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 		return err
 	}
 
-	for _, t := range config.Triggers {
+	for _, t := range config.Spec.Triggers {
 		hookType := ""
 		switch {
 		case t.GenericWebHook != nil && generic:

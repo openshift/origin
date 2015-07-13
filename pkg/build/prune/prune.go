@@ -34,11 +34,11 @@ func NewPruneTasker(buildConfigs []*buildapi.BuildConfig, builds []*buildapi.Bui
 
 	resolvers := []Resolver{}
 	if orphans {
-		inactiveBuildStatus := []buildapi.BuildStatus{
-			buildapi.BuildStatusCancelled,
-			buildapi.BuildStatusComplete,
-			buildapi.BuildStatusError,
-			buildapi.BuildStatusFailed,
+		inactiveBuildStatus := []buildapi.BuildPhase{
+			buildapi.BuildPhaseCancelled,
+			buildapi.BuildPhaseComplete,
+			buildapi.BuildPhaseError,
+			buildapi.BuildPhaseFailed,
 		}
 		resolvers = append(resolvers, NewOrphanBuildResolver(dataSet, inactiveBuildStatus))
 	}

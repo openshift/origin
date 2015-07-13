@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"net/url"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -18,7 +19,7 @@ func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
 
-	allErrs = append(allErrs, validateBuildParameters(&build.Parameters).Prefix("spec")...)
+	allErrs = append(allErrs, validateBuildSpec(&build.Spec).Prefix("spec")...)
 	return allErrs
 }
 
@@ -28,8 +29,8 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) fielderro
 
 	allErrs = append(allErrs, ValidateBuild(build)...)
 
-	if !kapi.Semantic.DeepEqual(build.Parameters, older.Parameters) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec", build.Parameters, "spec is immutable"))
+	if !kapi.Semantic.DeepEqual(build.Spec, older.Spec) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec", build.Spec, "spec is immutable"))
 	}
 
 	return allErrs
@@ -42,17 +43,16 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 
 	// allow only one ImageChangeTrigger for now
 	ictCount := 0
-	for i, trg := range config.Triggers {
+	for i, trg := range config.Spec.Triggers {
 		allErrs = append(allErrs, validateTrigger(&trg).PrefixIndex(i).Prefix("triggers")...)
 		if trg.Type == buildapi.ImageChangeBuildTriggerType {
 			if ictCount++; ictCount > 1 {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("triggers", config.Triggers, "only one ImageChange trigger is allowed"))
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("triggers", config.Spec.Triggers, "only one ImageChange trigger is allowed"))
 				break
 			}
 		}
 	}
-	allErrs = append(allErrs, validateBuildParameters(&config.Parameters).Prefix("spec")...)
-	allErrs = append(allErrs, validateBuildConfigOutput(&config.Parameters.Output).Prefix("spec.output")...)
+	allErrs = append(allErrs, validateBuildSpec(&config.Spec.BuildSpec).Prefix("spec")...)
 	return allErrs
 }
 
@@ -75,21 +75,21 @@ func ValidateBuildRequest(request *buildapi.BuildRequest) fielderrors.Validation
 	return allErrs
 }
 
-func validateBuildParameters(params *buildapi.BuildParameters) fielderrors.ValidationErrorList {
+func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	isCustomBuild := params.Strategy.Type == buildapi.CustomBuildStrategyType
+	isCustomBuild := spec.Strategy.Type == buildapi.CustomBuildStrategyType
 	// Validate 'source' and 'output' for all build types except Custom build
 	// where they are optional and validated only if present.
-	if !isCustomBuild || (isCustomBuild && len(params.Source.Type) != 0) {
-		allErrs = append(allErrs, validateSource(&params.Source).Prefix("source")...)
+	if !isCustomBuild || (isCustomBuild && len(spec.Source.Type) != 0) {
+		allErrs = append(allErrs, validateSource(&spec.Source).Prefix("source")...)
 
-		if params.Revision != nil {
-			allErrs = append(allErrs, validateRevision(params.Revision).Prefix("revision")...)
+		if spec.Revision != nil {
+			allErrs = append(allErrs, validateRevision(spec.Revision).Prefix("revision")...)
 		}
 	}
 
-	allErrs = append(allErrs, validateOutput(&params.Output).Prefix("output")...)
-	allErrs = append(allErrs, validateStrategy(&params.Strategy).Prefix("strategy")...)
+	allErrs = append(allErrs, validateOutput(&spec.Output).Prefix("output")...)
+	allErrs = append(allErrs, validateStrategy(&spec.Strategy).Prefix("strategy")...)
 
 	// TODO: validate resource requirements (prereq: https://github.com/GoogleCloudPlatform/kubernetes/pull/7059)
 	return allErrs
@@ -127,6 +127,12 @@ func validateGitSource(git *buildapi.GitBuildSource) fielderrors.ValidationError
 	} else if !isValidURL(git.URI) {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("uri", git.URI, "uri is not a valid url"))
 	}
+	if len(git.HTTPProxy) != 0 && !isValidURL(git.HTTPProxy) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("httpproxy", git.HTTPProxy, "proxy is not a valid url"))
+	}
+	if len(git.HTTPSProxy) != 0 && !isValidURL(git.HTTPSProxy) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("httpsproxy", git.HTTPSProxy, "proxy is not a valid url"))
+	}
 	return allErrs
 }
 
@@ -139,45 +145,86 @@ func validateRevision(revision *buildapi.SourceRevision) fielderrors.ValidationE
 	return allErrs
 }
 
+func validateToImageReference(reference *kapi.ObjectReference) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	kind, name, namespace := reference.Kind, reference.Name, reference.Namespace
+	switch kind {
+	case "ImageStreamTag":
+		if len(name) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+		}
+		if len(namespace) != 0 && !util.IsDNS1123Subdomain(namespace) {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", namespace, "namespace must be a valid subdomain"))
+		}
+
+	case "DockerImage":
+		if len(namespace) != 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", namespace, "namespace is not valid when used with a 'DockerImage'"))
+		}
+		if _, err := imageapi.ParseDockerImageReference(name); err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", name, fmt.Sprintf("name is not a valid Docker pull specification: %v", err)))
+		}
+	case "":
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("kind"))
+	default:
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kind", kind, "the target of build output must be an 'ImageStreamTag' or 'DockerImage'"))
+
+	}
+	return allErrs
+}
+
+func validateFromImageReference(reference *kapi.ObjectReference) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	kind, name, namespace := reference.Kind, reference.Name, reference.Namespace
+	switch kind {
+	case "ImageStreamTag":
+		if len(name) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+		}
+
+		if len(namespace) != 0 && !util.IsDNS1123Subdomain(namespace) {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", namespace, "namespace must be a valid subdomain"))
+		}
+
+	case "DockerImage":
+		if len(namespace) != 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", namespace, "namespace is not valid when used with a 'DockerImage'"))
+		}
+		if len(name) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+		} else if _, err := imageapi.ParseDockerImageReference(name); err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", name, fmt.Sprintf("name is not a valid Docker pull specification: %v", err)))
+		}
+	case "ImageStreamImage":
+		if len(name) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+		}
+		if len(namespace) != 0 && !util.IsDNS1123Subdomain(namespace) {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", namespace, "namespace must be a valid subdomain"))
+		}
+	case "":
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("kind"))
+	default:
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kind", kind, "the source of a builder image must be an 'ImageStreamTag', 'ImageStreamImage', or 'DockerImage'"))
+
+	}
+	return allErrs
+}
+
 func validateOutput(output *buildapi.BuildOutput) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
 	// TODO: make part of a generic ValidateObjectReference method upstream.
 	if output.To != nil {
-		kind, name, namespace := output.To.Kind, output.To.Name, output.To.Namespace
-		if len(kind) == 0 {
-			kind = "ImageStream"
-			output.To.Kind = kind
-		}
-		if kind != "ImageStream" {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("to.kind", kind, "the target of build output must be 'ImageStream'"))
-		}
-		if len(name) == 0 {
-			allErrs = append(allErrs, fielderrors.NewFieldRequired("to.name"))
-		} else if !util.IsDNS1123Subdomain(name) {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("to.name", name, "name must be a valid subdomain"))
-		}
-		if len(namespace) != 0 && !util.IsDNS1123Subdomain(namespace) {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("to.namespace", namespace, "namespace must be a valid subdomain"))
-		}
+		allErrs = append(allErrs, validateToImageReference(output.To).Prefix("to")...)
 	}
 
 	allErrs = append(allErrs, validateSecretRef(output.PushSecret).Prefix("pushSecret")...)
 
-	if len(output.DockerImageReference) != 0 {
-		if _, err := imageapi.ParseDockerImageReference(output.DockerImageReference); err != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerImageReference", output.DockerImageReference, err.Error()))
-		}
-	}
-
-	return allErrs
-}
-
-func validateBuildConfigOutput(output *buildapi.BuildOutput) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	if len(output.DockerImageReference) != 0 && output.To != nil {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerImageReference", output.DockerImageReference, "only one of 'dockerImageReference' and 'to' may be set"))
-	}
 	return allErrs
 }
 
@@ -196,7 +243,6 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 		}
 
 	case strategy.Type == buildapi.DockerBuildStrategyType:
-		// DockerStrategy is currently optional, initialize it to a default state if it's not set.
 		if strategy.DockerStrategy == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("dockerStrategy"))
 		} else {
@@ -219,10 +265,8 @@ func validateStrategy(strategy *buildapi.BuildStrategy) fielderrors.ValidationEr
 func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if strategy.From != nil && strategy.From.Kind == "ImageStreamTag" {
-		if _, _, ok := imageapi.SplitImageStreamTag(strategy.From.Name); !ok {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("from.name", strategy.From.Name, "ImageStreamTag object references must be in the form <name>:<tag>"))
-		}
+	if strategy.From != nil {
+		allErrs = append(allErrs, validateFromImageReference(strategy.From).Prefix("from")...)
 	}
 
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret).Prefix("pullSecret")...)
@@ -231,29 +275,14 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy) fielderrors.
 
 func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if len(strategy.From.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
-
-	}
-	if strategy.From.Kind == "ImageStreamTag" {
-		if _, _, ok := imageapi.SplitImageStreamTag(strategy.From.Name); !ok {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("from.name", strategy.From.Name, "ImageStreamTag object references must be in the form <name>:<tag>"))
-		}
-	}
+	allErrs = append(allErrs, validateFromImageReference(&strategy.From).Prefix("from")...)
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret).Prefix("pullSecret")...)
 	return allErrs
 }
 
 func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if len(strategy.From.Name) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("from"))
-	}
-	if strategy.From.Kind == "ImageStreamTag" {
-		if _, _, ok := imageapi.SplitImageStreamTag(strategy.From.Name); !ok {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("from.name", strategy.From.Name, "ImageStreamTag object references must be in the form <name>:<tag>"))
-		}
-	}
+	allErrs = append(allErrs, validateFromImageReference(&strategy.From).Prefix("from")...)
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret).Prefix("pullSecret")...)
 	return allErrs
 }

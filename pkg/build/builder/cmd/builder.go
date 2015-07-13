@@ -47,21 +47,15 @@ func run(builderFactory factoryFunc, scmAuths []scmauth.SCMAuth) {
 		authcfg     docker.AuthConfiguration
 		authPresent bool
 	)
-	output := true
-	if len(build.Parameters.Output.DockerImageReference) == 0 {
-		if build.Parameters.Output.To != nil {
-			glog.Fatalf("Cannot determine an output image reference. Make sure a registry service is running.")
-		}
-		output = false
-	}
+	output := build.Spec.Output.To != nil && len(build.Spec.Output.To.Name) != 0
 	if output {
 		authcfg, authPresent = dockercfg.NewHelper().GetDockerAuth(
-			build.Parameters.Output.DockerImageReference,
+			build.Spec.Output.To.Name,
 			dockercfg.PullAuthType,
 		)
 	}
-	if build.Parameters.Source.SourceSecret != nil {
-		if err := setupSourceSecret(build.Parameters.Source.SourceSecret.Name, scmAuths); err != nil {
+	if build.Spec.Source.SourceSecret != nil {
+		if err := setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths); err != nil {
 			glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
 		}
 	}

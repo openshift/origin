@@ -1,6 +1,7 @@
 package origin
 
 import (
+	"io/ioutil"
 	"net"
 	"path"
 	"time"
@@ -82,10 +83,20 @@ func (c *MasterConfig) RunServiceAccountTokensController() {
 	if err != nil {
 		glog.Fatalf("Error reading signing key for Service Account Token Manager: %v", err)
 	}
+	rootCA := []byte{}
+	if len(c.Options.ServiceAccountConfig.MasterCA) > 0 {
+		rootCA, err = ioutil.ReadFile(c.Options.ServiceAccountConfig.MasterCA)
+		if err != nil {
+			glog.Fatalf("Error reading master ca file for Service Account Token Manager: %s: %v", c.Options.ServiceAccountConfig.MasterCA, err)
+		}
+		if _, err := util.CertsFromPEM(rootCA); err != nil {
+			glog.Fatalf("Error parsing master ca file for Service Account Token Manager: %s: %v", c.Options.ServiceAccountConfig.MasterCA, err)
+		}
+	}
+
 	options := serviceaccount.TokensControllerOptions{
 		TokenGenerator: serviceaccount.JWTTokenGenerator(privateKey),
-		// TODO this is the the CA used to verify the master's serving cert
-		// RootCA:         rootCA,
+		RootCA:         rootCA,
 	}
 
 	serviceaccount.NewTokensController(c.KubeClient(), options).Run()

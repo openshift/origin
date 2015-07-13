@@ -341,6 +341,7 @@ func (c *connection) getImage(repo *repository, image, userTag string) (*docker.
 	if err != nil {
 		return nil, convertConnectionError(c.url.String(), fmt.Errorf("error getting json for image %q: %v", image, err))
 	}
+	defer resp.Body.Close()
 	switch code := resp.StatusCode; {
 	case code == http.StatusNotFound:
 		return nil, NewImageNotFoundError(repo.name, image, userTag)
@@ -352,7 +353,6 @@ func (c *connection) getImage(repo *repository, image, userTag string) (*docker.
 		}
 		return nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)
 	}
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("can't read image body from %s: %v", req.URL, err)

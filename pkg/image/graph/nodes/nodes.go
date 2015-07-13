@@ -80,6 +80,17 @@ func MakeImageStreamTagObjectMeta(namespace, name, tag string) *imageapi.ImageSt
 	}
 }
 
+// MakeImageStreamTagObjectMeta returns an ImageStreamTag that has enough information to join the graph, but it is not
+// based on a full IST object.  This can be used to properly initialize the graph without having to retrieve all ISTs
+func MakeImageStreamTagObjectMeta2(namespace, name string) *imageapi.ImageStreamTag {
+	return &imageapi.ImageStreamTag{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+}
+
 // EnsureImageStreamTagNode adds a graph node for the specific tag in an Image Stream if it does not already exist.
 func EnsureImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *imageapi.ImageStreamTag) *ImageStreamTagNode {
 	return osgraph.EnsureUnique(g,
@@ -98,6 +109,44 @@ func FindOrCreateSyntheticImageStreamTagNode(g osgraph.MutableUniqueGraph, ist *
 			return &ImageStreamTagNode{node, ist, false}
 		},
 	).(*ImageStreamTagNode)
+}
+
+// MakeImageStreamImageObjectMeta returns an ImageStreamImage that has enough information to join the graph, but it is not
+// based on a full ISI object.  This can be used to properly initialize the graph without having to retrieve all ISIs
+func MakeImageStreamImageObjectMeta(namespace, name string) *imageapi.ImageStreamImage {
+	return &imageapi.ImageStreamImage{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+}
+
+// EnsureImageStreamImageNode adds a graph node for the specific ImageStreamImage if it
+// does not already exist.
+func EnsureImageStreamImageNode(g osgraph.MutableUniqueGraph, namespace, name string) graph.Node {
+	isi := &imageapi.ImageStreamImage{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+	return osgraph.EnsureUnique(g,
+		ImageStreamImageNodeName(isi),
+		func(node osgraph.Node) graph.Node {
+			return &ImageStreamImageNode{node, isi, true}
+		},
+	)
+}
+
+// FindOrCreateSyntheticImageStreamImageNode returns the existing ISINode or creates a synthetic node in its place
+func FindOrCreateSyntheticImageStreamImageNode(g osgraph.MutableUniqueGraph, isi *imageapi.ImageStreamImage) *ImageStreamImageNode {
+	return osgraph.EnsureUnique(g,
+		ImageStreamImageNodeName(isi),
+		func(node osgraph.Node) graph.Node {
+			return &ImageStreamImageNode{node, isi, false}
+		},
+	).(*ImageStreamImageNode)
 }
 
 // EnsureImageStreamNode adds a graph node for the Image Stream if it does not already exist.

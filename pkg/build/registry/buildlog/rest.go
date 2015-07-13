@@ -68,26 +68,26 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	if err != nil {
 		return nil, errors.NewNotFound("build", name)
 	}
-	switch build.Status {
+	switch build.Status.Phase {
 	// Build has not launched, wait til it runs
-	case api.BuildStatusNew, api.BuildStatusPending:
+	case api.BuildPhaseNew, api.BuildPhasePending:
 		if buildLogOpts.NoWait {
-			glog.V(4).Infof("Build %s/%s is in %s state. No logs to retrieve yet.", build.Namespace, name, build.Status)
+			glog.V(4).Infof("Build %s/%s is in %s state. No logs to retrieve yet.", build.Namespace, name, build.Status.Phase)
 			// return empty content if not waiting for build
 			return &genericrest.LocationStreamer{}, nil
 		}
-		glog.V(4).Infof("Build %s/%s is in %s state, waiting for Build to start", build.Namespace, name, build.Status)
+		glog.V(4).Infof("Build %s/%s is in %s state, waiting for Build to start", build.Namespace, name, build.Status.Phase)
 		err := r.waitForBuild(ctx, build)
 		if err != nil {
 			return nil, err
 		}
 
 	// The build was cancelled
-	case api.BuildStatusCancelled:
+	case api.BuildPhaseCancelled:
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s was cancelled. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage))
 
 	// An error occurred launching the build, return an error
-	case api.BuildStatusError:
+	case api.BuildPhaseError:
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s is in an error state. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage))
 	}
 	// The container should be the default build container, so setting it to blank
@@ -123,14 +123,14 @@ func (r *REST) waitForBuild(ctx kapi.Context, build *api.Build) error {
 				errchan <- fmt.Errorf("event object is not a Build: %#v", event.Object)
 				break
 			}
-			switch obj.Status {
-			case api.BuildStatusCancelled:
+			switch obj.Status.Phase {
+			case api.BuildPhaseCancelled:
 				errchan <- fmt.Errorf("build %s/%s was cancelled. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage)
 				break
-			case api.BuildStatusError:
+			case api.BuildPhaseError:
 				errchan <- fmt.Errorf("build %s/%s is in an error state. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage)
 				break
-			case api.BuildStatusRunning, api.BuildStatusComplete, api.BuildStatusFailed:
+			case api.BuildPhaseRunning, api.BuildPhaseComplete, api.BuildPhaseFailed:
 				done <- struct{}{}
 				break
 			}
