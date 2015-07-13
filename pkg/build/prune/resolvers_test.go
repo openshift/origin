@@ -55,38 +55,38 @@ func TestOrphanBuildResolver(t *testing.T) {
 	builds := []*buildapi.Build{}
 
 	expectedNames := util.StringSet{}
-	buildStatusOptions := []buildapi.BuildStatus{
-		buildapi.BuildStatusCancelled,
-		buildapi.BuildStatusComplete,
-		buildapi.BuildStatusError,
-		buildapi.BuildStatusFailed,
-		buildapi.BuildStatusNew,
-		buildapi.BuildStatusPending,
-		buildapi.BuildStatusRunning,
+	BuildPhaseOptions := []buildapi.BuildPhase{
+		buildapi.BuildPhaseCancelled,
+		buildapi.BuildPhaseComplete,
+		buildapi.BuildPhaseError,
+		buildapi.BuildPhaseFailed,
+		buildapi.BuildPhaseNew,
+		buildapi.BuildPhasePending,
+		buildapi.BuildPhaseRunning,
 	}
-	buildStatusFilter := []buildapi.BuildStatus{
-		buildapi.BuildStatusCancelled,
-		buildapi.BuildStatusComplete,
-		buildapi.BuildStatusError,
-		buildapi.BuildStatusFailed,
+	BuildPhaseFilter := []buildapi.BuildPhase{
+		buildapi.BuildPhaseCancelled,
+		buildapi.BuildPhaseComplete,
+		buildapi.BuildPhaseError,
+		buildapi.BuildPhaseFailed,
 	}
-	buildStatusFilterSet := util.StringSet{}
-	for _, buildStatus := range buildStatusFilter {
-		buildStatusFilterSet.Insert(string(buildStatus))
+	BuildPhaseFilterSet := util.StringSet{}
+	for _, BuildPhase := range BuildPhaseFilter {
+		BuildPhaseFilterSet.Insert(string(BuildPhase))
 	}
 
-	for _, buildStatusOption := range buildStatusOptions {
-		builds = append(builds, withStatus(mockBuild("a", string(buildStatusOption)+"-active", activeBuildConfig), buildStatusOption))
-		builds = append(builds, withStatus(mockBuild("a", string(buildStatusOption)+"-inactive", inactiveBuildConfig), buildStatusOption))
-		builds = append(builds, withStatus(mockBuild("a", string(buildStatusOption)+"-orphan", nil), buildStatusOption))
-		if buildStatusFilterSet.Has(string(buildStatusOption)) {
-			expectedNames.Insert(string(buildStatusOption) + "-inactive")
-			expectedNames.Insert(string(buildStatusOption) + "-orphan")
+	for _, BuildPhaseOption := range BuildPhaseOptions {
+		builds = append(builds, withStatus(mockBuild("a", string(BuildPhaseOption)+"-active", activeBuildConfig), BuildPhaseOption))
+		builds = append(builds, withStatus(mockBuild("a", string(BuildPhaseOption)+"-inactive", inactiveBuildConfig), BuildPhaseOption))
+		builds = append(builds, withStatus(mockBuild("a", string(BuildPhaseOption)+"-orphan", nil), BuildPhaseOption))
+		if BuildPhaseFilterSet.Has(string(BuildPhaseOption)) {
+			expectedNames.Insert(string(BuildPhaseOption) + "-inactive")
+			expectedNames.Insert(string(BuildPhaseOption) + "-orphan")
 		}
 	}
 
 	dataSet := NewDataSet(buildConfigs, builds)
-	resolver := NewOrphanBuildResolver(dataSet, buildStatusFilter)
+	resolver := NewOrphanBuildResolver(dataSet, BuildPhaseFilter)
 	results, err := resolver.Resolve()
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -101,14 +101,14 @@ func TestOrphanBuildResolver(t *testing.T) {
 }
 
 func TestPerBuildConfigResolver(t *testing.T) {
-	buildStatusOptions := []buildapi.BuildStatus{
-		buildapi.BuildStatusCancelled,
-		buildapi.BuildStatusComplete,
-		buildapi.BuildStatusError,
-		buildapi.BuildStatusFailed,
-		buildapi.BuildStatusNew,
-		buildapi.BuildStatusPending,
-		buildapi.BuildStatusRunning,
+	BuildPhaseOptions := []buildapi.BuildPhase{
+		buildapi.BuildPhaseCancelled,
+		buildapi.BuildPhaseComplete,
+		buildapi.BuildPhaseError,
+		buildapi.BuildPhaseFailed,
+		buildapi.BuildPhaseNew,
+		buildapi.BuildPhasePending,
+		buildapi.BuildPhaseRunning,
 	}
 	buildConfigs := []*buildapi.BuildConfig{
 		mockBuildConfig("a", "build-config-1"),
@@ -117,9 +117,9 @@ func TestPerBuildConfigResolver(t *testing.T) {
 	buildsPerStatus := 100
 	builds := []*buildapi.Build{}
 	for _, buildConfig := range buildConfigs {
-		for _, buildStatusOption := range buildStatusOptions {
+		for _, BuildPhaseOption := range BuildPhaseOptions {
 			for i := 0; i < buildsPerStatus; i++ {
-				build := withStatus(mockBuild(buildConfig.Namespace, fmt.Sprintf("%v-%v-%v", buildConfig.Name, buildStatusOption, i), buildConfig), buildStatusOption)
+				build := withStatus(mockBuild(buildConfig.Namespace, fmt.Sprintf("%v-%v-%v", buildConfig.Name, BuildPhaseOption, i), buildConfig), BuildPhaseOption)
 				builds = append(builds, build)
 			}
 		}
@@ -136,8 +136,8 @@ func TestPerBuildConfigResolver(t *testing.T) {
 		dataSet := NewDataSet(buildConfigs, builds)
 
 		expectedNames := util.StringSet{}
-		buildCompleteStatusFilterSet := util.NewStringSet(string(buildapi.BuildStatusComplete))
-		buildFailedStatusFilterSet := util.NewStringSet(string(buildapi.BuildStatusCancelled), string(buildapi.BuildStatusError), string(buildapi.BuildStatusFailed))
+		buildCompleteStatusFilterSet := util.NewStringSet(string(buildapi.BuildPhaseComplete))
+		buildFailedStatusFilterSet := util.NewStringSet(string(buildapi.BuildPhaseCancelled), string(buildapi.BuildPhaseError), string(buildapi.BuildPhaseFailed))
 
 		for _, buildConfig := range buildConfigs {
 			buildItems, err := dataSet.ListBuildsByBuildConfig(buildConfig)
@@ -146,9 +146,9 @@ func TestPerBuildConfigResolver(t *testing.T) {
 			}
 			completedBuilds, failedBuilds := []*buildapi.Build{}, []*buildapi.Build{}
 			for _, build := range buildItems {
-				if buildCompleteStatusFilterSet.Has(string(build.Status)) {
+				if buildCompleteStatusFilterSet.Has(string(build.Status.Phase)) {
 					completedBuilds = append(completedBuilds, build)
-				} else if buildFailedStatusFilterSet.Has(string(build.Status)) {
+				} else if buildFailedStatusFilterSet.Has(string(build.Status.Phase)) {
 					failedBuilds = append(failedBuilds, build)
 				}
 			}

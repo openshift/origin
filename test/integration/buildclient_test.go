@@ -150,7 +150,7 @@ func mockBuild() *buildapi.Build {
 				"label2": "value2",
 			},
 		},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
@@ -163,7 +163,10 @@ func mockBuild() *buildapi.Build {
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
-				DockerImageReference: "namespace/builtimage",
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "namespace/builtimage",
+				},
 			},
 		},
 	}

@@ -71,8 +71,8 @@ func TestSTICreateBuildPod(t *testing.T) {
 	if len(actual.Spec.Volumes) != 4 {
 		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
-	if !kapi.Semantic.DeepEqual(container.Resources, expected.Parameters.Resources) {
-		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Parameters.Resources)
+	if !kapi.Semantic.DeepEqual(container.Resources, expected.Spec.Resources) {
+		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Spec.Resources)
 	}
 	found := false
 	foundIllegal := false
@@ -109,7 +109,7 @@ func mockSTIBuild() *buildapi.Build {
 				"name": "stiBuild",
 			},
 		},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Revision: &buildapi.SourceRevision{
 				Git: &buildapi.GitSourceRevision{},
 			},
@@ -135,8 +135,11 @@ func mockSTIBuild() *buildapi.Build {
 				},
 			},
 			Output: buildapi.BuildOutput{
-				DockerImageReference: "docker-registry/repository/stiBuild",
-				PushSecret:           &kapi.LocalObjectReference{Name: "foo"},
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "docker-registry/repository/stiBuild",
+				},
+				PushSecret: &kapi.LocalObjectReference{Name: "foo"},
 			},
 			Resources: kapi.ResourceRequirements{
 				Limits: kapi.ResourceList{
@@ -145,6 +148,8 @@ func mockSTIBuild() *buildapi.Build {
 				},
 			},
 		},
-		Status: buildapi.BuildStatusNew,
+		Status: buildapi.BuildStatus{
+			Phase: buildapi.BuildPhaseNew,
+		},
 	}
 }

@@ -542,23 +542,23 @@ func filterImageStreams(result *AppResult) *AppResult {
 	imageStreams := map[string]bool{}
 	for _, item := range result.List.Items {
 		if bc, ok := item.(*buildapi.BuildConfig); ok {
-			to := bc.Parameters.Output.To
+			to := bc.Spec.Output.To
 			if to != nil && to.Kind == "ImageStreamTag" {
 				imageStreams[makeImageStreamKey(*to)] = true
 			}
-			switch bc.Parameters.Strategy.Type {
+			switch bc.Spec.Strategy.Type {
 			case buildapi.DockerBuildStrategyType:
-				from := bc.Parameters.Strategy.DockerStrategy.From
+				from := bc.Spec.Strategy.DockerStrategy.From
 				if from != nil && from.Kind == "ImageStreamTag" {
 					imageStreams[makeImageStreamKey(*from)] = true
 				}
 			case buildapi.SourceBuildStrategyType:
-				from := bc.Parameters.Strategy.SourceStrategy.From
+				from := bc.Spec.Strategy.SourceStrategy.From
 				if from.Kind == "ImageStreamTag" {
 					imageStreams[makeImageStreamKey(from)] = true
 				}
 			case buildapi.CustomBuildStrategyType:
-				from := bc.Parameters.Strategy.CustomStrategy.From
+				from := bc.Spec.Strategy.CustomStrategy.From
 				if from.Kind == "ImageStreamTag" {
 					imageStreams[makeImageStreamKey(from)] = true
 				}

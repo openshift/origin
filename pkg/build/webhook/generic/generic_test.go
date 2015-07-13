@@ -52,11 +52,13 @@ func GivenRequestWithRefsPayload(t *testing.T) *http.Request {
 func TestVerifyRequestForMethod(t *testing.T) {
 	req := GivenRequest("GET")
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
 		},
@@ -78,11 +80,13 @@ func TestVerifyRequestForMethod(t *testing.T) {
 func TestWrongSecret(t *testing.T) {
 	req := GivenRequest("POST")
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
 		},
@@ -111,22 +115,25 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 	req, _ := http.NewRequest("POST", "http://someurl.com", emptyReader{})
 	req.Header.Add("Content-Type", "application/json")
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					Ref: "master",
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						Ref: "master",
+					},
 				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
@@ -145,22 +152,24 @@ func TestExtractWithEmptyPayload(t *testing.T) {
 func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 	req := GivenRequestWithPayload(t, "push-github.json")
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					Ref: "asdfkasdfasdfasdfadsfkjhkhkh",
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						Ref: "asdfkasdfasdfasdfadsfkjhkhkh",
+					},
 				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
@@ -180,22 +189,24 @@ func TestExtractWithUnmatchedRefGitPayload(t *testing.T) {
 func TestExtractWithGitPayload(t *testing.T) {
 	req := GivenRequestWithPayload(t, "push-github.json")
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					Ref: "master",
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						Ref: "master",
+					},
 				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
@@ -215,22 +226,24 @@ func TestExtractWithGitPayload(t *testing.T) {
 func TestExtractWithGitRefsPayload(t *testing.T) {
 	req := GivenRequestWithRefsPayload(t)
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					Ref: "master",
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						Ref: "master",
+					},
 				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
@@ -250,22 +263,24 @@ func TestExtractWithGitRefsPayload(t *testing.T) {
 func TestExtractWithUnmatchedGitRefsPayload(t *testing.T) {
 	req := GivenRequestWithRefsPayload(t)
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					Ref: "other",
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						Ref: "other",
+					},
 				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
@@ -285,19 +300,21 @@ func TestExtractWithUnmatchedGitRefsPayload(t *testing.T) {
 func TestGitlabPush(t *testing.T) {
 	req := GivenRequestWithPayload(t, "push-gitlab.json")
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
@@ -315,19 +332,21 @@ func TestNonJsonPush(t *testing.T) {
 	req.Header.Add("Content-Type", "*/*")
 
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()
@@ -352,22 +371,24 @@ func TestExtractWithUnmarshalError(t *testing.T) {
 	req, _ := http.NewRequest("POST", "http://someurl.com", errJSON{})
 	req.Header.Add("Content-Type", "application/json")
 	buildConfig := &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GenericWebHookBuildTriggerType,
-				GenericWebHook: &api.WebHookTrigger{
-					Secret: "secret100",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GenericWebHookBuildTriggerType,
+					GenericWebHook: &api.WebHookTrigger{
+						Secret: "secret100",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					Ref: "other",
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						Ref: "other",
+					},
 				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}
 	plugin := New()

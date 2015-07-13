@@ -118,7 +118,7 @@ func testBuild(strategy buildapi.BuildStrategyType) *buildapi.Build {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build",
 		},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Strategy: buildapi.BuildStrategy{
 				Type: strategy,
 			},
@@ -131,9 +131,11 @@ func testBuildConfig(strategy buildapi.BuildStrategyType) *buildapi.BuildConfig 
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-buildconfig",
 		},
-		Parameters: buildapi.BuildParameters{
-			Strategy: buildapi.BuildStrategy{
-				Type: strategy,
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Strategy: buildapi.BuildStrategy{
+					Type: strategy,
+				},
 			},
 		},
 	}

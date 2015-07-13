@@ -9,8 +9,11 @@ that can be exposed for DNS based routing.
 
 ## Creating Routes
 
-When you create a route you specify the `hostname` and `service` that the route is connecting.  The `hostname` is the 
-prefix that will be used to create a `hostname-namespace.v3.rhcloud.com` route.  See below for an example route configuration file.
+When you create a route you specify the `hostname` and `service` that the route is connecting.  The `hostname` is the
+web host that the router will use to direct traffic.  This host name should be a domain name that you
+already own, for instance `www.example.com`.   Alternatively, you may leave the host name
+blank and a system generated host name will be created.  It is important to note that at this point
+DNS resolution of host names is external to the OpenShift system.
 
 
 ## Running the router

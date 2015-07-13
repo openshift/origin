@@ -569,15 +569,28 @@ echo "scale: ok"
 
 oc process -f examples/sample-app/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -
 wait_for_command 'oc get rc/database-1' "${TIME_MIN}"
+
+oc rollback database --to-version=1 -o=yaml
+oc rollback dc/database --to-version=1 -o=yaml
+oc rollback dc/database --to-version=1 --dry-run
+oc rollback database-1 -o=yaml
+oc rollback rc/database-1 -o=yaml
+# should fail because there's no previous deployment
+[ ! "$(oc rollback database -o yaml)" ]
+echo "rollback: ok"
+
 oc get dc/database
 oc stop dc/database
 [ ! "$(oc get dc/database)" ]
 [ ! "$(oc get rc/database-1)" ]
 echo "stop: ok"
+
 oc label bc ruby-sample-build acustom=label
 [ "$(oc describe bc/ruby-sample-build | grep 'acustom=label')" ]
-oc delete all -l app=dockerbuild
 echo "label: ok"
+
+oc delete all -l app=dockerbuild
+echo "delete: ok"
 
 oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -
 oc get buildConfigs

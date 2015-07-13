@@ -17,6 +17,7 @@ import (
 	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 
+	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
@@ -359,14 +360,16 @@ func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, e
 	}
 
 	g := graph.New()
-	deploy := deploygraph.EnsureDeploymentConfigNode(g, config)
-	deployedges.AddTriggerEdges(g, deploy)
-	if len(deployments) > 0 {
-		deployedges.JoinDeployments(deploy, deployments)
+	dcNode := deploygraph.EnsureDeploymentConfigNode(g, config)
+	for i := range deployments {
+		kubegraph.EnsureReplicationControllerNode(g, &deployments[i])
 	}
+	deployedges.AddTriggerEdges(g, dcNode)
+	deployedges.AddDeploymentEdges(g, dcNode)
+	activeDeployment, inactiveDeployments := deployedges.RelevantDeployments(g, dcNode)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
-		descriptions := describeDeployments(deploy, d.count)
+		descriptions := describeDeployments(dcNode, activeDeployment, inactiveDeployments, d.count)
 		for i, description := range descriptions {
 			descriptions[i] = fmt.Sprintf("%v %v", name, description)
 		}

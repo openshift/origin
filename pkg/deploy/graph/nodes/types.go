@@ -3,8 +3,6 @@ package nodes
 import (
 	"reflect"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -20,9 +18,6 @@ func DeploymentConfigNodeName(o *deployapi.DeploymentConfig) osgraph.UniqueName 
 type DeploymentConfigNode struct {
 	osgraph.Node
 	*deployapi.DeploymentConfig
-
-	ActiveDeployment *kapi.ReplicationController
-	Deployments      []*kapi.ReplicationController
 }
 
 func (n DeploymentConfigNode) Object() interface{} {

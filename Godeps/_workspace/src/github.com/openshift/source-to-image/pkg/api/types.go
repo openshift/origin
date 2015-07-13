@@ -81,6 +81,12 @@ type Config struct {
 	// Specify a relative directory inside the application repository that should
 	// be used as a root directory for the application.
 	ContextDir string
+
+	// NoRoot specifies whether builder images are allowed to run as root. If set to true,
+	// a build will not proceed unless the USER specified in the builder image is numeric and not 0.
+	// If the image includes ONBUILD instructions, the build will not proceed if any of those
+	// instructions includes a USER directive.
+	NoRoot bool
 }
 
 // DockerConfig contains the configuration for a Docker connection

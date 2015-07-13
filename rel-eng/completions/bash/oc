@@ -445,6 +445,7 @@ _oc_rollback()
     two_word_flags+=("-o")
     flags+=("--template=")
     two_word_flags+=("-t")
+    flags+=("--to-version=")
 
     must_have_one_flag=()
     must_have_one_noun=()

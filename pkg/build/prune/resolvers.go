@@ -30,22 +30,22 @@ func (m *mergeResolver) Resolve() ([]*buildapi.Build, error) {
 	return results, nil
 }
 
-// NewOrphanBuildResolver returns a Resolver that matches Build objects with no associated BuildConfig and has a BuildStatus in filter
-func NewOrphanBuildResolver(dataSet DataSet, buildStatusFilter []buildapi.BuildStatus) Resolver {
+// NewOrphanBuildResolver returns a Resolver that matches Build objects with no associated BuildConfig and has a BuildPhase in filter
+func NewOrphanBuildResolver(dataSet DataSet, BuildPhaseFilter []buildapi.BuildPhase) Resolver {
 	filter := util.NewStringSet()
-	for _, buildStatus := range buildStatusFilter {
-		filter.Insert(string(buildStatus))
+	for _, BuildPhase := range BuildPhaseFilter {
+		filter.Insert(string(BuildPhase))
 	}
 	return &orphanBuildResolver{
-		dataSet:           dataSet,
-		buildStatusFilter: filter,
+		dataSet:          dataSet,
+		BuildPhaseFilter: filter,
 	}
 }
 
 // orphanBuildResolver resolves orphan builds that match the specified filter
 type orphanBuildResolver struct {
-	dataSet           DataSet
-	buildStatusFilter util.StringSet
+	dataSet          DataSet
+	BuildPhaseFilter util.StringSet
 }
 
 // Resolve the matching set of Build objects
@@ -57,11 +57,11 @@ func (o *orphanBuildResolver) Resolve() ([]*buildapi.Build, error) {
 
 	results := []*buildapi.Build{}
 	for _, build := range builds {
-		if !o.buildStatusFilter.Has(string(build.Status)) {
+		if !o.BuildPhaseFilter.Has(string(build.Status.Phase)) {
 			continue
 		}
 		isOrphan := false
-		if build.Config == nil {
+		if build.Status.Config == nil {
 			isOrphan = true
 		} else {
 			_, exists, _ := o.dataSet.GetBuildConfig(build)
@@ -95,8 +95,8 @@ func (o *perBuildConfigResolver) Resolve() ([]*buildapi.Build, error) {
 		return nil, err
 	}
 
-	completeStates := util.NewStringSet(string(buildapi.BuildStatusComplete))
-	failedStates := util.NewStringSet(string(buildapi.BuildStatusFailed), string(buildapi.BuildStatusError), string(buildapi.BuildStatusCancelled))
+	completeStates := util.NewStringSet(string(buildapi.BuildPhaseComplete))
+	failedStates := util.NewStringSet(string(buildapi.BuildPhaseFailed), string(buildapi.BuildPhaseError), string(buildapi.BuildPhaseCancelled))
 
 	results := []*buildapi.Build{}
 	for _, buildConfig := range buildConfigs {
@@ -107,9 +107,9 @@ func (o *perBuildConfigResolver) Resolve() ([]*buildapi.Build, error) {
 
 		completeBuilds, failedBuilds := []*buildapi.Build{}, []*buildapi.Build{}
 		for _, build := range builds {
-			if completeStates.Has(string(build.Status)) {
+			if completeStates.Has(string(build.Status.Phase)) {
 				completeBuilds = append(completeBuilds, build)
-			} else if failedStates.Has(string(build.Status)) {
+			} else if failedStates.Has(string(build.Status.Phase)) {
 				failedBuilds = append(failedBuilds, build)
 			}
 		}

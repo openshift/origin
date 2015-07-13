@@ -18,22 +18,24 @@ type okBuildConfigGetter struct{}
 
 func (c *okBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
 	return &api.BuildConfig{
-		Triggers: []api.BuildTriggerPolicy{
-			{
-				Type: api.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &api.WebHookTrigger{
-					Secret: "secret101",
+		Spec: api.BuildConfigSpec{
+			Triggers: []api.BuildTriggerPolicy{
+				{
+					Type: api.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &api.WebHookTrigger{
+						Secret: "secret101",
+					},
 				},
 			},
-		},
-		Parameters: api.BuildParameters{
-			Source: api.BuildSource{
-				Type: api.BuildSourceGit,
-				Git: &api.GitBuildSource{
-					URI: "git://github.com/my/repo.git",
+			BuildSpec: api.BuildSpec{
+				Source: api.BuildSource{
+					Type: api.BuildSourceGit,
+					Git: &api.GitBuildSource{
+						URI: "git://github.com/my/repo.git",
+					},
 				},
+				Strategy: mockBuildStrategy,
 			},
-			Strategy: mockBuildStrategy,
 		},
 	}, nil
 }
@@ -208,22 +210,24 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 	context := testContext{
 		plugin: WebHook{},
 		buildCfg: &api.BuildConfig{
-			Triggers: []api.BuildTriggerPolicy{
-				{
-					Type: api.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &api.WebHookTrigger{
-						Secret: "secret101",
+			Spec: api.BuildConfigSpec{
+				Triggers: []api.BuildTriggerPolicy{
+					{
+						Type: api.GitHubWebHookBuildTriggerType,
+						GitHubWebHook: &api.WebHookTrigger{
+							Secret: "secret101",
+						},
 					},
 				},
-			},
-			Parameters: api.BuildParameters{
-				Source: api.BuildSource{
-					Type: api.BuildSourceGit,
-					Git: &api.GitBuildSource{
-						URI: "git://github.com/my/repo.git",
+				BuildSpec: api.BuildSpec{
+					Source: api.BuildSource{
+						Type: api.BuildSourceGit,
+						Git: &api.GitBuildSource{
+							URI: "git://github.com/my/repo.git",
+						},
 					},
+					Strategy: mockBuildStrategy,
 				},
-				Strategy: mockBuildStrategy,
 			},
 		},
 		path: "/foobar",
@@ -282,7 +286,7 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	//setup
 	context := setup(t, "pushevent-not-master-branch.json", "push")
-	context.buildCfg.Parameters.Source.Git.Ref = "my_other_branch"
+	context.buildCfg.Spec.Source.Git.Ref = "my_other_branch"
 
 	//execute
 	revision, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
@@ -306,11 +310,11 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	//setup
 	context := setup(t, "pushevent.json", "push")
-	context.buildCfg.Parameters.Source.Git.Ref = "adfj32qrafdavckeaewra"
+	context.buildCfg.Spec.Source.Git.Ref = "adfj32qrafdavckeaewra"
 
 	//execute
 	_, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 	if proceed {
-		t.Errorf("Expecting to not continue from this event because the branch is not for this buildConfig '%s'", context.buildCfg.Parameters.Source.Git.Ref)
+		t.Errorf("Expecting to not continue from this event because the branch is not for this buildConfig '%s'", context.buildCfg.Spec.Source.Git.Ref)
 	}
 }

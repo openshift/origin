@@ -44,11 +44,11 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	containerEnv := []kapi.EnvVar{
 		{Name: "BUILD", Value: string(data)},
-		{Name: "SOURCE_REPOSITORY", Value: build.Parameters.Source.Git.URI},
+		{Name: "SOURCE_REPOSITORY", Value: build.Spec.Source.Git.URI},
 		{Name: "BUILD_LOGLEVEL", Value: fmt.Sprintf("%d", cmdutil.GetLogLevel())},
 	}
 
-	strategy := build.Parameters.Strategy.SourceStrategy
+	strategy := build.Spec.Strategy.SourceStrategy
 	if len(strategy.Env) > 0 {
 		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
 	}
@@ -61,7 +61,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			Labels:    getPodLabels(build),
 		},
 		Spec: kapi.PodSpec{
-			ServiceAccountName: build.Parameters.ServiceAccount,
+			ServiceAccountName: build.Spec.ServiceAccount,
 			Containers: []kapi.Container{
 				{
 					Name:  "sti-build",
@@ -78,10 +78,10 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		},
 	}
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
-	pod.Spec.Containers[0].Resources = build.Parameters.Resources
+	pod.Spec.Containers[0].Resources = build.Spec.Resources
 
 	setupDockerSocket(pod)
-	setupDockerSecrets(pod, build.Parameters.Output.PushSecret, strategy.PullSecret)
-	setupSourceSecrets(pod, build.Parameters.Source.SourceSecret)
+	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret)
+	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
 	return pod, nil
 }

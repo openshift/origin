@@ -4,13 +4,18 @@ import (
 	"sort"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 )
 
 type DeploymentConfigPipeline struct {
 	Deployment *deploygraph.DeploymentConfigNode
-	Images     []ImagePipeline
+
+	ActiveDeployment    *kubegraph.ReplicationControllerNode
+	InactiveDeployments []*kubegraph.ReplicationControllerNode
+
+	Images []ImagePipeline
 }
 
 // AllDeploymentConfigPipelines returns all the DCPipelines that aren't in the excludes set and the set of covered NodeIDs
@@ -55,6 +60,8 @@ func NewDeploymentConfigPipeline(g osgraph.Graph, dcNode *deploygraph.Deployment
 		covered.Insert(covers.List()...)
 		dcPipeline.Images = append(dcPipeline.Images, imagePipeline)
 	}
+
+	dcPipeline.ActiveDeployment, dcPipeline.InactiveDeployments = deployedges.RelevantDeployments(g, dcNode)
 
 	return dcPipeline, covered
 }

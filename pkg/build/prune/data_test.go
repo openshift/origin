@@ -19,35 +19,37 @@ func withCreated(build *buildapi.Build, creationTimestamp util.Time) *buildapi.B
 	return build
 }
 
-func withStatus(build *buildapi.Build, status buildapi.BuildStatus) *buildapi.Build {
-	build.Status = status
+func withStatus(build *buildapi.Build, status buildapi.BuildPhase) *buildapi.Build {
+	build.Status.Phase = status
 	return build
 }
 
 func mockBuild(namespace, name string, buildConfig *buildapi.BuildConfig) *buildapi.Build {
 	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
 	if buildConfig != nil {
-		build.Config = &kapi.ObjectReference{
+		build.Status.Config = &kapi.ObjectReference{
 			Name:      buildConfig.Name,
 			Namespace: buildConfig.Namespace,
 		}
 	}
-	build.Status = buildapi.BuildStatusNew
+	build.Status.Phase = buildapi.BuildPhaseNew
 	return build
 }
 
 func TestBuildByBuildConfigIndexFunc(t *testing.T) {
 	buildWithConfig := &buildapi.Build{
-		Config: &kapi.ObjectReference{
-			Name:      "buildConfigName",
-			Namespace: "buildConfigNamespace",
+		Status: buildapi.BuildStatus{
+			Config: &kapi.ObjectReference{
+				Name:      "buildConfigName",
+				Namespace: "buildConfigNamespace",
+			},
 		},
 	}
 	actualKey, err := BuildByBuildConfigIndexFunc(buildWithConfig)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	expectedKey := buildWithConfig.Config.Namespace + "/" + buildWithConfig.Config.Name
+	expectedKey := buildWithConfig.Status.Config.Namespace + "/" + buildWithConfig.Status.Config.Name
 	if actualKey != expectedKey {
 		t.Errorf("expected %v, actual %v", expectedKey, actualKey)
 	}
@@ -137,17 +139,17 @@ func TestPopuldatedDataSet(t *testing.T) {
 	dataSet := NewDataSet(buildConfigs, builds)
 	for _, build := range builds {
 		buildConfig, exists, err := dataSet.GetBuildConfig(build)
-		if build.Config != nil {
+		if build.Status.Config != nil {
 			if err != nil {
 				t.Errorf("Item %v, unexpected error: %v", build, err)
 			}
 			if !exists {
 				t.Errorf("Item %v, unexpected result: %v", build, exists)
 			}
-			if expected, actual := build.Config.Name, buildConfig.Name; expected != actual {
+			if expected, actual := build.Status.Config.Name, buildConfig.Name; expected != actual {
 				t.Errorf("expected %v, actual %v", expected, actual)
 			}
-			if expected, actual := build.Config.Namespace, buildConfig.Namespace; expected != actual {
+			if expected, actual := build.Status.Config.Namespace, buildConfig.Namespace; expected != actual {
 				t.Errorf("expected %v, actual %v", expected, actual)
 			}
 		} else {

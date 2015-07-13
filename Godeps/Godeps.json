@@ -808,6 +808,11 @@
 			"Rev": "588cb435e59ee8b6c2795482887755841ad67207"
 		},
 		{
+			"ImportPath": "github.com/go-ldap/ldap",
+			"Comment": "v1-19-g83e6542",
+			"Rev": "83e65426fd1c06626e88aa8a085e5bfed0208e29"
+		},
+		{
 			"ImportPath": "github.com/godbus/dbus",
 			"Comment": "0-7-g939230d",
 			"Rev": "939230d2086a4f1870e04c52e0a376c25bae0ec4"
@@ -1019,43 +1024,43 @@
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/git",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
-			"Comment": "v1.0.1",
-			"Rev": "e28fc867a72a6f2d1cb9898e0ce47c70e26909eb"
+			"Comment": "v1.0.1-10-g72ed2c7",
+			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
 		},
 		{
 			"ImportPath": "github.com/pkg/profile",
@@ -1149,6 +1154,14 @@
 			"Rev": "a98ad7ee00ec53921f08832bc06ecf7fd600e6a1"
 		},
 		{
+			"ImportPath": "github.com/vjeantet/asn1-ber",
+			"Rev": "85041cd0f4769ebf4a5ae600b1e921e630d6aff0"
+		},
+		{
+			"ImportPath": "github.com/vjeantet/ldapserver",
+			"Rev": "5700661e721f508db936af42597a254c4ea6aea4"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/ssh",
 			"Rev": "c84e1f8e3a7e322d497cd16c0e8a13c7e127baf3"
 		},
@@ -1183,6 +1196,10 @@
 		{
 			"ImportPath": "google.golang.org/cloud/internal",
 			"Rev": "2e43671e4ad874a7bca65746ff3edb38e6e93762"
+		},
+		{
+			"ImportPath": "gopkg.in/asn1-ber.v1",
+			"Rev": "9eae18c3681ae3d3c677ac2b80a8fe57de45fc09"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

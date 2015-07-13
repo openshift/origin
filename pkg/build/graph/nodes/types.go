@@ -23,10 +23,6 @@ func BuildConfigNodeName(o *buildapi.BuildConfig) osgraph.UniqueName {
 type BuildConfigNode struct {
 	osgraph.Node
 	*buildapi.BuildConfig
-
-	LastSuccessfulBuild   *buildapi.Build
-	LastUnsuccessfulBuild *buildapi.Build
-	ActiveBuilds          []buildapi.Build
 }
 
 func (n BuildConfigNode) Object() interface{} {

@@ -31,28 +31,28 @@ func (m *mockPruneRecorder) Verify(t *testing.T, expected util.StringSet) {
 }
 
 func TestPruneTask(t *testing.T) {
-	buildStatusOptions := []buildapi.BuildStatus{
-		buildapi.BuildStatusCancelled,
-		buildapi.BuildStatusComplete,
-		buildapi.BuildStatusError,
-		buildapi.BuildStatusFailed,
-		buildapi.BuildStatusNew,
-		buildapi.BuildStatusPending,
-		buildapi.BuildStatusRunning,
+	BuildPhaseOptions := []buildapi.BuildPhase{
+		buildapi.BuildPhaseCancelled,
+		buildapi.BuildPhaseComplete,
+		buildapi.BuildPhaseError,
+		buildapi.BuildPhaseFailed,
+		buildapi.BuildPhaseNew,
+		buildapi.BuildPhasePending,
+		buildapi.BuildPhaseRunning,
 	}
-	buildStatusFilter := []buildapi.BuildStatus{
-		buildapi.BuildStatusCancelled,
-		buildapi.BuildStatusComplete,
-		buildapi.BuildStatusError,
-		buildapi.BuildStatusFailed,
+	BuildPhaseFilter := []buildapi.BuildPhase{
+		buildapi.BuildPhaseCancelled,
+		buildapi.BuildPhaseComplete,
+		buildapi.BuildPhaseError,
+		buildapi.BuildPhaseFailed,
 	}
-	buildStatusFilterSet := util.StringSet{}
-	for _, buildStatus := range buildStatusFilter {
-		buildStatusFilterSet.Insert(string(buildStatus))
+	BuildPhaseFilterSet := util.StringSet{}
+	for _, BuildPhase := range BuildPhaseFilter {
+		BuildPhaseFilterSet.Insert(string(BuildPhase))
 	}
 
 	for _, orphans := range []bool{true, false} {
-		for _, buildStatusOption := range buildStatusOptions {
+		for _, BuildPhaseOption := range BuildPhaseOptions {
 			keepYoungerThan := time.Hour
 
 			now := util.Now()
@@ -64,10 +64,10 @@ func TestPruneTask(t *testing.T) {
 			buildConfig := mockBuildConfig("a", "build-config")
 			buildConfigs = append(buildConfigs, buildConfig)
 
-			builds = append(builds, withCreated(withStatus(mockBuild("a", "build-1", buildConfig), buildStatusOption), now))
-			builds = append(builds, withCreated(withStatus(mockBuild("a", "build-2", buildConfig), buildStatusOption), old))
-			builds = append(builds, withCreated(withStatus(mockBuild("a", "orphan-build-1", nil), buildStatusOption), now))
-			builds = append(builds, withCreated(withStatus(mockBuild("a", "orphan-build-2", nil), buildStatusOption), old))
+			builds = append(builds, withCreated(withStatus(mockBuild("a", "build-1", buildConfig), BuildPhaseOption), now))
+			builds = append(builds, withCreated(withStatus(mockBuild("a", "build-2", buildConfig), BuildPhaseOption), old))
+			builds = append(builds, withCreated(withStatus(mockBuild("a", "orphan-build-1", nil), BuildPhaseOption), now))
+			builds = append(builds, withCreated(withStatus(mockBuild("a", "orphan-build-2", nil), BuildPhaseOption), old))
 
 			keepComplete := 1
 			keepFailed := 1
@@ -79,7 +79,7 @@ func TestPruneTask(t *testing.T) {
 			resolver := NewPerBuildConfigResolver(dataSet, keepComplete, keepFailed)
 			if orphans {
 				resolver = &mergeResolver{
-					resolvers: []Resolver{resolver, NewOrphanBuildResolver(dataSet, buildStatusFilter)},
+					resolvers: []Resolver{resolver, NewOrphanBuildResolver(dataSet, BuildPhaseFilter)},
 				}
 			}
 			expectedBuilds, err := resolver.Resolve()

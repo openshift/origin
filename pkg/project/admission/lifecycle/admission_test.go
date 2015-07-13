@@ -41,7 +41,7 @@ func TestAdmissionExists(t *testing.T) {
 	handler := &lifecycle{client: mockClient}
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid"},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
@@ -54,10 +54,15 @@ func TestAdmissionExists(t *testing.T) {
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
-				DockerImageReference: "repository/data",
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repository/data",
+				},
 			},
 		},
-		Status: buildapi.BuildStatusNew,
+		Status: buildapi.BuildStatus{
+			Phase: buildapi.BuildPhaseNew,
+		},
 	}
 	err := handler.Admit(admission.NewAttributesRecord(build, "Build", "namespace", "name", "builds", "", "CREATE", nil))
 	if err == nil {
@@ -83,7 +88,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 	handler := &lifecycle{client: mockClient}
 	build := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "other"},
-		Parameters: buildapi.BuildParameters{
+		Spec: buildapi.BuildSpec{
 			Source: buildapi.BuildSource{
 				Type: buildapi.BuildSourceGit,
 				Git: &buildapi.GitBuildSource{
@@ -96,10 +101,15 @@ func TestAdmissionLifecycle(t *testing.T) {
 				DockerStrategy: &buildapi.DockerBuildStrategy{},
 			},
 			Output: buildapi.BuildOutput{
-				DockerImageReference: "repository/data",
+				To: &kapi.ObjectReference{
+					Kind: "DockerImage",
+					Name: "repository/data",
+				},
 			},
 		},
-		Status: buildapi.BuildStatusNew,
+		Status: buildapi.BuildStatus{
+			Phase: buildapi.BuildPhaseNew,
+		},
 	}
 	err := handler.Admit(admission.NewAttributesRecord(build, "Build", build.Namespace, "name", "builds", "", "CREATE", nil))
 	if err != nil {

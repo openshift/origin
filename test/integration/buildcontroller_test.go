@@ -73,8 +73,8 @@ func TestConcurrentBuildControllers(t *testing.T) {
 				break
 			}
 			// If unexpected status, throw error
-			if build.Status != buildapi.BuildStatusPending {
-				errChan <- fmt.Errorf("received unexpected build status: %s", build.Status)
+			if build.Status.Phase != buildapi.BuildPhasePending {
+				errChan <- fmt.Errorf("received unexpected build status: %s", build.Status.Phase)
 				break
 			} else {
 				atomic.AddInt32(&buildModifiedCount, 1)
@@ -110,8 +110,8 @@ func TestConcurrentBuildControllers(t *testing.T) {
 }
 
 type buildControllerPodState struct {
-	PodPhase    kapi.PodPhase
-	BuildStatus buildapi.BuildStatus
+	PodPhase   kapi.PodPhase
+	BuildPhase buildapi.BuildPhase
 }
 
 type buildControllerPodTest struct {
@@ -132,8 +132,8 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 			Name: "running state test",
 			States: []buildControllerPodState{
 				{
-					PodPhase:    kapi.PodRunning,
-					BuildStatus: buildapi.BuildStatusRunning,
+					PodPhase:   kapi.PodRunning,
+					BuildPhase: buildapi.BuildPhaseRunning,
 				},
 			},
 		},
@@ -141,12 +141,12 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 			Name: "build succeeded",
 			States: []buildControllerPodState{
 				{
-					PodPhase:    kapi.PodRunning,
-					BuildStatus: buildapi.BuildStatusRunning,
+					PodPhase:   kapi.PodRunning,
+					BuildPhase: buildapi.BuildPhaseRunning,
 				},
 				{
-					PodPhase:    kapi.PodSucceeded,
-					BuildStatus: buildapi.BuildStatusComplete,
+					PodPhase:   kapi.PodSucceeded,
+					BuildPhase: buildapi.BuildPhaseComplete,
 				},
 			},
 		},
@@ -154,12 +154,12 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 			Name: "build failed",
 			States: []buildControllerPodState{
 				{
-					PodPhase:    kapi.PodRunning,
-					BuildStatus: buildapi.BuildStatusRunning,
+					PodPhase:   kapi.PodRunning,
+					BuildPhase: buildapi.BuildPhaseRunning,
 				},
 				{
-					PodPhase:    kapi.PodFailed,
-					BuildStatus: buildapi.BuildStatusFailed,
+					PodPhase:   kapi.PodFailed,
+					BuildPhase: buildapi.BuildPhaseFailed,
 				},
 			},
 		},
@@ -230,7 +230,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 					}
 					if done {
 						errChan <- fmt.Errorf("%s: unexpected build state: %#v", test.Name, e.Object)
-					} else if b.Status == state.BuildStatus {
+					} else if b.Status.Phase == state.BuildPhase {
 						done = true
 						atomic.StoreInt32(&stateReached, 1)
 					}
@@ -245,7 +245,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 			case <-time.After(waitTime):
 				buildWatch.Stop()
 				if atomic.LoadInt32(&stateReached) != 1 {
-					t.Errorf("%s: Did not reach desired build state: %s", test.Name, state.BuildStatus)
+					t.Errorf("%s: Did not reach desired build state: %s", test.Name, state.BuildPhase)
 					break
 				}
 			}
@@ -368,24 +368,24 @@ func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, 
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild := event.Object.(*buildapi.Build)
-	switch newBuild.Parameters.Strategy.Type {
+	switch newBuild.Spec.Strategy.Type {
 	case buildapi.SourceBuildStrategyType:
-		if newBuild.Parameters.Strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
+		if newBuild.Spec.Strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Parameters.Strategy.DockerStrategy.From.Name, i, bc.Triggers[0].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
 	case buildapi.DockerBuildStrategyType:
-		if newBuild.Parameters.Strategy.DockerStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
+		if newBuild.Spec.Strategy.DockerStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Parameters.Strategy.DockerStrategy.From.Name, i, bc.Triggers[0].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
 	case buildapi.CustomBuildStrategyType:
-		if newBuild.Parameters.Strategy.CustomStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
+		if newBuild.Spec.Strategy.CustomStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Parameters.Strategy.DockerStrategy.From.Name, i, bc.Triggers[0].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 		}
 	}
 	// Wait for an update on the specific build that was added
@@ -400,8 +400,8 @@ func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, 
 	}
 	newBuild = event.Object.(*buildapi.Build)
 	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
-	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" || newBuild.Parameters.Output.DockerImageReference != "" {
-		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
+	if newBuild.Spec.Output.To.Name != "test-image-trigger-repo:outputtag" {
+		t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {
 		t.Fatalf("Expected build with label %s=%s from build config got %s=%s", "testlabel", "testvalue", "testlabel", newBuild.Labels["testlabel"])
@@ -423,8 +423,8 @@ WaitLoop:
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
 	// the first tag did not have an image id, so the last trigger field is the pull spec
-	if updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID != "registry:8080/openshift/test-image-trigger:"+tag {
-		t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Triggers[0].ImageChange)
+	if updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID != "registry:8080/openshift/test-image-trigger:"+tag {
+		t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
 	}
 
 	// clear out the build/buildconfig watches before triggering a new build
@@ -461,24 +461,24 @@ WaitLoop2:
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	switch newBuild.Parameters.Strategy.Type {
+	switch newBuild.Spec.Strategy.Type {
 	case buildapi.SourceBuildStrategyType:
-		if newBuild.Parameters.Strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+		if newBuild.Spec.Strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Parameters.Strategy.DockerStrategy.From.Name, i, bc.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
 	case buildapi.DockerBuildStrategyType:
-		if newBuild.Parameters.Strategy.DockerStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+		if newBuild.Spec.Strategy.DockerStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Parameters.Strategy.DockerStrategy.From.Name, i, bc.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
 	case buildapi.CustomBuildStrategyType:
-		if newBuild.Parameters.Strategy.CustomStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
+		if newBuild.Spec.Strategy.CustomStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
 			i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Parameters.Strategy.DockerStrategy.From.Name, i, bc.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
 	}
 
@@ -492,8 +492,8 @@ WaitLoop2:
 	}
 	newBuild = event.Object.(*buildapi.Build)
 	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
-	if newBuild.Parameters.Output.To.Name != "test-image-trigger-repo" || newBuild.Parameters.Output.Tag != "outputtag" || newBuild.Parameters.Output.DockerImageReference != "" {
-		t.Fatalf("unexpected build output: %#v %#v", newBuild.Parameters.Output.To, newBuild.Parameters.Output)
+	if newBuild.Spec.Output.To.Name != "test-image-trigger-repo:outputtag" {
+		t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
 	}
 	if newBuild.Labels["testlabel"] != "testvalue" {
 		t.Fatalf("Expected build with label %s=%s from build config got %s=%s", "testlabel", "testvalue", "testlabel", newBuild.Labels["testlabel"])
@@ -510,7 +510,7 @@ WaitLoop3:
 		}
 	}
 	updatedConfig = event.Object.(*buildapi.BuildConfig)
-	if e, a := "registry:8080/openshift/test-image-trigger:ref-2-random", updatedConfig.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
+	if e, a := "registry:8080/openshift/test-image-trigger:ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
 		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
 	}
 }
@@ -597,8 +597,8 @@ func runBuildRunningPodDeleteTest(t *testing.T, clusterAdminClient *client.Clien
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Status != buildapi.BuildStatusPending {
-		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status)
+	if newBuild.Status.Phase != buildapi.BuildPhasePending {
+		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
 	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
@@ -607,8 +607,8 @@ func runBuildRunningPodDeleteTest(t *testing.T, clusterAdminClient *client.Clien
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Status != buildapi.BuildStatusError {
-		t.Fatalf("expected build status to be marked error, but was marked %s", newBuild.Status)
+	if newBuild.Status.Phase != buildapi.BuildPhaseError {
+		t.Fatalf("expected build status to be marked error, but was marked %s", newBuild.Status.Phase)
 	}
 }
 
@@ -650,19 +650,19 @@ func runBuildCompletePodDeleteTest(t *testing.T, clusterAdminClient *client.Clie
 	}
 
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Status != buildapi.BuildStatusPending {
-		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status)
+	if newBuild.Status.Phase != buildapi.BuildPhasePending {
+		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
-	newBuild.Status = buildapi.BuildStatusComplete
+	newBuild.Status.Phase = buildapi.BuildPhaseComplete
 	clusterAdminClient.Builds(testutil.Namespace()).Update(newBuild)
 	event = waitForWatch(t, "build updated to complete", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 	newBuild = event.Object.(*buildapi.Build)
-	if newBuild.Status != buildapi.BuildStatusComplete {
-		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status)
+	if newBuild.Status.Phase != buildapi.BuildPhaseComplete {
+		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status.Phase)
 	}
 
 	clusterAdminKubeClient.Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
@@ -671,7 +671,7 @@ func runBuildCompletePodDeleteTest(t *testing.T, clusterAdminClient *client.Clie
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
-	if newBuild.Status != buildapi.BuildStatusComplete {
-		t.Fatalf("build status was updated to %s after deleting pod, should have stayed as %s", newBuild.Status, buildapi.BuildStatusComplete)
+	if newBuild.Status.Phase != buildapi.BuildPhaseComplete {
+		t.Fatalf("build status was updated to %s after deleting pod, should have stayed as %s", newBuild.Status.Phase, buildapi.BuildPhaseComplete)
 	}
 }
