@@ -35,6 +35,7 @@ type Interface interface {
 	ResourceAccessReviewsNamespacer
 	ClusterResourceAccessReviews
 	SubjectAccessReviewsNamespacer
+	SubjectAccessReviewsImpersonator
 	ClusterSubjectAccessReviews
 	TemplatesNamespacer
 	TemplateConfigsNamespacer
@@ -176,7 +177,12 @@ func (c *Client) ClusterResourceAccessReviews() ResourceAccessReviewInterface {
 
 // SubjectAccessReviews provides a REST client for SubjectAccessReviews
 func (c *Client) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {
-	return newSubjectAccessReviews(c, namespace)
+	return newSubjectAccessReviews(c, namespace, "")
+}
+
+// ImpersonateSubjectAccessReviews provides a REST client for SubjectAccessReviews
+func (c *Client) ImpersonateSubjectAccessReviews(namespace, token string) SubjectAccessReviewInterface {
+	return newSubjectAccessReviews(c, namespace, token)
 }
 
 // ClusterSubjectAccessReviews provides a REST client for SubjectAccessReviews
