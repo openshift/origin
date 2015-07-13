@@ -5,13 +5,11 @@ import (
 	"fmt"
 	log "github.com/golang/glog"
 	"net"
-	"os"
 	"os/exec"
 	"strconv"
 	"syscall"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	netutils_server "github.com/openshift/openshift-sdn/pkg/netutils/server"
 )
 
 type FlowController struct {
@@ -39,25 +37,6 @@ func (c *FlowController) Setup(localSubnet, containerNetwork string) error {
 		log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
 	}
 	return err
-}
-
-func (c *FlowController) manageLocalIpam(ipnet *net.IPNet) error {
-	ipamHost := "127.0.0.1"
-	ipamPort := uint(9080)
-	inuse := make([]string, 0)
-	ipam, _ := netutils.NewIPAllocator(ipnet.String(), inuse)
-	f, err := os.Create("/etc/openshift-sdn/config.env")
-	if err != nil {
-		return err
-	}
-	_, err = f.WriteString(fmt.Sprintf("OPENSHIFT_SDN_TAP1_ADDR=%s\nOPENSHIFT_SDN_IPAM_SERVER=http://%s:%s", netutils.GenerateDefaultGateway(ipnet), ipamHost, ipamPort))
-	if err != nil {
-		return err
-	}
-	f.Close()
-	// listen and serve does not return the control
-	netutils_server.ListenAndServeNetutilServer(ipam, net.ParseIP(ipamHost), ipamPort, nil)
-	return nil
 }
 
 func (c *FlowController) AddOFRules(minionIP, subnet, localIP string) error {
