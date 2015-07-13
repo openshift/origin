@@ -4231,23 +4231,6 @@ _openshift_infra_docker-build()
     must_have_one_noun=()
 }
 
-_openshift_infra_git-server()
-{
-    last_command="openshift_infra_git-server"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--help")
-    flags+=("-h")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
 _openshift_infra()
 {
     last_command="openshift_infra"
@@ -4256,7 +4239,6 @@ _openshift_infra()
     commands+=("deploy")
     commands+=("sti-build")
     commands+=("docker-build")
-    commands+=("git-server")
 
     flags=()
     two_word_flags=()
