@@ -512,7 +512,7 @@ This dumps the logs from a given Pod container.
 Use `oc get pod <pod-id>` to list the containers from a Pod.
 
 ```bash
-$ oc logs frontend-pod mysql-container
+$ oc logs frontend-pod -c mysql-container
 ```
 
 ### oc exec
