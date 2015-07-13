@@ -1,0 +1,293 @@
+= CLI Hacking Guide
+
+The link:./cli.md[OpenShift 3 Command Line Interface (CLI)] is a set of command-line tools designed for managing OpenShift servers and performing multiple client actions against them.
+
+This document provides information about how to *contribute* to the CLI. For usage and other end-user information check the https://docs.openshift.com[official documentation] and link:./cli.md[cli.md].
+
+== Getting started
+
+The OpenShift CLI is https://github.com/openshift/origin/releases[distributed as a single binary] that can act as a different tool depending on its name and/or symlinks. So if named as (or have a symlink created with the name) `oc` it will provide higher-level commands generally targeted for end-users; as `oadm` will support administrative tasks; and as `openshift` will expose the all-in-one OpenShift server and related functions.
+
+== Contributing
+
+=== The Commander
+
+We make use of https://github.com/spf13/cobra[Cobra] and https://github.com/spf13/pflag[pflag] as the base commander that allows fully compliant POSIX commands. We are not going to cover Cobra and pflag in this document, so please refer to their documentation for information about flags, hooks or general commander usage.
+
+=== CLI Code Organization
+
+Commands are organized in the package structure as:
+
+* https://github.com/openshift/origin/tree/master/pkg/cmd[pkg/cmd]
+** https://github.com/openshift/origin/tree/master/pkg/cmd/openshift[pkg/cmd/openshift] - `openshift` or `origin` command.
+** https://github.com/openshift/origin/tree/master/pkg/cmd/cli[pkg/cmd/cli] - `oc` or `openshift cli`, and `kubectl` commands.
+** https://github.com/openshift/origin/tree/master/pkg/cmd/admin[pkg/cmd/admin] - `oadm` or `openshift admin` command.
+** https://github.com/openshift/origin/tree/master/pkg/cmd/experimental[pkg/cmd/experimental] - `openshift ex` command.
+** https://github.com/openshift/origin/tree/master/pkg/cmd/infra[pkg/cmd/infra]
+*** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/builder[pkg/cmd/infra/builder] - `openshift-sti-build` and `openshift-docker-build` commands.
+*** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/deployer[pkg/cmd/infra/deployer] - `openshift-deploy` command.
+*** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/gitserver[pkg/cmd/infra/gitserver] - `openshift-gitserver` command.
+*** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/router[pkg/cmd/infra/router] - `openshift-router` command.
+
+=== Command Structure
+
+For every command we have a `NewCmd<CommandName>` function that creates the command and returns a pointer to a `cobra.Command`, which can later be added to other parent commands to compose the structure tree. 
+
+We usually have a struct with a variable to every flag and argument declared by the command (and any other variable required for the command to run). This makes tests and mocking easier. The struct exposes three functions:
+
+* `Complete`: Completes the struct variables with values that may not be directly provided, for example, by flags pointers. Here you will usually take the `args` slice and set the values as appropriate variables, instantiate configs or clients, etc.
+* `Validate`: performs validation and returns errors.
+* `Run<CommandName>`: runs the actual command, taking as assumption that the struct is complete with all required values to run, and they are valid.
+
+Sample command skeleton:
+
+====
+[source,go,numbered,options="nowrap"]
+----
+type MineOptions struct {
+  mineLatest bool
+}
+
+const (
+  mineLong = `Some long description
+for my command.`
+
+  mineExample = `  // Run my command's first action
+  $ %[1]s first
+
+  // Run my command's second action on latest stuff
+  $ %[1]s second --latest`
+)
+
+func NewCmdMine(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+  options := &MineOptions{}
+  cmd := &cobra.Command{
+    Use:     fmt.Sprintf("%s [--latest]", name),
+    Short:   "Run my command",
+    Long:    mineLong,
+    Example: fmt.Sprintf(mineExample, fullName),
+    Run: func(cmd *cobra.Command, args []string) {
+      if err := options.Complete(f, cmd, args, out); err != nil { (6)
+        cmdutil.CheckErr(err)
+      }
+      if err := options.Validate(args); err != nil { (7)
+        cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+      }
+      if err := options.RunDeploy(); err != nil { (8)
+        cmdutil.CheckErr(err) (9)
+      }
+    },
+  }
+  cmd.Flags().BoolVar(&options.mineLatest, "latest", false, "Use latest stuff")
+  return cmd
+}
+
+func (o *MineOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+  return nil
+}
+func (o MineOptions) Validate(args []string) error {
+  return nil
+}
+func (o MineOptions) RunDeploy() error {
+  return nil
+}
+----
+====
+
+Notice that this is not a mandatory structure and not every command is implemented this way (specially in regarding to the "holding" struct and its methods), but this is a nice convention so try to be compliant with it.
+
+=== Writing Usage
+
+When writing an usage string, make sure you cover the most important path for the given command. Use the following conventions:
+
+* Arguments and flag values names in upper case, e.g. `RESOURCE`, `-n NAME`.
+* Optional arguments or flags between brackets, e.g. `[RESOURCE]`, `[-f FILENAME]`.
+* Mutually exclusive required arguments and/or flags with the OR operator, e.g. `--add|--remove|--list`, with parenthesis if they are of mixed types (arguments and flags), e.g. `(RESOURCE | -f FILENAME)`.
+* If multiple values are supported for a given argument use three dots, e.g. `KEY_1=VAL_1 ... KEY_N=VAL_N`.
+* Arguments don't have names, but we have to reference them somehow in usage. Try to be concise with the names already used by the usage of other commands. For example, these are some very recurring names: `BUILD` (meaning a build name or ID), `DEPLOYMENT` (meaning a deployment name or ID), `RESOURCE` (e.g. pod, pods, replicationcontroller, rc, deploymentconfig, dc, build, etc), `NAME`, `RESOURCE/NAME` (e.g. pod/mypodname, rc/myrcname, etc), `URL`, `TEMPLATE`, `KEY=VALUE`, `FILENAME` and so on.
+
+A few examples:
+
+----
+cancel-build BUILD
+build-logs BUILD
+login [URL]
+edit (RESOURCE/NAME | -f FILENAME)
+new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)
+process (TEMPLATE | -f FILENAME) [-v KEY=VALUE]
+----
+
+=== Writing Examples
+
+Examples must have 2-space tabbing. Always try to have a consistent explanation for every example as a comment (starting with `//`). The full command name is parameterized for every example (usually with `%[1]s`) so that the examples are still valid if the command is used by different parent commands. Make sure you don't have a newline character at the end of the string.
+
+Example:
+
+====
+[source,go,numbered,options="nowrap"]
+----
+  deployExample = `  // Display the latest deployment for the 'database' deployment config
+  $ %[1]s database
+
+  // Start a new deployment based on the 'database' deployment config
+  $ %[1]s database --latest`
+----
+====
+
+=== Bash Completions
+
+When introducing modifications to the structure of the commands set (changes in flags, command names, arguments, etc) you may need to update the bash completions files. To check if an update to completions is needed, you can run the command:
+
+====
+[source,bash,options="nowrap"]
+----
+$ hack/verify-generated-completions.sh
+----
+====
+
+To update completions, run:
+
+====
+[source,bash,options="nowrap"]
+----
+$ hack/update-generated-completions.sh
+----
+====
+
+In case you need additional control over how flags behave in terms of code completion, there are some helper functions:
+
+|=======
+|`cmd.MarkFlagFilename("my-flag-name")`                 |allows the given flag to autocomplete as a path to file or directory.
+|`cmd.MarkFlagFilename("my-flag-name", "yaml", "yml")`  |consider the given file extensions when doing autocomplete.
+|`MarkFlagRequired("my-flag-name")`                     |mark a flag as required. 
+|=======
+
+=== Automatically Generated Documentation
+
+The same goes for automatically generated documentation. If you introduce structural changes, verify that docs are up-to-date:
+
+====
+[source,bash,options="nowrap"]
+----
+$ hack/verify-generated-docs.sh
+----
+====
+
+And, if an update is needed:
+
+====
+[source,bash,options="nowrap"]
+----
+$ hack/update-generated-docs.sh
+----
+====
+
+=== Handling Errors
+
+TODO
+
+=== Tests
+
+TODO
+
+=== Helper Functions
+
+There are a number of helper functions available in `cmdutil` and `kcmdutil`. Import them with:
+
+====
+[source,go,options="nowrap"]
+----
+import (
+  (...)
+  kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+  cmdutil "github.com/openshift/origin/pkg/cmd/util"
+----
+====
+
+Examples:
+
+|=======
+|`kcmdutil.CheckErr(err error)`                                |handles an error (check for `nil` and exit the program accordingly), this should always be used instead of handling the `err` manually.
+|`kcmdutil.GetFlag<Type>(cmd *cobra.Command, flagName string)` |gets the instance of a declared flag, by type. If possible, use the link:#command-structure[struct var binding] to get flag values instead.
+|`cmdutil.IsTerminal(r io.Reader)`                             |checks if the given `io.Reader` is a terminal. 
+|=======
+
+=== Commented Example
+
+Taking the `oc deploy` command as an example, the code structure for a command will usually look like the one below. 
+
+====
+[source,go,numbered,options="nowrap"]
+----
+type DeployOptions struct { <1>
+  (...)
+  deployLatest bool
+  retryDeploy  bool
+}
+
+const (
+  deployLong = `Some long description 
+for the deploy command.` // <2>
+
+  deployExample = `  // Display the latest deployment for the 'database' DeploymentConfig
+  $ %[1]s database
+
+  // Start a new deployment based on the 'database' DeploymentConfig
+  $ %[1]s database --latest` // <3>
+)
+
+func NewCmdDeploy(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command { // <4>
+  options := &DeployOptions{}
+
+  cmd := &cobra.Command{
+    Use:     fmt.Sprintf("%s DEPLOYMENTCONFIG", name), <5>
+    Short:   "View, start, cancel, or retry deployments",
+    Long:    deployLong,
+    Example: fmt.Sprintf(deployExample, fullName),
+    Run: func(cmd *cobra.Command, args []string) {
+      if err := options.Complete(f, cmd, args, out); err != nil { <6>
+        cmdutil.CheckErr(err)
+      }
+
+      if err := options.Validate(args); err != nil { <7>
+        cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
+      }
+
+      if err := options.RunDeploy(); err != nil { <8>
+        cmdutil.CheckErr(err) <9>
+      }
+    },
+  }
+
+  cmd.Flags().BoolVar(&options.deployLatest, "latest", false, "Start a new deployment now.")
+  cmd.Flags().BoolVar(&options.retryDeploy, "retry", false, "Retry the latest failed deployment.")
+
+  return cmd
+}
+
+func (o *DeployOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+  return nil
+}
+
+func (o DeployOptions) Validate(args []string) error {
+  return nil
+}
+
+func (o DeployOptions) RunDeploy() error {
+  return nil
+}
+----
+<1> Create a struct to contain vars for every flag declared (and other vars that the command may need). This struct will usually have the `Complete`, `Validate` and `Run<Command>` methods (explained below).
+<2> Multiple lines describing the command.
+<3> Command examples. Try to cover every important command path (flags, arguments, etc).
+<4> This function creates the command. Notice it takes the parent command name as argument and also a `io.Writer` that will be used to print messages.
+<5> Command usage.
+<6> `Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error` is used to populate any object or variable that will be required to run the command and is still missing at this point. For example, if the command will make use of an API client it can be created from the factory in this method. Can also be used to take argument values from the `args` slice and hold it in explicit variables in your struct, store the `io.Writer` that will be used later, etc.
+<7> `Validate(args []string) error` perform validations on arguments as required. Notice that if the `Complete` and `Validate` methods implementations are simple enough, you may have only one of them that does both.
+<8> `Run<Command>() error` (e.g. `RunDeploy`, `RunCreate` and so on) does the actual command logic and returns errors as required. Notice that this method does not take anything as argument - it's expected that you previously extracted and stored in the `struct` anything that will be needed to run this command. This makes commands more easily testable once you can run and populate the command struct with the values you want to test and then just run this method and check for the returned error(s).
+<9> Try to always use the functions in `github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util` to check and handle errors. It is not expected that commands call `glog.Fatalf`, `os.Exit` or anything similar directly.
+====
+
+
+
+
