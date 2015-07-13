@@ -5,9 +5,9 @@
 #
 FROM openshift/origin
 
+ADD bin/gitserver /usr/bin/gitserver
 ADD hooks/ /var/lib/git-hooks/
-RUN ln -s /usr/bin/openshift /usr/bin/openshift-gitserver && \
-    mkdir -p /var/lib/git
+RUN mkdir -p /var/lib/git
 VOLUME /var/lib/git
 
-ENTRYPOINT ["/usr/bin/openshift-gitserver"]
+ENTRYPOINT ["/usr/bin/gitserver"]

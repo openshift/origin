@@ -36,7 +36,7 @@ var ErrNotEnabled = fmt.Errorf("not enabled")
 func NewAutoLinkBuildsFromEnvironment() (*AutoLinkBuilds, error) {
 	config := &AutoLinkBuilds{}
 
-	file := os.Getenv("AUTOLINK_CONFIG")
+	file := os.Getenv("AUTOLINK_KUBECONFIG")
 	if len(file) == 0 {
 		return nil, ErrNotEnabled
 	}
@@ -74,6 +74,13 @@ func NewAutoLinkBuildsFromEnvironment() (*AutoLinkBuilds, error) {
 }
 
 func clientFromConfig(path string) (*kclient.Config, string, error) {
+	if path == "-" {
+		cfg, err := kclient.InClusterConfig()
+		if err != nil {
+			return nil, "", fmt.Errorf("cluster config not available: %v", err)
+		}
+		return cfg, "", nil
+	}
 	rules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: path}
 	credentials, err := rules.Load()
 	if err != nil {
