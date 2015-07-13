@@ -312,6 +312,8 @@ type ExecNewPodHook struct {
 	Command []string `json:"command" description:"the hook command and its arguments"`
 	// Env is a set of environment variables to supply to the hook pod's container.
 	Env []kapi.EnvVar `json:"env,omitempty" description:"environment variables provided to the hook container"`
+	// Image is a reference to a DockerImage or ImageStreamTag, used to run the hook pod's container.
+	Image kapi.ObjectReference `json:"image" description:"reference to a DockerImage or ImageStreamTag, used for the hook container"`
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy
