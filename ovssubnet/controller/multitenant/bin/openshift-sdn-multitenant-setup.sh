@@ -67,7 +67,7 @@ function setup() {
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, tun_id=0, actions=goto_table:4"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, ip, nw_dst=${subnet}, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:5"
 
-    # Table 3; incoming from container; filled in by openshift-ovs-subnet
+    # Table 3; incoming from container; filled in by openshift-ovs-multitenant
     # But let incoming traffic from docker-only containers through (ingress on vovsbr)
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=3, cookie=0x9, in_port=9, ip, actions=goto_table:4"
 
