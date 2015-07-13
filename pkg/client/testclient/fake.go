@@ -194,6 +194,11 @@ func (c *Fake) SubjectAccessReviews(namespace string) client.SubjectAccessReview
 	return &FakeSubjectAccessReviews{Fake: c}
 }
 
+// ImpersonateSubjectAccessReviews provides a fake REST client for SubjectAccessReviews
+func (c *Fake) ImpersonateSubjectAccessReviews(token, namespace string) client.SubjectAccessReviewInterface {
+	return &FakeSubjectAccessReviews{Fake: c}
+}
+
 // OAuthAccessTokens provides a fake REST client for OAuthAccessTokens
 func (c *Fake) OAuthAccessTokens() client.OAuthAccessTokenInterface {
 	return &FakeOAuthAccessTokens{Fake: c}
