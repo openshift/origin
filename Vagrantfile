@@ -103,6 +103,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     },
   }
 
+  #Extend the terminal's proxy if there's one
+  if Vagrant.has_plugin?("vagrant-proxyconf")
+    config.proxy.http     = ENV['http_proxy'] || ENV['HTTP_PROXY']
+    config.proxy.https    = ENV['https_proxy'] || ENV['HTTPS_PROXY']
+    config.proxy.no_proxy = ENV['no_proxy'] || ENV['NO_PROXY']
+  end
+
   # attempt to read config in this repo's .vagrant-openshift.json if present
   if File.exist?('.vagrant-openshift.json')
     json = File.read('.vagrant-openshift.json')
