@@ -115,6 +115,10 @@ type RollingDeploymentStrategyParams struct {
 	// TimeoutSeconds is the time to wait for updates before giving up. If the
 	// value is nil, a default will be used.
 	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty" description:"the time to wait for updates before giving up"`
+	// UpdatePercent is the percentage of replicas to scale up or down each
+	// interval. If nil, one replica will be scaled up and down each interval.
+	// If negative, the scale order will be down/up instead of up/down.
+	UpdatePercent *int `json:"updatePercent,omitempty" description:"the percentage of replicas to scale up or down each interval (negative value switches scale order to down/up instead of up/down)"`
 	// Pre is a lifecycle hook which is executed before the deployment process
 	// begins. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook `json:"pre,omitempty" description:"a hook executed before the strategy starts the deployment"`
