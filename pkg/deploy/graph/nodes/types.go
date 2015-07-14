@@ -28,6 +28,10 @@ func (n DeploymentConfigNode) String() string {
 	return string(DeploymentConfigNodeName(n.DeploymentConfig))
 }
 
+func (n DeploymentConfigNode) ResourceString() string {
+	return "dc/" + n.Name
+}
+
 func (*DeploymentConfigNode) Kind() string {
 	return DeploymentConfigNodeKind
 }

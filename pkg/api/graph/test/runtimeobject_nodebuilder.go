@@ -46,6 +46,12 @@ func init() {
 	if err := RegisterEnsureNode(&kapi.Service{}, kubegraph.EnsureServiceNode); err != nil {
 		panic(err)
 	}
+	if err := RegisterEnsureNode(&kapi.ServiceAccount{}, kubegraph.EnsureServiceAccountNode); err != nil {
+		panic(err)
+	}
+	if err := RegisterEnsureNode(&kapi.Secret{}, kubegraph.EnsureSecretNode); err != nil {
+		panic(err)
+	}
 	if err := RegisterEnsureNode(&kapi.ReplicationController{}, kubegraph.EnsureReplicationControllerNode); err != nil {
 		panic(err)
 	}

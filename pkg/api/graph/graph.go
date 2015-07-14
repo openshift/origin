@@ -25,6 +25,10 @@ type ExistenceChecker interface {
 	Found() bool
 }
 
+type ResourceNode interface {
+	ResourceString() string
+}
+
 type UniqueName string
 
 type UniqueNameFunc func(obj interface{}) UniqueName
@@ -158,7 +162,7 @@ func (g Graph) SyntheticNodes() []graph.Node {
 	sort.Sort(SortedNodeList(nodeList))
 	for _, node := range nodeList {
 		if potentiallySyntheticNode, ok := node.(ExistenceChecker); ok {
-			if potentiallySyntheticNode.Found() {
+			if !potentiallySyntheticNode.Found() {
 				ret = append(ret, node)
 			}
 		}
