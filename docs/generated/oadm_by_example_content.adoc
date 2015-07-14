@@ -5,29 +5,20 @@ toc::[]
 
 
 == oadm build-chain
-Output build dependencies of a specific image stream
+Output the inputs and dependencies of your builds
 
 ====
 
 [options="nowrap"]
 ----
-  // Build dependency tree for the specified image stream and tag
-  $ openshift ex build-chain [image-stream]:[tag]
+  // Build the dependency tree for the 'latest' tag in centos7
+  $ openshift admin build-chain centos7
 
-  // Build dependency trees for all tags in the specified image stream
-  $ openshift ex build-chain [image-stream] --all-tags
+  // Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
+  $ openshift admin build-chain centos7:v2 -o dot | dot -T svg -o deps.svg
 
-  // Build the dependency tree using tag 'latest' in 'testing' namespace
-  $ openshift ex build-chain [image-stream] -n testing
-
-  // Build the dependency tree and output it in DOT syntax
-  $ openshift ex build-chain [image-stream] -o dot
-
-  // Build dependency trees for all image streams in the current namespace
-  $ openshift ex build-chain
-
-  // Build dependency trees for all image streams across all namespaces
-  $ openshift ex build-chain --all
+  // Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
+  $ openshift admin build-chain centos7 -n test --all
 ----
 ====
 

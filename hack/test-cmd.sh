@@ -762,7 +762,7 @@ echo "registry: ok"
 
 # Test building a dependency tree
 oc process -f examples/sample-app/application-template-stibuild.json -l build=sti | oc create -f -
-[ "$(openshift ex build-chain --all -o dot | grep 'graph')" ]
+[ "$(oadm build-chain ruby-20-centos7 -o dot | grep 'graph')" ]
 oc delete all -l build=sti
 echo "ex build-chain: ok"
 
