@@ -41,11 +41,12 @@ func addConversionFuncs() {
 			switch label {
 			case "metadata.name",
 				"metadata.namespace",
-				"metadata.labels",
-				"metadata.annotations",
 				"status.phase",
 				"spec.nodeName":
 				return label, value, nil
+				// This is for backwards compatability with old v1 clients which send spec.host
+			case "spec.host":
+				return "spec.nodeName", value, nil
 			default:
 				return "", "", fmt.Errorf("field label not supported: %s", label)
 			}

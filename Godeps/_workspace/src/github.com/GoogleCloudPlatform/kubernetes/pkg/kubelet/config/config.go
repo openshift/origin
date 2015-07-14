@@ -27,6 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
 	kubecontainer "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/container"
 	kubeletTypes "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/types"
+	kubeletUtil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/config"
 	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
@@ -57,8 +58,6 @@ type PodConfig struct {
 
 	// the channel of denormalized changes passed to listeners
 	updates chan kubelet.PodUpdate
-	// an optional wait channel
-	wait <-chan struct{}
 
 	// contains the list of all configured sources
 	sourcesLock sync.Mutex
@@ -79,20 +78,6 @@ func NewPodConfig(mode PodConfigNotificationMode, recorder record.EventRecorder)
 	return podConfig
 }
 
-func (c *PodConfig) Wait(waitCh <-chan struct{}) {
-	c.wait = waitCh
-	ch := make(chan kubelet.PodUpdate)
-	oldCh := c.updates
-	go util.Forever(func() {
-		<-waitCh
-		for {
-			update := <-oldCh
-			ch <- update
-		}
-	}, 0)
-	c.updates = ch
-}
-
 // Channel creates or returns a config source channel.  The channel
 // only accepts PodUpdates
 func (c *PodConfig) Channel(source string) chan<- interface{} {
@@ -107,13 +92,6 @@ func (c *PodConfig) Channel(source string) chan<- interface{} {
 func (c *PodConfig) SeenAllSources() bool {
 	if c.pods == nil {
 		return false
-	}
-	if c.wait != nil {
-		select {
-		case <-c.wait:
-		default:
-			return false
-		}
 	}
 	glog.V(6).Infof("Looking for %v, have seen %v", c.sources.List(), c.pods.sourcesSeen)
 	return c.pods.seenSources(c.sources.List()...)
@@ -209,6 +187,7 @@ func (s *podStorage) Merge(source string, change interface{}) error {
 
 // recordFirstSeenTime records the first seen time of this pod.
 func recordFirstSeenTime(pod *api.Pod) {
+	glog.V(4).Infof("Receiving a new pod %q", kubeletUtil.FormatPodName(pod))
 	pod.Annotations[kubelet.ConfigFirstSeenAnnotationKey] = kubeletTypes.NewTimestamp().GetString()
 }
 

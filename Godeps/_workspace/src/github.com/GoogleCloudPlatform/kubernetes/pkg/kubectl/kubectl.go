@@ -105,6 +105,7 @@ func expandResourceShortcut(resource string) string {
 		// Please keep this alphabetized
 		"cs":     "componentstatuses",
 		"ev":     "events",
+		"ep":     "endpoints",
 		"limits": "limitRanges",
 		"no":     "nodes",
 		"po":     "pods",
@@ -112,7 +113,6 @@ func expandResourceShortcut(resource string) string {
 		"pvc":    "persistentVolumeClaims",
 		"quota":  "resourceQuotas",
 		"rc":     "replicationcontrollers",
-		"scc":    "securityContextConstraints",
 		// DEPRECATED: will be removed before 1.0
 		"se":  "services",
 		"svc": "services",

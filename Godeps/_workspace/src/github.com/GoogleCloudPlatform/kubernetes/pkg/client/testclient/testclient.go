@@ -83,10 +83,6 @@ func (c *Fake) Nodes() client.NodeInterface {
 	return &FakeNodes{Fake: c}
 }
 
-func (c *Fake) SecurityContextConstraints() client.SecurityContextConstraintInterface {
-	return &FakeSecurityContextConstraints{Fake: c}
-}
-
 func (c *Fake) Events(namespace string) client.EventInterface {
 	return &FakeEvents{Fake: c}
 }

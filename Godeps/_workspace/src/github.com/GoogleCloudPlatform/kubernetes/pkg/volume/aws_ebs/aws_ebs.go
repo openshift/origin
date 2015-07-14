@@ -98,7 +98,7 @@ func (plugin *awsElasticBlockStorePlugin) newBuilderInternal(spec *volume.Spec, 
 		readOnly:    readOnly,
 		manager:     manager,
 		mounter:     mounter,
-		diskMounter: &mount.SafeFormatAndMount{mounter, exec.New()},
+		diskMounter: &awsSafeFormatAndMount{mounter, exec.New()},
 		plugin:      plugin,
 	}, nil
 }
@@ -114,7 +114,7 @@ func (plugin *awsElasticBlockStorePlugin) newCleanerInternal(volName string, pod
 		volName:     volName,
 		manager:     manager,
 		mounter:     mounter,
-		diskMounter: &mount.SafeFormatAndMount{mounter, exec.New()},
+		diskMounter: &awsSafeFormatAndMount{mounter, exec.New()},
 		plugin:      plugin,
 	}, nil
 }
