@@ -24,7 +24,7 @@ const (
 Output the inputs and dependencies of your builds
 
 Supported formats for the generated graph are dot and a human-readable output.
-Tag and namespace are optional and if they are not specified, 'latest' and the 
+Tag and namespace are optional and if they are not specified, 'latest' and the
 default namespace will be used respectively.`
 
 	buildChainExample = `  // Build the dependency tree for the 'latest' tag in centos7
@@ -37,6 +37,7 @@ default namespace will be used respectively.`
   $ %[1]s centos7 -n test --all`
 )
 
+// BuildChainRecommendedCommandName is the recommended command name
 const BuildChainRecommendedCommandName = "build-chain"
 
 // BuildChainOptions contains all the options needed for build-chain
@@ -47,6 +48,7 @@ type BuildChainOptions struct {
 	defaultNamespace string
 	namespaces       kutil.StringSet
 	allNamespaces    bool
+	triggerOnly      bool
 
 	output string
 
@@ -74,6 +76,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 	}
 
 	cmd.Flags().BoolVar(&options.allNamespaces, "all", false, "Build dependency tree for the specified image stream tag across all namespaces")
+	cmd.Flags().BoolVar(&options.triggerOnly, "trigger-only", true, "If true, only include dependencies based on build triggers. If false, include all dependencies.")
 	cmd.Flags().StringVarP(&options.output, "output", "o", "", "Output format of dependency tree")
 	return cmd
 }
@@ -151,7 +154,7 @@ func (o *BuildChainOptions) Validate() error {
 // experimental build-chain command
 func (o *BuildChainOptions) RunBuildChain() error {
 	ist := imagegraph.MakeImageStreamTagObjectMeta(o.defaultNamespace, o.name, o.tag)
-	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist)
+	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist, !o.triggerOnly)
 	if err != nil {
 		if _, isNotFoundErr := err.(describe.NotFoundErr); isNotFoundErr {
 			// Try to get the imageStreamTag via a direct GET

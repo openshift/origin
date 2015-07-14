@@ -12959,6 +12959,43 @@
      "lastTriggeredImageID": {
       "type": "string",
       "description": "used internally to save last used image ID for build"
+     },
+     "from": {
+      "$ref": "v1.ObjectReference",
+      "description": "reference to an ImageStreamTag that will trigger the build"
+     }
+    }
+   },
+   "v1.ObjectReference": {
+    "id": "v1.ObjectReference",
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of the referent; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+     },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the referent; see http://releases.k8s.io/v1.0.0/docs/namespaces.md"
+     },
+     "name": {
+      "type": "string",
+      "description": "name of the referent; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#names"
+     },
+     "uid": {
+      "type": "string",
+      "description": "uid of the referent; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#uids"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "API version of the referent"
+     },
+     "resourceVersion": {
+      "type": "string",
+      "description": "specific resourceVersion to which this reference is made, if any: http://releases.k8s.io/v1.0.0/docs/api-conventions.md#concurrency-control-and-consistency"
+     },
+     "fieldPath": {
+      "type": "string",
+      "description": "if referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]"
      }
     }
    },
@@ -13118,39 +13155,6 @@
      "forcePull": {
       "type": "boolean",
       "description": "forces the source build to pull the image if true"
-     }
-    }
-   },
-   "v1.ObjectReference": {
-    "id": "v1.ObjectReference",
-    "properties": {
-     "kind": {
-      "type": "string",
-      "description": "kind of the referent; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
-     },
-     "namespace": {
-      "type": "string",
-      "description": "namespace of the referent; see http://releases.k8s.io/v1.0.0/docs/namespaces.md"
-     },
-     "name": {
-      "type": "string",
-      "description": "name of the referent; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#names"
-     },
-     "uid": {
-      "type": "string",
-      "description": "uid of the referent; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#uids"
-     },
-     "apiVersion": {
-      "type": "string",
-      "description": "API version of the referent"
-     },
-     "resourceVersion": {
-      "type": "string",
-      "description": "specific resourceVersion to which this reference is made, if any: http://releases.k8s.io/v1.0.0/docs/api-conventions.md#concurrency-control-and-consistency"
-     },
-     "fieldPath": {
-      "type": "string",
-      "description": "if referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]"
      }
     }
    },
@@ -13446,6 +13450,10 @@
      "triggeredByImage": {
       "$ref": "v1.ObjectReference",
       "description": "image that triggered this build"
+     },
+     "from": {
+      "$ref": "v1.ObjectReference",
+      "description": "ImageStreamTag that triggered this build"
      }
     }
    },

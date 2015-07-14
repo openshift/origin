@@ -556,6 +556,7 @@ _oadm_build-chain()
     flags+=("-h")
     flags+=("--output=")
     two_word_flags+=("-o")
+    flags+=("--trigger-only")
 
     must_have_one_flag=()
     must_have_one_noun=()

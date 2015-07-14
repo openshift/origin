@@ -59,21 +59,32 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 	for _, bc := range c.BuildConfigStore.List() {
 		config := bc.(*buildapi.BuildConfig)
 
-		from := buildutil.GetImageStreamForStrategy(config.Spec.Strategy)
-		if from == nil || from.Kind != "ImageStreamTag" {
-			continue
-		}
-
-		shouldBuild := false
-		triggeredImage := ""
-		// For every ImageChange trigger find the latest tagged image from the image repository and replace that value
-		// throughout the build strategies. A new build is triggered only if the latest tagged image id or pull spec
-		// differs from the last triggered build recorded on the build config.
+		var (
+			from           *kapi.ObjectReference
+			shouldBuild    = false
+			triggeredImage = ""
+		)
+		// For every ImageChange trigger find the latest tagged image from the image repository and
+		// invoke a build using that image id. A new build is triggered only if the latest tagged image id or pull spec
+		// differs from the last triggered build recorded on the build config for that trigger
 		for _, trigger := range config.Spec.Triggers {
 			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
 				continue
 			}
-			fromStreamName := getImageStreamNameFromReference(from)
+			if trigger.ImageChange.From != nil {
+				from = trigger.ImageChange.From
+			} else {
+				from = buildutil.GetImageStreamForStrategy(config.Spec.Strategy)
+			}
+
+			if from == nil || from.Kind != "ImageStreamTag" {
+				continue
+			}
+			fromStreamName, tag, ok := imageapi.SplitImageStreamTag(from.Name)
+			if !ok {
+				glog.Errorf("Invalid image stream tag: %s in build config %s/%s", from.Name, config.Name, config.Namespace)
+				continue
+			}
 
 			fromNamespace := from.Namespace
 			if len(fromNamespace) == 0 {
@@ -89,7 +100,6 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 
 			// This split is safe because ImageStreamTag names always have the form
 			// name:tag.
-			tag := strings.Split(from.Name, ":")[1]
 			latest := imageapi.LatestTaggedImage(repo, tag)
 			if latest == nil {
 				glog.V(4).Infof("unable to find tagged image: no image recorded for %s/%s:%s", repo.Namespace, repo.Name, tag)
@@ -122,6 +132,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 					Kind: "DockerImage",
 					Name: triggeredImage,
 				},
+				From: from,
 			}
 			if _, err := c.BuildConfigInstantiator.Instantiate(config.Namespace, request); err != nil {
 				if kerrors.IsConflict(err) {

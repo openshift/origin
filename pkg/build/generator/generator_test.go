@@ -15,6 +15,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	mocks "github.com/openshift/origin/pkg/build/generator/test"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -120,6 +121,295 @@ func TestInstantiateGenerateBuildError(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "get-error") {
 		t.Errorf("Expected get-error, got different %v", err)
 	}
+}
+
+func TestInstantiateWithImageTrigger(t *testing.T) {
+	imageID := "the-image-id-12345"
+	defaultTriggers := func() []buildapi.BuildTriggerPolicy {
+		return []buildapi.BuildTriggerPolicy{
+			{
+				Type: buildapi.GenericWebHookBuildTriggerType,
+			},
+			{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
+			},
+			{
+				Type: buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{
+					From: &kapi.ObjectReference{
+						Name: "image1:tag1",
+						Kind: "ImageStreamTag",
+					},
+				},
+			},
+			{
+				Type: buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{
+					From: &kapi.ObjectReference{
+						Name:      "image2:tag2",
+						Namespace: "image2ns",
+						Kind:      "ImageStreamTag",
+					},
+				},
+			},
+		}
+	}
+	triggersWithImageID := func() []buildapi.BuildTriggerPolicy {
+		triggers := defaultTriggers()
+		triggers[2].ImageChange.LastTriggeredImageID = imageID
+		return triggers
+	}
+	tests := []struct {
+		name          string
+		reqFrom       *kapi.ObjectReference
+		triggerIndex  int // index of trigger that will be updated with the image id, if -1, no update expected
+		triggers      []buildapi.BuildTriggerPolicy
+		errorExpected bool
+	}{
+		{
+			name: "default trigger",
+			reqFrom: &kapi.ObjectReference{
+				Kind: "ImageStreamTag",
+				Name: "image3:tag3",
+			},
+			triggerIndex: 1,
+			triggers:     defaultTriggers(),
+		},
+		{
+			name: "trigger with from",
+			reqFrom: &kapi.ObjectReference{
+				Kind: "ImageStreamTag",
+				Name: "image1:tag1",
+			},
+			triggerIndex: 2,
+			triggers:     defaultTriggers(),
+		},
+		{
+			name: "trigger with from and namespace",
+			reqFrom: &kapi.ObjectReference{
+				Kind:      "ImageStreamTag",
+				Name:      "image2:tag2",
+				Namespace: "image2ns",
+			},
+			triggerIndex: 3,
+			triggers:     defaultTriggers(),
+		},
+		{
+			name: "existing image id",
+			reqFrom: &kapi.ObjectReference{
+				Kind: "ImageStreamTag",
+				Name: "image1:tag1",
+			},
+			triggers:      triggersWithImageID(),
+			errorExpected: true,
+		},
+	}
+
+	for _, tc := range tests {
+		bc := &buildapi.BuildConfig{
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.SourceBuildStrategyType,
+						SourceStrategy: &buildapi.SourceBuildStrategy{
+							From: kapi.ObjectReference{
+								Name: "image3:tag3",
+								Kind: "ImageStreamTag",
+							},
+						},
+					},
+				},
+				Triggers: tc.triggers,
+			},
+		}
+		generator := mockBuildGeneratorForInstantiate()
+		client := generator.Client.(Client)
+		client.GetBuildConfigFunc =
+			func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return bc, nil
+			}
+		client.UpdateBuildConfigFunc =
+			func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+				bc = buildConfig
+				return nil
+			}
+		generator.Client = client
+
+		req := &buildapi.BuildRequest{
+			TriggeredByImage: &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: imageID,
+			},
+			From: tc.reqFrom,
+		}
+		_, err := generator.Instantiate(kapi.NewDefaultContext(), req)
+		if err != nil && !tc.errorExpected {
+			t.Errorf("%s: unexpected error %v", tc.name, err)
+			continue
+		}
+		if err == nil && tc.errorExpected {
+			t.Errorf("%s: expected error but didn't get one", tc.name)
+			continue
+		}
+		if tc.errorExpected {
+			continue
+		}
+		for i := range bc.Spec.Triggers {
+			if i == tc.triggerIndex {
+				// Verify that the trigger got updated
+				if bc.Spec.Triggers[i].ImageChange.LastTriggeredImageID != imageID {
+					t.Errorf("%s: expeccted trigger at index %d to contain imageID %s", tc.name, i, imageID)
+				}
+				continue
+			}
+			// Ensure that other triggers are updated with the latest docker image ref
+			if bc.Spec.Triggers[i].Type == buildapi.ImageChangeBuildTriggerType {
+				from := bc.Spec.Triggers[i].ImageChange.From
+				if from == nil {
+					from = buildutil.GetImageStreamForStrategy(bc.Spec.Strategy)
+				}
+				if bc.Spec.Triggers[i].ImageChange.LastTriggeredImageID != ("ref@" + from.Name) {
+					t.Errorf("%s: expected LastTriggeredImageID for trigger at %d to be %s. Got: %s", tc.name, i, "ref@"+from.Name, bc.Spec.Triggers[i].ImageChange.LastTriggeredImageID)
+				}
+			}
+		}
+	}
+}
+
+func TestFindImageTrigger(t *testing.T) {
+	defaultTrigger := &buildapi.ImageChangeTrigger{}
+	image1Trigger := &buildapi.ImageChangeTrigger{
+		From: &kapi.ObjectReference{
+			Name: "image1:tag1",
+		},
+	}
+	image2Trigger := &buildapi.ImageChangeTrigger{
+		From: &kapi.ObjectReference{
+			Name:      "image2:tag2",
+			Namespace: "image2ns",
+		},
+	}
+	image4Trigger := &buildapi.ImageChangeTrigger{
+		From: &kapi.ObjectReference{
+			Name: "image4:tag4",
+		},
+	}
+	image5Trigger := &buildapi.ImageChangeTrigger{
+		From: &kapi.ObjectReference{
+			Name:      "image5:tag5",
+			Namespace: "bcnamespace",
+		},
+	}
+	bc := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      "testbc",
+			Namespace: "bcnamespace",
+		},
+		Spec: buildapi.BuildConfigSpec{
+			BuildSpec: buildapi.BuildSpec{
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.SourceBuildStrategyType,
+					SourceStrategy: &buildapi.SourceBuildStrategy{
+						From: kapi.ObjectReference{
+							Name: "image3:tag3",
+							Kind: "ImageStreamTag",
+						},
+					},
+				},
+			},
+			Triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+				},
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: defaultTrigger,
+				},
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: image1Trigger,
+				},
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: image2Trigger,
+				},
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: image4Trigger,
+				},
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: image5Trigger,
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name   string
+		input  *kapi.ObjectReference
+		expect *buildapi.ImageChangeTrigger
+	}{
+		{
+			name:   "nil reference",
+			input:  nil,
+			expect: nil,
+		},
+		{
+			name: "match name",
+			input: &kapi.ObjectReference{
+				Name: "image1:tag1",
+			},
+			expect: image1Trigger,
+		},
+		{
+			name: "mismatched namespace",
+			input: &kapi.ObjectReference{
+				Name:      "image1:tag1",
+				Namespace: "otherns",
+			},
+			expect: nil,
+		},
+		{
+			name: "match name and namespace",
+			input: &kapi.ObjectReference{
+				Name:      "image2:tag2",
+				Namespace: "image2ns",
+			},
+			expect: image2Trigger,
+		},
+		{
+			name: "match default trigger",
+			input: &kapi.ObjectReference{
+				Name: "image3:tag3",
+			},
+			expect: defaultTrigger,
+		},
+		{
+			name: "input includes bc namespace",
+			input: &kapi.ObjectReference{
+				Name:      "image4:tag4",
+				Namespace: "bcnamespace",
+			},
+			expect: image4Trigger,
+		},
+		{
+			name: "implied namespace in trigger input",
+			input: &kapi.ObjectReference{
+				Name: "image5:tag5",
+			},
+			expect: image5Trigger,
+		},
+	}
+
+	for _, tc := range tests {
+		result := findImageChangeTrigger(bc, tc.input)
+		if result != tc.expect {
+			t.Errorf("%s: unexpected trigger for %#v: %#v", tc.name, tc.input, result)
+		}
+	}
+
 }
 
 func TestClone(t *testing.T) {
@@ -859,6 +1149,21 @@ func mockBuild(source buildapi.BuildSource, strategy buildapi.BuildStrategy, out
 			Output:   output,
 		},
 	}
+}
+
+func mockBuildGeneratorForInstantiate() *BuildGenerator {
+	g := mockBuildGenerator()
+	c := g.Client.(Client)
+	c.GetImageStreamTagFunc = func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
+		return &imageapi.ImageStreamTag{
+			Image: imageapi.Image{
+				ObjectMeta:           kapi.ObjectMeta{Name: imageRepoName + ":" + newTag},
+				DockerImageReference: "ref@" + name,
+			},
+		}, nil
+	}
+	g.Client = c
+	return g
 }
 
 func mockBuildGenerator() *BuildGenerator {

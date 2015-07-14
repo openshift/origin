@@ -316,3 +316,169 @@ func runTest(t *testing.T, testname string, clusterAdminClient *client.Client, i
 		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
 	}
 }
+
+func TestMultipleImageChangeBuildTriggers(t *testing.T) {
+	mockImageStream := func(name, tag string) *imageapi.ImageStream {
+		return &imageapi.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{Name: name},
+			Spec: imageapi.ImageStreamSpec{
+				DockerImageRepository: "registry:5000/openshift/" + name,
+				Tags: map[string]imageapi.TagReference{
+					tag: {
+						From: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "registry:5000/openshift/" + name + ":" + tag,
+						},
+					},
+				},
+			},
+		}
+
+	}
+	mockStreamMapping := func(name, tag string) *imageapi.ImageStreamMapping {
+		return &imageapi.ImageStreamMapping{
+			ObjectMeta: kapi.ObjectMeta{Name: name},
+			Tag:        tag,
+			Image: imageapi.Image{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: name,
+				},
+				DockerImageReference: "registry:5000/openshift/" + name + ":" + tag,
+			},
+		}
+
+	}
+	multipleImageChangeBuildConfig := func() *buildapi.BuildConfig {
+		strategy := stiStrategy("ImageStreamTag", "image1:tag1")
+		bc := imageChangeBuildConfig("multi-image-trigger", strategy)
+		bc.Spec.BuildSpec.Output.To.Name = "image1:outputtag"
+		bc.Spec.Triggers = []buildapi.BuildTriggerPolicy{
+			{
+				Type:        buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{},
+			},
+			{
+				Type: buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{
+					From: &kapi.ObjectReference{
+						Name: "image2:tag2",
+						Kind: "ImageStreamTag",
+					},
+				},
+			},
+			{
+				Type: buildapi.ImageChangeBuildTriggerType,
+				ImageChange: &buildapi.ImageChangeTrigger{
+					From: &kapi.ObjectReference{
+						Name: "image3:tag3",
+						Kind: "ImageStreamTag",
+					},
+				},
+			},
+		}
+		return bc
+	}
+	clusterAdminClient := setup(t)
+	config := multipleImageChangeBuildConfig()
+	triggersToTest := []struct {
+		triggerIndex int
+		name         string
+		tag          string
+	}{
+		{
+			triggerIndex: 0,
+			name:         "image1",
+			tag:          "tag1",
+		},
+		{
+			triggerIndex: 1,
+			name:         "image2",
+			tag:          "tag2",
+		},
+		{
+			triggerIndex: 2,
+			name:         "image3",
+			tag:          "tag3",
+		},
+	}
+
+	created, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(config)
+	if err != nil {
+		t.Fatalf("Couldn't create BuildConfig: %v", err)
+	}
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to Builds %v", err)
+	}
+	defer watch.Stop()
+
+	watch2, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
+	}
+	defer watch2.Stop()
+
+	for _, tc := range triggersToTest {
+		imageStream := mockImageStream(tc.name, tc.tag)
+		imageStreamMapping := mockStreamMapping(tc.name, tc.tag)
+		imageStream, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream)
+		if err != nil {
+			t.Fatalf("Couldn't create ImageStream: %v", err)
+		}
+
+		err = clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(imageStreamMapping)
+		if err != nil {
+			t.Fatalf("Couldn't create Image: %v", err)
+		}
+		// wait for initial build event from the creation of the imagerepo
+		event := <-watch.ResultChan()
+		if e, a := watchapi.Added, event.Type; e != a {
+			t.Fatalf("expected watch event type %s, got %s", e, a)
+		}
+		newBuild := event.Object.(*buildapi.Build)
+		trigger := config.Spec.Triggers[tc.triggerIndex]
+		if trigger.ImageChange.From == nil {
+			switch newBuild.Spec.Strategy.Type {
+			case buildapi.SourceBuildStrategyType:
+				if newBuild.Spec.Strategy.SourceStrategy.From.Name != "registry:5000/openshift/"+tc.name+":"+tc.tag {
+					i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
+					bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
+					t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %#v", "registry:5000/openshift/"+tc.name+":"+tc.tag, newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[tc.triggerIndex].ImageChange)
+				}
+			case buildapi.DockerBuildStrategyType:
+				if newBuild.Spec.Strategy.DockerStrategy.From.Name != "registry:8080/openshift/"+tc.name+":"+tc.tag {
+					i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
+					bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
+					t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %#v", "registry:5000/openshift/"+tc.name+":"+tag, newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[tc.triggerIndex].ImageChange)
+				}
+			case buildapi.CustomBuildStrategyType:
+				if newBuild.Spec.Strategy.CustomStrategy.From.Name != "registry:8080/openshift/"+tc.name+":"+tag {
+					i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
+					bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
+					t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %#v", "registry:5000/openshift/"+tc.name+":"+tag, newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[tc.triggerIndex].ImageChange)
+				}
+
+			}
+		}
+		event = <-watch.ResultChan()
+		if e, a := watchapi.Modified, event.Type; e != a {
+			t.Fatalf("expected watch event type %s, got %s", e, a)
+		}
+		newBuild = event.Object.(*buildapi.Build)
+		// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
+		if newBuild.Spec.Output.To.Name != "image1:outputtag" {
+			t.Fatalf("unexpected build output: %#v %#v", newBuild.Spec.Output.To, newBuild.Spec.Output)
+		}
+
+		// wait for build config to be updated
+		<-watch2.ResultChan()
+		updatedConfig, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
+		if err != nil {
+			t.Fatalf("Couldn't get BuildConfig: %v", err)
+		}
+		// the first tag did not have an image id, so the last trigger field is the pull spec
+		if updatedConfig.Spec.Triggers[tc.triggerIndex].ImageChange.LastTriggeredImageID != "registry:5000/openshift/"+tc.name+":"+tc.tag {
+			t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
+		}
+	}
+}

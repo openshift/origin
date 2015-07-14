@@ -1,0 +1,220 @@
+# Sets up a multi-parent build config tree
+# openshift/ruby-20-centos7:latest
+#   -> bc - parent1 (input, trigger)
+#      -> parent1img:latest
+#         -> bc - child1 (input)
+#         -> bc - child2 (input, trigger)
+#         -> bc - child3 (input)
+#   -> bc - parent2 (input, trigger)
+#      -> parent2img:latest
+#         -> bc - child1 (trigger)
+#         -> bc - child3 (trigger)
+#   -> bc - parent3 (input, trigger)
+#      -> parent3img:latest
+#         -> bc - child2 (trigger)
+#         -> bc - child3 (trigger)
+#
+#  bc child1 has  [input] parent1img, and [trigger] parent2img
+#  bc child2 has  [input, trigger] parent1img, and [trigger] parent3img
+#  bc child3 has  [input] parent1img, [trigger] parent2img, [trigger] parent3img
+#
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: parent1
+    namespace: test
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: parent1img:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-20-centos7:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: q_ZtlnBcu7ca48ie8dNi
+      type: GitHub
+    - generic:
+        secret: 3kYKtANjVRCOPoM0uLNp
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: parent2
+    namespace: test
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: parent2img:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-20-centos7:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: q_ZtlnBcu7ca48ie8dNi
+      type: GitHub
+    - generic:
+        secret: 3kYKtANjVRCOPoM0uLNp
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: parent3
+    namespace: test
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: parent3img:latest
+    resources: {}
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby-20-centos7:latest
+      type: Docker
+    triggers:
+    - github:
+        secret: q_ZtlnBcu7ca48ie8dNi
+      type: GitHub
+    - generic:
+        secret: 3kYKtANjVRCOPoM0uLNp
+      type: Generic
+    - imageChange: {}
+      type: ImageChange
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: child1
+    namespace: test
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: child1img:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: parent1img:latest
+      type: Source
+    triggers:
+    - github:
+        secret: secret101
+      type: GitHub
+    - generic:
+        secret: secret101
+      type: Generic
+    - imageChange:
+         from:
+           name: parent2img:latest
+           kind: ImageStreamTag
+      type: ImageChange
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: child2
+    namespace: test
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: child2img:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: openshift/ruby-20-centos7:latest
+      type: Source
+    triggers:
+    - github:
+        secret: secret101
+      type: GitHub
+    - generic:
+        secret: secret101
+      type: Generic
+    - imageChange:
+         from:
+           name: parent1img:latest
+           kind: ImageStreamTag
+      type: ImageChange
+    - imageChange:
+         from:
+           name: parent3img:latest
+           kind: ImageStreamTag
+      type: ImageChange
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: child3
+    namespace: test
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: child3img:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: parent1img:latest
+      type: Source
+    triggers:
+    - github:
+        secret: secret101
+      type: GitHub
+    - generic:
+        secret: secret101
+      type: Generic
+    - imageChange:
+         from:
+           name: parent2img:latest
+           kind: ImageStreamTag
+      type: ImageChange
+    - imageChange:
+         from:
+           name: parent3img:latest
+           kind: ImageStreamTag
+      type: ImageChange
+kind: List
+metadata: {}

@@ -356,6 +356,12 @@ type ImageChangeTrigger struct {
 	// LastTriggeredImageID is used internally by the ImageChangeController to save last
 	// used image ID for build
 	LastTriggeredImageID string
+
+	// From is a reference to an ImageStreamTag that will trigger a build when updated
+	// It is optional. If no From is specified, the From image from the build strategy
+	// will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
+	// a build configuration.
+	From *kapi.ObjectReference
 }
 
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
@@ -453,6 +459,9 @@ type BuildRequest struct {
 
 	// TriggeredByImage is the Image that triggered this build.
 	TriggeredByImage *kapi.ObjectReference
+
+	// From is the reference to the ImageStreamTag that triggered the build.
+	From *kapi.ObjectReference
 }
 
 // BuildLogOptions is the REST options for a build log

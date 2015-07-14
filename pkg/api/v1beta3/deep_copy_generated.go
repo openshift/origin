@@ -811,6 +811,15 @@ func deepCopy_v1beta3_BuildRequest(in buildapiv1beta3.BuildRequest, out *buildap
 	} else {
 		out.TriggeredByImage = nil
 	}
+	if in.From != nil {
+		if newVal, err := c.DeepCopy(in.From); err != nil {
+			return err
+		} else {
+			out.From = newVal.(*v1beta3.ObjectReference)
+		}
+	} else {
+		out.From = nil
+	}
 	return nil
 }
 
@@ -1047,6 +1056,15 @@ func deepCopy_v1beta3_GitSourceRevision(in buildapiv1beta3.GitSourceRevision, ou
 
 func deepCopy_v1beta3_ImageChangeTrigger(in buildapiv1beta3.ImageChangeTrigger, out *buildapiv1beta3.ImageChangeTrigger, c *conversion.Cloner) error {
 	out.LastTriggeredImageID = in.LastTriggeredImageID
+	if in.From != nil {
+		if newVal, err := c.DeepCopy(in.From); err != nil {
+			return err
+		} else {
+			out.From = newVal.(*v1beta3.ObjectReference)
+		}
+	} else {
+		out.From = nil
+	}
 	return nil
 }
 
