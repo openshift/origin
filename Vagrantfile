@@ -117,7 +117,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     },
   }
 
-  #Extend the terminal's proxy if there's oene
+  #Extend the terminal's proxy if there's one
   if Vagrant.has_plugin?("vagrant-proxyconf")
     config.proxy.http     = ENV['http_proxy'] || ENV['HTTP_PROXY']
     config.proxy.https    = ENV['https_proxy'] || ENV['HTTPS_PROXY']
