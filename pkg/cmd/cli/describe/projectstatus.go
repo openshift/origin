@@ -6,6 +6,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/gonum/graph"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
@@ -141,12 +143,43 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 				fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
 
 			}
+			if syntheticNodes := g.SyntheticNodes(); len(syntheticNodes) > 0 {
+				fmt.Fprintln(out, strings.Join(describeMissingResources(g, syntheticNodes), "\n"))
+			}
+
 			fmt.Fprintln(out, "To see more, use 'oc describe service <name>' or 'oc describe dc <name>'.")
 			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
 		}
 
 		return nil
 	})
+}
+
+func describeMissingResources(g osgraph.Graph, missingNodes []graph.Node) []string {
+	ret := []string{"Warning: some references could not be resolved:"}
+
+	for _, node := range missingNodes {
+		predecessorNames := []string{}
+		for _, predecessor := range g.Predecessors(node) {
+			predecessorNames = append(predecessorNames, g.GraphDescriber.Name(predecessor))
+		}
+
+		successorNames := []string{}
+		for _, successor := range g.Successors(node) {
+			successorNames = append(successorNames, g.GraphDescriber.Name(successor))
+		}
+
+		switch {
+		case len(predecessorNames) > 0 && len(successorNames) > 0:
+			ret = append(ret, fmt.Sprintf("\t%s used by %s referencing %s was not found", g.GraphDescriber.Name(node), strings.Join(predecessorNames, ","), strings.Join(successorNames, ",")))
+		case len(predecessorNames) > 0:
+			ret = append(ret, fmt.Sprintf("\t%s used by %s was not found", g.GraphDescriber.Name(node), strings.Join(predecessorNames, ",")))
+		case len(successorNames) > 0:
+			ret = append(ret, fmt.Sprintf("\t%s referencing %s was not found", g.GraphDescriber.Name(node), strings.Join(successorNames, ",")))
+		}
+	}
+
+	return ret
 }
 
 // hasUnresolvedImageStreamTag checks all build configs that will output to an IST backed by an ImageStream and checks to make sure their builds can push.
