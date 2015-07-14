@@ -40,7 +40,7 @@ func NewConfig() *Config {
 // BindClientConfigSecurityFlags adds flags for the supplied client config
 func BindClientConfigSecurityFlags(config *kclient.Config, flags *pflag.FlagSet) {
 	flags.BoolVar(&config.Insecure, "insecure-skip-tls-verify", config.Insecure, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")
-	flags.StringVar(&config.CertFile, "client-certificate", config.CertFile, "Path to a client key file for TLS.")
+	flags.StringVar(&config.CertFile, "client-certificate", config.CertFile, "Path to a client certificate file for TLS.")
 	flags.StringVar(&config.KeyFile, "client-key", config.KeyFile, "Path to a client key file for TLS.")
 	flags.StringVar(&config.CAFile, "certificate-authority", config.CAFile, "Path to a cert. file for the certificate authority")
 	flags.StringVar(&config.BearerToken, "token", config.BearerToken, "If present, the bearer token for this request.")
