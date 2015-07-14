@@ -44,6 +44,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 	loaders := []GraphLoader{
 		&serviceLoader{namespace: namespace, lister: d.K},
 		&rcLoader{namespace: namespace, lister: d.K},
+		&podLoader{namespace: namespace, lister: d.K},
 		&bcLoader{namespace: namespace, lister: d.C},
 		&buildLoader{namespace: namespace, lister: d.C},
 		&isLoader{namespace: namespace, lister: d.C},
@@ -63,6 +64,8 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 	}
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
+	kubeedges.AddAllExposedPodEdges(g)
+	kubeedges.AddAllManagedByRCPodEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
 	deployedges.AddAllTriggerEdges(g)
@@ -116,6 +119,17 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 				}
 				printLines(out, indent, 1, describeRCInServiceGroup(rcNode)...)
 			}
+
+		pod:
+			for _, podNode := range service.FulfillingPods {
+				// skip pods that have been displayed in a roll-up of RCs and DCs (by implicit usage of RCs)
+				for _, coveredRC := range service.FulfillingRCs {
+					if g.EdgeBetween(podNode, coveredRC) != nil {
+						continue pod
+					}
+				}
+				printLines(out, indent, 1, describePodInServiceGroup(podNode)...)
+			}
 		}
 
 		for _, standaloneDC := range standaloneDCs {
@@ -139,8 +153,8 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 			if hasUnresolvedImageStreamTag(g) {
 				fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
-
 			}
+
 			fmt.Fprintln(out, "To see more, use 'oc describe service <name>' or 'oc describe dc <name>'.")
 			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
 		}
@@ -211,6 +225,16 @@ func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode) []str
 	lines := []string{fmt.Sprintf("rc/%s runs %s", rcNode.ReplicationController.Name, strings.Join(images, ", "))}
 	lines = append(lines, describeRCStatus(rcNode.ReplicationController))
 
+	return lines
+}
+
+func describePodInServiceGroup(podNode *kubegraph.PodNode) []string {
+	images := []string{}
+	for _, container := range podNode.Pod.Spec.Containers {
+		images = append(images, container.Image)
+	}
+
+	lines := []string{fmt.Sprintf("pod/%s runs %s", podNode.Pod.Name, strings.Join(images, ", "))}
 	return lines
 }
 
@@ -625,14 +649,14 @@ func (l *serviceLoader) AddToGraph(g osgraph.Graph) error {
 	return nil
 }
 
-type bcLoader struct {
+type rcLoader struct {
 	namespace string
-	lister    client.BuildConfigsNamespacer
-	items     []buildapi.BuildConfig
+	lister    kclient.ReplicationControllersNamespacer
+	items     []kapi.ReplicationController
 }
 
-func (l *bcLoader) Load() error {
-	list, err := l.lister.BuildConfigs(l.namespace).List(labels.Everything(), fields.Everything())
+func (l *rcLoader) Load() error {
+	list, err := l.lister.ReplicationControllers(l.namespace).List(labels.Everything())
 	if err != nil {
 		return err
 	}
@@ -641,9 +665,33 @@ func (l *bcLoader) Load() error {
 	return nil
 }
 
-func (l *bcLoader) AddToGraph(g osgraph.Graph) error {
+func (l *rcLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
-		buildgraph.EnsureBuildConfigNode(g, &l.items[i])
+		kubegraph.EnsureReplicationControllerNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type podLoader struct {
+	namespace string
+	lister    kclient.PodsNamespacer
+	items     []kapi.Pod
+}
+
+func (l *podLoader) Load() error {
+	list, err := l.lister.Pods(l.namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *podLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsurePodNode(g, &l.items[i])
 	}
 
 	return nil
@@ -698,6 +746,30 @@ func (l *dcLoader) AddToGraph(g osgraph.Graph) error {
 	return nil
 }
 
+type bcLoader struct {
+	namespace string
+	lister    client.BuildConfigsNamespacer
+	items     []buildapi.BuildConfig
+}
+
+func (l *bcLoader) Load() error {
+	list, err := l.lister.BuildConfigs(l.namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *bcLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		buildgraph.EnsureBuildConfigNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
 type buildLoader struct {
 	namespace string
 	lister    client.BuildsNamespacer
@@ -717,30 +789,6 @@ func (l *buildLoader) Load() error {
 func (l *buildLoader) AddToGraph(g osgraph.Graph) error {
 	for i := range l.items {
 		buildgraph.EnsureBuildNode(g, &l.items[i])
-	}
-
-	return nil
-}
-
-type rcLoader struct {
-	namespace string
-	lister    kclient.ReplicationControllersNamespacer
-	items     []kapi.ReplicationController
-}
-
-func (l *rcLoader) Load() error {
-	list, err := l.lister.ReplicationControllers(l.namespace).List(labels.Everything())
-	if err != nil {
-		return err
-	}
-
-	l.items = list.Items
-	return nil
-}
-
-func (l *rcLoader) AddToGraph(g osgraph.Graph) error {
-	for i := range l.items {
-		kubegraph.EnsureReplicationControllerNode(g, &l.items[i])
 	}
 
 	return nil

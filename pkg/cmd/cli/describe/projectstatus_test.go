@@ -113,6 +113,21 @@ func TestProjectStatus(t *testing.T) {
 				"To see more, use",
 			},
 		},
+		"service with pod": {
+			Path: "../../../../pkg/api/graph/test/service-with-pod.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example\n",
+				"service frontend-app",
+				"pod/frontend-app-1-bjwh8 runs openshift/ruby-hello-world",
+				"To see more, use",
+			},
+		},
 		"unstarted build": {
 			Path: "../../../../test/fixtures/app-scenarios/new-project-no-build.yaml",
 			Extra: []runtime.Object{
