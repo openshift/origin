@@ -21,3 +21,5 @@ script:
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"
+
+sudo: false
