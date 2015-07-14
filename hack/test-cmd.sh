@@ -174,8 +174,8 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 # Begin tests
 #
 
-# test client not configured
-[ "$(oc get services 2>&1 | grep 'Error in configuration')" ]
+# test client not configured.  See "UPSTREAM: tweak CheckErr for openshift specific advice" (https://github.com/openshift/origin/pull/3518) if this fails.
+[ "$(oc get services 2>&1 | grep 'Error in connection configuration.  Create a configuration file using ')" ]
 
 # Set KUBERNETES_MASTER for oc from now on
 export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
