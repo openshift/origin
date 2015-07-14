@@ -243,6 +243,10 @@ type CustomBuildStrategy struct {
 	// inside the Docker container.
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool
+
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all build logic.
+	Post *LifecycleHook
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -263,6 +267,10 @@ type DockerBuildStrategy struct {
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar
+
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all build logic.
+	Post *LifecycleHook
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
@@ -284,6 +292,39 @@ type SourceBuildStrategy struct {
 
 	// Incremental flag forces the Source build to do incremental builds if true.
 	Incremental bool
+
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all build logic.
+	Post *LifecycleHook
+}
+
+// LifecycleHook defines a specific build lifecycle action.
+type LifecycleHook struct {
+	// FailurePolicy specifies what action to take if the hook fails.
+	FailurePolicy LifecycleHookFailurePolicy
+	// ExecNewPod specifies the options for a lifecycle hook backed by a pod.
+	ExecNewPod *ExecNewPodHook
+}
+
+// LifecycleHookFailurePolicy describes possibles actions to take if a hook fails.
+type LifecycleHookFailurePolicy string
+
+const (
+	// LifecycleHookFailurePolicyRetry means retry the hook until it succeeds.
+	LifecycleHookFailurePolicyRetry LifecycleHookFailurePolicy = "Retry"
+	// LifecycleHookFailurePolicyIgnore means ignore hook execution failure.
+	LifecycleHookFailurePolicyIgnore LifecycleHookFailurePolicy = "Ignore"
+)
+
+// ExecNewPodHook is a hook implementation which runs a command in a new pod
+// based on the image built by the BuildConfig.
+type ExecNewPodHook struct {
+	// Command is the action command and its arguments.
+	Command []string
+	// Env is a set of environment variables to supply to the hook pod's container.
+	Env []kapi.EnvVar
+	// Image is a reference to a DockerImage or ImageStreamTag, used to run the hook pod's container.
+	Image kapi.ObjectReference
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy

@@ -232,6 +232,10 @@ type CustomBuildStrategy struct {
 	// inside the Docker container.
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool `json:"exposeDockerSocket,omitempty" description:"allow running Docker commands (and build Docker images) from inside the container"`
+
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all build logic.
+	Post *LifecycleHook `json:"post,omitempty" description:"a hook executed after the strategy finishes the build"`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -252,6 +256,10 @@ type DockerBuildStrategy struct {
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
+
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all build logic.
+	Post *LifecycleHook `json:"post,omitempty" description:"a hook executed after the strategy finishes the build"`
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
@@ -273,6 +281,39 @@ type SourceBuildStrategy struct {
 
 	// Incremental flag forces the Source build to do incremental builds if true.
 	Incremental bool `json:"incremental,omitempty" description:"forces the source build to do incremental builds if true"`
+
+	// Post is a lifecycle hook which is executed after the strategy has
+	// finished all build logic.
+	Post *LifecycleHook `json:"post,omitempty" description:"a hook executed after the strategy finishes the build"`
+}
+
+// LifecycleHook defines a specific build lifecycle action.
+type LifecycleHook struct {
+	// FailurePolicy specifies what action to take if the hook fails.
+	FailurePolicy LifecycleHookFailurePolicy `json:"failurePolicy" description:"what action to take if the hook fails"`
+	// ExecNewPod specifies the options for a lifecycle hook backed by a pod.
+	ExecNewPod *ExecNewPodHook `json:"execNewPod,omitempty" description:"options for an ExecNewPodHook"`
+}
+
+// LifecycleHookFailurePolicy describes possibles actions to take if a hook fails.
+type LifecycleHookFailurePolicy string
+
+const (
+	// LifecycleHookFailurePolicyRetry means retry the hook until it succeeds.
+	LifecycleHookFailurePolicyRetry LifecycleHookFailurePolicy = "Retry"
+	// LifecycleHookFailurePolicyIgnore means ignore hook execution failure.
+	LifecycleHookFailurePolicyIgnore LifecycleHookFailurePolicy = "Ignore"
+)
+
+// ExecNewPodHook is a hook implementation which runs a command in a new pod
+// based on the image built by the BuildConfig.
+type ExecNewPodHook struct {
+	// Command is the action command and its arguments.
+	Command []string `json:"command" description:"the hook command and its arguments"`
+	// Env is a set of environment variables to supply to the hook pod's container.
+	Env []kapi.EnvVar `json:"env,omitempty" description:"environment variables provided to the hook container"`
+	// Image is a reference to a DockerImage or ImageStreamTag, used to run the hook pod's container.
+	Image kapi.ObjectReference `json:"image" description:"reference to a DockerImage or ImageStreamTag, used for the hook container"`
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy
