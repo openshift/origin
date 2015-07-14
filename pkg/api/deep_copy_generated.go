@@ -1031,6 +1031,7 @@ func deepCopy_api_DockerBuildStrategy(in buildapi.DockerBuildStrategy, out *buil
 	} else {
 		out.Env = nil
 	}
+	out.ForcePull = in.ForcePull
 	return nil
 }
 
@@ -1088,6 +1089,7 @@ func deepCopy_api_SourceBuildStrategy(in buildapi.SourceBuildStrategy, out *buil
 	}
 	out.Scripts = in.Scripts
 	out.Incremental = in.Incremental
+	out.ForcePull = in.ForcePull
 	return nil
 }
 

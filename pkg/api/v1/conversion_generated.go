@@ -1270,6 +1270,7 @@ func convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *buildapi.Dock
 	} else {
 		out.Env = nil
 	}
+	out.ForcePull = in.ForcePull
 	return nil
 }
 
@@ -1334,6 +1335,7 @@ func convert_api_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *buildapi.Sour
 	}
 	out.Scripts = in.Scripts
 	out.Incremental = in.Incremental
+	out.ForcePull = in.ForcePull
 	return nil
 }
 
@@ -1769,6 +1771,7 @@ func convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *buildapiv1.Do
 	} else {
 		out.Env = nil
 	}
+	out.ForcePull = in.ForcePull
 	return nil
 }
 
@@ -1833,6 +1836,7 @@ func convert_v1_SourceBuildStrategy_To_api_SourceBuildStrategy(in *buildapiv1.So
 	}
 	out.Scripts = in.Scripts
 	out.Incremental = in.Incremental
+	out.ForcePull = in.ForcePull
 	return nil
 }
 

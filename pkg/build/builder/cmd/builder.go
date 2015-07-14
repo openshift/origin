@@ -39,6 +39,7 @@ func run(builderFactory factoryFunc, scmAuths []scmauth.SCMAuth) {
 		glog.Fatalf("Error obtaining docker client: %v", err)
 	}
 	buildStr := os.Getenv("BUILD")
+	glog.V(4).Infof("$BUILD env var is %s \n", buildStr)
 	build := api.Build{}
 	if err := latest.Codec.DecodeInto([]byte(buildStr), &build); err != nil {
 		glog.Fatalf("Unable to parse build: %v", err)
