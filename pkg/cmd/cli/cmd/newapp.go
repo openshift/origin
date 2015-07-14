@@ -170,7 +170,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 }
 
 func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

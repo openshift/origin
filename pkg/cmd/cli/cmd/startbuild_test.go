@@ -20,10 +20,11 @@ import (
 )
 
 type FakeClientConfig struct {
-	Raw    clientcmdapi.Config
-	Client *client.Config
-	NS     string
-	Err    error
+	Raw      clientcmdapi.Config
+	Client   *client.Config
+	NS       string
+	Explicit bool
+	Err      error
 }
 
 // RawConfig returns the merged result of all overrides
@@ -37,8 +38,8 @@ func (c *FakeClientConfig) ClientConfig() (*client.Config, error) {
 }
 
 // Namespace returns the namespace resulting from the merged result of all overrides
-func (c *FakeClientConfig) Namespace() (string, error) {
-	return c.NS, c.Err
+func (c *FakeClientConfig) Namespace() (string, bool, error) {
+	return c.NS, c.Explicit, c.Err
 }
 
 func TestStartBuildWebHook(t *testing.T) {

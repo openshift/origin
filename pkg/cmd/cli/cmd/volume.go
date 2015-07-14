@@ -77,6 +77,7 @@ just those that match a wildcard.`
 
 type VolumeOptions struct {
 	DefaultNamespace       string
+	ExplicitNamespace      bool
 	Writer                 io.Writer
 	Mapper                 meta.RESTMapper
 	Typer                  runtime.ObjectTyper
@@ -271,13 +272,14 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out i
 	}
 	v.OutputVersion = kcmdutil.OutputVersion(cmd, clientConfig.Version)
 
-	cmdNamespace, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 	mapper, typer := f.Object()
 
 	v.DefaultNamespace = cmdNamespace
+	v.ExplicitNamespace = explicit
 	v.Writer = out
 	v.Mapper = mapper
 	v.Typer = typer
@@ -301,7 +303,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	b := resource.NewBuilder(v.Mapper, v.Typer, resource.ClientMapperFunc(v.RESTClientFactory)).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
-		FilenameParam(v.Filenames...).
+		FilenameParam(v.ExplicitNamespace, v.Filenames...).
 		SelectorParam(v.Selector).
 		ResourceTypeOrNameArgs(v.All, args...).
 		Flatten()

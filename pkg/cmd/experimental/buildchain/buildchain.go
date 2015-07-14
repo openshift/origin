@@ -124,7 +124,7 @@ func RunBuildChain(f *clientcmd.Factory, cmd *cobra.Command, args []string) erro
 	// Retrieve namespace(s)
 	namespace := cmdutil.GetFlagString(cmd, "namespace")
 	if len(namespace) == 0 {
-		namespace, err = f.DefaultNamespace()
+		namespace, _, err = f.DefaultNamespace()
 		if err != nil {
 			return err
 		}

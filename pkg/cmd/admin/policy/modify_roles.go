@@ -232,7 +232,7 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, args []string, 
 	}
 
 	if isNamespaced {
-		roleBindingNamespace, err := f.DefaultNamespace()
+		roleBindingNamespace, _, err := f.DefaultNamespace()
 		if err != nil {
 			return err
 		}

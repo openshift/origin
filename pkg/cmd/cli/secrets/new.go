@@ -122,7 +122,7 @@ func (o *CreateSecretOptions) Complete(args []string, f *clientcmd.Factory) erro
 		if err != nil {
 			return err
 		}
-		namespace, err := f.Factory.DefaultNamespace()
+		namespace, _, err := f.Factory.DefaultNamespace()
 		if err != nil {
 			return err
 		}

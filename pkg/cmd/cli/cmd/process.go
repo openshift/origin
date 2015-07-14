@@ -88,7 +88,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	} else {
 		infos, err = resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 			NamespaceParam(namespace).RequireNamespace().
-			FilenameParam(filename).
+			FilenameParam(explicit, filename).
 			Do().
 			Infos()
 		if err != nil {

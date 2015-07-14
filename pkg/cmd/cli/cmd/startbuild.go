@@ -101,7 +101,7 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 		return err
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 	if err != nil {
 		return err
 	}
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

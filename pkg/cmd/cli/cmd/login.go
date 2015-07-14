@@ -140,7 +140,7 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 	o.InsecureTLS = kcmdutil.GetFlagBool(cmd, "insecure-skip-tls-verify")
 	o.Token = kcmdutil.GetFlagString(cmd, "token")
 
-	o.DefaultNamespace, _ = f.OpenShiftClientConfig.Namespace()
+	o.DefaultNamespace, _, _ = f.OpenShiftClientConfig.Namespace()
 
 	o.PathOptions = config.NewPathOptions(cmd)
 

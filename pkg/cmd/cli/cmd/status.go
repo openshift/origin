@@ -43,7 +43,7 @@ func RunStatus(f *clientcmd.Factory, out io.Writer) error {
 		return err
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

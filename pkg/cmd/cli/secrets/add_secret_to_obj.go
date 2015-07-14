@@ -122,7 +122,7 @@ func (o *AddSecretOptions) Complete(f *cmdutil.Factory, args []string, typeFlags
 		return err
 	}
 
-	o.Namespace, err = f.DefaultNamespace()
+	o.Namespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

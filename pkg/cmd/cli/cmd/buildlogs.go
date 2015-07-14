@@ -56,7 +56,7 @@ func RunBuildLogs(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, opts 
 		return cmdutil.UsageError(cmd, "A build name is required")
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
