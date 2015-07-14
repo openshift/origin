@@ -66,6 +66,20 @@ If this shows up in your build logs, restart docker and then resubmit a build:
     $ sudo systemctl restart docker
     $ oc start-build <your build identifier>
 
+Another item seen stems from how OpenShift operates in a SELinux environment.  The SELinux policy requires that host directories that are bind mounted have the svirt_sandbox_file_t label.  Generally
+this simply happens for you under the covers, but there is a growing list of user operations which hamper the registry deployment to the point where the svrt_sandbox_file_t label ends up missing, and you can see
+various authentication or push failures.  One example, when initiating a build:
+
+     Failed to push image: Error pushing to registry: Server error: unexpected 500 response status trying to initiate upload of test/origin-ruby-sample
+
+And when inspecting the Docker registry, you will see messages like this:
+
+    173.17.42.1 - - [03/Jun/2015:13:26:19 +0000] "POST /v2/test/origin-ruby-sample/blobs/uploads/ HTTP/1.1" 500 203 "" "docker/1.6.0 go/go1.4.2 kernel/3.17.4-301.fc21.x86_64 os/linux arch/amd64"
+
+When this sequence occurs, without needing to restart Docker nor OpenShift, you can work around it by running the following command:
+
+     $ sudo chcon -R -t svirt_sandbox_file_t < path to >/openshift.local.volumes
+
 Docker Registry
 ---------------
 
