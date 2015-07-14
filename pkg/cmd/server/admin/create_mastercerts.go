@@ -52,7 +52,7 @@ server cert and run the command to fill it in:
             --public-master=https://external.master.fqdn:8443 \
             --hostnames=external.master.fqdn,internal.master.fqdn,localhost,127.0.0.1,172.17.42.1,kubernetes.default.local
 
-Alternatively, use the related "create-server-cert" command to explicitly
+Alternatively, use the related "ca create-server-cert" command to explicitly
 create a certificate.
 
 Regardless of --overwrite, the master server key/cert will be updated 
@@ -81,7 +81,7 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create certificates for an OpenShift master",
+		Short: "Create certificates and keys for an OpenShift master",
 		Long:  fmt.Sprintf(masterCertLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
