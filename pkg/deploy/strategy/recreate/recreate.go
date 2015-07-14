@@ -109,14 +109,14 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 		// If an UpdateAcceptor is provided, scale up to 1 and validate the replica,
 		// aborting if the replica isn't acceptable.
 		if updateAcceptor != nil {
-			glog.Infof("Scaling %s to 1 before validating first replica", deployutil.LabelForDeployment(to))
+			glog.Infof("Scaling %s to 1 before performing acceptance check", deployutil.LabelForDeployment(to))
 			updatedTo, err := s.scaleAndWait(to, 1, retryParams, waitParams)
 			if err != nil {
 				return fmt.Errorf("couldn't scale %s to 1: %v", deployutil.LabelForDeployment(to), err)
 			}
-			glog.Infof("Validating first replica of %s", deployutil.LabelForDeployment(to))
+			glog.Infof("Performing acceptance check of %s", deployutil.LabelForDeployment(to))
 			if err := updateAcceptor.Accept(updatedTo); err != nil {
-				return fmt.Errorf("first replica rejected for %s: %v", to.Name, err)
+				return fmt.Errorf("update acceptor rejected %s: %v", deployutil.LabelForDeployment(to), err)
 			}
 			to = updatedTo
 		}

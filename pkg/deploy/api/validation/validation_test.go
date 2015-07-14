@@ -20,6 +20,43 @@ func manualTrigger() []api.DeploymentTriggerPolicy {
 	}
 }
 
+func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
+	return api.DeploymentConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+		Triggers:   manualTrigger(),
+		Template: api.DeploymentTemplate{
+			Strategy: api.DeploymentStrategy{
+				Type: api.DeploymentStrategyTypeRolling,
+				RollingParams: &api.RollingDeploymentStrategyParams{
+					IntervalSeconds:     mkint64p(interval),
+					UpdatePeriodSeconds: mkint64p(updatePeriod),
+					TimeoutSeconds:      mkint64p(timeout),
+				},
+			},
+			ControllerTemplate: test.OkControllerTemplate(),
+		},
+	}
+}
+
+func rollingConfigPct(interval, updatePeriod, timeout, percent int) api.DeploymentConfig {
+	return api.DeploymentConfig{
+		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+		Triggers:   manualTrigger(),
+		Template: api.DeploymentTemplate{
+			Strategy: api.DeploymentStrategy{
+				Type: api.DeploymentStrategyTypeRolling,
+				RollingParams: &api.RollingDeploymentStrategyParams{
+					IntervalSeconds:     mkint64p(interval),
+					UpdatePeriodSeconds: mkint64p(updatePeriod),
+					TimeoutSeconds:      mkint64p(timeout),
+					UpdatePercent:       mkintp(percent),
+				},
+			},
+			ControllerTemplate: test.OkControllerTemplate(),
+		},
+	}
+}
+
 // TODO: test validation errors for ReplicationControllerTemplates
 
 func TestValidateDeploymentConfigOK(t *testing.T) {
@@ -285,59 +322,17 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"template.strategy.recreateParams.pre.execNewPod.containerName",
 		},
 		"invalid template.strategy.rollingParams.intervalSeconds": {
-			api.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers:   manualTrigger(),
-				Template: api.DeploymentTemplate{
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRolling,
-						RollingParams: &api.RollingDeploymentStrategyParams{
-							IntervalSeconds:     mkintp(-20),
-							UpdatePeriodSeconds: mkintp(1),
-							TimeoutSeconds:      mkintp(1),
-						},
-					},
-					ControllerTemplate: test.OkControllerTemplate(),
-				},
-			},
+			rollingConfig(-20, 1, 1),
 			fielderrors.ValidationErrorTypeInvalid,
 			"template.strategy.rollingParams.intervalSeconds",
 		},
 		"invalid template.strategy.rollingParams.updatePeriodSeconds": {
-			api.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers:   manualTrigger(),
-				Template: api.DeploymentTemplate{
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRolling,
-						RollingParams: &api.RollingDeploymentStrategyParams{
-							IntervalSeconds:     mkintp(1),
-							UpdatePeriodSeconds: mkintp(-20),
-							TimeoutSeconds:      mkintp(1),
-						},
-					},
-					ControllerTemplate: test.OkControllerTemplate(),
-				},
-			},
+			rollingConfig(1, -20, 1),
 			fielderrors.ValidationErrorTypeInvalid,
 			"template.strategy.rollingParams.updatePeriodSeconds",
 		},
 		"invalid template.strategy.rollingParams.timeoutSeconds": {
-			api.DeploymentConfig{
-				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Triggers:   manualTrigger(),
-				Template: api.DeploymentTemplate{
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRolling,
-						RollingParams: &api.RollingDeploymentStrategyParams{
-							IntervalSeconds:     mkintp(1),
-							UpdatePeriodSeconds: mkintp(1),
-							TimeoutSeconds:      mkintp(-20),
-						},
-					},
-					ControllerTemplate: test.OkControllerTemplate(),
-				},
-			},
+			rollingConfig(1, 1, -20),
 			fielderrors.ValidationErrorTypeInvalid,
 			"template.strategy.rollingParams.timeoutSeconds",
 		},
@@ -348,9 +343,9 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 					Strategy: api.DeploymentStrategy{
 						Type: api.DeploymentStrategyTypeRolling,
 						RollingParams: &api.RollingDeploymentStrategyParams{
-							IntervalSeconds:     mkintp(1),
-							UpdatePeriodSeconds: mkintp(1),
-							TimeoutSeconds:      mkintp(20),
+							IntervalSeconds:     mkint64p(1),
+							UpdatePeriodSeconds: mkint64p(1),
+							TimeoutSeconds:      mkint64p(20),
 							Pre: &api.LifecycleHook{
 								ExecNewPod: &api.ExecNewPodHook{
 									Command:       []string{"cmd"},
@@ -365,10 +360,53 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			fielderrors.ValidationErrorTypeRequired,
 			"template.strategy.rollingParams.pre.failurePolicy",
 		},
+		"invalid zero template.strategy.rollingParams.updatePercent": {
+			rollingConfigPct(1, 1, 1, 0),
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.updatePercent",
+		},
+		"invalid lower bound template.strategy.rollingParams.updatePercent": {
+			rollingConfigPct(1, 1, 1, -101),
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.updatePercent",
+		},
+		"invalid upper bound template.strategy.rollingParams.updatePercent": {
+			rollingConfigPct(1, 1, 1, 101),
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.updatePercent",
+		},
+		"valid negative upper bound template.strategy.rollingParams.updatePercent": {
+			rollingConfigPct(1, 1, 1, -100),
+			"",
+			"",
+		},
+		"valid upper bound template.strategy.rollingParams.updatePercent": {
+			rollingConfigPct(1, 1, 1, 100),
+			"",
+			"",
+		},
+		"valid negative lower bound template.strategy.rollingParams.updatePercent": {
+			rollingConfigPct(1, 1, 1, -1),
+			"",
+			"",
+		},
+		"valid lower bound template.strategy.rollingParams.updatePercent": {
+			rollingConfigPct(1, 1, 1, 1),
+			"",
+			"",
+		},
 	}
 
 	for k, v := range errorCases {
 		errs := ValidateDeploymentConfig(&v.D)
+		if len(v.T) == 0 {
+			if len(errs) > 0 {
+				for _, e := range errs {
+					t.Errorf("unexpected error for %s: %s", k, e)
+				}
+			}
+			continue
+		}
 		if len(errs) == 0 {
 			t.Errorf("Expected failure for scenario %s", k)
 		}
@@ -551,7 +589,11 @@ func TestValidateDeploymentConfigImageRepositorySupported(t *testing.T) {
 	}
 }
 
-func mkintp(i int) *int64 {
+func mkint64p(i int) *int64 {
 	v := int64(i)
 	return &v
+}
+
+func mkintp(i int) *int {
+	return &i
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
@@ -213,23 +214,22 @@ func NewPodWatch(client kclient.Interface, namespace, name, resourceVersion stri
 	}
 }
 
-func NewFirstContainerReady(kclient kclient.Interface, timeout time.Duration, interval time.Duration) *FirstContainerReady {
-	return &FirstContainerReady{
-		timeout:  timeout,
-		interval: interval,
-		podsForDeployment: func(deployment *kapi.ReplicationController) (*kapi.PodList, error) {
+// NewAcceptNewlyObservedReadyPods makes a new AcceptNewlyObservedReadyPods
+// from a real client.
+func NewAcceptNewlyObservedReadyPods(kclient kclient.Interface, timeout time.Duration, interval time.Duration) *AcceptNewlyObservedReadyPods {
+	return &AcceptNewlyObservedReadyPods{
+		timeout:      timeout,
+		interval:     interval,
+		acceptedPods: kutil.NewStringSet(),
+		getDeploymentPodStore: func(deployment *kapi.ReplicationController) (cache.Store, chan struct{}) {
 			selector := labels.Set(deployment.Spec.Selector).AsSelector()
-			return kclient.Pods(deployment.Namespace).List(selector, fields.Everything())
-		},
-		getPodStore: func(namespace, name string) (cache.Store, chan struct{}) {
-			sel, _ := fields.ParseSelector("metadata.name=" + name)
 			store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 			lw := &deployutil.ListWatcherImpl{
 				ListFunc: func() (runtime.Object, error) {
-					return kclient.Pods(namespace).List(labels.Everything(), sel)
+					return kclient.Pods(deployment.Namespace).List(selector, fields.Everything())
 				},
 				WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-					return kclient.Pods(namespace).Watch(labels.Everything(), sel, resourceVersion)
+					return kclient.Pods(deployment.Namespace).Watch(selector, fields.Everything(), resourceVersion)
 				},
 			}
 			stop := make(chan struct{})
@@ -239,100 +239,76 @@ func NewFirstContainerReady(kclient kclient.Interface, timeout time.Duration, in
 	}
 }
 
-type FirstContainerReady struct {
-	podsForDeployment func(*kapi.ReplicationController) (*kapi.PodList, error)
-	getPodStore       func(namespace, name string) (cache.Store, chan struct{})
-	timeout           time.Duration
-	interval          time.Duration
+// AcceptNewlyObservedReadyPods is a kubectl.UpdateAcceptor which will accept
+// a deployment if all the containers in all of the pods for the deployment
+// are observed to be ready at least once.
+//
+// AcceptNewlyObservedReadyPods keeps track of the pods it has accepted for a
+// deployment so that the acceptor can be reused across multiple batches of
+// updates to a single controller. For example, if during the first acceptance
+// call the deployment has 3 pods, the acceptor will validate those 3 pods. If
+// the same acceptor instance is used again for the same deployment which now
+// has 6 pods, only the latest 3 pods will be considered for acceptance. The
+// status of the original 3 pods becomes irrelevant.
+//
+// Note that this struct is stateful and intended for use with a single
+// deployment and should be discarded and recreated between deployments.
+type AcceptNewlyObservedReadyPods struct {
+	// getDeploymentPodStore should return a Store containing all the pods for
+	// the named deployment, and a channel to stop whatever process is feeding
+	// the store.
+	getDeploymentPodStore func(deployment *kapi.ReplicationController) (cache.Store, chan struct{})
+	// timeout is how long to wait for pod readiness.
+	timeout time.Duration
+	// interval is how often to check for pod readiness
+	interval time.Duration
+	// acceptedPods keeps track of pods which have been previously accepted for
+	// a deployment.
+	acceptedPods kutil.StringSet
 }
 
-func (c *FirstContainerReady) Accept(deployment *kapi.ReplicationController) error {
-	// For now, only validate the first replica.
-	if deployment.Spec.Replicas != 1 {
-		glog.Infof("automatically accepting deployment %s with %d replicas", deployutil.LabelForDeployment(deployment), deployment.Spec.Replicas)
-		return nil
-	}
-
-	// Try and find the pod for the deployment.
-	pods, err := c.podsForDeployment(deployment)
-	if err != nil {
-		return fmt.Errorf("couldn't get pods for deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
-	}
-	if len(pods.Items) == 0 {
-		return fmt.Errorf("no pods found for deployment %s", deployutil.LabelForDeployment(deployment))
-	}
-
-	// If we found multiple, use the first one and log a warning.
-	// TODO: should finding multiple be an error?
-	pod := &pods.Items[0]
-	if len(pods.Items) > 1 {
-		glog.Infof("Warning: more than one pod for deployment %s; basing canary check on the first pod '%s'", deployutil.LabelForDeployment(deployment), pod.Name)
-	}
-
+// Accept implements UpdateAcceptor.
+func (c *AcceptNewlyObservedReadyPods) Accept(deployment *kapi.ReplicationController) error {
 	// Make a pod store to poll and ensure it gets cleaned up.
-	podStore, stopStore := c.getPodStore(pod.Namespace, pod.Name)
+	podStore, stopStore := c.getDeploymentPodStore(deployment)
 	defer close(stopStore)
 
-	// Track container readiness based on those defined in the spec.
-	observedContainers := map[string]bool{}
-	for _, container := range pod.Spec.Containers {
-		observedContainers[container.Name] = false
-	}
-
 	// Start checking for pod updates.
-	glog.V(0).Infof("Waiting for pod %s/%s container readiness", pod.Namespace, pod.Name)
-	err = wait.Poll(c.interval, c.timeout, func() (done bool, err error) {
-		// Get the latest state of the pod.
-		obj, exists, err := podStore.Get(pod)
-		// Try again later on error or if the pod isn't available yet.
-		if err != nil {
-			glog.V(0).Infof("Error getting pod %s/%s to inspect container readiness: %v", pod.Namespace, pod.Name, err)
-			return false, nil
-		}
-		if !exists {
-			glog.V(0).Infof("Couldn't find pod %s/%s to inspect container readiness", pod.Namespace, pod.Name)
-			return false, nil
-		}
-		// New pod state is available; update the observed ready status of any
-		// containers.
-		updatedPod := obj.(*kapi.Pod)
-		for _, status := range updatedPod.Status.ContainerStatuses {
-			// Ignore any containers which aren't defined in the deployment spec.
-			if _, known := observedContainers[status.Name]; !known {
-				glog.V(0).Infof("Ignoring readiness of container %s in pod %s/%s because it's not present in the pod spec", status.Name, pod.Namespace, pod.Name)
+	glog.V(0).Infof("Waiting %.f seconds for pods owned by deployment %q to become ready (checking every %.f seconds; %d pods previously accepted)", c.timeout.Seconds(), deployutil.LabelForDeployment(deployment), c.interval.Seconds(), c.acceptedPods.Len())
+	err := wait.Poll(c.interval, c.timeout, func() (done bool, err error) {
+		// Check for pod readiness.
+		unready := kutil.NewStringSet()
+		for _, obj := range podStore.List() {
+			pod := obj.(*kapi.Pod)
+			// Skip previously accepted pods; we only want to verify newly observed
+			// and unaccepted pods.
+			if c.acceptedPods.Has(pod.Name) {
 				continue
 			}
-			// The status of the container could be transient; we only care if it
-			// was ever ready. If it was ready and then became not ready, we
-			// consider it ready.
-			if status.Ready {
-				observedContainers[status.Name] = true
+			if kapi.IsPodReady(pod) {
+				// If the pod is ready, track it as accepted.
+				c.acceptedPods.Insert(pod.Name)
+			} else {
+				// Otherwise, track it as unready.
+				unready.Insert(pod.Name)
 			}
 		}
-		// Check whether all containers have been observed as ready.
-		allReady := true
-		for _, ready := range observedContainers {
-			if !ready {
-				allReady = false
-				break
-			}
-		}
-		// If all containers have been ready once, return success.
-		if allReady {
-			glog.V(0).Infof("All containers ready for %s/%s", pod.Namespace, pod.Name)
+		// Check to see if we're done.
+		if unready.Len() == 0 {
+			glog.V(0).Infof("All pods ready for %s", deployutil.LabelForDeployment(deployment))
 			return true, nil
 		}
 		// Otherwise, try again later.
-		glog.V(4).Infof("Still waiting for pod %s/%s container readiness; observed statuses: #%v", pod.Namespace, pod.Name, observedContainers)
+		glog.V(4).Infof("Still waiting for %d pods to become ready for deployment %s", unready.Len(), deployutil.LabelForDeployment(deployment))
 		return false, nil
 	})
 
+	// Handle acceptance failure.
 	if err != nil {
 		if err == wait.ErrWaitTimeout {
-			return fmt.Errorf("timed out waiting for pod %s/%s containers to become ready", pod.Namespace, pod.Name)
+			return fmt.Errorf("pods for deployment %q took longer than %.f seconds to become ready", deployutil.LabelForDeployment(deployment), c.timeout.Seconds())
 		}
-		return fmt.Errorf("pod %s/%s failed readiness check: %v", pod.Namespace, pod.Name, err)
+		return fmt.Errorf("pod readiness check failed for deployment %q: %v", deployutil.LabelForDeployment(deployment), err)
 	}
-
 	return nil
 }
