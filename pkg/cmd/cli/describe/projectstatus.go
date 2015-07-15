@@ -101,6 +101,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	standaloneDCs, coveredByDCs := graphview.AllDeploymentConfigPipelines(g, coveredNodes)
 	coveredNodes.Insert(coveredByDCs.List()...)
 
+	standaloneRCs, coveredByRCs := graphview.AllReplicationControllers(g, coveredNodes)
+	coveredNodes.Insert(coveredByRCs.List()...)
+
 	standaloneImages, coveredByImages := graphview.AllImagePipelinesFromBuildConfig(g, coveredNodes)
 	coveredNodes.Insert(coveredByImages.List()...)
 
@@ -147,6 +150,11 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			fmt.Fprintln(out)
 			printLines(out, indent, 0, describeStandaloneBuildGroup(standaloneImage, namespace)...)
 			printLines(out, indent, 1, describeAdditionalBuildDetail(standaloneImage.Build, standaloneImage.LastSuccessfulBuild, standaloneImage.LastUnsuccessfulBuild, standaloneImage.ActiveBuilds, standaloneImage.DestinationResolved, true)...)
+		}
+
+		for _, standaloneRC := range standaloneRCs {
+			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeRCInServiceGroup(standaloneRC.RC)...)
 		}
 
 		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0) {

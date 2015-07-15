@@ -61,6 +61,32 @@ func TestServiceGroup(t *testing.T) {
 	}
 }
 
+func TestBareRCGroup(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/bare-rc.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
+	kubeedges.AddAllExposedPodEdges(g)
+	kubeedges.AddAllManagedByRCPodEdges(g)
+
+	coveredNodes := IntSet{}
+
+	serviceGroups, coveredByServiceGroups := AllServiceGroups(g, coveredNodes)
+	coveredNodes.Insert(coveredByServiceGroups.List()...)
+
+	bareRCs, coveredByRCs := AllReplicationControllers(g, coveredNodes)
+	coveredNodes.Insert(coveredByRCs.List()...)
+
+	if e, a := 1, len(serviceGroups); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 1, len(bareRCs); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
 func TestBareDCGroup(t *testing.T) {
 	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/bare-dc.yaml")
 	if err != nil {

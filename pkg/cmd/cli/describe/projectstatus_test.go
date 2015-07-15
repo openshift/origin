@@ -128,6 +128,20 @@ func TestProjectStatus(t *testing.T) {
 				"To see more, use",
 			},
 		},
+		"standalone rc": {
+			Path: "../../../../pkg/api/graph/test/bare-rc.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example\n",
+				"  rc/database-1 runs openshift/mysql-55-centos7",
+				"rc/frontend-rc-1 runs openshift/ruby-hello-world",
+			},
+		},
 		"unstarted build": {
 			Path: "../../../../test/fixtures/app-scenarios/new-project-no-build.yaml",
 			Extra: []runtime.Object{
