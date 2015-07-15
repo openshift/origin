@@ -11,13 +11,14 @@ import (
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
 	"github.com/openshift/origin/pkg/user/registry/user"
+	"github.com/openshift/origin/pkg/util"
 )
 
 // rest implements a RESTStorage for users against etcd
@@ -33,11 +34,10 @@ func NewREST(h tools.EtcdHelper) *REST {
 		NewFunc:     func() runtime.Object { return &api.User{} },
 		NewListFunc: func() runtime.Object { return &api.UserList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
-			// TODO: JTL: switch to NoNamespaceKeyRootFunc after rebase
 			return EtcdPrefix
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
+			return util.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.User).Name, nil
@@ -67,7 +67,7 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		name = user.GetName()
 
 		// remove the known virtual groups from the list if they are present
-		contextGroups := util.NewStringSet(user.GetGroups()...)
+		contextGroups := kutil.NewStringSet(user.GetGroups()...)
 		contextGroups.Delete(bootstrappolicy.UnauthenticatedGroup, bootstrappolicy.AuthenticatedGroup)
 
 		if ok, _ := validation.ValidateUserName(name, false); !ok {

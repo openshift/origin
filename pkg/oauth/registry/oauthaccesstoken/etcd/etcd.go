@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
+	"github.com/openshift/origin/pkg/util"
 )
 
 // rest implements a RESTStorage for access tokens against etcd
@@ -30,7 +31,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 			return EtcdPrefix
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
+			return util.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.OAuthAccessToken).Name, nil
