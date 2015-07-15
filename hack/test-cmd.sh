@@ -105,12 +105,7 @@ export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 # Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
 echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
-SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
-while read -r IP_ADDRESS
-do
-    SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
-done <<< "${ALL_IP_ADDRESSES}"
+SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
 
 openshift admin ca create-master-certs \
   --overwrite=false \
