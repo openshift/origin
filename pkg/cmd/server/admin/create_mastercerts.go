@@ -149,7 +149,7 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 		return err
 	}
 	// once we've minted the signer, don't overwrite it
-	getSignerCertOptions := GetSignerCertOptions{
+	getSignerCertOptions := SignerCertOptions{
 		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
 		KeyFile:    DefaultKeyFilename(o.CertDir, CAFilePrefix),
 		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
@@ -165,7 +165,7 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 	return utilerrors.NewAggregate(errs)
 }
 
-func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *GetSignerCertOptions) error {
+func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerCertOptions) error {
 	for _, clientCertInfo := range DefaultAPIClientCerts(o.CertDir) {
 		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
 			return err
@@ -194,7 +194,7 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *GetSign
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createEtcdClientCerts(getSignerCertOptions *GetSignerCertOptions) error {
+func (o CreateMasterCertsOptions) createEtcdClientCerts(getSignerCertOptions *SignerCertOptions) error {
 	for _, clientCertInfo := range DefaultEtcdClientCerts(o.CertDir) {
 		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
 			return err
@@ -203,7 +203,7 @@ func (o CreateMasterCertsOptions) createEtcdClientCerts(getSignerCertOptions *Ge
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createKubeletClientCerts(getSignerCertOptions *GetSignerCertOptions) error {
+func (o CreateMasterCertsOptions) createKubeletClientCerts(getSignerCertOptions *SignerCertOptions) error {
 	for _, clientCertInfo := range DefaultKubeletClientCerts(o.CertDir) {
 		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
 			return err
@@ -212,9 +212,9 @@ func (o CreateMasterCertsOptions) createKubeletClientCerts(getSignerCertOptions 
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo, getSignerCertOptions *GetSignerCertOptions) error {
+func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo, getSignerCertOptions *SignerCertOptions) error {
 	clientCertOptions := CreateClientCertOptions{
-		GetSignerCertOptions: getSignerCertOptions,
+		SignerCertOptions: getSignerCertOptions,
 
 		CertFile: clientCertInfo.CertLocation.CertFile,
 		KeyFile:  clientCertInfo.CertLocation.KeyFile,
@@ -230,10 +230,10 @@ func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *GetSignerCertOptions) error {
+func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *SignerCertOptions) error {
 	for _, serverCertInfo := range DefaultServerCerts(o.CertDir) {
 		serverCertOptions := CreateServerCertOptions{
-			GetSignerCertOptions: getSignerCertOptions,
+			SignerCertOptions: getSignerCertOptions,
 
 			CertFile: serverCertInfo.CertFile,
 			KeyFile:  serverCertInfo.KeyFile,
