@@ -12,8 +12,8 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openshift/openshift-sdn/ovssubnet"
-	"github.com/openshift/openshift-sdn/pkg/api"
-	"github.com/openshift/openshift-sdn/pkg/registry"
+	"github.com/openshift/openshift-sdn/ovssubnet/api"
+	"github.com/openshift/openshift-sdn/ovssubnet/registry"
 )
 
 type NetworkManager interface {
@@ -38,6 +38,7 @@ type CmdLineOpts struct {
 	skipsetup             bool
 	sync                  bool
 	kube                  bool
+	multitenant           bool
 	help                  bool
 }
 
@@ -61,6 +62,7 @@ func init() {
 	flag.BoolVar(&opts.skipsetup, "skip-setup", false, "Skip the setup when in minion mode")
 	flag.BoolVar(&opts.sync, "sync", false, "Sync the minions directly to etcd-path (Do not wait for PaaS to do so!)")
 	flag.BoolVar(&opts.kube, "kube", false, "Use kubernetes hooks for optimal integration with OVS. This option bypasses the Linux bridge. Any docker containers started manually (not through OpenShift/Kubernetes) will stay local and not connect to the SDN.")
+	flag.BoolVar(&opts.multitenant, "multitenant", false, "Same as 'kube' but with multitenant capabilities. This option will only be examined if 'kube' option is 'false'.")
 
 	flag.BoolVar(&opts.help, "help", false, "print this message")
 }
@@ -81,6 +83,10 @@ func newNetworkManager() (NetworkManager, error) {
 
 	if opts.kube {
 		return ovssubnet.NewKubeController(sub, string(host), opts.ip, nil)
+	} else {
+		if opts.multitenant {
+			return ovssubnet.NewMultitenantController(sub, string(host), opts.ip, nil)
+		}
 	}
 	// default OVS controller
 	return ovssubnet.NewDefaultController(sub, string(host), opts.ip, nil)

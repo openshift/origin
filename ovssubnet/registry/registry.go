@@ -11,7 +11,7 @@ import (
 
 	"github.com/coreos/go-etcd/etcd"
 	log "github.com/golang/glog"
-	"github.com/openshift/openshift-sdn/pkg/api"
+	"github.com/openshift/openshift-sdn/ovssubnet/api"
 )
 
 type EtcdConfig struct {
@@ -334,6 +334,37 @@ func (sub *EtcdSubnetRegistry) WatchSubnets(receiver chan *api.SubnetEvent, stop
 		log.Infof("New subnet event: %v, %v", subevent, resp)
 		receiver <- subevent
 	}
+}
+
+func (sub *EtcdSubnetRegistry) WatchNamespaces(receiver chan *api.NamespaceEvent, stop chan bool) error {
+	// TODO
+	return nil
+}
+
+func (sub *EtcdSubnetRegistry) WatchNetNamespaces(receiver chan *api.NetNamespaceEvent, stop chan bool) error {
+	// TODO
+	return nil
+}
+
+func (sub *EtcdSubnetRegistry) GetNetNamespaces() ([]api.NetNamespace, error) {
+	nslist := make([]api.NetNamespace, 0)
+	// TODO
+	return nslist, nil
+}
+
+func (sub *EtcdSubnetRegistry) GetNetNamespace(name string) (api.NetNamespace, error) {
+	// TODO
+	return api.NetNamespace{}, nil
+}
+
+func (sub *EtcdSubnetRegistry) WriteNetNamespace(name string, id uint) error {
+	// TODO
+	return nil
+}
+
+func (sub *EtcdSubnetRegistry) DeleteNetNamespace(name string) error {
+	// TODO
+	return nil
 }
 
 func (sub *EtcdSubnetRegistry) client() *etcd.Client {
