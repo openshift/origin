@@ -47,16 +47,35 @@ check:
 	TEST_KUBE=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
 .PHONY: check
 
+# Install travis dependencies
+#
+# Args:
+#   TEST_ASSETS: Instead of running tests, test assets only.
+ifeq ($(TEST_ASSETS), true)
+install-travis:
+	hack/install-assets.sh
+else
+install-travis:
+	hack/install-etcd.sh
+	hack/install-tools.sh
+endif
+.PHONY: install-travis
+
 # Build and run unit and integration tests that don't require Docker.
 #
 # Args:
 #   GOFLAGS: Extra flags to pass to 'go' when building.
 #   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
+#   TEST_ASSETS: Instead of running tests, test assets only.
 #
 # Example:
 #   make check-test
 check-test: export KUBE_COVER= -cover -covermode=atomic
 check-test: export KUBE_RACE=  -race
+ifeq ($(TEST_ASSETS), true)
+check-test:
+	hack/test-assets.sh
+else
 check-test: build check
 check-test:
 	hack/verify-gofmt.sh
@@ -69,6 +88,7 @@ check-test:
 	hack/verify-api-descriptions.sh
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration.sh
+endif
 .PHONY: check-test
 
 # Build and run the complete test-suite.
