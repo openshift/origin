@@ -62,20 +62,6 @@ VM_NAME_PREFIX      = ENV['OPENSHIFT_VM_NAME_PREFIX'] || ""
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  host = RbConfig::CONFIG['host_os']
-  if host =~ /darwin/
-    cpus = `sysctl -n hw.ncpu`.to_i
-    # sysctl returns Bytes and we need to convert to MB
-    mem = `sysctl -n hw.memsize`.to_i / 1024 / 1024 / 4
-  elsif host =~ /linux/
-    cpus = `nproc`.to_i
-    # meminfo shows KB and we need to convert to MB
-    mem = `grep 'MemTotal' /proc/meminfo | sed -e 's/MemTotal://' -e 's/ kB//'`.to_i / 1024 / 4
-  else
-    cpus = 2
-    mem = 1024
-  end
-
   # these are the default settings, overrides are in .vagrant-openshift.json
   vagrant_openshift_config = {
     "instance_name"     => "origin-dev",
@@ -84,8 +70,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "insert_key"        => true,
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,
-    "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || cpus,
-    "memory"            => ENV['OPENSHIFT_MEMORY'] || mem,
+    "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
+    "memory"            => ENV['OPENSHIFT_MEMORY'] || 1024,
     "sync_folders_type" => nil,
     "virtualbox"        => {
       "box_name" => "fedora_inst",
