@@ -26,7 +26,8 @@ type LogoutOptions struct {
 }
 
 const (
-	logoutLong = `Log out of the active session out by clearing saved tokens
+	logoutLong = `
+Log out of the active session out by clearing saved tokens
 
 An authentication token is stored in the config file after login - this command will delete
 that token on the server, and then remove the token from the configuration file.

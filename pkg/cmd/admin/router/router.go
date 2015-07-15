@@ -27,7 +27,8 @@ import (
 )
 
 const (
-	routerLong = `Install or configure an OpenShift router
+	routerLong = `
+Install or configure an OpenShift router
 
 This command helps to setup an OpenShift router to take edge traffic and balance it to
 your application. With no arguments, the command will check for an existing router

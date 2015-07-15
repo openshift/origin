@@ -26,7 +26,8 @@ import (
 )
 
 const (
-	startBuildLong = `Start a build.
+	startBuildLong = `
+Start a build
 
 This command starts a build for the provided BuildConfig or re-runs an existing build using
 --from-build=<name>. You may pass the --follow flag to see output from the build.`

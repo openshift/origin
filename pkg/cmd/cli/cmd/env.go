@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	envLong = `Update environment variables on a pod template
+	envLong = `
+Update environment variables on a pod template
 
 List environment variable definitions in one or more pods or pod templates.
 Add, update, or remove container environment variable definitions in one or

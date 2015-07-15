@@ -12,7 +12,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/plugin/cmd/kube-scheduler/app"
 )
 
-const schedulerLong = `Start Kubernetes scheduler
+const schedulerLong = `
+Start Kubernetes scheduler
 
 This command launches an instance of the Kubernetes controller-manager (kube-controller-manager).`
 

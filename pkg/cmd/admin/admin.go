@@ -23,7 +23,8 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const adminLong = `OpenShift Administrative Commands
+const adminLong = `
+OpenShift Administrative Commands
 
 Commands for managing an OpenShift cluster are exposed here. Many administrative
 actions involve interaction with the OpenShift client as well.`

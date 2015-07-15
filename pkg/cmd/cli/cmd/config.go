@@ -14,7 +14,12 @@ import (
 )
 
 const (
-	configLong = `Manages the OpenShift config files.
+	configLong = `
+Manage the OpenShift client config files
+
+The OpenShift client stores configuration in the current user's home directory (under the .kube directory as
+config). When you login the first time, a new config file is created, and subsequent project changes with the
+'project' command will set the current context. These subcommands allow you to manage the config directly.
 
 Reference: https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubeconfig-file.md`
 

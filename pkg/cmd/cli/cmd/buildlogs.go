@@ -17,11 +17,14 @@ import (
 )
 
 const (
-	buildLogsLong = `Retrieve logs from the containers where the build occurred.
+	buildLogsLong = `
+Retrieve logs for a build
 
-NOTE: This command may be moved in the future.`
+This command displays the log for the provided build. If the pod that ran the build has been deleted logs
+will no longer be available. If the build has not yet completed, the build logs will be streamed until the
+build completes or fails.`
 
-	buildLogsExample = `  // Stream logs from container to stdout
+	buildLogsExample = `  // Stream logs from container
   $ %[1]s build-logs 566bed879d2d`
 )
 
@@ -30,7 +33,7 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 	opts := api.BuildLogOptions{}
 	cmd := &cobra.Command{
 		Use:     "build-logs BUILD",
-		Short:   "Show container logs from the build container",
+		Short:   "Show logs from a build",
 		Long:    buildLogsLong,
 		Example: fmt.Sprintf(buildLogsExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	registryLong = `Install or configure a Docker registry for OpenShift
+	registryLong = `
+Install or configure a Docker registry for OpenShift
 
 This command sets up a Docker registry integrated with OpenShift to provide notifications when
 images are pushed. With no arguments, the command will check for the existing registry service

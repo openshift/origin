@@ -18,7 +18,8 @@ import (
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"
-const masterCertLong = `Create keys and certificates for an OpenShift master
+const masterCertLong = `
+Create keys and certificates for an OpenShift master
 
 This command creates keys and certs necessary to run a secure OpenShift master.
 It also creates keys, certificates, and configuration necessary for most

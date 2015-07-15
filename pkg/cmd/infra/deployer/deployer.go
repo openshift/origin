@@ -23,9 +23,10 @@ import (
 )
 
 const (
-	deployerLong = `Perform a Deployment.
+	deployerLong = `
+Perform a deployment
 
-This command makes calls to OpenShift to perform a deployment as described by a DeploymentConfig.`
+This command makes calls to OpenShift to perform a deployment as described by a deployment configuration.`
 )
 
 type config struct {

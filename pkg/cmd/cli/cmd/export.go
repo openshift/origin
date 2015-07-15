@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	exportLong = `Export resources so they can be used elsewhere
+	exportLong = `
+Export resources so they can be used elsewhere
 
 The export command makes it easy to take existing objects and convert them to configuration files
 for backups or for creating elsewhere in the cluster. Fields that cannot be specified on create

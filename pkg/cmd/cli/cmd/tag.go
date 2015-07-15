@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	tagLong = `Tag existing images into image streams
+	tagLong = `
+Tag existing images into image streams
 
 The tag command allows you to take an existing tag or image from an image
 stream, or a Docker image pull spec, and set it as the most recent image for a

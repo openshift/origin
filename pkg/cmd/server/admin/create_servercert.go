@@ -28,6 +28,8 @@ type CreateServerCertOptions struct {
 }
 
 const createServerLong = `
+Create a key and server certificate
+
 Create a key and server certificate valid for the specified hostnames,
 signed by the specified CA. These are useful for securing infrastructure
 components such as the router, authentication server, etc.

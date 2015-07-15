@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	rollbackLong = `Revert part of an application back to a previous deployment.
+	rollbackLong = `
+Revert an application back to a previous deployment
 
 When you run this command your deployment configuration will be updated to
 match a previous deployment. By default only the pod and container

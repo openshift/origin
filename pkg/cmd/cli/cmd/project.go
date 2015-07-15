@@ -34,7 +34,8 @@ type ProjectOptions struct {
 }
 
 const (
-	projectLong = `Switch to another project and make it the default in your configuration
+	projectLong = `
+Switch to another project and make it the default in your configuration
 
 If no project was specified on the command line, display information about the current active
 project. Since you can use this command to connect to projects on different servers, you will

@@ -29,7 +29,9 @@ type NodeOptions struct {
 	Output     io.Writer
 }
 
-const nodeLong = `Start an OpenShift node.
+const nodeLong = `
+Start an OpenShift node
+
 This command helps you launch an OpenShift node.  Running
 
   $ openshift start node --master=<masterIP>
