@@ -13,12 +13,13 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	testutil "github.com/openshift/origin/test/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
@@ -276,23 +277,40 @@ type subjectAccessReviewTest struct {
 }
 
 func (test subjectAccessReviewTest) run(t *testing.T) {
-	actualResponse, err := test.clientInterface.Create(test.review)
-	if len(test.err) > 0 {
-		if err == nil {
-			t.Errorf("%s: Expected error: %v", test.description, test.err)
-		} else if !strings.HasPrefix(err.Error(), test.err) {
-			t.Errorf("%s: expected\n\t%v\ngot\n\t%v", test.description, test.err, err)
+	failMessage := ""
+	err := wait.Poll(testutil.PolicyCachePollInterval, testutil.PolicyCachePollTimeout, func() (bool, error) {
+		actualResponse, err := test.clientInterface.Create(test.review)
+		if len(test.err) > 0 {
+			if err == nil {
+				failMessage = fmt.Sprintf("%s: Expected error: %v", test.description, test.err)
+				return false, nil
+			} else if !strings.HasPrefix(err.Error(), test.err) {
+				failMessage = fmt.Sprintf("%s: expected\n\t%v\ngot\n\t%v", test.description, test.err, err)
+				return false, nil
+			}
+		} else {
+			if err != nil {
+				failMessage = fmt.Sprintf("%s: unexpected error: %v", test.description, err)
+				return false, nil
+			}
 		}
-	} else {
-		if err != nil {
-			t.Errorf("%s: unexpected error: %v", test.description, err)
-		}
-	}
 
-	if (actualResponse.Namespace != test.response.Namespace) ||
-		(actualResponse.Allowed != test.response.Allowed) ||
-		(!strings.HasPrefix(actualResponse.Reason, test.response.Reason)) {
-		t.Errorf("%s: from review\n\t%#v\nexpected\n\t%#v\ngot\n\t%#v", test.description, test.review, &test.response, actualResponse)
+		if (actualResponse.Namespace != test.response.Namespace) ||
+			(actualResponse.Allowed != test.response.Allowed) ||
+			(!strings.HasPrefix(actualResponse.Reason, test.response.Reason)) {
+			failMessage = fmt.Sprintf("%s: from review\n\t%#v\nexpected\n\t%#v\ngot\n\t%#v", test.description, test.review, &test.response, actualResponse)
+			return false, nil
+		}
+
+		failMessage = ""
+		return true, nil
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+	if len(failMessage) != 0 {
+		t.Error(failMessage)
 	}
 }
 
