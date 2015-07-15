@@ -24,6 +24,7 @@ import (
 	"syscall"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/remotecommand"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
@@ -221,5 +222,30 @@ func (p *ExecOptions) Run() error {
 		SubResource("exec").
 		Param("container", containerName)
 
-	return p.Executor.Execute(req, p.Config, p.Command, stdin, p.Out, p.Err, tty)
+	postErr := p.Executor.Execute(req, p.Config, p.Command, stdin, p.Out, p.Err, tty)
+
+	// if we don't have an error, return.  If we did get an error, try a GET because v3.0.0 shipped with exec running as a GET.
+	if postErr == nil {
+		return nil
+	}
+	
+	// only try the get if the error is either a forbidden or method not supported, otherwise trying with a GET probably won't help
+	if !apierrors.IsForbidden(postErr) && !apierrors.IsMethodNotSupported(postErr) {
+		return postErr
+	}
+
+	getReq := p.Client.RESTClient.Get().
+		Resource("pods").
+		Name(pod.Name).
+		Namespace(pod.Namespace).
+		SubResource("exec").
+		Param("container", containerName)
+
+	getErr := p.Executor.Execute(getReq, p.Config, p.Command, stdin, p.Out, p.Err, tty)
+	if getErr == nil {
+		return nil
+	}
+
+	// if we got a getErr, return the postErr because it's more likely to be correct.  GET is legacy
+	return postErr
 }
