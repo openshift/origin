@@ -72,8 +72,8 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"application-template-pullspecbuild": &templateapi.Template{},
 		},
 		"../examples/jenkins": {
-			"jenkins-config":       &kapi.List{},
-			"application-template": &templateapi.Template{},
+			"jenkins-ephemeral-template": &templateapi.Template{},
+			"application-template":       &templateapi.Template{},
 		},
 		"../examples/image-streams": {
 			"image-streams-centos7": &imageapi.ImageStreamList{},

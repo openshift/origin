@@ -1,0 +1,143 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "jenkins-ephemeral",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "Jenkins service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "iconClass": "icon-jenkins",
+      "tags": "database,jenkins"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 8080,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "portalIP": "",
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "resources": {}
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "jenkins"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "jenkins:latest",
+                "namespace": "openshift"
+              }
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "${JENKINS_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "jenkins",
+                "image": "openshift/jenkins-16-centos7",
+                "env": [
+                  {
+                    "name": "JENKINS_PASSWORD",
+                    "value": "${JENKINS_PASSWORD}"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "${JENKINS_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/jenkins"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${JENKINS_SERVICE_NAME}-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      },
+      "status": {}
+    }
+  ],
+  "parameters": [
+    {
+      "name": "JENKINS_SERVICE_NAME",
+      "description": "Jenkins service name",
+      "value": "jenkins"
+    },
+    {
+      "name": "JENKINS_PASSWORD",
+      "description": "Password for the Jenkins user",
+      "generate": "expression",
+      "value": "password"
+    }
+  ],
+  "labels": {
+    "template": "jenkins-ephemeral-template"
+  }
+}
