@@ -27,8 +27,8 @@ func TestPodSpecNode(t *testing.T) {
 	}
 
 	edge := g.EdgeList()[0]
-	if g.EdgeKind(edge) != osgraph.ContainsEdgeKind {
-		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, g.EdgeKind(edge))
+	if !g.EdgeKinds(edge).Has(osgraph.ContainsEdgeKind) {
+		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, g.EdgeKinds(edge))
 	}
 	if edge.Head().ID() != podNode.ID() {
 		t.Errorf("expected %v, got %v", podNode.ID(), edge.Head())
@@ -57,7 +57,7 @@ func TestReplicationControllerSpecNode(t *testing.T) {
 	if len(rcEdges) != 1 {
 		t.Fatalf("expected 1 edge, got %v", rcEdges)
 	}
-	if g.EdgeKind(rcEdges[0]) != osgraph.ContainsEdgeKind {
+	if !g.EdgeKinds(rcEdges[0]).Has(osgraph.ContainsEdgeKind) {
 		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, rcEdges[0])
 	}
 
@@ -70,7 +70,7 @@ func TestReplicationControllerSpecNode(t *testing.T) {
 	if len(rcSpecEdges) != 1 {
 		t.Fatalf("expected 1 edge, got %v", rcSpecEdges)
 	}
-	if g.EdgeKind(rcSpecEdges[0]) != osgraph.ContainsEdgeKind {
+	if !g.EdgeKinds(rcSpecEdges[0]).Has(osgraph.ContainsEdgeKind) {
 		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, rcSpecEdges[0])
 	}
 
@@ -83,7 +83,7 @@ func TestReplicationControllerSpecNode(t *testing.T) {
 	if len(ptSpecEdges) != 1 {
 		t.Fatalf("expected 1 edge, got %v", ptSpecEdges)
 	}
-	if g.EdgeKind(ptSpecEdges[0]) != osgraph.ContainsEdgeKind {
+	if !g.EdgeKinds(ptSpecEdges[0]).Has(osgraph.ContainsEdgeKind) {
 		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, ptSpecEdges[0])
 	}
 

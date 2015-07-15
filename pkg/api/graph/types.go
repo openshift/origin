@@ -64,7 +64,7 @@ func GetContainingNode(g Graph, containedNode graph.Node) graph.Node {
 	for _, node := range g.Predecessors(containedNode) {
 		edge := g.EdgeBetween(node, containedNode)
 
-		if g.EdgeKind(edge) == ContainsEdgeKind {
+		if g.EdgeKinds(edge).Has(ContainsEdgeKind) {
 			return node
 		}
 	}

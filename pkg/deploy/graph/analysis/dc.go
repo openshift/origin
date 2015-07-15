@@ -3,6 +3,8 @@ package analysis
 import (
 	"github.com/gonum/graph"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
 	kubeanalysis "github.com/openshift/origin/pkg/api/kubegraph/analysis"
@@ -22,9 +24,8 @@ func DescendentNodesByNodeKind(g osgraph.Graph, visitedNodes graphview.IntSet, n
 	ret := []graph.Node{}
 	for _, successor := range g.Successors(node) {
 		edge := g.EdgeBetween(node, successor)
-		kind := g.EdgeKind(edge)
 
-		if edgeChecker(osgraph.New(), node, successor, kind) {
+		if edgeChecker(osgraph.New(), node, successor, g.EdgeKinds(edge)) {
 			if g.Kind(successor) == targetNodeKind {
 				ret = append(ret, successor)
 			}
@@ -38,8 +39,8 @@ func DescendentNodesByNodeKind(g osgraph.Graph, visitedNodes graphview.IntSet, n
 
 // CheckMountedSecrets checks to be sure that all the referenced secrets are mountable (by service account) and present (not synthetic)
 func CheckMountedSecrets(g osgraph.Graph, dcNode *deploygraph.DeploymentConfigNode) ( /*unmountable secrets*/ []*kubegraph.SecretNode /*unresolved secrets*/, []*kubegraph.SecretNode) {
-	podSpecs := DescendentNodesByNodeKind(g, graphview.IntSet{}, dcNode, kubegraph.PodSpecNodeKind, func(g osgraph.Interface, head, tail graph.Node, edgeKind string) bool {
-		if edgeKind == osgraph.ContainsEdgeKind {
+	podSpecs := DescendentNodesByNodeKind(g, graphview.IntSet{}, dcNode, kubegraph.PodSpecNodeKind, func(g osgraph.Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+		if edgeKinds.Has(osgraph.ContainsEdgeKind) {
 			return true
 		}
 		return false

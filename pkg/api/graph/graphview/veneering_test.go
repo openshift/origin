@@ -331,7 +331,7 @@ func TestGraph(t *testing.T) {
 	t.Log(g)
 
 	for _, edge := range g.EdgeList() {
-		if g.EdgeKind(edge) == osgraph.UnknownEdgeKind {
+		if g.EdgeKinds(edge).Has(osgraph.UnknownEdgeKind) {
 			t.Errorf("edge reported unknown kind: %#v", edge)
 		}
 	}

@@ -350,7 +350,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 				}
 
 				glog.V(4).Infof("Checking for existing strong reference from stream %s/%s to image %s", stream.Namespace, stream.Name, imageNode.Image.Name)
-				if edge := g.EdgeBetween(imageStreamNode, imageNode); edge != nil && g.EdgeKind(edge) == ReferencedImageEdgeKind {
+				if edge := g.EdgeBetween(imageStreamNode, imageNode); edge != nil && g.EdgeKinds(edge).Has(ReferencedImageEdgeKind) {
 					glog.V(4).Infof("Strong reference found")
 					continue
 				}
@@ -548,8 +548,8 @@ func getImageNodes(nodes []gonum.Node) []*imagegraph.ImageNode {
 // edgeKind returns true if the edge from "from" to "to" is of the desired kind.
 func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
 	edge := g.EdgeBetween(from, to)
-	kind := g.EdgeKind(edge)
-	return kind == desiredKind
+	kinds := g.EdgeKinds(edge)
+	return kinds.Has(desiredKind)
 }
 
 // imageIsPrunable returns true iff the image node only has weak references
@@ -599,7 +599,7 @@ func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet
 		func(g graph.Interface, node gonum.Node) bool {
 			return !prunableImageIDs.Has(node.ID())
 		},
-		func(g graph.Interface, head, tail gonum.Node, edgeKind string) bool {
+		func(g graph.Interface, head, tail gonum.Node, edgeKinds util.StringSet) bool {
 			if prunableImageIDs.Has(head.ID()) {
 				return false
 			}
