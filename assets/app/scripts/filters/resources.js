@@ -270,6 +270,10 @@ angular.module('openshiftConsole')
   })
   .filter('imageObjectRef', function(){
     return function(objectRef, /* optional */ nsIfUnspecified, shortOutput){
+      if (!objectRef) {
+        return "";
+      }
+
       var ns = objectRef.namespace || nsIfUnspecified || "";
       if (ns.length > 0) {
         ns = ns + "/";
