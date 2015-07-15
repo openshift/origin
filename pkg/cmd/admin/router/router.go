@@ -195,7 +195,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	image := cfg.ImageTemplate.ExpandOrDie(cfg.Type)
 
-	namespace, err := f.OpenShiftClientConfig.Namespace()
+	namespace, _, err := f.OpenShiftClientConfig.Namespace()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}

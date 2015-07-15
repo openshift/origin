@@ -110,7 +110,7 @@ func RunTag(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		}
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

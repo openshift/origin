@@ -94,7 +94,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 		return cmdutil.UsageError(cmd, "The flag 'output' must be one of yaml|json")
 	}
 
-	cmdNamespace, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 
 	b := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(filenames...).
+		FilenameParam(explicit, filenames...).
 		//SelectorParam(selector).
 		ResourceTypeOrNameArgs(true, args...).
 		Latest()

@@ -99,7 +99,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	if err != nil {
 		return err
 	}
-	o.namespace, err = f.DefaultNamespace()
+	o.namespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

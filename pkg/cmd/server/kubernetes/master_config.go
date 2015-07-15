@@ -133,8 +133,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
 		AdmissionControl: admissionController,
 
-		DisableV1Beta3: !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1beta3"),
-		DisableV1:      !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
+		EnableV1Beta3: configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1beta3"),
+		DisableV1:     !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
 	}
 
 	kmaster := &MasterConfig{

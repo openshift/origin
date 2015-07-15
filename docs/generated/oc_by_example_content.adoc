@@ -137,7 +137,7 @@ Create a resource by filename or stdin
 
 
 == oc delete
-Delete a resource by filename, stdin, resource and ID, or by resources and label selector.
+Delete a resource by filename, stdin, resource and name, or by resources and label selector.
 
 ====
 
@@ -185,7 +185,7 @@ View, start, cancel, or retry deployments
 
 
 == oc describe
-Show details of a specific resource
+Show details of a specific resource or group of resources
 
 ====
 
@@ -697,7 +697,7 @@ Show an overview of the current project
 
 
 == oc stop
-Gracefully shut down a resource by id or filename.
+Gracefully shut down a resource by name or filename.
 
 ====
 

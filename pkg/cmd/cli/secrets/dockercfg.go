@@ -148,7 +148,7 @@ func (o *CreateDockerConfigOptions) Complete(f *cmdutil.Factory, args []string) 
 	if err != nil {
 		return err
 	}
-	o.SecretNamespace, err = f.DefaultNamespace()
+	o.SecretNamespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
