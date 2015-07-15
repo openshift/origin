@@ -65,7 +65,7 @@ step #3.
 
 ## Deploy the private docker registry
 
-    $ oadm registry --create --credentials="${KUBECONFIG}"
+    $ oadm registry --create --credentials=$(pwd)/openshift.local.config/master/openshift-registry.kubeconfig
     $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update
