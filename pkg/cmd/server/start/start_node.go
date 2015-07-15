@@ -20,6 +20,7 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
+	"github.com/openshift/origin/pkg/version"
 )
 
 type NodeOptions struct {
@@ -257,6 +258,7 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 	if err != nil {
 		return err
 	}
+	glog.Infof("Starting OpenShift node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 
 	RunSDNController(config, nodeConfig)
 	config.EnsureVolumeDir()
