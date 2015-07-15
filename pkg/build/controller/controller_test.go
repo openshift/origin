@@ -108,7 +108,7 @@ func (*errNotFoundImageStreamClient) GetImageStream(namespace, name string) (*im
 	return nil, kerrors.NewNotFound("ImageStream", name)
 }
 
-func mockBuild(status buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi.Build {
+func mockBuild(phase buildapi.BuildPhase, output buildapi.BuildOutput) *buildapi.Build {
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "data-build",
@@ -132,7 +132,7 @@ func mockBuild(status buildapi.BuildPhase, output buildapi.BuildOutput) *buildap
 			Output: output,
 		},
 		Status: buildapi.BuildStatus{
-			Phase: status,
+			Phase: phase,
 		},
 	}
 }
@@ -642,5 +642,264 @@ func TestCancelBuild(t *testing.T) {
 		if build.Status.Phase != tc.outStatus {
 			t.Errorf("(%d) Expected %s, got %s!", i, tc.outStatus, build.Status.Phase)
 		}
+	}
+}
+
+type customPodManager struct {
+	CreatePodFunc func(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
+	DeletePodFunc func(namespace string, pod *kapi.Pod) error
+	GetPodFunc    func(namespace, name string) (*kapi.Pod, error)
+}
+
+func (c *customPodManager) CreatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+	return c.CreatePodFunc(namespace, pod)
+}
+
+func (c *customPodManager) DeletePod(namespace string, pod *kapi.Pod) error {
+	return c.DeletePodFunc(namespace, pod)
+}
+
+func (c *customPodManager) GetPod(namespace, name string) (*kapi.Pod, error) {
+	return c.GetPodFunc(namespace, name)
+}
+
+func TestHandleHandleBuildDeletionOK(t *testing.T) {
+	deleteWasCalled := false
+	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
+	ctrl := BuildDeleteController{&customPodManager{
+		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
+			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{buildapi.BuildLabel: build.Name}}}, nil
+		},
+		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
+			deleteWasCalled = true
+			return nil
+		},
+	}}
+
+	err := ctrl.HandleBuildDeletion(build)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if !deleteWasCalled {
+		t.Error("DeletePod was not called when it should!")
+	}
+}
+
+func TestHandleHandleBuildDeletionOKDeprecatedLabel(t *testing.T) {
+	deleteWasCalled := false
+	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
+	ctrl := BuildDeleteController{&customPodManager{
+		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
+			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{buildapi.DeprecatedBuildLabel: build.Name}}}, nil
+		},
+		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
+			deleteWasCalled = true
+			return nil
+		},
+	}}
+
+	err := ctrl.HandleBuildDeletion(build)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if !deleteWasCalled {
+		t.Error("DeletePod was not called when it should!")
+	}
+}
+
+func TestHandleHandleBuildDeletionFailGetPod(t *testing.T) {
+	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
+	ctrl := BuildDeleteController{&customPodManager{
+		GetPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+			return nil, errors.New("random")
+		},
+	}}
+
+	err := ctrl.HandleBuildDeletion(build)
+	if err == nil {
+		t.Error("Expected random error got none!")
+	}
+}
+
+func TestHandleHandleBuildDeletionGetPodNotFound(t *testing.T) {
+	deleteWasCalled := false
+	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
+	ctrl := BuildDeleteController{&customPodManager{
+		GetPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+			return nil, kerrors.NewNotFound("Pod", name)
+		},
+		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
+			deleteWasCalled = true
+			return nil
+		},
+	}}
+
+	err := ctrl.HandleBuildDeletion(build)
+	if err != nil {
+		t.Errorf("Unexpected error, %v", err)
+	}
+	if deleteWasCalled {
+		t.Error("DeletePod was called when it should not!")
+	}
+}
+
+func TestHandleHandleBuildDeletionMismatchedLabels(t *testing.T) {
+	deleteWasCalled := false
+	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
+	ctrl := BuildDeleteController{&customPodManager{
+		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
+			return &kapi.Pod{}, nil
+		},
+		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
+			deleteWasCalled = true
+			return nil
+		},
+	}}
+
+	err := ctrl.HandleBuildDeletion(build)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if deleteWasCalled {
+		t.Error("DeletePod was called when it should not!")
+	}
+}
+
+func TestHandleHandleBuildDeletionDeletePodError(t *testing.T) {
+	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
+	ctrl := BuildDeleteController{&customPodManager{
+		GetPodFunc: func(namespace, names string) (*kapi.Pod, error) {
+			return &kapi.Pod{ObjectMeta: kapi.ObjectMeta{Labels: map[string]string{buildapi.BuildLabel: build.Name}}}, nil
+		},
+		DeletePodFunc: func(namespace string, pod *kapi.Pod) error {
+			return errors.New("random")
+		},
+	}}
+
+	err := ctrl.HandleBuildDeletion(build)
+	if err == nil {
+		t.Error("Expected random error got none!")
+	}
+}
+
+type customBuildUpdater struct {
+	UpdateFunc func(namespace string, build *buildapi.Build) error
+}
+
+func (c *customBuildUpdater) Update(namespace string, build *buildapi.Build) error {
+	return c.UpdateFunc(namespace, build)
+}
+
+func mockBuildPodDeleteController(build *buildapi.Build, buildUpdater *customBuildUpdater, err error) *BuildPodDeleteController {
+	return &BuildPodDeleteController{
+		BuildStore:   buildtest.FakeBuildStore{Build: build, Err: err},
+		BuildUpdater: buildUpdater,
+	}
+}
+
+func TestHandleBuildPodDeletionOK(t *testing.T) {
+	updateWasCalled := false
+	// only not finished build (buildutil.IsBuildComplete) should be handled
+	build := mockBuild(buildapi.BuildPhaseRunning, buildapi.BuildOutput{})
+	ctrl := mockBuildPodDeleteController(build, &customBuildUpdater{
+		UpdateFunc: func(namespace string, build *buildapi.Build) error {
+			updateWasCalled = true
+			return nil
+		},
+	}, nil)
+	pod := mockPod(kapi.PodSucceeded, 0)
+
+	err := ctrl.HandleBuildPodDeletion(pod)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if !updateWasCalled {
+		t.Error("UpdateBuild was not called when it should!")
+	}
+}
+
+func TestHandleBuildPodDeletionOKFinishedBuild(t *testing.T) {
+	updateWasCalled := false
+	// finished build buildutil.IsBuildComplete should not be handled
+	build := mockBuild(buildapi.BuildPhaseComplete, buildapi.BuildOutput{})
+	ctrl := mockBuildPodDeleteController(build, &customBuildUpdater{
+		UpdateFunc: func(namespace string, build *buildapi.Build) error {
+			updateWasCalled = true
+			return nil
+		},
+	}, nil)
+	pod := mockPod(kapi.PodSucceeded, 0)
+
+	err := ctrl.HandleBuildPodDeletion(pod)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if updateWasCalled {
+		t.Error("UpdateBuild was called when it should not!")
+	}
+}
+
+func TestHandleBuildPodDeletionOKErroneousBuild(t *testing.T) {
+	updateWasCalled := false
+	// erroneous builds should not be handled
+	build := mockBuild(buildapi.BuildPhaseError, buildapi.BuildOutput{})
+	ctrl := mockBuildPodDeleteController(build, &customBuildUpdater{
+		UpdateFunc: func(namespace string, build *buildapi.Build) error {
+			updateWasCalled = true
+			return nil
+		},
+	}, nil)
+	pod := mockPod(kapi.PodSucceeded, 0)
+
+	err := ctrl.HandleBuildPodDeletion(pod)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if updateWasCalled {
+		t.Error("UpdateBuild was called when it should not!")
+	}
+}
+
+func TestHandleBuildPodDeletionBuildGetError(t *testing.T) {
+	ctrl := mockBuildPodDeleteController(nil, &customBuildUpdater{}, errors.New("random"))
+	pod := mockPod(kapi.PodSucceeded, 0)
+
+	err := ctrl.HandleBuildPodDeletion(pod)
+	if err == nil {
+		t.Error("Expected random error, but got none!")
+	}
+}
+
+func TestHandleBuildPodDeletionBuildNotExists(t *testing.T) {
+	updateWasCalled := false
+	ctrl := mockBuildPodDeleteController(nil, &customBuildUpdater{
+		UpdateFunc: func(namespace string, build *buildapi.Build) error {
+			updateWasCalled = true
+			return nil
+		},
+	}, nil)
+	pod := mockPod(kapi.PodSucceeded, 0)
+
+	err := ctrl.HandleBuildPodDeletion(pod)
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+	if updateWasCalled {
+		t.Error("UpdateBuild was called when it should not!")
+	}
+}
+
+func TestHandleBuildPodDeletionBuildUpdateError(t *testing.T) {
+	build := mockBuild(buildapi.BuildPhaseRunning, buildapi.BuildOutput{})
+	ctrl := mockBuildPodDeleteController(build, &customBuildUpdater{
+		UpdateFunc: func(namespace string, build *buildapi.Build) error {
+			return errors.New("random")
+		},
+	}, nil)
+	pod := mockPod(kapi.PodSucceeded, 0)
+
+	err := ctrl.HandleBuildPodDeletion(pod)
+	if err == nil {
+		t.Error("Expected random error, but got none!")
 	}
 }

@@ -303,8 +303,8 @@ func (bc *BuildDeleteController) HandleBuildDeletion(build *buildapi.Build) erro
 		glog.V(2).Infof("Did not find pod with name %s for Build %s in namespace %s", podName, build.Name, build.Namespace)
 		return nil
 	}
-	if pod.Labels[buildapi.BuildLabel] != build.Name {
-		glog.V(2).Infof("Not deleting pod %s/%s because the build label %s does not match the build name %s", pod.Namespace, podName, pod.Labels[buildapi.BuildLabel], build.Name)
+	if buildName, _ := buildutil.GetBuildLabel(pod); buildName != build.Name {
+		glog.V(2).Infof("Not deleting pod %s/%s because the build label %s does not match the build name %s", pod.Namespace, podName, buildName, build.Name)
 		return nil
 	}
 	err = bc.PodManager.DeletePod(build.Namespace, pod)
