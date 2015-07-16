@@ -59,8 +59,6 @@ Steps
     
     Note the ip and port of the Jenkins service reported by this command, you will need it later.
 
-        $ oc deploy jenkins --latest
-
     **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you will want to use a [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) instead.
     
 5. Create the sample application configuration
