@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	"github.com/gonum/graph/topo"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
@@ -163,6 +164,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		if hasUnresolvedImageStreamTag(g) {
 			fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
 		}
+		if hasCircularDependencies(g) {
+			fmt.Fprintln(out, "Warning: Some of your build configurations have circular dependencies.")
+		}
 		if lines, _ := describeBadPodSpecs(out, g); len(lines) > 0 {
 			fmt.Fprintln(out, strings.Join(lines, "\n"))
 		}
@@ -194,6 +198,19 @@ func hasUnresolvedImageStreamTag(g osgraph.Graph) bool {
 	}
 
 	return false
+}
+
+func hasCircularDependencies(g osgraph.Graph) bool {
+	// Filter out all but ImageStreamTag and BuildConfig nodes
+	nodeFn := osgraph.NodesOfKind(imagegraph.ImageStreamTagNodeKind, buildgraph.BuildConfigNodeKind)
+	// Filter out all but BuildInputImage and BuildOutput edges
+	edgeFn := osgraph.EdgesOfKind(buildedges.BuildInputImageEdgeKind, buildedges.BuildOutputEdgeKind)
+
+	// Create desired subgraph
+	sub := g.Subgraph(nodeFn, edgeFn)
+
+	// Check for cycles
+	return len(topo.CyclesIn(sub)) != 0
 }
 
 func describeBadPodSpecs(out io.Writer, g osgraph.Graph) ([]string, []*kubegraph.SecretNode) {

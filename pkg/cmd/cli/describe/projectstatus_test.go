@@ -53,6 +53,29 @@ func TestPushableBuild(t *testing.T) {
 	}
 }
 
+func TestCircularDeps(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/circular.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	buildedges.AddAllInputOutputEdges(g)
+
+	if !hasCircularDependencies(g) {
+		t.Fatalf("expected having circular dependencies")
+	}
+
+	not, _, err := osgraphtest.BuildGraph("../../../api/graph/test/circular-not.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	buildedges.AddAllInputOutputEdges(not)
+
+	if hasCircularDependencies(not) {
+		t.Fatalf("expected not having circular dependencies")
+	}
+
+}
+
 func TestProjectStatus(t *testing.T) {
 	testCases := map[string]struct {
 		Path     string
