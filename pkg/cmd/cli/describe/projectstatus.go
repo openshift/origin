@@ -133,7 +133,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			for _, podNode := range service.FulfillingPods {
 				// skip pods that have been displayed in a roll-up of RCs and DCs (by implicit usage of RCs)
 				for _, coveredRC := range service.FulfillingRCs {
-					if g.EdgeBetween(podNode, coveredRC) != nil {
+					if g.Edge(podNode, coveredRC) != nil {
 						continue pod
 					}
 				}

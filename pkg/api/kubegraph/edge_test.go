@@ -32,7 +32,7 @@ func TestSecretEdges(t *testing.T) {
 	AddAllMountableSecretEdges(g)
 	AddAllMountedSecretEdges(g)
 
-	if edge := g.EdgeBetween(saNode, secretNode); edge == nil {
+	if edge := g.Edge(saNode, secretNode); edge == nil {
 		t.Errorf("edge missing")
 	} else {
 		if !g.EdgeKinds(edge).Has(MountableSecretEdgeKind) {
@@ -45,7 +45,7 @@ func TestSecretEdges(t *testing.T) {
 		t.Fatalf("wrong number of podspecs: %v", podSpecNodes)
 	}
 
-	if edge := g.EdgeBetween(podSpecNodes[0], secretNode); edge == nil {
+	if edge := g.Edge(podSpecNodes[0], secretNode); edge == nil {
 		t.Errorf("edge missing")
 	} else {
 		if !g.EdgeKinds(edge).Has(MountedSecretEdgeKind) {

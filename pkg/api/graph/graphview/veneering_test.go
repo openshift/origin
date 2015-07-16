@@ -330,7 +330,7 @@ func TestGraph(t *testing.T) {
 
 	t.Log(g)
 
-	for _, edge := range g.EdgeList() {
+	for _, edge := range g.Edges() {
 		if g.EdgeKinds(edge).Has(osgraph.UnknownEdgeKind) {
 			t.Errorf("edge reported unknown kind: %#v", edge)
 		}
@@ -338,28 +338,25 @@ func TestGraph(t *testing.T) {
 
 	// imagestreamtag default/other:base-image
 	istID := 0
-	for _, node := range g.NodeList() {
+	for _, node := range g.Nodes() {
 		if g.Name(node) == "ImageStreamTag|default/other:base-image" {
 			istID = node.ID()
 			break
 		}
 	}
 
-	edge := g.EdgeBetween(concrete.Node(bcTestNode.ID()), concrete.Node(istID))
+	edge := g.Edge(concrete.Node(bcTestNode.ID()), concrete.Node(istID))
 	if edge == nil {
 		t.Fatalf("failed to find edge between %d and %d", bcTestNode.ID(), istID)
 	}
-	if len(g.SubgraphWithNodes([]graph.Node{edge.Head(), edge.Tail()}, osgraph.ExistingDirectEdge).EdgeList()) != 1 {
+	if len(g.SubgraphWithNodes([]graph.Node{edge.From(), edge.To()}, osgraph.ExistingDirectEdge).Edges()) != 1 {
 		t.Fatalf("expected one edge")
 	}
-	if len(g.SubgraphWithNodes([]graph.Node{edge.Tail(), edge.Head()}, osgraph.ExistingDirectEdge).EdgeList()) != 1 {
+	if len(g.SubgraphWithNodes([]graph.Node{edge.To(), edge.From()}, osgraph.ExistingDirectEdge).Edges()) != 1 {
 		t.Fatalf("expected one edge")
 	}
 
-	if e := g.EdgeBetween(concrete.Node(bcTestNode.ID()), concrete.Node(istID)); e == nil {
-		t.Errorf("expected edge for %d-%d", bcTestNode.ID(), istID)
-	}
-	if e := g.EdgeBetween(concrete.Node(istID), concrete.Node(bcTestNode.ID())); e == nil {
+	if e := g.Edge(concrete.Node(bcTestNode.ID()), concrete.Node(istID)); e == nil {
 		t.Errorf("expected edge for %d-%d", bcTestNode.ID(), istID)
 	}
 
