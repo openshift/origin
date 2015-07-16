@@ -113,6 +113,22 @@ func TestProjectStatus(t *testing.T) {
 				"To see more, use",
 			},
 		},
+		"rc with unmountable and missing secrets": {
+			Path: "../../../../pkg/api/graph/test/bad_secret_with_just_rc.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example\n",
+				"rc/my-rc runs openshift/mysql-55-centos7",
+				"0/1 pods growing to 1",
+				"is not allowed to mount secret/existing-secret",
+				"these missing secrets secret/dne",
+			},
+		},
 		"service with pod": {
 			Path: "../../../../pkg/api/graph/test/service-with-pod.yaml",
 			Extra: []runtime.Object{

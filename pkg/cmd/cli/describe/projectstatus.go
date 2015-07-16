@@ -69,14 +69,14 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	kubeedges.AddAllExposedPodEdges(g)
 	kubeedges.AddAllManagedByRCPodEdges(g)
+	kubeedges.AddAllRequestedServiceAccountEdges(g)
+	kubeedges.AddAllMountableSecretEdges(g)
+	kubeedges.AddAllMountedSecretEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
 	deployedges.AddAllTriggerEdges(g)
 	deployedges.AddAllDeploymentEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
-	kubeedges.AddAllRequestedServiceAccountEdges(g)
-	kubeedges.AddAllMountableSecretEdges(g)
-	kubeedges.AddAllMountedSecretEdges(g)
 
 	return g, nil
 }
@@ -157,21 +157,21 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			printLines(out, indent, 0, describeRCInServiceGroup(standaloneRC.RC)...)
 		}
 
+		// always output warnings
+		fmt.Fprintln(out)
+
+		if hasUnresolvedImageStreamTag(g) {
+			fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
+		}
+		if lines, _ := describeBadPodSpecs(out, g); len(lines) > 0 {
+			fmt.Fprintln(out, strings.Join(lines, "\n"))
+		}
+
 		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0) {
-			fmt.Fprintln(out)
 			fmt.Fprintln(out, "You have no services, deployment configs, or build configs.")
 			fmt.Fprintln(out, "Run 'oc new-app' to create an application.")
 
 		} else {
-			fmt.Fprintln(out)
-
-			if hasUnresolvedImageStreamTag(g) {
-				fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
-			}
-			if lines, _ := describeBadPodSpecs(out, g); len(lines) > 0 {
-				fmt.Fprintln(out, strings.Join(lines, "\n"))
-			}
-
 			fmt.Fprintln(out, "To see more, use 'oc describe service <name>' or 'oc describe dc <name>'.")
 			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
 		}
