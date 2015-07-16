@@ -244,6 +244,17 @@ oc get templates
 # TODO: create directly from template
 echo "templates: ok"
 
+
+# Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
+[ "$(oc create -f test/resource-builder/directory -f test/resource-builder/json-no-extension -f test/resource-builder/yml-no-extension 2>&1)" ]
+# Explicitly specified extensionless files
+oc get secret json-no-extension yml-no-extension
+# Scanned files with extensions inside directories
+oc get secret json-with-extension yml-with-extension
+# Ensure extensionless files inside directories are not processed by resource-builder
+[ "$(oc get secret json-no-extension-in-directory 2>&1 | grep 'not found')" ]
+echo "resource-builder: ok"
+
 # verify some default commands
 [ "$(openshift 2>&1)" ]
 [ "$(openshift cli)" ]
