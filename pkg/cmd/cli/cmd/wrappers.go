@@ -136,10 +136,10 @@ Print the logs for a container in a pod
 If the pod has only one container, the container name is optional.`
 
 	logsExample = `  // Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ %[1]s logs 123456-7890 ruby-container
+  $ %[1]s logs 123456-7890 -c ruby-container
 
   // Starts streaming of ruby-container logs from pod 123456-7890.
-  $ %[1]s logs -f 123456-7890 ruby-container`
+  $ %[1]s logs -f 123456-7890 -c ruby-container`
 )
 
 // NewCmdLogs is a wrapper for the Kubernetes cli logs command

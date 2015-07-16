@@ -417,10 +417,10 @@ Print the logs for a container in a pod.
 [options="nowrap"]
 ----
   // Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ openshift cli logs 123456-7890 ruby-container
+  $ openshift cli logs 123456-7890 -c ruby-container
 
   // Starts streaming of ruby-container logs from pod 123456-7890.
-  $ openshift cli logs -f 123456-7890 ruby-container
+  $ openshift cli logs -f 123456-7890 -c ruby-container
 ----
 ====
 
