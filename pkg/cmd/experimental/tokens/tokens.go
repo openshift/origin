@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -46,5 +45,5 @@ func getFlagString(cmd *cobra.Command, flag string) string {
 }
 
 func getRequestTokenURL(clientCfg *client.Config) string {
-	return clientCfg.Host + path.Join(origin.OpenShiftOAuthAPIPrefix, tokenrequest.RequestTokenEndpoint)
+	return clientCfg.Host + path.Join("/oauth", tokenrequest.RequestTokenEndpoint)
 }
