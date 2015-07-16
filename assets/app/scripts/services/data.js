@@ -219,7 +219,19 @@ angular.module('openshiftConsole')
     }
 
     objects.forEach(function(object) {
-      self.create(self._objectType(object.kind), null, object, context, opts).then(
+      var type = self._objectType(object.kind);
+      if (!type) {
+        failureResults.push({
+          data: {
+            message: "Unrecognized type: " + object.kind + "."
+          }
+        });
+        remaining--;
+        _checkDone();
+        return;
+      }
+
+      self.create(type, null, object, context, opts).then(
         function (data) {
           successResults.push(data);
           remaining--;
@@ -814,33 +826,55 @@ angular.module('openshiftConsole')
   // an introspection endpoint that would give us this mapping
   // https://github.com/openshift/origin/issues/230
   var SERVER_TYPE_MAP = {
-    builds:                    API_CFG.openshift,
     buildconfigs:              API_CFG.openshift,
+    builds:                    API_CFG.openshift,
+    clusternetworks:           API_CFG.openshift,
+    clusterpolicies:           API_CFG.openshift,
+    clusterpolicybindings:     API_CFG.openshift,
+    clusterrolebindings:       API_CFG.openshift,
+    clusterroles:              API_CFG.openshift,
+    deploymentconfigrollbacks: API_CFG.openshift,
     deploymentconfigs:         API_CFG.openshift,
-    imagestreams:              API_CFG.openshift,
+    hostsubnets:               API_CFG.openshift,
+    identities:                API_CFG.openshift,
+    images:                    API_CFG.openshift,
     imagestreamimages:         API_CFG.openshift,
+    imagestreammappings:       API_CFG.openshift,
+    imagestreams:              API_CFG.openshift,
     imagestreamtags:           API_CFG.openshift,
     oauthaccesstokens:         API_CFG.openshift,
     oauthauthorizetokens:      API_CFG.openshift,
-    oauthclients:              API_CFG.openshift,
     oauthclientauthorizations: API_CFG.openshift,
+    oauthclients:              API_CFG.openshift,
     policies:                  API_CFG.openshift,
     policybindings:            API_CFG.openshift,
     processedtemplates:        API_CFG.openshift,
-    projects:                  API_CFG.openshift,
     projectrequests:           API_CFG.openshift,
-    roles:                     API_CFG.openshift,
+    projects:                  API_CFG.openshift,
+    resourceaccessreviews:     API_CFG.openshift,
     rolebindings:              API_CFG.openshift,
+    roles:                     API_CFG.openshift,
     routes:                    API_CFG.openshift,
+    subjectaccessreviews:      API_CFG.openshift,
     templates:                 API_CFG.openshift,
+    useridentitymappings:      API_CFG.openshift,
     users:                     API_CFG.openshift,
 
+    bindings:                  API_CFG.k8s,
+    componentstatuses:         API_CFG.k8s,
+    endpoints:                 API_CFG.k8s,
     events:                    API_CFG.k8s,
+    limitranges:               API_CFG.k8s,
+    nodes:                     API_CFG.k8s,
+    persistentvolumeclaims:    API_CFG.k8s,
+    persistentvolumes:         API_CFG.k8s,
     pods:                      API_CFG.k8s,
+    podtemplates:              API_CFG.k8s,
     replicationcontrollers:    API_CFG.k8s,
-    services:                  API_CFG.k8s,
     resourcequotas:            API_CFG.k8s,
-    limitranges:               API_CFG.k8s
+    secrets:                   API_CFG.k8s,
+    serviceaccounts:           API_CFG.k8s,
+    services:                  API_CFG.k8s
   };
 
   DataService.prototype._urlForType = function(type, id, context, isWebsocket, params) {
@@ -936,8 +970,19 @@ angular.module('openshiftConsole')
   var OBJECT_KIND_MAP = {
     Build:                    "builds",
     BuildConfig:              "buildconfigs",
+    ClusterNetwork:           "clusternetworks",
+    ClusterPolicy:            "clusterpolicies",
+    ClusterPolicyBinding:     "clusterpolicybindings",
+    ClusterRole:              "clusterroles",
+    ClusterRoleBinding:       "clusterrolebindings",
     DeploymentConfig:         "deploymentconfigs",
+    DeploymentConfigRollback: "deploymentconfigrollbacks",
+    HostSubnet:               "hostsubnets",
+    Identity:                 "identities",
+    Image:                    "images",
     ImageStream:              "imagestreams",
+    ImageStreamImage:         "imagestreamimages",
+    ImageStreamMapping:       "imagestreammappings",
     OAuthAccessToken:         "oauthaccesstokens",
     OAuthAuthorizeToken:      "oauthauthorizetokens",
     OAuthClient:              "oauthclients",
@@ -945,16 +990,31 @@ angular.module('openshiftConsole')
     Policy:                   "policies",
     PolicyBinding:            "policybindings",
     Project:                  "projects",
+    ProjectRequest:           "projectrequests",
+    ResourceAccessReview:     "resourceaccessreviews",
     Role:                     "roles",
     RoleBinding:              "rolebindings",
     Route:                    "routes",
+    SubjectAccessReview:      "subjectaccessreviews",
+    Template:                 "templates",
     User:                     "users",
+    UserIdentityMapping:      "useridentitymappings",
 
+    Binding:                  "bindings",
+    ComponentStatus:          "componentstatuses",
+    Endpoints:                "endpoints",
+    Event:                    "events",
+    LimitRange:               "limitranges",
+    Node:                     "nodes",
+    PersistentVolume:         "persistentvolumes",
+    PersistentVolumeClaim:    "persistentvolumeclaims",
     Pod:                      "pods",
+    PodTemplate:              "podtemplates",
     ReplicationController:    "replicationcontrollers",
-    Service:                  "services",
     ResourceQuota:            "resourcequotas",
-    LimitRange:               "limitranges"
+    Secret:                   "secrets",
+    Service:                  "services",
+    ServiceAccount:           "serviceaccounts"
   };
 
   DataService.prototype._objectType = function(kind) {
