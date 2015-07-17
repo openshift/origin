@@ -65,17 +65,6 @@ As an application developer, I want to decide whether to push or not a image
 to a registry based on some customizable logic (e.g. test results).
 
 
-## Hooks
-
-1. Pre-build
-
-2. Pre-push
-
-3. Post-push
-
-4. Post-build
-
-
 ## Alternatives
 
 Existing functionality that could be used to address the use cases above:
@@ -223,3 +212,39 @@ to the registry.
 
 If implemented, a pre-push **Build hook** could be used to execute tests before
 pushing a new image to the registry. If tests fail, the image is not pushed.
+
+
+## Hooks
+
+### Hook types
+
+To cover the use cases above, we might have these hooks:
+
+1. Pre-build
+
+2. Pre-push
+
+3. Post-push
+
+4. Post-build
+
+
+### Hook Input and Output
+
+The Docker container executing a hook action can get build metadata through
+environment variables and/or mounted volumes.
+
+Input to be provided through environment variables:
+
+- Build UID
+- Build status/phase
+- Docker image ID produced by the build (if build suceeded)
+
+The hooks return no specific output, however their *exit status* (zero or
+non-zero) can be used to e.g. prevent a push from happening if a pre-push hook
+fails. That said, hooks are expected to produce side effects most likely via the
+network.
+
+The build object is tagged with a label describing the status of the hook
+execution, and if a Docker image is built as a result of the build, it is as
+well labeled with hook execution status.
