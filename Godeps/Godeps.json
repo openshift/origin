@@ -829,9 +829,25 @@
 			"Rev": "7f07925444bb51fa4cf9dfe6f7661876f8852275"
 		},
 		{
+			"ImportPath": "github.com/gonum/blas",
+			"Rev": "80dca99229cccca259b550ae3f755cf79c65a224"
+		},
+		{
 			"ImportPath": "github.com/gonum/graph",
-			"Comment": "v0.1-11-gf6ac2b0",
-			"Rev": "f6ac2b0f80f5a28ee70af78ce415393b37bcd6c1"
+			"Comment": "v0.9-100-gbde6d0f",
+			"Rev": "bde6d0fbd9dec5a997e906611fe0364001364c41"
+		},
+		{
+			"ImportPath": "github.com/gonum/internal/asm",
+			"Rev": "5b84ddfb9d3e72d73b8de858c97650be140935c0"
+		},
+		{
+			"ImportPath": "github.com/gonum/lapack",
+			"Rev": "88ec467285859a6cd23900147d250a8af1f38b10"
+		},
+		{
+			"ImportPath": "github.com/gonum/matrix/mat64",
+			"Rev": "fb1396264e2e259ff714a408a7b0142d238b198d"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/api",

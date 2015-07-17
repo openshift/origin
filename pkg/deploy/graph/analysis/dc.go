@@ -22,8 +22,8 @@ func DescendentNodesByNodeKind(g osgraph.Graph, visitedNodes graphview.IntSet, n
 	visitedNodes.Insert(node.ID())
 
 	ret := []graph.Node{}
-	for _, successor := range g.Successors(node) {
-		edge := g.EdgeBetween(node, successor)
+	for _, successor := range g.From(node) {
+		edge := g.Edge(node, successor)
 
 		if edgeChecker(osgraph.New(), node, successor, g.EdgeKinds(edge)) {
 			if g.Kind(successor) == targetNodeKind {

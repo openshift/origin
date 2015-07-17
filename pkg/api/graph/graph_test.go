@@ -13,7 +13,7 @@ func TestMultipleEdgeKindsBetweenTheSameNodes(t *testing.T) {
 	g.AddEdge(fooNode, barNode, "first")
 	g.AddEdge(fooNode, barNode, "second")
 
-	edge := g.EdgeBetween(fooNode, barNode)
+	edge := g.Edge(fooNode, barNode)
 	if !g.EdgeKinds(edge).Has("first") {
 		t.Errorf("expected first, got %v", edge)
 	}

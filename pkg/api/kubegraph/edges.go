@@ -31,7 +31,7 @@ func AddExposedPodTemplateSpecEdges(g osgraph.MutableUniqueGraph, node *kubegrap
 		return
 	}
 	query := labels.SelectorFromSet(node.Service.Spec.Selector)
-	for _, n := range g.(graph.Graph).NodeList() {
+	for _, n := range g.(graph.Graph).Nodes() {
 		switch target := n.(type) {
 		case *kubegraph.PodTemplateSpecNode:
 			if query.Matches(labels.Set(target.PodTemplateSpec.Labels)) {
@@ -43,7 +43,7 @@ func AddExposedPodTemplateSpecEdges(g osgraph.MutableUniqueGraph, node *kubegrap
 
 // AddAllExposedPodTemplateSpecEdges calls AddExposedPodTemplateSpecEdges for every ServiceNode in the graph
 func AddAllExposedPodTemplateSpecEdges(g osgraph.MutableUniqueGraph) {
-	for _, node := range g.(graph.Graph).NodeList() {
+	for _, node := range g.(graph.Graph).Nodes() {
 		if serviceNode, ok := node.(*kubegraph.ServiceNode); ok {
 			AddExposedPodTemplateSpecEdges(g, serviceNode)
 		}
@@ -57,7 +57,7 @@ func AddExposedPodEdges(g osgraph.MutableUniqueGraph, node *kubegraph.ServiceNod
 		return
 	}
 	query := labels.SelectorFromSet(node.Service.Spec.Selector)
-	for _, n := range g.(graph.Graph).NodeList() {
+	for _, n := range g.(graph.Graph).Nodes() {
 		switch target := n.(type) {
 		case *kubegraph.PodNode:
 			if query.Matches(labels.Set(target.Labels)) {
@@ -69,7 +69,7 @@ func AddExposedPodEdges(g osgraph.MutableUniqueGraph, node *kubegraph.ServiceNod
 
 // AddAllExposedPodEdges calls AddExposedPodEdges for every ServiceNode in the graph
 func AddAllExposedPodEdges(g osgraph.MutableUniqueGraph) {
-	for _, node := range g.(graph.Graph).NodeList() {
+	for _, node := range g.(graph.Graph).Nodes() {
 		if serviceNode, ok := node.(*kubegraph.ServiceNode); ok {
 			AddExposedPodEdges(g, serviceNode)
 		}
@@ -83,7 +83,7 @@ func AddManagedByRCPodEdges(g osgraph.MutableUniqueGraph, rcNode *kubegraph.Repl
 		return
 	}
 	query := labels.SelectorFromSet(rcNode.Spec.Selector)
-	for _, n := range g.(graph.Graph).NodeList() {
+	for _, n := range g.(graph.Graph).Nodes() {
 		switch target := n.(type) {
 		case *kubegraph.PodNode:
 			if query.Matches(labels.Set(target.Labels)) {
@@ -95,7 +95,7 @@ func AddManagedByRCPodEdges(g osgraph.MutableUniqueGraph, rcNode *kubegraph.Repl
 
 // AddAllManagedByRCPodEdges calls AddManagedByRCPodEdges for every ServiceNode in the graph
 func AddAllManagedByRCPodEdges(g osgraph.MutableUniqueGraph) {
-	for _, node := range g.(graph.Graph).NodeList() {
+	for _, node := range g.(graph.Graph).Nodes() {
 		if rcNode, ok := node.(*kubegraph.ReplicationControllerNode); ok {
 			AddManagedByRCPodEdges(g, rcNode)
 		}
@@ -130,7 +130,7 @@ func AddMountedSecretEdges(g osgraph.Graph, podSpec *kubegraph.PodSpecNode) {
 }
 
 func AddAllMountedSecretEdges(g osgraph.Graph) {
-	for _, node := range g.NodeList() {
+	for _, node := range g.Nodes() {
 		if podSpecNode, ok := node.(*kubegraph.PodSpecNode); ok {
 			AddMountedSecretEdges(g, podSpecNode)
 		}
@@ -149,7 +149,7 @@ func AddMountableSecretEdges(g osgraph.Graph, saNode *kubegraph.ServiceAccountNo
 }
 
 func AddAllMountableSecretEdges(g osgraph.Graph) {
-	for _, node := range g.NodeList() {
+	for _, node := range g.Nodes() {
 		if saNode, ok := node.(*kubegraph.ServiceAccountNode); ok {
 			AddMountableSecretEdges(g, saNode)
 		}
@@ -181,7 +181,7 @@ func AddRequestedServiceAccountEdges(g osgraph.Graph, podSpecNode *kubegraph.Pod
 }
 
 func AddAllRequestedServiceAccountEdges(g osgraph.Graph) {
-	for _, node := range g.NodeList() {
+	for _, node := range g.Nodes() {
 		if podSpecNode, ok := node.(*kubegraph.PodSpecNode); ok {
 			AddRequestedServiceAccountEdges(g, podSpecNode)
 		}

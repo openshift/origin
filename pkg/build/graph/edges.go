@@ -20,7 +20,7 @@ const (
 )
 
 func AddBuildEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNode) {
-	for _, n := range g.(graph.Graph).NodeList() {
+	for _, n := range g.(graph.Graph).Nodes() {
 		if buildNode, ok := n.(*buildgraph.BuildNode); ok {
 			if belongsToBuildConfig(node.BuildConfig, buildNode.Build) {
 				g.AddEdge(node, buildNode, BuildEdgeKind)
@@ -30,7 +30,7 @@ func AddBuildEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNod
 }
 
 func AddAllBuildEdges(g osgraph.MutableUniqueGraph) {
-	for _, node := range g.(graph.Graph).NodeList() {
+	for _, node := range g.(graph.Graph).Nodes() {
 		if bcNode, ok := node.(*buildgraph.BuildConfigNode); ok {
 			AddBuildEdges(g, bcNode)
 		}
@@ -80,7 +80,7 @@ func AddInputOutputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildCon
 }
 
 func AddAllInputOutputEdges(g osgraph.MutableUniqueGraph) {
-	for _, node := range g.(graph.Graph).NodeList() {
+	for _, node := range g.(graph.Graph).Nodes() {
 		if bcNode, ok := node.(*buildgraph.BuildConfigNode); ok {
 			AddInputOutputEdges(g, bcNode)
 		}

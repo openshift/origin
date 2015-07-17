@@ -16,19 +16,19 @@ func TestDCRCSpecNode(t *testing.T) {
 
 	dcNode := EnsureDeploymentConfigNode(g, dc)
 
-	if len(g.NodeList()) != 2 {
-		t.Errorf("expected 2 nodes, got %v", g.NodeList())
+	if len(g.Nodes()) != 2 {
+		t.Errorf("expected 2 nodes, got %v", g.Nodes())
 	}
 
-	if len(g.EdgeList()) != 1 {
-		t.Errorf("expected 2 edge, got %v", g.EdgeList())
+	if len(g.Edges()) != 1 {
+		t.Errorf("expected 2 edge, got %v", g.Edges())
 	}
 
-	edge := g.EdgeList()[0]
+	edge := g.Edges()[0]
 	if !g.EdgeKinds(edge).Has(osgraph.ContainsEdgeKind) {
 		t.Errorf("expected %v, got %v", osgraph.ContainsEdgeKind, g.EdgeKinds(edge))
 	}
-	if edge.Head().ID() != dcNode.ID() {
-		t.Errorf("expected %v, got %v", dcNode.ID(), edge.Head())
+	if edge.From().ID() != dcNode.ID() {
+		t.Errorf("expected %v, got %v", dcNode.ID(), edge.From())
 	}
 }
