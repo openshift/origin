@@ -353,9 +353,25 @@ func (g Graph) addEdges(edges []graph.Edge, fn EdgeFunc) {
 // node should be included.
 type NodeFunc func(g Interface, n graph.Node) bool
 
+// NodesOfKind returns a new NodeFunc accepting the provided kinds of nodes
+func NodesOfKind(kinds ...string) NodeFunc {
+	allowedKinds := util.NewStringSet(kinds...)
+	return func(g Interface, n graph.Node) bool {
+		return allowedKinds.Has(g.Kind(n))
+	}
+}
+
 // EdgeFunc is passed a new graph, an edge in the current graph, and should mutate
 // the new graph as needed. If true is returned, the existing edge will be added to the graph.
 type EdgeFunc func(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool
+
+// EdgesOfKind returns a new EdgeFunc accepting the provided kinds of edges
+func EdgesOfKind(kinds ...string) EdgeFunc {
+	allowedKinds := util.NewStringSet(kinds...)
+	return func(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+		return allowedKinds.HasAny(edgeKinds.List()...)
+	}
+}
 
 // EdgeSubgraph returns the directed subgraph with only the edges that match the
 // provided function.
