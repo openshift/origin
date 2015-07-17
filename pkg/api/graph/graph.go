@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
+	"github.com/gonum/graph/encoding/dot"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -14,6 +16,11 @@ import (
 type Node struct {
 	concrete.Node
 	UniqueName
+}
+
+// DOTAttributes implements an attribute getter for the DOT encoding
+func (n Node) DOTAttributes() []dot.Attribute {
+	return []dot.Attribute{{"label", fmt.Sprintf("%q", n.UniqueName)}}
 }
 
 // ExistenceChecker is an interface for those nodes that can be created without a backing object.
@@ -84,6 +91,11 @@ func (e Edge) Kinds() util.StringSet {
 
 func (e Edge) IsKind(kind string) bool {
 	return e.kinds.Has(kind)
+}
+
+// DOTAttributes implements an attribute getter for the DOT encoding
+func (e Edge) DOTAttributes() []dot.Attribute {
+	return []dot.Attribute{{"label", fmt.Sprintf("%q", strings.Join(e.Kinds().List(), ","))}}
 }
 
 type GraphDescriber interface {

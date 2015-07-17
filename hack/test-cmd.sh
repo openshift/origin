@@ -771,6 +771,7 @@ oc project example
 wait_for_command 'oc get serviceaccount default' "${TIME_MIN}"
 oc create -f test/fixtures/app-scenarios
 oc status
+oc status -o dot
 echo "complex-scenarios: ok"
 
 [ "$(oc export svc --all -t '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | wc -l)" -ne 0 ]
