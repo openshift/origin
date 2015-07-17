@@ -15,8 +15,4 @@ angular.module('openshiftConsole')
     $scope.delete = function(task) {
       TaskList.deleteTask(task);
     };
-    $scope.expanded = false;
-    $scope.toggleExpand = function() {
-      $scope.expanded = !$scope.expanded;
-    };
   });
