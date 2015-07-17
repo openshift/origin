@@ -331,6 +331,57 @@ code {
   overflow-x: auto; // remove when we update to latest patternfly with twbs 3.3.4
 }
 
+.table-events {
+  background-color: #fff;
+  > tbody {
+    + tbody {
+      border-top-width: 1px;
+    }
+  }
+  tr {
+    @media (min-width: @screen-md-min) {
+      td.event-time {
+        white-space: nowrap;
+      }
+    }
+  }
+}
+@media (max-width: @screen-xs-max) {
+  .table-events, thead, tbody, th, td, tr {
+    display: block;
+  }
+  .table-events {
+    thead tr {
+      /* Hide table headers (but not display: none;, for accessibility) */
+      .sr-only();
+    }
+    > tbody {
+      > tr {
+        > td {
+           /* Behave like a row */
+          border: none;
+          border-bottom: 1px solid #eee;
+          padding: 3px 6px 2px 35%;
+          position: relative;
+          &:last-child {
+            border-bottom: none;
+          }
+          &:before {
+            /* Act as mobile table header */
+            content: attr(data-title);
+            position: absolute;
+            top: 3px;
+            left: 6px;
+            width: 35%; 
+            padding-right: 10px; 
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+  }
+}
+
 .gutter-top-bottom {
   padding: @grid-gutter-width / 2 0;
   &.gutter-top-bottom-2x {
