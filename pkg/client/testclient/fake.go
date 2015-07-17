@@ -1,6 +1,8 @@
 package testclient
 
 import (
+	"sync"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -16,6 +18,7 @@ type FakeAction ktestclient.FakeAction
 // Fake implements Interface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the method you want to test easier.
 type Fake struct {
+	sync.Mutex
 	// Fake by default keeps a simple list of the methods that have been called.
 	Actions []FakeAction
 	Err     error
@@ -38,6 +41,9 @@ func NewSimpleFake(objects ...runtime.Object) *Fake {
 // Invokes registers the passed fake action and reacts on it if a ReactFn
 // has been defined
 func (c *Fake) Invokes(action FakeAction, obj runtime.Object) (runtime.Object, error) {
+	c.Lock()
+	defer c.Unlock()
+
 	c.Actions = append(c.Actions, action)
 	if c.ReactFn != nil {
 		return c.ReactFn(ktestclient.FakeAction(action))
