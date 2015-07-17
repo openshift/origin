@@ -26,7 +26,8 @@ import (
 )
 
 const (
-	startBuildLong = `Start a build.
+	startBuildLong = `
+Start a build
 
 This command starts a build for the provided BuildConfig or re-runs an existing build using
 --from-build=<name>. You may pass the --follow flag to see output from the build.`
@@ -101,7 +102,7 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 		return err
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -158,7 +159,7 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 	if err != nil {
 		return err
 	}
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

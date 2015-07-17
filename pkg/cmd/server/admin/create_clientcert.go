@@ -13,7 +13,7 @@ import (
 )
 
 type CreateClientCertOptions struct {
-	GetSignerCertOptions *GetSignerCertOptions
+	SignerCertOptions *SignerCertOptions
 
 	CertFile string
 	KeyFile  string
@@ -39,10 +39,10 @@ func (o CreateClientCertOptions) Validate(args []string) error {
 		return errors.New("user must be provided")
 	}
 
-	if o.GetSignerCertOptions == nil {
+	if o.SignerCertOptions == nil {
 		return errors.New("signer options are required")
 	}
-	if err := o.GetSignerCertOptions.Validate(); err != nil {
+	if err := o.SignerCertOptions.Validate(); err != nil {
 		return err
 	}
 
@@ -50,9 +50,9 @@ func (o CreateClientCertOptions) Validate(args []string) error {
 }
 
 func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfig, error) {
-	glog.V(4).Infof("Creating a client cert with: %#v and %#v", o, o.GetSignerCertOptions)
+	glog.V(4).Infof("Creating a client cert with: %#v and %#v", o, o.SignerCertOptions)
 
-	signerCert, err := o.GetSignerCertOptions.GetSignerCert()
+	signerCert, err := o.SignerCertOptions.CA()
 	if err != nil {
 		return nil, err
 	}

@@ -61,6 +61,32 @@ func TestServiceGroup(t *testing.T) {
 	}
 }
 
+func TestBareRCGroup(t *testing.T) {
+	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/bare-rc.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
+	kubeedges.AddAllExposedPodEdges(g)
+	kubeedges.AddAllManagedByRCPodEdges(g)
+
+	coveredNodes := IntSet{}
+
+	serviceGroups, coveredByServiceGroups := AllServiceGroups(g, coveredNodes)
+	coveredNodes.Insert(coveredByServiceGroups.List()...)
+
+	bareRCs, coveredByRCs := AllReplicationControllers(g, coveredNodes)
+	coveredNodes.Insert(coveredByRCs.List()...)
+
+	if e, a := 1, len(serviceGroups); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+	if e, a := 1, len(bareRCs); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
 func TestBareDCGroup(t *testing.T) {
 	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/bare-dc.yaml")
 	if err != nil {
@@ -304,36 +330,33 @@ func TestGraph(t *testing.T) {
 
 	t.Log(g)
 
-	for _, edge := range g.EdgeList() {
-		if g.EdgeKind(edge) == osgraph.UnknownEdgeKind {
+	for _, edge := range g.Edges() {
+		if g.EdgeKinds(edge).Has(osgraph.UnknownEdgeKind) {
 			t.Errorf("edge reported unknown kind: %#v", edge)
 		}
 	}
 
 	// imagestreamtag default/other:base-image
 	istID := 0
-	for _, node := range g.NodeList() {
+	for _, node := range g.Nodes() {
 		if g.Name(node) == "ImageStreamTag|default/other:base-image" {
 			istID = node.ID()
 			break
 		}
 	}
 
-	edge := g.EdgeBetween(concrete.Node(bcTestNode.ID()), concrete.Node(istID))
+	edge := g.Edge(concrete.Node(bcTestNode.ID()), concrete.Node(istID))
 	if edge == nil {
 		t.Fatalf("failed to find edge between %d and %d", bcTestNode.ID(), istID)
 	}
-	if len(g.SubgraphWithNodes([]graph.Node{edge.Head(), edge.Tail()}, osgraph.ExistingDirectEdge).EdgeList()) != 1 {
+	if len(g.SubgraphWithNodes([]graph.Node{edge.From(), edge.To()}, osgraph.ExistingDirectEdge).Edges()) != 1 {
 		t.Fatalf("expected one edge")
 	}
-	if len(g.SubgraphWithNodes([]graph.Node{edge.Tail(), edge.Head()}, osgraph.ExistingDirectEdge).EdgeList()) != 1 {
+	if len(g.SubgraphWithNodes([]graph.Node{edge.To(), edge.From()}, osgraph.ExistingDirectEdge).Edges()) != 1 {
 		t.Fatalf("expected one edge")
 	}
 
-	if e := g.EdgeBetween(concrete.Node(bcTestNode.ID()), concrete.Node(istID)); e == nil {
-		t.Errorf("expected edge for %d-%d", bcTestNode.ID(), istID)
-	}
-	if e := g.EdgeBetween(concrete.Node(istID), concrete.Node(bcTestNode.ID())); e == nil {
+	if e := g.Edge(concrete.Node(bcTestNode.ID()), concrete.Node(istID)); e == nil {
 		t.Errorf("expected edge for %d-%d", bcTestNode.ID(), istID)
 	}
 

@@ -128,7 +128,7 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, policyFile, createBoo
 	})
 
 	r := resource.NewBuilder(mapper, typer, clientMapper).
-		FilenameParam(policyFile).
+		FilenameParam(false, policyFile).
 		Flatten().
 		Do()
 

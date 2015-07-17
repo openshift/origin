@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -14,13 +16,15 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
 	"github.com/openshift/origin/pkg/cmd/cli/secrets"
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/version"
 )
 
-const cliLong = `OpenShift Client.
+const cliLong = `
+OpenShift Client
 
 The OpenShift client exposes commands for managing your applications, as well as lower level
 tools to interact with each component of your system.
@@ -166,6 +170,34 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 	templates.ActsAsRootCommand(cmds)
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 	return cmds
+}
+
+// CommandFor returns the appropriate command for this base name,
+// or the OpenShift CLI command.
+func CommandFor(basename string) *cobra.Command {
+	var cmd *cobra.Command
+
+	out := os.Stdout
+
+	// Make case-insensitive and strip executable suffix if present
+	if runtime.GOOS == "windows" {
+		basename = strings.ToLower(basename)
+		basename = strings.TrimSuffix(basename, ".exe")
+	}
+
+	switch basename {
+	case "kubectl":
+		cmd = NewCmdKubectl(basename, out)
+	default:
+		cmd = NewCommandCLI(basename, basename)
+	}
+
+	if cmd.UsageFunc() == nil {
+		templates.ActsAsRootCommand(cmd)
+	}
+	flagtypes.GLog(cmd.PersistentFlags())
+
+	return cmd
 }
 
 // applyToCreate injects the deprecation notice about for 'apply' command into

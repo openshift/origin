@@ -41,6 +41,10 @@ func TestContainsNavigation(t *testing.T) {
 	}
 
 	containsB := GetContainingNode(g, bNode)
+	if containsB == nil {
+		t.Fatal(g)
+	}
+
 	if e, a := aNode.ID(), containsB.ID(); e != a {
 		t.Errorf("expected %v, got %v", e, a)
 	}

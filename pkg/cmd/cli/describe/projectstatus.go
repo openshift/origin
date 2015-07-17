@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"sync"
 	"text/tabwriter"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -17,6 +16,7 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
+	kubeanalysis "github.com/openshift/origin/pkg/api/kubegraph/analysis"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
@@ -26,9 +26,11 @@ import (
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	"github.com/openshift/origin/pkg/util/parallel"
 )
 
 // ProjectStatusDescriber generates extended information about a Project
@@ -37,39 +39,39 @@ type ProjectStatusDescriber struct {
 	C client.Interface
 }
 
-type GraphLoadingFunc func(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error
-
 func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, error) {
 	g := osgraph.New()
 
-	loadingFuncs := []GraphLoadingFunc{loadServices, loadBuildConfigs, loadImageStreams, loadDeploymentConfigs, loadBuilds, loadReplicationControllers}
-
-	listingWaitGroup := sync.WaitGroup{}
-	graphLock := sync.Mutex{}
-	errorChannel := make(chan error, len(loadingFuncs))
-
-	for _, loadingFunc := range loadingFuncs {
-		listingWaitGroup.Add(1)
-		go func(loadingFunc GraphLoadingFunc) {
-			defer listingWaitGroup.Done()
-			if err := loadingFunc(g, graphLock, namespace, d.K, d.C); err != nil {
-				errorChannel <- err
-			}
-		}(loadingFunc)
+	loaders := []GraphLoader{
+		&serviceLoader{namespace: namespace, lister: d.K},
+		&serviceAccountLoader{namespace: namespace, lister: d.K},
+		&secretLoader{namespace: namespace, lister: d.K},
+		&rcLoader{namespace: namespace, lister: d.K},
+		&podLoader{namespace: namespace, lister: d.K},
+		&bcLoader{namespace: namespace, lister: d.C},
+		&buildLoader{namespace: namespace, lister: d.C},
+		&isLoader{namespace: namespace, lister: d.C},
+		&dcLoader{namespace: namespace, lister: d.C},
 	}
-	listingWaitGroup.Wait()
-	close(errorChannel)
-
-	// if we had an error.  Aggregate them and return them
-	errlist := []error{}
-	for err := range errorChannel {
-		errlist = append(errlist, err)
+	loadingFuncs := []func() error{}
+	for _, loader := range loaders {
+		loadingFuncs = append(loadingFuncs, loader.Load)
 	}
-	if len(errlist) > 0 {
-		return g, utilerrors.NewAggregate(errlist)
+
+	if errs := parallel.Run(loadingFuncs...); len(errs) > 0 {
+		return g, utilerrors.NewAggregate(errs)
+	}
+
+	for _, loader := range loaders {
+		loader.AddToGraph(g)
 	}
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
+	kubeedges.AddAllExposedPodEdges(g)
+	kubeedges.AddAllManagedByRCPodEdges(g)
+	kubeedges.AddAllRequestedServiceAccountEdges(g)
+	kubeedges.AddAllMountableSecretEdges(g)
+	kubeedges.AddAllMountedSecretEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
 	deployedges.AddAllTriggerEdges(g)
@@ -99,6 +101,9 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	standaloneDCs, coveredByDCs := graphview.AllDeploymentConfigPipelines(g, coveredNodes)
 	coveredNodes.Insert(coveredByDCs.List()...)
 
+	standaloneRCs, coveredByRCs := graphview.AllReplicationControllers(g, coveredNodes)
+	coveredNodes.Insert(coveredByRCs.List()...)
+
 	standaloneImages, coveredByImages := graphview.AllImagePipelinesFromBuildConfig(g, coveredNodes)
 	coveredNodes.Insert(coveredByImages.List()...)
 
@@ -123,6 +128,17 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 				}
 				printLines(out, indent, 1, describeRCInServiceGroup(rcNode)...)
 			}
+
+		pod:
+			for _, podNode := range service.FulfillingPods {
+				// skip pods that have been displayed in a roll-up of RCs and DCs (by implicit usage of RCs)
+				for _, coveredRC := range service.FulfillingRCs {
+					if g.Edge(podNode, coveredRC) != nil {
+						continue pod
+					}
+				}
+				printLines(out, indent, 1, describePodInServiceGroup(podNode)...)
+			}
 		}
 
 		for _, standaloneDC := range standaloneDCs {
@@ -136,18 +152,26 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			printLines(out, indent, 1, describeAdditionalBuildDetail(standaloneImage.Build, standaloneImage.LastSuccessfulBuild, standaloneImage.LastUnsuccessfulBuild, standaloneImage.ActiveBuilds, standaloneImage.DestinationResolved, true)...)
 		}
 
-		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0) {
+		for _, standaloneRC := range standaloneRCs {
 			fmt.Fprintln(out)
+			printLines(out, indent, 0, describeRCInServiceGroup(standaloneRC.RC)...)
+		}
+
+		// always output warnings
+		fmt.Fprintln(out)
+
+		if hasUnresolvedImageStreamTag(g) {
+			fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
+		}
+		if lines, _ := describeBadPodSpecs(out, g); len(lines) > 0 {
+			fmt.Fprintln(out, strings.Join(lines, "\n"))
+		}
+
+		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0) {
 			fmt.Fprintln(out, "You have no services, deployment configs, or build configs.")
 			fmt.Fprintln(out, "Run 'oc new-app' to create an application.")
 
 		} else {
-			fmt.Fprintln(out)
-
-			if hasUnresolvedImageStreamTag(g) {
-				fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
-
-			}
 			fmt.Fprintln(out, "To see more, use 'oc describe service <name>' or 'oc describe dc <name>'.")
 			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
 		}
@@ -170,6 +194,50 @@ func hasUnresolvedImageStreamTag(g osgraph.Graph) bool {
 	}
 
 	return false
+}
+
+func describeBadPodSpecs(out io.Writer, g osgraph.Graph) ([]string, []*kubegraph.SecretNode) {
+	allMissingSecrets := []*kubegraph.SecretNode{}
+	lines := []string{}
+
+	for _, uncastPodSpec := range g.NodesByKind(kubegraph.PodSpecNodeKind) {
+		podSpecNode := uncastPodSpec.(*kubegraph.PodSpecNode)
+		unmountableSecrets, missingSecrets := kubeanalysis.CheckMountedSecrets(g, podSpecNode)
+		containingNode := osgraph.GetTopLevelContainerNode(g, podSpecNode)
+
+		allMissingSecrets = append(allMissingSecrets, missingSecrets...)
+
+		unmountableNames := []string{}
+		for _, secret := range unmountableSecrets {
+			unmountableNames = append(unmountableNames, secret.ResourceString())
+		}
+
+		missingNames := []string{}
+		for _, secret := range missingSecrets {
+			missingNames = append(missingNames, secret.ResourceString())
+		}
+
+		containingNodeName := g.GraphDescriber.Name(containingNode)
+		if resourceNode, ok := containingNode.(osgraph.ResourceNode); ok {
+			containingNodeName = resourceNode.ResourceString()
+		}
+
+		switch {
+		case len(unmountableSecrets) > 0 && len(missingSecrets) > 0:
+			lines = append(lines, fmt.Sprintf("\t%s is not allowed to mount %s and wants to mount these missing secrets %s", containingNodeName, strings.Join(unmountableNames, ","), strings.Join(missingNames, ",")))
+		case len(unmountableSecrets) > 0:
+			lines = append(lines, fmt.Sprintf("\t%s is not allowed to mount %s", containingNodeName, strings.Join(unmountableNames, ",")))
+		case len(unmountableSecrets) > 0 && len(missingSecrets) > 0:
+			lines = append(lines, fmt.Sprintf("\t%s wants to mount these missing secrets %s", containingNodeName, strings.Join(missingNames, ",")))
+		}
+	}
+
+	// if we had any failures, prepend the warning line
+	if len(lines) > 0 {
+		return append([]string{"Warning: some requested secrets are not allowed:"}, lines...), allMissingSecrets
+	}
+
+	return []string{}, allMissingSecrets
 }
 
 func printLines(out io.Writer, indent string, depth int, lines ...string) {
@@ -218,6 +286,16 @@ func describeRCInServiceGroup(rcNode *kubegraph.ReplicationControllerNode) []str
 	lines := []string{fmt.Sprintf("rc/%s runs %s", rcNode.ReplicationController.Name, strings.Join(images, ", "))}
 	lines = append(lines, describeRCStatus(rcNode.ReplicationController))
 
+	return lines
+}
+
+func describePodInServiceGroup(podNode *kubegraph.PodNode) []string {
+	images := []string{}
+	for _, container := range podNode.Pod.Spec.Containers {
+		images = append(images, container.Image)
+	}
+
+	lines := []string{fmt.Sprintf("pod/%s runs %s", podNode.Pod.Name, strings.Join(images, ", "))}
 	return lines
 }
 
@@ -600,92 +678,226 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 	}
 }
 
-func loadServices(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
-	svcs, err := kclient.Services(namespace).List(labels.Everything())
+// GraphLoader is a stateful interface that provides methods for building the nodes of a graph
+type GraphLoader interface {
+	// Load is responsible for gathering and saving the objects this GraphLoader should AddToGraph
+	Load() error
+	// AddToGraph
+	AddToGraph(g osgraph.Graph) error
+}
+
+type rcLoader struct {
+	namespace string
+	lister    kclient.ReplicationControllersNamespacer
+	items     []kapi.ReplicationController
+}
+
+func (l *rcLoader) Load() error {
+	list, err := l.lister.ReplicationControllers(l.namespace).List(labels.Everything())
 	if err != nil {
 		return err
 	}
 
-	graphLock.Lock()
-	defer graphLock.Unlock()
-	for i := range svcs.Items {
-		kubegraph.EnsureServiceNode(g, &svcs.Items[i])
+	l.items = list.Items
+	return nil
+}
+
+func (l *rcLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureReplicationControllerNode(g, &l.items[i])
 	}
 
 	return nil
 }
 
-func loadBuildConfigs(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
-	bcs, err := client.BuildConfigs(namespace).List(labels.Everything(), fields.Everything())
+type serviceLoader struct {
+	namespace string
+	lister    kclient.ServicesNamespacer
+	items     []kapi.Service
+}
+
+func (l *serviceLoader) Load() error {
+	list, err := l.lister.Services(l.namespace).List(labels.Everything())
 	if err != nil {
 		return err
 	}
 
-	graphLock.Lock()
-	defer graphLock.Unlock()
-	for i := range bcs.Items {
-		buildgraph.EnsureBuildConfigNode(g, &bcs.Items[i])
+	l.items = list.Items
+	return nil
+}
+
+func (l *serviceLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureServiceNode(g, &l.items[i])
 	}
 
 	return nil
 }
 
-func loadImageStreams(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
-	iss, err := client.ImageStreams(namespace).List(labels.Everything(), fields.Everything())
+type podLoader struct {
+	namespace string
+	lister    kclient.PodsNamespacer
+	items     []kapi.Pod
+}
+
+func (l *podLoader) Load() error {
+	list, err := l.lister.Pods(l.namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}
 
-	graphLock.Lock()
-	defer graphLock.Unlock()
-	for i := range iss.Items {
-		imagegraph.EnsureImageStreamNode(g, &iss.Items[i])
-		imagegraph.EnsureAllImageStreamTagNodes(g, &iss.Items[i])
+	l.items = list.Items
+	return nil
+}
+
+func (l *podLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsurePodNode(g, &l.items[i])
 	}
 
 	return nil
 }
 
-func loadDeploymentConfigs(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
-	dcs, err := client.DeploymentConfigs(namespace).List(labels.Everything(), fields.Everything())
+type serviceAccountLoader struct {
+	namespace string
+	lister    kclient.ServiceAccountsNamespacer
+	items     []kapi.ServiceAccount
+}
+
+func (l *serviceAccountLoader) Load() error {
+	list, err := l.lister.ServiceAccounts(l.namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}
 
-	graphLock.Lock()
-	defer graphLock.Unlock()
-	for i := range dcs.Items {
-		deploygraph.EnsureDeploymentConfigNode(g, &dcs.Items[i])
+	l.items = list.Items
+	return nil
+}
+
+func (l *serviceAccountLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureServiceAccountNode(g, &l.items[i])
 	}
 
 	return nil
 }
 
-func loadBuilds(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
-	builds, err := client.Builds(namespace).List(labels.Everything(), fields.Everything())
+type secretLoader struct {
+	namespace string
+	lister    kclient.SecretsNamespacer
+	items     []kapi.Secret
+}
+
+func (l *secretLoader) Load() error {
+	list, err := l.lister.Secrets(l.namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}
 
-	graphLock.Lock()
-	defer graphLock.Unlock()
-	for i := range builds.Items {
-		buildgraph.EnsureBuildNode(g, &builds.Items[i])
+	l.items = list.Items
+	return nil
+}
+
+func (l *secretLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		kubegraph.EnsureSecretNode(g, &l.items[i])
 	}
 
 	return nil
 }
 
-func loadReplicationControllers(g osgraph.Graph, graphLock sync.Mutex, namespace string, kclient kclient.Interface, client client.Interface) error {
-	rcs, err := kclient.ReplicationControllers(namespace).List(labels.Everything())
+type isLoader struct {
+	namespace string
+	lister    client.ImageStreamsNamespacer
+	items     []imageapi.ImageStream
+}
+
+func (l *isLoader) Load() error {
+	list, err := l.lister.ImageStreams(l.namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}
 
-	graphLock.Lock()
-	defer graphLock.Unlock()
-	for i := range rcs.Items {
-		kubegraph.EnsureReplicationControllerNode(g, &rcs.Items[i])
+	l.items = list.Items
+	return nil
+}
+
+func (l *isLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		imagegraph.EnsureImageStreamNode(g, &l.items[i])
+		imagegraph.EnsureAllImageStreamTagNodes(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type dcLoader struct {
+	namespace string
+	lister    client.DeploymentConfigsNamespacer
+	items     []deployapi.DeploymentConfig
+}
+
+func (l *dcLoader) Load() error {
+	list, err := l.lister.DeploymentConfigs(l.namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *dcLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		deploygraph.EnsureDeploymentConfigNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type bcLoader struct {
+	namespace string
+	lister    client.BuildConfigsNamespacer
+	items     []buildapi.BuildConfig
+}
+
+func (l *bcLoader) Load() error {
+	list, err := l.lister.BuildConfigs(l.namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *bcLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		buildgraph.EnsureBuildConfigNode(g, &l.items[i])
+	}
+
+	return nil
+}
+
+type buildLoader struct {
+	namespace string
+	lister    client.BuildsNamespacer
+	items     []buildapi.Build
+}
+
+func (l *buildLoader) Load() error {
+	list, err := l.lister.Builds(l.namespace).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+
+	l.items = list.Items
+	return nil
+}
+
+func (l *buildLoader) AddToGraph(g osgraph.Graph) error {
+	for i := range l.items {
+		buildgraph.EnsureBuildNode(g, &l.items[i])
 	}
 
 	return nil

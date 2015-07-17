@@ -17,7 +17,7 @@ import (
 const CreateClientCommandName = "create-api-client-config"
 
 type CreateClientOptions struct {
-	GetSignerCertOptions *GetSignerCertOptions
+	SignerCertOptions *SignerCertOptions
 
 	ClientDir string
 	BaseName  string
@@ -40,7 +40,7 @@ master as the provided user.
 `
 
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateClientOptions{GetSignerCertOptions: &GetSignerCertOptions{}, Output: out}
+	options := &CreateClientOptions{SignerCertOptions: &SignerCertOptions{}, Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -59,7 +59,7 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 
 	flags := cmd.Flags()
 
-	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
+	BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
 	flags.StringVar(&options.ClientDir, "client-dir", "", "The client data directory.")
 	flags.StringVar(&options.BaseName, "basename", "", "The base filename to use for the .crt, .key, and .kubeconfig files. Defaults to the username.")
@@ -95,10 +95,10 @@ func (o CreateClientOptions) Validate(args []string) error {
 		return errors.New("certificate-authority must be provided")
 	}
 
-	if o.GetSignerCertOptions == nil {
+	if o.SignerCertOptions == nil {
 		return errors.New("signer options are required")
 	}
-	if err := o.GetSignerCertOptions.Validate(); err != nil {
+	if err := o.SignerCertOptions.Validate(); err != nil {
 		return err
 	}
 
@@ -118,9 +118,9 @@ func (o CreateClientOptions) CreateClientFolder() error {
 	kubeConfigFile := DefaultKubeConfigFilename(o.ClientDir, baseName)
 
 	createClientCertOptions := CreateClientCertOptions{
-		GetSignerCertOptions: o.GetSignerCertOptions,
-		CertFile:             clientCertFile,
-		KeyFile:              clientKeyFile,
+		SignerCertOptions: o.SignerCertOptions,
+		CertFile:          clientCertFile,
+		KeyFile:           clientKeyFile,
 
 		User:      o.User,
 		Groups:    o.Groups,

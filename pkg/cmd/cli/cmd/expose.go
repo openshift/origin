@@ -15,10 +15,11 @@ import (
 )
 
 const (
-	exposeLong = `Expose containers internally as services or externally via routes.
+	exposeLong = `
+Expose containers internally as services or externally via routes
 
 There is also the ability to expose a deployment configuration, replication controller, service, or pod
-as a new service on a specified port. If no labels are specified, the new object will re-use the 
+as a new service on a specified port. If no labels are specified, the new object will re-use the
 labels from the object it exposes.`
 
 	exposeExample = `  // Create a route based on service nginx. The new route will re-use nginx's labels
@@ -67,7 +68,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		return err
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

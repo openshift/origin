@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/admin/cert"
 	"github.com/openshift/origin/pkg/cmd/admin/node"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/project"
@@ -22,7 +23,8 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const adminLong = `OpenShift Administrative Commands
+const adminLong = `
+OpenShift Administrative Commands
 
 Commands for managing an OpenShift cluster are exposed here. Many administrative
 actions involve interaction with the OpenShift client as well.`
@@ -38,31 +40,68 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 
 	f := clientcmd.New(cmds.PersistentFlags())
 
-	cmds.AddCommand(project.NewCmdNewProject(project.NewProjectRecommendedName, fullName+" "+project.NewProjectRecommendedName, f, out))
-	cmds.AddCommand(policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out))
-	cmds.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
-	cmds.AddCommand(router.NewCmdRouter(f, fullName, "router", out))
-	cmds.AddCommand(registry.NewCmdRegistry(f, fullName, "registry", out))
-	cmds.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
-	cmds.AddCommand(node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out))
-	cmds.AddCommand(cmd.NewCmdConfig(fullName, "config"))
-	cmds.AddCommand(prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out))
+	groups := templates.CommandGroups{
+		{
+			Message: "Basic Commands:",
+			Commands: []*cobra.Command{
+				project.NewCmdNewProject(project.NewProjectRecommendedName, fullName+" "+project.NewProjectRecommendedName, f, out),
+				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
+			},
+		},
+		{
+			Message: "Install Commands:",
+			Commands: []*cobra.Command{
+				router.NewCmdRouter(f, fullName, "router", out),
+				exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out),
+				registry.NewCmdRegistry(f, fullName, "registry", out),
+			},
+		},
+		{
+			Message: "Maintenance Commands:",
+			Commands: []*cobra.Command{
+				buildchain.NewCmdBuildChain(f, fullName, "build-chain"),
+				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out),
+				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out),
+			},
+		},
+		{
+			Message: "Settings Commands:",
+			Commands: []*cobra.Command{
+				cmd.NewCmdConfig(fullName, "config"),
 
-	// TODO: these probably belong in a sub command
-	cmds.AddCommand(admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out))
-	cmds.AddCommand(admin.NewCommandCreateBootstrapPolicyFile(admin.CreateBootstrapPolicyFileCommand, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out))
-	cmds.AddCommand(admin.NewCommandCreateBootstrapProjectTemplate(f, admin.CreateBootstrapProjectTemplateCommand, fullName+" "+admin.CreateBootstrapProjectTemplateCommand, out))
-	cmds.AddCommand(admin.NewCommandOverwriteBootstrapPolicy(admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out))
-	cmds.AddCommand(admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out))
-	// TODO: these should be rolled up together
-	cmds.AddCommand(admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, out))
-	cmds.AddCommand(admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, out))
-	cmds.AddCommand(admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, out))
-	cmds.AddCommand(admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, out))
-	cmds.AddCommand(admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, out))
+				// TODO: these probably belong in a sub command
+				admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, out),
+				admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, out),
+			},
+		},
+		{
+			Message: "Advanced Commands:",
+			Commands: []*cobra.Command{
+				admin.NewCommandCreateBootstrapProjectTemplate(f, admin.CreateBootstrapProjectTemplateCommand, fullName+" "+admin.CreateBootstrapProjectTemplateCommand, out),
+				admin.NewCommandCreateBootstrapPolicyFile(admin.CreateBootstrapPolicyFileCommand, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out),
+				admin.NewCommandOverwriteBootstrapPolicy(admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out),
+				admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out),
+				cert.NewCmdCert(cert.CertRecommendedName, fullName+" "+cert.CertRecommendedName, out),
+			},
+		},
+	}
 
-	// TODO: use groups
-	templates.ActsAsRootCommand(cmds)
+	groups.Add(cmds)
+	templates.ActsAsRootCommand(cmds, groups...)
+
+	// Deprecated commands that are bundled with the binary but not displayed to end users directly
+	deprecatedCommands := []*cobra.Command{
+		admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, out),
+		admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, out),
+		admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, out),
+		admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, out),
+	}
+	for _, cmd := range deprecatedCommands {
+		// Unsetting Short description will not show this command in help
+		cmd.Short = ""
+		cmd.Deprecated = fmt.Sprintf("Use '%s ca' instead.", fullName)
+		cmds.AddCommand(cmd)
+	}
 
 	if name == fullName {
 		cmds.AddCommand(version.NewVersionCommand(fullName))

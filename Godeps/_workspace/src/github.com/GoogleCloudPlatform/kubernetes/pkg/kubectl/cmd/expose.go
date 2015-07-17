@@ -74,7 +74,7 @@ func NewCmdExposeService(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 }
 
 func RunExpose(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -199,16 +199,6 @@ func RunExpose(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []str
 		if err != nil {
 			return err
 		}
-	}
-
-	if cmdutil.GetFlagBool(cmd, "create-external-load-balancer") {
-		msg := fmt.Sprintf(`
-			An external load-balanced service was created.  On many platforms (e.g. Google Compute Engine),
-			you will also need to explicitly open a firewall rule for the service port (%d) to serve traffic.
-			
-			See https://github.com/GoogleCloudPlatform/kubernetes/tree/master/docs/services-firewall.md for more details.
-			`, cmdutil.GetFlagInt(cmd, "port"))
-		out.Write([]byte(msg))
 	}
 
 	return f.PrintObject(cmd, object, out)

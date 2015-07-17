@@ -27,6 +27,7 @@ var DefaultDetectors = Detectors{
 	DetectPHP,
 	DetectPython,
 	DetectPerl,
+	DetectScala,
 }
 
 type sourceDetector struct {
@@ -72,6 +73,11 @@ func DetectPython(dir string) (*Info, bool) {
 // DetectPerl detects Perl source
 func DetectPerl(dir string) (*Info, bool) {
 	return detect("perl", dir, "index.pl", "cpanfile")
+}
+
+// DetectScala  detects Scala source
+func DetectScala(dir string) (*Info, bool) {
+	return detect("scala", dir, "build.sbt")
 }
 
 // detect returns an Info object with the given platform if the source at dir contains any of the argument files

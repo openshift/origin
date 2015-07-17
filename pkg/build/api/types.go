@@ -10,9 +10,10 @@ import (
 const (
 	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
 	BuildAnnotation = "openshift.io/build.name"
-
+	// DeprecatedBuildLabel is old value of BuildLabel, it'll be removed in OpenShift 3.1.
+	DeprecatedBuildLabel = "build"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
-	BuildLabel = "build"
+	BuildLabel = "openshift.io/build.name"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
@@ -263,6 +264,9 @@ type DockerBuildStrategy struct {
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar
+
+	// ForcePull describes if the builder should pull the images from registry prior to building.
+	ForcePull bool
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
@@ -284,6 +288,9 @@ type SourceBuildStrategy struct {
 
 	// Incremental flag forces the Source build to do incremental builds if true.
 	Incremental bool
+
+	// ForcePull describes if the builder should pull the images from registry prior to building.
+	ForcePull bool
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy

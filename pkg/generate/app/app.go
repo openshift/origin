@@ -339,9 +339,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 				return nil, nil, fmt.Errorf("failed to parse port %q: %v", p.Port(), err)
 			}
 
-			portName := namer.GetName(fmt.Sprintf("%s-%s", name, p.Proto()), p.Port(), 15 /*IANA_SVC_NAME*/)
 			container.Ports = append(container.Ports, kapi.ContainerPort{
-				Name:          portName,
 				ContainerPort: port,
 				Protocol:      kapi.Protocol(strings.ToUpper(p.Proto())),
 			})

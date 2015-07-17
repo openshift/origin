@@ -30,6 +30,7 @@ readonly OS_IMAGE_COMPILE_PLATFORMS=(
 readonly OS_IMAGE_COMPILE_TARGETS=(
   images/pod
   cmd/dockerregistry
+  cmd/gitserver
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS=(
   examples/hello-openshift
@@ -43,6 +44,7 @@ readonly OS_CROSS_COMPILE_PLATFORMS=(
 )
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
+  cmd/oc
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
@@ -57,9 +59,7 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-deploy
   openshift-sti-build
   openshift-docker-build
-  openshift-gitserver
   origin
-  oc
   osc
   oadm
   osadm

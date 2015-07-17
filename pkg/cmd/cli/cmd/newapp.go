@@ -29,7 +29,8 @@ type usage interface {
 var errExit = fmt.Errorf("exit directly")
 
 const (
-	newAppLong = `Create a new application in OpenShift by specifying source code, templates, and/or images.
+	newAppLong = `
+Create a new application in OpenShift by specifying source code, templates, and/or images
 
 This command will try to build up the components of an application using images, templates,
 or code that has a public repository. It will lookup the images on the local Docker installation
@@ -166,11 +167,13 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			}
 		}
 	}
+	fmt.Fprintf(c.Out(), "Run '%s status' to view your app.\n", fullName)
+
 	return nil
 }
 
 func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

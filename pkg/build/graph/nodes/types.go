@@ -33,6 +33,10 @@ func (n BuildConfigNode) String() string {
 	return string(BuildConfigNodeName(n.BuildConfig))
 }
 
+func (n BuildConfigNode) ResourceString() string {
+	return "bc/" + n.Name
+}
+
 func (*BuildConfigNode) Kind() string {
 	return BuildConfigNodeKind
 }
@@ -75,6 +79,10 @@ func (n BuildNode) Object() interface{} {
 
 func (n BuildNode) String() string {
 	return string(BuildNodeName(n.Build))
+}
+
+func (n BuildNode) ResourceString() string {
+	return "build/" + n.Build.Name
 }
 
 func (*BuildNode) Kind() string {

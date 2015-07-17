@@ -96,8 +96,8 @@ type Config struct {
 	EnableUISupport       bool
 	// allow downstream consumers to disable swagger
 	EnableSwaggerSupport bool
-	// allow v1beta3 to be conditionally disabled
-	DisableV1Beta3 bool
+	// allow v1beta3 to be conditionally enabled
+	EnableV1Beta3 bool
 	// allow v1 to be conditionally disabled
 	DisableV1 bool
 	// allow downstream consumers to disable the index route
@@ -147,6 +147,9 @@ type Config struct {
 
 	// The range of IPs to be assigned to services with type=ClusterIP or greater
 	ServiceClusterIPRange *net.IPNet
+
+	// The IP address for the master service (must be inside ServiceClusterIPRange
+	ServiceReadWriteIP net.IP
 
 	// The range of ports to be assigned to services with type=NodePort or greater
 	ServiceNodePortRange util.PortRange
@@ -246,6 +249,15 @@ func setDefaults(c *Config) {
 		}
 		c.ServiceClusterIPRange = serviceClusterIPRange
 	}
+	if c.ServiceReadWriteIP == nil {
+		// Select the first valid IP from ServiceClusterIPRange to use as the master service IP.
+		serviceReadWriteIP, err := ipallocator.GetIndexedIP(c.ServiceClusterIPRange, 1)
+		if err != nil {
+			glog.Fatalf("Failed to generate service read-write IP for master service: %v", err)
+		}
+		glog.V(4).Infof("Setting master service IP to %q (read-write).", serviceReadWriteIP)
+		c.ServiceReadWriteIP = serviceReadWriteIP
+	}
 	if c.ServiceNodePortRange.Size == 0 {
 		// TODO: Currently no way to specify an empty range (do we need to allow this?)
 		// We should probably allow this for clouds that don't require NodePort to do load-balancing (GCE)
@@ -312,13 +324,6 @@ func New(c *Config) *Master {
 		glog.Fatalf("master.New() called with config.KubeletClient == nil")
 	}
 
-	// Select the first valid IP from serviceClusterIPRange to use as the master service IP.
-	serviceReadWriteIP, err := ipallocator.GetIndexedIP(c.ServiceClusterIPRange, 1)
-	if err != nil {
-		glog.Fatalf("Failed to generate service read-write IP for master service: %v", err)
-	}
-	glog.V(4).Infof("Setting master service IP to %q (read-write).", serviceReadWriteIP)
-
 	m := &Master{
 		serviceClusterIPRange: c.ServiceClusterIPRange,
 		serviceNodePortRange:  c.ServiceNodePortRange,
@@ -333,7 +338,7 @@ func New(c *Config) *Master {
 		authenticator:         c.Authenticator,
 		authorizer:            c.Authorizer,
 		admissionControl:      c.AdmissionControl,
-		v1beta3:               !c.DisableV1Beta3,
+		v1beta3:               c.EnableV1Beta3,
 		v1:                    !c.DisableV1,
 		requestContextMapper:  c.RequestContextMapper,
 
@@ -344,7 +349,7 @@ func New(c *Config) *Master {
 		externalHost:        c.ExternalHost,
 		clusterIP:           c.PublicAddress,
 		publicReadWritePort: c.ReadWritePort,
-		serviceReadWriteIP:  serviceReadWriteIP,
+		serviceReadWriteIP:  c.ServiceReadWriteIP,
 		// TODO: serviceReadWritePort should be passed in as an argument, it may not always be 443
 		serviceReadWritePort: 443,
 
@@ -806,6 +811,8 @@ func (m *Master) Dial(net, addr string) (net.Conn, error) {
 }
 
 func (m *Master) needToReplaceTunnels(addrs []string) bool {
+	m.tunnelsLock.Lock()
+	defer m.tunnelsLock.Unlock()
 	if m.tunnels == nil || m.tunnels.Len() != len(addrs) {
 		return true
 	}
@@ -841,6 +848,8 @@ func (m *Master) replaceTunnels(user, keyfile string, newAddrs []string) error {
 	if err := tunnels.Open(); err != nil {
 		return err
 	}
+	m.tunnelsLock.Lock()
+	defer m.tunnelsLock.Unlock()
 	if m.tunnels != nil {
 		m.tunnels.Close()
 	}
@@ -849,8 +858,6 @@ func (m *Master) replaceTunnels(user, keyfile string, newAddrs []string) error {
 }
 
 func (m *Master) loadTunnels(user, keyfile string) error {
-	m.tunnelsLock.Lock()
-	defer m.tunnelsLock.Unlock()
 	addrs, err := m.getNodeAddresses()
 	if err != nil {
 		return err
@@ -865,8 +872,6 @@ func (m *Master) loadTunnels(user, keyfile string) error {
 }
 
 func (m *Master) refreshTunnels(user, keyfile string) error {
-	m.tunnelsLock.Lock()
-	defer m.tunnelsLock.Unlock()
 	addrs, err := m.getNodeAddresses()
 	if err != nil {
 		return err

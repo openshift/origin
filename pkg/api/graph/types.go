@@ -61,10 +61,10 @@ func GetTopLevelContainerNode(g Graph, containedNode graph.Node) graph.Node {
 // GetContainingNode returns the direct predecessor that is linked to the node by a ContainsEdgeKind.  It returns
 // nil if no container is found.
 func GetContainingNode(g Graph, containedNode graph.Node) graph.Node {
-	for _, node := range g.Predecessors(containedNode) {
-		edge := g.EdgeBetween(node, containedNode)
+	for _, node := range g.To(containedNode) {
+		edge := g.Edge(node, containedNode)
 
-		if g.EdgeKind(edge) == ContainsEdgeKind {
+		if g.EdgeKinds(edge).Has(ContainsEdgeKind) {
 			return node
 		}
 	}

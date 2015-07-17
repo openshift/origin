@@ -21,6 +21,7 @@ import (
 	"os/signal"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	apierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/portforward"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
@@ -83,7 +84,7 @@ func RunPortForward(f *cmdutil.Factory, cmd *cobra.Command, args []string, fw po
 		return cmdutil.UsageError(cmd, "at least 1 PORT is required for port-forward")
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -117,11 +118,34 @@ func RunPortForward(f *cmdutil.Factory, cmd *cobra.Command, args []string, fw po
 		close(stopCh)
 	}()
 
-	req := client.RESTClient.Get().
+	req := client.RESTClient.Post().
 		Resource("pods").
 		Namespace(namespace).
 		Name(pod.Name).
 		SubResource("portforward")
 
-	return fw.ForwardPorts(req, config, args, stopCh)
+	postErr := fw.ForwardPorts(req, config, args, stopCh)
+
+	// if we don't have an error, return.  If we did get an error, try a GET because v3.0.0 shipped with port-forward running as a GET.
+	if postErr == nil {
+		return nil
+	}
+
+	// only try the get if the error is either a forbidden or method not supported, otherwise trying with a GET probably won't help
+	if !apierrors.IsForbidden(postErr) && !apierrors.IsMethodNotSupported(postErr) {
+		return postErr
+	}
+
+	getReq := client.RESTClient.Get().
+		Resource("pods").
+		Namespace(namespace).
+		Name(pod.Name).
+		SubResource("portforward")
+	getErr := fw.ForwardPorts(getReq, config, args, stopCh)
+	if getErr == nil {
+		return nil
+	}
+
+	// if we got a getErr, return the postErr because it's more likely to be correct.  GET is legacy
+	return postErr
 }

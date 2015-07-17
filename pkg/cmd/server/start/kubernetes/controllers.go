@@ -12,7 +12,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-const controllersLong = `Start Kubernetes controller manager
+const controllersLong = `
+Start Kubernetes controller manager
 
 This command launches an instance of the Kubernetes controller-manager (kube-controller-manager).`
 

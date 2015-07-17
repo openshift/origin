@@ -178,14 +178,14 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 }
 
 func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
-	getSignerOptions := &admin.GetSignerCertOptions{
+	getSignerOptions := &admin.SignerCertOptions{
 		CertFile:   admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca"),
 		KeyFile:    admin.DefaultKeyFilename(nodeArgs.MasterCertDir, "ca"),
 		SerialFile: admin.DefaultSerialFilename(nodeArgs.MasterCertDir, "ca"),
 	}
 
 	createNodeConfig := admin.NewDefaultCreateNodeConfigOptions()
-	createNodeConfig.GetSignerCertOptions = getSignerOptions
+	createNodeConfig.SignerCertOptions = getSignerOptions
 	createNodeConfig.NodeConfigDir = nodeArgs.ConfigDir.Value()
 	createNodeConfig.NodeName = nodeArgs.NodeName
 	createNodeConfig.Hostnames = []string{nodeArgs.NodeName}

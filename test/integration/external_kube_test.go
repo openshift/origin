@@ -11,12 +11,23 @@ import (
 	"testing"
 	"time"
 
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 )
 
 func TestExternalKube(t *testing.T) {
 	// Start one OpenShift master as "cluster1" to play the external kube server
 	cluster1MasterConfig, cluster1AdminConfigFile, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	cluster1AdminKubeClient, err := testutil.GetClusterAdminKubeClient(cluster1AdminConfigFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -57,13 +68,24 @@ func TestExternalKube(t *testing.T) {
 
 	// Start cluster 2 (without clearing etcd) and get admin client configs and clients
 	cluster2Options := testutil.TestOptions{DeleteAllEtcdKeys: false}
-	_, err = testutil.StartConfiguredMasterWithOptions(cluster2MasterConfig, cluster2Options)
+	cluster2AdminConfigFile, err := testutil.StartConfiguredMasterWithOptions(cluster2MasterConfig, cluster2Options)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	cluster2AdminKubeClient, err := testutil.GetClusterAdminKubeClient(cluster2AdminConfigFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	healthzProxyTest(cluster2MasterConfig, t)
+
+	watchProxyTest(cluster1AdminKubeClient, cluster2AdminKubeClient, t)
+
+}
+
+func healthzProxyTest(masterConfig *configapi.MasterConfig, t *testing.T) {
 	// Ping the healthz endpoint on the second OpenShift cluster
-	url, err := url.Parse(cluster2MasterConfig.MasterPublicURL)
+	url, err := url.Parse(masterConfig.MasterPublicURL)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -75,6 +97,46 @@ func TestExternalKube(t *testing.T) {
 	// Only valid "healthy" response from server is 200 - OK
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("OpenShift reported unhealthy: %v", response)
+	}
+}
+
+func watchProxyTest(cluster1AdminKubeClient, cluster2AdminKubeClient *kclient.Client, t *testing.T) {
+	// list namespaces in order to determine correct resourceVersion
+	namespaces, err := cluster1AdminKubeClient.Namespaces().List(labels.Everything(), fields.Everything())
+
+	// open a watch on Cluster 2 for namespaces starting with latest resourceVersion
+	namespaceWatch, err := cluster2AdminKubeClient.Namespaces().Watch(labels.Everything(), fields.Everything(), namespaces.ResourceVersion)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer namespaceWatch.Stop()
+
+	// add namespace in Cluster 2
+	namespace := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{Name: "test-namespace"},
+	}
+	createdNamespace, err := cluster2AdminKubeClient.Namespaces().Create(namespace)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// consume watch output and record it if it's the event we want to see
+	select {
+	case e := <-namespaceWatch.ResultChan():
+		// check that the watch shows the new namespace
+		if e.Type != watch.Added {
+			t.Fatalf("expected an Added event but got: %v", e)
+		}
+		addedNamespace, ok := e.Object.(*kapi.Namespace)
+		if !ok {
+			t.Fatalf("unexpected cast error from event Object to Namespace")
+		}
+		if addedNamespace.ObjectMeta.Name != createdNamespace.Name {
+			t.Fatalf("namespace returned from Watch is not the same ast that created: got %v, wanted %v", createdNamespace, addedNamespace)
+		}
+
+	case <-time.After(10 * time.Second):
+		t.Fatal("Timed out waiting for watch")
 	}
 }
 

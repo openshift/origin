@@ -7,9 +7,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
-const BuildLabel = "build"
-
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
@@ -252,6 +249,9 @@ type DockerBuildStrategy struct {
 
 	// Env contains additional environment variables you want to pass into a builder container
 	Env []kapi.EnvVar `json:"env,omitempty" description:"additional environment variables you want to pass into a builder container"`
+
+	// ForcePull describes if the builder should pull the images from registry prior to building.
+	ForcePull bool `json:"forcePull,omitempty" description:"forces the source build to pull the image if true"`
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.
@@ -273,6 +273,9 @@ type SourceBuildStrategy struct {
 
 	// Incremental flag forces the Source build to do incremental builds if true.
 	Incremental bool `json:"incremental,omitempty" description:"forces the source build to do incremental builds if true"`
+
+	// ForcePull describes if the builder should pull the images from registry prior to building.
+	ForcePull bool `json:"forcePull,omitempty" description:"forces the source build to pull the image if true"`
 }
 
 // BuildOutput is input to a build strategy and describes the Docker image that the strategy

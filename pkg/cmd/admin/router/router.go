@@ -27,7 +27,8 @@ import (
 )
 
 const (
-	routerLong = `Install or configure an OpenShift router
+	routerLong = `
+Install or configure an OpenShift router
 
 This command helps to setup an OpenShift router to take edge traffic and balance it to
 your application. With no arguments, the command will check for an existing router
@@ -195,7 +196,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	image := cfg.ImageTemplate.ExpandOrDie(cfg.Type)
 
-	namespace, err := f.OpenShiftClientConfig.Namespace()
+	namespace, _, err := f.OpenShiftClientConfig.Namespace()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}

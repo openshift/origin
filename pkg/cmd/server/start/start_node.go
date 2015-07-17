@@ -29,7 +29,9 @@ type NodeOptions struct {
 	Output     io.Writer
 }
 
-const nodeLong = `Start an OpenShift node.
+const nodeLong = `
+Start an OpenShift node
+
 This command helps you launch an OpenShift node.  Running
 
   $ openshift start node --master=<masterIP>
@@ -181,7 +183,7 @@ func (o NodeOptions) RunNode() error {
 }
 
 func (o NodeOptions) CreateNodeConfig() error {
-	getSignerOptions := &admin.GetSignerCertOptions{
+	getSignerOptions := &admin.SignerCertOptions{
 		CertFile:   admin.DefaultCertFilename(o.NodeArgs.MasterCertDir, "ca"),
 		KeyFile:    admin.DefaultKeyFilename(o.NodeArgs.MasterCertDir, "ca"),
 		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.MasterCertDir, "ca"),
@@ -199,7 +201,7 @@ func (o NodeOptions) CreateNodeConfig() error {
 
 	nodeConfigDir := o.NodeArgs.ConfigDir.Value()
 	createNodeConfigOptions := admin.CreateNodeConfigOptions{
-		GetSignerCertOptions: getSignerOptions,
+		SignerCertOptions: getSignerOptions,
 
 		NodeConfigDir: nodeConfigDir,
 

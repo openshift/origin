@@ -197,7 +197,7 @@ do
 	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
 done <<< "${ALL_IP_ADDRESSES}"
 
-openshift admin create-master-certs \
+openshift admin ca create-master-certs \
 	--overwrite=false \
 	--cert-dir="${MASTER_CONFIG_DIR}" \
 	--hostnames="${SERVER_HOSTNAME_LIST}" \
@@ -335,7 +335,9 @@ oc process -n docker -f examples/sample-app/application-template-dockerbuild.jso
 oc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
 
 echo "[INFO] Back to 'test' context with 'e2e-user' user"
+oc login -u e2e-user
 oc project test
+oc whoami
 
 echo "[INFO] Applying STI application config"
 oc create -f "${STI_CONFIG_FILE}"
@@ -345,6 +347,20 @@ echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
 #oc start-build -n test ruby-sample-build --follow
 wait_for_build "test"
 wait_for_app "test"
+
+# Remote command execution
+echo "[INFO] Validating exec"
+frontend_pod=$(oc get pod -l deploymentconfig=frontend -t '{{(index .items 0).metadata.name}}')
+# when running as a restricted pod the registry will run with a pre-allocated
+# user in the neighborhood of 1000000+.  Look for a substring of the pre-allocated uid range
+oc exec -p ${frontend_pod} id | grep 10
+
+# Port forwarding
+echo "[INFO] Validating port-forward"
+oc port-forward -p ${frontend_pod} 10080:8080  &> "${LOG_DIR}/port-forward.log" &
+wait_for_url_timed "http://localhost:10080" "[INFO] Frontend says: " $((10*TIME_SEC))
+
+
 
 #echo "[INFO] Applying Docker application config"
 #oc create -n docker -f "${DOCKER_CONFIG_FILE}"
@@ -370,18 +386,6 @@ wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 -t "{{ 
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
-# Remote command execution
-echo "[INFO] Validating exec"
-registry_pod=$(oc get pod -l deploymentconfig=docker-registry -t '{{(index .items 0).metadata.name}}')
-# when running as a restricted pod the registry will run with a pre-allocated
-# user in the neighborhood of 1000000+.  Look for a substring of the pre-allocated uid range
-oc exec -p ${registry_pod} id | grep 10
-
-# Port forwarding
-echo "[INFO] Validating port-forward"
-oc port-forward -p ${registry_pod} 5001:5000  &> "${LOG_DIR}/port-forward.log" &
-wait_for_url_timed "http://localhost:5001/healthz" "[INFO] Docker registry says: " $((10*TIME_SEC))
-
 # Image pruning
 echo "[INFO] Validating image pruning"
 docker pull busybox
@@ -401,6 +405,7 @@ docker tag -f gcr.io/google_containers/pause ${DOCKER_REGISTRY}/cache/prune
 docker push ${DOCKER_REGISTRY}/cache/prune
 
 # record the storage before pruning
+registry_pod=$(oc get pod -l deploymentconfig=docker-registry -t '{{(index .items 0).metadata.name}}')
 oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.before.txt
 
 # set up pruner user

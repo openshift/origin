@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
+	"github.com/openshift/origin/pkg/util"
 )
 
 // rest implements a RESTStorage for oauth client authorizations against etcd
@@ -26,11 +27,10 @@ func NewREST(h tools.EtcdHelper) *REST {
 		NewFunc:     func() runtime.Object { return &api.OAuthClientAuthorization{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthClientAuthorizationList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
-			// TODO: JTL: switch to NoNamespaceKeyRootFunc after rebase
 			return EtcdPrefix
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
+			return util.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.OAuthClientAuthorization).Name, nil

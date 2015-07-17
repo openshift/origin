@@ -32,12 +32,12 @@ type NewProjectOptions struct {
 	AdminUser string
 }
 
-const newProjectLong = `Create a new project
+const newProjectLong = `
+Create a new project
 
 Use this command to create a project. You may optionally specify metadata about the project,
 an admin user (and role, if you want to use a non-default admin role), and a node selector
-to restrict which nodes pods in this project can be scheduled to.
-`
+to restrict which nodes pods in this project can be scheduled to.`
 
 // NewCmdNewProject implements the OpenShift cli new-project command
 func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {

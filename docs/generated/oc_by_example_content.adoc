@@ -5,13 +5,13 @@ toc::[]
 
 
 == oc build-logs
-Show container logs from the build container
+Show logs from a build
 
 ====
 
 [options="nowrap"]
 ----
-  // Stream logs from container to stdout
+  // Stream logs from container
   $ openshift cli build-logs 566bed879d2d
 ----
 ====
@@ -137,7 +137,7 @@ Create a resource by filename or stdin
 
 
 == oc delete
-Delete a resource by filename, stdin, resource and ID, or by resources and label selector.
+Delete a resource by filename, stdin, resource and name, or by resources and label selector.
 
 ====
 
@@ -162,30 +162,30 @@ Delete a resource by filename, stdin, resource and ID, or by resources and label
 
 
 == oc deploy
-View, start, cancel, or retry deployments
+View, start, cancel, or retry a deployment
 
 ====
 
 [options="nowrap"]
 ----
-  // Display the latest deployment for the 'database' DeploymentConfig
+  // Display the latest deployment for the 'database' deployment config
   $ openshift cli deploy database
 
-  // Start a new deployment based on the 'database' DeploymentConfig
+  // Start a new deployment based on the 'database'
   $ openshift cli deploy database --latest
 
-  // Retry the latest failed deployment based on the 'frontend' DeploymentConfig
+  // Retry the latest failed deployment based on 'frontend'
   // The deployer pod and any hook pods are deleted for the latest failed deployment
   $ openshift cli deploy frontend --retry
 
-  // Cancel the in-progress deployment based on the 'frontend' DeploymentConfig
+  // Cancel the in-progress deployment based on 'frontend'
   $ openshift cli deploy frontend --cancel
 ----
 ====
 
 
 == oc describe
-Show details of a specific resource
+Show details of a specific resource or group of resources
 
 ====
 
@@ -417,10 +417,10 @@ Print the logs for a container in a pod.
 [options="nowrap"]
 ----
   // Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ openshift cli logs 123456-7890 ruby-container
+  $ openshift cli logs 123456-7890 -c ruby-container
 
   // Starts streaming of ruby-container logs from pod 123456-7890.
-  $ openshift cli logs -f 123456-7890 ruby-container
+  $ openshift cli logs -f 123456-7890 -c ruby-container
 ----
 ====
 
@@ -536,8 +536,8 @@ Process a template into list of resources
 
 [options="nowrap"]
 ----
-  // Convert template.json file into resource list
-  $ openshift cli process -f template.json
+  // Convert template.json file into resource list and pass to create
+  $ openshift cli process -f template.json | openshift cli create -f -
 
   // Process template while passing a user-defined label
   $ openshift cli process -f template.json -l name=mytemplate
@@ -697,7 +697,7 @@ Show an overview of the current project
 
 
 == oc stop
-Gracefully shut down a resource by id or filename.
+Gracefully shut down a resource by name or filename.
 
 ====
 

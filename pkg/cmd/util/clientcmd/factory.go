@@ -169,8 +169,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return nil, fmt.Errorf("it is not possible to get ports from %s", kind)
 		}
 	}
-	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
-		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, columnLabels), nil
+	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
+		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, columnLabels), nil
 	}
 
 	return w

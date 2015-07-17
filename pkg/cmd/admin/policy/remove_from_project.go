@@ -87,7 +87,7 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, args []string,
 	if o.Client, _, err = f.Clients(); err != nil {
 		return err
 	}
-	if o.BindingNamespace, err = f.DefaultNamespace(); err != nil {
+	if o.BindingNamespace, _, err = f.DefaultNamespace(); err != nil {
 		return err
 	}
 

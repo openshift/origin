@@ -62,6 +62,12 @@ func NewDeploymentConfigPipeline(g osgraph.Graph, dcNode *deploygraph.Deployment
 	}
 
 	dcPipeline.ActiveDeployment, dcPipeline.InactiveDeployments = deployedges.RelevantDeployments(g, dcNode)
+	for _, rc := range dcPipeline.InactiveDeployments {
+		covered.Insert(rc.ID())
+	}
+	if dcPipeline.ActiveDeployment != nil {
+		covered.Insert(dcPipeline.ActiveDeployment.ID())
+	}
 
 	return dcPipeline, covered
 }

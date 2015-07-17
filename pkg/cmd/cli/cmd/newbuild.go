@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	newBuildLong = `Create a new build in OpenShift by specifying source code.
+	newBuildLong = `
+Create a new build in OpenShift by specifying source code
 
 This command will try to create a build configuration for your application using images and
 code that has a public repository. It will lookup the images on the local Docker installation

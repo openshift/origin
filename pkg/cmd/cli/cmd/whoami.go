@@ -15,7 +15,8 @@ import (
 
 const WhoAmIRecommendedCommandName = "whoami"
 
-const whoamiLong = `Show information about the current session
+const whoamiLong = `
+Show information about the current session
 
 The default options for this command will return the currently authenticated user name
 or an empty string.  Other flags support returning the currently used token or the

@@ -35,21 +35,24 @@ NOTE: OpenShift Origin 1.0 has been released [releases page](https://github.com/
 
 Security!!!
 -------------------
-OpenShift is a system that runs Docker containers on your machine.  In some cases (build operations) it does so using privileged containers. Those containers access your host's Docker daemon and perform `docker build` and `docker push` operations.  As such, you should be aware of the inherent security risks associated with performing `docker build` operations on arbitrary images as they have effective root access.  This is particularly relevant when running the OpenShift as a node directly on your laptop or primary workstation.  Only build and run code you trust.
+OpenShift runs with the following security policy by default:
 
-For more information on the security of containers, see these articles:
+* Containers run as a non-root unique user that is separate from other system users
+  * They cannot access host resources, run privileged, or become root
+  * They are given CPU and memory limits defined by the system administrator
+  * Any persistent storage they access will be under a unique SELinux label, which prevents others from seeing their content
+  * These settings are per project, so containers in different projects cannot see each other by default
+* Regular users can run Docker, source, and custom builds
+  * By default, Docker builds can (and often do) run as root. You can control who can create Docker builds through the `builds/docker` and `builds/custom` policy resource.
+* Regular users and project admins cannot change their security quotas.
 
-* http://opensource.com/business/14/7/docker-security-selinux
-* https://docs.docker.com/articles/security/
-
-Consider using images from trusted parties, building them yourself on OpenShift, or only running containers that run as non-root users.
-
+See the [security documentation](https://docs.openshift.org/latest/admin_guide/manage_scc.html) for more on managing these restrictions.
 
 Getting Started
 ---------------
-The easiest way to run OpenShift Origin is in a Docker container (OpenShift requires Docker 1.6 or higher or 1.6.2 on CentOS/RHEL):
+The easiest way to run OpenShift Origin is in a Docker container (OpenShift requires Docker 1.6.2 or higher):
 
-**Important!**: Docker 1.7 changed mount propagation to PRIVATE, which [breaks](https://github.com/openshift/origin/issues/3072) running OpenShift inside a container. If you are on Docker 1.7 you will need to use the [Vagrant](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant) or binary installation paths.
+**Important!**: Docker on non-RedHat distributions (Ubuntu, Debian, boot2docker) has mount propagation PRIVATE, which [breaks](https://github.com/openshift/origin/issues/3072) running OpenShift inside a container. Please use the [Vagrant](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant) or binary installation paths on those distributions.
 
     $ sudo docker run -d --name "origin" \
         --privileged --net=host \

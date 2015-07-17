@@ -93,6 +93,18 @@ func TestParseDockerImageReference(t *testing.T) {
 			Name:      "baz",
 			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
 		},
+		{
+			From:      "myregistry.io/foo",
+			Registry:  "myregistry.io",
+			Namespace: "library",
+			Name:      "foo",
+		},
+		{
+			From:      "localhost/bar",
+			Registry:  "localhost",
+			Namespace: "library",
+			Name:      "bar",
+		},
 		// TODO: test cases if ParseDockerImageReference validates segment length and allowed chars
 		//
 		// {

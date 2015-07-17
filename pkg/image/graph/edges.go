@@ -26,7 +26,7 @@ func AddImageStreamRefEdge(g osgraph.MutableUniqueGraph, node *imagegraph.ImageS
 
 // AddAllImageStreamRefEdges calls AddImageStreamRefEdge for every ImageStreamTagNode in the graph
 func AddAllImageStreamRefEdges(g osgraph.MutableUniqueGraph) {
-	for _, node := range g.(graph.Graph).NodeList() {
+	for _, node := range g.(graph.Graph).Nodes() {
 		if istNode, ok := node.(*imagegraph.ImageStreamTagNode); ok {
 			AddImageStreamRefEdge(g, istNode)
 		}

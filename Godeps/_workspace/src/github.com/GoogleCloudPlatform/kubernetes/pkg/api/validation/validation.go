@@ -50,7 +50,7 @@ var DNS1123LabelErrorMsg string = fmt.Sprintf(`must be a DNS label (at most %d c
 var DNS952LabelErrorMsg string = fmt.Sprintf(`must be a DNS 952 label (at most %d characters, matching regex %s): e.g. "my-name"`, util.DNS952LabelMaxLength, util.DNS952LabelFmt)
 var pdPartitionErrorMsg string = intervalErrorMsg(0, 255)
 var portRangeErrorMsg string = intervalErrorMsg(0, 65536)
-var portNameErrorMsg string = fmt.Sprintf(`must be an IANA_SVC_NAME (at most 15 characters, matching regex %s, it must contain at least one letter [a-z], and hypens cannot be adjacent to other hyphens): e.g. "http"`, util.IdentifierNoHyphensBeginEndFmt)
+var portNameErrorMsg string = fmt.Sprintf(`must be an IANA_SVC_NAME (at most 15 characters, matching regex %s, it must contain at least one letter [a-z], and hyphens cannot be adjacent to other hyphens): e.g. "http"`, util.IdentifierNoHyphensBeginEndFmt)
 
 const totalAnnotationSizeLimitB int = 64 * (1 << 10) // 64 kB
 
@@ -1106,6 +1106,14 @@ func ValidateService(service *api.Service) errs.ValidationErrorList {
 
 	if len(service.Spec.Ports) == 0 {
 		allErrs = append(allErrs, errs.NewFieldRequired("spec.ports"))
+	}
+	if service.Spec.Type == api.ServiceTypeLoadBalancer {
+		for ix := range service.Spec.Ports {
+			port := &service.Spec.Ports[ix]
+			if port.Port == 10250 {
+				allErrs = append(allErrs, errs.NewFieldInvalid(fmt.Sprintf("spec.ports[%d].port", ix), port.Port, "can not expose port 10250 externally since it is used by kubelet"))
+			}
+		}
 	}
 	allPortNames := util.StringSet{}
 	for i := range service.Spec.Ports {
