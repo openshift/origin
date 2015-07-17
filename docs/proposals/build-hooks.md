@@ -35,12 +35,19 @@ As an application developer, I want to be able to [trigger a build after an
 upstream build completes](https://github.com/openshift/origin/issues/1228#issue-59933179),
 creating a build pipeline.
 
+I want to consume artifacts from an upstream build in a downstream build.
+For example, an upstream build builds a Go program in a builder image containing
+a Go toolchain, and later a downstream build places the binaries in a lighter
+image without a Go compiler.
+Similarly, a builder image with a Java SDK can be chained together with a image
+containing only a JRE for application deployment.
+
 
 ### 2. Integration with external system
 
-As an application developer, I want to be notified or notify other people after
-a build completes, email or otherwise, including the build result (success or
-failure).
+As an application developer, I want to be notified or notify others after a
+build completes, email and/or otherwise, including the build UID, build result
+(success or failure), and the Docker image ID that was built.
 
 I want to trigger a Jenkins or other CI system to take some action, e.g. run a
 test job, run another build, etc.
