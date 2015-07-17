@@ -61,7 +61,8 @@ func expectedService(name string, ports ...portDesc) *kapi.Service {
 	servicePorts := []kapi.ServicePort{}
 	for _, p := range ports {
 		servicePorts = append(servicePorts, kapi.ServicePort{
-			Name:       fmt.Sprintf("port-%d-%s", p.port, p.protocol),
+			// Name is derived purely from the port and protocol, ignoring the container port name
+			Name:       fmt.Sprintf("%d-%s", p.port, p.protocol),
 			Port:       p.port,
 			Protocol:   kapi.Protocol(p.protocol),
 			TargetPort: kutil.NewIntOrStringFromInt(p.port),
