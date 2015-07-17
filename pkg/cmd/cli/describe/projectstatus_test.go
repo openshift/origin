@@ -99,6 +99,19 @@ func TestProjectStatus(t *testing.T) {
 				"rc/my-rc is attempting to mount a missing secret secret/dne",
 			},
 		},
+		"dueling rcs": {
+			Path: "../../../../pkg/api/graph/test/dueling-rcs.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "dueling-rc", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"rc/rc-1 is competing for pod/conflicted-pod with rc/rc-2",
+				"rc/rc-2 is competing for pod/conflicted-pod with rc/rc-1",
+			},
+		},
 		"service with pod": {
 			Path: "../../../../pkg/api/graph/test/service-with-pod.yaml",
 			Extra: []runtime.Object{

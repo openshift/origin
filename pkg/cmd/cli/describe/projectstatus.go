@@ -196,6 +196,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 func getMarkerScanners() []osgraph.MarkerScanner {
 	return []osgraph.MarkerScanner{
+		kubeanalysis.FindDuelingReplicationControllers,
 		kubeanalysis.FindUnmountableSecrets,
 		kubeanalysis.FindMissingSecrets,
 		buildanalysis.FindUnpushableBuildConfigs,

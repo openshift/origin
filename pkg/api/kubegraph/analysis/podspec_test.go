@@ -33,7 +33,6 @@ func TestMissingSecrets(t *testing.T) {
 	expectedSecret := g.Find(osgraph.UniqueName("Secret|/missing-secret"))
 	if e, a := expectedSecret.ID(), actualSecret.ID(); e != a {
 		t.Errorf("expected %v, got %v", e, a)
-
 	}
 }
 
