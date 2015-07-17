@@ -86,7 +86,7 @@ func checkErr(err error, handleErr func(string)) {
 
 	// handle multiline errors
 	if clientcmd.IsConfigurationInvalid(err) {
-		handleErr(MultilineError("Error in configuration: ", err))
+		handleErr(MultilineError("Error in connection configuration.  Create a configuration file using 'oc login'.\n", err))
 	}
 	if agg, ok := err.(utilerrors.Aggregate); ok && len(agg.Errors()) > 0 {
 		handleErr(MultipleErrors("", agg.Errors()))
@@ -138,7 +138,7 @@ func checkCustomErr(customPrefix string, err error, handleErr func(string)) {
 
 	// handle multiline errors
 	if clientcmd.IsConfigurationInvalid(err) {
-		handleErr(MultilineError("Error in configuration: ", err))
+		handleErr(MultilineError("Error in connection configuration.  Create a configuration file using 'oc login'.\n", err))
 	}
 	if agg, ok := err.(utilerrors.Aggregate); ok && len(agg.Errors()) > 0 {
 		handleErr(MultipleErrors("", agg.Errors()))
