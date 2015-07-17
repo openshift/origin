@@ -10,10 +10,7 @@ import (
 	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
-	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
-	buildedges "github.com/openshift/origin/pkg/build/graph"
 	"github.com/openshift/origin/pkg/client/testclient"
-	imageedges "github.com/openshift/origin/pkg/image/graph"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
@@ -23,57 +20,6 @@ func mustParseTime(t string) time.Time {
 		panic(err)
 	}
 	return out
-}
-
-func TestUnpushableBuild(t *testing.T) {
-	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/unpushable-build.yaml")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	buildedges.AddAllInputOutputEdges(g)
-	imageedges.AddAllImageStreamRefEdges(g)
-
-	if e, a := true, hasUnresolvedImageStreamTag(g); e != a {
-		t.Errorf("expected %v, got %v", e, a)
-	}
-}
-
-func TestPushableBuild(t *testing.T) {
-	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/pushable-build.yaml")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	buildedges.AddAllInputOutputEdges(g)
-	imageedges.AddAllImageStreamRefEdges(g)
-
-	if e, a := false, hasUnresolvedImageStreamTag(g); e != a {
-		t.Errorf("expected %v, got %v", e, a)
-	}
-}
-
-func TestCircularDeps(t *testing.T) {
-	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/circular.yaml")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	buildedges.AddAllInputOutputEdges(g)
-
-	if !hasCircularDependencies(g) {
-		t.Fatalf("expected having circular dependencies")
-	}
-
-	not, _, err := osgraphtest.BuildGraph("../../../api/graph/test/circular-not.yaml")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	buildedges.AddAllInputOutputEdges(not)
-
-	if hasCircularDependencies(not) {
-		t.Fatalf("expected not having circular dependencies")
-	}
-
 }
 
 func TestProjectStatus(t *testing.T) {
@@ -148,8 +94,9 @@ func TestProjectStatus(t *testing.T) {
 				"In project example\n",
 				"rc/my-rc runs openshift/mysql-55-centos7",
 				"0/1 pods growing to 1",
-				"is not allowed to mount secret/existing-secret",
-				"these missing secrets secret/dne",
+				"rc/my-rc is attempting to mount a secret secret/existing-secret disallowed by sa/default",
+				"rc/my-rc is attempting to mount a secret secret/dne disallowed by sa/default",
+				"rc/my-rc is attempting to mount a missing secret secret/dne",
 			},
 		},
 		"service with pod": {
@@ -197,6 +144,30 @@ func TestProjectStatus(t *testing.T) {
 				"not built yet",
 				"#1 deployment waiting on image or update",
 				"To see more, use",
+			},
+		},
+		"unpushable build": {
+			Path: "../../../../pkg/api/graph/test/unpushable-build.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"bc/ruby-hello-world is pushing to imagestreamtag/ruby-hello-world:latest that is using is/ruby-hello-world, but the administrator has not configured the integrated Docker registry.",
+			},
+		},
+		"cyclical build": {
+			Path: "../../../../pkg/api/graph/test/circular.yaml",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: kapi.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"Cycle detected in build configurations:",
 			},
 		},
 		"running build": {
@@ -294,6 +265,5 @@ func TestProjectStatus(t *testing.T) {
 				t.Errorf("%s: did not have %q:\n%s\n---", k, s, out)
 			}
 		}
-		t.Logf("\n%s", out)
 	}
 }

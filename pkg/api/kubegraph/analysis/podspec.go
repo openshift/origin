@@ -1,13 +1,88 @@
 package analysis
 
 import (
+	"fmt"
+
+	"github.com/gonum/graph"
+
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 )
 
-// CheckMountedSecrets checks to be sure that all the referenced secrets are mountable (by service account) and present (not synthetic)
-func CheckMountedSecrets(g osgraph.Graph, podSpecNode *kubegraph.PodSpecNode) ( /*unmountable secrets*/ []*kubegraph.SecretNode /*unresolved secrets*/, []*kubegraph.SecretNode) {
+const (
+	UnmountableSecretWarning = "UnmountableSecret"
+	MissingSecretWarning     = "MissingSecret"
+)
+
+// FindUnmountableSecrets inspects all PodSpecs for any Secret reference that isn't listed as mountable by the referenced ServiceAccount
+func FindUnmountableSecrets(g osgraph.Graph) []osgraph.Marker {
+	markers := []osgraph.Marker{}
+
+	for _, uncastPodSpecNode := range g.NodesByKind(kubegraph.PodSpecNodeKind) {
+		podSpecNode := uncastPodSpecNode.(*kubegraph.PodSpecNode)
+		unmountableSecrets := CheckForUnmountableSecrets(g, podSpecNode)
+
+		topLevelNode := osgraph.GetTopLevelContainerNode(g, podSpecNode)
+		topLevelString := g.Name(topLevelNode)
+		if resourceStringer, ok := topLevelNode.(osgraph.ResourceNode); ok {
+			topLevelString = resourceStringer.ResourceString()
+		}
+
+		saString := "MISSING_SA"
+		saNodes := g.SuccessorNodesByEdgeKind(podSpecNode, kubeedges.ReferencedServiceAccountEdgeKind)
+		if len(saNodes) > 0 {
+			saString = saNodes[0].(*kubegraph.ServiceAccountNode).ResourceString()
+		}
+
+		for _, unmountableSecret := range unmountableSecrets {
+			markers = append(markers, osgraph.Marker{
+				Node:         podSpecNode,
+				RelatedNodes: []graph.Node{unmountableSecret},
+
+				Severity: osgraph.WarningSeverity,
+				Key:      UnmountableSecretWarning,
+				Message: fmt.Sprintf("%s is attempting to mount a secret %s disallowed by %s",
+					topLevelString, unmountableSecret.ResourceString(), saString),
+			})
+		}
+	}
+
+	return markers
+}
+
+// FindMissingSecrets inspects all PodSpecs for any Secret reference that is a synthetic node (not a pre-existing node in the graph)
+func FindMissingSecrets(g osgraph.Graph) []osgraph.Marker {
+	markers := []osgraph.Marker{}
+
+	for _, uncastPodSpecNode := range g.NodesByKind(kubegraph.PodSpecNodeKind) {
+		podSpecNode := uncastPodSpecNode.(*kubegraph.PodSpecNode)
+		missingSecrets := CheckMissingMountedSecrets(g, podSpecNode)
+
+		topLevelNode := osgraph.GetTopLevelContainerNode(g, podSpecNode)
+		topLevelString := g.Name(topLevelNode)
+		if resourceStringer, ok := topLevelNode.(osgraph.ResourceNode); ok {
+			topLevelString = resourceStringer.ResourceString()
+		}
+
+		for _, missingSecret := range missingSecrets {
+			markers = append(markers, osgraph.Marker{
+				Node:         podSpecNode,
+				RelatedNodes: []graph.Node{missingSecret},
+
+				Severity: osgraph.WarningSeverity,
+				Key:      UnmountableSecretWarning,
+				Message: fmt.Sprintf("%s is attempting to mount a missing secret %s",
+					topLevelString, missingSecret.ResourceString()),
+			})
+		}
+	}
+
+	return markers
+}
+
+// CheckForUnmountableSecrets checks to be sure that all the referenced secrets are mountable (by service account)
+func CheckForUnmountableSecrets(g osgraph.Graph, podSpecNode *kubegraph.PodSpecNode) []*kubegraph.SecretNode {
 	saNodes := g.SuccessorNodesByNodeAndEdgeKind(podSpecNode, kubegraph.ServiceAccountNodeKind, kubeedges.ReferencedServiceAccountEdgeKind)
 	saMountableSecrets := []*kubegraph.SecretNode{}
 
@@ -19,13 +94,9 @@ func CheckMountedSecrets(g osgraph.Graph, podSpecNode *kubegraph.PodSpecNode) ( 
 	}
 
 	unmountableSecrets := []*kubegraph.SecretNode{}
-	missingSecrets := []*kubegraph.SecretNode{}
 
 	for _, uncastMountedSecretNode := range g.SuccessorNodesByNodeAndEdgeKind(podSpecNode, kubegraph.SecretNodeKind, kubeedges.MountedSecretEdgeKind) {
 		mountedSecretNode := uncastMountedSecretNode.(*kubegraph.SecretNode)
-		if !mountedSecretNode.Found() {
-			missingSecrets = append(missingSecrets, mountedSecretNode)
-		}
 
 		mountable := false
 		for _, mountableSecretNode := range saMountableSecrets {
@@ -41,5 +112,19 @@ func CheckMountedSecrets(g osgraph.Graph, podSpecNode *kubegraph.PodSpecNode) ( 
 		}
 	}
 
-	return unmountableSecrets, missingSecrets
+	return unmountableSecrets
+}
+
+// CheckMissingMountedSecrets checks to be sure that all the referenced secrets are present (not synthetic)
+func CheckMissingMountedSecrets(g osgraph.Graph, podSpecNode *kubegraph.PodSpecNode) []*kubegraph.SecretNode {
+	missingSecrets := []*kubegraph.SecretNode{}
+
+	for _, uncastMountedSecretNode := range g.SuccessorNodesByNodeAndEdgeKind(podSpecNode, kubegraph.SecretNodeKind, kubeedges.MountedSecretEdgeKind) {
+		mountedSecretNode := uncastMountedSecretNode.(*kubegraph.SecretNode)
+		if !mountedSecretNode.Found() {
+			missingSecrets = append(missingSecrets, mountedSecretNode)
+		}
+	}
+
+	return missingSecrets
 }
