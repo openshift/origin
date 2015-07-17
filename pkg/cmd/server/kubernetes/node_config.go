@@ -142,6 +142,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	cfg.KubeClient = kubeClient
 	cfg.DockerExecHandler = dockerExecHandler
 
+	// Make sure the node doesn't think it is in standalone mode
+	// This is required for the node to enforce nodeSelectors on pods, to set hostIP on pod status updates, etc
+	cfg.StandaloneMode = false
+
 	// TODO: could be cleaner
 	if configapi.UseTLS(options.ServingInfo) {
 		cfg.TLSOptions = &kubelet.TLSOptions{
