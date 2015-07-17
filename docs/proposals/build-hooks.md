@@ -69,7 +69,7 @@ to a registry based on some customizable logic (e.g. test results).
 
 Existing functionality that could be used to address the use cases above:
 
-- Kubernetes' container lifecycle hooks
+- ~~Kubernetes' container lifecycle hooks~~ *
 - `assemble` script (for S2I buils)
 - Changes in Dockerfile (for Docker build)
 - Deployment hooks
@@ -80,14 +80,19 @@ New functionality:
 
 - Build hooks
 
+\* **Note**: before discussing how each of those alternatives can be used to support
+the use cases, it is worth noting that Kubernetes' pre-stop hook is not a
+solution for any of the use cases, because it is only [executed prior to a
+SIGTERM when Kubernetes is about to terminate a container](https://github.com/GoogleCloudPlatform/kubernetes/blob/596a8a40d12498b5335140f50753980bfaea4f6b/docs/user-guide/production-pods.md#lifecycle-hooks-and-termination-notice).
+The builder container terminates itself, thus any pre-stop hook would
+be ignored.
+
 
 ## Discussion on alternatives
 
-Kubernetes' pre-stop hook is not a solution for any of the use cases, because
-it is only [executed prior to a SIGTERM when Kubernetes is about to terminate
-a container](https://github.com/GoogleCloudPlatform/kubernetes/blob/596a8a40d12498b5335140f50753980bfaea4f6b/docs/user-guide/production-pods.md#lifecycle-hooks-and-termination-notice).
-The builder container terminates itself, thus any pre-stop hook would
-be ignored.
+For each use case, we compare below how each alternative could be used depending
+on build strategy.
+
 
 ### 1. Build pipeline
 
