@@ -190,8 +190,12 @@ func (s sortablePorts) Swap(i, j int) {
 	s[j] = p
 }
 
-func portKey(port int, protocol kapi.Protocol) string {
-	return fmt.Sprintf("%d/%s", port, protocol)
+// portName returns a unique key for the given port and protocol which can be used as a service port name
+func portName(port int, protocol kapi.Protocol) string {
+	if protocol == "" {
+		protocol = kapi.ProtocolTCP
+	}
+	return strings.ToLower(fmt.Sprintf("%d-%s", port, protocol))
 }
 
 // AddServices sets up services for the provided objects
@@ -217,13 +221,14 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 				ports := sortablePorts(container.Ports)
 				sort.Sort(&ports)
 				for _, p := range ports {
-					_, exists := svcPorts[portKey(p.ContainerPort, p.Protocol)]
+					name := portName(p.ContainerPort, p.Protocol)
+					_, exists := svcPorts[name]
 					if exists {
 						continue
 					}
-					svcPorts[portKey(p.ContainerPort, p.Protocol)] = struct{}{}
+					svcPorts[name] = struct{}{}
 					svc.Spec.Ports = append(svc.Spec.Ports, kapi.ServicePort{
-						Name:       p.Name,
+						Name:       name,
 						Port:       p.ContainerPort,
 						Protocol:   p.Protocol,
 						TargetPort: kutil.NewIntOrStringFromInt(p.ContainerPort),
