@@ -152,6 +152,8 @@ sake of triggering another build.
 For *Docker* builds, changing the Dockerfile is similar to changing the
 `assemble` script in *S2I* builds, and has the same problem that the final build
 state is unknown at the time instructions in the Dockerfile are executed.
+Additionally, there can be further problems that restrict using this approach,
+e.g. Docker build caching a layer that sole purpose was calling a webhook.
 
 *Custom* builds could trigger downstream builds through their generic webhooks
 or OpenShift REST API. Unless you are already using *Custom* builds for a
