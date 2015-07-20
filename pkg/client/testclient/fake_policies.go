@@ -25,11 +25,17 @@ func (c *FakePolicies) Get(name string) (*authorizationapi.Policy, error) {
 }
 
 func (c *FakePolicies) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-policy", Value: name})
 	return nil
 }
 
 func (c *FakePolicies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-policy"})
 	return nil, nil
 }

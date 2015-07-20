@@ -1,6 +1,8 @@
 package testclient
 
 import (
+	"sync"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -22,6 +24,8 @@ type Fake struct {
 	// ReactFn is an optional function that will be invoked with the provided action
 	// and return a response.
 	ReactFn ktestclient.ReactionFunc
+
+	Lock sync.Mutex
 }
 
 // NewSimpleFake returns a client that will respond with the provided objects

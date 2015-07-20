@@ -30,11 +30,17 @@ func (c *FakeClusterPolicyBindings) Create(policyBinding *authorizationapi.Clust
 }
 
 func (c *FakeClusterPolicyBindings) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-clusterPolicyBinding", Value: name})
 	return nil
 }
 
 func (c *FakeClusterPolicyBindings) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-clusterPolicyBinding"})
 	return nil, nil
 }

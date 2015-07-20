@@ -15,6 +15,9 @@ type FakeBuildLogs struct {
 
 // Get builds and returns a buildLog request
 func (c *FakeBuildLogs) Get(name string, opt api.BuildLogOptions) *kclient.Request {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "proxy"})
 	return &kclient.Request{}
 }

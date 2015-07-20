@@ -34,6 +34,9 @@ func (c *FakeRoles) Update(role *authorizationapi.Role) (*authorizationapi.Role,
 }
 
 func (c *FakeRoles) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-role", Value: name})
 	return nil
 }

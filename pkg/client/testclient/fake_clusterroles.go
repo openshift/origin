@@ -34,6 +34,9 @@ func (c *FakeClusterRoles) Update(role *authorizationapi.ClusterRole) (*authoriz
 }
 
 func (c *FakeClusterRoles) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-clusterRole", Value: name})
 	return nil
 }
