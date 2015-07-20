@@ -3,6 +3,7 @@ package describe
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
-	"github.com/gonum/graph/topo"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
@@ -21,6 +21,7 @@ import (
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
+	buildanalysis "github.com/openshift/origin/pkg/build/graph/analysis"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -161,14 +162,23 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		// always output warnings
 		fmt.Fprintln(out)
 
-		if hasUnresolvedImageStreamTag(g) {
-			fmt.Fprintln(out, "Warning: Some of your builds are pointing to image streams, but the administrator has not configured the integrated Docker registry (oadm registry).")
+		allMarkers := osgraph.Markers{}
+		for _, scanner := range getMarkerScanners() {
+			allMarkers = append(allMarkers, scanner(g)...)
 		}
-		if hasCircularDependencies(g) {
-			fmt.Fprintln(out, "Warning: Some of your build configurations have circular dependencies.")
+		sort.Stable(osgraph.ByKey(allMarkers))
+		sort.Stable(osgraph.ByNodeID(allMarkers))
+		if errorMarkers := allMarkers.BySeverity(osgraph.ErrorSeverity); len(errorMarkers) > 0 {
+			fmt.Fprintln(out, "Errors:")
+			for _, marker := range errorMarkers {
+				fmt.Fprintln(out, indent+marker.Message)
+			}
 		}
-		if lines, _ := describeBadPodSpecs(out, g); len(lines) > 0 {
-			fmt.Fprintln(out, strings.Join(lines, "\n"))
+		if warningMarkers := allMarkers.BySeverity(osgraph.WarningSeverity); len(warningMarkers) > 0 {
+			fmt.Fprintln(out, "Warnings:")
+			for _, marker := range warningMarkers {
+				fmt.Fprintln(out, indent+marker.Message)
+			}
 		}
 
 		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0) {
@@ -184,77 +194,14 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	})
 }
 
-// hasUnresolvedImageStreamTag checks all build configs that will output to an IST backed by an ImageStream and checks to make sure their builds can push.
-func hasUnresolvedImageStreamTag(g osgraph.Graph) bool {
-	for _, bcNode := range g.NodesByKind(buildgraph.BuildConfigNodeKind) {
-		for _, istNode := range g.SuccessorNodesByEdgeKind(bcNode, buildedges.BuildOutputEdgeKind) {
-			for _, uncastImageStreamNode := range g.SuccessorNodesByEdgeKind(istNode, imageedges.ReferencedImageStreamGraphEdgeKind) {
-				imageStreamNode := uncastImageStreamNode.(*imagegraph.ImageStreamNode)
-				if len(imageStreamNode.Status.DockerImageRepository) == 0 {
-					return true
-				}
-			}
-		}
+func getMarkerScanners() []osgraph.MarkerScanner {
+	return []osgraph.MarkerScanner{
+		kubeanalysis.FindDuelingReplicationControllers,
+		kubeanalysis.FindUnmountableSecrets,
+		kubeanalysis.FindMissingSecrets,
+		buildanalysis.FindUnpushableBuildConfigs,
+		buildanalysis.FindCircularBuilds,
 	}
-
-	return false
-}
-
-func hasCircularDependencies(g osgraph.Graph) bool {
-	// Filter out all but ImageStreamTag and BuildConfig nodes
-	nodeFn := osgraph.NodesOfKind(imagegraph.ImageStreamTagNodeKind, buildgraph.BuildConfigNodeKind)
-	// Filter out all but BuildInputImage and BuildOutput edges
-	edgeFn := osgraph.EdgesOfKind(buildedges.BuildInputImageEdgeKind, buildedges.BuildOutputEdgeKind)
-
-	// Create desired subgraph
-	sub := g.Subgraph(nodeFn, edgeFn)
-
-	// Check for cycles
-	return len(topo.CyclesIn(sub)) != 0
-}
-
-func describeBadPodSpecs(out io.Writer, g osgraph.Graph) ([]string, []*kubegraph.SecretNode) {
-	allMissingSecrets := []*kubegraph.SecretNode{}
-	lines := []string{}
-
-	for _, uncastPodSpec := range g.NodesByKind(kubegraph.PodSpecNodeKind) {
-		podSpecNode := uncastPodSpec.(*kubegraph.PodSpecNode)
-		unmountableSecrets, missingSecrets := kubeanalysis.CheckMountedSecrets(g, podSpecNode)
-		containingNode := osgraph.GetTopLevelContainerNode(g, podSpecNode)
-
-		allMissingSecrets = append(allMissingSecrets, missingSecrets...)
-
-		unmountableNames := []string{}
-		for _, secret := range unmountableSecrets {
-			unmountableNames = append(unmountableNames, secret.ResourceString())
-		}
-
-		missingNames := []string{}
-		for _, secret := range missingSecrets {
-			missingNames = append(missingNames, secret.ResourceString())
-		}
-
-		containingNodeName := g.GraphDescriber.Name(containingNode)
-		if resourceNode, ok := containingNode.(osgraph.ResourceNode); ok {
-			containingNodeName = resourceNode.ResourceString()
-		}
-
-		switch {
-		case len(unmountableSecrets) > 0 && len(missingSecrets) > 0:
-			lines = append(lines, fmt.Sprintf("\t%s is not allowed to mount %s and wants to mount these missing secrets %s", containingNodeName, strings.Join(unmountableNames, ","), strings.Join(missingNames, ",")))
-		case len(unmountableSecrets) > 0:
-			lines = append(lines, fmt.Sprintf("\t%s is not allowed to mount %s", containingNodeName, strings.Join(unmountableNames, ",")))
-		case len(unmountableSecrets) > 0 && len(missingSecrets) > 0:
-			lines = append(lines, fmt.Sprintf("\t%s wants to mount these missing secrets %s", containingNodeName, strings.Join(missingNames, ",")))
-		}
-	}
-
-	// if we had any failures, prepend the warning line
-	if len(lines) > 0 {
-		return append([]string{"Warning: some requested secrets are not allowed:"}, lines...), allMissingSecrets
-	}
-
-	return []string{}, allMissingSecrets
 }
 
 func printLines(out io.Writer, indent string, depth int, lines ...string) {
