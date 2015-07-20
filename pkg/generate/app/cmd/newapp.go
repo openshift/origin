@@ -523,14 +523,14 @@ type AppResult struct {
 }
 
 // RunAll executes the provided config to generate all objects.
-func (c *AppConfig) RunAll(out io.Writer) (*AppResult, error) {
-	return c.run(out, app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
+func (c *AppConfig) RunAll(out, errOut io.Writer) (*AppResult, error) {
+	return c.run(out, errOut, app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
 }
 
 // RunBuilds executes the provided config to generate just builds.
-func (c *AppConfig) RunBuilds(out io.Writer) (*AppResult, error) {
+func (c *AppConfig) RunBuilds(out, errOut io.Writer) (*AppResult, error) {
 	bcAcceptor := app.NewAcceptBuildConfigs(c.typer)
-	result, err := c.run(out, app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew})
+	result, err := c.run(out, errOut, app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew})
 	if err != nil {
 		return nil, err
 	}
@@ -586,7 +586,7 @@ func makeImageStreamKey(ref kapi.ObjectReference) string {
 }
 
 // run executes the provided config applying provided acceptors.
-func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors) (*AppResult, error) {
+func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppResult, error) {
 	c.ensureDockerResolver()
 	repositories, err := c.individualSourceRepositories()
 	if err != nil {
@@ -641,7 +641,7 @@ func (c *AppConfig) run(out io.Writer, acceptors app.Acceptors) (*AppResult, err
 		}
 		if p.Image != nil && p.Image.HasEmptyDir {
 			if _, ok := warned[p.Image.Name]; !ok {
-				fmt.Fprintf(out, "NOTICE: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
+				fmt.Fprintf(errOut, "NOTICE: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
 				warned[p.Image.Name] = struct{}{}
 			}
 		}
