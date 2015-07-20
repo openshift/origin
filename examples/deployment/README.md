@@ -26,11 +26,11 @@ Each deployment config has a *strategy* describing which fundamental deployment 
 Deployment Types
 ----------------
 
-### Rolling Deployments (and Canary)
+### Rolling Deployments (with Canary checks)
 
 A rolling deployment slowly replaces instances of the previous version of an application (in OpenShift and Kubernetes, pods) with instances of the new version of the application. A rolling deployment typically waits for new pods to become *ready* via a *readiness check* before scaling down the old components. If a significant issue occurs, the rolling deployment can be aborted.
 
-All rolling deployments in OpenShift are implicitly *canary* deployments - where a deployment is tested before rolling out. If the readiness check never succeeds, the deployment will be automatically rolled back. The readiness check may be arbitrarily sophisticated. If you need to implement more complex checks of the application (such as sending real user workloads to the new instance), consider implementing a custom deployment or a using a blue-green deployment strategy.
+All rolling deployments in OpenShift are *canary* deployments - a new version is tested (the canary) before all of the old instances are replaced. If the readiness check never succeeds, the deployment will be automatically rolled back. The readiness check is part of the application code, and may be as sophisticated as necessary to ensure the new instance is ready to be used. If you need to implement more complex checks of the application (such as sending real user workloads to the new instance), consider implementing a custom deployment or a using a blue-green deployment strategy.
 
 
 #### When to use a rolling deployment?
