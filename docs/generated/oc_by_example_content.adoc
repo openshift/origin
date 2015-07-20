@@ -312,7 +312,7 @@ Expose a replicated application as a service or route
   $ openshift cli expose service nginx --hostname=www.example.com
 
   // Expose a deployment configuration as a service and use the specified port
-  $ openshift cli expose dc ruby-hello-world --port=8080 --generator=service/v1
+  $ openshift cli expose dc ruby-hello-world --port=8080
 ----
 ====
 
