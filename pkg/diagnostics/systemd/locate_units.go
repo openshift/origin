@@ -12,7 +12,7 @@ import (
 func GetSystemdUnits(logger *log.Logger) map[string]types.SystemdUnit {
 	systemdUnits := map[string]types.SystemdUnit{}
 
-	logger.Notice("discBegin", "Beginning systemd discovery")
+	logger.Notice("discBeginSysd", "Performing systemd discovery")
 	for _, name := range []string{"openshift", "openshift-master", "openshift-node", "openshift-sdn-master", "openshift-sdn-node", "docker", "openvswitch", "iptables", "etcd", "kubernetes"} {
 		systemdUnits[name] = discoverSystemdUnit(logger, name)
 

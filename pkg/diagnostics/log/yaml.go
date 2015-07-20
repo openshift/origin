@@ -11,7 +11,7 @@ type yamlLogger struct {
 	logStarted bool
 }
 
-func (y *yamlLogger) Write(entry LogEntry) {
+func (y *yamlLogger) Write(entry Entry) {
 	b, _ := yaml.Marshal(&entry)
 	fmt.Fprintln(y.out, "---\n"+string(b))
 }

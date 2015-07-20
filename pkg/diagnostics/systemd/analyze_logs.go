@@ -3,38 +3,44 @@ package systemd
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os/exec"
+	"strconv"
+	"time"
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	"github.com/openshift/origin/pkg/diagnostics/types/diagnostic"
+)
+
+const (
+	sdLogReadErr = `Diagnostics failed to query journalctl for the '%s' unit logs.
+This should be very unusual, so please report this error:
+%s`
 )
 
 // AnalyzeLogs
 type AnalyzeLogs struct {
 	SystemdUnits map[string]types.SystemdUnit
+}
 
-	Log *log.Logger
+func (d AnalyzeLogs) Name() string {
+	return "AnalyzeLogs"
 }
 
 func (d AnalyzeLogs) Description() string {
-	return "Check for problems in systemd service logs since each service last started"
+	return "Check for recent problems in systemd service logs"
 }
+
 func (d AnalyzeLogs) CanRun() (bool, error) {
 	return true, nil
 }
-func (d AnalyzeLogs) Check() (bool, []log.Message, []error, []error) {
-	infos := []log.Message{}
-	warnings := []error{}
-	errors := []error{}
+
+func (d AnalyzeLogs) Check() *types.DiagnosticResult {
+	r := types.NewDiagnosticResult("AnalyzeLogs")
 
 	for _, unit := range unitLogSpecs {
 		if svc := d.SystemdUnits[unit.Name]; svc.Enabled || svc.Active {
-			checkMessage := log.Message{ID: "sdCheckLogs", EvaluatedText: fmt.Sprintf("Checking journalctl logs for '%s' service", unit.Name)}
-			d.Log.LogMessage(log.InfoLevel, checkMessage)
-			infos = append(infos, checkMessage)
+			r.Infof("sdCheckLogs", "Checking journalctl logs for '%s' service", unit.Name)
 
 			cmd := exec.Command("journalctl", "-ru", unit.Name, "--output=json")
 			// JSON comes out of journalctl one line per record
@@ -50,60 +56,54 @@ func (d AnalyzeLogs) Check() (bool, []log.Message, []error, []error) {
 			}(cmd)
 
 			if err != nil {
-				diagnosticError := diagnostic.NewDiagnosticError("sdLogReadErr", fmt.Sprintf(sdLogReadErr, unit.Name, errStr(err)), err)
-				d.Log.Error(diagnosticError.ID, diagnosticError.Explanation)
-				errors = append(errors, diagnosticError)
-
-				return false, infos, warnings, errors
+				r.Errorf("sdLogReadErr", err, sdLogReadErr, unit.Name, errStr(err))
+				return r
 			}
 			defer func() { // close out pipe once done reading
 				reader.Close()
 				cmd.Wait()
 			}()
-			entryTemplate := logEntry{Message: `json:"MESSAGE"`}
+			timeLimit := time.Now().Add(-time.Hour)                     // if it didn't happen in the last hour, probably not too relevant
 			matchCopy := append([]logMatcher(nil), unit.LogMatchers...) // make a copy, will remove matchers after they match something
-			for lineReader.Scan() {                                     // each log entry is a line
+			lineCount := 0                                              // each log entry is a line
+			for lineReader.Scan() {
+				lineCount += 1
 				if len(matchCopy) == 0 { // if no rules remain to match
 					break // don't waste time reading more log entries
 				}
-				bytes, entry := lineReader.Bytes(), entryTemplate
+				bytes, entry := lineReader.Bytes(), logEntry{}
 				if err := json.Unmarshal(bytes, &entry); err != nil {
-					badJSONMessage := log.Message{ID: "sdLogBadJSON", EvaluatedText: fmt.Sprintf("Couldn't read the JSON for this log message:\n%s\nGot error %s", string(bytes), errStr(err))}
-					d.Log.LogMessage(log.DebugLevel, badJSONMessage)
-
+					r.Debugf("sdLogBadJSON", "Couldn't read the JSON for this log message:\n%s\nGot error %s", string(bytes), errStr(err))
 				} else {
+					if lineCount > 500 && stampTooOld(entry.TimeStamp, timeLimit) {
+						r.Debugf("sdLogTrunc", "Stopped reading %s log: timestamp %s too old", unit.Name, entry.TimeStamp)
+						break // if we've analyzed at least 500 entries, stop when age limit reached (don't scan days of logs)
+					}
 					if unit.StartMatch.MatchString(entry.Message) {
-						break // saw the log message where the unit started; done looking.
+						break // saw log message for unit startup; don't analyze previous logs
 					}
 					for index, match := range matchCopy { // match log message against provided matchers
 						if strings := match.Regexp.FindStringSubmatch(entry.Message); strings != nil {
 							// if matches: print interpretation, remove from matchCopy, and go on to next log entry
-							keep := match.KeepAfterMatch
-							if match.Interpret != nil {
-								currKeep, currInfos, currWarnings, currErrors := match.Interpret(d.Log, &entry, strings)
+							keep := match.KeepAfterMatch // generic keep logic
+							if match.Interpret != nil {  // apply custom match logic
+								currKeep, result := match.Interpret(&entry, strings)
 								keep = currKeep
-								infos = append(infos, currInfos...)
-								warnings = append(warnings, currWarnings...)
-								errors = append(errors, currErrors...)
-
-							} else {
-								text := fmt.Sprintf("Found '%s' journald log message:\n  %s\n", unit.Name, entry.Message) + match.Interpretation
-								message := log.Message{ID: match.Id, EvaluatedText: text, TemplateData: map[string]string{"unit": unit.Name, "logMsg": entry.Message}}
-								d.Log.LogMessage(match.Level, message)
-								diagnosticError := diagnostic.NewDiagnosticError(match.Id, text, nil)
+								r.Append(result)
+							} else { // apply generic match processing
+								template := "Found '{{.unit}}' journald log message:\n  {{.logMsg}}\n{{.interpretation}}"
+								templateData := log.Hash{"unit": unit.Name, "logMsg": entry.Message, "interpretation": match.Interpretation}
 
 								switch match.Level {
-								case log.InfoLevel, log.NoticeLevel:
-									infos = append(infos, message)
-
+								case log.DebugLevel:
+									r.Debugt(match.Id, template, templateData)
+								case log.InfoLevel:
+									r.Infot(match.Id, template, templateData)
 								case log.WarnLevel:
-									warnings = append(warnings, diagnosticError)
-
+									r.Warnt(match.Id, nil, template, templateData)
 								case log.ErrorLevel:
-									errors = append(errors, diagnosticError)
-
+									r.Errort(match.Id, nil, template, templateData)
 								}
-
 							}
 
 							if !keep { // remove matcher once seen
@@ -118,11 +118,12 @@ func (d AnalyzeLogs) Check() (bool, []log.Message, []error, []error) {
 		}
 	}
 
-	return (len(errors) == 0), infos, warnings, errors
+	return r
 }
 
-const (
-	sdLogReadErr = `Diagnostics failed to query journalctl for the '%s' unit logs.
-This should be very unusual, so please report this error:
-%s`
-)
+func stampTooOld(stamp string, timeLimit time.Time) bool {
+	if epochns, err := strconv.ParseInt(stamp, 10, 64); err == nil {
+		return time.Unix(epochns/1000000, 0).Before(timeLimit)
+	}
+	return true // something went wrong, stop looking...
+}

@@ -12,7 +12,7 @@ type jsonLogger struct {
 	logFinished bool
 }
 
-func (j *jsonLogger) Write(entry LogEntry) {
+func (j *jsonLogger) Write(entry Entry) {
 	if j.logStarted {
 		fmt.Fprintln(j.out, ",")
 	} else {

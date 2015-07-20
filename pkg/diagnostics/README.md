@@ -2,7 +2,7 @@ OpenShift v3 Diagnostics
 ========================
 
 This is a tool to help administrators and users resolve common problems
-that occur with OpenShift v3 deployments. It is currently (May 2015)
+that occur with OpenShift v3 deployments. It will likely remain
 under continuous development as the OpenShift Origin project progresses.
 
 The goals of the diagnostics tool are summarized in this [Trello
@@ -22,32 +22,21 @@ added to the `openshift` binary itself so that wherever there is an
 OpenShift server or client, the diagnostics can run in the exact same
 environment.
 
-`openshift ex diagnostics` subcommands for master, node, and client
-provide flags to mimic the configurations for those respective components,
-so that running diagnostics against a component should be as simple as
-supplying the same flags that would invoke the component. So,
-for example, if a master is started with:
-
-    openshift start master --public-hostname=...
-
-Then diagnostics against that master would simply be run as:
-
-    openshift ex diagnostics master --public-hostname=...
-
-In this way it should be possible to invoke diagnostics against any
-given environment.
+Diagnostics looks for config files in standard locations. If not found,
+related diagnostics are just skipped. Non-standard locations can be
+specified with flags.
 
 Host environment
 ================
 
-However, master/node diagnostics will be most useful in a specific
-target environment, which is a deployment using Enterprise RPMs and
-ansible deployment logic. This provides two major benefits:
+Master/node diagnostics will be most useful in a specific target
+environment, which is a deployment using RPMs and ansible deployment
+logic. This provides two major benefits:
 
 * master/node configuration is based on a configuration file in a standard location
 * all components log to journald
 
-Having configuration file in standard locations means you will generally
+Having configuration files in standard locations means you will generally
 not even need to specify where to find them. Running:
 
     openshift ex diagnostics
@@ -71,14 +60,54 @@ Client environment
 ==================
 
 The user may only have access as an ordinary user, as a cluster-admin
-user, or may have admin on a host where OpenShift master or node services
-are operating. The diagnostics will attempt to use as much access as
-the user has available.
+user, and/or may be running on a host where OpenShift master or node
+services are operating. The diagnostics will attempt to use as much
+access as the user has available.
 
 A client with ordinary access should be able to diagnose its connection
-to the master and look for problems in builds and deployments.
+to the master and look for problems in builds and deployments for the
+current context.
 
-A client with cluster-admin access should be able to diagnose the same
-things for every project in the deployment, as well as infrastructure
-status.
+A client with cluster-admin access should be able to diagnose the
+status of infrastructure.
+
+Writing diagnostics
+===================
+
+Developers are encouraged to add to the available diagnostics as they
+encounter problems that are not easily communicated in the normal
+operations of the program, for example components with misconfigured
+connections, problems that are buried in logs, etc. The sanity you
+save may be your own.
+
+A diagnostic is an object that conforms to the Diagnostic interface
+(see pkg/diagnostics/types/diagnostic.go). The diagnostic object should
+be built in one of the builders in the pkg/cmd/experimental/diagnostics
+package (based on whether it depends on client, cluster-admin, or host
+configuration). When executed, the diagnostic logs its findings into
+a result object. It should be assumed that they may run in parallel.
+
+Diagnostics should prefer providing information over perfect accuracy,
+as they are the first line of (self-)support for users. On the other
+hand, judgment should be exercised to prevent sending users down useless
+paths or flooding them with non-issues that obscure real problems.
+
+* Errors should be reserved for things that are almost certainly broken
+  or causing problems, for example a broken URL.
+* Warnings indicate issues that may be a problem but could be valid for
+  some configurations / situations, for example a node being disabled.
+
+Enabling automation
+===================
+
+Diagnostic messages are designed to be logged either for human consumption
+("text" format) or for scripting/automation ("yaml" or "json" formats). So
+messages should:
+
+* Have an ID that is unique and unchanging, such that automated alerts
+  could filter on specific IDs rather than rely on message text or level.
+* Log any data that might be relevant in an automated alert as
+  template data; for example, when a node is down, include the name of
+  the node so that automation could decide how important it is.
+* Not put anything in message template data that cannot be serialized.
 

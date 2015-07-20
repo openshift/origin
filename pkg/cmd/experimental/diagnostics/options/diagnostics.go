@@ -8,27 +8,27 @@ import (
 	"github.com/openshift/origin/pkg/diagnostics/log"
 )
 
-type RecommendedLoggerOptionsFlags struct {
+type LoggerOptionFlags struct {
 	Level  FlagInfo
 	Format FlagInfo
 }
 
 // default overrideable flag specifications to be bound to options.
-func RecommendedLoggerOptionFlags() RecommendedLoggerOptionsFlags {
-	return RecommendedLoggerOptionsFlags{
+func RecommendedLoggerOptionFlags() LoggerOptionFlags {
+	return LoggerOptionFlags{
 		Level:  FlagInfo{FlagLevelName, "l", "1", "Level of diagnostic output: 4: Error, 3: Warn, 2: Notice, 1: Info, 0: Debug"},
 		Format: FlagInfo{FlagFormatName, "o", "text", "Output format: text|json|yaml"},
 	}
 }
 
-func BindLoggerOptionFlags(cmdFlags *pflag.FlagSet, loggerOptions *log.LoggerOptions, flags RecommendedLoggerOptionsFlags) {
+func BindLoggerOptionFlags(cmdFlags *pflag.FlagSet, loggerOptions *log.LoggerOptions, flags LoggerOptionFlags) {
 	flags.Level.BindIntFlag(cmdFlags, &loggerOptions.Level)
 	flags.Format.BindStringFlag(cmdFlags, &loggerOptions.Format)
 }
 
 // default overrideable flag specifications to be bound to options.
 func NewRecommendedDiagnosticFlag() FlagInfo {
-	return FlagInfo{FlagDiagnosticsName, "d", "", `comma-separated list of diagnostic names to run, e.g. "systemd.AnalyzeLogs"`}
+	return FlagInfo{FlagDiagnosticsName, "d", "", `comma-separated list of diagnostic names to run, e.g. "AnalyzeLogs"`}
 }
 
 func BindDiagnosticFlag(cmdFlags *pflag.FlagSet, diagnostics *util.StringList, flagInfo FlagInfo) {

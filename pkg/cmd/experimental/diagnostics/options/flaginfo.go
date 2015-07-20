@@ -14,10 +14,11 @@ type FlagInfo kclientcmd.FlagInfo // reuse to add methods
 // with tweaked definitions in different contexts if necessary.
 
 func (i FlagInfo) BindStringFlag(flags *pflag.FlagSet, target *string) {
-	// assume flags with no longname are not desired
-	if len(i.LongName) > 0 {
-		flags.StringVarP(target, i.LongName, i.ShortName, i.Default, i.Description)
-	}
+	kclientcmd.FlagInfo(i).BindStringFlag(flags, target)
+}
+
+func (i FlagInfo) BindBoolFlag(flags *pflag.FlagSet, target *bool) {
+	kclientcmd.FlagInfo(i).BindBoolFlag(flags, target)
 }
 
 func (i FlagInfo) BindIntFlag(flags *pflag.FlagSet, target *int) {
@@ -29,15 +30,6 @@ func (i FlagInfo) BindIntFlag(flags *pflag.FlagSet, target *int) {
 	}
 }
 
-func (i FlagInfo) BindBoolFlag(flags *pflag.FlagSet, target *bool) {
-	// assume flags with no longname are not desired
-	if len(i.LongName) > 0 {
-		// try to parse Default as a bool.  If it fails, assume false
-		boolVal, _ := strconv.ParseBool(i.Default)
-		flags.BoolVarP(target, i.LongName, i.ShortName, boolVal, i.Description)
-	}
-}
-
 func (i FlagInfo) BindListFlag(flags *pflag.FlagSet, target *kutil.StringList) {
 	// assume flags with no longname are not desired
 	if len(i.LongName) > 0 {
@@ -46,12 +38,11 @@ func (i FlagInfo) BindListFlag(flags *pflag.FlagSet, target *kutil.StringList) {
 }
 
 const (
-	FlagAllClientConfigName = "client-config"
-	FlagAllMasterConfigName = "master-config"
-	FlagAllNodeConfigName   = "node-config"
-	FlagDiagnosticsName     = "diagnostics"
-	FlagLevelName           = "diaglevel"
-	FlagFormatName          = "output"
-	FlagMasterConfigName    = "config"
-	FlagNodeConfigName      = "config"
+	FlagMasterConfigName   = "master-config"
+	FlagNodeConfigName     = "node-config"
+	FlagClusterContextName = "cluster-context"
+	FlagDiagnosticsName    = "diagnostics"
+	FlagLevelName          = "diaglevel"
+	FlagFormatName         = "output"
+	FlagIsHostName         = "host"
 )
