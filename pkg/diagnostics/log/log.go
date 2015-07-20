@@ -7,8 +7,11 @@ import (
 	ct "github.com/daviddengcn/go-colortext"
 	"io"
 	"io/ioutil"
+	"runtime"
 	"strings"
 	"text/template"
+
+	"github.com/openshift/origin/pkg/version"
 )
 
 type LoggerOptions struct {
@@ -35,6 +38,14 @@ type Level struct {
 	Bright bool
 }
 
+func (l Level) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + l.Name + `"`), nil
+}
+
+func (l Level) MarshalYAML() (interface{}, error) {
+	return l.Name, nil
+}
+
 type Logger struct {
 	loggerType
 	level        Level
@@ -44,7 +55,7 @@ type Logger struct {
 
 // Internal type to deal with different log formats
 type loggerType interface {
-	Write(LogEntry)
+	Write(Entry)
 	Finish()
 }
 
@@ -85,18 +96,23 @@ func NewLogger(setLevel int, setFormat string, out io.Writer) (*Logger, error) {
 }
 
 type Message struct {
-	ID       string
-	Template string
-
+	// ID: an identifier unique to the message being logged, intended for json/yaml output
+	//     so that automation can recognize specific messages without trying to parse them.
+	ID string `json:"-" yaml:"-"`
+	// Template: a template string as understood by text/template that can use any of the
+	//           TemplateData entries in this Message as inputs.
+	Template string `json:"-" yaml:"-"`
 	// TemplateData is passed to template executor to complete the message
-	TemplateData interface{}
+	TemplateData interface{} `json:"data,omitempty" yaml:"data,omitempty"`
 
-	EvaluatedText string
+	EvaluatedText string `json:"text" yaml:"text"` // human-readable message text
 }
+
+type Hash map[string]interface{} // convenience/cosmetic type
 
 func (m Message) String() string {
 	if len(m.EvaluatedText) > 0 {
-		return fmt.Sprintf("%s: %s", m.EvaluatedText)
+		return m.EvaluatedText
 	}
 
 	if len(m.Template) == 0 {
@@ -105,7 +121,7 @@ func (m Message) String() string {
 
 	// if given a template, convert it to text
 	parsedTmpl, err := template.New(m.ID).Parse(m.Template)
-	if err != nil {
+	if err != nil { // unless the template is broken of course
 		return fmt.Sprintf("%s: %s %#v: %v", m.ID, m.Template, m.TemplateData, err)
 	}
 
@@ -118,22 +134,12 @@ func (m Message) String() string {
 	return buff.String()
 }
 
-type LogEntry struct {
-	Level Level
-	Message
+type Entry struct {
+	ID      string `json:"id"`
+	Origin  string `json:"origin"`
+	Level   Level  `json:"level"`
+	Message `yaml:"-,inline"`
 }
-
-/* a Msg can be expected to have the following entries:
- * "id": an identifier unique to the message being logged, intended for json/yaml output
- *       so that automation can recognize specific messages without trying to parse them.
- * "text": human-readable message text
- * "tmpl": a template string as understood by text/template that can use any of the other
- *         entries in this Msg as inputs. This is removed, evaluated, and the result is
- *         placed in "text". If there is an error during evaluation, the error is placed
- *         in "templateErr", the original id of the message is stored in "templateId",
- *         and the Msg id is changed to "tmplErr". Of course, this should never happen
- *         if there are no mistakes in the calling code.
- */
 
 var (
 	ErrorLevel  = Level{4, "error", "ERROR: ", ct.Red, true}   // Something is definitely wrong
@@ -144,134 +150,124 @@ var (
 )
 
 // Provide a summary at the end
-func (l *Logger) Summary() {
-	l.Notice("summary", "\nSummary of diagnostics execution:\n")
-	if l.warningsSeen > 0 {
-		l.Noticef("sumWarn", "Warnings seen: %d", l.warningsSeen)
+func (l *Logger) Summary(warningsSeen int, errorsSeen int) {
+	l.Noticef("summary", "\nSummary of diagnostics execution (version %v):\n", version.Get())
+	if warningsSeen > 0 {
+		l.Noticet("sumWarn", "Warnings seen: {{.warnings}}", Hash{"warnings": warningsSeen})
 	}
-	if l.errorsSeen > 0 {
-		l.Noticef("sumErr", "Errors seen: %d", l.errorsSeen)
+	if errorsSeen > 0 {
+		l.Noticet("sumErr", "Errors seen: {{.errors}}", Hash{"errors": errorsSeen})
 	}
-	if l.warningsSeen == 0 && l.errorsSeen == 0 {
+	if warningsSeen == 0 && errorsSeen == 0 {
 		l.Notice("sumNone", "Completed with no errors or warnings seen.")
 	}
 }
 
-func (l *Logger) LogMessage(level Level, message Message) {
-	// if there's no logger, return silently
-	if l == nil {
+func (l *Logger) LogEntry(entry Entry) {
+	if l == nil { // if there's no logger, return silently
+		return
+	}
+	if entry.Level.Level < l.level.Level { // logging level says skip this entry
 		return
 	}
 
-	// track how many of every type we've seen (probably unnecessary)
-	if level.Level == ErrorLevel.Level {
-		l.errorsSeen += 1
-	} else if level.Level == WarnLevel.Level {
-		l.warningsSeen += 1
-	}
-
-	if level.Level < l.level.Level {
-		return
-	}
-
-	if len(message.Template) == 0 {
-		l.Write(LogEntry{level, message})
-		return
-	}
-
-	// if given a template, convert it to text
-	parsedTmpl, err := template.New(message.ID).Parse(message.Template)
-	if err != nil {
-		templateErrorMessage := Message{
-			ID: "templateParseErr",
-			TemplateData: map[string]interface{}{
-				"error":           err.Error(),
-				"originalMessage": message,
-			},
+	if msg := &entry.Message; msg.EvaluatedText == "" && msg.Template != "" {
+		// if given a template instead of text, convert it to text
+		parsedTmpl, err := template.New(msg.ID).Parse(msg.Template)
+		if err != nil {
+			entry.Message = Message{
+				ID: "templateParseErr",
+				TemplateData: Hash{
+					"error":           err.Error(),
+					"originalMessage": msg,
+				},
+				EvaluatedText: fmt.Sprintf("Error parsing template for %s:\n%s=== Error was:\n%v\nOriginal message:\n%#v", msg.ID, msg.Template, err, msg),
+			}
+			entry.ID = entry.Message.ID
+			l.Write(entry)
+			return
 		}
-		l.LogMessage(level, templateErrorMessage)
-		return
-	}
 
-	var buff bytes.Buffer
-	err = parsedTmpl.Execute(&buff, message.TemplateData)
-	if err != nil {
-		templateErrorMessage := Message{
-			ID: "templateParseErr",
-			TemplateData: map[string]interface{}{
-				"error":           err.Error(),
-				"originalMessage": message,
-			},
+		var buff bytes.Buffer
+		err = parsedTmpl.Execute(&buff, msg.TemplateData)
+		if err != nil {
+			entry.Message = Message{
+				ID: "templateExecErr",
+				TemplateData: Hash{
+					"error":           err.Error(),
+					"originalMessage": msg,
+				},
+				EvaluatedText: fmt.Sprintf("Error executing template for %s:\n%s=== Error was:\n%v\nOriginal message:\n%#v", msg.ID, msg.Template, err, msg),
+			}
+			entry.ID = entry.Message.ID
+			l.Write(entry)
+			return
 		}
-		l.LogMessage(level, templateErrorMessage)
-		return
 
+		msg.EvaluatedText = buff.String()
 	}
 
-	message.EvaluatedText = buff.String()
-	l.Write(LogEntry{level, message})
+	l.Write(entry)
 }
 
 // Convenience functions
 func (l *Logger) Error(id string, text string) {
-	l.Logp(ErrorLevel, id, text)
+	l.logp(ErrorLevel, id, text)
 }
 func (l *Logger) Errorf(id string, msg string, a ...interface{}) {
-	l.Logpf(ErrorLevel, id, msg, a...)
+	l.logf(ErrorLevel, id, msg, a...)
 }
-func (l *Logger) Errorm(message Message) {
-	l.LogMessage(ErrorLevel, message)
+func (l *Logger) Errort(id string, template string, data interface{}) {
+	l.logt(ErrorLevel, id, template, data)
 }
 func (l *Logger) Warn(id string, text string) {
-	l.Logp(WarnLevel, id, text)
+	l.logp(WarnLevel, id, text)
 }
 func (l *Logger) Warnf(id string, msg string, a ...interface{}) {
-	l.Logpf(WarnLevel, id, msg, a...)
-}
-func (l *Logger) Warnm(message Message) {
-	l.LogMessage(WarnLevel, message)
+	l.logf(WarnLevel, id, msg, a...)
 }
 func (l *Logger) Info(id string, text string) {
-	l.Logp(InfoLevel, id, text)
+	l.logp(InfoLevel, id, text)
 }
 func (l *Logger) Infof(id string, msg string, a ...interface{}) {
-	l.Logpf(InfoLevel, id, msg, a...)
-}
-func (l *Logger) Infom(message Message) {
-	l.LogMessage(InfoLevel, message)
+	l.logf(InfoLevel, id, msg, a...)
 }
 func (l *Logger) Notice(id string, text string) {
-	l.Logp(NoticeLevel, id, text)
+	l.logp(NoticeLevel, id, text)
 }
 func (l *Logger) Noticef(id string, msg string, a ...interface{}) {
-	l.Logpf(NoticeLevel, id, msg, a...)
+	l.logf(NoticeLevel, id, msg, a...)
 }
-func (l *Logger) Noticem(message Message) {
-	l.LogMessage(NoticeLevel, message)
+func (l *Logger) Noticet(id string, template string, data interface{}) {
+	l.logt(NoticeLevel, id, template, data)
 }
 func (l *Logger) Debug(id string, text string) {
-	l.Logp(DebugLevel, id, text)
+	l.logp(DebugLevel, id, text)
 }
 func (l *Logger) Debugf(id string, msg string, a ...interface{}) {
-	l.Logpf(DebugLevel, id, msg, a...)
-}
-func (l *Logger) Debugm(message Message) {
-	l.LogMessage(DebugLevel, message)
+	l.logf(DebugLevel, id, msg, a...)
 }
 
-func (l *Logger) Logp(level Level, id string, text string) {
-	l.LogMessage(level, Message{ID: id, EvaluatedText: text})
+func origin(skip int) string {
+	if _, file, _, ok := runtime.Caller(skip + 1); ok {
+		paths := strings.SplitAfter(file, "github.com/")
+		return "controller " + paths[len(paths)-1]
+	} else {
+		return "unknown"
+	}
 }
-func (l *Logger) Logpf(level Level, id string, msg string, a ...interface{}) {
-	l.Logp(level, id, fmt.Sprintf(msg, a...))
+func (l *Logger) logp(level Level, id string, text string) {
+	l.LogEntry(Entry{id, origin(1), level, Message{ID: id, EvaluatedText: text}})
+}
+func (l *Logger) logf(level Level, id string, msg string, a ...interface{}) {
+	l.LogEntry(Entry{id, origin(1), level, Message{ID: id, EvaluatedText: fmt.Sprintf(msg, a...)}})
+}
+func (l *Logger) logt(level Level, id string, template string, data interface{}) {
+	l.LogEntry(Entry{id, origin(1), level, Message{ID: id, Template: template, TemplateData: data}})
 }
 
 func (l *Logger) Finish() {
 	l.loggerType.Finish()
-}
-
-func (l *Logger) ErrorsSeen() bool {
-	return l.errorsSeen > 0
 }
 
 // turn excess lines into [...]

@@ -8,14 +8,15 @@ import (
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	"github.com/openshift/origin/pkg/diagnostics/types/diagnostic"
 )
 
 // UnitStatus
 type UnitStatus struct {
 	SystemdUnits map[string]types.SystemdUnit
+}
 
-	Log *log.Logger
+func (d UnitStatus) Name() string {
+	return "UnitStatus"
 }
 
 func (d UnitStatus) Description() string {
@@ -30,67 +31,33 @@ func (d UnitStatus) CanRun() (bool, error) {
 
 	return false, errors.New("systemd is not present on this host")
 }
-func (d UnitStatus) Check() (bool, []log.Message, []error, []error) {
-	if _, err := d.CanRun(); err != nil {
-		return false, nil, nil, []error{err}
-	}
+func (d UnitStatus) Check() *types.DiagnosticResult {
+	r := types.NewDiagnosticResult("UnitStatus")
 
-	warnings := []error{}
-	errors := []error{}
-
-	unitWarnings, unitErrors := unitRequiresUnit(d.Log, d.SystemdUnits["openshift-node"], d.SystemdUnits["iptables"], nodeRequiresIPTables)
-	warnings = append(warnings, unitWarnings...)
-	errors = append(errors, unitErrors...)
-
-	unitWarnings, unitErrors = unitRequiresUnit(d.Log, d.SystemdUnits["openshift-node"], d.SystemdUnits["docker"], `OpenShift nodes use Docker to run containers.`)
-	warnings = append(warnings, unitWarnings...)
-	errors = append(errors, unitErrors...)
-
-	unitWarnings, unitErrors = unitRequiresUnit(d.Log, d.SystemdUnits["openshift"], d.SystemdUnits["docker"], `OpenShift nodes use Docker to run containers.`)
-	warnings = append(warnings, unitWarnings...)
-	errors = append(errors, unitErrors...)
-
-	// node's dependency on openvswitch is a special case.
-	// We do not need to enable ovs because openshift-node starts it for us.
-	if d.SystemdUnits["openshift-node"].Active && !d.SystemdUnits["openvswitch"].Active {
-		diagnosticError := diagnostic.NewDiagnosticError("sdUnitSDNreqOVS", sdUnitSDNreqOVS, nil)
-		d.Log.Error(diagnosticError.ID, diagnosticError.Explanation)
-		errors = append(errors, diagnosticError)
-	}
+	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["iptables"], nodeRequiresIPTables)
+	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["docker"], `OpenShift nodes use Docker to run containers.`)
+	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["openvswitch"], sdUnitSDNreqOVS)
+	unitRequiresUnit(r, d.SystemdUnits["openshift-master"], d.SystemdUnits["openvswitch"], `OpenShift masters use openvswitch for access to cluster SDN networking`)
+	// all-in-one networking *could* be simpler, so fewer checks
+	unitRequiresUnit(r, d.SystemdUnits["openshift"], d.SystemdUnits["docker"], `OpenShift nodes use Docker to run containers.`)
 
 	// Anything that is enabled but not running deserves notice
 	for name, unit := range d.SystemdUnits {
 		if unit.Enabled && !unit.Active {
-			diagnosticError := diagnostic.NewDiagnosticErrorFromTemplate("sdUnitInactive", sdUnitInactive, map[string]string{"unit": name})
-			d.Log.LogMessage(log.ErrorLevel, *diagnosticError.LogMessage)
-			errors = append(errors, diagnosticError)
+			r.Errort("sdUnitInactive", nil, sdUnitInactive, log.Hash{"unit": name})
 		}
 	}
-
-	return (len(errors) == 0), nil, warnings, errors
+	return r
 }
 
-func unitRequiresUnit(logger *log.Logger, unit types.SystemdUnit, requires types.SystemdUnit, reason string) ([]error, []error) {
-	templateData := map[string]string{"unit": unit.Name, "required": requires.Name, "reason": reason}
+func unitRequiresUnit(r *types.DiagnosticResult, unit types.SystemdUnit, requires types.SystemdUnit, reason string) {
+	templateData := log.Hash{"unit": unit.Name, "required": requires.Name, "reason": reason}
 
 	if (unit.Active || unit.Enabled) && !requires.Exists {
-		diagnosticError := diagnostic.NewDiagnosticErrorFromTemplate("sdUnitReqLoaded", sdUnitReqLoaded, templateData)
-		logger.LogMessage(log.ErrorLevel, *diagnosticError.LogMessage)
-		return nil, []error{diagnosticError}
-
+		r.Errort("sdUnitReqLoaded", nil, sdUnitReqLoaded, templateData)
 	} else if unit.Active && !requires.Active {
-		diagnosticError := diagnostic.NewDiagnosticErrorFromTemplate("sdUnitReqActive", sdUnitReqActive, templateData)
-		logger.LogMessage(log.ErrorLevel, *diagnosticError.LogMessage)
-		return nil, []error{diagnosticError}
-
-	} else if unit.Enabled && !requires.Enabled {
-		diagnosticError := diagnostic.NewDiagnosticErrorFromTemplate("sdUnitReqEnabled", sdUnitReqEnabled, templateData)
-		logger.LogMessage(log.WarnLevel, *diagnosticError.LogMessage)
-		return []error{diagnosticError}, nil
-
+		r.Errort("sdUnitReqActive", nil, sdUnitReqActive, templateData)
 	}
-
-	return nil, nil
 }
 
 func errStr(err error) string {
@@ -155,13 +122,5 @@ To ensure it is not failing to run, check the status and logs with:
 
   # systemctl status {{.required}}
   # journalctl -ru {{.required}}
-  `
-
-	sdUnitReqEnabled = `
-systemd unit {{.unit}} is enabled to run automatically at boot, but {{.required}} is not.
-{{.reason}}
-An administrator can enable the {{.required}} unit with:
-
-  # systemctl enable {{.required}}
   `
 )

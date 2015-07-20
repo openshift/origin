@@ -2,89 +2,80 @@ package diagnostics
 
 import (
 	"fmt"
+	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
 	"io"
 	"os"
-
-	"github.com/spf13/cobra"
 
 	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	kutilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
-
-	diagnosticflags "github.com/openshift/origin/pkg/cmd/experimental/diagnostics/options"
-	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/cmd/cli/config"
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+
+	"github.com/openshift/origin/pkg/cmd/experimental/diagnostics/options"
 	"github.com/openshift/origin/pkg/diagnostics/log"
+	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
-var (
-	AvailableOverallDiagnostics = util.NewStringSet()
-)
-
-func init() {
-	AvailableOverallDiagnostics.Insert(AvailableClientDiagnostics.List()...)
-	AvailableOverallDiagnostics.Insert(AvailableMasterDiagnostics.List()...)
-	AvailableOverallDiagnostics.Insert(AvailableNodeDiagnostics.List()...)
-}
-
-type OverallDiagnosticsOptions struct {
+type DiagnosticsOptions struct {
 	RequestedDiagnostics util.StringList
 
 	MasterConfigLocation string
 	NodeConfigLocation   string
+	ClientClusterContext string
+	IsHost               bool
 
-	Factory *osclientcmd.Factory
+	ClientFlags *flag.FlagSet
+	Factory     *osclientcmd.Factory
 
 	LogOptions *log.LoggerOptions
 	Logger     *log.Logger
 }
 
-const longAllDescription = `
+const longDescription = `
 OpenShift Diagnostics
 
-This command helps you understand and troubleshoot OpenShift. It is
-intended to be run from the same context as an OpenShift client or running
-master / node in order to troubleshoot from the perspective of each.
+This command helps you understand and troubleshoot OpenShift. It runs
+diagnostics against an OpenShift cluster as with a client and/or the
+state of a running master / node host.
 
     $ %[1]s
 
-If run without flags or subcommands, it will check for config files for
-client, master, and node, and if found, use them for troubleshooting
-those components. If master/node config files are not found, the tool
-assumes they are not present and does diagnostics only as a client.
-
-You may also specify config files explicitly with flags below, in which
-case you will receive an error if they are invalid or not found.
+If run without flags, it will check for standard config files for
+client, master, and node, and if found, use them for diagnostics.
+You may also specify config files explicitly with flags, in which case
+you will receive an error if they are not found. For example:
 
     $ %[1]s --master-config=/etc/openshift/master/master-config.yaml
 
-Subcommands may be used to scope the troubleshooting to a particular
-component and are not limited to using config files; you can and should
-use the same flags that are actually set on the command line for that
-component to configure the diagnostic.
+* If master/node config files are not found and the --host flag is not
+  present, host diagnostics are skipped.
+* If the client has cluster-admin access, this access enables cluster
+  diagnostics to run which regular users cannot.
+* If a client config file is not found, client and cluster diagnostics
+  are skipped.
 
-    $ %[1]s node --hostname='node.example.com' --kubeconfig=...
-
-NOTE: This is an alpha version of diagnostics and will change significantly.
-NOTE: Global flags (from the 'options' subcommand) are ignored here but
-can be used with subcommands.
+NOTE: This is a beta version of diagnostics and may still evolve in a
+different direction.
 `
 
 func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.Command {
-	o := &OverallDiagnosticsOptions{
-		RequestedDiagnostics: AvailableOverallDiagnostics.List(),
+	o := &DiagnosticsOptions{
+		RequestedDiagnostics: util.StringList{},
 		LogOptions:           &log.LoggerOptions{Out: out},
 	}
 
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "This utility helps you understand and troubleshoot OpenShift v3.",
-		Long:  fmt.Sprintf(longAllDescription, fullName),
+		Long:  fmt.Sprintf(longDescription, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete())
 
-			failed, err := o.RunDiagnostics()
-			o.Logger.Summary()
+			failed, err, warnCount, errorCount := o.RunDiagnostics()
+			o.Logger.Summary(warnCount, errorCount)
 			o.Logger.Finish()
 
 			kcmdutil.CheckErr(err)
@@ -96,21 +87,22 @@ func NewCommandDiagnostics(name string, fullName string, out io.Writer) *cobra.C
 	}
 	cmd.SetOutput(out) // for output re: usage / help
 
-	o.Factory = osclientcmd.New(cmd.Flags()) // side effect: add standard persistent flags for openshift client
-	cmd.Flags().StringVar(&o.MasterConfigLocation, "master-config", "", "path to master config file")
-	cmd.Flags().StringVar(&o.NodeConfigLocation, "node-config", "", "path to node config file")
-	diagnosticflags.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, diagnosticflags.RecommendedLoggerOptionFlags())
-	diagnosticflags.BindDiagnosticFlag(cmd.Flags(), &o.RequestedDiagnostics, diagnosticflags.NewRecommendedDiagnosticFlag())
-
-	cmd.AddCommand(NewClientCommand(ClientDiagnosticsRecommendedName, name+" "+ClientDiagnosticsRecommendedName, out))
-	cmd.AddCommand(NewMasterCommand(MasterDiagnosticsRecommendedName, name+" "+MasterDiagnosticsRecommendedName, out))
-	cmd.AddCommand(NewNodeCommand(NodeDiagnosticsRecommendedName, name+" "+NodeDiagnosticsRecommendedName, out))
-	cmd.AddCommand(NewOptionsCommand())
+	o.ClientFlags = flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
+	o.Factory = osclientcmd.New(o.ClientFlags)                      // that would otherwise be added to this command
+	cmd.Flags().AddFlag(o.ClientFlags.Lookup(config.OpenShiftConfigFlagName))
+	cmd.Flags().AddFlag(o.ClientFlags.Lookup("context")) // TODO: find k8s constant
+	cmd.Flags().StringVar(&o.ClientClusterContext, options.FlagClusterContextName, "", "client context to use for cluster administrator")
+	cmd.Flags().StringVar(&o.MasterConfigLocation, options.FlagMasterConfigName, "", "path to master config file (implies --host)")
+	cmd.Flags().StringVar(&o.NodeConfigLocation, options.FlagNodeConfigName, "", "path to node config file (implies --host)")
+	cmd.Flags().BoolVar(&o.IsHost, options.FlagIsHostName, false, "look for systemd and journald units even without master/node config")
+	flagtypes.GLog(cmd.Flags())
+	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
+	options.BindDiagnosticFlag(cmd.Flags(), &o.RequestedDiagnostics, options.NewRecommendedDiagnosticFlag())
 
 	return cmd
 }
 
-func (o *OverallDiagnosticsOptions) Complete() error {
+func (o *DiagnosticsOptions) Complete() error {
 	var err error
 	o.Logger, err = o.LogOptions.NewLogger()
 	if err != nil {
@@ -120,112 +112,129 @@ func (o *OverallDiagnosticsOptions) Complete() error {
 	return nil
 }
 
-func (o OverallDiagnosticsOptions) RunDiagnostics() (bool, error) {
+func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 	failed := false
+	warnings := []error{}
 	errors := []error{}
-
-	masterFailed, err := o.CheckMaster()
-	failed = failed && masterFailed
-	if err != nil {
-		errors = append(errors, err)
+	diagnostics := map[string][]types.Diagnostic{}
+	AvailableDiagnostics := util.NewStringSet()
+	AvailableDiagnostics.Insert(AvailableClientDiagnostics.List()...)
+	AvailableDiagnostics.Insert(AvailableClusterDiagnostics.List()...)
+	AvailableDiagnostics.Insert(AvailableHostDiagnostics.List()...)
+	if len(o.RequestedDiagnostics) == 0 {
+		o.RequestedDiagnostics = AvailableDiagnostics.List()
+	} else if common := intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableDiagnostics); len(common) == 0 {
+		o.Logger.Errort("emptyReqDiag", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
+			log.Hash{"requested": o.RequestedDiagnostics, "available": AvailableDiagnostics.List()})
+		return false, fmt.Errorf("No requested diagnostics available"), 0, 1
+	} else if len(common) < len(o.RequestedDiagnostics) {
+		errors = append(errors, fmt.Errorf("Not all requested diagnostics are available"))
+		o.Logger.Errort("notAllReqDiag", `
+Of the requested diagnostics:
+    {{.requested}}
+only these are available:
+    {{.common}}
+The list of all possible is:
+    {{.available}}
+		`, log.Hash{"requested": o.RequestedDiagnostics, "common": common.List(), "available": AvailableDiagnostics.List()})
 	}
 
-	nodeFailed, err := o.CheckNode()
-	failed = failed && nodeFailed
-	if err != nil {
-		errors = append(errors, err)
+	func() { // don't trust discovery/build of diagnostics; wrap panic nicely in case of developer error
+		defer func() {
+			if r := recover(); r != nil {
+				failed = true
+				errors = append(errors, fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Stack trace follows : \n%v", r))
+			}
+		}()
+		detected, detectWarnings, detectErrors := o.detectClientConfig() // may log and return problems
+		for _, warn := range detectWarnings {
+			warnings = append(warnings, warn)
+		}
+		for _, err := range detectErrors {
+			errors = append(errors, err)
+		}
+		if !detected { // there just plain isn't any client config file available
+			o.Logger.Notice("discNoClientConf", "No client configuration specified; skipping client and cluster diagnostics.")
+		} else if rawConfig, err := o.buildRawConfig(); rawConfig == nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
+			o.Logger.Errorf("discBrokenClientConf", "Client configuration failed to load; skipping client and cluster diagnostics due to error: {{.error}}", log.Hash{"error": err.Error()})
+			errors = append(errors, err)
+		} else {
+			if err != nil { // error encountered, proceed with caution
+				o.Logger.Errorf("discClientConfErr", "Client configuration loading encountered an error, but proceeding anyway. Error was:\n{{.error}}", log.Hash{"error": err.Error()})
+				errors = append(errors, err)
+			}
+			if clientDiags, ok, err := o.buildClientDiagnostics(rawConfig); ok {
+				diagnostics["client"] = clientDiags
+			} else if err != nil {
+				failed = true
+				errors = append(errors, err)
+			}
+
+			if clusterDiags, ok, err := o.buildClusterDiagnostics(rawConfig); ok {
+				diagnostics["cluster"] = clusterDiags
+			} else if err != nil {
+				failed = true
+				errors = append(errors, err)
+			}
+		}
+
+		if hostDiags, ok, err := o.buildHostDiagnostics(); ok {
+			diagnostics["host"] = hostDiags
+		} else if err != nil {
+			failed = true
+			errors = append(errors, err)
+		}
+	}()
+
+	if failed {
+		return failed, kutilerrors.NewAggregate(errors), len(warnings), len(errors)
 	}
 
-	clientFailed, err := o.CheckClient()
-	failed = failed && clientFailed
-	if err != nil {
-		errors = append(errors, err)
-	}
-
-	return failed, kutilerrors.NewAggregate(errors)
+	failed, err, numWarnings, numErrors := o.Run(diagnostics)
+	numWarnings += len(warnings)
+	numErrors += len(errors)
+	return failed, err, numWarnings, numErrors
 }
 
-func (o OverallDiagnosticsOptions) CheckClient() (bool, error) {
-	runClientChecks := true
+func (o DiagnosticsOptions) Run(diagnostics map[string][]types.Diagnostic) (bool, error, int, int) {
+	warnCount := 0
+	errorCount := 0
+	for area, areaDiagnostics := range diagnostics {
+		for _, diagnostic := range areaDiagnostics {
+			func() { // wrap diagnostic panic nicely in case of developer error
+				defer func() {
+					if r := recover(); r != nil {
+						errorCount += 1
+						o.Logger.Errort("diagPanic",
+							"While running the {{.area}}.{{.name}} diagnostic, a panic was encountered.\nThis is a bug in diagnostics. Stack trace follows : \n{{.error}}",
+							log.Hash{"area": area, "name": diagnostic.Name(), "error": fmt.Sprintf("%v", r)})
+					}
+				}()
 
-	_, kubeClient, err := o.Factory.Clients()
-	if err != nil {
-		runClientChecks = false
-	}
+				if canRun, reason := diagnostic.CanRun(); !canRun {
+					if reason == nil {
+						o.Logger.Noticet("diagSkip", "Skipping diagnostic: {{.area}}.{{.name}}\nDescription: {{.diag}}",
+							log.Hash{"area": area, "name": diagnostic.Name(), "diag": diagnostic.Description()})
+					} else {
+						o.Logger.Noticet("diagSkip", "Skipping diagnostic: {{.area}}.{{.name}}\nDescription: {{.diag}}\nBecause: {{.reason}}",
+							log.Hash{"area": area, "name": diagnostic.Name(), "diag": diagnostic.Description(), "reason": reason.Error()})
+					}
+					return
+				}
 
-	kubeConfig, err := o.Factory.OpenShiftClientConfig.RawConfig()
-	if err != nil {
-		runClientChecks = false
-	}
-
-	if runClientChecks {
-		clientDiagnosticOptions := &ClientDiagnosticsOptions{
-			RequestedDiagnostics: intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableClientDiagnostics).List(),
-			KubeClient:           kubeClient,
-			KubeConfig:           &kubeConfig,
-			LogOptions:           o.LogOptions,
-			Logger:               o.Logger,
+				o.Logger.Noticet("diagRun", "Running diagnostic: {{.area}}.{{.name}}\nDescription: {{.diag}}",
+					log.Hash{"area": area, "name": diagnostic.Name(), "diag": diagnostic.Description()})
+				r := diagnostic.Check()
+				for _, entry := range r.Logs() {
+					o.Logger.LogEntry(entry)
+				}
+				warnCount += len(r.Warnings())
+				errorCount += len(r.Errors())
+			}()
 		}
 
-		return clientDiagnosticOptions.RunDiagnostics()
 	}
-
-	return false, nil
-}
-
-func (o OverallDiagnosticsOptions) CheckNode() (bool, error) {
-	if len(o.NodeConfigLocation) == 0 {
-		if _, err := os.Stat(StandardNodeConfigPath); !os.IsNotExist(err) {
-			o.NodeConfigLocation = StandardNodeConfigPath
-		}
-	}
-
-	if len(o.NodeConfigLocation) != 0 {
-		masterDiagnosticOptions := &NodeDiagnosticsOptions{
-			RequestedDiagnostics: intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableNodeDiagnostics).List(),
-			NodeConfigLocation:   o.NodeConfigLocation,
-			LogOptions:           o.LogOptions,
-			Logger:               o.Logger,
-		}
-
-		return masterDiagnosticOptions.RunDiagnostics()
-	}
-
-	return false, nil
-}
-
-func (o OverallDiagnosticsOptions) CheckMaster() (bool, error) {
-	if len(o.MasterConfigLocation) == 0 {
-		if _, err := os.Stat(StandardMasterConfigPath); !os.IsNotExist(err) {
-			o.MasterConfigLocation = StandardMasterConfigPath
-		}
-	}
-
-	if len(o.MasterConfigLocation) != 0 {
-		masterDiagnosticOptions := &MasterDiagnosticsOptions{
-			RequestedDiagnostics: intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableMasterDiagnostics).List(),
-			MasterConfigLocation: o.MasterConfigLocation,
-			LogOptions:           o.LogOptions,
-			Logger:               o.Logger,
-		}
-
-		return masterDiagnosticOptions.RunDiagnostics()
-	}
-
-	return false, nil
-}
-
-func NewOptionsCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use: "options",
-		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Usage()
-		},
-	}
-
-	templates.UseOptionsTemplates(cmd)
-
-	return cmd
+	return errorCount > 0, nil, warnCount, errorCount
 }
 
 // TODO move upstream

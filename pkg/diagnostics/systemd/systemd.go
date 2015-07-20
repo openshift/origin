@@ -5,11 +5,12 @@ import (
 
 	"fmt"
 	"github.com/openshift/origin/pkg/diagnostics/log"
-	"github.com/openshift/origin/pkg/diagnostics/types/diagnostic"
+	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
 type logEntry struct {
-	Message string // I feel certain we will want more fields at some point
+	Message   string `json:"MESSAGE"`
+	TimeStamp string `json:"__REALTIME_TIMESTAMP"` // epoch + ns
 }
 
 type logMatcher struct { // regex for scanning log messages and interpreting them when found
@@ -19,10 +20,9 @@ type logMatcher struct { // regex for scanning log messages and interpreting the
 	Interpretation string // log with above level+id if it's simple
 	KeepAfterMatch bool   // usually note only first matched entry, ignore rest
 	Interpret      func(  // run this for custom logic on match
-		logger *log.Logger,
 		entry *logEntry,
 		matches []string,
-	) (bool, []log.Message, []error, []error) // KeepAfterMatch?
+	) (bool /* KeepAfterMatch? */, *types.DiagnosticResult)
 }
 
 type unitSpec struct {
@@ -32,8 +32,8 @@ type unitSpec struct {
 }
 
 //
-// -------- Things that feed into the diagnostics definitions -----------
-// Search for Diagnostics for the actual diagnostics.
+// -------- These are things that feed into the diagnostics definitions -----------
+//
 
 // Reusable log matchers:
 var badImageTemplate = logMatcher{
@@ -81,15 +81,15 @@ logs after the node is actually available.`,
 				// TODO: don't rely on ipv4 format, should be ipv6 "soon"
 				Regexp: regexp.MustCompile("http: TLS handshake error from ([\\d.]+):\\d+: remote error: bad certificate"),
 				Level:  log.WarnLevel,
-				Interpret: func(logger *log.Logger, entry *logEntry, matches []string) (bool, []log.Message, []error, []error) {
-					warnings := []error{}
+				Interpret: func(entry *logEntry, matches []string) (bool, *types.DiagnosticResult) {
+					r := types.NewDiagnosticResult("openshift-master.journald")
 
 					client := matches[1]
 					prelude := fmt.Sprintf("Found 'openshift-master' journald log message:\n  %s\n", entry.Message)
 					if tlsClientErrorSeen == nil { // first time this message was seen
 						tlsClientErrorSeen = map[string]bool{client: true}
 						// TODO: too generic, adjust message depending on subnet of the "from" address
-						diagnosticError := diagnostic.NewDiagnosticError("sdLogOMreBadCert", prelude+`
+						r.Warn("sdLogOMreBadCert", nil, prelude+`
 This error indicates that a client attempted to connect to the master
 HTTPS API server but broke off the connection because the master's
 certificate is not validated by a cerificate authority (CA) acceptable
@@ -127,21 +127,13 @@ log message:
   (so this message may simply indicate that the master generated a new
   server certificate, e.g. to add a different --public-master, and a
   browser hasn't accepted it yet and is still attempting API calls;
-  try logging out of the console and back in again).`, nil)
-
-						message := log.Message{ID: diagnosticError.ID, EvaluatedText: diagnosticError.Explanation, TemplateData: map[string]string{"client": client}}
-						logger.LogMessage(log.WarnLevel, message)
-						warnings = append(warnings, diagnosticError)
+  try logging out of the console and back in again).`)
 
 					} else if !tlsClientErrorSeen[client] {
 						tlsClientErrorSeen[client] = true
-						diagnosticError := diagnostic.NewDiagnosticError("sdLogOMreBadCert", prelude+`This message was diagnosed above, but for a different client address.`, nil)
-						message := log.Message{ID: diagnosticError.ID, EvaluatedText: diagnosticError.Explanation, TemplateData: map[string]string{"client": client}}
-						logger.LogMessage(log.WarnLevel, message)
-						warnings = append(warnings, diagnosticError)
-
+						r.Warn("sdLogOMreBadCert", nil, prelude+`This message was diagnosed above, but for a different client address.`)
 					} // else, it's a repeat, don't mention it
-					return true, nil, warnings, nil // show once for every client failing to connect, not just the first
+					return true /* show once for every client failing to connect, not just the first */, r
 				},
 			},
 			{
@@ -165,11 +157,6 @@ message for any node with this problem.
 `,
 			},
 		},
-	},
-	{
-		Name:        "openshift-sdn-master",
-		StartMatch:  regexp.MustCompile("Starting OpenShift SDN Master"),
-		LogMatchers: []logMatcher{},
 	},
 	{
 		Name:       "openshift-node",
@@ -236,25 +223,19 @@ to the .kubeconfig specified in /etc/sysconfig/openshift-node
 This host will not function as a node until this is resolved. Pods
 scheduled for this node will remain in pending or unknown state forever.`,
 			},
-		},
-	},
-	{
-		Name:       "openshift-sdn-node",
-		StartMatch: regexp.MustCompile("Starting OpenShift SDN node"),
-		LogMatchers: []logMatcher{
 			{
 				Regexp: regexp.MustCompile("Could not find an allocated subnet for this minion.*Waiting.."),
 				Level:  log.WarnLevel,
 				Id:     "sdLogOSNnoSubnet",
 				Interpretation: `
-This warning occurs when openshift-sdn-node is trying to request the
+This warning occurs when openshift-node is trying to request the
 SDN subnet it should be configured with according to openshift-sdn-master,
 but either can't connect to it ("All the given peers are not reachable")
 or has not yet been assigned a subnet ("Key not found").
 
 This can just be a matter of waiting for the master to become fully
 available and define a record for the node (aka "minion") to use,
-and openshift-sdn-node will wait until that occurs, so the presence
+and openshift-node will wait until that occurs, so the presence
 of this message in the node log isn't necessarily a problem as
 long as the SDN is actually working, but this message may help indicate
 the problem if it is not working.
@@ -262,8 +243,8 @@ the problem if it is not working.
 If the master is available and this node's record is defined and this
 message persists, then it may be a sign of a different misconfiguration.
 Unfortunately the message is not specific about why the connection failed.
-Check MASTER_URL in /etc/sysconfig/openshift-sdn-node:
- * Is the protocol https? It should be http.
+Check the master's URL in the node configuration.
+ * Is the protocol http? It should be https.
  * Can you reach the address and port from the node using curl?
    ("404 page not found" is correct response)`,
 			},

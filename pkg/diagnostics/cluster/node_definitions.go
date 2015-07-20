@@ -1,4 +1,7 @@
-package client
+package cluster
+
+// The purpose of this diagnostic is to detect nodes that are out of commission
+// (which may affect the ability to schedule pods) for user awareness.
 
 import (
 	"errors"
@@ -10,7 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/openshift/origin/pkg/diagnostics/log"
-	"github.com/openshift/origin/pkg/diagnostics/types/diagnostic"
+	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
 const (
@@ -30,58 +33,67 @@ to the master with the same hostname.
 While in this state, pods should not be scheduled to deploy on the node,
 and any existing scheduled pods will be considered failed and removed.
 `
+
+	nodeNotSched = `Node {{.node}} is ready but is marked Unschedulable.
+This is usually set manually for administrative reasons.
+An administrator can mark the node schedulable with:
+    oadm manage-node {{.node}} --schedulable=true
+
+While in this state, pods should not be scheduled to deploy on the node.
+Existing pods will continue to run until completed or evacuated (see
+other options for 'oadm manage-node').
+`
 )
 
 // NodeDefinitions
-type NodeDefinition struct {
+type NodeDefinitions struct {
 	KubeClient *kclient.Client
-
-	Log *log.Logger
 }
 
-func (d NodeDefinition) Description() string {
+func (d NodeDefinitions) Name() string {
+	return "NodeDefinitions"
+}
+
+func (d NodeDefinitions) Description() string {
 	return "Check node records on master"
 }
-func (d NodeDefinition) CanRun() (bool, error) {
+
+func (d NodeDefinitions) CanRun() (bool, error) {
 	if d.KubeClient == nil {
-		// TODO make prettier?
 		return false, errors.New("must have kube client")
 	}
 	if _, err := d.KubeClient.Nodes().List(labels.LabelSelector{}, fields.Everything()); err != nil {
 		// TODO check for 403 to return: "Client does not have cluster-admin access and cannot see node records"
 
-		return false, diagnostic.NewDiagnosticError("clGetNodesFailed", fmt.Sprintf(clientErrorGettingNodes, err), err)
+		msg := log.Message{ID: "clGetNodesFailed", EvaluatedText: fmt.Sprintf(clientErrorGettingNodes, err)}
+		return false, types.DiagnosticError{msg.ID, &msg, err}
 	}
 
 	return true, nil
 }
-func (d NodeDefinition) Check() (bool, []log.Message, []error, []error) {
-	if _, err := d.CanRun(); err != nil {
-		return false, nil, nil, []error{err}
-	}
+
+func (d NodeDefinitions) Check() *types.DiagnosticResult {
+	r := types.NewDiagnosticResult("NodeDefinition")
 
 	nodes, err := d.KubeClient.Nodes().List(labels.LabelSelector{}, fields.Everything())
 	if err != nil {
-		return false, nil, nil, []error{
-			diagnostic.NewDiagnosticError("clGetNodesFailed", fmt.Sprintf(clientErrorGettingNodes, err), err),
-		}
+		r.Errorf("clGetNodesFailed", err, clientErrorGettingNodes, err)
+		return r
 	}
 
+	anyNodesAvail := false
 	for _, node := range nodes.Items {
 		var ready *kapi.NodeCondition
 		for i, condition := range node.Status.Conditions {
 			switch condition.Type {
-			// currently only one... used to be more, may be again
+			// Each condition appears only once. Currently there's only one... used to be more
 			case kapi.NodeReady:
 				ready = &node.Status.Conditions[i]
-				// TODO comment needed to explain why we do last one wins.  should this break instead?
 			}
 		}
 
 		if ready == nil || ready.Status != kapi.ConditionTrue {
-			// instead of building this, simply use the node object directly
-			templateData := map[string]interface{}{}
-			templateData["node"] = node.Name
+			templateData := log.Hash{"node": node.Name}
 			if ready == nil {
 				templateData["status"] = "None"
 				templateData["reason"] = "There is no readiness record."
@@ -89,12 +101,16 @@ func (d NodeDefinition) Check() (bool, []log.Message, []error, []error) {
 				templateData["status"] = ready.Status
 				templateData["reason"] = ready.Reason
 			}
-
-			return false, nil, []error{
-				diagnostic.NewDiagnosticErrorFromTemplate("clNodeBroken", nodeNotReady, templateData),
-			}, nil
+			r.Warnt("clNodeNotReady", nil, nodeNotReady, templateData)
+		} else if node.Spec.Unschedulable {
+			r.Warnt("clNodeNotSched", nil, nodeNotSched, log.Hash{"node": node.Name})
+		} else {
+			anyNodesAvail = true
 		}
 	}
+	if !anyNodesAvail {
+		r.Error("clNoAvailNodes", nil, "There were no nodes available for OpenShift to use.")
+	}
 
-	return true, nil, nil, nil
+	return r
 }
