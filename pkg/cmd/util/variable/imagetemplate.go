@@ -20,7 +20,7 @@ type ImageTemplate struct {
 	EnvFormat string
 }
 
-const defaultImageFormat = "openshift/origin-${component}:${version}"
+const defaultImageFormat = "openshift3/ose-${component}:${version}"
 const defaultImageEnvFormat = "OPENSHIFT_%s_IMAGE"
 
 // NewDefaultImageTemplate returns the default image template
