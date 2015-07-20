@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
-	deploy "github.com/openshift/origin/pkg/deploy/scaler"
+	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
@@ -108,19 +108,29 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kDescriberFunc(mapping)
 	}
+	kScalerFunc := w.Factory.Scaler
 	w.Scaler = func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
 		oc, kc, err := w.Clients()
 		if err != nil {
 			return nil, err
 		}
-		return deploy.ScalerFor(mapping.Kind, oc, kc)
+
+		if mapping.Kind == "DeploymentConfig" {
+			return deployscaler.NewDeploymentConfigScaler(oc, kc), nil
+		}
+		return kScalerFunc(mapping)
 	}
+	kReaperFunc := w.Factory.Reaper
 	w.Reaper = func(mapping *meta.RESTMapping) (kubectl.Reaper, error) {
 		oc, kc, err := w.Clients()
 		if err != nil {
 			return nil, err
 		}
-		return deployreaper.ReaperFor(mapping.Kind, oc, kc)
+
+		if mapping.Kind == "DeploymentConfig" {
+			return deployreaper.NewDeploymentConfigReaper(oc, kc), nil
+		}
+		return kReaperFunc(mapping)
 	}
 	kGeneratorFunc := w.Factory.Generator
 	w.Generator = func(name string) (kubectl.Generator, bool) {
@@ -129,44 +139,22 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kGeneratorFunc(name)
 	}
+	kPodSelectorForObjectFunc := w.Factory.PodSelectorForObject
 	w.PodSelectorForObject = func(object runtime.Object) (string, error) {
 		switch t := object.(type) {
 		case *deployapi.DeploymentConfig:
 			return kubectl.MakeLabels(t.Template.ControllerTemplate.Selector), nil
-		case *api.ReplicationController:
-			return kubectl.MakeLabels(t.Spec.Selector), nil
-		case *api.Pod:
-			if len(t.Labels) == 0 {
-				return "", fmt.Errorf("the pod has no labels and cannot be exposed")
-			}
-			return kubectl.MakeLabels(t.Labels), nil
-		case *api.Service:
-			if t.Spec.Selector == nil {
-				return "", fmt.Errorf("the service has no pod selector set")
-			}
-			return kubectl.MakeLabels(t.Spec.Selector), nil
 		default:
-			kind, err := meta.NewAccessor().Kind(object)
-			if err != nil {
-				return "", err
-			}
-			return "", fmt.Errorf("it is not possible to get a pod selector from %s", kind)
+			return kPodSelectorForObjectFunc(object)
 		}
 	}
+	kPortsForObjectFunc := w.Factory.PortsForObject
 	w.PortsForObject = func(object runtime.Object) ([]string, error) {
 		switch t := object.(type) {
 		case *deployapi.DeploymentConfig:
 			return getPorts(t.Template.ControllerTemplate.Template.Spec), nil
-		case *api.ReplicationController:
-			return getPorts(t.Spec.Template.Spec), nil
-		case *api.Pod:
-			return getPorts(t.Spec), nil
 		default:
-			kind, err := meta.NewAccessor().Kind(object)
-			if err != nil {
-				return nil, err
-			}
-			return nil, fmt.Errorf("it is not possible to get ports from %s", kind)
+			return kPortsForObjectFunc(object)
 		}
 	}
 	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
