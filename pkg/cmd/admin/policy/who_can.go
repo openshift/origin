@@ -44,7 +44,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 			options.client, _, err = f.Clients()
 			kcmdutil.CheckErr(err)
 
-			options.bindingNamespace, err = f.DefaultNamespace()
+			options.bindingNamespace, _, err = f.DefaultNamespace()
 			kcmdutil.CheckErr(err)
 
 			err = options.run()

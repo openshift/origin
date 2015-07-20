@@ -17,13 +17,12 @@
   </div>
   <div ng-if="emptyMessage && (projects | hashSize) == 0">{{emptyMessage}}</div>
   <div ng-if="canCreate === false" style="margin-top: 10px;">
-    <span ng-if="!newProjectMessage">An administrator can create a project for you
-      by running the command
-      <code>oadm new-project &lt;projectname&gt;
-        --admin={{user.metadata.name || '&lt;YourUsername&gt;'}}</code></span>
+    <span ng-if="!newProjectMessage">A cluster admin can create a project for you by running the command
+      <code>oadm new-project &lt;projectname&gt; --admin={{user.metadata.name || '&lt;YourUsername&gt;'}}</code></span>
     <span ng-if="newProjectMessage" ng-bind-html="newProjectMessage | linky" style="white-space:pre;"></span>
   </div>
   <div style="margin-top: 10px;">
-    To be added as an admin to an existing project, run <code>oadm policy add-role-to-user admin {{user.metadata.name || '&lt;YourUsername&gt;'}} -n &lt;projectname&gt;</code>
+    A project admin can add you as an admin to a project by running the command
+    <code>oc policy add-role-to-user admin {{user.metadata.name || '&lt;YourUsername&gt;'}} -n &lt;projectname&gt;</code>
   </div>
 </div>

@@ -15,13 +15,15 @@ import (
 const (
 	ManageNodeCommandName = "manage-node"
 
-	manageNodeLong = `Manage node operations
+	manageNodeLong = `
+Manage nodes
+
+This command provides common operations on nodes for administrators.
 
 schedulable: Marking node schedulable will allow pods to be schedulable on the node and
 	     marking node unschedulable will block pods to be scheduled on the node.
 
-evacuate: Migrate all/selected pods. There is an option to delete the bare pods.
-          It can list all pods that will be migrated before performing evacuation.
+evacuate: Migrate all/selected pod on the provided nodes.
 
 list-pods: List all/selected pods on given/selected nodes. It can list the output in json/yaml format.`
 

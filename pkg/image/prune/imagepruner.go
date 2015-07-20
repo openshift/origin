@@ -350,7 +350,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 				}
 
 				glog.V(4).Infof("Checking for existing strong reference from stream %s/%s to image %s", stream.Namespace, stream.Name, imageNode.Image.Name)
-				if edge := g.EdgeBetween(imageStreamNode, imageNode); edge != nil && g.EdgeKind(edge) == ReferencedImageEdgeKind {
+				if edge := g.Edge(imageStreamNode, imageNode); edge != nil && g.EdgeKinds(edge).Has(ReferencedImageEdgeKind) {
 					glog.V(4).Infof("Strong reference found")
 					continue
 				}
@@ -360,7 +360,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 
 				glog.V(4).Infof("Adding stream->layer references")
 				// add stream -> layer references so we can prune them later
-				for _, s := range g.Successors(imageNode) {
+				for _, s := range g.From(imageNode) {
 					if g.Kind(s) != imagegraph.ImageLayerNodeKind {
 						continue
 					}
@@ -547,9 +547,9 @@ func getImageNodes(nodes []gonum.Node) []*imagegraph.ImageNode {
 
 // edgeKind returns true if the edge from "from" to "to" is of the desired kind.
 func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
-	edge := g.EdgeBetween(from, to)
-	kind := g.EdgeKind(edge)
-	return kind == desiredKind
+	edge := g.Edge(from, to)
+	kinds := g.EdgeKinds(edge)
+	return kinds.Has(desiredKind)
 }
 
 // imageIsPrunable returns true iff the image node only has weak references
@@ -560,7 +560,7 @@ func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
 func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode) bool {
 	onlyWeakReferences := true
 
-	for _, n := range g.Predecessors(imageNode) {
+	for _, n := range g.To(imageNode) {
 		glog.V(4).Infof("Examining predecessor %#v", n)
 		if !edgeKind(g, n, imageNode, WeakReferencedImageEdgeKind) {
 			glog.V(4).Infof("Strong reference detected")
@@ -599,7 +599,7 @@ func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet
 		func(g graph.Interface, node gonum.Node) bool {
 			return !prunableImageIDs.Has(node.ID())
 		},
-		func(g graph.Interface, head, tail gonum.Node, edgeKind string) bool {
+		func(g graph.Interface, head, tail gonum.Node, edgeKinds util.StringSet) bool {
 			if prunableImageIDs.Has(head.ID()) {
 				return false
 			}
@@ -615,7 +615,7 @@ func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet
 func calculatePrunableLayers(g graph.Graph) []*imagegraph.ImageLayerNode {
 	prunable := []*imagegraph.ImageLayerNode{}
 
-	nodes := g.NodeList()
+	nodes := g.Nodes()
 	for i := range nodes {
 		layerNode, ok := nodes[i].(*imagegraph.ImageLayerNode)
 		if !ok {
@@ -641,7 +641,7 @@ func pruneStreams(g graph.Graph, imageNodes []*imagegraph.ImageNode, streamPrune
 
 	glog.V(4).Infof("Removing pruned image references from streams")
 	for _, imageNode := range imageNodes {
-		for _, n := range g.Predecessors(imageNode) {
+		for _, n := range g.To(imageNode) {
 			streamNode, ok := n.(*imagegraph.ImageStreamNode)
 			if !ok {
 				continue
@@ -722,7 +722,7 @@ func (p *imageRegistryPruner) determineRegistry(imageNodes []*imagegraph.ImageNo
 // image, and then it identifies layers eligible for pruning, invoking
 // layerPruneFunc for each registry URL that has layers that can be pruned.
 func (p *imageRegistryPruner) Prune(imagePruner ImagePruner, streamPruner ImageStreamPruner, layerPruner LayerPruner, blobPruner BlobPruner, manifestPruner ManifestPruner) error {
-	allNodes := p.g.NodeList()
+	allNodes := p.g.Nodes()
 
 	imageNodes := getImageNodes(allNodes)
 	if len(imageNodes) == 0 {
@@ -763,7 +763,7 @@ func (p *imageRegistryPruner) Prune(imagePruner ImagePruner, streamPruner ImageS
 
 // layerIsPrunable returns true if the layer is not referenced by any images.
 func layerIsPrunable(g graph.Graph, layerNode *imagegraph.ImageLayerNode) bool {
-	for _, predecessor := range g.Predecessors(layerNode) {
+	for _, predecessor := range g.To(layerNode) {
 		glog.V(4).Infof("Examining layer predecessor %#v", predecessor)
 		if g.Kind(predecessor) == imagegraph.ImageNodeKind {
 			glog.V(4).Infof("Layer has an image predecessor")
@@ -779,7 +779,7 @@ func layerIsPrunable(g graph.Graph, layerNode *imagegraph.ImageLayerNode) bool {
 func streamLayerReferences(g graph.Graph, layerNode *imagegraph.ImageLayerNode) []*imagegraph.ImageStreamNode {
 	ret := []*imagegraph.ImageStreamNode{}
 
-	for _, predecessor := range g.Predecessors(layerNode) {
+	for _, predecessor := range g.To(layerNode) {
 		if g.Kind(predecessor) != imagegraph.ImageStreamNodeKind {
 			continue
 		}
@@ -834,7 +834,7 @@ func pruneManifests(g graph.Graph, registryClient *http.Client, registryURL stri
 	errs := []error{}
 
 	for _, imageNode := range imageNodes {
-		for _, n := range g.Predecessors(imageNode) {
+		for _, n := range g.To(imageNode) {
 			streamNode, ok := n.(*imagegraph.ImageStreamNode)
 			if !ok {
 				continue

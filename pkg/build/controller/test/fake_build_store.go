@@ -38,13 +38,13 @@ func (s FakeBuildStore) ContainedIDs() util.StringSet {
 	return util.NewStringSet()
 }
 
-func (s FakeBuildStore) Get(obj interface{}) (item interface{}, exists bool, err error) {
+func (s FakeBuildStore) Get(obj interface{}) (interface{}, bool, error) {
 	return s.GetByKey("")
 }
 
-func (s FakeBuildStore) GetByKey(id string) (item interface{}, exists bool, err error) {
+func (s FakeBuildStore) GetByKey(id string) (interface{}, bool, error) {
 	if s.Err != nil {
-		return nil, false, err
+		return nil, false, s.Err
 	}
 	if s.Build == nil {
 		return nil, false, nil

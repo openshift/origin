@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/identity"
+	"github.com/openshift/origin/pkg/util"
 )
 
 // REST implements a RESTStorage for identites against etcd
@@ -26,11 +27,10 @@ func NewREST(h tools.EtcdHelper) *REST {
 		NewFunc:     func() runtime.Object { return &api.Identity{} },
 		NewListFunc: func() runtime.Object { return &api.IdentityList{} },
 		KeyRootFunc: func(ctx kapi.Context) string {
-			// TODO: JTL: switch to NoNamespaceKeyRootFunc after rebase
 			return EtcdPrefix
 		},
 		KeyFunc: func(ctx kapi.Context, name string) (string, error) {
-			return etcdgeneric.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
+			return util.NoNamespaceKeyFunc(ctx, EtcdPrefix, name)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.Identity).Name, nil

@@ -17,7 +17,7 @@ import (
 const CreateServerCertCommandName = "create-server-cert"
 
 type CreateServerCertOptions struct {
-	GetSignerCertOptions *GetSignerCertOptions
+	SignerCertOptions *SignerCertOptions
 
 	CertFile string
 	KeyFile  string
@@ -28,6 +28,8 @@ type CreateServerCertOptions struct {
 }
 
 const createServerLong = `
+Create a key and server certificate
+
 Create a key and server certificate valid for the specified hostnames,
 signed by the specified CA. These are useful for securing infrastructure
 components such as the router, authentication server, etc.
@@ -43,7 +45,7 @@ Example: Creating a secure router certificate.
 `
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateServerCertOptions{GetSignerCertOptions: &GetSignerCertOptions{}, Output: out}
+	options := &CreateServerCertOptions{SignerCertOptions: &SignerCertOptions{}, Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -61,7 +63,7 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	}
 
 	flags := cmd.Flags()
-	BindGetSignerCertOptions(options.GetSignerCertOptions, flags, "")
+	BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
 	flags.StringVar(&options.CertFile, "cert", "", "The certificate file. Choose a name that indicates what the service is.")
 	flags.StringVar(&options.KeyFile, "key", "", "The key file. Choose a name that indicates what the service is.")
@@ -90,10 +92,10 @@ func (o CreateServerCertOptions) Validate(args []string) error {
 		return errors.New("key must be provided")
 	}
 
-	if o.GetSignerCertOptions == nil {
+	if o.SignerCertOptions == nil {
 		return errors.New("signer options are required")
 	}
-	if err := o.GetSignerCertOptions.Validate(); err != nil {
+	if err := o.SignerCertOptions.Validate(); err != nil {
 		return err
 	}
 
@@ -103,7 +105,7 @@ func (o CreateServerCertOptions) Validate(args []string) error {
 func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfig, error) {
 	glog.V(4).Infof("Creating a server cert with: %#v", o)
 
-	signerCert, err := o.GetSignerCertOptions.GetSignerCert()
+	signerCert, err := o.SignerCertOptions.CA()
 	if err != nil {
 		return nil, err
 	}

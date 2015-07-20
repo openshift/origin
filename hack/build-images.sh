@@ -3,6 +3,10 @@
 # This script builds all images locally except the base and release images,
 # which are handled by hack/build-base-images.sh.
 
+# NOTE:  you only need to run this script if your code changes are part of
+# any images OpenShift runs internally such as origin-sti-builder, origin-docker-builder,
+# origin-deployer, etc.
+
 set -o errexit
 set -o nounset
 set -o pipefail

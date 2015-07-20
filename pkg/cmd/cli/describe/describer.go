@@ -242,6 +242,9 @@ func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writ
 	if s.Incremental {
 		formatString(out, "Incremental Build", "yes")
 	}
+	if s.ForcePull {
+		formatString(out, "Force Pull", "yes")
+	}
 }
 
 func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writer) {
@@ -257,6 +260,9 @@ func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writ
 	}
 	if s.NoCache {
 		formatString(out, "No Cache", "true")
+	}
+	if s.ForcePull {
+		formatString(out, "Force Pull", "true")
 	}
 }
 
@@ -900,7 +906,7 @@ func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions.Object)
 
 		buffer := new(bytes.Buffer)
-		printer := NewHumanReadablePrinter(true, false, []string{})
+		printer := NewHumanReadablePrinter(true, false, false, []string{})
 		if err := printer.PrintObj(rule.AttributeRestrictions.Object, buffer); err == nil {
 			extensionString = strings.TrimSpace(buffer.String())
 		}

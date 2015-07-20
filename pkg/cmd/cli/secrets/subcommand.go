@@ -12,7 +12,8 @@ import (
 const SecretsRecommendedName = "secrets"
 
 const (
-	secretsLong = `Manage secrets in your project.
+	secretsLong = `
+Manage secrets in your project
 
 Secrets are used to store confidential information that should not be contained inside of an image.
 They are commonly used to hold things like keys for authentication to other internal systems like 

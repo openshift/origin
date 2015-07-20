@@ -57,7 +57,7 @@ func NewCmdRun(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 		},
 	}
 	cmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().String("generator", "run-container/v1", "The name of the API generator to use.  Default is 'run-container/v1'.")
+	cmd.Flags().String("generator", "run/v1", "The name of the API generator to use.  Default is 'run-controller/v1'.")
 	cmd.Flags().String("image", "", "The image for the container to run.")
 	cmd.MarkFlagRequired("image")
 	cmd.Flags().IntP("replicas", "r", 1, "Number of replicas to create for this container. Default is 1.")
@@ -78,7 +78,7 @@ func Run(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) e
 		return cmdutil.UsageError(cmd, "NAME is required for run")
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

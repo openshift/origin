@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	exportLong = `Export resources so they can be used elsewhere
+	exportLong = `
+Export resources so they can be used elsewhere
 
 The export command makes it easy to take existing objects and convert them to configuration files
 for backups or for creating elsewhere in the cluster. Fields that cannot be specified on create
@@ -91,7 +92,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	}
 	outputVersion := cmdutil.OutputVersion(cmd, clientConfig.Version)
 
-	cmdNamespace, err := f.DefaultNamespace()
+	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -99,7 +100,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	mapper, typer := f.Object()
 	b := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(filenames...).
+		FilenameParam(explicit, filenames...).
 		SelectorParam(selector).
 		ResourceTypeOrNameArgs(all, args...).
 		Flatten()

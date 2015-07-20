@@ -13,7 +13,7 @@ angular.module('openshiftConsole')
     var displayNameFilter = $filter('displayName');
 
     var dcContainers = $parse('spec.template.spec.containers');
-    var stiBuilderImage = $parse('spec.strategy.sourceStrategy.from');
+    var builderImage = $parse('spec.strategy.sourceStrategy.from || spec.strategy.dockerStrategy.from || spec.strategy.customStrategy.from');
     var outputImage = $parse('spec.output.to');
 
     function deploymentConfigImages(dc) {
@@ -33,7 +33,7 @@ angular.module('openshiftConsole')
       var outputImages = {};
       angular.forEach(data.objects, function(item) {
         if (item.kind === "BuildConfig") {
-          var builder = imageObjectRefFilter(stiBuilderImage(item), $scope.projectName);
+          var builder = imageObjectRefFilter(builderImage(item), $scope.projectName);
           if(builder) {
             images.push({ name: builder });
           }

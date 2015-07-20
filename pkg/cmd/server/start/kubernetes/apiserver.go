@@ -12,7 +12,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
-const apiserverLong = `Start Kubernetes apiserver
+const apiserverLong = `
+Start Kubernetes apiserver
 
 This command launches an instance of the Kubernetes apiserver (kube-apiserver).`
 

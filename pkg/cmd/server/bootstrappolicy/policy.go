@@ -72,11 +72,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
-					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets", "pods/proxy", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
+					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
 				},
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "pods/exec", "pods/portforward"),
+					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName),
 				},
 				{
 					Verbs: util.NewStringSet("get", "update"),
@@ -92,11 +92,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "delete"),
-					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets", "pods/proxy", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
+					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
 				},
 				{
 					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet(authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects", "pods/exec", "pods/portforward"),
+					Resources: util.NewStringSet(authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects"),
 				},
 				{
 					Verbs: util.NewStringSet("get", "update"),
@@ -143,7 +143,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:           util.NewStringSet("get"),
-					NonResourceURLs: util.NewStringSet("/healthz", "/healthz/*", "/version", "/api", "/osapi"),
+					NonResourceURLs: util.NewStringSet("/healthz", "/healthz/*", "/version", "/api", "/oapi", "/osapi"),
 				},
 			},
 		},

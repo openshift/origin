@@ -22,7 +22,9 @@ import (
 const (
 	AddSecretRecommendedName = "add"
 
-	addSecretLong = `Add secrets to a ServiceAccount
+	// TODO: move to examples
+	addSecretLong = `
+Add secrets to a ServiceAccount
 
 After you have created a secret, you probably want to make use of that secret inside of a pod, for a build, or as an image pull secret.  In order to do that, you must add your secret to a service account.
 
@@ -122,7 +124,7 @@ func (o *AddSecretOptions) Complete(f *cmdutil.Factory, args []string, typeFlags
 		return err
 	}
 
-	o.Namespace, err = f.DefaultNamespace()
+	o.Namespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

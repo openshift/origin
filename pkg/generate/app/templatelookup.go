@@ -71,7 +71,7 @@ func (r *TemplateFileResolver) Resolve(value string) (*ComponentMatch, error) {
 	var isSingular bool
 	obj, err := resource.NewBuilder(r.Mapper, r.Typer, r.ClientMapper).
 		NamespaceParam(r.Namespace).RequireNamespace().
-		FilenameParam(value).
+		FilenameParam(false, value).
 		Do().
 		IntoSingular(&isSingular).
 		Object()

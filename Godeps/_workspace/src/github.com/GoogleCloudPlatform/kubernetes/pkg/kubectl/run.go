@@ -30,7 +30,7 @@ func (BasicReplicationController) ParamNames() []GeneratorParam {
 	return []GeneratorParam{
 		{"labels", false},
 		{"default-name", false},
-		{"name", false},
+		{"name", true},
 		{"replicas", true},
 		{"image", true},
 		{"port", false},

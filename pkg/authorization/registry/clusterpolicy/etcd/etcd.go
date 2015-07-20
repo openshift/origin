@@ -11,6 +11,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
+	"github.com/openshift/origin/pkg/util"
 )
 
 const ClusterPolicyPath = "/authorization/cluster/policies"
@@ -29,7 +30,7 @@ func NewStorage(h tools.EtcdHelper) *REST {
 			return ClusterPolicyPath
 		},
 		KeyFunc: func(ctx kapi.Context, id string) (string, error) {
-			return etcdgeneric.NoNamespaceKeyFunc(ctx, ClusterPolicyPath, id)
+			return util.NoNamespaceKeyFunc(ctx, ClusterPolicyPath, id)
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*authorizationapi.ClusterPolicy).Name, nil

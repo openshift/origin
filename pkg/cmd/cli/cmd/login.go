@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	loginLong = `Log in to an OpenShift server and save config for future use
+	loginLong = `
+Log in to an OpenShift server and save login for subsequent use
 
 First-time users of the OpenShift client should run this command to connect to a server,
 establish an authenticated session, and save connection to the configuration file. The
@@ -140,7 +141,7 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 	o.InsecureTLS = kcmdutil.GetFlagBool(cmd, "insecure-skip-tls-verify")
 	o.Token = kcmdutil.GetFlagString(cmd, "token")
 
-	o.DefaultNamespace, _ = f.OpenShiftClientConfig.Namespace()
+	o.DefaultNamespace, _, _ = f.OpenShiftClientConfig.Namespace()
 
 	o.PathOptions = config.NewPathOptions(cmd)
 

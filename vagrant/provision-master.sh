@@ -47,7 +47,7 @@ pushd /vagrant
   CERT_DIR="${MASTER_CONFIG_DIR}"
 
   # Master certs
-  /usr/bin/openshift admin create-master-certs \
+  /usr/bin/openshift admin ca create-master-certs \
     --overwrite=false \
     --cert-dir=${CERT_DIR} \
     --master=https://${MASTER_IP}:8443 \

@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	rollbackLong = `Revert part of an application back to a previous deployment.
+	rollbackLong = `
+Revert an application back to a previous deployment
 
 When you run this command your deployment configuration will be updated to
 match a previous deployment. By default only the pod and container
@@ -121,7 +122,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, args []string, out io.W
 	if len(args) == 1 {
 		o.TargetName = args[0]
 	}
-	namespace, err := f.DefaultNamespace()
+	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

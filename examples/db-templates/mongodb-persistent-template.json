@@ -148,7 +148,7 @@
               {
                 "name": "${DATABASE_SERVICE_NAME}-data",
                 "persistentVolumeClaim": {
-                  "claimName": "mongodb"
+                  "claimName": "${DATABASE_SERVICE_NAME}"
                 }
               }
             ],

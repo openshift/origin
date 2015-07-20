@@ -144,7 +144,7 @@
               {
                 "name": "${DATABASE_SERVICE_NAME}-data",
                 "persistentVolumeClaim": {
-                  "claimName": "postgresql"
+                  "claimName": "${DATABASE_SERVICE_NAME}"
                 }
               }
             ],

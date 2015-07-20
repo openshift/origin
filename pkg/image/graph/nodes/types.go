@@ -42,6 +42,10 @@ func (n ImageStreamNode) String() string {
 	return string(ImageStreamNodeName(n.ImageStream))
 }
 
+func (n ImageStreamNode) ResourceString() string {
+	return "is/" + n.Name
+}
+
 func (*ImageStreamNode) Kind() string {
 	return ImageStreamNodeKind
 }
@@ -77,6 +81,10 @@ func (n ImageStreamTagNode) Object() interface{} {
 
 func (n ImageStreamTagNode) String() string {
 	return string(ImageStreamTagNodeName(n.ImageStreamTag))
+}
+
+func (n ImageStreamTagNode) ResourceString() string {
+	return "imagestreamtag/" + n.Name
 }
 
 func (*ImageStreamTagNode) Kind() string {
@@ -146,6 +154,10 @@ func (n ImageNode) Object() interface{} {
 
 func (n ImageNode) String() string {
 	return string(ImageNodeName(n.Image))
+}
+
+func (n ImageNode) ResourceString() string {
+	return "image/" + n.Image.Name
 }
 
 func (*ImageNode) Kind() string {

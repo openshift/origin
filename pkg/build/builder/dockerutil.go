@@ -59,7 +59,7 @@ func removeImage(client DockerClient, name string) error {
 }
 
 // buildImage invokes a docker build on a particular directory
-func buildImage(client DockerClient, dir string, noCache bool, tag string, tar tar.Tar, pullAuth *docker.AuthConfigurations) error {
+func buildImage(client DockerClient, dir string, noCache bool, tag string, tar tar.Tar, pullAuth *docker.AuthConfigurations, forcePull bool) error {
 	tarFile, err := tar.CreateTarFile("", dir)
 	if err != nil {
 		return err
@@ -75,6 +75,7 @@ func buildImage(client DockerClient, dir string, noCache bool, tag string, tar t
 		OutputStream:   os.Stdout,
 		InputStream:    tarStream,
 		NoCache:        noCache,
+		Pull:           forcePull,
 	}
 	if pullAuth != nil {
 		opts.AuthConfigs = *pullAuth

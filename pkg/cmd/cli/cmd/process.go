@@ -23,12 +23,18 @@ import (
 )
 
 const (
-	processLong = `Process template into a list of resources specified in filename or stdin
+	processLong = `
+Process template into a list of resources specified in filename or stdin
 
-JSON and YAML formats are accepted.`
+Templates allow parameterization of resources prior to being sent to the server for creation or
+update. Templates have "parameters", which may either be generated on creation or set by the user,
+as well as metadata describing the template.
 
-	processExample = `  // Convert template.json file into resource list
-  $ %[1]s process -f template.json
+The output of the process command is always a list of one or more resources. You may pipe the
+output to the create command over STDIN (using the '-f -' option) or redirect it to a file.`
+
+	processExample = `  // Convert template.json file into resource list and pass to create
+  $ %[1]s process -f template.json | %[1]s create -f -
 
   // Process template while passing a user-defined label
   $ %[1]s process -f template.json -l name=mytemplate
@@ -88,7 +94,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 	}
 
-	namespace, err := f.DefaultNamespace()
+	namespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -126,7 +132,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	} else {
 		infos, err = resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 			NamespaceParam(namespace).RequireNamespace().
-			FilenameParam(filename).
+			FilenameParam(explicit, filename).
 			Do().
 			Infos()
 		if err != nil {

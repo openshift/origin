@@ -412,15 +412,17 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 // dockerBuild performs a docker build on the source that has been retrieved
 func (d *DockerBuilder) dockerBuild(dir string) error {
 	var noCache bool
+	var forcePull bool
 	if d.build.Spec.Strategy.DockerStrategy != nil {
 		if d.build.Spec.Source.ContextDir != "" {
 			dir = filepath.Join(dir, d.build.Spec.Source.ContextDir)
 		}
 		noCache = d.build.Spec.Strategy.DockerStrategy.NoCache
+		forcePull = d.build.Spec.Strategy.DockerStrategy.ForcePull
 	}
 	auth, err := d.setupPullSecret()
 	if err != nil {
 		return err
 	}
-	return buildImage(d.dockerClient, dir, noCache, d.build.Spec.Output.To.Name, d.tar, auth)
+	return buildImage(d.dockerClient, dir, noCache, d.build.Spec.Output.To.Name, d.tar, auth, forcePull)
 }

@@ -19,7 +19,8 @@ import (
 const (
 	CreateDockerConfigSecretRecommendedName = "new-dockercfg"
 
-	createDockercfgLong = `Create a new dockercfg secret
+	createDockercfgLong = `
+Create a new dockercfg secret
 
 Dockercfg secrets are used to authenticate against Docker registries.
 
@@ -148,7 +149,7 @@ func (o *CreateDockerConfigOptions) Complete(f *cmdutil.Factory, args []string) 
 	if err != nil {
 		return err
 	}
-	o.SecretNamespace, err = f.DefaultNamespace()
+	o.SecretNamespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}

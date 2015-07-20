@@ -16,6 +16,8 @@ var (
 	PodTemplateSpecNodeKind           = reflect.TypeOf(kapi.PodTemplateSpec{}).Name()
 	ReplicationControllerNodeKind     = reflect.TypeOf(kapi.ReplicationController{}).Name()
 	ReplicationControllerSpecNodeKind = reflect.TypeOf(kapi.ReplicationControllerSpec{}).Name()
+	ServiceAccountNodeKind            = reflect.TypeOf(kapi.ServiceAccount{}).Name()
+	SecretNodeKind                    = reflect.TypeOf(kapi.Secret{}).Name()
 )
 
 func ServiceNodeName(o *kapi.Service) osgraph.UniqueName {
@@ -33,6 +35,10 @@ func (n ServiceNode) Object() interface{} {
 
 func (n ServiceNode) String() string {
 	return string(ServiceNodeName(n.Service))
+}
+
+func (n ServiceNode) ResourceString() string {
+	return "svc/" + n.Name
 }
 
 func (*ServiceNode) Kind() string {
@@ -54,6 +60,10 @@ func (n PodNode) Object() interface{} {
 
 func (n PodNode) String() string {
 	return string(PodNodeName(n.Pod))
+}
+
+func (n PodNode) ResourceString() string {
+	return "pod/" + n.Name
 }
 
 func (n PodNode) UniqueName() osgraph.UniqueName {
@@ -106,6 +116,10 @@ func (n ReplicationControllerNode) Object() interface{} {
 
 func (n ReplicationControllerNode) String() string {
 	return string(ReplicationControllerNodeName(n.ReplicationController))
+}
+
+func (n ReplicationControllerNode) ResourceString() string {
+	return "rc/" + n.Name
 }
 
 func (n ReplicationControllerNode) UniqueName() osgraph.UniqueName {
@@ -168,4 +182,66 @@ func (n PodTemplateSpecNode) UniqueName() osgraph.UniqueName {
 
 func (*PodTemplateSpecNode) Kind() string {
 	return PodTemplateSpecNodeKind
+}
+
+func ServiceAccountNodeName(o *kapi.ServiceAccount) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(ServiceAccountNodeKind, o)
+}
+
+type ServiceAccountNode struct {
+	osgraph.Node
+	*kapi.ServiceAccount
+
+	IsFound bool
+}
+
+func (n ServiceAccountNode) Found() bool {
+	return n.IsFound
+}
+
+func (n ServiceAccountNode) Object() interface{} {
+	return n.ServiceAccount
+}
+
+func (n ServiceAccountNode) String() string {
+	return string(ServiceAccountNodeName(n.ServiceAccount))
+}
+
+func (n ServiceAccountNode) ResourceString() string {
+	return "sa/" + n.Name
+}
+
+func (*ServiceAccountNode) Kind() string {
+	return ServiceAccountNodeKind
+}
+
+func SecretNodeName(o *kapi.Secret) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(SecretNodeKind, o)
+}
+
+type SecretNode struct {
+	osgraph.Node
+	*kapi.Secret
+
+	IsFound bool
+}
+
+func (n SecretNode) Found() bool {
+	return n.IsFound
+}
+
+func (n SecretNode) Object() interface{} {
+	return n.Secret
+}
+
+func (n SecretNode) String() string {
+	return string(SecretNodeName(n.Secret))
+}
+
+func (n SecretNode) ResourceString() string {
+	return "secret/" + n.Name
+}
+
+func (*SecretNode) Kind() string {
+	return SecretNodeKind
 }

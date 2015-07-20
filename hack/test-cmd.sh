@@ -105,14 +105,9 @@ export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 # Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
 echo "[INFO] Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
 # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
-SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
-while read -r IP_ADDRESS
-do
-    SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
-done <<< "${ALL_IP_ADDRESSES}"
+SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
 
-openshift admin create-master-certs \
+openshift admin ca create-master-certs \
   --overwrite=false \
   --cert-dir="${MASTER_CONFIG_DIR}" \
   --hostnames="${SERVER_HOSTNAME_LIST}" \
@@ -249,6 +244,17 @@ oc get templates
 # TODO: create directly from template
 echo "templates: ok"
 
+
+# Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
+[ "$(oc create -f test/resource-builder/directory -f test/resource-builder/json-no-extension -f test/resource-builder/yml-no-extension 2>&1)" ]
+# Explicitly specified extensionless files
+oc get secret json-no-extension yml-no-extension
+# Scanned files with extensions inside directories
+oc get secret json-with-extension yml-with-extension
+# Ensure extensionless files inside directories are not processed by resource-builder
+[ "$(oc get secret json-no-extension-in-directory 2>&1 | grep 'not found')" ]
+echo "resource-builder: ok"
+
 # verify some default commands
 [ "$(openshift 2>&1)" ]
 [ "$(openshift cli)" ]
@@ -283,7 +289,15 @@ echo "templates: ok"
 [ "$(openshift kubectl 2>&1 | grep 'Kubernetes cluster')" ]
 [ "$(oadm 2>&1 | grep 'OpenShift Administrative Commands')" ]
 [ "$(openshift admin 2>&1 | grep 'OpenShift Administrative Commands')" ]
+[ "$(oadm | grep 'Basic Commands:')" ]
+[ "$(oadm | grep 'Install Commands:')" ]
+[ "$(oadm ca | grep 'Manage certificates')" ]
 [ "$(openshift start kubernetes 2>&1 | grep 'Kubernetes server components')" ]
+# check deprecated admin cmds for backward compatibility
+[ "$(oadm create-master-certs -h 2>&1 | grep 'Create keys and certificates')" ]
+[ "$(oadm create-key-pair -h 2>&1 | grep 'Create an RSA key pair')" ]
+[ "$(oadm create-server-cert -h 2>&1 | grep 'Create a key and server certificate')" ]
+[ "$(oadm create-signer-cert -h 2>&1 | grep 'Create a self-signed CA')" ]
 
 # help for root commands with --help flag must be consistent
 [ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]
@@ -626,7 +640,7 @@ oc delete bc/ruby-sample-build-validtag
 oc delete bc/ruby-sample-build-invalidtag
 
 # Test admin manage-node operations
-[ "$(openshift admin manage-node --help 2>&1 | grep 'Manage node operations')" ]
+[ "$(openshift admin manage-node --help 2>&1 | grep 'Manage nodes')" ]
 [ "$(oadm manage-node --selector='' --schedulable=true | grep --text 'Ready' | grep -v 'Sched')" ]
 oc create -f examples/hello-openshift/hello-pod.json
 #[ "$(oadm manage-node --list-pods | grep 'hello-openshift' | grep -E '(unassigned|assigned)')" ]

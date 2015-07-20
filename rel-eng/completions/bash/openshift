@@ -521,6 +521,7 @@ _openshift_start()
     flags+=("--nodes=")
     flags+=("--pause")
     flags+=("--portal-net=")
+    flags+=("--print-ip")
     flags+=("--public-master=")
     flags+=("--volume-dir=")
     flags_with_completion+=("--volume-dir")
@@ -775,46 +776,6 @@ _openshift_admin_policy()
     must_have_one_noun=()
 }
 
-_openshift_admin_ipfailover()
-{
-    last_command="openshift_admin_ipfailover"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--create")
-    flags+=("--credentials=")
-    flags_with_completion+=("--credentials")
-    flags_completion+=("__handle_filename_extension_flag kubeconfig")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--images=")
-    flags+=("--interface=")
-    two_word_flags+=("-i")
-    flags+=("--latest-images")
-    flags+=("--no-headers")
-    flags+=("--output=")
-    two_word_flags+=("-o")
-    flags+=("--output-version=")
-    flags+=("--replicas=")
-    two_word_flags+=("-r")
-    flags+=("--selector=")
-    two_word_flags+=("-l")
-    flags+=("--service-account=")
-    flags+=("--template=")
-    two_word_flags+=("-t")
-    flags+=("--type=")
-    flags+=("--virtual-ips=")
-    flags+=("--watch-port=")
-    two_word_flags+=("-w")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
 _openshift_admin_router()
 {
     last_command="openshift_admin_router"
@@ -850,6 +811,46 @@ _openshift_admin_router()
     flags+=("--template=")
     two_word_flags+=("-t")
     flags+=("--type=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_ipfailover()
+{
+    last_command="openshift_admin_ipfailover"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--create")
+    flags+=("--credentials=")
+    flags_with_completion+=("--credentials")
+    flags_completion+=("__handle_filename_extension_flag kubeconfig")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--images=")
+    flags+=("--interface=")
+    two_word_flags+=("-i")
+    flags+=("--latest-images")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--replicas=")
+    two_word_flags+=("-r")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    flags+=("--service-account=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--type=")
+    flags+=("--virtual-ips=")
+    flags+=("--watch-port=")
+    two_word_flags+=("-w")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -939,6 +940,92 @@ _openshift_admin_manage-node()
     flags+=("--selector=")
     flags+=("--template=")
     two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_prune_builds()
+{
+    last_command="openshift_admin_prune_builds"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--confirm")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--keep-complete=")
+    flags+=("--keep-failed=")
+    flags+=("--keep-younger-than=")
+    flags+=("--orphans")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_prune_deployments()
+{
+    last_command="openshift_admin_prune_deployments"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--confirm")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--keep-complete=")
+    flags+=("--keep-failed=")
+    flags+=("--keep-younger-than=")
+    flags+=("--orphans")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_prune_images()
+{
+    last_command="openshift_admin_prune_images"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--certificate-authority=")
+    flags+=("--confirm")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--keep-tag-revisions=")
+    flags+=("--keep-younger-than=")
+    flags+=("--registry-url=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_prune()
+{
+    last_command="openshift_admin_prune"
+    commands=()
+    commands+=("builds")
+    commands+=("deployments")
+    commands+=("images")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -1112,92 +1199,6 @@ _openshift_admin_config()
     must_have_one_noun=()
 }
 
-_openshift_admin_prune_builds()
-{
-    last_command="openshift_admin_prune_builds"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--confirm")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--keep-complete=")
-    flags+=("--keep-failed=")
-    flags+=("--keep-younger-than=")
-    flags+=("--orphans")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_openshift_admin_prune_deployments()
-{
-    last_command="openshift_admin_prune_deployments"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--confirm")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--keep-complete=")
-    flags+=("--keep-failed=")
-    flags+=("--keep-younger-than=")
-    flags+=("--orphans")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_openshift_admin_prune_images()
-{
-    last_command="openshift_admin_prune_images"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--certificate-authority=")
-    flags+=("--confirm")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--keep-tag-revisions=")
-    flags+=("--keep-younger-than=")
-    flags+=("--registry-url=")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_openshift_admin_prune()
-{
-    last_command="openshift_admin_prune"
-    commands=()
-    commands+=("builds")
-    commands+=("deployments")
-    commands+=("images")
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--help")
-    flags+=("-h")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
 _openshift_admin_create-kubeconfig()
 {
     last_command="openshift_admin_create-kubeconfig"
@@ -1230,9 +1231,9 @@ _openshift_admin_create-kubeconfig()
     must_have_one_noun=()
 }
 
-_openshift_admin_create-bootstrap-policy-file()
+_openshift_admin_create-api-client-config()
 {
-    last_command="openshift_admin_create-bootstrap-policy-file"
+    last_command="openshift_admin_create-api-client-config"
     commands=()
 
     flags=()
@@ -1240,12 +1241,28 @@ _openshift_admin_create-bootstrap-policy-file()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--filename=")
-    flags_with_completion+=("--filename")
+    flags+=("--basename=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
     flags_completion+=("_filedir")
+    flags+=("--client-dir=")
+    flags_with_completion+=("--client-dir")
+    flags_completion+=("_filedir")
+    flags+=("--groups=")
     flags+=("--help")
     flags+=("-h")
-    flags+=("--openshift-namespace=")
+    flags+=("--master=")
+    flags+=("--public-master=")
+    flags+=("--signer-cert=")
+    flags_with_completion+=("--signer-cert")
+    flags_completion+=("_filedir")
+    flags+=("--signer-key=")
+    flags_with_completion+=("--signer-key")
+    flags_completion+=("_filedir")
+    flags+=("--signer-serial=")
+    flags_with_completion+=("--signer-serial")
+    flags_completion+=("_filedir")
+    flags+=("--user=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -1270,6 +1287,27 @@ _openshift_admin_create-bootstrap-project-template()
     flags+=("--output-version=")
     flags+=("--template=")
     two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_create-bootstrap-policy-file()
+{
+    last_command="openshift_admin_create-bootstrap-policy-file"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("_filedir")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--openshift-namespace=")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -1360,9 +1398,9 @@ _openshift_admin_create-node-config()
     must_have_one_noun=()
 }
 
-_openshift_admin_create-master-certs()
+_openshift_admin_ca_create-master-certs()
 {
-    last_command="openshift_admin_create-master-certs"
+    last_command="openshift_admin_ca_create-master-certs"
     commands=()
 
     flags=()
@@ -1385,46 +1423,9 @@ _openshift_admin_create-master-certs()
     must_have_one_noun=()
 }
 
-_openshift_admin_create-api-client-config()
+_openshift_admin_ca_create-key-pair()
 {
-    last_command="openshift_admin_create-api-client-config"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--basename=")
-    flags+=("--certificate-authority=")
-    flags_with_completion+=("--certificate-authority")
-    flags_completion+=("_filedir")
-    flags+=("--client-dir=")
-    flags_with_completion+=("--client-dir")
-    flags_completion+=("_filedir")
-    flags+=("--groups=")
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--master=")
-    flags+=("--public-master=")
-    flags+=("--signer-cert=")
-    flags_with_completion+=("--signer-cert")
-    flags_completion+=("_filedir")
-    flags+=("--signer-key=")
-    flags_with_completion+=("--signer-key")
-    flags_completion+=("_filedir")
-    flags+=("--signer-serial=")
-    flags_with_completion+=("--signer-serial")
-    flags_completion+=("_filedir")
-    flags+=("--user=")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
-_openshift_admin_create-key-pair()
-{
-    last_command="openshift_admin_create-key-pair"
+    last_command="openshift_admin_ca_create-key-pair"
     commands=()
 
     flags=()
@@ -1446,9 +1447,9 @@ _openshift_admin_create-key-pair()
     must_have_one_noun=()
 }
 
-_openshift_admin_create-server-cert()
+_openshift_admin_ca_create-server-cert()
 {
-    last_command="openshift_admin_create-server-cert"
+    last_command="openshift_admin_ca_create-server-cert"
     commands=()
 
     flags=()
@@ -1480,9 +1481,9 @@ _openshift_admin_create-server-cert()
     must_have_one_noun=()
 }
 
-_openshift_admin_create-signer-cert()
+_openshift_admin_ca_create-signer-cert()
 {
-    last_command="openshift_admin_create-signer-cert"
+    last_command="openshift_admin_ca_create-signer-cert"
     commands=()
 
     flags=()
@@ -1503,6 +1504,27 @@ _openshift_admin_create-signer-cert()
     flags+=("--serial=")
     flags_with_completion+=("--serial")
     flags_completion+=("_filedir")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_ca()
+{
+    last_command="openshift_admin_ca"
+    commands=()
+    commands+=("create-master-certs")
+    commands+=("create-key-pair")
+    commands+=("create-server-cert")
+    commands+=("create-signer-cert")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -1531,23 +1553,20 @@ _openshift_admin()
     commands=()
     commands+=("new-project")
     commands+=("policy")
-    commands+=("ipfailover")
     commands+=("router")
+    commands+=("ipfailover")
     commands+=("registry")
     commands+=("build-chain")
     commands+=("manage-node")
-    commands+=("config")
     commands+=("prune")
+    commands+=("config")
     commands+=("create-kubeconfig")
-    commands+=("create-bootstrap-policy-file")
+    commands+=("create-api-client-config")
     commands+=("create-bootstrap-project-template")
+    commands+=("create-bootstrap-policy-file")
     commands+=("overwrite-policy")
     commands+=("create-node-config")
-    commands+=("create-master-certs")
-    commands+=("create-api-client-config")
-    commands+=("create-key-pair")
-    commands+=("create-server-cert")
-    commands+=("create-signer-cert")
+    commands+=("ca")
     commands+=("options")
 
     flags=()
@@ -2296,6 +2315,8 @@ _openshift_cli_logs()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--container=")
+    two_word_flags+=("-c")
     flags+=("--follow")
     flags+=("-f")
     flags+=("--help")
@@ -3287,6 +3308,8 @@ _openshift_kube_logs()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--container=")
+    two_word_flags+=("-c")
     flags+=("--follow")
     flags+=("-f")
     flags+=("--help")
@@ -4231,23 +4254,6 @@ _openshift_infra_docker-build()
     must_have_one_noun=()
 }
 
-_openshift_infra_git-server()
-{
-    last_command="openshift_infra_git-server"
-    commands=()
-
-    flags=()
-    two_word_flags=()
-    flags_with_completion=()
-    flags_completion=()
-
-    flags+=("--help")
-    flags+=("-h")
-
-    must_have_one_flag=()
-    must_have_one_noun=()
-}
-
 _openshift_infra()
 {
     last_command="openshift_infra"
@@ -4256,7 +4262,6 @@ _openshift_infra()
     commands+=("deploy")
     commands+=("sti-build")
     commands+=("docker-build")
-    commands+=("git-server")
 
     flags=()
     two_word_flags=()
