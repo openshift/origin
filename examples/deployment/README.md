@@ -22,12 +22,15 @@ Instances of your application are automatically added and removed from both serv
 
 Each deployment config has a *strategy* describing which fundamental deployment type to use. Some deployment types are implemented with multiple deployment configs - these are known as *composite deployment types*.
 
+
 Deployment Types
 ----------------
 
-### Rolling Deployments
+### Rolling Deployments (and Canary)
 
 A rolling deployment slowly replaces instances of the previous version of an application (in OpenShift and Kubernetes, pods) with instances of the new version of the application. A rolling deployment typically waits for new pods to become *ready* via a *readiness check* before scaling down the old components. If a significant issue occurs, the rolling deployment can be aborted.
+
+All rolling deployments in OpenShift are implicitly *canary* deployments - where a deployment is tested before rolling out. If the readiness check never succeeds, the deployment will be automatically rolled back. The readiness check may be arbitrarily sophisticated. If you need to implement more complex checks of the application (such as sending real user workloads to the new instance), consider implementing a custom deployment or a using a blue-green deployment strategy.
 
 
 #### When to use a rolling deployment?
@@ -232,6 +235,15 @@ OpenShift, through labels and deployment configurations, can support multiple si
 If you trigger a deployment on either shard, only the pods in that shard will be affected. You can easily trigger a deployment by changing the `SUBTITLE` environment variable in either deployment config `oc edit dc/ab-example-a` or `oc edit dc/ab-example-b`. You can add additional shards by repeating steps 5-7.
 
 Note: these steps will be simplified in future versions of OpenShift.
+
+
+##### Shard proxy / Traffic splitter
+
+In production environments, you may want to precisely control the distribution of traffic that lands on a particular shard. When dealing with large numbers of instances, you can use the relative scale of individual shards to implement percentage based traffic. That combines well with a *proxy shard*, which forwards or splits the traffic it receives to a separate service or application running elsewhere.
+
+In the simplest configuration, the proxy would forward requests unchanged. In more complex setups, you may wish to duplicate the incoming requests and send to both a separate cluster as well as to a local instance of the application, and compare the result. Other patterns include keeping the caches of a DR installation warm, or sampling incoming traffic for analysis purposes.
+
+While an implementation is beyond the scope of this example, any TCP (or UDP) proxy could be run under the desired shard. Use the `oc scale` command to alter the relative number of instances serving requests under the proxy shard. For more complex traffic management, you may consider customizing the OpenShift router with proportional balancing capabilities.
 
 
 Readiness Checks
