@@ -132,7 +132,7 @@ In order to maintain control over two distinct groups of instances (old and new 
 
 ##### Using a route and two services
 
-A route points to a service, and be changed to point to a different service at any time. As a developer, you may test the new version of your code by connecting to the new service before your production traffic is routed to it. Routes are intended for web (HTTP and HTTPS) traffic and so this technique is best suited for web applications.
+A route points to a service, and can be changed to point to a different service at any time. As a developer, you may test the new version of your code by connecting to the new service before your production traffic is routed to it. Routes are intended for web (HTTP and HTTPS) traffic and so this technique is best suited for web applications.
 
 1.  Create two copies of the example application
 
@@ -173,7 +173,7 @@ A/B deployments generally imply running two (or more) versions of the applicatio
 * When you want to test multiple versions of code or configuration, but are not planning to roll one out in preference to the other
 * When you want to have different configuration in different regions
 
-An A/B deployment groups different configuration and code -- multiple shards -- together under a single logical endpoint. Generally, these deployments, if they access persistent data, should properly deal with N-1 compatibility (the more shards you have, the more possible versions you have running). Use this pattern when you need separate internal configuration and code, but end users should not be aware of the changes
+An A/B deployment groups different configuration and code -- multiple shards -- together under a single logical endpoint. Generally, these deployments, if they access persistent data, should properly deal with N-1 compatibility (the more shards you have, the more possible versions you have running). Use this pattern when you need separate internal configuration and code, but end users should not be aware of the changes.
 
 
 #### Examples
