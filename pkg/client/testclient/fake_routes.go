@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -16,31 +17,31 @@ type FakeRoutes struct {
 }
 
 func (c *FakeRoutes) List(label labels.Selector, field fields.Selector) (*routeapi.RouteList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-routes"}, &routeapi.RouteList{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "list-routes"}, &routeapi.RouteList{})
 	return obj.(*routeapi.RouteList), err
 }
 
 func (c *FakeRoutes) Get(name string) (*routeapi.Route, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-route"}, &routeapi.Route{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "get-route"}, &routeapi.Route{})
 	return obj.(*routeapi.Route), err
 }
 
 func (c *FakeRoutes) Create(route *routeapi.Route) (*routeapi.Route, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-route"}, &routeapi.Route{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "create-route"}, &routeapi.Route{})
 	return obj.(*routeapi.Route), err
 }
 
 func (c *FakeRoutes) Update(route *routeapi.Route) (*routeapi.Route, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-route"}, &routeapi.Route{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "update-route"}, &routeapi.Route{})
 	return obj.(*routeapi.Route), err
 }
 
 func (c *FakeRoutes) Delete(name string) error {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-route"})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "delete-route"})
 	return nil
 }
 
 func (c *FakeRoutes) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-routes"})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "watch-routes"})
 	return nil, nil
 }

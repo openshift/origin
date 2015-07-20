@@ -2,6 +2,7 @@ package testclient
 
 import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 
@@ -9,22 +10,51 @@ import (
 	"github.com/openshift/origin/pkg/client"
 )
 
-// FakeAction is a wrapper around the Kubernetes FakeAction.
-// Used for faking various actions on resources.
-type FakeAction ktestclient.FakeAction
-
 // Fake implements Interface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the method you want to test easier.
 type Fake struct {
-	// Fake by default keeps a simple list of the methods that have been called.
-	Actions []FakeAction
+	// Actions by default keeps a simple list of the methods that have been called.
+	Actions []ktestclient.FakeAction
 	Err     error
 	// ReactFn is an optional function that will be invoked with the provided action
 	// and return a response.
 	ReactFn ktestclient.ReactionFunc
 }
 
-// NewSimpleFake returns a client that will respond with the provided objects
+var actions = make([]string, 0)
+
+func JoinActions(oc *Fake, kc *ktestclient.Fake) []ktestclient.FakeAction {
+	actual := []ktestclient.FakeAction{}
+	for _, typeOfAction := range actions {
+		if typeOfAction == "os" && len(oc.Actions) != 0 {
+			actual = append(actual, oc.Actions[0])
+			oc.Actions = oc.Actions[1:]
+		} else if typeOfAction == "kube" && len(kc.Actions) != 0 {
+			actual = append(actual, kc.Actions[0])
+			kc.Actions = kc.Actions[1:]
+		}
+	}
+	actions = actions[:0]
+	return actual
+}
+
+// NewSimpleKubeFake returns a Kubernetes client that will respond with the provided objects
+func NewSimpleKubeFake(objects ...runtime.Object) *ktestclient.Fake {
+	o := ktestclient.NewObjects(kapi.Scheme, kapi.Scheme)
+	for _, obj := range objects {
+		if err := o.Add(obj); err != nil {
+			panic(err)
+		}
+	}
+	return &ktestclient.Fake{ReactFn: kubeActions(ktestclient.ObjectReaction(o, klatest.RESTMapper))}
+}
+
+func kubeActions(reactFn ktestclient.ReactionFunc) ktestclient.ReactionFunc {
+	actions = append(actions, "kube")
+	return reactFn
+}
+
+// NewSimpleFake returns an OpenShift client that will respond with the provided objects
 func NewSimpleFake(objects ...runtime.Object) *Fake {
 	o := ktestclient.NewObjects(kapi.Scheme, kapi.Scheme)
 	for _, obj := range objects {
@@ -32,15 +62,20 @@ func NewSimpleFake(objects ...runtime.Object) *Fake {
 			panic(err)
 		}
 	}
-	return &Fake{ReactFn: ktestclient.ObjectReaction(o, latest.RESTMapper)}
+	return &Fake{ReactFn: openShiftActions(ktestclient.ObjectReaction(o, latest.RESTMapper))}
+}
+
+func openShiftActions(reactFn ktestclient.ReactionFunc) ktestclient.ReactionFunc {
+	actions = append(actions, "os")
+	return reactFn
 }
 
 // Invokes registers the passed fake action and reacts on it if a ReactFn
 // has been defined
-func (c *Fake) Invokes(action FakeAction, obj runtime.Object) (runtime.Object, error) {
+func (c *Fake) Invokes(action ktestclient.FakeAction, obj runtime.Object) (runtime.Object, error) {
 	c.Actions = append(c.Actions, action)
 	if c.ReactFn != nil {
-		return c.ReactFn(ktestclient.FakeAction(action))
+		return c.ReactFn(action)
 	}
 	return obj, c.Err
 }

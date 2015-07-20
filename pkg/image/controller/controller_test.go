@@ -305,6 +305,7 @@ func TestControllerWithSpecTags(t *testing.T) {
 		if test.expectUpdate {
 			if len(fake.Actions) != 2 {
 				t.Errorf("%s: expected an update action: %#v", name, fake.Actions)
+				continue
 			}
 			if e, a := "create-imagestream-mapping", fake.Actions[0].Action; e != a {
 				t.Errorf("%s: expected %s, got %s", name, e, a)
@@ -315,6 +316,7 @@ func TestControllerWithSpecTags(t *testing.T) {
 		} else {
 			if len(fake.Actions) != 1 {
 				t.Errorf("%s: expected no update action: %#v", name, fake.Actions)
+				continue
 			}
 			if e, a := "update-imagestream", fake.Actions[0].Action; e != a {
 				t.Errorf("%s: expected %s, got %s", name, e, a)

@@ -2,6 +2,7 @@ package testclient
 
 import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 
 	"github.com/openshift/origin/pkg/build/api"
 )
@@ -15,6 +16,6 @@ type FakeBuildLogs struct {
 
 // Get builds and returns a buildLog request
 func (c *FakeBuildLogs) Get(name string, opt api.BuildLogOptions) *kclient.Request {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "proxy"})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "proxy"})
 	return &kclient.Request{}
 }

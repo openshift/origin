@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
@@ -13,26 +14,26 @@ type FakeHostSubnet struct {
 }
 
 func (c *FakeHostSubnet) List() (*sdnapi.HostSubnetList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-subnets"}, &sdnapi.HostSubnetList{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "list-subnets"}, &sdnapi.HostSubnetList{})
 	return obj.(*sdnapi.HostSubnetList), err
 }
 
 func (c *FakeHostSubnet) Get(name string) (*sdnapi.HostSubnet, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-subnets"}, &sdnapi.HostSubnet{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "get-subnets"}, &sdnapi.HostSubnet{})
 	return obj.(*sdnapi.HostSubnet), err
 }
 
 func (c *FakeHostSubnet) Create(sdn *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-subnet"}, &sdnapi.HostSubnet{})
+	obj, err := c.Fake.Invokes(ktestclient.FakeAction{Action: "create-subnet"}, &sdnapi.HostSubnet{})
 	return obj.(*sdnapi.HostSubnet), err
 }
 
 func (c *FakeHostSubnet) Delete(name string) error {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-subnet"})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "delete-subnet"})
 	return nil
 }
 
 func (c *FakeHostSubnet) Watch(resourceVersion string) (watch.Interface, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-subnets"})
+	c.Fake.Actions = append(c.Fake.Actions, ktestclient.FakeAction{Action: "watch-subnets"})
 	return nil, nil
 }
