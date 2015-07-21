@@ -306,6 +306,10 @@ wait_for_url_timed "http://${DOCKER_REGISTRY}/healthz" "[INFO] Docker registry s
 echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'..."
 oc login -u e2e-user -p pass
 [ "$(oc whoami | grep 'e2e-user')" ]
+ 
+# make sure viewers can see oc status
+oc status -n default
+
 oc project cache
 token=$(oc config view --flatten -o template -t '{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${token} ]]

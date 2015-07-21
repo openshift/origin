@@ -124,7 +124,7 @@ func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w h
 	if err != nil {
 		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
 	} else {
-		_ = json.Indent(formatted, output, "", "  ")
+		json.Indent(formatted, output, "", "  ")
 	}
 
 	w.Header().Set("Content-Type", restful.MIME_JSON)

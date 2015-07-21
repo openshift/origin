@@ -84,6 +84,9 @@ func (m ByNodeID) Less(i, j int) bool {
 	if m[i].Node == nil {
 		return true
 	}
+	if m[j].Node == nil {
+		return false
+	}
 	return m[i].Node.ID() < m[j].Node.ID()
 }
 
