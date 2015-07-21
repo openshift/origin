@@ -145,6 +145,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{ENV['OPENSHIFT_SDN']}"
       config.vm.network "private_network", ip: "#{master_ip}"
       config.vm.hostname = "openshift-master"
+      config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
     end
 
     # OpenShift minion
@@ -157,6 +158,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{minion_ip} #{minion_index} #{ENV['OPENSHIFT_SDN']}"
         minion.vm.network "private_network", ip: "#{minion_ip}"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
+        config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
       end
     end
   else # Single VM dev environment
