@@ -42,7 +42,7 @@ popd
 echo "Generating certs"
 pushd /vagrant
   SERVER_CONFIG_DIR="`pwd`/openshift.local.config"
-  VOLUMES_DIR="/openshift.local.volumes"
+  VOLUMES_DIR="/var/lib/openshift.local.volumes"
   MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
   CERT_DIR="${MASTER_CONFIG_DIR}"
 
