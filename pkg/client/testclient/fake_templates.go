@@ -36,11 +36,17 @@ func (c *FakeTemplates) Update(template *templateapi.Template) (*templateapi.Tem
 }
 
 func (c *FakeTemplates) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-template", Value: name})
 	return nil
 }
 
 func (c *FakeTemplates) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-templates"})
 	return nil, nil
 }

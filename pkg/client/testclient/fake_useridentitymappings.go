@@ -26,6 +26,9 @@ func (c *FakeUserIdentityMappings) Update(mapping *userapi.UserIdentityMapping) 
 }
 
 func (c *FakeUserIdentityMappings) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-useridentitymapping", Value: name})
 	return nil
 }

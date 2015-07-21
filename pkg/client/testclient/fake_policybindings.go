@@ -30,11 +30,17 @@ func (c *FakePolicyBindings) Create(policyBinding *authorizationapi.PolicyBindin
 }
 
 func (c *FakePolicyBindings) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-policyBinding", Value: name})
 	return nil
 }
 
 func (c *FakePolicyBindings) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-policyBinding"})
 	return nil, nil
 }

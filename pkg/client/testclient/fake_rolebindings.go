@@ -34,6 +34,9 @@ func (c *FakeRoleBindings) Update(roleBinding *authorizationapi.RoleBinding) (*a
 }
 
 func (c *FakeRoleBindings) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-roleBinding", Value: name})
 	return nil
 }

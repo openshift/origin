@@ -16,6 +16,9 @@ type FakeImageStreamMappings struct {
 var _ client.ImageStreamMappingInterface = &FakeImageStreamMappings{}
 
 func (c *FakeImageStreamMappings) Create(mapping *imageapi.ImageStreamMapping) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-imagestream-mapping"})
 	return nil
 }

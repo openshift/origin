@@ -40,11 +40,17 @@ func (c *FakeImageStreams) Update(stream *imageapi.ImageStream) (*imageapi.Image
 }
 
 func (c *FakeImageStreams) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-imagestream", Value: name})
 	return nil
 }
 
 func (c *FakeImageStreams) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-imagestreams"})
 	return nil, nil
 }

@@ -28,11 +28,17 @@ func (c *FakeHostSubnet) Create(sdn *sdnapi.HostSubnet) (*sdnapi.HostSubnet, err
 }
 
 func (c *FakeHostSubnet) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-subnet"})
 	return nil
 }
 
 func (c *FakeHostSubnet) Watch(resourceVersion string) (watch.Interface, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-subnets"})
 	return nil, nil
 }
