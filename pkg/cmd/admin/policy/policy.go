@@ -43,6 +43,7 @@ func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 	cmds.AddCommand(NewCmdRemoveClusterRoleFromUser(RemoveClusterRoleFromUserRecommendedName, fullName+" "+RemoveClusterRoleFromUserRecommendedName, f, out))
 	cmds.AddCommand(NewCmdAddClusterRoleToGroup(AddClusterRoleToGroupRecommendedName, fullName+" "+AddClusterRoleToGroupRecommendedName, f, out))
 	cmds.AddCommand(NewCmdRemoveClusterRoleFromGroup(RemoveClusterRoleFromGroupRecommendedName, fullName+" "+RemoveClusterRoleFromGroupRecommendedName, f, out))
+	cmds.AddCommand(NewCmdReconcileClusterRoles(ReconcileClusterRolesRecommendedName, fullName+" "+ReconcileClusterRolesRecommendedName, f, out))
 
 	return cmds
 }

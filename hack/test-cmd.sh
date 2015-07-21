@@ -701,6 +701,12 @@ oadm policy add-cluster-role-to-group cluster-admin system:unauthenticated
 oadm policy remove-cluster-role-from-group cluster-admin system:unauthenticated
 oadm policy add-cluster-role-to-user cluster-admin system:no-user
 oadm policy remove-cluster-role-from-user cluster-admin system:no-user
+oc delete clusterrole/cluster-status
+[ ! "$(oc get clusterrole/cluster-status)" ]
+oadm policy reconcile-cluster-roles
+[ ! "$(oc get clusterrole/cluster-status)" ]
+oadm policy reconcile-cluster-roles --confirm
+oc get clusterrole/cluster-status
 
 oc policy add-role-to-group cluster-admin system:unauthenticated
 oc policy add-role-to-user cluster-admin system:no-user
