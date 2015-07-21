@@ -318,6 +318,8 @@ _oc_new-app()
     flags+=("--output-version=")
     flags+=("--param=")
     two_word_flags+=("-p")
+    flags+=("--search")
+    flags+=("-S")
     flags+=("--strategy=")
     flags+=("--template=")
 

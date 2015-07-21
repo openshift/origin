@@ -455,6 +455,16 @@ Create a new application
  
   // Create an application based on a template file, explicitly setting a parameter value
   $ openshift cli new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
+
+  // Search for "mysql" in all image repositories and stored templates
+  $ openshift cli new-app --search mysql
+
+  // Search for "ruby", but only in stored templates (--template, --image and --docker-image
+  // can be used to filter search results)
+  $ openshift cli new-app --search --template=ruby
+
+  // Search for "ruby" in stored templates and print the output as an YAML
+  $ openshift cli new-app --search --template=ruby --output=yaml
 ----
 ====
 

@@ -27,7 +27,7 @@ func testImageStreamClient(imageStreams *imageapi.ImageStreamList, images map[st
 	}
 }
 
-func TestImageStreamByAnnotationResolver(t *testing.T) {
+func TestImageStreamByAnnotationSearcherAndResolver(t *testing.T) {
 	streams, images := fakeImageStreams(
 		&fakeImageStreamDesc{
 			name: "ruby",
@@ -45,7 +45,8 @@ func TestImageStreamByAnnotationResolver(t *testing.T) {
 		},
 	)
 	client := testImageStreamClient(streams, images)
-	resolver := NewImageStreamByAnnotationResolver(client, client, []string{"default"})
+	searcher := NewImageStreamByAnnotationSearcher(client, client, []string{"default"})
+	resolver := UniqueExactOrInexactMatchResolver{Searcher: searcher}
 	tests := []struct {
 		value       string
 		expectMatch bool
@@ -69,12 +70,20 @@ func TestImageStreamByAnnotationResolver(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		searchResults, _ := searcher.Search(test.value)
+		if len(searchResults) == 0 && test.expectMatch {
+			t.Errorf("Expected a search match for %s. Got none", test.value)
+		}
+		if len(searchResults) == 1 && !test.expectMatch {
+			t.Errorf("Did not expect search a match for %s. Got a match", test.value)
+		}
+
 		_, err := resolver.Resolve(test.value)
 		if err != nil && test.expectMatch {
-			t.Errorf("Expected a match for %s. Got none", test.value)
+			t.Errorf("Expected a resolve match for %s. Got none", test.value)
 		}
 		if err == nil && !test.expectMatch {
-			t.Errorf("Did not expect a match for %s. Got a match", test.value)
+			t.Errorf("Did not expect resolve a match for %s. Got a match", test.value)
 		}
 	}
 }
@@ -146,7 +155,7 @@ func TestAnnotationMatches(t *testing.T) {
 		"wildfly": "wildfly:8.0",
 	})
 	client := testImageStreamClient(nil, images)
-	resolver := NewImageStreamByAnnotationResolver(client, client, []string{"default"}).(*ImageStreamByAnnotationResolver)
+	searcher := NewImageStreamByAnnotationSearcher(client, client, []string{"default"}).(*ImageStreamByAnnotationSearcher)
 	tests := []struct {
 		name         string
 		value        string
@@ -186,7 +195,7 @@ func TestAnnotationMatches(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		matches := resolver.annotationMatches(stream, test.value)
+		matches := searcher.annotationMatches(stream, test.value)
 		if len(matches) != test.expectCount {
 			t.Errorf("%s: unexpected number of matches. Got: %d. Expected: %d\n", test.name, len(matches), test.expectCount)
 			continue
