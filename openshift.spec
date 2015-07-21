@@ -169,6 +169,7 @@ mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/oc
 ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/oadm
+ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/kubectl
 
 install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/openshift-node-{guest,host}
 install -m 0644 tuned/openshift-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/openshift-node-guest/
@@ -197,6 +198,7 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
 %{_bindir}/openshift
 %{_bindir}/oc
 %{_bindir}/oadm
+%{_bindir}/kubectl
 %{_sharedstatedir}/%{name}
 /etc/bash_completion.d/*
 
