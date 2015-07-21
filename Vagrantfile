@@ -73,6 +73,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
     "memory"            => ENV['OPENSHIFT_MEMORY'] || 1024,
     "sync_folders_type" => nil,
+    "master_ip"         => ENV['OPENSHIFT_MASTER_IP'] || "10.245.2.2",
+    "minion_ip_base"    => ENV['OPENSHIFT_MINION_IP_BASE'] || "10.245.2.",
     "virtualbox"        => {
       "box_name" => "fedora_inst",
       "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
@@ -122,8 +124,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     num_minion = (vagrant_openshift_config['num_minions'] || ENV['OPENSHIFT_NUM_MINIONS'] || 2).to_i
 
     # IP configuration
-    master_ip = "10.245.2.2"
-    minion_ip_base = "10.245.2."
+    master_ip = vagrant_openshift_config['master_ip']
+    minion_ip_base = vagrant_openshift_config['minion_ip_base']
     minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+3}" }
     minion_ips_str = minion_ips.join(",")
 
