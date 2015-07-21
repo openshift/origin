@@ -2180,6 +2180,52 @@ func deepCopy_v1_TemplateList(in templateapiv1.TemplateList, out *templateapiv1.
 	return nil
 }
 
+func deepCopy_v1_Group(in userapiv1.Group, out *userapiv1.Group, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(v1.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
+		return err
+	} else {
+		out.ObjectMeta = newVal.(v1.ObjectMeta)
+	}
+	if in.Users != nil {
+		out.Users = make([]string, len(in.Users))
+		for i := range in.Users {
+			out.Users[i] = in.Users[i]
+		}
+	} else {
+		out.Users = nil
+	}
+	return nil
+}
+
+func deepCopy_v1_GroupList(in userapiv1.GroupList, out *userapiv1.GroupList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(v1.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(v1.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]userapiv1.Group, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_v1_Group(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_v1_Identity(in userapiv1.Identity, out *userapiv1.Identity, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -2418,6 +2464,8 @@ func init() {
 		deepCopy_v1_Parameter,
 		deepCopy_v1_Template,
 		deepCopy_v1_TemplateList,
+		deepCopy_v1_Group,
+		deepCopy_v1_GroupList,
 		deepCopy_v1_Identity,
 		deepCopy_v1_IdentityList,
 		deepCopy_v1_User,

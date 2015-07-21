@@ -124,6 +124,7 @@ func init() {
 		"User":                true,
 		"Identity":            true,
 		"UserIdentityMapping": true,
+		"Group":               true,
 
 		"OAuthAccessToken":         true,
 		"OAuthAuthorizeToken":      true,

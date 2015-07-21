@@ -7,6 +7,75 @@ import (
 	"github.com/openshift/origin/pkg/user/api"
 )
 
+func TestValidateGroup(t *testing.T) {
+	validObj := func() *api.Group {
+		return &api.Group{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "myname",
+			},
+			Users: []string{"myuser"},
+		}
+	}
+
+	if errs := ValidateGroup(validObj()); len(errs) > 0 {
+		t.Errorf("Expected no errors, got %v", errs)
+	}
+
+	emptyUser := validObj()
+	emptyUser.Users = []string{""}
+	if errs := ValidateGroup(emptyUser); len(errs) == 0 {
+		t.Errorf("Expected error, got none")
+	}
+
+	invalidUser := validObj()
+	invalidUser.Users = []string{"bad:user:name"}
+	if errs := ValidateGroup(invalidUser); len(errs) == 0 {
+		t.Errorf("Expected error, got none")
+	}
+
+	invalidName := validObj()
+	invalidName.Name = "bad:group:name"
+	if errs := ValidateGroup(invalidName); len(errs) == 0 {
+		t.Errorf("Expected error, got none")
+	}
+}
+
+func TestValidateGroupUpdate(t *testing.T) {
+	validObj := func() *api.Group {
+		return &api.Group{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:            "myname",
+				ResourceVersion: "1",
+			},
+			Users: []string{"myuser"},
+		}
+	}
+
+	oldObj := validObj()
+
+	if errs := ValidateGroupUpdate(validObj(), oldObj); len(errs) > 0 {
+		t.Errorf("Expected no errors, got %v", errs)
+	}
+
+	emptyUser := validObj()
+	emptyUser.Users = []string{""}
+	if errs := ValidateGroupUpdate(emptyUser, oldObj); len(errs) == 0 {
+		t.Errorf("Expected error, got none")
+	}
+
+	invalidUser := validObj()
+	invalidUser.Users = []string{"bad:user:name"}
+	if errs := ValidateGroupUpdate(invalidUser, oldObj); len(errs) == 0 {
+		t.Errorf("Expected error, got none")
+	}
+
+	invalidName := validObj()
+	invalidName.Name = "bad:group:name"
+	if errs := ValidateGroupUpdate(invalidName, oldObj); len(errs) == 0 {
+		t.Errorf("Expected error, got none")
+	}
+}
+
 func TestValidateUser(t *testing.T) {
 	validObj := func() *api.User {
 		return &api.User{

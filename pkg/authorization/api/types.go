@@ -69,7 +69,7 @@ var (
 		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
 		SDNGroupName:                {"clusternetworks", "hostsubnets"},
 		TemplateGroupName:           {"templates", "templateconfigs", "processedtemplates"},
-		UserGroupName:               {"identities", "users", "useridentitymappings"},
+		UserGroupName:               {"identities", "users", "useridentitymappings", "groups"},
 		OAuthGroupName:              {"oauthauthorizetokens", "oauthaccesstokens", "oauthclients", "oauthclientauthorizations"},
 		PolicyOwnerGroupName:        {"policies", "policybindings"},
 		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews", "subjectaccessreviews"},
