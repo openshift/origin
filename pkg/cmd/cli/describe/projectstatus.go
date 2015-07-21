@@ -186,7 +186,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			fmt.Fprintln(out, "Run 'oc new-app' to create an application.")
 
 		} else {
-			fmt.Fprintln(out, "To see more, use 'oc describe service <name>' or 'oc describe dc <name>'.")
+			fmt.Fprintln(out, "To see more, use 'oc describe <resource>/<name>'.")
 			fmt.Fprintln(out, "You can use 'oc get all' to see a list of other objects.")
 		}
 
@@ -214,24 +214,33 @@ func printLines(out io.Writer, indent string, depth int, lines ...string) {
 	}
 }
 
+func indentLines(indent string, lines ...string) []string {
+	ret := make([]string, 0, len(lines))
+	for _, line := range lines {
+		ret = append(ret, indent+line)
+	}
+
+	return ret
+}
+
 func describeDeploymentInServiceGroup(deploy graphview.DeploymentConfigPipeline) []string {
 	includeLastPass := deploy.ActiveDeployment == nil
 	if len(deploy.Images) == 1 {
-		lines := []string{fmt.Sprintf("%s deploys %s %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
+		lines := []string{fmt.Sprintf("dc/%s deploys %s %s", deploy.Deployment.Name, describeImageInPipeline(deploy.Images[0], deploy.Deployment.Namespace), describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 		if len(lines[0]) > 120 && strings.Contains(lines[0], " <- ") {
 			segments := strings.SplitN(lines[0], " <- ", 2)
 			lines[0] = segments[0] + " <-"
 			lines = append(lines, segments[1])
 		}
-		lines = append(lines, describeAdditionalBuildDetail(deploy.Images[0].Build, deploy.Images[0].LastSuccessfulBuild, deploy.Images[0].LastUnsuccessfulBuild, deploy.Images[0].ActiveBuilds, deploy.Images[0].DestinationResolved, includeLastPass)...)
+		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(deploy.Images[0].Build, deploy.Images[0].LastSuccessfulBuild, deploy.Images[0].LastUnsuccessfulBuild, deploy.Images[0].ActiveBuilds, deploy.Images[0].DestinationResolved, includeLastPass)...)...)
 		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
 		return lines
 	}
 
-	lines := []string{fmt.Sprintf("%s deploys: %s", deploy.Deployment.Name, describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
+	lines := []string{fmt.Sprintf("dc/%s deploys: %s", deploy.Deployment.Name, describeDeploymentConfigTrigger(deploy.Deployment.DeploymentConfig))}
 	for _, image := range deploy.Images {
 		lines = append(lines, describeImageInPipeline(image, deploy.Deployment.Namespace))
-		lines = append(lines, describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)
+		lines = append(lines, indentLines("  ", describeAdditionalBuildDetail(image.Build, image.LastSuccessfulBuild, image.LastUnsuccessfulBuild, image.ActiveBuilds, image.DestinationResolved, includeLastPass)...)...)
 		lines = append(lines, describeDeployments(deploy.Deployment, deploy.ActiveDeployment, deploy.InactiveDeployments, 3)...)
 	}
 	return lines
@@ -274,7 +283,7 @@ func describeDeploymentConfigTrigger(dc *deployapi.DeploymentConfig) string {
 func describeStandaloneBuildGroup(pipeline graphview.ImagePipeline, namespace string) []string {
 	switch {
 	case pipeline.Build != nil:
-		lines := []string{fmt.Sprintf("%s %s", pipeline.Build.BuildConfig.Name, describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))}
+		lines := []string{fmt.Sprintf("bc/%s %s", pipeline.Build.BuildConfig.Name, describeBuildInPipeline(pipeline.Build.BuildConfig, pipeline.BaseImage))}
 		if pipeline.Image != nil {
 			lines = append(lines, fmt.Sprintf("pushes to %s", describeImageTagInPipeline(pipeline.Image, namespace)))
 		}
@@ -305,7 +314,7 @@ func describeImageTagInPipeline(image graphview.ImageTagLocation, namespace stri
 		if t.ImageStreamTag.Namespace != namespace {
 			return image.ImageSpec()
 		}
-		return t.ImageStreamTag.Name
+		return "istag/" + t.ImageStreamTag.Name
 	default:
 		return image.ImageSpec()
 	}
@@ -317,26 +326,26 @@ func describeBuildInPipeline(build *buildapi.BuildConfig, baseImage graphview.Im
 		// TODO: handle case where no source repo
 		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
-			return "docker build; no source set"
+			return fmt.Sprintf("unconfigured docker build bc/%s - no source set", build.Name)
 		}
-		return fmt.Sprintf("docker build of %s", source)
+		return fmt.Sprintf("docker build of %s through bc/%s", source, build.Name)
 	case buildapi.SourceBuildStrategyType:
 		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
-			return fmt.Sprintf("unconfigured source build %s", build.Name)
+			return fmt.Sprintf("unconfigured source build bc/%s", build.Name)
 		}
 		if baseImage == nil {
-			return fmt.Sprintf("%s; no image set", source)
+			return fmt.Sprintf("%s through bc/%s; no image set", source, build.Name)
 		}
-		return fmt.Sprintf("builds %s with %s", source, baseImage.ImageSpec())
+		return fmt.Sprintf("builds %s with %s through bc/%s", source, baseImage.ImageSpec(), build.Name)
 	case buildapi.CustomBuildStrategyType:
 		source, ok := describeSourceInPipeline(&build.Spec.Source)
 		if !ok {
-			return fmt.Sprintf("custom build %s", build.Name)
+			return fmt.Sprintf("custom build bc/%s ", build.Name)
 		}
-		return fmt.Sprintf("custom build of %s", source)
+		return fmt.Sprintf("custom build of %s through bc/%s", source, build.Name)
 	default:
-		return fmt.Sprintf("unrecognized build %s", build.Name)
+		return fmt.Sprintf("unrecognized build bc/%s", build.Name)
 	}
 }
 
@@ -606,11 +615,11 @@ func describeServiceInServiceGroup(svc graphview.ServiceGroup) []string {
 	port := describeServicePorts(spec)
 	switch {
 	case ip == "None":
-		return []string{fmt.Sprintf("service %s (headless)%s", svc.Service.Name, port)}
+		return []string{fmt.Sprintf("service/%s (headless)%s", svc.Service.Name, port)}
 	case len(ip) == 0:
-		return []string{fmt.Sprintf("service %s <initializing>%s", svc.Service.Name, port)}
+		return []string{fmt.Sprintf("service/%s <initializing>%s", svc.Service.Name, port)}
 	default:
-		return []string{fmt.Sprintf("service %s - %s%s", svc.Service.Name, ip, port)}
+		return []string{fmt.Sprintf("service/%s - %s%s", svc.Service.Name, ip, port)}
 	}
 }
 

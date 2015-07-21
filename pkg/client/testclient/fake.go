@@ -42,6 +42,9 @@ func NewSimpleFake(objects ...runtime.Object) *Fake {
 // Invokes registers the passed fake action and reacts on it if a ReactFn
 // has been defined
 func (c *Fake) Invokes(action FakeAction, obj runtime.Object) (runtime.Object, error) {
+	c.Lock.Lock()
+	defer c.Lock.Unlock()
+
 	c.Actions = append(c.Actions, action)
 	if c.ReactFn != nil {
 		return c.ReactFn(ktestclient.FakeAction(action))

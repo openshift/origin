@@ -61,7 +61,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service empty-service",
+				"service/empty-service",
 				"<initializing>:5432",
 				"To see more, use",
 			},
@@ -76,7 +76,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service database-rc",
+				"service/database-rc",
 				"rc/database-rc-1 runs mysql",
 				"0/1 pods growing to 1",
 				"To see more, use",
@@ -122,7 +122,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service frontend-app",
+				"service/frontend-app",
 				"pod/frontend-app-1-bjwh8 runs openshift/ruby-hello-world",
 				"To see more, use",
 			},
@@ -151,7 +151,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service sinatra-example-2 - 172.30.17.48:8080",
+				"service/sinatra-example-2 - 172.30.17.48:8080",
 				"builds git://github.com",
 				"with docker.io/openshift/ruby-20-centos7:latest",
 				"not built yet",
@@ -193,7 +193,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service sinatra-example-1 - 172.30.17.47:8080",
+				"service/sinatra-example-1 - 172.30.17.47:8080",
 				"builds git://github.com",
 				"with docker.io/openshift/ruby-20-centos7:latest",
 				"build 1 running for about a minute",
@@ -212,7 +212,7 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service sinatra-app-example - 172.30.17.49:8080",
+				"service/sinatra-app-example - 172.30.17.49:8080",
 				"sinatra-app-example-a deploys",
 				"sinatra-app-example-b deploys",
 				"with docker.io/openshift/ruby-20-centos7:latest",
@@ -232,8 +232,8 @@ func TestProjectStatus(t *testing.T) {
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
 				"In project example\n",
-				"service database - 172.30.17.240:5434 -> 3306",
-				"service frontend - 172.30.17.154:5432 -> 8080",
+				"service/database - 172.30.17.240:5434 -> 3306",
+				"service/frontend - 172.30.17.154:5432 -> 8080",
 				"database deploys",
 				"frontend deploys",
 				"with docker.io/openshift/ruby-20-centos7:latest",
