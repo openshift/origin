@@ -1,7 +1,10 @@
 package origin
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"bitbucket.org/ww/goautoneg"
@@ -9,10 +12,13 @@ import (
 	restful "github.com/emicklei/go-restful"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
 // TODO We would like to use the IndexHandler from k8s but we do not yet have a
@@ -56,32 +62,74 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		attributes, err := c.AuthorizationAttributeBuilder.GetAttributes(req)
 		if err != nil {
-			forbidden(err.Error(), "", w, req)
+			forbidden(err.Error(), attributes, w, req)
 			return
 		}
 		if attributes == nil {
-			forbidden("No attributes", "", w, req)
+			forbidden("No attributes", attributes, w, req)
 			return
 		}
 
 		ctx, exists := c.RequestContextMapper.Get(req)
 		if !exists {
-			forbidden("context not found", attributes.GetAPIVersion(), w, req)
+			forbidden("context not found", attributes, w, req)
 			return
 		}
 
 		allowed, reason, err := c.Authorizer.Authorize(ctx, attributes)
 		if err != nil {
-			forbidden(err.Error(), attributes.GetAPIVersion(), w, req)
+			forbidden(err.Error(), attributes, w, req)
 			return
 		}
 		if !allowed {
-			forbidden(reason, attributes.GetAPIVersion(), w, req)
+			forbidden(reason, attributes, w, req)
 			return
 		}
 
 		handler.ServeHTTP(w, req)
 	})
+}
+
+// forbidden renders a simple forbidden error
+func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w http.ResponseWriter, req *http.Request) {
+	kind := ""
+	name := ""
+	apiVersion := klatest.Version
+	// the attributes can be empty for two basic reasons:
+	// 1. malformed API request
+	// 2. not an API request at all
+	// In these cases, just assume default that will work better than nothing
+	if attributes != nil {
+		apiVersion = attributes.GetAPIVersion()
+		kind = attributes.GetResource()
+		name = attributes.GetResourceName()
+	}
+
+	// Reason is an opaque string that describes why access is allowed or forbidden (forbidden by the time we reach here).
+	// We don't have direct access to kind or name (not that those apply either in the general case)
+	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
+	// that makes sense when a human reads it.
+	forbiddenError, _ := kapierrors.NewForbidden(kind, name, errors.New("") /*discarded*/).(*kapierrors.StatusError)
+	forbiddenError.ErrStatus.Message = reason
+
+	// Not all API versions in valid API requests will have a matching codec in kubernetes.  If we can't find one,
+	// just default to the latest kube codec.
+	codec := klatest.Codec
+	if requestedCodec, err := klatest.InterfacesFor(apiVersion); err == nil {
+		codec = requestedCodec
+	}
+
+	formatted := &bytes.Buffer{}
+	output, err := codec.Encode(&forbiddenError.ErrStatus)
+	if err != nil {
+		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
+	} else {
+		_ = json.Indent(formatted, output, "", "  ")
+	}
+
+	w.Header().Set("Content-Type", restful.MIME_JSON)
+	w.WriteHeader(http.StatusForbidden)
+	w.Write(formatted.Bytes())
 }
 
 // cacheControlFilter sets the Cache-Control header to the specified value.

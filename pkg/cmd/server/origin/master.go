@@ -1,10 +1,7 @@
 package origin
 
 import (
-	"bytes"
 	"crypto/tls"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,8 +14,6 @@ import (
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
@@ -556,43 +551,6 @@ func (c *MasterConfig) getRequestContextMapper() kapi.RequestContextMapper {
 		c.RequestContextMapper = kapi.NewRequestContextMapper()
 	}
 	return c.RequestContextMapper
-}
-
-// forbidden renders a simple forbidden error
-func forbidden(reason, apiVersion string, w http.ResponseWriter, req *http.Request) {
-	// the api version can be empty for two basic reasons:
-	// 1. malformed API request
-	// 2. not an API request at all
-	// In these cases, just assume the latest version that will work better than nothing
-	if len(apiVersion) == 0 {
-		apiVersion = klatest.Version
-	}
-
-	// Reason is an opaque string that describes why access is allowed or forbidden (forbidden by the time we reach here).
-	// We don't have direct access to kind or name (not that those apply either in the general case)
-	// We create a NewForbidden to stay close the API, but then we override the message to get a serialization
-	// that makes sense when a human reads it.
-	forbiddenError, _ := kapierror.NewForbidden("", "", errors.New("")).(*kapierror.StatusError)
-	forbiddenError.ErrStatus.Message = reason
-
-	// Not all API versions in valid API requests will have a matching codec in kubernetes.  If we can't find one,
-	// just default to the latest kube codec.
-	codec := klatest.Codec
-	if requestedCodec, err := klatest.InterfacesFor(apiVersion); err == nil {
-		codec = requestedCodec
-	}
-
-	formatted := &bytes.Buffer{}
-	output, err := codec.Encode(&forbiddenError.ErrStatus)
-	if err != nil {
-		fmt.Fprintf(formatted, "%s", forbiddenError.Error())
-	} else {
-		_ = json.Indent(formatted, output, "", "  ")
-	}
-
-	w.Header().Set("Content-Type", restful.MIME_JSON)
-	w.WriteHeader(http.StatusForbidden)
-	w.Write(formatted.Bytes())
 }
 
 // RouteAllocator returns a route allocation controller.
