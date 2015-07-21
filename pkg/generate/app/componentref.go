@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -261,7 +262,7 @@ func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
 		}
 	}
 	if len(errs) != 0 {
-		glog.V(2).Infof("Errors occurred during resolution: %#v", errs)
+		glog.V(2).Infof("Errors occurred during resolution: %s", errors.NewAggregate(errs))
 	}
 	switch len(candidates) {
 	case 0:
