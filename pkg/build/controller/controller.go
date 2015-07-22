@@ -41,12 +41,51 @@ type imageStreamClient interface {
 	GetImageStream(namespace, name string) (*imageapi.ImageStream, error)
 }
 
-// HandleBuild takes new builds and puts them in the pending state after
-// creating a corresponding pod
+// CancelBuild updates a build status to Cancelled, after its associated pod is deleted.
+func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
+	if !isBuildCancellable(build) {
+		glog.V(4).Infof("Build %s/%s can be cancelled only if it has pending/running status, not %s.", build.Namespace, build.Name, build.Status.Phase)
+		return nil
+	}
+
+	glog.V(4).Infof("Cancelling Build %s/%s.", build.Namespace, build.Name)
+
+	pod, err := bc.PodManager.GetPod(build.Namespace, buildutil.GetBuildPodName(build))
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("Failed to get Pod for build %s/%s: %v", build.Namespace, build.Name, err)
+		}
+	} else {
+		err := bc.PodManager.DeletePod(build.Namespace, pod)
+		if err != nil && !errors.IsNotFound(err) {
+			return fmt.Errorf("Couldn't delete Build Pod %s/%s: %v", build.Namespace, pod.Name, err)
+		}
+	}
+
+	build.Status.Phase = buildapi.BuildPhaseCancelled
+	now := util.Now()
+	build.Status.CompletionTimestamp = &now
+	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
+		return fmt.Errorf("Failed to update Build %s/%s: %v", build.Namespace, build.Name, err)
+	}
+
+	glog.V(4).Infof("Build %s/%s was successfully cancelled.", build.Namespace, build.Name)
+	return nil
+}
+
+// HandleBuild deletes pods for canceled builds and takes new builds and puts
+// them in the pending state after creating a corresponding pod
 func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	glog.V(4).Infof("Handling Build %s/%s", build.Namespace, build.Name)
 
-	// We only deal with new builds here
+	// A cancelling event was triggered for the build, delete its pod and update build status.
+	if build.Status.Cancelled && build.Status.Phase != buildapi.BuildPhaseCancelled {
+		if err := bc.CancelBuild(build); err != nil {
+			return fmt.Errorf("Failed to cancel build %s/%s: %v, will retry", build.Namespace, build.Name, err)
+		}
+	}
+
+	// Handle new builds
 	if build.Status.Phase != buildapi.BuildPhaseNew {
 		return nil
 	}
@@ -171,18 +210,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 
 	build := obj.(*buildapi.Build)
 
-	// A cancelling event was triggered for the build, delete its pod and update build status.
-	if build.Status.Cancelled {
-		glog.V(4).Infof("Cancelling Build %s/%s.", build.Namespace, build.Name)
-
-		if err := bc.CancelBuild(build, pod); err != nil {
-			return fmt.Errorf("failed to cancel Build %s/%s: %v, will retry", build.Namespace, build.Name, err)
-		}
-		return nil
-	}
-
 	nextStatus := build.Status.Phase
-
 	switch pod.Status.Phase {
 	case kapi.PodRunning:
 		// The pod's still running
@@ -217,30 +245,6 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	return nil
 }
 
-// CancelBuild updates a build status to Cancelled, after its associated pod is deleted.
-func (bc *BuildPodController) CancelBuild(build *buildapi.Build, pod *kapi.Pod) error {
-	if !isBuildCancellable(build) {
-		glog.V(4).Infof("Build %s/%s can be cancelled only if it has pending/running status, not %s.", build.Namespace, build.Name, build.Status.Phase)
-		return nil
-	}
-
-	err := bc.PodManager.DeletePod(build.Namespace, pod)
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-
-	glog.V(4).Infof("Build %s/%s is about to be cancelled", build.Namespace, build.Name)
-	build.Status.Phase = buildapi.BuildPhaseCancelled
-	now := util.Now()
-	build.Status.CompletionTimestamp = &now
-	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
-		return err
-	}
-
-	glog.V(4).Infof("Build %s/%s was successfully cancelled.", build.Namespace, build.Name)
-	return nil
-}
-
 // isBuildCancellable checks for build status and returns true if the condition is checked.
 func isBuildCancellable(build *buildapi.Build) bool {
 	return build.Status.Phase == buildapi.BuildPhaseNew || build.Status.Phase == buildapi.BuildPhasePending || build.Status.Phase == buildapi.BuildPhaseRunning
@@ -265,6 +269,12 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 		return nil
 	}
 	build := obj.(*buildapi.Build)
+
+	// If build was cancelled, we'll leave HandleBuild to update the build
+	if build.Status.Cancelled {
+		glog.V(4).Infof("Cancelation for build was already triggered, ignoring")
+		return nil
+	}
 
 	if buildutil.IsBuildComplete(build) {
 		glog.V(4).Infof("Pod was deleted but Build %s/%s is already completed, so no need to update it.", build.Namespace, build.Name)

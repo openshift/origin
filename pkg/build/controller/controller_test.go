@@ -590,12 +590,18 @@ func TestCancelBuild(t *testing.T) {
 			startTimestamp:      nil,
 			completionTimestamp: nil,
 		},
+		{ // 7
+			inStatus:            buildapi.BuildPhaseCancelled,
+			outStatus:           buildapi.BuildPhaseCancelled,
+			exitCode:            0,
+			startTimestamp:      nil,
+			completionTimestamp: nil,
+		},
 	}
 
 	for i, tc := range tests {
 		build := mockBuild(tc.inStatus, buildapi.BuildOutput{})
-		ctrl := mockBuildPodController(build)
-		pod := mockPod(tc.podStatus, tc.exitCode)
+		ctrl := mockBuildController()
 		if tc.buildUpdater != nil {
 			ctrl.BuildUpdater = tc.buildUpdater
 		}
@@ -603,7 +609,7 @@ func TestCancelBuild(t *testing.T) {
 			ctrl.PodManager = tc.podManager
 		}
 
-		err := ctrl.CancelBuild(build, pod)
+		err := ctrl.CancelBuild(build)
 
 		if tc.podManager != nil && reflect.TypeOf(tc.podManager).Elem().Name() == "errPodManager" {
 			if err == nil {
