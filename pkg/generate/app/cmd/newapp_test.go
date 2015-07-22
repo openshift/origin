@@ -681,6 +681,44 @@ func TestRunAll(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			name: "custom name",
+			config: &AppConfig{
+				DockerImages: util.StringList{"mysql"},
+				dockerSearcher: app.DockerClientSearcher{
+					Client: &dockertools.FakeDockerClient{
+						Images: []docker.APIImages{{RepoTags: []string{"mysql"}}},
+						Image: &docker.Image{
+							Config: &docker.Config{
+								ExposedPorts: map[docker.Port]struct{}{
+									"8080/tcp": {},
+								},
+							},
+						},
+					},
+				},
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+				Name:            "custom",
+			},
+			expected: map[string][]string{
+				"imageStream":      {"custom"},
+				"deploymentConfig": {"custom"},
+				"service":          {"custom"},
+			},
+			expectedErr: nil,
+		},
 	}
 
 	for _, test := range tests {
