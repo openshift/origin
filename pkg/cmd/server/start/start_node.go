@@ -67,7 +67,7 @@ func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(out, "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintln(out, cause.Message)
+							fmt.Fprintf(out, "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
