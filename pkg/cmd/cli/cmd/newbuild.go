@@ -75,7 +75,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.
 		return err
 	}
 
-	result, err := config.RunBuilds(out)
+	result, err := config.RunBuilds(out, c.Out())
 	if err != nil {
 		if errs, ok := err.(errors.Aggregate); ok {
 			if len(errs.Errors()) == 1 {

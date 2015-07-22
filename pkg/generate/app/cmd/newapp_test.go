@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
@@ -203,6 +204,7 @@ func TestBuildTemplates(t *testing.T) {
 		appCfg := AppConfig{}
 		appCfg.refBuilder = &app.ReferenceBuilder{}
 		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace)
+		appCfg.templateSearcher = fakeTemplateSearcher()
 		appCfg.AddArguments([]string{c.templateName})
 		appCfg.TemplateParameters = util.StringList{}
 		for k, v := range c.parms {
@@ -222,7 +224,7 @@ func TestBuildTemplates(t *testing.T) {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 		}
 		for _, component := range components {
-			match := component.Input().Match
+			match := component.Input().ResolvedMatch
 			if !match.IsTemplate() {
 				t.Errorf("%s: Expected template match, got: %v", n, match)
 			}
@@ -342,8 +344,10 @@ func TestResolve(t *testing.T) {
 			components: app.ComponentReferences{
 				app.ComponentReference(&app.ComponentInput{
 					Value: "mysql:invalid",
-					Resolver: app.DockerRegistryResolver{
-						Client: dockerregistry.NewClient(),
+					Resolver: app.UniqueExactOrInexactMatchResolver{
+						Searcher: app.DockerRegistrySearcher{
+							Client: dockerregistry.NewClient(),
+						},
 					},
 				})},
 			expectedErr: `tag "invalid" has not been set`,
@@ -353,7 +357,7 @@ func TestResolve(t *testing.T) {
 			components: app.ComponentReferences{
 				app.ComponentReference(&app.ComponentInput{
 					Value: "mysql",
-					Match: &app.ComponentMatch{
+					ResolvedMatch: &app.ComponentMatch{
 						Builder: true,
 					},
 				})},
@@ -395,7 +399,7 @@ func TestResolve(t *testing.T) {
 }
 
 func TestDetectSource(t *testing.T) {
-	dockerResolver := app.DockerRegistryResolver{
+	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
 	mocks := app.MockSourceRepositories()
@@ -413,7 +417,7 @@ func TestDetectSource(t *testing.T) {
 					Detectors: source.DefaultDetectors,
 					Tester:    dockerfile.NewTester(),
 				},
-				dockerResolver: dockerResolver,
+				dockerSearcher: dockerSearcher,
 			},
 			repositories: []*app.SourceRepository{mocks[1]},
 			expectedLang: "ruby",
@@ -445,7 +449,7 @@ func TestDetectSource(t *testing.T) {
 }
 
 func TestRunAll(t *testing.T) {
-	dockerResolver := app.DockerRegistryResolver{
+	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
 	tests := []struct {
@@ -462,15 +466,15 @@ func TestRunAll(t *testing.T) {
 			config: &AppConfig{
 				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
 
-				dockerResolver: fakeDockerResolver(),
-				imageStreamResolver: app.ImageStreamResolver{
+				dockerSearcher: fakeDockerSearcher(),
+				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
 					ImageStreamImages: &client.Fake{},
 					Namespaces:        []string{"default"},
 				},
 				Strategy:                        "source",
-				imageStreamByAnnotationResolver: app.NewImageStreamByAnnotationResolver(&client.Fake{}, &client.Fake{}, []string{"default"}),
-				templateResolver: app.TemplateResolver{
+				imageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+				templateSearcher: app.TemplateSearcher{
 					Client: &client.Fake{},
 					TemplateConfigsNamespacer: &client.Fake{},
 					Namespaces:                []string{"openshift", "default"},
@@ -497,15 +501,15 @@ func TestRunAll(t *testing.T) {
 			config: &AppConfig{
 				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
 
-				dockerResolver: fakeSimpleDockerResolver(),
-				imageStreamResolver: app.ImageStreamResolver{
+				dockerSearcher: fakeSimpleDockerSearcher(),
+				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
 					ImageStreamImages: &client.Fake{},
 					Namespaces:        []string{"default"},
 				},
 				Strategy:                        "docker",
-				imageStreamByAnnotationResolver: app.NewImageStreamByAnnotationResolver(&client.Fake{}, &client.Fake{}, []string{"default"}),
-				templateResolver: app.TemplateResolver{
+				imageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+				templateSearcher: app.TemplateSearcher{
 					Client: &client.Fake{},
 					TemplateConfigsNamespacer: &client.Fake{},
 					Namespaces:                []string{"openshift", "default"},
@@ -532,10 +536,10 @@ func TestRunAll(t *testing.T) {
 			config: &AppConfig{
 				SourceRepositories:              util.StringList{"https://github.com/openshift/sti-ruby"},
 				ContextDir:                      "2.0/test/rack-test-app",
-				dockerResolver:                  dockerResolver,
-				imageStreamResolver:             fakeImageStreamResolver(),
-				imageStreamByAnnotationResolver: app.NewImageStreamByAnnotationResolver(&client.Fake{}, &client.Fake{}, []string{"default"}),
-				templateResolver: app.TemplateResolver{
+				dockerSearcher:                  dockerSearcher,
+				imageStreamSearcher:             fakeImageStreamSearcher(),
+				imageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+				templateSearcher: app.TemplateSearcher{
 					Client: &client.Fake{},
 					TemplateConfigsNamespacer: &client.Fake{},
 					Namespaces:                []string{"openshift", "default"},
@@ -564,24 +568,24 @@ func TestRunAll(t *testing.T) {
 				Components:         util.StringList{"myrepo:5000/myco/example"},
 				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
 				Strategy:           "source",
-				dockerResolver: app.DockerClientResolver{
+				dockerSearcher: app.DockerClientSearcher{
 					Client: &dockertools.FakeDockerClient{
 						Images: []docker.APIImages{{RepoTags: []string{"myrepo:5000/myco/example"}}},
 						Image:  dockerBuilderImage(),
 					},
 					Insecure: true,
 				},
-				imageStreamResolver: app.ImageStreamResolver{
+				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
 					ImageStreamImages: &client.Fake{},
 					Namespaces:        []string{"default"},
 				},
-				templateResolver: app.TemplateResolver{
+				templateSearcher: app.TemplateSearcher{
 					Client: &client.Fake{},
 					TemplateConfigsNamespacer: &client.Fake{},
 					Namespaces:                []string{},
 				},
-				templateFileResolver: &app.TemplateFileResolver{},
+				templateFileSearcher: &app.TemplateFileSearcher{},
 				detector: app.SourceRepositoryEnumerator{
 					Detectors: source.DefaultDetectors,
 					Tester:    dockerfile.NewTester(),
@@ -606,13 +610,13 @@ func TestRunAll(t *testing.T) {
 			config: &AppConfig{
 				DockerImages: util.StringList{"mysql"},
 
-				dockerResolver: dockerResolver,
-				imageStreamResolver: app.ImageStreamResolver{
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
 					ImageStreamImages: &client.Fake{},
 					Namespaces:        []string{"default"},
 				},
-				templateResolver: app.TemplateResolver{
+				templateSearcher: app.TemplateSearcher{
 					Client: &client.Fake{},
 					TemplateConfigsNamespacer: &client.Fake{},
 					Namespaces:                []string{"openshift", "default"},
@@ -643,20 +647,20 @@ func TestRunAll(t *testing.T) {
 			config: &AppConfig{
 				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
 
-				dockerResolver: app.DockerClientResolver{
+				dockerSearcher: app.DockerClientSearcher{
 					Client: &dockertools.FakeDockerClient{
 						Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
 						Image:  dockerBuilderImage(),
 					},
 					Insecure: true,
 				},
-				imageStreamResolver: app.ImageStreamResolver{
+				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
 					ImageStreamImages: &client.Fake{},
 					Namespaces:        []string{"default"},
 				},
-				imageStreamByAnnotationResolver: app.NewImageStreamByAnnotationResolver(&client.Fake{}, &client.Fake{}, []string{"default"}),
-				templateResolver: app.TemplateResolver{
+				imageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+				templateSearcher: app.TemplateSearcher{
 					Client: &client.Fake{},
 					TemplateConfigsNamespacer: &client.Fake{},
 					Namespaces:                []string{"openshift", "default"},
@@ -681,7 +685,7 @@ func TestRunAll(t *testing.T) {
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunAll(os.Stdout)
+		res, err := test.config.RunAll(os.Stdout, os.Stderr)
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -778,7 +782,7 @@ func TestRunAll(t *testing.T) {
 }
 
 func TestRunBuild(t *testing.T) {
-	dockerResolver := app.DockerRegistryResolver{
+	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
 
@@ -795,18 +799,18 @@ func TestRunBuild(t *testing.T) {
 				DockerImages:       util.StringList{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"},
 				OutputDocker:       true,
 
-				dockerResolver: dockerResolver,
-				imageStreamResolver: app.ImageStreamResolver{
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
 					ImageStreamImages: &client.Fake{},
 					Namespaces:        []string{"default"},
 				},
-				imageStreamByAnnotationResolver: &app.ImageStreamByAnnotationResolver{
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
 					Client:            &client.Fake{},
 					ImageStreamImages: &client.Fake{},
 					Namespaces:        []string{"default"},
 				},
-				templateResolver: app.TemplateResolver{
+				templateSearcher: app.TemplateSearcher{
 					Client: &client.Fake{},
 					TemplateConfigsNamespacer: &client.Fake{},
 					Namespaces:                []string{"openshift", "default"},
@@ -830,7 +834,7 @@ func TestRunBuild(t *testing.T) {
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunBuilds(os.Stdout)
+		res, err := test.config.RunBuilds(os.Stdout, os.Stderr)
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -953,7 +957,7 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 			Value:         "mysql",
 			Uses:          sourceRepo,
 			ExpectToBuild: true,
-			Match: &app.ComponentMatch{
+			ResolvedMatch: &app.ComponentMatch{
 				Value: "mysql",
 			},
 		}),
@@ -978,7 +982,7 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 func builderImageStream() *imageapi.ImageStream {
 	return &imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:            "ruby-builder",
+			Name:            "ruby",
 			ResourceVersion: "1",
 		},
 		Status: imageapi.ImageStreamStatus{
@@ -995,6 +999,12 @@ func builderImageStream() *imageapi.ImageStream {
 		},
 	}
 
+}
+
+func builderImageStreams() *imageapi.ImageStreamList {
+	return &imageapi.ImageStreamList{
+		Items: []imageapi.ImageStream{*builderImageStream()},
+	}
 }
 
 func builderImage() *imageapi.ImageStreamImage {
@@ -1014,6 +1024,7 @@ func builderImage() *imageapi.ImageStreamImage {
 		},
 	}
 }
+
 func dockerBuilderImage() *docker.Image {
 	return &docker.Image{
 		ID: "ruby",
@@ -1028,27 +1039,55 @@ func dockerBuilderImage() *docker.Image {
 	}
 }
 
-func fakeImageStreamResolver() app.Resolver {
+func fakeImageStreamSearcher() app.Searcher {
 	client := &client.Fake{
 		ReactFn: func(action testclient.FakeAction) (runtime.Object, error) {
 			switch action.Action {
 			case "get-imagestream":
 				return builderImageStream(), nil
+			case "list-imagestreams":
+				return builderImageStreams(), nil
 			case "get-imagestream-image":
 				return builderImage(), nil
 			}
 			return nil, nil
 		},
 	}
-	return app.ImageStreamResolver{
+	return app.ImageStreamSearcher{
 		Client:            client,
 		ImageStreamImages: client,
 		Namespaces:        []string{"default"},
 	}
 }
 
-func fakeDockerResolver() app.Resolver {
-	return app.DockerClientResolver{
+func fakeTemplateSearcher() app.Searcher {
+	client := &client.Fake{
+		ReactFn: func(action testclient.FakeAction) (runtime.Object, error) {
+			switch action.Action {
+			case "list-templates":
+				return &templateapi.TemplateList{
+					Items: []templateapi.Template{
+						{
+							Objects: []runtime.Object{},
+							ObjectMeta: kapi.ObjectMeta{
+								Name:      "first-stored-template",
+								Namespace: "default",
+							},
+						},
+					},
+				}, nil
+			}
+			return nil, nil
+		},
+	}
+	return app.TemplateSearcher{
+		Client:     client,
+		Namespaces: []string{"default"},
+	}
+}
+
+func fakeDockerSearcher() app.Searcher {
+	return app.DockerClientSearcher{
 		Client: &dockertools.FakeDockerClient{
 			Images: []docker.APIImages{{RepoTags: []string{"library/ruby:latest"}}},
 			Image:  dockerBuilderImage(),
@@ -1057,8 +1096,8 @@ func fakeDockerResolver() app.Resolver {
 	}
 }
 
-func fakeSimpleDockerResolver() app.Resolver {
-	return app.DockerClientResolver{
+func fakeSimpleDockerSearcher() app.Searcher {
+	return app.DockerClientSearcher{
 		Client: &dockertools.FakeDockerClient{
 			Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
 			Image: &docker.Image{

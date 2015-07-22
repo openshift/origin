@@ -8,6 +8,9 @@ type FakeOAuthAccessTokens struct {
 
 // Delete mocks deleting an OAuthAccessToken
 func (c *FakeOAuthAccessTokens) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-oauthaccesstoken", Value: name})
 	return nil
 }

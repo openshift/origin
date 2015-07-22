@@ -18,6 +18,7 @@ import (
 	route "github.com/openshift/origin/pkg/route/api"
 )
 
+// Pipeline holds components
 type Pipeline struct {
 	From string
 

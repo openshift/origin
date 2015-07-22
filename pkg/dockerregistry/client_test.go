@@ -19,7 +19,7 @@ func TestConnect(t *testing.T) {
 	for _, s := range []string{"index.docker.io", "https://docker.io", "https://index.docker.io"} {
 		otherConn, err := c.Connect(s, false)
 		if err != nil {
-			t.Errorf("%s: can't connect: ", s, err)
+			t.Errorf("%s: can't connect: %v", s, err)
 			continue
 		}
 		if !reflect.DeepEqual(otherConn, conn) {
@@ -214,5 +214,45 @@ func TestTokenExpiration(t *testing.T) {
 	// retry, should get a new token
 	if _, err := conn.ImageByID("foo", "bar", "image1"); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestGetTagFallback(t *testing.T) {
+	var uri *url.URL
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Docker-Endpoints", uri.Host)
+
+		// get all tags
+		if strings.HasSuffix(r.URL.Path, "/tags") {
+			fmt.Fprintln(w, `{"tag1":"image1", "test":"image2"}`)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	uri, _ = url.Parse(server.URL)
+	conn, err := NewClient().Connect(uri.Host, true)
+	c := conn.(*connection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := &repository{
+		name:     "testrepo",
+		endpoint: *uri,
+	}
+	// Case when tag is found
+	img, err := c.getTag(repo, "test", "")
+	if err != nil {
+		t.Errorf("unexpected error getting tag: %v", err)
+		return
+	}
+	if img != "image2" {
+		t.Errorf("unexpected image for tag: %s", img)
+	}
+	// Case when tag is not found
+	img, err = c.getTag(repo, "test2", "")
+	if err == nil {
+		t.Errorf("expected error")
 	}
 }

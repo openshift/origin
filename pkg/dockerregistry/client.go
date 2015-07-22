@@ -312,6 +312,14 @@ func (c *connection) getTag(repo *repository, tag, userTag string) (string, erro
 
 	switch code := resp.StatusCode; {
 	case code == http.StatusNotFound:
+		// Attempt to lookup tag in tags map
+		allTags, err := c.getTags(repo)
+		if err != nil {
+			return "", err
+		}
+		if image, ok := allTags[tag]; ok {
+			return image, nil
+		}
 		return "", errTagNotFound{len(userTag) == 0, tag, repo.name}
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry

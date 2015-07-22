@@ -41,16 +41,25 @@ func (c *FakeDeploymentConfigs) Delete(name string) error {
 }
 
 func (c *FakeDeploymentConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-deploymentconfig"})
 	return nil, nil
 }
 
 func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConfig, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "generate-deploymentconfig"})
 	return nil, nil
 }
 
 func (c *FakeDeploymentConfigs) Rollback(config *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "rollback"})
 	return nil, nil
 }
