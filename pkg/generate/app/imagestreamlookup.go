@@ -46,14 +46,14 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 				return nil, err
 			}
 			ref.Namespace = namespace
-			for i := 0; i < len(streams.Items); i++ {
-				stream := streams.Items[i]
-				score, scored := imageStreamScorer(stream, ref.Name)
+			for i := range streams.Items {
+				stream := &streams.Items[i]
+				score, scored := imageStreamScorer(*stream, ref.Name)
 				if scored {
 					imageref, _ := imageapi.ParseDockerImageReference(term)
 					imageref.Name = stream.Name
 
-					latest := imageapi.LatestTaggedImage(&stream, searchTag)
+					latest := imageapi.LatestTaggedImage(stream, searchTag)
 					if latest == nil {
 						glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, searchTag)
 						componentMatches = append(componentMatches, &ComponentMatch{
@@ -62,7 +62,7 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 							Name:        imageref.Name,
 							Description: fmt.Sprintf("Image stream %s in project %s, tracks %q", stream.Name, stream.Namespace, stream.Status.DockerImageRepository),
 							Score:       0.5 + score,
-							ImageStream: &stream,
+							ImageStream: stream,
 							ImageTag:    searchTag,
 						})
 						continue
@@ -87,7 +87,7 @@ func (r ImageStreamSearcher) Search(terms ...string) (ComponentMatches, error) {
 						Description: fmt.Sprintf("Image stream %q (tag %q) in project %q, tracks %q", stream.Name, searchTag, stream.Namespace, stream.Status.DockerImageRepository),
 						Builder:     IsBuilderImage(&imageData.DockerImageMetadata),
 						Score:       score,
-						ImageStream: &stream,
+						ImageStream: stream,
 						Image:       &imageData.DockerImageMetadata,
 						ImageTag:    searchTag,
 					})
