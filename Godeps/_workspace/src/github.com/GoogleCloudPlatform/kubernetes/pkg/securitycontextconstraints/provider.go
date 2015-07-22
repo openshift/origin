@@ -116,6 +116,13 @@ func (s *simpleProvider) CreateSecurityContext(pod *api.Pod, container *api.Cont
 		sc.Privileged = &priv
 	}
 
+	// if we're using the non-root strategy set the marker that this container should not be
+	// run as root which will signal to the kubelet to do a final check either on the runAsUser
+	// or, if runAsUser is not set, the image
+	if s.scc.RunAsUser.Type == api.RunAsUserStrategyMustRunAsNonRoot {
+		sc.RunAsNonRoot = true
+	}
+
 	// No need to touch capabilities, they will validate or not.
 	return sc, nil
 }
