@@ -19,26 +19,6 @@ angular.module("openshiftConsole")
       };
 
     /**
-    * Find the 'first' port of exposed ports.
-    * @param            ports  list of ports (e.g {containerPort: 80, protocol: "tcp"})
-    * @return {integer} The port/protocol pair of the lowest container port
-    */
-    scope._getFirstPort = function(ports){
-      var first = "None";
-      ports.forEach(function(port){
-        if(first === "None"){
-            first = port;
-          }else{
-            if(port.containerPort < first.containerPort){
-              first = port;
-            }
-          }
-        }
-      );
-      return first;
-    };
-
-    /**
      * Generate resource definitions to support the given input
      * @param {type} input
      * @returns Hash of resource definitions
@@ -86,7 +66,7 @@ angular.module("openshiftConsole")
         imageStream: scope._generateImageStream(input),
         buildConfig: scope._generateBuildConfig(input, imageSpec, input.labels),
         deploymentConfig: scope._generateDeploymentConfig(input, imageSpec, ports, input.labels),
-        service: scope._generateService(input, input.name, scope._getFirstPort(ports))
+        service: scope._generateService(input, input.name, ports)
       };
       resources.route = scope._generateRoute(input, input.name, resources.service.metadata.name);
       return resources;
@@ -244,10 +224,12 @@ angular.module("openshiftConsole")
       };
     };
 
-    scope._generateService  = function(input, serviceName, port){
-      if(port === 'None') {
+    scope._generateService  = function(input, serviceName, ports){
+      // Don't generate headless services.
+      if (!ports || !ports.length) {
         return null;
       }
+
       var service = {
         kind: "Service",
         apiVersion: k8sApiVersion,
@@ -258,19 +240,21 @@ angular.module("openshiftConsole")
         spec: {
           selector: {
             deploymentconfig: input.name
-          }
+          },
+          ports: []
         }
       };
-      //TODO add in when server supports headless services without a port spec
-//      if(port === 'None'){
-//        service.spec.portalIP = 'None';
-//      }else{
-        service.spec.ports = [{
+
+      angular.forEach(ports, function(port) {
+        service.spec.ports.push({
           port: port.containerPort,
           targetPort: port.containerPort,
-          protocol: port.protocol
-        }];
-//      }
+          protocol: port.protocol,
+          // Use the same naming convention as CLI new-app.
+          name: (port.containerPort + '-' + port.protocol).toLowerCase()
+        });
+      });
+
       return service;
     };
 
