@@ -64,7 +64,7 @@ check-test:
 	hack/verify-generated-conversions.sh
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
-	hack/verify-swagger-spec.sh
+	hack/verify-generated-swagger-spec.sh
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration.sh
 .PHONY: check-test
@@ -92,7 +92,7 @@ test:
 	hack/verify-generated-conversions.sh
 	hack/verify-generated-completions.sh
 	hack/verify-generated-docs.sh
-	hack/verify-swagger-spec.sh
+	hack/verify-generated-swagger-spec.sh
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration-docker.sh
 	hack/test-end-to-end-docker.sh

@@ -474,7 +474,7 @@ os::build::gen-docs() {
 
   # We do this in a tmpdir in case the dest has other non-autogenned files
   # We don't want to include them in the list of gen'd files
-  local tmpdir="${OS_ROOT}/doc_tmp"
+  local tmpdir="${OS_ROOT}/_tmp/gen_doc"
   mkdir "${tmpdir}"
   # generate the new files
   ${cmd} "${tmpdir}"

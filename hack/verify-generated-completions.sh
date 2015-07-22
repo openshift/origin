@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o errexit
+set -e
 set -o nounset
 set -o pipefail
 
@@ -9,23 +9,30 @@ source "${OS_ROOT}/hack/common.sh"
 
 cd "${OS_ROOT}"
 
-COMPLETION_ROOT="${OS_ROOT}/rel-eng/completions"
-_tmp="${OS_ROOT}/_tmp"
-TMP_COMPLETION_ROOT="${_tmp}/completions"
+echo "===== Verifying Generated Completions ====="
 
-mkdir -p "${_tmp}"
-cp -a "${COMPLETION_ROOT}/" "${_tmp}"
+COMPLETION_ROOT_REL="rel-eng/completions"
+COMPLETION_ROOT="${OS_ROOT}/${COMPLETION_ROOT_REL}"
+TMP_COMPLETION_ROOT_REL="_tmp/verify-generated-completions/"
+TMP_COMPLETION_ROOT="${OS_ROOT}/${TMP_COMPLETION_ROOT_REL}/${COMPLETION_ROOT_REL}"
 
-"${OS_ROOT}/hack/update-generated-completions.sh"
-echo "diffing ${COMPLETION_ROOT} against freshly generated completions"
+echo "Generating fresh completions..."
+if ! output=`${OS_ROOT}/hack/update-generated-completions.sh ${TMP_COMPLETION_ROOT_REL} 2>&1`
+then
+	echo "FAILURE: Generation of fresh spec failed:"
+	echo "$output"
+	exit 1
+fi
+
+
+echo "Diffing current completions against freshly generated completions..."
 ret=0
 diff -Naupr "${COMPLETION_ROOT}" "${TMP_COMPLETION_ROOT}" || ret=$?
-cp -a "${TMP_COMPLETION_ROOT}" "${COMPLETION_ROOT}/.."
-rm -rf "${_tmp}"
+rm -rf "${TMP_COMPLETION_ROOT}"
 if [[ $ret -eq 0 ]]
 then
-  echo "${COMPLETION_ROOT} up to date."
+  echo "SUCCESS: Generated completions up to date."
 else
-  echo "${COMPLETION_ROOT} is out of date. Please run hack/update-generated-completions.sh"
+  echo "FAILURE: Generated completions out of date. Please run hack/update-generated-completions.sh"
   exit 1
 fi

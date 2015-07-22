@@ -35,8 +35,9 @@ set -e
 
 ADDR=127.0.0.1:8443
 HOST=https://${ADDR}
-SWAGGER_SPEC_OUT_DIR=${1:-"${OS_ROOT}/api/swagger-spec"}
-mkdir -p "${SWAGGER_SPEC_OUT_DIR}"
+SWAGGER_SPEC_REL_DIR=${1:-""}
+SWAGGER_SPEC_OUT_DIR="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/swagger-spec"
+mkdir -p "${SWAGGER_SPEC_OUT_DIR}" || echo $? > /dev/null
 SWAGGER_API_PATH="${HOST}/swaggerapi/"
 
 # Prevent user environment from colliding with the test setup
