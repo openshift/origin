@@ -10,8 +10,55 @@ import (
 	newer "github.com/openshift/origin/pkg/authorization/api"
 )
 
+func convert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *ResourceAccessReview, out *newer.ResourceAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func convert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in *newer.ResourceAccessReview, out *ResourceAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func convert_v1_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *LocalResourceAccessReview, out *newer.LocalResourceAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func convert_api_LocalResourceAccessReview_To_v1_LocalResourceAccessReview(in *newer.LocalResourceAccessReview, out *LocalResourceAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func convert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 
@@ -22,6 +69,35 @@ func convert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccess
 
 func convert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in *newer.SubjectAccessReview, out *SubjectAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.GroupsSlice = in.Groups.List()
+
+	return nil
+}
+
+func convert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *LocalSubjectAccessReview, out *newer.LocalSubjectAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.Groups = util.NewStringSet(in.GroupsSlice...)
+
+	return nil
+}
+
+func convert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview(in *newer.LocalSubjectAccessReview, out *LocalSubjectAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 
@@ -312,6 +388,12 @@ func init() {
 
 		convert_v1_SubjectAccessReview_To_api_SubjectAccessReview,
 		convert_api_SubjectAccessReview_To_v1_SubjectAccessReview,
+		convert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview,
+		convert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview,
+		convert_v1_ResourceAccessReview_To_api_ResourceAccessReview,
+		convert_api_ResourceAccessReview_To_v1_ResourceAccessReview,
+		convert_v1_LocalResourceAccessReview_To_api_LocalResourceAccessReview,
+		convert_api_LocalResourceAccessReview_To_v1_LocalResourceAccessReview,
 		convert_v1_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse,
 		convert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResponse,
 		convert_v1_PolicyRule_To_api_PolicyRule,

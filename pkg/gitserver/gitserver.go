@@ -200,17 +200,19 @@ func NewEnviromentConfig() (*Config, error) {
 			if !info.Push && allowAnonymousGet {
 				return true, nil
 			}
-			req := &authapi.SubjectAccessReview{
-				Verb:     "get",
-				Resource: "pods",
+			req := &authapi.LocalSubjectAccessReview{
+				Action: authapi.AuthorizationAttributes{
+					Verb:     "get",
+					Resource: "pods",
+				},
 			}
 			if info.Push {
 				if !config.AllowPush {
 					return false, nil
 				}
-				req.Verb = "create"
+				req.Action.Verb = "create"
 			}
-			res, err := osc.ImpersonateSubjectAccessReviews(namespace, info.Password).Create(req)
+			res, err := osc.ImpersonateLocalSubjectAccessReviews(namespace, info.Password).Create(req)
 			if err != nil {
 				return false, err
 			}

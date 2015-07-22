@@ -174,9 +174,9 @@ func TestAccessController(t *testing.T) {
 			openshiftResponses: []response{
 				{500, "Uh oh"},
 			},
-			expectedError:     errors.New("an error on the server has prevented the request from succeeding (post subjectAccessReviews)"),
+			expectedError:     errors.New("an error on the server has prevented the request from succeeding (post localSubjectAccessReviews)"),
 			expectedChallenge: false,
-			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
 		},
 		"valid openshift token but token not scoped for the given repo operation": {
 			access: []auth.Access{{
@@ -192,7 +192,7 @@ func TestAccessController(t *testing.T) {
 			},
 			expectedError:     ErrOpenShiftAccessDenied,
 			expectedChallenge: true,
-			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
 		},
 		"partially valid openshift token": {
 			// Check all the different resource-type/verb combinations we allow to make sure they validate and continue to validate remaining Resource requests
@@ -212,10 +212,10 @@ func TestAccessController(t *testing.T) {
 			expectedError:     ErrOpenShiftAccessDenied,
 			expectedChallenge: true,
 			expectedActions: []string{
-				"POST /oapi/v1/namespaces/foo/subjectaccessreviews",
-				"POST /oapi/v1/namespaces/bar/subjectaccessreviews",
+				"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews",
+				"POST /oapi/v1/namespaces/bar/localsubjectaccessreviews",
 				"POST /oapi/v1/subjectaccessreviews",
-				"POST /oapi/v1/namespaces/baz/subjectaccessreviews",
+				"POST /oapi/v1/namespaces/baz/localsubjectaccessreviews",
 			},
 		},
 		"valid openshift token": {
@@ -232,7 +232,7 @@ func TestAccessController(t *testing.T) {
 			},
 			expectedError:     nil,
 			expectedChallenge: false,
-			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
 		},
 		"pruning": {
 			access: []auth.Access{

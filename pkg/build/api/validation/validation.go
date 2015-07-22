@@ -113,7 +113,7 @@ func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList
 	allErrs = append(allErrs, validateOutput(&spec.Output).Prefix("output")...)
 	allErrs = append(allErrs, validateStrategy(&spec.Strategy).Prefix("strategy")...)
 
-	// TODO: validate resource requirements (prereq: https://github.com/GoogleCloudPlatform/kubernetes/pull/7059)
+	// TODO: validate resource requirements (prereq: https://k8s.io/kubernetes/pull/7059)
 	return allErrs
 }
 

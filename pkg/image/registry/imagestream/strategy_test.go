@@ -282,11 +282,13 @@ func TestTagVerifier(t *testing.T) {
 				t.Errorf("%s: sar namespace: expected %v, got %v", name, e, a)
 			}
 			expectedSar := &authorizationapi.SubjectAccessReview{
-				Verb:         "get",
-				Resource:     "imagestreams",
-				User:         "user",
-				Groups:       util.NewStringSet("group1"),
-				ResourceName: "otherstream",
+				Action: authorizationapi.AuthorizationAttributes{
+					Verb:         "get",
+					Resource:     "imagestreams",
+					ResourceName: "otherstream",
+				},
+				User:   "user",
+				Groups: util.NewStringSet("group1"),
 			}
 			if e, a := expectedSar, sar.request; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s: unexpected SAR request: %s", name, util.ObjectDiff(e, a))

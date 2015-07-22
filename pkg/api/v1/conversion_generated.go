@@ -200,22 +200,6 @@ func convert_api_PolicyList_To_v1_PolicyList(in *api.PolicyList, out *v1.PolicyL
 	return nil
 }
 
-func convert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in *api.ResourceAccessReview, out *v1.ResourceAccessReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.ResourceAccessReview))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	out.Verb = in.Verb
-	out.Resource = in.Resource
-	if err := s.Convert(&in.Content, &out.Content, 0); err != nil {
-		return err
-	}
-	out.ResourceName = in.ResourceName
-	return nil
-}
-
 func convert_api_Role_To_v1_Role(in *api.Role, out *v1.Role, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.Role))(in)
@@ -466,22 +450,6 @@ func convert_v1_PolicyList_To_api_PolicyList(in *v1.PolicyList, out *api.PolicyL
 	} else {
 		out.Items = nil
 	}
-	return nil
-}
-
-func convert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *v1.ResourceAccessReview, out *api.ResourceAccessReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.ResourceAccessReview))(in)
-	}
-	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	out.Verb = in.Verb
-	out.Resource = in.Resource
-	if err := s.Convert(&in.Content, &out.Content, 0); err != nil {
-		return err
-	}
-	out.ResourceName = in.ResourceName
 	return nil
 }
 
@@ -3196,7 +3164,6 @@ func init() {
 		convert_api_ProjectSpec_To_v1_ProjectSpec,
 		convert_api_ProjectStatus_To_v1_ProjectStatus,
 		convert_api_Project_To_v1_Project,
-		convert_api_ResourceAccessReview_To_v1_ResourceAccessReview,
 		convert_api_ResourceRequirements_To_v1_ResourceRequirements,
 		convert_api_RoleBindingList_To_v1_RoleBindingList,
 		convert_api_RoleList_To_v1_RoleList,
@@ -3274,7 +3241,6 @@ func init() {
 		convert_v1_ProjectSpec_To_api_ProjectSpec,
 		convert_v1_ProjectStatus_To_api_ProjectStatus,
 		convert_v1_Project_To_api_Project,
-		convert_v1_ResourceAccessReview_To_api_ResourceAccessReview,
 		convert_v1_ResourceRequirements_To_api_ResourceRequirements,
 		convert_v1_RoleBindingList_To_api_RoleBindingList,
 		convert_v1_RoleList_To_api_RoleList,

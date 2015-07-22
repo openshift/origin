@@ -159,10 +159,12 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	}
 
 	// can I get a subjectaccessreview on myself even if I have no rights to do it generally
-	askCanICreatePolicyBindings := &authorizationapi.SubjectAccessReview{Verb: "create", Resource: "policybindings"}
+	askCanICreatePolicyBindings := &authorizationapi.LocalSubjectAccessReview{
+		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "policybindings"},
+	}
 	subjectAccessReviewTest{
-		clientInterface: valerieOpenshiftClient.SubjectAccessReviews("openshift"),
-		review:          askCanICreatePolicyBindings,
+		localInterface: valerieOpenshiftClient.LocalSubjectAccessReviews("openshift"),
+		localReview:    askCanICreatePolicyBindings,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    `User "valerie" cannot create policybindings in project "openshift"`,
@@ -171,11 +173,14 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	}.run(t)
 
 	// I shouldn't be allowed to ask whether someone else can perform an action
-	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{Groups: util.NewStringSet("system:cluster-admins"), Verb: "create", Resource: "projects"}
+	askCanClusterAdminsCreateProject := &authorizationapi.LocalSubjectAccessReview{
+		Groups: util.NewStringSet("system:cluster-admins"),
+		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "projects"},
+	}
 	subjectAccessReviewTest{
-		clientInterface: valerieOpenshiftClient.SubjectAccessReviews("openshift"),
-		review:          askCanClusterAdminsCreateProject,
-		err:             `User "valerie" cannot create subjectaccessreviews in project "openshift"`,
+		localInterface: valerieOpenshiftClient.LocalSubjectAccessReviews("openshift"),
+		localReview:    askCanClusterAdminsCreateProject,
+		err:            `User "valerie" cannot create localsubjectaccessreviews in project "openshift"`,
 	}.run(t)
 
 }

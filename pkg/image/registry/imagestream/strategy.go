@@ -309,11 +309,13 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 		}
 
 		subjectAccessReview := authorizationapi.SubjectAccessReview{
-			Verb:         "get",
-			Resource:     "imagestreams",
-			User:         user.GetName(),
-			Groups:       util.NewStringSet(user.GetGroups()...),
-			ResourceName: streamName,
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:         "get",
+				Resource:     "imagestreams",
+				ResourceName: streamName,
+			},
+			User:   user.GetName(),
+			Groups: util.NewStringSet(user.GetGroups()...),
 		}
 		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
 		glog.V(1).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)

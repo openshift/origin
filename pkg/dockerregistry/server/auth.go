@@ -250,12 +250,15 @@ func verifyOpenShiftUser(client *client.Client) error {
 }
 
 func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.Client) error {
-	sar := authorizationapi.SubjectAccessReview{
-		Verb:         verb,
-		Resource:     "imagestreams/layers",
-		ResourceName: imageRepo,
+	sar := authorizationapi.LocalSubjectAccessReview{
+		Action: authorizationapi.AuthorizationAttributes{
+			Verb:         verb,
+			Resource:     "imagestreams/layers",
+			ResourceName: imageRepo,
+		},
 	}
-	response, err := client.SubjectAccessReviews(namespace).Create(&sar)
+	response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
+
 	if err != nil {
 		log.Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
@@ -263,19 +266,23 @@ func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.C
 		}
 		return err
 	}
+
 	if !response.Allowed {
 		log.Errorf("OpenShift access denied: %s", response.Reason)
 		return ErrOpenShiftAccessDenied
 	}
+
 	return nil
 }
 
 func verifyPruneAccess(client *client.Client) error {
 	sar := authorizationapi.SubjectAccessReview{
-		Verb:     "delete",
-		Resource: "images",
+		Action: authorizationapi.AuthorizationAttributes{
+			Verb:     "delete",
+			Resource: "images",
+		},
 	}
-	response, err := client.ClusterSubjectAccessReviews().Create(&sar)
+	response, err := client.SubjectAccessReviews().Create(&sar)
 	if err != nil {
 		log.Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {

@@ -19,6 +19,19 @@ import (
 	util "k8s.io/kubernetes/pkg/util"
 )
 
+func deepCopy_v1beta3_AuthorizationAttributes(in v1beta3.AuthorizationAttributes, out *v1beta3.AuthorizationAttributes, c *conversion.Cloner) error {
+	out.Namespace = in.Namespace
+	out.Verb = in.Verb
+	out.Resource = in.Resource
+	out.ResourceName = in.ResourceName
+	if newVal, err := c.DeepCopy(in.Content); err != nil {
+		return err
+	} else {
+		out.Content = newVal.(runtime.RawExtension)
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_ClusterPolicy(in v1beta3.ClusterPolicy, out *v1beta3.ClusterPolicy, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -246,6 +259,39 @@ func deepCopy_v1beta3_IsPersonalSubjectAccessReview(in v1beta3.IsPersonalSubject
 	return nil
 }
 
+func deepCopy_v1beta3_LocalResourceAccessReview(in v1beta3.LocalResourceAccessReview, out *v1beta3.LocalResourceAccessReview, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+	}
+	if err := deepCopy_v1beta3_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_LocalSubjectAccessReview(in v1beta3.LocalSubjectAccessReview, out *v1beta3.LocalSubjectAccessReview, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+	}
+	if err := deepCopy_v1beta3_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
+		return err
+	}
+	out.User = in.User
+	if in.GroupsSlice != nil {
+		out.GroupsSlice = make([]string, len(in.GroupsSlice))
+		for i := range in.GroupsSlice {
+			out.GroupsSlice[i] = in.GroupsSlice[i]
+		}
+	} else {
+		out.GroupsSlice = nil
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_NamedClusterRole(in v1beta3.NamedClusterRole, out *v1beta3.NamedClusterRole, c *conversion.Cloner) error {
 	out.Name = in.Name
 	if err := deepCopy_v1beta3_ClusterRole(in.Role, &out.Role, c); err != nil {
@@ -444,14 +490,9 @@ func deepCopy_v1beta3_ResourceAccessReview(in v1beta3.ResourceAccessReview, out 
 	} else {
 		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
 	}
-	out.Verb = in.Verb
-	out.Resource = in.Resource
-	if newVal, err := c.DeepCopy(in.Content); err != nil {
+	if err := deepCopy_v1beta3_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
 		return err
-	} else {
-		out.Content = newVal.(runtime.RawExtension)
 	}
-	out.ResourceName = in.ResourceName
 	return nil
 }
 
@@ -594,8 +635,9 @@ func deepCopy_v1beta3_SubjectAccessReview(in v1beta3.SubjectAccessReview, out *v
 	} else {
 		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
 	}
-	out.Verb = in.Verb
-	out.Resource = in.Resource
+	if err := deepCopy_v1beta3_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
+		return err
+	}
 	out.User = in.User
 	if in.GroupsSlice != nil {
 		out.GroupsSlice = make([]string, len(in.GroupsSlice))
@@ -605,12 +647,6 @@ func deepCopy_v1beta3_SubjectAccessReview(in v1beta3.SubjectAccessReview, out *v
 	} else {
 		out.GroupsSlice = nil
 	}
-	if newVal, err := c.DeepCopy(in.Content); err != nil {
-		return err
-	} else {
-		out.Content = newVal.(runtime.RawExtension)
-	}
-	out.ResourceName = in.ResourceName
 	return nil
 }
 
@@ -2416,6 +2452,7 @@ func deepCopy_v1beta3_UserList(in userapiv1beta3.UserList, out *userapiv1beta3.U
 
 func init() {
 	err := api.Scheme.AddGeneratedDeepCopyFuncs(
+		deepCopy_v1beta3_AuthorizationAttributes,
 		deepCopy_v1beta3_ClusterPolicy,
 		deepCopy_v1beta3_ClusterPolicyBinding,
 		deepCopy_v1beta3_ClusterPolicyBindingList,
@@ -2425,6 +2462,8 @@ func init() {
 		deepCopy_v1beta3_ClusterRoleBindingList,
 		deepCopy_v1beta3_ClusterRoleList,
 		deepCopy_v1beta3_IsPersonalSubjectAccessReview,
+		deepCopy_v1beta3_LocalResourceAccessReview,
+		deepCopy_v1beta3_LocalSubjectAccessReview,
 		deepCopy_v1beta3_NamedClusterRole,
 		deepCopy_v1beta3_NamedClusterRoleBinding,
 		deepCopy_v1beta3_NamedRole,

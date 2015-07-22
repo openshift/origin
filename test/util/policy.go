@@ -17,9 +17,9 @@ const (
 // WaitForPolicyUpdate checks if the given client can perform the named verb and action.
 // If PolicyCachePollTimeout is reached without the expected condition matching, an error is returned
 func WaitForPolicyUpdate(c *client.Client, namespace, verb, resource string, allowed bool) error {
-	review := &authorizationapi.SubjectAccessReview{Verb: verb, Resource: resource}
+	review := &authorizationapi.LocalSubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: verb, Resource: resource}}
 	err := wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
-		response, err := c.SubjectAccessReviews(namespace).Create(review)
+		response, err := c.LocalSubjectAccessReviews(namespace).Create(review)
 		if err != nil {
 			return false, err
 		}
