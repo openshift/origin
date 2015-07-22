@@ -91,7 +91,7 @@ func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(options.Output, "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintln(options.Output, cause.Message)
+							fmt.Fprintf(options.Output, "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
