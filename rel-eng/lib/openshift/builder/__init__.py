@@ -5,7 +5,7 @@ Code for building Openshift v3
 import sys
 
 from tito.common import (get_latest_commit, get_latest_tagged_version, check_tag_exists,
-        run_command, get_script_path, find_spec_file, get_spec_version_and_release)
+        run_command, get_script_path, find_spec_file, get_spec_version_and_release, munge_specfile)
 from tito.builder import Builder
 
 class OpenshiftBuilder(Builder):
@@ -34,18 +34,15 @@ class OpenshiftBuilder(Builder):
           # file we're building off. (note that this is a temp copy of the
           # spec) Swap out the actual release for one that includes the git
           # SHA1 we're building for our test package:
-          setup_specfile_script = get_script_path("test-setup-specfile.pl")
-          cmd = "%s %s %s %s %s-%s %s" % \
-                  (
-                      setup_specfile_script,
-                      self.spec_file,
-                      self.git_commit_id[:7],
-                      self.commit_count,
-                      self.project_name,
-                      self.display_version,
-                      self.tgz_filename,
-                  )
-          run_command(cmd)
+          sha = self.git_commit_id[:7]
+          fullname = "%s-%s" % (self.project_name, self.display_version)
+          munge_specfile(
+              self.spec_file,
+              sha,
+              self.commit_count,
+              fullname,
+              self.tgz_filename,
+          )
           # Custom Openshift v3 stuff follows, everything above is the standard
           # builder
           cmd = '. ./hack/common.sh ; echo $(os::build::ldflags)'
