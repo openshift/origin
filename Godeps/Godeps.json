@@ -487,10 +487,6 @@
 			"Rev": "87808a37061a4a2e6204ccea5fd2fc930576db94"
 		},
 		{
-			"ImportPath": "github.com/awalterschulze/gographviz",
-			"Rev": "20d1f693416d9be045340150094aa42035a41c9e"
-		},
-		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws",
 			"Comment": "v0.6.0-7-gcea3a42",
 			"Rev": "cea3a425fc2d887d102e406ec2f8b37a57abd82f"
