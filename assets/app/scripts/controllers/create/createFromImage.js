@@ -10,7 +10,8 @@ angular.module("openshiftConsole")
       ApplicationGenerator,
       TaskList,
       failureObjectNameFilter,
-      $filter
+      $filter,
+      $parse
     ){
     var displayNameFilter = $filter('displayName');
 
@@ -39,7 +40,8 @@ angular.module("openshiftConsole")
         }
       };
       scope.routing = {
-        include: true
+        include: true,
+        portOptions: []
       };
       scope.labels = {};
       scope.annotations = {};
@@ -64,10 +66,18 @@ angular.module("openshiftConsole")
           var imageName = scope.imageTag;
           DataService.get("imagestreamtags", imageStream.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(imageStreamTag){
               scope.image = imageStreamTag.image;
-              angular.forEach(imageStreamTag.image.dockerImageMetadata.ContainerConfig.Env, function(entry){
+              var env = $parse('dockerImageMetadata.ContainerConfig.Env')(imageStreamTag.image) || [];
+              angular.forEach(env, function(entry){
                 var pair = entry.split("=");
                 scope.deploymentConfig.envVars[pair[0]] = pair[1];
               });
+
+              scope.routing.portOptions = ApplicationGenerator.parsePorts(imageStreamTag.image);
+              if (scope.routing.portOptions.length){
+                scope.routing.targetPort = scope.routing.portOptions[0];
+              } else {
+                scope.routing.include = false;
+              }
             }, function(){
                 Navigate.toErrorPage("Cannot create from source: the specified image could not be retrieved.");
               }
