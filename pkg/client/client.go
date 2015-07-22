@@ -37,6 +37,7 @@ type Interface interface {
 	SubjectAccessReviewsNamespacer
 	SubjectAccessReviewsImpersonator
 	ClusterSubjectAccessReviews
+	ClusterSubjectAccessReviewsImpersonator
 	TemplatesNamespacer
 	TemplateConfigsNamespacer
 	OAuthAccessTokensInterface
@@ -187,7 +188,12 @@ func (c *Client) ImpersonateSubjectAccessReviews(namespace, token string) Subjec
 
 // ClusterSubjectAccessReviews provides a REST client for SubjectAccessReviews
 func (c *Client) ClusterSubjectAccessReviews() SubjectAccessReviewInterface {
-	return newClusterSubjectAccessReviews(c)
+	return newClusterSubjectAccessReviews(c, "")
+}
+
+// ImpersonateClusterSubjectAccessReviews provides a REST client for SubjectAccessReviews
+func (c *Client) ImpersonateClusterSubjectAccessReviews(token string) SubjectAccessReviewInterface {
+	return newClusterSubjectAccessReviews(c, token)
 }
 
 // OAuthAccessTokens provides a REST client for OAuthAccessTokens
