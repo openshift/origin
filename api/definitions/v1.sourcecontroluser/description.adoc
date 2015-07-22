@@ -1,0 +1,1 @@
+A SourceControlUser defines the identity of a user of source control. The SourceControlUser is defined with a name of the source control user and an email.

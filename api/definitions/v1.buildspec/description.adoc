@@ -1,0 +1,7 @@
+A BuildSpec is a specification object that encapsulates all the inputs necessary to represent a build. The BuildSpec contains:
+* The name of the service account as a string to use to run the build pod. The pod will be allowed to use secrets referenced by the <<v1.ServiceAccount>>.
+* The SCM source in use as a <<v1.BuildSource>>.
+* The (optional) revision information from the source repository used in the build as a <<v1.SourceRevision>>.
+* The <<v1.BuildStrategy>> defining how to perform the build.
+* The <<v1.BuildOutput>> describing the Docker image the build should produce.
+* The compute resource requirements to execute the build.

@@ -1,0 +1,1 @@
+A BuildConfigStatus contains the current state of the <<v1.BuildConfig>> object. The status contains the number of the last triggered build.

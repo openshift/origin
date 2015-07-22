@@ -1,0 +1,1 @@
+A GitSourceRevision is the commit information from a git source for a <<v1.Build>>'s <<v1.SourceRevision>>. The GitSourceRevision contains the commit hash identifying a specific commit, the author of the specific commit as a <<v1.SourceControlUser>>, the committer of the specific commit as a SourceControlUser, and the message description of the specific commit.

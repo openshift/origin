@@ -1,0 +1,1 @@
+A WebHookTrigger is a trigger that gets invoked using a webhook type of post. Both GitHub and General WebHookTriggers are supported. The WebHookTrigger contains a <<v1.Secret>> used to validate requests.
