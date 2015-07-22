@@ -12,6 +12,8 @@ source "${OS_ROOT}/hack/common.sh"
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
+TEST_KUBE=${TEST_KUBE:-""}
+
 os::build::setup_env
 
 find_test_dirs() {
@@ -26,6 +28,15 @@ find_test_dirs() {
         -o -wholename './.git' \
         -o -wholename './assets/node_modules' \
         -o -wholename './openshift.local.*' \
+      \) -prune \
+    \) -name '*_test.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
+}
+
+find_upstream_test_dirs() {
+  cd "${OS_ROOT}"
+  find ./Godeps/_workspace/src/github.com/GoogleCloudPlatform/kubernetes -not \( \
+      \( \
+        -wholename './Godeps/_workspace/src/github.com/GoogleCloudPlatform/kubernetes/pkg/runtime' \
       \) -prune \
     \) -name '*_test.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 }
@@ -54,6 +65,8 @@ KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 60s}
 
 if [ "${1-}" != "" ]; then
   test_packages="$OS_GO_PACKAGE/$1"
+elif [ -n "$TEST_KUBE" ]; then
+  test_packages=`find_test_dirs; find_upstream_test_dirs`
 else
   test_packages=`find_test_dirs`
 fi
