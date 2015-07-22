@@ -33,7 +33,7 @@ var (
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
-	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS"}
+	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "TLS TERMINATION"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
 	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST VERSION"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
@@ -305,7 +305,11 @@ func printProjectList(projects *projectapi.ProjectList, w io.Writer, withNamespa
 }
 
 func printRoute(route *routeapi.Route, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", route.Name, route.Host, route.Path, route.ServiceName, labels.Set(route.Labels))
+	tlsTerm := ""
+	if route.TLS != nil {
+		tlsTerm = string(route.TLS.Termination)
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", route.Name, route.Host, route.Path, route.ServiceName, labels.Set(route.Labels), tlsTerm)
 	return err
 }
 
