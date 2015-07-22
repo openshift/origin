@@ -159,6 +159,27 @@ func (s *simpleProvider) ValidateSecurityContext(pod *api.Pod, container *api.Co
 			}
 		}
 	}
+
+	if !s.scc.AllowHostNetwork && pod.Spec.HostNetwork {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("hostNetwork", pod.Spec.HostNetwork, "Host network is not allowed to be used"))
+	}
+
+	if !s.scc.AllowHostPorts {
+		for idx, c := range pod.Spec.Containers {
+			allErrs = append(allErrs, s.hasHostPort(&c).Prefix(fmt.Sprintf("containers.%d", idx))...)
+		}
+	}
+	return allErrs
+}
+
+// hasHostPort checks the port definitions on the container for HostPort > 0.
+func (s *simpleProvider) hasHostPort(container *api.Container) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	for _, cp := range container.Ports {
+		if cp.HostPort > 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("hostPort", cp.HostPort, "Host ports are not allowed to be used"))
+		}
+	}
 	return allErrs
 }
 
