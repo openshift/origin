@@ -1,12 +1,10 @@
 <div ng-controller="ProjectController">
   <div ng-controller="NewFromTemplateController" class="container">
-    <div class="container">
-      <ol class="breadcrumb">
-        <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
-        <li><a href="project/{{projectName}}/create">Add to Project</a></li>
-        <li class="active"><strong>{{template | displayName}}</strong></li>
-      </ol>
-    </div>
+    <ol class="breadcrumb">
+      <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
+      <li><a href="project/{{projectName}}/create">Add to Project</a></li>
+      <li class="active"><strong>{{template | displayName}}</strong></li>
+    </ol>
     <div class="row">
       <div class="col-md-12">
         <div class="create-from-template">

@@ -56,6 +56,9 @@ func (c *FakeBuildConfigs) Delete(name string) error {
 }
 
 func (c *FakeBuildConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-buildconfigs"})
 	return nil, nil
 }

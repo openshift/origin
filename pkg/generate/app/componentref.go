@@ -4,11 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"github.com/golang/glog"
-
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 // IsComponentReference returns true if the provided string appears to be a reference to a source repository
@@ -53,6 +48,8 @@ type ComponentReference interface {
 	Input() *ComponentInput
 	// Resolve sets the match in input
 	Resolve() error
+	// Search sets the search matches in input
+	Search() error
 	// NeedsSource indicates if the component needs source code
 	NeedsSource() bool
 }
@@ -103,174 +100,6 @@ func (r ComponentReferences) Group() (refs []ComponentReferences) {
 		refs[len(refs)-1] = append(refs[len(refs)-1], ref)
 	}
 	return
-}
-
-// ComponentMatch is a match to a provided component
-type ComponentMatch struct {
-	Value       string
-	Argument    string
-	Name        string
-	Description string
-	Score       float32
-	Insecure    bool
-
-	Builder     bool
-	Image       *imageapi.DockerImage
-	ImageStream *imageapi.ImageStream
-	ImageTag    string
-	Template    *templateapi.Template
-}
-
-func (m *ComponentMatch) String() string {
-	return m.Argument
-}
-
-// IsImage returns whether or not the component match is an
-// image or image stream
-func (m *ComponentMatch) IsImage() bool {
-	return m.Template == nil
-}
-
-// IsTemplate returns whether or not the component match is
-// a template
-func (m *ComponentMatch) IsTemplate() bool {
-	return m.Template != nil
-}
-
-// Resolver is an interface for resolving provided input to component matches.
-// A Resolver should return ErrMultipleMatches when more than one result can
-// be constructed as a match. It should also set the score to 0.0 if this is a
-// perfect match, and to higher values the less adequate the match is.
-type Resolver interface {
-	Resolve(value string) (*ComponentMatch, error)
-}
-
-// ScoredComponentMatches is a set of component matches grouped by score
-type ScoredComponentMatches []*ComponentMatch
-
-func (m ScoredComponentMatches) Len() int           { return len(m) }
-func (m ScoredComponentMatches) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
-func (m ScoredComponentMatches) Less(i, j int) bool { return m[i].Score < m[j].Score }
-
-// Exact returns all the exact component matches
-func (m ScoredComponentMatches) Exact() []*ComponentMatch {
-	out := []*ComponentMatch{}
-	for _, match := range m {
-		if match.Score == 0.0 {
-			out = append(out, match)
-		}
-	}
-	return out
-}
-
-// WeightedResolver is a resolver identified as exact or not, depending on its weight
-type WeightedResolver struct {
-	Resolver
-	Weight float32
-}
-
-// PerfectMatchWeightedResolver returns only matches from resolvers that are identified as exact
-// (weight 0.0), and only matches from those resolvers that qualify as exact (score = 0.0). If no
-// perfect matches exist, an ErrMultipleMatches is returned indicating the remaining candidate(s).
-// Note that this method may resolve ErrMultipleMatches with a single match, indicating an error
-// (no perfect match) but with only one candidate.
-type PerfectMatchWeightedResolver []WeightedResolver
-
-// Resolve resolves the provided input and returns only exact matches
-func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, error) {
-	imperfect := ScoredComponentMatches{}
-	group := []WeightedResolver{}
-	for i, resolver := range r {
-		if len(group) == 0 || resolver.Weight == group[0].Weight {
-			group = append(group, resolver)
-			if i != len(r)-1 && r[i+1].Weight == group[0].Weight {
-				continue
-			}
-		}
-		exact, inexact, err := resolveExact(WeightedResolvers(group), value)
-		switch {
-		case exact != nil:
-			if exact.Score == 0.0 {
-				return exact, nil
-			}
-			if resolver.Weight != 0.0 {
-				exact.Score = resolver.Weight * exact.Score
-			}
-			imperfect = append(imperfect, exact)
-		case len(inexact) > 0:
-			sort.Sort(ScoredComponentMatches(inexact))
-			if inexact[0].Score == 0.0 && (len(inexact) == 1 || inexact[1].Score != 0.0) {
-				return inexact[0], nil
-			}
-			for _, m := range inexact {
-				if resolver.Weight != 0.0 {
-					m.Score = resolver.Weight * m.Score
-				}
-				imperfect = append(imperfect, m)
-			}
-		case err != nil:
-			glog.V(2).Infof("Error from resolver: %v\n", err)
-		}
-		group = nil
-	}
-	switch len(imperfect) {
-	case 0:
-		return nil, ErrNoMatch{value: value}
-	case 1:
-		return imperfect[0], nil
-	default:
-		sort.Sort(imperfect)
-		if imperfect[0].Score < imperfect[1].Score {
-			return imperfect[0], nil
-		}
-		return nil, ErrMultipleMatches{value, imperfect}
-	}
-}
-
-func resolveExact(resolver Resolver, value string) (exact *ComponentMatch, inexact []*ComponentMatch, err error) {
-	match, err := resolver.Resolve(value)
-	if err != nil {
-		switch t := err.(type) {
-		case ErrNoMatch:
-			return nil, nil, nil
-		case ErrMultipleMatches:
-			return nil, t.Matches, nil
-		default:
-			return nil, nil, err
-		}
-	}
-	return match, nil, nil
-}
-
-// WeightedResolvers is a set of weighted resolvers
-type WeightedResolvers []WeightedResolver
-
-// Resolve resolves the provided input and returns both exact and inexact matches
-func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
-	candidates := []*ComponentMatch{}
-	errs := []error{}
-	for _, resolver := range r {
-		exact, inexact, err := resolveExact(resolver.Resolver, value)
-		switch {
-		case exact != nil:
-			candidates = append(candidates, exact)
-		case len(inexact) > 0:
-			candidates = append(candidates, inexact...)
-		case err != nil:
-			errs = append(errs, err)
-		}
-	}
-	if len(errs) != 0 {
-		glog.V(2).Infof("Errors occurred during resolution: %#v", errs)
-	}
-	switch len(candidates) {
-	case 0:
-		return nil, ErrNoMatch{value: value}
-	case 1:
-		return candidates[0], nil
-	default:
-		return nil, ErrMultipleMatches{value, candidates}
-	}
 }
 
 // ReferenceBuilder is used for building all the necessary object references
@@ -384,10 +213,12 @@ type ComponentInput struct {
 	Value         string
 	ExpectToBuild bool
 
-	Uses  *SourceRepository
-	Match *ComponentMatch
+	Uses          *SourceRepository
+	ResolvedMatch *ComponentMatch
+	SearchMatches ComponentMatches
 
 	Resolver
+	Searcher
 }
 
 // Input returns the component input
@@ -400,7 +231,7 @@ func (i *ComponentInput) NeedsSource() bool {
 	return i.ExpectToBuild && i.Uses == nil
 }
 
-// Resolve sets the match in input
+// Resolve sets the unique match in input
 func (i *ComponentInput) Resolve() error {
 	if i.Resolver == nil {
 		return ErrNoMatch{value: i.Value, qualifier: "no resolver defined"}
@@ -411,9 +242,20 @@ func (i *ComponentInput) Resolve() error {
 	}
 	i.Value = match.Value
 	i.Argument = match.Argument
-	i.Match = match
-
+	i.ResolvedMatch = match
 	return nil
+}
+
+// Search sets the search matches in input
+func (i *ComponentInput) Search() error {
+	if i.Searcher == nil {
+		return ErrNoMatch{value: i.Value, qualifier: "no searcher defined"}
+	}
+	matches, err := i.Searcher.Search(i.Value)
+	if matches != nil {
+		i.SearchMatches = matches
+	}
+	return err
 }
 
 func (i *ComponentInput) String() string {

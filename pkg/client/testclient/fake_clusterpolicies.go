@@ -25,11 +25,17 @@ func (c *FakeClusterPolicies) Get(name string) (*authorizationapi.ClusterPolicy,
 }
 
 func (c *FakeClusterPolicies) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-clusterPolicy", Value: name})
 	return nil
 }
 
 func (c *FakeClusterPolicies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-clusterPolicy"})
 	return nil, nil
 }

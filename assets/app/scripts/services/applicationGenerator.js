@@ -52,10 +52,10 @@ angular.module("openshiftConsole")
           if(parts.length === 1){
             parts.push("tcp");
           }
+
           ports.push(
             {
               containerPort: parseInt(parts[0]),
-              name: input.name + "-" + parts[1] + "-" + parts[0],
               protocol: parts[1].toUpperCase()
             });
         });
@@ -75,6 +75,7 @@ angular.module("openshiftConsole")
         imageSpec = {
           name: input.name,
           tag: "latest",
+          kind: "ImageStreamTag",
           toString: function(){
             return this.name + ":" + this.tag;
           }
@@ -159,7 +160,7 @@ angular.module("openshiftConsole")
                 input.name
               ],
               from: {
-                kind: "ImageStreamTag",
+                kind: imageSpec.kind,
                 name: imageSpec.toString()
               }
             }
@@ -206,7 +207,8 @@ angular.module("openshiftConsole")
         spec: {
           output: {
             to: {
-              name: imageSpec.name
+              name: imageSpec.toString(),
+              kind: imageSpec.kind
             }
           },
           source: {

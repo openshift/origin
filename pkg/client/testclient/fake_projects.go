@@ -34,6 +34,9 @@ func (c *FakeProjects) Update(project *projectapi.Project) (*projectapi.Project,
 }
 
 func (c *FakeProjects) Delete(name string) error {
+	c.Fake.Lock.Lock()
+	defer c.Fake.Lock.Unlock()
+
 	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-project", Value: name})
 	return nil
 }

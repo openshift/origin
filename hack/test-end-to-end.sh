@@ -386,6 +386,18 @@ wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 -t "{{ 
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
+
+# Pod node selection
+echo "[INFO] Validating pod.spec.nodeSelector rejections"
+# Create a project that enforces an impossible to satisfy nodeSelector, and two pods, one of which has an explicit node name
+openshift admin new-project node-selector --description="This is an example project to test node selection prevents deployment" --admin="e2e-user" --node-selector="impossible-label=true"
+oc process -n node-selector -v NODE_NAME="${KUBELET_HOST}" -f test/node-selector/pods.json | oc create -n node-selector -f -
+# The pod without a node name should fail to schedule
+wait_for_command "oc get events -n node-selector | grep pod-without-node-name | grep failedScheduling"        $((20*TIME_SEC))
+# The pod with a node name should be rejected by the kubelet
+wait_for_command "oc get events -n node-selector | grep pod-with-node-name    | grep NodeSelectorMismatching" $((20*TIME_SEC))
+
+
 # Image pruning
 echo "[INFO] Validating image pruning"
 docker pull busybox

@@ -200,6 +200,17 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		if p.Source.SourceSecret != nil {
 			formatString(out, "Source Secret", p.Source.SourceSecret.Name)
 		}
+		if p.Revision != nil && p.Revision.Git != nil {
+			rev := p.Revision.Git
+			formatString(out, "Commit", rev.Commit)
+			if len(rev.Author.Name) != 0 {
+				formatString(out, "Author", rev.Author.Name)
+			}
+			if len(rev.Committer.Name) != 0 {
+				formatString(out, "Committer", rev.Committer.Name)
+			}
+			formatString(out, "Message", rev.Message)
+		}
 	}
 	if p.Output.To != nil {
 		if len(p.Output.To.Namespace) != 0 {

@@ -41,6 +41,7 @@ func NewReplicationController(g osgraph.Graph, rcNode *kubegraph.ReplicationCont
 
 	rcView := ReplicationController{}
 	rcView.RC = rcNode
+	rcView.ConflictingRCIDToPods = map[int][]*kubegraph.PodNode{}
 
 	for _, uncastPodNode := range g.PredecessorNodesByEdgeKind(rcNode, kubeedges.ManagedByRCEdgeKind) {
 		podNode := uncastPodNode.(*kubegraph.PodNode)

@@ -187,7 +187,8 @@ describe("ApplicationGenerator", function(){
             "spec": {
                 "output": {
                     "to": {
-                        "name": "ruby-hello-world"
+                        "name": "ruby-hello-world:latest",
+                        "kind": "ImageStreamTag"
                     }
                 },
                 "source": {
@@ -332,12 +333,10 @@ describe("ApplicationGenerator", function(){
                     "ports": [
                       {
                         "containerPort": 443,
-                        "name": "ruby-hello-world-tcp-443",
                         "protocol": "TCP"
                       },
                       {
                         "containerPort": 80,
-                        "name": "ruby-hello-world-tcp-80",
                         "protocol": "TCP"
                       }
                     ],
