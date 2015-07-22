@@ -121,16 +121,20 @@ func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespace string) {
 	c.osclient = osclient
 	c.originNamespace = originNamespace
+	namespaces := []string{originNamespace}
+	if openshiftNamespace := "openshift"; originNamespace != openshiftNamespace {
+		namespaces = append(namespaces, openshiftNamespace)
+	}
 	c.imageStreamSearcher = app.ImageStreamSearcher{
 		Client:            osclient,
 		ImageStreamImages: osclient,
-		Namespaces:        []string{originNamespace, "openshift"},
+		Namespaces:        namespaces,
 	}
-	c.imageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, []string{originNamespace, "openshift"})
+	c.imageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, namespaces)
 	c.templateSearcher = app.TemplateSearcher{
 		Client: osclient,
 		TemplateConfigsNamespacer: osclient,
-		Namespaces:                []string{originNamespace, "openshift"},
+		Namespaces:                namespaces,
 	}
 	c.templateFileSearcher = &app.TemplateFileSearcher{
 		Typer:        c.typer,
