@@ -1422,6 +1422,12 @@ func deepCopy_v1_RollingDeploymentStrategyParams(in deployapiv1.RollingDeploymen
 	} else {
 		out.TimeoutSeconds = nil
 	}
+	if in.UpdatePercent != nil {
+		out.UpdatePercent = new(int)
+		*out.UpdatePercent = *in.UpdatePercent
+	} else {
+		out.UpdatePercent = nil
+	}
 	if in.Pre != nil {
 		out.Pre = new(deployapiv1.LifecycleHook)
 		if err := deepCopy_v1_LifecycleHook(*in.Pre, out.Pre, c); err != nil {

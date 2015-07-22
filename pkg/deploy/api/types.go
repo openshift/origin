@@ -115,6 +115,9 @@ type RollingDeploymentStrategyParams struct {
 	// TimeoutSeconds is the time to wait for updates before giving up. If the
 	// value is nil, a default will be used.
 	TimeoutSeconds *int64
+	// UpdatePercent is the percentage of replicas to scale up or down each
+	// interval. If nil, one replica will be scaled up and down each interval.
+	UpdatePercent *int
 	// Pre is a lifecycle hook which is executed before the deployment process
 	// begins. All LifecycleHookFailurePolicy values are supported.
 	Pre *LifecycleHook
