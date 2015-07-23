@@ -261,6 +261,11 @@
 			"Rev": "cd821444dcf3e1e237b5f3579721440624c9c4fa"
 		},
 		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest",
+			"Comment": "v1.0.0",
+			"Rev": "cd821444dcf3e1e237b5f3579721440624c9c4fa"
+		},
+		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequota",
 			"Comment": "v1.0.0",
 			"Rev": "cd821444dcf3e1e237b5f3579721440624c9c4fa"
@@ -1153,6 +1158,11 @@
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/mock",
+			"Comment": "v1.0-12-g7e4a149",
+			"Rev": "7e4a149930b09fe4c2b134c50ce637457ba6e966"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/require",
 			"Comment": "v1.0-12-g7e4a149",
 			"Rev": "7e4a149930b09fe4c2b134c50ce637457ba6e966"
 		},
