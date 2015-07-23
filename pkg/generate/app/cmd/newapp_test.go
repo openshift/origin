@@ -246,11 +246,12 @@ func TestBuildTemplates(t *testing.T) {
 
 func TestEnsureHasSource(t *testing.T) {
 	tests := []struct {
-		name         string
-		cfg          AppConfig
-		components   app.ComponentReferences
-		repositories []*app.SourceRepository
-		expectedErr  string
+		name              string
+		cfg               AppConfig
+		components        app.ComponentReferences
+		repositories      []*app.SourceRepository
+		expectedErr       string
+		dontExpectToBuild bool
 	}{
 		{
 			name: "One requiresSource, multiple repositories",
@@ -282,8 +283,9 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: []*app.SourceRepository{},
-			expectedErr:  "you must specify a repository via --code",
+			repositories:      []*app.SourceRepository{},
+			expectedErr:       "",
+			dontExpectToBuild: true,
 		},
 		{
 			name: "Multiple requiresSource, no repositories",
@@ -295,8 +297,9 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: []*app.SourceRepository{},
-			expectedErr:  "you must provide at least one source code repository",
+			repositories:      []*app.SourceRepository{},
+			expectedErr:       "",
+			dontExpectToBuild: true,
 		},
 		{
 			name: "Successful - one repository",
@@ -328,6 +331,13 @@ func TestEnsureHasSource(t *testing.T) {
 			}
 		} else if len(test.expectedErr) != 0 {
 			t.Errorf("%s: Expected %s error but got none", test.name, test.expectedErr)
+		}
+		if test.dontExpectToBuild {
+			for _, comp := range test.components {
+				if comp.NeedsSource() {
+					t.Errorf("%s: expected component reference to not require source.", test.name)
+				}
+			}
 		}
 	}
 }
@@ -448,6 +458,15 @@ func TestDetectSource(t *testing.T) {
 	}
 }
 
+func mapContains(a, b map[string]string) bool {
+	for k, v := range a {
+		if v2, exists := b[k]; !exists || v != v2 {
+			return false
+		}
+	}
+	return true
+}
+
 func TestRunAll(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
@@ -486,6 +505,42 @@ func TestRunAll(t *testing.T) {
 				typer:           kapi.Scheme,
 				osclient:        &client.Fake{},
 				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"imageStream":      {"ruby-hello-world", "ruby"},
+				"buildConfig":      {"ruby-hello-world"},
+				"deploymentConfig": {"ruby-hello-world"},
+				"service":          {"ruby-hello-world"},
+			},
+			expectedVolumes: nil,
+			expectedErr:     nil,
+		},
+		{
+			name: "successful ruby app generation with labels",
+			config: &AppConfig{
+				SourceRepositories: util.StringList{"https://github.com/openshift/ruby-hello-world"},
+
+				dockerSearcher: fakeDockerSearcher(),
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				Strategy:                        "source",
+				imageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+				Labels:          map[string]string{"label1": "value1", "label2": "value2"},
 			},
 			expected: map[string][]string{
 				"imageStream":      {"ruby-hello-world", "ruby"},
@@ -746,6 +801,12 @@ func TestRunAll(t *testing.T) {
 						t.Errorf("%s: did not get expected port in service. Expected: %d. Got %d\n", expectedPort, tp.Spec.Ports[0].Port)
 					}
 				}
+				if test.config.Labels != nil {
+					if !mapContains(test.config.Labels, tp.Spec.Selector) {
+						t.Errorf("%s: did not get expected service selector. Expected: %v. Got: %v",
+							test.name, test.config.Labels, tp.Spec.Selector)
+					}
+				}
 				got["service"] = append(got["service"], tp.Name)
 			case *imageapi.ImageStream:
 				got["imageStream"] = append(got["imageStream"], tp.Name)
@@ -764,6 +825,12 @@ func TestRunAll(t *testing.T) {
 						for _, volumeMount := range container.VolumeMounts {
 							got["volumeMounts"] = append(got["volumeMounts"], volumeMount.Name)
 						}
+					}
+				}
+				if test.config.Labels != nil {
+					if !mapContains(test.config.Labels, tp.Template.ControllerTemplate.Selector) {
+						t.Errorf("%s: did not get expected deployment config rc selector. Expected: %v. Got: %v",
+							test.name, test.config.Labels, tp.Template.ControllerTemplate.Selector)
 					}
 				}
 			}

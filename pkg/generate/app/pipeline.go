@@ -26,6 +26,7 @@ type Pipeline struct {
 	Build      *BuildRef
 	Image      *ImageRef
 	Deployment *DeploymentConfigRef
+	Labels     map[string]string
 }
 
 // NewImagePipeline creates a new pipeline with components that are not
@@ -76,7 +77,7 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 }
 
 // NeedsDeployment sets the pipeline for deployment
-func (p *Pipeline) NeedsDeployment(env Environment, name string) error {
+func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, name string) error {
 	if p.Deployment != nil {
 		return nil
 	}
@@ -85,7 +86,8 @@ func (p *Pipeline) NeedsDeployment(env Environment, name string) error {
 		Images: []*ImageRef{
 			p.Image,
 		},
-		Env: env,
+		Env:    env,
+		Labels: labels,
 	}
 	return nil
 }
