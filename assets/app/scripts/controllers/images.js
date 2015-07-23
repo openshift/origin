@@ -11,6 +11,7 @@ angular.module('openshiftConsole')
   .controller('ImagesController', function ($scope, DataService, $filter, LabelFilter, Logger) {
     $scope.imageStreams = {};
     $scope.unfilteredImageStreams = {};
+    $scope.missingStatusTagsByImageStream = {};
     $scope.builds = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
@@ -23,9 +24,36 @@ angular.module('openshiftConsole')
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       $scope.imageStreams = LabelFilter.getLabelSelector().select($scope.unfilteredImageStreams);
       $scope.emptyMessage = "No image streams to show";
+      updateMissingStatusTags();
       updateFilterWarning();
       Logger.log("image streams (subscribe)", $scope.imageStreams);
     }));
+
+    // Check each image stream to see if the spec tags resolve to status tags.
+    // We call out missing status tags with a warning.
+    function updateMissingStatusTags() {
+      angular.forEach($scope.unfilteredImageStreams, function(is, name) {
+        var missingStatusTags = $scope.missingStatusTagsByImageStream[name] = {};
+        if (!is.spec || !is.spec.tags) {
+          return;
+        }
+
+        // Index the status tags for this image stream to avoid iterating the list for every spec tag.
+        var statusTagMap = {};
+        if (is.status && is.status.tags) {
+          angular.forEach(is.status.tags, function(tag) {
+            statusTagMap[tag.tag] = true;
+          });
+        }
+
+        // Make sure each spec tag has a corresponding status tag.
+        angular.forEach(is.spec.tags, function(specTag) {
+          if (!statusTagMap[specTag.name]) {
+            missingStatusTags[specTag.name] = specTag;
+          }
+        });
+      });
+    }
 
     function updateFilterWarning() {
       if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.imageStreams) && !$.isEmptyObject($scope.unfilteredImageStreams)) {
