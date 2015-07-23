@@ -1823,6 +1823,7 @@ func deepCopy_v1_SecurityContext(in SecurityContext, out *SecurityContext, c *co
 	} else {
 		out.RunAsUser = nil
 	}
+	out.RunAsNonRoot = in.RunAsNonRoot
 	return nil
 }
 
