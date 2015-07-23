@@ -320,22 +320,6 @@ func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, out *t
 	}
 }
 
-type sortableBuilds []buildapi.Build
-
-func (s sortableBuilds) Len() int {
-	return len(s)
-}
-
-func (s sortableBuilds) Less(i, j int) bool {
-	return s[i].CreationTimestamp.Before(s[j].CreationTimestamp)
-}
-
-func (s sortableBuilds) Swap(i, j int) {
-	t := s[i]
-	s[i] = s[j]
-	s[j] = t
-}
-
 // Describe returns the description of a buildConfig
 func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
 	c := d.BuildConfigs(namespace)
@@ -343,7 +327,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	builds, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.BuildConfigLabel: name}), fields.Everything())
+	buildList, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.BuildConfigLabel: name}), fields.Everything())
 	if err != nil {
 		return "", err
 	}
@@ -357,15 +341,15 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		}
 		describeBuildSpec(buildConfig.Spec.BuildSpec, out)
 		d.DescribeTriggers(buildConfig, out)
-		if len(builds.Items) == 0 {
+		if len(buildList.Items) == 0 {
 			return nil
 		}
 		fmt.Fprintf(out, "Builds:\n  Name\tStatus\tDuration\tCreation Time\n")
-		sortedBuilds := sortableBuilds(builds.Items)
-		sort.Sort(sortedBuilds)
-		for i := range sortedBuilds {
-			// iterate backwards so we're printing the newest items first
-			build := sortedBuilds[len(sortedBuilds)-1-i]
+
+		builds := buildList.Items
+		sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds)))
+
+		for i, build := range builds {
 			fmt.Fprintf(out, "  %s \t%s \t%v \t%v\n",
 				build.Name,
 				strings.ToLower(string(build.Status.Phase)),
