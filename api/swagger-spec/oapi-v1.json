@@ -13784,11 +13784,6 @@
       "format": "int64",
       "description": "the time to wait for updates before giving up"
      },
-     "updatePercent": {
-      "type": "integer",
-      "format": "int32",
-      "description": "the percentage of replicas to scale up or down each interval (negative value switches scale order to down/up instead of up/down)"
-     },
      "pre": {
       "$ref": "v1.LifecycleHook",
       "description": "a hook executed before the strategy starts the deployment"
