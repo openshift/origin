@@ -247,7 +247,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
 		}
-		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta3))
+		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1Beta3))
 		legacyAPIVersions = append(legacyAPIVersions, OpenShiftAPIV1Beta3)
 	}
 
@@ -255,7 +255,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		if err := c.api_v1(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1 API: %v", err)
 		}
-		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1))
+		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s (experimental)", OpenShiftAPIPrefixV1))
 		currentAPIVersions = append(currentAPIVersions, OpenShiftAPIV1)
 	}
 
@@ -475,8 +475,8 @@ func initHealthCheckRoute(root *restful.WebService, path string) {
 	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
 		resp.ResponseWriter.WriteHeader(http.StatusOK)
 		resp.ResponseWriter.Write([]byte("ok"))
-	}).Doc("return the health state of OpenShift").
-		Returns(http.StatusOK, "if OpenShift is healthy", nil).
+	}).Doc("return the health state of the master").
+		Returns(http.StatusOK, "if master is healthy", nil).
 		Produces(restful.MIME_JSON))
 }
 
@@ -490,9 +490,9 @@ func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc fu
 		} else {
 			resp.ResponseWriter.WriteHeader(http.StatusServiceUnavailable)
 		}
-	}).Doc("return the readiness state of OpenShift").
-		Returns(http.StatusOK, "if OpenShift is ready", nil).
-		Returns(http.StatusServiceUnavailable, "if OpenShift is not ready", nil).
+	}).Doc("return the readiness state of the master").
+		Returns(http.StatusOK, "if the master is ready", nil).
+		Returns(http.StatusServiceUnavailable, "if the master is not ready", nil).
 		Produces(restful.MIME_JSON))
 }
 

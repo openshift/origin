@@ -87,7 +87,7 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 		if cmdutil.IsTerminal(o.Reader) {
 			for !o.serverProvided() {
 				defaultServer := defaultClusterURL
-				promptMsg := fmt.Sprintf("OpenShift server [%s]: ", defaultServer)
+				promptMsg := fmt.Sprintf("Server [%s]: ", defaultServer)
 
 				o.Server = cmdutil.PromptForStringWithDefault(o.Reader, defaultServer, promptMsg)
 			}

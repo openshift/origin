@@ -161,7 +161,7 @@ func (c *MasterConfig) RunDNSServer() {
 
 	cmdutil.WaitForSuccessfulDial(false, "tcp", c.Options.DNSConfig.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
-	glog.Infof("OpenShift DNS listening at %s", c.Options.DNSConfig.BindAddress)
+	glog.Infof("DNS listening at %s", c.Options.DNSConfig.BindAddress)
 }
 
 // RunProjectCache populates project cache, used by scheduler and project admission controller.

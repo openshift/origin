@@ -39,39 +39,39 @@ type MasterOptions struct {
 	Output             io.Writer
 }
 
-const masterLong = `Start an OpenShift master.
+const masterLong = `Start a master server
 
-This command helps you launch an OpenShift master.  Running
+This command helps you launch a master server.  Running
 
-  $ openshift start master
+  $ %[1]s start master
 
-will start an OpenShift master listening on all interfaces, launch an etcd server to store
+will start a master listening on all interfaces, launch an etcd server to store
 persistent data, and launch the Kubernetes system components. The server will run in the
 foreground until you terminate the process.
 
-Note: starting OpenShift without passing the --master address will attempt to find the IP
+Note: starting the master without passing the --master address will attempt to find the IP
 address that will be visible inside running Docker containers. This is not always successful,
-so if you have problems tell OpenShift what public address it will be via --master=<ip>.
+so if you have problems tell the master what public address it should use via --master=<ip>.
 
-You may also pass an optional argument to the start command to start OpenShift in one of the
+You may also pass an optional argument to the start command to start in one of the
 following roles:
 
-  // Launches the server and control plane for OpenShift. You may pass a list of the node
-  // hostnames you want to use, or create nodes via the REST API or 'openshift kube'.
-  $ openshift start master --nodes=<host1,host2,host3,...>
+  // Launches the server and control plane. You may pass a list of the node
+  // hostnames you want to use, or create nodes via the REST API or '%[1]s kube'.
+  $ %[1]s start master --nodes=<host1,host2,host3,...>
 
 You may also pass --etcd=<address> to connect to an external etcd server.
 
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start master' command
-func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
+func NewCommandStartMaster(fullName string, out io.Writer) (*cobra.Command, *MasterOptions) {
 	options := &MasterOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "master",
 		Short: "Launch OpenShift master",
-		Long:  masterLong,
+		Long:  fmt.Sprintf(masterLong, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
 				fmt.Println(err.Error())
@@ -305,7 +305,7 @@ func (o MasterOptions) CreateCerts() error {
 }
 
 func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
-	glog.Infof("Starting OpenShift master on %s (%s)", openshiftMasterConfig.ServingInfo.BindAddress, version.Get().String())
+	glog.Infof("Starting master on %s (%s)", openshiftMasterConfig.ServingInfo.BindAddress, version.Get().String())
 	glog.Infof("Public master address is %s", openshiftMasterConfig.AssetConfig.MasterPublicURL)
 
 	if openshiftMasterConfig.EtcdConfig != nil {

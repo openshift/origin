@@ -20,7 +20,7 @@ func init() {
 	admission.RegisterPlugin("BuildByStrategy", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
 		osClient, ok := c.(client.Interface)
 		if !ok {
-			return nil, errors.New("client is not an OpenShift client")
+			return nil, errors.New("client is not an Origin client")
 		}
 		return NewBuildByStrategy(osClient), nil
 	})

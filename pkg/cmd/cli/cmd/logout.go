@@ -37,9 +37,10 @@ your ticket or client certificate will not be removed from the current system si
 are typically managed by other programs. Instead, you can delete your config file to remove
 the local copy of that certificate or the record of your server login.
 
-After logging out, if you want to log back into the OpenShift server, try '%[1]s'.`
+After logging out, if you want to log back into the server use '%[1]s'.`
 
-	logoutExample = `  // Logout
+	logoutExample = `
+  // Logout
   $ %[1]s`
 )
 

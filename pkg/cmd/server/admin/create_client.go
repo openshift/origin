@@ -32,7 +32,7 @@ type CreateClientOptions struct {
 }
 
 const createClientLong = `
-Create a client configuration for connecting to OpenShift
+Create a client configuration for connecting to the server
 
 This command creates a folder containing a client certificate, a client key,
 a server certificate authority, and a .kubeconfig file for connecting to the

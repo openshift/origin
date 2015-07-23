@@ -15,9 +15,9 @@ import (
 
 const (
 	configLong = `
-Manage the OpenShift client config files
+Manage the client config files
 
-The OpenShift client stores configuration in the current user's home directory (under the .kube directory as
+The client stores configuration in the current user's home directory (under the .kube directory as
 config). When you login the first time, a new config file is created, and subsequent project changes with the
 'project' command will set the current context. These subcommands allow you to manage the config directly.
 

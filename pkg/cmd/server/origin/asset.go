@@ -34,7 +34,7 @@ func (c *AssetConfig) InstallAPI(container *restful.Container) []string {
 
 	container.Handle(publicURL.Path, http.StripPrefix(publicURL.Path, assetHandler))
 
-	return []string{fmt.Sprintf("Started OpenShift UI %%s%s", publicURL.Path)}
+	return []string{fmt.Sprintf("Started Web Console %%s%s", publicURL.Path)}
 }
 
 // Run starts an http server for the static assets listening on the configured
@@ -79,10 +79,10 @@ func (c *AssetConfig) Run() {
 				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
 				MinVersion: tls.VersionTLS10,
 			}
-			glog.Infof("OpenShift UI listening at https://%s", c.Options.ServingInfo.BindAddress)
+			glog.Infof("Web console listening at https://%s", c.Options.ServingInfo.BindAddress)
 			glog.Fatal(server.ListenAndServeTLS(c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
 		} else {
-			glog.Infof("OpenShift UI listening at http://%s", c.Options.ServingInfo.BindAddress)
+			glog.Infof("Web console listening at http://%s", c.Options.ServingInfo.BindAddress)
 			glog.Fatal(server.ListenAndServe())
 		}
 	}, 0)
@@ -90,7 +90,7 @@ func (c *AssetConfig) Run() {
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	cmdutil.WaitForSuccessfulDial(isTLS, "tcp", c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
-	glog.Infof("OpenShift UI available at %s", c.Options.PublicURL)
+	glog.Infof("Web console available at %s", c.Options.PublicURL)
 }
 
 func (c *AssetConfig) buildHandler() (http.Handler, error) {

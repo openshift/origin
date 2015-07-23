@@ -96,7 +96,7 @@ func healthzProxyTest(masterConfig *configapi.MasterConfig, t *testing.T) {
 	}
 	// Only valid "healthy" response from server is 200 - OK
 	if response.StatusCode != http.StatusOK {
-		t.Fatalf("OpenShift reported unhealthy: %v", response)
+		t.Fatalf("Server reported unhealthy: %v", response)
 	}
 }
 

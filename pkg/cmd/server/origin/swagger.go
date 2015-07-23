@@ -8,7 +8,7 @@ import (
 var apiInfo = map[string]swagger.Info{
 	OpenShiftAPIPrefixV1: {
 		Title:       "OpenShift v1 REST API",
-		Description: `The OpenShift API exposes operations for managing an OpenShift cluster, including security and user management, application deployments, image and source builds, HTTP(s) routing, and project management.`,
+		Description: `The OpenShift API exposes operations for managing an enterprise Kubernetes cluster, including security and user management, application deployments, image and source builds, HTTP(s) routing, and project management.`,
 	},
 	KubernetesAPIPrefix + "/v1": {
 		Title:       "Kubernetes v1 REST API",

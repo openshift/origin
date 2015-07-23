@@ -1,6 +1,7 @@
 package openshift
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -26,14 +27,12 @@ import (
 )
 
 const openshiftLong = `
-OpenShift Application Platform
+%[2]s Application Platform
 
-OpenShift helps you build, deploy, and manage your applications. To start an all-in-one server, run:
+The %[2]s distribution of Kubernetes helps you build, deploy, and manage your applications on top of
+Docker containers. To start an all-in-one server with the default configuration, run:
 
-  $ openshift start &
-
-OpenShift is built around Docker and the Kubernetes cluster container manager.  You must have
-Docker installed on this machine to start your server.`
+  $ %[1]s start &`
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
@@ -93,10 +92,16 @@ func CommandFor(basename string) *cobra.Command {
 func NewCommandOpenShift(name string) *cobra.Command {
 	out := os.Stdout
 
+	product := "Origin"
+	switch name {
+	case "openshift":
+		product = "OpenShift"
+	}
+
 	root := &cobra.Command{
 		Use:   name,
-		Short: "OpenShift helps you build, deploy, and manage your cloud applications",
-		Long:  openshiftLong,
+		Short: "Build, deploy, and manage your cloud applications",
+		Long:  fmt.Sprintf(openshiftLong, name, product),
 		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 

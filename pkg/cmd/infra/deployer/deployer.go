@@ -26,7 +26,7 @@ const (
 	deployerLong = `
 Perform a deployment
 
-This command makes calls to OpenShift to perform a deployment as described by a deployment configuration.`
+This command launches a deployment as described by a deployment configuration.`
 )
 
 type config struct {
@@ -43,7 +43,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
-		Short: "Run the OpenShift deployer",
+		Short: "Run the deployer",
 		Long:  deployerLong,
 		Run: func(c *cobra.Command, args []string) {
 			_, kClient, err := cfg.Config.Clients()
@@ -131,7 +131,7 @@ func (d *Deployer) Deploy(namespace, deploymentName string) error {
 	// Decode the config from the deployment.
 	config, err := deployutil.DecodeDeploymentConfig(to, latest.Codec)
 	if err != nil {
-		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s/%s: %v", to.Namespace, to.Name, err)
+		return fmt.Errorf("couldn't decode deployment config from deployment %s/%s: %v", to.Namespace, to.Name, err)
 	}
 
 	// Get a strategy for the deployment.

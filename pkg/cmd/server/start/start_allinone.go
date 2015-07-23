@@ -38,17 +38,17 @@ type AllInOneOptions struct {
 }
 
 const allInOneLong = `
-Start an OpenShift all-in-one server
+Start an all-in-one server
 
-This command helps you launch an OpenShift all-in-one server, which allows
-you to run all of the components of an OpenShift system on a server with Docker. Running
+This command helps you launch an all-in-one server, which allows you to run all of the
+components of an enterprise Kubernetes system on a server with Docker. Running:
 
-  $ openshift start
+  $ %[1]s start
 
-will start OpenShift listening on all interfaces, launch an etcd server to store persistent
+will start listening on all interfaces, launch an etcd server to store persistent
 data, and launch the Kubernetes system components. The server will run in the foreground until
-you terminate the process.  This command delegates to "openshift start master" and
-"openshift start node".
+you terminate the process.  This command delegates to "%[1]s start master" and
+"%[1]s start node".
 
 Note: starting OpenShift without passing the --master address will attempt to find the IP
 address that will be visible inside running Docker containers. This is not always successful,
@@ -64,8 +64,8 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 
 	cmds := &cobra.Command{
 		Use:   "start",
-		Short: "Launch OpenShift All-In-One",
-		Long:  allInOneLong,
+		Short: "Launch all-in-one server",
+		Long:  fmt.Sprintf(allInOneLong, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
 				fmt.Println(kcmdutil.UsageError(c, err.Error()))
@@ -88,7 +88,7 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 						os.Exit(255)
 					}
 				}
-				glog.Fatalf("OpenShift could not start: %v", err)
+				glog.Fatalf("Server could not start: %v", err)
 			}
 		},
 	}
@@ -112,8 +112,8 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 	BindListenArg(listenArg, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 
-	startMaster, _ := NewCommandStartMaster(out)
-	startNode, _ := NewCommandStartNode(out)
+	startMaster, _ := NewCommandStartMaster(fullName, out)
+	startNode, _ := NewCommandStartNode(fullName, out)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNode)
 
@@ -150,7 +150,7 @@ func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *K
 
 func (o AllInOneOptions) Validate(args []string) error {
 	if len(args) != 0 {
-		return errors.New("No arguments are supported for start")
+		return errors.New("no arguments are supported for start")
 	}
 
 	if (len(o.MasterConfigFile) == 0) != (len(o.NodeConfigFile) == 0) {
@@ -178,7 +178,7 @@ func (o AllInOneOptions) Validate(args []string) error {
 	}
 
 	if len(o.MasterArgs.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) != 0 {
-		return errors.New("all-in-one cannot start against with a remote kubernetes, start the master instead")
+		return errors.New("all-in-one cannot start with a remote Kubernetes server, start the master instead")
 	}
 
 	return nil
