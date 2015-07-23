@@ -20,6 +20,7 @@ type Interface interface {
 	BuildLogsNamespacer
 	ImagesInterfacer
 	ImageStreamsNamespacer
+	ImageStreamsImpersonator
 	ImageStreamMappingsNamespacer
 	ImageStreamTagsNamespacer
 	ImageStreamImagesNamespacer
@@ -29,6 +30,7 @@ type Interface interface {
 	ClusterNetworkingInterface
 	IdentitiesInterface
 	UsersInterface
+	UsersImpersonator
 	UserIdentityMappingsInterface
 	ProjectsInterface
 	ProjectRequestsInterface
@@ -73,7 +75,12 @@ func (c *Client) Images() ImageInterface {
 
 // ImageStreams provides a REST client for ImageStream
 func (c *Client) ImageStreams(namespace string) ImageStreamInterface {
-	return newImageStreams(c, namespace)
+	return newImageStreams(c, namespace, "")
+}
+
+// ImpersonateImageStreams provides a REST client for ImageStream
+func (c *Client) ImpersonateImageStreams(namespace, token string) ImageStreamInterface {
+	return newImageStreams(c, namespace, token)
 }
 
 // ImageStreamMappings provides a REST client for ImageStreamMapping
@@ -113,7 +120,12 @@ func (c *Client) ClusterNetwork() ClusterNetworkInterface {
 
 // Users provides a REST client for User
 func (c *Client) Users() UserInterface {
-	return newUsers(c)
+	return newUsers(c, "")
+}
+
+// ImpersonateUsers provides a REST client for User
+func (c *Client) ImpersonateUsers(token string) UserInterface {
+	return newUsers(c, token)
 }
 
 // Identities provides a REST client for Identity

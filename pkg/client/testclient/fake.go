@@ -79,6 +79,11 @@ func (c *Fake) ImageStreams(namespace string) client.ImageStreamInterface {
 	return &FakeImageStreams{Fake: c, Namespace: namespace}
 }
 
+// ImpersonateImageStreams provides a fake REST client for ImageStreams
+func (c *Fake) ImpersonateImageStreams(namespace, token string) client.ImageStreamInterface {
+	return &FakeImageStreams{Fake: c, Namespace: namespace}
+}
+
 // ImageStreamMappings provides a fake REST client for ImageStreamMappings
 func (c *Fake) ImageStreamMappings(namespace string) client.ImageStreamMappingInterface {
 	return &FakeImageStreamMappings{Fake: c, Namespace: namespace}
@@ -131,6 +136,11 @@ func (c *Fake) Identities() client.IdentityInterface {
 
 // Users provides a fake REST client for Users
 func (c *Fake) Users() client.UserInterface {
+	return &FakeUsers{Fake: c}
+}
+
+// ImpersonateUsers provides a fake REST client for Users
+func (c *Fake) ImpersonateUsers(token string) client.UserInterface {
 	return &FakeUsers{Fake: c}
 }
 

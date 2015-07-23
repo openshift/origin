@@ -13,6 +13,12 @@ type ImageStreamsNamespacer interface {
 	ImageStreams(namespace string) ImageStreamInterface
 }
 
+// ImageStreamsImpersonator has methods to work with ImageStream resources in a namespace
+// acting as the user corresponding to token.
+type ImageStreamsImpersonator interface {
+	ImpersonateImageStreams(namespace, token string) ImageStreamInterface
+}
+
 // ImageStreamInterface exposes methods on ImageStream resources.
 type ImageStreamInterface interface {
 	List(label labels.Selector, field fields.Selector) (*imageapi.ImageStreamList, error)
@@ -31,26 +37,28 @@ type ImageStreamNamespaceGetter interface {
 
 // imageStreams implements ImageStreamsNamespacer interface
 type imageStreams struct {
-	r  *Client
-	ns string
+	r     *Client
+	ns    string
+	token string
 }
 
 // newImageStreams returns an imageStreams
-func newImageStreams(c *Client, namespace string) *imageStreams {
+func newImageStreams(c *Client, namespace, token string) *imageStreams {
 	return &imageStreams{
-		r:  c,
-		ns: namespace,
+		r:     c,
+		ns:    namespace,
+		token: token,
 	}
 }
 
 // List returns a list of image streams that match the label and field selectors.
 func (c *imageStreams) List(label labels.Selector, field fields.Selector) (result *imageapi.ImageStreamList, err error) {
 	result = &imageapi.ImageStreamList{}
-	err = c.r.Get().
+	err = overrideAuth(c.token, c.r.Get().
 		Namespace(c.ns).
 		Resource("imageStreams").
 		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		FieldsSelectorParam(field)).
 		Do().
 		Into(result)
 	return
@@ -66,45 +74,45 @@ func (c *imageStreams) Get(name string) (result *imageapi.ImageStream, err error
 // GetByNamespace returns information about a particular image stream in a particular namespace and error if one occurs.
 func (c *imageStreams) GetByNamespace(namespace, name string) (result *imageapi.ImageStream, err error) {
 	result = &imageapi.ImageStream{}
-	c.r.Get().Namespace(namespace).Resource("imageStreams").Name(name).Do().Into(result)
+	overrideAuth(c.token, c.r.Get().Namespace(namespace).Resource("imageStreams").Name(name)).Do().Into(result)
 	return
 }
 
 // Create create a new image stream. Returns the server's representation of the image stream and error if one occurs.
 func (c *imageStreams) Create(stream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
 	result = &imageapi.ImageStream{}
-	err = c.r.Post().Namespace(c.ns).Resource("imageStreams").Body(stream).Do().Into(result)
+	err = overrideAuth(c.token, c.r.Post().Namespace(c.ns).Resource("imageStreams").Body(stream)).Do().Into(result)
 	return
 }
 
 // Update updates the image stream on the server. Returns the server's representation of the image stream and error if one occurs.
 func (c *imageStreams) Update(stream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
 	result = &imageapi.ImageStream{}
-	err = c.r.Put().Namespace(c.ns).Resource("imageStreams").Name(stream.Name).Body(stream).Do().Into(result)
+	err = overrideAuth(c.token, c.r.Put().Namespace(c.ns).Resource("imageStreams").Name(stream.Name)).Body(stream).Do().Into(result)
 	return
 }
 
 // Delete deletes an image stream, returns error if one occurs.
 func (c *imageStreams) Delete(name string) (err error) {
-	err = c.r.Delete().Namespace(c.ns).Resource("imageStreams").Name(name).Do().Error()
+	err = overrideAuth(c.token, c.r.Delete().Namespace(c.ns).Resource("imageStreams").Name(name)).Do().Error()
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested image streams.
 func (c *imageStreams) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.r.Get().
+	return overrideAuth(c.token, c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
 		Resource("imageStreams").
 		Param("resourceVersion", resourceVersion).
 		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		FieldsSelectorParam(field)).
 		Watch()
 }
 
 // UpdateStatus updates the image stream's status. Returns the server's representation of the image stream, and an error, if it occurs.
 func (c *imageStreams) UpdateStatus(stream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
 	result = &imageapi.ImageStream{}
-	err = c.r.Put().Namespace(c.ns).Resource("imageStreams").Name(stream.Name).SubResource("status").Body(stream).Do().Into(result)
+	err = overrideAuth(c.token, c.r.Put().Namespace(c.ns).Resource("imageStreams").Name(stream.Name).SubResource("status")).Body(stream).Do().Into(result)
 	return
 }
