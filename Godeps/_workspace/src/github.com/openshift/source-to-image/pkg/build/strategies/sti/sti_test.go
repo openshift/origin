@@ -165,59 +165,6 @@ func TestBuild(t *testing.T) {
 	}
 }
 
-func TestCheckNoRoot(t *testing.T) {
-	tests := []struct {
-		noRoot    bool
-		user      string
-		expectErr bool
-	}{
-		{
-			noRoot:    false,
-			expectErr: false,
-			user:      "0",
-		},
-		{
-			noRoot:    false,
-			expectErr: false,
-			user:      "root",
-		},
-		{
-			noRoot:    true,
-			user:      "",
-			expectErr: true,
-		},
-		{
-			noRoot:    true,
-			user:      "100",
-			expectErr: false,
-		},
-		{
-			noRoot:    true,
-			user:      "default",
-			expectErr: true,
-		},
-	}
-
-	for _, tc := range tests {
-		cfg := &api.Config{
-			NoRoot: tc.noRoot,
-		}
-		builder := &STI{
-			docker: &test.FakeDocker{
-				GetImageUserResult: tc.user,
-			},
-		}
-		err := builder.checkNoRoot(cfg)
-		if err != nil && !tc.expectErr {
-			t.Errorf("Unexpected error: %v for test case: %#v\n", err, tc)
-		}
-		if err == nil && tc.expectErr {
-			t.Errorf("Expected error, but did not get any for test case: %#v\n", tc)
-		}
-	}
-
-}
-
 func TestLayeredBuild(t *testing.T) {
 	fh := &FakeSTI{
 		BuildRequest: &api.Config{
@@ -370,7 +317,7 @@ func TestPostExecute(t *testing.T) {
 		}
 		// Ensure Callback was called
 		if ci.CallbackURL != bh.config.CallbackURL {
-			t.Errorf("(%d) Unexpected callbackURL, expected %s, got %s", i, bh.config.CallbackURL, ci.CallbackURL)
+			t.Errorf("(%d) Unexpected callbackURL, expected %s, got %", i, bh.config.CallbackURL, ci.CallbackURL)
 		}
 	}
 }
