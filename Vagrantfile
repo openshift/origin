@@ -179,8 +179,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       config.vm.synced_folder ".", "/vagrant", disabled: true
       unless vagrant_openshift_config['no_synced_folders']
-        config.vm.synced_folder sync_from, sync_to, 
-          rsync__args: %w(--verbose --archive --delete), 
+        config.vm.synced_folder sync_from, sync_to,
+          rsync__args: %w(--verbose --archive --delete),
           type: vagrant_openshift_config['sync_folders_type'],
           nfs_udp: false # has issues when using NFS from within a docker container
       end
@@ -226,7 +226,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       libvirt.memory      = vagrant_openshift_config['memory'].to_i
       libvirt.cpus        = vagrant_openshift_config['cpus'].to_i
       # run on libvirt somewhere other than default:
-      libvirt.uri         = ENV["VAGRANT_LIBVIRT_URI"] if defined? ENV["VAGRANT_LIBVIRT_URI"] 
+      libvirt.uri         = ENV["VAGRANT_LIBVIRT_URI"] || 'qemu:///system'
       full_provision(override.vm)
     end if vagrant_openshift_config['libvirt']
 
