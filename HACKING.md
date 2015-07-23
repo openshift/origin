@@ -81,6 +81,14 @@ To run all tests with verbose output:
 
     $ hack/test-go.sh "" -v
 
+To enable running the kubernetes unit tests:
+
+    $ TEST_KUBE=1 hack/test-go.sh
+
+To run unit test for an individual kubernetes package:
+
+    $ TEST_KUBE=1 hack/test-go.sh Godeps/_workspace/src/github.com/GoogleCloudPlatform/kubernetes/examples
+
 To turn off or change the coverage mode, which is `-cover -covermode=atomic` by default, use:
 
     $ KUBE_COVER="" hack/test-go.sh
@@ -202,6 +210,7 @@ with rebasing the Kubernetes code using the script that automates this process.
 ```
 $ cd $GOPATH/src/github.com/openshift/origin
 $ hack/rebase-kube.sh
+$ hack/copy-kube-artifacts.sh
 ```
 
 Read over the changes with `git status` and make sure it looks reasonable. Check specially the
@@ -260,7 +269,6 @@ already merged in Kubernetes and we don't need to specifically add it to our God
 4. Read over the commit history and make sure you have every UPSTREAM commit since the last rebase
 (except only for the empty ones).
 
-
 ### 4. Refactor Origin to be compliant with upstream changes
 
 After making sure we have all the dependencies in place and up-to-date, we need to work in the Origin
@@ -268,7 +276,7 @@ codebase to make sure the compilation is not broken, all tests pass and it's com
 refactorings, architectural changes or behavior changes introduced in Kubernetes. Make sure:
 
 1. `make clean ; hack/build-go.sh` compiles without errors and the standalone server starts correctly.
-2. `hack/test-go.sh` runs without errors.
+2. `TEST_KUBE=1 hack/test-go.sh` runs without errors.
 3. `hack/test-cmd.sh` runs without errors.
 3. `hack/test-integration.sh` runs without errors.
 3. `hack/test-end-to-end.sh` runs without errors.
