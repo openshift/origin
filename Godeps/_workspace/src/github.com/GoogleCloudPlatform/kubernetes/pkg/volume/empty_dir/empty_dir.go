@@ -247,18 +247,18 @@ func (ed *emptyDir) determineEffectiveSELinuxOptions() (string, error) {
 
 	effectiveOpts := securitycontext.ProjectSELinuxOptions(opts, rootContextOpts)
 
-	glog.V(4).Infof("Effective SELinux context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(effectiveOpts))
+	glog.V(4).Infof("Effective context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(effectiveOpts))
 
 	return securitycontext.SELinuxOptionsString(effectiveOpts), nil
 }
 
 // setupTmpfs creates a tmpfs mount at the specified directory with the
-// specified SELinux context.
-func (ed *emptyDir) setupTmpfs(dir string, selinuxContext string) error {
+// specified rootContext.
+func (ed *emptyDir) setupTmpfs(dir string, rootContext string) error {
 	if ed.mounter == nil {
 		return fmt.Errorf("memory storage requested, but mounter is nil")
 	}
-	if err := ed.setupDir(dir, selinuxContext); err != nil {
+	if err := ed.setupDir(dir, rootContext); err != nil {
 		return err
 	}
 	// Make SetUp idempotent.
@@ -273,10 +273,11 @@ func (ed *emptyDir) setupTmpfs(dir string, selinuxContext string) error {
 	}
 
 	// By default a tmpfs mount will receive a different SELinux context
-	// which is not readable from the SELinux context of a docker container.
+	// from that of the Kubelet root directory which is not readable from
+	// the SELinux context of a docker container.
 	var opts []string
-	if selinuxContext != "" {
-		opts = []string{fmt.Sprintf("rootcontext=\"%v\"", selinuxContext)}
+	if rootContext != "" {
+		opts = []string{fmt.Sprintf("rootcontext=\"%v\"", rootContext)}
 	} else {
 		opts = []string{}
 	}
@@ -285,9 +286,10 @@ func (ed *emptyDir) setupTmpfs(dir string, selinuxContext string) error {
 	return ed.mounter.Mount("tmpfs", dir, "tmpfs", opts)
 }
 
-// setupDir creates the directory with the specified SELinux context and
-// the default permissions specified by the perm constant.
-func (ed *emptyDir) setupDir(dir, selinuxContext string) error {
+// setupDir creates the directory with the default permissions specified
+// by the perm constant, chmoding the directory if necessary to work around
+// the effective umask for the kubelet.
+func (ed *emptyDir) setupDir(dir, rootContext string) error {
 	// Create the directory if it doesn't already exist.
 	if err := os.MkdirAll(dir, perm); err != nil {
 		return err
@@ -322,9 +324,9 @@ func (ed *emptyDir) setupDir(dir, selinuxContext string) error {
 	}
 
 	// Set the context on the directory, if appropriate
-	if selinuxContext != "" {
-		glog.V(3).Infof("Setting SELinux context for %v to %v", dir, selinuxContext)
-		return ed.chconRunner.SetContext(dir, selinuxContext)
+	if rootContext != "" {
+		glog.V(3).Infof("Setting rootContext for %v to %v", dir, rootContext)
+		return ed.chconRunner.SetContext(dir, rootContext)
 	}
 
 	return nil
