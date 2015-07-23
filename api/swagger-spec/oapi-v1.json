@@ -13784,6 +13784,11 @@
       "format": "int64",
       "description": "the time to wait for updates before giving up"
      },
+     "updatePercent": {
+      "type": "integer",
+      "format": "int32",
+      "description": "the percentage of replicas to scale up or down each interval (negative value switches scale order to down/up instead of up/down)"
+     },
      "pre": {
       "$ref": "v1.LifecycleHook",
       "description": "a hook executed before the strategy starts the deployment"
@@ -14538,6 +14543,10 @@
       "type": "integer",
       "format": "int64",
       "description": "the user id that runs the first process in the container; see http://releases.k8s.io/v1.0.0/docs/design/security_context.md#security-context"
+     },
+     "runAsNonRoot": {
+      "type": "boolean",
+      "description": "indicates the container must be run as a non-root user either by specifying the runAsUser or in the image specification"
      }
     }
    },
