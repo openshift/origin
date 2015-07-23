@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/api"
+	osclient "github.com/openshift/origin/pkg/client"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
@@ -59,11 +60,15 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 	}
 	for _, test := range tests {
 		server, _ := simulateOpenShiftMaster([]response{test.openshiftResponse})
-		client, err := NewUserOpenShiftClient("magic bearer token")
+		config, err := openShiftClientConfig()
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = verifyImageStreamAccess("foo", "bar", "create", client)
+		client, err := osclient.New(config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = verifyImageStreamAccess("foo", "bar", "create", client, "magic bearer token")
 		if err == nil || test.expectedError == nil {
 			if err != test.expectedError {
 				t.Fatal("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
@@ -72,6 +77,39 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 			t.Fatal("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
 		}
 		server.Close()
+	}
+}
+
+func TestVerifyImageStreamAccessUsesImpersonation(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if e, a := "Bearer magic bearer token", r.Header.Get("Authorization"); e != a {
+			t.Errorf("Expected %q, got %q", e, a)
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintln(w,
+			runtime.EncodeOrDie(latest.Codec, &api.SubjectAccessReviewResponse{
+				Namespace: "foo",
+				Allowed:   true,
+				Reason:    "authorized!",
+			}))
+	}))
+	defer server.Close()
+
+	os.Setenv("OPENSHIFT_MASTER", server.URL)
+	os.Setenv("OPENSHIFT_INSECURE", "true")
+
+	config, err := openShiftClientConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := osclient.New(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := verifyImageStreamAccess("foo", "bar", "create", client, "magic bearer token"); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -98,6 +136,13 @@ func TestAccessController(t *testing.T) {
 			access:            []auth.Access{},
 			basicToken:        "",
 			expectedError:     ErrTokenRequired,
+			expectedChallenge: true,
+		},
+		"token has username but no password": {
+			access: []auth.Access{},
+			// 'foo:'
+			basicToken:        "Zm9vOg==",
+			expectedError:     ErrOpenShiftTokenRequired,
 			expectedChallenge: true,
 		},
 		"invalid registry token": {
@@ -274,6 +319,9 @@ func TestAccessController(t *testing.T) {
 		ctx := context.WithValue(nil, "http.request", req)
 
 		server, actions := simulateOpenShiftMaster(test.openshiftResponses)
+		if err := NewRegistryOpenShiftClient(); err != nil {
+			t.Fatalf("error creating registry client: %v", err)
+		}
 		authCtx, err := accessController.Authorized(ctx, test.access...)
 		server.Close()
 

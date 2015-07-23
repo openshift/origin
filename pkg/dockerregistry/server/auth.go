@@ -23,15 +23,15 @@ func init() {
 
 type contextKey int
 
-var userClientKey contextKey = 0
+var tokenKey contextKey = 0
 
-func WithUserClient(parent context.Context, userClient *client.Client) context.Context {
-	return context.WithValue(parent, userClientKey, userClient)
+func WithToken(parent context.Context, token string) context.Context {
+	return context.WithValue(parent, tokenKey, token)
 }
 
-func UserClientFrom(ctx context.Context) (*client.Client, bool) {
-	userClient, ok := ctx.Value(userClientKey).(*client.Client)
-	return userClient, ok
+func TokenFrom(ctx context.Context) (string, bool) {
+	token, ok := ctx.Value(tokenKey).(string)
+	return token, ok
 }
 
 type AccessController struct {
@@ -125,14 +125,9 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		return nil, ac.wrapErr(err)
 	}
 
-	client, err := NewUserOpenShiftClient(bearerToken)
-	if err != nil {
-		return nil, ac.wrapErr(err)
-	}
-
 	// In case of docker login, hits endpoint /v2
 	if len(accessRecords) == 0 {
-		if err := verifyOpenShiftUser(client); err != nil {
+		if err := verifyOpenShiftUser(registryClient, bearerToken); err != nil {
 			return nil, ac.wrapErr(err)
 		}
 	}
@@ -168,12 +163,12 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if verifiedPrune {
 					continue
 				}
-				if err := verifyPruneAccess(client); err != nil {
+				if err := verifyPruneAccess(registryClient, bearerToken); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 				verifiedPrune = true
 			default:
-				if err := verifyImageStreamAccess(imageStreamNS, imageStreamName, verb, client); err != nil {
+				if err := verifyImageStreamAccess(imageStreamNS, imageStreamName, verb, registryClient, bearerToken); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 			}
@@ -184,7 +179,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if verifiedPrune {
 					continue
 				}
-				if err := verifyPruneAccess(client); err != nil {
+				if err := verifyPruneAccess(registryClient, bearerToken); err != nil {
 					return nil, ac.wrapErr(err)
 				}
 				verifiedPrune = true
@@ -196,7 +191,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		}
 	}
 
-	return WithUserClient(ctx, client), nil
+	return WithToken(ctx, bearerToken), nil
 }
 
 func getNamespaceName(resourceName string) (string, string, error) {
@@ -234,11 +229,15 @@ func getToken(req *http.Request) (string, error) {
 	}
 
 	bearerToken := osAuthParts[1]
+	if len(bearerToken) == 0 {
+		return "", ErrOpenShiftTokenRequired
+	}
+
 	return bearerToken, nil
 }
 
-func verifyOpenShiftUser(client *client.Client) error {
-	if _, err := client.Users().Get("~"); err != nil {
+func verifyOpenShiftUser(client *client.Client, token string) error {
+	if _, err := client.ImpersonateUsers(token).Get("~"); err != nil {
 		log.Errorf("Get user failed with error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
 			return ErrOpenShiftAccessDenied
@@ -249,13 +248,13 @@ func verifyOpenShiftUser(client *client.Client) error {
 	return nil
 }
 
-func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.Client) error {
+func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.Client, token string) error {
 	sar := authorizationapi.SubjectAccessReview{
 		Verb:         verb,
 		Resource:     "imagestreams/layers",
 		ResourceName: imageRepo,
 	}
-	response, err := client.SubjectAccessReviews(namespace).Create(&sar)
+	response, err := client.ImpersonateSubjectAccessReviews(namespace, token).Create(&sar)
 	if err != nil {
 		log.Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
@@ -270,12 +269,12 @@ func verifyImageStreamAccess(namespace, imageRepo, verb string, client *client.C
 	return nil
 }
 
-func verifyPruneAccess(client *client.Client) error {
+func verifyPruneAccess(client *client.Client, token string) error {
 	sar := authorizationapi.SubjectAccessReview{
 		Verb:     "delete",
 		Resource: "images",
 	}
-	response, err := client.ClusterSubjectAccessReviews().Create(&sar)
+	response, err := client.ImpersonateClusterSubjectAccessReviews(token).Create(&sar)
 	if err != nil {
 		log.Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {

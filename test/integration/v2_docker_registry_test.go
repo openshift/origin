@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/docker/distribution/digest"
@@ -97,7 +98,8 @@ func TestV2RegistryGetTags(t *testing.T) {
 	}
 
 	config := `version: 0.1
-loglevel: debug
+log:
+  level: debug
 http:
   addr: 127.0.0.1:5000
 storage:
@@ -116,6 +118,22 @@ middleware:
 	os.Setenv("REGISTRY_URL", "127.0.0.1:5000")
 
 	go dockerregistry.Execute(strings.NewReader(config))
+
+	// wait for the registry to be up
+	for {
+		resp, err := http.Get("http://127.0.0.1:5000/healthz")
+		if err != nil {
+			t.Logf("error checking registry health: %v", err)
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			// it's up
+			break
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
 
 	stream := imageapi.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{

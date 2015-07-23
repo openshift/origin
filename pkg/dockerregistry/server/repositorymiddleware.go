@@ -16,7 +16,6 @@ import (
 	"github.com/docker/distribution/manifest"
 	repomw "github.com/docker/distribution/registry/middleware/repository"
 	"github.com/docker/libtrust"
-	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"golang.org/x/net/context"
 )
@@ -28,10 +27,9 @@ func init() {
 type repository struct {
 	distribution.Repository
 
-	registryClient *client.Client
-	registryAddr   string
-	namespace      string
-	name           string
+	registryAddr string
+	namespace    string
+	name         string
 }
 
 // newRepository returns a new repository middleware.
@@ -41,22 +39,16 @@ func newRepository(repo distribution.Repository, options map[string]interface{})
 		return nil, errors.New("REGISTRY_URL is required")
 	}
 
-	registryClient, err := NewRegistryOpenShiftClient()
-	if err != nil {
-		return nil, err
-	}
-
 	nameParts := strings.SplitN(repo.Name(), "/", 2)
 	if len(nameParts) != 2 {
 		return nil, fmt.Errorf("invalid repository name %q: it must be of the format <project>/<name>", repo.Name())
 	}
 
 	return &repository{
-		Repository:     repo,
-		registryClient: registryClient,
-		registryAddr:   registryAddr,
-		namespace:      nameParts[0],
-		name:           nameParts[1],
+		Repository:   repo,
+		registryAddr: registryAddr,
+		namespace:    nameParts[0],
+		name:         nameParts[1],
 	}, nil
 }
 
@@ -171,7 +163,7 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 		},
 	}
 
-	if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+	if err := registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
 		// if the error was that the image stream wasn't found, try to auto provision it
 		statusErr, ok := err.(*kerrors.StatusError)
 		if !ok {
@@ -191,19 +183,19 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 			},
 		}
 
-		client, ok := UserClientFrom(ctx)
+		token, ok := TokenFrom(ctx)
 		if !ok {
-			log.Errorf("Error creating user client to auto provision ImageStream: OpenShift user client unavailable")
+			log.Errorf("Error auto provisioning ImageStream: OpenShift user token unavailable")
 			return statusErr
 		}
 
-		if _, err := client.ImageStreams(r.namespace).Create(&stream); err != nil {
+		if _, err := registryClient.ImpersonateImageStreams(r.namespace, token).Create(&stream); err != nil {
 			log.Errorf("Error auto provisioning ImageStream: %s", err)
 			return statusErr
 		}
 
 		// try to create the ISM again
-		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+		if err := registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
 			log.Errorf("Error creating ImageStreamMapping: %s", err)
 			return err
 		}
@@ -234,24 +226,24 @@ func (r *repository) Delete(ctx context.Context, dgst digest.Digest) error {
 
 // getImageStream retrieves the ImageStream for r.
 func (r *repository) getImageStream(ctx context.Context) (*imageapi.ImageStream, error) {
-	return r.registryClient.ImageStreams(r.namespace).Get(r.name)
+	return registryClient.ImageStreams(r.namespace).Get(r.name)
 }
 
 // getImage retrieves the Image with digest `dgst`.
 func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
-	return r.registryClient.Images().Get(dgst.String())
+	return registryClient.Images().Get(dgst.String())
 }
 
 // getImageStreamTag retrieves the Image with tag `tag` for the ImageStream
 // associated with r.
 func (r *repository) getImageStreamTag(ctx context.Context, tag string) (*imageapi.ImageStreamTag, error) {
-	return r.registryClient.ImageStreamTags(r.namespace).Get(r.name, tag)
+	return registryClient.ImageStreamTags(r.namespace).Get(r.name, tag)
 }
 
 // getImageStreamImage retrieves the Image with digest `dgst` for the ImageStream
 // associated with r. This ensures the image belongs to the image stream.
 func (r *repository) getImageStreamImage(ctx context.Context, dgst digest.Digest) (*imageapi.ImageStreamImage, error) {
-	return r.registryClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
+	return registryClient.ImageStreamImages(r.namespace).Get(r.name, dgst.String())
 }
 
 // manifestFromImage converts an Image to a SignedManifest.

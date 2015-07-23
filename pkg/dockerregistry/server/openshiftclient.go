@@ -22,28 +22,31 @@ func NewUserOpenShiftClient(bearerToken string) (*osclient.Client, error) {
 	return client, nil
 }
 
-func NewRegistryOpenShiftClient() (*osclient.Client, error) {
+var registryClient *osclient.Client
+
+func NewRegistryOpenShiftClient() error {
 	config, err := openShiftClientConfig()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if !config.Insecure {
 		certData := os.Getenv("OPENSHIFT_CERT_DATA")
 		if len(certData) == 0 {
-			return nil, errors.New("OPENSHIFT_CERT_DATA is required")
+			return errors.New("OPENSHIFT_CERT_DATA is required")
 		}
 		certKeyData := os.Getenv("OPENSHIFT_KEY_DATA")
 		if len(certKeyData) == 0 {
-			return nil, errors.New("OPENSHIFT_KEY_DATA is required")
+			return errors.New("OPENSHIFT_KEY_DATA is required")
 		}
 		config.TLSClientConfig.CertData = []byte(certData)
 		config.TLSClientConfig.KeyData = []byte(certKeyData)
 	}
 	client, err := osclient.New(config)
 	if err != nil {
-		return nil, fmt.Errorf("error creating OpenShift client: %s", err)
+		return fmt.Errorf("error creating OpenShift client: %s", err)
 	}
-	return client, nil
+	registryClient = client
+	return nil
 }
 
 func openShiftClientConfig() (*kclient.Config, error) {
