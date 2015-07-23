@@ -18,7 +18,7 @@ angular.module('openshiftConsole')
           apiVersion: "v1",
           kind: "ProjectRequest",
           metadata: {
-            name: $scope.name,
+            name: $scope.name
           },
           displayName: $scope.displayName,
           description: $scope.description

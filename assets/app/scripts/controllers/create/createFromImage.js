@@ -111,7 +111,7 @@ angular.module("openshiftConsole")
         );
       });
       return result.promise;
-    }
+    };
 
     var createResources = function(resources){
       var titles = {
