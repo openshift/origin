@@ -13366,6 +13366,10 @@
       "type": "integer",
       "format": "int64",
       "description": "the user id that runs the first process in the container; see http://releases.k8s.io/v1.0.0/docs/design/security_context.md#security-context"
+     },
+     "runAsNonRoot": {
+      "type": "boolean",
+      "description": "indicates the container must be run as a non-root user either by specifying the runAsUser or in the image specification"
      }
     }
    },
@@ -13897,6 +13901,13 @@
    },
    "v1.SecurityContextConstraints": {
     "id": "v1.SecurityContextConstraints",
+    "required": [
+     "allowPrivilegedContainer",
+     "allowedCapabilities",
+     "allowHostDirVolumePlugin",
+     "allowHostNetwork",
+     "allowHostPorts"
+    ],
     "properties": {
      "kind": {
       "type": "string",
@@ -13923,6 +13934,14 @@
      "allowHostDirVolumePlugin": {
       "type": "boolean",
       "description": "allow the use of the host dir volume plugin"
+     },
+     "allowHostNetwork": {
+      "type": "boolean",
+      "description": "allow the use of the hostNetwork in the pod spec"
+     },
+     "allowHostPorts": {
+      "type": "boolean",
+      "description": "allow the use of the host ports in the containers"
      },
      "seLinuxContext": {
       "$ref": "v1.SELinuxContextStrategyOptions",
