@@ -165,7 +165,7 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	}
 	switch ed.medium {
 	case api.StorageMediumDefault:
-		return ed.setupDir(dir)
+		return ed.setupDefault(dir)
 	case api.StorageMediumMemory:
 		return ed.setupTmpfs(dir)
 	default:
@@ -173,11 +173,15 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	}
 }
 
+func (ed *emptyDir) setupDefault(dir string) error {
+	return os.MkdirAll(dir, perm)
+}
+
 func (ed *emptyDir) setupTmpfs(dir string) error {
 	if ed.mounter == nil {
 		return fmt.Errorf("memory storage requested, but mounter is nil")
 	}
-	if err := ed.setupDir(dir); err != nil {
+	if err := os.MkdirAll(dir, perm); err != nil {
 		return err
 	}
 	// Make SetUp idempotent.
@@ -201,45 +205,6 @@ func (ed *emptyDir) setupTmpfs(dir string) error {
 	opts := ed.getTmpfsMountOptions()
 	glog.V(3).Infof("pod %v: mounting tmpfs for volume %v with opts %v", ed.podUID, ed.volName, opts)
 	return ed.mounter.Mount("tmpfs", dir, "tmpfs", opts)
-}
-
-// setupDir creates the directory with the default permissions specified
-// by the perm constant, chmoding the directory if necessary to work around
-// the effective umask for the kubelet.
-func (ed *emptyDir) setupDir(dir string) error {
-	var err error
-	if err = os.MkdirAll(dir, perm); err != nil {
-		return err
-	}
-
-	fileinfo, err := os.Lstat(dir)
-	if err != nil {
-		return err
-	}
-
-	if fileinfo.Mode().Perm() != perm.Perm() {
-		// If the permissions on the created directory are wrong, the
-		// kubelet is probably running with a umask set.  In order to
-		// avoid clearing the umask for the entire process or locking
-		// the thread, clearing the umask, creating the dir, restoring
-		// the umask, and unlocking the thread, we do a chmod to set
-		// the specific bits we need.
-		err := os.Chmod(dir, perm)
-		if err != nil {
-			return err
-		}
-
-		fileinfo, err = os.Lstat(dir)
-		if err != nil {
-			return err
-		}
-
-		if fileinfo.Mode().Perm() != perm.Perm() {
-			glog.Errorf("Expected directory %q permissions to be: %s; got: %s", dir, fileinfo.Mode().Perm(), perm.Perm())
-		}
-	}
-
-	return nil
 }
 
 func (ed *emptyDir) getTmpfsMountOptions() []string {
