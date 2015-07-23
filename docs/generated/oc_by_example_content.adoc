@@ -628,6 +628,20 @@ Revert part of an application back to a previous deployment
 ====
 
 
+== oc rsh
+Start a shell session in a pod
+
+====
+
+[options="nowrap"]
+----
+
+  // Open a shell session on the first container in pod 'foo'
+  $ openshift cli rsh foo
+----
+====
+
+
 == oc scale
 Change the number of pods in a deployment
 
