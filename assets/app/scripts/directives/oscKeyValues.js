@@ -21,6 +21,7 @@ angular.module("openshiftConsole")
   })
   .controller("KeyValuesController", function($scope){
     var added = {};
+    $scope.canAdd = false;
     $scope.allowDelete = function(value){
       if($scope.deletePolicy === "never") {
         return false;
@@ -32,25 +33,33 @@ angular.module("openshiftConsole")
     };
     $scope.addEntry = function() {
       if($scope.key && $scope.value){
-       var readonly = $scope.readonlyKeys.split(",");
-       if(readonly.indexOf($scope.key) !== -1){
-         return;
-       }
-       added[$scope.key] = "";
-       $scope.entries[$scope.key] = $scope.value;
-       $scope.key = null;
-       $scope.value = null;
-       $scope.form.$setPristine();
-       $scope.form.$setUntouched();
-       $scope.form.$setValidity();
+        added[$scope.key] = "";
+        $scope.entries[$scope.key] = $scope.value;
+        $scope.key = null;
+        $scope.value = null;
+        $scope.form.$setPristine();
+        $scope.form.$setUntouched();
+        $scope.form.$setValidity();
       }
-     };
-     $scope.deleteEntry = function(key) {
+    };
+    $scope.deleteEntry = function(key) {
        if ($scope.entries[key]) {
          delete $scope.entries[key];
          delete added[key];
        }
-     };
+    };
+    $scope.toggleAdd = function() {
+      var key = $scope.key;
+      var val = $scope.value;
+      var readonly = $scope.readonlyKeys.split(",");
+      var entries = $scope.entries;
+      var keyExists = _.has($scope.entries, key) || _.contains(readonly, key);
+      if(!key || !val || keyExists) {
+        $scope.canAdd = false;
+      } else {
+        $scope.canAdd = true;
+      }
+    };
   })
   .directive("oscInputValidator", function(){
 
