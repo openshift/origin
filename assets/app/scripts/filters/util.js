@@ -167,6 +167,15 @@ angular.module('openshiftConsole')
       return link;
     };
   })
+  .filter('dockerHubRepository', function() {
+    return function(repository) {
+      // Check if repository is in the form organization/repository
+      if (repository.match(/[a-zA-Z0-9-_.]+\/[a-zA-Z0-9-_.]/)) {
+        return "https://registry.hub.docker.com/u/" + repository + "/";
+      }
+      return "";
+    };
+  })
   .filter('yesNo', function() {
       return function(isTrue) {
           return isTrue ? 'Yes' : 'No';

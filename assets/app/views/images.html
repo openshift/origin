@@ -23,10 +23,10 @@
             </span>
           </div>
           <div class="muted small">
-            <div ng-if="imageStream.spec.dockerImageRepository">From Docker repository: {{imageStream.spec.dockerImageRepository}}:{{tag.tag}}</div>
+            <div ng-if="imageStream.spec.dockerImageRepository">From Docker repository: <a ng-href="{{imageStream.spec.dockerImageRepository | dockerHubRepository}}">{{imageStream.spec.dockerImageRepository}}</a>:{{tag.tag}}</div>
             <div ng-if="imageStream.spec.tags">
               <div ng-repeat="specTag in imageStream.spec.tags" ng-if="specTag.name == tag.tag">
-                <div ng-if="specTag.dockerImageReference">From Docker repository: {{specTag.dockerImageReference}}</div>
+                <div ng-if="specTag.dockerImageReference">From Docker repository: <a ng-href="{{specTag.dockerImageReference | dockerHubRepository}}">{{specTag.dockerImageReference}}</a></div>
                 <div ng-if="specTag.from">From image stream: {{specTag.from.namespace}}/{{specTag.from.name}}</div>
               </div>
             </div>
