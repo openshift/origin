@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
 	"github.com/openshift/source-to-image/pkg/docker"
-	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
@@ -69,34 +68,8 @@ func (b *OnBuild) SourceTar(config *api.Config) (io.ReadCloser, error) {
 	return b.fs.Open(tarFileName)
 }
 
-func (b *OnBuild) checkNoRoot(config *api.Config) error {
-	if !config.NoRoot {
-		return nil
-	}
-	user, err := b.docker.GetImageUser(config.BuilderImage)
-	if err != nil {
-		return err
-	}
-	if util.IsPotentialRootUser(user) {
-		return errors.NewBuilderRootNotAllowedError(config.BuilderImage, false)
-	}
-	cmds, err := b.docker.GetOnBuild(config.BuilderImage)
-	if err != nil {
-		return err
-	}
-	if util.IncludesRootUserDirective(cmds) {
-		return errors.NewBuilderRootNotAllowedError(config.BuilderImage, true)
-	}
-	return nil
-
-}
-
 // Build executes the ONBUILD kind of build
 func (b *OnBuild) Build(config *api.Config) (*api.Result, error) {
-	if err := b.checkNoRoot(config); err != nil {
-		return nil, err
-	}
-
 	glog.V(2).Info("Preparing the source code for build")
 	// Change the installation directory for this config to store scripts inside
 	// the application root directory.

@@ -1039,43 +1039,43 @@
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
-			"Comment": "v1.0.1-10-g72ed2c7",
-			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
+			"Comment": "v1.0.1-20-g587d0f0",
+			"Rev": "587d0f0a63589436322ac2ba6e01abb2f98a8dae"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
-			"Comment": "v1.0.1-10-g72ed2c7",
-			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
+			"Comment": "v1.0.1-20-g587d0f0",
+			"Rev": "587d0f0a63589436322ac2ba6e01abb2f98a8dae"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
-			"Comment": "v1.0.1-10-g72ed2c7",
-			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
+			"Comment": "v1.0.1-20-g587d0f0",
+			"Rev": "587d0f0a63589436322ac2ba6e01abb2f98a8dae"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
-			"Comment": "v1.0.1-10-g72ed2c7",
-			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
+			"Comment": "v1.0.1-20-g587d0f0",
+			"Rev": "587d0f0a63589436322ac2ba6e01abb2f98a8dae"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/git",
-			"Comment": "v1.0.1-10-g72ed2c7",
-			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
+			"Comment": "v1.0.1-20-g587d0f0",
+			"Rev": "587d0f0a63589436322ac2ba6e01abb2f98a8dae"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
-			"Comment": "v1.0.1-10-g72ed2c7",
-			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
+			"Comment": "v1.0.1-20-g587d0f0",
+			"Rev": "587d0f0a63589436322ac2ba6e01abb2f98a8dae"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
-			"Comment": "v1.0.1-10-g72ed2c7",
-			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
+			"Comment": "v1.0.1-20-g587d0f0",
+			"Rev": "587d0f0a63589436322ac2ba6e01abb2f98a8dae"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
-			"Comment": "v1.0.1-10-g72ed2c7",
-			"Rev": "72ed2c7edc4c4e03d490716404a25a6b7a15c890"
+			"Comment": "v1.0.1-20-g587d0f0",
+			"Rev": "587d0f0a63589436322ac2ba6e01abb2f98a8dae"
 		},
 		{
 			"ImportPath": "github.com/pkg/profile",
