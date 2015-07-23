@@ -21,6 +21,8 @@ func GetBootstrapSecurityContextConstraints(buildControllerUsername string) []ka
 			},
 			AllowPrivilegedContainer: true,
 			AllowHostDirVolumePlugin: true,
+			AllowHostNetwork:         true,
+			AllowHostPorts:           true,
 			SELinuxContext: kapi.SELinuxContextStrategyOptions{
 				Type: kapi.SELinuxStrategyRunAsAny,
 			},

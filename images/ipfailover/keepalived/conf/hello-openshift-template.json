@@ -59,7 +59,6 @@
                 "image": "openshift/hello-openshift",
                 "ports": [
                   {
-                    "hostPort": 6061,
                     "containerPort": 8080,
                     "protocol": "TCP"
                   }
