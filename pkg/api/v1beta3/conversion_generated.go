@@ -1046,29 +1046,6 @@ func convert_api_BuildLogOptions_To_v1beta3_BuildLogOptions(in *buildapi.BuildLo
 	return nil
 }
 
-func convert_api_BuildOutput_To_v1beta3_BuildOutput(in *buildapi.BuildOutput, out *buildapiv1beta3.BuildOutput, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapi.BuildOutput))(in)
-	}
-	if in.To != nil {
-		out.To = new(v1beta3.ObjectReference)
-		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.To, out.To, s); err != nil {
-			return err
-		}
-	} else {
-		out.To = nil
-	}
-	if in.PushSecret != nil {
-		out.PushSecret = new(v1beta3.LocalObjectReference)
-		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PushSecret, out.PushSecret, s); err != nil {
-			return err
-		}
-	} else {
-		out.PushSecret = nil
-	}
-	return nil
-}
-
 func convert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequest, out *buildapiv1beta3.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildRequest))(in)
@@ -1142,7 +1119,7 @@ func convert_api_BuildSpec_To_v1beta3_BuildSpec(in *buildapi.BuildSpec, out *bui
 	if err := convert_api_BuildStrategy_To_v1beta3_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
 		return err
 	}
-	if err := convert_api_BuildOutput_To_v1beta3_BuildOutput(&in.Output, &out.Output, s); err != nil {
+	if err := s.Convert(&in.Output, &out.Output, 0); err != nil {
 		return err
 	}
 	if err := convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
@@ -1190,93 +1167,26 @@ func convert_api_BuildStrategy_To_v1beta3_BuildStrategy(in *buildapi.BuildStrate
 	}
 	out.Type = buildapiv1beta3.BuildStrategyType(in.Type)
 	if in.DockerStrategy != nil {
-		out.DockerStrategy = new(buildapiv1beta3.DockerBuildStrategy)
-		if err := convert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in.DockerStrategy, out.DockerStrategy, s); err != nil {
+		if err := s.Convert(&in.DockerStrategy, &out.DockerStrategy, 0); err != nil {
 			return err
 		}
 	} else {
 		out.DockerStrategy = nil
 	}
 	if in.SourceStrategy != nil {
-		out.SourceStrategy = new(buildapiv1beta3.SourceBuildStrategy)
-		if err := convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in.SourceStrategy, out.SourceStrategy, s); err != nil {
+		if err := s.Convert(&in.SourceStrategy, &out.SourceStrategy, 0); err != nil {
 			return err
 		}
 	} else {
 		out.SourceStrategy = nil
 	}
 	if in.CustomStrategy != nil {
-		out.CustomStrategy = new(buildapiv1beta3.CustomBuildStrategy)
-		if err := convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in.CustomStrategy, out.CustomStrategy, s); err != nil {
+		if err := s.Convert(&in.CustomStrategy, &out.CustomStrategy, 0); err != nil {
 			return err
 		}
 	} else {
 		out.CustomStrategy = nil
 	}
-	return nil
-}
-
-func convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *buildapi.CustomBuildStrategy, out *buildapiv1beta3.CustomBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapi.CustomBuildStrategy))(in)
-	}
-	if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(&in.From, &out.From, s); err != nil {
-		return err
-	}
-	if in.PullSecret != nil {
-		out.PullSecret = new(v1beta3.LocalObjectReference)
-		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
-			return err
-		}
-	} else {
-		out.PullSecret = nil
-	}
-	if in.Env != nil {
-		out.Env = make([]v1beta3.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Env = nil
-	}
-	out.ExposeDockerSocket = in.ExposeDockerSocket
-	return nil
-}
-
-func convert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *buildapi.DockerBuildStrategy, out *buildapiv1beta3.DockerBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapi.DockerBuildStrategy))(in)
-	}
-	if in.From != nil {
-		out.From = new(v1beta3.ObjectReference)
-		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.From, out.From, s); err != nil {
-			return err
-		}
-	} else {
-		out.From = nil
-	}
-	if in.PullSecret != nil {
-		out.PullSecret = new(v1beta3.LocalObjectReference)
-		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
-			return err
-		}
-	} else {
-		out.PullSecret = nil
-	}
-	out.NoCache = in.NoCache
-	if in.Env != nil {
-		out.Env = make([]v1beta3.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Env = nil
-	}
-	out.ForcePull = in.ForcePull
 	return nil
 }
 
@@ -1311,37 +1221,6 @@ func convert_api_ImageChangeTrigger_To_v1beta3_ImageChangeTrigger(in *buildapi.I
 		defaulting.(func(*buildapi.ImageChangeTrigger))(in)
 	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
-	return nil
-}
-
-func convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *buildapi.SourceBuildStrategy, out *buildapiv1beta3.SourceBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapi.SourceBuildStrategy))(in)
-	}
-	if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(&in.From, &out.From, s); err != nil {
-		return err
-	}
-	if in.PullSecret != nil {
-		out.PullSecret = new(v1beta3.LocalObjectReference)
-		if err := convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
-			return err
-		}
-	} else {
-		out.PullSecret = nil
-	}
-	if in.Env != nil {
-		out.Env = make([]v1beta3.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if err := convert_api_EnvVar_To_v1beta3_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Env = nil
-	}
-	out.Scripts = in.Scripts
-	out.Incremental = in.Incremental
-	out.ForcePull = in.ForcePull
 	return nil
 }
 
@@ -1515,29 +1394,6 @@ func convert_v1beta3_BuildLogOptions_To_api_BuildLogOptions(in *buildapiv1beta3.
 	return nil
 }
 
-func convert_v1beta3_BuildOutput_To_api_BuildOutput(in *buildapiv1beta3.BuildOutput, out *buildapi.BuildOutput, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1beta3.BuildOutput))(in)
-	}
-	if in.To != nil {
-		out.To = new(api.ObjectReference)
-		if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(in.To, out.To, s); err != nil {
-			return err
-		}
-	} else {
-		out.To = nil
-	}
-	if in.PushSecret != nil {
-		out.PushSecret = new(api.LocalObjectReference)
-		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.PushSecret, out.PushSecret, s); err != nil {
-			return err
-		}
-	} else {
-		out.PushSecret = nil
-	}
-	return nil
-}
-
 func convert_v1beta3_BuildRequest_To_api_BuildRequest(in *buildapiv1beta3.BuildRequest, out *buildapi.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapiv1beta3.BuildRequest))(in)
@@ -1611,7 +1467,7 @@ func convert_v1beta3_BuildSpec_To_api_BuildSpec(in *buildapiv1beta3.BuildSpec, o
 	if err := convert_v1beta3_BuildStrategy_To_api_BuildStrategy(&in.Strategy, &out.Strategy, s); err != nil {
 		return err
 	}
-	if err := convert_v1beta3_BuildOutput_To_api_BuildOutput(&in.Output, &out.Output, s); err != nil {
+	if err := s.Convert(&in.Output, &out.Output, 0); err != nil {
 		return err
 	}
 	if err := convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
@@ -1659,93 +1515,26 @@ func convert_v1beta3_BuildStrategy_To_api_BuildStrategy(in *buildapiv1beta3.Buil
 	}
 	out.Type = buildapi.BuildStrategyType(in.Type)
 	if in.DockerStrategy != nil {
-		out.DockerStrategy = new(buildapi.DockerBuildStrategy)
-		if err := convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in.DockerStrategy, out.DockerStrategy, s); err != nil {
+		if err := s.Convert(&in.DockerStrategy, &out.DockerStrategy, 0); err != nil {
 			return err
 		}
 	} else {
 		out.DockerStrategy = nil
 	}
 	if in.SourceStrategy != nil {
-		out.SourceStrategy = new(buildapi.SourceBuildStrategy)
-		if err := convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in.SourceStrategy, out.SourceStrategy, s); err != nil {
+		if err := s.Convert(&in.SourceStrategy, &out.SourceStrategy, 0); err != nil {
 			return err
 		}
 	} else {
 		out.SourceStrategy = nil
 	}
 	if in.CustomStrategy != nil {
-		out.CustomStrategy = new(buildapi.CustomBuildStrategy)
-		if err := convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in.CustomStrategy, out.CustomStrategy, s); err != nil {
+		if err := s.Convert(&in.CustomStrategy, &out.CustomStrategy, 0); err != nil {
 			return err
 		}
 	} else {
 		out.CustomStrategy = nil
 	}
-	return nil
-}
-
-func convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *buildapiv1beta3.CustomBuildStrategy, out *buildapi.CustomBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1beta3.CustomBuildStrategy))(in)
-	}
-	if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
-		return err
-	}
-	if in.PullSecret != nil {
-		out.PullSecret = new(api.LocalObjectReference)
-		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
-			return err
-		}
-	} else {
-		out.PullSecret = nil
-	}
-	if in.Env != nil {
-		out.Env = make([]api.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if err := convert_v1beta3_EnvVar_To_api_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Env = nil
-	}
-	out.ExposeDockerSocket = in.ExposeDockerSocket
-	return nil
-}
-
-func convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *buildapiv1beta3.DockerBuildStrategy, out *buildapi.DockerBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1beta3.DockerBuildStrategy))(in)
-	}
-	if in.From != nil {
-		out.From = new(api.ObjectReference)
-		if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(in.From, out.From, s); err != nil {
-			return err
-		}
-	} else {
-		out.From = nil
-	}
-	if in.PullSecret != nil {
-		out.PullSecret = new(api.LocalObjectReference)
-		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
-			return err
-		}
-	} else {
-		out.PullSecret = nil
-	}
-	out.NoCache = in.NoCache
-	if in.Env != nil {
-		out.Env = make([]api.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if err := convert_v1beta3_EnvVar_To_api_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Env = nil
-	}
-	out.ForcePull = in.ForcePull
 	return nil
 }
 
@@ -1780,37 +1569,6 @@ func convert_v1beta3_ImageChangeTrigger_To_api_ImageChangeTrigger(in *buildapiv1
 		defaulting.(func(*buildapiv1beta3.ImageChangeTrigger))(in)
 	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
-	return nil
-}
-
-func convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *buildapiv1beta3.SourceBuildStrategy, out *buildapi.SourceBuildStrategy, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1beta3.SourceBuildStrategy))(in)
-	}
-	if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(&in.From, &out.From, s); err != nil {
-		return err
-	}
-	if in.PullSecret != nil {
-		out.PullSecret = new(api.LocalObjectReference)
-		if err := convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference(in.PullSecret, out.PullSecret, s); err != nil {
-			return err
-		}
-	} else {
-		out.PullSecret = nil
-	}
-	if in.Env != nil {
-		out.Env = make([]api.EnvVar, len(in.Env))
-		for i := range in.Env {
-			if err := convert_v1beta3_EnvVar_To_api_EnvVar(&in.Env[i], &out.Env[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Env = nil
-	}
-	out.Scripts = in.Scripts
-	out.Incremental = in.Incremental
-	out.ForcePull = in.ForcePull
 	return nil
 }
 
@@ -3108,7 +2866,6 @@ func init() {
 		convert_api_BuildList_To_v1beta3_BuildList,
 		convert_api_BuildLogOptions_To_v1beta3_BuildLogOptions,
 		convert_api_BuildLog_To_v1beta3_BuildLog,
-		convert_api_BuildOutput_To_v1beta3_BuildOutput,
 		convert_api_BuildRequest_To_v1beta3_BuildRequest,
 		convert_api_BuildSource_To_v1beta3_BuildSource,
 		convert_api_BuildSpec_To_v1beta3_BuildSpec,
@@ -3123,11 +2880,9 @@ func init() {
 		convert_api_ClusterRoleBindingList_To_v1beta3_ClusterRoleBindingList,
 		convert_api_ClusterRoleList_To_v1beta3_ClusterRoleList,
 		convert_api_ClusterRole_To_v1beta3_ClusterRole,
-		convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy,
 		convert_api_DeploymentConfigList_To_v1beta3_DeploymentConfigList,
 		convert_api_DeploymentConfigRollbackSpec_To_v1beta3_DeploymentConfigRollbackSpec,
 		convert_api_DeploymentConfigRollback_To_v1beta3_DeploymentConfigRollback,
-		convert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy,
 		convert_api_EnvVarSource_To_v1beta3_EnvVarSource,
 		convert_api_EnvVar_To_v1beta3_EnvVar,
 		convert_api_GitBuildSource_To_v1beta3_GitBuildSource,
@@ -3167,7 +2922,6 @@ func init() {
 		convert_api_RoleList_To_v1beta3_RoleList,
 		convert_api_Role_To_v1beta3_Role,
 		convert_api_RouteList_To_v1beta3_RouteList,
-		convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy,
 		convert_api_SourceControlUser_To_v1beta3_SourceControlUser,
 		convert_api_SourceRevision_To_v1beta3_SourceRevision,
 		convert_api_SubjectAccessReviewResponse_To_v1beta3_SubjectAccessReviewResponse,
@@ -3184,7 +2938,6 @@ func init() {
 		convert_v1beta3_BuildList_To_api_BuildList,
 		convert_v1beta3_BuildLogOptions_To_api_BuildLogOptions,
 		convert_v1beta3_BuildLog_To_api_BuildLog,
-		convert_v1beta3_BuildOutput_To_api_BuildOutput,
 		convert_v1beta3_BuildRequest_To_api_BuildRequest,
 		convert_v1beta3_BuildSource_To_api_BuildSource,
 		convert_v1beta3_BuildSpec_To_api_BuildSpec,
@@ -3199,11 +2952,9 @@ func init() {
 		convert_v1beta3_ClusterRoleBindingList_To_api_ClusterRoleBindingList,
 		convert_v1beta3_ClusterRoleList_To_api_ClusterRoleList,
 		convert_v1beta3_ClusterRole_To_api_ClusterRole,
-		convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy,
 		convert_v1beta3_DeploymentConfigList_To_api_DeploymentConfigList,
 		convert_v1beta3_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollbackSpec,
 		convert_v1beta3_DeploymentConfigRollback_To_api_DeploymentConfigRollback,
-		convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy,
 		convert_v1beta3_EnvVarSource_To_api_EnvVarSource,
 		convert_v1beta3_EnvVar_To_api_EnvVar,
 		convert_v1beta3_GitBuildSource_To_api_GitBuildSource,
@@ -3243,7 +2994,6 @@ func init() {
 		convert_v1beta3_RoleList_To_api_RoleList,
 		convert_v1beta3_Role_To_api_Role,
 		convert_v1beta3_RouteList_To_api_RouteList,
-		convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy,
 		convert_v1beta3_SourceControlUser_To_api_SourceControlUser,
 		convert_v1beta3_SourceRevision_To_api_SourceRevision,
 		convert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse,
