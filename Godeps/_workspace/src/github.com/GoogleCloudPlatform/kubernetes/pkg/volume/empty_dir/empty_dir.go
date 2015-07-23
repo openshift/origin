@@ -168,35 +168,6 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	if ed.legacyMode {
 		return fmt.Errorf("legacy mode: can not create new instances")
 	}
-
-	isMnt, err := ed.mounter.IsMountPoint(dir)
-	// Getting an os.IsNotExist err from is a contingency; the directory
-	// may not exist yet, in which case, setup should run.
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	// If the plugin readiness file is present for this volume, and the
-	// storage medium is the default, then the volume is ready.  If the
-	// medium is memory, and a mountpoint is present, then the volume is
-	// ready.
-	if volumeutil.IsReady(ed.getMetaDir()) {
-		if ed.medium == api.StorageMediumMemory && isMnt {
-			return nil
-		} else if ed.medium == api.StorageMediumDefault {
-			return nil
-		}
-	}
-
-	// Determine the effective SELinuxOptions to use for this volume.
-	securityContext := ""
-	if selinuxEnabled() {
-		securityContext, err = ed.determineEffectiveSELinuxOptions()
-		if err != nil {
-			return err
-		}
-	}
-
 	switch ed.medium {
 	case api.StorageMediumDefault:
 		err = ed.setupDir(dir, securityContext)
