@@ -33,7 +33,7 @@ const (
 
 	// noOutputDefaultTag is used as the tag name for docker built images that will
 	// not be pushed because no Output value was defined in the BuildConfig
-	noOutputDefaultTag = "noOutputDefaultTag"
+	noOutputDefaultTag = "no_repo/no_output_default_tag"
 )
 
 // DockerBuilder builds Docker images given a git repository URL
@@ -73,10 +73,6 @@ func (d *DockerBuilder) Build() error {
 		return err
 	}
 	glog.V(4).Infof("Starting Docker build from %s/%s BuildConfig ...", d.build.Namespace, d.build.Name)
-	if err = d.dockerBuild(buildDir); err != nil {
-		return err
-	}
-
 	var push bool
 
 	// if there is no output target, set one up so the docker build logic
@@ -90,6 +86,11 @@ func (d *DockerBuilder) Build() error {
 	} else {
 		push = true
 	}
+
+	if err = d.dockerBuild(buildDir); err != nil {
+		return err
+	}
+
 	defer removeImage(d.dockerClient, d.build.Spec.Output.To.Name)
 
 	if push {
