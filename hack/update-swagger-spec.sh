@@ -35,8 +35,8 @@ set -e
 
 ADDR=127.0.0.1:8443
 HOST=https://${ADDR}
-SWAGGER_ROOT_DIR="${OS_ROOT}/api/swagger-spec"
-mkdir -p "${SWAGGER_ROOT_DIR}"
+SWAGGER_SPEC_OUT_DIR=${1:-"${OS_ROOT}/api/swagger-spec"}
+mkdir -p "${SWAGGER_SPEC_OUT_DIR}"
 SWAGGER_API_PATH="${HOST}/swaggerapi/"
 
 # Prevent user environment from colliding with the test setup
@@ -51,16 +51,17 @@ TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
 export CURL_CA_BUNDLE="${TEMP_DIR}/openshift.local.config/master/ca.crt"
 
 # Start openshift
+echo "Starting OpenShift..."
 pushd "${TEMP_DIR}" > /dev/null
-OPENSHIFT_ON_PANIC=crash openshift start master --listen="https://0.0.0.0:8443" --master="https://127.0.0.1:8443" 1>&2 &
+OPENSHIFT_ON_PANIC=crash openshift start master --listen="https://0.0.0.0:8443" --master="https://127.0.0.1:8443" &> /dev/null &
 OS_PID=$!
 popd > /dev/null
 
 wait_for_url "${HOST}/healthz" "apiserver: " 0.25 80
 
-echo "Updating ${SWAGGER_ROOT_DIR}"
-set -x
-curl "${SWAGGER_API_PATH}oapi/v1" > "${SWAGGER_ROOT_DIR}/oapi-v1.json"
-curl "${SWAGGER_API_PATH}api/v1" > "${SWAGGER_ROOT_DIR}/api-v1.json"
-
+echo "Updating ${SWAGGER_SPEC_OUT_DIR}:"
+echo "Updating ${SWAGGER_SPEC_OUT_DIR}/oapi-v1.json from ${SWAGGER_API_PATH}oapi/v1..."
+curl "${SWAGGER_API_PATH}oapi/v1" > "${SWAGGER_SPEC_OUT_DIR}/oapi-v1.json"
+echo "Updating ${SWAGGER_SPEC_OUT_DIR}/api-v1.json from ${SWAGGER_API_PATH}api/v1..."
+curl "${SWAGGER_API_PATH}api/v1" > "${SWAGGER_SPEC_OUT_DIR}/api-v1.json"
 echo "SUCCESS"
