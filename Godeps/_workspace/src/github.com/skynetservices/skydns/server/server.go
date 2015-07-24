@@ -72,8 +72,21 @@ func (g FirstBackend) ReverseRecord(name string) (record *msg.Service, err error
 	return nil, lastError
 }
 
+func bindNetworks(bindNetwork string) (tcp, udp string) {
+	tcpNetwork, udpNetwork := "tcp", "udp"
+	switch bindNetwork {
+	case "ipv4":
+		tcpNetwork, udpNetwork = "tcp4", "udp4"
+	case "ipv6":
+		tcpNetwork, udpNetwork = "tcp6", "udp6"
+	}
+	return tcpNetwork, udpNetwork
+}
+
 // New returns a new SkyDNS server.
 func New(backend Backend, config *Config) *server {
+	tcpNetwork, udpNetwork := bindNetworks(config.BindNetwork)
+
 	return &server{
 		backend: backend,
 		config:  config,
@@ -81,8 +94,8 @@ func New(backend Backend, config *Config) *server {
 		group:        new(sync.WaitGroup),
 		scache:       cache.New(config.SCache, 0),
 		rcache:       cache.New(config.RCache, config.RCacheTtl),
-		dnsUDPclient: &dns.Client{Net: "udp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
-		dnsTCPclient: &dns.Client{Net: "tcp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
+		dnsUDPclient: &dns.Client{Net: udpNetwork, ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
+		dnsTCPclient: &dns.Client{Net: tcpNetwork, ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
 	}
 }
 
@@ -102,19 +115,19 @@ func (s *server) Run() error {
 	s.group.Add(1)
 	go func() {
 		defer s.group.Done()
-		if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
+		if err := dns.ListenAndServe(s.config.DnsAddr, s.dnsTCPclient.Net, mux); err != nil {
 			log.Fatalf("skydns: %s", err)
 		}
 	}()
-	dnsReadyMsg(s.config.DnsAddr, "tcp")
+	dnsReadyMsg(s.config.DnsAddr, s.dnsTCPclient.Net)
 	s.group.Add(1)
 	go func() {
 		defer s.group.Done()
-		if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
+		if err := dns.ListenAndServe(s.config.DnsAddr, s.dnsUDPclient.Net, mux); err != nil {
 			log.Fatalf("skydns: %s", err)
 		}
 	}()
-	dnsReadyMsg(s.config.DnsAddr, "udp")
+	dnsReadyMsg(s.config.DnsAddr, s.dnsUDPclient.Net)
 
 	s.group.Wait()
 	return nil
