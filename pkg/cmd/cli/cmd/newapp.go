@@ -235,7 +235,9 @@ func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, confi
 
 func setLabels(labels map[string]string, result *newcmd.AppResult) error {
 	if len(labels) == 0 {
-		return nil
+		if len(result.Name) > 0 {
+			labels = map[string]string{"app": result.Name}
+		}
 	}
 	for _, object := range result.List.Items {
 		err := util.AddObjectLabels(object, labels)

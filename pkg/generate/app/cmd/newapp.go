@@ -581,6 +581,7 @@ var ErrNoInputs = fmt.Errorf("no inputs provided")
 type AppResult struct {
 	List *kapi.List
 
+	Name       string
 	BuildNames []string
 	HasSource  bool
 	Namespace  string
@@ -798,8 +799,19 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		}
 	}
 
+	name := c.Name
+	if len(name) == 0 {
+		for _, pipeline := range pipelines {
+			if pipeline.Deployment != nil {
+				name = pipeline.Deployment.Name
+				break
+			}
+		}
+	}
+
 	return &AppResult{
 		List:       &kapi.List{Items: objects},
+		Name:       name,
 		BuildNames: buildNames,
 		HasSource:  len(repositories) != 0,
 		Namespace:  c.originNamespace,
