@@ -59,7 +59,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 		{
 			Message: "Maintenance Commands:",
 			Commands: []*cobra.Command{
-				buildchain.NewCmdBuildChain(f, fullName, "build-chain"),
+				buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out),
 				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out),
 				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, out),
 			},

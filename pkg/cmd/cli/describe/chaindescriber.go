@@ -1,0 +1,191 @@
+package describe
+
+import (
+	"fmt"
+	"strings"
+
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	"github.com/golang/glog"
+	"github.com/gonum/graph"
+	"github.com/gonum/graph/encoding/dot"
+	"github.com/gonum/graph/path"
+	"github.com/gonum/graph/traverse"
+
+	osgraph "github.com/openshift/origin/pkg/api/graph"
+	buildedges "github.com/openshift/origin/pkg/build/graph"
+	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
+	"github.com/openshift/origin/pkg/client"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
+	"github.com/openshift/origin/pkg/util/parallel"
+)
+
+// NotFoundErr is returned when the imageStreamTag (ist) of interest cannot
+// be found in the graph. This doesn't mean though that the ist does not
+// exist. A user may have an image stream without a build configuration
+// pointing at it. In that case, the ist of interest simply doesn't have
+// other dependant ists
+type NotFoundErr string
+
+func (e NotFoundErr) Error() string {
+	return fmt.Sprintf("couldn't find image stream tag: %q", string(e))
+}
+
+// ChainDescriber generates extended information about a chain of
+// dependencies of an image stream
+type ChainDescriber struct {
+	c            client.BuildConfigsNamespacer
+	namespaces   kutil.StringSet
+	outputFormat string
+}
+
+// NewChainDescriber returns a new ChainDescriber
+func NewChainDescriber(c client.BuildConfigsNamespacer, namespaces kutil.StringSet, out string) *ChainDescriber {
+	return &ChainDescriber{c: c, namespaces: namespaces, outputFormat: out}
+}
+
+// MakeGraph will create the graph of all build configurations and the image streams
+// they point to via image change triggers in the provided namespace(s)
+func (d *ChainDescriber) MakeGraph() (osgraph.Graph, error) {
+	g := osgraph.New()
+
+	loaders := []GraphLoader{}
+	for namespace := range d.namespaces {
+		glog.V(4).Infof("Loading build configurations from %q", namespace)
+		loaders = append(loaders, &bcLoader{namespace: namespace, lister: d.c})
+	}
+	loadingFuncs := []func() error{}
+	for _, loader := range loaders {
+		loadingFuncs = append(loadingFuncs, loader.Load)
+	}
+
+	if errs := parallel.Run(loadingFuncs...); len(errs) > 0 {
+		return g, utilerrors.NewAggregate(errs)
+	}
+
+	for _, loader := range loaders {
+		loader.AddToGraph(g)
+	}
+
+	buildedges.AddAllInputOutputEdges(g)
+
+	return g, nil
+}
+
+// Describe returns the output of the graph starting from the provided
+// image stream tag (name:tag) in namespace. Namespace is needed here
+// because image stream tags with the same name can be found across
+// different namespaces.
+func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag) (string, error) {
+	g, err := d.MakeGraph()
+	if err != nil {
+		return "", err
+	}
+
+	// Retrieve the imageStreamTag node of interest
+	istNode := g.Find(imagegraph.ImageStreamTagNodeName(ist))
+	if istNode == nil {
+		return "", NotFoundErr(fmt.Sprintf("%q", ist.Name))
+	}
+
+	// Partition down to the subgraph containing the ist of interest
+	partitioned := partition(g, istNode)
+
+	switch strings.ToLower(d.outputFormat) {
+	case "dot":
+		data, err := dot.Marshal(partitioned, fmt.Sprintf("%q", ist.Name), "", "  ", false)
+		if err != nil {
+			return "", err
+		}
+		return string(data), nil
+	case "":
+		return d.humanReadableOutput(partitioned, istNode), nil
+	}
+
+	return "", fmt.Errorf("unknown specified format %q", d.outputFormat)
+}
+
+// partition the graph down to a subgraph starting from the given root
+func partition(g osgraph.Graph, root graph.Node) osgraph.Graph {
+	// Filter out all but BuildConfig and ImageStreamTag nodes
+	nodeFn := osgraph.NodesOfKind(buildgraph.BuildConfigNodeKind, imagegraph.ImageStreamTagNodeKind)
+	// Filter out all but BuildInputImage and BuildOutput edges
+	edgeFn := osgraph.EdgesOfKind(buildedges.BuildInputImageEdgeKind, buildedges.BuildOutputEdgeKind)
+	sub := g.Subgraph(nodeFn, edgeFn)
+
+	// Filter out inbound edges to the ist of interest
+	edgeFn = osgraph.RemoveInboundEdges([]graph.Node{root})
+	sub = sub.Subgraph(nodeFn, edgeFn)
+
+	// Check all paths leading from the root node, collect any
+	// node found in them, and create the desired subgraph
+	desired := []graph.Node{root}
+	paths := path.DijkstraAllPaths(sub)
+	for _, node := range sub.Nodes() {
+		if node == root {
+			continue
+		}
+		path, _, _ := paths.Between(root, node)
+		if len(path) != 0 {
+			desired = append(desired, node)
+		}
+	}
+	return sub.SubgraphWithNodes(desired, osgraph.ExistingDirectEdge)
+}
+
+// humanReadableOutput traverses the provided graph using DFS and outputs it
+// in a human-readable format. It starts from the provided root, assuming it
+// is an imageStreamTag node and continues to the rest of the graph handling
+// only imageStreamTag and buildConfig nodes.
+func (d *ChainDescriber) humanReadableOutput(g osgraph.Graph, root graph.Node) string {
+	var singleNamespace bool
+	if len(d.namespaces) == 1 && !d.namespaces.Has(kapi.NamespaceAll) {
+		singleNamespace = true
+	}
+	depth := map[graph.Node]int{
+		root: 0,
+	}
+	out := ""
+
+	dfs := &traverse.DepthFirst{
+		Visit: func(u, v graph.Node) {
+			depth[v] = depth[u] + 1
+		},
+	}
+
+	until := func(node graph.Node) bool {
+		var info string
+
+		switch t := node.(type) {
+		case *imagegraph.ImageStreamTagNode:
+			info = outputHelper(t.ResourceString(), t.Namespace, singleNamespace)
+		case *buildgraph.BuildConfigNode:
+			info = outputHelper(t.ResourceString(), t.Namespace, singleNamespace)
+		default:
+			panic("this graph contains node kinds other than imageStreamTags and buildConfigs")
+		}
+
+		if depth[node] != 0 {
+			out += "\n"
+		}
+		out += fmt.Sprintf("%s", strings.Repeat("\t", depth[node]))
+		out += fmt.Sprintf("%s", info)
+
+		return false
+	}
+
+	dfs.Walk(g, root, until)
+
+	return out
+}
+
+// outputHelper returns resource/name in a single namespace, <namespace resource/name>
+// in multiple namespaces
+func outputHelper(info, namespace string, singleNamespace bool) string {
+	if singleNamespace {
+		return info
+	}
+	return fmt.Sprintf("<%s %s>", namespace, info)
+}

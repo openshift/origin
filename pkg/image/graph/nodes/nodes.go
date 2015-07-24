@@ -80,7 +80,7 @@ func MakeImageStreamTagObjectMeta(namespace, name, tag string) *imageapi.ImageSt
 	}
 }
 
-// MakeImageStreamTagObjectMeta returns an ImageStreamTag that has enough information to join the graph, but it is not
+// MakeImageStreamTagObjectMeta2 returns an ImageStreamTag that has enough information to join the graph, but it is not
 // based on a full IST object.  This can be used to properly initialize the graph without having to retrieve all ISTs
 func MakeImageStreamTagObjectMeta2(namespace, name string) *imageapi.ImageStreamTag {
 	return &imageapi.ImageStreamTag{
