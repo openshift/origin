@@ -19,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -108,7 +109,25 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		return nil, err
 	}
 
-	admissionController := admission.NewFromPlugins(kubeClient, strings.Split(server.AdmissionControl, ","), server.AdmissionControlConfigFile)
+	plugins := []admission.Interface{}
+	for _, pluginName := range strings.Split(server.AdmissionControl, ",") {
+		switch pluginName {
+		case saadmit.PluginName:
+			// we need to set some custom parameters on the service account admission controller, so create that one by hand
+			saAdmitter := saadmit.NewServiceAccount(kubeClient)
+			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
+			saAdmitter.Run()
+			plugins = append(plugins, saAdmitter)
+
+		default:
+			plugin := admission.InitPlugin(pluginName, kubeClient, server.AdmissionControlConfigFile)
+			if plugin != nil {
+				plugins = append(plugins, plugin)
+			}
+
+		}
+	}
+	admissionController := admission.NewChainHandler(plugins...)
 
 	m := &master.Config{
 		PublicAddress: net.ParseIP(options.KubernetesMasterConfig.MasterIP),

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util/wait"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -224,9 +226,20 @@ func getServiceAccountToken(client *kclient.Client, ns, name string) (string, er
 	}
 	for _, secret := range secrets.Items {
 		if secret.Type == api.SecretTypeServiceAccountToken && secret.Annotations[api.ServiceAccountNameKey] == name {
-			return string(secret.Data[api.ServiceAccountTokenKey]), nil
+			sa, err := client.ServiceAccounts(ns).Get(name)
+			if err != nil {
+				return "", err
+			}
+
+			for _, ref := range sa.Secrets {
+				if ref.Name == secret.Name {
+					return string(secret.Data[api.ServiceAccountTokenKey]), nil
+				}
+			}
+
 		}
 	}
+
 	return "", nil
 }
 
@@ -287,4 +300,98 @@ func getServiceAccountPullSecret(client *kclient.Client, ns, name string) (strin
 		}
 	}
 	return "", nil
+}
+
+func TestEnforcingServiceAccount(t *testing.T) {
+	masterConfig, err := testutil.DefaultMasterOptions()
+	masterConfig.ServiceAccountConfig.LimitSecretReferences = false
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminConfig, err := testutil.StartConfiguredMaster(masterConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Get a service account token
+	saToken, err := waitForServiceAccountToken(clusterAdminKubeClient, api.NamespaceDefault, serviceaccountadmission.DefaultServiceAccountName, 20, time.Second)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(saToken) == 0 {
+		t.Errorf("token was not created")
+	}
+
+	pod := &api.Pod{}
+	pod.Name = "foo"
+	pod.Namespace = api.NamespaceDefault
+	pod.Spec.ServiceAccountName = serviceaccountadmission.DefaultServiceAccountName
+
+	container := api.Container{}
+	container.Name = "foo"
+	container.Image = "openshift/hello-openshift"
+	pod.Spec.Containers = []api.Container{container}
+
+	secretVolume := api.Volume{}
+	secretVolume.Name = "bar-vol"
+	secretVolume.Secret = &api.SecretVolumeSource{}
+	secretVolume.Secret.SecretName = "bar"
+	pod.Spec.Volumes = []api.Volume{secretVolume}
+
+	err = wait.Poll(100*time.Millisecond, 5*time.Second, func() (bool, error) {
+		if _, err := clusterAdminKubeClient.Pods(api.NamespaceDefault).Create(pod); err != nil {
+			// The SA admission controller cache seems to take forever to update.  This check comes after the limit check, so until we get it sorted out
+			// check if we're getting this particular error
+			if strings.Contains(err.Error(), "no API token found for service account") {
+				return true, nil
+			}
+
+			t.Log(err)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	clusterAdminKubeClient.Pods(api.NamespaceDefault).Delete(pod.Name, nil)
+
+	sa, err := clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Get(bootstrappolicy.DeployerServiceAccountName)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sa.Annotations == nil {
+		sa.Annotations = map[string]string{}
+	}
+	sa.Annotations[serviceaccountadmission.EnforceMountableSecretsAnnotation] = "true"
+
+	time.Sleep(5)
+
+	_, err = clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Update(sa)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedMessage := "is not allowed because service account deployer does not reference that secret"
+	pod.Spec.ServiceAccountName = bootstrappolicy.DeployerServiceAccountName
+
+	err = wait.Poll(100*time.Millisecond, 5*time.Second, func() (bool, error) {
+		if _, err := clusterAdminKubeClient.Pods(api.NamespaceDefault).Create(pod); err == nil || !strings.Contains(err.Error(), expectedMessage) {
+			clusterAdminKubeClient.Pods(api.NamespaceDefault).Delete(pod.Name, nil)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
 }

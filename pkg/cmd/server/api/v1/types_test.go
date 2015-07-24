@@ -237,6 +237,7 @@ projectConfig:
 routingConfig:
   subdomain: ""
 serviceAccountConfig:
+  limitSecretReferences: false
   managedNames: null
   masterCA: ""
   privateKeyFile: ""

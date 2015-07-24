@@ -68,7 +68,15 @@ func (c *MasterConfig) RunServiceAccountsController() {
 		return
 	}
 	options := serviceaccount.DefaultServiceAccountsControllerOptions()
-	options.Names = util.NewStringSet(c.Options.ServiceAccountConfig.ManagedNames...)
+	options.ServiceAccounts = []kapi.ServiceAccount{}
+
+	for _, saName := range c.Options.ServiceAccountConfig.ManagedNames {
+		sa := kapi.ServiceAccount{}
+		sa.Name = saName
+
+		options.ServiceAccounts = append(options.ServiceAccounts, sa)
+	}
+
 	serviceaccount.NewServiceAccountsController(c.KubeClient(), options).Run()
 	glog.Infof("Started Service Account Manager")
 }

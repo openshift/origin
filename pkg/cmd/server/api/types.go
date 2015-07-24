@@ -363,6 +363,10 @@ type ServiceAccountConfig struct {
 	// If no names are specified, the ServiceAccountsController will not be started.
 	ManagedNames []string
 
+	// LimitSecretReferences controls whether or not to allow a service account to reference any secret in a namespace
+	// without explicitly referencing them
+	LimitSecretReferences bool
+
 	// PrivateKeyFile is a file containing a PEM-encoded private RSA key, used to sign service account tokens.
 	// If no private key is specified, the service account TokensController will not be started.
 	PrivateKeyFile string
