@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -o errexit
+set -e
 set -o nounset
 set -o pipefail
 
@@ -9,23 +9,28 @@ source "${OS_ROOT}/hack/common.sh"
 
 cd "${OS_ROOT}"
 
-GENERATED_DOCS_ROOT="${OS_ROOT}/docs/generated"
-_tmp="${OS_ROOT}/_tmp"
-TMP_GENERATED_DOCS_ROOT="${_tmp}/generated"
+echo "===== Verifying Generated Docs ====="
 
-mkdir -p "${_tmp}"
-cp -a "${GENERATED_DOCS_ROOT}/" "${_tmp}"
+GENERATED_DOCS_ROOT_REL="docs/generated"
+GENERATED_DOCS_ROOT="${OS_ROOT}/${GENERATED_DOCS_ROOT_REL}"
+TMP_GENERATED_DOCS_ROOT_REL="_tmp/verify-generated-docs"
+TMP_GENERATED_DOCS_ROOT="${OS_ROOT}/${TMP_GENERATED_DOCS_ROOT_REL}/${GENERATED_DOCS_ROOT_REL}"
 
-"${OS_ROOT}/hack/update-generated-docs.sh"
-echo "diffing ${GENERATED_DOCS_ROOT} against freshly generated docs"
+echo "Generating fresh docs..."
+if ! output=`${OS_ROOT}/hack/update-generated-docs.sh ${TMP_GENERATED_DOCS_ROOT_REL} 2>&1`
+then
+	echo "FAILURE: Generation of fresh docs failed:"
+	echo "$output"
+fi
+
+echo "Diffing current docs against freshly generated docs"
 ret=0
 diff -Naupr "${GENERATED_DOCS_ROOT}" "${TMP_GENERATED_DOCS_ROOT}" || ret=$?
-cp -a "${TMP_GENERATED_DOCS_ROOT}" "${GENERATED_DOCS_ROOT}/.."
-rm -rf "${_tmp}"
+rm -rf "${TMP_GENERATED_DOCS_ROOT}"
 if [[ $ret -eq 0 ]]
 then
-  echo "${GENERATED_DOCS_ROOT} up to date."
+  echo "SUCCESS: Generated docs up to date."
 else
-  echo "${GENERATED_DOCS_ROOT} is out of date. Please run hack/update-generated-docs.sh"
+  echo "FAILURE: Generated docs out of date. Please run hack/update-generated-docs.sh"
   exit 1
 fi

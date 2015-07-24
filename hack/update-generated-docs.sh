@@ -24,4 +24,7 @@ if [[ ! "$gendocs" ]]; then
   exit 1
 fi
 
-os::build::gen-docs "${gendocs}" "${OS_ROOT}/docs/generated"
+OUTPUT_DIR_REL=${1:-""}
+OUTPUT_DIR="${OS_ROOT}/${OUTPUT_DIR_REL}/docs/generated"
+mkdir -p "${OUTPUT_DIR}" || echo $? > /dev/null
+os::build::gen-docs "${gendocs}" "${OUTPUT_DIR}"

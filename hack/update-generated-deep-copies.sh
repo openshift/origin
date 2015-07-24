@@ -15,9 +15,11 @@ os::build::setup_env
 function result_file_name() {
 	local version=$1
 	if [ "${version}" == "api" ]; then
-		echo "pkg/api/deep_copy_generated.go"
+		mkdir -p "${OUTPUT_DIR_ROOT}" || echo $? > /dev/null
+		echo "${OUTPUT_DIR_ROOT}/deep_copy_generated.go"
 	else
-		echo "pkg/api/${version}/deep_copy_generated.go"
+		mkdir -p "${OUTPUT_DIR_ROOT}/${version}" || echo $? > /dev/null
+		echo "${OUTPUT_DIR_ROOT}/${version}/deep_copy_generated.go"
 	fi
 }
 
@@ -43,6 +45,8 @@ EOF
 	mv $TMPFILE `result_file_name ${version}`
 }
 
+OUTPUT_DIR_ROOT_REL=${1:-""}
+OUTPUT_DIR_ROOT="${OS_ROOT}/${OUTPUT_DIR_ROOT_REL}/pkg/api"
 VERSIONS="api v1beta3 v1"
 # To avoid compile errors, remove the currently existing files.
 for ver in $VERSIONS; do
