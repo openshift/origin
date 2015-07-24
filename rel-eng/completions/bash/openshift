@@ -1758,6 +1758,8 @@ _openshift_cli_status()
 
     flags+=("--help")
     flags+=("-h")
+    flags+=("--output=")
+    two_word_flags+=("-o")
 
     must_have_one_flag=()
     must_have_one_noun=()
