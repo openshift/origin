@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -19,25 +20,33 @@ type UserInterface interface {
 	Update(user *userapi.User) (*userapi.User, error)
 }
 
+// UsersImpersonator has methods to work with User resources, acting as the
+// user specified by token.
+type UsersImpersonator interface {
+	ImpersonateUsers(token string) UserInterface
+}
+
 // users implements UserInterface interface
 type users struct {
-	r *Client
+	r     resource.RESTClient
+	token string
 }
 
 // newUsers returns a users
-func newUsers(c *Client) *users {
+func newUsers(c *Client, token string) *users {
 	return &users{
-		r: c,
+		r:     c,
+		token: token,
 	}
 }
 
 // List returns a list of users that match the label and field selectors.
 func (c *users) List(label labels.Selector, field fields.Selector) (result *userapi.UserList, err error) {
 	result = &userapi.UserList{}
-	err = c.r.Get().
+	err = overrideAuth(c.token, c.r.Get().
 		Resource("users").
 		LabelsSelectorParam(label).
-		FieldsSelectorParam(field).
+		FieldsSelectorParam(field)).
 		Do().
 		Into(result)
 	return
@@ -46,20 +55,20 @@ func (c *users) List(label labels.Selector, field fields.Selector) (result *user
 // Get returns information about a particular user or an error
 func (c *users) Get(name string) (result *userapi.User, err error) {
 	result = &userapi.User{}
-	err = c.r.Get().Resource("users").Name(name).Do().Into(result)
+	err = overrideAuth(c.token, c.r.Get().Resource("users").Name(name)).Do().Into(result)
 	return
 }
 
 // Create creates a new user. Returns the server's representation of the user and error if one occurs.
 func (c *users) Create(user *userapi.User) (result *userapi.User, err error) {
 	result = &userapi.User{}
-	err = c.r.Post().Resource("users").Body(user).Do().Into(result)
+	err = overrideAuth(c.token, c.r.Post().Resource("users")).Body(user).Do().Into(result)
 	return
 }
 
 // Update updates the user on server. Returns the server's representation of the user and error if one occurs.
 func (c *users) Update(user *userapi.User) (result *userapi.User, err error) {
 	result = &userapi.User{}
-	err = c.r.Put().Resource("users").Name(user.Name).Body(user).Do().Into(result)
+	err = overrideAuth(c.token, c.r.Put().Resource("users").Name(user.Name)).Body(user).Do().Into(result)
 	return
 }

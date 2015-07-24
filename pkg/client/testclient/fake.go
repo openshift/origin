@@ -79,6 +79,11 @@ func (c *Fake) ImageStreams(namespace string) client.ImageStreamInterface {
 	return &FakeImageStreams{Fake: c, Namespace: namespace}
 }
 
+// ImpersonateImageStreams provides a fake REST client for ImageStreams
+func (c *Fake) ImpersonateImageStreams(namespace, token string) client.ImageStreamInterface {
+	return &FakeImageStreams{Fake: c, Namespace: namespace}
+}
+
 // ImageStreamMappings provides a fake REST client for ImageStreamMappings
 func (c *Fake) ImageStreamMappings(namespace string) client.ImageStreamMappingInterface {
 	return &FakeImageStreamMappings{Fake: c, Namespace: namespace}
@@ -134,6 +139,11 @@ func (c *Fake) Users() client.UserInterface {
 	return &FakeUsers{Fake: c}
 }
 
+// ImpersonateUsers provides a fake REST client for Users
+func (c *Fake) ImpersonateUsers(token string) client.UserInterface {
+	return &FakeUsers{Fake: c}
+}
+
 // UserIdentityMappings provides a fake REST client for UserIdentityMappings
 func (c *Fake) UserIdentityMappings() client.UserIdentityMappingInterface {
 	return &FakeUserIdentityMappings{Fake: c}
@@ -184,6 +194,11 @@ func (c *Fake) SubjectAccessReviews(namespace string) client.SubjectAccessReview
 	return &FakeSubjectAccessReviews{Fake: c}
 }
 
+// ImpersonateSubjectAccessReviews provides a fake REST client for SubjectAccessReviews
+func (c *Fake) ImpersonateSubjectAccessReviews(namespace, token string) client.SubjectAccessReviewInterface {
+	return &FakeSubjectAccessReviews{Fake: c}
+}
+
 // OAuthAccessTokens provides a fake REST client for OAuthAccessTokens
 func (c *Fake) OAuthAccessTokens() client.OAuthAccessTokenInterface {
 	return &FakeOAuthAccessTokens{Fake: c}
@@ -191,6 +206,11 @@ func (c *Fake) OAuthAccessTokens() client.OAuthAccessTokenInterface {
 
 // ClusterSubjectAccessReviews provides a fake REST client for ClusterSubjectAccessReviews
 func (c *Fake) ClusterSubjectAccessReviews() client.SubjectAccessReviewInterface {
+	return &FakeClusterSubjectAccessReviews{Fake: c}
+}
+
+// ImpersonateClusterSubjectAccessReviews provides a fake REST client for ClusterSubjectAccessReviews
+func (c *Fake) ImpersonateClusterSubjectAccessReviews(token string) client.SubjectAccessReviewInterface {
 	return &FakeClusterSubjectAccessReviews{Fake: c}
 }
 

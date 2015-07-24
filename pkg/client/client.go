@@ -20,6 +20,7 @@ type Interface interface {
 	BuildLogsNamespacer
 	ImagesInterfacer
 	ImageStreamsNamespacer
+	ImageStreamsImpersonator
 	ImageStreamMappingsNamespacer
 	ImageStreamTagsNamespacer
 	ImageStreamImagesNamespacer
@@ -29,13 +30,16 @@ type Interface interface {
 	ClusterNetworkingInterface
 	IdentitiesInterface
 	UsersInterface
+	UsersImpersonator
 	UserIdentityMappingsInterface
 	ProjectsInterface
 	ProjectRequestsInterface
 	ResourceAccessReviewsNamespacer
 	ClusterResourceAccessReviews
 	SubjectAccessReviewsNamespacer
+	SubjectAccessReviewsImpersonator
 	ClusterSubjectAccessReviews
+	ClusterSubjectAccessReviewsImpersonator
 	TemplatesNamespacer
 	TemplateConfigsNamespacer
 	OAuthAccessTokensInterface
@@ -71,7 +75,12 @@ func (c *Client) Images() ImageInterface {
 
 // ImageStreams provides a REST client for ImageStream
 func (c *Client) ImageStreams(namespace string) ImageStreamInterface {
-	return newImageStreams(c, namespace)
+	return newImageStreams(c, namespace, "")
+}
+
+// ImpersonateImageStreams provides a REST client for ImageStream
+func (c *Client) ImpersonateImageStreams(namespace, token string) ImageStreamInterface {
+	return newImageStreams(c, namespace, token)
 }
 
 // ImageStreamMappings provides a REST client for ImageStreamMapping
@@ -111,7 +120,12 @@ func (c *Client) ClusterNetwork() ClusterNetworkInterface {
 
 // Users provides a REST client for User
 func (c *Client) Users() UserInterface {
-	return newUsers(c)
+	return newUsers(c, "")
+}
+
+// ImpersonateUsers provides a REST client for User
+func (c *Client) ImpersonateUsers(token string) UserInterface {
+	return newUsers(c, token)
 }
 
 // Identities provides a REST client for Identity
@@ -176,12 +190,22 @@ func (c *Client) ClusterResourceAccessReviews() ResourceAccessReviewInterface {
 
 // SubjectAccessReviews provides a REST client for SubjectAccessReviews
 func (c *Client) SubjectAccessReviews(namespace string) SubjectAccessReviewInterface {
-	return newSubjectAccessReviews(c, namespace)
+	return newSubjectAccessReviews(c, namespace, "")
+}
+
+// ImpersonateSubjectAccessReviews provides a REST client for SubjectAccessReviews
+func (c *Client) ImpersonateSubjectAccessReviews(namespace, token string) SubjectAccessReviewInterface {
+	return newSubjectAccessReviews(c, namespace, token)
 }
 
 // ClusterSubjectAccessReviews provides a REST client for SubjectAccessReviews
 func (c *Client) ClusterSubjectAccessReviews() SubjectAccessReviewInterface {
-	return newClusterSubjectAccessReviews(c)
+	return newClusterSubjectAccessReviews(c, "")
+}
+
+// ImpersonateClusterSubjectAccessReviews provides a REST client for SubjectAccessReviews
+func (c *Client) ImpersonateClusterSubjectAccessReviews(token string) SubjectAccessReviewInterface {
+	return newClusterSubjectAccessReviews(c, token)
 }
 
 // OAuthAccessTokens provides a REST client for OAuthAccessTokens

@@ -42,6 +42,10 @@ func Execute(configFile io.Reader) {
 
 	app := handlers.NewApp(ctx, *config)
 
+	if err := server.NewRegistryOpenShiftClient(); err != nil {
+		log.Fatalf("Error creating OpenShift client: %v", err)
+	}
+
 	// register OpenShift routes
 	// TODO: change this to an anonymous Access record
 	app.RegisterRoute(app.NewRoute().Path("/healthz"), server.HealthzHandler, handlers.NameNotRequired, handlers.NoCustomAccessRecords)
