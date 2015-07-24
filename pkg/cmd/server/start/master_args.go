@@ -288,12 +288,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		config.ServiceAccountConfig.PublicKeyFiles = []string{}
 	}
 
-	// Roundtrip the config to v1 and back to ensure proper defaults are set.
-	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
-	if err != nil {
-		return nil, err
-	}
-	internal, err := configapi.Scheme.ConvertToVersion(ext, "")
+	internal, err := applyDefaults(config, "v1")
 	if err != nil {
 		return nil, err
 	}
@@ -647,4 +642,13 @@ func getPort(theURL url.URL) int {
 
 	intport, _ := strconv.Atoi(port)
 	return intport
+}
+
+// applyDefaults roundtrips the config to v1 and back to ensure proper defaults are set.
+func applyDefaults(config runtime.Object, version string) (runtime.Object, error) {
+	ext, err := configapi.Scheme.ConvertToVersion(config, version)
+	if err != nil {
+		return nil, err
+	}
+	return configapi.Scheme.ConvertToVersion(ext, "")
 }

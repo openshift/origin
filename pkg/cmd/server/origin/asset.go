@@ -80,7 +80,7 @@ func (c *AssetConfig) Run() {
 				MinVersion: tls.VersionTLS10,
 			}
 			glog.Infof("Web console listening at https://%s", c.Options.ServingInfo.BindAddress)
-			glog.Fatal(server.ListenAndServeTLS(c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
+			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
 		} else {
 			glog.Infof("Web console listening at http://%s", c.Options.ServingInfo.BindAddress)
 			glog.Fatal(server.ListenAndServe())
@@ -88,7 +88,7 @@ func (c *AssetConfig) Run() {
 	}, 0)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(isTLS, "tcp", c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+	cmdutil.WaitForSuccessfulDial(isTLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
 	glog.Infof("Web console available at %s", c.Options.PublicURL)
 }
