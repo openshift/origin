@@ -309,7 +309,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 		} else {
 			imageChangeParams.From = kapi.ObjectReference{
 				Kind: "ImageStream",
-				Name: r.Name,
+				Name: name,
 			}
 		}
 		triggers = []deployapi.DeploymentTriggerPolicy{
