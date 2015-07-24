@@ -14,13 +14,14 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/fsouza/go-dockerclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
@@ -347,7 +348,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 
 		// Create volume mounts with names based on container name
 		maxDigits := len(fmt.Sprintf("%d", len(r.Info.Config.Volumes)))
-		baseName := namer.GetName(container.Name, volumeNameInfix, util.LabelValueMaxLength-maxDigits-1)
+		baseName := namer.GetName(container.Name, volumeNameInfix, kutil.LabelValueMaxLength-maxDigits-1)
 		i := 1
 		for volume := range r.Info.Config.Volumes {
 			r.HasEmptyDir = true
@@ -413,6 +414,7 @@ type DeploymentConfigRef struct {
 	Name   string
 	Images []*ImageRef
 	Env    Environment
+	Labels map[string]string
 }
 
 // DeploymentConfig creates a deploymentConfig resource from the deployment configuration reference
@@ -433,6 +435,11 @@ func (r *DeploymentConfigRef) DeploymentConfig() (*deployapi.DeploymentConfig, e
 
 	selector := map[string]string{
 		"deploymentconfig": r.Name,
+	}
+	if len(r.Labels) > 0 {
+		if err := util.MergeInto(selector, r.Labels, 0); err != nil {
+			return nil, err
+		}
 	}
 
 	triggers := []deployapi.DeploymentTriggerPolicy{
