@@ -30,7 +30,7 @@ func BindSignerCertOptions(options *SignerCertOptions, flags *pflag.FlagSet, pre
 	cobra.MarkFlagFilename(flags, prefix+"signer-serial")
 }
 
-func (o SignerCertOptions) Validate() error {
+func (o *SignerCertOptions) Validate() error {
 	if len(o.CertFile) == 0 {
 		return errors.New("signer-cert must be provided")
 	}
@@ -44,7 +44,7 @@ func (o SignerCertOptions) Validate() error {
 	return nil
 }
 
-func (o SignerCertOptions) CA() (*crypto.CA, error) {
+func (o *SignerCertOptions) CA() (*crypto.CA, error) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	if o.ca != nil {

@@ -105,7 +105,7 @@ func validateArguments(cmd *cobra.Command, args []string) (deploymentKey, filena
 }
 
 func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	if os.Args[1] == "rollingupdate" {
+	if len(os.Args) > 1 && os.Args[1] == "rollingupdate" {
 		printDeprecationWarning("rolling-update", "rollingupdate")
 	}
 	deploymentKey, filename, image, oldName, err := validateArguments(cmd, args)
@@ -258,13 +258,14 @@ func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, arg
 		updateCleanupPolicy = kubectl.RenameRollingUpdateCleanupPolicy
 	}
 	config := &kubectl.RollingUpdaterConfig{
-		Out:           out,
-		OldRc:         oldRc,
-		NewRc:         newRc,
-		UpdatePeriod:  period,
-		Interval:      interval,
-		Timeout:       timeout,
-		CleanupPolicy: updateCleanupPolicy,
+		Out:            out,
+		OldRc:          oldRc,
+		NewRc:          newRc,
+		UpdatePeriod:   period,
+		Interval:       interval,
+		Timeout:        timeout,
+		CleanupPolicy:  updateCleanupPolicy,
+		UpdateAcceptor: kubectl.DefaultUpdateAcceptor,
 	}
 	if cmdutil.GetFlagBool(cmd, "rollback") {
 		kubectl.AbortRollingUpdate(config)

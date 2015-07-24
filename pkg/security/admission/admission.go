@@ -262,7 +262,7 @@ func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info
 		if !ok {
 			return nil, errors.NewInternalError(fmt.Errorf("error converting object from store to a security context constraint: %v", c))
 		}
-		if constraintAppliesTo(constraint, userInfo) {
+		if ConstraintAppliesTo(constraint, userInfo) {
 			matchedConstraints = append(matchedConstraints, constraint)
 		}
 	}
@@ -272,7 +272,7 @@ func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info
 
 // constraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
 // if it is usable by the userInfo.
-func constraintAppliesTo(constraint *kapi.SecurityContextConstraints, userInfo user.Info) bool {
+func ConstraintAppliesTo(constraint *kapi.SecurityContextConstraints, userInfo user.Info) bool {
 	for _, user := range constraint.Users {
 		if userInfo.GetName() == user {
 			return true

@@ -1872,6 +1872,7 @@ func convert_api_SecurityContext_To_v1beta3_SecurityContext(in *api.SecurityCont
 	} else {
 		out.RunAsUser = nil
 	}
+	out.RunAsNonRoot = in.RunAsNonRoot
 	return nil
 }
 
@@ -1895,6 +1896,8 @@ func convert_api_SecurityContextConstraints_To_v1beta3_SecurityContextConstraint
 		out.AllowedCapabilities = nil
 	}
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	out.AllowHostNetwork = in.AllowHostNetwork
+	out.AllowHostPorts = in.AllowHostPorts
 	if err := convert_api_SELinuxContextStrategyOptions_To_v1beta3_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
 		return err
 	}
@@ -4102,6 +4105,7 @@ func convert_v1beta3_SecurityContext_To_api_SecurityContext(in *SecurityContext,
 	} else {
 		out.RunAsUser = nil
 	}
+	out.RunAsNonRoot = in.RunAsNonRoot
 	return nil
 }
 
@@ -4125,6 +4129,8 @@ func convert_v1beta3_SecurityContextConstraints_To_api_SecurityContextConstraint
 		out.AllowedCapabilities = nil
 	}
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	out.AllowHostNetwork = in.AllowHostNetwork
+	out.AllowHostPorts = in.AllowHostPorts
 	if err := convert_v1beta3_SELinuxContextStrategyOptions_To_api_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
 		return err
 	}

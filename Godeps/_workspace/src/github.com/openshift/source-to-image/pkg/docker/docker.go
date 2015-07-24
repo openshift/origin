@@ -47,7 +47,6 @@ const (
 type Docker interface {
 	IsImageInLocalRegistry(name string) (bool, error)
 	IsImageOnBuild(string) bool
-	GetOnBuild(string) ([]string, error)
 	RemoveContainer(id string) error
 	GetScriptsURL(name string) (string, error)
 	RunContainer(opts RunContainerOptions) error
@@ -177,19 +176,12 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 // IsImageOnBuild provides information about whether the Docker image has
 // OnBuild instruction recorded in the Image Config.
 func (d *stiDocker) IsImageOnBuild(name string) bool {
-	onbuild, err := d.GetOnBuild(name)
-	return err == nil && len(onbuild) > 0
-}
-
-// GetOnBuild returns the set of ONBUILD Dockerfile commands to execute
-// for the given image
-func (d *stiDocker) GetOnBuild(name string) ([]string, error) {
 	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
-		return nil, err
+		return false
 	}
-	return image.Config.OnBuild, nil
+	return len(image.Config.OnBuild) > 0
 }
 
 // CheckAndPullImage pulls an image into the local registry if not present

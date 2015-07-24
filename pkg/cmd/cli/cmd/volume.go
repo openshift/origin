@@ -287,12 +287,6 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out i
 	v.RESTClientFactory = f.Factory.RESTClient
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 
-	if v.Add && len(v.Name) == 0 {
-		v.Name = kapi.SimpleNameGenerator.GenerateName(volumePrefix)
-		if len(v.Output) == 0 {
-			fmt.Fprintf(v.Writer, "Generated volume name: %s\n", v.Name)
-		}
-	}
 	// In case of volume source ignore the default volume type
 	if len(v.AddOpts.Source) > 0 {
 		v.AddOpts.Type = ""
@@ -309,8 +303,8 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		ResourceTypeOrNameArgs(v.All, args...).
 		Flatten()
 
-	one := false
-	infos, err := b.Do().IntoSingular(&one).Infos()
+	singular := false
+	infos, err := b.Do().IntoSingular(&singular).Infos()
 	if err != nil {
 		return err
 	}
@@ -322,7 +316,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 			var e error
 			switch {
 			case v.Add:
-				e = v.addVolumeToSpec(spec, info)
+				e = v.addVolumeToSpec(spec, info, singular)
 			case v.Remove:
 				e = v.removeVolumeFromSpec(spec, info)
 			case v.List:
@@ -340,7 +334,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		}
 		updateInfos = append(updateInfos, info)
 	}
-	if one && skipped == len(infos) {
+	if singular && skipped == len(infos) {
 		return fmt.Errorf("the %s %s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	updatePodSpecFailed := len(updateInfos) != len(infos)
@@ -369,7 +363,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	for _, info := range updateInfos {
 		data, err := info.Mapping.Codec.Encode(info.Object)
 		if err != nil {
-			fmt.Fprintf(v.Writer, "Error: %v\n", err)
+			fmt.Fprintf(v.Writer, "error: %v\n", err)
 			failed = true
 			continue
 		}
@@ -431,7 +425,7 @@ func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) 
 
 	for _, c := range containers {
 		for _, m := range c.VolumeMounts {
-			if path.Clean(m.MountPath) == path.Clean(opts.MountPath) {
+			if path.Clean(m.MountPath) == path.Clean(opts.MountPath) && m.Name != v.Name {
 				return fmt.Errorf("volume mount '%s' already exists for container '%s'", opts.MountPath, c.Name)
 			}
 		}
@@ -450,8 +444,57 @@ func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) 
 	return nil
 }
 
-func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info) error {
+func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (string, error) {
 	opts := v.AddOpts
+	if opts.Overwrite {
+		// Multiple resources can have same mount-path for different volumes,
+		// so restrict it for single resource to uniquely find the volume
+		if !singleResource {
+			return "", fmt.Errorf("you must specify --name when dealing with multiple resources")
+		}
+		if len(opts.MountPath) > 0 {
+			containers, _ := selectContainers(spec.Containers, v.Containers)
+			var name string
+			matchCount := 0
+			for _, c := range containers {
+				for _, m := range c.VolumeMounts {
+					if path.Clean(m.MountPath) == path.Clean(opts.MountPath) {
+						name = m.Name
+						matchCount += 1
+						break
+					}
+				}
+			}
+
+			switch matchCount {
+			case 0:
+				return "", fmt.Errorf("unable to find the volume for mount-path: %s", opts.MountPath)
+			case 1:
+				return name, nil
+			default:
+				return "", fmt.Errorf("found multiple volumes with same mount-path: %s", opts.MountPath)
+			}
+		} else {
+			return "", fmt.Errorf("ambiguous --overwrite, specify --name or --mount-path")
+		}
+	} else { // Generate volume name
+		name := kapi.SimpleNameGenerator.GenerateName(volumePrefix)
+		if len(v.Output) == 0 {
+			fmt.Fprintf(v.Writer, "Generated volume name: %s\n", name)
+		}
+		return name, nil
+	}
+}
+
+func (v *VolumeOptions) addVolumeToSpec(spec *kapi.PodSpec, info *resource.Info, singleResource bool) error {
+	opts := v.AddOpts
+	if len(v.Name) == 0 {
+		var err error
+		v.Name, err = v.getVolumeName(spec, singleResource)
+		if err != nil {
+			return err
+		}
+	}
 	newVolume := &kapi.Volume{
 		Name: v.Name,
 	}

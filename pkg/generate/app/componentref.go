@@ -57,14 +57,35 @@ type ComponentReference interface {
 // ComponentReferences is a set of components
 type ComponentReferences []ComponentReference
 
-// NeedsSource returns all the components that need source code in order to build
-func (r ComponentReferences) NeedsSource() (refs ComponentReferences) {
+func (r ComponentReferences) filter(filterFunc func(ref ComponentReference) bool) ComponentReferences {
+	refs := ComponentReferences{}
 	for _, ref := range r {
-		if ref.NeedsSource() {
+		if filterFunc(ref) {
 			refs = append(refs, ref)
 		}
 	}
-	return
+	return refs
+}
+
+// NeedsSource returns all the components that need source code in order to build
+func (r ComponentReferences) NeedsSource() (refs ComponentReferences) {
+	return r.filter(func(ref ComponentReference) bool {
+		return ref.NeedsSource()
+	})
+}
+
+// ImageComponentRefs returns the list of component references to images
+func (r ComponentReferences) ImageComponentRefs() (refs ComponentReferences) {
+	return r.filter(func(ref ComponentReference) bool {
+		return ref.Input() != nil && ref.Input().ResolvedMatch != nil && ref.Input().ResolvedMatch.IsImage()
+	})
+}
+
+// TemplateComponentRefs returns the list of component references to templates
+func (r ComponentReferences) TemplateComponentRefs() (refs ComponentReferences) {
+	return r.filter(func(ref ComponentReference) bool {
+		return ref.Input() != nil && ref.Input().ResolvedMatch != nil && ref.Input().ResolvedMatch.IsTemplate()
+	})
 }
 
 func (r ComponentReferences) String() string {

@@ -9,21 +9,26 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
+	"github.com/spf13/cobra"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/golang/glog"
-	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	dapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/security/admission"
 )
 
 const (
@@ -226,6 +231,15 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			return fmt.Errorf("router %q does not exist (no service)", name)
 		}
 
+		if len(cfg.ServiceAccount) == 0 {
+			return fmt.Errorf("router could not be created; you must specify a service account with --service-account")
+		}
+
+		err := validateServiceAccount(kClient, namespace, cfg.ServiceAccount)
+		if err != nil {
+			return fmt.Errorf("router could not be created; %v", err)
+		}
+
 		// create new router
 		if len(cfg.Credentials) == 0 {
 			return fmt.Errorf("router could not be created; you must specify a .kubeconfig file path containing credentials for connecting the router to the master with --credentials")
@@ -354,4 +368,24 @@ func generateStatsPassword() string {
 		password = append(password, string(char))
 	}
 	return strings.Join(password, "")
+}
+
+func validateServiceAccount(kClient *kclient.Client, ns string, sa string) error {
+	// get cluster sccs
+	sccList, err := kClient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return fmt.Errorf("unable to validate service account %v", err)
+	}
+
+	// get set of sccs applicable to the service account
+	userInfo := serviceaccount.UserInfo(ns, sa, "")
+	for _, scc := range sccList.Items {
+		if admission.ConstraintAppliesTo(&scc, userInfo) {
+			if scc.AllowHostPorts {
+				return nil
+			}
+		}
+	}
+
+	return fmt.Errorf("unable to validate service account, host ports are forbidden")
 }

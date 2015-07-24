@@ -121,16 +121,20 @@ func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, originNamespace string) {
 	c.osclient = osclient
 	c.originNamespace = originNamespace
+	namespaces := []string{originNamespace}
+	if openshiftNamespace := "openshift"; originNamespace != openshiftNamespace {
+		namespaces = append(namespaces, openshiftNamespace)
+	}
 	c.imageStreamSearcher = app.ImageStreamSearcher{
 		Client:            osclient,
 		ImageStreamImages: osclient,
-		Namespaces:        []string{originNamespace, "openshift"},
+		Namespaces:        namespaces,
 	}
-	c.imageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, []string{originNamespace, "openshift"})
+	c.imageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, namespaces)
 	c.templateSearcher = app.TemplateSearcher{
 		Client: osclient,
 		TemplateConfigsNamespacer: osclient,
-		Namespaces:                []string{originNamespace, "openshift"},
+		Namespaces:                namespaces,
 	}
 	c.templateFileSearcher = &app.TemplateFileSearcher{
 		Typer:        c.typer,
@@ -452,10 +456,8 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		glog.V(2).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
 		for _, ref := range group {
-			if !ref.Input().ResolvedMatch.IsImage() {
-				continue
-			}
 			var pipeline *app.Pipeline
+			var name string
 			if ref.Input().ExpectToBuild {
 				glog.V(2).Infof("will use %q as the base image for a source build of %q", ref, ref.Input().Uses)
 				input, err := app.InputImageFromMatch(ref.Input().ResolvedMatch)
@@ -470,15 +472,20 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 				// Override resource names from the cli
-				if len(c.Name) > 0 {
-					source.Name = c.Name
-				}
-				if name, ok := (app.NameSuggestions{source, input}).SuggestName(); ok {
-					source.Name, err = ensureValidUniqueName(names, name)
-					if err != nil {
-						return nil, err
+				name = c.Name
+				if len(name) == 0 {
+					var ok bool
+					name, ok = (app.NameSuggestions{source, input}).SuggestName()
+					if !ok {
+						return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
 					}
 				}
+				name, err = ensureValidUniqueName(names, name)
+				source.Name = name
+				if err != nil {
+					return nil, err
+				}
+
 				// Append any exposed ports from Dockerfile to input image
 				if ref.Input().Uses.IsDockerBuild() {
 					exposed, ok := ref.Input().Uses.Info().Dockerfile.GetDirective("EXPOSE")
@@ -503,17 +510,24 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
-				if name, ok := input.SuggestName(); ok {
-					input.ObjectName, err = ensureValidUniqueName(names, name)
-					if err != nil {
-						return nil, err
+				name = c.Name
+				if len(name) == 0 {
+					var ok bool
+					name, ok = input.SuggestName()
+					if !ok {
+						return nil, fmt.Errorf("can't suggest a valid name, please specify a name with --name")
 					}
 				}
+				name, err = ensureValidUniqueName(names, name)
+				if err != nil {
+					return nil, err
+				}
+				input.ObjectName = name
 				if pipeline, err = app.NewImagePipeline(ref.Input().String(), input); err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
 			}
-			if err := pipeline.NeedsDeployment(environment, c.Name); err != nil {
+			if err := pipeline.NeedsDeployment(environment, name); err != nil {
 				return nil, fmt.Errorf("can't set up a deployment for %q: %v", ref.Input(), err)
 			}
 			common = append(common, pipeline)
@@ -532,10 +546,6 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 	objects := []runtime.Object{}
 
 	for _, ref := range components {
-		if !ref.Input().ResolvedMatch.IsTemplate() {
-			continue
-		}
-
 		tpl := ref.Input().ResolvedMatch.Template
 
 		glog.V(4).Infof("processing template %s/%s", c.originNamespace, tpl.Name)
@@ -746,7 +756,11 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		return nil, ErrNoInputs
 	}
 
-	pipelines, err := c.buildPipelines(components, app.Environment(environment))
+	if len(components.ImageComponentRefs()) > 1 && len(c.Name) > 0 {
+		return nil, fmt.Errorf("only one component or source repository can be used when specifying a name")
+	}
+
+	pipelines, err := c.buildPipelines(components.ImageComponentRefs(), app.Environment(environment))
 	if err != nil {
 		return nil, err
 	}
@@ -770,7 +784,7 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 
 	objects = app.AddServices(objects, false)
 
-	templateObjects, err := c.buildTemplates(components, app.Environment(parameters))
+	templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), app.Environment(parameters))
 	if err != nil {
 		return nil, err
 	}

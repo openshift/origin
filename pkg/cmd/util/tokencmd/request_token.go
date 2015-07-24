@@ -15,7 +15,6 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/client"
-	server "github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 )
 
@@ -43,7 +42,7 @@ func RequestToken(clientCfg *kclient.Config, reader io.Reader, defaultUsername s
 
 	osClient.Client = &challengingClient{httpClient, reader, defaultUsername, defaultPassword}
 
-	result := osClient.Get().AbsPath(server.OpenShiftOAuthAPIPrefix, osinserver.AuthorizePath).
+	result := osClient.Get().AbsPath("/oauth", osinserver.AuthorizePath).
 		Param("response_type", "token").
 		Param("client_id", "openshift-challenging-client").
 		Do()
