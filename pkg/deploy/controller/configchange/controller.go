@@ -80,12 +80,13 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 		return fatalError(fmt.Sprintf("error decoding DeploymentConfig from Deployment %s for DeploymentConfig %s: %v", deployutil.LabelForDeployment(deployment), deployutil.LabelForDeploymentConfig(config), err))
 	}
 
-	newSpec, oldSpec := config.Template.ControllerTemplate.Template.Spec, deployedConfig.Template.ControllerTemplate.Template.Spec
-	if kapi.Semantic.DeepEqual(oldSpec, newSpec) {
+	// Detect template diffs, and return early if there aren't any changes.
+	if kapi.Semantic.DeepEqual(config.Template.ControllerTemplate.Template, deployedConfig.Template.ControllerTemplate.Template) {
 		glog.V(2).Infof("Ignoring DeploymentConfig change for %s (latestVersion=%d); same as Deployment %s", deployutil.LabelForDeploymentConfig(config), config.LatestVersion, deployutil.LabelForDeployment(deployment))
 		return nil
 	}
 
+	// There was a template diff, so generate a new config version.
 	fromVersion, toVersion, err := c.generateDeployment(config)
 	if err != nil {
 		if kerrors.IsConflict(err) {

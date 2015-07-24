@@ -46,15 +46,16 @@ func (r TemplateSearcher) Search(terms ...string) (ComponentMatches, error) {
 				return nil, err
 			}
 
-			for _, template := range templates.Items {
-				if score, scored := templateScorer(template, term); scored {
+			for i := range templates.Items {
+				template := &templates.Items[i]
+				if score, scored := templateScorer(*template, term); scored {
 					matches = append(matches, &ComponentMatch{
 						Value:       term,
 						Argument:    fmt.Sprintf("--template=%q", template.Name),
 						Name:        template.Name,
 						Description: fmt.Sprintf("Template %q in project %q", template.Name, template.Namespace),
 						Score:       score,
-						Template:    &template,
+						Template:    template,
 					})
 				}
 			}

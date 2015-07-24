@@ -27,9 +27,19 @@ func (l *ListPodsOptions) Run() error {
 		return err
 	}
 
+	var printer kubectl.ResourcePrinter
+	if l.Options.CmdPrinterOutput {
+		printer = l.Options.CmdPrinter
+	} else {
+		printer, _, err = l.Options.GetPrintersByResource("pod")
+		if err != nil {
+			return err
+		}
+	}
+
 	errList := []error{}
 	for _, node := range nodes {
-		err := l.RunListPods(node)
+		err := l.runListPods(node, printer)
 		if err != nil {
 			// Don't bail out if one node fails
 			errList = append(errList, err)
@@ -38,7 +48,7 @@ func (l *ListPodsOptions) Run() error {
 	return kerrors.NewAggregate(errList)
 }
 
-func (l *ListPodsOptions) RunListPods(node *kapi.Node) error {
+func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kubectl.ResourcePrinter) error {
 	labelSelector, err := labels.Parse(l.Options.PodSelector)
 	if err != nil {
 		return err
@@ -50,27 +60,8 @@ func (l *ListPodsOptions) RunListPods(node *kapi.Node) error {
 	if err != nil {
 		return err
 	}
+	fmt.Fprintln(l.Options.Writer, "\nListing matched pods on node: ", node.ObjectMeta.Name, "\n")
+	printer.PrintObj(pods, l.Options.Writer)
 
-	var printerWithHeaders, printerNoHeaders kubectl.ResourcePrinter
-	if l.Options.CmdPrinterOutput {
-		printerWithHeaders = l.Options.CmdPrinter
-		printerNoHeaders = l.Options.CmdPrinter
-	} else {
-		printerWithHeaders, printerNoHeaders, err = l.Options.GetPrintersByResource("pod")
-		if err != nil {
-			return err
-		}
-	}
-	firstPod := true
-
-	for _, pod := range pods.Items {
-		if firstPod {
-			fmt.Fprintln(l.Options.Writer, "\nListing matched pods on node: ", node.ObjectMeta.Name, "\n")
-			printerWithHeaders.PrintObj(&pod, l.Options.Writer)
-			firstPod = false
-		} else {
-			printerNoHeaders.PrintObj(&pod, l.Options.Writer)
-		}
-	}
 	return err
 }

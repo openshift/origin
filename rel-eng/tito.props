@@ -5,3 +5,6 @@ forceversiontagger = openshift.tagger.OpenshiftForceVersionTagger
 changelog_do_not_remove_cherrypick = 0
 changelog_format = %s (%ae)
 lib_dir = rel-eng/lib
+
+[requirements]
+tito = 0.6

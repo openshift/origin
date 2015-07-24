@@ -73,6 +73,8 @@ func CacheControlHandler(version string, h http.Handler) http.Handler {
 			return
 		}
 
+		// Clients must revalidate their cached copy every time.
+		w.Header().Add("Cache-Control", "public, max-age=0, must-revalidate")
 		w.Header().Add("ETag", etag)
 		h.ServeHTTP(w, r)
 

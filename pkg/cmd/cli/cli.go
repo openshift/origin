@@ -55,6 +55,7 @@ You can easily switch between multiple projects using '%[1]s project <projectnam
 func NewCommandCLI(name, fullName string) *cobra.Command {
 	in := os.Stdin
 	out := os.Stdout
+	errout := os.Stderr
 
 	// Main command
 	cmds := &cobra.Command{
@@ -100,7 +101,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 				cmd.NewCmdGet(fullName, f, out),
 				cmd.NewCmdDescribe(fullName, f, out),
 				cmd.NewCmdEdit(fullName, f, out),
-				cmd.NewCmdEnv(fullName, f, os.Stdin, out),
+				cmd.NewCmdEnv(fullName, f, in, out),
 				cmd.NewCmdVolume(fullName, f, out),
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdExpose(fullName, f, out),
@@ -112,7 +113,8 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 			Message: "Troubleshooting and Debugging Commands:",
 			Commands: []*cobra.Command{
 				cmd.NewCmdLogs(fullName, f, out),
-				cmd.NewCmdExec(fullName, f, os.Stdin, out, os.Stderr),
+				cmd.NewCmdRsh(fullName, f, in, out, errout),
+				cmd.NewCmdExec(fullName, f, in, out, errout),
 				cmd.NewCmdPortForward(fullName, f),
 				cmd.NewCmdProxy(fullName, f, out),
 			},
@@ -124,7 +126,7 @@ func NewCommandCLI(name, fullName string) *cobra.Command {
 				cmd.NewCmdReplace(fullName, f, out),
 				cmd.NewCmdPatch(fullName, f, out),
 				cmd.NewCmdProcess(fullName, f, out),
-				cmd.NewCmdExport(fullName, f, os.Stdin, out),
+				cmd.NewCmdExport(fullName, f, in, out),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
 				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, out, fullName+" edit"),
 			},

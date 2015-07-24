@@ -47,8 +47,7 @@ Examples:
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 {{end}}{{end}}{{ if or $localNotPersistentFlags.HasFlags $explicitlyExposedFlags.HasFlags}}
 Options:
-{{ if $localNotPersistentFlags.HasFlags}}{{flagsUsages $localNotPersistentFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}{{end}}{{ if not $isRootCmd}}
-Use "{{$rootCmd}} --help" for a list of all commands available in {{$rootCmd}}.{{end}}{{ if .HasSubCommands }}
+{{ if $localNotPersistentFlags.HasFlags}}{{flagsUsages $localNotPersistentFlags}}{{end}}{{ if $explicitlyExposedFlags.HasFlags}}{{flagsUsages $explicitlyExposedFlags}}{{end}}{{end}}{{ if .HasSubCommands }}
 Use "{{$rootCmd}} help <command>" for more information about a given command.{{end}}{{ if $optionsCmdFor}}
 Use "{{$optionsCmdFor}}" for a list of global command-line options (applies to all commands).{{end}}`
 

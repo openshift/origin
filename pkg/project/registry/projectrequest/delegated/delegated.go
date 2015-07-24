@@ -8,6 +8,7 @@ import (
 	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -30,14 +31,16 @@ type REST struct {
 	templateName      string
 
 	openshiftClient *client.Client
+	kubeClient      *kclient.Client
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclient.Client) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
 		templateName:      templateName,
 		openshiftClient:   openshiftClient,
+		kubeClient:        kubeClient,
 	}
 }
 
@@ -121,7 +124,10 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		Mapper: latest.RESTMapper,
 		Typer:  kapi.Scheme,
 		RESTClientFactory: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-			return r.openshiftClient, nil
+			if latest.OriginKind(mapping.Kind, mapping.APIVersion) {
+				return r.openshiftClient, nil
+			}
+			return r.kubeClient, nil
 		},
 	}
 	if err := utilerrors.NewAggregate(bulk.Create(objectsToCreate, projectName)); err != nil {

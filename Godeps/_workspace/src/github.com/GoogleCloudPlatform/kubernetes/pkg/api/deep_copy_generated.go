@@ -1815,6 +1815,7 @@ func deepCopy_api_SecurityContext(in SecurityContext, out *SecurityContext, c *c
 	} else {
 		out.RunAsUser = nil
 	}
+	out.RunAsNonRoot = in.RunAsNonRoot
 	return nil
 }
 
@@ -1835,6 +1836,8 @@ func deepCopy_api_SecurityContextConstraints(in SecurityContextConstraints, out 
 		out.AllowedCapabilities = nil
 	}
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	out.AllowHostNetwork = in.AllowHostNetwork
+	out.AllowHostPorts = in.AllowHostPorts
 	if err := deepCopy_api_SELinuxContextStrategyOptions(in.SELinuxContext, &out.SELinuxContext, c); err != nil {
 		return err
 	}

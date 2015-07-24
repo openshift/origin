@@ -20,6 +20,7 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
+	"github.com/openshift/origin/pkg/version"
 )
 
 type NodeOptions struct {
@@ -66,7 +67,7 @@ func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(out, "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintln(out, cause.Message)
+							fmt.Fprintf(out, "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -259,6 +260,7 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 	if err != nil {
 		return err
 	}
+	glog.Infof("Starting OpenShift node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 
 	RunSDNController(config, nodeConfig)
 	config.EnsureVolumeDir()

@@ -9,6 +9,7 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
+	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -269,92 +270,108 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 	}
 }
 
-func TestFirstContainerReady_scenarios(t *testing.T) {
-	type containerReady struct {
-		name  string
-		ready bool
-	}
+func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
 	scenarios := []struct {
-		name             string
-		specContainers   []string
-		initialReadiness []containerReady
-		updatedReadiness []containerReady
-		accept           bool
+		name string
+		// any pods which are previously accepted
+		acceptedPods []string
+		// the current pods which will be in the store; pod name -> ready
+		currentPods map[string]bool
+		// whether or not the scenario should result in acceptance
+		accepted bool
 	}{
 		{
-			"all ready",
-			[]string{"1", "2"},
-			[]containerReady{{"1", false}, {"2", false}},
-			[]containerReady{{"1", true}, {"2", true}},
-			true,
+			name:         "all ready, none previously accepted",
+			accepted:     true,
+			acceptedPods: []string{},
+			currentPods: map[string]bool{
+				"pod-1": true,
+				"pod-2": true,
+			},
 		},
 		{
-			"none ready",
-			[]string{"1", "2"},
-			[]containerReady{{"1", false}, {"2", false}},
-			[]containerReady{{"1", false}, {"2", false}},
-			false,
+			name:         "some ready, none previously accepted",
+			accepted:     false,
+			acceptedPods: []string{},
+			currentPods: map[string]bool{
+				"pod-1": false,
+				"pod-2": true,
+			},
 		},
 		{
-			"some ready",
-			[]string{"1", "2"},
-			[]containerReady{{"1", false}, {"2", false}},
-			[]containerReady{{"1", true}, {"2", false}},
-			false,
+			name:         "previously accepted has become unready, new are ready",
+			accepted:     true,
+			acceptedPods: []string{"pod-1"},
+			currentPods: map[string]bool{
+				// this pod should be ignored because it was previously accepted
+				"pod-1": false,
+				"pod-2": true,
+			},
+		},
+		{
+			name:         "previously accepted all ready, new is unready",
+			accepted:     false,
+			acceptedPods: []string{"pod-1"},
+			currentPods: map[string]bool{
+				"pod-1": true,
+				"pod-2": false,
+			},
 		},
 	}
 	for _, s := range scenarios {
 		t.Logf("running scenario: %s", s.name)
-		mkpod := func(name string, readiness []containerReady) kapi.Pod {
-			containers := []kapi.Container{}
-			for _, c := range s.specContainers {
-				containers = append(containers, kapi.Container{Name: c})
+
+		// Populate the store with real pods with the desired ready condition.
+		store := cache.NewStore(cache.MetaNamespaceKeyFunc)
+		for podName, ready := range s.currentPods {
+			status := kapi.ConditionTrue
+			if !ready {
+				status = kapi.ConditionFalse
 			}
-			containerStatuses := []kapi.ContainerStatus{}
-			for _, r := range readiness {
-				containerStatuses = append(containerStatuses, kapi.ContainerStatus{Name: r.name, Ready: r.ready})
-			}
-			return kapi.Pod{
+			pod := &kapi.Pod{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: name,
-				},
-				Spec: kapi.PodSpec{
-					Containers: containers,
+					Name: podName,
 				},
 				Status: kapi.PodStatus{
-					ContainerStatuses: containerStatuses,
+					Conditions: []kapi.PodCondition{
+						{
+							Type:   kapi.PodReady,
+							Status: status,
+						},
+					},
 				},
 			}
+			store.Add(pod)
 		}
-		store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-		ready := &FirstContainerReady{
-			podsForDeployment: func(deployment *kapi.ReplicationController) (*kapi.PodList, error) {
-				return &kapi.PodList{
-					Items: []kapi.Pod{
-						mkpod(deployment.Name+"-pod", s.initialReadiness),
-					},
-				}, nil
-			},
-			getPodStore: func(namespace, name string) (cache.Store, chan struct{}) {
-				return store, make(chan struct{})
-			},
+
+		// Set up accepted pods for the scenario.
+		acceptedPods := kutil.NewStringSet()
+		for _, podName := range s.acceptedPods {
+			acceptedPods.Insert(podName)
+		}
+
+		acceptor := &AcceptNewlyObservedReadyPods{
 			timeout:  10 * time.Millisecond,
 			interval: 1 * time.Millisecond,
+			getDeploymentPodStore: func(deployment *kapi.ReplicationController) (cache.Store, chan struct{}) {
+				return store, make(chan struct{})
+			},
+			acceptedPods: acceptedPods,
 		}
 
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
 		deployment.Spec.Replicas = 1
-		pod := mkpod(deployment.Name+"-pod", s.updatedReadiness)
-		store.Add(&pod)
 
-		err := ready.Accept(deployment)
+		err := acceptor.Accept(deployment)
 
-		if s.accept && err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !s.accept && err == nil {
-			t.Fatalf("expected an error")
+		if s.accepted {
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
 		} else {
+			if err == nil {
+				t.Fatalf("expected an error")
+			}
 			t.Logf("got expected error: %s", err)
 		}
 	}

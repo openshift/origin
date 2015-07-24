@@ -937,6 +937,26 @@ _oc_logs()
     must_have_one_noun=()
 }
 
+_oc_rsh()
+{
+    last_command="oc_rsh"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--shell=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oc_exec()
 {
     last_command="oc_exec"
@@ -1639,6 +1659,7 @@ _oc()
     commands+=("stop")
     commands+=("delete")
     commands+=("logs")
+    commands+=("rsh")
     commands+=("exec")
     commands+=("port-forward")
     commands+=("proxy")

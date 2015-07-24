@@ -124,6 +124,12 @@ func TestAdmit(t *testing.T) {
 		Level: "s0:c1,c0",
 	}
 
+	requestsHostNetwork := goodPod()
+	requestsHostNetwork.Spec.HostNetwork = true
+
+	requestsHostPorts := goodPod()
+	requestsHostPorts.Spec.Containers[0].Ports = []kapi.ContainerPort{{HostPort: 1}}
+
 	testCases := map[string]struct {
 		pod           *kapi.Pod
 		shouldAdmit   bool
@@ -154,6 +160,14 @@ func TestAdmit(t *testing.T) {
 			shouldAdmit:   true,
 			expectedUID:   1,
 			expectedLevel: specifyLabels.Spec.Containers[0].SecurityContext.SELinuxOptions.Level,
+		},
+		"requestsHostNetwork": {
+			pod:         requestsHostNetwork,
+			shouldAdmit: false,
+		},
+		"requestsHostPorts": {
+			pod:         requestsHostPorts,
+			shouldAdmit: false,
 		},
 	}
 
@@ -192,6 +206,8 @@ func TestAdmit(t *testing.T) {
 			Name: "scc-admin",
 		},
 		AllowPrivilegedContainer: true,
+		AllowHostNetwork:         true,
+		AllowHostPorts:           true,
 		RunAsUser: kapi.RunAsUserStrategyOptions{
 			Type: kapi.RunAsUserStrategyRunAsAny,
 		},

@@ -62,9 +62,9 @@ type acceptingDeploymentStrategy interface {
 	DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error
 }
 
-// NewFirstContainerReadyInterval is how often to check for container
-// readiness with the FirstContainerReady acceptor.
-const NewFirstContainerReadyInterval = 1 * time.Second
+// AcceptorInterval is how often the UpdateAcceptor should check for
+// readiness.
+const AcceptorInterval = 1 * time.Second
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
 func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, codec runtime.Codec, initialStrategy acceptingDeploymentStrategy) *RollingDeploymentStrategy {
@@ -111,7 +111,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 			},
 		},
 		getUpdateAcceptor: func(timeout time.Duration) kubectl.UpdateAcceptor {
-			return stratsupport.NewFirstContainerReady(client, timeout, NewFirstContainerReadyInterval)
+			return stratsupport.NewAcceptNewlyObservedReadyPods(client, timeout, AcceptorInterval)
 		},
 	}
 }
@@ -205,16 +205,22 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 		UpdatePeriod:   time.Duration(*params.UpdatePeriodSeconds) * time.Second,
 		Interval:       time.Duration(*params.IntervalSeconds) * time.Second,
 		Timeout:        time.Duration(*params.TimeoutSeconds) * time.Second,
+		UpdatePercent:  params.UpdatePercent,
 		CleanupPolicy:  kubectl.PreserveRollingUpdateCleanupPolicy,
 		UpdateAcceptor: updateAcceptor,
 	}
-	glog.Infof("Starting rolling update from %s to %s (desired replicas: %d, UpdatePeriodSeconds=%d, IntervalSeconds=%d, TimeoutSeconds=%d)",
+	pct := "<nil>"
+	if params.UpdatePercent != nil {
+		pct = fmt.Sprintf("%d", *params.UpdatePercent)
+	}
+	glog.Infof("Starting rolling update from %s to %s (desired replicas: %d, updatePeriodSeconds=%ds, intervalSeconds=%ds, timeoutSeconds=%ds, updatePercent=%s%%)",
 		deployutil.LabelForDeployment(from),
 		deployutil.LabelForDeployment(to),
 		desiredReplicas,
 		*params.UpdatePeriodSeconds,
 		*params.IntervalSeconds,
 		*params.TimeoutSeconds,
+		pct,
 	)
 	if err := s.rollingUpdate(rollingConfig); err != nil {
 		return err

@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -35,13 +36,15 @@ import (
 	"github.com/openshift/origin/pkg/util/parallel"
 )
 
+const ForbiddenListWarning = "Forbidden"
+
 // ProjectStatusDescriber generates extended information about a Project
 type ProjectStatusDescriber struct {
 	K kclient.Interface
 	C client.Interface
 }
 
-func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, error) {
+func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, util.StringSet, error) {
 	g := osgraph.New()
 
 	loaders := []GraphLoader{
@@ -60,8 +63,23 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 		loadingFuncs = append(loadingFuncs, loader.Load)
 	}
 
+	forbiddenResources := util.StringSet{}
 	if errs := parallel.Run(loadingFuncs...); len(errs) > 0 {
-		return g, utilerrors.NewAggregate(errs)
+		actualErrors := []error{}
+		for _, err := range errs {
+			if kapierrors.IsForbidden(err) {
+				forbiddenErr := err.(*kapierrors.StatusError)
+				if (forbiddenErr.Status().Details != nil) && (len(forbiddenErr.Status().Details.Kind) > 0) {
+					forbiddenResources.Insert(forbiddenErr.Status().Details.Kind)
+				}
+				continue
+			}
+			actualErrors = append(actualErrors, err)
+		}
+
+		if len(actualErrors) > 0 {
+			return g, forbiddenResources, utilerrors.NewAggregate(actualErrors)
+		}
 	}
 
 	for _, loader := range loaders {
@@ -80,12 +98,12 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, err
 	deployedges.AddAllDeploymentEdges(g)
 	imageedges.AddAllImageStreamRefEdges(g)
 
-	return g, nil
+	return g, forbiddenResources, nil
 }
 
 // Describe returns the description of a project
 func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error) {
-	g, err := d.MakeGraph(namespace)
+	g, forbiddenResources, err := d.MakeGraph(namespace)
 	if err != nil {
 		return "", err
 	}
@@ -163,6 +181,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 		fmt.Fprintln(out)
 
 		allMarkers := osgraph.Markers{}
+		allMarkers = append(allMarkers, createForbiddenMarkers(forbiddenResources)...)
 		for _, scanner := range getMarkerScanners() {
 			allMarkers = append(allMarkers, scanner(g)...)
 		}
@@ -192,6 +211,18 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 
 		return nil
 	})
+}
+
+func createForbiddenMarkers(forbiddenResources util.StringSet) []osgraph.Marker {
+	markers := []osgraph.Marker{}
+	for forbiddenResource := range forbiddenResources {
+		markers = append(markers, osgraph.Marker{
+			Severity: osgraph.WarningSeverity,
+			Key:      ForbiddenListWarning,
+			Message:  fmt.Sprintf("Unable to list %s resources.  Not all status relationships can be established.", forbiddenResource),
+		})
+	}
+	return markers
 }
 
 func getMarkerScanners() []osgraph.MarkerScanner {

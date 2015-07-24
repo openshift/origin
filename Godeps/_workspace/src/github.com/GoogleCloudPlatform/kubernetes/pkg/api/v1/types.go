@@ -1992,6 +1992,11 @@ type SecurityContext struct {
 
 	// RunAsUser is the UID to run the entrypoint of the container process.
 	RunAsUser *int64 `json:"runAsUser,omitempty" description:"the user id that runs the first process in the container; see http://releases.k8s.io/v1.0.0/docs/design/security_context.md#security-context"`
+
+	// RunAsNonRoot indicates that the container should be run as a non-root user.  If the RunAsUser
+	// field is not explicitly set then the kubelet may check the image for a specified user or
+	// perform defaulting to specify a user.
+	RunAsNonRoot bool `json:"runAsNonRoot,omitempty" description:"indicates the container must be run as a non-root user either by specifying the runAsUser or in the image specification"`
 }
 
 // SELinuxOptions are the labels to be applied to the container
@@ -2025,11 +2030,15 @@ type SecurityContextConstraints struct {
 	ObjectMeta `json:"metadata,omitempty"`
 
 	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
-	AllowPrivilegedContainer bool `json:"allowPrivilegedContainer,omitempty" description:"allow containers to run as privileged"`
+	AllowPrivilegedContainer bool `json:"allowPrivilegedContainer" description:"allow containers to run as privileged"`
 	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
-	AllowedCapabilities []Capability `json:"allowedCapabilities,omitempty" description:"capabilities that are allowed to be added"`
+	AllowedCapabilities []Capability `json:"allowedCapabilities" description:"capabilities that are allowed to be added"`
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
-	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin,omitempty" description:"allow the use of the host dir volume plugin"`
+	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" description:"allow the use of the host dir volume plugin"`
+	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
+	AllowHostNetwork bool `json:"allowHostNetwork" description:"allow the use of the hostNetwork in the pod spec"`
+	// AllowHostPorts determines if the policy allows host ports in the containers.
+	AllowHostPorts bool `json:"allowHostPorts" description:"allow the use of the host ports in the containers"`
 	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
 	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" description:"strategy used to generate SELinuxOptions"`
 	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.

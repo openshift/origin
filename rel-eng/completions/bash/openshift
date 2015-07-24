@@ -748,6 +748,30 @@ _openshift_admin_policy_remove-cluster-role-from-group()
     must_have_one_noun=()
 }
 
+_openshift_admin_policy_reconcile-cluster-roles()
+{
+    last_command="openshift_admin_policy_reconcile-cluster-roles"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--confirm")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_admin_policy()
 {
     last_command="openshift_admin_policy"
@@ -763,6 +787,7 @@ _openshift_admin_policy()
     commands+=("remove-cluster-role-from-user")
     commands+=("add-cluster-role-to-group")
     commands+=("remove-cluster-role-from-group")
+    commands+=("reconcile-cluster-roles")
 
     flags=()
     two_word_flags=()
@@ -2331,6 +2356,26 @@ _openshift_cli_logs()
     must_have_one_noun=()
 }
 
+_openshift_cli_rsh()
+{
+    last_command="openshift_cli_rsh"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--shell=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_cli_exec()
 {
     last_command="openshift_cli_exec"
@@ -3033,6 +3078,7 @@ _openshift_cli()
     commands+=("stop")
     commands+=("delete")
     commands+=("logs")
+    commands+=("rsh")
     commands+=("exec")
     commands+=("port-forward")
     commands+=("proxy")

@@ -180,6 +180,13 @@ func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams) fi
 		errs = append(errs, fielderrors.NewFieldInvalid("timeoutSeconds", *params.TimeoutSeconds, "must be >0"))
 	}
 
+	if params.UpdatePercent != nil {
+		p := *params.UpdatePercent
+		if p == 0 || p < -100 || p > 100 {
+			errs = append(errs, fielderrors.NewFieldInvalid("updatePercent", *params.UpdatePercent, "must be between 1 and 100 or between -1 and -100 (inclusive)"))
+		}
+	}
+
 	if params.Pre != nil {
 		errs = append(errs, validateLifecycleHook(params.Pre).Prefix("pre")...)
 	}

@@ -157,6 +157,12 @@ func TestValidateFailures(t *testing.T) {
 		},
 	}
 
+	failHostNetworkPod := defaultPod()
+	failHostNetworkPod.Spec.HostNetwork = true
+
+	failHostPortPod := defaultPod()
+	failHostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
+
 	errorCases := map[string]struct {
 		pod           *api.Pod
 		scc           *api.SecurityContextConstraints
@@ -186,6 +192,16 @@ func TestValidateFailures(t *testing.T) {
 			pod:           failHostDirPod,
 			scc:           defaultSCC(),
 			expectedError: "Host Volumes are not allowed to be used",
+		},
+		"failHostNetworkSCC": {
+			pod:           failHostNetworkPod,
+			scc:           defaultSCC(),
+			expectedError: "Host network is not allowed to be used",
+		},
+		"failHostPortSCC": {
+			pod:           failHostPortPod,
+			scc:           defaultSCC(),
+			expectedError: "Host ports are not allowed to be used",
 		},
 	}
 
@@ -285,6 +301,16 @@ func TestValidateSuccess(t *testing.T) {
 		},
 	}
 
+	hostNetworkSCC := defaultSCC()
+	hostNetworkSCC.AllowHostNetwork = true
+	hostNetworkPod := defaultPod()
+	hostNetworkPod.Spec.HostNetwork = true
+
+	hostPortSCC := defaultSCC()
+	hostPortSCC.AllowHostPorts = true
+	hostPortPod := defaultPod()
+	hostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
+
 	errorCases := map[string]struct {
 		pod *api.Pod
 		scc *api.SecurityContextConstraints
@@ -309,6 +335,14 @@ func TestValidateSuccess(t *testing.T) {
 			pod: hostDirPod,
 			scc: hostDirSCC,
 		},
+		"pass hostNetwork validating SCC": {
+			pod: hostNetworkPod,
+			scc: hostNetworkSCC,
+		},
+		"pass hostPort validating SCC": {
+			pod: hostPortPod,
+			scc: hostPortSCC,
+		},
 	}
 
 	for k, v := range errorCases {
@@ -318,7 +352,7 @@ func TestValidateSuccess(t *testing.T) {
 		}
 		errs := provider.ValidateSecurityContext(v.pod, &v.pod.Spec.Containers[0])
 		if len(errs) != 0 {
-			t.Errorf("%s expected validation pass but received errors", k, errs)
+			t.Errorf("%s expected validation pass but received errors %v", k, errs)
 			continue
 		}
 	}
