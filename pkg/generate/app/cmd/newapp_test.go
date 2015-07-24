@@ -475,6 +475,7 @@ func TestRunAll(t *testing.T) {
 		name            string
 		config          *AppConfig
 		expected        map[string][]string
+		expectedName    string
 		expectedErr     error
 		expectInsecure  util.StringSet
 		expectedVolumes map[string]string
@@ -512,6 +513,7 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
 			},
+			expectedName:    "ruby-hello-world",
 			expectedVolumes: nil,
 			expectedErr:     nil,
 		},
@@ -548,6 +550,7 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
 			},
+			expectedName:    "ruby-hello-world",
 			expectedVolumes: nil,
 			expectedErr:     nil,
 		},
@@ -584,7 +587,8 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
 			},
-			expectedErr: nil,
+			expectedName: "ruby-hello-world",
+			expectedErr:  nil,
 		},
 		{
 			name: "app generation using context dir",
@@ -614,6 +618,7 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"sti-ruby"},
 				"service":          {"sti-ruby"},
 			},
+			expectedName:    "sti-ruby",
 			expectedVolumes: nil,
 			expectedErr:     nil,
 		},
@@ -656,6 +661,7 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
 			},
+			expectedName:    "ruby-hello-world",
 			expectedErr:     nil,
 			expectedVolumes: nil,
 			expectInsecure:  util.NewStringSet("example"),
@@ -692,6 +698,7 @@ func TestRunAll(t *testing.T) {
 				"service":          {"mysql"},
 				"volumeMounts":     {"mysql-volume-1"},
 			},
+			expectedName: "mysql",
 			expectedVolumes: map[string]string{
 				"mysql-volume-1": "EmptyDir",
 			},
@@ -734,7 +741,8 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"ruby-hello-world"},
 				"service":          {"ruby-hello-world"},
 			},
-			expectedErr: nil,
+			expectedName: "ruby-hello-world",
+			expectedErr:  nil,
 		},
 		{
 			name: "custom name",
@@ -772,7 +780,8 @@ func TestRunAll(t *testing.T) {
 				"deploymentConfig": {"custom"},
 				"service":          {"custom"},
 			},
-			expectedErr: nil,
+			expectedName: "custom",
+			expectedErr:  nil,
 		},
 	}
 
@@ -868,6 +877,10 @@ func TestRunAll(t *testing.T) {
 			if g != exp {
 				t.Errorf("%s: Expected volume of type %s, got %s", test.name, g, exp)
 			}
+		}
+
+		if test.expectedName != res.Name {
+			t.Errorf("%s: Unexpected name: %s", test.name, test.expectedName)
 		}
 
 		if test.expectInsecure == nil {
