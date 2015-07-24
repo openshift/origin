@@ -73,7 +73,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   kube-scheduler
 )
 readonly OPENSHIFT_BINARY_COPY=(
-  oc
   oadm
 )
 
