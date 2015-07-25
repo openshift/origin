@@ -747,7 +747,9 @@ echo "new-project: ok"
 # Test running a router
 [ ! "$(oadm router --dry-run | grep 'does not exist')" ]
 echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
-oc get scc privileged -o json | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f -
+oc get scc privileged -o yaml | sed '/users:/ a\
+- system:serviceaccount:default:router\
+' | oc replace scc privileged -f -
 [ "$(oadm router -o yaml --credentials="${KUBECONFIG}" --service-account=router | grep 'openshift/origin-haproxy-')" ]
 oadm router --credentials="${KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
 [ "$(oadm router | grep 'service exists')" ]
