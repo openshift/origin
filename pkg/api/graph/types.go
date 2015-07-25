@@ -9,11 +9,11 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 )
 
-var (
+const (
 	UnknownNodeKind = "UnknownNode"
 )
 
-var (
+const (
 	UnknownEdgeKind = "UnknownEdge"
 	// ReferencedByEdgeKind is the kind to use if you're building reverse links that don't have a specific edge in the other direction
 	// other uses are discouraged.  You should create a kind for your edge

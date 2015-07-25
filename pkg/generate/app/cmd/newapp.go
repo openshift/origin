@@ -41,6 +41,7 @@ type AppConfig struct {
 	TemplateParameters util.StringList
 	Groups             util.StringList
 	Environment        util.StringList
+	Labels             map[string]string
 
 	Name             string
 	Strategy         string
@@ -402,10 +403,9 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 				repositories[0].UsedBy(component)
 			}
 		default:
-			if len(components) == 1 {
-				return fmt.Errorf("the image %q will build source code, so you must specify a repository via --code", components[0])
+			for _, component := range components {
+				component.Input().ExpectToBuild = false
 			}
-			return fmt.Errorf("you must provide at least one source code repository with --code for the images: %s", components)
 		}
 	}
 	return nil
@@ -527,7 +527,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
 			}
-			if err := pipeline.NeedsDeployment(environment, name); err != nil {
+			if err := pipeline.NeedsDeployment(environment, c.Labels, name); err != nil {
 				return nil, fmt.Errorf("can't set up a deployment for %q: %v", ref.Input(), err)
 			}
 			common = append(common, pipeline)
@@ -581,6 +581,7 @@ var ErrNoInputs = fmt.Errorf("no inputs provided")
 type AppResult struct {
 	List *kapi.List
 
+	Name       string
 	BuildNames []string
 	HasSource  bool
 	Namespace  string
@@ -798,8 +799,19 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		}
 	}
 
+	name := c.Name
+	if len(name) == 0 {
+		for _, pipeline := range pipelines {
+			if pipeline.Deployment != nil {
+				name = pipeline.Deployment.Name
+				break
+			}
+		}
+	}
+
 	return &AppResult{
 		List:       &kapi.List{Items: objects},
+		Name:       name,
 		BuildNames: buildNames,
 		HasSource:  len(repositories) != 0,
 		Namespace:  c.originNamespace,

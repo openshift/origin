@@ -24,4 +24,9 @@ if [[ ! "$genbashcomp" ]]; then
   exit 1
 fi
 
-os::build::gen-docs "${genbashcomp}" "${OS_ROOT}/rel-eng/completions/bash/"
+OUTPUT_REL_DIR=${1:-""}
+OUTPUT_DIR_ROOT="${OS_ROOT}/${OUTPUT_REL_DIR}/rel-eng/completions"
+
+mkdir -p "${OUTPUT_DIR_ROOT}/bash" || echo $? > /dev/null
+
+os::build::gen-docs "${genbashcomp}" "${OUTPUT_DIR_ROOT}/bash"

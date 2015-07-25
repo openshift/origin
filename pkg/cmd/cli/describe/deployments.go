@@ -245,13 +245,13 @@ func printTriggers(triggers []deployapi.DeploymentTriggerPolicy, w *tabwriter.Wr
 func printReplicationControllerSpec(spec kapi.ReplicationControllerSpec, w io.Writer) error {
 	fmt.Fprint(w, "Template:\n")
 
-	fmt.Fprintf(w, "\tSelector:\t%s\n\tReplicas:\t%d\n",
+	fmt.Fprintf(w, "  Selector:\t%s\n  Replicas:\t%d\n",
 		formatLabels(spec.Selector),
 		spec.Replicas)
 
-	fmt.Fprintf(w, "\tContainers:\n\t\tNAME\tIMAGE\tENV\n")
+	fmt.Fprintf(w, "  Containers:\n  NAME\tIMAGE\tENV\n")
 	for _, container := range spec.Template.Spec.Containers {
-		fmt.Fprintf(w, "\t\t%s\t%s\t%s\n",
+		fmt.Fprintf(w, "  %s\t%s\t%s\n",
 			container.Name,
 			container.Image,
 			formatLabels(convertEnv(container.Env)))

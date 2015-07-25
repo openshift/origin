@@ -13,7 +13,7 @@ import (
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 )
 
-// ServiceReference is a service, the DeploymentConfigPipelines it covers, and lists of the other nodes that fulfill it
+// ServiceGroup is a service, the DeploymentConfigPipelines it covers, and lists of the other nodes that fulfill it
 type ServiceGroup struct {
 	Service *kubegraph.ServiceNode
 

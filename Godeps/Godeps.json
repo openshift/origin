@@ -261,6 +261,11 @@
 			"Rev": "cd821444dcf3e1e237b5f3579721440624c9c4fa"
 		},
 		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest",
+			"Comment": "v1.0.0",
+			"Rev": "cd821444dcf3e1e237b5f3579721440624c9c4fa"
+		},
+		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequota",
 			"Comment": "v1.0.0",
 			"Rev": "cd821444dcf3e1e237b5f3579721440624c9c4fa"
@@ -480,10 +485,6 @@
 			"ImportPath": "github.com/appc/spec/schema",
 			"Comment": "v0.5.1-55-g87808a3",
 			"Rev": "87808a37061a4a2e6204ccea5fd2fc930576db94"
-		},
-		{
-			"ImportPath": "github.com/awalterschulze/gographviz",
-			"Rev": "20d1f693416d9be045340150094aa42035a41c9e"
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws",
@@ -1153,6 +1154,11 @@
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/mock",
+			"Comment": "v1.0-12-g7e4a149",
+			"Rev": "7e4a149930b09fe4c2b134c50ce637457ba6e966"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/require",
 			"Comment": "v1.0-12-g7e4a149",
 			"Rev": "7e4a149930b09fe4c2b134c50ce637457ba6e966"
 		},

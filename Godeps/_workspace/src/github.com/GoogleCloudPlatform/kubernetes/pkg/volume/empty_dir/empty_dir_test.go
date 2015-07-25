@@ -93,6 +93,10 @@ func TestPluginEmptyRootContext(t *testing.T) {
 }
 
 func TestPluginRootContextSet(t *testing.T) {
+	if !selinuxEnabled() {
+		return
+	}
+
 	doTestPlugin(t, pluginTestConfig{
 		medium:                 api.StorageMediumDefault,
 		rootContext:            "user:role:type:range",
@@ -103,6 +107,10 @@ func TestPluginRootContextSet(t *testing.T) {
 }
 
 func TestPluginTmpfs(t *testing.T) {
+	if !selinuxEnabled() {
+		return
+	}
+
 	doTestPlugin(t, pluginTestConfig{
 		medium:                        api.StorageMediumMemory,
 		rootContext:                   "user:role:type:range",
@@ -114,6 +122,10 @@ func TestPluginTmpfs(t *testing.T) {
 }
 
 func TestPluginTmpfs_PodHasSELinuxOptions(t *testing.T) {
+	if !selinuxEnabled() {
+		return
+	}
+
 	doTestPlugin(t, pluginTestConfig{
 		medium:      api.StorageMediumMemory,
 		rootContext: "user:role:type:range",
@@ -129,6 +141,10 @@ func TestPluginTmpfs_PodHasSELinuxOptions(t *testing.T) {
 }
 
 func TestPluginTmpfs_PodHasSELinuxOptions_Idempotent(t *testing.T) {
+	if !selinuxEnabled() {
+		return
+	}
+
 	doTestPlugin(t, pluginTestConfig{
 		medium:      api.StorageMediumMemory,
 		rootContext: "user:role:type:range",

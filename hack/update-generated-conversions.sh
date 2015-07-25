@@ -29,11 +29,15 @@ EOF
 	cat >> $TMPFILE <<EOF
 // AUTO-GENERATED FUNCTIONS END HERE
 EOF
-
-	mv $TMPFILE pkg/api/${version}/conversion_generated.go
+	
+	mv $TMPFILE $2
 }
 
+DESTINATION_FILE_REL=${1:-""}
+DESTINATION_FILE_ROOT="${OS_ROOT}/${DESTINATION_FILE_REL}/pkg/api"
 VERSIONS="v1beta3 v1"
 for ver in $VERSIONS; do
-	generate_version "${ver}"
+	mkdir -p "${DESTINATION_FILE_ROOT}/${ver}" || echo $? > /dev/null
+	DESTINATION_FILE="${DESTINATION_FILE_ROOT}/${ver}/conversion_generated.go"
+	generate_version "${ver}" "${DESTINATION_FILE}"
 done
