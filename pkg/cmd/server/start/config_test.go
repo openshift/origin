@@ -76,19 +76,6 @@ func TestAssetPublicAddressDefaulting(t *testing.T) {
 	}
 }
 
-func TestAssetBindAddressDefaulting(t *testing.T) {
-	bind := "1.2.3.4:9011"
-	expected := "1.2.3.4:9011"
-
-	masterArgs := NewDefaultMasterArgs()
-	masterArgs.ListenArg.ListenAddr.Set(bind)
-
-	actual := masterArgs.GetAssetBindAddress()
-	if expected != actual {
-		t.Errorf("expected %v, got %v", expected, actual)
-	}
-}
-
 func TestKubernetesAddressDefaulting(t *testing.T) {
 	expected := "http://example.com:9012"
 
