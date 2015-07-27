@@ -113,7 +113,7 @@ func TestTriggers_imageChange(t *testing.T) {
 	}
 	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Fatalf("error getting OpenShift cluster admin client: %v", err)
+		t.Fatalf("error getting cluster admin client: %v", err)
 	}
 	openshiftClusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {

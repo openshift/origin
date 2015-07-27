@@ -24,7 +24,7 @@ func NewCommandCreateBootstrapProjectTemplate(f *clientcmd.Factory, commandName 
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create bootstrap project template for OpenShift",
+		Short: "Create a bootstrap project template",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))

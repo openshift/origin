@@ -31,23 +31,23 @@ type NodeOptions struct {
 }
 
 const nodeLong = `
-Start an OpenShift node
+Start a node
 
-This command helps you launch an OpenShift node.  Running
+This command helps you launch a node.  Running
 
-  $ openshift start node --master=<masterIP>
+  $ %[1]s start node --master=<masterIP>
 
-will start an OpenShift node that attempts to connect to the master on the provided IP. The
+will start a node that attempts to connect to the master on the provided IP. The
 node will run in the foreground until you terminate the process.`
 
 // NewCommandStartNode provides a CLI handler for 'start node' command
-func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
+func NewCommandStartNode(fullName string, out io.Writer) (*cobra.Command, *NodeOptions) {
 	options := &NodeOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "node",
-		Short: "Launch OpenShift node",
-		Long:  nodeLong,
+		Short: "Launch a node",
+		Long:  fmt.Sprintf(nodeLong, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
 				fmt.Println(err.Error())
@@ -174,7 +174,7 @@ func (o NodeOptions) RunNode() error {
 	if err != nil {
 		return err
 	}
-	glog.Infof("Starting an OpenShift node, connecting to %s", kubeClientConfig.Host)
+	glog.Infof("Starting a node connected to %s", kubeClientConfig.Host)
 
 	if err := StartNode(*nodeConfig); err != nil {
 		return err
@@ -260,7 +260,7 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 	if err != nil {
 		return err
 	}
-	glog.Infof("Starting OpenShift node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
+	glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 
 	RunSDNController(config, nodeConfig)
 	config.EnsureVolumeDir()

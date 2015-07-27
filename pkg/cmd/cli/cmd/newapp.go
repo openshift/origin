@@ -33,14 +33,15 @@ var errExit = fmt.Errorf("exit directly")
 
 const (
 	newAppLong = `
-Create a new application in OpenShift by specifying source code, templates, and/or images
+Create a new application by specifying source code, templates, and/or images
 
 This command will try to build up the components of an application using images, templates,
 or code that has a public repository. It will lookup the images on the local Docker installation
-(if available), a Docker registry, or an OpenShift image stream.
+(if available), a Docker registry, or an integrated image stream.
+
 If you specify a source code URL, it will set up a build that takes your source code and converts
 it into an image that can run inside of a pod. Local source must be in a git repository that has a
-remote repository that the OpenShift instance can see. The images will be deployed via a deployment
+remote repository that the server can see. The images will be deployed via a deployment
 configuration, and a service will be connected to the first public port of the app. You may either specify
 components using the various existing flags or let new-app autodetect what kind of components
 you have provided.
@@ -48,7 +49,9 @@ you have provided.
 If you provide source code, you may need to run a build with 'start-build' after the
 application is created.`
 
-	newAppExample = `  // Create an application based on the source code in the current git repository (with a public remote) and a Docker image
+	newAppExample = `
+  // Create an application based on the source code in the current git repository (with a public remote) 
+  // and a Docker image
   $ %[1]s new-app . --docker-image=repo/langimage
 
   // Create a Ruby application based on the provided [image]~[source code] combination
@@ -105,10 +108,10 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 	cmd.Flags().Var(&config.SourceRepositories, "code", "Source code to use to build this application.")
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
-	cmd.Flags().VarP(&config.ImageStreams, "image", "", "Name of an OpenShift image stream to use in the app. (deprecated)")
-	cmd.Flags().VarP(&config.ImageStreams, "image-stream", "i", "Name of an OpenShift image stream to use in the app.")
+	cmd.Flags().VarP(&config.ImageStreams, "image", "", "Name of an image stream to use in the app. (deprecated)")
+	cmd.Flags().VarP(&config.ImageStreams, "image-stream", "i", "Name of an image stream to use in the app.")
 	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to include in the app.")
-	cmd.Flags().Var(&config.Templates, "template", "Name of an OpenShift stored template to use in the app.")
+	cmd.Flags().Var(&config.Templates, "template", "Name of a stored template to use in the app.")
 	cmd.Flags().VarP(&config.TemplateFiles, "file", "f", "Path to a template file to use for the app.")
 	cmd.Flags().VarP(&config.TemplateParameters, "param", "p", "Specify a list of key value pairs (eg. -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
 	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
@@ -182,7 +185,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 					continue
 				}
 				hasMissingRepo = true
-				fmt.Fprintf(c.Out(), "WARNING: We created an ImageStream %q, but it does not look like a Docker registry has been integrated with the OpenShift server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
+				fmt.Fprintf(c.Out(), "WARNING: We created an image stream %q, but it does not look like a Docker registry has been integrated with the server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
 			}
 		}
 	}

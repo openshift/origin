@@ -16,7 +16,7 @@ const longCommandDesc = `
 Start a Git server
 
 This command launches a Git HTTP/HTTPS server that supports push and pull, mirroring,
-and automatic creation of OpenShift applications on push.
+and automatic creation of applications on push.
 
 %[1]s
 `

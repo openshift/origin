@@ -125,7 +125,7 @@ Install an IP failover group to a set of nodes
 
   // Create an IP failover configuration on a selection of nodes labeled
   // "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
-  // listening on port 80 (aka the OpenShift router process).
+  // listening on port 80, such as the router process).
   $ openshift admin ipfailover ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
 
   // Use a different IP failover config image and see the configuration:
@@ -176,7 +176,7 @@ Replace cluster roles to match the recommended bootstrap policy
 
 
 == oadm registry
-Install the OpenShift Docker registry
+Install the integrated Docker registry
 
 ====
 
@@ -198,7 +198,7 @@ Install the OpenShift Docker registry
 
 
 == oadm router
-Install an OpenShift router
+Install a router
 
 ====
 

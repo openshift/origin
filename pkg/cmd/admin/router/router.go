@@ -33,9 +33,9 @@ import (
 
 const (
 	routerLong = `
-Install or configure an OpenShift router
+Install or configure a router
 
-This command helps to setup an OpenShift router to take edge traffic and balance it to
+This command helps to setup a router to take edge traffic and balance it to
 your application. With no arguments, the command will check for an existing router
 service called 'router' and create one if it does not exist. If you want to test whether
 a router has already been created add the --dry-run flag and the command will exit with
@@ -44,10 +44,7 @@ a router has already been created add the --dry-run flag and the command will ex
 If a router does not exist with the given name, the --create flag can be passed to
 create a deployment configuration and service that will run the router. If you are
 running your router in production, you should pass --replicas=2 or higher to ensure
-you have failover protection.
-
-ALPHA: This command is currently being actively developed. It is intended to simplify
-  the tasks of setting up routers in a new installation. `
+you have failover protection.`
 
 	routerExample = `  // Check the default router ("router")
   $ %[1]s %[2]s --dry-run
@@ -96,7 +93,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [NAME]", name),
-		Short:   "Install an OpenShift router",
+		Short:   "Install a router",
 		Long:    routerLong,
 		Example: fmt.Sprintf(routerExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {

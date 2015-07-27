@@ -16,14 +16,15 @@ import (
 
 const (
 	newBuildLong = `
-Create a new build in OpenShift by specifying source code
+Create a new build by specifying source code
 
 This command will try to create a build configuration for your application using images and
 code that has a public repository. It will lookup the images on the local Docker installation
-(if available), a Docker registry, or an OpenShift image stream.
+(if available), a Docker registry, or an image stream.
+
 If you specify a source code URL, it will set up a build that takes your source code and converts
 it into an image that can run inside of a pod. Local source must be in a git repository that has a
-remote repository that the OpenShift instance can see.
+remote repository that the server can see.
 
 Once the build configuration is created you may need to run a build with 'start-build'.`
 
@@ -58,11 +59,11 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	}
 
 	cmd.Flags().Var(&config.SourceRepositories, "code", "Source code in the build configuration.")
-	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an OpenShift image stream to to use as a builder.")
+	cmd.Flags().VarP(&config.ImageStreams, "image", "i", "Name of an image stream to to use as a builder.")
 	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to use as a builder.")
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts")
 	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
-	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Force the Build output to be DockerImage.")
+	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
 	cmdutil.AddPrinterFlags(cmd)
 

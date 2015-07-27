@@ -38,7 +38,7 @@ const (
 	// WarningHeaderMiscCode is the code for "Miscellaneous warning", which may be displayed to human users
 	WarningHeaderMiscCode = "199"
 	// WarningHeaderOpenShiftSource is the name of the agent adding the warning header
-	WarningHeaderOpenShiftSource = "OpenShift"
+	WarningHeaderOpenShiftSource = "Origin"
 
 	warningHeaderCodeIndex  = 1
 	warningHeaderAgentIndex = 2

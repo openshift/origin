@@ -24,16 +24,16 @@ import (
 )
 
 const adminLong = `
-OpenShift Administrative Commands
+Administrative Commands
 
-Commands for managing an OpenShift cluster are exposed here. Many administrative
-actions involve interaction with the OpenShift client as well.`
+Commands for managing a cluster are exposed here. Many administrative
+actions involve interaction with the command-line client as well.`
 
 func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
-		Short: "Tools for managing an OpenShift cluster",
+		Short: "Tools for managing a cluster",
 		Long:  fmt.Sprintf(adminLong),
 		Run:   cmdutil.DefaultSubCommandRun(out),
 	}

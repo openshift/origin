@@ -378,7 +378,7 @@ Update the labels on a resource
 
 
 == oc login
-Log in to an OpenShift server
+Log in to a server
 
 ====
 
@@ -403,6 +403,7 @@ End the current server session
 
 [options="nowrap"]
 ----
+
   // Logout
   $ openshift cli logout
 ----
@@ -432,7 +433,9 @@ Create a new application
 
 [options="nowrap"]
 ----
-  // Create an application based on the source code in the current git repository (with a public remote) and a Docker image
+
+  // Create an application based on the source code in the current git repository (with a public remote) 
+  // and a Docker image
   $ openshift cli new-app . --docker-image=repo/langimage
 
   // Create a Ruby application based on the provided [image]~[source code] combination
@@ -762,7 +765,7 @@ Tag existing images into image streams
 
 
 == oc types
-An introduction to the concepts and types in OpenShift
+An introduction to concepts and types
 
 ====
 

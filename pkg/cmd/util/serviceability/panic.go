@@ -14,7 +14,7 @@ func BehaviorOnPanic(mode string) (fn func()) {
 	fn = func() {}
 	switch {
 	case mode == "crash":
-		glog.Infof("OpenShift will terminate as soon as a panic occurs.")
+		glog.Infof("Process will terminate as soon as a panic occurs.")
 		util.ReallyCrash = true
 	case strings.HasPrefix(mode, "sentry:"):
 		url := strings.TrimPrefix(mode, "sentry:")
@@ -23,7 +23,7 @@ func BehaviorOnPanic(mode string) (fn func()) {
 			glog.Errorf("Unable to start Sentry for panic tracing: %v", err)
 			return
 		}
-		glog.Infof("OpenShift will log all panics and errors to Sentry.")
+		glog.Infof("Process will log all panics and errors to Sentry.")
 		util.PanicHandlers = append(util.PanicHandlers, m.CapturePanic)
 		util.ErrorHandlers = append(util.ErrorHandlers, m.CaptureError)
 		fn = func() {

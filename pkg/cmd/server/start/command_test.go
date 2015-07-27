@@ -220,7 +220,7 @@ func executeMasterCommand(args []string) *MasterArgs {
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartMaster(os.Stdout)
+	openshiftStartCommand, cfg := NewCommandStartMaster("openshift", os.Stdout)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()

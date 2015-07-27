@@ -21,9 +21,9 @@ import (
 
 const (
 	routerLong = `
-Start an OpenShift router
+Start a router
 
-This command launches a router connected to your OpenShift master. The router listens for routes and endpoints
+This command launches a router connected to your cluster master. The router listens for routes and endpoints
 created by users and keeps a local router configuration up to date with those changes.`
 )
 
@@ -46,7 +46,7 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
-		Short: "Start an OpenShift router",
+		Short: "Start a router",
 		Long:  routerLong,
 		Run: func(c *cobra.Command, args []string) {
 			defaultCert := util.Env("DEFAULT_CERTIFICATE", "")

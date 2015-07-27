@@ -30,7 +30,7 @@ type NewProjectOptions struct {
 
 const (
 	requestProjectLong = `
-Create a new project for yourself in OpenShift
+Create a new project for yourself
 
 Assuming your cluster admin has granted you permission, this command will create a new project
 for you and assign you as the project admin. If your administrator has not given you permission to

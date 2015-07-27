@@ -171,12 +171,12 @@ func writeTerm(w io.Writer, t term) {
 
 var (
 	typesLong = D(`
-    OpenShift Concepts and Types
+    Concepts and Types
 
-    OpenShift helps developers and operators build, test, and deploy applications in
-    a containerized cloud environment. Applications may be composed of all of the
-    components below, although most developers will be concerned with Services,
-    Deployments, and Builds for delivering changes.
+    Kubernetes and Origin help developers and operators build, test, and deploy
+    applications in a containerized cloud environment. Applications may be composed
+    of all of the components below, although most developers will be concerned with
+    Services, Deployments, and Builds for delivering changes.
 
     Concepts:
 
@@ -203,7 +203,7 @@ func NewCmdTypes(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 	}
 	cmd := &cobra.Command{
 		Use:     "types",
-		Short:   "An introduction to the concepts and types in OpenShift",
+		Short:   "An introduction to concepts and types",
 		Long:    fmt.Sprintf(typesLong, buf.String()),
 		Example: fmt.Sprintf(typesExample, fullName),
 		Run:     ocutil.DefaultSubCommandRun(out),

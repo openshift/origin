@@ -17,7 +17,7 @@ func NewUserOpenShiftClient(bearerToken string) (*osclient.Client, error) {
 	config.BearerToken = bearerToken
 	client, err := osclient.New(config)
 	if err != nil {
-		return nil, fmt.Errorf("error creating OpenShift client: %s", err)
+		return nil, fmt.Errorf("error creating Origin client: %s", err)
 	}
 	return client, nil
 }
@@ -41,7 +41,7 @@ func NewRegistryOpenShiftClient() (*osclient.Client, error) {
 	}
 	client, err := osclient.New(config)
 	if err != nil {
-		return nil, fmt.Errorf("error creating OpenShift client: %s", err)
+		return nil, fmt.Errorf("error creating Origin client: %s", err)
 	}
 	return client, nil
 }

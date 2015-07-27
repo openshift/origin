@@ -52,8 +52,8 @@ var (
 	// Challenging errors
 	ErrTokenRequired          = errors.New("authorization header with basic token required")
 	ErrTokenInvalid           = errors.New("failed to decode basic token")
-	ErrOpenShiftTokenRequired = errors.New("expected openshift bearer token as password for basic token to registry")
-	ErrOpenShiftAccessDenied  = errors.New("openshift access denied")
+	ErrOpenShiftTokenRequired = errors.New("expected bearer token as password for basic token to registry")
+	ErrOpenShiftAccessDenied  = errors.New("access denied")
 
 	// Non-challenging errors
 	ErrNamespaceRequired   = errors.New("repository namespace required")
@@ -62,11 +62,11 @@ var (
 )
 
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
-	log.Info("Using OpenShift Auth handler")
+	log.Info("Using Origin Auth handler")
 	realm, ok := options["realm"].(string)
 	if !ok {
 		// Default to openshift if not present
-		realm = "openshift"
+		realm = "origin"
 	}
 	return &AccessController{realm: realm}, nil
 }
@@ -142,7 +142,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	// Validate all requested accessRecords
 	// Only return failure errors from this loop. Success should continue to validate all records
 	for _, access := range accessRecords {
-		log.Debugf("OpenShift auth: checking for access to %s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
+		log.Debugf("Origin auth: checking for access to %s:%s:%s", access.Resource.Type, access.Resource.Name, access.Action)
 
 		switch access.Resource.Type {
 		case "repository":
