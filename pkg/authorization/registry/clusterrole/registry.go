@@ -53,11 +53,18 @@ func (s *storage) ListClusterRoles(ctx kapi.Context, label labels.Selector, fiel
 
 func (s *storage) CreateClusterRole(ctx kapi.Context, node *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error) {
 	obj, err := s.Create(ctx, node)
+	if err != nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.ClusterRole), err
 }
 
 func (s *storage) UpdateClusterRole(ctx kapi.Context, node *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, bool, error) {
 	obj, created, err := s.Update(ctx, node)
+	if err != nil {
+		return nil, created, err
+	}
 	return obj.(*authorizationapi.ClusterRole), created, err
 }
 
