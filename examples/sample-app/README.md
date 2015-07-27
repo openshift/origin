@@ -32,8 +32,9 @@ At this stage of OpenShift 3 development, there are a few things that you will n
 
 - - -
 **VAGRANT USERS**:
-If you haven't already, fire up a Vagrant instance.
+If you haven't already, fire up a Vagrant instance, where since a OpenShift compile is occurring in a subsequent step below, you need to override the default amount of memory assigned to the VM.
 
+	$ export OPENSHIFT_MEMORY=2096
 	$ vagrant up
 	$ vagrant ssh
 
@@ -113,11 +114,11 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 2. Launch an all-in-one `openshift` instance
 
-        $ sudo openshift start &> logs/openshift.log &
+        $ sudo openshift start &> openshift.log &
 
        **VAGRANT USERS**: Instead of the above command, use
 
-        $ sudo /data/src/github.com/openshift/origin/_output/local/go/bin/openshift start --public-master=localhost &> logs/openshift.log &
+        $ sudo /data/src/github.com/openshift/origin/_output/local/go/bin/openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
 
     Note: sudo is required so the kubernetes proxy can manipulate iptables rules to expose service ports.
 
