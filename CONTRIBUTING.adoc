@@ -141,6 +141,7 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
 +
 NOTE: when using vagrant synced folder (by default your origin directory is mounted using synced folder into `/data/src/github.com/openshift/origin`) it is advised to use a different directory for volume storage than the one in the synced folder. This can be achieved by passing `--volume-dir=/absolute/path` to `openshift start` command.
+You may also need to create the 'log' folder if it is the first time you run this command.
 
 8.  On your host system, try browsing to: https://localhost:8443/console
 
