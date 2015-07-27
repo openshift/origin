@@ -32,14 +32,16 @@ type CmdLineOpts struct {
 	etcdCAFile            string
 	ip                    string
 	hostname              string
-	minionPath            string
+	nodePath              string
 	master                bool
-	minion                bool
+	node                  bool
 	skipsetup             bool
 	sync                  bool
 	kube                  bool
 	multitenant           bool
 	help                  bool
+	minionPath            string // Deprecated
+	minion                bool   // Deprecated
 }
 
 var opts CmdLineOpts
@@ -49,7 +51,8 @@ func init() {
 	flag.UintVar(&opts.containerSubnetLength, "container-subnet-length", 8, "container subnet length")
 	flag.StringVar(&opts.etcdEndpoints, "etcd-endpoints", "http://127.0.0.1:4001", "a comma-delimited list of etcd endpoints")
 	flag.StringVar(&opts.etcdPath, "etcd-path", "/registry/sdn/", "etcd path")
-	flag.StringVar(&opts.minionPath, "minion-path", "/kubernetes.io/minions/", "etcd path that will be watched for minion creation/deletion (Note: -sync flag will override this path with -etcd-path)")
+	flag.StringVar(&opts.nodePath, "node-path", "/kubernetes.io/minions/", "etcd path that will be watched for node creation/deletion (Note: -sync flag will override this path with -etcd-path)")
+	flag.StringVar(&opts.minionPath, "minion-path", "", "Deprecated, use -node-path instead")
 	flag.StringVar(&opts.etcdKeyfile, "etcd-keyfile", "", "SSL key file used to secure etcd communication")
 	flag.StringVar(&opts.etcdCertfile, "etcd-certfile", "", "SSL certification file used to secure etcd communication")
 	flag.StringVar(&opts.etcdCAFile, "etcd-cafile", "", "SSL Certificate Authority file used to secure etcd communication")
@@ -58,9 +61,10 @@ func init() {
 	flag.StringVar(&opts.hostname, "hostname", "", "Hostname as registered with master (for node mode), will default to 'hostname -f'")
 
 	flag.BoolVar(&opts.master, "master", true, "Run in master mode")
-	flag.BoolVar(&opts.minion, "minion", false, "Run in minion mode")
-	flag.BoolVar(&opts.skipsetup, "skip-setup", false, "Skip the setup when in minion mode")
-	flag.BoolVar(&opts.sync, "sync", false, "Sync the minions directly to etcd-path (Do not wait for PaaS to do so!)")
+	flag.BoolVar(&opts.node, "node", false, "Run in node mode")
+	flag.BoolVar(&opts.minion, "minion", false, "Deprecated, use -node instead")
+	flag.BoolVar(&opts.skipsetup, "skip-setup", false, "Skip the setup when in node mode")
+	flag.BoolVar(&opts.sync, "sync", false, "Sync the nodes directly to etcd-path (Do not wait for PaaS to do so!)")
 	flag.BoolVar(&opts.kube, "kube", false, "Use kubernetes hooks for optimal integration with OVS. This option bypasses the Linux bridge. Any docker containers started manually (not through OpenShift/Kubernetes) will stay local and not connect to the SDN.")
 	flag.BoolVar(&opts.multitenant, "multitenant", false, "Same as 'kube' but with multitenant capabilities. This option will only be examined if 'kube' option is 'false'.")
 
@@ -97,9 +101,16 @@ func newSubnetRegistry() (api.SubnetRegistry, error) {
 
 	subnetPath := path.Join(opts.etcdPath, "subnets")
 	subnetConfigPath := path.Join(opts.etcdPath, "config")
-	minionPath := opts.minionPath
+
+	var nodePath string
+	if len(opts.minionPath) > 0 {
+		nodePath = opts.minionPath
+		log.Info("Warning: -minion-path deprecated, use -node-path")
+	} else {
+		nodePath = opts.nodePath
+	}
 	if opts.sync {
-		minionPath = path.Join(opts.etcdPath, "minions")
+		nodePath = path.Join(opts.etcdPath, "minions")
 	}
 
 	cfg := &registry.EtcdConfig{
@@ -109,7 +120,7 @@ func newSubnetRegistry() (api.SubnetRegistry, error) {
 		CAFile:           opts.etcdCAFile,
 		SubnetPath:       subnetPath,
 		SubnetConfigPath: subnetConfigPath,
-		MinionPath:       minionPath,
+		NodePath:         nodePath,
 	}
 
 	return registry.NewEtcdSubnetRegistry(cfg)
@@ -138,7 +149,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create new network manager: %v", err)
 	}
-	if opts.minion {
+	if opts.node || opts.minion {
+		if opts.minion {
+			log.Info("Warning: -minion deprecated, use -node")
+		}
 		err := be.StartNode(opts.sync, opts.skipsetup)
 		if err != nil {
 			log.Fatalf("Failed to start openshift sdn in node mode: %v", err)

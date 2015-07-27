@@ -18,12 +18,12 @@
 #  -log_dir="": If non-empty, write log files in this directory
 #  -logtostderr=false: log to standard error instead of files
 #  -master=true: Run in master mode
-#  -minion=false: Run in minion mode
+#  -node=false: Run in node mode
 #  -public-ip="": Publicly reachable IP address of this host (for node
 #   mode).
-#  -skip-setup=false: Skip the setup when in minion mode
+#  -skip-setup=false: Skip the setup when in node mode
 #  -stderrthreshold=0: logs at or above this threshold go to stderr
-#  -sync=false: Sync the minions directly to etcd-path (Do not wait
+#  -sync=false: Sync the nodes directly to etcd-path (Do not wait
 #    for PaaS to do so!)
 #  -v=0: log level for V logs
 #  -vmodule=: comma-separated list of pattern=N settings for
@@ -39,11 +39,11 @@
 MASTER_URL=
 
 # The externally-facing IP for this node must be specified in the
-# MINION_IP variable.
+# NODE_IP variable.
 #
 # Example:
-#   MINION_IP=10.0.0.20
-MINION_IP=
+#   NODE_IP=10.0.0.20
+NODE_IP=
 
 # Any additional options can be specified here, in the OPTIONS
 # variable.

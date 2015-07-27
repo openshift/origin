@@ -11,7 +11,7 @@ Documentation=https://github.com/openshift/origin
 [Service]
 Type=simple
 EnvironmentFile=-/etc/sysconfig/openshift-sdn-node
-ExecStart=/usr/bin/openshift-sdn -minion -etcd-endpoints=${MASTER_URL} -public-ip=${MINION_IP} $OPTIONS
+ExecStart=/usr/bin/openshift-sdn -node -etcd-endpoints=${MASTER_URL} -public-ip=${NODE_IP} $OPTIONS
 Restart=on-failure
 RestartSec=1s
 SyslogIdentifier=openshift-sdn-node
