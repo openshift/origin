@@ -205,7 +205,13 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, withNamespace, wide
 		_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), bc.Spec.Strategy.CustomStrategy.From.Name)
 		return err
 	}
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), bc.Spec.Source.Git.URI)
+
+	uri := "MISSING"
+	if bc.Spec.Source.Git != nil {
+		uri = bc.Spec.Source.Git.URI
+	}
+
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), uri)
 	return err
 }
 
