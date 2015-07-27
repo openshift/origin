@@ -62,6 +62,7 @@ const (
 type MasterConfig struct {
 	Options configapi.MasterConfig
 
+	OpenshiftEnabled              bool
 	Authenticator                 authenticator.Request
 	Authorizer                    authorizer.Authorizer
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
@@ -162,8 +163,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 
 	config := &MasterConfig{
-		Options: options,
-
+		Options:                       options,
+		OpenshiftEnabled:              options.OpenshiftEnabled,
 		Authenticator:                 newAuthenticator(options, etcdHelper, serviceAccountTokenGetter, apiClientCAs),
 		Authorizer:                    newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage),
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
