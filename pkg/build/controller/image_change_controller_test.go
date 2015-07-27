@@ -40,7 +40,7 @@ func TestNewImageID(t *testing.T) {
 	if bcUpdater.buildcfg == nil {
 		t.Fatalf("Expected buildConfig update when new image was created!")
 	}
-	if actual, expected := bcUpdater.buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+	if actual, expected := bcUpdater.buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID, "newImageID123"; actual != expected {
 		t.Errorf("Expected last triggered image %q, got %q", expected, actual)
 	}
 }
@@ -67,7 +67,7 @@ func TestNewImageIDDefaultTag(t *testing.T) {
 	if bcUpdater.buildcfg == nil {
 		t.Fatal("Expected buildConfig update when new image was created!")
 	}
-	if actual, expected := bcUpdater.buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID, "registry.com/namespace/imagename:newImageID123"; actual != expected {
+	if actual, expected := bcUpdater.buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID, "newImageID123"; actual != expected {
 		t.Errorf("Expected last triggered image %q, got %q", expected, actual)
 	}
 }
@@ -119,7 +119,7 @@ func TestNewImageDifferentTagUpdate2(t *testing.T) {
 	// this buildconfig references a different tag than the one that will be updated
 	// it has previously run a build for the testTagID123 tag.
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageStream", "testTag")
-	buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID = "registry.com/namespace/imagename:testTagID123"
+	buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID = "testTagID123"
 	imageStream := mockImageStream("testImageStream", "registry.com/namespace/imagename", map[string]string{"otherTag": "newImageID123", "testTag": "testTagID123"})
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
@@ -208,7 +208,7 @@ func TestNoImageIDChange(t *testing.T) {
 	// this buildConfig has up to date configuration, but is checked eg. during
 	// startup when we're checking all the imageRepos
 	buildcfg := mockBuildConfig("registry.com/namespace/imagename", "registry.com/namespace/imagename", "testImageStream", "testTag")
-	buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID = "registry.com/namespace/imagename:imageID123"
+	buildcfg.Spec.Triggers[0].ImageChange.LastTriggeredImageID = "imageID123"
 	imageStream := mockImageStream("testImageStream", "registry.com/namespace/imagename", map[string]string{"testTag": "imageID123"})
 	image := mockImage("testImage@id", "registry.com/namespace/imagename@id")
 	controller := mockImageChangeController(buildcfg, imageStream, image)
