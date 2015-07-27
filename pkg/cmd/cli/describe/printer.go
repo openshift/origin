@@ -195,6 +195,7 @@ func printBuild(build *buildapi.Build, w io.Writer, withNamespace, wide bool, co
 }
 
 func printBuildList(buildList *buildapi.BuildList, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
+	sort.Sort(buildapi.ByCreationTimestamp(buildList.Items))
 	for _, build := range buildList.Items {
 		if err := printBuild(&build, w, withNamespace, wide, columnLabels); err != nil {
 			return err
