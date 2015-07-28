@@ -163,7 +163,9 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 			if err != nil {
 				return err
 			}
-			newSpec := imageapi.ImageStreamSpec{}
+			newSpec := imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{},
+			}
 			for name, tag := range t.Status.Tags {
 				if len(tag.Items) > 0 {
 					// copy annotations
@@ -185,12 +187,16 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 				newSpec.Tags[name] = ref
 			}
 			t.Spec = newSpec
-			t.Status = imageapi.ImageStreamStatus{}
+			t.Status = imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{},
+			}
 			break
 		}
 
 		// otherwise, try to snapshot the most recent image as spec items
-		newSpec := imageapi.ImageStreamSpec{}
+		newSpec := imageapi.ImageStreamSpec{
+			Tags: map[string]imageapi.TagReference{},
+		}
 		for name, tag := range t.Status.Tags {
 			if len(tag.Items) > 0 {
 				// copy annotations
@@ -203,7 +209,9 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 			}
 		}
 		t.Spec = newSpec
-		t.Status = imageapi.ImageStreamStatus{}
+		t.Status = imageapi.ImageStreamStatus{
+			Tags: map[string]imageapi.TagEventList{},
+		}
 
 	case *imageapi.ImageStreamTag:
 		exportObjectMeta(&t.Image.ObjectMeta, exact)
