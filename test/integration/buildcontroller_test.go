@@ -260,7 +260,7 @@ func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
 	streamName := "test-image-trigger-repo"
 
 	imageStream := mockImageStream2(tag)
-	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
+	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage-id", tag, "registry:8080/openshift/test-image-trigger:"+tag)
 	strategy := stiStrategy("ImageStreamTag", streamName+":"+tag)
 	config := imageChangeBuildConfig("sti-imagestreamtag", strategy)
 	runImageChangeTriggerTest(t, osClient, imageStream, imageStreamMapping, config, tag)
@@ -423,7 +423,7 @@ WaitLoop:
 		t.Fatalf("Couldn't get BuildConfig: %v", err)
 	}
 	// the first tag did not have an image id, so the last trigger field is the pull spec
-	if updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID != "registry:8080/openshift/test-image-trigger:"+tag {
+	if updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID != "someimage-id" {
 		t.Fatalf("Expected imageID equal to pull spec, got %#v", updatedConfig.Spec.Triggers[0].ImageChange)
 	}
 
@@ -510,7 +510,7 @@ WaitLoop3:
 		}
 	}
 	updatedConfig = event.Object.(*buildapi.BuildConfig)
-	if e, a := "registry:8080/openshift/test-image-trigger:ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
+	if e, a := "ref-2-random", updatedConfig.Spec.Triggers[0].ImageChange.LastTriggeredImageID; e != a {
 		t.Errorf("unexpected trigger id: expected %v, got %v", e, a)
 	}
 }

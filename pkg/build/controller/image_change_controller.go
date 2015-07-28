@@ -99,7 +99,7 @@ func (c *ImageChangeController) HandleImageRepo(repo *imageapi.ImageStream) erro
 
 			// (must be different) to trigger a build
 			last := trigger.ImageChange.LastTriggeredImageID
-			next := latest.DockerImageReference
+			next := latest.Image
 
 			if len(last) == 0 || (len(next) > 0 && next != last) {
 				triggeredImage = next
