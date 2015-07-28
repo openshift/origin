@@ -37,7 +37,7 @@ Create a new application by specifying source code, templates, and/or images
 
 This command will try to build up the components of an application using images, templates,
 or code that has a public repository. It will lookup the images on the local Docker installation
-(if available), a Docker registry, or an integrated image stream.
+(if available), a Docker registry, an integrated image stream, or stored templates.
 
 If you specify a source code URL, it will set up a build that takes your source code and converts
 it into an image that can run inside of a pod. Local source must be in a git repository that has a
@@ -50,6 +50,12 @@ If you provide source code, you may need to run a build with 'start-build' after
 application is created.`
 
 	newAppExample = `
+  // List all local templates and image streams that can be used to create an app
+  $ %[1]s new-app --list
+
+  // Search all templates, image streams, and Docker images for the ones that match "ruby"
+  $ %[1]s new-app --search ruby
+
   // Create an application based on the source code in the current git repository (with a public remote) 
   // and a Docker image
   $ %[1]s new-app . --docker-image=repo/langimage
@@ -120,7 +126,8 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
 	cmd.Flags().BoolVar(&config.InsecureRegistry, "insecure-registry", false, "If true, indicates that the referenced Docker images are on insecure registries and should bypass certificate checking")
-	cmd.Flags().BoolVarP(&config.AsSearch, "search", "S", false, "Search for components that match the arguments provided and print the results.")
+	cmd.Flags().BoolVarP(&config.AsList, "list", "L", false, "List all local templates and image streams that can be used to create.")
+	cmd.Flags().BoolVarP(&config.AsSearch, "search", "S", false, "Search all templates, image streams, and Docker images that match the arguments provided.")
 
 	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
 	// Need a better solution.
@@ -139,8 +146,8 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		return err
 	}
 
-	if config.AsSearch {
-		result, err := config.RunSearch(out, c.Out())
+	if config.Querying() {
+		result, err := config.RunQuery(out, c.Out())
 		if err != nil {
 			return handleRunError(c, err)
 		}
@@ -149,7 +156,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			return f.Factory.PrintObject(c, result.List, out)
 		}
 
-		return printHumanReadableSearchResult(result, out, fullName)
+		return printHumanReadableQueryResult(result, out, fullName)
 	}
 	if err := setAppConfigLabels(c, config); err != nil {
 		return err
@@ -304,7 +311,7 @@ func handleRunError(c *cobra.Command, err error) error {
 	return err
 }
 
-func printHumanReadableSearchResult(r *newcmd.SearchResult, out io.Writer, fullName string) error {
+func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullName string) error {
 	if len(r.Matches) == 0 {
 		return fmt.Errorf("no matches found")
 	}

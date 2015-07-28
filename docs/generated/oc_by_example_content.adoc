@@ -434,6 +434,12 @@ Create a new application
 [options="nowrap"]
 ----
 
+  // List all local templates and image streams that can be used to create an app
+  $ openshift cli new-app --list
+
+  // Search all templates, image streams, and Docker images for the ones that match "ruby"
+  $ openshift cli new-app --search ruby
+
   // Create an application based on the source code in the current git repository (with a public remote) 
   // and a Docker image
   $ openshift cli new-app . --docker-image=repo/langimage
