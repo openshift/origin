@@ -147,7 +147,7 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 
 	experimental.AddCommand(tokens.NewCmdTokens(tokens.TokenRecommendedCommandName, fullName+" "+tokens.TokenRecommendedCommandName, f, out))
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
-	experimental.AddCommand(buildchain.NewCmdBuildChain(f, fullName, "build-chain"))
+	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
 	experimental.AddCommand(cmd.NewCmdOptions(out))
 	return experimental
 }

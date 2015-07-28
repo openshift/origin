@@ -148,13 +148,14 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 
 		return printHumanReadableSearchResult(result, out, fullName)
 	}
-
+	if err := setAppConfigLabels(c, config); err != nil {
+		return err
+	}
 	result, err := config.RunAll(out, c.Out())
 	if err != nil {
 		return handleRunError(c, err)
 	}
-
-	if err := setLabels(c, result); err != nil {
+	if err := setLabels(config.Labels, result); err != nil {
 		return err
 	}
 	if len(cmdutil.GetFlagString(c, "output")) != 0 {
@@ -190,6 +191,18 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	return nil
 }
 
+func setAppConfigLabels(c *cobra.Command, config *newcmd.AppConfig) error {
+	labelStr := cmdutil.GetFlagString(c, "labels")
+	if len(labelStr) != 0 {
+		var err error
+		config.Labels, err = ctl.ParseLabels(labelStr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
@@ -220,21 +233,18 @@ func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, confi
 	return nil
 }
 
-func setLabels(c *cobra.Command, result *newcmd.AppResult) error {
-	label := cmdutil.GetFlagString(c, "labels")
-	if len(label) != 0 {
-		lbl, err := ctl.ParseLabels(label)
+func setLabels(labels map[string]string, result *newcmd.AppResult) error {
+	if len(labels) == 0 {
+		if len(result.Name) > 0 {
+			labels = map[string]string{"app": result.Name}
+		}
+	}
+	for _, object := range result.List.Items {
+		err := util.AddObjectLabels(object, labels)
 		if err != nil {
 			return err
 		}
-		for _, object := range result.List.Items {
-			err = util.AddObjectLabels(object, lbl)
-			if err != nil {
-				return err
-			}
-		}
 	}
-
 	return nil
 }
 

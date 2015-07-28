@@ -75,6 +75,9 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.
 		return err
 	}
 
+	if err := setAppConfigLabels(c, config); err != nil {
+		return err
+	}
 	result, err := config.RunBuilds(out, c.Out())
 	if err != nil {
 		if errs, ok := err.(errors.Aggregate); ok {
@@ -88,8 +91,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.
 		}
 		return err
 	}
-
-	if err := setLabels(c, result); err != nil {
+	if err := setLabels(config.Labels, result); err != nil {
 		return err
 	}
 	if len(cmdutil.GetFlagString(c, "output")) != 0 {

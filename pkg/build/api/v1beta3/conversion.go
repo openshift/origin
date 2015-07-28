@@ -7,19 +7,86 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/build/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *newer.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
-	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
+func convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy(in *SourceBuildStrategy, out *newer.SourceBuildStrategy, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
-	switch in.Type {
-	case newer.ImageChangeBuildTriggerType:
-		out.Type = ImageChangeBuildTriggerType
-	case newer.GenericWebHookBuildTriggerType:
-		out.Type = GenericWebHookBuildTriggerType
-	case newer.GitHubWebHookBuildTriggerType:
-		out.Type = GitHubWebHookBuildTriggerType
+	switch in.From.Kind {
+	case "ImageStream":
+		out.From.Kind = "ImageStreamTag"
+		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+	}
+	return nil
+}
+
+// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
+func convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy(in *newer.SourceBuildStrategy, out *SourceBuildStrategy, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBuildStrategy, out *newer.DockerBuildStrategy, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if in.From != nil {
+		switch in.From.Kind {
+		case "ImageStream":
+			out.From.Kind = "ImageStreamTag"
+			out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+		}
+	}
+	return nil
+}
+
+// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
+func convert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy(in *newer.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *newer.CustomBuildStrategy, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	switch in.From.Kind {
+	case "ImageStream":
+		out.From.Kind = "ImageStreamTag"
+		out.From.Name = imageapi.JoinImageStreamTag(in.From.Name, "")
+	}
+	return nil
+}
+
+// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
+func convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy(in *newer.CustomBuildStrategy, out *CustomBuildStrategy, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_BuildOutput_To_api_BuildOutput(in *BuildOutput, out *newer.BuildOutput, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if in.To != nil && (in.To.Kind == "ImageStream" || len(in.To.Kind) == 0) {
+		out.To.Kind = "ImageStreamTag"
+		out.To.Name = imageapi.JoinImageStreamTag(in.To.Name, "")
+	}
+	return nil
+}
+
+// empty conversion needed because the conversion generator can't handle unidirectional custom conversions
+func convert_api_BuildOutput_To_v1beta3_BuildOutput(in *newer.BuildOutput, out *BuildOutput, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
 	}
 	return nil
 }
@@ -35,6 +102,21 @@ func convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTrigg
 		out.Type = newer.GenericWebHookBuildTriggerType
 	case GitHubWebHookBuildTriggerType:
 		out.Type = newer.GitHubWebHookBuildTriggerType
+	}
+	return nil
+}
+
+func convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy(in *newer.BuildTriggerPolicy, out *BuildTriggerPolicy, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.DestFromSource); err != nil {
+		return err
+	}
+	switch in.Type {
+	case newer.ImageChangeBuildTriggerType:
+		out.Type = ImageChangeBuildTriggerType
+	case newer.GenericWebHookBuildTriggerType:
+		out.Type = GenericWebHookBuildTriggerType
+	case newer.GitHubWebHookBuildTriggerType:
+		out.Type = GitHubWebHookBuildTriggerType
 	}
 	return nil
 }
@@ -75,6 +157,14 @@ func init() {
 	}
 
 	kapi.Scheme.AddConversionFuncs(
+		convert_v1beta3_SourceBuildStrategy_To_api_SourceBuildStrategy,
+		convert_api_SourceBuildStrategy_To_v1beta3_SourceBuildStrategy,
+		convert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy,
+		convert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy,
+		convert_v1beta3_CustomBuildStrategy_To_api_CustomBuildStrategy,
+		convert_api_CustomBuildStrategy_To_v1beta3_CustomBuildStrategy,
+		convert_v1beta3_BuildOutput_To_api_BuildOutput,
+		convert_api_BuildOutput_To_v1beta3_BuildOutput,
 		convert_v1beta3_BuildTriggerPolicy_To_api_BuildTriggerPolicy,
 		convert_api_BuildTriggerPolicy_To_v1beta3_BuildTriggerPolicy,
 	)

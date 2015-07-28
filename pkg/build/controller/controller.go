@@ -148,7 +148,6 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 				return e
 			}
 			spec = fmt.Sprintf("%s%s", stream.Status.DockerImageRepository, tag)
-
 		}
 	}
 
@@ -163,9 +162,11 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	buildCopy := copy.(*buildapi.Build)
 
 	// override the Output to be a DockerImage type in the strategy for the copy we send to the build pod
-	buildCopy.Spec.Output.To = &kapi.ObjectReference{
-		Kind: "DockerImage",
-		Name: spec,
+	if build.Spec.Output.To != nil && len(build.Spec.Output.To.Name) != 0 {
+		buildCopy.Spec.Output.To = &kapi.ObjectReference{
+			Kind: "DockerImage",
+			Name: spec,
+		}
 	}
 
 	// invoke the strategy to get a build pod
