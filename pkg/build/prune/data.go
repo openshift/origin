@@ -12,16 +12,16 @@ import (
 )
 
 // BuildByBuildConfigIndexFunc indexes Build items by their associated BuildConfig, if none, index with key "orphan"
-func BuildByBuildConfigIndexFunc(obj interface{}) (string, error) {
+func BuildByBuildConfigIndexFunc(obj interface{}) ([]string, error) {
 	build, ok := obj.(*buildapi.Build)
 	if !ok {
-		return "", fmt.Errorf("not a build: %v", build)
+		return []string{""}, fmt.Errorf("not a build: %v", build)
 	}
 	config := build.Status.Config
 	if config == nil {
-		return "orphan", nil
+		return []string{"orphan"}, nil
 	}
-	return config.Namespace + "/" + config.Name, nil
+	return []string{config.Namespace + "/" + config.Name}, nil
 }
 
 // Filter filters the set of objects

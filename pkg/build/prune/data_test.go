@@ -1,6 +1,7 @@
 package prune
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -49,17 +50,17 @@ func TestBuildByBuildConfigIndexFunc(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	expectedKey := buildWithConfig.Status.Config.Namespace + "/" + buildWithConfig.Status.Config.Name
-	if actualKey != expectedKey {
-		t.Errorf("expected %v, actual %v", expectedKey, actualKey)
+	expectedKey := []string{buildWithConfig.Status.Config.Namespace + "/" + buildWithConfig.Status.Config.Name}
+	if !reflect.DeepEqual(actualKey, expectedKey) {
+		t.Errorf("expected %#v, actual %#v", expectedKey, actualKey)
 	}
 	buildWithNoConfig := &buildapi.Build{}
 	actualKey, err = BuildByBuildConfigIndexFunc(buildWithNoConfig)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	expectedKey = "orphan"
-	if actualKey != expectedKey {
+	expectedKey = []string{"orphan"}
+	if !reflect.DeepEqual(actualKey, expectedKey) {
 		t.Errorf("expected %v, actual %v", expectedKey, actualKey)
 	}
 }

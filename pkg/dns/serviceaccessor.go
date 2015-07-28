@@ -65,8 +65,8 @@ func (a *cachedServiceAccessor) ServiceByPortalIP(ip string) (*api.Service, erro
 
 // indexServiceByPortalIP creates an index between a portalIP and the service that
 // uses it.
-func indexServiceByPortalIP(obj interface{}) (string, error) {
-	return obj.(*api.Service).Spec.ClusterIP, nil
+func indexServiceByPortalIP(obj interface{}) ([]string, error) {
+	return []string{obj.(*api.Service).Spec.ClusterIP}, nil
 }
 
 func (a *cachedServiceAccessor) Services(namespace string) client.ServiceInterface {
