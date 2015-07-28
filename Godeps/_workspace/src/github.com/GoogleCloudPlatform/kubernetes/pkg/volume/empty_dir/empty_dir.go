@@ -34,6 +34,8 @@ import (
 // TODO: in the near future, this will be changed to be more restrictive
 // and the group will be set to allow containers to use emptyDir volumes
 // from the group attribute.
+//
+// https://github.com/GoogleCloudPlatform/kubernetes/issues/2630
 const perm os.FileMode = 0777
 
 // This is the primary entrypoint for volume plugins.
