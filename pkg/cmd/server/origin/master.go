@@ -59,6 +59,7 @@ import (
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
+	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
@@ -427,6 +428,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterNetworks": clusterNetworkStorage,
 
 		"users":                userStorage,
+		"groups":               groupetcd.NewREST(c.EtcdHelper),
 		"identities":           identityStorage,
 		"userIdentityMappings": userIdentityMappingStorage,
 

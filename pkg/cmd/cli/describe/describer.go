@@ -54,6 +54,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		"ClusterRoleBinding":   &ClusterRoleBindingDescriber{c},
 		"ClusterRole":          &ClusterRoleDescriber{c},
 		"User":                 &UserDescriber{c},
+		"Group":                &GroupDescriber{c.Groups()},
 		"UserIdentityMapping":  &UserIdentityMappingDescriber{c},
 	}
 	return m
@@ -871,6 +872,36 @@ func (d *UserDescriber) Describe(namespace, name string) (string, error) {
 					formatString(out, "Identities", value)
 				} else {
 					fmt.Fprintf(out, "           \t%s\n", value)
+				}
+			}
+		}
+		return nil
+	})
+}
+
+// GroupDescriber generates information about a group
+type GroupDescriber struct {
+	c client.GroupInterface
+}
+
+// Describe returns the description of a group
+func (d *GroupDescriber) Describe(namespace, name string) (string, error) {
+	group, err := d.c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, group.ObjectMeta)
+
+		if len(group.Users) == 0 {
+			formatString(out, "Users", "<none>")
+		} else {
+			for i, user := range group.Users {
+				if i == 0 {
+					formatString(out, "Users", user)
+				} else {
+					fmt.Fprintf(out, "           \t%s\n", user)
 				}
 			}
 		}

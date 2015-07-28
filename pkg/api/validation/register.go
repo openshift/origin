@@ -67,4 +67,5 @@ func init() {
 	Validator.Register(&userapi.User{}, uservalidation.ValidateUser, uservalidation.ValidateUserUpdate)
 	Validator.Register(&userapi.Identity{}, uservalidation.ValidateIdentity, uservalidation.ValidateIdentityUpdate)
 	Validator.Register(&userapi.UserIdentityMapping{}, uservalidation.ValidateUserIdentityMapping, uservalidation.ValidateUserIdentityMappingUpdate)
+	Validator.Register(&userapi.Group{}, uservalidation.ValidateGroup, uservalidation.ValidateGroupUpdate)
 }

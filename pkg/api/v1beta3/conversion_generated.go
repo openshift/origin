@@ -2615,6 +2615,50 @@ func convert_v1beta3_TemplateList_To_api_TemplateList(in *templateapiv1beta3.Tem
 	return nil
 }
 
+func convert_api_Group_To_v1beta3_Group(in *userapi.Group, out *userapiv1beta3.Group, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*userapi.Group))(in)
+	}
+	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if in.Users != nil {
+		out.Users = make([]string, len(in.Users))
+		for i := range in.Users {
+			out.Users[i] = in.Users[i]
+		}
+	} else {
+		out.Users = nil
+	}
+	return nil
+}
+
+func convert_api_GroupList_To_v1beta3_GroupList(in *userapi.GroupList, out *userapiv1beta3.GroupList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*userapi.GroupList))(in)
+	}
+	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]userapiv1beta3.Group, len(in.Items))
+		for i := range in.Items {
+			if err := convert_api_Group_To_v1beta3_Group(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func convert_api_Identity_To_v1beta3_Identity(in *userapi.Identity, out *userapiv1beta3.Identity, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*userapi.Identity))(in)
@@ -2727,6 +2771,50 @@ func convert_api_UserList_To_v1beta3_UserList(in *userapi.UserList, out *userapi
 		out.Items = make([]userapiv1beta3.User, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_User_To_v1beta3_User(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_Group_To_api_Group(in *userapiv1beta3.Group, out *userapi.Group, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*userapiv1beta3.Group))(in)
+	}
+	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if in.Users != nil {
+		out.Users = make([]string, len(in.Users))
+		for i := range in.Users {
+			out.Users[i] = in.Users[i]
+		}
+	} else {
+		out.Users = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_GroupList_To_api_GroupList(in *userapiv1beta3.GroupList, out *userapi.GroupList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*userapiv1beta3.GroupList))(in)
+	}
+	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]userapi.Group, len(in.Items))
+		for i := range in.Items {
+			if err := convert_v1beta3_Group_To_api_Group(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
 			}
 		}
@@ -2887,6 +2975,8 @@ func init() {
 		convert_api_EnvVar_To_v1beta3_EnvVar,
 		convert_api_GitBuildSource_To_v1beta3_GitBuildSource,
 		convert_api_GitSourceRevision_To_v1beta3_GitSourceRevision,
+		convert_api_GroupList_To_v1beta3_GroupList,
+		convert_api_Group_To_v1beta3_Group,
 		convert_api_HostSubnetList_To_v1beta3_HostSubnetList,
 		convert_api_HostSubnet_To_v1beta3_HostSubnet,
 		convert_api_IdentityList_To_v1beta3_IdentityList,
@@ -2959,6 +3049,8 @@ func init() {
 		convert_v1beta3_EnvVar_To_api_EnvVar,
 		convert_v1beta3_GitBuildSource_To_api_GitBuildSource,
 		convert_v1beta3_GitSourceRevision_To_api_GitSourceRevision,
+		convert_v1beta3_GroupList_To_api_GroupList,
+		convert_v1beta3_Group_To_api_Group,
 		convert_v1beta3_HostSubnetList_To_api_HostSubnetList,
 		convert_v1beta3_HostSubnet_To_api_HostSubnet,
 		convert_v1beta3_IdentityList_To_api_IdentityList,

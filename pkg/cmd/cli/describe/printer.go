@@ -50,6 +50,7 @@ var (
 	userColumns                = []string{"NAME", "UID", "FULL NAME", "IDENTITIES"}
 	identityColumns            = []string{"NAME", "IDP NAME", "IDP USER NAME", "USER NAME", "USER UID"}
 	userIdentityMappingColumns = []string{"NAME", "IDENTITY", "USER NAME", "USER UID"}
+	groupColumns               = []string{"NAME", "USERS"}
 
 	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
@@ -113,6 +114,8 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, columnLabels [
 	p.Handler(identityColumns, printIdentity)
 	p.Handler(identityColumns, printIdentityList)
 	p.Handler(userIdentityMappingColumns, printUserIdentityMapping)
+	p.Handler(groupColumns, printGroup)
+	p.Handler(groupColumns, printGroupList)
 
 	p.Handler(IsPersonalSubjectAccessReviewColumns, printIsPersonalSubjectAccessReview)
 
@@ -547,6 +550,19 @@ func printIdentityList(list *userapi.IdentityList, w io.Writer, withNamespace, w
 func printUserIdentityMapping(mapping *userapi.UserIdentityMapping, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", mapping.Name, mapping.Identity.Name, mapping.User.Name, mapping.User.UID)
 	return err
+}
+
+func printGroup(group *userapi.Group, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\n", group.Name, strings.Join(group.Users, ", "))
+	return err
+}
+func printGroupList(list *userapi.GroupList, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
+	for _, item := range list.Items {
+		if err := printGroup(&item, w, withNamespace, wide, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func printHostSubnet(h *sdnapi.HostSubnet, w io.Writer, withNamespace, wide bool, columnLabels []string) error {

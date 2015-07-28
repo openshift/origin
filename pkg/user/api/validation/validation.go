@@ -73,6 +73,30 @@ func ValidateIdentityProviderUserName(name string) (bool, string) {
 	return ValidateUserName(name, false)
 }
 
+func ValidateGroup(group *api.Group) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&group.ObjectMeta, false, ValidateGroupName).Prefix("metadata")...)
+
+	for index, user := range group.Users {
+		if len(user) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("users[%d]", index), user, "may not be empty"))
+			continue
+		}
+		if ok, msg := ValidateUserName(user, false); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("users[%d]", index), user, msg))
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateGroupUpdate(group *api.Group, old *api.Group) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&group.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateGroup(group)...)
+	return allErrs
+}
+
 func ValidateUser(user *api.User) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&user.ObjectMeta, false, ValidateUserName).Prefix("metadata")...)

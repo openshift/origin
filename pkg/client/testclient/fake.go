@@ -139,6 +139,11 @@ func (c *Fake) UserIdentityMappings() client.UserIdentityMappingInterface {
 	return &FakeUserIdentityMappings{Fake: c}
 }
 
+// Groups provides a fake REST client for Groups
+func (c *Fake) Groups() client.GroupInterface {
+	return &FakeGroups{Fake: c}
+}
+
 // Projects provides a fake REST client for Projects
 func (c *Fake) Projects() client.ProjectInterface {
 	return &FakeProjects{Fake: c}

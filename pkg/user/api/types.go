@@ -53,6 +53,22 @@ type UserIdentityMapping struct {
 	User     kapi.ObjectReference
 }
 
+// Group represents a referenceable set of Users
+type Group struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	Users []string
+}
+
+type GroupList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []Group
+}
+
+func (*GroupList) IsAnAPIObject()           {}
+func (*Group) IsAnAPIObject()               {}
 func (*User) IsAnAPIObject()                {}
 func (*UserList) IsAnAPIObject()            {}
 func (*Identity) IsAnAPIObject()            {}

@@ -29,6 +29,7 @@ type Interface interface {
 	ClusterNetworkingInterface
 	IdentitiesInterface
 	UsersInterface
+	GroupsInterface
 	UserIdentityMappingsInterface
 	ProjectsInterface
 	ProjectRequestsInterface
@@ -122,6 +123,11 @@ func (c *Client) Identities() IdentityInterface {
 // UserIdentityMappings provides a REST client for UserIdentityMapping
 func (c *Client) UserIdentityMappings() UserIdentityMappingInterface {
 	return newUserIdentityMappings(c)
+}
+
+// Groups provides a REST client for Groups
+func (c *Client) Groups() GroupInterface {
+	return newGroups(c)
 }
 
 // Projects provides a REST client for Projects

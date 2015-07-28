@@ -11,5 +11,7 @@ func init() {
 		&Identity{},
 		&IdentityList{},
 		&UserIdentityMapping{},
+		&Group{},
+		&GroupList{},
 	)
 }
