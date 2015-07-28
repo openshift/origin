@@ -16,7 +16,7 @@ import (
 func DeploymentByDeploymentConfigIndexFunc(obj interface{}) ([]string, error) {
 	controller, ok := obj.(*kapi.ReplicationController)
 	if !ok {
-		return []string{""}, fmt.Errorf("not a replication controller: %v", obj)
+		return nil, fmt.Errorf("not a replication controller: %v", obj)
 	}
 	name := deployutil.DeploymentConfigNameFor(controller)
 	if len(name) == 0 {

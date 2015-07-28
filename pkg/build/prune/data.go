@@ -15,7 +15,7 @@ import (
 func BuildByBuildConfigIndexFunc(obj interface{}) ([]string, error) {
 	build, ok := obj.(*buildapi.Build)
 	if !ok {
-		return []string{""}, fmt.Errorf("not a build: %v", build)
+		return nil, fmt.Errorf("not a build: %v", build)
 	}
 	config := build.Status.Config
 	if config == nil {

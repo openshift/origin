@@ -363,3 +363,8 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 	controller := factory.Create()
 	controller.Run()
 }
+
+// RunGroupCache starts the group cache
+func (c *MasterConfig) RunGroupCache() {
+	c.GroupCache.Run()
+}

@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	"github.com/openshift/origin/pkg/auth/group"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
+	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	policycache "github.com/openshift/origin/pkg/authorization/cache"
 	policyclient "github.com/openshift/origin/pkg/authorization/client"
@@ -50,6 +51,9 @@ import (
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	"github.com/openshift/origin/pkg/serviceaccounts"
+	usercache "github.com/openshift/origin/pkg/user/cache"
+	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
+	groupstorage "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 )
@@ -67,6 +71,7 @@ type MasterConfig struct {
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
 	PolicyCache               policycache.ReadOnlyCache
+	GroupCache                *usercache.GroupCache
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 
 	// RequestContextMapper maps requests to contexts
@@ -148,6 +153,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	policyCache, policyClient := newReadOnlyCacheAndClient(etcdHelper)
 	requestContextMapper := kapi.NewRequestContextMapper()
 
+	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupstorage.NewREST(etcdHelper)))
+
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
 	// in-order list of plug-ins that should intercept admission decisions (origin only intercepts)
@@ -164,11 +171,12 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	config := &MasterConfig{
 		Options: options,
 
-		Authenticator:                 newAuthenticator(options, etcdHelper, serviceAccountTokenGetter, apiClientCAs),
+		Authenticator:                 newAuthenticator(options, etcdHelper, serviceAccountTokenGetter, apiClientCAs, groupCache),
 		Authorizer:                    newAuthorizer(policyClient, options.ProjectConfig.ProjectRequestMessage),
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		PolicyCache:               policyCache,
+		GroupCache:                groupCache,
 		ProjectAuthorizationCache: newProjectAuthorizationCache(privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClient, policyClient),
 
 		RequestContextMapper: requestContextMapper,
@@ -219,7 +227,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdcl
 	return tokenGetter, nil
 }
 
-func newAuthenticator(config configapi.MasterConfig, etcdHelper tools.EtcdHelper, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool) authenticator.Request {
+func newAuthenticator(config configapi.MasterConfig, etcdHelper tools.EtcdHelper, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) authenticator.Request {
 	authenticators := []authenticator.Request{}
 
 	// ServiceAccount token
@@ -238,7 +246,7 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper tools.EtcdHelper
 
 	// OAuth token
 	if config.OAuthConfig != nil {
-		tokenAuthenticator := getEtcdTokenAuthenticator(etcdHelper)
+		tokenAuthenticator := getEtcdTokenAuthenticator(etcdHelper, groupMapper)
 		authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
 		// Allow token as access_token param for WebSockets
 		authenticators = append(authenticators, paramtoken.New("access_token", tokenAuthenticator, true))
@@ -299,14 +307,14 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 	return authorizationAttributeBuilder
 }
 
-func getEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper) authenticator.Token {
+func getEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper, groupMapper identitymapper.UserToGroupMapper) authenticator.Token {
 	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
 
 	userStorage := useretcd.NewREST(etcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
 
-	return authnregistry.NewTokenAuthenticator(accessTokenRegistry, userRegistry)
+	return authnregistry.NewTokenAuthenticator(accessTokenRegistry, userRegistry, groupMapper)
 }
 
 // KubeClient returns the kubernetes client object
