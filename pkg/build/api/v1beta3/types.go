@@ -220,6 +220,10 @@ type CustomBuildStrategy struct {
 	// inside the Docker container.
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool `json:"exposeDockerSocket,omitempty"`
+
+	// ForcePull describes if the controller should configure the build pod to always pull the images
+	// for the builder or only pull if it is not present locally
+	ForcePull bool `json:"forcePull,omitempty" description:"forces pulling of builder image from remote registry if true"`
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.

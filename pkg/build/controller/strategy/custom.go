@@ -77,7 +77,12 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		return nil, err
 	}
 
-	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	if !strategy.ForcePull {
+		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	} else {
+		glog.V(2).Infof("ForcePull is enabled for %s build", build.Name)
+		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullAlways
+	}
 	pod.Spec.Containers[0].Resources = build.Spec.Resources
 
 	if strategy.ExposeDockerSocket {

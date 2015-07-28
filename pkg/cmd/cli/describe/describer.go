@@ -289,6 +289,9 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 	if s.ExposeDockerSocket {
 		formatString(out, "Expose Docker Socket", "yes")
 	}
+	if s.ForcePull {
+		formatString(out, "Force Pull", "yes")
+	}
 	if s.PullSecret != nil {
 		formatString(out, "Pull Secret Name", s.PullSecret.Name)
 	}
