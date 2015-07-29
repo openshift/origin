@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/openshift/openshift-sdn/ovssubnet/api"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	netutils_server "github.com/openshift/openshift-sdn/pkg/netutils/server"
 )
@@ -21,7 +22,7 @@ func NewFlowController() *FlowController {
 	return &FlowController{}
 }
 
-func (c *FlowController) Setup(localSubnet, containerNetwork string) error {
+func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork string) error {
 	_, ipnet, err := net.ParseCIDR(localSubnet)
 	subnetMaskLength, _ := ipnet.Mask.Size()
 	gateway := netutils.GenerateDefaultGateway(ipnet).String()
@@ -120,4 +121,12 @@ func (c *FlowController) DelOFRules(minion, localIP string) error {
 
 func generateCookie(ip string) string {
 	return hex.EncodeToString(net.ParseIP(ip).To4())
+}
+
+func (c *FlowController) AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
+	return nil
+}
+
+func (c *FlowController) DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
+	return nil
 }
