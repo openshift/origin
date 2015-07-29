@@ -41,6 +41,18 @@ func newNodeEvent(action, key, value string) *api.NodeEvent {
 
 	if key != "" {
 		_, nodeEvent.Node = path.Split(key)
+
+		/* TODO(ravips): FIXME
+		var node kapi.Node
+		err := json.Unmarshal([]byte(value), &node)
+		if err != nil {
+			fmt.Printf("Error decoding node event: nil key (%s,%s,%s).\n", action, key, value)
+			return nil
+		}
+		if len(node.Status.Addresses) > 0 {
+			nodeEvent.NodeIP = node.Status.Addresses[0].Address
+		}
+		*/
 		return nodeEvent
 	}
 

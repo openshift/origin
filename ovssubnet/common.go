@@ -395,19 +395,15 @@ func (oc *OvsController) watchNodes() {
 					// subnet does not exist already
 					oc.AddNode(ev.Node)
 				} else {
-					// get IP of the node
-					ip, err := oc.getNodeIP(ev.Node)
-					if err != nil {
-						log.Errorf("Error calculating IP address of node %s", ev.Node)
-						continue
-					}
-					if sub.NodeIP != ip {
+					// Current node IP is obtained from event, ev.NodeIP to
+					// avoid cached/stale IP lookup by net.LookupIP()
+					if sub.NodeIP != ev.NodeIP {
 						err = oc.subnetRegistry.DeleteSubnet(ev.Node)
 						if err != nil {
 							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.Node, sub.NodeIP)
 							continue
 						}
-						sub.NodeIP = ip
+						sub.NodeIP = ev.NodeIP
 						err = oc.subnetRegistry.CreateSubnet(ev.Node, sub)
 						if err != nil {
 							log.Errorf("Error creating subnet for node %s, ip %s", ev.Node, sub.NodeIP)
