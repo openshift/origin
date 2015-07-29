@@ -61,8 +61,15 @@ popd > /dev/null
 wait_for_url "${HOST}/healthz" "apiserver: " 0.25 80
 
 echo "Updating ${SWAGGER_SPEC_OUT_DIR}:"
-echo "Updating ${SWAGGER_SPEC_OUT_DIR}/oapi-v1.json from ${SWAGGER_API_PATH}oapi/v1..."
-curl "${SWAGGER_API_PATH}oapi/v1" > "${SWAGGER_SPEC_OUT_DIR}/oapi-v1.json"
-echo "Updating ${SWAGGER_SPEC_OUT_DIR}/api-v1.json from ${SWAGGER_API_PATH}api/v1..."
-curl "${SWAGGER_API_PATH}api/v1" > "${SWAGGER_SPEC_OUT_DIR}/api-v1.json"
+
+ENDPOINT_TYPES="oapi api"
+for type in $ENDPOINT_TYPES
+do
+    ENDPOINTS=$(curl "${HOST}" | grep -Po "(?<=\/${type}\/)[a-z0-9]+" | sed '/v1beta3/d')
+    for endpoint in $ENDPOINTS
+    do
+        echo "Updating ${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json from ${SWAGGER_API_PATH}${type}/${endpoint}..."
+        curl "${SWAGGER_API_PATH}${type}/${endpoint}" > "${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json"    
+    done
+done
 echo "SUCCESS"
