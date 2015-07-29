@@ -114,13 +114,17 @@ backend be_no_sni
 frontend fe_no_sni
   # terminate ssl on edge
   bind 127.0.0.1:10443 ssl {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
+  mode http
 
   # re-ssl?
   acl reencrypt hdr(host),map(/var/lib/haproxy/conf/os_reencrypt.map) -m found
   use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
 
-  # regular http
-  use_backend be_edge_http_%[hdr(host),map(/var/lib/haproxy/conf/os_edge_http_be.map)] if TRUE
+  # map to http backend
+  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
+
+  # if a specific path based lookup was not found then revert to a host header lookup
+  use_backend be_edge_http_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)] if TRUE
 
   default_backend openshift_default
 
