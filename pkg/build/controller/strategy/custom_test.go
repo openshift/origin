@@ -17,7 +17,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 		Codec: latest.Codec,
 	}
 
-	expectedBad := mockCustomBuild()
+	expectedBad := mockCustomBuild(false)
 	expectedBad.Spec.Strategy.CustomStrategy.From = kapi.ObjectReference{
 		Kind: "DockerImage",
 		Name: "",
@@ -26,7 +26,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 		t.Errorf("Expected error when Image is empty, got nothing")
 	}
 
-	expected := mockCustomBuild()
+	expected := mockCustomBuild(false)
 	actual, err := strategy.CreateBuildPod(expected)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -83,9 +83,19 @@ func TestCustomCreateBuildPod(t *testing.T) {
 			t.Errorf("Expected %s variable to be set", name)
 		}
 	}
+
+	expectedForcePull := mockCustomBuild(true)
+	actualForcePull, fperr := strategy.CreateBuildPod(expectedForcePull)
+	if fperr != nil {
+		t.Fatalf("Unexpected error: %v", fperr)
+	}
+	containerForcePull := actualForcePull.Spec.Containers[0]
+	if containerForcePull.ImagePullPolicy != kapi.PullAlways {
+		t.Errorf("Expected %v, got %v", kapi.PullAlways, container.ImagePullPolicy)
+	}
 }
 
-func mockCustomBuild() *buildapi.Build {
+func mockCustomBuild(forcePull bool) *buildapi.Build {
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "customBuild",
@@ -116,6 +126,7 @@ func mockCustomBuild() *buildapi.Build {
 						{Name: "FOO", Value: "BAR"},
 					},
 					ExposeDockerSocket: true,
+					ForcePull:          forcePull,
 				},
 			},
 			Output: buildapi.BuildOutput{

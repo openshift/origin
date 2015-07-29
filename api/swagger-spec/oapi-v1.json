@@ -13261,6 +13261,10 @@
      "exposeDockerSocket": {
       "type": "boolean",
       "description": "allow running Docker commands (and build Docker images) from inside the container"
+     },
+     "forcePull": {
+      "type": "boolean",
+      "description": "forces pulling of builder image from remote registry if true"
      }
     }
    },

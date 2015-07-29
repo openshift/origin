@@ -977,6 +977,7 @@ func deepCopy_v1_CustomBuildStrategy(in buildapiv1.CustomBuildStrategy, out *bui
 		out.Env = nil
 	}
 	out.ExposeDockerSocket = in.ExposeDockerSocket
+	out.ForcePull = in.ForcePull
 	return nil
 }
 
