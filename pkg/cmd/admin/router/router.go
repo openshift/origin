@@ -283,6 +283,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			"STATS_PASSWORD":           cfg.StatsPassword,
 		}
 
+		updatePercent := int(-10)
+
 		objects := []runtime.Object{
 			&dapi.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{
@@ -293,6 +295,10 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 					{Type: dapi.DeploymentTriggerOnConfigChange},
 				},
 				Template: dapi.DeploymentTemplate{
+					Strategy: dapi.DeploymentStrategy{
+						Type:          dapi.DeploymentStrategyTypeRolling,
+						RollingParams: &dapi.RollingDeploymentStrategyParams{UpdatePercent: &updatePercent},
+					},
 					ControllerTemplate: kapi.ReplicationControllerSpec{
 						Replicas: cfg.Replicas,
 						Selector: label,
