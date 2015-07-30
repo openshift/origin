@@ -52,7 +52,7 @@ if ! which grunt > /dev/null 2>&1 ; then
 fi
 
 pushd ${OS_ROOT}/assets > /dev/null
-  cmd "npm install"
+  cmd "npm install --unsafe-perm"
   cmd "node_modules/protractor/bin/webdriver-manager update"
   
   # In case upstream components change things without incrementing versions
