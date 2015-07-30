@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/git"
+	"github.com/openshift/source-to-image/pkg/ignore"
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
@@ -32,6 +33,7 @@ type OnBuild struct {
 type onBuildSourceHandler struct {
 	build.Downloader
 	build.Preparer
+	build.Ignorer
 }
 
 // New returns a new instance of OnBuild builder
@@ -53,6 +55,7 @@ func New(config *api.Config) (*OnBuild, error) {
 	b.source = onBuildSourceHandler{
 		&git.Clone{b.git, b.fs},
 		s,
+		&ignore.DockerIgnorer{},
 	}
 	b.garbage = &build.DefaultCleaner{b.fs, b.docker}
 	return b, nil

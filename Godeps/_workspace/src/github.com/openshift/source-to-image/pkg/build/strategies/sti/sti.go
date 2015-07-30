@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/git"
+	"github.com/openshift/source-to-image/pkg/ignore"
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
@@ -56,6 +57,7 @@ type STI struct {
 
 	// Interfaces
 	preparer  build.Preparer
+	ignorer   build.Ignorer
 	artifacts build.IncrementalBuilder
 	scripts   build.ScriptsHandler
 	source    build.Downloader
@@ -97,6 +99,9 @@ func New(req *api.Config) (*STI, error) {
 
 	// Set interfaces
 	b.preparer = b
+	// later on, if we support say .gitignore func in addition to .dockerignore func, setting
+	// ignorer will be based on config setting
+	b.ignorer = &ignore.DockerIgnorer{}
 	b.artifacts = b
 	b.scripts = b
 	b.postExecutor = b
@@ -149,6 +154,8 @@ func (b *STI) Build(config *api.Config) (*api.Result, error) {
 }
 
 // Prepare prepares the source code and tar for build
+// NOTE, this func serves both the sti and onbuild strategies, as the OnBuild
+// struct Build func leverages the STI struct Prepare func directly below
 func (b *STI) Prepare(config *api.Config) error {
 	var err error
 	if config.WorkingDir, err = b.fs.CreateWorkingDirectory(); err != nil {
@@ -192,7 +199,8 @@ func (b *STI) Prepare(config *api.Config) error {
 		}
 	}
 
-	return nil
+	// see if there is a .s2iignore file, and if so, read in the patterns an then search and delete on
+	return b.ignorer.Ignore(config)
 }
 
 // SetScripts allows to override default required and optional scripts

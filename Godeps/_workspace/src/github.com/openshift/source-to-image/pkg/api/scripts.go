@@ -1,5 +1,9 @@
 package api
 
+import (
+	"os"
+)
+
 const (
 	// Assemble is the name of the script responsible for build process of the resulting image.
 	Assemble = "assemble"
@@ -18,14 +22,20 @@ const (
 
 const (
 	// UserScripts is the location of scripts downloaded from user provided URL (-s flag).
-	UserScripts = "downloads/scripts"
+	UserScripts = "downloads" + string(os.PathSeparator) + "scripts"
 	// DefaultScripts is the location of scripts downloaded from default location (io.openshift.s2i.scripts-url label).
-	DefaultScripts = "downloads/defaultScripts"
+	DefaultScripts = "downloads" + string(os.PathSeparator) + "defaultScripts"
 	// SourceScripts is the location of scripts downloaded with application sources.
-	SourceScripts = "upload/src/.sti/bin"
+	SourceScripts = "upload" + string(os.PathSeparator) + "src" + string(os.PathSeparator) + ".sti" + string(os.PathSeparator) + "bin"
 
 	// UploadScripts is the location of scripts that will be uploaded to the image during STI build.
-	UploadScripts = "upload/scripts"
+	UploadScripts = "upload" + string(os.PathSeparator) + "scripts"
 	// Source is the location of application sources.
-	Source = "upload/src"
+	Source = "upload" + string(os.PathSeparator) + "src"
+
+	// ContextTmp is the location of applications sources off of a supplied context dir
+	ContextTmp = "upload" + string(os.PathSeparator) + "tmp"
+
+	// Ignorefile is the s2i version for ignore files like we see with .gitignore or .dockerignore .. initial impl mirrors documented .dockerignore capabilities
+	IgnoreFile = ".s2iignore"
 )

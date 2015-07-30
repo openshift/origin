@@ -41,11 +41,20 @@ type Downloader interface {
 	Download(*api.Config) (*api.SourceInfo, error)
 }
 
+// Implement ignore file type processing on source tree
+// NOTE: raised to this level for possible future extensions to
+// support say both .gitignore and .dockerignore level functionality
+// ( currently do .dockerignore)
+type Ignorer interface {
+	Ignore(*api.Config) error
+}
+
 // SourceHandler is a wrapper for STI strategy Downloader and Preparer which
 // allows to use Download and Prepare functions from the STI strategy.
 type SourceHandler interface {
 	Downloader
 	Preparer
+	Ignorer
 }
 
 // LayeredDockerBuilder represents a minimal Docker builder interface that is
