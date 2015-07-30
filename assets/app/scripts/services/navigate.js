@@ -20,7 +20,7 @@ angular.module("openshiftConsole")
       /**
        * Navigate and display the project overview page.
        * 
-       * @param {type} projectName  the projedt name
+       * @param {type} projectName  the project name
        * @returns {undefined}
        */
       toProjectOverview: function(projectName){
