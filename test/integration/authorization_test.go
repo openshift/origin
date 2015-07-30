@@ -461,7 +461,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		review:          askCanClusterAdminsCreateProject,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by cluster rule:",
+			Reason:    "allowed by cluster rule",
 			Namespace: "",
 		},
 	}.run(t)

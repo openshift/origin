@@ -1,8 +1,6 @@
 package authorizer
 
 import (
-	"fmt"
-
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -129,10 +127,11 @@ func (a *openshiftAuthorizer) authorizeWithNamespaceRules(ctx kapi.Context, pass
 			return false, "", err
 		}
 		if matches {
-			if len(kapi.NamespaceValue(ctx)) == 0 {
-				return true, fmt.Sprintf("allowed by cluster rule: %#v", rule), nil
+			namespace := kapi.NamespaceValue(ctx)
+			if len(namespace) == 0 {
+				return true, "allowed by cluster rule", nil
 			}
-			return true, fmt.Sprintf("allowed by rule in %v: %#v", kapi.NamespaceValue(ctx), rule), nil
+			return true, "allowed by rule in " + namespace, nil
 		}
 	}
 
