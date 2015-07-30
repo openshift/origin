@@ -52,9 +52,8 @@ created for you.
 
 You can easily switch between multiple projects using '%[1]s project <projectname>'.`
 
-func NewCommandCLI(name, fullName string) *cobra.Command {
+func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
 	in := os.Stdin
-	out := os.Stdout
 	errout := os.Stderr
 
 	// Main command
@@ -194,7 +193,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "kubectl":
 		cmd = NewCmdKubectl(basename, out)
 	default:
-		cmd = NewCommandCLI(basename, basename)
+		cmd = NewCommandCLI(basename, basename, out)
 	}
 
 	if cmd.UsageFunc() == nil {
