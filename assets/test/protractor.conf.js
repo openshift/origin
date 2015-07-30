@@ -190,10 +190,10 @@ exports.config = {
   // The timeout in milliseconds for each script run on the browser. This should
   // be longer than the maximum time your application needs to stabilize between
   // tasks.
-  allScriptsTimeout: 11000,
+  allScriptsTimeout: 60000,
 
   // How long to wait for a page to load.
-  getPageTimeout: 10000,
+  getPageTimeout: 30000,
 
   // A callback function called once configs are read but before any environment
   // setup. This will only run once, and before onPrepare.
@@ -309,7 +309,7 @@ exports.config = {
     // If true, include stack traces in failures.
     includeStackTrace: true,
     // Default time to wait in ms before a test fails.
-    defaultTimeoutInterval: 30000
+    defaultTimeoutInterval: 120000
   },
 
   // Options to be passed to jasmine2.
@@ -320,7 +320,7 @@ exports.config = {
     // If true, print colors to the terminal.
     showColors: true,
     // Default time to wait in ms before a test fails.
-    defaultTimeoutInterval: 30000,
+    defaultTimeoutInterval: 120000,
     // Function called to print jasmine results.
     print: function() {},
     // If set, only execute specs whose names match the pattern, which is
