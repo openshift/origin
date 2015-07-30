@@ -2,59 +2,47 @@ package util
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-
+	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
-// OsFramework provides helper functions and watchers for OpenShift
-type OsFramework struct {
-	Namespace *kapi.Namespace
-	Client    *client.Client
+// WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
+// file.
+func WriteObjectToFile(obj runtime.Object, filename string) error {
+	content, err := latest.Codec.Encode(obj)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, []byte(content), 0644)
 }
 
-// NewOsFramework initialize OpenShift testing framework
-func NewOsFramework(ns *kapi.Namespace, c *client.Client) *OsFramework {
-	return &OsFramework{Namespace: ns, Client: c}
-}
-
-// WaitForABuild waits for a build to become Completed
-func (f *OsFramework) WaitForABuild(buildName string) error {
+// WaitForABuild waits for a Build object to match either isOK or isFailed conditions
+func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*buildapi.Build) bool) error {
 	for {
-		list, err := f.Client.Builds(f.Namespace.Name).List(labels.Everything(), fields.Everything())
+		list, err := c.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
 		if err != nil {
 			return err
 		}
-		rv := list.ResourceVersion
-
-		isOK := func(e *buildapi.Build) bool {
-			return e.Name == buildName && e.Status.Phase == buildapi.BuildPhaseComplete
-		}
-
-		isFailed := func(e *buildapi.Build) bool {
-			return e.Status.Phase == buildapi.BuildPhaseFailed || e.Status.Phase == buildapi.BuildPhaseError
-		}
-
 		for i := range list.Items {
 			if isOK(&list.Items[i]) {
 				return nil
 			}
 			if isFailed(&list.Items[i]) {
-				return fmt.Errorf("The build %q status is %q", buildName, &list.Items[i].Status.Phase)
+				return fmt.Errorf("The build %q status is %q", name, &list.Items[i].Status.Phase)
 			}
 		}
 
-		w, err := f.Client.Builds(f.Namespace.Name).Watch(
-			labels.Everything(),
-			fields.Set{"name": buildName}.AsSelector(),
-			rv,
-		)
+		rv := list.ResourceVersion
+		w, err := c.Watch(labels.Everything(), fields.Set{"name": name}.AsSelector(), rv)
 		if err != nil {
 			return err
 		}
@@ -71,26 +59,33 @@ func (f *OsFramework) WaitForABuild(buildName string) error {
 					return nil
 				}
 				if isFailed(e) {
-					return fmt.Errorf("The build %q status is %q", buildName, e.Status.Phase)
+					return fmt.Errorf("The build %q status is %q", name, e.Status.Phase)
 				}
 			}
 		}
 	}
 }
 
-// CreatePodForImageStream creates a pod object from given imageStream
-func (f *OsFramework) CreatePodForImageStream(imageStreamName string) (*kapi.Pod, error) {
-	imageStream, err := f.Client.ImageStreams(f.Namespace.Name).Get(imageStreamName)
+// GetDockerImageReference retrieves the full Docker pull spec from the given ImageStream
+// and tag
+func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (string, error) {
+	imageStream, err := c.Get(name)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
-	tags := []string{}
-	for tag := range imageStream.Status.Tags {
-		tags = append(tags, tag)
+	isTag, ok := imageStream.Status.Tags[tag]
+	if !ok {
+		return "", fmt.Errorf("ImageStream %q does not have tag %q", name, tag)
 	}
+	if len(isTag.Items) == 0 {
+		return "", fmt.Errorf("ImageStreamTag %q is empty", tag)
+	}
+	return isTag.Items[0].DockerImageReference, nil
+}
 
-	imageName := imageStream.Status.Tags[tags[0]].Items[0].DockerImageReference
+// CreatePodForImage creates a Pod for the given image name. The dockerImageReference
+// must be full docker pull spec.
+func CreatePodForImage(dockerImageReference string) *kapi.Pod {
 	podName := namer.GetPodName("test-pod", string(kutil.NewUUID()))
 	return &kapi.Pod{
 		TypeMeta: kapi.TypeMeta{
@@ -102,14 +97,13 @@ func (f *OsFramework) CreatePodForImageStream(imageStreamName string) (*kapi.Pod
 			Labels: map[string]string{"name": podName},
 		},
 		Spec: kapi.PodSpec{
-			ServiceAccountName: "builder",
 			Containers: []kapi.Container{
 				{
-					Name:  "test",
-					Image: imageName,
+					Name:  podName,
+					Image: dockerImageReference,
 				},
 			},
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
-	}, nil
+	}
 }

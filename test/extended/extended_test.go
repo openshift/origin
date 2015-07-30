@@ -1,10 +1,10 @@
 package extended
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
@@ -14,6 +14,7 @@ import (
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
+	flag "github.com/spf13/pflag"
 )
 
 var (
@@ -22,10 +23,7 @@ var (
 
 // init initialize the extended testing suite.
 // You can set these environment variables to configure extended tests:
-// MASTER_ADDR - The host or apiserver to connect to
-// SERVER_CONFIG_DIR - Directory where OpenShift stores configuration
-// SERVER_KUBECONFIG_PATH - Location of 'admin.kubeconfig' file
-// SERVER_CERT_DIR - Directory with OpenShift client certificates
+// KUBECONFIG - Path to kubeconfig containing embeded authinfo
 func init() {
 	// Turn on verbose by default to get spec names
 	config.DefaultReporterConfig.Verbose = true
@@ -36,10 +34,11 @@ func init() {
 	// Randomize specs as well as suites
 	config.GinkgoConfig.RandomizeAllSpecs = false
 
-	flag.StringVar(&testContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, adminKubeConfigPath(), "Path to kubeconfig containing embeded authinfo.")
-	flag.StringVar(&testContext.KubeContext, clientcmd.FlagContext, "", "kubeconfig context to use/override. If unset, will use value from 'current-context'")
-	flag.StringVar(&testContext.Host, "host", os.Getenv("MASTER_ADDR"), "The host, or apiserver, to connect to")
-	flag.StringVar(&testContext.OutputDir, "extended-tests-output-dir", os.TempDir(), "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
+	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
+	os.MkdirAll(extendedOutputDir, 0600)
+
+	flag.StringVar(&testContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, kubeConfigPath(), "Path to kubeconfig containing embeded authinfo.")
+	flag.StringVar(&testContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
 
 	// Override the default Kubernetes E2E configuration
 	SetTestContext(testContext)

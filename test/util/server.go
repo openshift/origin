@@ -29,10 +29,6 @@ import (
 // controllers to start up, and populate the service accounts in the test namespace
 const ServiceAccountWaitTimeout = 30 * time.Second
 
-func init() {
-	RequireEtcd()
-}
-
 // RequireServer verifies if the etcd, docker and the OpenShift server are
 // available and you can successfully connected to them.
 func RequireServer() {
@@ -347,13 +343,14 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Co
 		return nil, err
 	}
 
-	return GetClientForUser(clientConfig, adminUser)
+	client, _, _, err := GetClientForUser(clientConfig, adminUser)
+	return client, err
 }
 
-func GetClientForUser(clientConfig kclient.Config, username string) (*client.Client, error) {
+func GetClientForUser(clientConfig kclient.Config, username string) (*client.Client, *kclient.Client, *kclient.Config, error) {
 	token, err := tokencmd.RequestToken(&clientConfig, nil, username, "password")
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	userClientConfig := clientConfig
@@ -365,5 +362,15 @@ func GetClientForUser(clientConfig kclient.Config, username string) (*client.Cli
 	userClientConfig.TLSClientConfig.CertData = nil
 	userClientConfig.TLSClientConfig.KeyData = nil
 
-	return client.New(&userClientConfig)
+	kubeClient, err := kclient.New(&userClientConfig)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	osClient, err := client.New(&userClientConfig)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return osClient, kubeClient, &userClientConfig, nil
 }

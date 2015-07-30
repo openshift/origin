@@ -340,7 +340,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	dannyClient, err := testutil.GetClientForUser(*clusterAdminClientConfig, "danny")
+	dannyClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "danny")
 	if err != nil {
 		t.Fatalf("error requesting token: %v", err)
 	}

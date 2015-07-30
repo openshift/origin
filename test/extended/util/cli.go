@@ -4,17 +4,20 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	clientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
-	. "github.com/onsi/ginkgo"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/cli"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	cmdapi "github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/config"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/spf13/cobra"
 )
@@ -22,119 +25,155 @@ import (
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // REST clients.
 type CLI struct {
-	verb          string
-	configPath    string
-	globalArgs    []string
-	commandArgs   []string
-	finalArgs     []string
-	stdout        io.Writer
-	verbose       bool
-	cmd           *cobra.Command
-	kubeFramework *Framework
+	verb            string
+	configPath      string
+	adminConfigPath string
+	username        string
+	outputDir       string
+	globalArgs      []string
+	commandArgs     []string
+	finalArgs       []string
+	stdout          io.Writer
+	verbose         bool
+	cmd             *cobra.Command
+	kubeFramework   *Framework
 }
 
 // NewCLI initialize the upstream E2E framework and set the namespace to match
 // with the project name. Note that this function does not initialize the project
 // role bindings for the namespace.
-func NewCLI(project, configPath string) *CLI {
+func NewCLI(project, adminConfigPath string) *CLI {
 	client := &CLI{}
-	client.kubeFramework = NewFramework(project)
-	if len(configPath) == 0 {
-		FatalErr(fmt.Errorf("The configPath can't be empty"))
+	client.kubeFramework = NewCustomFramework(project, client.SetupProject)
+	client.outputDir = os.TempDir()
+	client.username = "admin"
+	if len(adminConfigPath) == 0 {
+		FatalErr(fmt.Errorf("The adminConfigPath can not be empty"))
 	}
-	client.configPath = configPath
-	return client.SetNamespace(project)
-}
-
-// NewGinkoCLI initialize the upstream E2E framework and setup project role bindings.
-// This function also initialize the Ginko BeforeEach hook to setup the role bindings
-// for the namespace created by the E2E framework.
-func NewGinkoCLI(project, configPath string) *CLI {
-	// The namespace will be set by E2E framework.
-	client := NewCLI(project, configPath).SetNamespace("")
-	BeforeEach(func() {
-		if len(client.Namespace()) > 0 {
-			Logf("Adding project role bindings to %q namespace", client.Namespace())
-			client.SetupRoleBindings()
-		} else {
-			Failf("Framework does not have the namespace set")
-		}
-	})
+	client.adminConfigPath = adminConfigPath
 	return client
 }
 
-// OsFramework returns OpenShift framework
-func (c *CLI) OsFramework() *OsFramework {
-	return NewOsFramework(c.kubeFramework.Namespace, c.AdminRESTClient())
-}
-
-// KubeFramework returns Kubernetes framework
+// KubeFramework returns Kubernetes framework which contains helper functions
+// specific for Kubernetes resources
 func (c *CLI) KubeFramework() *Framework {
 	return c.kubeFramework
 }
 
-// SetNamespace overrides the namespace set by framework
+// Username returns the name of currently logged user. If there is no user assigned
+// for the current session, it returns 'admin'.
+func (c *CLI) Username() string {
+	return c.username
+}
+
+// ChangeUser changes the user used by the current CLI session.
+func (c *CLI) ChangeUser(name string) *CLI {
+	adminClientConfig, err := testutil.GetClusterAdminClientConfig(c.adminConfigPath)
+	if err != nil {
+		FatalErr(err)
+	}
+	_, _, clientConfig, err := testutil.GetClientForUser(*adminClientConfig, name)
+	if err != nil {
+		FatalErr(err)
+	}
+
+	kubeConfig, err := config.CreateConfig(c.Namespace(), clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+
+	c.configPath = filepath.Join(c.outputDir, name+".kubeconfig")
+	err = clientcmd.WriteToFile(*kubeConfig, c.configPath)
+	if err != nil {
+		FatalErr(err)
+	}
+
+	c.username = name
+	fmt.Printf("INFO: configPath is now %q\n", c.configPath)
+	return c
+}
+
+// SetNamespace sets a new namespace
 func (c *CLI) SetNamespace(ns string) *CLI {
-	if c.kubeFramework == nil {
-		FatalErr(fmt.Errorf("The E2E framework must be initialized"))
-	}
-	c.kubeFramework.Namespace = &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}}
-	return c
-}
-
-// SetupRoleBindings setups a project role binding for the current namespace
-func (c *CLI) SetupRoleBindings() *CLI {
-	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(c.Namespace()) {
-		addRole := &policy.RoleModificationOptions{
-			RoleName:            binding.RoleRef.Name,
-			RoleNamespace:       binding.RoleRef.Namespace,
-			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(c.Namespace(), c.AdminRESTClient()),
-			Users:               binding.Users.List(),
-			Groups:              binding.Groups.List(),
-		}
-		if err := addRole.AddRole(); err != nil {
-			Failf("Unable to add role binding %+v to namespace %q: %v", addRole, c.Namespace(), err)
-		}
+	c.kubeFramework.Namespace = &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: ns,
+		},
 	}
 	return c
 }
 
-// Verbose turns on verbose messages for current command
+// SetOutputDir change the default output directory for temporary files
+func (c *CLI) SetOutputDir(dir string) *CLI {
+	c.outputDir = dir
+	return c
+}
+
+// SetupProject creates a new project and assign a random user to the project.
+// All resources will be then created within this project and Kubernetes E2E
+// suite will destroy the project after test case finish.
+// Note that the kubeClient is not used and serves just to make this function
+// compatible with upstream function.
+func (c *CLI) SetupProject(name string, kubeClient *kclient.Client) (*kapi.Namespace, error) {
+	newNamespace := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("extended-test-%s-", name))
+	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", c.Namespace()))
+	Logf("The user is now %q", c.Username())
+
+	projectOpts := cmdapi.NewProjectOptions{
+		ProjectName: c.Namespace(),
+		Client:      c.REST(),
+		Out:         c.stdout,
+	}
+	Logf("Creating project %q", c.Namespace())
+	return c.kubeFramework.Namespace, projectOpts.Run()
+}
+
+// Verbose turns on printing verbose messages when executing OpenShift commands
 func (c *CLI) Verbose() *CLI {
 	c.verbose = true
 	return c
 }
 
-// AdminRESTClient return the current project namespace REST client
-func (c *CLI) AdminRESTClient() *client.Client {
-	client, err := testutil.GetClusterAdminClient(c.configPath)
+// REST provides an OpenShift REST client for the current user. If the user is not
+// set, then it provides REST client for the cluster admin user
+func (c *CLI) REST() *client.Client {
+	_, clientConfig, err := configapi.GetKubeClient(c.configPath)
+	osClient, err := client.New(clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}
-	return client
+	return osClient
 }
 
-// AdminKubeRESTClient returns the current project namespace Kubernetes client
-func (c *CLI) AdminKubeRESTClient() *kclient.Client {
-	if c.kubeFramework.Client != nil {
-		return c.kubeFramework.Client
-	}
-	client, err := testutil.GetClusterAdminKubeClient(c.configPath)
+// AdminREST provides an OpenShift REST client for the cluster admin user.
+func (c *CLI) AdminREST() *client.Client {
+	_, clientConfig, err := configapi.GetKubeClient(c.adminConfigPath)
+	osClient, err := client.New(clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}
-	return client
+	return osClient
 }
 
-// Namespace returns the name of the namespace used in the current test case
+// KubeREST provides a Kubernetes REST client for the current namespace
+func (c *CLI) KubeREST() *kclient.Client {
+	kubeClient, _, err := configapi.GetKubeClient(c.configPath)
+	if err != nil {
+		FatalErr(err)
+	}
+	return kubeClient
+}
+
+// Namespace returns the name of the namespace used in the current test case.
+// If the namespace is not set, an empty string is returned.
 func (c *CLI) Namespace() string {
-	if c.kubeFramework == nil || c.kubeFramework.Namespace == nil {
+	if c.kubeFramework.Namespace == nil {
 		return ""
 	}
 	return c.kubeFramework.Namespace.Name
 }
 
-// SetOutput sets the default output for the command
+// SetOutput allows to override the default command output
 func (c *CLI) SetOutput(out io.Writer) *CLI {
 	c.stdout = out
 	for _, subCmd := range c.cmd.Commands() {
@@ -150,9 +189,13 @@ func (c *CLI) SetOutput(out io.Writer) *CLI {
 func (c *CLI) Run(verb string) *CLI {
 	out := new(bytes.Buffer)
 	nc := &CLI{
-		verb:          verb,
-		kubeFramework: c.KubeFramework(),
-		cmd:           cli.NewCommandCLI("oc", "openshift", out),
+		verb:            verb,
+		kubeFramework:   c.KubeFramework(),
+		adminConfigPath: c.adminConfigPath,
+		configPath:      c.configPath,
+		username:        c.username,
+		outputDir:       c.outputDir,
+		cmd:             cli.NewCommandCLI("oc", "openshift", out),
 		globalArgs: []string{
 			verb,
 			fmt.Sprintf("--namespace=%s", c.Namespace()),
@@ -196,20 +239,44 @@ func (c *CLI) Output() (string, error) {
 	if err != nil {
 		FatalErr(err)
 	}
-	out := c.stdout.(*bytes.Buffer)
+	if c.verbose {
+		fmt.Printf("DEBUG: %q\n", trimmedOutput(c.stdout))
+	}
+	return trimmedOutput(c.stdout), err
+}
 
-	return strings.TrimSpace(out.String()), err
+// OutputToFile executes the command and store output to a file
+func (c *CLI) OutputToFile(filename string) (string, error) {
+	content, err := c.Output()
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(c.outputDir, c.Namespace()+"-"+filename)
+	return path, ioutil.WriteFile(path, []byte(content), 0644)
 }
 
 // Execute executes the current command and return error if the execution failed
 // This function will set the default output to stdout.
 func (c *CLI) Execute() error {
 	out, err := c.Output()
+	if err != nil {
+		FatalErr(fmt.Errorf("%v", err))
+	}
 	if _, err := io.Copy(os.Stdout, strings.NewReader(out+"\n")); err != nil {
 		fmt.Printf("ERROR: Unable to copy the output to stdout")
 	}
 	os.Stdout.Sync()
 	return err
+}
+
+// trimmedOutput converts the stdout to a string and trims the trailing whitespaces
+func trimmedOutput(stdout io.Writer) string {
+	output, ok := stdout.(*bytes.Buffer)
+	if !ok {
+		fmt.Printf("WARNING: Unable to convert output to a buffer\n")
+		return ""
+	}
+	return strings.TrimSpace(output.String())
 }
 
 // FatalErr exits the test in case a fatal error has occured.

@@ -1,0 +1,21 @@
+{
+  "kind":"Pod",
+  "apiVersion":"v1",
+  "metadata":{
+    "name":"test-pod",
+    "labels":{
+      "name":"test-pod"
+    }
+  },
+  "spec":{
+    "containers":[
+      {
+        "name":"test",
+        "image":"test:latest",
+        "imagePullPolicy":"Never"
+      }
+    ],
+    "restartPolicy":"Never",
+    "dnsPolicy":"ClusterFirst"
+  }
+}
