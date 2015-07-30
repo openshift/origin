@@ -171,6 +171,23 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 # Begin tests
 #
 
+# create master config as atomic-enterprise just to test it works
+atomic-enterprise start \
+  --write-config=$TEMP_DIR/atomic.local.config \
+  --create-certs=true \
+  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+  --hostname="${KUBELET_HOST}" \
+  --volume-dir="${VOLUME_DIR}" \
+  --etcd-dir="${ETCD_DATA_DIR}" \
+  --images="${USE_IMAGES}"
+
+# ensure that DisabledFeatures aren't written to config files
+! grep -i '\<disabledFeatures\>' \
+	"${MASTER_CONFIG_DIR}/master-config.yaml" \
+	"$TEMP_DIR/atomic.local.config/master/master-config.yaml" \
+	"${NODE_CONFIG_DIR}/node-config.yaml"
+
 # test client not configured
 [ "$(oc get services 2>&1 | grep 'Error in configuration')" ]
 

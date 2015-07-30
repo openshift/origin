@@ -6,6 +6,12 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
 
+const (
+	FeatureBuilder    = `Builder`
+	FeatureS2I        = `S2I Builder`
+	FeatureWebConsole = `Web Console`
+)
+
 var (
 	KnownKubernetesAPILevels   = []string{"v1beta1", "v1beta2", "v1beta3", "v1"}
 	KnownOpenShiftAPILevels    = []string{"v1beta1", "v1beta3", "v1"}
@@ -13,6 +19,9 @@ var (
 	DefaultOpenShiftAPILevels  = []string{"v1beta3", "v1"}
 	DeadKubernetesAPILevels    = []string{"v1beta1", "v1beta2"}
 	DeadOpenShiftAPILevels     = []string{"v1beta1"}
+
+	KnownOpenShiftFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
+	AtomicDisabledFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
 )
 
 type ExtendedArguments map[string][]string
@@ -83,6 +92,8 @@ const (
 	ControllersAll = "*"
 )
 
+type FeatureList []string
+
 type MasterConfig struct {
 	api.TypeMeta
 
@@ -106,6 +117,9 @@ type MasterConfig struct {
 	// PauseControllers instructs the master to not automatically start controllers, but instead
 	// to wait until a notification to the server is received before launching them.
 	PauseControllers bool
+
+	// Allow to disable OpenShift components
+	DisabledFeatures FeatureList
 
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the

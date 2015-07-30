@@ -37,6 +37,7 @@ type MasterOptions struct {
 	CreateCertificates bool
 	ConfigFile         string
 	Output             io.Writer
+	DisabledFeatures   []string
 }
 
 const masterLong = `Start a master server
@@ -67,6 +68,11 @@ You may also pass --kubeconfig=<path> to connect to an external Kubernetes clust
 // NewCommandStartMaster provides a CLI handler for 'start master' command
 func NewCommandStartMaster(fullName string, out io.Writer) (*cobra.Command, *MasterOptions) {
 	options := &MasterOptions{Output: out}
+
+	switch fullName {
+	case "atomic-enterprise":
+		options.DisabledFeatures = configapi.AtomicDisabledFeatures
+	}
 
 	cmd := &cobra.Command{
 		Use:   "master",
@@ -245,6 +251,10 @@ func (o MasterOptions) RunMaster() error {
 		return nil
 	}
 
+	// Inject disabled feature flags based on distribution being used and
+	// regardless of configuration. They aren't written to config file to
+	// prevent upgrade path issues.
+	masterConfig.DisabledFeatures.Add(o.DisabledFeatures...)
 	validationResults := validation.ValidateMasterConfig(masterConfig)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
@@ -307,6 +317,9 @@ func (o MasterOptions) CreateCerts() error {
 func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	glog.Infof("Starting master on %s (%s)", openshiftMasterConfig.ServingInfo.BindAddress, version.Get().String())
 	glog.Infof("Public master address is %s", openshiftMasterConfig.AssetConfig.MasterPublicURL)
+	if len(openshiftMasterConfig.DisabledFeatures) > 0 {
+		glog.V(4).Infof("Disabled features: %s", strings.Join(openshiftMasterConfig.DisabledFeatures, ", "))
+	}
 
 	if openshiftMasterConfig.EtcdConfig != nil {
 		etcd.RunEtcd(openshiftMasterConfig.EtcdConfig)

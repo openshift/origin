@@ -1,13 +1,16 @@
 package validation
 
 import (
+	"fmt"
 	"net"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/spf13/pflag"
 
 	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
@@ -77,6 +80,22 @@ func ValidateHTTPServingInfo(info api.HTTPServingInfo) fielderrors.ValidationErr
 
 	if info.RequestTimeoutSeconds < -1 {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("requestTimeoutSeconds", info.RequestTimeoutSeconds, "must be -1 (no timeout), 0 (default timeout), or greater"))
+	}
+
+	return allErrs
+}
+
+func ValidateDisabledFeatures(disabledFeatures []string, field string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	known := util.NewStringSet()
+	for _, feature := range api.KnownOpenShiftFeatures {
+		known.Insert(strings.ToLower(feature))
+	}
+	for i, feature := range disabledFeatures {
+		if !known.Has(strings.ToLower(feature)) {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("%s[%d]", field, i), disabledFeatures[i], fmt.Sprintf("not one of valid features: %s", strings.Join(api.KnownOpenShiftFeatures, ", "))))
+		}
 	}
 
 	return allErrs

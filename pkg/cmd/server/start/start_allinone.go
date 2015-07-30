@@ -20,6 +20,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -33,8 +34,8 @@ type AllInOneOptions struct {
 	MasterConfigFile string
 	NodeConfigFile   string
 	PrintIP          bool
-
-	Output io.Writer
+	Output           io.Writer
+	DisabledFeatures []string
 }
 
 const allInOneLong = `
@@ -61,6 +62,11 @@ You may also pass --kubeconfig=<path> to connect to an external Kubernetes clust
 // NewCommandStartAllInOne provides a CLI handler for 'start' command
 func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
 	options := &AllInOneOptions{Output: out}
+
+	switch fullName {
+	case "atomic-enterprise":
+		options.DisabledFeatures = configapi.AtomicDisabledFeatures
+	}
 
 	cmds := &cobra.Command{
 		Use:   "start",
@@ -237,7 +243,7 @@ func (o AllInOneOptions) StartAllInOne() error {
 		fmt.Fprintf(o.Output, "%s\n", host)
 		return nil
 	}
-	masterOptions := MasterOptions{o.MasterArgs, o.CreateCerts, o.MasterConfigFile, o.Output}
+	masterOptions := MasterOptions{o.MasterArgs, o.CreateCerts, o.MasterConfigFile, o.Output, o.DisabledFeatures}
 	if err := masterOptions.RunMaster(); err != nil {
 		return err
 	}

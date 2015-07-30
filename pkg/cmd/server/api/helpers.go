@@ -17,6 +17,71 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
+var (
+	knownOpenShiftFeatureSet map[string]string
+)
+
+func init() {
+	knownOpenShiftFeatureSet = make(map[string]string, len(KnownOpenShiftFeatures))
+	for _, feature := range KnownOpenShiftFeatures {
+		knownOpenShiftFeatureSet[strings.ToLower(feature)] = feature
+	}
+}
+
+// Add extends feature list with given valid items. They are appended
+// unless already present.
+func (fl *FeatureList) Add(items ...string) error {
+	unknown := []string{}
+	toAppend := make([]string, 0, len(items))
+	for _, item := range items {
+		feature, exists := knownOpenShiftFeatureSet[strings.ToLower(item)]
+		if !exists {
+			unknown = append(unknown, item)
+			continue
+		}
+		if fl.Has(feature) {
+			continue
+		}
+		toAppend = append(toAppend, feature)
+	}
+	if len(unknown) > 0 {
+		return fmt.Errorf("unknown features: %s", strings.Join(unknown, ", "))
+	}
+	*fl = append(*fl, toAppend...)
+	return nil
+}
+
+// Delete removes given items from feature list while keeping its original
+// order.
+func (fl *FeatureList) Delete(items ...string) {
+	if len(*fl) == 0 || len(items) == 0 {
+		return
+	}
+	toDelete := util.NewStringSet()
+	for _, item := range items {
+		toDelete.Insert(strings.ToLower(item))
+	}
+	newList := []string{}
+	for _, item := range *fl {
+		if !toDelete.Has(strings.ToLower(item)) {
+			newList = append(newList, item)
+		}
+	}
+	*fl = newList
+}
+
+// Has returns true if given feature exists in feature list. The check is
+// case-insensitive.
+func (fl FeatureList) Has(feature string) bool {
+	lowerCased := strings.ToLower(feature)
+	for _, item := range fl {
+		if strings.ToLower(item) == lowerCased {
+			return true
+		}
+	}
+	return false
+}
+
 // ParseNamespaceAndName returns back the namespace and name (empty if something goes wrong), for a given string.
 // This is useful when pointing to a particular resource inside of our config.
 func ParseNamespaceAndName(in string) (string, string, error) {
