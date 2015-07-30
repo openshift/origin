@@ -95,6 +95,8 @@ fi
 GO_OUT="${OS_ROOT}/_output/local/go/bin"
 export PATH="${GO_OUT}:${PATH}"
 
+ln -svf `readlink -f $(which openshift)` `dirname $(which openshift)`/atomic-enterprise
+
 # Check openshift version
 out=$(openshift version)
 echo openshift: $out
@@ -298,6 +300,13 @@ echo "resource-builder: ok"
 [ "$(oadm create-key-pair -h 2>&1 | grep 'Create an RSA key pair')" ]
 [ "$(oadm create-server-cert -h 2>&1 | grep 'Create a key and server certificate')" ]
 [ "$(oadm create-signer-cert -h 2>&1 | grep 'Create a self-signed CA')" ]
+# atomic-enterprise binaries are recognized
+[ "$(openshift | grep -i 'OpenShift Application Platform')" ]
+[ ! "$(openshift | grep -i 'Atomic')" ]
+[ "$(origin | grep -i 'Origin Application Platform')" ]
+[ ! "$(origin | grep -i 'Atomic')" ]
+[ "$(atomic-enterprise | grep -i 'Atomic Application Platform')" ]
+[ ! "$(atomic-enterprise | grep -i 'OpenShift')" ]
 
 # help for root commands with --help flag must be consistent
 [ "$(openshift --help 2>&1 | grep 'OpenShift Application Platform')" ]
