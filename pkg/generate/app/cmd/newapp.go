@@ -33,11 +33,12 @@ type AppConfig struct {
 	SourceRepositories util.StringList
 	ContextDir         string
 
-	Components         util.StringList
-	ImageStreams       util.StringList
-	DockerImages       util.StringList
-	Templates          util.StringList
-	TemplateFiles      util.StringList
+	Components    util.StringList
+	ImageStreams  util.StringList
+	DockerImages  util.StringList
+	Templates     util.StringList
+	TemplateFiles util.StringList
+
 	TemplateParameters util.StringList
 	Groups             util.StringList
 	Environment        util.StringList
@@ -49,6 +50,7 @@ type AppConfig struct {
 	OutputDocker     bool
 
 	AsSearch bool
+	AsList   bool
 
 	refBuilder *app.ReferenceBuilder
 
@@ -587,8 +589,8 @@ type AppResult struct {
 	Namespace  string
 }
 
-// SearchResult contains the results of a search
-type SearchResult struct {
+// QueryResult contains the results of a query (search or list)
+type QueryResult struct {
 	Matches app.ComponentMatches
 	List    *kapi.List
 }
@@ -656,19 +658,30 @@ func makeImageStreamKey(ref kapi.ObjectReference) string {
 	return types.NamespacedName{ref.Namespace, name}.String()
 }
 
-// RunSearch executes the provided config and returns the result of the resolution.
-func (c *AppConfig) RunSearch(out, errOut io.Writer) (*SearchResult, error) {
+// RunQuery executes the provided config and returns the result of the resolution.
+func (c *AppConfig) RunQuery(out, errOut io.Writer) (*QueryResult, error) {
 	c.ensureDockerSearcher()
 	repositories, err := c.individualSourceRepositories()
 	if err != nil {
 		return nil, err
 	}
+
+	if c.AsList {
+		if c.AsSearch {
+			return nil, fmt.Errorf("--list and --search can't be used together")
+		}
+		if c.HasArguments() {
+			return nil, fmt.Errorf("--list can't be used with arguments")
+		}
+		c.Components.Set("*")
+	}
+
 	components, repositories, environment, parameters, err := c.validate()
 	if err != nil {
 		return nil, err
 	}
 
-	if len(repositories) == 0 && len(components) == 0 {
+	if len(components) == 0 && !c.AsList {
 		return nil, ErrNoInputs
 	}
 
@@ -710,7 +723,7 @@ func (c *AppConfig) RunSearch(out, errOut io.Writer) (*SearchResult, error) {
 			}
 		}
 	}
-	return &SearchResult{
+	return &QueryResult{
 		Matches: matches,
 		List:    &kapi.List{Items: objects},
 	}, nil
@@ -816,4 +829,16 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		HasSource:  len(repositories) != 0,
 		Namespace:  c.originNamespace,
 	}, nil
+}
+
+func (c *AppConfig) Querying() bool {
+	return c.AsList || c.AsSearch
+}
+
+func (c *AppConfig) HasArguments() bool {
+	return len(c.Components) > 0 ||
+		len(c.ImageStreams) > 0 ||
+		len(c.DockerImages) > 0 ||
+		len(c.Templates) > 0 ||
+		len(c.TemplateFiles) > 0
 }

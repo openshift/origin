@@ -23,6 +23,8 @@ func stringProximityScorer(s, query string) float32 {
 
 	var score float32
 	switch {
+	case query == "*":
+		score = 0.0
 	case s == query:
 		score = 0.0
 	case strings.EqualFold(s, query):

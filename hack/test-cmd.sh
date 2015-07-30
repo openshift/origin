@@ -537,10 +537,17 @@ oc create -f examples/image-streams/image-streams-centos7.json
 # check search - no matches
 [ "$(oc new-app -S foo-the-bar 2>&1 | grep 'no matches found')" ]
 [ "$(oc new-app --search winter-is-coming 2>&1 | grep 'no matches found')" ]
-# check search - mutually exclusive flags
+# check search - mutually exclusive flags and other validations
 [ "$(oc new-app -S mysql --env=FOO=BAR 2>&1 | grep "can't be used")" ]
 [ "$(oc new-app --search mysql --code=https://github.com/openshift/ruby-hello-world 2>&1 | grep "can't be used")" ]
 [ "$(oc new-app --search mysql --param=FOO=BAR 2>&1 | grep "can't be used")" ]
+[ "$(oc new-app --search 2>&1 | grep "You must specify one or more")" ]
+# check list
+[ "$(oc new-app --list | grep mysql-55-centos7)" ]
+[ "$(oc new-app -L | grep postgresql-92-centos7)" ]
+[ "$(oc new-app --list | grep ruby-helloworld-sample)" ]
+[ "$(oc new-app --list ruby 2>&1 | grep "list can't be used with arguments")" ]
+[ "$(oc new-app --list --search 2>&1 | grep "can't be used together")" ]
 oc delete imageStreams --all
 # check that we can create from the template without errors
 oc new-app ruby-helloworld-sample -l app=helloworld
