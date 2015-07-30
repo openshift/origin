@@ -52,4 +52,7 @@ type Parameter struct {
 
 	// Optional: From is an input value for the generator.
 	From string `json:"from,omitempty"`
+
+	// Optional: Indicates the parameter must have a value.  Defaults to false.
+	Required bool `json:"required,omitempty" description:"indicates the parameter must have a non-empty value or be generated"`
 }

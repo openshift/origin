@@ -17,11 +17,12 @@ import (
 	"github.com/openshift/origin/pkg/template/generator"
 )
 
-func makeParameter(name, value, generate string) api.Parameter {
+func makeParameter(name, value, generate string, required bool) api.Parameter {
 	return api.Parameter{
 		Name:     name,
 		Value:    value,
 		Generate: generate,
+		Required: required,
 	}
 }
 
@@ -31,8 +32,8 @@ func TestAddParameter(t *testing.T) {
 	jsonData, _ := ioutil.ReadFile("../../test/templates/fixtures/guestbook.json")
 	json.Unmarshal(jsonData, &template)
 
-	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", ""))
-	AddParameter(&template, makeParameter("CUSTOM_PARAM", "2", ""))
+	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", "", false))
+	AddParameter(&template, makeParameter("CUSTOM_PARAM", "2", "", false))
 
 	if p := GetParameterByName(&template, "CUSTOM_PARAM"); p == nil {
 		t.Errorf("Unable to add a custom parameter to the template")
@@ -57,6 +58,13 @@ func (g ErrorGenerator) GenerateValue(expression string) (interface{}, error) {
 	return "", fmt.Errorf("error")
 }
 
+type EmptyGenerator struct {
+}
+
+func (g EmptyGenerator) GenerateValue(expression string) (interface{}, error) {
+	return "", nil
+}
+
 func TestParameterGenerators(t *testing.T) {
 	tests := []struct {
 		parameter  api.Parameter
@@ -65,28 +73,40 @@ func TestParameterGenerators(t *testing.T) {
 		expected   api.Parameter
 	}{
 		{ // Empty generator, should pass
-			makeParameter("PARAM", "X", ""),
+			makeParameter("PARAM", "X", "", false),
 			map[string]generator.Generator{},
 			true,
-			makeParameter("PARAM", "X", ""),
+			makeParameter("PARAM", "X", "", false),
 		},
 		{ // Foo generator, should pass
-			makeParameter("PARAM", "", "foo"),
+			makeParameter("PARAM", "", "foo", false),
 			map[string]generator.Generator{"foo": FooGenerator{}},
 			true,
-			makeParameter("PARAM", "foo", ""),
+			makeParameter("PARAM", "foo", "", false),
 		},
 		{ // Invalid generator, should fail
-			makeParameter("PARAM", "", "invalid"),
+			makeParameter("PARAM", "", "invalid", false),
 			map[string]generator.Generator{"invalid": nil},
 			false,
-			makeParameter("PARAM", "", "invalid"),
+			makeParameter("PARAM", "", "invalid", false),
 		},
 		{ // Error generator, should fail
-			makeParameter("PARAM", "", "error"),
+			makeParameter("PARAM", "", "error", false),
 			map[string]generator.Generator{"error": ErrorGenerator{}},
 			false,
-			makeParameter("PARAM", "", "error"),
+			makeParameter("PARAM", "", "error", false),
+		},
+		{ // Error required parameter, no value, should fail
+			makeParameter("PARAM", "", "", true),
+			map[string]generator.Generator{"error": ErrorGenerator{}},
+			false,
+			makeParameter("PARAM", "", "", true),
+		},
+		{ // Error required parameter, no value from generator, should fail
+			makeParameter("PARAM", "", "empty", true),
+			map[string]generator.Generator{"empty": EmptyGenerator{}},
+			false,
+			makeParameter("PARAM", "", "empty", true),
 		},
 	}
 
@@ -132,7 +152,7 @@ func TestProcessValueEscape(t *testing.T) {
 	processor := NewProcessor(generators)
 
 	// Define custom parameter for the transformation:
-	AddParameter(&template, makeParameter("VALUE", "1", ""))
+	AddParameter(&template, makeParameter("VALUE", "1", "", false))
 
 	// Transform the template config into the result config
 	errs := processor.Process(&template)
@@ -327,7 +347,7 @@ func TestProcessTemplateParameters(t *testing.T) {
 	processor := NewProcessor(generators)
 
 	// Define custom parameter for the transformation:
-	AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", ""))
+	AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", "", false))
 
 	// Transform the template config into the result config
 	errs := processor.Process(&template)

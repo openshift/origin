@@ -2618,6 +2618,7 @@ func convert_api_Parameter_To_v1_Parameter(in *templateapi.Parameter, out *templ
 	out.Value = in.Value
 	out.Generate = in.Generate
 	out.From = in.From
+	out.Required = in.Required
 	return nil
 }
 
@@ -2653,6 +2654,7 @@ func convert_v1_Parameter_To_api_Parameter(in *templateapiv1.Parameter, out *tem
 	out.Value = in.Value
 	out.Generate = in.Generate
 	out.From = in.From
+	out.Required = in.Required
 	return nil
 }
 

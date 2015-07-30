@@ -169,6 +169,11 @@ func (p *Processor) GenerateParameterValues(t *api.Template) error {
 				return fmt.Errorf("template.parameters[%v]: Unable to convert the generated value '%#v' to string", i, value)
 			}
 		}
+		if len(param.Value) == 0 && param.Required {
+			err := fielderrors.NewFieldRequired(fmt.Sprintf("parameters[%d].value", i))
+			err.Detail = fmt.Sprintf("parameter %s is required and must be specified")
+			return err
+		}
 	}
 	return nil
 }
