@@ -7,7 +7,7 @@
       <div class="middle-header header-light">
         <div class="container-fluid">
           <div class="page-header page-header-bleed-right page-header-bleed-left">
-            <h1>Deployments</h1>
+            <h1 translate>Deployments</h1>
           </div>
           <alerts alerts="alerts"></alerts>
           <div ng-if="!renderOptions.showGetStarted" class="data-toolbar">
@@ -24,11 +24,11 @@
               <table class="table table-bordered table-hover table-mobile">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Last Deployment</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Trigger</th>
+                    <th translate>Name</th>
+                    <th translate>Last Deployment</th>
+                    <th translate>Status</th>
+                    <th translate>Created</th>
+                    <th translate>Trigger</th>
                   </tr>
                 </thead>
                 <!-- message doesnt show right when there are both dcs and rcs and they are all filtered -->
@@ -43,7 +43,7 @@
                       <a ng-if="deploymentConfigs[deploymentConfigName]" href="{{deploymentConfigName | navigateResourceURL : 'DeploymentConfig' : projectName}}">{{deploymentConfigName}}</a>
                       <span ng-if="deploymentConfigs[deploymentConfigName].status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-trigger="hover" dynamic-content="{{deploymentConfigs[deploymentConfigName].status.details.message}}"></span>
                     </td>
-                    <td data-title="Last"><em>No deployments</em></td>
+                    <td data-title="Last"><em translate>No deployments</em></td>
                     <td class="hidden-xs">&nbsp;</td>
                     <td class="hidden-xs">&nbsp;</td>
                     <td class="hidden-xs">&nbsp;</td>
@@ -53,7 +53,7 @@
                     <td data-title="Name">
                       <a href="{{deploymentConfigName | navigateResourceURL : 'DeploymentConfig' : deployment.metadata.namespace}}">{{deploymentConfigName}}</a>
                       <span ng-if="deploymentConfigs[deploymentConfigName].status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-trigger="hover" dynamic-content="{{deploymentConfigs[deploymentConfigName].status.details.message}}"></span>
-                      <span ng-if="deploymentConfigs && !deploymentConfigs[deploymentConfigName]" class="pficon pficon-warning-triangle-o" data-toggle="tooltip" title="This deployment config no longer exists" style="cursor: help;"></span>
+                      <span ng-if="deploymentConfigs && !deploymentConfigs[deploymentConfigName]" class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-original-title="{{'This deployment config no longer exists'|translate}}" style="cursor: help;"></span>
                     </td>
                     <td data-title="Last">
                       <!-- Deployment number and link -->
@@ -79,7 +79,7 @@
                       <span>- {{deployment.metadata.creationTimestamp | date : 'short'}}</span>
                     </td>
                     <td data-title="Trigger">
-                      <span ng-if="!deployment.causes.length">Unknown</span>
+                      <span ng-if="!deployment.causes.length" translate>Unknown</span>
                       <span ng-if="deployment.causes.length">
                         <span ng-repeat="cause in deployment.causes">
                           <span ng-switch="cause.type">
@@ -88,7 +88,7 @@
                                 <abbr title="{{cause.imageTrigger.from | imageObjectRef : null : true}}">Image</abbr> change
                               </span>
                             </span>
-                            <span ng-switch-when="ConfigChange">Config change</span>
+                            <span ng-switch-when="ConfigChange" translate>Config change</span>
                             <span ng-switch-default>{{cause.type}}</span>
                           </span>
                         </span>
@@ -98,16 +98,16 @@
                 </tbody>
               </table>
               <div ng-if="(unfilteredReplicationControllers | hashSize) > 0">
-                <h3>Other replication controllers</h3>
+                <h3 translate>Other replication controllers</h3>
                 <table class="table table-bordered table-hover table-mobile">
                   <thead>
                     <tr>
-                      <th>Name</th>
-                      <th>Replicas</th>
-                      <th>Created</th>
+                      <th translate>Name</th>
+                      <th translate>Replicas</th>
+                      <th translate>Created</th>
                     </tr>
                   </thead>
-                  <tbody ng-if="(deploymentsByDeploymentConfig[''] | hashSize) === 0"><tr><td colspan="3"><em>No replication controllers to show</em></td></tr></tbody>
+                  <tbody ng-if="(deploymentsByDeploymentConfig[''] | hashSize) === 0"><tr><td colspan="3"><em translate>No replication controllers to show</em></td></tr></tbody>
                   <tbody ng-repeat="deployment in deploymentsByDeploymentConfig[''] | orderObjectsByDate : true">
                     <!-- We only show this if there are replication controllers but the active filter is hiding them, otherwise the RC table doesnt show
                          at all -->

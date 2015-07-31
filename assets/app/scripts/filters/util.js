@@ -240,9 +240,9 @@ angular.module('openshiftConsole')
       return link;
     };
   })
-  .filter('yesNo', function() {
+  .filter('yesNo', function(gettextCatalog) {
       return function(isTrue) {
-          return isTrue ? 'Yes' : 'No';
+          return isTrue ? gettextCatalog.getString('Yes') : gettextCatalog.getString('No');
       };
   })
   /**
@@ -323,7 +323,7 @@ angular.module('openshiftConsole')
       return limitToFilter(input, limit);
     };
   })
-  .filter("getErrorDetails", function() {
+  .filter("getErrorDetails", function(gettextCatalog) {
     return function(result) {
       var error = result.data || {};
       if (error.message) {
@@ -332,7 +332,7 @@ angular.module('openshiftConsole')
 
       var status = result.status || error.status;
       if (status) {
-        return "Status: " + status;
+        return gettextCatalog.getString("Status: ") + status;
       }
 
       return "";

@@ -26,7 +26,8 @@ angular.module('openshiftConsole')
                         $parse,
                         $filter,
                         $interval,
-                        RoutesService) {
+                        RoutesService,
+                        gettextCatalog) {
     $scope.projectName = $routeParams.project;
     $scope.pods = {};
     $scope.services = {};
@@ -67,7 +68,7 @@ angular.module('openshiftConsole')
 
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
-    $scope.emptyMessage = "Loading...";
+    $scope.emptyMessage = gettextCatalog.getString("Loading...");
     $scope.renderOptions = $scope.renderOptions || {};
     // Wait until data loads before showing the toolbar.
     $scope.renderOptions.showToolbar = false;
@@ -144,7 +145,7 @@ angular.module('openshiftConsole')
             });
           });
 
-          $scope.emptyMessage = "No services to show";
+          $scope.emptyMessage = gettextCatalog.getString("No services to show");
           updateFilterWarning();
           updateTopologyLater();
           Logger.log("services (list)", $scope.services);
@@ -451,7 +452,7 @@ angular.module('openshiftConsole')
           if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.services) && !$.isEmptyObject($scope.unfilteredServices)) {
             $scope.alerts["services"] = {
               type: "warning",
-              details: "The active filters are hiding all services."
+              details: gettextCatalog.getString("The active filters are hiding all services.")
             };
           }
           else {

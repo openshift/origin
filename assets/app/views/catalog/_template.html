@@ -6,16 +6,16 @@
     <div flex>
       <h3><a class="tile-target" ng-href="{{template | createFromTemplateURL : project}}">{{template.metadata.name}}</a></h3>
       <div ng-if="template | annotation : 'provider'">
-        <label style="margin-right: 5px;">Provider:</label>
+        <label style="margin-right: 5px;" translate>Provider:</label>
         {{template | annotation : 'provider'}}
       </div>
       <!-- Only show the namespace if it's not in the shared openshift namespace -->
       <div ng-if="template.metadata.namespace !== 'openshift'">
-        <label style="margin-right: 5px;">Namespace:</label>
+        <label style="margin-right: 5px;" translate>Namespace:</label>
         {{template.metadata.namespace}}
       </div>
       <div ng-if="template | annotation : 'version'">
-        <label style="margin-right: 5px;">Version:</label>
+        <label style="margin-right: 5px;" translate>Version:</label>
         {{template | annotation : 'version'}}
       </div>
       <a href=""

@@ -61,7 +61,7 @@
 
 
         <div row class="has-error" ng-show="form.key.$error.oscKeyValid">
-          <span class="help-block">Please enter a valid {{setErrorText(keyValidator)}}
+          <span class="help-block" translate>Please enter a valid {{setErrorText(keyValidator)}}
             <span class="help action-inline" ng-if="keyValidationTooltip">
               <a href="" data-toggle="tooltip" data-original-title="{{keyValidationTooltip}}">
                 <i class="pficon pficon-help"></i>
@@ -73,7 +73,7 @@
 
 
         <div row class="has-error" ng-show="form.value.$error.oscValueValid">
-          <span class="help-block">Please enter a valid value
+          <span class="help-block"><translate>Please enter a valid value</translate>
             <span class="help action-inline" ng-if="keyValidationTooltip">
               <a href="" data-toggle="tooltip" data-original-title="{{valueValidationTooltip}}">
                 <i class="pficon pficon-help"></i>
@@ -134,14 +134,14 @@
                 href=""
                 ng-click="edit()"
                 class="btn btn-default btn-xs"
-                title="Edit">
+                data-original-title="{{'Edit'|translate}}">
                 <i class="icon icon-pencil"></i>
               </a>
               <a
                 href=""
                 ng-click="deleteEntry(key)"
                 class="btn btn-default btn-xs"
-                title="Delete"
+                data-original-title="{{'Delete'|translate}}"
                 ng-if="allowDelete(key)">
                 <i class="fa fa-times"></i>
               </a>
@@ -171,7 +171,7 @@
                   href=""
                   ng-click="update(key, value, $parent.entries)"
                   class="btn btn-default btn-xs"
-                  title="Submit">
+                  data-original-title="{{'Submit'|translate}}">
                   <i class="icon icon-ok"></i>
                 </a>
               </div>
@@ -179,7 +179,7 @@
                 href=""
                 ng-click="cancel()"
                 class="btn btn-default btn-xs"
-                title="Cancel">
+                data-original-title="{{'Cancel'|translate}}">
                 <i class="icon icon-remove"></i>
               </a>
             </div>
@@ -191,7 +191,7 @@
       </div>
     </div>
     <div ng-hide="editable">
-      <div ng-if="(entries | hashSize) === 0"><strong>None</strong></div>
+      <div ng-if="(entries | hashSize) === 0"><strong translate>None</strong></div>
       <ul ng-if="(entries | hashSize) !== 0" class="labels-readonly label-list list-unstyled">
         <li ng-repeat="(key,value) in entries">
           <span class="key truncate" ng-attr-title="{{key}}">{{key}}</span>

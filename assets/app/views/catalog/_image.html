@@ -8,16 +8,16 @@
         <a class="tile-target" ng-href="{{imageStream | createFromImageURL : imageTag : project}}">{{imageStream.metadata.name}}:{{imageTag}}</a>
       </h3>
       <div ng-if="imageStream | imageStreamTagAnnotation : 'provider' : imageTag">
-        <label style="margin-right: 5px;">Provider:</label>
+        <label style="margin-right: 5px;" translate>Provider:</label>
         {{imageStream | imageStreamTagAnnotation : 'provider' : imageTag}}
       </div>
       <!-- Only show the namespace if it's not in the shared openshift namespace -->
       <div ng-if="imageStream.metadata.namespace !== 'openshift'">
-        <label style="margin-right: 5px;">Namespace:</label>
+        <label style="margin-right: 5px;" translate>Namespace:</label>
         {{imageStream.metadata.namespace}}
       </div>
       <div ng-if="version && version !== imageTag">
-        <label style="margin-right: 5px;">Version:</label>
+        <label style="margin-right: 5px;" translate>Version:</label>
         {{version}}
       </div>
       <a href=""
@@ -34,8 +34,8 @@
         class="pficon pficon-image tile-badge-icon"
         aria-hidden="true"
         data-toggle="tooltip"
-        data-original-title="Builder Image"></i>
-      <span class="sr-only">Builder Image</span>
+        data-original-title="{{'Builder Image'|translate}}"></i>
+      <span class="sr-only" translate>Builder Image</span>
     </div>
   </div>
 </div>

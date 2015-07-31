@@ -12,46 +12,46 @@
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <div class="row">
               <div class="col-md-12">
-                <p ng-if="emptyCatalog && !loaded">Loading...</p>
+                <p ng-if="emptyCatalog && !loaded" translate>Loading...</p>
 
                 <div ng-if="emptyCatalog && loaded && !nonBuilderImages.length" class="empty-state-message empty-state-full-page">
-                  <h2 class="text-center">No images or templates.</h2>
+                  <h2 class="text-center" translate>No images or templates.</h2>
 
-                  <p class="gutter-top">
+                  <p class="gutter-top" translate>
                     No images or templates are loaded for this project or the shared
                     <code>openshift</code> namespace. An image or template is
                     required to add content.
                   </p>
 
                   <p>
-                    To load an image stream or template from a file, run the command
+                    <translate>To load an image stream or template from a file, run the command</translate>
                     <div><code>oc create -f &lt;filename&gt; -n {{projectName}}</code></div>
                   </p>
 
-                  <p><a href="{{projectName | projectOverviewURL}}">Back to overview</a></p>
+                  <p><a href="{{projectName | projectOverviewURL}}" translate>Back to overview</a></p>
                 </div>
 
                 <!-- Show an abbreviated message if only non-builders exist in the project.
                      We show a link to view the non-builder images below. -->
-                <p ng-if="emptyCatalog && loaded && nonBuilderImages.length">No builder images or templates.</p>
+                <p ng-if="emptyCatalog && loaded && nonBuilderImages.length" translate>No builder images or templates.</p>
 
                 <div ng-show="!emptyCatalog">
-                  <h1>Select Image or Template</h1>
+                  <h1 translate>Select Image or Template</h1>
 
                   <div class="row">
                     <!-- Right padding to line up cleanly with the left column tiles. -->
                     <div class="col-sm-6 catalog-header-left">
-                      Choose from web frameworks, databases, and other components to
-                      add content to your project.
+                      <translate>Choose from web frameworks, databases, and other components to
+                      add content to your project.</translate>
 
                       <div class="filter-group">
                         <!-- Add a hidden label for screen readers. -->
-                        <label for="search" class="sr-only">Filter by keyword</label>
+                        <label for="search" class="sr-only" translate>Filter by keyword</label>
                         <!-- Pull the filter right so the input and dropdown button
                              can use 100% width on the same line. -->
                         <div uib-dropdown uib-keyboard-nav class="btn-group pull-right">
                           <button class="btn btn-default dropdown-toggle" data-toggle="dropdown" role="menu">
-                            Browse
+                            <translate>Browse</translate>
                             <span class="caret" aria-hidden="true"></span>
                           </button>
                           <ul class="uib-dropdown-menu">
@@ -80,8 +80,8 @@
                          </div>
 
                         <div ng-if="filter.tag">
-                          Tagged with {{filter.tag}}.
-                          <a href="" ng-click="filter.tag = ''">See all tags</a>
+                          <translate>Tagged with {{filter.tag}}.</translate>
+                          <a href="" ng-click="filter.tag = ''" translate>See all tags</a>
                         </div>
                       </div>
                     </div>
@@ -90,24 +90,24 @@
                     <div class="col-sm-6 catalog-legend">
                       <dl aria-hidden="true" class="text-muted">
                         <dt>
-                          <i class="pficon pficon-image fa-fw"></i> Builder Image
+                          <i class="pficon pficon-image fa-fw"></i> <translate>Builder Image</translate>
                         </dt>
-                        <dd>Builds images from source code in a Git repository.</dd>
+                        <dd translate>Builds images from source code in a Git repository.</dd>
                         <dt>
-                          <i class="fa fa-clone fa-fw"></i> Template
+                          <i class="fa fa-clone fa-fw"></i> <translate>Template</translate>
                         </dt>
-                        <dd>Creates a predefined set of resources.</dd>
+                        <dd translate>Creates a predefined set of resources.</dd>
                         <dt>
-                          <i class="fa fa-bolt fa-fw"></i> Quickstart
+                          <i class="fa fa-bolt fa-fw"></i> <translate>Quickstart</translate>
                         </dt>
-                        <dd>Provides a skeleton for developing an application.</dd>
+                        <dd translate>Provides a skeleton for developing an application.</dd>
                       </dl>
                     </div>
                   </div>
 
                   <div ng-if="filteredCategoryTags.length === 0 && !emptyCatalog && loaded" style="margin-top: 5px;">
-                    All builder images and templates are hidden by the current filter.
-                    <a href="" ng-click="filter.keyword = ''; filter.tag = ''">Clear filter</a>
+                    <translate>All builder images and templates are hidden by the current filter.</translate>
+                    <a href="" ng-click="filter.keyword = ''; filter.tag = ''" translate>Clear filter</a>
                   </div>
 
                   <div row md="column" class="gutter-top">
@@ -141,10 +141,10 @@
 
                   <!-- Don't show images without the builder tag by default, by allow the user to pick one. -->
                   <div ng-if="filteredNonBuilders.length" click-to-reveal link-text="Don't see the image you are looking for?" class="gutter-bottom">
-                    <h2>Additional Images</h2>
+                    <h2 translate>Additional Images</h2>
                     <div class="gutter-bottom">
                       <span class="pficon pficon-warning-triangle-o"></span>
-                      Some images in this list may not be able to build source. Use with caution.
+                      <translate>Some images in this list may not be able to build source. Use with caution.</translate>
                     </div>
                     <div class="catalog catalog-fluid">
                       <catalog-image

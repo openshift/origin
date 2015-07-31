@@ -8,7 +8,7 @@
           <div class="container-fluid">
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
-            <div ng-if="!loaded">Loading...</div>
+            <div ng-if="!loaded" translate>Loading...</div>
             <div ng-if="build">
               <h1>
                 {{build.metadata.name}}
@@ -24,26 +24,26 @@
                   <!-- Primary Actions -->
                   <button class="btn btn-default hidden-xs"
                           ng-click="cancelBuild()"
-                          ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)">Cancel Build</button>
+                          ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)" translate>Cancel Build</button>
                   <button class="btn btn-default hidden-xs"
                           ng-click="cloneBuild()"
                           ng-hide="build.metadata.deletionTimestamp || (build | isIncompleteBuild)"
-                          ng-disabled="!canBuild">Rebuild</button>
+                          ng-disabled="!canBuild" translate>Rebuild</button>
 
                   <!-- Secondary Actions -->
                   <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
-                    Actions
+                    <translate>Actions</translate>
                     <span class="caret" aria-hidden="true"></span>
                   </button>
                   <a href=""
                      class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
-                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only" translate>Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
                     <li ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)"
                         class="visible-xs-inline">
                       <a href=""
                          role="button"
-                         ng-click="cancelBuild()">Cancel Build</a>
+                         ng-click="cancelBuild()" translate>Cancel Build</a>
                     </li>
                     <li class="visible-xs-inline"
                         ng-class="{ disabled: !canBuild }"
@@ -52,7 +52,7 @@
                          role="button"
                          ng-click="cloneBuild()"
                          ng-attr-aria-disabled="{{canBuild ? undefined : 'true'}}"
-                         ng-class="{ 'disabled-link': !canBuild }">Rebuild</a>
+                         ng-class="{ 'disabled-link': !canBuild }" translate>Rebuild</a>
                     </li>
                     <li>
                       <edit-link
@@ -84,18 +84,18 @@
 
                   <uib-tabset>
                     <uib-tab active="selectedTab.details">
-                      <uib-tab-heading>Details</uib-tab-heading>
+                      <uib-tab-heading translate>Details</uib-tab-heading>
                       <ng-include src=" 'views/browse/_build-details.html' "></ng-include>
                     </uib-tab>
 
                     <uib-tab heading="Environment" active="selectedTab.environment">
-                      <uib-tab-heading>Environment</uib-tab-heading>
+                      <uib-tab-heading translate>Environment</uib-tab-heading>
                       <environment env-vars="(build | buildStrategy).env"></environment>
-                      <em ng-if="!(build | buildStrategy).env">The build strategy had no environment variables defined.</em>
+                      <em ng-if="!(build | buildStrategy).env" translate>The build strategy had no environment variables defined.</em>
                     </uib-tab>
 
                     <uib-tab active="selectedTab.logs">
-                      <uib-tab-heading>Logs</uib-tab-heading>
+                      <uib-tab-heading translate>Logs</uib-tab-heading>
                       <log-viewer
                         ng-if="selectedTab.logs"
                         follow-affix-top="390"

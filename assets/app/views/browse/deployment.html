@@ -8,7 +8,7 @@
           <div class="container-fluid">
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
-            <div ng-if="!loaded">Loading...</div>
+            <div ng-if="!loaded" translate>Loading...</div>
             <div ng-if="deployment">
               <h1>
                 {{deployment.metadata.name}}
@@ -18,23 +18,23 @@
                   style="cursor: help; vertical-align: middle;"
                   data-toggle="tooltip"
                   data-trigger="hover"
-                  title="The deployment's deployment config is missing."
+                  data-original-title="{{'The deployment's deployment config is missing.'|translate}}"
                   aria-hidden="true">
                 </span>
-                <span ng-if="deploymentConfigMissing" class="sr-only">Warning: The deployment's deployment config is missing.</span>
+                <span ng-if="deploymentConfigMissing" class="sr-only" translate>Warning: The deployment's deployment config is missing.</span>
                 <small class="meta">created <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp></small>
                 <div class="pull-right dropdown">
                   <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
-                    Actions
+                    <translate>Actions</translate>
                     <span class="caret"></span>
                   </button>
                   <a href=""
                      class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
-                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                     data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only" translate>Actions</span></a>
                   <ul class="dropdown-menu actions action-button">
                     <li>
                       <a ng-href="project/{{project.metadata.name}}/attach-pvc?deployment={{deployment.metadata.name}}"
-                         role="button">Attach Storage</a>
+                         role="button" translate>Attach Storage</a>
                     </li>
                     <li>
                       <edit-link
@@ -73,15 +73,15 @@
                     </div>
                   </uib-tab>
                   <uib-tab heading="Environment" active="selectedTab.environment">
-                    <uib-tab-heading>Environment</uib-tab-heading>
+                    <uib-tab-heading translate>Environment</uib-tab-heading>
                     <div ng-repeat="container in deployment.spec.template.spec.containers">
-                      <h3>Container {{container.name}}</h3>
+                      <h3 translate>Container {{container.name}}</h3>
                       <environment env-vars="container.env" ng-if="container.env.length"></environment>
-                      <em ng-if="!container.env.length">The container specification has no environment variables set.</em>
+                      <em ng-if="!container.env.length" translate>The container specification has no environment variables set.</em>
                     </div>
                   </uib-tab>
                   <uib-tab ng-if="deploymentConfigName && logOptions.version" active="selectedTab.logs">
-                    <uib-tab-heading>Logs</uib-tab-heading>
+                    <uib-tab-heading translate>Logs</uib-tab-heading>
                     <log-viewer
                       ng-if="selectedTab.logs"
                       follow-affix-top="390"
@@ -107,7 +107,7 @@
                     </log-viewer>
                   </uib-tab>
                   <uib-tab active="selectedTab.events">
-                    <uib-tab-heading>Events</uib-tab-heading>
+                    <uib-tab-heading translate>Events</uib-tab-heading>
                     <events resource-kind="ReplicationController" resource-name="{{deployment.metadata.name}}" project-context="projectContext" ng-if="selectedTab.events"></events>
                   </uib-tab>
                 </uib-tabset>

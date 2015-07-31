@@ -24,7 +24,7 @@
                         <form class="" ng-show="imageStream" novalidate name="form" ng-submit="createApp()">
                           <div style="margin-bottom: 15px;">
                             <div class="form-group">
-                             <label for="appname" class="required">Name</label>
+                             <label for="appname" class="required" translate>Name</label>
                              <!--
                                Only validate the name pattern and minlength if the field has both been changed and blurred.  This
                                avoids a lot of problems clicking on the try it / more options links below.  Don't use $touched,
@@ -49,26 +49,26 @@
                                       autocapitalize="off"
                                       spellcheck="false">
                               </div>
-                              <div class="help-block">Identifies the resources created for this application.</div>
+                              <div class="help-block" translate>Identifies the resources created for this application.</div>
                               <div class="has-error" ng-show="form.appname.$error.required && form.appname.$dirty">
-                                <span class="help-block">A name is required.</span>
+                                <span class="help-block" translate>A name is required.</span>
                               </div>
                               <div class="has-error" ng-show="form.appname.$error.pattern && shouldValidateName">
-                                <span class="help-block"><strong>Please enter a valid name.</strong>
-                                <p>A valid name is applied to all generated resources. It is an alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.</p>
+                                <span class="help-block"><strong translate>Please enter a valid name.</strong>
+                                <p translate>A valid name is applied to all generated resources. It is an alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.</p>
                                 </span>
                               </div>
                               <div class="has-error" ng-show="form.appname.$error.minlength && shouldValidateName">
-                                <span class="help-block">The name must have at least 2 characters.</span>
+                                <span class="help-block" translate>The name must have at least 2 characters.</span>
                               </div>
                               <div class="has-error" ng-show="nameTaken">
-                                <span class="help-block">This name is already in use within the project. Please choose a different name.</span>
+                                <span class="help-block" translate>This name is already in use within the project. Please choose a different name.</span>
                               </div>
                             </div>
                           </div>
 
                           <div class="form-group">
-                            <label for="sourceUrl" class="required">Git Repository URL</label>
+                            <label for="sourceUrl" class="required" translate>Git Repository URL</label>
                             <div ng-class="{'has-warning': form.sourceUrl.$dirty && !sourceURLPattern.test(buildConfig.sourceUrl), 'has-error': (form.sourceUrl.$error.required && form.sourceUrl.$dirty)}">
                               <!-- Unfortunately, we can't set type="url" because some valid values don't pass browser validation. -->
                               <input class="form-control"
@@ -87,19 +87,19 @@
                                 ref: {{image.metadata.annotations.sampleRef}}</span><span ng-if="image.metadata.annotations.sampleContextDir">,
                                 context dir: {{image.metadata.annotations.sampleContextDir}}</span>
                               <a href="" ng-click="fillSampleRepo()"
-                                style="margin-left: 3px;" class="nowrap">Try it<i class="fa fa-level-up" style="margin-left: 3px; font-size: 17px;"></i></a>
+                                style="margin-left: 3px;" class="nowrap"><translate>Try it</translate><i class="fa fa-level-up" style="margin-left: 3px; font-size: 17px;"></i></a>
                             </div>
                             <div class="has-error" ng-show="form.sourceUrl.$error.required && form.sourceUrl.$dirty">
-                              <span class="help-block">A Git repository URL is required.</span>
+                              <span class="help-block" translate>A Git repository URL is required.</span>
                             </div>
                             <div>
-                              <span class="text-warning" ng-if="form.sourceUrl.$dirty && !sourceURLPattern.test(buildConfig.sourceUrl)">Git repository should be a URL.</span>
+                              <span class="text-warning" ng-if="form.sourceUrl.$dirty && !sourceURLPattern.test(buildConfig.sourceUrl)" translate>Git repository should be a URL.</span>
                             </div>
                           </div>
 
                           <div click-to-reveal link-text="Show advanced routing, build, and deployment options">
                             <div class="form-group">
-                              <label for="gitref">Git Reference</label>
+                              <label for="gitref" translate>Git Reference</label>
                               <div>
                                 <input
                                   id="gitref"
@@ -111,10 +111,10 @@
                                   spellcheck="false"
                                   class="form-control">
                               </div>
-                              <div class="help-block">Optional branch, tag, or commit.</div>
+                              <div class="help-block" translate>Optional branch, tag, or commit.</div>
                             </div>
                             <div class="form-group">
-                              <label for="contextdir">Context Dir</label>
+                              <label for="contextdir" translate>Context Dir</label>
                               <div>
                                 <input
                                   id="contextdir"
@@ -126,7 +126,7 @@
                                   spellcheck="false"
                                   class="form-control">
                               </div>
-                              <div class="help-block">Optional subdirectory for the application source code, used as the context directory for the build.</div> </div>
+                              <div class="help-block" translate>Optional subdirectory for the application source code, used as the context directory for the build.</div> </div>
 
                             <!-- Only show routing options if the image has exposed ports. -->
                             <osc-form-section
@@ -140,7 +140,7 @@
                               <div class="form-group checkbox">
                                 <label>
                                   <input type="checkbox" ng-model="routing.include">
-                                  Create a route to the application
+                                  <translate>Create a route to the application</translate>
                                 </label>
                               </div>
                               <osc-routing
@@ -162,10 +162,10 @@
                               <div class="checkbox">
                                 <label>
                                   <input type="checkbox" ng-model="buildConfig.buildOnSourceChange"/>
-                                  Configure a webhook build trigger
+                                  <translate>Configure a webhook build trigger</translate>
                                   <span class="help action-inline">
                                     <a href data-toggle="tooltip"
-                                       data-original-title="The source repository must be configured to use the webhook to trigger a build when source is committed.">
+                                       data-original-title="{{'The source repository must be configured to use the webhook to trigger a build when source is committed.'|translate}}">
                                       <i class="pficon pficon-help"></i>
                                     </a>
                                   </span>
@@ -174,9 +174,9 @@
                               <div class="checkbox">
                                 <label>
                                   <input type="checkbox" ng-model="buildConfig.buildOnImageChange"/>
-                                  Automatically build a new image when the builder image changes
+                                  <translate>Automatically build a new image when the builder image changes</translate>
                                   <span class="help action-inline">
-                                    <a href data-toggle="tooltip" data-original-title="Automatically building a new image when the builder image changes allows your code to always run on the latest updates.">
+                                    <a href data-toggle="tooltip" data-original-title="{{'Automatically building a new image when the builder image changes allows your code to always run on the latest updates.'|translate}}">
                                     <i class="pficon pficon-help"></i>
                                     </a>
                                   </span>
@@ -185,12 +185,12 @@
                               <div class="checkbox">
                                 <label>
                                   <input type="checkbox" ng-model="buildConfig.buildOnConfigChange"/>
-                                  Automatically build a new image when the build configuration changes
+                                  <translate>Automatically build a new image when the build configuration changes</translate>
                                 </label>
                               </div>
-                              <h3>Environment Variables (Build and Runtime) <span class="help action-inline">
+                              <h3><translate>Environment Variables (Build and Runtime)</translate> <span class="help action-inline">
                                 <a href data-toggle="tooltip"
-                                   data-original-title="Environment variables are used to configure and pass information to running containers.  These environment variables will be available during your build and at runtime.">
+                                   data-original-title="{{'Environment variables are used to configure and pass information to running containers.  These environment variables will be available during your build and at runtime.'|translate}}">
                                   <i class="pficon pficon-help"></i>
                                 </a>
                               </span></h3>
@@ -213,23 +213,23 @@
                               can-toggle="false"
                               >
                               <div class="animate-drawer" ng-show="$parent.expand">
-                                <h3>Autodeploy when</h3>
+                                <h3 translate>Autodeploy when</h3>
                                 <div class="checkbox">
                                   <label>
                                     <input type="checkbox" ng-model="deploymentConfig.deployOnNewImage">
-                                    New image is available
+                                    <translate>New image is available</translate>
                                   </label>
                                 </div>
                                 <div class="checkbox">
                                 <label>
                                   <input type="checkbox" ng-model="deploymentConfig.deployOnConfigChange">
-                                  Deployment configuration changes
+                                  <translate>Deployment configuration changes</translate>
                                 </label>
                                 </div>
                                 <div>
-                                  <h3>Environment Variables (Runtime only) <span class="help action-inline">
+                                  <h3><translate>Environment Variables (Runtime only)</translate> <span class="help action-inline">
                                     <a href data-toggle="tooltip"
-                                       data-original-title="Environment variables are used to configure and pass information to running containers.  These environment variables will only be available at runtime.">
+                                       data-original-title="{{'Environment variables are used to configure and pass information to running containers.  These environment variables will only be available at runtime.'|translate}}">
                                       <i class="pficon pficon-help"></i>
                                     </a>
                                   </span></h3>
@@ -254,17 +254,17 @@
                               >
                               <div ng-hide="$parent.expand">
                                 <div>
-                                  <label>Replicas: </label>
+                                  <label translate>Replicas: </label>
                                   <span>{{scaling.replicas}}</span>
                                 </div>
                               </div>
                               <div ng-show="$parent.expand">
                                 <label class="number">
-                                  Replicas:
+                                  <translate>Replicas:</translate>
                                   <input type="number" class="input-number" min="0" name="replicas" ng-model="scaling.replicas" required ng-pattern="/^\-?\d+$/">
                                 </label>
                                 <div class="has-error" ng-show="form.replicas.$invalid">
-                                  <span class="help-block">Replicas must be an integer value greater than or equal to 0</span>
+                                  <span class="help-block" translate>Replicas must be an integer value greater than or equal to 0</span>
                                 </div>
                               </div>
                             </osc-form-section>
@@ -308,8 +308,8 @@
                             <button type="submit"
                                 class="btn btn-primary btn-lg"
                                 ng-disabled="form.$invalid || nameTaken || cpuProblems.length || memoryProblems.length || disableInputs"
-                                >Create</button>
-                            <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
+                                translate>Create</button>
+                            <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}" translate>Cancel</a>
                           </div>
                         </form>
                         <div ng-hide="imageStream">

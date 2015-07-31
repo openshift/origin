@@ -8,18 +8,18 @@
         <div class="container-fluid">
           <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
           <alerts alerts="alerts"></alerts>
-          <div ng-if="!loaded">Loading...</div>
+          <div ng-if="!loaded" translate>Loading...</div>
           <div ng-if="imageStream">
             <h1>
               {{imageStream.metadata.name}}
               <div class="pull-right dropdown">
                 <button type="button" class="dropdown-toggle btn btn-default actions-dropdown-btn hidden-xs" data-toggle="dropdown">
-                  Actions
+                  <translate>Actions</translate>
                   <span class="caret" aria-hidden="true"></span>
                 </button>
                 <a href=""
                    class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
-                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only" translate>Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
                   <li>
                     <edit-link
@@ -50,9 +50,9 @@
             <div class="col-md-12">
               <div class="resource-details">
                 <dl class="dl-horizontal left">
-                  <dt ng-if-start="imageStream.spec.dockerImageRepository">Follows docker repo:</dt>
+                  <dt ng-if-start="imageStream.spec.dockerImageRepository" translate>Follows docker repo:</dt>
                   <dd ng-if-end>{{imageStream.spec.dockerImageRepository}}</dd>
-                  <dt>Docker pull spec:</dt>
+                  <dt translate>Docker pull spec:</dt>
                   <dd>{{imageStream.status.dockerImageRepository}}</dd>
                 </dl>
                 <annotations annotations="imageStream.metadata.annotations"></annotations>
@@ -60,11 +60,11 @@
               <table class="table table-bordered table-hover table-mobile">
                 <thead>
                   <tr>
-                    <th>Tag</th>
-                    <th>From</th>
-                    <th>Latest Image</th>
-                    <th>Created</th>
-                    <th>Pull Spec</th>
+                    <th translate>Tag</th>
+                    <th translate>From</th>
+                    <th translate>Latest Image</th>
+                    <th translate>Created</th>
+                    <th translate>Pull Spec</th>
                   </tr>
                 </thead>
                 <tbody ng-if="(tagsByName | hashSize) == 0">
@@ -77,7 +77,7 @@
                       <!-- this value can get long when its an ImageStreamImage. Use max width and class truncate to elide some
                            of the SHA1 for long values. They can still be copied even when elided. -->
                       <div style="max-width: 400px;" class="truncate">
-                        <span ng-if="!tag.spec.from"><em>pushed</em></span>
+                        <span ng-if="!tag.spec.from"><em translate>pushed</em></span>
                         <span ng-if="tag.spec.from">
                           <span ng-if="!tag.spec.from._imageStreamName">
                             {{tag.spec.from.name}}
@@ -96,20 +96,20 @@
                         <div ng-if="imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck'">
                           <span class="pficon pficon-warning-triangle-o" style="margin-right: 5px;"
                                 ng-attr-title="{{imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck'}}"></span>
-                          <span>Unable to resolve</span>
+                          <span translate>Unable to resolve</span>
                         </div>
                         <div ng-if="!(imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck')">
-                          <span ng-if="!tag.spec.from">Not yet synced</span>
+                          <span ng-if="!tag.spec.from" translate>Not yet synced</span>
                           <!-- We have no idea why in this case -->
-                          <span ng-if="tag.spec.from">Unresolved</span>
+                          <span ng-if="tag.spec.from" translate>Unresolved</span>
                         </div>
                       </div>
                       <div ng-if="tag.status">
                         <span ng-if="tag.status.items.length && tag.status.items[0].image" class="nowrap">
                           <short-id id="{{tag.status.items[0].image | imageName}}"></short-id>
-                          <a href="" ng-if="tag.status.items.length > 1" ng-click="tagShowOlder[tag.name] = !tagShowOlder[tag.name]" ng-attr-title="{{tagShowOlder[tag.name] ? 'Hide older images' : 'Show older images'}}"><span class="fa fa-clock-o"></span><span class="fa fa-caret-up" ng-if="tagShowOlder[tag.name]" style="margin-left: 3px;"></span></a>
+                          <a href="" ng-if="tag.status.items.length > 1" ng-click="tagShowOlder[tag.name] = !tagShowOlder[tag.name]" ng-attr-title="{{tagShowOlder[tag.name] ? ('Hide older images'|translate) : ('Show older images'|translate)}}"><span class="fa fa-clock-o"></span><span class="fa fa-caret-up" ng-if="tagShowOlder[tag.name]" style="margin-left: 3px;"></span></a>
                         </span>
-                        <span ng-if="!tag.status.items.length"><em>none</em></span>
+                        <span ng-if="!tag.status.items.length"><em translate>none</em></span>
                       </div>
                     </td>
                     <td data-title="Created">

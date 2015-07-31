@@ -28,22 +28,22 @@
   <div class="component-block component-meta" ng-if="isDeployment">
     <div class="component">
       <div class="component-label">
-        <span>Deployment: </span>
+        <span translate>Deployment: </span>
         <span class="nowrap">
           <a class="subtle-link"
              ng-href="{{deploymentConfigId | navigateResourceURL : 'DeploymentConfig' : rc.metadata.namespace}}">{{deploymentConfigId}}</a>,
           <a class="subtle-link" ng-href="{{rc | navigateResourceURL}}">#{{rc | annotation:'deploymentVersion'}}</a>
         </span>
         <span ng-if="deploymentConfigMissing" data-toggle="tooltip"
-            title="The deployment config this deployment was created from no longer exists." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
+            data-original-title="{{'The deployment config this deployment was created from no longer exists.'|translate}}" class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
         <span ng-if="deploymentConfigDifferentService" data-toggle="tooltip"
-            title="The deployment config this deployment was created from has changed. New deployments will not be included in this list." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
+            data-original-title="{{'The deployment config this deployment was created from has changed. New deployments will not be included in this list.'|translate}}" class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
 
         <!-- Show status if not deployed or complete -->
-        <span ng-if="rc | deploymentIsInProgress">&mdash; <i class="fa fa-refresh" aria-hidden="true"></i> In progress</span>
+        <span ng-if="rc | deploymentIsInProgress">&mdash; <i class="fa fa-refresh" aria-hidden="true"></i> <translate>In progress</translate></span>
         <span ng-switch="rc | deploymentStatus" class="hide-ng-leave">
-          <span ng-switch-when="Cancelled">&mdash; <span class="text-warning"><i class="fa fa-ban" aria-hidden="true"></i> Cancelled</span></span>
-          <span ng-switch-when="Failed">&mdash; <span class="text-danger"><i class="fa fa-times" aria-hidden="true"></i> Failed</span></span>
+          <span ng-switch-when="Cancelled">&mdash; <span class="text-warning"><i class="fa fa-ban" aria-hidden="true"></i> <translate>Cancelled</translate></span></span>
+          <span ng-switch-when="Failed">&mdash; <span class="text-danger"><i class="fa fa-times" aria-hidden="true"></i> <translate>Failed</translate></span></span>
         </span>
       </div>
     </div>
@@ -59,7 +59,7 @@
                   from <abbr title="{{cause.imageTrigger.from | imageObjectRef : null : true}}">image</abbr> change
                 </span>
               </span>
-              <span ng-switch-when="ConfigChange">from config change</span>
+              <span ng-switch-when="ConfigChange" translate>from config change</span>
               <span ng-switch-default>{{cause.type}}</span>
             </span>
           </span>
@@ -72,12 +72,12 @@
   <div class="component-block component-meta" ng-if="!isDeployment">
     <div class="component">
       <div class="component-label">
-        Replication Controller:
+        <translate>Replication Controller:</translate>
         <a class="subtle-link nowrap" ng-href="{{rc | navigateResourceURL}}">{{rc.metadata.name}}</a>
       </div>
     </div>
     <div class="component meta-data">
-      created <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp>
+      <translate>created</translate> <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp>
     </div>
   </div>
 
@@ -101,7 +101,7 @@
              class="sr-only"
              ng-click="viewPodsForDeployment(rc)"
              ng-if="(pods | hashSize) > 0"
-             role="button">
+             role="button" translate>
              View pods for {{rc | displayName}}
           </a>
         </div>
@@ -114,10 +114,10 @@
               <a href=""
                  ng-click="scaleUp()"
                  ng-class="{ disabled: !scalable }"
-                 ng-attr-title="{{!scalable ? undefined : 'Scale up'}}"
+                 ng-attr-title="{{!scalable ? undefined : ('Scale up'|translate)}}"
                  ng-attr-aria-disabled="{{!scalable ? 'true' : undefined}}">
                 <i class="fa fa-chevron-up"></i>
-                <span class="sr-only">Scale up</span>
+                <span class="sr-only" translate>Scale up</span>
               </a>
             </div>
             <div>
@@ -125,11 +125,11 @@
               <a href=""
                  ng-click="scaleDown()"
                  ng-class="{ disabled: !scalable || getDesiredReplicas() === 0 }"
-                 ng-attr-title="{{(!scalable || getDesiredReplicas() === 0) ? undefined : 'Scale down'}}"
+                 ng-attr-title="{{(!scalable || getDesiredReplicas() === 0) ? undefined : ('Scale down'|translate)}}"
                  ng-attr-aria-disabled="{{(!scalable || getDesiredReplicas() === 0) ? 'true' : undefined}}"
                  role="button">
                 <i class="fa fa-chevron-down"></i>
-                <span class="sr-only">Scale down</span>
+                <span class="sr-only" translate>Scale down</span>
               </a>
             </div>
           </div>

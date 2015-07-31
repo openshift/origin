@@ -7,7 +7,7 @@
           <div class="container-fluid">
             <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
             <alerts alerts="alerts"></alerts>
-            <div ng-if="!loaded">Loading...</div>
+            <div ng-if="!loaded" translate>Loading...</div>
             <h1>
               {{buildConfigName}}
               <span class="pficon pficon-warning-triangle-o"
@@ -21,28 +21,28 @@
                 <button
                     class="btn btn-default hidden-xs"
                     ng-click="startBuild()"
-                    ng-disabled="!canBuild">
+                    ng-disabled="!canBuild" translate>
                   Start Build
                 </button>
 
                 <!-- Secondary Actions -->
                 <button type="button" class="dropdown-toggle actions-dropdown-btn btn btn-default hidden-xs" data-toggle="dropdown">
-                  Actions
+                  <translate>Actions</translate>
                   <span class="caret" aria-hidden="true"></span>
                 </button>
                 <a href=""
                    class="dropdown-toggle actions-dropdown-kebab visible-xs-inline"
-                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only">Actions</span></a>
+                   data-toggle="dropdown"><i class="fa fa-ellipsis-v"></i><span class="sr-only" translate>Actions</span></a>
                 <ul class="dropdown-menu actions action-button">
                   <li class="visible-xs-inline" ng-class="{ disabled: !canBuild }">
                     <a href=""
                       role="button"
                       ng-attr-aria-disabled="{{canBuild ? undefined : 'true'}}"
                       ng-class="{ 'disabled-link': !canBuild }"
-                      ng-click="startBuild()">Start Build</a>
+                      ng-click="startBuild()" translate>Start Build</a>
                   </li>
                   <li>
-                    <a ng-href="{{buildConfig | editResourceURL}}" role="button">Edit</a>
+                    <a ng-href="{{buildConfig | editResourceURL}}" role="button" translate>Edit</a>
                   </li>
                   <li>
                     <edit-link
@@ -75,11 +75,11 @@
                     <uib-tab-heading>Summary</uib-tab-heading>
 
                     <!-- If unfilteredBuilds is undefined, the builds are still loading. -->
-                    <div ng-if="!unfilteredBuilds" class="gutter-bottom">Loading...</div>
+                    <div ng-if="!unfilteredBuilds" class="gutter-bottom" translate>Loading...</div>
 
                     <!-- Show an empty state message when there are no builds. -->
                     <div ng-if="unfilteredBuilds && (unfilteredBuilds | hashSize) === 0" class="empty-state-message text-center">
-                      <h2>No builds.</h2>
+                      <h2 translate>No builds.</h2>
 
                       <p>
                         Start a new build to create an image from
@@ -92,7 +92,7 @@
                         </span>
                       </p>
 
-                      <button class="btn btn-primary btn-lg" ng-click="startBuild(buildConfig.metadata.name)">
+                      <button class="btn btn-primary btn-lg" ng-click="startBuild(buildConfig.metadata.name)" translate>
                         Start Build
                       </button>
                     </div>
@@ -103,21 +103,21 @@
                       <div class="h3" style="margin-bottom: 0;">
                         <span class="latest-build-status">
                           <status-icon status="latestBuild.status.phase" style="margin-right: 5px;"></status-icon>
-                          Latest build
+                          <translate>Latest build</translate>
                           <!-- Line break comments to prevent whitespace from being underlined on link hover. -->
                           <a ng-href="{{latestBuild | navigateResourceURL}}"><!--
                             --><span ng-if="latestBuild | annotation : 'buildNumber'">#{{latestBuild | annotation : 'buildNumber'}}</span><!--
                             --><span ng-if="!(latestBuild | annotation : 'buildNumber')">{{latestBuild.metadata.name}}</span><!--
                           --></a>
                           <span ng-switch="latestBuild.status.phase" class="hide-ng-leave">
-                            <span ng-switch-when="Complete">complete.</span>
-                            <span ng-switch-when="Failed">failed.</span>
-                            <span ng-switch-when="Error">encountered an error.</span>
-                            <span ng-switch-when="Cancelled">was cancelled.</span>
-                            <span ng-switch-default>is {{latestBuild.status.phase | lowercase}}.</span>
+                            <span ng-switch-when="Complete" translate>complete.</span>
+                            <span ng-switch-when="Failed" translate>failed.</span>
+                            <span ng-switch-when="Error" translate>encountered an error.</span>
+                            <span ng-switch-when="Cancelled" translate>was cancelled.</span>
+                            <span ng-switch-default translate>is {{latestBuild.status.phase | lowercase}}.</span>
                           </span>
                         </span>
-                        <a ng-href="{{latestBuild | navigateResourceURL}}?tab=logs">View Log</a>
+                        <a ng-href="{{latestBuild | navigateResourceURL}}?tab=logs" translate>View Log</a>
                       </div>
                       <div class="latest-build-timestamp meta text-muted">
                         <span ng-if="!latestBuild.status.startTimestamp">
@@ -137,9 +137,9 @@
                       <table class="table table-bordered table-hover table-mobile">
                         <thead>
                           <tr>
-                            <th>Build</th>
-                            <th>Status</th>
-                            <th>Created</th>
+                            <th translate>Build</th>
+                            <th translate>Status</th>
+                            <th translate>Created</th>
                           </tr>
                         </thead>
                         <tbody ng-if="(builds | hashSize) == 0">
@@ -195,23 +195,23 @@
                             <h3>Configuration</h3>
                             <dl class="dl-horizontal left">
                               <div>
-                                <dt>Build strategy:</dt>
+                                <dt translate>Build strategy:</dt>
                                 <dd>{{buildConfig.spec.strategy.type}}</dd>
                               </div>
                               <div ng-switch="buildConfig.spec.strategy.type">
                                 <div ng-switch-when="Source">
                                   <div ng-if="buildConfig.spec.strategy.sourceStrategy.from">
-                                    <dt>Builder image:</dt>
+                                    <dt translate>Builder image:</dt>
                                     <dd>{{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                                   </div>
                                 </div>
                                 <div ng-switch-when="Docker">
                                   <div ng-if="buildConfig.spec.strategy.dockerStrategy.from">
-                                    <dt>Builder image stream:</dt>
+                                    <dt translate>Builder image stream:</dt>
                                     <dd>{{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                                   </div>
                                   <div ng-if="buildConfig.spec.source.dockerfile">
-                                    <dt>Dockerfile:</dt><dd></dd>
+                                    <dt translate>Dockerfile:</dt><dd></dd>
                                     <div ui-ace="{
                                       mode: 'dockerfile',
                                       theme: 'dreamweaver',
@@ -225,7 +225,7 @@
                                 </div>
                                 <div ng-switch-when="Custom">
                                   <div ng-if="buildConfig.spec.strategy.customStrategy.from">
-                                    <dt>Builder image stream:</dt>
+                                    <dt translate>Builder image stream:</dt>
                                     <dd>{{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
                                     </dd>
                                   </div>
@@ -233,21 +233,21 @@
                               </div>
                               <div ng-if="buildConfig.spec.source">
                                 <div ng-if="buildConfig.spec.source.type == 'Git'">
-                                  <dt>Source repo:</dt>
+                                  <dt translate>Source repo:</dt>
                                   <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink : buildConfig.spec.source.git.ref : buildConfig.spec.source.contextDir | linky'></dd>
-                                  <dt ng-if="buildConfig.spec.source.git.ref">Source ref:</dt>
+                                  <dt ng-if="buildConfig.spec.source.git.ref" translate>Source ref:</dt>
                                   <dd ng-if="buildConfig.spec.source.git.ref">{{buildConfig.spec.source.git.ref}}</dd>
-                                  <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
+                                  <dt ng-if="buildConfig.spec.source.contextDir" translate>Source context dir:</dt>
                                   <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>
                                 </div>
                                 <div ng-if="buildConfig.spec.source.images" class="image-sources">
-                                  <dt>Image sources:</dt>
+                                  <dt translate>Image sources:</dt>
                                   <dd></dd>
                                   <div ng-repeat="imageSource in imageSources" class="image-source-item">
                                     <h4>{{imageSource.from | imageObjectRef : buildConfig.metadata.namespace}}</h4>
                                     <dl class="dl-horizontal left">
                                       <div class="is-item-description">
-                                        <dt>Paths</dt>
+                                        <dt translate>Paths</dt>
                                         <div ng-repeat="(source, destination) in imageSourcesPaths[$index]" class="image-source-paths">
                                           <dd><span class="source-path">{{source}}</span><i class="fa fa-long-arrow-right"></i><span class="destination-dir">{{destination}}</span></dd>
                                         </div>
@@ -257,19 +257,19 @@
                                 </div>
                               </div>
                               <div ng-if="buildConfig.spec.output.to">
-                                <dt>Output to:</dt>
+                                <dt translate>Output to:</dt>
                                 <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
                               </div>
                             </dl>
                           </div>
                           <div class="col-lg-6">
-                            <h3>Triggers</h3>
+                            <h3 translate>Triggers</h3>
                             <dl class="dl-horizontal left">
                             <div ng-repeat="trigger in buildConfig.spec.triggers">
                               <div ng-switch="trigger.type">
                                 <div ng-switch-when="GitHub">
-                                    <dt>GitHub webhook URL:
-                                      <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more
+                                    <dt><translate>GitHub webhook URL:</translate>
+                                      <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block"><translate>Learn more</translate>
                                       <i class="fa fa-external-link"></i></span></a>
                                     </dt>
                                     <dd>
@@ -278,7 +278,7 @@
                                     </dd>
                                 </div>
                                 <div ng-switch-when="Generic">
-                                    <dt>Generic webhook URL:
+                                    <dt><translate>Generic webhook URL:</translate>
                                       <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
                                     </dt>
                                     <dd>
@@ -287,7 +287,7 @@
                                     </dd>
                                 </div>
                                 <div ng-switch-when="ImageChange">
-                                  <dt>
+                                  <dt translate>
                                     New image for:
                                   </dt>
                                   <dd>
@@ -295,11 +295,11 @@
                                   </dd>
                                 </div>
                                 <div ng-switch-when="ConfigChange">
-                                  <dt>Config change for:</dt>
-                                  <dd>Build config {{buildConfig.metadata.name}}</dd>
+                                  <dt translate>Config change for:</dt>
+                                  <dd translate>Build config {{buildConfig.metadata.name}}</dd>
                                 </div>
                                 <div ng-switch-default>
-                                  <dt>Other trigger:</dt>
+                                  <dt translate>Other trigger:</dt>
                                   <dd>{{trigger.type}}</dd>
                                 </div>
                               </div>
@@ -320,9 +320,9 @@
                     </div>
                   </uib-tab>
                   <uib-tab heading="Environment" active="selectedTab.environment" ng-if="buildConfig">
-                    <uib-tab-heading>Environment</uib-tab-heading>
+                    <uib-tab-heading translate>Environment</uib-tab-heading>
                     <environment env-vars="(buildConfig | buildStrategy).env"></environment>
-                    <em ng-if="!(buildConfig | buildStrategy).env">The build strategy had no environment variables defined.</em>
+                    <em ng-if="!(buildConfig | buildStrategy).env" translate>The build strategy had no environment variables defined.</em>
                   </uib-tab>
                 </uib-tabset>
               </div><!-- /col-* -->

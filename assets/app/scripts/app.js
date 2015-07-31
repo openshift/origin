@@ -23,7 +23,8 @@ angular
     'patternfly.charts',
     'patternfly.sort',
     'openshiftConsoleTemplates',
-    'ui.ace'
+    'ui.ace',
+    'gettext'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value
                          // or it can't be referenced during module config
@@ -338,6 +339,19 @@ angular
         return durationFilter(timestamp, null, omitSingle, precision) || existing;
       });
     }, 1000);
+  })
+  .run(function($window, gettextCatalog) {
+    gettextCatalog.debug = true;
+    var lang = $window.navigator.language || $window.navigator.userLanguage;
+    gettextCatalog.loadRemote('languages/' + lang + '.json');
+    var ll = lang.split('-')[0];
+    // try to load ll.json too
+    gettextCatalog.loadRemote('languages/' + ll + '.json');
+    if (gettextCatalog.strings[lang]) {
+      gettextCatalog.setCurrentLanguage(lang);
+    } else {
+      gettextCatalog.setCurrentLanguage(ll);
+    }
   });
 
 hawtioPluginLoader.addModule('openshiftConsole');

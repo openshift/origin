@@ -9,17 +9,17 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('SettingsController', function ($routeParams, $scope, DataService, ProjectsService, AlertMessageService, $filter, $location, LabelFilter, $timeout, Logger, annotationFilter, annotationNameFilter) {
+  .controller('SettingsController', function ($routeParams, $scope, DataService, ProjectsService, AlertMessageService, $filter, $location, LabelFilter, $timeout, Logger, annotationFilter, annotationNameFilter, gettextCatalog) {
     $scope.projectName = $routeParams.project;
     $scope.quotas = {};
     $scope.limitRanges = {};
     $scope.limitsByType = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
-    $scope.emptyMessageQuotas = "Loading...";
-    $scope.quotaHelp = "Limits resource usage within the project.";
-    $scope.emptyMessageLimitRanges = "Loading...";
-    $scope.limitRangeHelp = "Defines minimum and maximum constraints for runtime resources such as memory and CPU.";
+    $scope.emptyMessageQuotas = gettextCatalog.getString("Loading...");
+    $scope.quotaHelp = gettextCatalog.getString("Limits resource usage within the project.");
+    $scope.emptyMessageLimitRanges = gettextCatalog.getString("Loading...");
+    $scope.limitRangeHelp = gettextCatalog.getString("Defines minimum and maximum constraints for runtime resources such as memory and CPU.");
     $scope.renderOptions = $scope.renderOptions || {};
     $scope.renderOptions.hideFilterWidget = true;
 
@@ -74,7 +74,7 @@ angular.module('openshiftConsole')
                 $scope.editableFields = editableFields(project);
                 $scope.alerts["update"] = {
                   type: "error",
-                  message: "An error occurred while updating the project",
+                  message: gettextCatalog.getString("An error occurred while updating the project"),
                   details: $filter('getErrorDetails')(result)
                 };
               });
@@ -83,13 +83,13 @@ angular.module('openshiftConsole')
 
         DataService.list("resourcequotas", context, function(quotas) {
           $scope.quotas = quotas.by("metadata.name");
-          $scope.emptyMessageQuotas = "There are no resource quotas set on this project.";
+          $scope.emptyMessageQuotas = gettextCatalog.getString("There are no resource quotas set on this project.");
           Logger.log("quotas", $scope.quotas);
         });
 
         DataService.list("limitranges", context, function(limitRanges) {
           $scope.limitRanges = limitRanges.by("metadata.name");
-          $scope.emptyMessageLimitRanges = "There are no limit ranges set on this project.";
+          $scope.emptyMessageLimitRanges = gettextCatalog.getString("There are no limit ranges set on this project.");
           // Convert to a sane format for a view to a build a table with rows per resource type
           angular.forEach($scope.limitRanges, function(limitRange, name){
             $scope.limitsByType[name] = {};
