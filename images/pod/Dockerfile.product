@@ -4,9 +4,11 @@
 # the network and IPC namespaces as containers come and go during the lifetime of the
 # pod.
 #
-# The standard name for this image is openshift/origin-pod
+# The standard name for this image is openshift3/ose-pod
 #
-FROM scratch
+# Pulp can't handle the scratch later currently
+#FROM scratch
+FROM registry.access.redhat.com/rhel
 
 ADD bin/pod /pod
 
