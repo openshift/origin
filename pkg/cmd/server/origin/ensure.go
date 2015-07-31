@@ -152,7 +152,8 @@ func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
 func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 	sccList, err := c.KubeClient().SecurityContextConstraints().List(labels.Everything(), fields.Everything())
 	if err != nil {
-		glog.Errorf("Unable to initialize security context constraints: %v", err)
+		glog.Errorf("Unable to initialize security context constraints: %v.  This may prevent the creation of pods", err)
+		return
 	}
 	if len(sccList.Items) > 0 {
 		return
