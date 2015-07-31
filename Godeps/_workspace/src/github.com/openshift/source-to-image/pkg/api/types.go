@@ -77,6 +77,10 @@ type Config struct {
 	// WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.
 	WorkingDir string
 
+	// WorkingSourceDir describes the subdirectory off of WorkingDir set up during the repo download
+	// that is later used as the root for ignore processing
+	WorkingSourceDir string
+
 	// LayeredBuild describes if this is build which layered scripts and sources on top of BuilderImage.
 	LayeredBuild bool
 

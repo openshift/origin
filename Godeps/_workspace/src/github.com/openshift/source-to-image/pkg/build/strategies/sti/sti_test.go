@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/build"
 	stierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/git"
+	"github.com/openshift/source-to-image/pkg/ignore"
 	"github.com/openshift/source-to-image/pkg/test"
 )
 
@@ -59,6 +60,7 @@ func newFakeSTI(f *FakeSTI) *STI {
 		fs:        &test.FakeFileSystem{},
 		tar:       &test.FakeTar{},
 		preparer:  f,
+		ignorer:   &ignore.DockerIgnorer{},
 		artifacts: f,
 		scripts:   f,
 		garbage:   f,
