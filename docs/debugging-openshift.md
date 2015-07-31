@@ -113,6 +113,16 @@ If you simply want to take a container that OpenShift has created but debug it o
 
 Obviously this won't work if you don't have bash installed but you could always package it in for debugging purposes.
 
+Name Resolution Within Containers
+-------------------
+
+DNS related services like `dnsmasq` can interfere with naming resolution in the Docker containers launched by OpenShift, including binding on the same port (53) that OpenShift will attempt to use.  To circumvent this conflict, disable
+these services.  Using the `dnsmasq` example on Fedora, run all three of the following before starting OpenShift to ensure `dnsmasq` is not running, does not launch later on, and hence does not interfere with OpenShift:
+
+    $ sudo systemctl stop dnsmasq
+    $ sudo systemctl disable dnsmasq
+    $ sudo killall dnsmasq
+
 
 Benign Errors/Messages
 ----------------------
