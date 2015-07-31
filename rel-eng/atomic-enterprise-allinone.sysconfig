@@ -1,5 +1,7 @@
 OPTIONS="--loglevel=0"
-CONFIG_FILE=/etc/origin/master/master.yaml
+MASTER_CONFIG_FILE=/etc/origin/allinone/master/master-config.yaml
+NODE_CONFIG_FILE=/etc/origin/allinone/node/node-config.yaml
+
 
 # Proxy configuration
 # Origin uses standard HTTP_PROXY environment variables. Be sure to set

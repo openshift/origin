@@ -5,6 +5,12 @@
 %global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
 %global sdn_import_path github.com/openshift/openshift-sdn
 
+# docker_version is the version of docker requires by packages
+%global docker_verison 1.6.2
+# tuned_version is the version of tuned requires by packages
+%global tuned_version  2.3
+# openvswitch_version is the version of openvswitch requires by packages
+%global openvswitch_version 2.3.1
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the rel-eng directory. The values in this spec file will not be kept up to date.
 %{!?commit:
@@ -47,7 +53,7 @@ Requires(postun): systemd
 %package node
 Summary:        OpenShift Node
 Requires:       %{name} = %{version}-%{release}
-Requires:       docker-io >= 1.6.2
+Requires:       docker-io >= %{docker_version}
 Requires:       tuned-profiles-%{name}-node
 Requires:       util-linux
 Requires:       socat
@@ -61,7 +67,7 @@ Requires(postun): systemd
 
 %package -n tuned-profiles-%{name}-node
 Summary:        Tuned profiles for OpenShift Node hosts
-Requires:       tuned >= 2.3
+Requires:       tuned >= %{tuned_version}
 Requires:       %{name} = %{version}-%{release}
 
 %description -n tuned-profiles-%{name}-node
@@ -91,7 +97,7 @@ Requires:       %{name} = %{version}-%{release}
 
 %package sdn-ovs
 Summary:          OpenShift SDN Plugin for Open vSwitch
-Requires:         openvswitch >= 2.3.1
+Requires:         openvswitch >= %{openvswitch_version}
 Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         ethtool
@@ -122,7 +128,7 @@ Requires(postun): systemd
 %package -n atomic-enterprise-node
 Summary:        Origin Node
 Requires:       atomic-enterprise = %{version}-%{release}
-Requires:       docker-io >= 1.6.2
+Requires:       docker-io >= %{docker_version}
 Requires:       tuned-profiles-atomic-enterprise-node
 Requires:       util-linux
 Requires:       socat
@@ -136,7 +142,7 @@ Requires(postun): systemd
 
 %package -n tuned-profiles-atomic-enterprise-node
 Summary:        Tuned profiles for Origin Node hosts
-Requires:       tuned >= 2.3
+Requires:       tuned >= %{tuned_version}
 Requires:       atomic-enterprise = %{version}-%{release}
 
 %description -n tuned-profiles-atomic-enterprise-node
@@ -165,7 +171,7 @@ Requires:       atomic-enterprise = %{version}-%{release}
 
 %package -n atomic-enterprise-sdn-ovs
 Summary:          Origin SDN Plugin for Open vSwitch
-Requires:         openvswitch >= 2.3.1
+Requires:         openvswitch >= %{openvswitch_version}
 Requires:         atomic-enterprise-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         ethtool
@@ -244,16 +250,19 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
-ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/oc
-ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/oadm
+for cmd in oc oadm; do
+    ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/$cmd
+done
 ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/kubectl
+
+install -d -m 0755 %{buildroot}/etc/origin/{master,node,allinone}
+# Atomic-Enterprise has an allinone directory for all-in-one use.
+install -d -m 0755 %{buildroot}/etc/origin/allinone/{master,node}
 
 for pkgname in openshift atomic-enterprise
 do
-
-  install -d -m 0755 %{buildroot}/etc/${pkgname}/{master,node}
-  install -m 0644  rel-eng/${pkgname}-master.service %{buildroot}%{_unitdir}/${pkgname}-master.service
-  install -m 0644  rel-eng/${pkgname}-node.service %{buildroot}%{_unitdir}/${pkgname}-node.service
+  install -m 0644 rel-eng/${pkgname}-master.service %{buildroot}%{_unitdir}/${pkgname}-master.service
+  install -m 0644 rel-eng/${pkgname}-node.service %{buildroot}%{_unitdir}/${pkgname}-node.service
 
   install -m 0644 rel-eng/${pkgname}-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/${pkgname}-master
   install -m 0644 rel-eng/${pkgname}-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/${pkgname}-node
@@ -264,6 +273,10 @@ do
   install -m 0644 tuned/man/tuned-profiles-%{name}-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-${pkgname}-node.7
 
 done
+
+# Atomic-Enterprise has an additional unit and config
+install -m 0644 rel-eng/atomic-enterprise-allinone.service %{buildroot}%{_unitdir}/atomic-enterprise-allinone.service
+install -m 0644 rel-eng/atomic-enterprise-allinone.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/atomic-enterprise-allinone
 
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 mkdir -p %{buildroot}%{_sharedstatedir}/origin
@@ -297,12 +310,40 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
 %{_bindir}/kubectl
 %{_sharedstatedir}/%{name}
 /etc/bash_completion.d/*
+%dir %config(noreplace) /etc/origin
 
 %files master
 %defattr(-,root,root,-)
 %{_unitdir}/%{name}-master.service
-%config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
-%config(noreplace) /etc/%{name}/master
+%ghost %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
+%ghost %config(noreplace) %{_sysconfdir}/origin/master
+%ghost %config(noreplace) %{_sysconfdir}/origin/admin.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/admin.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/admin.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/ca.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/ca.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/ca.serial.txt
+%ghost %config(noreplace) %{_sysconfdir}/origin/etcd.server.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/etcd.server.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master-config.yaml
+%ghost %config(noreplace) %{_sysconfdir}/origin/master.etcd-client.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master.etcd-client.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master.kubelet-client.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master.kubelet-client.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master.server.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master.server.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-master.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-master.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-master.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-registry.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-registry.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-registry.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-router.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-router.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/openshift-router.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/policy.json
+%ghost %config(noreplace) %{_sysconfdir}/origin/serviceaccounts.private.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/serviceaccounts.public.key
 
 %post master
 %systemd_post %{basename:openshift-master.service}
@@ -317,7 +358,7 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
 %defattr(-,root,root,-)
 %{_unitdir}/%{name}-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
-%config(noreplace) /etc/%{name}/node
+%config(noreplace) /etc/origin/node
 
 %post node
 %systemd_post %{basename:openshift-node.service}
@@ -381,18 +422,85 @@ fi
 %{_bindir}/kubectl
 %{_sharedstatedir}/origin
 /etc/bash_completion.d/*
+%dir %config(noreplace) %{_sysconfdir}/origin
 
 %files -n atomic-enterprise-master
 %defattr(-,root,root,-)
 %{_unitdir}/atomic-enterprise-master.service
+%{_unitdir}/atomic-enterprise-allinone.service
 %config(noreplace) %{_sysconfdir}/sysconfig/atomic-enterprise-master
-%config(noreplace) /etc/%{name}/master
+%config(noreplace) %{_sysconfdir}/sysconfig/atomic-enterprise-allinone
+%dir %config(noreplace) %{_sysconfdir}/origin/master
+%dir %config(noreplace) %{_sysconfdir}/origin/allinone/
+%dir %config(noreplace) %{_sysconfdir}/origin/allinone/master
+%dir %config(noreplace) %{_sysconfdir}/origin/allinone/node
+%ghost %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
+%ghost %config(noreplace) %{_sysconfdir}/origin/master
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.serial.txt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master-config.yaml
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/policy.json
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.private.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.public.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/admin.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/admin.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/admin.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/ca.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/ca.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/ca.serial.txt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/etcd.server.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/etcd.server.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master-config.yaml
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.etcd-client.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.etcd-client.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.kubelet-client.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.kubelet-client.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.server.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.server.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-master.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-master.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-master.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-registry.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-registry.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-registry.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-router.crt
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-router.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-router.kubeconfig
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/policy.json
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/serviceaccounts.private.key
+%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/serviceaccounts.public.key
 
 %post -n atomic-enterprise-master
 %systemd_post %{basename:atomic-enterprise-master.service}
+# Create all-in-one master configs
+%{_bindir}/atomic-enterprise start master --write-config=/etc/origin/allinone/master
+# Create all-in-one node configs
+%{_bindir}/oadm create-node-config --node-dir=/etc/origin/allinone/node/ --node=localhost --hostnames=localhost,127.0.0.1 --node-client-certificate-authority=/etc/origin/allinone/master/ca.crt --signer-cert=/etc/origin/allinone/master/ca.crt --signer-key=/etc/origin/allinone/master/ca.key --signer-serial=/etc/origin/allinone/master/ca.serial.txt --certificate-authority=/etc/origin/allinone/master/ca.crt
 
 %preun -n atomic-enterprise-master
 %systemd_preun %{basename:atomic-enterprise-master.service}
+%systemd_preun %{basename:atomic-enterprise-allinone.service}
 
 %postun -n atomic-enterprise-master
 %systemd_postun
@@ -401,7 +509,7 @@ fi
 %defattr(-,root,root,-)
 %{_unitdir}/atomic-enterprise-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/atomic-enterprise-node
-%config(noreplace) /etc/%{name}/node
+%config(noreplace) /etc/origin/node
 
 %post -n atomic-enterprise-node
 %systemd_post %{basename:atomic-enterprise-node.service}
@@ -458,6 +566,10 @@ fi
 # ===
 
 %changelog
+* Fri Jul 31 2015 Steve Milner <smilner@redhat.com> 0.2-5
+- Configuration location now /etc/origin
+- Default configs created upon installation
+
 * Tue Jul 28 2015 Steve Milner <smilner@redhat.com> 0.2-4
 - Added AEP packages
 
