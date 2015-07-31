@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/tar"
+	"github.com/openshift/source-to-image/pkg/util"
 )
 
 const (
@@ -44,6 +45,17 @@ type DockerBuilder struct {
 	build        *api.Build
 	urlTimeout   time.Duration
 }
+
+// MetaInstuction represent an Docker instruction used for adding metadata
+// to Dockerfile
+type MetaInstruction string
+
+const (
+	// Label represents the LABEL Docker instruction
+	Label MetaInstruction = "LABEL"
+	// Env represents the ENV Docker instruction
+	Env MetaInstruction = "ENV"
+)
 
 // NewDockerBuilder creates a new instance of DockerBuilder
 func NewDockerBuilder(dockerClient DockerClient, build *api.Build) *DockerBuilder {
@@ -204,7 +216,7 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 
 // addBuildParameters checks if a Image is set to replace the default base image.
 // If that's the case then change the Dockerfile to make the build with the given image.
-// Also append the environment variables in the Dockerfile.
+// Also append the environment variables and labels in the Dockerfile.
 func (d *DockerBuilder) addBuildParameters(dir string) error {
 	dockerfilePath := filepath.Join(dir, "Dockerfile")
 	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Source.ContextDir) > 0 {
@@ -234,7 +246,15 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 
 	envVars := getBuildEnvVars(d.build)
-	newFileData = appendEnvVars(newFileData, envVars)
+	newFileData = appendMetadata(Env, newFileData, envVars)
+
+	labels := map[string]string{}
+	sourceInfo := d.git.GetInfo(dir)
+	if len(d.build.Spec.Source.ContextDir) > 0 {
+		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
+	}
+	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, api.DefaultDockerLabelNamespace)
+	newFileData = appendMetadata(Label, newFileData, labels)
 
 	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
 		return err
@@ -243,16 +263,16 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	return nil
 }
 
-// appendEnvVars appends environment variables to a string containing
-// a valid Dockerfile
-func appendEnvVars(fileData string, envVars map[string]string) string {
+// appendMetadata appends a Docker instruction that adds metadata values
+// to a string containing a valid Dockerfile.
+func appendMetadata(inst MetaInstruction, fileData string, envVars map[string]string) string {
 	if !strings.HasSuffix(fileData, "\n") {
 		fileData += "\n"
 	}
 	first := true
 	for k, v := range envVars {
 		if first {
-			fileData += fmt.Sprintf("ENV %s=\"%s\"", k, v)
+			fileData += fmt.Sprintf("%s %s=\"%s\"", inst, k, v)
 			first = false
 		} else {
 			fileData += fmt.Sprintf(" \\\n\t%s=\"%s\"", k, v)
