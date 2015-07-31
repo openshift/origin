@@ -67,8 +67,8 @@ angular.module("openshiftConsole")
       }
 
       //augment labels
-      input.labels.name = input.name;
-      input.labels.generatedby = "OpenShiftWebConsole";
+      input.labels.app = input.name;
+      input.annotations["openshift.io/generatedby"] = "OpenShiftWebConsole";
 
       var imageSpec;
       if(input.buildConfig.sourceUrl !== null){
@@ -101,7 +101,8 @@ angular.module("openshiftConsole")
         apiVersion: osApiVersion,
         metadata: {
           name: name,
-          labels: input.labels
+          labels: input.labels,
+          annotations: input.annotations
         },
         spec: {
           to: {
@@ -112,20 +113,21 @@ angular.module("openshiftConsole")
       };
     };
 
-    scope._generateDeploymentConfig = function(input, imageSpec, ports, labels){
+    scope._generateDeploymentConfig = function(input, imageSpec, ports){
       var env = [];
       angular.forEach(input.deploymentConfig.envVars, function(value, key){
         env.push({name: key, value: value});
       });
-      labels = angular.copy(labels);
-      labels.deploymentconfig = input.name;
+      var templateLabels = angular.copy(input.labels);
+      templateLabels.deploymentconfig = input.name;
 
       var deploymentConfig = {
         apiVersion: osApiVersion,
         kind: "DeploymentConfig",
         metadata: {
           name: input.name,
-          labels: labels
+          labels: input.labels,
+          annotations: input.annotations
         },
         spec: {
           replicas: input.scaling.replicas,
@@ -135,7 +137,7 @@ angular.module("openshiftConsole")
           triggers: [],
           template: {
             metadata: {
-              labels: labels
+              labels: templateLabels
             },
             spec: {
               containers: [
@@ -173,7 +175,7 @@ angular.module("openshiftConsole")
       return deploymentConfig;
     };
 
-    scope._generateBuildConfig = function(input, imageSpec, labels){
+    scope._generateBuildConfig = function(input, imageSpec){
       var triggers = [
         {
           generic: {
@@ -202,7 +204,8 @@ angular.module("openshiftConsole")
         kind: "BuildConfig",
         metadata: {
           name: input.name,
-          labels: labels
+          labels: input.labels,
+          annotations: input.annotations
         },
         spec: {
           output: {
@@ -239,7 +242,8 @@ angular.module("openshiftConsole")
         kind: "ImageStream",
         metadata: {
           name: input.name,
-          labels: input.labels
+          labels: input.labels,
+          annotations: input.annotations
         }
       };
     };
@@ -253,7 +257,8 @@ angular.module("openshiftConsole")
         apiVersion: k8sApiVersion,
         metadata: {
           name: serviceName,
-          labels: input.labels
+          labels: input.labels,
+          annotations: input.annotations
         },
         spec: {
           selector: {
