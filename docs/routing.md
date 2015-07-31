@@ -24,6 +24,19 @@ DNS resolution of host names is external to the OpenShift system.
 Please note, that starting the router in the vagrant environment requires it to be pulled into docker.  This may take some time.
 Once it is pulled it will start and be visible in the `docker ps` list of containers and your pod will be marked as running.
 
+A router requires a service account that has access to a security context constraint which allows host ports.
+To create this service account:
+
+    $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
+    
+    # You may either create a new SCC or use an existing SCC.  The following command will
+    # display existing SCCs and true if they support host ports.
+    $ oc get scc -t "{{range .items}}{{.metadata.name}}: {{.allowHostPorts}}, {{end}}"
+    privileged: true, restricted: false,
+
+    $ oc edit scc <name>
+    ... add the service account in the form of system:serviceaccount:<namespace>:<name> ...
+
 
 #### Single machine vagrant environment
 
@@ -38,7 +51,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
     [vagrant@openshiftdev origin]$ sudo chmod a+r "$KUBECONFIG"
     [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.config/master/openshift-router.kubeconfig
-    [vagrant@openshiftdev origin]$ oadm router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig"
+    [vagrant@openshiftdev origin]$ oadm router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig" --service-account=router
     [vagrant@openshiftdev origin]$ oc get pods
 
 #### Clustered vagrant environment
@@ -47,7 +60,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
-    [vagrant@openshift-master ~]$ oadm router --create --credentials="${KUBECONFIG}"
+    [vagrant@openshift-master ~]$ oadm router --create --credentials="${KUBECONFIG}" --service-account=router
 
 
 
