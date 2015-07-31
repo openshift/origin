@@ -184,7 +184,7 @@ var (
   `)
 
 	typesExample = `  // View all projects you have access to
-  $ %[1]s projects
+  $ %[1]s get projects
 
   // See a list of all services in the current project
   $ %[1]s get svc
