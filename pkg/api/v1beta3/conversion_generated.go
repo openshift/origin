@@ -2554,6 +2554,7 @@ func convert_api_Parameter_To_v1beta3_Parameter(in *templateapi.Parameter, out *
 	out.Value = in.Value
 	out.Generate = in.Generate
 	out.From = in.From
+	out.Required = in.Required
 	return nil
 }
 
@@ -2589,6 +2590,7 @@ func convert_v1beta3_Parameter_To_api_Parameter(in *templateapiv1beta3.Parameter
 	out.Value = in.Value
 	out.Generate = in.Generate
 	out.From = in.From
+	out.Required = in.Required
 	return nil
 }
 

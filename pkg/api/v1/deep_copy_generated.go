@@ -2110,6 +2110,7 @@ func deepCopy_v1_Parameter(in templateapiv1.Parameter, out *templateapiv1.Parame
 	out.Value = in.Value
 	out.Generate = in.Generate
 	out.From = in.From
+	out.Required = in.Required
 	return nil
 }
 

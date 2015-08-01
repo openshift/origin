@@ -52,4 +52,7 @@ type Parameter struct {
 
 	// Optional: From is an input value for the generator.
 	From string
+
+	// Optional: Indicates the parameter must have a value.  Defaults to false.
+	Required bool
 }

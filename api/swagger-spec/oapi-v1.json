@@ -16100,6 +16100,10 @@
      "from": {
       "type": "string",
       "description": "input value for the generator"
+     },
+     "required": {
+      "type": "boolean",
+      "description": "indicates the parameter must have a non-empty value or be generated"
      }
     }
    },
