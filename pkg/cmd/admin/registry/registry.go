@@ -49,10 +49,7 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
   $ %[1]s %[2]s -o json
 
   // Create a registry if it does not exist with two replicas
-  $ %[1]s %[2]s --replicas=2 --credentials=registry-user.kubeconfig
-
-  // Use a different registry image and see the registry configuration
-  $ %[1]s %[2]s -o yaml --images=myrepo/docker-registry:mytag`
+  $ %[1]s %[2]s --replicas=2 --credentials=registry-user.kubeconfig`
 )
 
 type RegistryConfig struct {
