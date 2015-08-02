@@ -45,14 +45,14 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
 	registryExample = `  # Check if default Docker registry ("docker-registry") has been created
   $ %[1]s %[2]s --dry-run
 
-  # See what the registry would look like if created
-  $ %[1]s %[2]s -o json
+  # See what the registry will look like if created
+  $ %[1]s %[2]s -o json --credentials=/path/to/registry-user.kubeconfig
 
   # Create a registry if it does not exist with two replicas
-  $ %[1]s %[2]s --replicas=2 --credentials=registry-user.kubeconfig
+  $ %[1]s %[2]s --replicas=2 --credentials=/path/to/registry-user.kubeconfig
 
   # Use a different registry image and see the registry configuration
-  $ %[1]s %[2]s -o yaml --images=myrepo/docker-registry:mytag`
+  $ %[1]s %[2]s -o yaml --images=myrepo/docker-registry:mytag --credentials=/path/to/registry-user.kubeconfig`
 )
 
 type RegistryConfig struct {

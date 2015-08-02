@@ -230,14 +230,14 @@ Install the integrated Docker registry
   # Check if default Docker registry ("docker-registry") has been created
   $ openshift admin registry --dry-run
 
-  # See what the registry would look like if created
-  $ openshift admin registry -o json
+  # See what the registry will look like if created
+  $ openshift admin registry -o json --credentials=/path/to/registry-user.kubeconfig
 
   # Create a registry if it does not exist with two replicas
-  $ openshift admin registry --replicas=2 --credentials=registry-user.kubeconfig
+  $ openshift admin registry --replicas=2 --credentials=/path/to/registry-user.kubeconfig
 
   # Use a different registry image and see the registry configuration
-  $ openshift admin registry -o yaml --images=myrepo/docker-registry:mytag
+  $ openshift admin registry -o yaml --images=myrepo/docker-registry:mytag --credentials=/path/to/registry-user.kubeconfig
 ----
 ====
 
