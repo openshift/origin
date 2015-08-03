@@ -41,8 +41,8 @@ popd
 # Initialize certificates
 echo "Generating certs"
 pushd /vagrant
-  SERVER_CONFIG_DIR="`pwd`/openshift.local.config"
-  VOLUMES_DIR="/var/lib/openshift.local.volumes"
+  SERVER_CONFIG_DIR="`pwd`/origin.local.config"
+  VOLUMES_DIR="/var/lib/origin.local.volumes"
   MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
   CERT_DIR="${MASTER_CONFIG_DIR}"
 
@@ -99,12 +99,12 @@ systemctl start openshift-master.service
 
 # if SDN requires service on master, then set it up
 if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
-  export ETCD_CAFILE=/vagrant/openshift.local.config/master/ca.crt
-  export ETCD_CERTFILE=/vagrant/openshift.local.config/master/master.etcd-client.crt
-  export ETCD_KEYFILE=/vagrant/openshift.local.config/master/master.etcd-client.key
+  export ETCD_CAFILE=/vagrant/origin.local.config/master/ca.crt
+  export ETCD_CERTFILE=/vagrant/origin.local.config/master/master.etcd-client.crt
+  export ETCD_KEYFILE=/vagrant/origin.local.config/master/master.etcd-client.key
   $(dirname $0)/provision-master-sdn.sh $@
 fi
 
 # Set up the KUBECONFIG environment variable for use by oc
-echo 'export KUBECONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /root/.bash_profile
-echo 'export KUBECONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile
+echo 'export KUBECONFIG=/vagrant/origin.local.config/master/admin.kubeconfig' >> /root/.bash_profile
+echo 'export KUBECONFIG=/vagrant/origin.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile

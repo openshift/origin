@@ -45,13 +45,13 @@ pushd /vagrant
 popd
 
 # Copy over the certificates directory
-cp -r /vagrant/openshift.local.config /
-chown -R vagrant.vagrant /openshift.local.config
+cp -r /vagrant/origin.local.config /
+chown -R vagrant.vagrant /origin.local.config
 
 if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
-  export ETCD_CAFILE=/openshift.local.config/master/ca.crt
-  export ETCD_CERTFILE=/openshift.local.config/master/master.etcd-client.crt
-  export ETCD_KEYFILE=/openshift.local.config/master/master.etcd-client.key
+  export ETCD_CAFILE=/origin.local.config/master/ca.crt
+  export ETCD_CERTFILE=/origin.local.config/master/master.etcd-client.crt
+  export ETCD_KEYFILE=/origin.local.config/master/master.etcd-client.key
   $(dirname $0)/provision-node-sdn.sh $@
 else
   # Setup default networking between the nodes
@@ -66,7 +66,7 @@ Requires=network.service
 After=docker.service network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start node --config=/openshift.local.config/node-${minion_name}/node-config.yaml
+ExecStart=/usr/bin/openshift start node --config=/origin.local.config/node-${minion_name}/node-config.yaml
 Restart=on-failure
 RestartSec=10s
 
@@ -80,8 +80,8 @@ systemctl enable openshift-node.service
 systemctl start openshift-node.service
 
 # Set up the KUBECONFIG environment variable for use by the client
-echo 'export KUBECONFIG=/openshift.local.config/master/admin.kubeconfig' >> /root/.bash_profile
-echo 'export KUBECONFIG=/openshift.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile
+echo 'export KUBECONFIG=/origin.local.config/master/admin.kubeconfig' >> /root/.bash_profile
+echo 'export KUBECONFIG=/origin.local.config/master/admin.kubeconfig' >> /home/vagrant/.bash_profile
 
 # Register with the master
 #curl -X POST -H 'Accept: application/json' -d "{\"kind\":\"Minion\", \"id\":"${MINION_IP}", \"apiVersion\":\"v1beta1\", \"hostIP\":"${MINION_IP}" }" http://${MASTER_IP}:8080/api/v1beta1/minions

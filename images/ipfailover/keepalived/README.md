@@ -29,7 +29,7 @@ Pre-requisites/Prep Time
         $ vagrant ssh minion-1  # (or master or minion-2).
         #  Ensure KUBECONFIG is set or else set it.
         [ -n "$KUBECONFIG" ] ||  \
-           export KUBECONFIG=/openshift.local.config/master/admin.kubeconfig
+           export KUBECONFIG=/origin.local.config/master/admin.kubeconfig
         #  openshift kube get dc,rc,pods,se,mi,routes
         oadm router arparp --create --replicas=2  \
                                    --credentials="${KUBECONFIG}"

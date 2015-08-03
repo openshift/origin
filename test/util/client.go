@@ -9,7 +9,7 @@ import (
 )
 
 func KubeConfigPath() string {
-	return filepath.Join(GetBaseDir(), "openshift.local.config", "master", "admin.kubeconfig")
+	return filepath.Join(GetBaseDir(), "origin.local.config", "master", "admin.kubeconfig")
 }
 
 func GetClusterAdminKubeClient(adminKubeConfigFile string) (*kclient.Client, error) {

@@ -29,7 +29,7 @@ export BASETMPDIR="${TMPDIR}/openshift-extended-tests"
 rm -rf ${BASETMPDIR} && mkdir -p ${BASETMPDIR}
 
 # Setup directories and certificates for 'curl'
-export SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
+export SERVER_CONFIG_DIR="${BASETMPDIR}/origin.local.config"
 export MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
 export NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-127.0.0.1"
 export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"

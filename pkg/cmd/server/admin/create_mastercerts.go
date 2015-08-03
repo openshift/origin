@@ -28,7 +28,7 @@ See the related "create-node-config" command for generating per-node config.
 
 All files are expected or created in standard locations under the cert-dir.
 
-    openshift.local.config/master/
+    origin.local.config/master/
 	    ca.{crt,key,serial.txt}
 	    master.server.{crt,key}
 		openshift-router.{crt,key,kubeconfig}
@@ -47,7 +47,7 @@ would recreate ALL certs including the CA cert, invalidating any existing
 infrastructure or client configuration. Instead, delete/rename the existing
 server cert and run the command to fill it in:
 
-    $ mv openshift.local.config/master/master.server.crt{,.old}
+    $ mv origin.local.config/master/master.server.crt{,.old}
     $ %[1]s --cert-dir=... \
             --master=https://internal.master.fqdn:8443 \
             --public-master=https://external.master.fqdn:8443 \
@@ -97,7 +97,7 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 
 	flags := cmd.Flags()
 
-	flags.StringVar(&options.CertDir, "cert-dir", "openshift.local.config/master", "The certificate data directory.")
+	flags.StringVar(&options.CertDir, "cert-dir", "origin.local.config/master", "The certificate data directory.")
 	flags.StringVar(&options.SignerName, "signer-name", DefaultSignerName(), "The name to use for the generated signer.")
 
 	flags.StringVar(&options.APIServerURL, "master", "https://localhost:8443", "The API server's URL.")

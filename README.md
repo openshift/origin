@@ -57,7 +57,7 @@ The easiest way to run OpenShift Origin is in a Docker container (OpenShift requ
     $ sudo docker run -d --name "origin" \
         --privileged --net=host \
         -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker:/var/lib/docker:rw \
-        -v /var/lib/openshift/openshift.local.volumes:/var/lib/openshift/openshift.local.volumes \
+        -v /var/lib/openshift/origin.local.volumes:/var/lib/openshift/origin.local.volumes \
         openshift/origin start
 
 **Security!** Why do we need to mount your host, run privileged, and get access to your Docker directory? OpenShift runs as a host agent (like Docker)
@@ -68,7 +68,7 @@ Once the container is started, you can jump into a console inside the container 
     $ sudo docker exec -it origin bash
 
     # Start the OpenShift integrated registry in a container
-    $ oadm registry --credentials=./openshift.local.config/master/openshift-registry.kubeconfig
+    $ oadm registry --credentials=./origin.local.config/master/openshift-registry.kubeconfig
 
     # Use the CLI to login, create a project, and then create your app.
     $ oc --help

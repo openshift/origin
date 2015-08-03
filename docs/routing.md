@@ -48,10 +48,10 @@ To create this service account:
     [vagrant@openshiftdev origin]$ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start &
 
     If running in https mode, ensure oc can authenticate to the master
-    [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
+    [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/origin.local.config/master/admin.kubeconfig
     [vagrant@openshiftdev origin]$ sudo chmod a+r "$KUBECONFIG"
-    [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.config/master/openshift-router.kubeconfig
-    [vagrant@openshiftdev origin]$ oadm router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig" --service-account=router
+    [vagrant@openshiftdev origin]$ sudo chmod a+r origin.local.config/master/openshift-router.kubeconfig
+    [vagrant@openshiftdev origin]$ oadm router --create --credentials="origin.local.config/master/openshift-router.kubeconfig" --service-account=router
     [vagrant@openshiftdev origin]$ oc get pods
 
 #### Clustered vagrant environment

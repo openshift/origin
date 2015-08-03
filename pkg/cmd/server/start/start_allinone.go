@@ -189,7 +189,7 @@ func (o *AllInOneOptions) Complete() error {
 		o.MasterArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), "master"))
 		o.NodeArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
 	} else {
-		o.ConfigDir.Default("openshift.local.config")
+		o.ConfigDir.Default("origin.local.config")
 		o.MasterArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), "master"))
 		o.NodeArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
 	}

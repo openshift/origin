@@ -34,7 +34,7 @@ function generate_global_config() {
 
   echo "   }"
   echo ""
-  echo "   notification_email_from ${EMAIL_FROM:-"ipfailover@openshift.local"}"
+  echo "   notification_email_from ${EMAIL_FROM:-"ipfailover@origin.local"}"
   echo "   smtp_server ${SMTP_SERVER:-"127.0.0.1"}"
   echo "   smtp_connect_timeout ${SMTP_CONNECT_TIMEOUT:-"30"}"
   echo "   router_id $routername"

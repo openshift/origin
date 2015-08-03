@@ -49,7 +49,7 @@ type NodeArgs struct {
 
 // BindNodeArgs binds the options to the flags with prefix + default flag names
 func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
-	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "openshift.local.volumes", "The volume storage directory.")
+	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "origin.local.volumes", "The volume storage directory.")
 	// TODO rename this node-name and recommend uname -n
 	flags.StringVar(&args.NodeName, prefix+"hostname", args.NodeName, "The hostname to identify this node with the master.")
 	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
@@ -73,7 +73,7 @@ func NewDefaultNodeArgs() *NodeArgs {
 	config := &NodeArgs{
 		NodeName: hostname,
 
-		MasterCertDir: "openshift.local.config/master/certificates",
+		MasterCertDir: "origin.local.config/master/certificates",
 
 		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "cluster.local"),
 		ClusterDNS:    dnsIP,
@@ -84,7 +84,7 @@ func NewDefaultNodeArgs() *NodeArgs {
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
 	}
-	config.ConfigDir.Default("openshift.local.config/node")
+	config.ConfigDir.Default("origin.local.config/node")
 
 	return config
 }

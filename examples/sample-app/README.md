@@ -138,13 +138,13 @@ This section covers how to perform all the steps of building, deploying, and upd
     installation, users would generate their own keys and not have access
     to the system keys.)
 
-        $ export CURL_CA_BUNDLE=`pwd`/openshift.local.config/master/ca.crt
-        $ sudo chmod a+rwX openshift.local.config/master/admin.kubeconfig
+        $ export CURL_CA_BUNDLE=`pwd`/origin.local.config/master/ca.crt
+        $ sudo chmod a+rwX origin.local.config/master/admin.kubeconfig
 
 4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
-        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ sudo chmod +r origin.local.config/master/openshift-registry.kubeconfig
+        $ oadm registry --create --credentials=origin.local.config/master/openshift-registry.kubeconfig --config=origin.local.config/master/admin.kubeconfig
           deploymentconfigs/docker-registry
           services/docker-registry
 
@@ -156,7 +156,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 5. Confirm the registry is started (this can take a few minutes):
 
-        $ oc describe service docker-registry --config=openshift.local.config/master/admin.kubeconfig
+        $ oc describe service docker-registry --config=origin.local.config/master/admin.kubeconfig
 
     You should see:
 
@@ -174,7 +174,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 6. Login as `test-admin` using any password
 
-        $ oc login --certificate-authority=openshift.local.config/master/ca.crt
+        $ oc login --certificate-authority=origin.local.config/master/ca.crt
 
        **VAGRANT USERS**: If subsequent commands fail because of a config validation error, log out, unset the $KUBECONFIG environment variable (if it is set) and then log in again.
 
@@ -365,30 +365,30 @@ the ip address shown below with the correct one for your environment.
             # name would be system:serviceaccount:default:router if you are creating the router in the default namespace.
             $ oc edit scc <name>
 
-            $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-            $ oadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig --service-account=router
+            $ sudo chmod +r origin.local.config/master/openshift-router.kubeconfig
+            $ oadm router --create --credentials=origin.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig --service-account=router
               router # the service
               router # the deployment config
 
 
 3.  Switch to the `default` project to watch for router to start
 
-            $ oc project default --config=openshift.local.config/master/admin.kubeconfig
+            $ oc project default --config=origin.local.config/master/admin.kubeconfig
 
 4.  Wait for the router to start.
 
-            $ oc describe dc router --config=openshift.local.config/master/admin.kubeconfig
+            $ oc describe dc router --config=origin.local.config/master/admin.kubeconfig
             # watch for the number of deployed pods to go to 1
 
 
 5.  *Optional:* View the logs of the router.  First though, you need to get random suffix that Kubernetes includes as part of the name it generates.
 
-	    $ oc get pods --config=openshift.local.config/master/admin.kubeconfig
+	    $ oc get pods --config=origin.local.config/master/admin.kubeconfig
             # Look for the pod name starting with "router-1-"
 
 6. *Optional:* With that precise pod name, you can view its logs.
 
-            $ oc logs router-1-<podrandom-suffix> --config=openshift.local.config/master/admin.kubeconfig
+            $ oc logs router-1-<podrandom-suffix> --config=origin.local.config/master/admin.kubeconfig
 
 
 7.  Curl the url, substituting the ip address shown for the correct value in your environment.  The easiest way to get the IP is to do a ifconfig from where you have been running the oc command.

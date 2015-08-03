@@ -74,7 +74,7 @@ func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, cre
 
 	flags.BoolVarP(&options.Force, "force", "f", false, "You must confirm you really want to reset your policy. This will delete any custom settings you may have.")
 	flags.StringVar(&options.File, "filename", "", "The policy template file containing roles and bindings.  One can be created with '"+createBootstrapPolicyCommand+"'.")
-	flags.StringVar(&options.MasterConfigFile, "master-config", "openshift.local.config/master/master-config.yaml", "Location of the master configuration file to run from in order to connect to etcd and directly modify the policy.")
+	flags.StringVar(&options.MasterConfigFile, "master-config", "origin.local.config/master/master-config.yaml", "Location of the master configuration file to run from in order to connect to etcd and directly modify the policy.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("filename")

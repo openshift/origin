@@ -20,9 +20,9 @@ type SignerCertOptions struct {
 }
 
 func BindSignerCertOptions(options *SignerCertOptions, flags *pflag.FlagSet, prefix string) {
-	flags.StringVar(&options.CertFile, prefix+"signer-cert", "openshift.local.config/master/ca.crt", "The certificate file.")
-	flags.StringVar(&options.KeyFile, prefix+"signer-key", "openshift.local.config/master/ca.key", "The key file.")
-	flags.StringVar(&options.SerialFile, prefix+"signer-serial", "openshift.local.config/master/ca.serial.txt", "The serial file that keeps track of how many certs have been signed.")
+	flags.StringVar(&options.CertFile, prefix+"signer-cert", "origin.local.config/master/ca.crt", "The certificate file.")
+	flags.StringVar(&options.KeyFile, prefix+"signer-key", "origin.local.config/master/ca.key", "The key file.")
+	flags.StringVar(&options.SerialFile, prefix+"signer-serial", "origin.local.config/master/ca.serial.txt", "The serial file that keeps track of how many certs have been signed.")
 
 	// autocompletion hints
 	cobra.MarkFlagFilename(flags, prefix+"signer-cert")

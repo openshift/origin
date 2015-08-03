@@ -1,5 +1,6 @@
 /_output
 /openshift.local.*
+/origin.local.*
 /.project
 /.vagrant
 /cpu.pprof
