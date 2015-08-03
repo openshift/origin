@@ -1,0 +1,224 @@
+Red Hat Atomic Enterprise Quick Start
+=====================================
+
+0: Read the disclaimer
+----------------------
+This is still a work in progress. It can be done with 1 or more systems in a configuration of:
+
+- One master that also serves as a node
+- Zero or more dedicated nodes
+
+1 Download RHEL
+---------------
+Download the most recent version of RHEL x86_64:
+https://access.redhat.com/downloads/content/69/ver=/rhel---7/7.1/x86_64/product-downloads
+
+2 Install RHEL
+--------------
+Install the version of RHEL that you just downloaded.
+
+3 Register The system
+---------------------
+[source,bash]
+subscription-manager register --auto-attach
+
+4 Disable all repos
+-------------------
+[source,bash]
+subscription-manager repos --disable="*"
+
+
+5 Enable the ones we’ll be using
+--------------------------------
+[source,bash]
+-----------------------------------------
+subscription-manager repos \
+--enable="rhel-7-server-rpms" \
+--enable="rhel-7-server-extras-rpms" \
+--enable="rhel-7-server-optional-rpms" \
+--enable="rhel-server-7-ose-beta-rpms"
+-----------------------------------------
+
+6 Install Packages
+------------------
+[source,bash]
+----------------------------------------------------------------------------
+$ sudo yum -y install wget vim-enhanced net-tools bind-utils tmux git docker
+----------------------------------------------------------------------------
+
+7 Setup repos
+-------------
+[source,bash]
+-------------------------------------------------------------------------------------------------------------------------------
+# Install our atomic enterprise repo
+$ sudo wget -O /etc/yum.repos.d/atomic-enterprise.repo http://mirror.ops.rhcloud.com/atomic/mirror/.atomic-enterprise-early-1/atomic-enterprise.repo
+
+# Install EPEL (For ansible)
+$ sudo yum -y install http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+$ sudo sed -i -e "s/^enabled=1/enabled=0/" /etc/yum.repos.d/epel.repo
+-------------------------------------------------------------------------------------------------------------------------------
+
+8 Install ansible Package
+-------------------------
+[source,bash]
+-----------------------------------------------
+$ sudo yum -y --enablerepo=epel install ansible
+-----------------------------------------------
+
+9 Setup hosts
+-------------
+[source,bash]
+----------------------------------------------------------------------------------
+$ sudo hostnamectl set-hostname ae-master.example.com
+$ sudo bash -c “echo ‘${YOUR IP ADDRESS}    ae-master.example.com’ >> /etc/hosts”
+----------------------------------------------------------------------------------
+
+10 Clone Repos
+--------------
+[source,bash]
+----------------------------------------------------------------------------------
+cd /root
+git clone https://github.com/projectatomic/atomic-enterprise-training.git training
+git clone https://github.com/projectatomic/atomic-enterprise-ansible.git
+----------------------------------------------------------------------------------
+
+11 Setup SSH environment (for ansible)
+--------------------------------------
+[source,bash]
+----------------------------------
+ssh-keygen
+# Accept the defaults
+ssh-copy-id ae-master.example.com
+----------------------------------
+
+Sample output:
+
+[source,bash]
+---------------------------------------------------------------------------------------------------------------
+[root@ae-master ~]# ssh-copy-id ae-master.example.com
+The authenticity of host 'ae-master.example.com (192.168.122.239)' can't be established.
+ECDSA key fingerprint is 67:ca:e2:c2:eb:e0:fd:6c:de:74:bb:aa:6c:25:07:a7.
+Are you sure you want to continue connecting (yes/no)? yes
+/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+root@ae-master.example.com's password:
+
+Number of key(s) added: 1
+---------------------------------------------------------------------------------------------------------------
+
+Now try logging into the machine, with:   "ssh 'ae-master.example.com'"
+and check to make sure that only the key(s) you wanted were added.
+
+12 setup ansible installer
+--------------------------
+[source,bash]
+------------------------------------------------------------------------------------------------------
+/bin/cp -r ~/training/eap-latest/ansible/* /etc/ansible/
+
+vi /etc/ansible/hosts
+# Edit the bottom lines to only include the one ae-master.example.com or add other nodes if they exist
+------------------------------------------------------------------------------------------------------
+
+13 Run ansible
+--------------
+[source,bash]
+ansible-playbook ~/atomic-enterprise-ansible/playbooks/byo/config.yml
+
+[CAUTION]
+Don’t bother moving on if this fails
+
+Success looks (something) like this:
+
+[source,bash]
+-------------------------------------------------------------------------------
+PLAY RECAP ********************************************************************
+ae-master.example.com      : ok=95   changed=42   unreachable=0    failed=0
+localhost                  : ok=5    changed=0    unreachable=0    failed=0
+-------------------------------------------------------------------------------
+
+
+14 run oc get nodes (things should be up now)
+---------------------------------------------
+
+[source,bash]
+oc get nodes
+
+You should see:
+[source,bash]
+-----------------------------------------------------------------------------
+NAME                    LABELS                                         STATUS
+ae-master.example.com   kubernetes.io/hostname=ae-master.example.com   Ready
+-----------------------------------------------------------------------------
+
+15 Create sample app (from the training example earlier)
+--------------------------------------------------------
+
+[source,bash]
+oc create -f /root/training/eap-latest/hello-pod.json
+
+Here’s an in-the-field, live-fire example:
+
+[source,bash]
+-------------------------------------------------------------------------
+[root@ae-master ~]# oc create -f /root/training/eap-latest/hello-pod.json
+pods/hello-atomic
+-------------------------------------------------------------------------
+
+16 Verify pod exists
+--------------------
+Check to see that the pod exists:
+
+[source,bash]
+oc get pods
+
+While it’s starting, you should see:
+
+[source,bash]
+--------------------------------------------------
+NAME           READY     REASON    RESTARTS   AGE
+hello-atomic   0/1       Pending   0          4s
+--------------------------------------------------
+
+Keep running “oc get pods” until the pod is in state “Running”, this can take roughly a minute and involves downloading a docker image so time can vary depending on network speed:
+
+[source,bash]
+--------------------------------------------------
+NAME           READY     REASON    RESTARTS   AGE
+hello-atomic   1/1       Running   0          1m
+--------------------------------------------------
+
+
+Get a longer description of the pod and note the IP: field, you’ll need it for the next step:
+
+[source,bash]
+oc describe pods hello-atomic
+
+The output should look something like:
+
+[NOTE]
+Take notice of the IP field below:
+
+[source,bash]
+----------------------------------------------------------------
+Name:                    hello-atomic
+Image(s):                atomicenterprise/hello-atomic:latest
+Host:                    ae-master.example.com/192.168.122.154
+Labels:                  name=hello-atomic
+Status:                  Running
+IP:                      10.1.0.2
+Replication Controllers: <none>
+...
+----------------------------------------------------------------
+
+17 Access new pod
+-----------------
+
+[source,bash]
+curl http://$IP_FROM_ABOVE:8080/
+
+18 Try new things
+-----------------
+That’s it, your system should be up and running.  You can now add new nodes.  Try adding the internal registry with the “oadm registry” command.  Or try adding the enterprise router with the “oadm router” command.  You can also take a look at other kubernetes examples: https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples
+
+[IMPORTANT]
+Remember to use the “oc” command instead of the “kubectl” command when using Atomic Enterprise Platform.
