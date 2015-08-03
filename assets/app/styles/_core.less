@@ -209,14 +209,17 @@ html, body {
     border-top: 0;
   }
   .template-options {
+    line-height: 1.5;
     .list-unstyled {
-      line-height: 1.5;
+      .options {
+        margin-bottom: 12px;
+      }
       .help-block {
-        margin-top: 0;
+        margin: 0 0 5px 2px;
       }
     }
     .help-block {
-      margin-left: 2px;
+      margin-bottom: 5px;
     }
   }
 }
@@ -299,6 +302,12 @@ html, body {
     color: @btn-default-color;
     margin-right: 5px;
   }
+}
+
+label.required:before {
+  content: '*';
+  position: absolute;
+  left: 10px;
 }
 
 .btn-xs {
