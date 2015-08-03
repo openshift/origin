@@ -350,9 +350,23 @@ the ip address shown below with the correct one for your environment.
             # Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will
             # take some time.  Your pod will stay in Pending state while the pull is completed
             $ docker pull openshift/origin-haproxy-router
+            
+            # Create a service account that the router will use.  This service account must have access to use a
+            # security context constraint that allows host ports
+            $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
+            
+            # You may either create a new SCC or use an existing SCC.  The following command will
+            # display existing SCCs and true if they support host ports.
+            $ oc get scc -t "{{range .items}}{{.metadata.name}}: {{.allowHostPorts}}, {{end}}"
+            privileged: true, restricted: false,
+            
+            # Edit your security context constraint to add the new service account in the users section
+            # in the form of system:serviceaccount:<namespace>:<name>.  In the above example the full
+            # name would be system:serviceaccount:default:router if you are creating the router in the default namespace.
+            $ oc edit scc <name>
 
             $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-            $ oadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+            $ oadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig --service-account=router
               router # the service
               router # the deployment config
 
