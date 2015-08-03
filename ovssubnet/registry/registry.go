@@ -42,18 +42,21 @@ func newNodeEvent(action, key, value string) *api.NodeEvent {
 	if key != "" {
 		_, nodeEvent.Node = path.Split(key)
 
-		/* TODO(ravips): FIXME
-		var node kapi.Node
+		var node map[string]interface{}
 		err := json.Unmarshal([]byte(value), &node)
-		if err != nil {
-			fmt.Printf("Error decoding node event: nil key (%s,%s,%s).\n", action, key, value)
-			return nil
+		if err == nil {
+			nodeStatus, ok := node["Status"].(map[string]interface{})
+			if ok {
+				nodeAddresses, ok := nodeStatus["Addresses"].([]interface{})
+				if ok {
+					nodeAddressMap, ok := nodeAddresses[0].(map[string]interface{})
+					if ok {
+						nodeEvent.NodeIP = nodeAddressMap["Address"].(string)
+						return nodeEvent
+					}
+				}
+			}
 		}
-		if len(node.Status.Addresses) > 0 {
-			nodeEvent.NodeIP = node.Status.Addresses[0].Address
-		}
-		*/
-		return nodeEvent
 	}
 
 	fmt.Printf("Error decoding node event: nil key (%s,%s,%s).\n", action, key, value)

@@ -206,7 +206,7 @@ func (oc *OvsController) ServeExistingNodes() error {
 			// subnet already exists, continue
 			continue
 		}
-		err = oc.AddNode(node)
+		err = oc.AddNode(node, "")
 		if err != nil {
 			return err
 		}
@@ -235,16 +235,18 @@ func (oc *OvsController) getNodeIP(node string) (string, error) {
 	return ip.String(), nil
 }
 
-func (oc *OvsController) AddNode(node string) error {
+func (oc *OvsController) AddNode(node string, nodeIP string) error {
 	sn, err := oc.subnetAllocator.GetNetwork()
 	if err != nil {
 		log.Errorf("Error creating network for node %s.", node)
 		return err
 	}
 
-	nodeIP, err := oc.getNodeIP(node)
-	if err != nil {
-		return err
+	if nodeIP == "" || nodeIP == "127.0.0.1" {
+		nodeIP, err = oc.getNodeIP(node)
+		if err != nil {
+			return err
+		}
 	}
 
 	sub := &api.Subnet{
@@ -393,7 +395,7 @@ func (oc *OvsController) watchNodes() {
 				sub, err := oc.subnetRegistry.GetSubnet(ev.Node)
 				if err != nil {
 					// subnet does not exist already
-					oc.AddNode(ev.Node)
+					oc.AddNode(ev.Node, ev.NodeIP)
 				} else {
 					// Current node IP is obtained from event, ev.NodeIP to
 					// avoid cached/stale IP lookup by net.LookupIP()
