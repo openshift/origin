@@ -43,6 +43,7 @@ angular.module("openshiftConsole")
         include: true
       };
       scope.labels = {};
+      scope.annotations = {};
       scope.scaling = {
         replicas: 1
       };
