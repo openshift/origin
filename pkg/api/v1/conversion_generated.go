@@ -1034,6 +1034,14 @@ func convert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, out 
 	} else {
 		out.TriggeredByImage = nil
 	}
+	if in.From != nil {
+		out.From = new(v1.ObjectReference)
+		if err := convert_api_ObjectReference_To_v1_ObjectReference(in.From, out.From, s); err != nil {
+			return err
+		}
+	} else {
+		out.From = nil
+	}
 	return nil
 }
 
@@ -1183,6 +1191,14 @@ func convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *buildapi.ImageC
 		defaulting.(func(*buildapi.ImageChangeTrigger))(in)
 	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
+	if in.From != nil {
+		out.From = new(v1.ObjectReference)
+		if err := convert_api_ObjectReference_To_v1_ObjectReference(in.From, out.From, s); err != nil {
+			return err
+		}
+	} else {
+		out.From = nil
+	}
 	return nil
 }
 
@@ -1382,6 +1398,14 @@ func convert_v1_BuildRequest_To_api_BuildRequest(in *buildapiv1.BuildRequest, ou
 	} else {
 		out.TriggeredByImage = nil
 	}
+	if in.From != nil {
+		out.From = new(api.ObjectReference)
+		if err := convert_v1_ObjectReference_To_api_ObjectReference(in.From, out.From, s); err != nil {
+			return err
+		}
+	} else {
+		out.From = nil
+	}
 	return nil
 }
 
@@ -1531,6 +1555,14 @@ func convert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *buildapiv1.Imag
 		defaulting.(func(*buildapiv1.ImageChangeTrigger))(in)
 	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
+	if in.From != nil {
+		out.From = new(api.ObjectReference)
+		if err := convert_v1_ObjectReference_To_api_ObjectReference(in.From, out.From, s); err != nil {
+			return err
+		}
+	} else {
+		out.From = nil
+	}
 	return nil
 }
 

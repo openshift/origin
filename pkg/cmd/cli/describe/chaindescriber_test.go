@@ -7,6 +7,8 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"github.com/gonum/graph"
+	"github.com/gonum/graph/concrete"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
@@ -21,9 +23,10 @@ func TestChainDescriber(t *testing.T) {
 		name             string
 		tag              string
 		path             string
-		humanReadable    map[string]struct{}
+		humanReadable    map[string]int
 		dot              []string
 		expectedErr      error
+		includeInputImg  bool
 	}{
 		{
 			testName:         "human readable test - single namespace",
@@ -33,12 +36,12 @@ func TestChainDescriber(t *testing.T) {
 			name:             "ruby-20-centos7",
 			tag:              "latest",
 			path:             "../../../../pkg/cmd/experimental/buildchain/test/single-namespace-bcs.yaml",
-			humanReadable: map[string]struct{}{
-				"imagestreamtag/ruby-20-centos7:latest":        {},
-				"\tbc/ruby-hello-world":                        {},
-				"\t\timagestreamtag/ruby-hello-world:latest":   {},
-				"\tbc/ruby-sample-build":                       {},
-				"\t\timagestreamtag/origin-ruby-sample:latest": {},
+			humanReadable: map[string]int{
+				"imagestreamtag/ruby-20-centos7:latest":        1,
+				"\tbc/ruby-hello-world":                        1,
+				"\t\timagestreamtag/ruby-hello-world:latest":   1,
+				"\tbc/ruby-sample-build":                       1,
+				"\t\timagestreamtag/origin-ruby-sample:latest": 1,
 			},
 			expectedErr: nil,
 		},
@@ -62,8 +65,8 @@ func TestChainDescriber(t *testing.T) {
 				"// Edge definitions.",
 				"[label=\"BuildOutput\"];",
 				"[label=\"BuildOutput\"];",
-				"[label=\"BuildInputImage\"];",
-				"[label=\"BuildInputImage\"];",
+				"[label=\"BuildInputImage,BuildTriggerImage\"];",
+				"[label=\"BuildInputImage,BuildTriggerImage\"];",
 				"}",
 			},
 			expectedErr: nil,
@@ -76,12 +79,12 @@ func TestChainDescriber(t *testing.T) {
 			name:             "ruby-20-centos7",
 			tag:              "latest",
 			path:             "../../../../pkg/cmd/experimental/buildchain/test/multiple-namespaces-bcs.yaml",
-			humanReadable: map[string]struct{}{
-				"<master imagestreamtag/ruby-20-centos7:latest>":         {},
-				"\t<default bc/ruby-hello-world>":                        {},
-				"\t\t<test imagestreamtag/ruby-hello-world:latest>":      {},
-				"\t<test bc/ruby-sample-build>":                          {},
-				"\t\t<another imagestreamtag/origin-ruby-sample:latest>": {},
+			humanReadable: map[string]int{
+				"<master imagestreamtag/ruby-20-centos7:latest>":         1,
+				"\t<default bc/ruby-hello-world>":                        1,
+				"\t\t<test imagestreamtag/ruby-hello-world:latest>":      1,
+				"\t<test bc/ruby-sample-build>":                          1,
+				"\t\t<another imagestreamtag/origin-ruby-sample:latest>": 1,
 			},
 			expectedErr: nil,
 		},
@@ -105,11 +108,58 @@ func TestChainDescriber(t *testing.T) {
 				"// Edge definitions.",
 				"[label=\"BuildOutput\"];",
 				"[label=\"BuildOutput\"];",
-				"[label=\"BuildInputImage\"];",
-				"[label=\"BuildInputImage\"];",
+				"[label=\"BuildInputImage,BuildTriggerImage\"];",
+				"[label=\"BuildInputImage,BuildTriggerImage\"];",
 				"}",
 			},
 			expectedErr: nil,
+		},
+		{
+			testName:         "human readable - multiple triggers - triggeronly",
+			name:             "ruby-20-centos7",
+			defaultNamespace: "test",
+			tag:              "latest",
+			path:             "../../../../pkg/cmd/experimental/buildchain/test/multiple-trigger-bcs.yaml",
+			namespaces:       kutil.NewStringSet("test"),
+			humanReadable: map[string]int{
+				"imagestreamtag/ruby-20-centos7:latest":   1,
+				"\tbc/parent1":                            1,
+				"\t\timagestreamtag/parent1img:latest":    1,
+				"\t\t\tbc/child2":                         2,
+				"\t\t\t\timagestreamtag/child2img:latest": 2,
+				"\tbc/parent2":                            1,
+				"\t\timagestreamtag/parent2img:latest":    1,
+				"\t\t\tbc/child3":                         2,
+				"\t\t\t\timagestreamtag/child3img:latest": 2,
+				"\t\t\tbc/child1":                         1,
+				"\t\t\t\timagestreamtag/child1img:latest": 1,
+				"\tbc/parent3":                            1,
+				"\t\timagestreamtag/parent3img:latest":    1,
+			},
+		},
+		{
+			testName:         "human readable - multiple triggers - trigger+input",
+			name:             "ruby-20-centos7",
+			defaultNamespace: "test",
+			tag:              "latest",
+			path:             "../../../../pkg/cmd/experimental/buildchain/test/multiple-trigger-bcs.yaml",
+			namespaces:       kutil.NewStringSet("test"),
+			includeInputImg:  true,
+			humanReadable: map[string]int{
+				"imagestreamtag/ruby-20-centos7:latest":   1,
+				"\tbc/parent1":                            1,
+				"\t\timagestreamtag/parent1img:latest":    1,
+				"\t\t\tbc/child1":                         2,
+				"\t\t\t\timagestreamtag/child1img:latest": 2,
+				"\t\t\tbc/child2":                         2,
+				"\t\t\t\timagestreamtag/child2img:latest": 2,
+				"\t\t\tbc/child3":                         3,
+				"\t\t\t\timagestreamtag/child3img:latest": 3,
+				"\tbc/parent2":                            1,
+				"\t\timagestreamtag/parent2img:latest":    1,
+				"\tbc/parent3":                            1,
+				"\t\timagestreamtag/parent3img:latest":    1,
+			},
 		},
 	}
 
@@ -124,7 +174,8 @@ func TestChainDescriber(t *testing.T) {
 		oc, _ := testclient.NewFixtureClients(o)
 		ist := imagegraph.MakeImageStreamTagObjectMeta(test.defaultNamespace, test.name, test.tag)
 
-		desc, err := NewChainDescriber(oc, test.namespaces, test.output).Describe(ist)
+		desc, err := NewChainDescriber(oc, test.namespaces, test.output).Describe(ist, test.includeInputImg)
+		t.Logf("%s: output:\n%s\n\n", test.testName, desc)
 		if err != test.expectedErr {
 			t.Fatalf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, err)
 		}
@@ -134,7 +185,7 @@ func TestChainDescriber(t *testing.T) {
 		switch test.output {
 		case "dot":
 			if len(test.dot) != len(got) {
-				t.Fatalf("%s: expected %d lines, got %d", test.testName, len(test.dot), len(got))
+				t.Fatalf("%s: expected %d lines, got %d:\n%s", test.testName, len(test.dot), len(got), desc)
 			}
 			for _, expected := range test.dot {
 				if !strings.Contains(desc, expected) {
@@ -142,14 +193,60 @@ func TestChainDescriber(t *testing.T) {
 				}
 			}
 		case "":
-			if len(test.humanReadable) != len(got) {
-				t.Fatalf("%s: expected %d lines, got %d", test.testName, len(test.humanReadable), len(got))
+			if lenReadable(test.humanReadable) != len(got) {
+				t.Fatalf("%s: expected %d lines, got %d:\n%s", test.testName, lenReadable(test.humanReadable), len(got), desc)
 			}
 			for _, line := range got {
 				if _, ok := test.humanReadable[line]; !ok {
 					t.Errorf("%s: unexpected line: %s", test.testName, line)
 				}
+				test.humanReadable[line]--
+			}
+			for line, cnt := range test.humanReadable {
+				if cnt != 0 {
+					t.Errorf("%s: unexpected number of lines for [%s]: %d", test.testName, line, cnt)
+				}
 			}
 		}
 	}
+}
+
+func lenReadable(value map[string]int) int {
+	length := 0
+	for _, cnt := range value {
+		length += cnt
+	}
+	return length
+}
+
+func TestDepthFirst(t *testing.T) {
+	g := concrete.NewDirectedGraph()
+
+	a := concrete.Node(g.NewNodeID())
+	b := concrete.Node(g.NewNodeID())
+
+	g.AddNode(a)
+	g.AddNode(b)
+	g.SetEdge(concrete.Edge{F: a, T: b}, 1)
+	g.SetEdge(concrete.Edge{F: b, T: a}, 1)
+
+	count := 0
+
+	df := &DepthFirst{
+		EdgeFilter: func(graph.Edge) bool {
+			return true
+		},
+		Visit: func(u, v graph.Node) {
+			count++
+			t.Logf("%d -> %d\n", u.ID(), v.ID())
+		},
+	}
+
+	df.Walk(g, a, func(n graph.Node) bool {
+		if count > 100 {
+			t.Fatalf("looped")
+			return true
+		}
+		return false
+	})
 }

@@ -11,6 +11,7 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -36,22 +37,43 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) fielderro
 	return allErrs
 }
 
+// refKey returns a key for the given ObjectReference. If the ObjectReference
+// doesn't include a namespace, the passed in namespace is used for the reference
+func refKey(namespace string, ref *kapi.ObjectReference) string {
+	if ref == nil || ref.Kind != "ImageStreamTag" {
+		return "nil"
+	}
+	ns := ref.Namespace
+	if ns == "" {
+		ns = namespace
+	}
+	return fmt.Sprintf("%s/%s", ns, ref.Name)
+}
+
 // ValidateBuildConfig tests required fields for a Build.
 func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
 
-	// allow only one ImageChangeTrigger for now
-	ictCount := 0
+	// image change triggers that refer
+	fromRefs := map[string]struct{}{}
 	for i, trg := range config.Spec.Triggers {
 		allErrs = append(allErrs, validateTrigger(&trg).PrefixIndex(i).Prefix("triggers")...)
-		if trg.Type == buildapi.ImageChangeBuildTriggerType {
-			if ictCount++; ictCount > 1 {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("triggers", config.Spec.Triggers, "only one ImageChange trigger is allowed"))
-				break
-			}
+		if trg.Type != buildapi.ImageChangeBuildTriggerType || trg.ImageChange == nil {
+			continue
 		}
+		from := trg.ImageChange.From
+		if from == nil {
+			from = buildutil.GetImageStreamForStrategy(config.Spec.Strategy)
+		}
+		fromKey := refKey(config.Namespace, from)
+		_, exists := fromRefs[fromKey]
+		if exists {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("triggers", config.Spec.Triggers, "multiple ImageChange triggers refer to the same image stream tag"))
+		}
+		fromRefs[fromKey] = struct{}{}
 	}
+
 	allErrs = append(allErrs, validateBuildSpec(&config.Spec.BuildSpec).Prefix("spec")...)
 	return allErrs
 }
@@ -311,7 +333,20 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) fielderrors.Validatio
 	case buildapi.ImageChangeBuildTriggerType:
 		if trigger.ImageChange == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("imageChange"))
+			break
 		}
+		if trigger.ImageChange.From == nil {
+			break
+		}
+		if kind := trigger.ImageChange.From.Kind; kind != "ImageStreamTag" {
+			invalidKindErr := fielderrors.NewFieldInvalid(
+				"imageChange.from.kind",
+				kind,
+				"only an ImageStreamTag type of reference is allowed in an ImageChange trigger.")
+			allErrs = append(allErrs, invalidKindErr)
+			break
+		}
+		allErrs = append(allErrs, validateFromImageReference(trigger.ImageChange.From).Prefix("from")...)
 	default:
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("type", trigger.Type, "invalid trigger type"))
 	}
