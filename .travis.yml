@@ -15,7 +15,7 @@ install:
   - ./hack/build-go.sh
   - ./hack/install-assets.sh
 
-script: ./hack/test-assets.sh && PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH make check-test WHAT="''" TESTFLAGS="-p=4"
+script: ./hack/test-assets.sh && export TRAVIS_TEST=true && PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH make check-test WHAT="''" TESTFLAGS="-p=4"
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"
