@@ -486,7 +486,17 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		return nil, err
 	}
 
-	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "openshift.default.svc.cluster.local", "kubernetes.default.svc.cluster.local", masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
+	allHostnames := util.NewStringSet(
+		"localhost", "127.0.0.1",
+		"openshift.default.svc.cluster.local",
+		"openshift.default.svc",
+		"openshift.default",
+		"openshift",
+		"kubernetes.default.svc.cluster.local",
+		"kubernetes.default.svc",
+		"kubernetes.default",
+		"kubernetes",
+		masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
 
 	listenIP := net.ParseIP(args.ListenArg.ListenAddr.Host)
 	// add the IPs that might be used based on the ListenAddr.
