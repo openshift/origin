@@ -195,8 +195,8 @@ func (g *conversionGenerator) generateConversionsForMap(inType, outType reflect.
 	}
 	inValue := inType.Elem()
 	outValue := outType.Elem()
-	g.addImportByPath(inValue.PkgPath())
-	g.addImportByPath(outValue.PkgPath())
+	g.addImportByPath(inKey.PkgPath())
+	g.addImportByPath(outKey.PkgPath())
 	if err := g.generateConversionsBetween(inValue, outValue); err != nil {
 		return err
 	}

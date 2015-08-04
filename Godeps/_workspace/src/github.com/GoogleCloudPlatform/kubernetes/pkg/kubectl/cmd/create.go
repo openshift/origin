@@ -36,7 +36,7 @@ const (
 
 JSON and YAML formats are accepted.`
 	create_example = `// Create a pod using the data in pod.json.
-$ kubectl create -f pod.json
+$ kubectl create -f ./pod.json
 
 // Create a pod based on the JSON passed into stdin.
 $ cat pod.json | kubectl create -f -`
@@ -51,7 +51,9 @@ func NewCmdCreate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 		Example: create_example,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(ValidateArgs(cmd, args))
-			cmdutil.CheckErr(RunCreate(f, out, filenames))
+			cmdutil.CheckErr(cmdutil.ValidateOutputArgs(cmd))
+			shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+			cmdutil.CheckErr(RunCreate(f, out, filenames, shortOutput))
 		},
 	}
 
@@ -59,6 +61,7 @@ func NewCmdCreate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	kubectl.AddJsonFilenameFlag(cmd, &filenames, usage)
 	cmd.MarkFlagRequired("filename")
 
+	cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
@@ -69,7 +72,7 @@ func ValidateArgs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func RunCreate(f *cmdutil.Factory, out io.Writer, filenames util.StringList) error {
+func RunCreate(f *cmdutil.Factory, out io.Writer, filenames util.StringList, shortOutput bool) error {
 	schema, err := f.Validator()
 	if err != nil {
 		return err
@@ -105,8 +108,10 @@ func RunCreate(f *cmdutil.Factory, out io.Writer, filenames util.StringList) err
 		}
 		count++
 		info.Refresh(obj, true)
-		printObjectSpecificMessage(info.Object, out)
-		fmt.Fprintf(out, "%s/%s\n", info.Mapping.Resource, info.Name)
+		if !shortOutput {
+			printObjectSpecificMessage(info.Object, out)
+		}
+		cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "created")
 		return nil
 	})
 	if err != nil {
@@ -121,23 +126,15 @@ func RunCreate(f *cmdutil.Factory, out io.Writer, filenames util.StringList) err
 func printObjectSpecificMessage(obj runtime.Object, out io.Writer) {
 	switch obj := obj.(type) {
 	case *api.Service:
-		if obj.Spec.Type == api.ServiceTypeLoadBalancer {
-			msg := fmt.Sprintf(`
-			An external load-balanced service was created.  On many platforms (e.g. Google Compute Engine),
-			you will also need to explicitly open a Firewall rule for the service port(s) (%s) to serve traffic.
-
-			See https://github.com/GoogleCloudPlatform/kubernetes/tree/master/docs/services-firewalls.md for more details.
-			`, makePortsString(obj.Spec.Ports, false))
-			out.Write([]byte(msg))
-		}
 		if obj.Spec.Type == api.ServiceTypeNodePort {
-			msg := fmt.Sprintf(`
-				You have exposed your service on an external port on all nodes in your cluster.
-				If you want to expose this service to the external internet, you may need to set up
-				firewall rules for the service port(s) (%s) to serve traffic.
-				
-				See https://github.com/GoogleCloudPlatform/kubernetes/tree/master/docs/services-firewalls.md for more details.
-				`, makePortsString(obj.Spec.Ports, true))
+			msg := fmt.Sprintf(
+				`You have exposed your service on an external port on all nodes in your
+cluster.  If you want to expose this service to the external internet, you may
+need to set up firewall rules for the service port(s) (%s) to serve traffic.
+
+See http://releases.k8s.io/HEAD/docs/user-guide/services-firewalls.md for more details.
+`,
+				makePortsString(obj.Spec.Ports, true))
 			out.Write([]byte(msg))
 		}
 	}

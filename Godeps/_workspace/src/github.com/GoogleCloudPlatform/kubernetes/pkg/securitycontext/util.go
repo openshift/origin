@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/golang/glog"
 )
 
 // HasPrivilegedRequest returns the value of SecurityContext.Privileged, taking into account
@@ -48,16 +47,6 @@ func HasCapabilitiesRequest(container *api.Container) bool {
 	return len(container.SecurityContext.Capabilities.Add) > 0 || len(container.SecurityContext.Capabilities.Drop) > 0
 }
 
-// SELinuxOptionsString returns the string representation of a
-// set of SELinuxOptions.
-func SELinuxOptionsString(sel *api.SELinuxOptions) string {
-	if sel == nil {
-		return ""
-	}
-
-	return fmt.Sprintf("%s:%s:%s:%s", sel.User, sel.Role, sel.Type, sel.Level)
-}
-
 const expectedSELinuxContextFields = 4
 
 // ParseSELinuxOptions parses a string containing a full SELinux context
@@ -76,50 +65,4 @@ func ParseSELinuxOptions(context string) (*api.SELinuxOptions, error) {
 		Type:  fields[2],
 		Level: fields[3],
 	}, nil
-}
-
-// ProjectSELinuxOptions projects a source SELinuxOptions onto a target
-// SELinuxOptions and returns a _new_ SELinuxOptions containing the result.
-func ProjectSELinuxOptions(source, target *api.SELinuxOptions) *api.SELinuxOptions {
-	glog.V(4).Infof("Projecting security context %v onto %v", SELinuxOptionsString(source), SELinuxOptionsString(target))
-
-	// Copy the receiving options to project onto
-	result := &api.SELinuxOptions{}
-	*result = *target
-
-	if source.User != "" {
-		result.User = source.User
-	}
-	if source.Role != "" {
-		result.Role = source.Role
-	}
-	if source.Type != "" {
-		result.Type = source.Type
-	}
-	if source.Level != "" {
-		result.Level = source.Level
-	}
-
-	return result
-}
-
-// HasNonRootUID returns true if the runAsUser is set and is greater than 0.
-func HasRootUID(container *api.Container) bool {
-	if container.SecurityContext == nil {
-		return false
-	}
-	if container.SecurityContext.RunAsUser == nil {
-		return false
-	}
-	return *container.SecurityContext.RunAsUser == 0
-}
-
-// HasRunAsUser determines if the sc's runAsUser field is set.
-func HasRunAsUser(container *api.Container) bool {
-	return container.SecurityContext != nil && container.SecurityContext.RunAsUser != nil
-}
-
-// HasRootRunAsUser returns true if the run as user is set and it is set to 0.
-func HasRootRunAsUser(container *api.Container) bool {
-	return HasRunAsUser(container) && HasRootUID(container)
 }

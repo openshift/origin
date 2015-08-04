@@ -27,7 +27,10 @@ import (
 )
 
 const (
-	stop_long = `Gracefully shut down a resource by name or filename.
+	stop_long = `Deprecated: Gracefully shut down a resource by name or filename.
+
+stop command is deprecated, all its functionalities are covered by delete command.
+See 'kubectl delete --help' for more details.
 
 Attempts to shut down and delete a resource that supports graceful termination.
 If the resource is scalable it will be scaled to 0 before deletion.`
@@ -50,11 +53,13 @@ func NewCmdStop(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	}{}
 	cmd := &cobra.Command{
 		Use:     "stop (-f FILENAME | RESOURCE (NAME | -l label | --all))",
-		Short:   "Gracefully shut down a resource by name or filename.",
+		Short:   "Deprecated: Gracefully shut down a resource by name or filename.",
 		Long:    stop_long,
 		Example: stop_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(RunStop(f, cmd, args, flags.Filenames, out))
+			cmdutil.CheckErr(cmdutil.ValidateOutputArgs(cmd))
+			shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+			cmdutil.CheckErr(RunStop(f, cmd, args, flags.Filenames, out, shortOutput))
 		},
 	}
 	usage := "Filename, directory, or URL to file of resource(s) to be stopped."
@@ -64,10 +69,11 @@ func NewCmdStop(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd.Flags().Bool("ignore-not-found", false, "Treat \"resource not found\" as a successful stop.")
 	cmd.Flags().Int("grace-period", -1, "Period of time in seconds given to the resource to terminate gracefully. Ignored if negative.")
 	cmd.Flags().Duration("timeout", 0, "The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object")
+	cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
 }
 
-func RunStop(f *cmdutil.Factory, cmd *cobra.Command, args []string, filenames util.StringList, out io.Writer) error {
+func RunStop(f *cmdutil.Factory, cmd *cobra.Command, args []string, filenames util.StringList, out io.Writer, shortOutput bool) error {
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -85,5 +91,5 @@ func RunStop(f *cmdutil.Factory, cmd *cobra.Command, args []string, filenames ut
 	if r.Err() != nil {
 		return r.Err()
 	}
-	return ReapResult(r, f, out, false, cmdutil.GetFlagBool(cmd, "ignore-not-found"), cmdutil.GetFlagDuration(cmd, "timeout"), cmdutil.GetFlagInt(cmd, "grace-period"))
+	return ReapResult(r, f, out, false, cmdutil.GetFlagBool(cmd, "ignore-not-found"), cmdutil.GetFlagDuration(cmd, "timeout"), cmdutil.GetFlagInt(cmd, "grace-period"), shortOutput, mapper)
 }

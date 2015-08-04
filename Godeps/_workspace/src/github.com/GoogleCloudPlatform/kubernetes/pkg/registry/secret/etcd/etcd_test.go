@@ -22,15 +22,17 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest/resttest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/testapi"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 )
 
-func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
+func newEtcdStorage(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, testapi.Codec(), etcdtest.PathPrefix())
-	return fakeEtcdClient, helper
+	etcdStorage := etcdstorage.NewEtcdStorage(fakeEtcdClient, testapi.Codec(), etcdtest.PathPrefix())
+	return fakeEtcdClient, etcdStorage
 }
 
 func validNewSecret(name string) *api.Secret {
@@ -46,8 +48,8 @@ func validNewSecret(name string) *api.Secret {
 }
 
 func TestCreate(t *testing.T) {
-	fakeEtcdClient, helper := newHelper(t)
-	storage := NewStorage(helper)
+	fakeEtcdClient, etcdStorage := newEtcdStorage(t)
+	storage := NewStorage(etcdStorage)
 	test := resttest.New(t, storage, fakeEtcdClient.SetError)
 	secret := validNewSecret("foo")
 	secret.ObjectMeta = api.ObjectMeta{GenerateName: "foo-"}
@@ -68,8 +70,8 @@ func TestCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	fakeEtcdClient, helper := newHelper(t)
-	storage := NewStorage(helper)
+	fakeEtcdClient, etcdStorage := newEtcdStorage(t)
+	storage := NewStorage(etcdStorage)
 	test := resttest.New(t, storage, fakeEtcdClient.SetError)
 	key, err := storage.KeyFunc(test.TestContext(), "foo")
 	if err != nil {

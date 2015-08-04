@@ -58,6 +58,7 @@ type GCECloud struct {
 	projectID        string
 	zone             string
 	instanceID       string
+	externalID       string
 	networkName      string
 
 	// Used for accessing the metadata server
@@ -124,6 +125,14 @@ func getInstanceID() (string, error) {
 	return parts[0], nil
 }
 
+func getCurrentExternalID() (string, error) {
+	externalID, err := metadata.Get("instance/id")
+	if err != nil {
+		return "", fmt.Errorf("couldn't get external ID: %v", err)
+	}
+	return externalID, nil
+}
+
 func getNetworkName() (string, error) {
 	result, err := metadata.Get("instance/network-interfaces/0/network")
 	if err != nil {
@@ -146,6 +155,10 @@ func newGCECloud(config io.Reader) (*GCECloud, error) {
 	// e.g. on a user's machine (not VM) somewhere, we need to have an alternative for
 	// instance id lookup.
 	instanceID, err := getInstanceID()
+	if err != nil {
+		return nil, err
+	}
+	externalID, err := getCurrentExternalID()
 	if err != nil {
 		return nil, err
 	}
@@ -185,6 +198,7 @@ func newGCECloud(config io.Reader) (*GCECloud, error) {
 		projectID:        projectID,
 		zone:             zone,
 		instanceID:       instanceID,
+		externalID:       externalID,
 		networkName:      networkName,
 		metadataAccess:   getMetadata,
 	}, nil
@@ -219,10 +233,23 @@ func (gce *GCECloud) Routes() (cloudprovider.Routes, bool) {
 	return gce, true
 }
 
-func makeHostLink(projectID, zone, host string) string {
+func makeHostURL(projectID, zone, host string) string {
 	host = canonicalizeInstanceName(host)
 	return fmt.Sprintf("https://www.googleapis.com/compute/v1/projects/%s/zones/%s/instances/%s",
 		projectID, zone, host)
+}
+
+func makeComparableHostPath(zone, host string) string {
+	host = canonicalizeInstanceName(host)
+	return fmt.Sprintf("/zones/%s/instances/%s", zone, host)
+}
+
+func hostURLToComparablePath(hostURL string) string {
+	idx := strings.Index(hostURL, "/zones/")
+	if idx < 0 {
+		return ""
+	}
+	return hostURL[idx:]
 }
 
 // Session Affinity Type string
@@ -240,7 +267,7 @@ const (
 func (gce *GCECloud) makeTargetPool(name, region string, hosts []string, affinityType GCEAffinityType) error {
 	var instances []string
 	for _, host := range hosts {
-		instances = append(instances, makeHostLink(gce.projectID, gce.zone, host))
+		instances = append(instances, makeHostURL(gce.projectID, gce.zone, host))
 	}
 	pool := &compute.TargetPool{
 		Name:            name,
@@ -263,13 +290,19 @@ func (gce *GCECloud) targetPoolURL(name, region string) string {
 
 func waitForOp(op *compute.Operation, getOperation func() (*compute.Operation, error)) error {
 	pollOp := op
+	consecPollFails := 0
 	for pollOp.Status != "DONE" {
 		var err error
-		// TODO: add some backoff here.
-		time.Sleep(time.Second)
+		time.Sleep(3 * time.Second)
 		pollOp, err = getOperation()
 		if err != nil {
-			return err
+			if consecPollFails == 2 {
+				// Only bail if we've seen 3 consecutive polling errors.
+				return err
+			}
+			consecPollFails++
+		} else {
+			consecPollFails = 0
 		}
 	}
 	if pollOp.Error != nil && len(pollOp.Error.Errors) > 0 {
@@ -427,12 +460,15 @@ func (gce *GCECloud) UpdateTCPLoadBalancer(name, region string, hosts []string) 
 	if err != nil {
 		return err
 	}
-	existing := util.NewStringSet(pool.Instances...)
+	existing := util.NewStringSet()
+	for _, instance := range pool.Instances {
+		existing.Insert(hostURLToComparablePath(instance))
+	}
 
 	var toAdd []*compute.InstanceReference
 	var toRemove []*compute.InstanceReference
 	for _, host := range hosts {
-		link := makeHostLink(gce.projectID, gce.zone, host)
+		link := makeComparableHostPath(gce.zone, host)
 		if !existing.Has(link) {
 			toAdd = append(toAdd, &compute.InstanceReference{link})
 		}
@@ -462,6 +498,19 @@ func (gce *GCECloud) UpdateTCPLoadBalancer(name, region string, hosts []string) 
 		if err := gce.waitForRegionOp(op, region); err != nil {
 			return err
 		}
+	}
+
+	// Try to verify that the correct number of nodes are now in the target pool.
+	// We've been bitten by a bug here before (#11327) where all nodes were
+	// accidentally removed and want to make similar problems easier to notice.
+	updatedPool, err := gce.service.TargetPools.Get(gce.projectID, region, name).Do()
+	if err != nil {
+		return err
+	}
+	if len(updatedPool.Instances) != len(hosts) {
+		glog.Errorf("Unexpected number of instances (%d) in target pool %s after updating (expected %d). Instances in updated pool: %s",
+			len(updatedPool.Instances), name, len(hosts), strings.Join(updatedPool.Instances, ","))
+		return fmt.Errorf("Unexpected number of instances (%d) in target pool %s after update (expected %d)", len(updatedPool.Instances), name, len(hosts))
 	}
 	return nil
 }
@@ -599,8 +648,16 @@ func (gce *GCECloud) NodeAddresses(_ string) ([]api.NodeAddress, error) {
 	}, nil
 }
 
+func (gce *GCECloud) isCurrentInstance(instance string) bool {
+	return gce.instanceID == canonicalizeInstanceName(instance)
+}
+
 // ExternalID returns the cloud provider ID of the specified instance (deprecated).
 func (gce *GCECloud) ExternalID(instance string) (string, error) {
+	// if we are asking about the current instance, just go to metadata
+	if gce.isCurrentInstance(instance) {
+		return gce.externalID, nil
+	}
 	inst, err := gce.getInstanceByName(instance)
 	if err != nil {
 		return "", err

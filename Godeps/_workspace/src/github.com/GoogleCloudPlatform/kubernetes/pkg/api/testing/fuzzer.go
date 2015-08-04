@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/registered"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -30,8 +31,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/google/gofuzz"
 
+	"github.com/google/gofuzz"
 	"speter.net/go/exp/math/dec/inf"
 )
 
@@ -172,18 +173,7 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			i := int(c.RandUint64() % uint64(v.NumField()))
 			v = v.Field(i).Addr()
 			// Use a new fuzzer which cannot populate nil to ensure one field will be set.
-			f := fuzz.New().NilChance(0).NumElements(1, 1)
-			f.Funcs(
-				// Only api.Metadatafile needs to have a specific func since FieldRef has to be
-				// defaulted to a version otherwise roundtrip will fail
-				// For the remaining volume plugins the default fuzzer  is enough.
-				func(m *api.MetadataFile, c fuzz.Continue) {
-					m.Name = c.RandString()
-					versions := []string{"v1beta3", "v1"}
-					m.FieldRef.APIVersion = versions[c.Rand.Intn(len(versions))]
-					m.FieldRef.FieldPath = c.RandString()
-				},
-			).Fuzz(v.Interface())
+			fuzz.New().NilChance(0).NumElements(1, 1).Fuzz(v.Interface())
 		},
 		func(d *api.DNSPolicy, c fuzz.Continue) {
 			policies := []api.DNSPolicy{api.DNSClusterFirst, api.DNSDefault}
@@ -213,7 +203,7 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 				ev.ValueFrom = &api.EnvVarSource{}
 				ev.ValueFrom.FieldRef = &api.ObjectFieldSelector{}
 
-				versions := []string{"v1beta1", "v1beta2", "v1beta3"}
+				versions := registered.RegisteredVersions
 
 				ev.ValueFrom.FieldRef.APIVersion = versions[c.Rand.Intn(len(versions))]
 				ev.ValueFrom.FieldRef.FieldPath = c.RandString()
@@ -256,7 +246,6 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			types := []api.PersistentVolumeClaimPhase{api.ClaimBound, api.ClaimPending}
 			pvc.Status.Phase = types[c.Rand.Intn(len(types))]
 		},
-
 		func(s *api.NamespaceSpec, c fuzz.Continue) {
 			s.Finalizers = []api.FinalizerName{api.FinalizerKubernetes}
 		},
@@ -287,13 +276,6 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 		func(n *api.Node, c fuzz.Continue) {
 			c.FuzzNoCustom(n)
 			n.Spec.ExternalID = "external"
-		},
-		func(scc *api.SecurityContextConstraints, c fuzz.Continue) {
-			c.FuzzNoCustom(scc) // fuzz self without calling this function again
-			userTypes := []api.RunAsUserStrategyType{api.RunAsUserStrategyMustRunAsNonRoot, api.RunAsUserStrategyMustRunAs, api.RunAsUserStrategyRunAsAny, api.RunAsUserStrategyMustRunAsRange}
-			scc.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
-			seLinuxTypes := []api.SELinuxContextStrategyType{api.SELinuxStrategyRunAsAny, api.SELinuxStrategyMustRunAs}
-			scc.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
 		},
 	)
 	return f

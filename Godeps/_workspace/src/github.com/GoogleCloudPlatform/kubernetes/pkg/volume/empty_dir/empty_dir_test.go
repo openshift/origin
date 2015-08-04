@@ -121,45 +121,6 @@ func TestPluginTmpfs(t *testing.T) {
 		expectedTeardownMounts:        1})
 }
 
-func TestPluginTmpfs_PodHasSELinuxOptions(t *testing.T) {
-	if !selinuxEnabled() {
-		return
-	}
-
-	doTestPlugin(t, pluginTestConfig{
-		medium:      api.StorageMediumMemory,
-		rootContext: "user:role:type:range",
-		SELinuxOptions: &api.SELinuxOptions{
-			Type:  "type2",
-			Level: "level2",
-		},
-		expectedSELinuxContext:        "user:role:type2:level2",
-		expectedChcons:                1,
-		expectedSetupMounts:           1,
-		shouldBeMountedBeforeTeardown: true,
-		expectedTeardownMounts:        1})
-}
-
-func TestPluginTmpfs_PodHasSELinuxOptions_Idempotent(t *testing.T) {
-	if !selinuxEnabled() {
-		return
-	}
-
-	doTestPlugin(t, pluginTestConfig{
-		medium:      api.StorageMediumMemory,
-		rootContext: "user:role:type:range",
-		SELinuxOptions: &api.SELinuxOptions{
-			Type:  "type2",
-			Level: "level2",
-		},
-		idempotent:                    true,
-		expectedSELinuxContext:        "user:role:type2:level2",
-		expectedChcons:                0,
-		expectedSetupMounts:           0,
-		shouldBeMountedBeforeTeardown: true,
-		expectedTeardownMounts:        1})
-}
-
 type pluginTestConfig struct {
 	medium                        api.StorageMedium
 	rootContext                   string
@@ -338,30 +299,5 @@ func TestPluginBackCompat(t *testing.T) {
 	volPath := builder.GetPath()
 	if volPath != path.Join(basePath, "pods/poduid/volumes/kubernetes.io~empty-dir/vol1") {
 		t.Errorf("Got unexpected path: %s", volPath)
-	}
-}
-
-func TestPluginLegacy(t *testing.T) {
-	plug := makePluginUnderTest(t, "empty", "/tmp/fake")
-
-	if plug.Name() != "empty" {
-		t.Errorf("Wrong name: %s", plug.Name())
-	}
-	if plug.CanSupport(&volume.Spec{Name: "foo", VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}}}) {
-		t.Errorf("Expected false")
-	}
-
-	spec := api.Volume{VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}}}
-	pod := &api.Pod{ObjectMeta: api.ObjectMeta{UID: types.UID("poduid")}}
-	if _, err := plug.(*emptyDirPlugin).newBuilderInternal(volume.NewSpecFromVolume(&spec), pod, &mount.FakeMounter{}, &fakeMountDetector{}, volume.VolumeOptions{""}, &fakeChconRunner{}); err == nil {
-		t.Errorf("Expected failiure")
-	}
-
-	cleaner, err := plug.(*emptyDirPlugin).newCleanerInternal("vol1", types.UID("poduid"), &mount.FakeMounter{}, &fakeMountDetector{})
-	if err != nil {
-		t.Errorf("Failed to make a new Cleaner: %v", err)
-	}
-	if cleaner == nil {
-		t.Errorf("Got a nil Cleaner")
 	}
 }

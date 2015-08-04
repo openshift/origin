@@ -35,8 +35,6 @@ import (
 	"github.com/golang/glog"
 )
 
-var _ volume.VolumeHost = &PersistentVolumeRecycler{}
-
 // PersistentVolumeRecycler is a controller that watches for PersistentVolumes that are released from their claims.
 // This controller will Recycle those volumes whose reclaim policy is set to PersistentVolumeReclaimRecycle and make them
 // available again for a new claim.
@@ -125,7 +123,7 @@ func (recycler *PersistentVolumeRecycler) handleRecycle(pv *api.PersistentVolume
 	currentPhase := pv.Status.Phase
 	nextPhase := currentPhase
 
-	spec := volume.NewSpecFromPersistentVolume(pv)
+	spec := volume.NewSpecFromPersistentVolume(pv, false)
 	plugin, err := recycler.pluginMgr.FindRecyclablePluginBySpec(spec)
 	if err != nil {
 		return fmt.Errorf("Could not find recyclable volume plugin for spec: %+v", err)

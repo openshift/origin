@@ -26,7 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/endpoint"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 )
 
@@ -44,17 +44,17 @@ const (
 // Registry implements BindingRegistry, ControllerRegistry, EndpointRegistry,
 // MinionRegistry, PodRegistry and ServiceRegistry, backed by etcd.
 type Registry struct {
-	tools.EtcdHelper
+	storage.Interface
 	pods      pod.Registry
 	endpoints endpoint.Registry
 }
 
 // NewRegistry creates an etcd registry.
-func NewRegistry(helper tools.EtcdHelper, pods pod.Registry, endpoints endpoint.Registry) *Registry {
+func NewRegistry(storage storage.Interface, pods pod.Registry, endpoints endpoint.Registry) *Registry {
 	registry := &Registry{
-		EtcdHelper: helper,
-		pods:       pods,
-		endpoints:  endpoints,
+		Interface: storage,
+		pods:      pods,
+		endpoints: endpoints,
 	}
 	return registry
 }
@@ -96,7 +96,7 @@ func makeServiceKey(ctx api.Context, name string) (string, error) {
 // ListServices obtains a list of Services.
 func (r *Registry) ListServices(ctx api.Context) (*api.ServiceList, error) {
 	list := &api.ServiceList{}
-	err := r.ExtractToList(makeServiceListKey(ctx), list)
+	err := r.List(makeServiceListKey(ctx), list)
 	return list, err
 }
 
@@ -107,7 +107,7 @@ func (r *Registry) CreateService(ctx api.Context, svc *api.Service) (*api.Servic
 		return nil, err
 	}
 	out := &api.Service{}
-	err = r.CreateObj(key, svc, out, 0)
+	err = r.Create(key, svc, out, 0)
 	return out, etcderr.InterpretCreateError(err, "service", svc.Name)
 }
 
@@ -118,7 +118,7 @@ func (r *Registry) GetService(ctx api.Context, name string) (*api.Service, error
 		return nil, err
 	}
 	var svc api.Service
-	err = r.ExtractObj(key, &svc, false)
+	err = r.Get(key, &svc, false)
 	if err != nil {
 		return nil, etcderr.InterpretGetError(err, "service", name)
 	}
@@ -131,7 +131,7 @@ func (r *Registry) DeleteService(ctx api.Context, name string) error {
 	if err != nil {
 		return err
 	}
-	err = r.Delete(key, true)
+	err = r.RecursiveDelete(key, true)
 	if err != nil {
 		return etcderr.InterpretDeleteError(err, "service", name)
 	}
@@ -152,13 +152,13 @@ func (r *Registry) UpdateService(ctx api.Context, svc *api.Service) (*api.Servic
 		return nil, err
 	}
 	out := &api.Service{}
-	err = r.SetObj(key, svc, out, 0)
+	err = r.Set(key, svc, out, 0)
 	return out, etcderr.InterpretUpdateError(err, "service", svc.Name)
 }
 
 // WatchServices begins watching for new, changed, or deleted service configurations.
 func (r *Registry) WatchServices(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	version, err := tools.ParseWatchResourceVersion(resourceVersion, "service")
+	version, err := storage.ParseWatchResourceVersion(resourceVersion, "service")
 	if err != nil {
 		return nil, err
 	}
@@ -171,10 +171,10 @@ func (r *Registry) WatchServices(ctx api.Context, label labels.Selector, field f
 			return nil, err
 		}
 		// TODO: use generic.SelectionPredicate
-		return r.Watch(key, version, tools.Everything)
+		return r.Watch(key, version, storage.Everything)
 	}
 	if field.Empty() {
-		return r.WatchList(makeServiceListKey(ctx), version, tools.Everything)
+		return r.WatchList(makeServiceListKey(ctx), version, storage.Everything)
 	}
 	return nil, fmt.Errorf("only the 'name' and default (everything) field selectors are supported")
 }

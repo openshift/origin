@@ -17,6 +17,7 @@ limitations under the License.
 package meta
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
@@ -54,12 +55,14 @@ var validCodec = fakeCodec{}
 var validAccessor = resourceAccessor{}
 var validConvertor = fakeConvertor{}
 
-func fakeInterfaces(version string) (*VersionInterfaces, bool) {
-	return &VersionInterfaces{Codec: validCodec, ObjectConvertor: validConvertor, MetadataAccessor: validAccessor}, true
+func fakeInterfaces(version string) (*VersionInterfaces, error) {
+	return &VersionInterfaces{Codec: validCodec, ObjectConvertor: validConvertor, MetadataAccessor: validAccessor}, nil
 }
 
-func unmatchedVersionInterfaces(version string) (*VersionInterfaces, bool) {
-	return nil, false
+var unmatchedErr = errors.New("no version")
+
+func unmatchedVersionInterfaces(version string) (*VersionInterfaces, error) {
+	return nil, unmatchedErr
 }
 
 func TestRESTMapperVersionAndKindForResource(t *testing.T) {
@@ -108,7 +111,6 @@ func TestKindToResource(t *testing.T) {
 
 		{Kind: "ReplicationController", MixedCase: true, Plural: "replicationControllers", Singular: "replicationController"},
 		{Kind: "ReplicationController", MixedCase: true, Plural: "replicationControllers", Singular: "replicationController"},
-		// API convention changed with regard to capitalization for v1beta3
 		{Kind: "ReplicationController", MixedCase: false, Plural: "replicationcontrollers", Singular: "replicationcontroller"},
 
 		{Kind: "ImageRepository", MixedCase: true, Plural: "imageRepositories", Singular: "imageRepository"},
@@ -121,6 +123,40 @@ func TestKindToResource(t *testing.T) {
 		plural, singular := kindToResource(testCase.Kind, testCase.MixedCase)
 		if singular != testCase.Singular || plural != testCase.Plural {
 			t.Errorf("%d: unexpected plural and singular: %s %s", i, plural, singular)
+		}
+	}
+}
+
+func TestRESTMapperResourceSingularizer(t *testing.T) {
+	testCases := []struct {
+		Kind, APIVersion string
+		MixedCase        bool
+		Plural           string
+		Singular         string
+	}{
+		{Kind: "Pod", APIVersion: "test", MixedCase: true, Plural: "pods", Singular: "pod"},
+		{Kind: "Pod", APIVersion: "test", MixedCase: false, Plural: "pods", Singular: "pod"},
+
+		{Kind: "ReplicationController", APIVersion: "test", MixedCase: true, Plural: "replicationControllers", Singular: "replicationController"},
+		{Kind: "ReplicationController", APIVersion: "test", MixedCase: false, Plural: "replicationcontrollers", Singular: "replicationcontroller"},
+
+		{Kind: "ImageRepository", APIVersion: "test", MixedCase: true, Plural: "imageRepositories", Singular: "imageRepository"},
+		{Kind: "ImageRepository", APIVersion: "test", MixedCase: false, Plural: "imagerepositories", Singular: "imagerepository"},
+
+		{Kind: "Status", APIVersion: "test", MixedCase: true, Plural: "statuses", Singular: "status"},
+		{Kind: "Status", APIVersion: "test", MixedCase: false, Plural: "statuses", Singular: "status"},
+
+		{Kind: "lowercase", APIVersion: "test", MixedCase: false, Plural: "lowercases", Singular: "lowercase"},
+		// Don't add extra s if the original object is already plural
+		{Kind: "lowercases", APIVersion: "test", MixedCase: false, Plural: "lowercases", Singular: "lowercases"},
+	}
+	for i, testCase := range testCases {
+		mapper := NewDefaultRESTMapper([]string{"test"}, fakeInterfaces)
+		// create singular/plural mapping
+		mapper.Add(RESTScopeNamespace, testCase.Kind, testCase.APIVersion, testCase.MixedCase)
+		singular, _ := mapper.ResourceSingularizer(testCase.Plural)
+		if singular != testCase.Singular {
+			t.Errorf("%d: mismatched singular: %s, should be %s", i, singular, testCase.Singular)
 		}
 	}
 }

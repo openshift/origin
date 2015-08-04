@@ -17,13 +17,13 @@ limitations under the License.
 package serviceaccount
 
 import (
-	"math/rand"
 	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	utilrand "github.com/GoogleCloudPlatform/kubernetes/pkg/util/rand"
 )
 
 type testGenerator struct {
@@ -75,13 +75,6 @@ func serviceAccount(secretRefs []api.ObjectReference) *api.ServiceAccount {
 		},
 		Secrets: secretRefs,
 	}
-}
-
-// updatedServiceAccount returns a service account with the resource version modified
-func updatedServiceAccount(secretRefs []api.ObjectReference) *api.ServiceAccount {
-	sa := serviceAccount(secretRefs)
-	sa.ResourceVersion = "2"
-	return sa
 }
 
 // opaqueSecret returns a persisted non-ServiceAccountToken secret named "regular-secret-1"
@@ -186,8 +179,8 @@ func TestTokenCreation(t *testing.T) {
 
 			AddedServiceAccount: serviceAccount(emptySecretReferences()),
 			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "create-secret", Value: createdTokenSecret()},
+				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "update-serviceaccount", Value: serviceAccount(addTokenSecretReference(emptySecretReferences()))},
 			},
 		},
@@ -198,8 +191,8 @@ func TestTokenCreation(t *testing.T) {
 
 			AddedServiceAccount: serviceAccount(emptySecretReferences()),
 			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "create-secret", Value: createdTokenSecret()},
+				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "update-serviceaccount", Value: serviceAccount(addTokenSecretReference(emptySecretReferences()))},
 			},
 		},
@@ -208,8 +201,8 @@ func TestTokenCreation(t *testing.T) {
 
 			AddedServiceAccount: serviceAccount(missingSecretReferences()),
 			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "create-secret", Value: createdTokenSecret()},
+				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "update-serviceaccount", Value: serviceAccount(addTokenSecretReference(missingSecretReferences()))},
 			},
 		},
@@ -226,8 +219,8 @@ func TestTokenCreation(t *testing.T) {
 
 			AddedServiceAccount: serviceAccount(regularSecretReferences()),
 			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "create-secret", Value: createdTokenSecret()},
+				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "update-serviceaccount", Value: serviceAccount(addTokenSecretReference(regularSecretReferences()))},
 			},
 		},
@@ -238,22 +231,14 @@ func TestTokenCreation(t *testing.T) {
 			AddedServiceAccount: serviceAccount(tokenSecretReferences()),
 			ExpectedActions:     []testclient.FakeAction{},
 		},
-		"new serviceaccount with no secrets with resource conflict": {
-			ClientObjects: []runtime.Object{updatedServiceAccount(emptySecretReferences()), createdTokenSecret()},
-
-			AddedServiceAccount: serviceAccount(emptySecretReferences()),
-			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
-			},
-		},
 
 		"updated serviceaccount with no secrets": {
 			ClientObjects: []runtime.Object{serviceAccount(emptySecretReferences()), createdTokenSecret()},
 
 			UpdatedServiceAccount: serviceAccount(emptySecretReferences()),
 			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "create-secret", Value: createdTokenSecret()},
+				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "update-serviceaccount", Value: serviceAccount(addTokenSecretReference(emptySecretReferences()))},
 			},
 		},
@@ -264,8 +249,8 @@ func TestTokenCreation(t *testing.T) {
 
 			UpdatedServiceAccount: serviceAccount(emptySecretReferences()),
 			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "create-secret", Value: createdTokenSecret()},
+				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "update-serviceaccount", Value: serviceAccount(addTokenSecretReference(emptySecretReferences()))},
 			},
 		},
@@ -274,8 +259,8 @@ func TestTokenCreation(t *testing.T) {
 
 			UpdatedServiceAccount: serviceAccount(missingSecretReferences()),
 			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "create-secret", Value: createdTokenSecret()},
+				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "update-serviceaccount", Value: serviceAccount(addTokenSecretReference(missingSecretReferences()))},
 			},
 		},
@@ -292,8 +277,8 @@ func TestTokenCreation(t *testing.T) {
 
 			UpdatedServiceAccount: serviceAccount(regularSecretReferences()),
 			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "create-secret", Value: createdTokenSecret()},
+				{Action: "get-serviceaccount", Value: "default"},
 				{Action: "update-serviceaccount", Value: serviceAccount(addTokenSecretReference(regularSecretReferences()))},
 			},
 		},
@@ -302,14 +287,6 @@ func TestTokenCreation(t *testing.T) {
 
 			UpdatedServiceAccount: serviceAccount(tokenSecretReferences()),
 			ExpectedActions:       []testclient.FakeAction{},
-		},
-		"updated serviceaccount with no secrets with resource conflict": {
-			ClientObjects: []runtime.Object{updatedServiceAccount(emptySecretReferences()), createdTokenSecret()},
-
-			UpdatedServiceAccount: serviceAccount(emptySecretReferences()),
-			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
-			},
 		},
 
 		"deleted serviceaccount with no secrets": {
@@ -447,7 +424,7 @@ func TestTokenCreation(t *testing.T) {
 	for k, tc := range testcases {
 
 		// Re-seed to reset name generation
-		rand.Seed(1)
+		utilrand.Seed(1)
 
 		generator := &testGenerator{Token: "ABC"}
 
@@ -485,9 +462,10 @@ func TestTokenCreation(t *testing.T) {
 			controller.secretDeleted(tc.DeletedSecret)
 		}
 
-		for i, action := range client.Actions {
+		actions := client.Actions()
+		for i, action := range actions {
 			if len(tc.ExpectedActions) < i+1 {
-				t.Errorf("%s: %d unexpected actions: %+v", k, len(client.Actions)-len(tc.ExpectedActions), client.Actions[i:])
+				t.Errorf("%s: %d unexpected actions: %+v", k, len(actions)-len(tc.ExpectedActions), actions[i:])
 				break
 			}
 
@@ -502,8 +480,8 @@ func TestTokenCreation(t *testing.T) {
 			}
 		}
 
-		if len(tc.ExpectedActions) > len(client.Actions) {
-			t.Errorf("%s: %d additional expected actions:%+v", k, len(tc.ExpectedActions)-len(client.Actions), tc.ExpectedActions[len(client.Actions):])
+		if len(tc.ExpectedActions) > len(actions) {
+			t.Errorf("%s: %d additional expected actions:%+v", k, len(tc.ExpectedActions)-len(actions), tc.ExpectedActions[len(actions):])
 		}
 	}
 }

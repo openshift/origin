@@ -22,7 +22,6 @@ import (
 	"path"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/securitycontext"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/mount"
@@ -41,21 +40,18 @@ const perm os.FileMode = 0777
 // This is the primary entrypoint for volume plugins.
 func ProbeVolumePlugins() []volume.VolumePlugin {
 	return []volume.VolumePlugin{
-		&emptyDirPlugin{nil, false},
-		&emptyDirPlugin{nil, true},
+		&emptyDirPlugin{nil},
 	}
 }
 
 type emptyDirPlugin struct {
-	host       volume.VolumeHost
-	legacyMode bool // if set, plugin answers to the legacy name
+	host volume.VolumeHost
 }
 
 var _ volume.VolumePlugin = &emptyDirPlugin{}
 
 const (
-	emptyDirPluginName       = "kubernetes.io/empty-dir"
-	emptyDirPluginLegacyName = "empty"
+	emptyDirPluginName = "kubernetes.io/empty-dir"
 )
 
 func (plugin *emptyDirPlugin) Init(host volume.VolumeHost) {
@@ -63,18 +59,10 @@ func (plugin *emptyDirPlugin) Init(host volume.VolumeHost) {
 }
 
 func (plugin *emptyDirPlugin) Name() string {
-	if plugin.legacyMode {
-		return emptyDirPluginLegacyName
-	}
 	return emptyDirPluginName
 }
 
 func (plugin *emptyDirPlugin) CanSupport(spec *volume.Spec) bool {
-	if plugin.legacyMode {
-		// Legacy mode instances can be cleaned up but not created anew.
-		return false
-	}
-
 	if spec.VolumeSource.EmptyDir != nil {
 		return true
 	}
@@ -86,10 +74,6 @@ func (plugin *emptyDirPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts v
 }
 
 func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod, mounter mount.Interface, mountDetector mountDetector, opts volume.VolumeOptions, chconRunner chconRunner) (volume.Builder, error) {
-	if plugin.legacyMode {
-		// Legacy mode instances can be cleaned up but not created anew.
-		return nil, fmt.Errorf("legacy mode: can not create new instances")
-	}
 	medium := api.StorageMediumDefault
 	if spec.VolumeSource.EmptyDir != nil { // Support a non-specified source as EmptyDir.
 		medium = spec.VolumeSource.EmptyDir.Medium
@@ -101,7 +85,6 @@ func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod
 		mounter:       mounter,
 		mountDetector: mountDetector,
 		plugin:        plugin,
-		legacyMode:    false,
 		rootContext:   opts.RootContext,
 		chconRunner:   chconRunner,
 	}, nil
@@ -113,10 +96,6 @@ func (plugin *emptyDirPlugin) NewCleaner(volName string, podUID types.UID, mount
 }
 
 func (plugin *emptyDirPlugin) newCleanerInternal(volName string, podUID types.UID, mounter mount.Interface, mountDetector mountDetector) (volume.Cleaner, error) {
-	legacy := false
-	if plugin.legacyMode {
-		legacy = true
-	}
 	ed := &emptyDir{
 		pod:           &api.Pod{ObjectMeta: api.ObjectMeta{UID: podUID}},
 		volName:       volName,
@@ -124,7 +103,6 @@ func (plugin *emptyDirPlugin) newCleanerInternal(volName string, podUID types.UI
 		mounter:       mounter,
 		mountDetector: mountDetector,
 		plugin:        plugin,
-		legacyMode:    legacy,
 	}
 	return ed, nil
 }
@@ -155,7 +133,6 @@ type emptyDir struct {
 	mounter       mount.Interface
 	mountDetector mountDetector
 	plugin        *emptyDirPlugin
-	legacyMode    bool
 	rootContext   string
 	chconRunner   chconRunner
 }
@@ -167,10 +144,6 @@ func (ed *emptyDir) SetUp() error {
 
 // SetUpAt creates new directory.
 func (ed *emptyDir) SetUpAt(dir string) error {
-	if ed.legacyMode {
-		return fmt.Errorf("legacy mode: can not create new instances")
-	}
-
 	isMnt, err := ed.mounter.IsMountPoint(dir)
 	// Getting an os.IsNotExist err from is a contingency; the directory
 	// may not exist yet, in which case, setup should run.
@@ -193,10 +166,7 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	// Determine the effective SELinuxOptions to use for this volume.
 	securityContext := ""
 	if selinuxEnabled() {
-		securityContext, err = ed.determineEffectiveSELinuxOptions()
-		if err != nil {
-			return err
-		}
+		securityContext = ed.rootContext
 	}
 
 	switch ed.medium {
@@ -215,43 +185,8 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	return err
 }
 
-// determineEffectiveSELinuxOptions determines the effective SELinux options
-// that should be used for a particular plugin.
-func (ed *emptyDir) determineEffectiveSELinuxOptions() (string, error) {
-	glog.V(4).Infof("Determining effective SELinux context for pod %v/%v", ed.pod.Namespace, ed.pod.Name)
-	var opts *api.SELinuxOptions
-	if ed.pod != nil {
-		// Use the security context, if defined, of the first
-		// container in the pod to mount this volume
-		for _, container := range ed.pod.Spec.Containers {
-			if !volumeutil.ContainerHasVolumeMountForName(&container, ed.volName) {
-				continue
-			}
-
-			if container.SecurityContext != nil &&
-				container.SecurityContext.SELinuxOptions != nil {
-				opts = container.SecurityContext.SELinuxOptions
-				break
-			}
-		}
-	}
-
-	if opts == nil {
-		return ed.rootContext, nil
-	}
-
-	glog.V(4).Infof("Specified security context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(opts))
-
-	rootContextOpts, err := securitycontext.ParseSELinuxOptions(ed.rootContext)
-	if err != nil {
-		return "", err
-	}
-
-	effectiveOpts := securitycontext.ProjectSELinuxOptions(opts, rootContextOpts)
-
-	glog.V(4).Infof("Effective SELinux context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(effectiveOpts))
-
-	return securitycontext.SELinuxOptionsString(effectiveOpts), nil
+func (ed *emptyDir) IsReadOnly() bool {
+	return false
 }
 
 // setupTmpfs creates a tmpfs mount at the specified directory with the
@@ -334,9 +269,6 @@ func (ed *emptyDir) setupDir(dir, selinuxContext string) error {
 
 func (ed *emptyDir) GetPath() string {
 	name := emptyDirPluginName
-	if ed.legacyMode {
-		name = emptyDirPluginLegacyName
-	}
 	return ed.plugin.host.GetPodVolumeDir(ed.pod.UID, util.EscapeQualifiedNameForDisk(name), ed.volName)
 }
 

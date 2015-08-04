@@ -299,51 +299,19 @@ type versionToResourceToFieldMapping map[string]resourceTypeToFieldMapping
 func (v versionToResourceToFieldMapping) filterField(apiVersion, resourceType, field, value string) (newField, newValue string, err error) {
 	rMapping, ok := v[apiVersion]
 	if !ok {
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	newField, newValue, err = rMapping.filterField(resourceType, field, value)
 	if err != nil {
 		// This is only a warning until we find and fix all of the client's usages.
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	return newField, newValue, nil
 }
 
 var fieldMappings = versionToResourceToFieldMapping{
-	"v1beta3": resourceTypeToFieldMapping{
-		"nodes": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "metadata.name",
-			NodeUnschedulable: "spec.unschedulable",
-		},
-		"minions": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "metadata.name",
-			NodeUnschedulable: "spec.unschedulable",
-		},
-		"pods": clientFieldNameToAPIVersionFieldName{
-			PodHost: "spec.host",
-		},
-		"secrets": clientFieldNameToAPIVersionFieldName{
-			SecretType: "type",
-		},
-		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField: "metadata.name",
-		},
-		"endpoints": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField: "metadata.name",
-		},
-		"events": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:              "metadata.name",
-			EventReason:                  "reason",
-			EventSource:                  "source",
-			EventInvolvedKind:            "involvedObject.kind",
-			EventInvolvedNamespace:       "involvedObject.namespace",
-			EventInvolvedName:            "involvedObject.name",
-			EventInvolvedUID:             "involvedObject.uid",
-			EventInvolvedAPIVersion:      "involvedObject.apiVersion",
-			EventInvolvedResourceVersion: "involvedObject.resourceVersion",
-			EventInvolvedFieldPath:       "involvedObject.fieldPath",
-		},
-	},
 	"v1": resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
 			ObjectNameField:   "metadata.name",
@@ -612,6 +580,9 @@ func (r *Request) Stream() (io.ReadCloser, error) {
 		return resp.Body, nil
 
 	default:
+		// ensure we close the body before returning the error
+		defer resp.Body.Close()
+
 		// we have a decent shot at taking the object returned, parsing it as a status object and returning a more normal error
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {

@@ -287,7 +287,7 @@ func TestPathHandling(t *testing.T) {
 
 	for _, item := range table {
 		func() {
-			p, err := NewProxyServer("", item.prefix, "/not/used/for/this/test", nil, cc)
+			p, err := NewProxyServer(0, "", item.prefix, "/not/used/for/this/test", nil, cc)
 			if err != nil {
 				t.Fatalf("%#v: %v", item, err)
 			}
@@ -307,5 +307,18 @@ func TestPathHandling(t *testing.T) {
 				t.Errorf("%#v: Wanted %q, got %q", item, e, a)
 			}
 		}()
+	}
+}
+
+func TestExtractHost(t *testing.T) {
+	fixtures := map[string]string{
+		"localhost:8085": "localhost",
+		"marmalade":      "marmalade",
+	}
+	for header, expected := range fixtures {
+		host := extractHost(header)
+		if host != expected {
+			t.Fatalf("%s != %s", host, expected)
+		}
 	}
 }

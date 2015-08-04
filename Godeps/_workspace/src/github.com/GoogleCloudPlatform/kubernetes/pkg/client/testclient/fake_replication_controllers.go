@@ -35,7 +35,7 @@ const (
 	UpdateControllerAction = "update-replicationController"
 	WatchControllerAction  = "watch-replicationController"
 	DeleteControllerAction = "delete-replicationController"
-	ListControllerAction   = "list-replicationControllers"
+	ListControllerAction   = "list-replicationController"
 	CreateControllerAction = "create-replicationController"
 )
 
@@ -65,9 +65,6 @@ func (c *FakeReplicationControllers) Delete(name string) error {
 }
 
 func (c *FakeReplicationControllers) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: WatchControllerAction, Value: resourceVersion})
+	c.Fake.Invokes(FakeAction{Action: WatchControllerAction, Value: resourceVersion}, nil)
 	return c.Fake.Watch, nil
 }

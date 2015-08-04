@@ -24,7 +24,7 @@ import (
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequota"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 )
 
 // rest implements a RESTStorage for resourcequotas against etcd
@@ -33,7 +33,7 @@ type REST struct {
 }
 
 // NewStorage returns a RESTStorage object that will work against ResourceQuota objects.
-func NewStorage(h tools.EtcdHelper) (*REST, *StatusREST) {
+func NewStorage(s storage.Interface) (*REST, *StatusREST) {
 	prefix := "/resourcequotas"
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ResourceQuota{} },
@@ -52,7 +52,7 @@ func NewStorage(h tools.EtcdHelper) (*REST, *StatusREST) {
 		},
 		EndpointName: "resourcequotas",
 
-		Helper: h,
+		Storage: s,
 	}
 
 	store.CreateStrategy = resourcequota.Strategy

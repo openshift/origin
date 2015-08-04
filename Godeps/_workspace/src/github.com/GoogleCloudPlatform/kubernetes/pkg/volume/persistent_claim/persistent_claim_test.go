@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
@@ -142,7 +141,7 @@ func TestNewBuilder(t *testing.T) {
 					ClaimName: "claimB",
 				},
 			},
-			plugin: host_path.ProbeVolumePlugins(nil)[0],
+			plugin: host_path.ProbeVolumePlugins()[0],
 			testFunc: func(builder volume.Builder, plugin volume.VolumePlugin) error {
 				if builder.GetPath() != "/tmp" {
 					return fmt.Errorf("Expected HostPath.Path /tmp, got: %s", builder.GetPath())
@@ -238,7 +237,7 @@ func TestNewBuilder(t *testing.T) {
 		o := testclient.NewObjects(api.Scheme, api.Scheme)
 		o.Add(item.pv)
 		o.Add(item.claim)
-		client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+		client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
 
 		plugMgr := volume.VolumePluginMgr{}
 		plugMgr.InitPlugins(testProbeVolumePlugins(), newTestHost(t, client))
@@ -295,7 +294,7 @@ func TestNewBuilderClaimNotBound(t *testing.T) {
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
 	o.Add(pv)
 	o.Add(claim)
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
 
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(testProbeVolumePlugins(), newTestHost(t, client))
@@ -318,7 +317,7 @@ func TestNewBuilderClaimNotBound(t *testing.T) {
 func testProbeVolumePlugins() []volume.VolumePlugin {
 	allPlugins := []volume.VolumePlugin{}
 	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
-	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(nil)...)
+	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, ProbeVolumePlugins()...)
 	return allPlugins
 }

@@ -26,14 +26,12 @@ import (
 	// Volume plugins
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/aws_ebs"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/cephfs"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/empty_dir"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/gce_pd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/git_repo"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/glusterfs"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/host_path"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/iscsi"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/metadata"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/nfs"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/persistent_claim"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume/rbd"
@@ -59,25 +57,23 @@ func ProbeVolumePlugins() []volume.VolumePlugin {
 	allPlugins = append(allPlugins, empty_dir.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, git_repo.ProbeVolumePlugins()...)
-	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(nil)...)
-	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(nil)...)
+	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, secret.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, iscsi.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, glusterfs.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, persistent_claim.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, rbd.ProbeVolumePlugins()...)
-	allPlugins = append(allPlugins, cephfs.ProbeVolumePlugins()...)
-	allPlugins = append(allPlugins, metadata.ProbeVolumePlugins()...)
 
 	return allPlugins
 }
 
 // ProbeNetworkPlugins collects all compiled-in plugins
-func ProbeNetworkPlugins() []network.NetworkPlugin {
+func ProbeNetworkPlugins(pluginDir string) []network.NetworkPlugin {
 	allPlugins := []network.NetworkPlugin{}
 
 	// for each existing plugin, add to the list
-	allPlugins = append(allPlugins, exec.ProbeNetworkPlugins()...)
+	allPlugins = append(allPlugins, exec.ProbeNetworkPlugins(pluginDir)...)
 
 	return allPlugins
 }

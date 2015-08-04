@@ -27,34 +27,20 @@ import (
 )
 
 // This is the primary entrypoint for volume plugins.
-// The recyclerConfig arg provides the ability to configure recycler behavior.  It is implemented as a pointer to allow nils.
-// The hostPathPlugin is used to store the recyclerConfig and give it, when needed, to the func that creates HostPath Recyclers.
-// Tests that exercise recycling should not use this func but instead use ProbeRecyclablePlugins() to override default behavior.
-func ProbeVolumePlugins(recyclerConfig *volume.RecyclableVolumeConfig) []volume.VolumePlugin {
-	return []volume.VolumePlugin{
-		&hostPathPlugin{
-			host:            nil,
-			newRecyclerFunc: newRecycler,
-			recyclerConfig:  recyclerConfig,
-		},
-	}
+// Tests covering recycling should not use this func but instead
+// use their own array of plugins w/ a custom recyclerFunc as appropriate
+func ProbeVolumePlugins() []volume.VolumePlugin {
+	return []volume.VolumePlugin{&hostPathPlugin{nil, newRecycler}}
 }
 
-func ProbeRecyclableVolumePlugins(recyclerFunc func(spec *volume.Spec, host volume.VolumeHost, recyclerConfig *volume.RecyclableVolumeConfig) (volume.Recycler, error), recyclerConfig *volume.RecyclableVolumeConfig) []volume.VolumePlugin {
-	return []volume.VolumePlugin{
-		&hostPathPlugin{
-			host:            nil,
-			newRecyclerFunc: recyclerFunc,
-			recyclerConfig:  recyclerConfig,
-		},
-	}
+func ProbeRecyclableVolumePlugins(recyclerFunc func(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error)) []volume.VolumePlugin {
+	return []volume.VolumePlugin{&hostPathPlugin{nil, recyclerFunc}}
 }
 
 type hostPathPlugin struct {
 	host volume.VolumeHost
 	// decouple creating recyclers by deferring to a function.  Allows for easier testing.
-	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost, recyclerConfig *volume.RecyclableVolumeConfig) (volume.Recycler, error)
-	recyclerConfig  *volume.RecyclableVolumeConfig
+	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error)
 }
 
 var _ volume.VolumePlugin = &hostPathPlugin{}
@@ -85,39 +71,31 @@ func (plugin *hostPathPlugin) GetAccessModes() []api.PersistentVolumeAccessMode 
 
 func (plugin *hostPathPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, _ volume.VolumeOptions, _ mount.Interface) (volume.Builder, error) {
 	if spec.VolumeSource.HostPath != nil {
-		return &hostPath{spec.VolumeSource.HostPath.Path}, nil
+		return &hostPathBuilder{
+			hostPath: &hostPath{path: spec.VolumeSource.HostPath.Path},
+			readOnly: false,
+		}, nil
 	} else {
-		return &hostPath{spec.PersistentVolumeSource.HostPath.Path}, nil
+		return &hostPathBuilder{
+			hostPath: &hostPath{path: spec.PersistentVolumeSource.HostPath.Path},
+			readOnly: spec.ReadOnly,
+		}, nil
 	}
 }
 
 func (plugin *hostPathPlugin) NewCleaner(volName string, podUID types.UID, _ mount.Interface) (volume.Cleaner, error) {
-	return &hostPath{""}, nil
+	return &hostPathCleaner{&hostPath{""}}, nil
 }
 
 func (plugin *hostPathPlugin) NewRecycler(spec *volume.Spec) (volume.Recycler, error) {
-	if plugin.recyclerConfig == nil {
-		return nil, fmt.Errorf("RecyclableVolumeConfig is nil for this plugin.  Recycler cannot be created.")
-	}
-	return plugin.newRecyclerFunc(spec, plugin.host, plugin.recyclerConfig)
+	return plugin.newRecyclerFunc(spec, plugin.host)
 }
 
-func newRecycler(spec *volume.Spec, host volume.VolumeHost, recyclableConfig *volume.RecyclableVolumeConfig) (volume.Recycler, error) {
-	if spec.VolumeSource.HostPath != nil {
-		return &hostPathRecycler{
-			name:             spec.Name,
-			path:             spec.VolumeSource.HostPath.Path,
-			host:             host,
-			recyclableConfig: *recyclableConfig,
-		}, nil
-	} else {
-		return &hostPathRecycler{
-			name:             spec.Name,
-			path:             spec.PersistentVolumeSource.HostPath.Path,
-			host:             host,
-			recyclableConfig: *recyclableConfig,
-		}, nil
+func newRecycler(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error) {
+	if spec.PersistentVolumeSource.HostPath == nil {
+		return nil, fmt.Errorf("spec.PersistentVolumeSource.HostPath is nil")
 	}
+	return &hostPathRecycler{spec.Name, spec.PersistentVolumeSource.HostPath.Path, host}, nil
 }
 
 // HostPath volumes represent a bare host file or directory mount.
@@ -126,37 +104,57 @@ type hostPath struct {
 	path string
 }
 
-// SetUp does nothing.
-func (hp *hostPath) SetUp() error {
-	return nil
-}
-
-// SetUpAt does not make sense for host paths - probably programmer error.
-func (hp *hostPath) SetUpAt(dir string) error {
-	return fmt.Errorf("SetUpAt() does not make sense for host paths")
-}
-
 func (hp *hostPath) GetPath() string {
 	return hp.path
 }
 
+type hostPathBuilder struct {
+	*hostPath
+	readOnly bool
+}
+
+var _ volume.Builder = &hostPathBuilder{}
+
+// SetUp does nothing.
+func (b *hostPathBuilder) SetUp() error {
+	return nil
+}
+
+// SetUpAt does not make sense for host paths - probably programmer error.
+func (b *hostPathBuilder) SetUpAt(dir string) error {
+	return fmt.Errorf("SetUpAt() does not make sense for host paths")
+}
+
+func (b *hostPathBuilder) IsReadOnly() bool {
+	return b.readOnly
+}
+
+func (b *hostPathBuilder) GetPath() string {
+	return b.path
+}
+
+type hostPathCleaner struct {
+	*hostPath
+}
+
+var _ volume.Cleaner = &hostPathCleaner{}
+
 // TearDown does nothing.
-func (hp *hostPath) TearDown() error {
+func (c *hostPathCleaner) TearDown() error {
 	return nil
 }
 
 // TearDownAt does not make sense for host paths - probably programmer error.
-func (hp *hostPath) TearDownAt(dir string) error {
+func (c *hostPathCleaner) TearDownAt(dir string) error {
 	return fmt.Errorf("TearDownAt() does not make sense for host paths")
 }
 
 // hostPathRecycler scrubs a hostPath volume by running "rm -rf" on the volume in a pod
 // This recycler only works on a single host cluster and is for testing purposes only.
 type hostPathRecycler struct {
-	name             string
-	path             string
-	host             volume.VolumeHost
-	recyclableConfig volume.RecyclableVolumeConfig
+	name string
+	path string
+	host volume.VolumeHost
 }
 
 func (r *hostPathRecycler) GetPath() string {
@@ -167,15 +165,16 @@ func (r *hostPathRecycler) GetPath() string {
 // A HostPath is recycled by scheduling a pod to run "rm -rf" on the contents of the volume.  This is meant for
 // development and testing in a single node cluster only.
 // Recycle blocks until the pod has completed or any error occurs.
+// The scrubber pod's is expected to succeed within 30 seconds when testing localhost.
 func (r *hostPathRecycler) Recycle() error {
-	// TODO:  remove the duplication between this Recycle func and the one in nfs.go
+	timeout := int64(30)
 	pod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			GenerateName: "pv-scrubber-" + util.ShortenString(r.name, 44) + "-",
 			Namespace:    api.NamespaceDefault,
 		},
 		Spec: api.PodSpec{
-			ActiveDeadlineSeconds: &r.recyclableConfig.Timeout,
+			ActiveDeadlineSeconds: &timeout,
 			RestartPolicy:         api.RestartPolicyNever,
 			Volumes: []api.Volume{
 				{
@@ -187,10 +186,17 @@ func (r *hostPathRecycler) Recycle() error {
 			},
 			Containers: []api.Container{
 				{
-					Name:    "scrubber",
-					Image:   r.recyclableConfig.ImageName,
-					Command: r.recyclableConfig.Command,
-					Args:    r.recyclableConfig.Args,
+					Name:  "scrubber",
+					Image: "gcr.io/google_containers/busybox",
+					// delete the contents of the volume, but not the directory itself
+					Command: []string{"/bin/sh"},
+					// the scrubber:
+					//		1. validates the /scrub directory exists
+					// 		2. creates a text file in the directory to be scrubbed
+					//		3. performs rm -rf on the directory
+					//		4. tests to see if the directory is empty
+					// the pod fails if the error code is returned
+					Args: []string{"-c", "test -e /scrub && echo $(date) > /scrub/trash.txt && rm -rf /scrub/* && test -z \"$(ls -A /scrub)\" || exit 1"},
 					VolumeMounts: []api.VolumeMount{
 						{
 							Name:      "vol",

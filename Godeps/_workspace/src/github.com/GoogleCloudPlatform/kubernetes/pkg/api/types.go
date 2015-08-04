@@ -219,10 +219,6 @@ type VolumeSource struct {
 	PersistentVolumeClaim *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
 	// RBD represents a Rados Block Device mount on the host that shares a pod's lifetime
 	RBD *RBDVolumeSource `json:"rbd,omitempty"`
-	// CephFS represents a Cephfs mount on the host that shares a pod's lifetime
-	CephFS *CephFSVolumeSource `json:"cephfs,omitempty"`
-	// Metadata represents metadata about the pod that should populate this volume
-	Metadata *MetadataVolumeSource `json:"metadata,omitempty"`
 }
 
 // Similar to VolumeSource but meant for the administrator who creates PVs.
@@ -247,8 +243,6 @@ type PersistentVolumeSource struct {
 	// ISCSIVolumeSource represents an ISCSI resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	ISCSI *ISCSIVolumeSource `json:"iscsi,omitempty"`
-	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
-	CephFS *CephFSVolumeSource `json:"cephfs,omitempty"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {
@@ -557,35 +551,6 @@ type RBDVolumeSource struct {
 	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
-// CephFSVolumeSource represents a Ceph Filesystem Mount that lasts the lifetime of a pod
-type CephFSVolumeSource struct {
-	// Required: Monitors is a collection of Ceph monitors
-	Monitors []string `json:"monitors"`
-	// Optional: User is the rados user name, default is admin
-	User string `json:"user,omitempty"`
-	// Optional: SecretFile is the path to key ring for User, default is /etc/ceph/user.secret
-	SecretFile string `json:"secretFile,omitempty"`
-	// Optional: SecretRef is reference to the authentication secret for User, default is empty.
-	SecretRef *LocalObjectReference `json:"secretRef,omitempty"`
-	// Optional: Defaults to false (read/write). ReadOnly here will force
-	// the ReadOnly setting in VolumeMounts.
-	ReadOnly bool `json:"readOnly,omitempty"`
-}
-
-// MetadataVolumeSource represents a volume containing metadata about a pod.
-type MetadataVolumeSource struct {
-	// Items is a list of metadata file name
-	Items []MetadataFile `json:"items",omitempty"`
-}
-
-// MetadataFile represents information to create the file containing the pod field
-type MetadataFile struct {
-	// Required: Name is the name of the file
-	Name string `json:"name,omitempty"`
-	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
-	FieldRef ObjectFieldSelector `json:"fieldRef"`
-}
-
 // ContainerPort represents a network port in a single container
 type ContainerPort struct {
 	// Optional: If specified, this must be an IANA_SVC_NAME  Each named port
@@ -841,11 +806,10 @@ type ContainerStatus struct {
 	Ready bool `json:"ready"`
 	// Note that this is calculated from dead containers.  But those containers are subject to
 	// garbage collection.  This value will get capped at 5 by GC.
-	RestartCount int `json:"restartCount"`
-	// TODO(dchen1107): Need to decide how to represent this in v1beta3
-	Image       string `json:"image"`
-	ImageID     string `json:"imageID"`
-	ContainerID string `json:"containerID,omitempty"`
+	RestartCount int    `json:"restartCount"`
+	Image        string `json:"image"`
+	ImageID      string `json:"imageID"`
+	ContainerID  string `json:"containerID,omitempty"`
 }
 
 // PodPhase is a label for the condition of a pod at the current time.
@@ -1044,7 +1008,7 @@ type ReplicationControllerSpec struct {
 
 	// TemplateRef is a reference to an object that describes the pod that will be created if
 	// insufficient replicas are detected. This reference is ignored if a Template is set.
-	// Must be set before converting to a v1beta3 API object
+	// Must be set before converting to a versioned API object
 	//TemplateRef *ObjectReference `json:"templateRef,omitempty"`
 
 	// Template is the object that describes the pod that will be created if
@@ -1198,10 +1162,8 @@ type ServicePort struct {
 
 	// Optional: The target port on pods selected by this service.  If this
 	// is a string, it will be looked up as a named port in the target
-	// Pod's container ports.  If this is not specified, the first port on
-	// the destination pod will be used.  This behavior is deprecated.  As
-	// of v1beta3 the default value is the sames as the Port field (an
-	// identity map).
+	// Pod's container ports.  If this is not specified, the default value
+	// is the sames as the Port field (an identity map).
 	TargetPort util.IntOrString `json:"targetPort"`
 
 	// The port on each node on which this service is exposed.
@@ -1413,7 +1375,7 @@ type NodeAddress struct {
 }
 
 // NodeResources is an object for conveying resource information about a node.
-// see http://docs.k8s.io/resources.md for more details.
+// see http://docs.k8s.io/design/resources.md for more details.
 type NodeResources struct {
 	// Capacity represents the available resources of a node
 	Capacity ResourceList `json:"capacity,omitempty"`
@@ -1553,6 +1515,27 @@ type PodLogOptions struct {
 
 	// If true, return previous terminated container logs
 	Previous bool
+}
+
+// PodAttachOptions is the query options to a Pod's remote attach call
+// TODO: merge w/ PodExecOptions below for stdin, stdout, etc
+type PodAttachOptions struct {
+	TypeMeta `json:",inline"`
+
+	// Stdin if true indicates that stdin is to be redirected for the attach call
+	Stdin bool `json:"stdin,omitempty"`
+
+	// Stdout if true indicates that stdout is to be redirected for the attach call
+	Stdout bool `json:"stdout,omitempty"`
+
+	// Stderr if true indicates that stderr is to be redirected for the attach call
+	Stderr bool `json:"stderr,omitempty"`
+
+	// TTY if true indicates that a tty will be allocated for the attach call
+	TTY bool `json:"tty,omitempty"`
+
+	// Container to attach to.
+	Container string `json:"container,omitempty"`
 }
 
 // PodExecOptions is the query options to a Pod's remote exec call
@@ -1743,6 +1726,12 @@ const (
 	//   "causes" - The original error
 	// Status code 500
 	StatusReasonInternalError = "InternalError"
+
+	// StatusReasonServiceUnavailable means that the request itself was valid,
+	// but the requested service is unavailable at this time.
+	// Retrying the request after some time might succeed.
+	// Status code 503
+	StatusReasonServiceUnavailable StatusReason = "ServiceUnavailable"
 )
 
 // StatusCause provides more information about an api.Status failure, including
@@ -2123,11 +2112,6 @@ type SecurityContext struct {
 
 	// RunAsUser is the UID to run the entrypoint of the container process.
 	RunAsUser *int64 `json:"runAsUser,omitempty"`
-
-	// RunAsNonRoot indicates that the container should be run as a non-root user.  If the RunAsUser
-	// field is not explicitly set then the kubelet may check the image for a specified user or
-	// perform defaulting to specify a user.
-	RunAsNonRoot bool
 }
 
 // SELinuxOptions are the labels to be applied to the container.
@@ -2164,84 +2148,4 @@ type RangeAllocation struct {
 	// represented as a bit array starting at the base IP of the CIDR in Range, with each bit representing
 	// a single allocated address (the fifth bit on CIDR 10.0.0.0/8 is 10.0.0.4).
 	Data []byte `json:"data"`
-}
-
-// SecurityContextConstraints governs the ability to make requests that affect the SecurityContext
-// that will be applied to a container.
-type SecurityContextConstraints struct {
-	TypeMeta
-	ObjectMeta
-
-	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
-	AllowPrivilegedContainer bool
-	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
-	AllowedCapabilities []Capability
-	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
-	AllowHostDirVolumePlugin bool
-	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
-	AllowHostNetwork bool
-	// AllowHostPorts determines if the policy allows host ports in the containers.
-	AllowHostPorts bool
-	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
-	SELinuxContext SELinuxContextStrategyOptions
-	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	RunAsUser RunAsUserStrategyOptions
-
-	// The users who have permissions to use this security context constraints
-	Users []string
-	// The groups that have permission to use this security context constraints
-	Groups []string
-}
-
-// SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
-type SELinuxContextStrategyOptions struct {
-	// Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
-	Type SELinuxContextStrategyType
-	// seLinuxOptions required to run as; required for MustRunAs
-	SELinuxOptions *SELinuxOptions
-}
-
-// RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
-type RunAsUserStrategyOptions struct {
-	// Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	Type RunAsUserStrategyType
-	// UID is the user id that containers must run as.  Required for the MustRunAs strategy if not using
-	// namespace/service account allocated uids.
-	UID *int64
-	// UIDRangeMin defines the min value for a strategy that allocates by range.
-	UIDRangeMin *int64
-	// UIDRangeMax defines the max value for a strategy that allocates by range.
-	UIDRangeMax *int64
-}
-
-// SELinuxContextStrategyType denotes strategy types for generating SELinux options for a
-// SecurityContext
-type SELinuxContextStrategyType string
-
-// RunAsUserStrategyType denotes strategy types for generating RunAsUser values for a
-// SecurityContext
-type RunAsUserStrategyType string
-
-const (
-	// container must have SELinux labels of X applied.
-	SELinuxStrategyMustRunAs SELinuxContextStrategyType = "MustRunAs"
-	// container may make requests for any SELinux context labels.
-	SELinuxStrategyRunAsAny SELinuxContextStrategyType = "RunAsAny"
-
-	// container must run as a particular uid.
-	RunAsUserStrategyMustRunAs RunAsUserStrategyType = "MustRunAs"
-	// container must run as a particular uid.
-	RunAsUserStrategyMustRunAsRange RunAsUserStrategyType = "MustRunAsRange"
-	// container must run as a non-root uid
-	RunAsUserStrategyMustRunAsNonRoot RunAsUserStrategyType = "MustRunAsNonRoot"
-	// container may make requests for any uid.
-	RunAsUserStrategyRunAsAny RunAsUserStrategyType = "RunAsAny"
-)
-
-// SecurityContextConstraintsList is a list of SecurityContextConstraints objects
-type SecurityContextConstraintsList struct {
-	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty"`
-
-	Items []SecurityContextConstraints `json:"items"`
 }

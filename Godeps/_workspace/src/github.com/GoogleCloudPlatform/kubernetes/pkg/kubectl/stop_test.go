@@ -27,14 +27,19 @@ import (
 )
 
 func TestReplicationControllerStop(t *testing.T) {
+	name := "foo"
+	ns := "default"
 	fake := testclient.NewSimpleFake(&api.ReplicationController{
+		ObjectMeta: api.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+		},
 		Spec: api.ReplicationControllerSpec{
 			Replicas: 0,
 		},
 	})
 	reaper := ReplicationControllerReaper{fake, time.Millisecond, time.Millisecond}
-	name := "foo"
-	s, err := reaper.Stop("default", name, 0, nil)
+	s, err := reaper.Stop(ns, name, 0, nil)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -42,12 +47,13 @@ func TestReplicationControllerStop(t *testing.T) {
 	if s != expected {
 		t.Errorf("expected %s, got %s", expected, s)
 	}
-	if len(fake.Actions) != 6 {
-		t.Errorf("unexpected actions: %v, expected 6 actions (get, get, update, get, get, delete)", fake.Actions)
+	actions := fake.Actions()
+	if len(actions) != 7 {
+		t.Errorf("unexpected actions: %v, expected 6 actions (get, list, get, update, get, get, delete)", fake.Actions)
 	}
-	for i, action := range []string{"get", "get", "update", "get", "get", "delete"} {
-		if fake.Actions[i].Action != action+"-replicationController" {
-			t.Errorf("unexpected action: %v, expected %s-replicationController", fake.Actions[i], action)
+	for i, action := range []string{"get", "list", "get", "update", "get", "get", "delete"} {
+		if actions[i].Action != action+"-replicationController" {
+			t.Errorf("unexpected action: %+v, expected %s-replicationController", actions[i], action)
 		}
 	}
 }
@@ -154,10 +160,11 @@ func TestSimpleStop(t *testing.T) {
 				t.Errorf("unexpected return: %s (%s)", s, test.test)
 			}
 		}
-		if len(test.actions) != len(fake.Actions) {
+		actions := fake.Actions()
+		if len(test.actions) != len(actions) {
 			t.Errorf("unexpected actions: %v; expected %v (%s)", fake.Actions, test.actions, test.test)
 		}
-		for i, action := range fake.Actions {
+		for i, action := range actions {
 			testAction := test.actions[i]
 			if action.Action != testAction {
 				t.Errorf("unexpected action: %v; expected %v (%s)", action, testAction, test.test)

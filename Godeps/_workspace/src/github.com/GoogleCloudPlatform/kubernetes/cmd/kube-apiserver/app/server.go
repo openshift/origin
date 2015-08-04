@@ -32,12 +32,16 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
+	explatest "github.com/GoogleCloudPlatform/kubernetes/pkg/expapi/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	forked "github.com/GoogleCloudPlatform/kubernetes/third_party/forked/coreos/go-etcd/etcd"
@@ -70,7 +74,9 @@ type APIServer struct {
 	TLSPrivateKeyFile          string
 	CertDirectory              string
 	APIPrefix                  string
+	ExpAPIPrefix               string
 	StorageVersion             string
+	ExpStorageVersion          string
 	CloudProvider              string
 	CloudConfigFile            string
 	EventTTL                   time.Duration
@@ -86,7 +92,6 @@ type APIServer struct {
 	EtcdServerList             util.StringList
 	EtcdConfigFile             string
 	EtcdPathPrefix             string
-	OldEtcdPathPrefix          string
 	CorsAllowedOriginList      util.StringList
 	AllowPrivileged            bool
 	ServiceClusterIPRange      util.IPNet // TODO: make this a list
@@ -102,6 +107,7 @@ type APIServer struct {
 	LongRunningRequestRE       string
 	SSHUser                    string
 	SSHKeyfile                 string
+	MaxConnectionBytesPerSec   int64
 }
 
 // NewAPIServer creates a new APIServer object with default parameters
@@ -114,6 +120,7 @@ func NewAPIServer() *APIServer {
 		APIRate:                10.0,
 		APIBurst:               200,
 		APIPrefix:              "/api",
+		ExpAPIPrefix:           "/experimental",
 		EventTTL:               1 * time.Hour,
 		AuthorizationMode:      "AlwaysAllow",
 		AdmissionControl:       "AlwaysAdmit",
@@ -171,6 +178,7 @@ func (s *APIServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.CertDirectory, "cert-dir", s.CertDirectory, "The directory where the TLS certs are located (by default /var/run/kubernetes). "+
 		"If --tls-cert-file and --tls-private-key-file are provided, this flag will be ignored.")
 	fs.StringVar(&s.APIPrefix, "api-prefix", s.APIPrefix, "The prefix for API requests on the server. Default '/api'.")
+	fs.StringVar(&s.ExpAPIPrefix, "experimental-prefix", s.ExpAPIPrefix, "The prefix for experimental API requests on the server. Default '/experimental'.")
 	fs.StringVar(&s.StorageVersion, "storage-version", s.StorageVersion, "The version to store resources with. Defaults to server preferred")
 	fs.StringVar(&s.CloudProvider, "cloud-provider", s.CloudProvider, "The provider for cloud services.  Empty string for no provider.")
 	fs.StringVar(&s.CloudConfigFile, "cloud-config", s.CloudConfigFile, "The path to the cloud provider configuration file.  Empty string for no configuration file.")
@@ -187,7 +195,6 @@ func (s *APIServer) AddFlags(fs *pflag.FlagSet) {
 	fs.Var(&s.EtcdServerList, "etcd-servers", "List of etcd servers to watch (http://ip:port), comma separated. Mutually exclusive with -etcd-config")
 	fs.StringVar(&s.EtcdConfigFile, "etcd-config", s.EtcdConfigFile, "The config file for the etcd client. Mutually exclusive with -etcd-servers.")
 	fs.StringVar(&s.EtcdPathPrefix, "etcd-prefix", s.EtcdPathPrefix, "The prefix for all resource paths in etcd.")
-	fs.StringVar(&s.OldEtcdPathPrefix, "old-etcd-prefix", s.OldEtcdPathPrefix, "The previous prefix for all resource paths in etcd, if any.")
 	fs.Var(&s.CorsAllowedOriginList, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  If this list is empty CORS will not be enabled.")
 	fs.BoolVar(&s.AllowPrivileged, "allow-privileged", s.AllowPrivileged, "If true, allow privileged containers.")
 	fs.Var(&s.ServiceClusterIPRange, "service-cluster-ip-range", "A CIDR notation IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
@@ -207,6 +214,7 @@ func (s *APIServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.LongRunningRequestRE, "long-running-request-regexp", defaultLongRunningRequestRE, "A regular expression matching long running requests which should be excluded from maximum inflight request handling.")
 	fs.StringVar(&s.SSHUser, "ssh-user", "", "If non-empty, use secure SSH proxy to the nodes, using this user name")
 	fs.StringVar(&s.SSHKeyfile, "ssh-keyfile", "", "If non-empty, use secure SSH proxy to the nodes, using this user keyfile")
+	fs.Int64Var(&s.MaxConnectionBytesPerSec, "max-connection-bytes-per-sec", 0, "If non-zero, throttle each user connection to this number of bytes/sec.  Currently only applies to long-running requests")
 }
 
 // TODO: Longer term we should read this from some config store, rather than a flag.
@@ -216,12 +224,12 @@ func (s *APIServer) verifyClusterIPFlags() {
 	}
 }
 
-func newEtcd(etcdConfigFile string, etcdServerList util.StringList, storageVersion string, pathPrefix string) (helper tools.EtcdHelper, err error) {
-	var client tools.EtcdGetSet
+func newEtcd(etcdConfigFile string, etcdServerList util.StringList, interfacesFunc meta.VersionInterfacesFunc, defaultVersion, storageVersion, pathPrefix string) (etcdStorage storage.Interface, err error) {
+	var client tools.EtcdClient
 	if etcdConfigFile != "" {
 		client, err = etcd.NewClientFromFile(etcdConfigFile)
 		if err != nil {
-			return helper, err
+			return nil, err
 		}
 	} else {
 		etcdClient := etcd.NewClient(etcdServerList)
@@ -236,7 +244,10 @@ func newEtcd(etcdConfigFile string, etcdServerList util.StringList, storageVersi
 		client = etcdClient
 	}
 
-	return master.NewEtcdHelper(client, storageVersion, pathPrefix)
+	if storageVersion == "" {
+		storageVersion = defaultVersion
+	}
+	return master.NewEtcdStorage(client, interfacesFunc, storageVersion, pathPrefix)
 }
 
 // Run runs the specified APIServer.  This should never exit.
@@ -257,7 +268,8 @@ func (s *APIServer) Run(_ []string) error {
 	capabilities.Initialize(capabilities.Capabilities{
 		AllowPrivileged: s.AllowPrivileged,
 		// TODO(vmarmol): Implement support for HostNetworkSources.
-		HostNetworkSources: []string{},
+		HostNetworkSources:                     []string{},
+		PerConnectionBandwidthLimitBytesPerSec: s.MaxConnectionBytesPerSec,
 	})
 
 	cloud, err := cloudprovider.InitCloudProvider(s.CloudProvider, s.CloudConfigFile)
@@ -285,13 +297,14 @@ func (s *APIServer) Run(_ []string) error {
 	}
 	_ = disableLegacyAPIs // hush the compiler while we don't have legacy APIs to disable.
 
-	// v1beta3 is disabled by default. Users can enable it using "api/v1beta3=true"
-	enableV1beta3 := s.getRuntimeConfigValue("api/v1beta3", false)
-
 	// "api/v1={true|false} allows users to enable/disable v1 API.
 	// This takes preference over api/all and api/legacy, if specified.
 	disableV1 := disableAllAPIs
 	disableV1 = !s.getRuntimeConfigValue("api/v1", !disableV1)
+
+	// "experimental/v1={true|false} allows users to enable/disable the experimental API.
+	// This takes preference over api/all, if specified.
+	enableExp := s.getRuntimeConfigValue("experimental/v1", false)
 
 	// TODO: expose same flags as client.BindClientConfigFlags but for a server
 	clientConfig := &client.Config{
@@ -303,17 +316,13 @@ func (s *APIServer) Run(_ []string) error {
 		glog.Fatalf("Invalid server address: %v", err)
 	}
 
-	helper, err := newEtcd(s.EtcdConfigFile, s.EtcdServerList, s.StorageVersion, s.EtcdPathPrefix)
+	etcdStorage, err := newEtcd(s.EtcdConfigFile, s.EtcdServerList, latest.InterfacesFor, latest.Version, s.StorageVersion, s.EtcdPathPrefix)
 	if err != nil {
 		glog.Fatalf("Invalid storage version or misconfigured etcd: %v", err)
 	}
-
-	// TODO Is this the right place for migration to happen? Must *both* old and
-	// new etcd prefix params be supplied for this to be valid?
-	if s.OldEtcdPathPrefix != "" {
-		if err = helper.MigrateKeys(s.OldEtcdPathPrefix); err != nil {
-			glog.Fatalf("Migration of old etcd keys failed: %v", err)
-		}
+	expEtcdStorage, err := newEtcd(s.EtcdConfigFile, s.EtcdServerList, explatest.InterfacesFor, explatest.Version, s.ExpStorageVersion, s.EtcdPathPrefix)
+	if err != nil {
+		glog.Fatalf("Invalid experimental storage version or misconfigured etcd: %v", err)
 	}
 
 	n := net.IPNet(s.ServiceClusterIPRange)
@@ -326,7 +335,7 @@ func (s *APIServer) Run(_ []string) error {
 			glog.Warning("no RSA key provided, service account token authentication disabled")
 		}
 	}
-	authenticator, err := apiserver.NewAuthenticator(s.BasicAuthFile, s.ClientCAFile, s.TokenAuthFile, s.ServiceAccountKeyFile, s.ServiceAccountLookup, helper)
+	authenticator, err := apiserver.NewAuthenticator(s.BasicAuthFile, s.ClientCAFile, s.TokenAuthFile, s.ServiceAccountKeyFile, s.ServiceAccountLookup, etcdStorage)
 	if err != nil {
 		glog.Fatalf("Invalid Authentication Config: %v", err)
 	}
@@ -369,7 +378,9 @@ func (s *APIServer) Run(_ []string) error {
 		}
 	}
 	config := &master.Config{
-		EtcdHelper:             helper,
+		DatabaseStorage:    etcdStorage,
+		ExpDatabaseStorage: expEtcdStorage,
+
 		EventTTL:               s.EventTTL,
 		KubeletClient:          kubeletClient,
 		ServiceClusterIPRange:  &n,
@@ -380,6 +391,7 @@ func (s *APIServer) Run(_ []string) error {
 		EnableProfiling:        s.EnableProfiling,
 		EnableIndex:            true,
 		APIPrefix:              s.APIPrefix,
+		ExpAPIPrefix:           s.ExpAPIPrefix,
 		CorsAllowedOriginList:  s.CorsAllowedOriginList,
 		ReadWritePort:          s.SecurePort,
 		PublicAddress:          net.IP(s.AdvertiseAddress),
@@ -387,8 +399,8 @@ func (s *APIServer) Run(_ []string) error {
 		SupportsBasicAuth:      len(s.BasicAuthFile) > 0,
 		Authorizer:             authorizer,
 		AdmissionControl:       admissionController,
-		EnableV1Beta3:          enableV1beta3,
 		DisableV1:              disableV1,
+		EnableExp:              enableExp,
 		MasterServiceNamespace: s.MasterServiceNamespace,
 		ClusterName:            s.ClusterName,
 		ExternalHost:           s.ExternalHost,
@@ -415,13 +427,19 @@ func (s *APIServer) Run(_ []string) error {
 	}
 
 	longRunningRE := regexp.MustCompile(s.LongRunningRequestRE)
+	longRunningTimeout := func(req *http.Request) (<-chan time.Time, string) {
+		// TODO unify this with apiserver.MaxInFlightLimit
+		if longRunningRE.MatchString(req.URL.Path) || req.URL.Query().Get("watch") == "true" {
+			return nil, ""
+		}
+		return time.After(time.Minute), ""
+	}
 
 	if secureLocation != "" {
+		handler := apiserver.TimeoutHandler(m.Handler, longRunningTimeout)
 		secureServer := &http.Server{
 			Addr:           secureLocation,
-			Handler:        apiserver.MaxInFlightLimit(sem, longRunningRE, apiserver.RecoverPanics(m.Handler)),
-			ReadTimeout:    ReadWriteTimeout,
-			WriteTimeout:   ReadWriteTimeout,
+			Handler:        apiserver.MaxInFlightLimit(sem, longRunningRE, apiserver.RecoverPanics(handler)),
 			MaxHeaderBytes: 1 << 20,
 			TLSConfig: &tls.Config{
 				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
@@ -470,11 +488,10 @@ func (s *APIServer) Run(_ []string) error {
 			}
 		}()
 	}
+	handler := apiserver.TimeoutHandler(m.InsecureHandler, longRunningTimeout)
 	http := &http.Server{
 		Addr:           insecureLocation,
-		Handler:        apiserver.RecoverPanics(m.InsecureHandler),
-		ReadTimeout:    ReadWriteTimeout,
-		WriteTimeout:   ReadWriteTimeout,
+		Handler:        apiserver.RecoverPanics(handler),
 		MaxHeaderBytes: 1 << 20,
 	}
 	if secureLocation == "" {

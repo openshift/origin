@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 )
@@ -53,13 +52,14 @@ func TestFinalize(t *testing.T) {
 		},
 	}
 	finalize(mockClient, testNamespace)
-	if len(mockClient.Actions) != 1 {
-		t.Errorf("Expected 1 mock client action, but got %v", len(mockClient.Actions))
+	actions := mockClient.Actions()
+	if len(actions) != 1 {
+		t.Errorf("Expected 1 mock client action, but got %v", len(actions))
 	}
-	if mockClient.Actions[0].Action != "finalize-namespace" {
-		t.Errorf("Expected finalize-namespace action %v", mockClient.Actions[0].Action)
+	if actions[0].Action != "finalize-namespace" {
+		t.Errorf("Expected finalize-namespace action %v", actions[0].Action)
 	}
-	finalizers := mockClient.Actions[0].Value.(*api.Namespace).Spec.Finalizers
+	finalizers := actions[0].Value.(*api.Namespace).Spec.Finalizers
 	if len(finalizers) != 1 {
 		t.Errorf("There should be a single finalizer remaining")
 	}
@@ -100,8 +100,8 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		"finalize-namespace",
 		"delete-namespace")
 	actionSet := util.NewStringSet()
-	for i := range mockClient.Actions {
-		actionSet.Insert(mockClient.Actions[i].Action)
+	for _, action := range mockClient.Actions() {
+		actionSet.Insert(action.Action)
 	}
 	if !actionSet.HasAll(expectedActionSet.List()...) {
 		t.Errorf("Expected actions: %v, but got: %v", expectedActionSet, actionSet)
@@ -127,8 +127,8 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 		t.Errorf("Unexpected error when synching namespace %v", err)
 	}
 	actionSet := util.NewStringSet()
-	for i := range mockClient.Actions {
-		actionSet.Insert(mockClient.Actions[i].Action)
+	for _, action := range mockClient.Actions() {
+		actionSet.Insert(action.Action)
 	}
 	if len(actionSet) != 0 {
 		t.Errorf("Expected no action from controller, but got: %v", actionSet)
@@ -137,7 +137,7 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 
 func TestRunStop(t *testing.T) {
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
 	nsMgr := NewNamespaceManager(client, 1*time.Second)
 
 	if nsMgr.StopEverything != nil {
