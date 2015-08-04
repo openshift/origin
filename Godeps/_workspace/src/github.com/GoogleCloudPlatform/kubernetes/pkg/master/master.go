@@ -39,6 +39,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authenticator"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/authorizer"
@@ -103,6 +104,8 @@ type Config struct {
 	EnableUISupport       bool
 	// allow downstream consumers to disable swagger
 	EnableSwaggerSupport bool
+	// allow v1beta3 to be conditionally enabled
+	EnableV1Beta3 bool
 	// allow api versions to be conditionally disabled
 	DisableV1 bool
 	EnableExp bool
@@ -193,6 +196,7 @@ type Master struct {
 	authorizer            authorizer.Authorizer
 	admissionControl      admission.Interface
 	masterCount           int
+	v1beta3               bool
 	v1                    bool
 	exp                   bool
 	requestContextMapper  api.RequestContextMapper
@@ -347,6 +351,7 @@ func New(c *Config) *Master {
 		authenticator:         c.Authenticator,
 		authorizer:            c.Authorizer,
 		admissionControl:      c.AdmissionControl,
+		v1beta3:               c.EnableV1Beta3,
 		v1:                    !c.DisableV1,
 		exp:                   c.EnableExp,
 		requestContextMapper:  c.RequestContextMapper,
@@ -564,6 +569,12 @@ func (m *Master) init(c *Config) {
 	}
 
 	apiVersions := []string{}
+	if m.v1beta3 {
+		if err := m.api_v1beta3().InstallREST(m.handlerContainer); err != nil {
+			glog.Fatalf("Unable to setup API v1beta3: %v", err)
+		}
+		apiVersions = append(apiVersions, "v1beta3")
+	}
 	if m.v1 {
 		if err := m.api_v1().InstallREST(m.handlerContainer); err != nil {
 			glog.Fatalf("Unable to setup API v1: %v", err)
@@ -766,6 +777,22 @@ func (m *Master) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		ProxyDialerFn:     m.dialer,
 		MinRequestTimeout: m.minRequestTimeout,
 	}
+}
+
+// api_v1beta3 returns the resources and codec for API version v1beta3.
+func (m *Master) api_v1beta3() *apiserver.APIGroupVersion {
+	storage := make(map[string]rest.Storage)
+	for k, v := range m.storage {
+		if k == "minions" || k == "minions/status" {
+			continue
+		}
+		storage[strings.ToLower(k)] = v
+	}
+	version := m.defaultAPIGroupVersion()
+	version.Storage = storage
+	version.Version = "v1beta3"
+	version.Codec = v1beta3.Codec
+	return version
 }
 
 // api_v1 returns the resources and codec for API version v1.
