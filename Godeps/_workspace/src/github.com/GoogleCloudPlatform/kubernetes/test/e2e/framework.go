@@ -36,13 +36,28 @@ type Framework struct {
 
 	Namespace *api.Namespace
 	Client    *client.Client
+
+	nsCreateFunc func(string, *client.Client) (*api.Namespace, error)
 }
 
 // NewFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
 func NewFramework(baseName string) *Framework {
 	f := &Framework{
-		BaseName: baseName,
+		BaseName:     baseName,
+		nsCreateFunc: createTestingNS,
+	}
+
+	BeforeEach(f.beforeEach)
+	AfterEach(f.afterEach)
+
+	return f
+}
+
+func NewCustomFramework(baseName string, nsCreateFunc func(string, *client.Client) (*api.Namespace, error)) *Framework {
+	f := &Framework{
+		BaseName:     baseName,
+		nsCreateFunc: nsCreateFunc,
 	}
 
 	BeforeEach(f.beforeEach)
@@ -60,7 +75,7 @@ func (f *Framework) beforeEach() {
 	f.Client = c
 
 	By("Building a namespace api object")
-	namespace, err := createTestingNS(f.BaseName, f.Client)
+	namespace, err := f.nsCreateFunc(f.BaseName, f.Client)
 	Expect(err).NotTo(HaveOccurred())
 
 	f.Namespace = namespace
