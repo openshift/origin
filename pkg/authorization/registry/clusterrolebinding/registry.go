@@ -58,11 +58,17 @@ func (s *storage) ListRoleBindings(ctx kapi.Context, label labels.Selector, fiel
 
 func (s *storage) CreateRoleBinding(ctx kapi.Context, node *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
 	obj, err := s.Create(ctx, node)
+	if err != nil {
+		return nil, err
+	}
 	return obj.(*authorizationapi.RoleBinding), err
 }
 
 func (s *storage) UpdateRoleBinding(ctx kapi.Context, node *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error) {
 	obj, created, err := s.Update(ctx, node)
+	if err != nil {
+		return nil, created, err
+	}
 	return obj.(*authorizationapi.RoleBinding), created, err
 }
 
