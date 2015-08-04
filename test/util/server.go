@@ -77,8 +77,8 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
 	masterArgs.EtcdDir = path.Join(basedir, "etcd")
-	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
-	nodeArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", nodeArgs.NodeName))
+	masterArgs.ConfigDir.Default(path.Join(basedir, "origin.local.config", "master"))
+	nodeArgs.ConfigDir.Default(path.Join(basedir, "origin.local.config", nodeArgs.NodeName))
 	nodeArgs.MasterCertDir = masterArgs.ConfigDir.Value()
 
 	// don't wait for nodes to come up
@@ -114,7 +114,7 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 	startOptions := start.MasterOptions{}
 	startOptions.MasterArgs, _, _, _, _ = setupStartOptions()
 	startOptions.Complete()
-	startOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", "master"))
+	startOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "origin.local.config", "master"))
 
 	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
 		return nil, err
@@ -209,8 +209,8 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, e
 	startOptions.MasterArgs.NodeList = nil
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.Complete()
-	startOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", "master"))
-	startOptions.NodeArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
+	startOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "origin.local.config", "master"))
+	startOptions.NodeArgs.ConfigDir.Default(path.Join(GetBaseDir(), "origin.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
 	startOptions.NodeArgs.MasterCertDir = startOptions.MasterArgs.ConfigDir.Value()
 
 	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {

@@ -49,7 +49,7 @@ export PATH="${GO_OUT}:${PATH}"
 
 # create temp dir
 TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
-export CURL_CA_BUNDLE="${TEMP_DIR}/openshift.local.config/master/ca.crt"
+export CURL_CA_BUNDLE="${TEMP_DIR}/origin.local.config/master/ca.crt"
 
 # Start openshift
 echo "Starting OpenShift..."

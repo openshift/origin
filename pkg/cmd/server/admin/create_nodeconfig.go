@@ -111,12 +111,12 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 
 func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
 	options := &CreateNodeConfigOptions{SignerCertOptions: &SignerCertOptions{}}
-	options.VolumeDir = "openshift.local.volumes"
+	options.VolumeDir = "origin.local.volumes"
 	// TODO: replace me with a proper round trip of config options through decode
 	options.DNSDomain = "cluster.local"
 	options.APIServerURL = "https://localhost:8443"
-	options.APIServerCAFile = "openshift.local.config/master/ca.crt"
-	options.NodeClientCAFile = "openshift.local.config/master/ca.crt"
+	options.APIServerCAFile = "origin.local.config/master/ca.crt"
+	options.NodeClientCAFile = "origin.local.config/master/ca.crt"
 
 	options.ImageTemplate = variable.NewDefaultImageTemplate()
 

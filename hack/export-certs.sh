@@ -3,7 +3,7 @@
 # This command attempts to export the correct arguments for a curl client.
 # Exports CURL_ARGS which should be used with curl:
 #
-#   $ source hack/export-certs.sh ./openshift.local.config/master/admin
+#   $ source hack/export-certs.sh ./origin.local.config/master/admin
 #   $ curl $CURL_ARGS <a protected URL>
 
 set -o errexit

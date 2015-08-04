@@ -42,7 +42,7 @@ if selinuxenabled; then
   sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
 fi
 
-FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
+FAKE_HOME_DIR="${BASETMPDIR}/origin.local.home"
 LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
 mkdir -p $LOG_DIR
@@ -167,11 +167,11 @@ wait_for_url "https://localhost:8443/healthz/ready" "apiserver(ready): " 0.25 16
 echo "[INFO] Installing the router"
 sudo docker exec origin bash -c "echo '{\"kind\":\"ServiceAccount\",\"apiVersion\":\"v1\",\"metadata\":{\"name\":\"router\"}}' | openshift cli create -f -"
 sudo docker exec origin bash -c "openshift cli get scc privileged -o json | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | openshift cli replace scc privileged -f -"
-sudo docker exec origin openshift admin router --create --credentials="./openshift.local.config/master/openshift-router.kubeconfig" --images="${USE_IMAGES}" --service-account=router
+sudo docker exec origin openshift admin router --create --credentials="./origin.local.config/master/openshift-router.kubeconfig" --images="${USE_IMAGES}" --service-account=router
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
-sudo docker exec origin openshift admin registry --create --credentials="./openshift.local.config/master/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
+sudo docker exec origin openshift admin registry --create --credentials="./origin.local.config/master/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
 
 registry="$(dig @localhost "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
 [ -n "${registry}" ]

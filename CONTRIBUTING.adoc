@@ -88,9 +88,9 @@ export PATH=$PATH:$GOPATH/bin
 
 10.  Launch another terminal, change into the same directory you started OpenShift, and deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
 
-        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ sudo chmod +r origin.local.config/master/openshift-registry.kubeconfig
+        $ sudo chmod +r origin.local.config/master/admin.kubeconfig
+        $ oadm registry --create --credentials=origin.local.config/master/openshift-registry.kubeconfig --config=origin.local.config/master/admin.kubeconfig
 
 11.  If it is not there already, add the current directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
 
@@ -100,8 +100,8 @@ export PATH=$PATH:$GOPATH/bin
 
         $ sudo killall openshift
         $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-        $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
-        $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
+        $ mount | grep "origin.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
+        $ cd <to the dir you ran openshift start> ; sudo rm -rf origin.local.*
 
 
 === Develop on virtual machine using Vagrant
@@ -147,9 +147,9 @@ NOTE: By default your origin directory will be mounted as a vagrant synced folde
 
 9.  Deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
 
-        $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ sudo chmod +r origin.local.config/master/openshift-registry.kubeconfig
+        $ sudo chmod +r origin.local.config/master/admin.kubeconfig
+        $ oadm registry --create --credentials=origin.local.config/master/openshift-registry.kubeconfig --config=origin.local.config/master/admin.kubeconfig
 
 10.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
 
@@ -157,8 +157,8 @@ NOTE: By default your origin directory will be mounted as a vagrant synced folde
 
         $ sudo pkill openshift
         $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-        $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
-        $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
+        $ mount | grep "origin.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
+        $ cd <to the dir you ran openshift start> ; sudo rm -rf origin.local.*
         $ mount | grep < "\/absolute\/path", where that is the value passed to the `--volume-dir` argument on openshift start >  | awk '{ print $3}' | xargs -l -r sudo umount
         $ sudo rm -rf < "\/absolute\/path", where again that is the  value passed to the `--volume-dir`argument >
 

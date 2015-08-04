@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	DefaultPolicyFile                    = "openshift.local.config/master/policy.json"
+	DefaultPolicyFile                    = "origin.local.config/master/policy.json"
 	CreateBootstrapPolicyFileCommand     = "create-bootstrap-policy-file"
 	CreateBootstrapPolicyFileFullCommand = "openshift admin " + CreateBootstrapPolicyFileCommand
 )

@@ -78,7 +78,7 @@ And when inspecting the Docker registry, you will see messages like this:
 
 When this sequence occurs, without needing to restart Docker nor OpenShift, you can work around it by running the following command:
 
-     $ sudo chcon -R -t svirt_sandbox_file_t < path to >/openshift.local.volumes
+     $ sudo chcon -R -t svirt_sandbox_file_t < path to >/origin.local.volumes
 
 Docker Registry
 ---------------
@@ -139,7 +139,7 @@ When using [vagrant synced folder](http://docs.vagrantup.com/v2/synced-folders/)
 origin directory is mounted using synced folder into `/data/src/github.com/openshift/origin`) you may encounter
 following errors in OpenShift log:
 
-        E0706 11:29:43.421460    3664 empty_dir.go:322] Expected directory "/data/src/github.com/openshift/origin/openshift.local.volumes/pods/4c390e43-23d2-11e5-b42d-080027c5bfa9/volumes/kubernetes.io~secret/deployer-token-f9mi7" permissions to be: -rwxrwxrwx; got: -rwxrwxr-x
+        E0706 11:29:43.421460    3664 empty_dir.go:322] Expected directory "/data/src/github.com/openshift/origin/origin.local.volumes/pods/4c390e43-23d2-11e5-b42d-080027c5bfa9/volumes/kubernetes.io~secret/deployer-token-f9mi7" permissions to be: -rwxrwxrwx; got: -rwxrwxr-x
         E0706 11:29:43.421741    3664 kubelet.go:1114] Unable to mount volumes for pod "docker-registry-1-deploy_default": operation not supported; skipping pod
         E0706 11:29:43.438449    3664 pod_workers.go:108] Error syncing pod 4c390e43-23d2-11e5-b42d-080027c5bfa9, skipping: operation not supported
 

@@ -36,7 +36,7 @@ components such as the router, authentication server, etc.
 
 Example: Creating a secure router certificate.
 
-    $ CA=openshift.local.config/master
+    $ CA=origin.local.config/master
 	$ %[1]s --signer-cert=$CA/ca.crt \
 	          --signer-key=$CA/ca.key --signer-serial=$CA/ca.serial.txt \
 	          --hostnames='*.cloudapps.example.com' \

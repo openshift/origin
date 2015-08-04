@@ -150,7 +150,7 @@ func (o MasterOptions) Validate(args []string) error {
 
 func (o *MasterOptions) Complete() error {
 	if !o.MasterArgs.ConfigDir.Provided() {
-		o.MasterArgs.ConfigDir.Default("openshift.local.config/master")
+		o.MasterArgs.ConfigDir.Default("origin.local.config/master")
 	}
 
 	nodeList := util.NewStringSet()

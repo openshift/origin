@@ -24,7 +24,7 @@ ADD scripts/recycler.sh /usr/share/openshift/scripts/volumes/recycler.sh
 
 ENV HOME /root
 ENV OPENSHIFT_CONTAINERIZED true
-ENV KUBECONFIG /var/lib/openshift/openshift.local.config/master/admin.kubeconfig
+ENV KUBECONFIG /var/lib/openshift/origin.local.config/master/admin.kubeconfig
 WORKDIR /var/lib/openshift
 EXPOSE 8443 53
 ENTRYPOINT ["/usr/bin/openshift"]

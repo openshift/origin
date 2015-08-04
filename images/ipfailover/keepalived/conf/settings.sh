@@ -54,7 +54,7 @@ UNICAST_PEERS=${OPENSHIFT_HA_UNICAST_PEERS:-""}
 ADMIN_EMAILS=(${OPENSHIFT_HA_ADMIN_EMAILS:-"root@localhost"})
 
 #  Email sender - the from address in the email headers.
-EMAIL_FROM="ipfailover@openshift.local"
+EMAIL_FROM="ipfailover@origin.local"
 
 #  IP address of the SMTP server.
 SMTP_SERVER=${OPENSHIFT_HA_SMTP_SERVER:-"127.0.0.1"}
