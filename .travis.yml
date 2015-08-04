@@ -6,6 +6,7 @@ go:
 env:
  - TEST_ASSETS=true
  - TEST_ASSETS=false
+ - TRAVIS_API_HOST=127.0.0.1
 
 install:
   - ./hack/verify-jsonformat.sh
