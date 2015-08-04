@@ -23,13 +23,15 @@
                   </li>
                 </ul>
               </div>
-              <template-options class="first-section"></template-options>
-              <labels labels="template.labels"></labels>
-              <alerts alerts="alerts"></alerts>
-              <div class="buttons gutter-top-bottom">
-                <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()">Create</button>
-                <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
-              </div>
+              <form name="templateForm">
+                <template-options class="first-section"></template-options>
+                <labels labels="template.labels"></labels>
+                <alerts alerts="alerts"></alerts>
+                <div class="buttons gutter-top-bottom">
+                  <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()" ng-disabled="templateForm.$invalid">Create</button>
+                  <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
+                </div>
+              </form>
             </div>
           </div>
           <div ng-hide="template">

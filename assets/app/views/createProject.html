@@ -4,7 +4,7 @@
       <h1>New Project</h1>
       <form name="createProjectForm">
         <div class="form-group">
-          <label for="name">Name *</label>
+          <label for="name" class="required">Name</label>
           <span ng-class="{'has-error': (createProjectForm.name.$error.pattern && createProjectForm.name.$touched) || nameTaken}">
             <input class="form-control input-lg"
                 name="name"
