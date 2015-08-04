@@ -77,6 +77,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/ui"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
+	sccetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/securitycontextconstraints/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/portallocator"
 	"github.com/emicklei/go-restful"
@@ -445,6 +446,8 @@ func (m *Master) init(c *Config) {
 	namespaceStorage, namespaceStatusStorage, namespaceFinalizeStorage := namespaceetcd.NewStorage(c.DatabaseStorage)
 	m.namespaceRegistry = namespace.NewRegistry(namespaceStorage)
 
+	securityContextConstraintsStorage := sccetcd.NewStorage(c.DatabaseStorage)
+
 	endpointsStorage := endpointsetcd.NewStorage(c.DatabaseStorage)
 	m.endpointRegistry = endpoint.NewRegistry(endpointsStorage)
 
@@ -504,6 +507,7 @@ func (m *Master) init(c *Config) {
 		"namespaces/finalize":           namespaceFinalizeStorage,
 		"secrets":                       secretStorage,
 		"serviceAccounts":               serviceAccountStorage,
+		"securityContextConstraints":    securityContextConstraintsStorage,
 		"persistentVolumes":             persistentVolumeStorage,
 		"persistentVolumes/status":      persistentVolumeStatusStorage,
 		"persistentVolumeClaims":        persistentVolumeClaimStorage,

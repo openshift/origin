@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package securitycontextconstraints contains security context constraints api implementations.
-package securitycontextconstraints
+// Package selinux contains security context constraints SELinux strategy implementations.
+package selinux

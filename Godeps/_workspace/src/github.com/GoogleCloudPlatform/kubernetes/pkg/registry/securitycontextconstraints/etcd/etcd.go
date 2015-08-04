@@ -17,6 +17,8 @@ limitations under the License.
 package etcd
 
 import (
+	"path"
+
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
@@ -24,7 +26,7 @@ import (
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/securitycontextconstraints"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 )
 
 // REST implements a RESTStorage for security context constraints against etcd
@@ -35,7 +37,7 @@ type REST struct {
 const Prefix = "/securitycontextconstraints"
 
 // NewStorage returns a RESTStorage object that will work against security context constraints objects.
-func NewStorage(h tools.EtcdHelper) *REST {
+func NewStorage(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.SecurityContextConstraints{} },
 		NewListFunc: func() runtime.Object { return &api.SecurityContextConstraintsList{} },
@@ -43,7 +45,7 @@ func NewStorage(h tools.EtcdHelper) *REST {
 			return Prefix
 		},
 		KeyFunc: func(ctx api.Context, name string) (string, error) {
-			return Prefix + "/" + name, nil
+			return path.Join(Prefix, name), nil
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.SecurityContextConstraints).Name, nil
@@ -56,8 +58,7 @@ func NewStorage(h tools.EtcdHelper) *REST {
 		CreateStrategy:      securitycontextconstraints.Strategy,
 		UpdateStrategy:      securitycontextconstraints.Strategy,
 		ReturnDeletedObject: true,
-
-		Helper: h,
+		Storage:             s,
 	}
 	return &REST{store}
 }

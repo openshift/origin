@@ -84,6 +84,7 @@ func init() {
 		"Minion",
 		"Namespace",
 		"PersistentVolume",
+		"SecurityContextConstraints",
 	)
 
 	// these kinds should be excluded from the list of resources

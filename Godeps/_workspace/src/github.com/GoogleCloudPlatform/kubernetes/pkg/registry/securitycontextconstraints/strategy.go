@@ -73,7 +73,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
 		scc, ok := obj.(*api.SecurityContextConstraints)
 		if !ok {
-			return false, fmt.Errorf("not a serviceaccount")
+			return false, fmt.Errorf("not a securitycontextconstraint")
 		}
 		fields := SelectableFields(scc)
 		return label.Matches(labels.Set(scc.Labels)) && field.Matches(fields), nil
