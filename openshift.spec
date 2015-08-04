@@ -297,9 +297,12 @@ do
   install -p -m 0644 rel-eng/%{name}-sdn-ovs.conf %{buildroot}%{_prefix}/lib/systemd/system/${pkgname}-node.service.d/${pkgname}-sdn-ovs.conf
 done
 
+
 # Install bash completions
 install -d -m 755 %{buildroot}/etc/bash_completion.d/
 install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
+# Generate atomic-enterprise bash completions
+%{__sed} -e "s|openshift|atomic-enterprise|g" rel-eng/completions/bash/openshift > %{buildroot}/etc/bash_completion.d/atomic-enterprise
 
 %files
 %defattr(-,root,root,-)
