@@ -14,8 +14,8 @@
         <h3 id="service-{{service.metadata.name}}">{{service.metadata.name}}</h3>
         <div>Created: <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></div>
         <div>IP:
-          <span ng-if="service.spec.portalIP == 'None'"><em>none</em></span>
-          <span ng-if="service.spec.portalIP != 'None'">{{service.spec.portalIP}}</span>
+          <span ng-if="service.spec.clusterIP == 'None'"><em>none</em></span>
+          <span ng-if="service.spec.clusterIP != 'None'">{{service.spec.clusterIP}}</span>
         </div>
         <div>Ports:
           <span ng-if="!service.spec.ports.length"><em>none</em></span>

@@ -83,9 +83,8 @@
 
     <div class="component-label">
       Pods
-      <span ng-if="rc.status.replicas === rc.spec.replicas" class="component-label-details">({{rc.status.replicas}})</span>
-      <!-- TODO: Change default from 0 to 1 when updating to API version v1. -->
-      <span ng-if="rc.status.replicas !== rc.spec.replicas" class="component-label-details">(scaling to {{rc.spec.replicas || 0}})</span>
+      <span ng-if="rc.status.replicas === (rc | desiredReplicas)" class="component-label-details">({{rc.status.replicas}})</span>
+      <span ng-if="rc.status.replicas !== (rc | desiredReplicas)" class="component-label-details">(scaling to {{rc | desiredReplicas}})</span>
     </div>
 
     <pods pods="pods"></pods>

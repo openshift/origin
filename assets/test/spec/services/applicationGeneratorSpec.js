@@ -8,7 +8,7 @@ describe("ApplicationGenerator", function(){
     module('openshiftConsole', function($provide){
       $provide.value("DataService",{
         osApiVersion: "v1beta3",
-        k8sApiVersion: "v1beta3"
+        k8sApiVersion: "v1"
       });
     });
 
@@ -119,7 +119,7 @@ describe("ApplicationGenerator", function(){
 //      expect(service).toEqual(
 //        {
 //            "kind": "Service",
-//            "apiVersion": "v1beta3",
+//            "apiVersion": "v1",
 //            "metadata": {
 //                "name": "theServiceName",
 //                "labels" : {
@@ -127,7 +127,7 @@ describe("ApplicationGenerator", function(){
 //                  "abc" : "xyz"                }
 //            },
 //            "spec": {
-//                "portalIP" : "None",
+//                "clusterIP" : "None",
 //                "selector": {
 //                    "deploymentconfig": "ruby-hello-world"
 //                }
@@ -266,7 +266,7 @@ describe("ApplicationGenerator", function(){
       expect(resources.service).toEqual(
         {
             "kind": "Service",
-            "apiVersion": "v1beta3",
+            "apiVersion": "v1",
             "metadata": {
                 "name": "ruby-hello-world",
                 "labels" : {
@@ -401,7 +401,7 @@ describe("ApplicationGenerator", function(){
         expect(resources.service).toEqual(
         {
             "kind": "Service",
-            "apiVersion": "v1beta3",
+            "apiVersion": "v1",
             "metadata": {
                 "name": "ruby-hello-world",
                 "labels" : {

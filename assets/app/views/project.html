@@ -72,8 +72,8 @@
               </div>
 
               <div class="component meta-data">
-                <span ng-if="service.spec.portalIP && service.spec.portalIP !== 'None'">
-                  routing traffic on {{service.spec.portalIP}}
+                <span ng-if="service.spec.clusterIP && service.spec.clusterIP !== 'None'">
+                  routing traffic on {{service.spec.clusterIP}}
                 </span>
                 <div ng-if="numPorts">
                   <!--

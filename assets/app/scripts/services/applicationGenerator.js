@@ -268,7 +268,7 @@ angular.module("openshiftConsole")
       };
       //TODO add in when server supports headless services without a port spec
 //      if(port === 'None'){
-//        service.spec.portalIP = 'None';
+//        service.spec.clusterIP = 'None';
 //      }else{
         service.spec.ports = [{
           port: port.containerPort,

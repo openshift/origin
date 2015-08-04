@@ -15,6 +15,10 @@ angular.module('openshiftConsole')
     angular.forEach(pods, function(pod){
       angular.forEach(pod.spec.containers, function(container){
         var dockerRef = container.image;
+        if (!dockerRef) {
+          return;
+        }
+
         if (imagesByDockerReference[dockerRef]) {
           // Already have an image for this ref
           return;

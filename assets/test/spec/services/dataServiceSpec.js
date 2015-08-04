@@ -25,8 +25,8 @@ describe("DataService", function(){
       [{type:'Users'},             "http://localhost:8443/osapi/v1beta3/users"],
       [{type:'oauthaccesstokens'}, "http://localhost:8443/osapi/v1beta3/oauthaccesstokens"],
       [{type:'OAuthAccessTokens'}, "http://localhost:8443/osapi/v1beta3/oauthaccesstokens"],
-      [{type:'pods'},              "http://localhost:8443/api/v1beta3/pods"],
-      [{type:'Pods'},              "http://localhost:8443/api/v1beta3/pods"],
+      [{type:'pods'},              "http://localhost:8443/api/v1/pods"],
+      [{type:'Pods'},              "http://localhost:8443/api/v1/pods"],
 
       // Openshift type
       [{type:'builds'                           }, "http://localhost:8443/osapi/v1beta3/builds"],
@@ -35,10 +35,10 @@ describe("DataService", function(){
       [{type:'builds', namespace:"foo", id:"bar"}, "http://localhost:8443/osapi/v1beta3/namespaces/foo/builds/bar"],
 
       // k8s type
-      [{type:'replicationcontrollers'                           }, "http://localhost:8443/api/v1beta3/replicationcontrollers"],
-      [{type:'replicationcontrollers', namespace:"foo"          }, "http://localhost:8443/api/v1beta3/namespaces/foo/replicationcontrollers"],
-      [{type:'replicationcontrollers',                  id:"bar"}, "http://localhost:8443/api/v1beta3/replicationcontrollers/bar"],
-      [{type:'replicationcontrollers', namespace:"foo", id:"bar"}, "http://localhost:8443/api/v1beta3/namespaces/foo/replicationcontrollers/bar"],
+      [{type:'replicationcontrollers'                           }, "http://localhost:8443/api/v1/replicationcontrollers"],
+      [{type:'replicationcontrollers', namespace:"foo"          }, "http://localhost:8443/api/v1/namespaces/foo/replicationcontrollers"],
+      [{type:'replicationcontrollers',                  id:"bar"}, "http://localhost:8443/api/v1/replicationcontrollers/bar"],
+      [{type:'replicationcontrollers', namespace:"foo", id:"bar"}, "http://localhost:8443/api/v1/namespaces/foo/replicationcontrollers/bar"],
 
       // Subresources and webhooks
       [{type:'builds/clone',             id:"mybuild", namespace:"foo"                                 }, "http://localhost:8443/osapi/v1beta3/namespaces/foo/builds/mybuild/clone"],
@@ -46,11 +46,11 @@ describe("DataService", function(){
       [{type:'buildconfigs/webhooks',    id:"mycfg",   namespace:"foo", hookType:"github", secret:"123"}, "http://localhost:8443/osapi/v1beta3/namespaces/foo/buildconfigs/mycfg/webhooks/123/github"],
 
       // Watch
-      [{type:'pods', namespace:"foo", isWebsocket:true                     }, "ws://localhost:8443/api/v1beta3/watch/namespaces/foo/pods"],
-      [{type:'pods', namespace:"foo", isWebsocket:true, resourceVersion:"5"}, "ws://localhost:8443/api/v1beta3/watch/namespaces/foo/pods?resourceVersion=5"],
+      [{type:'pods', namespace:"foo", isWebsocket:true                     }, "ws://localhost:8443/api/v1/watch/namespaces/foo/pods"],
+      [{type:'pods', namespace:"foo", isWebsocket:true, resourceVersion:"5"}, "ws://localhost:8443/api/v1/watch/namespaces/foo/pods?resourceVersion=5"],
 
       // Namespaced subresource with params
-      [{type:'pods/proxy', id:"mypod", namespace:"myns", myparam1:"myvalue"}, "http://localhost:8443/api/v1beta3/namespaces/myns/pods/mypod/proxy?myparam1=myvalue"],
+      [{type:'pods/proxy', id:"mypod", namespace:"myns", myparam1:"myvalue"}, "http://localhost:8443/api/v1/namespaces/myns/pods/mypod/proxy?myparam1=myvalue"],
     ];
 
     angular.forEach(tc, function(item) {
