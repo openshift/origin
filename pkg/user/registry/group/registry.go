@@ -5,6 +5,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/user/api"
 )
@@ -12,7 +13,7 @@ import (
 // Registry is an interface implemented by things that know how to store Group objects.
 type Registry interface {
 	// ListGroups obtains a list of groups having labels which match selector.
-	ListGroups(ctx kapi.Context, selector labels.Selector) (*api.GroupList, error)
+	ListGroups(ctx kapi.Context, selector labels.Selector, field fields.Selector) (*api.GroupList, error)
 	// GetGroup returns a specific group
 	GetGroup(ctx kapi.Context, name string) (*api.Group, error)
 	// CreateGroup creates a group
@@ -21,6 +22,8 @@ type Registry interface {
 	UpdateGroup(ctx kapi.Context, group *api.Group) (*api.Group, error)
 	// DeleteGroup deletes a name.
 	DeleteGroup(ctx kapi.Context, name string) error
+	// WatchGroups watches groups.
+	WatchGroups(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -39,8 +42,8 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListGroups(ctx kapi.Context, label labels.Selector) (*api.GroupList, error) {
-	obj, err := s.List(ctx, label, fields.Everything())
+func (s *storage) ListGroups(ctx kapi.Context, label labels.Selector, field fields.Selector) (*api.GroupList, error) {
+	obj, err := s.List(ctx, label, field)
 	if err != nil {
 		return nil, err
 	}
@@ -74,4 +77,8 @@ func (s *storage) UpdateGroup(ctx kapi.Context, group *api.Group) (*api.Group, e
 func (s *storage) DeleteGroup(ctx kapi.Context, name string) error {
 	_, err := s.Delete(ctx, name, nil)
 	return err
+}
+
+func (s *storage) WatchGroups(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	return s.Watch(ctx, label, field, resourceVersion)
 }

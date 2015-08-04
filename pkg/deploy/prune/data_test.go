@@ -1,6 +1,7 @@
 package prune
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -46,8 +47,8 @@ func TestDeploymentByDeploymentConfigIndexFunc(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	expectedKey := "a/b"
-	if actualKey != expectedKey {
+	expectedKey := []string{"a/b"}
+	if !reflect.DeepEqual(actualKey, expectedKey) {
 		t.Errorf("expected %v, actual %v", expectedKey, actualKey)
 	}
 	deploymentWithNoConfig := &kapi.ReplicationController{}
@@ -55,8 +56,8 @@ func TestDeploymentByDeploymentConfigIndexFunc(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	expectedKey = "orphan"
-	if actualKey != expectedKey {
+	expectedKey = []string{"orphan"}
+	if !reflect.DeepEqual(actualKey, expectedKey) {
 		t.Errorf("expected %v, actual %v", expectedKey, actualKey)
 	}
 }

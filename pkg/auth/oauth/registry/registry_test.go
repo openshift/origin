@@ -15,6 +15,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
+	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/test"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
@@ -248,7 +249,7 @@ func TestRegistryAndServer(t *testing.T) {
 func TestAuthenticateTokenNotFound(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{Err: apierrs.NewNotFound("AccessToken", "token")}
 	userRegistry := usertest.NewUserRegistry()
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry)
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -267,7 +268,7 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 func TestAuthenticateTokenOtherGetError(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{Err: errors.New("get error")}
 	userRegistry := usertest.NewUserRegistry()
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry)
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -292,7 +293,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 		},
 	}
 	userRegistry := usertest.NewUserRegistry()
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry)
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if found {
@@ -318,7 +319,7 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 	userRegistry := usertest.NewUserRegistry()
 	userRegistry.Get["foo"] = &userapi.User{ObjectMeta: kapi.ObjectMeta{UID: "bar"}}
 
-	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry)
+	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 
 	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
 	if !found {

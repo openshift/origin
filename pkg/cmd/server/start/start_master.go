@@ -330,6 +330,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	}()
 
 	// Must start policy caching immediately
+	openshiftConfig.RunGroupCache()
 	openshiftConfig.RunPolicyCache()
 	openshiftConfig.RunProjectCache()
 

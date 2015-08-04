@@ -81,7 +81,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 			Phase: kapi.NamespaceActive,
 		},
 	}
-	store := cache.NewStore(cache.MetaNamespaceIndexFunc)
+	store := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	store.Add(namespaceObj)
 	mockClient := &testclient.Fake{}
 	projectcache.FakeProjectCache(mockClient, store, "")

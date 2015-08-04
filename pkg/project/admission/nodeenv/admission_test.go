@@ -21,7 +21,7 @@ func TestPodAdmission(t *testing.T) {
 			Namespace: "",
 		},
 	}
-	projectStore := cache.NewStore(cache.MetaNamespaceIndexFunc)
+	projectStore := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	projectStore.Add(project)
 
 	handler := &podNodeEnvironment{client: mockClient}
