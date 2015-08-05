@@ -5,6 +5,136 @@
 TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
 
+# setup_env_vars exports all the necessary environment variables for configuring and  
+# starting OS server.
+function setup_env_vars {
+  export TRAVIS_TEST="${TRAVIS_TEST:-false}"
+  export ETCD_DATA_DIR="${BASETMPDIR}/etcd"
+  export VOLUME_DIR="${BASETMPDIR}/volumes"
+  export FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
+  export API_HOST="${API_HOST:-127.0.0.1}"
+  export API_PORT="${API_PORT:-8443}"
+  export API_SCHEME="${API_SCHEME:-https}"
+  export MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
+  export PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
+  export KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
+  export KUBELET_HOST="${KUBELET_HOST:-127.0.0.1}"
+  export KUBELET_PORT="${KUBELET_PORT:-10250}"
+  export SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
+  export MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
+  export NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
+
+  # set path so OpenShift is available
+  GO_OUT="${OS_ROOT}/_output/local/go/bin"
+  export PATH="${GO_OUT}:${PATH}"
+}
+
+# configure_and_start_os will create and write OS master certificates, node config,
+# OS config.
+function configure_os_server {
+  openshift admin ca create-master-certs \
+    --overwrite=false \
+    --cert-dir="${MASTER_CONFIG_DIR}" \
+    --hostnames="${SERVER_HOSTNAME_LIST}" \
+    --master="${MASTER_ADDR}" \
+    --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
+
+  echo "[INFO] Creating OpenShift node config"
+  openshift admin create-node-config \
+    --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
+    --node-dir="${NODE_CONFIG_DIR}" \
+    --node="${KUBELET_HOST}" \
+    --hostnames="${KUBELET_HOST}" \
+    --master="${MASTER_ADDR}" \
+    --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+    --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
+    --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
+    --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
+    --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
+
+  oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
+
+  echo "[INFO] Creating OpenShift config"
+  # FIXME
+  # test-cmd which is tested in Travis needs to set OS server
+  # to listen on localhost.
+  if [[ "${TRAVIS_TEST}" == "true" ]]; then
+    openshift start \
+      --write-config=${SERVER_CONFIG_DIR} \
+      --create-certs=false \
+      --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+      --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+      --hostname="${KUBELET_HOST}" \
+      --volume-dir="${VOLUME_DIR}" \
+      --etcd-dir="${ETCD_DATA_DIR}" \
+      --images="${USE_IMAGES}"
+  else
+    openshift start \
+      --write-config=${SERVER_CONFIG_DIR} \
+      --create-certs=false \
+      --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
+      --master="${MASTER_ADDR}" \
+      --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
+      --hostname="${KUBELET_HOST}" \
+      --volume-dir="${VOLUME_DIR}" \
+      --etcd-dir="${ETCD_DATA_DIR}" \
+      --images="${USE_IMAGES}"
+  fi
+}
+
+
+# start_os_server starts the OS server, exports the PID of the OS server
+# and waits until OS server endpoints are available
+function start_os_server {
+  echo "[INFO] Starting OpenShift server"
+  # FIXME
+  # test-cmd which is tested in Travis cant run as sudo
+  if [[ "${TRAVIS_TEST}" == "true" ]]; then
+    OPENSHIFT_ON_PANIC=crash openshift start \
+      --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+      --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+      --loglevel=4 \
+      1>&2 2>"${BASETMPDIR}/openshift.log" &
+  else
+    sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
+      --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+      --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+      --loglevel=4 \
+      &> "${BASETMPDIR}/openshift.log" &
+  fi
+  export OS_PID=$!
+
+  wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
+  wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+  wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+  wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
+}
+
+# test_privileges tests if the testing machine has iptables available
+# and in PATH. Also test whether current user has sudo privileges.  
+function test_privileges {
+  if [[ -z "$(which iptables)" ]]; then
+    echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
+    exit 1
+  fi
+  iptables --list > /dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    sudo iptables --list > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      echo "You do not have iptables or sudo privileges. Kubernetes services will not work without iptables access.  See https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.  Try 'sudo hack/test-end-to-end.sh'."
+      exit 1
+    fi
+  fi
+}
+
+# test_godep tests if the godep is in PATH.
+function test_godep {
+  if [[ -z "$(which godep)" ]];then
+    echo "You do not have godep in your PATH. Extended tests require godep in order to start."
+    exit 1
+  fi
+}
+
 # wait_for_command executes a command and waits for it to
 # complete or times out after max_wait.
 #
@@ -235,6 +365,20 @@ function start_etcd {
   wait_for_url "http://${host}:${port}/version" "etcd: " 0.25 80
   curl -X PUT  "http://${host}:${port}/v2/keys/_test"
   echo
+}
+
+# remove_tmp_dir will try to delete the testing directory.
+# If it fails will unmount all the mounts associated with 
+# the test.
+# 
+# $1 expression for which the mounts should be checked 
+remove_tmp_dir() {
+  sudo rm -rf ${BASETMPDIR} &>/dev/null
+  if [[ $? != 0 ]]; then
+    echo "[INFO] Unmounting previously used volumes ..."
+    findmnt -lo TARGET | grep $1 | xargs -r sudo umount
+    sudo rm -rf ${BASETMPDIR}
+  fi
 }
 
 # stop_openshift_server utility function to terminate an

@@ -29,7 +29,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	valerieOpenshiftClient, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
+	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	valerieOpenshiftClient, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
+	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	victorOpenshiftClient, err := testutil.GetClientForUser(*clusterAdminClientConfig, "victor")
+	victorOpenshiftClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "victor")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

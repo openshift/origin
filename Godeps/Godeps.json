@@ -351,6 +351,11 @@
 			"Rev": "cd821444dcf3e1e237b5f3579721440624c9c4fa"
 		},
 		{
+			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/test/e2e",
+			"Comment": "v1.0.0",
+			"Rev": "cd821444dcf3e1e237b5f3579721440624c9c4fa"
+		},
+		{
 			"ImportPath": "github.com/GoogleCloudPlatform/kubernetes/plugin/cmd/kube-scheduler/app",
 			"Comment": "v1.0.0",
 			"Rev": "cd821444dcf3e1e237b5f3579721440624c9c4fa"
@@ -463,6 +468,16 @@
 		{
 			"ImportPath": "github.com/MakeNowJust/heredoc",
 			"Rev": "1d91351acdc1cb2f2c995864674b754134b86ca7"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo",
+			"Comment": "v1.2.0-6-gd981d36",
+			"Rev": "d981d36e9884231afa909627b9c275e4ba678f90"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega",
+			"Comment": "v1.0-28-g8adf9e1730c5",
+			"Rev": "8adf9e1730c55cdc590de7d49766cb2acc88d8f2"
 		},
 		{
 			"ImportPath": "github.com/RangelReale/osin",
