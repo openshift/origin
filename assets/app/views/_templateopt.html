@@ -22,7 +22,7 @@
           type="text"
           placeholder="{{ parameter | parameterPlaceholder }}"
           ng-model="parameter.value"
-          ng-required="parameter.required">
+          ng-required="parameter.required && !parameter.generate">
     </span>
     <div class="help-block" ng-if="parameter.description">{{parameter.description}}</div>
     <div ng-show="paramForm[paramID].$error.required && paramForm[paramID].$touched" class="has-error">
