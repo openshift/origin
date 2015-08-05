@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
@@ -190,6 +191,8 @@ func (c *MasterConfig) RunBuildController() {
 		glog.Fatalf("Unable to load storage version %s: %v", storageVersion, err)
 	}
 
+	admissionControl := admission.NewFromPlugins(c.PrivilegedLoopbackKubernetesClient, []string{"SecurityContextConstraint"}, "")
+
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osclient,
@@ -204,7 +207,8 @@ func (c *MasterConfig) RunBuildController() {
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: interfaces.Codec,
+			Codec:            interfaces.Codec,
+			AdmissionControl: admissionControl,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			// TODO: this will be set to --storage-version (the internal schema we use)
