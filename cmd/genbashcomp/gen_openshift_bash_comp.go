@@ -49,7 +49,8 @@ func main() {
 	openshift.GenBashCompletionFile(outFile_openshift)
 
 	outFile_osc := outDir + "oc"
-	oc := cli.NewCommandCLI("oc", "openshift cli")
+	out := os.Stdout
+	oc := cli.NewCommandCLI("oc", "openshift cli", out)
 	oc.GenBashCompletionFile(outFile_osc)
 
 	outFile_osadm := outDir + "oadm"

@@ -38,7 +38,7 @@ func TestPolicyBasedRestrictionOfBuildStrategies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	joeClient, err := testutil.GetClientForUser(*clusterAdminClientConfig, "joe")
+	joeClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestPolicyBasedRestrictionOfBuildConfigStrategies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	joeClient, err := testutil.GetClientForUser(*clusterAdminClientConfig, "joe")
+	joeClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

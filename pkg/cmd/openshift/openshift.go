@@ -57,7 +57,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "openshift-docker-build":
 		cmd = builder.NewCommandDockerBuilder(basename)
 	case "oc", "osc":
-		cmd = cli.NewCommandCLI(basename, basename)
+		cmd = cli.NewCommandCLI(basename, basename, out)
 	case "oadm", "osadm":
 		cmd = admin.NewCommandAdmin(basename, basename, out)
 	case "kubectl":
@@ -108,7 +108,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
 	root.AddCommand(startAllInOne)
 	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", out))
-	root.AddCommand(cli.NewCommandCLI("cli", name+" cli"))
+	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", out))
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(version.NewVersionCommand(name))
