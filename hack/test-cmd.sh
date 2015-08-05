@@ -748,14 +748,14 @@ echo "new-project: ok"
 [ ! "$(oadm router --dry-run | grep 'does not exist')" ]
 echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
 oc get scc privileged -o json | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f -
-[ "$(oadm router -o yaml --credentials="${KUBECONFIG}" --service-account=router | grep 'openshift/origin-haproxy-')" ]
+[ "$(oadm router -o yaml --credentials="${KUBECONFIG}" --service-account=router | egrep 'image:.*-haproxy-router:')" ]
 oadm router --credentials="${KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
 [ "$(oadm router | grep 'service exists')" ]
 echo "router: ok"
 
 # Test running a registry
 [ ! "$(oadm registry --dry-run | grep 'does not exist')"]
-[ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-docker-registry')" ]
+[ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | egrep 'image:.*-docker-registry:')" ]
 oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 [ "$(oadm registry | grep 'service exists')" ]
 echo "registry: ok"
