@@ -284,8 +284,8 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{kube_plugin_path}
-install -d -m 0755 %{buildroot}%{_prefix}/lib/systemd/system/docker.service.d
-install -p -m 0644 rel-eng/docker-sdn-ovs.conf %{buildroot}%{_prefix}/lib/systemd/system/docker.service.d/
+install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
+install -p -m 0644 rel-eng/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
 for pkgname in openshift atomic-enterprise
 do
 
@@ -293,8 +293,8 @@ do
      install -p -m 755 %{name}-ovs-subnet %{buildroot}%{kube_plugin_path}/${pkgname}-ovs-subnet
      install -p -m 755 %{name}-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/${pkgname}-sdn-kube-subnet-setup.sh
   popd
-  install -d -m 0755 %{buildroot}%{_prefix}/lib/systemd/system/${pkgname}-node.service.d
-  install -p -m 0644 rel-eng/%{name}-sdn-ovs.conf %{buildroot}%{_prefix}/lib/systemd/system/${pkgname}-node.service.d/${pkgname}-sdn-ovs.conf
+  install -d -m 0755 %{buildroot}%{_unitdir}/${pkgname}-node.service.d
+  install -p -m 0644 rel-eng/%{name}-sdn-ovs.conf %{buildroot}%{_unitdir}/${pkgname}-node.service.d/${pkgname}-sdn-ovs.conf
 done
 
 
@@ -376,8 +376,8 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
 %defattr(-,root,root,-)
 %{_bindir}/%{name}-sdn-kube-subnet-setup.sh
 %{kube_plugin_path}/%{name}-ovs-subnet
-%{_prefix}/lib/systemd/system/%{name}-node.service.d/%{name}-sdn-ovs.conf
-%{_prefix}/lib/systemd/system/docker.service.d/docker-sdn-ovs.conf
+%{_unitdir}/%{name}-node.service.d/%{name}-sdn-ovs.conf
+%{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 
 %files -n tuned-profiles-openshift-node
 %defattr(-,root,root,-)
@@ -528,8 +528,8 @@ fi
 %defattr(-,root,root,-)
 %{_bindir}/atomic-enterprise-sdn-kube-subnet-setup.sh
 %{kube_plugin_path}/atomic-enterprise-ovs-subnet
-%{_prefix}/lib/systemd/system/atomic-enterprise-node.service.d/atomic-enterprise-sdn-ovs.conf
-%{_prefix}/lib/systemd/system/docker.service.d/docker-sdn-ovs.conf
+%{_unitdir}/atomic-enterprise-node.service.d/atomic-enterprise-sdn-ovs.conf
+%{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 
 %files -n tuned-profiles-atomic-enterprise-node
 %defattr(-,root,root,-)
@@ -569,6 +569,9 @@ fi
 # ===
 
 %changelog
+* Wed Aug  5 2015 Steve Milner <smilner@redhat.com> 0.2-6
+- Using _unitdir instead of _prefix for unit data
+
 * Fri Jul 31 2015 Steve Milner <smilner@redhat.com> 0.2-5
 - Configuration location now /etc/origin
 - Default configs created upon installation
