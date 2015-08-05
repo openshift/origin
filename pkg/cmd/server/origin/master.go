@@ -256,7 +256,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		if err := c.api_v1(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1 API: %v", err)
 		}
-		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s (experimental)", OpenShiftAPIPrefixV1))
+		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1))
 		currentAPIVersions = append(currentAPIVersions, OpenShiftAPIV1)
 	}
 
