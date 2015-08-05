@@ -2,7 +2,7 @@ OPTIONS="--loglevel=0"
 CONFIG_FILE=/etc/origin/master/master.yaml
 
 # Proxy configuration
-# OpenShift uses standard HTTP_PROXY environment variables. Be sure to set
+# Origin uses standard HTTP_PROXY environment variables. Be sure to set
 # NO_PROXY for your master
 #NO_PROXY=master.example.com
 #HTTP_PROXY=http://USER:PASSWORD@IPADDR:PORT
