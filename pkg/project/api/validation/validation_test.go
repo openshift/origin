@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+
 	"github.com/openshift/origin/pkg/project/api"
 )
 
@@ -18,8 +20,8 @@ func TestValidateProject(t *testing.T) {
 			project: api.Project{
 				ObjectMeta: kapi.ObjectMeta{
 					Annotations: map[string]string{
-						"openshift.io/description":  "This is a description",
-						"openshift.io/display-name": "hi",
+						api.ProjectDescription: "This is a description",
+						api.ProjectDisplayName: "hi",
 					},
 				},
 			},
@@ -32,8 +34,8 @@ func TestValidateProject(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "141-.124.$",
 					Annotations: map[string]string{
-						"openshift.io/description":  "This is a description",
-						"openshift.io/display-name": "hi",
+						api.ProjectDescription: "This is a description",
+						api.ProjectDisplayName: "hi",
 					},
 				},
 			},
@@ -92,8 +94,8 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "foo",
 					Annotations: map[string]string{
-						"openshift.io/description":  "This is a description",
-						"openshift.io/display-name": "hi",
+						api.ProjectDescription: "This is a description",
+						api.ProjectDisplayName: "hi",
 					},
 				},
 			},
@@ -107,8 +109,8 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						"openshift.io/description":  "This is a description",
-						"openshift.io/display-name": "h\t\ni",
+						api.ProjectDescription: "This is a description",
+						api.ProjectDisplayName: "h\t\ni",
 					},
 				},
 			},
@@ -122,7 +124,7 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						"openshift.io/node-selector": "infra=true, env = test",
+						api.ProjectNodeSelector: "infra=true, env = test",
 					},
 				},
 			},
@@ -135,7 +137,7 @@ func TestValidateProject(t *testing.T) {
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						"openshift.io/node-selector": "infra, env = $test",
+						api.ProjectNodeSelector: "infra, env = $test",
 					},
 				},
 			},
@@ -155,8 +157,8 @@ func TestValidateProject(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "foo",
 			Annotations: map[string]string{
-				"openshift.io/description":  "This is a description",
-				"openshift.io/display-name": "hi",
+				api.ProjectDescription: "This is a description",
+				api.ProjectDisplayName: "hi",
 			},
 		},
 	}
@@ -171,15 +173,136 @@ func TestValidateProjectUpdate(t *testing.T) {
 	// proxy updates to namespaces created outside project validation
 	project := &api.Project{
 		ObjectMeta: kapi.ObjectMeta{
-			Name:            "a",
-			UID:             "123",
+			Name:            "project-name",
 			ResourceVersion: "1",
+			Annotations: map[string]string{
+				api.ProjectDescription:  "This is a description",
+				api.ProjectDisplayName:  "display name",
+				api.ProjectNodeSelector: "infra=true, env = test",
+			},
+			Labels: map[string]string{"label-name": "value"},
+		},
+	}
+	updateDisplayname := &api.Project{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:            "project-name",
+			ResourceVersion: "1",
+			Annotations: map[string]string{
+				api.ProjectDescription:  "This is a description",
+				api.ProjectDisplayName:  "display name change",
+				api.ProjectNodeSelector: "infra=true, env = test",
+			},
+			Labels: map[string]string{"label-name": "value"},
 		},
 	}
 
-	errs := ValidateProjectUpdate(project, project)
+	errs := ValidateProjectUpdate(updateDisplayname, project)
 	if len(errs) > 0 {
 		t.Fatalf("Expected no errors, got %v", errs)
+	}
+
+	errorCases := map[string]struct {
+		A api.Project
+		T fielderrors.ValidationErrorType
+		F string
+	}{
+		"change name": {
+			A: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:            "different",
+					ResourceVersion: "1",
+					Annotations:     project.Annotations,
+					Labels:          project.Labels,
+				},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata.name",
+		},
+		"invalid displayname": {
+			A: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:            "project-name",
+					ResourceVersion: "1",
+					Annotations: map[string]string{
+						api.ProjectDescription:  "This is a description",
+						api.ProjectDisplayName:  "display name\n",
+						api.ProjectNodeSelector: "infra=true, env = test",
+					},
+					Labels: project.Labels,
+				},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata.annotations[" + api.ProjectDisplayName + "]",
+		},
+		"updating disallowed annotation": {
+			A: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:            "project-name",
+					ResourceVersion: "1",
+					Annotations: map[string]string{
+						api.ProjectDescription:  "This is a description",
+						api.ProjectDisplayName:  "display name",
+						api.ProjectNodeSelector: "infra=true, env = test2",
+					},
+					Labels: project.Labels,
+				},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata.annotations[openshift.io/node-selector]",
+		},
+		"delete annotation": {
+			A: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:            "project-name",
+					ResourceVersion: "1",
+					Annotations: map[string]string{
+						api.ProjectDescription: "This is a description",
+						api.ProjectDisplayName: "display name",
+					},
+					Labels: project.Labels,
+				},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata.annotations[openshift.io/node-selector]",
+		},
+		"updating label": {
+			A: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:            "project-name",
+					ResourceVersion: "1",
+					Annotations:     project.Annotations,
+					Labels:          map[string]string{"label-name": "diff"},
+				},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata.labels[label-name]",
+		},
+		"deleting label": {
+			A: api.Project{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:            "project-name",
+					ResourceVersion: "1",
+					Annotations:     project.Annotations,
+				},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "metadata.labels[label-name]",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidateProjectUpdate(&v.A, project)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].(*fielderrors.ValidationError).Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].(*fielderrors.ValidationError).Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
 	}
 
 }
