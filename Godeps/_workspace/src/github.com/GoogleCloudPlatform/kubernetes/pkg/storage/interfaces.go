@@ -146,4 +146,7 @@ type Interface interface {
 	//    }
 	// })
 	GuaranteedUpdate(key string, ptrToType runtime.Object, ignoreNotFound bool, tryUpdate UpdateFunc) error
+
+	// Codec provides access to the underlying codec being used by the implementation.
+	Codec() runtime.Codec
 }
