@@ -31,8 +31,10 @@ angular.module('openshiftConsole')
         }
 
         var imageStreamImagePromise = DataService.get("imagestreamimages", imageStreamImageRef, context);
-        imageStreamImagePromise.then(function(image) {
-          imagesByDockerReference[dockerRef] = image;
+        imageStreamImagePromise.then(function(imageStreamImage) {
+          if (imageStreamImage && imageStreamImage.image) {
+            imagesByDockerReference[dockerRef] = imageStreamImage.image;
+          }
         });
         promises.push(imageStreamImagePromise);
       });

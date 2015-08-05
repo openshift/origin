@@ -104,7 +104,7 @@ angular.module('openshiftConsole')
       self._websocketEventsMap = {};
     });
 
-    this.osApiVersion = "v1beta3";
+    this.oApiVersion = "v1";
     this.k8sApiVersion = "v1";
 
   }
@@ -819,7 +819,7 @@ angular.module('openshiftConsole')
   var URL_NAMESPACED_OBJECT_SUBRESOURCE = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{type}/{id}{/subresource*}{?q*}";
 
   // Set the api version the console is currently able to talk to
-  API_CFG.openshift.version = "v1beta3";
+  API_CFG.openshift.version = "v1";
   API_CFG.k8s.version = "v1";
 
   // TODO this is not the ideal, issue open to discuss adding

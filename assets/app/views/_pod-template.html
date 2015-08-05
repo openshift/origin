@@ -11,7 +11,9 @@
       <div ng-if="container.image" class="pod-template-image">
         <span class="fa fa-cube" aria-hidden="true"></span>
         <span>Image: {{container.image | imageStreamName}}
-          <span ng-if="imagesByDockerReference[container.image]"> (<span class="small" title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name.substr(0, 10)}}</span>)</span>
+          <span ng-if="imagesByDockerReference[container.image]">
+            (<span class="small" title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name | stripSHAPrefix | limitTo: 7}}</span>)
+          </span>
         </span>
       </div>
       <div ng-if="imagesByDockerReference && container.image && (image = imagesByDockerReference[container.image])" class="pod-template-build">
