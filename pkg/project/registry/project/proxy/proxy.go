@@ -128,6 +128,29 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	return convertNamespace(namespace), nil
 }
 
+func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	project, ok := obj.(*api.Project)
+	if !ok {
+		return nil, false, fmt.Errorf("not a project: %#v", obj)
+	}
+
+	oldObj, err := s.Get(ctx, project.Name)
+	if err != nil {
+		return nil, false, err
+	}
+	s.updateStrategy.PrepareForUpdate(obj, oldObj)
+	if errs := s.updateStrategy.ValidateUpdate(ctx, obj, oldObj); len(errs) > 0 {
+		return nil, false, kerrors.NewInvalid("project", project.Name, errs)
+	}
+
+	namespace, err := s.client.Update(convertProject(project))
+	if err != nil {
+		return nil, false, err
+	}
+
+	return convertNamespace(namespace), false, nil
+}
+
 // Delete deletes a Project specified by its name
 func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
 	return &kapi.Status{Status: kapi.StatusSuccess}, s.client.Delete(name)
