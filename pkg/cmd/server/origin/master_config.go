@@ -393,6 +393,11 @@ func (c *MasterConfig) BuildImageChangeTriggerControllerClients() (*osclient.Cli
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
+// BuildConfigChangeControllerClients returns the build config change controller client objects
+func (c *MasterConfig) BuildConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+}
+
 // ImageChangeControllerClient returns the openshift client object
 func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient

@@ -277,6 +277,37 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 	}
 }
 
+func TestInstantiateWithLastVersion(t *testing.T) {
+	g := mockBuildGenerator()
+	c := g.Client.(Client)
+	c.GetBuildConfigFunc = func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+		bc := mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput())
+		bc.Status.LastVersion = 1
+		return bc, nil
+	}
+	g.Client = c
+
+	// Version not specified
+	_, err := g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+
+	// Version specified and it matches
+	lastVersion := 1
+	_, err = g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{LastVersion: &lastVersion})
+	if err != nil {
+		t.Errorf("Unexpected error %v", err)
+	}
+
+	// Version specified, but doesn't match
+	lastVersion = 0
+	_, err = g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{LastVersion: &lastVersion})
+	if err == nil {
+		t.Errorf("Expected an error and did not get one")
+	}
+}
+
 func TestFindImageTrigger(t *testing.T) {
 	defaultTrigger := &buildapi.ImageChangeTrigger{}
 	image1Trigger := &buildapi.ImageChangeTrigger{

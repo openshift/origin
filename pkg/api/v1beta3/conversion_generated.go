@@ -776,6 +776,12 @@ func convert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequest,
 	} else {
 		out.From = nil
 	}
+	if in.LastVersion != nil {
+		out.LastVersion = new(int)
+		*out.LastVersion = *in.LastVersion
+	} else {
+		out.LastVersion = nil
+	}
 	return nil
 }
 
@@ -1139,6 +1145,12 @@ func convert_v1beta3_BuildRequest_To_api_BuildRequest(in *apiv1beta3.BuildReques
 		}
 	} else {
 		out.From = nil
+	}
+	if in.LastVersion != nil {
+		out.LastVersion = new(int)
+		*out.LastVersion = *in.LastVersion
+	} else {
+		out.LastVersion = nil
 	}
 	return nil
 }

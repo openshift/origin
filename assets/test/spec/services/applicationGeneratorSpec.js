@@ -227,6 +227,9 @@ describe("ApplicationGenerator", function(){
                         "type": "Generic"
                     },
                     {
+                        "type": "ConfigChange"
+                    },
+                    {
                         "github": {
                             "secret": "secret101"
                         },
