@@ -117,6 +117,9 @@ function test_privileges {
     echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
     exit 1
   fi
+
+  set +e
+
   iptables --list > /dev/null 2>&1
   if [ $? -ne 0 ]; then
     sudo iptables --list > /dev/null 2>&1
@@ -125,6 +128,8 @@ function test_privileges {
       exit 1
     fi
   fi
+
+  set -e
 }
 
 # wait_for_command executes a command and waits for it to
