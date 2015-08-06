@@ -55,18 +55,11 @@ var _ = Describe("STI build with .sti/environment file", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("getting the Docker image reference from ImageStream")
-			imageName, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
-			Expect(err).NotTo(HaveOccurred())
+			name := exutil.MustGetImageName(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
 
-			By("writing the pod defintion to a file")
-			outputPath := filepath.Join(testContext.OutputDir, oc.Namespace()+"-sample-pod.json")
-			pod := exutil.CreatePodForImage(imageName)
-			err = exutil.WriteObjectToFile(pod, outputPath)
-			Expect(err).NotTo(HaveOccurred())
-
-			By(fmt.Sprintf("calling oc create -f %q", outputPath))
-			err = oc.Run("create").Args("-f", outputPath).Execute()
+			By(fmt.Sprintf("create a new pod for %q", imageName))
+			pod := exutil.GetPodForImage(imageName)
+			_, err = oc.KubeREST().Pods(oc.Namespace()).Create(pod)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("expecting the pod to be running")
