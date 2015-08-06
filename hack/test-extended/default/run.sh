@@ -7,10 +7,12 @@
 set -o nounset
 set -o pipefail
 
-OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../../..
+cd "${OS_ROOT}"
 
 source ${OS_ROOT}/hack/util.sh
 source ${OS_ROOT}/hack/common.sh
+
 
 cleanup() {
     stop_openshift_server
