@@ -228,7 +228,7 @@ func TestNodeBuilder(t *testing.T) {
 func TestPathBuilderWithMultiple(t *testing.T) {
 	b := NewBuilder(latest.RESTMapper, api.Scheme, fakeClient()).
 		FilenameParam(false, "../../../examples/guestbook/redis-master-controller.yaml").
-		FilenameParam(false, "../../../examples/pod").
+		FilenameParam(false, "../../../examples/pod.yaml").
 		NamespaceParam("test").DefaultNamespace()
 
 	test := &testVisitor{}
@@ -694,7 +694,7 @@ func TestSingularObject(t *testing.T) {
 func TestSingularObjectNoExtension(t *testing.T) {
 	obj, err := NewBuilder(latest.RESTMapper, api.Scheme, fakeClient()).
 		NamespaceParam("test").DefaultNamespace().
-		FilenameParam(false, "../../../examples/pod").
+		FilenameParam(false, "../../../examples/pod.yaml").
 		Flatten().
 		Do().Object()
 

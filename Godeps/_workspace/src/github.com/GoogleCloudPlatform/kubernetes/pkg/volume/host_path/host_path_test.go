@@ -179,7 +179,7 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
 
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", client, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(nil), volume.NewFakeVolumeHost("/tmp/fake", client, nil))
 	plug, _ := plugMgr.FindPluginByName(hostPathPluginName)
 
 	// readOnly bool is supplied by persistent-claim volume source when its builder creates other volumes
