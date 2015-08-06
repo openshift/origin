@@ -3,9 +3,10 @@
 The `openshift/origin-haproxy-router` is an [HAProxy](http://www.haproxy.org/) router that is used as an external to internal
 interface to OpenShift [services](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md).
 
-The router is meant to run as a pod.  When running the router you must ensure that the router can expose port 80 on the host (minion)
-in order to forward traffic.  In a deployed environment the router minion should also have external ip addresses
-that can be exposed for DNS based routing.  
+The router is meant to run as a pod.  When running the router you must
+ensure that the router can use ports 80 and 443 on the host (minion) in
+order to forward traffic.  In a deployed environment the router minion should
+also have external ip addresses that can be exposed for DNS based routing.
 
 ## Creating Routes
 
@@ -30,9 +31,9 @@ To create this service account:
     $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
     
     # You may either create a new SCC or use an existing SCC.  The following command will
-    # display existing SCCs and true if they support host ports.
-    $ oc get scc -t "{{range .items}}{{.metadata.name}}: {{.allowHostPorts}}, {{end}}"
-    privileged: true, restricted: false,
+    # display existing SCCs and if they support host network and host ports.
+    $ oc get scc -t "{{range .items}}{{.metadata.name}}: n={{.allowHostNetwork}},p={{.allowHostPorts}}; {{end}}"
+    privileged: n=true,p=true; restricted: n=false,p=false;
 
     $ oc edit scc <name>
     ... add the service account in the form of system:serviceaccount:<namespace>:<name> ...
@@ -51,7 +52,7 @@ To create this service account:
     [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
     [vagrant@openshiftdev origin]$ sudo chmod a+r "$KUBECONFIG"
     [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.config/master/openshift-router.kubeconfig
-    [vagrant@openshiftdev origin]$ oadm router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig" --service-account=router
+    [vagrant@openshiftdev origin]$ oadm router --credentials="openshift.local.config/master/openshift-router.kubeconfig" --service-account=router
     [vagrant@openshiftdev origin]$ oc get pods
 
 #### Clustered vagrant environment
@@ -60,7 +61,7 @@ To create this service account:
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
-    [vagrant@openshift-master ~]$ oadm router --create --credentials="${KUBECONFIG}" --service-account=router
+    [vagrant@openshift-master ~]$ oadm router --credentials="${KUBECONFIG}" --service-account=router
 
 
 
@@ -70,7 +71,7 @@ In order to run the router in a deployed environment the following conditions mu
 
 * The machine the router will run on must be provisioned as a minion in the cluster (for networking configuration)
 * The machine may or may not be registered with the master.  Optimally it will not serve pods while also serving as the router
-* The machine must not have services running on it that bind to host port 80 since this is what the router uses for traffic
+* The machine must not have services running on it that bind to host ports 80 and 443 since this is what the router uses for traffic
 
 To install the router pod you use the `oadm router` command line, passing the flag `--credentials=<kubeconfig_file>`.
 The credentials flag controls the identity that the router will use to talk to the master (and the address of the master) so in most
@@ -82,14 +83,22 @@ of the router by running `oc get dc router` to check the deployment status.
 ### Manually
 
 To run the router manually (outside of a pod) you should first build the images with instructions found below.  Then you
-can run the router anywhere that it can access both the pods and the master.  The router exposes port 80 so the host 
-that the router is run on must not have any other services that are bound to that port.  This allows the router to be 
-used by a DNS server for incoming traffic.
+can run the router anywhere that it can access both the pods and the master.
+The router can use either the host or the container network stack and
+binds/exposes ports 80 and 443, which allows the router to be used by a DNS
+server for incoming traffic.
+This means that the host where the router is run, must not have any other
+services that are bound to those ports (80 and 443).
 
 
-	$ docker run --rm -it -p 80:80 openshift/origin-haproxy-router --master $kube-master-url
+#### Example using the host network
+	$ docker run --rm -it --net=host openshift/origin-haproxy-router --master $kube-master-url
+
+#### Example using the container network and exposing ports 80 and 443.
+	$ docker run --rm -it -p 80:80 -p 443:443 openshift/origin-haproxy-router --master $kube-master-url
 
 example of kube-master-url : https://10.0.2.15:8443
+
 
 ## Monitoring the router
 
@@ -335,12 +344,14 @@ provides a watch on `routes` and `endpoints`.  The watch funnels down to the con
 plugin which can be found in `plugins/router/haproxy/haproxy.go`.  The router is then issued a reload command.
 
 When debugging the router it is sometimes useful to inspect these files.  To do this you must enter the namespace of the 
-running container by getting the pid via `docker inspect <container id> | grep Pid` and then `nsenter -m -u -n -i -p -t <pid>`.
+running container by getting the pid and using nsenter
+`nsenter -m -u -n -i -p -t $(docker inspect --format "{{.State.Pid }}" <container-id>)`
 Listed below are the files used for configuration.
 
-    ConfigTemplate   = "/var/lib/haproxy/conf/haproxy_template.conf"
-    ConfigFile       = "/var/lib/haproxy/conf/haproxy.config"
-    HostMapFile      = "/var/lib/haproxy/conf/host_be.map"
-    HostMapSniFile   = "/var/lib/haproxy/conf/host_be_sni.map"
-    HostMapResslFile = "/var/lib/haproxy/conf/host_be_ressl.map"
-    HostMapWsFile    = "/var/lib/haproxy/conf/host_be_ws.map"
+    ConfigTemplate         = "/var/lib/haproxy/conf/haproxy_template.conf"
+    ConfigFile             = "/var/lib/haproxy/conf/haproxy.config"
+    HostMapFile            = "/var/lib/haproxy/conf/os_http_be.map"
+    EdgeHostMapFile        = "/var/lib/haproxy/conf/os_edge_http_be.map"
+    SniPassThruHostMapFile = "/var/lib/haproxy/conf/os_sni_passthrough.map"
+    ReencryptHostMapFile   = "/var/lib/haproxy/conf/os_reencrypt.map"
+    TcpHostMapFile         = "/var/lib/haproxy/conf/os_tcp_be.map"
