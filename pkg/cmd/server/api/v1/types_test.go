@@ -26,7 +26,9 @@ imageConfig:
   latest: false
 kind: NodeConfig
 masterKubeConfig: ""
-networkPluginName: ""
+networkConfig:
+  mtu: 0
+  networkPluginName: ""
 nodeName: ""
 podManifestConfig:
   fileCheckIntervalSeconds: 0

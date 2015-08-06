@@ -27,8 +27,11 @@ type NodeConfig struct {
 	// DNSIP holds the IP
 	DNSIP string `json:"dnsIP"`
 
-	// NetworkPluginName is a string specifying the networking plugin
-	NetworkPluginName string `json:"networkPluginName"`
+	// Deprecated and maintained for backward compatibility, use NetworkConfig.NetworkPluginName instead
+	DeprecatedNetworkPluginName string `json:"networkPluginName,omitempty"`
+
+	// NetworkConfig provides network options for the node
+	NetworkConfig NodeNetworkConfig `json:"networkConfig"`
 
 	// VolumeDirectory is the directory that volumes will be stored under
 	VolumeDirectory string `json:"volumeDirectory"`
@@ -50,6 +53,14 @@ type NodeConfig struct {
 	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
 	// These values override other settings in NodeConfig which may cause invalid configurations.
 	KubeletArguments ExtendedArguments `json:"kubeletArguments,omitempty"`
+}
+
+// NodeNetworkConfig provides network options for the node
+type NodeNetworkConfig struct {
+	// NetworkPluginName is a string specifying the networking plugin
+	NetworkPluginName string `json:"networkPluginName"`
+	// Maximum transmission unit for the network packets
+	MTU uint `json:"mtu"`
 }
 
 // DockerConfig holds Docker related configuration options.
@@ -150,7 +161,7 @@ type MasterConfig struct {
 	RoutingConfig RoutingConfig `json:"routingConfig"`
 
 	// NetworkConfig to be passed to the compiled in network plugin
-	NetworkConfig NetworkConfig `json:"networkConfig"`
+	NetworkConfig MasterNetworkConfig `json:"networkConfig"`
 }
 
 type ProjectConfig struct {
@@ -207,8 +218,8 @@ type RoutingConfig struct {
 	Subdomain string `json:"subdomain"`
 }
 
-// NetworkConfig to be passed to the compiled in network plugin
-type NetworkConfig struct {
+// MasterNetworkConfig to be passed to the compiled in network plugin
+type MasterNetworkConfig struct {
 	NetworkPluginName  string `json:"networkPluginName"`
 	ClusterNetworkCIDR string `json:"clusterNetworkCIDR"`
 	HostSubnetLength   uint   `json:"hostSubnetLength"`

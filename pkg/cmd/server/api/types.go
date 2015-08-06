@@ -46,8 +46,8 @@ type NodeConfig struct {
 	// DNSIP holds the IP
 	DNSIP string
 
-	// NetworkPluginName is a string specifying the networking plugin
-	NetworkPluginName string
+	// NetworkConfig provides network options for the node
+	NetworkConfig NodeNetworkConfig
 
 	// VolumeDir is the directory that volumes will be stored under
 	VolumeDirectory string
@@ -69,6 +69,14 @@ type NodeConfig struct {
 	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
 	// These values override other settings in NodeConfig which may cause invalid configurations.
 	KubeletArguments ExtendedArguments
+}
+
+// NodeNetworkConfig provides network options for the node
+type NodeNetworkConfig struct {
+	// NetworkPluginName is a string specifying the networking plugin
+	NetworkPluginName string
+	// Maximum transmission unit for the network packets
+	MTU uint
 }
 
 // DockerConfig holds Docker related configuration options.
@@ -169,7 +177,7 @@ type MasterConfig struct {
 	RoutingConfig RoutingConfig
 
 	// NetworkConfig to be passed to the compiled in network plugin
-	NetworkConfig NetworkConfig
+	NetworkConfig MasterNetworkConfig
 }
 
 type ProjectConfig struct {
@@ -226,8 +234,8 @@ type PolicyConfig struct {
 	OpenShiftInfrastructureNamespace string
 }
 
-// NetworkConfig to be passed to the compiled in network plugin
-type NetworkConfig struct {
+// MasterNetworkConfig to be passed to the compiled in network plugin
+type MasterNetworkConfig struct {
 	NetworkPluginName  string
 	ClusterNetworkCIDR string
 	HostSubnetLength   uint

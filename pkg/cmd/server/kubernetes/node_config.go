@@ -112,7 +112,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.HealthzPort = 0  // no unsecured healthz access
 	server.ClusterDNS = dnsIP
 	server.ClusterDomain = options.DNSDomain
-	server.NetworkPluginName = options.NetworkPluginName
+	server.NetworkPluginName = options.NetworkConfig.NetworkPluginName
 	server.HostNetworkSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
 	server.HTTPCheckFrequency = 0 // no remote HTTP pod creation access
 	server.FileCheckFrequency = time.Duration(fileCheckInterval) * time.Second

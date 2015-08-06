@@ -43,6 +43,15 @@ func init() {
 				obj.PodEvictionTimeout = "5m"
 			}
 		},
+		func(obj *NodeConfig) {
+			// Defaults/migrations for NetworkConfig
+			if len(obj.NetworkConfig.NetworkPluginName) == 0 {
+				obj.NetworkConfig.NetworkPluginName = obj.DeprecatedNetworkPluginName
+			}
+			if obj.NetworkConfig.MTU == 0 {
+				obj.NetworkConfig.MTU = 1450
+			}
+		},
 		func(obj *EtcdStorageConfig) {
 			if len(obj.KubernetesStorageVersion) == 0 {
 				obj.KubernetesStorageVersion = "v1"
@@ -89,6 +98,12 @@ func init() {
 		panic(err)
 	}
 	err = newer.Scheme.AddConversionFuncs(
+		func(in *NodeConfig, out *newer.NodeConfig, s conversion.Scope) error {
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+		},
+		func(in *newer.NodeConfig, out *NodeConfig, s conversion.Scope) error {
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+		},
 		func(in *ServingInfo, out *newer.ServingInfo, s conversion.Scope) error {
 			out.BindAddress = in.BindAddress
 			out.BindNetwork = in.BindNetwork
