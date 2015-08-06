@@ -25,7 +25,6 @@ cleanup() {
 }
 
 test_privileges
-test_godep
 
 echo "[INFO] Starting 'default' extended tests"
 
@@ -133,5 +132,5 @@ echo "[INFO] MASTER IP - ${MASTER_ADDR}"
 echo "[INFO] SERVER CONFIG PATH - ${SERVER_CONFIG_DIR}"
 
 KUBECONFIG="${ADMIN_KUBECONFIG}" \
-	GOPATH="${OS_ROOT}/Godeps/_workspace:/${GOPATH}" \
+	GOPATH="${OS_ROOT}/Godeps/_workspace:${GOPATH}" \
 	go test -v -tags=default ./test/extended

@@ -127,14 +127,6 @@ function test_privileges {
   fi
 }
 
-# test_godep tests if the godep is in PATH.
-function test_godep {
-  if [[ -z "$(which godep)" ]];then
-    echo "You do not have godep in your PATH. Extended tests require godep in order to start."
-    exit 1
-  fi
-}
-
 # wait_for_command executes a command and waits for it to
 # complete or times out after max_wait.
 #
