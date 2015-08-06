@@ -18,7 +18,7 @@ import (
 
 type NetworkManager interface {
 	StartMaster(sync bool, containerNetwork string, containerSubnetLength uint, serviceNetwork string) error
-	StartNode(sync, skipsetup bool) error
+	StartNode(sync, skipsetup bool, mtu uint) error
 	Stop()
 }
 
@@ -26,6 +26,7 @@ type CmdLineOpts struct {
 	containerNetwork      string
 	containerSubnetLength uint
 	serviceNetwork        string
+	mtu                   uint
 	etcdEndpoints         string
 	etcdPath              string
 	etcdKeyfile           string
@@ -51,6 +52,7 @@ func init() {
 	flag.StringVar(&opts.containerNetwork, "container-network", "10.1.0.0/16", "container network")
 	flag.UintVar(&opts.containerSubnetLength, "container-subnet-length", 8, "container subnet length")
 	flag.StringVar(&opts.serviceNetwork, "service-network", "172.30.0.0/16", "service network")
+	flag.UintVar(&opts.mtu, "mtu", 1450, "maximum transmission unit for the overlay network")
 	flag.StringVar(&opts.etcdEndpoints, "etcd-endpoints", "http://127.0.0.1:4001", "a comma-delimited list of etcd endpoints")
 	flag.StringVar(&opts.etcdPath, "etcd-path", "/registry/sdn/", "etcd path")
 	flag.StringVar(&opts.nodePath, "node-path", "/kubernetes.io/minions/", "etcd path that will be watched for node creation/deletion (Note: -sync flag will override this path with -etcd-path)")
@@ -155,7 +157,7 @@ func main() {
 		if opts.minion {
 			log.Info("Warning: -minion deprecated, use -node")
 		}
-		err := be.StartNode(opts.sync, opts.skipsetup)
+		err := be.StartNode(opts.sync, opts.skipsetup, opts.mtu)
 		if err != nil {
 			log.Fatalf("Failed to start openshift sdn in node mode: %v", err)
 		}

@@ -6,7 +6,8 @@ subnet_gateway=$1
 subnet=$2
 container_network=$3
 subnet_mask_len=$4
-printf 'Container network is "%s"; local host has subnet "%s" and gateway "%s".\n' "${container_network}" "${subnet}" "${subnet_gateway}"
+mtu=$5
+printf 'Container network is "%s"; local host has subnet "%s", mtu "%d" and gateway "%s".\n' "${container_network}" "${subnet}" "${mtu}" "${subnet_gateway}"
 
 ## openvswitch
 ovs-vsctl del-br br0 || true
@@ -51,7 +52,7 @@ iptables -I FORWARD $fwd_lineno -s ${container_network} -j ACCEPT
 ## docker
 if [[ -z "${DOCKER_NETWORK_OPTIONS}" ]]
 then
-    DOCKER_NETWORK_OPTIONS='-b=lbr0 --mtu=1450'
+    DOCKER_NETWORK_OPTIONS="-b=lbr0 --mtu=${mtu}"
 fi
 
 mkdir -p /run/openshift-sdn
