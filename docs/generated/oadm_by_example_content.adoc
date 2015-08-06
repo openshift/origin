@@ -11,14 +11,14 @@ Output the inputs and dependencies of your builds
 
 [options="nowrap"]
 ----
-  // Build the dependency tree for the 'latest' tag in centos7
-  $ openshift admin build-chain centos7
+  // Build the dependency tree for the 'latest' tag in <image-stream>
+  $ openshift admin build-chain <image-stream>
 
   // Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
-  $ openshift admin build-chain centos7:v2 -o dot | dot -T svg -o deps.svg
+  $ openshift admin build-chain <image-stream>:v2 -o dot | dot -T svg -o deps.svg
 
   // Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
-  $ openshift admin build-chain centos7 -n test --all
+  $ openshift admin build-chain <image-stream> -n test --all
 ----
 ====
 
