@@ -249,4 +249,19 @@ angular.module('openshiftConsole')
 
       return limitToFilter(input, limit);
     };
+  })
+  .filter("getErrorDetails", function() {
+    return function(result) {
+      var error = result.data || {};
+      if (error.message) {
+        return error.message;
+      }
+
+      var status = result.status || error.status;
+      if (status) {
+        return "Status: " + status;
+      }
+
+      return "";
+    };
   });

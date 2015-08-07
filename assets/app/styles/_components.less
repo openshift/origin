@@ -329,18 +329,50 @@
   }
 }
 
+.deployment-well {
+  &:not(.active) {
+    background-color: white;
+  }
+  &:not(.detailed) {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    .deployment-summary {
+      h3 {
+        margin-bottom: 5px;
+        text-transform: lowercase;
+      }
+      .deployment-summary-status {
+        font-size: 90%;
+        margin-left: 7px;
+      }
+      .deployment-summary-toggler {
+        float: right !important;
+        font-size: 80%;
+      }
+    }
+    .deployment-details {
+      display: none;
+    }
+  }
+  &.detailed {
+    .deployment-summary-status, .deployment-summary-toggler {
+      display: none;
+    }
+  }
+}
+
 .popover {
   min-width: 300px;
   font-size: 13px;
   line-height: 1.66667;
 }
 
-.build-well, .pod-well {
+.build-well, .pod-well, .deployment-well {
   overflow: hidden;
   margin-bottom: 10px;
-  .build-detail, .pod-detail {
+  .build-detail, .pod-detail, .deployment-detail {
     margin-bottom: 3px;
-    .build-detail-label, .pod-detail-label {
+    .build-detail-label, .pod-detail-label, .deployment-detail-label {
       margin-right: 10px;
     }
   }

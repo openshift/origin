@@ -14,20 +14,28 @@ angular.module('openshiftConsole')
       }
     };
   })
-  .filter('annotation', function() {
-    // This maps an annotation key to all known synonymous keys to insulate
-    // the referring code from key renames across API versions.
-    var annotationMap = {
-      "deploymentConfig": ["openshift.io/deployment-config.name"],
-      "deployment": ["openshift.io/deployment.name"],
-      "pod": ["openshift.io/deployer-pod.name"],
-      "deploymentStatus": ["openshift.io/deployment.phase"],
-      "encodedDeploymentConfig": ["openshift.io/encoded-deployment-config"],
-      "deploymentVersion": ["openshift.io/deployment-config.latest-version"],
-      "displayName": ["openshift.io/display-name"],
-      "description": ["openshift.io/description"],
-      "buildNumber": ["openshift.io/build.number"]
+  .filter('annotationName', function() {
+    return function(annotationKey) {
+      // This maps an annotation key to all known synonymous keys to insulate
+      // the referring code from key renames across API versions.
+      var annotationMap = {
+        "deploymentConfig":         ["openshift.io/deployment-config.name"],
+        "deployment":               ["openshift.io/deployment.name"],
+        "pod":                      ["openshift.io/deployer-pod.name"],
+        "deployerPodFor":           ["openshift.io/deployer-pod-for.name"],
+        "deploymentStatus":         ["openshift.io/deployment.phase"],
+        "deploymentStatusReason":   ["openshift.io/deployment.status-reason"],
+        "deploymentCancelled":      ["openshift.io/deployment.cancelled"],
+        "encodedDeploymentConfig":  ["openshift.io/encoded-deployment-config"],
+        "deploymentVersion":        ["openshift.io/deployment-config.latest-version"],
+        "displayName":              ["openshift.io/display-name"],
+        "description":              ["openshift.io/description"],
+        "buildNumber":              ["openshift.io/build.number"]
+      };
+      return annotationMap[annotationKey] || null;
     };
+  })
+  .filter('annotation', function(annotationNameFilter) {
     return function(resource, key) {
       if (resource && resource.metadata && resource.metadata.annotations) {
         // If the key's already in the annotation map, return it.
@@ -35,7 +43,7 @@ angular.module('openshiftConsole')
           return resource.metadata.annotations[key];
         }
         // Try and return a value for a mapped key.
-        var mappings = annotationMap[key] || [];
+        var mappings = annotationNameFilter(key) || [];
         for (var i=0; i < mappings.length; i++) {
           var mappedKey = mappings[i];
           if (resource.metadata.annotations[mappedKey] !== undefined) {
