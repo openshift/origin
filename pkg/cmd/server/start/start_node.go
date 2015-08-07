@@ -13,7 +13,8 @@ import (
 
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
-	"github.com/openshift/origin/plugins/osdn"
+	"github.com/openshift/origin/plugins/osdn/flatsdn"
+	"github.com/openshift/origin/plugins/osdn/multitenant"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -242,17 +243,23 @@ func (o NodeOptions) IsRunFromConfig() bool {
 }
 
 func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeConfig) {
-	if nodeConfig.NetworkPluginName != osdn.NetworkPluginName() {
-		return
-	}
-
 	oclient, _, err := configapi.GetOpenShiftClient(nodeConfig.MasterKubeConfig)
 	if err != nil {
 		glog.Fatal("Failed to get kube client for SDN")
 	}
-	ch := make(chan struct{})
-	config.KubeletConfig.StartUpdates = ch
-	go osdn.Node(oclient, config.Client, nodeConfig.NodeName, "", ch)
+
+	switch nodeConfig.NetworkPluginName {
+	case flatsdn.NetworkPluginName():
+		ch := make(chan struct{})
+		config.KubeletConfig.StartUpdates = ch
+		go flatsdn.Node(oclient, config.Client, nodeConfig.NodeName, "", ch)
+	case multitenant.NetworkPluginName():
+		ch := make(chan struct{})
+		config.KubeletConfig.StartUpdates = ch
+		plugin := multitenant.GetKubeNetworkPlugin()
+		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, plugin)
+		go multitenant.Node(oclient, config.Client, nodeConfig.NodeName, "", ch, plugin)
+	}
 }
 
 func StartNode(nodeConfig configapi.NodeConfig) error {

@@ -56,6 +56,7 @@ var (
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 
 	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
+	netNamespaceColumns   = []string{"NAME", "NETID"}
 	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH"}
 )
 
@@ -121,6 +122,8 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, columnLabels [
 
 	p.Handler(hostSubnetColumns, printHostSubnet)
 	p.Handler(hostSubnetColumns, printHostSubnetList)
+	p.Handler(netNamespaceColumns, printNetNamespaceList)
+	p.Handler(netNamespaceColumns, printNetNamespace)
 	p.Handler(clusterNetworkColumns, printClusterNetwork)
 	p.Handler(clusterNetworkColumns, printClusterNetworkList)
 
@@ -573,6 +576,20 @@ func printHostSubnet(h *sdnapi.HostSubnet, w io.Writer, withNamespace, wide bool
 func printHostSubnetList(list *sdnapi.HostSubnetList, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
 	for _, item := range list.Items {
 		if err := printHostSubnet(&item, w, withNamespace, wide, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printNetNamespace(h *sdnapi.NetNamespace, w io.Writer, withNamespace bool, wide bool, columnLabels []string) error {
+	_, err := fmt.Fprintf(w, "%s\t%d\n", h.NetName, h.NetID)
+	return err
+}
+
+func printNetNamespaceList(list *sdnapi.NetNamespaceList, w io.Writer, withNamespace bool, wide bool, columnLabels []string) error {
+	for _, item := range list.Items {
+		if err := printNetNamespace(&item, w, withNamespace, wide, columnLabels); err != nil {
 			return err
 		}
 	}

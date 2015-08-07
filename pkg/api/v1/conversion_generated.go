@@ -2564,6 +2564,44 @@ func convert_api_HostSubnetList_To_v1_HostSubnetList(in *sdnapi.HostSubnetList, 
 	return nil
 }
 
+func convert_api_NetNamespace_To_v1_NetNamespace(in *sdnapi.NetNamespace, out *sdnapiv1.NetNamespace, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*sdnapi.NetNamespace))(in)
+	}
+	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.NetName = in.NetName
+	out.NetID = in.NetID
+	return nil
+}
+
+func convert_api_NetNamespaceList_To_v1_NetNamespaceList(in *sdnapi.NetNamespaceList, out *sdnapiv1.NetNamespaceList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*sdnapi.NetNamespaceList))(in)
+	}
+	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_api_ListMeta_To_v1_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]sdnapiv1.NetNamespace, len(in.Items))
+		for i := range in.Items {
+			if err := convert_api_NetNamespace_To_v1_NetNamespace(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func convert_v1_ClusterNetwork_To_api_ClusterNetwork(in *sdnapiv1.ClusterNetwork, out *sdnapi.ClusterNetwork, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*sdnapiv1.ClusterNetwork))(in)
@@ -2632,6 +2670,44 @@ func convert_v1_HostSubnetList_To_api_HostSubnetList(in *sdnapiv1.HostSubnetList
 		out.Items = make([]sdnapi.HostSubnet, len(in.Items))
 		for i := range in.Items {
 			if err := convert_v1_HostSubnet_To_api_HostSubnet(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func convert_v1_NetNamespace_To_api_NetNamespace(in *sdnapiv1.NetNamespace, out *sdnapi.NetNamespace, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*sdnapiv1.NetNamespace))(in)
+	}
+	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.NetName = in.NetName
+	out.NetID = in.NetID
+	return nil
+}
+
+func convert_v1_NetNamespaceList_To_api_NetNamespaceList(in *sdnapiv1.NetNamespaceList, out *sdnapi.NetNamespaceList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*sdnapiv1.NetNamespaceList))(in)
+	}
+	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_v1_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]sdnapi.NetNamespace, len(in.Items))
+		for i := range in.Items {
+			if err := convert_v1_NetNamespace_To_api_NetNamespace(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
 			}
 		}
@@ -3087,6 +3163,8 @@ func init() {
 		convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview,
 		convert_api_ListMeta_To_v1_ListMeta,
 		convert_api_LocalObjectReference_To_v1_LocalObjectReference,
+		convert_api_NetNamespaceList_To_v1_NetNamespaceList,
+		convert_api_NetNamespace_To_v1_NetNamespace,
 		convert_api_OAuthAccessTokenList_To_v1_OAuthAccessTokenList,
 		convert_api_OAuthAccessToken_To_v1_OAuthAccessToken,
 		convert_api_OAuthAuthorizeTokenList_To_v1_OAuthAuthorizeTokenList,
@@ -3163,6 +3241,8 @@ func init() {
 		convert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview,
 		convert_v1_ListMeta_To_api_ListMeta,
 		convert_v1_LocalObjectReference_To_api_LocalObjectReference,
+		convert_v1_NetNamespaceList_To_api_NetNamespaceList,
+		convert_v1_NetNamespace_To_api_NetNamespace,
 		convert_v1_OAuthAccessTokenList_To_api_OAuthAccessTokenList,
 		convert_v1_OAuthAccessToken_To_api_OAuthAccessToken,
 		convert_v1_OAuthAuthorizeTokenList_To_api_OAuthAuthorizeTokenList,

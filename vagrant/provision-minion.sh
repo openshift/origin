@@ -48,15 +48,10 @@ popd
 cp -r /vagrant/openshift.local.config /
 chown -R vagrant.vagrant /openshift.local.config
 
-if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
-  export ETCD_CAFILE=/openshift.local.config/master/ca.crt
-  export ETCD_CERTFILE=/openshift.local.config/master/master.etcd-client.crt
-  export ETCD_KEYFILE=/openshift.local.config/master/master.etcd-client.key
-  $(dirname $0)/provision-node-sdn.sh $@
-else
-  # Setup default networking between the nodes
-  $(dirname $0)/provision-gre-network.sh $@
-fi
+mkdir -p /openshift.local.volumes
+
+# Setup SDN
+$(dirname $0)/provision-sdn.sh $@
 
 # Create systemd service
 cat <<EOF > /usr/lib/systemd/system/openshift-node.service

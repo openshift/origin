@@ -65,3 +65,25 @@ func ValidateHostSubnetUpdate(obj *sdnapi.HostSubnet, old *sdnapi.HostSubnet) fi
 
 	return allErrs
 }
+
+// ValidateNetNamespace tests fields for a greater-than-zero NetID
+func ValidateNetNamespace(netnamespace *sdnapi.NetNamespace) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&netnamespace.ObjectMeta, false, oapi.MinimalNameRequirements).Prefix("metadata")...)
+
+	if netnamespace.NetID < 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("netID", netnamespace.NetID, "invalid Net ID: cannot be negative"))
+	}
+	return allErrs
+}
+
+func ValidateNetNamespaceUpdate(obj *sdnapi.NetNamespace, old *sdnapi.NetNamespace) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+
+	if obj.NetID != old.NetID {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("netid", obj.NetID, "cannot change the NetID midflight."))
+	}
+
+	return allErrs
+}

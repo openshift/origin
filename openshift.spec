@@ -289,14 +289,17 @@ install -p -m 0644 rel-eng/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.se
 for pkgname in openshift atomic-enterprise
 do
 
-  pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/bin
+  pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/kube/bin
      install -p -m 755 %{name}-ovs-subnet %{buildroot}%{kube_plugin_path}/${pkgname}-ovs-subnet
      install -p -m 755 %{name}-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/${pkgname}-sdn-kube-subnet-setup.sh
+  popd
+  pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/multitenant/bin
+     install -p -m 755 %{name}-ovs-multitenant %{buildroot}%{_bindir}/${pkgname}-ovs-multitenant
+     install -p -m 755 %{name}-sdn-multitenant-setup.sh %{buildroot}%{_bindir}/${pkgname}-sdn-multitenant-setup.sh
   popd
   install -d -m 0755 %{buildroot}%{_unitdir}/${pkgname}-node.service.d
   install -p -m 0644 rel-eng/%{name}-sdn-ovs.conf %{buildroot}%{_unitdir}/${pkgname}-node.service.d/${pkgname}-sdn-ovs.conf
 done
-
 
 # Install bash completions
 install -d -m 755 %{buildroot}/etc/bash_completion.d/

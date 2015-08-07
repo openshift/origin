@@ -10,6 +10,8 @@ func init() {
 		&ClusterNetworkList{},
 		&HostSubnet{},
 		&HostSubnetList{},
+		&NetNamespace{},
+		&NetNamespaceList{},
 	)
 }
 
@@ -17,3 +19,5 @@ func (*ClusterNetwork) IsAnAPIObject()     {}
 func (*ClusterNetworkList) IsAnAPIObject() {}
 func (*HostSubnet) IsAnAPIObject()         {}
 func (*HostSubnetList) IsAnAPIObject()     {}
+func (*NetNamespace) IsAnAPIObject()       {}
+func (*NetNamespaceList) IsAnAPIObject()   {}

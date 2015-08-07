@@ -2,8 +2,6 @@ package osdn
 
 import (
 	"fmt"
-	"github.com/golang/glog"
-	"strings"
 	"time"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -12,11 +10,9 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
-	"github.com/openshift/openshift-sdn/ovssubnet"
-	osdnapi "github.com/openshift/openshift-sdn/pkg/api"
+	osdnapi "github.com/openshift/openshift-sdn/ovssubnet/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -28,40 +24,7 @@ type OsdnRegistryInterface struct {
 	kClient kclient.Interface
 }
 
-func NetworkPluginName() string {
-	return "redhat/openshift-ovs-subnet"
-}
-
-func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork string, clusterNetworkLength uint) {
-	osdnInterface := newOsdnRegistryInterface(osClient, kClient)
-
-	// get hostname from the gateway
-	output, err := exec.New().Command("hostname", "-f").CombinedOutput()
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
-	}
-	host := strings.TrimSpace(string(output))
-
-	kc, err := ovssubnet.NewKubeController(&osdnInterface, host, "", nil)
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
-	}
-	err = kc.StartMaster(false, clusterNetwork, clusterNetworkLength)
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
-	}
-}
-
-func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, publicIP string, ready chan struct{}) {
-	osdnInterface := newOsdnRegistryInterface(osClient, kClient)
-	kc, err := ovssubnet.NewKubeController(&osdnInterface, hostname, publicIP, ready)
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
-	}
-	kc.StartNode(false, false)
-}
-
-func newOsdnRegistryInterface(osClient *osclient.Client, kClient *kclient.Client) OsdnRegistryInterface {
+func NewOsdnRegistryInterface(osClient *osclient.Client, kClient *kclient.Client) OsdnRegistryInterface {
 	return OsdnRegistryInterface{osClient, kClient}
 }
 
@@ -227,4 +190,110 @@ func (oi *OsdnRegistryInterface) GetSubnetLength() (uint64, error) {
 func (oi *OsdnRegistryInterface) CheckEtcdIsAlive(seconds uint64) bool {
 	// always assumed to be true as we run through the apiserver
 	return true
+}
+
+func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan *osdnapi.NamespaceEvent, stop chan bool) error {
+	nsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	listWatch := &cache.ListWatch{
+		ListFunc: func() (runtime.Object, error) {
+			return oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return oi.kClient.Namespaces().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		},
+	}
+	cache.NewReflector(listWatch, &kapi.Namespace{}, nsEventQueue, 4*time.Minute).Run()
+
+	for {
+		eventType, obj, err := nsEventQueue.Pop()
+		if err != nil {
+			return err
+		}
+		switch eventType {
+		case watch.Added:
+			// we should ignore the modified event because status updates cause unnecessary noise
+			// the only time we would care about modified would be if the minion changes its IP address
+			// and hence all nodes need to update their vtep entries for the respective subnet
+			// create minionEvent
+			ns := obj.(*kapi.Namespace)
+			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Added, Name: ns.ObjectMeta.Name}
+		case watch.Deleted:
+			// TODO: There is a chance that a Delete event will not get triggered.
+			// Need to use a periodic sync loop that lists and compares.
+			ns := obj.(*kapi.Namespace)
+			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Deleted, Name: ns.ObjectMeta.Name}
+		}
+	}
+	return nil
+}
+
+func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan *osdnapi.NetNamespaceEvent, stop chan bool) error {
+	netNsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	listWatch := &cache.ListWatch{
+		ListFunc: func() (runtime.Object, error) {
+			return oi.oClient.NetNamespaces().List()
+		},
+		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
+			return oi.oClient.NetNamespaces().Watch(resourceVersion)
+		},
+	}
+	cache.NewReflector(listWatch, &api.NetNamespace{}, netNsEventQueue, 4*time.Minute).Run()
+
+	for {
+		eventType, obj, err := netNsEventQueue.Pop()
+		if err != nil {
+			return err
+		}
+		switch eventType {
+		case watch.Added:
+			// we should ignore the modified event because status updates cause unnecessary noise
+			// the only time we would care about modified would be if the minion changes its IP address
+			// and hence all nodes need to update their vtep entries for the respective subnet
+			// create minionEvent
+			netns := obj.(*api.NetNamespace)
+			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Added, Name: netns.NetName, NetID: netns.NetID}
+		case watch.Deleted:
+			// TODO: There is a chance that a Delete event will not get triggered.
+			// Need to use a periodic sync loop that lists and compares.
+			netns := obj.(*api.NetNamespace)
+			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Deleted, Name: netns.NetName}
+		}
+	}
+	return nil
+}
+
+func (oi *OsdnRegistryInterface) GetNetNamespaces() ([]osdnapi.NetNamespace, error) {
+	netNamespaceList, err := oi.oClient.NetNamespaces().List()
+	if err != nil {
+		return nil, err
+	}
+	// convert api.NetNamespace to osdnapi.NetNamespace
+	nsList := make([]osdnapi.NetNamespace, 0)
+	for _, netns := range netNamespaceList.Items {
+		nsList = append(nsList, osdnapi.NetNamespace{Name: netns.Name, NetID: netns.NetID})
+	}
+	return nsList, nil
+}
+
+func (oi *OsdnRegistryInterface) GetNetNamespace(name string) (osdnapi.NetNamespace, error) {
+	netns, err := oi.oClient.NetNamespaces().Get(name)
+	if err != nil {
+		return osdnapi.NetNamespace{}, err
+	}
+	return osdnapi.NetNamespace{Name: netns.Name, NetID: netns.NetID}, nil
+}
+
+func (oi *OsdnRegistryInterface) WriteNetNamespace(name string, id uint) error {
+	netns := &api.NetNamespace{
+		TypeMeta:   kapi.TypeMeta{Kind: "NetNamespace"},
+		ObjectMeta: kapi.ObjectMeta{Name: name},
+		NetName:    name,
+		NetID:      id,
+	}
+	_, err := oi.oClient.NetNamespaces().Create(netns)
+	return err
+}
+
+func (oi *OsdnRegistryInterface) DeleteNetNamespace(name string) error {
+	return oi.oClient.NetNamespaces().Delete(name)
 }

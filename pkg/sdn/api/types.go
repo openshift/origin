@@ -35,3 +35,19 @@ type HostSubnetList struct {
 	kapi.ListMeta
 	Items []HostSubnet
 }
+
+// NetNamespace holds the network id against its name
+type NetNamespace struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	NetName string
+	NetID   uint
+}
+
+// NetNamespaceList is a collection of NetNamespaces
+type NetNamespaceList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+	Items []NetNamespace
+}

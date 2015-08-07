@@ -2500,6 +2500,44 @@ func convert_api_HostSubnetList_To_v1beta3_HostSubnetList(in *sdnapi.HostSubnetL
 	return nil
 }
 
+func convert_api_NetNamespace_To_v1beta3_NetNamespace(in *sdnapi.NetNamespace, out *sdnapiv1beta3.NetNamespace, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*sdnapi.NetNamespace))(in)
+	}
+	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.NetName = in.NetName
+	out.NetID = in.NetID
+	return nil
+}
+
+func convert_api_NetNamespaceList_To_v1beta3_NetNamespaceList(in *sdnapi.NetNamespaceList, out *sdnapiv1beta3.NetNamespaceList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*sdnapi.NetNamespaceList))(in)
+	}
+	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_api_ListMeta_To_v1beta3_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]sdnapiv1beta3.NetNamespace, len(in.Items))
+		for i := range in.Items {
+			if err := convert_api_NetNamespace_To_v1beta3_NetNamespace(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func convert_v1beta3_ClusterNetwork_To_api_ClusterNetwork(in *sdnapiv1beta3.ClusterNetwork, out *sdnapi.ClusterNetwork, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*sdnapiv1beta3.ClusterNetwork))(in)
@@ -2568,6 +2606,44 @@ func convert_v1beta3_HostSubnetList_To_api_HostSubnetList(in *sdnapiv1beta3.Host
 		out.Items = make([]sdnapi.HostSubnet, len(in.Items))
 		for i := range in.Items {
 			if err := convert_v1beta3_HostSubnet_To_api_HostSubnet(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_NetNamespace_To_api_NetNamespace(in *sdnapiv1beta3.NetNamespace, out *sdnapi.NetNamespace, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*sdnapiv1beta3.NetNamespace))(in)
+	}
+	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.NetName = in.NetName
+	out.NetID = in.NetID
+	return nil
+}
+
+func convert_v1beta3_NetNamespaceList_To_api_NetNamespaceList(in *sdnapiv1beta3.NetNamespaceList, out *sdnapi.NetNamespaceList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*sdnapiv1beta3.NetNamespaceList))(in)
+	}
+	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_v1beta3_ListMeta_To_api_ListMeta(&in.ListMeta, &out.ListMeta, s); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]sdnapi.NetNamespace, len(in.Items))
+		for i := range in.Items {
+			if err := convert_v1beta3_NetNamespace_To_api_NetNamespace(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
 			}
 		}
@@ -3021,6 +3097,8 @@ func init() {
 		convert_api_IsPersonalSubjectAccessReview_To_v1beta3_IsPersonalSubjectAccessReview,
 		convert_api_ListMeta_To_v1beta3_ListMeta,
 		convert_api_LocalObjectReference_To_v1beta3_LocalObjectReference,
+		convert_api_NetNamespaceList_To_v1beta3_NetNamespaceList,
+		convert_api_NetNamespace_To_v1beta3_NetNamespace,
 		convert_api_OAuthAccessTokenList_To_v1beta3_OAuthAccessTokenList,
 		convert_api_OAuthAccessToken_To_v1beta3_OAuthAccessToken,
 		convert_api_OAuthAuthorizeTokenList_To_v1beta3_OAuthAuthorizeTokenList,
@@ -3095,6 +3173,8 @@ func init() {
 		convert_v1beta3_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview,
 		convert_v1beta3_ListMeta_To_api_ListMeta,
 		convert_v1beta3_LocalObjectReference_To_api_LocalObjectReference,
+		convert_v1beta3_NetNamespaceList_To_api_NetNamespaceList,
+		convert_v1beta3_NetNamespace_To_api_NetNamespace,
 		convert_v1beta3_OAuthAccessTokenList_To_api_OAuthAccessTokenList,
 		convert_v1beta3_OAuthAccessToken_To_api_OAuthAccessToken,
 		convert_v1beta3_OAuthAuthorizeTokenList_To_api_OAuthAuthorizeTokenList,

@@ -4,6 +4,10 @@ set -ex
 source $(dirname $0)/provision-config.sh
 
 OPENSHIFT_SDN=$4
+if [ "${OPENSHIFT_SDN}" == "redhat/openshift-ovs-multitenant" ] || [ "${OPENSHIFT_SDN}" == "redhat/openshift-ovs-subnet" ] || [ "${OPENSHIFT_SDN}" == "" ]; then
+	OPENSHIFT_SDN_PLUGIN=${OPENSHIFT_SDN}
+fi
+OPENSHIFT_SDN_PLUGIN=${OPENSHIFT_SDN_PLUGIN:-redhat/openshift-ovs-subnet}
 
 NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
 sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
@@ -63,7 +67,7 @@ pushd /vagrant
       --node="${minion}" \
       --hostnames="${minion},${ip}" \
       --master="https://${MASTER_IP}:8443" \
-      --network-plugin="redhat/openshift-ovs-subnet" \
+      --network-plugin="${OPENSHIFT_SDN_PLUGIN}" \
       --node-client-certificate-authority="${CERT_DIR}/ca.crt" \
       --certificate-authority="${CERT_DIR}/ca.crt" \
       --signer-cert="${CERT_DIR}/ca.crt" \
@@ -86,7 +90,7 @@ Requires=docker.service network.service
 After=network.service
 
 [Service]
-ExecStart=/usr/bin/openshift start master --master=https://${MASTER_IP}:8443 --nodes=${node_list} --network-plugin=redhat/openshift-ovs-subnet
+ExecStart=/usr/bin/openshift start master --master=https://${MASTER_IP}:8443 --nodes=${node_list} --network-plugin=${OPENSHIFT_SDN_PLUGIN}
 WorkingDirectory=/vagrant/
 
 [Install]
@@ -97,13 +101,8 @@ EOF
 systemctl daemon-reload
 systemctl start openshift-master.service
 
-# if SDN requires service on master, then set it up
-if [ "${OPENSHIFT_SDN}" != "ovs-gre" ]; then
-  export ETCD_CAFILE=/vagrant/openshift.local.config/master/ca.crt
-  export ETCD_CERTFILE=/vagrant/openshift.local.config/master/master.etcd-client.crt
-  export ETCD_KEYFILE=/vagrant/openshift.local.config/master/master.etcd-client.key
-  $(dirname $0)/provision-master-sdn.sh $@
-fi
+# setup SDN
+$(dirname $0)/provision-sdn.sh $@
 
 # Set up the KUBECONFIG environment variable for use by oc
 echo 'export KUBECONFIG=/vagrant/openshift.local.config/master/admin.kubeconfig' >> /root/.bash_profile
