@@ -2,9 +2,9 @@
 # This is the HAProxy router base for OpenShift Origin. It contains the necessary
 # HAProxy binaries to be dynamically managed by the OpenShift router.
 #
-# The standard name for this image is openshift/origin-haproxy-router-base
+# The standard name for this image is openshift3/ose-haproxy-router-base
 #
-FROM openshift/origin-base
+FROM openshift3/ose-base
 
 #
 # Note: /var is changed to 777 to allow access when running this container as a non-root uid

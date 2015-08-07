@@ -54,7 +54,7 @@ describe('', function() {
       }, 3000);
 
       expect(browser.driver.getCurrentUrl()).toMatch(/\/login/);
-      expect(browser.driver.getTitle()).toEqual('Login - OpenShift Origin');
+      expect(browser.driver.getTitle()).toEqual('Login - Red Hat® OpenShift Enterprise');
 
       login(true);
 
