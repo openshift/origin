@@ -51,8 +51,8 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		"list-deploymentconfig",
 	)
 	actionSet := util.NewStringSet()
-	for i := range mockKubeClient.Actions {
-		actionSet.Insert(mockKubeClient.Actions[i].Action)
+	for i := range mockKubeClient.Actions() {
+		actionSet.Insert(mockKubeClient.Actions()[i].Action)
 	}
 	for i := range mockOriginClient.Actions {
 		actionSet.Insert(mockOriginClient.Actions[i].Action)
@@ -86,8 +86,8 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 		t.Errorf("Unexpected error when handling namespace %v", err)
 	}
 	actionSet := util.NewStringSet()
-	for i := range mockKubeClient.Actions {
-		actionSet.Insert(mockKubeClient.Actions[i].Action)
+	for i := range mockKubeClient.Actions() {
+		actionSet.Insert(mockKubeClient.Actions()[i].Action)
 	}
 	for i := range mockOriginClient.Actions {
 		actionSet.Insert(mockOriginClient.Actions[i].Action)

@@ -7,7 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
@@ -23,7 +23,7 @@ type REST struct {
 const EtcdPrefix = "/oauth/accesstokens"
 
 // NewREST returns a RESTStorage object that will work against access tokens
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.OAuthAccessToken{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthAccessTokenList{} },
@@ -47,7 +47,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 
 		EndpointName: "oauthaccesstokens",
 
-		Helper: h,
+		Storage: s,
 	}
 
 	store.CreateStrategy = oauthaccesstoken.Strategy

@@ -21,16 +21,16 @@ func TestServiceResolverCacheEmpty(t *testing.T) {
 	if v, ok := cache.resolve("FOO_SERVICE_HOST"); v != "" || !ok {
 		t.Errorf("unexpected cache item")
 	}
-	if len(fakeClient.Actions) != 1 {
-		t.Errorf("unexpected client actions: %#v", fakeClient.Actions)
+	if len(fakeClient.Actions()) != 1 {
+		t.Errorf("unexpected client actions: %#v", fakeClient.Actions())
 	}
 	cache.resolve("FOO_SERVICE_HOST")
-	if len(fakeClient.Actions) != 1 {
-		t.Errorf("unexpected cache miss: %#v", fakeClient.Actions)
+	if len(fakeClient.Actions()) != 1 {
+		t.Errorf("unexpected cache miss: %#v", fakeClient.Actions())
 	}
 	cache.resolve("FOO_SERVICE_PORT")
-	if len(fakeClient.Actions) != 1 {
-		t.Errorf("unexpected cache miss: %#v", fakeClient.Actions)
+	if len(fakeClient.Actions()) != 1 {
+		t.Errorf("unexpected cache miss: %#v", fakeClient.Actions())
 	}
 }
 

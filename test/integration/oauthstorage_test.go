@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
@@ -61,7 +61,7 @@ func TestOAuthStorage(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper := tools.NewEtcdHelper(etcdClient, interfaces.Codec, etcdtest.PathPrefix())
+	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, interfaces.Codec, etcdtest.PathPrefix())
 
 	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)

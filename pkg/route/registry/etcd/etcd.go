@@ -8,7 +8,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	kubeetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/route/api"
@@ -21,13 +21,13 @@ const (
 
 // Etcd implements route.Registry backed by etcd.
 type Etcd struct {
-	tools.EtcdHelper
+	storage.Interface
 }
 
 // New creates an etcd registry.
-func New(helper tools.EtcdHelper) *Etcd {
+func New(storage storage.Interface) *Etcd {
 	return &Etcd{
-		EtcdHelper: helper,
+		storage,
 	}
 }
 
@@ -42,7 +42,7 @@ func makeRouteKey(ctx kapi.Context, id string) (string, error) {
 // ListRoutes obtains a list of Routes.
 func (registry *Etcd) ListRoutes(ctx kapi.Context, selector labels.Selector) (*api.RouteList, error) {
 	allRoutes := api.RouteList{}
-	err := registry.ExtractToList(makeRouteListKey(ctx), &allRoutes)
+	err := registry.List(makeRouteListKey(ctx), &allRoutes)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (registry *Etcd) GetRoute(ctx kapi.Context, routeID string) (*api.Route, er
 	if err != nil {
 		return nil, err
 	}
-	err = registry.ExtractObj(key, &route, false)
+	err = registry.Get(key, &route, false)
 	if err != nil {
 		return nil, etcderr.InterpretGetError(err, "route", routeID)
 	}
@@ -77,7 +77,7 @@ func (registry *Etcd) CreateRoute(ctx kapi.Context, route *api.Route) error {
 	if err != nil {
 		return err
 	}
-	err = registry.CreateObj(key, route, nil, 0)
+	err = registry.Create(key, route, nil, 0)
 	return etcderr.InterpretCreateError(err, "route", route.Name)
 }
 
@@ -87,7 +87,7 @@ func (registry *Etcd) UpdateRoute(ctx kapi.Context, route *api.Route) error {
 	if err != nil {
 		return err
 	}
-	err = registry.SetObj(key, route, nil, 0)
+	err = registry.Set(key, route, nil, 0)
 	return etcderr.InterpretUpdateError(err, "route", route.Name)
 }
 
@@ -97,7 +97,7 @@ func (registry *Etcd) DeleteRoute(ctx kapi.Context, routeID string) error {
 	if err != nil {
 		return err
 	}
-	err = registry.Delete(key, false)
+	err = registry.Delete(key, &api.Route{})
 	return etcderr.InterpretDeleteError(err, "route", routeID)
 }
 
@@ -107,7 +107,7 @@ func (registry *Etcd) WatchRoutes(ctx kapi.Context, label labels.Selector, field
 		return nil, fmt.Errorf("label selectors are not supported on routes yet")
 	}
 
-	version, err := tools.ParseWatchResourceVersion(resourceVersion, "pod")
+	version, err := storage.ParseWatchResourceVersion(resourceVersion, "pod")
 	if err != nil {
 		return nil, err
 	}
@@ -117,12 +117,12 @@ func (registry *Etcd) WatchRoutes(ctx kapi.Context, label labels.Selector, field
 		if err != nil {
 			return nil, err
 		}
-		return registry.Watch(key, version, tools.Everything)
+		return registry.Watch(key, version, storage.Everything)
 	}
 
 	if field.Empty() {
 		key := kubeetcd.MakeEtcdListKey(ctx, RoutePath)
-		return registry.WatchList(key, version, tools.Everything)
+		return registry.WatchList(key, version, storage.Everything)
 	}
 	return nil, fmt.Errorf("only the 'ID' and default (everything) field selectors are supported")
 }

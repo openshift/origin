@@ -7,7 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
@@ -22,7 +22,7 @@ type REST struct {
 const EtcdPrefix = "/oauth/clientauthorizations"
 
 // NewREST returns a RESTStorage object that will work against oauth clients
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.OAuthClientAuthorization{} },
 		NewListFunc: func() runtime.Object { return &api.OAuthClientAuthorizationList{} },
@@ -40,7 +40,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		},
 		EndpointName: "oauthclientauthorizations",
 
-		Helper: h,
+		Storage: s,
 	}
 
 	store.CreateStrategy = oauthclientauthorization.Strategy

@@ -8,7 +8,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
@@ -84,7 +84,7 @@ func TestUserInitialization(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	etcdHelper, err := origin.NewEtcdHelper(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
+	etcdHelper, err := origin.NewEtcdStorage(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -205,10 +205,10 @@ func TestUserInitialization(t *testing.T) {
 
 	for k, testcase := range testcases {
 		// Cleanup
-		if err := etcdHelper.Delete(useretcd.EtcdPrefix, true); err != nil && !tools.IsEtcdNotFound(err) {
+		if err := etcdHelper.RecursiveDelete(useretcd.EtcdPrefix, true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up users: %v", err)
 		}
-		if err := etcdHelper.Delete(identityetcd.EtcdPrefix, true); err != nil && !tools.IsEtcdNotFound(err) {
+		if err := etcdHelper.RecursiveDelete(identityetcd.EtcdPrefix, true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up identities: %v", err)
 		}
 

@@ -11,6 +11,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/coreos/go-etcd/etcd"
@@ -41,10 +43,10 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 	return &authorizationapi.SubjectAccessReviewResponse{Allowed: f.allow}, f.err
 }
 
-func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
+func newHelper(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
+	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	return fakeEtcdClient, helper
 }
 
@@ -195,7 +197,7 @@ func TestCreateImageStreamOK(t *testing.T) {
 	}
 
 	actual := &api.ImageStream{}
-	if err := helper.ExtractObj("/imagestreams/default/foo", actual, false); err != nil {
+	if err := helper.Get("/imagestreams/default/foo", actual, false); err != nil {
 		t.Fatalf("unexpected extraction error: %v", err)
 	}
 	if actual.Name != stream.Name {
@@ -305,7 +307,7 @@ func TestCreateImageStreamSpecTagsFromSet(t *testing.T) {
 		}
 
 		actual := &api.ImageStream{}
-		if err := helper.ExtractObj("/imagestreams/default/foo", actual, false); err != nil {
+		if err := helper.Get("/imagestreams/default/foo", actual, false); err != nil {
 			t.Fatalf("%s: unexpected extraction error: %v", name, err)
 		}
 		if e, a := fmt.Sprintf("%s/other:latest", otherNamespace), actual.Status.Tags["other"].Items[0].DockerImageReference; e != a {
@@ -486,7 +488,7 @@ func TestUpdateImageStreamSpecTagsFromSet(t *testing.T) {
 		}
 
 		actual := &api.ImageStream{}
-		if err := helper.ExtractObj("/imagestreams/default/foo", actual, false); err != nil {
+		if err := helper.Get("/imagestreams/default/foo", actual, false); err != nil {
 			t.Fatalf("%s: unexpected extraction error: %v", name, err)
 		}
 		if e, a := fmt.Sprintf("%s/other:latest", otherNamespace), actual.Status.Tags["other"].Items[0].DockerImageReference; e != a {

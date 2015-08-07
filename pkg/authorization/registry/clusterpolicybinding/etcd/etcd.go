@@ -7,7 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
@@ -21,7 +21,7 @@ type REST struct {
 }
 
 // NewStorage returns a RESTStorage object that will work against nodes.
-func NewStorage(h tools.EtcdHelper) *REST {
+func NewStorage(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:      func() runtime.Object { return &authorizationapi.ClusterPolicyBinding{} },
 		NewListFunc:  func() runtime.Object { return &authorizationapi.ClusterPolicyBindingList{} },
@@ -42,7 +42,7 @@ func NewStorage(h tools.EtcdHelper) *REST {
 		CreateStrategy: clusterpolicybinding.Strategy,
 		UpdateStrategy: clusterpolicybinding.Strategy,
 
-		Helper: h,
+		Storage: s,
 	}
 
 	return &REST{store}

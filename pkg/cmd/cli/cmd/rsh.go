@@ -46,7 +46,7 @@ func NewCmdRsh(fullName string, f *clientcmd.Factory, in io.Reader, out, err io.
 		Long:    fmt.Sprintf(rshLong, fullName),
 		Example: fmt.Sprintf(rshExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			options.Args = []string{executable}
+			options.Command = []string{executable}
 			cmdutil.CheckErr(RunRsh(options, f, cmd, args))
 		},
 	}

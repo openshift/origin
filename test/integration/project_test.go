@@ -34,7 +34,7 @@ func init() {
 func TestProjectIsNamespace(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, err := master.NewEtcdHelper(etcdClient, "", etcdtest.PathPrefix())
+	etcdHelper, err := master.NewEtcdStorage(etcdClient, latest.InterfacesFor, "v1", etcdtest.PathPrefix())
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

@@ -415,8 +415,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"imageStreamTags":     imageStreamTagStorage,
 
 		"deploymentConfigs":         deployConfigStorage,
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
+		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
 
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),

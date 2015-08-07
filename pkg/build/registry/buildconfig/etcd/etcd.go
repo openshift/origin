@@ -7,7 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/buildconfig"
@@ -20,7 +20,7 @@ type REST struct {
 }
 
 // NewStorage returns a RESTStorage object that will work against nodes.
-func NewStorage(h tools.EtcdHelper) *REST {
+func NewStorage(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:      func() runtime.Object { return &api.BuildConfig{} },
 		NewListFunc:  func() runtime.Object { return &api.BuildConfigList{} },
@@ -42,7 +42,7 @@ func NewStorage(h tools.EtcdHelper) *REST {
 		UpdateStrategy:      buildconfig.Strategy,
 		DeleteStrategy:      buildconfig.Strategy,
 		ReturnDeletedObject: false,
-		Helper:              h,
+		Storage:             s,
 	}
 
 	return &REST{store}

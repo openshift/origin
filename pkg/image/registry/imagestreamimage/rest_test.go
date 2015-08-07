@@ -1,8 +1,12 @@
 package imagestreamimage
 
 import (
+	"testing"
+
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/coreos/go-etcd/etcd"
@@ -15,7 +19,6 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
 )
-import "testing"
 
 var testDefaultRegistry = imagestream.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
 
@@ -28,10 +31,10 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 	return nil, nil
 }
 
-func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
+func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
+	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})

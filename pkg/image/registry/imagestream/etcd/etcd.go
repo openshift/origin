@@ -6,7 +6,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
@@ -20,7 +20,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST) {
+func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST) {
 	prefix := "/imagestreams"
 	store := etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ImageStream{} },
@@ -37,7 +37,7 @@ func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, su
 		EndpointName: "imageStream",
 
 		ReturnDeletedObject: false,
-		Helper:              h,
+		Storage:             s,
 	}
 
 	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry)

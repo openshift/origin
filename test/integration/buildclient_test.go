@@ -188,7 +188,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	openshift.lock.Lock()
 	defer openshift.lock.Unlock()
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, _ := master.NewEtcdHelper(etcdClient, latest.Version, etcdtest.PathPrefix())
+	etcdHelper, _ := master.NewEtcdStorage(etcdClient, latest.InterfacesFor, latest.Version, etcdtest.PathPrefix())
 
 	osMux := http.NewServeMux()
 	openshift.server = httptest.NewServer(osMux)
@@ -207,7 +207,7 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	handlerContainer := master.NewHandlerContainer(osMux)
 
 	_ = master.New(&master.Config{
-		EtcdHelper:       etcdHelper,
+		DatabaseStorage:  etcdHelper,
 		KubeletClient:    kubeletClient,
 		APIPrefix:        "/api",
 		AdmissionControl: admit.NewAlwaysAdmit(),

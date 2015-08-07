@@ -102,8 +102,8 @@ func TestControllerError(t *testing.T) {
 			t.Errorf("%s: unexpected error: %v", s, err)
 		}
 
-		if len(client.Actions) != testCase.actions {
-			t.Errorf("%s: expected %d actions: %v", s, testCase.actions, client.Actions)
+		if len(client.Actions()) != testCase.actions {
+			t.Errorf("%s: expected %d actions: %v", s, testCase.actions, client.Actions())
 		}
 		if uida.Free() != 5 {
 			t.Errorf("%s: should not have allocated uid: %d/%d", s, uida.Free(), uidr.Size())
