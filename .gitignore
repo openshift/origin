@@ -1,6 +1,7 @@
 /_output
 /_tools
 /openshift.local.*
+/third-party
 /.project
 /.vagrant
 /cpu.pprof
