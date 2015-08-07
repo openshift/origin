@@ -67,6 +67,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "instance_name"     => "origin-dev",
     "os"                => "fedora",
     "dev_cluster"       => false,
+    "dind_dev_cluster"  => ENV['OPENSHIFT_DIND_DEV_CLUSTER'] || false,
     "insert_key"        => true,
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,
@@ -114,8 +115,29 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
+  # Determine the OS platform to use
+  kube_os = vagrant_openshift_config['os'] || "fedora"
+
+  # OS platform to box information
+  kube_box = {
+    "fedora" => {
+      "name" => "fedora_deps",
+      "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_deps.box"
+    }
+  }
+
+  dind_dev_cluster = vagrant_openshift_config['dind_dev_cluster']
   dev_cluster = vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
-  if dev_cluster
+  if dind_dev_cluster
+    config.vm.define "#{VM_NAME_PREFIX}dind-host" do |config|
+      config.vm.box = kube_box[kube_os]["name"]
+      config.vm.box_url = kube_box[kube_os]["box_url"]
+      config.vm.provision "shell", inline: "/vagrant/vagrant/provision-full.sh"
+      config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh start"
+      config.vm.hostname = "openshift-dind-host"
+      config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
+    end
+  elsif dev_cluster
     # Start an OpenShift cluster
     # Currently this only works with the (default) VirtualBox provider.
 
@@ -127,17 +149,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     minion_ip_base = vagrant_openshift_config['minion_ip_base']
     minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+3}" }
     minion_ips_str = minion_ips.join(",")
-
-    # Determine the OS platform to use
-    kube_os = vagrant_openshift_config['os'] || "fedora"
-
-    # OS platform to box information
-    kube_box = {
-      "fedora" => {
-        "name" => "fedora_deps",
-        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_deps.box"
-      }
-    }
 
     # OpenShift master
     config.vm.define "#{VM_NAME_PREFIX}master" do |config|
