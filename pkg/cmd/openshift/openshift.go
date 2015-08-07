@@ -74,8 +74,8 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = kubernetes.NewSchedulerCommand(basename, basename, out)
 	case "kubernetes":
 		cmd = kubernetes.NewCommand(basename, basename, out)
-	case "origin":
-		cmd = NewCommandOpenShift("origin")
+	case "origin", "atomic-enterprise":
+		cmd = NewCommandOpenShift(basename)
 	default:
 		cmd = NewCommandOpenShift("openshift")
 	}
@@ -96,6 +96,8 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	switch name {
 	case "openshift":
 		product = "OpenShift"
+	case "atomic-enterprise":
+		product = "Atomic"
 	}
 
 	root := &cobra.Command{

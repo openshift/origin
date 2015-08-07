@@ -61,6 +61,8 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 		validationResults.AddErrors(urlErrs...)
 	}
 
+	validationResults.AddErrors(ValidateDisabledFeatures(config.DisabledFeatures, "disabledFeatures")...)
+
 	if config.AssetConfig != nil {
 		validationResults.AddErrors(ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig")...)
 		colocated := config.AssetConfig.ServingInfo.BindAddress == config.ServingInfo.BindAddress

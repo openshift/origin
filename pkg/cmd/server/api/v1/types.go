@@ -73,6 +73,9 @@ const (
 	ControllersAll = "*"
 )
 
+// FeatureList contains a set of features
+type FeatureList []string
+
 type MasterConfig struct {
 	v1.TypeMeta `json:",inline"`
 
@@ -96,6 +99,11 @@ type MasterConfig struct {
 	// PauseControllers instructs the master to not automatically start controllers, but instead
 	// to wait until a notification to the server is received before launching them.
 	PauseControllers bool `json:"pauseControllers,omitempty"`
+
+	// DisabledFeatures is a list of features that should not be started.  We
+	// omitempty here because its very unlikely that anyone will want to
+	// manually disable features and we don't want to encourage it.
+	DisabledFeatures FeatureList `json:"disabledFeatures,omitempty"`
 
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the
