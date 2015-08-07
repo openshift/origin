@@ -1,7 +1,6 @@
 package tokenrequest
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -16,8 +15,9 @@ import (
 )
 
 const (
-	RequestTokenEndpoint = "/token/request"
-	DisplayTokenEndpoint = "/token/display"
+	RequestTokenEndpoint  = "/token/request"
+	DisplayTokenEndpoint  = "/token/display"
+	ImplicitTokenEndpoint = "/token/implicit"
 )
 
 type endpointDetails struct {
@@ -39,6 +39,7 @@ func (endpoints *endpointDetails) Install(mux login.Mux, paths ...string) {
 	for _, prefix := range paths {
 		mux.HandleFunc(path.Join(prefix, RequestTokenEndpoint), endpoints.requestToken)
 		mux.HandleFunc(path.Join(prefix, DisplayTokenEndpoint), endpoints.displayToken)
+		mux.HandleFunc(path.Join(prefix, ImplicitTokenEndpoint), endpoints.implicitToken)
 	}
 }
 
@@ -72,15 +73,6 @@ func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.
 		return
 	}
 
-	jsonBytes, err := json.MarshalIndent(accessData.ResponseData, "", "   ")
-	if err != nil {
-		data.Error = fmt.Sprintf("Error marshalling json: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		renderToken(w, data)
-		return
-	}
-
-	data.OAuthJSON = string(jsonBytes)
 	data.AccessToken = accessData.AccessToken
 	renderToken(w, data)
 }
@@ -93,7 +85,6 @@ func renderToken(w io.Writer, data tokenData) {
 
 type tokenData struct {
 	Error           string
-	OAuthJSON       string
 	AccessToken     string
 	RequestURL      string
 	PublicMasterURL string
@@ -112,17 +103,35 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
   {{ .Error }}
 {{ else }}
   <h3>Here is your brand new OAuth access token:</h3>
-  <pre>{{.OAuthJSON}}</pre>
+  <pre>{{.AccessToken}}</pre>
 
   <h3>How do I use this token?</h3>
   <pre>oc login --token={{.AccessToken}} --server={{.PublicMasterURL}}</pre>
-  <pre>curl -H "Authorization: Bearer {{.AccessToken}}" &hellip;</pre>
+  <pre>curl -H "Authorization: Bearer {{.AccessToken}}" {{.PublicMasterURL}}/oapi/v1/users/~</pre>
 
   <h3>How do I delete this token when I'm done?</h3>
   <pre>oc delete oauthaccesstoken {{.AccessToken}}</pre>
-  <pre>curl -X DELETE &hellip;/oapi/v1/oauthaccesstokens/{{.AccessToken}}</pre>
+  <pre>curl -X DELETE {{.PublicMasterURL}}/oapi/v1/oauthaccesstokens/{{.AccessToken}}</pre>
 {{ end }}
 
 <br><br>
 <a href="{{.RequestURL}}">Request another token</a>
 `))
+
+func (endpoints *endpointDetails) implicitToken(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(`
+You have reached this page by following a redirect Location header from an OAuth authorize request.
+
+If a response_type=token parameter was passed to the /authorize endpoint, that requested an 
+"Implicit Grant" OAuth flow (see https://tools.ietf.org/html/rfc6749#section-4.2).
+
+That flow requires the access token to be returned in the fragment portion of a redirect header.
+Rather than following the redirect here, you can obtain the access token from the Location header
+(see https://tools.ietf.org/html/rfc6749#section-4.2.2):
+
+  1. Parse the URL in the Location header and extract the fragment portion
+  2. Parse the fragment using the "application/x-www-form-urlencoded" format
+  3. The access_token parameter contains the granted OAuth access token
+`))
+}
