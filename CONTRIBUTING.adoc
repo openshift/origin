@@ -92,7 +92,11 @@ export PATH=$PATH:$GOPATH/bin
         $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
         $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
 
-11.  If it is not there already, add the current directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
+11.  If it is not there already, add the `_output/local/go/bin/` directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
+
+        $ export PATH="$(pwd)/_output/local/go/bin/:$PATH"
+        $ alias oc="oc --config=$(pwd)/openshift.local.config/master/admin.kubeconfig"
+        $ alias oadm="oadm --config=$(pwd)/openshift.local.config/master/admin.kubeconfig"
 
 12.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
 
