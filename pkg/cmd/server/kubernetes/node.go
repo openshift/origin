@@ -187,8 +187,7 @@ func (c *NodeConfig) RunProxy() {
 		}
 
 		pconfig.NewSourceAPI(
-			c.Client.Services(kapi.NamespaceAll),
-			c.Client.Endpoints(kapi.NamespaceAll),
+			c.Client,
 			30*time.Second,
 			serviceConfig.Channel("api"),
 			endpointsConfig.Channel("api"))

@@ -12,12 +12,14 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapilatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -86,7 +88,11 @@ type MasterConfig struct {
 	// a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
 
-	EtcdHelper          tools.EtcdHelper
+	EtcdHelper storage.Interface
+	// Storage interface no longer exposes the client since it is now generic.  This allows us
+	// to provide access to the client for things that need it.
+	EtcdClient *etcdclient.Client
+
 	KubeletClientConfig *kclient.KubeletConfig
 
 	// ClientCAs will be used to request client certificates in connections to the API.
@@ -123,7 +129,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	etcdHelper, err := NewEtcdHelper(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
+	etcdHelper, err := NewEtcdStorage(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}
@@ -189,6 +195,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		ImageFor:            imageTemplate.ExpandOrDie,
 		EtcdHelper:          etcdHelper,
+		EtcdClient:          client,
 		KubeletClientConfig: kubeletClientConfig,
 
 		ClientCAs:    clientCAs,
@@ -218,16 +225,16 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdcl
 		tokenGetter = serviceaccount.NewGetterFromClient(kubeClient)
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
-		ketcdHelper, err := master.NewEtcdHelper(client, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		ketcdHelper, err := master.NewEtcdStorage(client, kapilatest.InterfacesFor, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		if err != nil {
 			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
-		tokenGetter = serviceaccount.NewGetterFromEtcdHelper(ketcdHelper)
+		tokenGetter = serviceaccount.NewGetterFromStorageInterface(ketcdHelper)
 	}
 	return tokenGetter, nil
 }
 
-func newAuthenticator(config configapi.MasterConfig, etcdHelper tools.EtcdHelper, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) authenticator.Request {
+func newAuthenticator(config configapi.MasterConfig, etcdHelper storage.Interface, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) authenticator.Request {
 	authenticators := []authenticator.Request{}
 
 	// ServiceAccount token
@@ -287,7 +294,7 @@ func newProjectAuthorizationCache(openshiftClient *osclient.Client, kubeClient *
 
 // newReadOnlyCacheAndClient returns a ReadOnlyCache for administrative interactions with the cache holding policies and bindings on a project
 // and cluster level as well as a ReadOnlyPolicyClient for use in the project authorization cache and authorizer to query for the same data
-func newReadOnlyCacheAndClient(etcdHelper tools.EtcdHelper) (cache policycache.ReadOnlyCache, client policyclient.ReadOnlyPolicyClient) {
+func newReadOnlyCacheAndClient(etcdHelper storage.Interface) (cache policycache.ReadOnlyCache, client policyclient.ReadOnlyPolicyClient) {
 	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(etcdHelper))
 	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(etcdHelper))
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(etcdHelper))
@@ -307,7 +314,7 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 	return authorizationAttributeBuilder
 }
 
-func getEtcdTokenAuthenticator(etcdHelper tools.EtcdHelper, groupMapper identitymapper.UserToGroupMapper) authenticator.Token {
+func getEtcdTokenAuthenticator(etcdHelper storage.Interface, groupMapper identitymapper.UserToGroupMapper) authenticator.Token {
 	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
 
@@ -452,12 +459,12 @@ func admissionControlClient(kClient *kclient.Client, osClient *osclient.Client) 
 }
 
 // NewEtcdHelper returns an EtcdHelper for the provided storage version.
-func NewEtcdHelper(client *etcdclient.Client, version, prefix string) (oshelper tools.EtcdHelper, err error) {
+func NewEtcdStorage(client *etcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
 	interfaces, err := latest.InterfacesFor(version)
 	if err != nil {
-		return tools.EtcdHelper{}, err
+		return nil, err
 	}
-	return tools.NewEtcdHelper(client, interfaces.Codec, prefix), nil
+	return etcdstorage.NewEtcdStorage(client, interfaces.Codec, prefix), nil
 }
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the

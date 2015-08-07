@@ -12,6 +12,7 @@ import (
 	cmapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-controller-manager/app"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapilatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
@@ -45,7 +46,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	if err != nil {
 		return nil, err
 	}
-	ketcdHelper, err := master.NewEtcdHelper(etcdClient, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+	databaseStorage, err := master.NewEtcdStorage(etcdClient, kapilatest.InterfacesFor, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 	}
@@ -113,7 +114,8 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		PublicAddress: net.ParseIP(options.KubernetesMasterConfig.MasterIP),
 		ReadWritePort: port,
 
-		EtcdHelper: ketcdHelper,
+		DatabaseStorage:    databaseStorage,
+		ExpDatabaseStorage: databaseStorage,
 
 		EventTTL: server.EventTTL,
 		//MinRequestTimeout: server.MinRequestTimeout,

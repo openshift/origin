@@ -394,7 +394,7 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		return false, err
 	}
 
-	if err := kubecmdconfig.ModifyConfig(o.PathOptions, *configToWrite); err != nil {
+	if err := kubecmdconfig.ModifyConfig(o.PathOptions, *configToWrite, true); err != nil {
 		return false, err
 	}
 
