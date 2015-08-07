@@ -801,6 +801,77 @@ _openshift_admin_policy()
     must_have_one_noun=()
 }
 
+_openshift_admin_groups_new()
+{
+    last_command="openshift_admin_groups_new"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_groups_add-users()
+{
+    last_command="openshift_admin_groups_add-users"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_groups_remove-users()
+{
+    last_command="openshift_admin_groups_remove-users"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_groups()
+{
+    last_command="openshift_admin_groups"
+    commands=()
+    commands+=("new")
+    commands+=("add-users")
+    commands+=("remove-users")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_admin_router()
 {
     last_command="openshift_admin_router"
@@ -1578,6 +1649,7 @@ _openshift_admin()
     commands=()
     commands+=("new-project")
     commands+=("policy")
+    commands+=("groups")
     commands+=("router")
     commands+=("ipfailover")
     commands+=("registry")

@@ -35,6 +35,14 @@ oc create -f examples/hello-openshift/hello-pod.json
 oc delete pods hello-openshift
 echo "manage-node: ok"
 
+oadm groups new group1 foo bar
+oc get groups/group1 --no-headers | grep -q "foo, bar"
+oadm groups add-users group1 baz
+oc get groups/group1 --no-headers | grep -q "baz"
+oadm groups remove-users group1 bar
+[ ! "$(oc get groups/group1 --no-headers | grep -q "bar")" ]
+echo "groups: ok"
+
 oadm policy who-can get pods
 oadm policy who-can get pods -n default
 oadm policy who-can get pods --all-namespaces

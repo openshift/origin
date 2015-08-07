@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
+	"github.com/openshift/origin/pkg/cmd/admin/groups"
 	"github.com/openshift/origin/pkg/cmd/admin/node"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/project"
@@ -46,6 +47,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 			Commands: []*cobra.Command{
 				project.NewCmdNewProject(project.NewProjectRecommendedName, fullName+" "+project.NewProjectRecommendedName, f, out),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
+				groups.NewCmdGroups(groups.GroupsRecommendedName, fullName+" "+groups.GroupsRecommendedName, f, out),
 			},
 		},
 		{

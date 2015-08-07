@@ -423,6 +423,77 @@ _oadm_policy()
     must_have_one_noun=()
 }
 
+_oadm_groups_new()
+{
+    last_command="oadm_groups_new"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_groups_add-users()
+{
+    last_command="oadm_groups_add-users"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_groups_remove-users()
+{
+    last_command="oadm_groups_remove-users"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_groups()
+{
+    last_command="oadm_groups"
+    commands=()
+    commands+=("new")
+    commands+=("add-users")
+    commands+=("remove-users")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oadm_router()
 {
     last_command="oadm_router"
@@ -1200,6 +1271,7 @@ _oadm()
     commands=()
     commands+=("new-project")
     commands+=("policy")
+    commands+=("groups")
     commands+=("router")
     commands+=("ipfailover")
     commands+=("registry")

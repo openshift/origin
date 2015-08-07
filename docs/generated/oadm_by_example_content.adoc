@@ -107,6 +107,49 @@ displays Merged kubeconfig settings or a specified kubeconfig file.
 ====
 
 
+== oadm groups add-users
+Add users to a group
+
+====
+
+[options="nowrap"]
+----
+  // Add user1 and user2 to my-group
+  $ openshift admin groups add-users my-group user1 user2
+----
+====
+
+
+== oadm groups new
+Create a new group
+
+====
+
+[options="nowrap"]
+----
+  // Add a group with no users
+  $ openshift admin groups new my-group
+
+  // Add a group with two users
+  $ openshift admin groups new my-group user1 user2
+----
+====
+
+
+== oadm groups remove-users
+Remove users from a group
+
+====
+
+[options="nowrap"]
+----
+  // Add user1 and user2 to my-group
+  $   // Remove user1 and user2 from my-group
+  $ %[1]s my-group user1 user2 my-group user1 user2
+----
+====
+
+
 == oadm ipfailover
 Install an IP failover group to a set of nodes
 
