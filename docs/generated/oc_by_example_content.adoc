@@ -799,45 +799,32 @@ Update volume on a resource with a pod template
 
 [options="nowrap"]
 ----
-  // Add new volume of type 'emptyDir' for deployment config 'registry' and mount under /opt inside the containers
-  // The volume name is auto generated
-  $ openshift cli volume dc/registry --add --mount-path=/opt
+  // List volumes defined on all deployment configs in the current project
+  $ openshift cli volume dc --all
 
-  // Add new volume 'v1' with secret 'magic' for replication controller 'r1'
-  $ openshift cli volume rc/r1 --add --name=v1 -m /etc --type=secret --secret-name=magic
+  // Add a new empty dir volume to deployment config (dc) 'registry' mounted under
+  // /var/lib/registry
+  $ openshift cli volume dc/registry --add --mount-path=/var/lib/registry
 
-  // Add new volume to replication controller 'r1' based on git repository
-  // or other volume sources not supported by --type
-  $ openshift cli volume rc/r1 --add -m /repo --source=<json-string>
+  // Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
+  $ openshift cli volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
 
-  // Add emptyDir volume 'v1' to a deployment config definition on disk and 
-  // update the deployment config on the server
-  $ openshift cli volume -f dc.json --add --name=v1
-
-  // Create a new persistent volume and overwrite existing volume 'v1' for replication controller 'r1'
-  $ openshift cli volume rc/r1 --add --name=v1 -t persistentVolumeClaim --claim-name=pvc1 --overwrite
-
-  // Overwrite the replication controller 'r1' mount point to /data for volume v1
-  $ openshift cli volume rc r1 --add --name=v1 -m /data --overwrite
-
-  // Remove all volumes for deployment config 'd1'
-  $ openshift cli volume dc/d1 --remove --confirm
-
-  // Remove volume 'v1' from deployment config 'registry'  
+  // Remove volume 'v1' from deployment config 'registry'
   $ openshift cli volume dc/registry --remove --name=v1
 
-  // Modify the deployment config "d1" by removing volume mount "v1" from container "c1"
+  // Create a new persistent volume claim that overwrites an existing volume 'v1'
+  $ openshift cli volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
+
+  // Change the mount point for volume 'v1' to /data
+  $ openshift cli volume dc/registry --add --name=v1 -m /data --overwrite
+
+  // Modify the deployment config by removing volume mount "v1" from container "c1"
   // (and by removing the volume "v1" if no other containers have volume mounts that reference it)
-  $ openshift cli volume dc/d1 --remove --name=v1 --containers=c1
+  $ openshift cli volume dc/registry --remove --name=v1 --containers=c1
 
-  // List volumes defined on replication controller 'r1'
-  $ openshift cli volume rc r1 --list
-
-  // List volumes defined on all pods
-  $ openshift cli volume pods --all --list
-
-  // Output json object with volume info for deployment config 'd1' but don't alter the object on server
-  $ openshift cli volume dc/d1 --add --name=v1 --mount=/opt -o json
+  // Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
+  // Ceph, Gluster, NFS, ISCSI, ...)
+  $ openshift cli volume dc/registry --add -m /repo --source=<json-string>
 ----
 ====
 

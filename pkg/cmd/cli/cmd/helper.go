@@ -23,23 +23,25 @@ func selectContainers(containers []kapi.Container, spec string) ([]*kapi.Contain
 }
 
 func handlePodUpdateError(out io.Writer, err error, resource string) {
-	errored := false
 	if statusError, ok := err.(*errors.StatusError); ok && errors.IsInvalid(err) {
 		errorDetails := statusError.Status().Details
 		if errorDetails.Kind == "Pod" {
+			all, match := true, false
 			for _, cause := range errorDetails.Causes {
 				if cause.Field == "spec" && strings.Contains(cause.Message, "may not update fields other than") {
-					fmt.Fprintf(out, "Error updating pod %q: may not update %s in a pod directly\n", errorDetails.Name, resource)
-					errored = true
-					break
+					fmt.Fprintf(out, "error: may not update %s in pod %q directly\n", resource, errorDetails.Name)
+					match = true
+				} else {
+					all = false
 				}
+			}
+			if all && match {
+				return
 			}
 		}
 	}
 
-	if !errored {
-		fmt.Fprintf(out, "error: %v\n", err)
-	}
+	fmt.Fprintf(out, "error: %v\n", err)
 }
 
 // selectString returns true if the provided string matches spec, where spec is a string with

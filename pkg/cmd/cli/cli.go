@@ -101,7 +101,7 @@ func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
 				cmd.NewCmdDescribe(fullName, f, out),
 				cmd.NewCmdEdit(fullName, f, out),
 				cmd.NewCmdEnv(fullName, f, in, out),
-				cmd.NewCmdVolume(fullName, f, out),
+				cmd.NewCmdVolume(fullName, f, out, errout),
 				cmd.NewCmdLabel(fullName, f, out),
 				cmd.NewCmdExpose(fullName, f, out),
 				cmd.NewCmdStop(fullName, f, out),
