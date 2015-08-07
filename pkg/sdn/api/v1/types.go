@@ -18,7 +18,7 @@ type ClusterNetworkList struct {
 	Items         []ClusterNetwork `json:"items" description:"list of cluster networks"`
 }
 
-// HostSubnet encapsulates the inputs needed to define the container subnet network on a minion
+// HostSubnet encapsulates the inputs needed to define the container subnet network on a node
 type HostSubnet struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
