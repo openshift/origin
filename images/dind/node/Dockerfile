@@ -4,7 +4,7 @@
 # The standard name for this image is openshift/dind-node
 #
 
-FROM openshift/dind-master
+FROM openshift/dind-base
 
 RUN dnf -y update && dnf -y install docker openvswitch bridge-utils ethtool \
     && dnf clean all
