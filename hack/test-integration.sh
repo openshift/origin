@@ -88,7 +88,7 @@ export childargs
 #
 # hack/test-integration.sh WatchBuilds
 # hack/test-integration.sh Template*
-# hack/test-integration.sh "(WatchBuilds|Template"
+# hack/test-integration.sh "(WatchBuilds|Template)"
 
 # run each test as its own process
 pushd "./${package}" 2>&1 >/dev/null
