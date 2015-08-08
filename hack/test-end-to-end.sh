@@ -89,10 +89,8 @@ function cleanup()
 		oc delete -n default all --all
 
 		echo "[INFO] Tearing down test"
-		pids="$(jobs -pr)"
-		echo "[INFO] Children: ${pids}"
-		sudo kill ${pids}
-		sudo ps f
+		kill_all_processes
+
 		set +u
 		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
 		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
@@ -152,7 +150,6 @@ function wait_for_build() {
 }
 
 # Setup
-stop_openshift_server
 echo "[INFO] `openshift version`"
 echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
 echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"

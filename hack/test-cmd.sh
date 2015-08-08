@@ -16,6 +16,8 @@ function cleanup()
 {
     out=$?
     pkill -P $$
+    set +e
+    kill_all_processes
 
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
@@ -29,7 +31,6 @@ function cleanup()
           echo
           echo "pprof: top output"
           echo
-          set +e
           go tool pprof -text ./_output/local/go/bin/openshift cpu.pprof
         fi
 

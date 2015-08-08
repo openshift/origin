@@ -29,7 +29,7 @@ for BUCKET in ${EXTENDED_BUCKETS[@]}; do
 	fi
 	
     echo "[INFO] Starting extended test ${BUCKET}"
-	(exec hack/test-extended/${BUCKET}/run.sh)
+	hack/test-extended/${BUCKET}/run.sh
 done
 
 echo "[INFO] Finished extended tests"
