@@ -61,6 +61,7 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-sti-build
   openshift-docker-build
   origin
+  atomic-enterprise
   osc
   oadm
   osadm

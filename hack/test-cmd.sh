@@ -95,8 +95,6 @@ fi
 GO_OUT="${OS_ROOT}/_output/local/go/bin"
 export PATH="${GO_OUT}:${PATH}"
 
-ln -svf `readlink -f $(which openshift)` `dirname $(which openshift)`/atomic-enterprise
-
 # Check openshift version
 out=$(openshift version)
 echo openshift: $out

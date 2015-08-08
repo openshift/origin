@@ -57,8 +57,6 @@ API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
 setup_env_vars
 mkdir -p $LOG_DIR $ARTIFACT_DIR
 
-ln -svf `readlink -f $(which openshift)` `dirname $(which openshift)`/atomic-enterprise
-
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable
 # used as a resolve IP to test routing
