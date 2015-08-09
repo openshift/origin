@@ -177,14 +177,16 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 			printLines(out, indent, 0, describeRCInServiceGroup(standaloneRC.RC)...)
 		}
 
-		// always output warnings
-		fmt.Fprintln(out)
-
 		allMarkers := osgraph.Markers{}
 		allMarkers = append(allMarkers, createForbiddenMarkers(forbiddenResources)...)
 		for _, scanner := range getMarkerScanners() {
 			allMarkers = append(allMarkers, scanner(g)...)
 		}
+
+		if len(allMarkers) > 0 {
+			fmt.Fprintln(out)
+		}
+
 		sort.Stable(osgraph.ByKey(allMarkers))
 		sort.Stable(osgraph.ByNodeID(allMarkers))
 		if errorMarkers := allMarkers.BySeverity(osgraph.ErrorSeverity); len(errorMarkers) > 0 {
@@ -199,6 +201,8 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 				fmt.Fprintln(out, indent+marker.Message)
 			}
 		}
+
+		fmt.Fprintln(out)
 
 		if (len(services) == 0) && (len(standaloneDCs) == 0) && (len(standaloneImages) == 0) {
 			fmt.Fprintln(out, "You have no services, deployment configs, or build configs.")
