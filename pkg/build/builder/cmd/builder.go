@@ -17,9 +17,6 @@ import (
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 )
 
-const DefaultDockerEndpoint = "unix:///var/run/docker.sock"
-const DockerCfgFile = ".dockercfg"
-
 type builder interface {
 	Build() error
 }
