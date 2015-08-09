@@ -190,9 +190,6 @@ Install the integrated Docker registry
 
   // Create a registry if it does not exist with two replicas
   $ openshift admin registry --replicas=2 --credentials=registry-user.kubeconfig
-
-  // Use a different registry image and see the registry configuration
-  $ openshift admin registry -o yaml --images=myrepo/docker-registry:mytag
 ----
 ====
 
@@ -212,9 +209,6 @@ Install a router
 
   // Create a router if it does not exist
   $ openshift admin router router-west --create --replicas=2
-
-  // Use a different router image and see the router configuration
-  $ openshift admin router region-west -o yaml --images=myrepo/somerouter:mytag
 ----
 ====
 

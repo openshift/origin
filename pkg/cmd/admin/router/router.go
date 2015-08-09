@@ -53,10 +53,7 @@ you have failover protection.`
   $ %[1]s %[2]s -o json
 
   // Create a router if it does not exist
-  $ %[1]s %[2]s router-west --create --replicas=2
-
-  // Use a different router image and see the router configuration
-  $ %[1]s %[2]s region-west -o yaml --images=myrepo/somerouter:mytag`
+  $ %[1]s %[2]s router-west --create --replicas=2`
 )
 
 type RouterConfig struct {
