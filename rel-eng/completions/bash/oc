@@ -360,6 +360,8 @@ _oc_project()
 
     flags+=("--help")
     flags+=("-h")
+    flags+=("--short")
+    flags+=("-q")
 
     must_have_one_flag=()
     must_have_one_noun=()
