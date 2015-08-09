@@ -33,7 +33,7 @@ func ListenAndServe(config *server.Config, client *client.Client, etcdclient *et
 		}))
 	}
 
-	server.Metrics()
+	server.RegisterMetrics("", "skydns")
 	s := server.New(resolvers, config)
 	defer close(stop)
 	return s.Run()
