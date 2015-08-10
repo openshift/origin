@@ -84,3 +84,9 @@ Steps
 12. Confirm both the test and production services are available by browsing to both services:
 
         $ oc get services -n test | grep frontend
+
+Troubleshooting
+-----
+
+If you run into difficulties running OpenShift or getting the `OpenShift Sample` job to complete successfully, start by reading through the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
+
