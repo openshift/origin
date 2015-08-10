@@ -121,6 +121,10 @@ EOF
         sysctl -w net.bridge.bridge-nf-call-iptables=0
     fi
 
+    # enable IP forwarding for ipv4 packets
+    sysctl -w net.ipv4.ip_forward=1
+    sysctl -w net.ipv4.conf.${TUN}.forwarding=1
+
     # delete the subnet routing entry created because of lbr0
     ip route del ${subnet} dev lbr0 proto kernel scope link src ${subnet_gateway} || true
 
