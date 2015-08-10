@@ -218,12 +218,10 @@ module.exports = function (grunt) {
     filerev: {
       dist: {
         src: [
-          // We do not need digest filenames as our files are loaded from
-          // a commit-based path
-          //'<%= yeoman.dist %>/scripts/{,*/}*.js',
-          //'<%= yeoman.dist %>/styles/{,*/}*.css',
-          //'<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
-          //'<%= yeoman.dist %>/styles/fonts/*'
+          '<%= yeoman.dist %>/scripts/{,*/}*.js',
+          '<%= yeoman.dist %>/styles/{,*/}*.css',
+          '<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
+          '<%= yeoman.dist %>/styles/fonts/*'
         ]
       }
     },
@@ -372,6 +370,19 @@ module.exports = function (grunt) {
           src: ['*.js', '!oldieshim.js'],
           dest: '.tmp/concat/scripts'
         }]
+      }
+    },
+
+    ngtemplates: {
+      dist: {
+        cwd: '<%= yeoman.app %>',
+        src: 'views/**/*.html',
+        dest: '<%= yeoman.dist %>/scripts/templates.js',
+        options: {
+          module: 'openshiftConsole',
+          htmlmin: {},
+          usemin: 'scripts/scripts.js'
+        }
       }
     },
 
@@ -538,6 +549,8 @@ module.exports = function (grunt) {
 
   grunt.loadNpmTasks('grunt-htmlhint');
 
+  grunt.loadNpmTasks('grunt-angular-templates');
+
   // karma must run prior to coverage since karma will generate the coverage results
   grunt.registerTask('test', [
     'clean:server',
@@ -572,6 +585,7 @@ module.exports = function (grunt) {
     'htmlhint',
     'wiredep',
     'useminPrepare',
+    'ngtemplates',
     'concurrent:dist',
     'autoprefixer',
     'concat',
