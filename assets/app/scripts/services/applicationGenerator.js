@@ -3,7 +3,7 @@
 angular.module("openshiftConsole")
 
   .service("ApplicationGenerator", function(DataService){
-    var osApiVersion = DataService.osApiVersion;
+    var oApiVersion = DataService.oApiVersion;
     var k8sApiVersion = DataService.k8sApiVersion;
 
     var scope = {};
@@ -98,7 +98,7 @@ angular.module("openshiftConsole")
       }
       return {
         kind: "Route",
-        apiVersion: osApiVersion,
+        apiVersion: oApiVersion,
         metadata: {
           name: name,
           labels: input.labels,
@@ -122,7 +122,7 @@ angular.module("openshiftConsole")
       templateLabels.deploymentconfig = input.name;
 
       var deploymentConfig = {
-        apiVersion: osApiVersion,
+        apiVersion: oApiVersion,
         kind: "DeploymentConfig",
         metadata: {
           name: input.name,
@@ -181,7 +181,7 @@ angular.module("openshiftConsole")
           generic: {
             secret: scope._generateSecret()
           },
-          type: "generic"
+          type: "Generic"
         }
       ];
       if(input.buildConfig.buildOnSourceChange){
@@ -189,18 +189,18 @@ angular.module("openshiftConsole")
             github: {
               secret: scope._generateSecret()
             },
-            type: "github"
+            type: "GitHub"
           }
         );
       }
       if(input.buildConfig.buildOnImageChange){
         triggers.push({
           imageChange: {},
-          type: "imageChange"
+          type: "ImageChange"
         });
       }
       return {
-        apiVersion: osApiVersion,
+        apiVersion: oApiVersion,
         kind: "BuildConfig",
         metadata: {
           name: input.name,
@@ -238,7 +238,7 @@ angular.module("openshiftConsole")
 
     scope._generateImageStream = function(input){
       return {
-        apiVersion: osApiVersion,
+        apiVersion: oApiVersion,
         kind: "ImageStream",
         metadata: {
           name: input.name,
@@ -268,7 +268,7 @@ angular.module("openshiftConsole")
       };
       //TODO add in when server supports headless services without a port spec
 //      if(port === 'None'){
-//        service.spec.portalIP = 'None';
+//        service.spec.clusterIP = 'None';
 //      }else{
         service.spec.ports = [{
           port: port.containerPort,

@@ -51,9 +51,9 @@ angular.module("openshiftConsole")
       DataService.get("imagestreams", scope.imageName, scope, {namespace: scope.namespace}).then(function(imageRepo){
           scope.imageRepo = imageRepo;
           var imageName = scope.imageTag;
-          DataService.get("imagestreamtags", imageRepo.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(image){
-              scope.image = image;
-              angular.forEach(image.dockerImageMetadata.ContainerConfig.Env, function(entry){
+          DataService.get("imagestreamtags", imageRepo.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(imageStreamTag){
+              scope.image = imageStreamTag.image;
+              angular.forEach(imageStreamTag.image.dockerImageMetadata.ContainerConfig.Env, function(entry){
                 var pair = entry.split("=");
                 scope.deploymentConfig.envVars[pair[0]] = pair[1];
               });

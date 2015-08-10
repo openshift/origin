@@ -8,13 +8,15 @@
   <div class="component pod-template-block" ng-repeat="container in podTemplate.spec.containers">
     <div class="pod-template">                              
       <h4>{{container.name}}</h4>
-      <div class="pod-template-image">
+      <div ng-if="container.image" class="pod-template-image">
         <span class="fa fa-cube" aria-hidden="true"></span>
         <span>Image: {{container.image | imageStreamName}}
-          <span ng-if="imagesByDockerReference[container.image]"> (<span class="small" title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name.substr(0, 10)}}</span>)</span>
+          <span ng-if="imagesByDockerReference[container.image]">
+            (<span class="small" title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name | stripSHAPrefix | limitTo: 7}}</span>)
+          </span>
         </span>
       </div>
-      <div ng-if="imagesByDockerReference && (image = imagesByDockerReference[container.image])" class="pod-template-build">
+      <div ng-if="imagesByDockerReference && container.image && (image = imagesByDockerReference[container.image])" class="pod-template-build">
         <div ng-if="build = (image | buildForImage : builds)">
           <div>
             <span class="fa fa-refresh" aria-hidden="true"></span>

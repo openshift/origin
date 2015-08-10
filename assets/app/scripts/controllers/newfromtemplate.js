@@ -21,7 +21,9 @@ angular.module('openshiftConsole')
       var containers = dcContainers(dc);
       if (containers) {
         angular.forEach(containers, function(container) {
-          images.push(container.image);
+          if (container.image) {
+            images.push(container.image);
+          }
         });
       }
       return images;
