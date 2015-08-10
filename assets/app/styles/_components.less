@@ -2,6 +2,8 @@
 // Overview page components
 // --------------------------------------------------
 
+@components-small-font-size: 11px;
+
 .components {
   border-left: 3px solid #ccc;
   border-left-style: dotted;
@@ -49,7 +51,7 @@
     .osc-object-highlight();
     .component-label {
       text-transform: uppercase;
-      font-size: 11px;
+      font-size: @components-small-font-size;
       color: @gray-light;
       + span {
         margin-left: 5px;
@@ -92,6 +94,7 @@
             // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
             .flex(@columns: 1);
           }
+          font-size: @components-small-font-size;
           text-align: right;
           line-height: 1.3em;
           .align-self(@align: left);
@@ -121,6 +124,32 @@
       .osc-object-highlight();
       &.none {
         background-color: transparent;
+      }
+      .meta-data {
+        // a little margin above the ports table
+        margin-bottom: 5px;
+        .fa {
+          margin-left: 5px;
+          font-size: 15px;
+        }
+      }
+      .table-responsive {
+        border: 0;
+        margin-bottom: 0;
+      }
+      .port-table {
+        .table;
+        .table-condensed;
+        .text-center;
+        font-size: @components-small-font-size;
+        margin-bottom: 0;
+        thead {
+          background-color: white;
+          background-image: none;
+          tr th {
+            .text-center;
+          }
+        }
       }
     }
     &.deployment-block {
@@ -294,7 +323,7 @@
       }
       .pod-text {
         font-family: @font-family-base;
-        font-size: 11px;
+        font-size: @components-small-font-size;
       }
     }
   }

@@ -37,17 +37,17 @@
         <!-- TODO handle multiple services mapping to the same deploymentConfig/deployment/pod -->
         <section ng-repeat="(serviceId, service) in services" class="components components-group">
 
-          <div class="osc-object components-panel service" ng-init="numPorts = service.spec.ports.length" kind="Service" resource="service">
-
+          <div class="osc-object components-panel service" kind="Service" resource="service">
             <div class="component-block">
               <div class="component">
-                <div class="component-label">
+                <div ng-attr-title="{{service | serviceImplicitDNSName}}" class="component-label">
                   <!-- "service" class is present for e2e tests to check   -->
                   Service <span ng-if="displayRouteByService[serviceId]">: <span class="service">{{serviceId}}</span></span>
                 </div>
 
                 <!-- Show the route if present -->
-                <h2 ng-if="displayRouteByService[serviceId]" ng-init="otherRoutes = (routesByService[serviceId] | hashSize) - 1">
+                <h2 ng-if="displayRouteByService[serviceId]"
+                    ng-init="otherRoutes = (routesByService[serviceId] | hashSize) - 1">
                   <span ng-if="(displayRouteByService[serviceId] | isWebRoute)">
                     <!-- "route" class is present for e2e tests to check -->
                     <a href="{{displayRouteByService[serviceId] | routeWebURL}}" class="route">{{displayRouteByService[serviceId] | routeLabel}}</a>
@@ -66,33 +66,51 @@
 
                 <!-- If no route is present, show the service name large -->
                 <!-- "service" class is present for e2e tests to check   -->
-                <h2 class="service" ng-if="!displayRouteByService[serviceId]">
+                <h2 class="service" ng-if="!displayRouteByService[serviceId]" ng-attr-title="{{service | serviceImplicitDNSName}}">
                   {{serviceId}}
                 </h2>
               </div>
 
               <div class="component meta-data">
-                <span ng-if="service.spec.portalIP && service.spec.portalIP !== 'None'">
-                  routing traffic on {{service.spec.portalIP}}
+                <span ng-click="expanded = !expanded" class="clickable" title="Show service ports">
+                  <span ng-if="service.spec.type">{{service.spec.type}}</span>
+                  <i ng-show="!expanded" class="fa fa-caret-down"></i>
+                  <i ng-show="expanded" class="fa fa-caret-up"></i>
                 </span>
-                <div ng-if="numPorts">
-                  <!--
-                  Show only the first two ports if there are many since we don't have much space here.
-                  The full list is visible elsewhere.
-                  -->
-                  <span ng-repeat="portMapping in service.spec.ports | orderBy:'port' | limitTo:2" class="nowrap">
-                    <!-- Group port mappings and allow multiple mappings to stack if needed -->
-                    <span class="port-mappings">port {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
-                      ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span></span>
-                  </span>
-                  <span ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
-                    and {{numRemaining}} {{numRemaining == 1 ? "other" : "others"}}
-                  </span>
-                </div>
               </div>
             </div>
+            <div ng-show="expanded" class="table-responsive">
+              <table ng-if="service.spec.ports.length" class="port-table">
+                <thead>
+                  <tr>
+                    <th>Node Port</th>
+                    <th role="presentation"></th>
+                    <th>
+                      Service Port
+                      <!-- Show portal IP in column header instead of table body at small screen
+                      widths to save space. -->
+                      <span class="visible-xs">({{service.spec.portalIP}})</span>
+                    </th>
+                    <th role="presentation"></th>
+                    <th>Target Port</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="portMapping in service.spec.ports | orderBy:'port'">
+                    <td>
+                      <span ng-if="portMapping.nodePort">{{portMapping.nodePort}}</span>
+                      <span ng-if="!portMapping.nodePort" class="text-muted">none</span>
+                    </td>
+                    <td role="presentation" class="text-muted">&#8594;</td>
+                    <td><span ng-if="service.spec.portalIP && service.spec.portalIP !== 'None'">
+                        <span class="hidden-xs">{{service.spec.portalIP}}:</span></span>{{portMapping.port}}</td>
+                    <td role="presentation" class="text-muted">&#8594;</td>
+                    <td>{{portMapping.targetPort}}&nbsp;({{portMapping.protocol}})</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-
 
           <!--
           Iterate over deploymentConfigs for this service.
