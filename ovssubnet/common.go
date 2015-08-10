@@ -32,9 +32,11 @@ type OvsController struct {
 }
 
 type FlowController interface {
-	Setup(localSubnet, globalSubnet string) error
+	Setup(localSubnet, globalSubnet, servicesSubnet string) error
 	AddOFRules(minionIP, localSubnet, localIP string) error
 	DelOFRules(minionIP, localIP string) error
+	AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
+	DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
 }
 
 func NewKubeController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
@@ -286,7 +288,12 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 			log.Errorf("Failed to obtain ContainerNetwork: %v", err)
 			return err
 		}
-		err = oc.flowController.Setup(oc.localSubnet.Sub, containerNetwork)
+		servicesNetwork, err := oc.subnetRegistry.GetServicesNetwork()
+		if err != nil {
+			log.Errorf("Failed to obtain ServicesNetwork: %v", err)
+			return err
+		}
+		err = oc.flowController.Setup(oc.localSubnet.Sub, containerNetwork, servicesNetwork)
 		if err != nil {
 			return err
 		}
@@ -309,6 +316,15 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		go oc.watchVnids()
 	}
 	go oc.watchCluster()
+
+	services, err := oc.subnetRegistry.GetServices()
+	if err != nil {
+		log.Errorf("Could not fetch existing services: %v", err)
+	}
+	for _, svc := range *services {
+		oc.flowController.AddServiceOFRules(oc.VnidMap[svc.Namespace], svc.IP, svc.Protocol, svc.Port)
+	}
+	go oc.watchServices()
 
 	if oc.ready != nil {
 		close(oc.ready)
@@ -372,6 +388,28 @@ func (oc *OvsController) watchMinions() {
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of minions.")
+			stop <- true
+			return
+		}
+	}
+}
+
+func (oc *OvsController) watchServices() {
+	stop := make(chan bool)
+	svcevent := make(chan *api.ServiceEvent)
+	go oc.subnetRegistry.WatchServices(svcevent, stop)
+	for {
+		select {
+		case ev := <-svcevent:
+			netid := oc.VnidMap[ev.Service.Namespace]
+			switch ev.Type {
+			case api.Added:
+				oc.flowController.AddServiceOFRules(netid, ev.Service.IP, ev.Service.Protocol, ev.Service.Port)
+			case api.Deleted:
+				oc.flowController.DelServiceOFRules(netid, ev.Service.IP, ev.Service.Protocol, ev.Service.Port)
+			}
+		case <-oc.sig:
+			log.Error("Signal received. Stopping watching of services.")
 			stop <- true
 			return
 		}
