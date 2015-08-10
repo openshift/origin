@@ -45,6 +45,7 @@ cp -f "${imagedir}/openshift" images/ipfailover/keepalived/bin
 cp -f "${imagedir}/pod" images/pod/bin
 cp -f "${imagedir}/hello-openshift" examples/hello-openshift/bin
 cp -f "${imagedir}/deployment"      examples/deployment/bin
+cp -f "${imagedir}/gitserver"       examples/gitserver/bin
 cp -f "${imagedir}/dockerregistry"  images/dockerregistry/bin
 
 # builds an image and tags it two ways - with latest, and with the release tag
