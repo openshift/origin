@@ -299,7 +299,26 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		}
 		objects = app.AddServices(objects, true)
 		// TODO: label all created objects with the same label
-		list := &kapi.List{Items: objects}
+		clientConfig, err := f.ClientConfig()
+		if err != nil {
+			return err
+		}
+		version := cmdutil.OutputVersion(cmd, clientConfig.Version)
+		versioned := make([]runtime.Object, 0, len(objects))
+		for _, in := range objects {
+			out, err := kapi.Scheme.ConvertToVersion(in, version)
+			if err != nil {
+				return err
+			}
+			versioned = append(versioned, out)
+		}
+		list := &kapi.List{
+			TypeMeta: kapi.TypeMeta{
+				APIVersion: version,
+				Kind:       "List",
+			},
+			Items: versioned,
+		}
 
 		if output {
 			if err := p.PrintObj(list, out); err != nil {
