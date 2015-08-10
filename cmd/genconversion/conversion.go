@@ -42,6 +42,7 @@ func main() {
 
 	generator := pkg_runtime.NewConversionGenerator(api.Scheme.Raw(), "github.com/openshift/origin/pkg/api")
 	apiShort := generator.AddImport("github.com/GoogleCloudPlatform/kubernetes/pkg/api")
+	generator.AddImport("github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource")
 	generator.AssumePrivateConversions()
 	// TODO(wojtek-t): Change the overwrites to a flag.
 	generator.OverwritePackage(*version, "")

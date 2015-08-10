@@ -91,6 +91,19 @@ __custom_func() {
     esac
 }
 `
+	valid_resources = `Valid resource types include:
+   * pods (aka 'po')
+   * replicationcontrollers (aka 'rc')
+   * services (aka 'svc')
+   * events (aka 'ev')
+   * nodes (aka 'no')
+   * namespaces (aka 'ns')
+   * secrets
+   * persistentvolumes (aka 'pv')
+   * persistentvolumeclaims (aka 'pvc')
+   * limitranges (aka 'limits')
+   * resourcequotas (aka 'quota')
+`
 )
 
 // NewKubectlCommand creates the `kubectl` command and its nested children.
@@ -123,6 +136,7 @@ Find more information at https://github.com/GoogleCloudPlatform/kubernetes.`,
 	cmds.AddCommand(NewCmdRollingUpdate(f, out))
 	cmds.AddCommand(NewCmdScale(f, out))
 
+	cmds.AddCommand(NewCmdAttach(f, in, out, err))
 	cmds.AddCommand(NewCmdExec(f, in, out, err))
 	cmds.AddCommand(NewCmdPortForward(f))
 	cmds.AddCommand(NewCmdProxy(f, out))

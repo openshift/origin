@@ -122,8 +122,8 @@ func TestPodAndContainer(t *testing.T) {
 		if options.ContainerName != test.expectedContainer {
 			t.Errorf("expected: %s, got: %s (%s)", test.expectedContainer, options.ContainerName, test.name)
 		}
-		if !reflect.DeepEqual(test.expectedArgs, options.Args) {
-			t.Errorf("expected: %v, got %v (%s)", test.expectedArgs, options.Args, test.name)
+		if !reflect.DeepEqual(test.expectedArgs, options.Command) {
+			t.Errorf("expected: %v, got %v (%s)", test.expectedArgs, options.Command, test.name)
 		}
 	}
 }

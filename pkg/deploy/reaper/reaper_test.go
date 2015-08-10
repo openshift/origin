@@ -53,7 +53,9 @@ func TestStop(t *testing.T) {
 				"delete-deploymentconfig",
 			},
 			kexpected: []string{
-				"list-replicationControllers",
+				"list-replicationController",
+				"get-replicationController",
+				"list-replicationController",
 				"get-replicationController",
 				"update-replicationController",
 				"get-replicationController",
@@ -73,27 +75,37 @@ func TestStop(t *testing.T) {
 				"delete-deploymentconfig",
 			},
 			kexpected: []string{
-				"list-replicationControllers",
+				"list-replicationController",
+				"get-replicationController",
+				"list-replicationController",
 				"get-replicationController",
 				"update-replicationController",
 				"get-replicationController",
 				"get-replicationController",
 				"delete-replicationController",
 				"get-replicationController",
-				"update-replicationController",
-				"get-replicationController",
-				"get-replicationController",
-				"delete-replicationController",
+				"list-replicationController",
 				"get-replicationController",
 				"update-replicationController",
 				"get-replicationController",
 				"get-replicationController",
 				"delete-replicationController",
 				"get-replicationController",
+				"list-replicationController",
+				"get-replicationController",
 				"update-replicationController",
 				"get-replicationController",
 				"get-replicationController",
 				"delete-replicationController",
+				"get-replicationController",
+				"list-replicationController",
+				"get-replicationController",
+				"update-replicationController",
+				"get-replicationController",
+				"get-replicationController",
+				"delete-replicationController",
+				"get-replicationController",
+				"list-replicationController",
 				"get-replicationController",
 				"update-replicationController",
 				"get-replicationController",
@@ -113,7 +125,9 @@ func TestStop(t *testing.T) {
 				"delete-deploymentconfig",
 			},
 			kexpected: []string{
-				"list-replicationControllers",
+				"list-replicationController",
+				"get-replicationController",
+				"list-replicationController",
 				"get-replicationController",
 				"update-replicationController",
 				"get-replicationController",
@@ -133,7 +147,7 @@ func TestStop(t *testing.T) {
 				"delete-deploymentconfig",
 			},
 			kexpected: []string{
-				"list-replicationControllers",
+				"list-replicationController",
 			},
 			output: "",
 			err:    true,
@@ -148,7 +162,7 @@ func TestStop(t *testing.T) {
 				"delete-deploymentconfig",
 			},
 			kexpected: []string{
-				"list-replicationControllers",
+				"list-replicationController",
 			},
 			output: "config stopped",
 			err:    false,
@@ -173,10 +187,10 @@ func TestStop(t *testing.T) {
 				t.Errorf("%s: unexpected action: %s, expected %s", test.testName, fake.Action, test.expected[j])
 			}
 		}
-		if len(test.kc.Actions) != len(test.kexpected) {
-			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.kc.Actions, test.kexpected)
+		if len(test.kc.Actions()) != len(test.kexpected) {
+			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.kc.Actions(), test.kexpected)
 		}
-		for j, fake := range test.kc.Actions {
+		for j, fake := range test.kc.Actions() {
 			if fake.Action != test.kexpected[j] {
 				t.Errorf("%s: unexpected action: %s, expected %s", test.testName, fake.Action, test.kexpected[j])
 			}

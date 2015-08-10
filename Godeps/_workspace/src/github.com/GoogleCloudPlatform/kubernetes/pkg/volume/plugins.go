@@ -141,6 +141,7 @@ type Spec struct {
 	Name                   string
 	VolumeSource           api.VolumeSource
 	PersistentVolumeSource api.PersistentVolumeSource
+	ReadOnly               bool
 }
 
 // RecyclableVolumeConfig describes the things needed to generate a pod that scrubs a PV clean for reuse by another PVClaim
@@ -160,10 +161,11 @@ func NewSpecFromVolume(vs *api.Volume) *Spec {
 }
 
 // NewSpecFromPersistentVolume creates an Spec from an api.PersistentVolume
-func NewSpecFromPersistentVolume(pv *api.PersistentVolume) *Spec {
+func NewSpecFromPersistentVolume(pv *api.PersistentVolume, readOnly bool) *Spec {
 	return &Spec{
 		Name: pv.Name,
 		PersistentVolumeSource: pv.Spec.PersistentVolumeSource,
+		ReadOnly:               readOnly,
 	}
 }
 

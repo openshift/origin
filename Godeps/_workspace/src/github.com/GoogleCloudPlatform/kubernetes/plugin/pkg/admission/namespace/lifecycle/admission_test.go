@@ -17,24 +17,13 @@ limitations under the License.
 package lifecycle
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 )
-
-// TODO this is what the code used to do.  This should actually be using the same mechanism as NewLifecycle
-func metaNamespaceIndexAsKeyFunc(obj interface{}) (string, error) {
-	meta, err := meta.Accessor(obj)
-	if err != nil {
-		return "", fmt.Errorf("object has no meta: %v", err)
-	}
-	return meta.Namespace(), nil
-}
 
 // TestAdmission
 func TestAdmission(t *testing.T) {
@@ -47,7 +36,7 @@ func TestAdmission(t *testing.T) {
 			Phase: api.NamespaceActive,
 		},
 	}
-	store := cache.NewStore(metaNamespaceIndexAsKeyFunc)
+	store := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	store.Add(namespaceObj)
 	mockClient := &testclient.Fake{}
 	lfhandler := NewLifecycle(mockClient).(*lifecycle)

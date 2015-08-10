@@ -7,7 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/clusternetwork"
@@ -21,7 +21,7 @@ type REST struct {
 const etcdPrefix = "/registry/sdnnetworks"
 
 // NewREST returns a RESTStorage object that will work against subnets
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ClusterNetwork{} },
 		NewListFunc: func() runtime.Object { return &api.ClusterNetworkList{} },
@@ -39,7 +39,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		},
 		EndpointName: "clusternetwork",
 
-		Helper: h,
+		Storage: s,
 	}
 
 	store.CreateStrategy = clusternetwork.Strategy

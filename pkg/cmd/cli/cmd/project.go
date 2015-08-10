@@ -226,7 +226,7 @@ func (o ProjectOptions) RunProject() error {
 		contextNameIsGenerated = true
 	}
 
-	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config); err != nil {
+	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config, true); err != nil {
 		return err
 	}
 

@@ -69,6 +69,7 @@ type KubeletServer struct {
 	FileCheckFrequency             time.Duration
 	HTTPCheckFrequency             time.Duration
 	ManifestURL                    string
+	ManifestURLHeader              string
 	EnableServer                   bool
 	Address                        util.IP
 	Port                           uint
@@ -103,6 +104,7 @@ type KubeletServer struct {
 	ImageGCLowThresholdPercent     int
 	LowDiskSpaceThresholdMB        int
 	NetworkPluginName              string
+	NetworkPluginDir               string
 	CloudProvider                  string
 	CloudConfigFile                string
 	TLSCertFile                    string
@@ -171,6 +173,7 @@ func NewKubeletServer() *KubeletServer {
 		ImageGCLowThresholdPercent:  80,
 		LowDiskSpaceThresholdMB:     256,
 		NetworkPluginName:           "",
+		NetworkPluginDir:            "/usr/libexec/kubernetes/kubelet-plugins/net/exec/",
 		HostNetworkSources:          kubelet.FileSource,
 		CertDirectory:               "/var/run/kubernetes",
 		NodeStatusUpdateFrequency:   10 * time.Second,
@@ -191,6 +194,7 @@ func (s *KubeletServer) AddFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&s.FileCheckFrequency, "file-check-frequency", s.FileCheckFrequency, "Duration between checking config files for new data")
 	fs.DurationVar(&s.HTTPCheckFrequency, "http-check-frequency", s.HTTPCheckFrequency, "Duration between checking http for new data")
 	fs.StringVar(&s.ManifestURL, "manifest-url", s.ManifestURL, "URL for accessing the container manifest")
+	fs.StringVar(&s.ManifestURLHeader, "manifest-url-header", s.ManifestURLHeader, "HTTP header to use when accessing the manifest URL, with the key separated from the value with a ':', as in 'key:value'")
 	fs.BoolVar(&s.EnableServer, "enable-server", s.EnableServer, "Enable the Kubelet's server")
 	fs.Var(&s.Address, "address", "The IP address for the Kubelet to serve on (set to 0.0.0.0 for all interfaces)")
 	fs.UintVar(&s.Port, "port", s.Port, "The port for the Kubelet to serve on. Note that \"kubectl logs\" will not work if you set this flag.") // see #9325
@@ -233,6 +237,7 @@ func (s *KubeletServer) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&s.ImageGCLowThresholdPercent, "image-gc-low-threshold", s.ImageGCLowThresholdPercent, "The percent of disk usage before which image garbage collection is never run. Lowest disk usage to garbage collect to. Default: 80%%")
 	fs.IntVar(&s.LowDiskSpaceThresholdMB, "low-diskspace-threshold-mb", s.LowDiskSpaceThresholdMB, "The absolute free disk space, in MB, to maintain. When disk space falls below this threshold, new pods would be rejected. Default: 256")
 	fs.StringVar(&s.NetworkPluginName, "network-plugin", s.NetworkPluginName, "<Warning: Alpha feature> The name of the network plugin to be invoked for various events in kubelet/pod lifecycle")
+	fs.StringVar(&s.NetworkPluginDir, "network-plugin-dir", s.NetworkPluginDir, "<Warning: Alpha feature> The full path of the directory in which to search for network plugins")
 	fs.StringVar(&s.CloudProvider, "cloud-provider", s.CloudProvider, "The provider for cloud services.  Empty string for no provider.")
 	fs.StringVar(&s.CloudConfigFile, "cloud-config", s.CloudConfigFile, "The path to the cloud provider configuration file.  Empty string for no configuration file.")
 	fs.StringVar(&s.ResourceContainer, "resource-container", s.ResourceContainer, "Absolute name of the resource-only container to create and run the Kubelet in (Default: /kubelet).")
@@ -289,6 +294,15 @@ func (s *KubeletServer) KubeletConfig() (*KubeletConfig, error) {
 		RootFreeDiskMB:   s.LowDiskSpaceThresholdMB,
 	}
 
+	manifestURLHeader := make(http.Header)
+	if s.ManifestURLHeader != "" {
+		pieces := strings.Split(s.ManifestURLHeader, ":")
+		if len(pieces) != 2 {
+			return nil, fmt.Errorf("manifest-url-header must have a single ':' key-value separator, got %q", s.ManifestURLHeader)
+		}
+		manifestURLHeader.Set(pieces[0], pieces[1])
+	}
+
 	return &KubeletConfig{
 		Address:                        s.Address,
 		AllowPrivileged:                s.AllowPrivileged,
@@ -297,6 +311,7 @@ func (s *KubeletServer) KubeletConfig() (*KubeletConfig, error) {
 		RootDirectory:                  s.RootDirectory,
 		ConfigFile:                     s.Config,
 		ManifestURL:                    s.ManifestURL,
+		ManifestURLHeader:              manifestURLHeader,
 		FileCheckFrequency:             s.FileCheckFrequency,
 		HTTPCheckFrequency:             s.HTTPCheckFrequency,
 		PodInfraContainerImage:         s.PodInfraContainerImage,
@@ -320,7 +335,7 @@ func (s *KubeletServer) KubeletConfig() (*KubeletConfig, error) {
 		KubeClient:                     nil,
 		MasterServiceNamespace:         s.MasterServiceNamespace,
 		VolumePlugins:                  ProbeVolumePlugins(),
-		NetworkPlugins:                 ProbeNetworkPlugins(),
+		NetworkPlugins:                 ProbeNetworkPlugins(s.NetworkPluginDir),
 		NetworkPluginName:              s.NetworkPluginName,
 		StreamingConnectionIdleTimeout: s.StreamingConnectionIdleTimeout,
 		TLSOptions:                     tlsOptions,
@@ -353,9 +368,6 @@ func (s *KubeletServer) Run(kcfg *KubeletConfig) error {
 		}
 		kcfg = cfg
 
-	}
-
-	if kcfg.KubeClient == nil {
 		clientConfig, err := s.CreateAPIServerClientConfig()
 		if err == nil {
 			kcfg.KubeClient, err = client.New(clientConfig)
@@ -363,9 +375,7 @@ func (s *KubeletServer) Run(kcfg *KubeletConfig) error {
 		if err != nil && len(s.APIServerList) > 0 {
 			glog.Warningf("No API client: %v", err)
 		}
-	}
 
-	if kcfg.Cloud == nil {
 		cloud, err := cloudprovider.InitCloudProvider(s.CloudProvider, s.CloudConfigFile)
 		if err != nil {
 			return err
@@ -625,7 +635,7 @@ func RunKubelet(kcfg *KubeletConfig, builder KubeletBuilder) error {
 	} else {
 		glog.Warning("No api server defined - no events will be sent to API server.")
 	}
-	capabilities.Setup(kcfg.AllowPrivileged, kcfg.HostNetworkSources)
+	capabilities.Setup(kcfg.AllowPrivileged, kcfg.HostNetworkSources, 0)
 
 	credentialprovider.SetPreferredDockercfgPath(kcfg.RootDirectory)
 
@@ -684,8 +694,8 @@ func makePodSourceConfig(kc *KubeletConfig) *config.PodConfig {
 
 	// define url config source
 	if kc.ManifestURL != "" {
-		glog.Infof("Adding manifest url: %v", kc.ManifestURL)
-		config.NewSourceURL(kc.ManifestURL, kc.NodeName, kc.HTTPCheckFrequency, cfg.Channel(kubelet.HTTPSource))
+		glog.Infof("Adding manifest url %q with HTTP header %v", kc.ManifestURL, kc.ManifestURLHeader)
+		config.NewSourceURL(kc.ManifestURL, kc.ManifestURLHeader, kc.NodeName, kc.HTTPCheckFrequency, cfg.Channel(kubelet.HTTPSource))
 	}
 	if kc.KubeClient != nil {
 		glog.Infof("Watching apiserver")
@@ -707,6 +717,7 @@ type KubeletConfig struct {
 	RootDirectory                  string
 	ConfigFile                     string
 	ManifestURL                    string
+	ManifestURLHeader              http.Header
 	FileCheckFrequency             time.Duration
 	HTTPCheckFrequency             time.Duration
 	Hostname                       string

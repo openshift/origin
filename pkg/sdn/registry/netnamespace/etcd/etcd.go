@@ -7,7 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/netnamespace"
@@ -21,7 +21,7 @@ type REST struct {
 const etcdPrefix = "/registry/sdnnetnamespaces"
 
 // NewREST returns a RESTStorage object that will work against netnamespaces
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.NetNamespace{} },
 		NewListFunc: func() runtime.Object { return &api.NetNamespaceList{} },
@@ -39,7 +39,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		},
 		EndpointName: "netnamespace",
 
-		Helper: h,
+		Storage: s,
 	}
 
 	store.CreateStrategy = netnamespace.Strategy

@@ -26,7 +26,7 @@ import (
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolume"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 )
 
 // rest implements a RESTStorage for persistentvolumes against etcd
@@ -35,7 +35,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against PersistentVolume objects.
-func NewStorage(h tools.EtcdHelper) (*REST, *StatusREST) {
+func NewStorage(s storage.Interface) (*REST, *StatusREST) {
 	prefix := "/persistentvolumes"
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.PersistentVolume{} },
@@ -54,7 +54,7 @@ func NewStorage(h tools.EtcdHelper) (*REST, *StatusREST) {
 		},
 		EndpointName: "persistentvolume",
 
-		Helper: h,
+		Storage: s,
 	}
 
 	store.CreateStrategy = persistentvolume.Strategy

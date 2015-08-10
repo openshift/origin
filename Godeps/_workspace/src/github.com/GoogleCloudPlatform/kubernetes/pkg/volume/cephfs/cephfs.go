@@ -143,6 +143,11 @@ type cephfs struct {
 	plugin      *cephfsPlugin
 }
 
+// IsReadOnly exposes if the volume is read only.
+func (cephfsVolume *cephfs) IsReadOnly() bool {
+	return cephfsVolume.readonly
+}
+
 // SetUp attaches the disk and bind mounts to the volume path.
 func (cephfsVolume *cephfs) SetUp() error {
 	return cephfsVolume.SetUpAt(cephfsVolume.GetPath())

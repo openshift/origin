@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
@@ -34,6 +35,16 @@ const (
 	DefaultPathAcceptRE   = "^/.*"
 	DefaultPathRejectRE   = "^/api/.*/exec,^/api/.*/run"
 	DefaultMethodRejectRE = "POST,PUT,PATCH"
+)
+
+var (
+	// The reverse proxy will periodically flush the io writer at this frequency.
+	// Only matters for long poll connections like the one used to watch. With an
+	// interval of 0 the reverse proxy will buffer content sent on any connection
+	// with transfer-encoding=chunked.
+	// TODO: Flush after each chunk so the client doesn't suffer a 100ms latency per
+	// watch event.
+	ReverseProxyFlushInterval = 100 * time.Millisecond
 )
 
 // FilterServer rejects requests which don't match one of the specified regular expressions
@@ -106,8 +117,17 @@ func (f *FilterServer) HandlerFor(delegate http.Handler) *FilterServer {
 	return &f2
 }
 
+// Get host from a host header value like "localhost" or "localhost:8080"
+func extractHost(header string) (host string) {
+	host, _, err := net.SplitHostPort(header)
+	if err != nil {
+		host = header
+	}
+	return host
+}
+
 func (f *FilterServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	host, _, _ := net.SplitHostPort(req.Host)
+	host := extractHost(req.Host)
 	if f.accept(req.Method, req.URL.Path, host) {
 		f.delegate.ServeHTTP(rw, req)
 		return
@@ -119,12 +139,13 @@ func (f *FilterServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 // ProxyServer is a http.Handler which proxies Kubernetes APIs to remote API server.
 type ProxyServer struct {
 	handler http.Handler
+	port    int
 }
 
 // NewProxyServer creates and installs a new ProxyServer.
 // It automatically registers the created ProxyServer to http.DefaultServeMux.
 // 'filter', if non-nil, protects requests to the api only.
-func NewProxyServer(filebase string, apiProxyPrefix string, staticPrefix string, filter *FilterServer, cfg *client.Config) (*ProxyServer, error) {
+func NewProxyServer(port int, filebase string, apiProxyPrefix string, staticPrefix string, filter *FilterServer, cfg *client.Config) (*ProxyServer, error) {
 	host := cfg.Host
 	if !strings.HasSuffix(host, "/") {
 		host = host + "/"
@@ -153,16 +174,20 @@ func NewProxyServer(filebase string, apiProxyPrefix string, staticPrefix string,
 		// serving their working directory by default.
 		mux.Handle(staticPrefix, newFileHandler(staticPrefix, filebase))
 	}
-	return &ProxyServer{handler: mux}, nil
+	return &ProxyServer{handler: mux, port: port}, nil
 }
 
-// Serve starts the server (http.DefaultServeMux) on given port, loops forever.
-func (s *ProxyServer) Serve(port int) error {
+// Listen is a simple wrapper around net.Listen.
+func (s *ProxyServer) Listen() (net.Listener, error) {
+	return net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", s.port))
+}
+
+// Serve starts the server using given listener, loops forever.
+func (s *ProxyServer) ServeOnListener(l net.Listener) error {
 	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
 		Handler: s.handler,
 	}
-	return server.ListenAndServe()
+	return server.Serve(l)
 }
 
 func newProxy(target *url.URL) *httputil.ReverseProxy {
@@ -171,7 +196,7 @@ func newProxy(target *url.URL) *httputil.ReverseProxy {
 		req.URL.Host = target.Host
 		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
 	}
-	return &httputil.ReverseProxy{Director: director}
+	return &httputil.ReverseProxy{Director: director, FlushInterval: ReverseProxyFlushInterval}
 }
 
 func newFileHandler(prefix, base string) http.Handler {

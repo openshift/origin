@@ -9,6 +9,8 @@ import (
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/coreos/go-etcd/etcd"
@@ -34,10 +36,10 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 	return nil, nil
 }
 
-func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
+func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
+	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
@@ -148,7 +150,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 	}
 
 	image := &api.Image{}
-	if err := helper.ExtractObj("/images/imageID1", image, false); err != nil {
+	if err := helper.Get("/images/imageID1", image, false); err != nil {
 		t.Errorf("Unexpected error retrieving image: %#v", err)
 	}
 	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
@@ -159,7 +161,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 	}
 
 	repo := &api.ImageStream{}
-	if err := helper.ExtractObj("/imagestreams/default/somerepo", repo, false); err != nil {
+	if err := helper.Get("/imagestreams/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
 	if e, a := "imageID1", repo.Status.Tags["latest"].Items[0].Image; e != a {
@@ -385,7 +387,7 @@ func TestTrackingTags(t *testing.T) {
 		},
 	}
 
-	if err := etcdHelper.CreateObj("/imagestreams/default/stream", &stream, nil, 0); err != nil {
+	if err := etcdHelper.Create("/imagestreams/default/stream", &stream, nil, 0); err != nil {
 		t.Fatalf("Unable to create stream: %v", err)
 	}
 
@@ -410,7 +412,7 @@ func TestTrackingTags(t *testing.T) {
 		t.Fatalf("Unexpected error creating mapping: %v", err)
 	}
 
-	if err := etcdHelper.ExtractObj("/imagestreams/default/stream", &stream, false); err != nil {
+	if err := etcdHelper.Get("/imagestreams/default/stream", &stream, false); err != nil {
 		t.Fatalf("error extracting updated stream: %v", err)
 	}
 

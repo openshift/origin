@@ -137,7 +137,7 @@ Create a resource by filename or stdin
 
 
 == oc delete
-Delete a resource by filename, stdin, resource and name, or by resources and label selector.
+Delete resources by filenames, stdin, resources and names, or by resources and label selector.
 
 ====
 
@@ -730,7 +730,7 @@ Show an overview of the current project
 
 
 == oc stop
-Gracefully shut down a resource by name or filename.
+Deprecated: Gracefully shut down a resource by name or filename.
 
 ====
 

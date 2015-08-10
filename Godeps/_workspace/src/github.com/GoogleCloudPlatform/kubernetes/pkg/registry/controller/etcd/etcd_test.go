@@ -30,6 +30,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/coreos/go-etcd/etcd"
@@ -40,17 +42,17 @@ const (
 	FAIL
 )
 
-func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
+func newEtcdStorage(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
-	return fakeEtcdClient, helper
+	etcdStorage := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
+	return fakeEtcdClient, etcdStorage
 }
 
 // newStorage creates a REST storage backed by etcd helpers
 func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
-	fakeEtcdClient, h := newHelper(t)
-	storage := NewREST(h)
+	fakeEtcdClient, s := newEtcdStorage(t)
+	storage := NewREST(s)
 	return storage, fakeEtcdClient
 }
 
@@ -624,10 +626,10 @@ func TestEtcdWatchControllersFields(t *testing.T) {
 		},
 	}
 	testEtcdActions := []string{
-		tools.EtcdCreate,
-		tools.EtcdSet,
-		tools.EtcdCAS,
-		tools.EtcdDelete}
+		etcdstorage.EtcdCreate,
+		etcdstorage.EtcdSet,
+		etcdstorage.EtcdCAS,
+		etcdstorage.EtcdDelete}
 
 	controller := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
@@ -653,7 +655,7 @@ func TestEtcdWatchControllersFields(t *testing.T) {
 				node := &etcd.Node{
 					Value: string(controllerBytes),
 				}
-				if action == tools.EtcdDelete {
+				if action == etcdstorage.EtcdDelete {
 					prevNode = node
 				}
 				fakeClient.WaitForWatchCompletion()

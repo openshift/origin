@@ -27,6 +27,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/registrytest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
@@ -38,12 +40,12 @@ type testRegistry struct {
 	*registrytest.GenericRegistry
 }
 
-func newStorage(t *testing.T) (*REST, *StatusREST, *tools.FakeEtcdClient, tools.EtcdHelper) {
+func newStorage(t *testing.T) (*REST, *StatusREST, *tools.FakeEtcdClient, storage.Interface) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
-	storage, statusStorage := NewStorage(helper)
-	return storage, statusStorage, fakeEtcdClient, helper
+	etcdStorage := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
+	storage, statusStorage := NewStorage(etcdStorage)
+	return storage, statusStorage, fakeEtcdClient, etcdStorage
 }
 
 func validNewPersistentVolume(name string) *api.PersistentVolume {
@@ -320,7 +322,7 @@ func TestDeletePersistentVolumes(t *testing.T) {
 }
 
 func TestEtcdUpdateStatus(t *testing.T) {
-	storage, statusStorage, fakeClient, helper := newStorage(t)
+	storage, statusStorage, fakeClient, etcdStorage := newStorage(t)
 	ctx := api.NewContext()
 	fakeClient.TestIndex = true
 
@@ -350,7 +352,7 @@ func TestEtcdUpdateStatus(t *testing.T) {
 	}
 	var pvOut api.PersistentVolume
 	key, _ = storage.KeyFunc(ctx, "foo")
-	if err := helper.ExtractObj(key, &pvOut, false); err != nil {
+	if err := etcdStorage.Get(key, &pvOut, false); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if !api.Semantic.DeepEqual(expected, pvOut) {

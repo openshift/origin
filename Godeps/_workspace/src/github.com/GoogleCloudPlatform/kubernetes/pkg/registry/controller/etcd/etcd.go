@@ -24,7 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 )
 
 // rest implements a RESTStorage for replication controllers against etcd
@@ -37,7 +37,7 @@ type REST struct {
 var controllerPrefix = "/controllers"
 
 // NewREST returns a RESTStorage object that will work against replication controllers.
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc: func() runtime.Object { return &api.ReplicationController{} },
 
@@ -69,7 +69,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		// Used to validate controller updates
 		UpdateStrategy: controller.Strategy,
 
-		Helper: h,
+		Storage: s,
 	}
 
 	return &REST{store}

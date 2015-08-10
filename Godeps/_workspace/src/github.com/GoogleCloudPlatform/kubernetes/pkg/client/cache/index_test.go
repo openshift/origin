@@ -63,7 +63,7 @@ func TestMultiIndexKeys(t *testing.T) {
 
 	pod1 := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "one", Annotations: map[string]string{"users": "ernie,bert"}}}
 	pod2 := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "two", Annotations: map[string]string{"users": "bert,oscar"}}}
-	pod3 := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "tre", Annotations: map[string]string{"users": "ernie"}}}
+	pod3 := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "tre", Annotations: map[string]string{"users": "ernie,elmo"}}}
 
 	index.Add(pod1)
 	index.Add(pod2)
@@ -75,6 +75,14 @@ func TestMultiIndexKeys(t *testing.T) {
 	}
 	if len(erniePods) != 2 {
 		t.Errorf("Expected 2 pods but got %v", len(erniePods))
+	}
+
+	bertPods, err := index.ByIndex("byUser", "bert")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(bertPods) != 2 {
+		t.Errorf("Expected 2 pods but got %v", len(bertPods))
 	}
 
 	oscarPods, err := index.ByIndex("byUser", "oscar")
@@ -92,4 +100,36 @@ func TestMultiIndexKeys(t *testing.T) {
 	if len(ernieAndBertKeys) != 3 {
 		t.Errorf("Expected 3 pods but got %v", len(ernieAndBertKeys))
 	}
+
+	index.Delete(pod3)
+	erniePods, err = index.ByIndex("byUser", "ernie")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(erniePods) != 1 {
+		t.Errorf("Expected 1 pods but got %v", len(erniePods))
+	}
+	elmoPods, err := index.ByIndex("byUser", "elmo")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(elmoPods) != 0 {
+		t.Errorf("Expected 0 pods but got %v", len(elmoPods))
+	}
+
+	obj, err := api.Scheme.DeepCopy(pod2)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	copyOfPod2 := obj.(*api.Pod)
+	copyOfPod2.Annotations["users"] = "oscar"
+	index.Update(copyOfPod2)
+	bertPods, err = index.ByIndex("byUser", "bert")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if len(bertPods) != 1 {
+		t.Errorf("Expected 1 pods but got %v", len(bertPods))
+	}
+
 }

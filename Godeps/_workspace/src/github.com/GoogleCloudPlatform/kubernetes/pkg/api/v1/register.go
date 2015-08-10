@@ -74,6 +74,7 @@ func addKnownTypes() {
 		&PersistentVolumeClaimList{},
 		&DeleteOptions{},
 		&ListOptions{},
+		&PodAttachOptions{},
 		&PodLogOptions{},
 		&PodExecOptions{},
 		&PodProxyOptions{},
@@ -123,6 +124,7 @@ func (*PersistentVolumeClaim) IsAnAPIObject()          {}
 func (*PersistentVolumeClaimList) IsAnAPIObject()      {}
 func (*DeleteOptions) IsAnAPIObject()                  {}
 func (*ListOptions) IsAnAPIObject()                    {}
+func (*PodAttachOptions) IsAnAPIObject()               {}
 func (*PodLogOptions) IsAnAPIObject()                  {}
 func (*PodExecOptions) IsAnAPIObject()                 {}
 func (*PodProxyOptions) IsAnAPIObject()                {}

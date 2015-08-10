@@ -38,7 +38,7 @@ func TestSecurityContextConstraintsCreate(t *testing.T) {
 		Request: testRequest{
 			Method: "POST",
 			Path:   testapi.ResourcePath(getSCCResoureName(), ns, ""),
-			Query:  buildQueryValues(ns, nil),
+			Query:  buildQueryValues(nil),
 			Body:   scc,
 		},
 		Response: Response{StatusCode: 200, Body: scc},
@@ -59,7 +59,7 @@ func TestSecurityContextConstraintsGet(t *testing.T) {
 		Request: testRequest{
 			Method: "GET",
 			Path:   testapi.ResourcePath(getSCCResoureName(), ns, "abc"),
-			Query:  buildQueryValues(ns, nil),
+			Query:  buildQueryValues(nil),
 			Body:   nil,
 		},
 		Response: Response{StatusCode: 200, Body: scc},
@@ -84,7 +84,7 @@ func TestSecurityContextConstraintsList(t *testing.T) {
 		Request: testRequest{
 			Method: "GET",
 			Path:   testapi.ResourcePath(getSCCResoureName(), ns, ""),
-			Query:  buildQueryValues(ns, nil),
+			Query:  buildQueryValues(nil),
 			Body:   nil,
 		},
 		Response: Response{StatusCode: 200, Body: sccList},
@@ -102,7 +102,7 @@ func TestSecurityContextConstraintsUpdate(t *testing.T) {
 		},
 	}
 	c := &testClient{
-		Request:  testRequest{Method: "PUT", Path: testapi.ResourcePath(getSCCResoureName(), ns, "abc"), Query: buildQueryValues(ns, nil)},
+		Request:  testRequest{Method: "PUT", Path: testapi.ResourcePath(getSCCResoureName(), ns, "abc"), Query: buildQueryValues(nil)},
 		Response: Response{StatusCode: 200, Body: scc},
 	}
 	response, err := c.Setup().SecurityContextConstraints().Update(scc)
@@ -112,7 +112,7 @@ func TestSecurityContextConstraintsUpdate(t *testing.T) {
 func TestSecurityContextConstraintsDelete(t *testing.T) {
 	ns := api.NamespaceNone
 	c := &testClient{
-		Request:  testRequest{Method: "DELETE", Path: testapi.ResourcePath(getSCCResoureName(), ns, "foo"), Query: buildQueryValues(ns, nil)},
+		Request:  testRequest{Method: "DELETE", Path: testapi.ResourcePath(getSCCResoureName(), ns, "foo"), Query: buildQueryValues(nil)},
 		Response: Response{StatusCode: 200},
 	}
 	err := c.Setup().SecurityContextConstraints().Delete("foo")
@@ -132,8 +132,5 @@ func TestSecurityContextConstraintsWatch(t *testing.T) {
 }
 
 func getSCCResoureName() string {
-	if api.PreV1Beta3(testapi.Version()) {
-		return "securityContextConstraints"
-	}
 	return "securitycontextconstraints"
 }

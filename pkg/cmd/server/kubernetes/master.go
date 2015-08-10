@@ -13,7 +13,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider/nodecontroller"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/controller/replication"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/namespace"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/resourcequota"
@@ -99,7 +99,7 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := controller.NewReplicationManager(client, controller.BurstReplicas)
+	controllerManager := replication.NewReplicationManager(client, replication.BurstReplicas)
 	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
 	glog.Infof("Started Kubernetes Replication Manager")
 }

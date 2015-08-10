@@ -6,7 +6,6 @@ import (
 	"path"
 	"time"
 
-	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
@@ -156,7 +155,7 @@ func (c *MasterConfig) RunDNSServer() {
 	}
 
 	go func() {
-		err := dns.ListenAndServe(config, c.DNSServerClient(), c.EtcdHelper.Client.(*etcdclient.Client))
+		err := dns.ListenAndServe(config, c.DNSServerClient(), c.EtcdClient)
 		glog.Fatalf("Could not start DNS: %v", err)
 	}()
 
@@ -251,7 +250,7 @@ func (c *MasterConfig) RunDeploymentController() {
 
 	factory := deploycontroller.DeploymentControllerFactory{
 		KubeClient:     kclient,
-		Codec:          c.EtcdHelper.Codec,
+		Codec:          c.EtcdHelper.Codec(),
 		Environment:    env,
 		DeployerImage:  c.ImageFor("deployer"),
 		ServiceAccount: bootstrappolicy.DeployerServiceAccountName,
@@ -278,7 +277,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	factory := deployconfigcontroller.DeploymentConfigControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      c.EtcdHelper.Codec,
+		Codec:      c.EtcdHelper.Codec(),
 	}
 	controller := factory.Create()
 	controller.Run()
@@ -290,7 +289,7 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 	factory := configchangecontroller.DeploymentConfigChangeControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      c.EtcdHelper.Codec,
+		Codec:      c.EtcdHelper.Codec(),
 	}
 	controller := factory.Create()
 	controller.Run()

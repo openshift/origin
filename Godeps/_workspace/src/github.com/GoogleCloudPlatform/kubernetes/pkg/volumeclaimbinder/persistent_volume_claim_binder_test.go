@@ -23,7 +23,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/volume"
@@ -32,7 +31,7 @@ import (
 
 func TestRunStop(t *testing.T) {
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
 	binder := NewPersistentVolumeClaimBinder(client, 1*time.Second)
 
 	if len(binder.stopChannels) != 0 {
@@ -115,11 +114,11 @@ func TestExampleObjects(t *testing.T) {
 
 	for name, scenario := range scenarios {
 		o := testclient.NewObjects(api.Scheme, api.Scheme)
-		if err := testclient.AddObjectsFromPath("../../examples/persistent-volumes/"+name, o, api.Scheme); err != nil {
+		if err := testclient.AddObjectsFromPath("../../docs/user-guide/persistent-volumes/"+name, o, api.Scheme); err != nil {
 			t.Fatal(err)
 		}
 
-		client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+		client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
 
 		if reflect.TypeOf(scenario.expected) == reflect.TypeOf(&api.PersistentVolumeClaim{}) {
 			pvc, err := client.PersistentVolumeClaims("ns").Get("doesntmatter")
@@ -172,14 +171,14 @@ func TestExampleObjects(t *testing.T) {
 func TestBindingWithExamples(t *testing.T) {
 	api.ForTesting_ReferencesAllowBlankSelfLinks = true
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
-	if err := testclient.AddObjectsFromPath("../../examples/persistent-volumes/claims/claim-01.yaml", o, api.Scheme); err != nil {
+	if err := testclient.AddObjectsFromPath("../../docs/user-guide/persistent-volumes/claims/claim-01.yaml", o, api.Scheme); err != nil {
 		t.Fatal(err)
 	}
-	if err := testclient.AddObjectsFromPath("../../examples/persistent-volumes/volumes/local-01.yaml", o, api.Scheme); err != nil {
+	if err := testclient.AddObjectsFromPath("../../docs/user-guide/persistent-volumes/volumes/local-01.yaml", o, api.Scheme); err != nil {
 		t.Fatal(err)
 	}
 
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
 
 	pv, err := client.PersistentVolumes().Get("any")
 	pv.Spec.PersistentVolumeReclaimPolicy = api.PersistentVolumeReclaimRecycle
@@ -275,14 +274,14 @@ func TestBindingWithExamples(t *testing.T) {
 func TestMissingFromIndex(t *testing.T) {
 	api.ForTesting_ReferencesAllowBlankSelfLinks = true
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
-	if err := testclient.AddObjectsFromPath("../../examples/persistent-volumes/claims/claim-01.yaml", o, api.Scheme); err != nil {
+	if err := testclient.AddObjectsFromPath("../../docs/user-guide/persistent-volumes/claims/claim-01.yaml", o, api.Scheme); err != nil {
 		t.Fatal(err)
 	}
-	if err := testclient.AddObjectsFromPath("../../examples/persistent-volumes/volumes/local-01.yaml", o, api.Scheme); err != nil {
+	if err := testclient.AddObjectsFromPath("../../docs/user-guide/persistent-volumes/volumes/local-01.yaml", o, api.Scheme); err != nil {
 		t.Fatal(err)
 	}
 
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
 
 	pv, err := client.PersistentVolumes().Get("any")
 	if err != nil {

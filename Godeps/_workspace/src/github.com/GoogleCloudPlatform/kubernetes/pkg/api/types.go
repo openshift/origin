@@ -841,11 +841,10 @@ type ContainerStatus struct {
 	Ready bool `json:"ready"`
 	// Note that this is calculated from dead containers.  But those containers are subject to
 	// garbage collection.  This value will get capped at 5 by GC.
-	RestartCount int `json:"restartCount"`
-	// TODO(dchen1107): Need to decide how to represent this in v1beta3
-	Image       string `json:"image"`
-	ImageID     string `json:"imageID"`
-	ContainerID string `json:"containerID,omitempty"`
+	RestartCount int    `json:"restartCount"`
+	Image        string `json:"image"`
+	ImageID      string `json:"imageID"`
+	ContainerID  string `json:"containerID,omitempty"`
 }
 
 // PodPhase is a label for the condition of a pod at the current time.
@@ -1044,7 +1043,7 @@ type ReplicationControllerSpec struct {
 
 	// TemplateRef is a reference to an object that describes the pod that will be created if
 	// insufficient replicas are detected. This reference is ignored if a Template is set.
-	// Must be set before converting to a v1beta3 API object
+	// Must be set before converting to a versioned API object
 	//TemplateRef *ObjectReference `json:"templateRef,omitempty"`
 
 	// Template is the object that describes the pod that will be created if
@@ -1198,10 +1197,8 @@ type ServicePort struct {
 
 	// Optional: The target port on pods selected by this service.  If this
 	// is a string, it will be looked up as a named port in the target
-	// Pod's container ports.  If this is not specified, the first port on
-	// the destination pod will be used.  This behavior is deprecated.  As
-	// of v1beta3 the default value is the sames as the Port field (an
-	// identity map).
+	// Pod's container ports.  If this is not specified, the default value
+	// is the sames as the Port field (an identity map).
 	TargetPort util.IntOrString `json:"targetPort"`
 
 	// The port on each node on which this service is exposed.
@@ -1413,7 +1410,7 @@ type NodeAddress struct {
 }
 
 // NodeResources is an object for conveying resource information about a node.
-// see http://docs.k8s.io/resources.md for more details.
+// see http://docs.k8s.io/design/resources.md for more details.
 type NodeResources struct {
 	// Capacity represents the available resources of a node
 	Capacity ResourceList `json:"capacity,omitempty"`
@@ -1553,6 +1550,27 @@ type PodLogOptions struct {
 
 	// If true, return previous terminated container logs
 	Previous bool
+}
+
+// PodAttachOptions is the query options to a Pod's remote attach call
+// TODO: merge w/ PodExecOptions below for stdin, stdout, etc
+type PodAttachOptions struct {
+	TypeMeta `json:",inline"`
+
+	// Stdin if true indicates that stdin is to be redirected for the attach call
+	Stdin bool `json:"stdin,omitempty"`
+
+	// Stdout if true indicates that stdout is to be redirected for the attach call
+	Stdout bool `json:"stdout,omitempty"`
+
+	// Stderr if true indicates that stderr is to be redirected for the attach call
+	Stderr bool `json:"stderr,omitempty"`
+
+	// TTY if true indicates that a tty will be allocated for the attach call
+	TTY bool `json:"tty,omitempty"`
+
+	// Container to attach to.
+	Container string `json:"container,omitempty"`
 }
 
 // PodExecOptions is the query options to a Pod's remote exec call
@@ -1743,6 +1761,12 @@ const (
 	//   "causes" - The original error
 	// Status code 500
 	StatusReasonInternalError = "InternalError"
+
+	// StatusReasonServiceUnavailable means that the request itself was valid,
+	// but the requested service is unavailable at this time.
+	// Retrying the request after some time might succeed.
+	// Status code 503
+	StatusReasonServiceUnavailable StatusReason = "ServiceUnavailable"
 )
 
 // StatusCause provides more information about an api.Status failure, including

@@ -24,7 +24,7 @@ import (
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/podtemplate"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 )
 
 // rest implements a RESTStorage for pod templates against etcd
@@ -33,7 +33,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against pod templates.
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	prefix := "/podtemplates"
 	store := etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.PodTemplate{} },
@@ -56,7 +56,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		UpdateStrategy:      podtemplate.Strategy,
 		ReturnDeletedObject: true,
 
-		Helper: h,
+		Storage: s,
 	}
 
 	return &REST{store}

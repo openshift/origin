@@ -92,7 +92,7 @@ type ExecOptions struct {
 	ContainerName string
 	Stdin         bool
 	TTY           bool
-	Args          []string
+	Command       []string
 
 	In  io.Reader
 	Out io.Writer
@@ -113,11 +113,11 @@ func (p *ExecOptions) Complete(f *cmdutil.Factory, cmd *cobra.Command, argsIn []
 		if len(argsIn) < 1 {
 			return cmdutil.UsageError(cmd, "COMMAND is required for exec")
 		}
-		p.Args = argsIn
+		p.Command = argsIn
 	} else {
 		p.PodName = argsIn[0]
-		p.Args = argsIn[1:]
-		if len(p.Args) < 1 {
+		p.Command = argsIn[1:]
+		if len(p.Command) < 1 {
 			return cmdutil.UsageError(cmd, "COMMAND is required for exec")
 		}
 	}
@@ -148,7 +148,7 @@ func (p *ExecOptions) Validate() error {
 	if len(p.PodName) == 0 {
 		return fmt.Errorf("pod name must be specified")
 	}
-	if len(p.Args) == 0 {
+	if len(p.Command) == 0 {
 		return fmt.Errorf("you must specify at least one command for the container")
 	}
 	if p.Out == nil || p.Err == nil {
@@ -171,9 +171,10 @@ func (p *ExecOptions) Run() error {
 		return fmt.Errorf("pod %s is not running and cannot execute commands; current phase is %s", p.PodName, pod.Status.Phase)
 	}
 
-	if len(p.ContainerName) == 0 {
+	containerName := p.ContainerName
+	if len(containerName) == 0 {
 		glog.V(4).Infof("defaulting container name to %s", pod.Spec.Containers[0].Name)
-		p.ContainerName = pod.Spec.Containers[0].Name
+		containerName = pod.Spec.Containers[0].Name
 	}
 
 	// TODO: refactor with terminal helpers from the edit utility once that is merged
@@ -219,28 +220,28 @@ func (p *ExecOptions) Run() error {
 		Name(pod.Name).
 		Namespace(pod.Namespace).
 		SubResource("exec").
-		Param("container", p.ContainerName)
+		Param("container", containerName)
 
-	postErr := p.Executor.Execute(req, p.Config, p.Args, stdin, p.Out, p.Err, tty)
+	postErr := p.Executor.Execute(req, p.Config, p.Command, stdin, p.Out, p.Err, tty)
 
 	// if we don't have an error, return.  If we did get an error, try a GET because v3.0.0 shipped with exec running as a GET.
 	if postErr == nil {
 		return nil
 	}
-
+	
 	// only try the get if the error is either a forbidden or method not supported, otherwise trying with a GET probably won't help
 	if !apierrors.IsForbidden(postErr) && !apierrors.IsMethodNotSupported(postErr) {
 		return postErr
 	}
 
-	// TODO: consider abstracting into a client invocation or client helper
 	getReq := p.Client.RESTClient.Get().
 		Resource("pods").
 		Name(pod.Name).
 		Namespace(pod.Namespace).
 		SubResource("exec").
-		Param("container", p.ContainerName)
-	getErr := p.Executor.Execute(getReq, p.Config, p.Args, stdin, p.Out, p.Err, tty)
+		Param("container", containerName)
+
+	getErr := p.Executor.Execute(getReq, p.Config, p.Command, stdin, p.Out, p.Err, tty)
 	if getErr == nil {
 		return nil
 	}

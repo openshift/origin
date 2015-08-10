@@ -10,6 +10,8 @@ import (
 	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -35,7 +37,9 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 // TestAdmissionExists verifies you cannot create Origin content if namespace is not known
 func TestAdmissionExists(t *testing.T) {
 	mockClient := &testclient.Fake{
-		Err: fmt.Errorf("DOES NOT EXIST"),
+		ReactFn: func(f testclient.FakeAction) (runtime.Object, error) {
+			return &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
+		},
 	}
 	projectcache.FakeProjectCache(mockClient, cache.NewStore(cache.MetaNamespaceKeyFunc), "")
 	handler := &lifecycle{client: mockClient}
@@ -144,6 +148,7 @@ func TestAdmissionLifecycle(t *testing.T) {
 func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 	config := &origin.MasterConfig{
 		KubeletClientConfig: &kclient.KubeletConfig{},
+		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
 	}
 	storageMap := config.GetRestStorage()
 	resources := util.StringSet{}

@@ -10,6 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -41,7 +42,7 @@ func makeTestDefaultRouteListKey() string {
 }
 
 func NewTestEtcd(client tools.EtcdClient) *Etcd {
-	return New(tools.NewEtcdHelper(client, latest.Codec, etcdtest.PathPrefix()))
+	return New(etcdstorage.NewEtcdStorage(client, latest.Codec, etcdtest.PathPrefix()))
 }
 
 func TestEtcdListEmptyRoutes(t *testing.T) {

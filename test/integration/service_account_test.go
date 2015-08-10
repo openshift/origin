@@ -189,9 +189,9 @@ func TestServiceAccountAuthorization(t *testing.T) {
 
 func writeClientConfigToKubeConfig(config kclient.Config, path string) error {
 	kubeConfig := &clientcmdapi.Config{
-		Clusters:       map[string]clientcmdapi.Cluster{"myserver": {Server: config.Host, CertificateAuthority: config.CAFile, CertificateAuthorityData: config.CAData}},
-		AuthInfos:      map[string]clientcmdapi.AuthInfo{"myuser": {Token: config.BearerToken}},
-		Contexts:       map[string]clientcmdapi.Context{"mycontext": {Cluster: "myserver", AuthInfo: "myuser"}},
+		Clusters:       map[string]*clientcmdapi.Cluster{"myserver": {Server: config.Host, CertificateAuthority: config.CAFile, CertificateAuthorityData: config.CAData}},
+		AuthInfos:      map[string]*clientcmdapi.AuthInfo{"myuser": {Token: config.BearerToken}},
+		Contexts:       map[string]*clientcmdapi.Context{"mycontext": {Cluster: "myserver", AuthInfo: "myuser"}},
 		CurrentContext: "mycontext",
 	}
 	if err := os.MkdirAll(filepath.Dir(path), os.FileMode(0755)); err != nil {

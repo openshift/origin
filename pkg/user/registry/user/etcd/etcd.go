@@ -10,7 +10,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 
@@ -29,7 +29,7 @@ type REST struct {
 const EtcdPrefix = "/users"
 
 // NewREST returns a RESTStorage object that will work against users
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.User{} },
 		NewListFunc: func() runtime.Object { return &api.UserList{} },
@@ -47,7 +47,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		},
 		EndpointName: "users",
 
-		Helper: h,
+		Storage: s,
 	}
 
 	store.CreateStrategy = user.Strategy

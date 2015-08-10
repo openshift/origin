@@ -56,9 +56,6 @@ func (c *FakeSecurityContextConstraints) Delete(name string) error {
 }
 
 func (c *FakeSecurityContextConstraints) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-securitycontextconstraints", Value: resourceVersion})
-	return c.Fake.Watch, c.Fake.Err
+	c.Fake.Invokes(FakeAction{Action: "watch-securitycontextconstraints", Value: resourceVersion}, nil)
+	return c.Fake.Watch, c.Fake.Err()
 }

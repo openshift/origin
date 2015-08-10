@@ -106,6 +106,12 @@ var wrappedVolumeSpec = &volume.Spec{
 	VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{Medium: api.StorageMediumMemory}},
 }
 
+// IsReadOnly exposes if the volume is read only.
+// TODO: is this ok to always return true?
+func (m *metadataVolume) IsReadOnly() bool {
+	return true
+}
+
 // SetUp puts in place the volume plugin.
 // This function is not idempotent by design. We want the data to be refreshed periodically.
 // The internal sync interval of kubelet will drive the refresh of data.

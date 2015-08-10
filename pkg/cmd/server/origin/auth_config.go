@@ -8,7 +8,7 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -26,7 +26,7 @@ type AuthConfig struct {
 	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
 	AssetPublicAddresses []string
 	MasterRoots          *x509.CertPool
-	EtcdHelper           tools.EtcdHelper
+	EtcdHelper           storage.Interface
 
 	UserRegistry     userregistry.Registry
 	IdentityRegistry identityregistry.Registry
@@ -39,7 +39,7 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	etcdHelper, err := NewEtcdHelper(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
+	etcdHelper, err := NewEtcdStorage(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}

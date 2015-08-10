@@ -136,7 +136,7 @@ func (o LogoutOptions) RunLogout() error {
 		}
 	}
 
-	if err := kcmdconfig.ModifyConfig(o.PathOptions, newConfig); err != nil {
+	if err := kcmdconfig.ModifyConfig(o.PathOptions, newConfig, true); err != nil {
 		return err
 	}
 

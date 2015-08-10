@@ -31,6 +31,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
 	podetcd "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 
@@ -38,16 +39,16 @@ import (
 )
 
 func NewTestEtcdRegistry(client tools.EtcdClient) *Registry {
-	helper := tools.NewEtcdHelper(client, latest.Codec, etcdtest.PathPrefix())
-	registry := NewRegistry(helper, nil, nil)
+	storage := etcdstorage.NewEtcdStorage(client, latest.Codec, etcdtest.PathPrefix())
+	registry := NewRegistry(storage, nil, nil)
 	return registry
 }
 
 func NewTestEtcdRegistryWithPods(client tools.EtcdClient) *Registry {
-	helper := tools.NewEtcdHelper(client, latest.Codec, etcdtest.PathPrefix())
-	podStorage := podetcd.NewStorage(helper, nil)
-	endpointStorage := endpointetcd.NewStorage(helper)
-	registry := NewRegistry(helper, pod.NewRegistry(podStorage.Pod), endpoint.NewRegistry(endpointStorage))
+	etcdStorage := etcdstorage.NewEtcdStorage(client, latest.Codec, etcdtest.PathPrefix())
+	podStorage := podetcd.NewStorage(etcdStorage, nil)
+	endpointStorage := endpointetcd.NewStorage(etcdStorage)
+	registry := NewRegistry(etcdStorage, pod.NewRegistry(podStorage.Pod), endpoint.NewRegistry(endpointStorage))
 	return registry
 }
 

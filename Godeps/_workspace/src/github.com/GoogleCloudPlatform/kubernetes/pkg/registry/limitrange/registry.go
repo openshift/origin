@@ -21,7 +21,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 )
 
 // registry implements custom changes to generic.Etcd.
@@ -29,8 +29,8 @@ type registry struct {
 	*etcdgeneric.Etcd
 }
 
-// NewEtcdRegistry returns a registry which will store LimitRange in the given helper
-func NewEtcdRegistry(h tools.EtcdHelper) generic.Registry {
+// NewEtcdRegistry returns a registry which will store LimitRange in the given storage
+func NewEtcdRegistry(s storage.Interface) generic.Registry {
 	prefix := "/limitranges"
 	return registry{
 		Etcd: &etcdgeneric.Etcd{
@@ -43,7 +43,7 @@ func NewEtcdRegistry(h tools.EtcdHelper) generic.Registry {
 			KeyFunc: func(ctx api.Context, id string) (string, error) {
 				return etcdgeneric.NamespaceKeyFunc(ctx, prefix, id)
 			},
-			Helper: h,
+			Storage: s,
 		},
 	}
 }

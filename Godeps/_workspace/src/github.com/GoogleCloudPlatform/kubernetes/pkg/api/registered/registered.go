@@ -30,7 +30,7 @@ var RegisteredVersions []string
 
 func init() {
 	validAPIVersions := map[string]bool{
-		"v1":      true,
+		"v1": true,
 		"v1beta3": true,
 	}
 

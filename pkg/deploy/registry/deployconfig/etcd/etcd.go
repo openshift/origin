@@ -7,7 +7,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
 	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
@@ -20,7 +20,7 @@ type REST struct {
 }
 
 // NewStorage returns a RESTStorage object that will work against DeploymentConfig objects.
-func NewStorage(h tools.EtcdHelper) *REST {
+func NewStorage(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:      func() runtime.Object { return &api.DeploymentConfig{} },
 		NewListFunc:  func() runtime.Object { return &api.DeploymentConfigList{} },
@@ -41,7 +41,7 @@ func NewStorage(h tools.EtcdHelper) *REST {
 		UpdateStrategy:      deployconfig.Strategy,
 		DeleteStrategy:      deployconfig.Strategy,
 		ReturnDeletedObject: false,
-		Helper:              h,
+		Storage:             s,
 	}
 
 	return &REST{store}
