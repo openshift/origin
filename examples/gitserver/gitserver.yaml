@@ -131,6 +131,12 @@ items:
           # image for examples.
           - name: AUTOLINK_HOOK
 
+          # The master service host is not signed with the service IP
+          # so we override with the consistent DNS name. Required for
+          # connections to the server.
+          - name: KUBERNETES_SERVICE_HOST
+            value: kubernetes.default
+
           volumeMounts:
           - mountPath: /var/lib/git/
             name: git
