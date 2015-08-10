@@ -135,9 +135,13 @@ Run the integration tests with:
     $ hack/test-integration.sh
 
 The script launches an instance of etcd and then invokes the integration tests. If you need to
-execute an individual test start etcd and then run:
+execute a subset of integration tests, run:
 
-    $ hack/test-go.sh test/integration -tags 'integration no-docker' -test.run=TestBuildClient
+    $ hack/test-integration.sh <regex>
+    
+Where `<regex>` is some regular expression that matches the names of all of the tests you want to run.
+The regular expression is passed into `grep -E`, so ensure that the syntax or features you use are supported.
+The default regular expression used is `Test`, which matches all tests.
 
 Each integration function is executed in its own process so that it cleanly shuts down any background
 goroutines. You will not be able to run more than a single test within a single process.
@@ -343,7 +347,8 @@ OpenShift integrates the go `pprof` tooling to make it easy to capture CPU and h
   * `mem` - generate a running heap dump that tracks allocations to `./mem.pprof`
   * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser)
 
-    # start the server in CPU profiling mode
+In order to start the server in CPU profiling mode, run: 
+
     $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/go/bin/openshift start
 
 To view profiles, you use [pprof] which is part of `go tool`.  You must pass the binary you are debugging (for symbols) and a captured pprof.  For instance, to view a `cpu` profile from above, you would run OpenShift to completion, and then run:
