@@ -2,18 +2,27 @@
     <div class="form-inline labels-edit" ng-show="editable">
       <form class="edit-label" name="form" novalidate>
         <div class='form-group' ng-class="{'has-error': form.key.$error.oscKeyValid}">
-          <input class="form-control" type="text" name="key" placeholder="{{keyTitle}}" ng-model="key" 
+          <input class="form-control"
+                 type="text"
+                 name="key"
+                 placeholder="{{keyTitle}}"
+                 ng-model="key"
+                 ng-keyup="toggleAdd()"
                  osc-input-validator="key">
         </div>
         <div class="form-group" ng-class="{'has-error': form.value.$error.oscValueValid}">
-          <input class="form-control" 
+          <input class="form-control"
                  type="text"
-                 name="value" 
+                 name="value"
                  placeholder="Value"
-                 ng-model="value" 
+                 ng-model="value"
+                 ng-keyup="toggleAdd()"
                  osc-input-validator="value">
         </div>
-        <button class="btn btn-default" ng-click="addEntry()" ng-disabled="form.key.$error.oscKeyValid || form.value.$error.oscValueValid">Add</button>
+        <button
+          class="btn btn-default"
+          ng-click="addEntry()"
+          ng-disabled="(!canAdd) || form.key.$error.oscKeyValid || form.value.$error.oscValueValid">Add</button>
         <div class="has-error" ng-show="form.key.$error.oscKeyValid">
           <span class="help-block">Please enter a valid key
             <span class="help action-inline" ng-if="keyValidationTooltip">
@@ -23,7 +32,7 @@
               </a>
             </span>
           </span>
-        </div>      
+        </div>
         <div class="has-error" ng-show="form.value.$error.oscValueValid">
           <span class="help-block">Please enter a valid value
             <span class="help action-inline" ng-if="keyValidationTooltip">
@@ -33,7 +42,7 @@
               </a>
             </span>
           </span>
-        </div>      
+        </div>
       </form>
       <ul class="list-unstyled label-list">
         <li ng-repeat="(key,value) in entries | valuesIn:readonlyKeys">
