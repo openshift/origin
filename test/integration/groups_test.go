@@ -9,6 +9,7 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	groupscmd "github.com/openshift/origin/pkg/cmd/admin/groups"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -168,4 +169,52 @@ func TestBasicGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
+}
+
+func TestGroupCommands(t *testing.T) {
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	newGroup := &groupscmd.NewGroupOptions{clusterAdminClient.Groups(), "group1", []string{"first", "second", "third", "first"}}
+	if err := newGroup.AddGroup(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	group1, err := clusterAdminClient.Groups().Get("group1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e, a := []string{"first", "second", "third"}, group1.Users; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, actual %v", e, a)
+	}
+
+	modifyUsers := &groupscmd.GroupModificationOptions{clusterAdminClient.Groups(), "group1", []string{"second", "fourth", "fifth"}}
+	if err := modifyUsers.AddUsers(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	group1, err = clusterAdminClient.Groups().Get("group1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e, a := []string{"first", "second", "third", "fourth", "fifth"}, group1.Users; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, actual %v", e, a)
+	}
+
+	if err := modifyUsers.RemoveUsers(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	group1, err = clusterAdminClient.Groups().Get("group1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e, a := []string{"first", "third"}, group1.Users; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, actual %v", e, a)
+	}
+
 }
