@@ -14,7 +14,7 @@ The OpenShift build system provides extensible support for build strategies base
 OpenShift supports pure Docker builds. Using this strategy, users may supply a URL to a Docker context which is used as the basis for a [Docker build](https://docs.docker.com/reference/commandline/cli/#build).
 
 #### Custom build
-The custom build strategy is very similar to *Docker build* strategy, but users might customize the builder image that will be used for build execution. The Docker build uses [openshift/docker-builder](https://registry.hub.docker.com/u/openshift/docker-builder/) image by default. Using your own builder image allows you to customize your build process.
+The custom build strategy is very similar to *Docker build* strategy, but users might customize the builder image that will be used for build execution. The Docker build uses [openshift/docker-builder](https://hub.docker.com/r/openshift/origin-custom-docker-builder/) image by default. Using your own builder image allows you to customize your build process.
 
 #### Source-to-Image
 [Source-to-image](https://github.com/openshift/source-to-image) (STI) is a tool for building reproducible Docker images. It produces ready-to-run images by injecting a user source into a docker image and assembling a new Docker image which incorporates the base image and built source, and is ready to use with `docker run`. STI supports incremental builds which re-use previously downloaded dependencies, previously built artifacts, etc.
