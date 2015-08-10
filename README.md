@@ -24,9 +24,9 @@ Create an openshift cluster on your desktop using vagrant:
 	$ export OPENSHIFT_SDN=ovs-simple
 	$ vagrant up
 
-##### Manually add minions to a master
+##### Manually add nodes to a master
 
-Steps to create manually create an OpenShift cluster with openshift-sdn. This requires that each machine (master, minions) have compiled `openshift` and `openshift-sdn` already. Check [here](https://github.com/openshift/origin) for OpenShift instructions. Ensure 'openvswitch' is installed and running (`yum install -y openvswitch && systemctl enable openvswitch && systemctl start openvswitch`). Also verify that the `DOCKER_OPTIONS` variable is unset in your environment, or set to a known-working value (e.g. `DOCKER_OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'`). If you don't know what to put there, it's probably best to leave it unset. :)
+Steps to create manually create an OpenShift cluster with openshift-sdn. This requires that each machine (master, nodes) have compiled `openshift` and `openshift-sdn` already. Check [here](https://github.com/openshift/origin) for OpenShift instructions. Ensure 'openvswitch' is installed and running (`yum install -y openvswitch && systemctl enable openvswitch && systemctl start openvswitch`). Also verify that the `DOCKER_OPTIONS` variable is unset in your environment, or set to a known-working value (e.g. `DOCKER_OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'`). If you don't know what to put there, it's probably best to leave it unset. :)
 
 On OpenShift master,
 
@@ -35,28 +35,28 @@ On OpenShift master,
 
 To add a node to the cluster, do the following on the node:
 
-	$ openshift-sdn -etcd-endpoints=http://openshift-master:4001 -minion -public-ip=<10.10....> -hostname <hostname>
+	$ openshift-sdn -etcd-endpoints=http://openshift-master:4001 -node -public-ip=<10.10....> -hostname <hostname>
 	where, 
 		-etcd-endpoints	: reach the etcd db here
-		-minion 	: run it in minion mode (will watch etcd servers for new minion subnets)
-		-public-ip	: use this field for suggesting the publicly reachable IP address of this minion
-		-hostname	: the name that will be used to register the minion with openshift-master
+		-node 	        : run it in node mode (will watch etcd servers for new node subnets)
+		-public-ip	: use this field for suggesting the publicly reachable IP address of this node
+		-hostname	: the name that will be used to register the node with openshift-master
 	$ openshift start node --master=https://openshift-master:8443
 
 Back on the master, to finally register the node:
 
-	Create a json file for the new minion resource
-        $ cat <<EOF > minion-1.json
+	Create a json file for the new node resource
+        $ cat <<EOF > node-1.json
 	{
-		"kind":"Minion", 
+		"kind":"Node",
 		"id":"openshift-minion-1",
-	 	"apiVersion":"v1beta1"
+		"apiVersion":"v1"
 	}
 	EOF
-	where, openshift-minion-1 is a hostname that is resolvable from the master (or, create an entry in /etc/hosts and point it to the public-ip of the minion).
-	$ openshift cli create -f minion-1.json
+	where, openshift-minion-1 is a hostname that is resolvable from the master (or, create an entry in /etc/hosts and point it to the public-ip of the node).
+	$ openshift cli create -f node-1.json
 
-Done. Repeat last two pieces to add more nodes. Create new pods from the master (or just docker containers on the minions), and see that the pods are indeed reachable from each other. 
+Done. Repeat last two pieces to add more nodes. Create new pods from the master (or just docker containers on the nodes), and see that the pods are indeed reachable from each other.
 
 
 ##### OpenShift? PaaS? Can I have a 'plain setup' just for Docker?
@@ -65,14 +65,14 @@ Someone needs to register that new nodes have joined the cluster. And instead of
 
 Steps:
 
-1. Run etcd somewhere, and run the openshift-sdn master to watch it in sync mode. 
+1. Run etcd somewhere, and run the openshift-sdn master to watch it in sync mode.
 
 		$ systemctl start etcd
 		$ openshift-sdn -master -sync  # use -etcd-endpoints=http://target:4001 if etcd is not running locally
 
-2. To add a node, make sure the 'hostname/dns' is reachable from the machine that is running 'openshift-sdn master'. Then start the openshift-sdn in minion mode with sync flag.
+2. To add a node, make sure the 'hostname/dns' is reachable from the machine that is running 'openshift-sdn master'. Then start the openshift-sdn in node mode with sync flag.
 
-		$ openshift-sdn -minion -sync -etcd-endpoints=http://master-host:4001 -hostname=minion-1-dns -public-ip=<public ip that the hostname resolves to>
+		$ openshift-sdn -node -sync -etcd-endpoints=http://master-host:4001 -hostname=node-1-dns -public-ip=<public ip that the hostname resolves to>
 
 Done. Add more nodes by repeating step 2. All nodes should have a docker bridge (lbr0) that is part of the overlay network.
 

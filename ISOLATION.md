@@ -17,7 +17,7 @@ See `isolation-node-interfaces-diagram.pdf` for a diagram of how all these inter
 
 #### IP Address allocation
 
-When using Vagrant to configure the cluster, the master and each node are assigned cluster-private IP addresses in the 10.245.2.x/24 subnet through statements in the Vagrantfile.  The master receives 10.245.2.2 and the minions recieve an address above that.  The cluster uses these 10.245.2.x addresses for all communication between master and nodes.  Vagrant provisioning then writes the IP addresses of the master into the master's openshift-master systemd startup script, the configuration files passed to each openshift node process with --config, each node's 'kubeconfig' (referenced from the nodes --config YAML file), and each node's /etc/hosts file.
+When using Vagrant to configure the cluster, the master and each node are assigned cluster-private IP addresses in the 10.245.2.x/24 subnet through statements in the Vagrantfile.  The master receives 10.245.2.2 and the nodes recieve an address above that.  The cluster uses these 10.245.2.x addresses for all communication between master and nodes.  Vagrant provisioning then writes the IP addresses of the master into the master's openshift-master systemd startup script, the configuration files passed to each openshift node process with --config, each node's 'kubeconfig' (referenced from the nodes --config YAML file), and each node's /etc/hosts file.
 
 When manual or other provisioning is used, the nodes must be told of the master's IP address through the --config argument and/or the kubeconfig files.  The master must be told its IP address with the --master argument.
 
@@ -45,5 +45,5 @@ The most interesting pieces of the multitenant plugin are:
 
 * **ovssubnet/controller/multitenant/bin/openshift-sdn-multitenant-setup.sh**: this script is run every time the openshift-node process starts or stops.  It does initial setup, like configuring the lbr0 bridge, adding the OVS bridge, adding the OVS VXLAN port, setting up the tun0 port and NAT rules, and configuring the non-pod-specific OVS rules.
 
-* **ovssubnet/controller/multitenant/multitenant.go**: this module watches etcd for indications of minions added to or removed from the cluster, and updates the OVS rules to ensure each minion can be reached through the VXLAN tunnel.
+* **ovssubnet/controller/multitenant/multitenant.go**: this module watches etcd for indications of nodes added to or removed from the cluster, and updates the OVS rules to ensure each node can be reached through the VXLAN tunnel.
 

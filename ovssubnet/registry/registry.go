@@ -21,7 +21,7 @@ type EtcdConfig struct {
 	CAFile           string
 	SubnetPath       string
 	SubnetConfigPath string
-	MinionPath       string
+	NodePath         string
 }
 
 type EtcdSubnetRegistry struct {
@@ -30,27 +30,42 @@ type EtcdSubnetRegistry struct {
 	etcdCfg *EtcdConfig
 }
 
-func newMinionEvent(action, key, value string) *api.MinionEvent {
-	min := &api.MinionEvent{}
+func newNodeEvent(action, key, value string) *api.NodeEvent {
+	nodeEvent := &api.NodeEvent{}
 	switch action {
 	case "delete", "deleted", "expired":
-		min.Type = api.Deleted
+		nodeEvent.Type = api.Deleted
 	default:
-		min.Type = api.Added
+		nodeEvent.Type = api.Added
 	}
 
 	if key != "" {
-		_, min.Minion = path.Split(key)
-		return min
+		_, nodeEvent.Node = path.Split(key)
+
+		var node map[string]interface{}
+		err := json.Unmarshal([]byte(value), &node)
+		if err == nil {
+			nodeStatus, ok := node["Status"].(map[string]interface{})
+			if ok {
+				nodeAddresses, ok := nodeStatus["Addresses"].([]interface{})
+				if ok {
+					nodeAddressMap, ok := nodeAddresses[0].(map[string]interface{})
+					if ok {
+						nodeEvent.NodeIP = nodeAddressMap["Address"].(string)
+						return nodeEvent
+					}
+				}
+			}
+		}
 	}
 
-	fmt.Printf("Error decoding minion event: nil key (%s,%s,%s).\n", action, key, value)
+	fmt.Printf("Error decoding node event: nil key (%s,%s,%s).\n", action, key, value)
 	return nil
 }
 
 func newSubnetEvent(resp *etcd.Response) *api.SubnetEvent {
 	var value string
-	_, minkey := path.Split(resp.Node.Key)
+	_, nodeKey := path.Split(resp.Node.Key)
 	var t api.EventType
 	switch resp.Action {
 	case "deleted", "delete", "expired":
@@ -63,9 +78,9 @@ func newSubnetEvent(resp *etcd.Response) *api.SubnetEvent {
 	var sub api.Subnet
 	if err := json.Unmarshal([]byte(value), &sub); err == nil {
 		return &api.SubnetEvent{
-			Type:   t,
-			Minion: minkey,
-			Sub:    sub,
+			Type: t,
+			Node: nodeKey,
+			Sub:  sub,
 		}
 	}
 	log.Errorf("Failed to unmarshal response: %v", resp)
@@ -121,34 +136,34 @@ func (sub *EtcdSubnetRegistry) InitSubnets() error {
 	return err
 }
 
-func (sub *EtcdSubnetRegistry) InitMinions() error {
-	key := sub.etcdCfg.MinionPath
+func (sub *EtcdSubnetRegistry) InitNodes() error {
+	key := sub.etcdCfg.NodePath
 	_, err := sub.client().SetDir(key, 0)
 	return err
 }
 
-func (sub *EtcdSubnetRegistry) GetMinions() (*[]string, error) {
-	key := sub.etcdCfg.MinionPath
+func (sub *EtcdSubnetRegistry) GetNodes() (*[]string, error) {
+	key := sub.etcdCfg.NodePath
 	resp, err := sub.client().Get(key, false, true)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.Node.Dir == false {
-		return nil, errors.New("Minion path is not a directory")
+		return nil, errors.New("Node path is not a directory")
 	}
 
-	minions := make([]string, 0)
+	nodes := make([]string, 0)
 
 	for _, node := range resp.Node.Nodes {
 		if node.Key == "" {
-			log.Errorf("Error unmarshalling GetMinions response node %s", node.Key)
+			log.Errorf("Error unmarshalling GetNodes response node %s", node.Key)
 			continue
 		}
-		_, minion := path.Split(node.Key)
-		minions = append(minions, minion)
+		_, node := path.Split(node.Key)
+		nodes = append(nodes, node)
 	}
-	return &minions, nil
+	return &nodes, nil
 }
 
 func (sub *EtcdSubnetRegistry) InitServices() error {
@@ -184,8 +199,8 @@ func (sub *EtcdSubnetRegistry) GetSubnets() (*[]api.Subnet, error) {
 	return &subnets, err
 }
 
-func (sub *EtcdSubnetRegistry) GetSubnet(minionip string) (*api.Subnet, error) {
-	key := path.Join(sub.etcdCfg.SubnetPath, minionip)
+func (sub *EtcdSubnetRegistry) GetSubnet(nodeip string) (*api.Subnet, error) {
+	key := path.Join(sub.etcdCfg.SubnetPath, nodeip)
 	resp, err := sub.client().Get(key, false, false)
 	if err == nil {
 		log.Infof("Unmarshalling response: %s", resp.Node.Value)
@@ -198,8 +213,8 @@ func (sub *EtcdSubnetRegistry) GetSubnet(minionip string) (*api.Subnet, error) {
 	return nil, err
 }
 
-func (sub *EtcdSubnetRegistry) DeleteSubnet(minion string) error {
-	key := path.Join(sub.etcdCfg.SubnetPath, minion)
+func (sub *EtcdSubnetRegistry) DeleteSubnet(node string) error {
+	key := path.Join(sub.etcdCfg.SubnetPath, node)
 	_, err := sub.client().Delete(key, false)
 	return err
 }
@@ -252,8 +267,8 @@ func (sub *EtcdSubnetRegistry) GetSubnetLength() (uint64, error) {
 	return 0, err
 }
 
-func (sub *EtcdSubnetRegistry) CreateMinion(minion string, data string) error {
-	key := path.Join(sub.etcdCfg.MinionPath, minion)
+func (sub *EtcdSubnetRegistry) CreateNode(node string, data string) error {
+	key := path.Join(sub.etcdCfg.NodePath, node)
 	_, err := sub.client().Get(key, false, false)
 	if err != nil {
 		// good, it does not exist, write it
@@ -267,11 +282,11 @@ func (sub *EtcdSubnetRegistry) CreateMinion(minion string, data string) error {
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) CreateSubnet(minion string, subnet *api.Subnet) error {
+func (sub *EtcdSubnetRegistry) CreateSubnet(node string, subnet *api.Subnet) error {
 	subbytes, _ := json.Marshal(subnet)
 	data := string(subbytes)
-	log.Infof("Minion subnet structure: %s", data)
-	key := path.Join(sub.etcdCfg.SubnetPath, minion)
+	log.Infof("Node subnet structure: %s", data)
+	key := path.Join(sub.etcdCfg.SubnetPath, node)
 	_, err := sub.client().Create(key, data, 0)
 	if err != nil {
 		_, err = sub.client().Update(key, data, 0)
@@ -284,11 +299,11 @@ func (sub *EtcdSubnetRegistry) CreateSubnet(minion string, subnet *api.Subnet) e
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) WatchMinions(receiver chan *api.MinionEvent, stop chan bool) error {
+func (sub *EtcdSubnetRegistry) WatchNodes(receiver chan *api.NodeEvent, stop chan bool) error {
 	var rev uint64
 	rev = 0
-	key := sub.etcdCfg.MinionPath
-	log.Infof("Watching %s for new minions.", key)
+	key := sub.etcdCfg.NodePath
+	log.Infof("Watching %s for new nodes.", key)
 	for {
 		resp, err := sub.watch(key, rev, stop)
 		if err != nil && err == etcd.ErrWatchStoppedByUser {
@@ -299,9 +314,9 @@ func (sub *EtcdSubnetRegistry) WatchMinions(receiver chan *api.MinionEvent, stop
 			continue
 		}
 		rev = resp.Node.ModifiedIndex + 1
-		log.Infof("Issuing a minion event: %v", resp)
-		minevent := newMinionEvent(resp.Action, resp.Node.Key, resp.Node.Value)
-		receiver <- minevent
+		log.Infof("Issuing a node event: %v", resp)
+		nodeEvent := newNodeEvent(resp.Action, resp.Node.Key, resp.Node.Value)
+		receiver <- nodeEvent
 	}
 }
 
