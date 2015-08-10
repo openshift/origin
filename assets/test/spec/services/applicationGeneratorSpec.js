@@ -107,7 +107,7 @@ describe("ApplicationGenerator", function(){
   describe("#_generateService", function(){
 
     it("should not generate a service if no ports are exposed", function(){
-      var service = ApplicationGenerator._generateService(input, "theServiceName", "None");
+      var service = ApplicationGenerator._generateService(input, "theServiceName", []);
       expect(service).toEqual(null);
     });
 
@@ -280,9 +280,15 @@ describe("ApplicationGenerator", function(){
             },
             "spec": {
                 "ports": [{
+                  "port": 443,
+                  "targetPort" : 443,
+                  "protocol": "TCP",
+                  "name": "443-tcp"
+                }, {
                   "port": 80,
                   "targetPort" : 80,
-                  "protocol": "TCP"
+                  "protocol": "TCP",
+                  "name": "80-tcp"
                 }],
                 "selector": {
                     "deploymentconfig": "ruby-hello-world"
@@ -397,7 +403,7 @@ describe("ApplicationGenerator", function(){
       resources = ApplicationGenerator.generate(input);
     });
 
-    it("should use the first port found from the config block for the service ports", function(){
+    it("should create service ports for all exposed ports", function(){
         expect(resources.service).toEqual(
         {
             "kind": "Service",
@@ -415,9 +421,15 @@ describe("ApplicationGenerator", function(){
             },
             "spec": {
                 "ports": [{
+                  "port": 999,
+                  "targetPort" : 999,
+                  "protocol": "TCP",
+                  "name": "999-tcp"
+                }, {
                   "port": 777,
                   "targetPort" : 777,
-                  "protocol": "TCP"
+                  "protocol": "TCP",
+                  "name": "777-tcp"
                 }],
                 "selector": {
                     "deploymentconfig": "ruby-hello-world"
