@@ -73,11 +73,17 @@ type RouterConfig struct {
 	StatsPort          int
 	StatsPassword      string
 	StatsUsername      string
+	HostNetwork        bool
 }
 
 var errExit = fmt.Errorf("exit")
 
-const defaultLabel = "router=<name>"
+const (
+	defaultLabel = "router=<name>"
+
+	// Default port numbers to expose and bind/listen on.
+	defaultPorts = "80:80,443:443"
+)
 
 // NewCmdRouter implements the OpenShift cli router command
 func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
@@ -85,10 +91,11 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		ImageTemplate: variable.NewDefaultImageTemplate(),
 
 		Labels:   defaultLabel,
-		Ports:    "80:80,443:443",
+		Ports:    defaultPorts,
 		Replicas: 1,
 
 		StatsUsername: "admin",
+		HostNetwork:   true,
 	}
 
 	cmd := &cobra.Command{
@@ -121,6 +128,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", 1936, "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
 	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.")
 	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth.")
+	cmd.Flags().BoolVar(&cfg.HostNetwork, "host-network", cfg.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack.")
 
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
 
@@ -161,6 +169,15 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	ports, err := app.ContainerPortsFromString(cfg.Ports)
 	if err != nil {
 		glog.Fatal(err)
+	}
+
+	// For the host networking case, ensure the ports match.
+	if cfg.HostNetwork {
+		for i := 0; i < len(ports); i++ {
+			if ports[i].ContainerPort != ports[i].HostPort {
+				return cmdutil.UsageError(cmd, "For host networking mode, please ensure that the container [%v] and host [%v] ports match", ports[i].ContainerPort, ports[i].HostPort)
+			}
+		}
 	}
 
 	if cfg.StatsPort > 0 {
@@ -305,6 +322,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 						Template: &kapi.PodTemplateSpec{
 							ObjectMeta: kapi.ObjectMeta{Labels: label},
 							Spec: kapi.PodSpec{
+								HostNetwork:        cfg.HostNetwork,
 								ServiceAccountName: cfg.ServiceAccount,
 								NodeSelector:       nodeSelector,
 								Containers: []kapi.Container{
