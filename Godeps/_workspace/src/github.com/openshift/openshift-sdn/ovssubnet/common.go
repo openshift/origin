@@ -33,8 +33,8 @@ type OvsController struct {
 
 type FlowController interface {
 	Setup(localSubnet, globalSubnet string) error
-	AddOFRules(minionIP, localSubnet, localIP string) error
-	DelOFRules(minionIP, localIP string) error
+	AddOFRules(nodeIP, localSubnet, localIP string) error
+	DelOFRules(nodeIP, localIP string) error
 }
 
 func NewKubeController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
@@ -98,11 +98,11 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		log.Errorf("Etcd not running?")
 		return errors.New("Etcd not reachable. Sync cluster check failed.")
 	}
-	// initialize the minion key
+	// initialize the node key
 	if sync {
-		err := oc.subnetRegistry.InitMinions()
+		err := oc.subnetRegistry.InitNodes()
 		if err != nil {
-			log.Infof("Minion path already initialized.")
+			log.Infof("Node path already initialized.")
 		}
 	}
 
@@ -127,9 +127,9 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 	if err != nil {
 		return err
 	}
-	err = oc.ServeExistingMinions()
+	err = oc.ServeExistingNodes()
 	if err != nil {
-		log.Warningf("Error initializing existing minions: %v", err)
+		log.Warningf("Error initializing existing nodes: %v", err)
 		// no worry, we can still keep watching it.
 	}
 	if _, is_mt := oc.flowController.(*multitenant.FlowController); is_mt {
@@ -148,7 +148,7 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		}
 		go oc.watchNetworks()
 	}
-	go oc.watchMinions()
+	go oc.watchNodes()
 	return nil
 }
 
@@ -185,26 +185,26 @@ func (oc *OvsController) watchNetworks() {
 				delete(oc.VnidMap, ev.Name)
 			}
 		case <-oc.sig:
-			log.Error("Signal received. Stopping watching of minions.")
+			log.Error("Signal received. Stopping watching of nodes.")
 			stop <- true
 			return
 		}
 	}
 }
 
-func (oc *OvsController) ServeExistingMinions() error {
-	minions, err := oc.subnetRegistry.GetMinions()
+func (oc *OvsController) ServeExistingNodes() error {
+	nodes, err := oc.subnetRegistry.GetNodes()
 	if err != nil {
 		return err
 	}
 
-	for _, minion := range *minions {
-		_, err := oc.subnetRegistry.GetSubnet(minion)
+	for _, node := range *nodes {
+		_, err := oc.subnetRegistry.GetSubnet(node)
 		if err == nil {
 			// subnet already exists, continue
 			continue
 		}
-		err = oc.AddNode(minion)
+		err = oc.AddNode(node, "")
 		if err != nil {
 			return err
 		}
@@ -212,56 +212,70 @@ func (oc *OvsController) ServeExistingMinions() error {
 	return nil
 }
 
-func (oc *OvsController) AddNode(minion string) error {
+func (oc *OvsController) getNodeIP(node string) (string, error) {
+	ip := net.ParseIP(node)
+	if ip == nil {
+		addrs, err := net.LookupIP(node)
+		if err != nil {
+			log.Errorf("Failed to lookup IP address for node %s: %v", node, err)
+			return "", err
+		}
+		for _, addr := range addrs {
+			if addr.String() != "127.0.0.1" {
+				ip = addr
+				break
+			}
+		}
+	}
+	if ip == nil || len(ip.String()) == 0 {
+		return "", fmt.Errorf("Failed to obtain IP address from node label: %s", node)
+	}
+	return ip.String(), nil
+}
+
+func (oc *OvsController) AddNode(node string, nodeIP string) error {
 	sn, err := oc.subnetAllocator.GetNetwork()
 	if err != nil {
-		log.Errorf("Error creating network for minion %s.", minion)
+		log.Errorf("Error creating network for node %s.", node)
 		return err
 	}
-	var minionIP string
-	ip := net.ParseIP(minion)
-	if ip == nil {
-		addrs, err := net.LookupIP(minion)
+
+	if nodeIP == "" || nodeIP == "127.0.0.1" {
+		nodeIP, err = oc.getNodeIP(node)
 		if err != nil {
-			log.Errorf("Failed to lookup IP address for minion %s: %v", minion, err)
 			return err
 		}
-		minionIP = addrs[0].String()
-		if minionIP == "" {
-			return fmt.Errorf("Failed to obtain IP address from minion label: %s", minion)
-		}
-	} else {
-		minionIP = ip.String()
 	}
+
 	sub := &api.Subnet{
-		Minion: minionIP,
+		NodeIP: nodeIP,
 		Sub:    sn.String(),
 	}
-	oc.subnetRegistry.CreateSubnet(minion, sub)
+	err = oc.subnetRegistry.CreateSubnet(node, sub)
 	if err != nil {
-		log.Errorf("Error writing subnet to etcd for minion %s: %v", minion, sn)
+		log.Errorf("Error writing subnet to etcd for node %s: %v", node, sn)
 		return err
 	}
 	return nil
 }
 
-func (oc *OvsController) DeleteNode(minion string) error {
-	sub, err := oc.subnetRegistry.GetSubnet(minion)
+func (oc *OvsController) DeleteNode(node string) error {
+	sub, err := oc.subnetRegistry.GetSubnet(node)
 	if err != nil {
-		log.Errorf("Error fetching subnet for minion %s for delete operation.", minion)
+		log.Errorf("Error fetching subnet for node %s for delete operation.", node)
 		return err
 	}
 	_, ipnet, err := net.ParseCIDR(sub.Sub)
 	if err != nil {
-		log.Errorf("Error parsing subnet for minion %s for deletion: %s", minion, sub.Sub)
+		log.Errorf("Error parsing subnet for node %s for deletion: %s", node, sub.Sub)
 		return err
 	}
 	oc.subnetAllocator.ReleaseNetwork(ipnet)
-	return oc.subnetRegistry.DeleteSubnet(minion)
+	return oc.subnetRegistry.DeleteSubnet(node)
 }
 
 func (oc *OvsController) syncWithMaster() error {
-	return oc.subnetRegistry.CreateMinion(oc.hostName, oc.localIP)
+	return oc.subnetRegistry.CreateNode(oc.hostName, oc.localIP)
 }
 
 func (oc *OvsController) StartNode(sync, skipsetup bool) error {
@@ -296,7 +310,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		log.Errorf("Could not fetch existing subnets: %v", err)
 	}
 	for _, s := range *subnets {
-		oc.flowController.AddOFRules(s.Minion, s.Sub, oc.localIP)
+		oc.flowController.AddOFRules(s.NodeIP, s.Sub, oc.localIP)
 	}
 	if _, ok := oc.flowController.(*multitenant.FlowController); ok {
 		nslist, err := oc.subnetRegistry.GetNetNamespaces()
@@ -343,7 +357,7 @@ func (oc *OvsController) initSelfSubnet() error {
 	for {
 		sub, err := oc.subnetRegistry.GetSubnet(oc.hostName)
 		if err != nil {
-			log.Errorf("Could not find an allocated subnet for minion %s: %s. Waiting...", oc.hostName, err)
+			log.Errorf("Could not find an allocated subnet for node %s: %s. Waiting...", oc.hostName, err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
@@ -352,26 +366,42 @@ func (oc *OvsController) initSelfSubnet() error {
 	}
 }
 
-func (oc *OvsController) watchMinions() {
+func (oc *OvsController) watchNodes() {
 	// watch latest?
 	stop := make(chan bool)
-	minevent := make(chan *api.MinionEvent)
-	go oc.subnetRegistry.WatchMinions(minevent, stop)
+	nodeEvent := make(chan *api.NodeEvent)
+	go oc.subnetRegistry.WatchNodes(nodeEvent, stop)
 	for {
 		select {
-		case ev := <-minevent:
+		case ev := <-nodeEvent:
 			switch ev.Type {
 			case api.Added:
-				_, err := oc.subnetRegistry.GetSubnet(ev.Minion)
+				sub, err := oc.subnetRegistry.GetSubnet(ev.Node)
 				if err != nil {
 					// subnet does not exist already
-					oc.AddNode(ev.Minion)
+					oc.AddNode(ev.Node, ev.NodeIP)
+				} else {
+					// Current node IP is obtained from event, ev.NodeIP to
+					// avoid cached/stale IP lookup by net.LookupIP()
+					if sub.NodeIP != ev.NodeIP {
+						err = oc.subnetRegistry.DeleteSubnet(ev.Node)
+						if err != nil {
+							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.Node, sub.NodeIP)
+							continue
+						}
+						sub.NodeIP = ev.NodeIP
+						err = oc.subnetRegistry.CreateSubnet(ev.Node, sub)
+						if err != nil {
+							log.Errorf("Error creating subnet for node %s, ip %s", ev.Node, sub.NodeIP)
+							continue
+						}
+					}
 				}
 			case api.Deleted:
-				oc.DeleteNode(ev.Minion)
+				oc.DeleteNode(ev.Node)
 			}
 		case <-oc.sig:
-			log.Error("Signal received. Stopping watching of minions.")
+			log.Error("Signal received. Stopping watching of nodes.")
 			stop <- true
 			return
 		}
@@ -388,10 +418,10 @@ func (oc *OvsController) watchCluster() {
 			switch ev.Type {
 			case api.Added:
 				// add openflow rules
-				oc.flowController.AddOFRules(ev.Sub.Minion, ev.Sub.Sub, oc.localIP)
+				oc.flowController.AddOFRules(ev.Sub.NodeIP, ev.Sub.Sub, oc.localIP)
 			case api.Deleted:
-				// delete openflow rules meant for the minion
-				oc.flowController.DelOFRules(ev.Sub.Minion, oc.localIP)
+				// delete openflow rules meant for the node
+				oc.flowController.DelOFRules(ev.Sub.NodeIP, oc.localIP)
 			}
 		case <-oc.sig:
 			stop <- true

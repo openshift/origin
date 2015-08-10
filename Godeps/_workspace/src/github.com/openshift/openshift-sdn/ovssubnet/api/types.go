@@ -10,15 +10,15 @@ const (
 type SubnetRegistry interface {
 	InitSubnets() error
 	GetSubnets() (*[]Subnet, error)
-	GetSubnet(minion string) (*Subnet, error)
-	DeleteSubnet(minion string) error
+	GetSubnet(node string) (*Subnet, error)
+	DeleteSubnet(node string) error
 	CreateSubnet(sn string, sub *Subnet) error
 	WatchSubnets(receiver chan *SubnetEvent, stop chan bool) error
 
-	InitMinions() error
-	GetMinions() (*[]string, error)
-	CreateMinion(minion string, data string) error
-	WatchMinions(receiver chan *MinionEvent, stop chan bool) error
+	InitNodes() error
+	GetNodes() (*[]string, error)
+	CreateNode(node string, data string) error
+	WatchNodes(receiver chan *NodeEvent, stop chan bool) error
 
 	WriteNetworkConfig(network string, subnetLength uint) error
 	GetContainerNetwork() (string, error)
@@ -34,18 +34,19 @@ type SubnetRegistry interface {
 }
 
 type SubnetEvent struct {
-	Type   EventType
-	Minion string
-	Sub    Subnet
+	Type EventType
+	Node string
+	Sub  Subnet
 }
 
-type MinionEvent struct {
+type NodeEvent struct {
 	Type   EventType
-	Minion string
+	Node   string
+	NodeIP string
 }
 
 type Subnet struct {
-	Minion string
+	NodeIP string
 	Sub    string
 }
 

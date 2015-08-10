@@ -1059,7 +1059,7 @@
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/ovssubnet",
 			"Comment": "v0.1-110-gcdd9955",
-			"Rev": "74738c359b670c6e12435c1af10ee2802a4b0b64"
+			"Rev": "d534b3b254fe2a41b77260dcc5f6061b04f633b8"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/netutils",

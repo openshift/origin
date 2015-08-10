@@ -57,9 +57,10 @@ function setup() {
 
     # Table 1; initial dispatch
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, arp, actions=goto_table:7"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=1, actions=goto_table:2"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=2, actions=goto_table:4"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, actions=goto_table:3"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=1, actions=goto_table:2" # vxlan0
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=2, actions=goto_table:4" # tun0
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=9, actions=goto_table:4" # vovsbr
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, actions=goto_table:3"            # container
 
     # Table 2; incoming from vxlan
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, arp, actions=goto_table:7"
@@ -67,9 +68,7 @@ function setup() {
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, tun_id=0, actions=goto_table:4"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, ip, nw_dst=${subnet}, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:5"
 
-    # Table 3; incoming from container; filled in by openshift-ovs-subnet
-    # But let incoming traffic from docker-only containers through (ingress on vovsbr)
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=3, cookie=0x9, in_port=9, ip, actions=goto_table:4"
+    # Table 3; incoming from container; filled in by openshift-ovs-multitenant
 
     # Table 4; general routing
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=200, ip, nw_dst=${subnet_gateway}, actions=output:2"
@@ -136,11 +135,14 @@ EOF
     modprobe br_netfilter || true 
     sysctl -w net.bridge.bridge-nf-call-iptables=0
 
+    # enable IP forwarding for ipv4 packets
+    sysctl -w net.ipv4.ip_forward=1
+    sysctl -w net.ipv4.conf.${TUN}.forwarding=1
+
     # delete the subnet routing entry created because of lbr0
     ip route del ${subnet} dev lbr0 proto kernel scope link src ${subnet_gateway} || true
 
     mkdir -p /etc/openshift-sdn
-    echo "export OPENSHIFT_SDN_TAP1_ADDR=${tun_gateway}" >& "/etc/openshift-sdn/config.env"
     echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_subnet}" >> "/etc/openshift-sdn/config.env"
 }
 
