@@ -57,9 +57,9 @@
           <span data-icon="" aria-hidden="true" class="font-icon"></span>
           <span data-icon="" aria-hidden="true" class="font-icon"></span>
         </div>Ports:
-        <div ng-repeat="port in container.ports" class="port-number">
-          <span>{{port.containerPort}} ({{port.protocol}})<span ng-if="port.hostPort"> <span class="port-icon">&#10230;</span> {{port.hostPort}}</span></span>
-        </div>
+        <span ng-repeat="port in container.ports | orderBy: 'containerPort'">
+          <span class="nowrap">{{port.containerPort}}&thinsp;({{port.protocol}})<span ng-if="port.hostPort">&thinsp;<span class="port-icon">&#8594;</span>&thinsp;{{port.hostPort}}</span></span><span ng-if="!$last">, </span>
+        </span>
       </div> 
 
       <div hawtio-extension name="container-links"></div>
