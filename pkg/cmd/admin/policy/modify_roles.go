@@ -1,12 +1,14 @@
 package policy
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -61,13 +63,14 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 // NewCmdAddRoleToUser implements the OpenShift cli add-role-to-user command
 func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
+	saNames := util.StringList{}
 
 	cmd := &cobra.Command{
 		Use:   name + " ROLE USER [USER ...]",
 		Short: "Add users to a role in the current project",
 		Long:  `Add users to a role in the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, args, &options.Users, "user", true); err != nil {
+			if err := options.CompleteUserWithSA(f, args, saNames); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -78,6 +81,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 	}
 
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().VarP(&saNames, "serviceaccount", "z", "service account in the current namespace to use as a user")
 
 	return cmd
 }
@@ -109,13 +113,14 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 // NewCmdRemoveRoleFromUser implements the OpenShift cli remove-role-from-user command
 func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
+	saNames := util.StringList{}
 
 	cmd := &cobra.Command{
 		Use:   name + " ROLE USER [USER ...]",
 		Short: "Remove user from role in the current project",
 		Long:  `Remove user from role in the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, args, &options.Users, "user", true); err != nil {
+			if err := options.CompleteUserWithSA(f, args, saNames); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -126,6 +131,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 	}
 
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
+	cmd.Flags().VarP(&saNames, "serviceaccount", "z", "service account in the current namespace to use as a user")
 
 	return cmd
 }
@@ -216,6 +222,34 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 	}
 
 	return cmd
+}
+
+func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args []string, saNames util.StringList) error {
+	if (len(args) < 2) && (len(saNames) == 0) {
+		return errors.New("You must specify at least two arguments: <role> <user> [user]...")
+	}
+
+	o.RoleName = args[0]
+	if len(args) > 1 {
+		o.Users = append(o.Users, args[1:]...)
+	}
+
+	osClient, _, err := f.Clients()
+	if err != nil {
+		return err
+	}
+
+	roleBindingNamespace, _, err := f.DefaultNamespace()
+	if err != nil {
+		return err
+	}
+	o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, osClient)
+
+	for _, sa := range saNames {
+		o.Users = append(o.Users, serviceaccount.MakeUsername(roleBindingNamespace, sa))
+	}
+
+	return nil
 }
 
 func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, args []string, target *[]string, targetName string, isNamespaced bool) error {
