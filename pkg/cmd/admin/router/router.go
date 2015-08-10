@@ -207,7 +207,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		return fmt.Errorf("error getting client: %v", err)
 	}
 
-	p, output, err := cmdutil.PrinterForCommand(cmd)
+	_, output, err := cmdutil.PrinterForCommand(cmd)
 	if err != nil {
 		return fmt.Errorf("unable to configure printer: %v", err)
 	}
@@ -337,7 +337,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		list := &kapi.List{Items: objects}
 
 		if output {
-			if err := p.PrintObj(list, out); err != nil {
+			if err := f.PrintObject(cmd, list, out); err != nil {
 				return fmt.Errorf("Unable to print object: %v", err)
 			}
 			return nil
