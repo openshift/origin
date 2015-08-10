@@ -255,9 +255,9 @@ for cmd in oc oadm; do
 done
 ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/kubectl
 
-install -d -m 0755 %{buildroot}/etc/origin/{master,node,allinone}
+install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node,allinone}
 # Atomic-Enterprise has an allinone directory for all-in-one use.
-install -d -m 0755 %{buildroot}/etc/origin/allinone/{master,node}
+install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/allinone/{master,node}
 
 for pkgname in openshift atomic-enterprise
 do
@@ -302,10 +302,10 @@ do
 done
 
 # Install bash completions
-install -d -m 755 %{buildroot}/etc/bash_completion.d/
-install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
+install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
+install -p -m 644 rel-eng/completions/bash/* %{buildroot}%{_sysconfdir}/bash_completion.d/
 # Generate atomic-enterprise bash completions
-%{__sed} -e "s|openshift|atomic-enterprise|g" rel-eng/completions/bash/openshift > %{buildroot}/etc/bash_completion.d/atomic-enterprise
+%{__sed} -e "s|openshift|atomic-enterprise|g" rel-eng/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
 
 %files
 %defattr(-,root,root,-)
@@ -315,8 +315,8 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}/etc/bash_completion.d/
 %{_bindir}/oadm
 %{_bindir}/kubectl
 %{_sharedstatedir}/%{name}
-/etc/bash_completion.d/*
-%dir %config(noreplace) /etc/origin
+%{_sysconfdir}/bash_completion.d/*
+%dir %config(noreplace) %{_sysconfdir}/origin
 
 %pre
 # If /etc/openshift exists symlink it to /etc/origin
@@ -370,7 +370,7 @@ fi
 %defattr(-,root,root,-)
 %{_unitdir}/%{name}-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
-%config(noreplace) /etc/origin/node
+%config(noreplace) %{_sysconfdir}/origin/node
 
 %post node
 %systemd_post %{basename:openshift-node.service}
@@ -433,7 +433,7 @@ fi
 %{_bindir}/oadm
 %{_bindir}/kubectl
 %{_sharedstatedir}/origin
-/etc/bash_completion.d/*
+%{_sysconfdir}/bash_completion.d/*
 %dir %config(noreplace) %{_sysconfdir}/origin
 
 %pre -n atomic-enterprise
@@ -512,9 +512,9 @@ fi
 %post -n atomic-enterprise-master
 %systemd_post %{basename:atomic-enterprise-master.service}
 # Create all-in-one master configs
-%{_bindir}/atomic-enterprise start master --write-config=/etc/origin/allinone/master
+%{_bindir}/atomic-enterprise start master --write-config=%{_sysconfdir}/origin/allinone/master
 # Create all-in-one node configs
-%{_bindir}/oadm create-node-config --node-dir=/etc/origin/allinone/node/ --node=localhost --hostnames=localhost,127.0.0.1 --node-client-certificate-authority=/etc/origin/allinone/master/ca.crt --signer-cert=/etc/origin/allinone/master/ca.crt --signer-key=/etc/origin/allinone/master/ca.key --signer-serial=/etc/origin/allinone/master/ca.serial.txt --certificate-authority=/etc/origin/allinone/master/ca.crt
+%{_bindir}/oadm create-node-config --node-dir=%{_sysconfdir}/origin/allinone/node/ --node=localhost --hostnames=localhost,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/allinone/master/ca.crt --signer-cert=%{_sysconfdir}/origin/allinone/master/ca.crt --signer-key=%{_sysconfdir}/origin/allinone/master/ca.key --signer-serial=%{_sysconfdir}/origin/allinone/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/allinone/master/ca.crt
 
 %preun -n atomic-enterprise-master
 %systemd_preun %{basename:atomic-enterprise-master.service}
@@ -527,7 +527,7 @@ fi
 %defattr(-,root,root,-)
 %{_unitdir}/atomic-enterprise-node.service
 %config(noreplace) %{_sysconfdir}/sysconfig/atomic-enterprise-node
-%config(noreplace) /etc/origin/node
+%config(noreplace) %{_sysconfdir}/origin/node
 
 %post -n atomic-enterprise-node
 %systemd_post %{basename:atomic-enterprise-node.service}
