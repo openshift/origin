@@ -9,9 +9,8 @@ type Route struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 
-	// Host is an alias/DNS that points to the service. Required
-	// Can be host or host:port
-	// host and port are combined to follow the net/url URL struct
+	// Host is an alias/DNS that points to the service. Optional
+	// Must follow DNS952 subdomain conventions.
 	Host string
 	// Path that the router watches for, to route traffic for to the service. Optional
 	Path string
