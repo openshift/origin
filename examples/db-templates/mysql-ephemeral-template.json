@@ -105,6 +105,14 @@
                   {
                     "name": "MYSQL_DATABASE",
                     "value": "${MYSQL_DATABASE}"
+                  },
+                  {
+                    "name": "MYSQL_ALLOW_EMPTY_PASSWORD",
+                    "value": "${MYSQL_ALLOW_EMPTY_PASSWORD}"
+                  },
+                  {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "value": "${MYSQL_ROOT_PASSWORD}"
                   }
                 ],
                 "resources": {},
@@ -161,6 +169,16 @@
       "name": "MYSQL_DATABASE",
       "description": "Database name",
       "value": "sampledb"
+    },
+    {
+      "name": "MYSQL_ALLOW_EMPTY_PASSWORD",
+      "description": "allow empty password?",
+      "value": "true"
+    },
+    {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "description": "Mysql Root Password. Can be empty if MYSQL_ALLOW_EMPTY_PASSWORD set to true",
+      "value": ""
     }
   ],
   "labels": {
