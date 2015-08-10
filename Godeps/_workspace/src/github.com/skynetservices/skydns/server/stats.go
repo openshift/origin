@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
+	"github.com/miekg/dns"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -27,8 +29,12 @@ var (
 	promErrorCount           *prometheus.CounterVec
 	promCacheSize            *prometheus.GaugeVec
 	promCacheMiss            *prometheus.CounterVec
+	promRequestDuration      *prometheus.HistogramVec
+	promResponseSize         *prometheus.HistogramVec
 )
 
+// Metrics registers the DNS metrics to Prometheus, and starts the internal metrics
+// server if the environment variable PROMETHEUS_PORT is set.
 func Metrics() {
 	if prometheusPath == "" {
 		prometheusPath = "/metrics"
@@ -37,14 +43,27 @@ func Metrics() {
 		prometheusSubsystem = "skydns"
 	}
 
-	promExternalRequestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: prometheusNamespace,
-		Subsystem: prometheusSubsystem,
-		Name:      "dns_request_external_count",
-		Help:      "Counter of external DNS requests.",
-	}, []string{"type"}) // recursive, stub, lookup
-	prometheus.MustRegister(promExternalRequestCount)
+	RegisterMetrics(prometheusNamespace, prometheusSubsystem)
 
+	if prometheusPort == "" {
+		return
+	}
+
+	_, err := strconv.Atoi(prometheusPort)
+	if err != nil {
+		log.Fatalf("skydns: bad port for prometheus: %s", prometheusPort)
+	}
+
+	http.Handle(prometheusPath, prometheus.Handler())
+	go func() {
+		log.Fatalf("skydns: %s", http.ListenAndServe(":"+prometheusPort, nil))
+	}()
+	log.Printf("skydns: metrics enabled on :%s%s", prometheusPort, prometheusPath)
+}
+
+// RegisterMetrics registers DNS specific Prometheus metrics with the provided namespace
+// and subsystem.
+func RegisterMetrics(prometheusNamespace, prometheusSubsystem string) {
 	promRequestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: prometheusNamespace,
 		Subsystem: prometheusSubsystem,
@@ -66,7 +85,7 @@ func Metrics() {
 		Subsystem: prometheusSubsystem,
 		Name:      "dns_error_count",
 		Help:      "Counter of DNS requests resulting in an error.",
-	}, []string{"error"}) // nxdomain, nodata, truncated, refused
+	}, []string{"error"}) // nxdomain, nodata, truncated, refused, overflow
 	prometheus.MustRegister(promErrorCount)
 
 	// Caches
@@ -86,20 +105,47 @@ func Metrics() {
 	}, []string{"type"}) // response, signature
 	prometheus.MustRegister(promCacheMiss)
 
-	if prometheusPort == "" {
-		return
-	}
+	promRequestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: prometheusNamespace,
+		Subsystem: prometheusSubsystem,
+		Name:      "dns_request_duration",
+		Help:      "Histogram of the time (in seconds) each request took to resolve.",
+		Buckets:   append([]float64{0.001, 0.003}, prometheus.DefBuckets...),
+	}, []string{"type"}) // udp, tcp
+	prometheus.MustRegister(promRequestDuration)
 
-	_, err := strconv.Atoi(prometheusPort)
-	if err != nil {
-		log.Fatalf("skydns: bad port for prometheus: %s", prometheusPort)
-	}
+	promResponseSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: prometheusNamespace,
+		Subsystem: prometheusSubsystem,
+		Name:      "dns_response_size",
+		Help:      "Size of the returns response in bytes.",
+		// Powers of 2 up to the maximum size.
+		Buckets: []float64{0, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536},
+	}, []string{"type"}) // udp, tcp
+	prometheus.MustRegister(promResponseSize)
 
-	http.Handle(prometheusPath, prometheus.Handler())
-	go func() {
-		log.Fatalf("skydns: %s", http.ListenAndServe(":"+prometheusPort, nil))
-	}()
-	log.Printf("skydns: metrics enabled on :%s%s", prometheusPort, prometheusPath)
+	promExternalRequestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: prometheusNamespace,
+		Subsystem: prometheusSubsystem,
+		Name:      "dns_request_external_count",
+		Help:      "Counter of external DNS requests.",
+	}, []string{"type"}) // recursive, stub, lookup
+	prometheus.MustRegister(promExternalRequestCount)
+
+}
+
+// metricSizeAndDuration sets the size and duration metrics.
+func metricSizeAndDuration(resp *dns.Msg, start time.Time, tcp bool) {
+	net := "udp"
+	rlen := float64(0)
+	if tcp {
+		net = "tcp"
+	}
+	if resp != nil {
+		rlen = float64(resp.Len())
+	}
+	promRequestDuration.WithLabelValues(net).Observe(float64(time.Since(start)) / float64(time.Second))
+	promResponseSize.WithLabelValues(net).Observe(rlen)
 }
 
 // Counter is the metric interface used by this package
