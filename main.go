@@ -17,7 +17,7 @@ import (
 )
 
 type NetworkManager interface {
-	StartMaster(sync bool, containerNetwork string, containerSubnetLength uint) error
+	StartMaster(sync bool, containerNetwork string, containerSubnetLength uint, serviceNetwork string) error
 	StartNode(sync, skipsetup bool) error
 	Stop()
 }
@@ -25,6 +25,7 @@ type NetworkManager interface {
 type CmdLineOpts struct {
 	containerNetwork      string
 	containerSubnetLength uint
+	serviceNetwork        string
 	etcdEndpoints         string
 	etcdPath              string
 	etcdKeyfile           string
@@ -49,6 +50,7 @@ var opts CmdLineOpts
 func init() {
 	flag.StringVar(&opts.containerNetwork, "container-network", "10.1.0.0/16", "container network")
 	flag.UintVar(&opts.containerSubnetLength, "container-subnet-length", 8, "container subnet length")
+	flag.StringVar(&opts.serviceNetwork, "service-network", "172.30.0.0/16", "service network")
 	flag.StringVar(&opts.etcdEndpoints, "etcd-endpoints", "http://127.0.0.1:4001", "a comma-delimited list of etcd endpoints")
 	flag.StringVar(&opts.etcdPath, "etcd-path", "/registry/sdn/", "etcd path")
 	flag.StringVar(&opts.nodePath, "node-path", "/kubernetes.io/minions/", "etcd path that will be watched for node creation/deletion (Note: -sync flag will override this path with -etcd-path)")
@@ -158,7 +160,7 @@ func main() {
 			log.Fatalf("Failed to start openshift sdn in node mode: %v", err)
 		}
 	} else if opts.master {
-		err := be.StartMaster(opts.sync, opts.containerNetwork, opts.containerSubnetLength)
+		err := be.StartMaster(opts.sync, opts.containerNetwork, opts.containerSubnetLength, opts.serviceNetwork)
 		if err != nil {
 			log.Fatalf("Failed to start openshift sdn in master mode: %v", err)
 		}
