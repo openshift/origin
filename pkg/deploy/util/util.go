@@ -6,6 +6,9 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
@@ -13,6 +16,19 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/util/namer"
 )
+
+// GetDeployerPodsFor finds deployer pods using the label they should all have which correlates them to the named deployment.
+func GetDeployerPodsFor(podClient kclient.PodsNamespacer, deployment *kapi.ReplicationController) ([]kapi.Pod, error) {
+	labelSel, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeployerPodForDeploymentLabel, deployment.Name))
+	if err != nil {
+		return []kapi.Pod{}, err
+	}
+	pods, err := podClient.Pods(deployment.Namespace).List(labelSel, fields.Everything())
+	if err != nil {
+		return []kapi.Pod{}, err
+	}
+	return pods.Items, nil
+}
 
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {

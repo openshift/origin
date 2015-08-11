@@ -9,10 +9,8 @@ import (
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 
 	controller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -23,7 +21,7 @@ import (
 // deployer pods in a configurable way.
 type DeploymentControllerFactory struct {
 	// KubeClient is a Kubernetes client.
-	KubeClient kclient.Interface
+	KubeClient *kclient.Client
 	// Codec is used for encoding/decoding.
 	Codec runtime.Codec
 	// ServiceAccount is the service account name to run deployer pods as
@@ -36,16 +34,7 @@ type DeploymentControllerFactory struct {
 
 // Create creates a DeploymentController.
 func (factory *DeploymentControllerFactory) Create() controller.RunnableController {
-	deploymentLW := &deployutil.ListWatcherImpl{
-		// TODO: Investigate specifying annotation field selectors to fetch only 'deployments'
-		// Currently field selectors are not supported for replication controllers
-		ListFunc: func() (runtime.Object, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
-		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
-		},
-	}
+	deploymentLW := cache.NewListWatchFromClient(factory.KubeClient, "replicationcontrollers", kapi.NamespaceAll, fields.Everything())
 	deploymentQueue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(deploymentLW, &kapi.ReplicationController{}, deploymentQueue, 2*time.Minute).Run()
 
@@ -53,42 +42,9 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
 
 	deployController := &DeploymentController{
-		serviceAccount: factory.ServiceAccount,
-		deploymentClient: &deploymentClientImpl{
-			getDeploymentFunc: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Get(name)
-			},
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
-			},
-		},
-		podClient: &podClientImpl{
-			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
-				return factory.KubeClient.Pods(namespace).Get(name)
-			},
-			createPodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				return factory.KubeClient.Pods(namespace).Create(pod)
-			},
-			deletePodFunc: func(namespace, name string) error {
-				return factory.KubeClient.Pods(namespace).Delete(name, nil)
-			},
-			updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				return factory.KubeClient.Pods(namespace).Update(pod)
-			},
-			// Find deployer pods using the label they should all have which
-			// correlates them to the named deployment.
-			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
-				labelSel, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeployerPodForDeploymentLabel, name))
-				if err != nil {
-					return []kapi.Pod{}, err
-				}
-				pods, err := factory.KubeClient.Pods(namespace).List(labelSel, fields.Everything())
-				if err != nil {
-					return []kapi.Pod{}, err
-				}
-				return pods.Items, nil
-			},
-		},
+		serviceAccount:   factory.ServiceAccount,
+		deploymentClient: factory.KubeClient,
+		podClient:        factory.KubeClient,
 		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
 			return factory.makeContainer(strategy)
 		},

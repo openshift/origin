@@ -46,12 +46,12 @@ func (c *FakePods) Delete(name string, options *api.DeleteOptions) error {
 }
 
 func (c *FakePods) Create(pod *api.Pod) (*api.Pod, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-pod"}, &api.Pod{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: "create-pod", Value: pod}, pod)
 	return obj.(*api.Pod), err
 }
 
 func (c *FakePods) Update(pod *api.Pod) (*api.Pod, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-pod", Value: pod.Name}, &api.Pod{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: "update-pod", Value: pod}, pod)
 	return obj.(*api.Pod), err
 }
 

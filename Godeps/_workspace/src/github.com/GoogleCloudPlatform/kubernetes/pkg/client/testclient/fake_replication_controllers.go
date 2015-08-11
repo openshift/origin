@@ -50,12 +50,12 @@ func (c *FakeReplicationControllers) Get(name string) (*api.ReplicationControlle
 }
 
 func (c *FakeReplicationControllers) Create(controller *api.ReplicationController) (*api.ReplicationController, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: CreateControllerAction, Value: controller}, &api.ReplicationController{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: CreateControllerAction, Value: controller}, controller)
 	return obj.(*api.ReplicationController), err
 }
 
 func (c *FakeReplicationControllers) Update(controller *api.ReplicationController) (*api.ReplicationController, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: UpdateControllerAction, Value: controller}, &api.ReplicationController{})
+	obj, err := c.Fake.Invokes(FakeAction{Action: UpdateControllerAction, Value: controller}, controller)
 	return obj.(*api.ReplicationController), err
 }
 

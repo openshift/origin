@@ -7,6 +7,7 @@ import (
 
 	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
 	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 
@@ -29,9 +30,9 @@ type DeploymentController struct {
 	// serviceAccount to create deployment pods with
 	serviceAccount string
 	// deploymentClient provides access to deployments.
-	deploymentClient deploymentClient
+	deploymentClient kclient.ReplicationControllersNamespacer
 	// podClient provides access to pods.
-	podClient podClient
+	podClient kclient.PodsNamespacer
 	// makeContainer knows how to make a container appropriate to execute a deployment strategy.
 	makeContainer func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error)
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
@@ -66,7 +67,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		}
 
 		// Create the deployer pod.
-		deploymentPod, err := c.podClient.createPod(deployment.Namespace, podTemplate)
+		deploymentPod, err := c.podClient.Pods(deployment.Namespace).Create(podTemplate)
 		if err == nil {
 			deployment.Annotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
 			nextStatus = deployapi.DeploymentStatusPending
@@ -84,7 +85,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		// succeeded but the deployment state update failed and now we're re-
 		// entering. Ensure that the pod is the one we created by verifying the
 		// annotation on it, and throw a retryable error.
-		existingPod, err := c.podClient.getPod(deployment.Namespace, deployutil.DeployerPodNameForDeployment(deployment.Name))
+		existingPod, err := c.podClient.Pods(deployment.Namespace).Get(deployutil.DeployerPodNameForDeployment(deployment.Name))
 		if err != nil {
 			c.recorder.Eventf(deployment, "failedCreate", "Error getting existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
 			return fmt.Errorf("couldn't fetch existing deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err)
@@ -113,7 +114,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 	case deployapi.DeploymentStatusPending, deployapi.DeploymentStatusRunning:
 		// If the deployer pod has vanished, consider the deployment a failure.
 		deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
-		if _, err := c.podClient.getPod(deployment.Namespace, deployerPodName); err != nil {
+		if _, err := c.podClient.Pods(deployment.Namespace).Get(deployerPodName); err != nil {
 			if kerrors.IsNotFound(err) {
 				nextStatus = deployapi.DeploymentStatusFailed
 				deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
@@ -134,7 +135,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		// Also, it will scale down the failed deployment and scale back up
 		// the last successful completed deployment
 		if deployutil.IsDeploymentCancelled(deployment) {
-			deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
+			deployerPods, err := deployutil.GetDeployerPodsFor(c.podClient, deployment)
 			if err != nil {
 				return fmt.Errorf("couldn't fetch deployer pods for %s while trying to cancel deployment: %v", deployutil.LabelForDeployment(deployment), err)
 			}
@@ -144,7 +145,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 				// Set the ActiveDeadlineSeconds on the pod so it's terminated very soon.
 				if deployerPod.Spec.ActiveDeadlineSeconds == nil || *deployerPod.Spec.ActiveDeadlineSeconds != zeroDelay {
 					deployerPod.Spec.ActiveDeadlineSeconds = &zeroDelay
-					if _, err := c.podClient.updatePod(deployerPod.Namespace, &deployerPod); err != nil {
+					if _, err := c.podClient.Pods(deployerPod.Namespace).Update(&deployerPod); err != nil {
 						c.recorder.Eventf(deployment, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
 						return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
 					}
@@ -157,7 +158,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		// Nothing to do in this terminal state.
 	case deployapi.DeploymentStatusComplete:
 		// now list any pods in the namespace that have the specified label
-		deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
+		deployerPods, err := deployutil.GetDeployerPodsFor(c.podClient, deployment)
 		if err != nil {
 			return fmt.Errorf("couldn't fetch deployer pods for %s after successful completion: %v", deployutil.LabelForDeployment(deployment), err)
 		}
@@ -166,7 +167,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 		}
 		cleanedAll := true
 		for _, deployerPod := range deployerPods {
-			if err := c.podClient.deletePod(deployerPod.Namespace, deployerPod.Name); err != nil {
+			if err := c.podClient.Pods(deployerPod.Namespace).Delete(deployerPod.Name, nil); err != nil {
 				if !kerrors.IsNotFound(err) {
 					// if the pod deletion failed, then log the error and continue
 					// we will try to delete any remaining deployer pods and return an error later
@@ -186,7 +187,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 
 	if currentStatus != nextStatus {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(nextStatus)
-		if _, err := c.deploymentClient.updateDeployment(deployment.Namespace, deployment); err != nil {
+		if _, err := c.deploymentClient.ReplicationControllers(deployment.Namespace).Update(deployment); err != nil {
 			c.recorder.Eventf(deployment, "failedUpdate", "Error updating deployment %s status to %s", deployutil.LabelForDeployment(deployment), nextStatus)
 			return fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
@@ -252,62 +253,4 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 
 	return pod, nil
-}
-
-// deploymentClient abstracts access to deployments.
-type deploymentClient interface {
-	getDeployment(namespace, name string) (*kapi.ReplicationController, error)
-	updateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
-}
-
-// podClient abstracts access to pods.
-type podClient interface {
-	getPod(namespace, name string) (*kapi.Pod, error)
-	createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	deletePod(namespace, name string) error
-	updatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	getDeployerPodsFor(namespace, name string) ([]kapi.Pod, error)
-}
-
-// deploymentClientImpl is a pluggable deploymentClient.
-type deploymentClientImpl struct {
-	getDeploymentFunc    func(namespace, name string) (*kapi.ReplicationController, error)
-	updateDeploymentFunc func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error)
-}
-
-func (i *deploymentClientImpl) getDeployment(namespace, name string) (*kapi.ReplicationController, error) {
-	return i.getDeploymentFunc(namespace, name)
-}
-
-func (i *deploymentClientImpl) updateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-	return i.updateDeploymentFunc(namespace, deployment)
-}
-
-// podClientImpl is a pluggable podClient.
-type podClientImpl struct {
-	getPodFunc             func(namespace, name string) (*kapi.Pod, error)
-	createPodFunc          func(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	deletePodFunc          func(namespace, name string) error
-	updatePodFunc          func(namespace string, pod *kapi.Pod) (*kapi.Pod, error)
-	getDeployerPodsForFunc func(namespace, name string) ([]kapi.Pod, error)
-}
-
-func (i *podClientImpl) getPod(namespace, name string) (*kapi.Pod, error) {
-	return i.getPodFunc(namespace, name)
-}
-
-func (i *podClientImpl) createPod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-	return i.createPodFunc(namespace, pod)
-}
-
-func (i *podClientImpl) deletePod(namespace, name string) error {
-	return i.deletePodFunc(namespace, name)
-}
-
-func (i *podClientImpl) updatePod(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-	return i.updatePodFunc(namespace, pod)
-}
-
-func (i *podClientImpl) getDeployerPodsFor(namespace, name string) ([]kapi.Pod, error) {
-	return i.getDeployerPodsForFunc(namespace, name)
 }
