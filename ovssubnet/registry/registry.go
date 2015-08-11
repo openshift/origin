@@ -166,14 +166,6 @@ func (sub *EtcdSubnetRegistry) GetNodes() (*[]string, error) {
 	return &nodes, nil
 }
 
-func (sub *EtcdSubnetRegistry) InitServices() error {
-	return nil
-}
-
-func (sub *EtcdSubnetRegistry) GetServices() (*[]api.Service, error) {
-	return nil, nil
-}
-
 func (sub *EtcdSubnetRegistry) GetSubnets() (*[]api.Subnet, error) {
 	key := sub.etcdCfg.SubnetPath
 	resp, err := sub.client().Get(key, false, true)
@@ -251,11 +243,6 @@ func (sub *EtcdSubnetRegistry) GetContainerNetwork() (string, error) {
 		return "", err
 	}
 	return resp.Node.Value, err
-}
-
-func (sub *EtcdSubnetRegistry) GetServicesNetwork() (string, error) {
-	// FIXME
-	return "172.30.0.0/16", nil
 }
 
 func (sub *EtcdSubnetRegistry) GetSubnetLength() (uint64, error) {
@@ -342,10 +329,6 @@ func (sub *EtcdSubnetRegistry) watch(key string, rev uint64, stop chan bool) (*e
 	}
 
 	return rawResp.Unmarshal()
-}
-
-func (sub *EtcdSubnetRegistry) WatchServices(receiver chan *api.ServiceEvent, stop chan bool) error {
-	return nil
 }
 
 func (sub *EtcdSubnetRegistry) WatchSubnets(receiver chan *api.SubnetEvent, stop chan bool) error {
