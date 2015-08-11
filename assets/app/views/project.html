@@ -41,7 +41,7 @@
 
             <div class="component-block">
               <div class="component">
-                <div class="component-label">
+                <div ng-attr-title="{{service | serviceImplicitDNSName}}" class="component-label">
                   <!-- "service" class is present for e2e tests to check   -->
                   Service <span ng-if="displayRouteByService[serviceId]">: <span class="service">{{serviceId}}</span></span>
                 </div>
@@ -72,9 +72,6 @@
               </div>
 
               <div class="component meta-data">
-                <span ng-if="service.spec.clusterIP && service.spec.clusterIP !== 'None'">
-                  routing traffic on {{service.spec.clusterIP}}
-                </span>
                 <div ng-if="numPorts">
                   <!--
                   Show only the first two ports if there are many since we don't have much space here.
@@ -82,7 +79,8 @@
                   -->
                   <span ng-repeat="portMapping in service.spec.ports | orderBy:'port' | limitTo:2" class="nowrap">
                     <!-- Group port mappings and allow multiple mappings to stack if needed -->
-                    <span class="port-mappings">port {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
+                    <span class="port-mappings">
+                      {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
                       ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span></span>
                   </span>
                   <span ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
@@ -92,7 +90,6 @@
               </div>
             </div>
           </div>
-
 
           <!--
           Iterate over deploymentConfigs for this service.

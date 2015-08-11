@@ -535,4 +535,14 @@ angular.module('openshiftConsole')
 
       return rc.spec.replicas;
     };
+  })
+  .filter('serviceImplicitDNSName', function() {
+    return function(service) {
+      if (!service || !service.metadata || !service.metadata.name || !service.metadata.namespace) {
+        return '';
+      }
+
+      // cluster.local suffix is customizable, so leave it off. <name>.<namespace>.svc resolves.
+      return service.metadata.name + '.' + service.metadata.namespace + '.svc';
+    };
   });

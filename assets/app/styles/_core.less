@@ -356,10 +356,10 @@ code {
   }
 }
 @media (max-width: @screen-xs-max) {
-  .table-events, thead, tbody, th, td, tr {
-    display: block;
-  }
   .table-events {
+    thead, tbody, th, td, tr {
+      display: block;
+    }
     thead tr {
       /* Hide table headers (but not display: none;, for accessibility) */
       .sr-only();
