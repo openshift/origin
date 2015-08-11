@@ -16940,7 +16940,7 @@
     "properties": {
      "host": {
       "type": "string",
-      "description": "optional: alias/dns that points to the service, can be host or host:port"
+      "description": "optional: alias/dns that points to the service, must follow DNS 952 subdomain conventions"
      },
      "path": {
       "type": "string",

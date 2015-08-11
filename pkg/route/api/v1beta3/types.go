@@ -25,9 +25,8 @@ type RouteSpec struct {
 	// Ports are the ports that the user wishes to expose.
 	//Ports []RoutePort `json:"ports,omitempty"`
 
-	// Optional: Alias/DNS that points to the service
-	// Can be host or host:port
-	// host and port are combined to follow the net/url URL struct
+	// Host is an alias/DNS that points to the service. Optional
+	// Must follow DNS952 subdomain conventions.
 	Host string `json:"host"`
 	// Optional: Path that the router watches for, to route traffic for to the service
 	Path string `json:"path,omitempty"`
