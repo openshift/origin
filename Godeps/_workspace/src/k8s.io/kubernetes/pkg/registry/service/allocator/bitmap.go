@@ -79,6 +79,10 @@ func NewContiguousAllocationMap(max int, rangeSpec string) *AllocationBitmap {
 	return &a
 }
 
+func NewContiguousAllocationInterface(max int, rangeSpec string) Interface {
+	return NewContiguousAllocationMap(max, rangeSpec)
+}
+
 // Allocate attempts to reserve the provided item.
 // Returns true if it was allocated, false if it was already in use
 func (r *AllocationBitmap) Allocate(offset int) (bool, error) {
