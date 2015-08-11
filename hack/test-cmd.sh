@@ -176,9 +176,21 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 # Begin tests
 #
 
+# create master config as atomic-enterprise just to test it works
+atomic-enterprise start \
+  --write-config=$TEMP_DIR/atomic.local.config \
+  --create-certs=true \
+  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
+  --hostname="${KUBELET_HOST}" \
+  --volume-dir="${VOLUME_DIR}" \
+  --etcd-dir="${ETCD_DATA_DIR}" \
+  --images="${USE_IMAGES}"
+
 # ensure that DisabledFeatures aren't written to config files
 ! grep -i '\<disabledFeatures\>' \
 	"${MASTER_CONFIG_DIR}/master-config.yaml" \
+	"$TEMP_DIR/atomic.local.config/master/master-config.yaml" \
 	"${NODE_CONFIG_DIR}/node-config.yaml"
 
 # test client not configured
@@ -241,10 +253,6 @@ oc get services
 mv ${HOME}/.kube/config ${HOME}/.kube/non-default-config
 echo "config files: ok"
 
-# Test access to /console/
-$(which curl) -sfL --max-time 5 "${API_SCHEME}://${API_HOST}:${API_PORT}/console/" | grep '<title>'
-echo "console: ok"
-
 # from this point every command will use config from the KUBECONFIG env var
 export KUBECONFIG="${HOME}/.kube/non-default-config"
 
@@ -267,94 +275,5 @@ echo
 echo
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/metrics" "metrics: " 0.25 80
 echo
-echo
-echo "openshift: ok"
-
-# Atomic Enterprise tests *****************************************************
-# create master config as atomic-enterprise just to test it works
-kill -TERM $OS_PID
-rm -rf ${SERVER_CONFIG_DIR} ${HOME}/.kube
-unset KUBECONFIG
-
-atomic-enterprise admin ca create-master-certs \
-  --overwrite=false \
-  --cert-dir="${MASTER_CONFIG_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
-
-atomic-enterprise admin create-node-config \
-  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${NODE_CONFIG_DIR}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-atomic-enterprise start \
-  --write-config=${SERVER_CONFIG_DIR} \
-  --create-certs=false \
-  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}"
-
-# ensure that DisabledFeatures aren't written to config files
-! grep -i '\<disabledFeatures\>' \
-	"${MASTER_CONFIG_DIR}/master-config.yaml" \
-	"${NODE_CONFIG_DIR}/node-config.yaml"
-
-# Start atomic-enterprise
-OPENSHIFT_ON_PANIC=crash atomic-enterprise start \
-  --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-  --loglevel=4 \
-  1>&2 2>"${TEMP_DIR}/atomic-enterprise.log" &
-OS_PID=$!
-
-# Wait for atomic-enterprise to become available
-wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
-
-# Test log(in|out) with atomic-enterprise
-# --token and --username are mutually exclusive
-[ "$(atomic-enterprise cli login -u test-user --token=tmp --insecure-skip-tls-verify 2>&1 | grep 'mutually exclusive')" ]
-# must only accept one arg (server)
-[ "$(atomic-enterprise cli login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
-# logs in with a valid certificate authority
-atomic-enterprise cli login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1beta3
-grep -q "v1beta3" ${HOME}/.kube/config
-atomic-enterprise cli logout
-# logs in skipping certificate check
-atomic-enterprise cli login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything
-# logs in by an existing and valid token
-temp_token=$(atomic-enterprise cli config view -o template --template='{{range .users}}{{ index .user.token }}{{end}}')
-[ "$(atomic-enterprise cli login --token=${temp_token} 2>&1 | grep 'using the token provided')" ]
-atomic-enterprise cli logout
-# properly parse server port
-[ "$(atomic-enterprise cli login https://server1:844333 2>&1 | grep 'Not a valid port')" ]
-# properly handle trailing slash
-atomic-enterprise cli login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
-# create a new project
-atomic-enterprise cli new-project project-bar --display-name="my project" --description="boring project description"
-[ "$(atomic-enterprise cli project | grep 'Using project "project-bar"')" ]
-# denies access after logging out
-atomic-enterprise cli logout
-[ -z "$(atomic-enterprise cli get pods | grep 'system:anonymous')" ]
-
-# Test access to /console is forbidden
-$(which curl) --max-time 5 "${API_SCHEME}://${API_HOST}:${API_PORT}/console/" | grep -qi '\("code"\s*:\s*403"\|"reason"\s*:\s*"Forbidden"\)'
-echo "console-disabled: ok"
-
 echo
 echo "test-cmd: ok"
