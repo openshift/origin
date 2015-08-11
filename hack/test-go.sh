@@ -30,6 +30,7 @@ find_test_dirs() {
         -o -wholename './.git' \
         -o -wholename './assets/node_modules' \
         -o -wholename './openshift.local.*' \
+        -o -wholename './test/extended' \
       \) -prune \
     \) -name '*_test.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 }
@@ -49,6 +50,7 @@ find_upstream_test_dirs() {
         -wholename "${KUBE_GODEP_PATH}/api" \
         -o -wholename "${KUBE_GODEP_PATH}/api/v1" \
         -o -wholename './Godeps/_workspace/src/k8s.io/kubernetes/pkg/runtime' \
+        -o -wholename './Godeps/_workspace/src/k8s.io/kubernetes/test/e2e' \
       \) -prune \
     \) -name '*_test.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 }

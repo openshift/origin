@@ -85,7 +85,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		dockerExecHandler = &dockertools.NsenterExecHandler{}
 	}
 
-	kubeAddress, kubePortStr, err := net.SplitHostPort(options.ServingInfo.BindAddress)
+	kubeAddressStr, kubePortStr, err := net.SplitHostPort(options.ServingInfo.BindAddress)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse node address: %v", err)
 	}
@@ -93,10 +93,9 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse node port: %v", err)
 	}
-
-	address := util.IP{}
-	if err := address.Set(kubeAddress); err != nil {
-		return nil, err
+	kubeAddress := net.ParseIP(kubeAddressStr)
+	if kubeAddress == nil {
+		return nil, fmt.Errorf("Invalid DNS IP: %s", kubeAddressStr)
 	}
 
 	// declare the OpenShift defaults from config
@@ -106,10 +105,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.HostnameOverride = options.NodeName
 	server.AllowPrivileged = true
 	server.RegisterNode = true
-	server.Address = address
+	server.Address = kubeAddress
 	server.Port = uint(kubePort)
 	server.ReadOnlyPort = 0 // no read only access
-	server.ClusterDNS = util.IP(dnsIP)
+	server.ClusterDNS = dnsIP
 	server.ClusterDomain = options.DNSDomain
 	server.NetworkPluginName = options.NetworkPluginName
 	server.HostNetworkSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")

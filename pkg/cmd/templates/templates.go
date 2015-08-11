@@ -41,8 +41,8 @@ Usage:
 
 Examples:
 {{ .Example | trimRight}}
-{{end}}{{ if .HasRunnableSubCommands}}
-{{end}}{{end}}{{ if .HasRunnableSubCommands}}{{range cmdGroups . .Commands}}
+{{end}}{{ if .HasNonHelpSubCommands}}
+{{end}}{{end}}{{ if .HasNonHelpSubCommands}}{{range cmdGroups . .Commands}}
 {{.Message}}{{range .Commands}}{{if .Runnable}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}
 {{end}}{{end}}{{ if or $localNotPersistentFlags.HasFlags $explicitlyExposedFlags.HasFlags}}

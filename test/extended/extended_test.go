@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega"
 	flag "github.com/spf13/pflag"
 	"k8s.io/kubernetes/pkg/client/clientcmd"
-	. "k8s.io/kubernetes/test/e2e"
+	"k8s.io/kubernetes/test/e2e"
 )
 
 var (
@@ -41,7 +41,7 @@ func init() {
 	flag.StringVar(&testContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
 
 	// Override the default Kubernetes E2E configuration
-	SetTestContext(testContext)
+	e2e.SetTestContext(testContext)
 }
 
 func TestExtended(t *testing.T) {
@@ -51,7 +51,7 @@ func TestExtended(t *testing.T) {
 		if err := os.MkdirAll(*reportDir, 0755); err != nil {
 			glog.Errorf("Failed creating report directory: %v", err)
 		}
-		defer CoreDump(*reportDir)
+		defer e2e.CoreDump(*reportDir)
 	}
 
 	// Disable density test unless it's explicitly requested.

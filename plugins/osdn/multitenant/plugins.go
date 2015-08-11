@@ -64,3 +64,8 @@ func (plugin *MultitenantPlugin) TearDownPod(namespace string, name string, id k
 	glog.V(5).Infof("TearDownPod 'multitenant' network plugin output: %s, %v", string(out), err)
 	return err
 }
+
+// TODO unbreak this
+func (plugin *MultitenantPlugin) Status(namespace string, name string, podInfraContainerID kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
+	return nil, nil
+}
