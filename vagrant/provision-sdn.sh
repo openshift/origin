@@ -8,9 +8,9 @@ if [ -d openshift-sdn ]; then
     cd openshift-sdn
     git fetch origin
     git reset --hard origin/master
-    git checkout -b multitenant
+    git checkout
 else
-    git clone https://github.com/openshift/openshift-sdn -b multitenant
+    git clone https://github.com/openshift/openshift-sdn
     cd openshift-sdn
 fi
 
