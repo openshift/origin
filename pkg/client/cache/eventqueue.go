@@ -47,6 +47,8 @@ type EventQueue struct {
 // Describes the effect of processing a watch event on the event queue's state.
 type watchEventEffect string
 
+type EventQueueStopped struct{}
+
 const (
 	// The watch event should result in an add to the event queue
 	watchEventEffectAdd watchEventEffect = "ADD"
@@ -84,6 +86,10 @@ var watchEventCompressionMatrix = map[watch.EventType]map[watch.EventType]watch.
 		watch.Deleted:  watch.Deleted,
 	},
 	watch.Deleted: {},
+}
+
+func (es EventQueueStopped) Error() string {
+	return fmt.Sprintf("Event queue was stopped.")
 }
 
 // handleEvent is called by Add, Update, and Delete to determine the effect
@@ -134,6 +140,11 @@ func (eq *EventQueue) handleEvent(obj interface{}, newEventType watch.EventType)
 		eq.queue = eq.queueWithout(key)
 	}
 	return nil
+}
+
+// Cancel function to force Pop function to unblock
+func (eq *EventQueue) Cancel() {
+	eq.cond.Broadcast()
 }
 
 // updateStore updates the stored value for the given key.  Note that deletions are not handled
@@ -259,6 +270,9 @@ func (eq *EventQueue) Pop() (watch.EventType, interface{}, error) {
 			eq.cond.Wait()
 		}
 
+		if len(eq.queue) == 0 {
+			return watch.Error, nil, EventQueueStopped{}
+		}
 		key := eq.queue[0]
 		eq.queue = eq.queue[1:]
 
