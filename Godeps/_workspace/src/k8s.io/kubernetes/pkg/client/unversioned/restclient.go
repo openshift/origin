@@ -96,10 +96,10 @@ func readExpBackoffConfig() BackoffManager {
 	backoffDurationInt, errDuration := strconv.ParseInt(backoffDuration, 10, 64)
 
 	if errBase != nil || errDuration != nil {
-		glog.V(2).Infof("Configuring no exponential backoff.")
+		// glog.V(5).Infof("Configuring no exponential backoff.")
 		return &NoBackoff{}
 	} else {
-		glog.V(2).Infof("Configuring exponential backoff as %v, %v", backoffBaseInt, backoffDurationInt)
+		glog.V(5).Infof("Configuring exponential backoff as %v, %v", backoffBaseInt, backoffDurationInt)
 		return &URLBackoff{
 			Backoff: util.NewBackOff(
 				time.Duration(backoffBaseInt)*time.Second,
