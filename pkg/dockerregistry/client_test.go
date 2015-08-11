@@ -5,37 +5,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"strings"
 	"testing"
 )
 
-func TestConnect(t *testing.T) {
-	c := NewClient()
-	conn, err := c.Connect("docker.io", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, s := range []string{"index.docker.io", "https://docker.io", "https://index.docker.io"} {
-		otherConn, err := c.Connect(s, false)
-		if err != nil {
-			t.Errorf("%s: can't connect: %v", s, err)
-			continue
-		}
-		if !reflect.DeepEqual(otherConn, conn) {
-			t.Errorf("%s: did not reuse connection: %#v %#v", s, conn, otherConn)
-		}
-	}
-
-	otherConn, err := c.Connect("index.docker.io:443", false)
-	if err != nil || reflect.DeepEqual(otherConn, conn) {
-		t.Errorf("should not have reused index.docker.io:443: %v", err)
-	}
-
-	if _, err := c.Connect("http://ba%3/", false); err == nil {
-		t.Error("Unexpected non-error")
-	}
-}
+// tests of running registries are done in the integration client test
 
 func TestHTTPFallback(t *testing.T) {
 	called := make(chan struct{}, 2)
@@ -50,13 +24,49 @@ func TestHTTPFallback(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient().Connect(uri.Host, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := conn.ImageTags("foo", "bar"); !IsRepositoryNotFound(err) {
 		t.Error(err)
 	}
+	<-called
+	<-called
+}
+
+func TestV2Check(t *testing.T) {
+	called := make(chan struct{}, 2)
+	var uri *url.URL
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called <- struct{}{}
+		if strings.HasSuffix(r.URL.Path, "/v2") {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, "/tags/list") {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintln(w, `{"tags":["tag1","image1"]}`)
+			return
+		}
+		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.RequestURI())
+	}))
+	uri, _ = url.Parse(server.URL)
+	conn, err := NewClient().Connect(uri.Host, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tags, err := conn.ImageTags("foo", "bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tags["tag1"] != "tag1" {
+		t.Errorf("unexpected tags: %#v", tags)
+	}
+	if tags["image1"] != "image1" {
+		t.Errorf("unexpected tags: %#v", tags)
+	}
+
 	<-called
 	<-called
 }
@@ -74,7 +84,7 @@ func TestInsecureHTTPS(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient().Connect(uri.Host, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,55 +93,6 @@ func TestInsecureHTTPS(t *testing.T) {
 	}
 	<-called
 	<-called
-}
-
-func TestRegistryNotFound(t *testing.T) {
-	conn, err := NewClient().Connect("localhost:65000", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := conn.ImageByID("foo", "bar", "baz"); !IsRegistryNotFound(err) {
-		t.Error(err)
-	}
-}
-
-func TestImage(t *testing.T) {
-	conn, err := NewClient().Connect("", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := conn.ImageByTag("openshift", "origin-not-found", "latest"); !IsRepositoryNotFound(err) {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	image, err := conn.ImageByTag("openshift", "origin", "latest")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(image.ContainerConfig.Entrypoint) == 0 {
-		t.Errorf("unexpected image: %#v", image)
-	}
-
-	other, err := conn.ImageByID("openshift", "origin", image.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(other.ContainerConfig.Entrypoint, image.ContainerConfig.Entrypoint) {
-		t.Errorf("unexpected image: %#v", other)
-	}
-}
-
-func TestQuayIOImage(t *testing.T) {
-	conn, err := NewClient().Connect("quay.io", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = conn.ImageByTag("coreos", "etcd", "latest")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
 }
 
 func TestTokenExpiration(t *testing.T) {
@@ -177,7 +138,7 @@ func TestTokenExpiration(t *testing.T) {
 	}))
 
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient().Connect(uri.Host, true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,30 +189,34 @@ func TestGetTagFallback(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-
+		if strings.HasSuffix(r.URL.Path, "/json") {
+			fmt.Fprintln(w, `{"ID":"image2"}`)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true)
+	conn, err := NewClient().Connect(uri.Host, true, true)
 	c := conn.(*connection)
 	if err != nil {
 		t.Fatal(err)
 	}
-	repo := &repository{
+	repo := &v1repository{
 		name:     "testrepo",
 		endpoint: *uri,
 	}
 	// Case when tag is found
-	img, err := c.getTag(repo, "test", "")
+	img, err := repo.getTaggedImage(c, "test", "")
 	if err != nil {
 		t.Errorf("unexpected error getting tag: %v", err)
 		return
 	}
-	if img != "image2" {
+	if img.ID != "image2" {
 		t.Errorf("unexpected image for tag: %s", img)
 	}
 	// Case when tag is not found
-	img, err = c.getTag(repo, "test2", "")
+	img, err = repo.getTaggedImage(c, "test2", "")
 	if err == nil {
 		t.Errorf("expected error")
 	}
