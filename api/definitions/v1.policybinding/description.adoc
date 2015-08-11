@@ -1,0 +1,1 @@
+A PolicyBinding is an object that holds all the <<v1.RoleBinding>>s for a particular <<v1.Namespace>>. There is one PolicyBinding document per referenced <<v1.Policy>> namespace. A PolicyBinding records the time it was last modified, as well as a reference to a <<v1.Policy>> and all of the <<v1.RoleBinding>>s that it holds.

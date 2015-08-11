@@ -1,0 +1,1 @@
+A ClusterPolicyBindingList is a collection of <<v1.ClusterPolicyBinding>> objects.

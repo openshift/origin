@@ -1,0 +1,1 @@
+A ClusterPolicyBinding is an object that holds all the <<v1.ClusterRoleBinding>> objects for a particular <<v1.Namespace>>.  There is one ClusterPolicyBinding document per referenced <<v1.ClusterPolicy>> namespace.
