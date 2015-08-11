@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	newer "github.com/openshift/origin/pkg/authorization/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
@@ -63,7 +63,7 @@ func convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectA
 		return err
 	}
 
-	out.Groups = util.NewStringSet(in.GroupsSlice...)
+	out.Groups = sets.NewString(in.GroupsSlice...)
 
 	return nil
 }
@@ -89,7 +89,7 @@ func convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in
 		return err
 	}
 
-	out.Groups = util.NewStringSet(in.GroupsSlice...)
+	out.Groups = sets.NewString(in.GroupsSlice...)
 
 	return nil
 }
@@ -112,8 +112,8 @@ func convert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessReviewRes
 		return err
 	}
 
-	out.Users = util.NewStringSet(in.UsersSlice...)
-	out.Groups = util.NewStringSet(in.GroupsSlice...)
+	out.Users = sets.NewString(in.UsersSlice...)
+	out.Groups = sets.NewString(in.GroupsSlice...)
 
 	return nil
 }
@@ -134,16 +134,16 @@ func convert_v1beta3_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.Pol
 		return err
 	}
 
-	out.Resources = util.StringSet{}
+	out.Resources = sets.String{}
 	out.Resources.Insert(in.Resources...)
 	out.Resources.Insert(in.ResourceKinds...)
 
-	out.Verbs = util.StringSet{}
+	out.Verbs = sets.String{}
 	out.Verbs.Insert(in.Verbs...)
 
-	out.ResourceNames = util.NewStringSet(in.ResourceNames...)
+	out.ResourceNames = sets.NewString(in.ResourceNames...)
 
-	out.NonResourceURLs = util.NewStringSet(in.NonResourceURLsSlice...)
+	out.NonResourceURLs = sets.NewString(in.NonResourceURLsSlice...)
 
 	return nil
 }
