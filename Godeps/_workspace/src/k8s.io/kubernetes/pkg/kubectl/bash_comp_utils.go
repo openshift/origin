@@ -28,3 +28,10 @@ func AddJsonFilenameFlag(cmd *cobra.Command, usage string) {
 	annotations := []string{"json", "yaml", "yml"}
 	cmd.Flags().SetAnnotation("filename", cobra.BashCompFilenameExt, annotations)
 }
+
+func AddBoundJsonFilenameFlag(cmd *cobra.Command, value *[]string, usage string) {
+	cmd.Flags().StringSliceVarP(value, "filename", "f", *value, usage)
+
+	annotations := []string{"json", "yaml", "yml"}
+	cmd.Flags().SetAnnotation("filename", cobra.BashCompFilenameExt, annotations)
+}
