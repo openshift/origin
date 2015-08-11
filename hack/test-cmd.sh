@@ -147,6 +147,18 @@ openshift start \
   --etcd-dir="${ETCD_DATA_DIR}" \
   --images="${USE_IMAGES}"
 
+# validate config that was generated
+[ "$(openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml 2>&1 | grep SUCCESS)" ]
+[ "$(openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml 2>&1 | grep SUCCESS)" ]
+# breaking the config fails the validation check
+cp ${MASTER_CONFIG_DIR}/master-config.yaml ${TEMP_DIR}/master-config-broken.yaml
+sed -i '5,10d' ${TEMP_DIR}/master-config-broken.yaml
+[ "$(openshift ex validate master-config ${TEMP_DIR}/master-config-broken.yaml 2>&1 | grep error)" ]
+
+cp ${NODE_CONFIG_DIR}/node-config.yaml ${TEMP_DIR}/node-config-broken.yaml
+sed -i '5,10d' ${TEMP_DIR}/node-config-broken.yaml
+[ "$(openshift ex validate node-config ${TEMP_DIR}/node-config-broken.yaml 2>&1 | grep ERROR)" ]
+echo "validation: ok"
 
 # Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
 sed -i "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
