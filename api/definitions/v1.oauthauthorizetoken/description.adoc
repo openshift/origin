@@ -1,0 +1,1 @@
+An OAuthAuthorizeToken is an oject that holds the data required to fully define an authorization token. The OAuthAuthorizeToken contains the name of the client that created the token, the expiration time of the token, the array of requested scopes, and the redirection URI, user name, and unique user ID associated with the token.

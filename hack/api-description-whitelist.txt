@@ -105,14 +105,6 @@ v1.nodelist
 v1.nodespec
 v1.nodestatus
 v1.nodesysteminfo
-v1.oauthaccesstoken
-v1.oauthaccesstokenlist
-v1.oauthauthorizetoken
-v1.oauthauthorizetokenlist
-v1.oauthclient
-v1.oauthclientauthorization
-v1.oauthclientauthorizationlist
-v1.oauthclientlist
 v1.objectfieldselector
 v1.objectmeta
 v1.objectreference

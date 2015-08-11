@@ -1,0 +1,1 @@
+An OAuthAuthorizeTokenList is a collection of <<v1.OAuthAuthorizeToken>> obejcts.
