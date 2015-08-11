@@ -60,6 +60,7 @@ check-test: export KUBE_RACE=  -race
 check-test: build check
 check-test:
 	hack/verify-gofmt.sh
+	hack/verify-govet.sh
 	hack/verify-generated-deep-copies.sh
 	hack/verify-generated-conversions.sh
 	hack/verify-generated-completions.sh
@@ -89,6 +90,7 @@ test: build check
 endif
 test:
 	hack/verify-gofmt.sh
+	hack/verify-govet.sh
 	hack/verify-generated-deep-copies.sh
 	hack/verify-generated-conversions.sh
 	hack/verify-generated-completions.sh

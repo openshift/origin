@@ -18,6 +18,7 @@ fi
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/util.sh"
 
 cd "${OS_ROOT}"
 
@@ -37,21 +38,11 @@ if [ "$arg" == "-m" ]; then
   fi
   set -e
 else
-  find_files() {
-    find . -not \( \
-      \( \
-        -wholename './Godeps' \
-        -o -wholename './release' \
-        -o -wholename './target' \
-        -o -wholename './test' \
-        -o -wholename './pkg/assets/bindata.go' \
-        -o -wholename '*/Godeps/*' \
-        -o -wholename '*/third_party/*' \
-        -o -wholename '*/_output/*' \
-      \) -prune \
-    \) -name '*.go' | sort -u | sed 's/^.{2}//' | xargs -n1 printf "${GOPATH}/src/${OS_GO_PACKAGE}/%s\n"
-  }
-  bad_files=$(find_files | xargs -n1 golint)
+  bad_files=$(find_files | 
+                sort -u | 
+                sed 's/^.{2}//' | 
+                xargs -n1 printf "${GOPATH}/src/${OS_GO_PACKAGE}/%s\n" | 
+                xargs -n1 golint)
 fi
 
 if [[ -n "${bad_files}" ]]; then
