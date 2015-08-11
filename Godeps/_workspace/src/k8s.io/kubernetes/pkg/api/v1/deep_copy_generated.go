@@ -1572,6 +1572,10 @@ func deepCopy_v1_PodSpec(in PodSpec, out *PodSpec, c *conversion.Cloner) error {
 	} else {
 		out.ImagePullSecrets = nil
 	}
+
+	// Carry copy
+	out.DeprecatedHost = in.DeprecatedHost
+	out.DeprecatedServiceAccount = in.DeprecatedServiceAccount
 	return nil
 }
 
@@ -2133,6 +2137,9 @@ func deepCopy_v1_ServiceSpec(in ServiceSpec, out *ServiceSpec, c *conversion.Clo
 	}
 	out.SessionAffinity = in.SessionAffinity
 	out.LoadBalancerIP = in.LoadBalancerIP
+
+	// Carry copy
+	out.DeprecatedPortalIP = in.DeprecatedPortalIP
 	return nil
 }
 
