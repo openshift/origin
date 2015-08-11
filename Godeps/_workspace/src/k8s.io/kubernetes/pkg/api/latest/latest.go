@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/v1beta3"
 )
 
 // Version is the string that represents the current external default version.
@@ -108,6 +109,12 @@ func init() {
 // string, or an error if the version is not known.
 func InterfacesFor(version string) (*meta.VersionInterfaces, error) {
 	switch version {
+	case "v1beta3":
+		return &meta.VersionInterfaces{
+			Codec:            v1beta3.Codec,
+			ObjectConvertor:  api.Scheme,
+			MetadataAccessor: accessor,
+		}, nil
 	case "v1":
 		return &meta.VersionInterfaces{
 			Codec:            v1.Codec,
