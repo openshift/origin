@@ -835,7 +835,7 @@ func typeToJSON(typeName string) string {
 		return "integer"
 	case "float64", "float32":
 		return "number"
-	case "unversioned.Time":
+	case "unversioned.Time", "*unversioned.Time":
 		return "string"
 	case "byte":
 		return "string"
