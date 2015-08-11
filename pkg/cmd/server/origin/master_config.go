@@ -428,6 +428,7 @@ func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, *kclient.Clien
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
+// WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.
 func (c *MasterConfig) WebConsoleEnabled() bool {
 	return c.Options.AssetConfig != nil && !c.Options.DisabledFeatures.Has(configapi.FeatureWebConsole)
 }
