@@ -31,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/registered"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -99,6 +100,12 @@ func init() {
 // string, or an error if the version is not known.
 func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
+	case v1beta3.SchemeGroupVersion:
+		return &meta.VersionInterfaces{
+			Codec:            v1beta3.Codec,
+			ObjectConvertor:  api.Scheme,
+			MetadataAccessor: accessor,
+		}, nil
 	case v1.SchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			Codec:            v1.Codec,

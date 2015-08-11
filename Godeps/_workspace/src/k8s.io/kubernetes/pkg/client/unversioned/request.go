@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/client/metrics"
 	"k8s.io/kubernetes/pkg/conversion/queryparams"
@@ -334,6 +335,40 @@ func (v versionToResourceToFieldMapping) filterField(groupVersion unversioned.Gr
 }
 
 var fieldMappings = versionToResourceToFieldMapping{
+	v1beta3.SchemeGroupVersion: resourceTypeToFieldMapping{
+		"nodes": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField:   "metadata.name",
+			NodeUnschedulable: "spec.unschedulable",
+		},
+		"minions": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField:   "metadata.name",
+			NodeUnschedulable: "spec.unschedulable",
+		},
+		"pods": clientFieldNameToAPIVersionFieldName{
+			PodHost: "spec.host",
+		},
+		"secrets": clientFieldNameToAPIVersionFieldName{
+			SecretType: "type",
+		},
+		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "metadata.name",
+		},
+		"endpoints": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField: "metadata.name",
+		},
+		"events": clientFieldNameToAPIVersionFieldName{
+			ObjectNameField:              "metadata.name",
+			EventReason:                  "reason",
+			EventSource:                  "source",
+			EventInvolvedKind:            "involvedObject.kind",
+			EventInvolvedNamespace:       "involvedObject.namespace",
+			EventInvolvedName:            "involvedObject.name",
+			EventInvolvedUID:             "involvedObject.uid",
+			EventInvolvedAPIVersion:      "involvedObject.apiVersion",
+			EventInvolvedResourceVersion: "involvedObject.resourceVersion",
+			EventInvolvedFieldPath:       "involvedObject.fieldPath",
+		},
+	},
 	v1.SchemeGroupVersion: resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
 			ObjectNameField:   ObjectNameField,

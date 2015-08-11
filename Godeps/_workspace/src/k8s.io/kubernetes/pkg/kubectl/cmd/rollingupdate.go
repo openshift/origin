@@ -31,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -387,6 +388,10 @@ func isReplicasDefaulted(info *resource.Info) bool {
 	}
 
 	switch info.Mapping.GroupVersionKind.GroupVersion() {
+	case unversioned.GroupVersion{Version: "v1beta3"}:
+		if rc, ok := info.VersionedObject.(*v1beta3.ReplicationController); ok {
+			return rc.Spec.Replicas == nil
+		}
 	case unversioned.GroupVersion{Version: "v1"}:
 		if rc, ok := info.VersionedObject.(*v1.ReplicationController); ok {
 			return rc.Spec.Replicas == nil
