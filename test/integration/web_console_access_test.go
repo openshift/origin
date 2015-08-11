@@ -13,18 +13,6 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 )
 
-var (
-	stableWebConsoleEndpoints = map[string]int{
-		"healthz": http.StatusOK,
-		"login":   http.StatusOK,
-	}
-	switchableWebConsoleEndpoints = map[string]int{
-		"console":      http.StatusMovedPermanently,
-		"console/":     http.StatusOK,
-		"console/java": http.StatusOK,
-	}
-)
-
 func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirectLocation string) *http.Response {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -62,15 +50,16 @@ func TestAccessOriginWebConsole(t *testing.T) {
 
 	tryAccessURL(t, masterOptions.AssetConfig.MasterPublicURL+"/", http.StatusFound, masterOptions.AssetConfig.PublicURL)
 
-	accessEndpoints := func(endpoints map[string]int) {
-		for endpoint, expectedStatus := range endpoints {
-			url := masterOptions.AssetConfig.MasterPublicURL + "/" + endpoint
-			tryAccessURL(t, url, expectedStatus, "")
-		}
+	for endpoint, expectedStatus := range map[string]int{
+		"healthz":      http.StatusOK,
+		"login":        http.StatusOK,
+		"console":      http.StatusMovedPermanently,
+		"console/":     http.StatusOK,
+		"console/java": http.StatusOK,
+	} {
+		url := masterOptions.AssetConfig.MasterPublicURL + "/" + endpoint
+		tryAccessURL(t, url, expectedStatus, "")
 	}
-
-	accessEndpoints(stableWebConsoleEndpoints)
-	accessEndpoints(switchableWebConsoleEndpoints)
 }
 
 func TestAccessDisabledWebConsole(t *testing.T) {
@@ -94,13 +83,14 @@ func TestAccessDisabledWebConsole(t *testing.T) {
 		}
 	}
 
-	for endpoint, expectedStatus := range stableWebConsoleEndpoints {
+	for endpoint, expectedStatus := range map[string]int{
+		"healthz":      http.StatusOK,
+		"login":        http.StatusOK,
+		"console":      http.StatusForbidden,
+		"console/":     http.StatusForbidden,
+		"console/java": http.StatusForbidden,
+	} {
 		url := masterOptions.AssetConfig.MasterPublicURL + "/" + endpoint
 		tryAccessURL(t, url, expectedStatus, "")
-	}
-
-	for endpoint := range switchableWebConsoleEndpoints {
-		url := masterOptions.AssetConfig.MasterPublicURL + "/" + endpoint
-		tryAccessURL(t, url, http.StatusForbidden, "")
 	}
 }
