@@ -16,6 +16,17 @@ lockwrap() {
     ) 200>${lock_file}
 }
 
+# Retrieve the name of the host-local member of the veth pair that
+# connects the container (identified by pid) to the docker bridge.
+get_veth_host() {
+    local pid=$1
+
+    local veth_ifindex=$(nsenter -n -t $pid -- ethtool -S eth0 | sed -n -e 's/.*peer_ifindex: //p')
+    # Strip a suffix starting with '@' from the interface name.
+    # The suffixed interface name won't be recognized by brctl or ovs-*
+    ip link show | sed -ne "s/^$veth_ifindex: \([^:@]*\).*/\1/p"
+}
+
 Init() {
     true
 }
@@ -31,8 +42,7 @@ Setup() {
       exit 0
     fi
     ipaddr=$(docker inspect --format "{{.NetworkSettings.IPAddress}}" ${net_container})
-    veth_ifindex=$(nsenter -n -t $pid -- ethtool -S eth0 | sed -n -e 's/.*peer_ifindex: //p')
-    veth_host=$(ip link show | sed -ne "s/^$veth_ifindex: \([^:]*\).*/\1/p")
+    veth_host=$(get_veth_host $pid)
 
     # If the caller didn't pass a tenant ID, we make one up based on
     # the first two letters of the pod name.
@@ -65,8 +75,7 @@ Teardown() {
       # quit, nothing for the SDN here
       exit 0
     fi
-    veth_ifindex=$(nsenter -n -t $pid -- ethtool -S eth0 | sed -n -e 's/.*peer_ifindex: //p')
-    veth_host=$(ip link show | sed -ne "s/^$veth_ifindex: \([^:]*\).*/\1/p")
+    veth_host=$(get_veth_host $pid)
     ovs_port=$(ovs-ofctl -O OpenFlow13 dump-ports-desc br0  | grep ${veth_host} | cut -d "(" -f 1 | tr -d ' ')
     ovs-vsctl del-port $veth_host
     ovs-ofctl -O OpenFlow13 del-flows br0 "table=3,cookie=0x${ovs_port}/0xffffffff"
