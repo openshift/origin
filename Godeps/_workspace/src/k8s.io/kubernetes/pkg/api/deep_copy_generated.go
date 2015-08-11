@@ -819,6 +819,28 @@ func deepCopy_api_LocalObjectReference(in LocalObjectReference, out *LocalObject
 	return nil
 }
 
+func deepCopy_api_MetadataFile(in MetadataFile, out *MetadataFile, c *conversion.Cloner) error {
+	out.Name = in.Name
+	if err := deepCopy_api_ObjectFieldSelector(in.FieldRef, &out.FieldRef, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deepCopy_api_MetadataVolumeSource(in MetadataVolumeSource, out *MetadataVolumeSource, c *conversion.Cloner) error {
+	if in.Items != nil {
+		out.Items = make([]MetadataFile, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_api_MetadataFile(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_api_NFSVolumeSource(in NFSVolumeSource, out *NFSVolumeSource, c *conversion.Cloner) error {
 	out.Server = in.Server
 	out.Path = in.Path
@@ -2256,6 +2278,14 @@ func deepCopy_api_VolumeSource(in VolumeSource, out *VolumeSource, c *conversion
 	} else {
 		out.CephFS = nil
 	}
+	if in.Metadata != nil {
+		out.Metadata = new(MetadataVolumeSource)
+		if err := deepCopy_api_MetadataVolumeSource(*in.Metadata, out.Metadata, c); err != nil {
+			return err
+		}
+	} else {
+		out.Metadata = nil
+	}
 	return nil
 }
 
@@ -2340,6 +2370,8 @@ func init() {
 		deepCopy_api_LoadBalancerIngress,
 		deepCopy_api_LoadBalancerStatus,
 		deepCopy_api_LocalObjectReference,
+		deepCopy_api_MetadataFile,
+		deepCopy_api_MetadataVolumeSource,
 		deepCopy_api_NFSVolumeSource,
 		deepCopy_api_Namespace,
 		deepCopy_api_NamespaceList,
