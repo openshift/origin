@@ -75,7 +75,7 @@ import (
 	thirdpartyresourcedataetcd "k8s.io/kubernetes/pkg/registry/thirdpartyresourcedata/etcd"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
-	"k8s.io/kubernetes/pkg/ui"
+	// "k8s.io/kubernetes/pkg/ui"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -681,9 +681,9 @@ func (m *Master) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.muxHelper)
 	}
-	if c.EnableUISupport {
-		ui.InstallSupport(m.muxHelper, m.enableSwaggerSupport)
-	}
+	/*if c.EnableUISupport {
+		ui.InstallSupport(m.mux)
+	}*/
 
 	if c.EnableProfiling {
 		m.mux.HandleFunc("/debug/pprof/", pprof.Index)
