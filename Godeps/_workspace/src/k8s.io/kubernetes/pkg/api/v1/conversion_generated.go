@@ -2203,6 +2203,10 @@ func convert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *Service
 	}
 	out.LoadBalancerIP = in.LoadBalancerIP
 	out.SessionAffinity = ServiceAffinity(in.SessionAffinity)
+
+	// Carry conversion
+	out.DeprecatedPortalIP = in.ClusterIP
+
 	return nil
 }
 
