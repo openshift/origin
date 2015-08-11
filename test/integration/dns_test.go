@@ -30,9 +30,9 @@ func TestDNS(t *testing.T) {
 			MsgHdr:   dns.MsgHdr{Id: dns.Id(), RecursionDesired: false},
 			Question: []dns.Question{{"kubernetes.default.svc.cluster.local.", dns.TypeA, dns.ClassINET}},
 		}
-		in, err := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
-		if err != nil {
-			t.Logf("unexpected error: %v", err)
+		in, exchangeErr := dns.Exchange(m1, masterConfig.DNSConfig.BindAddress)
+		if exchangeErr != nil {
+			t.Logf("unexpected error: %v", exchangeErr)
 			return
 		}
 		if len(in.Answer) != 1 {

@@ -13,7 +13,7 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
@@ -242,7 +242,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 				}
 			}
 
-			if _, err := clientRegistry.UpdateClient(ctx, currClient); err != nil {
+			if _, err = clientRegistry.UpdateClient(ctx, currClient); err != nil {
 				glog.Errorf("Error updating OAuthClient %v: %v", currClient.Name, err)
 			}
 		} else if kerrs.IsNotFound(err) {

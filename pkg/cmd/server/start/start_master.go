@@ -182,8 +182,6 @@ func (o MasterOptions) StartMaster() error {
 
 	go daemon.SdNotify("READY=1")
 	select {}
-
-	return nil
 }
 
 // RunMaster takes the options and:
@@ -350,18 +348,18 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	unprotectedInstallers := []origin.APIInstaller{}
 
 	if openshiftMasterConfig.OAuthConfig != nil {
-		authConfig, err := origin.BuildAuthConfig(*openshiftMasterConfig)
-		if err != nil {
-			return err
+		authConfig, buildErr := origin.BuildAuthConfig(*openshiftMasterConfig)
+		if buildErr != nil {
+			return buildErr
 		}
 		unprotectedInstallers = append(unprotectedInstallers, authConfig)
 	}
 
 	var standaloneAssetConfig *origin.AssetConfig
 	if openshiftConfig.WebConsoleEnabled() {
-		config, err := origin.BuildAssetConfig(*openshiftMasterConfig.AssetConfig)
-		if err != nil {
-			return err
+		config, buildErr := origin.BuildAssetConfig(*openshiftMasterConfig.AssetConfig)
+		if buildErr != nil {
+			return buildErr
 		}
 
 		if openshiftMasterConfig.AssetConfig.ServingInfo.BindAddress == openshiftMasterConfig.ServingInfo.BindAddress {
@@ -381,9 +379,9 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		openshiftConfig.Run([]origin.APIInstaller{kubeConfig}, unprotectedInstallers)
 
 	} else {
-		_, kubeConfig, err := configapi.GetKubeClient(openshiftMasterConfig.MasterClients.ExternalKubernetesKubeConfig)
-		if err != nil {
-			return err
+		_, kubeConfig, getErr := configapi.GetKubeClient(openshiftMasterConfig.MasterClients.ExternalKubernetesKubeConfig)
+		if getErr != nil {
+			return getErr
 		}
 
 		proxy := &kubernetes.ProxyConfig{

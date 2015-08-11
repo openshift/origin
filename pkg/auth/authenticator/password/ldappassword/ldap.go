@@ -204,8 +204,8 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 	// Bind with given username and password to attempt to authenticate
 	if err := l.Bind(entry.DN, password); err != nil {
 		glog.V(4).Infof("error binding password for %q: %v", entry.DN, err)
-		if err, ok := err.(*ldap.Error); ok {
-			switch err.ResultCode {
+		if castErr, errOk := err.(*ldap.Error); errOk {
+			switch castErr.ResultCode {
 			case ldap.LDAPResultInappropriateAuthentication:
 				// inappropriateAuthentication (48)
 				//    Indicates the server requires the client that had attempted

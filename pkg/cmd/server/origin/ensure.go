@@ -69,7 +69,7 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 			Users:               usernames,
 		}
 		if err := addRole.AddRole(); err != nil {
-			glog.Errorf("Could not add %v users to the %v cluster role: %v\n", ns, usernames, clusterRole, err)
+			glog.Errorf("Could not add %v users to the %v cluster role: %v\n", usernames, clusterRole, err)
 		} else {
 			glog.V(2).Infof("Added %v users to the %v cluster role: %v\n", usernames, clusterRole, err)
 		}

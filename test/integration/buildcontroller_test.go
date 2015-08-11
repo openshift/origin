@@ -226,7 +226,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 						errChan <- fmt.Errorf("%s: unexpected object received: %#v", test.Name, e.Object)
 					}
 					if e.Type != watchapi.Modified {
-						errChan <- fmt.Errorf("%s: unexpected event received: %s, object: %#v", e.Type, e.Object)
+						errChan <- fmt.Errorf("%s: unexpected event received: %s, object: %#v", test.Name, e.Type, e.Object)
 					}
 					if done {
 						errChan <- fmt.Errorf("%s: unexpected build state: %#v", test.Name, e.Object)
@@ -240,7 +240,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 			select {
 			case err := <-errChan:
 				buildWatch.Stop()
-				t.Errorf("Error: %v\n", test.Name, err)
+				t.Errorf("%s: Error: %v\n", test.Name, err)
 				break
 			case <-time.After(waitTime):
 				buildWatch.Stop()
@@ -332,7 +332,6 @@ func waitForWatch(t *testing.T, name string, w watchapi.Interface) *watchapi.Eve
 		t.Fatalf("Timed out waiting for watch: %s", name)
 		return nil
 	}
-	return nil
 }
 
 func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {

@@ -37,12 +37,12 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 
 	namespace, _ := kapi.NamespaceFrom(ctx)
 	if len(namespace) != 0 {
-		namespaceAllowed, namespaceReason, err := a.authorizeWithNamespaceRules(ctx, attributes)
+		namespaceAllowed, namespaceReason, authErr := a.authorizeWithNamespaceRules(ctx, attributes)
 		if namespaceAllowed {
 			return true, namespaceReason, nil
 		}
-		if err != nil {
-			errs = append(errs, err)
+		if authErr != nil {
+			errs = append(errs, authErr)
 		}
 	}
 

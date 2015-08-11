@@ -110,9 +110,9 @@ func (o *reconcileClusterOptions) ReplaceChangedRoles(changedRoles []*authorizat
 		}
 
 		if kapierrors.IsNotFound(err) {
-			createdRole, err := o.RoleClient.Create(changedRoles[i])
-			if err != nil {
-				return err
+			createdRole, createErr := o.RoleClient.Create(changedRoles[i])
+			if createErr != nil {
+				return createErr
 			}
 
 			fmt.Fprintf(o.Out, "clusterrole/%s\n", createdRole.Name)

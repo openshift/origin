@@ -52,10 +52,6 @@ func GetTopLevelContainerNode(g Graph, containedNode graph.Node) graph.Node {
 
 		prevContainingNode = currContainingNode
 	}
-
-	// can't happen
-	panic(fmt.Sprintf("math failed %v", visited))
-	return nil
 }
 
 // GetContainingNode returns the direct predecessor that is linked to the node by a ContainsEdgeKind.  It returns

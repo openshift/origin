@@ -123,7 +123,7 @@ middleware:
 			Name:      "test",
 		},
 	}
-	if _, err := adminClient.ImageStreams(testutil.Namespace()).Create(&stream); err != nil {
+	if _, err = adminClient.ImageStreams(testutil.Namespace()).Create(&stream); err != nil {
 		t.Fatalf("error creating image stream: %s", err)
 	}
 

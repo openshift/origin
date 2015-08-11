@@ -308,7 +308,7 @@ func TestAssignSecurityContext(t *testing.T) {
 			continue
 		}
 		if !v.shouldValidate && len(errs) == 0 {
-			t.Errorf("%s expected validation errors but received none")
+			t.Errorf("%s expected validation errors but received none", k)
 			continue
 		}
 
@@ -473,7 +473,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			t.Errorf("%s createProvidersFromConstraints mutated constraints. diff:\n%s", k, diff)
 		}
 		if len(v.expectedErr) > 0 && len(errs) != 1 {
-			t.Errorf("%s expected a single error '%s' but received %v", k, errs)
+			t.Errorf("%s expected a single error '%s' but received %v", k, v.expectedErr, errs)
 			continue
 		}
 		if len(v.expectedErr) == 0 && len(errs) != 0 {

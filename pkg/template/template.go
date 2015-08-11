@@ -41,12 +41,12 @@ func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorL
 	for i, item := range template.Objects {
 		if obj, ok := item.(*runtime.Unknown); ok {
 			// TODO: use runtime.DecodeList when it returns ValidationErrorList
-			obj, err := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
-			if err != nil {
-				util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("objects", err, "unable to handle object"))
+			decodeObj, decodeErr := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
+			if decodeErr != nil {
+				util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("objects", decodeErr, "unable to handle object"))
 				continue
 			}
-			item = obj
+			item = decodeObj
 		}
 
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
@@ -171,7 +171,7 @@ func (p *Processor) GenerateParameterValues(t *api.Template) error {
 		}
 		if len(param.Value) == 0 && param.Required {
 			err := fielderrors.NewFieldRequired(fmt.Sprintf("parameters[%d].value", i))
-			err.Detail = fmt.Sprintf("parameter %s is required and must be specified")
+			err.Detail = fmt.Sprintf("parameter %s is required and must be specified", param.Name)
 			return err
 		}
 	}

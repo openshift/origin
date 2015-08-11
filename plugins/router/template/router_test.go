@@ -1,9 +1,10 @@
 package templaterouter
 
 import (
+	"testing"
+
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"testing"
 )
 
 // TestCreateServiceUnit tests creating a service unit and finding it in router state
@@ -478,7 +479,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 	route, ok := router.FindServiceUnit(routeWithBadServiceKey)
 
 	if !ok {
-		t.Fatal("unable to find route %s after adding", routeWithBadServiceKey)
+		t.Fatalf("unable to find route %s after adding", routeWithBadServiceKey)
 	}
 	_, ok = route.ServiceAliasConfigs[routeWithBadServiceCfgKey]
 	if !ok {
@@ -490,7 +491,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 	router.AddRoute(routeWithGoodServiceKey, routeWithGoodService)
 	route, ok = router.FindServiceUnit(routeWithGoodServiceKey)
 	if !ok {
-		t.Fatal("unable to find route %s after adding", routeWithGoodServiceKey)
+		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceKey)
 	}
 	_, ok = route.ServiceAliasConfigs[routeWithGoodServiceCfgKey]
 	if !ok {
@@ -499,7 +500,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 
 	route, ok = router.FindServiceUnit(routeWithBadServiceKey)
 	if !ok {
-		t.Fatal("route %s should already exists but was not found", routeWithBadServiceKey)
+		t.Fatalf("route %s should already exists but was not found", routeWithBadServiceKey)
 	}
 	_, ok = route.ServiceAliasConfigs[routeWithBadServiceCfgKey]
 	if ok {
@@ -510,7 +511,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 	router.AddRoute(routeWithGoodServiceDifferentNamespaceKey, routeWithGoodServiceDifferentNamespace)
 	route, ok = router.FindServiceUnit(routeWithGoodServiceDifferentNamespaceKey)
 	if !ok {
-		t.Fatal("unable to find route %s after adding", routeWithGoodServiceDifferentNamespaceKey)
+		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceDifferentNamespaceKey)
 	}
 	_, ok = route.ServiceAliasConfigs[routeWithGoodServiceDifferentNamespaceCfgKey]
 	if !ok {
@@ -519,7 +520,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 
 	route, ok = router.FindServiceUnit(routeWithGoodServiceKey)
 	if !ok {
-		t.Fatal("unable to find route %s after adding", routeWithGoodServiceKey)
+		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceKey)
 	}
 	_, ok = route.ServiceAliasConfigs[routeWithGoodServiceCfgKey]
 	if !ok {

@@ -52,7 +52,7 @@ func (h *Helper) GetDockerAuth(imageName, authType string) (docker.AuthConfigura
 	}
 	cfg, err := readDockercfg(dockercfgPath)
 	if err != nil {
-		glog.Errorf("Reading %s failed: ", dockercfgPath, err)
+		glog.Errorf("Reading %s failed: %v", dockercfgPath, err)
 		return docker.AuthConfiguration{}, false
 	}
 	keyring := credentialprovider.BasicDockerKeyring{}

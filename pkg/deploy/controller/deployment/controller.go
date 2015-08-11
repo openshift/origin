@@ -146,7 +146,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 					deployerPod.Spec.ActiveDeadlineSeconds = &zeroDelay
 					if _, err := c.podClient.updatePod(deployerPod.Namespace, &deployerPod); err != nil {
 						c.recorder.Eventf(deployment, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
-						return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
+						return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
 					}
 					glog.V(4).Infof("Cancelled deployer pod %s for deployment %s", deployerPod.Name, deployutil.LabelForDeployment(deployment))
 				}

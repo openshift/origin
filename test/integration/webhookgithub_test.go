@@ -67,7 +67,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 			},
 		},
 	}
-	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
+	if _, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -88,7 +88,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	// create buildconfig
 	buildConfig := mockBuildConfigImageParms("originalImage", "imageStream", "validTag")
 
-	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err = clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -164,7 +164,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 			},
 		},
 	}
-	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
+	if _, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -178,14 +178,14 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 			DockerImageReference: "registry:3000/integration/imageStream:success",
 		},
 	}
-	if err := clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(ism); err != nil {
+	if err = clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(ism); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// create buildconfig
 	buildConfig := mockBuildConfigImageStreamParms("originalImage", "image-stream", "validTag")
 
-	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+	if _, err = clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 

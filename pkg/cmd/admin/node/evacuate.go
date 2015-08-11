@@ -97,7 +97,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 		}
 
 		if firstPod {
-			fmt.Fprintln(e.Options.Writer, "\nMigrating these pods on node: ", node.ObjectMeta.Name, "\n")
+			fmt.Fprintln(e.Options.Writer, "\nMigrating these pods on node: ", node.ObjectMeta.Name)
 			firstPod = false
 			printerWithHeaders.PrintObj(&pod, e.Options.Writer)
 		} else {

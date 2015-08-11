@@ -89,7 +89,7 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		return fmt.Errorf("unable to determine if the import completed successfully - please run 'oc describe -n %s imagestream/%s' to see if the tags were updated as expected: %v", stream.Namespace, stream.Name, err)
 	}
 
-	fmt.Fprintln(cmd.Out(), "The import completed successfully.\n")
+	fmt.Fprintln(cmd.Out(), "The import completed successfully.")
 
 	d := describe.ImageStreamDescriber{osClient}
 	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name)

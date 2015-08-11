@@ -161,7 +161,7 @@ func (c *ImportController) done(stream *api.ImageStream, reason string, retry in
 	stream.Annotations[api.DockerImageRepositoryCheckAnnotation] = reason
 	if _, err := c.streams.ImageStreams(stream.Namespace).Update(stream); err != nil && !errors.IsNotFound(err) {
 		if errors.IsConflict(err) && retry > 0 {
-			if stream, err := c.streams.ImageStreams(stream.Namespace).Get(stream.Name); err == nil {
+			if stream, err = c.streams.ImageStreams(stream.Namespace).Get(stream.Name); err == nil {
 				return c.done(stream, reason, retry-1)
 			}
 		}

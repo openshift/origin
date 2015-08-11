@@ -219,9 +219,9 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 		Flatten()
 
 	one := false
-	infos, err := b.Do().IntoSingular(&one).Infos()
-	if err != nil {
-		return err
+	infos, infosErr := b.Do().IntoSingular(&one).Infos()
+	if infosErr != nil {
+		return infosErr
 	}
 
 	// only apply resource version locking on a single resource
@@ -231,7 +231,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 
 	skipped := 0
 	for _, info := range infos {
-		ok, err := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
+		ok, updateErr := f.UpdatePodSpecForObject(info.Object, func(spec *kapi.PodSpec) error {
 			containers, _ := selectContainers(spec.Containers, containerMatch)
 			if len(containers) == 0 {
 				fmt.Fprintf(cmd.Out(), "warning: %s/%s does not have any containers matching %q\n", info.Mapping.Resource, info.Name, containerMatch)
@@ -258,8 +258,8 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			skipped++
 			continue
 		}
-		if err != nil {
-			fmt.Fprintf(cmd.Out(), "error: %s/%s %v\n", info.Mapping.Resource, info.Name, err)
+		if updateErr != nil {
+			fmt.Fprintf(cmd.Out(), "error: %s/%s %v\n", info.Mapping.Resource, info.Name, updateErr)
 			continue
 		}
 	}

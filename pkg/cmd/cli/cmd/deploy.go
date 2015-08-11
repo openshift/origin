@@ -169,9 +169,9 @@ func (o DeployOptions) RunDeploy() error {
 			return o.kubeClient.ReplicationControllers(namespace).Get(name)
 		},
 		ListDeploymentsForConfigFn: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-			list, err := o.kubeClient.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName))
-			if err != nil {
-				return nil, err
+			list, listErr := o.kubeClient.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName))
+			if listErr != nil {
+				return nil, listErr
 			}
 			return list, nil
 		},
@@ -184,9 +184,9 @@ func (o DeployOptions) RunDeploy() error {
 		},
 
 		ListDeployerPodsForFn: func(namespace, deploymentName string) (*kapi.PodList, error) {
-			selector, err := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeployerPodForDeploymentLabel, deploymentName))
-			if err != nil {
-				return nil, err
+			selector, selectorErr := labels.Parse(fmt.Sprintf("%s=%s", deployapi.DeployerPodForDeploymentLabel, deploymentName))
+			if selectorErr != nil {
+				return nil, selectorErr
 			}
 			return o.kubeClient.Pods(namespace).List(selector, fields.Everything())
 		},
@@ -214,9 +214,9 @@ func (o DeployOptions) RunDeploy() error {
 		err = t.enableTriggers(config, o.out)
 	default:
 		describer := describe.NewLatestDeploymentsDescriber(o.osClient, o.kubeClient, -1)
-		desc, err := describer.Describe(config.Namespace, config.Name)
-		if err != nil {
-			return err
+		desc, descErr := describer.Describe(config.Namespace, config.Name)
+		if descErr != nil {
+			return descErr
 		}
 		fmt.Fprint(o.out, desc)
 	}
@@ -289,9 +289,9 @@ func (c *retryDeploymentCommand) retry(config *deployapi.DeploymentConfig, out i
 	if status := deployutil.DeploymentStatusFor(deployment); status != deployapi.DeploymentStatusFailed {
 		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.LatestVersion, status)
 		if status == deployapi.DeploymentStatusComplete {
-			message += fmt.Sprintf("You can start a new deployment using the --latest option.")
+			message += "You can start a new deployment using the --latest option."
 		} else {
-			message += fmt.Sprintf("Optionally, you can cancel this deployment using the --cancel option.", config.LatestVersion)
+			message += fmt.Sprint("Optionally, you can cancel this deployment using the --cancel option.", config.LatestVersion)
 		}
 
 		return fmt.Errorf(message)

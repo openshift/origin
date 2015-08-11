@@ -129,6 +129,4 @@ func start(cfg *clientcmd.Config, plugin router.Plugin) error {
 	controller.Run()
 
 	select {}
-
-	return nil
 }

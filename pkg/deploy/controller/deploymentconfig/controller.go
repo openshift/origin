@@ -92,7 +92,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 
 			deploymentForCancellation.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 			deploymentForCancellation.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
-			if _, err := c.deploymentClient.updateDeployment(deploymentForCancellation.Namespace, deploymentForCancellation); err != nil {
+			if _, err = c.deploymentClient.updateDeployment(deploymentForCancellation.Namespace, deploymentForCancellation); err != nil {
 				util.HandleError(fmt.Errorf("couldn't cancel Deployment %s: %v", deployutil.LabelForDeployment(deploymentForCancellation), err))
 			}
 			glog.V(4).Infof("Cancelled Deployment %s for DeploymentConfig %s", deployutil.LabelForDeployment(deploymentForCancellation), deployutil.LabelForDeploymentConfig(config))

@@ -82,7 +82,7 @@ func TestScale(t *testing.T) {
 		scaler := DeploymentConfigScaler{NewScalerClient(test.oc, test.kc)}
 		got := scaler.Scale("default", test.name, test.count, test.preconditions, test.retry, test.waitForReplicas)
 		if got != test.expectedErr {
-			t.Errorf("%s: error mismatch: expected %v, got %v", test.expectedErr, got)
+			t.Errorf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, got)
 		}
 		if len(test.oc.Actions) != len(test.expected) {
 			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.oc.Actions, test.expected)

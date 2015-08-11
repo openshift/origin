@@ -366,7 +366,7 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 			UseAsChallenger: true,
 			UseAsLogin:      true,
 			Provider: runtime.EmbeddedObject{
-				&configapi.AllowAllPasswordIdentityProvider{},
+				Object: &configapi.AllowAllPasswordIdentityProvider{},
 			},
 		},
 	)
@@ -441,11 +441,11 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 }
 
 func (args MasterArgs) Validate() error {
-	masterAddr, err := args.GetMasterAddress()
-	if addr, err := masterAddr, err; err != nil {
-		return err
-	} else if len(addr.Path) != 0 {
-		return fmt.Errorf("master url may not include a path: '%v'", addr.Path)
+	masterAddr, masterErr := args.GetMasterAddress()
+	if masterErr != nil {
+		return masterErr
+	} else if len(masterAddr.Path) != 0 {
+		return fmt.Errorf("master url may not include a path: '%v'", masterAddr.Path)
 	}
 
 	if addr, err := args.GetMasterPublicAddress(); err != nil {
