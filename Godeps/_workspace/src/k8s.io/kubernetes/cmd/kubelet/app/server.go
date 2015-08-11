@@ -761,6 +761,9 @@ func startKubelet(k KubeletBootstrap, podCfg *config.PodConfig, kc *KubeletConfi
 func makePodSourceConfig(kc *KubeletConfig) *config.PodConfig {
 	// source of all configuration
 	cfg := config.NewPodConfig(config.PodConfigNotificationIncremental, kc.Recorder)
+	if kc.StartUpdates != nil {
+		cfg.Wait(kc.StartUpdates)
+	}
 
 	// define file config source
 	if kc.ConfigFile != "" {
@@ -850,6 +853,7 @@ type KubeletConfig struct {
 	TLSOptions                     *kubelet.TLSOptions
 	Writer                         io.Writer
 	VolumePlugins                  []volume.VolumePlugin
+	StartUpdates                   <-chan struct{}
 }
 
 func CreateAndInitKubelet(kc *KubeletConfig) (k KubeletBootstrap, pc *config.PodConfig, err error) {
