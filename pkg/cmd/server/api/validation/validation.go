@@ -58,6 +58,12 @@ func ValidateServingInfo(info api.ServingInfo) fielderrors.ValidationErrorList {
 	allErrs = append(allErrs, ValidateHostPort(info.BindAddress, "bindAddress")...)
 	allErrs = append(allErrs, ValidateCertInfo(info.ServerCert, false)...)
 
+	switch info.BindNetwork {
+	case "tcp", "tcp4", "tcp6":
+	default:
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("bindNetwork", info.BindNetwork, "must be 'tcp', 'tcp4', or 'tcp6'"))
+	}
+
 	if len(info.ServerCert.CertFile) > 0 {
 		if len(info.ClientCA) > 0 {
 			allErrs = append(allErrs, ValidateFile(info.ClientCA, "clientCA")...)

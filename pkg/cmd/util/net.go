@@ -12,14 +12,77 @@ import (
 )
 
 // TryListen tries to open a connection on the given port and returns true if it succeeded.
-func TryListen(hostPort string) (bool, error) {
-	l, err := net.Listen("tcp", hostPort)
+func TryListen(network, hostPort string) (bool, error) {
+	l, err := net.Listen(network, hostPort)
 	if err != nil {
 		glog.V(5).Infof("Failure while checking listen on %s: %v", err)
 		return false, err
 	}
 	defer l.Close()
 	return true, nil
+}
+
+// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
+// connections. It's used by ListenAndServe and ListenAndServeTLS so
+// dead TCP connections (e.g. closing laptop mid-download) eventually
+// go away.
+type tcpKeepAliveListener struct {
+	*net.TCPListener
+}
+
+func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
+	tc, err := ln.AcceptTCP()
+	if err != nil {
+		return
+	}
+	tc.SetKeepAlive(true)
+	tc.SetKeepAlivePeriod(3 * time.Minute)
+	return tc, nil
+}
+
+// ListenAndServe starts a server that listens on the provided TCP mode (as supported
+// by net.Listen)
+func ListenAndServe(srv *http.Server, network string) error {
+	addr := srv.Addr
+	if addr == "" {
+		addr = ":http"
+	}
+	ln, err := net.Listen(network, addr)
+	if err != nil {
+		return err
+	}
+	return srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
+}
+
+// ListenAndServeTLS starts a server that listens on the provided TCP mode (as supported
+// by net.Listen).
+func ListenAndServeTLS(srv *http.Server, network string, certFile, keyFile string) error {
+	addr := srv.Addr
+	if addr == "" {
+		addr = ":https"
+	}
+	config := &tls.Config{}
+	if srv.TLSConfig != nil {
+		*config = *srv.TLSConfig
+	}
+	if config.NextProtos == nil {
+		config.NextProtos = []string{"http/1.1"}
+	}
+
+	var err error
+	config.Certificates = make([]tls.Certificate, 1)
+	config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return err
+	}
+
+	ln, err := net.Listen(network, addr)
+	if err != nil {
+		return err
+	}
+
+	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
+	return srv.Serve(tlsListener)
 }
 
 // WaitForSuccessfulDial attempts to connect to the given address, closing and returning nil on the first successful connection.

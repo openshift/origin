@@ -138,12 +138,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		config.ServingInfo.ClientCA = admin.DefaultKubeletClientCAFile(args.MasterCertDir)
 	}
 
-	// Roundtrip the config to v1 and back to ensure proper defaults are set.
-	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
-	if err != nil {
-		return nil, err
-	}
-	internal, err := configapi.Scheme.ConvertToVersion(ext, "")
+	internal, err := applyDefaults(config, "v1")
 	if err != nil {
 		return nil, err
 	}

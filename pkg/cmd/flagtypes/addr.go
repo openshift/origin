@@ -31,6 +31,8 @@ type Addr struct {
 	URL *url.URL
 	// Host is the hostname or IP portion of the user input
 	Host string
+	// IPv6Host is true if the hostname appears to be an IPv6 input
+	IPv6Host bool
 	// Port is the port portion of the user input. Will be 0 if no port was found
 	// and no default port could be established.
 	Port int
@@ -55,26 +57,59 @@ func (a *Addr) String() string {
 
 // Set attempts to set a string value to an address
 func (a *Addr) Set(value string) error {
-	var addr *url.URL
-	isURL := a.isURL(value)
-	if isURL {
+	scheme := a.DefaultScheme
+	if len(scheme) == 0 {
+		scheme = "tcp"
+	}
+	addr := &url.URL{
+		Scheme: scheme,
+	}
+
+	switch {
+	case a.isURL(value):
 		parsed, err := url.Parse(value)
 		if err != nil {
 			return fmt.Errorf("not a valid URL: %v", err)
 		}
-		addr = parsed
-	} else {
-		addr = &url.URL{
-			Scheme: a.DefaultScheme,
-			Host:   value,
+		if !a.AllowPrefix {
+			parsed.Path = ""
 		}
-		if len(addr.Scheme) == 0 {
-			addr.Scheme = "tcp"
-		}
-	}
+		parsed.RawQuery = ""
+		parsed.Fragment = ""
 
-	if strings.Contains(addr.Host, ":") {
-		host, port, err := net.SplitHostPort(addr.Host)
+		if strings.Contains(parsed.Host, ":") {
+			host, port, err := net.SplitHostPort(parsed.Host)
+			if err != nil {
+				return fmt.Errorf("not a valid host:port: %v", err)
+			}
+			portNum, err := strconv.ParseUint(port, 10, 64)
+			if err != nil {
+				return fmt.Errorf("not a valid port: %v", err)
+			}
+			a.Host = host
+			a.Port = int(portNum)
+
+		} else {
+			port := 0
+			switch parsed.Scheme {
+			case "http":
+				port = 80
+			case "https":
+				port = 443
+			default:
+				return fmt.Errorf("no port specified")
+			}
+			a.Host = parsed.Host
+			a.Port = port
+		}
+		addr = parsed
+
+	case isIPv6Host(value):
+		a.Host = value
+		a.Port = a.DefaultPort
+
+	case strings.Contains(value, ":"):
+		host, port, err := net.SplitHostPort(value)
 		if err != nil {
 			return fmt.Errorf("not a valid host:port: %v", err)
 		}
@@ -84,13 +119,11 @@ func (a *Addr) Set(value string) error {
 		}
 		a.Host = host
 		a.Port = int(portNum)
-	} else {
-		port := 0
-		if !isURL {
-			port = a.DefaultPort
-		}
+
+	default:
+		port := a.DefaultPort
 		if port == 0 {
-			switch addr.Scheme {
+			switch a.DefaultScheme {
 			case "http":
 				port = 80
 			case "https":
@@ -99,21 +132,16 @@ func (a *Addr) Set(value string) error {
 				return fmt.Errorf("no port specified")
 			}
 		}
-		a.Host = addr.Host
+		a.Host = value
 		a.Port = port
-		addr.Host = net.JoinHostPort(addr.Host, strconv.FormatInt(int64(a.Port), 10))
 	}
-
-	if !a.AllowPrefix {
-		addr.Path = ""
-	}
-	addr.RawQuery = ""
-	addr.Fragment = ""
+	addr.Host = net.JoinHostPort(a.Host, strconv.FormatInt(int64(a.Port), 10))
 
 	if value != a.Value {
 		a.Provided = true
 	}
 	a.URL = addr
+	a.IPv6Host = isIPv6Host(a.Host)
 	a.Value = value
 
 	return nil
@@ -136,4 +164,13 @@ func (a *Addr) isURL(value string) bool {
 		}
 	}
 	return false
+}
+
+// isIPv6Host returns true if the value appears to be an IPv6 host string (that does
+// not include a port).
+func isIPv6Host(value string) bool {
+	if strings.HasPrefix(value, "[") {
+		return false
+	}
+	return strings.Contains(value, "%") || strings.Count(value, ":") > 1
 }

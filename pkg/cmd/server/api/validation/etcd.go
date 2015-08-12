@@ -60,7 +60,13 @@ func ValidateEtcdConfig(config *api.EtcdConfig) fielderrors.ValidationErrorList 
 	allErrs := fielderrors.ValidationErrorList{}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+	if config.ServingInfo.BindNetwork == "tcp6" {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("servingInfo.bindNetwork", config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for etcd, must be tcp or tcp4"))
+	}
 	allErrs = append(allErrs, ValidateServingInfo(config.PeerServingInfo).Prefix("peerServingInfo")...)
+	if config.ServingInfo.BindNetwork == "tcp6" {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("peerServingInfo.bindNetwork", config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for etcd peers, must be tcp or tcp4"))
+	}
 
 	allErrs = append(allErrs, ValidateHostPort(config.Address, "address")...)
 	allErrs = append(allErrs, ValidateHostPort(config.PeerAddress, "peerAddress")...)

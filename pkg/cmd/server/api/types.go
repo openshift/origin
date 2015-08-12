@@ -282,6 +282,9 @@ type EtcdStorageConfig struct {
 type ServingInfo struct {
 	// BindAddress is the ip:port to serve on
 	BindAddress string
+	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",
+	// "tcp4", and "tcp6"
+	BindNetwork string
 	// ServerCert is the TLS cert info for serving secure traffic
 	ServerCert CertInfo
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
@@ -307,6 +310,9 @@ type MasterClients struct {
 type DNSConfig struct {
 	// BindAddress is the ip:port to serve DNS on
 	BindAddress string
+	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",
+	// "tcp4", and "tcp6"
+	BindNetwork string
 }
 
 type AssetConfig struct {

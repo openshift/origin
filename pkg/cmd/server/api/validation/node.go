@@ -18,6 +18,9 @@ func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList 
 	}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+	if config.ServingInfo.BindNetwork == "tcp6" {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("servingInfo.bindNetwork", config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for nodes, must be tcp or tcp4"))
+	}
 	allErrs = append(allErrs, ValidateKubeConfig(config.MasterKubeConfig, "masterKubeConfig")...)
 
 	if len(config.DNSIP) > 0 {

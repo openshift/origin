@@ -88,6 +88,11 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 
 	if config.DNSConfig != nil {
 		validationResults.AddErrors(ValidateHostPort(config.DNSConfig.BindAddress, "bindAddress").Prefix("dnsConfig")...)
+		switch config.DNSConfig.BindNetwork {
+		case "tcp", "tcp4", "tcp6":
+		default:
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("dnsConfig.bindNetwork", config.DNSConfig.BindNetwork, "must be 'tcp', 'tcp4', or 'tcp6'"))
+		}
 	}
 
 	if config.EtcdConfig != nil {

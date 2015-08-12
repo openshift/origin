@@ -62,6 +62,16 @@ func init() {
 				obj.ExecHandlerName = DockerExecHandlerNative
 			}
 		},
+		func(obj *ServingInfo) {
+			if len(obj.BindNetwork) == 0 {
+				obj.BindNetwork = "tcp4"
+			}
+		},
+		func(obj *DNSConfig) {
+			if len(obj.BindNetwork) == 0 {
+				obj.BindNetwork = "tcp4"
+			}
+		},
 		func(obj *SecurityAllocator) {
 			if len(obj.UIDAllocatorRange) == 0 {
 				obj.UIDAllocatorRange = "1000000000-1999999999/10000"
@@ -81,6 +91,7 @@ func init() {
 	err = newer.Scheme.AddConversionFuncs(
 		func(in *ServingInfo, out *newer.ServingInfo, s conversion.Scope) error {
 			out.BindAddress = in.BindAddress
+			out.BindNetwork = in.BindNetwork
 			out.ClientCA = in.ClientCA
 			out.ServerCert.CertFile = in.CertFile
 			out.ServerCert.KeyFile = in.KeyFile
@@ -88,6 +99,7 @@ func init() {
 		},
 		func(in *newer.ServingInfo, out *ServingInfo, s conversion.Scope) error {
 			out.BindAddress = in.BindAddress
+			out.BindNetwork = in.BindNetwork
 			out.ClientCA = in.ClientCA
 			out.CertFile = in.ServerCert.CertFile
 			out.KeyFile = in.ServerCert.KeyFile

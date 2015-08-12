@@ -138,6 +138,14 @@ func (c *MasterConfig) RunDNSServer() {
 	if err != nil {
 		glog.Fatalf("Could not start DNS: %v", err)
 	}
+	switch c.Options.DNSConfig.BindNetwork {
+	case "tcp":
+		config.BindNetwork = "ip"
+	case "tcp4":
+		config.BindNetwork = "ipv4"
+	case "tcp6":
+		config.BindNetwork = "ipv6"
+	}
 	config.DnsAddr = c.Options.DNSConfig.BindAddress
 	config.NoRec = true // do not want to deploy an open resolver
 
@@ -149,7 +157,7 @@ func (c *MasterConfig) RunDNSServer() {
 		glog.Warningf("Binding DNS on port %v instead of 53 (you may need to run as root and update your config), using %s which will not resolve from all locations", port, c.Options.DNSConfig.BindAddress)
 	}
 
-	if ok, err := cmdutil.TryListen(c.Options.DNSConfig.BindAddress); !ok {
+	if ok, err := cmdutil.TryListen(c.Options.DNSConfig.BindNetwork, c.Options.DNSConfig.BindAddress); !ok {
 		glog.Warningf("Could not start DNS: %v", err)
 		return
 	}
