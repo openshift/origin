@@ -115,7 +115,7 @@ func New(req *api.Config) (*STI, error) {
 func (b *STI) Build(config *api.Config) (*api.Result, error) {
 	defer b.garbage.Cleanup(config)
 
-	glog.V(1).Infof("Building %s", config.Tag)
+	glog.V(1).Infof("Preparing to build %s", config.Tag)
 	if err := b.preparer.Prepare(config); err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (b *STI) Build(config *api.Config) (*api.Result, error) {
 		}
 	}
 
-	glog.V(1).Infof("Building %s", config.Tag)
+	glog.V(1).Infof("Running S2I script in %s", config.Tag)
 	if err := b.scripts.Execute(api.Assemble, config); err != nil {
 		switch e := err.(type) {
 		case errors.ContainerError:

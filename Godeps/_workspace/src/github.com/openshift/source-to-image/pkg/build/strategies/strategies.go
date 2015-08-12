@@ -8,6 +8,8 @@ import (
 	"github.com/openshift/source-to-image/pkg/build/strategies/onbuild"
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
 	"github.com/openshift/source-to-image/pkg/docker"
+	"github.com/openshift/source-to-image/pkg/errors"
+	userutil "github.com/openshift/source-to-image/pkg/util/user"
 )
 
 // GetStrategy decides what build strategy will be used for the STI build.
@@ -51,5 +53,33 @@ func GetBuilderImage(config *api.Config) (*docker.PullResult, error) {
 	}
 	result.Image = image
 	result.OnBuild = d.IsImageOnBuild(config.BuilderImage)
+
+	if err = checkAllowedUser(d, config, result.OnBuild); err != nil {
+		return nil, err
+	}
+
 	return &result, nil
+}
+
+func checkAllowedUser(d docker.Docker, config *api.Config, isOnbuild bool) error {
+	if config.AllowedUIDs == nil || config.AllowedUIDs.Empty() {
+		return nil
+	}
+	user, err := d.GetImageUser(config.BuilderImage)
+	if err != nil {
+		return err
+	}
+	if !userutil.IsUserAllowed(user, &config.AllowedUIDs) {
+		return errors.NewBuilderUserNotAllowedError(config.BuilderImage, false)
+	}
+	if isOnbuild {
+		cmds, err := d.GetOnBuild(config.BuilderImage)
+		if err != nil {
+			return err
+		}
+		if !userutil.IsOnbuildAllowed(cmds, &config.AllowedUIDs) {
+			return errors.NewBuilderUserNotAllowedError(config.BuilderImage, true)
+		}
+	}
+	return nil
 }
