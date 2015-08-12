@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
 	"github.com/golang/glog"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 	flag "github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/client/clientcmd"
+	. "k8s.io/kubernetes/test/e2e"
 )
 
 var (

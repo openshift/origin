@@ -5,11 +5,11 @@ import (
 	"net"
 	"strconv"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	kubeutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	kubeutil "k8s.io/kubernetes/pkg/util"
 )
 
 type ValidateFunc func(string) error

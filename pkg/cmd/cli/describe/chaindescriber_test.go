@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
+	kapi "k8s.io/kubernetes/pkg/api"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"

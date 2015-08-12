@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"testing"
 
-	_ "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	_ "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1beta3"

@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	pkg_runtime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api"
+	pkg_runtime "k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/golang/glog"
 	flag "github.com/spf13/pflag"
@@ -41,8 +41,8 @@ func main() {
 	}
 
 	generator := pkg_runtime.NewConversionGenerator(api.Scheme.Raw(), "github.com/openshift/origin/pkg/api")
-	apiShort := generator.AddImport("github.com/GoogleCloudPlatform/kubernetes/pkg/api")
-	generator.AddImport("github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource")
+	apiShort := generator.AddImport("k8s.io/kubernetes/pkg/api")
+	generator.AddImport("k8s.io/kubernetes/pkg/api/resource")
 	generator.AssumePrivateConversions()
 	// TODO(wojtek-t): Change the overwrites to a flag.
 	generator.OverwritePackage(*version, "")
@@ -54,7 +54,7 @@ func main() {
 			glog.Errorf("error while generating conversion functions for %v: %v", knownType, err)
 		}
 	}
-	generator.RepackImports(util.NewStringSet("github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"))
+	generator.RepackImports(util.NewStringSet("k8s.io/kubernetes/pkg/runtime"))
 	if err := generator.WriteImports(funcOut); err != nil {
 		glog.Fatalf("error while writing imports: %v", err)
 	}

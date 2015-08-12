@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/api/validation"
 )
 
 var NameMayNotBe = []string{".", ".."}

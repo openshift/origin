@@ -1,7 +1,7 @@
 package v1beta3
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
+	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 )
 
 type OAuthAccessToken struct {

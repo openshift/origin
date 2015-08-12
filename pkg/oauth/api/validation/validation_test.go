@@ -3,9 +3,9 @@ package validation
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	oapi "github.com/openshift/origin/pkg/oauth/api"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 )
 
 func TestValidateRedirectURI(t *testing.T) {

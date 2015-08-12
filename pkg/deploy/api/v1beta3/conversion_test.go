@@ -3,8 +3,8 @@ package v1beta3
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
+	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 
 	newer "github.com/openshift/origin/pkg/deploy/api"
 )

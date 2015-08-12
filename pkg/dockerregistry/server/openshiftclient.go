@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	osclient "github.com/openshift/origin/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client"
 )
 
 func NewUserOpenShiftClient(bearerToken string) (*osclient.Client, error) {

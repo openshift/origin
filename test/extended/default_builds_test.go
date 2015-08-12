@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "k8s.io/kubernetes/test/e2e"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"

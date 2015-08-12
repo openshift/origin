@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/url"
 
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/gitserver"
 	"github.com/openshift/origin/pkg/gitserver/autobuild"

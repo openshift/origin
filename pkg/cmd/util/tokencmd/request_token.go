@@ -12,7 +12,7 @@ import (
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"

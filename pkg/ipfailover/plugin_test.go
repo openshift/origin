@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )

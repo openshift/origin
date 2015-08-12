@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"os"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/golang/glog"
 	stiapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
 	sti "github.com/openshift/source-to-image/pkg/build/strategies"
 	stidocker "github.com/openshift/source-to-image/pkg/docker"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/build/api"

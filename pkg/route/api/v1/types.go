@@ -1,7 +1,7 @@
 package v1
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
+	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.

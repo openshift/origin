@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 type TestAllocationPlugin struct {

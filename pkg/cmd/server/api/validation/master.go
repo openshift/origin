@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	kapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-apiserver/app"
-	cmapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-controller-manager/app"
-	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	kapp "k8s.io/kubernetes/cmd/kube-apiserver/app"
+	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
+	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/serviceaccount"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"

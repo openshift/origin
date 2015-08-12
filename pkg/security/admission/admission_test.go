@@ -5,14 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	kadmission "github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
-	kscc "github.com/GoogleCloudPlatform/kubernetes/pkg/securitycontextconstraints"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kadmission "k8s.io/kubernetes/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/testclient"
+	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
+	"k8s.io/kubernetes/pkg/util"
 
 	allocator "github.com/openshift/origin/pkg/security"
 )

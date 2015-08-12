@@ -2,14 +2,10 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 import (
-	api "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	resource "github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
-	v1 "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
-	conversion "github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	apiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
+	api "github.com/openshift/origin/pkg/authorization/api"
+	v1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
+	apiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -26,316 +22,16 @@ import (
 	templateapiv1 "github.com/openshift/origin/pkg/template/api/v1"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	userapiv1 "github.com/openshift/origin/pkg/user/api/v1"
+	pkgapi "k8s.io/kubernetes/pkg/api"
+	resource "k8s.io/kubernetes/pkg/api/resource"
+	pkgapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	conversion "k8s.io/kubernetes/pkg/conversion"
 	reflect "reflect"
 )
 
-func convert_api_EnvVar_To_v1_EnvVar(in *api.EnvVar, out *v1.EnvVar, s conversion.Scope) error {
+func convert_api_ClusterPolicyBindingList_To_v1_ClusterPolicyBindingList(in *api.ClusterPolicyBindingList, out *v1.ClusterPolicyBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.EnvVar))(in)
-	}
-	out.Name = in.Name
-	out.Value = in.Value
-	if in.ValueFrom != nil {
-		out.ValueFrom = new(v1.EnvVarSource)
-		if err := convert_api_EnvVarSource_To_v1_EnvVarSource(in.ValueFrom, out.ValueFrom, s); err != nil {
-			return err
-		}
-	} else {
-		out.ValueFrom = nil
-	}
-	return nil
-}
-
-func convert_api_EnvVarSource_To_v1_EnvVarSource(in *api.EnvVarSource, out *v1.EnvVarSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.EnvVarSource))(in)
-	}
-	if in.FieldRef != nil {
-		out.FieldRef = new(v1.ObjectFieldSelector)
-		if err := convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(in.FieldRef, out.FieldRef, s); err != nil {
-			return err
-		}
-	} else {
-		out.FieldRef = nil
-	}
-	return nil
-}
-
-func convert_api_ListMeta_To_v1_ListMeta(in *api.ListMeta, out *v1.ListMeta, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.ListMeta))(in)
-	}
-	out.SelfLink = in.SelfLink
-	out.ResourceVersion = in.ResourceVersion
-	return nil
-}
-
-func convert_api_LocalObjectReference_To_v1_LocalObjectReference(in *api.LocalObjectReference, out *v1.LocalObjectReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.LocalObjectReference))(in)
-	}
-	out.Name = in.Name
-	return nil
-}
-
-func convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(in *api.ObjectFieldSelector, out *v1.ObjectFieldSelector, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.ObjectFieldSelector))(in)
-	}
-	out.APIVersion = in.APIVersion
-	out.FieldPath = in.FieldPath
-	return nil
-}
-
-func convert_api_ObjectMeta_To_v1_ObjectMeta(in *api.ObjectMeta, out *v1.ObjectMeta, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.ObjectMeta))(in)
-	}
-	out.Name = in.Name
-	out.GenerateName = in.GenerateName
-	out.Namespace = in.Namespace
-	out.SelfLink = in.SelfLink
-	out.UID = in.UID
-	out.ResourceVersion = in.ResourceVersion
-	out.Generation = in.Generation
-	if err := s.Convert(&in.CreationTimestamp, &out.CreationTimestamp, 0); err != nil {
-		return err
-	}
-	if in.DeletionTimestamp != nil {
-		if err := s.Convert(&in.DeletionTimestamp, &out.DeletionTimestamp, 0); err != nil {
-			return err
-		}
-	} else {
-		out.DeletionTimestamp = nil
-	}
-	if in.Labels != nil {
-		out.Labels = make(map[string]string)
-		for key, val := range in.Labels {
-			out.Labels[key] = val
-		}
-	} else {
-		out.Labels = nil
-	}
-	if in.Annotations != nil {
-		out.Annotations = make(map[string]string)
-		for key, val := range in.Annotations {
-			out.Annotations[key] = val
-		}
-	} else {
-		out.Annotations = nil
-	}
-	return nil
-}
-
-func convert_api_ObjectReference_To_v1_ObjectReference(in *api.ObjectReference, out *v1.ObjectReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.ObjectReference))(in)
-	}
-	out.Kind = in.Kind
-	out.Namespace = in.Namespace
-	out.Name = in.Name
-	out.UID = in.UID
-	out.APIVersion = in.APIVersion
-	out.ResourceVersion = in.ResourceVersion
-	out.FieldPath = in.FieldPath
-	return nil
-}
-
-func convert_api_ResourceRequirements_To_v1_ResourceRequirements(in *api.ResourceRequirements, out *v1.ResourceRequirements, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.ResourceRequirements))(in)
-	}
-	if in.Limits != nil {
-		out.Limits = make(v1.ResourceList)
-		for key, val := range in.Limits {
-			newVal := resource.Quantity{}
-			if err := s.Convert(&val, &newVal, 0); err != nil {
-				return err
-			}
-			out.Limits[v1.ResourceName(key)] = newVal
-		}
-	} else {
-		out.Limits = nil
-	}
-	if in.Requests != nil {
-		out.Requests = make(v1.ResourceList)
-		for key, val := range in.Requests {
-			newVal := resource.Quantity{}
-			if err := s.Convert(&val, &newVal, 0); err != nil {
-				return err
-			}
-			out.Requests[v1.ResourceName(key)] = newVal
-		}
-	} else {
-		out.Requests = nil
-	}
-	return nil
-}
-
-func convert_api_TypeMeta_To_v1_TypeMeta(in *api.TypeMeta, out *v1.TypeMeta, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.TypeMeta))(in)
-	}
-	out.Kind = in.Kind
-	out.APIVersion = in.APIVersion
-	return nil
-}
-
-func convert_v1_EnvVar_To_api_EnvVar(in *v1.EnvVar, out *api.EnvVar, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.EnvVar))(in)
-	}
-	out.Name = in.Name
-	out.Value = in.Value
-	if in.ValueFrom != nil {
-		out.ValueFrom = new(api.EnvVarSource)
-		if err := convert_v1_EnvVarSource_To_api_EnvVarSource(in.ValueFrom, out.ValueFrom, s); err != nil {
-			return err
-		}
-	} else {
-		out.ValueFrom = nil
-	}
-	return nil
-}
-
-func convert_v1_EnvVarSource_To_api_EnvVarSource(in *v1.EnvVarSource, out *api.EnvVarSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.EnvVarSource))(in)
-	}
-	if in.FieldRef != nil {
-		out.FieldRef = new(api.ObjectFieldSelector)
-		if err := convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(in.FieldRef, out.FieldRef, s); err != nil {
-			return err
-		}
-	} else {
-		out.FieldRef = nil
-	}
-	return nil
-}
-
-func convert_v1_ListMeta_To_api_ListMeta(in *v1.ListMeta, out *api.ListMeta, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.ListMeta))(in)
-	}
-	out.SelfLink = in.SelfLink
-	out.ResourceVersion = in.ResourceVersion
-	return nil
-}
-
-func convert_v1_LocalObjectReference_To_api_LocalObjectReference(in *v1.LocalObjectReference, out *api.LocalObjectReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.LocalObjectReference))(in)
-	}
-	out.Name = in.Name
-	return nil
-}
-
-func convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(in *v1.ObjectFieldSelector, out *api.ObjectFieldSelector, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.ObjectFieldSelector))(in)
-	}
-	out.APIVersion = in.APIVersion
-	out.FieldPath = in.FieldPath
-	return nil
-}
-
-func convert_v1_ObjectMeta_To_api_ObjectMeta(in *v1.ObjectMeta, out *api.ObjectMeta, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.ObjectMeta))(in)
-	}
-	out.Name = in.Name
-	out.GenerateName = in.GenerateName
-	out.Namespace = in.Namespace
-	out.SelfLink = in.SelfLink
-	out.UID = in.UID
-	out.ResourceVersion = in.ResourceVersion
-	out.Generation = in.Generation
-	if err := s.Convert(&in.CreationTimestamp, &out.CreationTimestamp, 0); err != nil {
-		return err
-	}
-	if in.DeletionTimestamp != nil {
-		if err := s.Convert(&in.DeletionTimestamp, &out.DeletionTimestamp, 0); err != nil {
-			return err
-		}
-	} else {
-		out.DeletionTimestamp = nil
-	}
-	if in.Labels != nil {
-		out.Labels = make(map[string]string)
-		for key, val := range in.Labels {
-			out.Labels[key] = val
-		}
-	} else {
-		out.Labels = nil
-	}
-	if in.Annotations != nil {
-		out.Annotations = make(map[string]string)
-		for key, val := range in.Annotations {
-			out.Annotations[key] = val
-		}
-	} else {
-		out.Annotations = nil
-	}
-	return nil
-}
-
-func convert_v1_ObjectReference_To_api_ObjectReference(in *v1.ObjectReference, out *api.ObjectReference, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.ObjectReference))(in)
-	}
-	out.Kind = in.Kind
-	out.Namespace = in.Namespace
-	out.Name = in.Name
-	out.UID = in.UID
-	out.APIVersion = in.APIVersion
-	out.ResourceVersion = in.ResourceVersion
-	out.FieldPath = in.FieldPath
-	return nil
-}
-
-func convert_v1_ResourceRequirements_To_api_ResourceRequirements(in *v1.ResourceRequirements, out *api.ResourceRequirements, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.ResourceRequirements))(in)
-	}
-	if in.Limits != nil {
-		out.Limits = make(api.ResourceList)
-		for key, val := range in.Limits {
-			newVal := resource.Quantity{}
-			if err := s.Convert(&val, &newVal, 0); err != nil {
-				return err
-			}
-			out.Limits[api.ResourceName(key)] = newVal
-		}
-	} else {
-		out.Limits = nil
-	}
-	if in.Requests != nil {
-		out.Requests = make(api.ResourceList)
-		for key, val := range in.Requests {
-			newVal := resource.Quantity{}
-			if err := s.Convert(&val, &newVal, 0); err != nil {
-				return err
-			}
-			out.Requests[api.ResourceName(key)] = newVal
-		}
-	} else {
-		out.Requests = nil
-	}
-	return nil
-}
-
-func convert_v1_TypeMeta_To_api_TypeMeta(in *v1.TypeMeta, out *api.TypeMeta, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1.TypeMeta))(in)
-	}
-	out.Kind = in.Kind
-	out.APIVersion = in.APIVersion
-	return nil
-}
-
-func convert_api_ClusterPolicyBindingList_To_v1_ClusterPolicyBindingList(in *authorizationapi.ClusterPolicyBindingList, out *apiv1.ClusterPolicyBindingList, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterPolicyBindingList))(in)
+		defaulting.(func(*api.ClusterPolicyBindingList))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -344,7 +40,7 @@ func convert_api_ClusterPolicyBindingList_To_v1_ClusterPolicyBindingList(in *aut
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1.ClusterPolicyBinding, len(in.Items))
+		out.Items = make([]v1.ClusterPolicyBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -356,9 +52,9 @@ func convert_api_ClusterPolicyBindingList_To_v1_ClusterPolicyBindingList(in *aut
 	return nil
 }
 
-func convert_api_ClusterPolicyList_To_v1_ClusterPolicyList(in *authorizationapi.ClusterPolicyList, out *apiv1.ClusterPolicyList, s conversion.Scope) error {
+func convert_api_ClusterPolicyList_To_v1_ClusterPolicyList(in *api.ClusterPolicyList, out *v1.ClusterPolicyList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterPolicyList))(in)
+		defaulting.(func(*api.ClusterPolicyList))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -367,7 +63,7 @@ func convert_api_ClusterPolicyList_To_v1_ClusterPolicyList(in *authorizationapi.
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1.ClusterPolicy, len(in.Items))
+		out.Items = make([]v1.ClusterPolicy, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -379,9 +75,9 @@ func convert_api_ClusterPolicyList_To_v1_ClusterPolicyList(in *authorizationapi.
 	return nil
 }
 
-func convert_api_ClusterRole_To_v1_ClusterRole(in *authorizationapi.ClusterRole, out *apiv1.ClusterRole, s conversion.Scope) error {
+func convert_api_ClusterRole_To_v1_ClusterRole(in *api.ClusterRole, out *v1.ClusterRole, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterRole))(in)
+		defaulting.(func(*api.ClusterRole))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -390,7 +86,7 @@ func convert_api_ClusterRole_To_v1_ClusterRole(in *authorizationapi.ClusterRole,
 		return err
 	}
 	if in.Rules != nil {
-		out.Rules = make([]apiv1.PolicyRule, len(in.Rules))
+		out.Rules = make([]v1.PolicyRule, len(in.Rules))
 		for i := range in.Rules {
 			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
 				return err
@@ -402,9 +98,9 @@ func convert_api_ClusterRole_To_v1_ClusterRole(in *authorizationapi.ClusterRole,
 	return nil
 }
 
-func convert_api_ClusterRoleBindingList_To_v1_ClusterRoleBindingList(in *authorizationapi.ClusterRoleBindingList, out *apiv1.ClusterRoleBindingList, s conversion.Scope) error {
+func convert_api_ClusterRoleBindingList_To_v1_ClusterRoleBindingList(in *api.ClusterRoleBindingList, out *v1.ClusterRoleBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterRoleBindingList))(in)
+		defaulting.(func(*api.ClusterRoleBindingList))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -413,7 +109,7 @@ func convert_api_ClusterRoleBindingList_To_v1_ClusterRoleBindingList(in *authori
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1.ClusterRoleBinding, len(in.Items))
+		out.Items = make([]v1.ClusterRoleBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -425,9 +121,9 @@ func convert_api_ClusterRoleBindingList_To_v1_ClusterRoleBindingList(in *authori
 	return nil
 }
 
-func convert_api_ClusterRoleList_To_v1_ClusterRoleList(in *authorizationapi.ClusterRoleList, out *apiv1.ClusterRoleList, s conversion.Scope) error {
+func convert_api_ClusterRoleList_To_v1_ClusterRoleList(in *api.ClusterRoleList, out *v1.ClusterRoleList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ClusterRoleList))(in)
+		defaulting.(func(*api.ClusterRoleList))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -436,7 +132,7 @@ func convert_api_ClusterRoleList_To_v1_ClusterRoleList(in *authorizationapi.Clus
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1.ClusterRole, len(in.Items))
+		out.Items = make([]v1.ClusterRole, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_ClusterRole_To_v1_ClusterRole(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -448,9 +144,9 @@ func convert_api_ClusterRoleList_To_v1_ClusterRoleList(in *authorizationapi.Clus
 	return nil
 }
 
-func convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview(in *authorizationapi.IsPersonalSubjectAccessReview, out *apiv1.IsPersonalSubjectAccessReview, s conversion.Scope) error {
+func convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview(in *api.IsPersonalSubjectAccessReview, out *v1.IsPersonalSubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.IsPersonalSubjectAccessReview))(in)
+		defaulting.(func(*api.IsPersonalSubjectAccessReview))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -458,9 +154,9 @@ func convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessRevi
 	return nil
 }
 
-func convert_api_PolicyBindingList_To_v1_PolicyBindingList(in *authorizationapi.PolicyBindingList, out *apiv1.PolicyBindingList, s conversion.Scope) error {
+func convert_api_PolicyBindingList_To_v1_PolicyBindingList(in *api.PolicyBindingList, out *v1.PolicyBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.PolicyBindingList))(in)
+		defaulting.(func(*api.PolicyBindingList))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -469,7 +165,7 @@ func convert_api_PolicyBindingList_To_v1_PolicyBindingList(in *authorizationapi.
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1.PolicyBinding, len(in.Items))
+		out.Items = make([]v1.PolicyBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -481,9 +177,9 @@ func convert_api_PolicyBindingList_To_v1_PolicyBindingList(in *authorizationapi.
 	return nil
 }
 
-func convert_api_PolicyList_To_v1_PolicyList(in *authorizationapi.PolicyList, out *apiv1.PolicyList, s conversion.Scope) error {
+func convert_api_PolicyList_To_v1_PolicyList(in *api.PolicyList, out *v1.PolicyList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.PolicyList))(in)
+		defaulting.(func(*api.PolicyList))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -492,7 +188,7 @@ func convert_api_PolicyList_To_v1_PolicyList(in *authorizationapi.PolicyList, ou
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1.Policy, len(in.Items))
+		out.Items = make([]v1.Policy, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -504,9 +200,9 @@ func convert_api_PolicyList_To_v1_PolicyList(in *authorizationapi.PolicyList, ou
 	return nil
 }
 
-func convert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in *authorizationapi.ResourceAccessReview, out *apiv1.ResourceAccessReview, s conversion.Scope) error {
+func convert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in *api.ResourceAccessReview, out *v1.ResourceAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.ResourceAccessReview))(in)
+		defaulting.(func(*api.ResourceAccessReview))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -520,9 +216,9 @@ func convert_api_ResourceAccessReview_To_v1_ResourceAccessReview(in *authorizati
 	return nil
 }
 
-func convert_api_Role_To_v1_Role(in *authorizationapi.Role, out *apiv1.Role, s conversion.Scope) error {
+func convert_api_Role_To_v1_Role(in *api.Role, out *v1.Role, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.Role))(in)
+		defaulting.(func(*api.Role))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -531,7 +227,7 @@ func convert_api_Role_To_v1_Role(in *authorizationapi.Role, out *apiv1.Role, s c
 		return err
 	}
 	if in.Rules != nil {
-		out.Rules = make([]apiv1.PolicyRule, len(in.Rules))
+		out.Rules = make([]v1.PolicyRule, len(in.Rules))
 		for i := range in.Rules {
 			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
 				return err
@@ -543,9 +239,9 @@ func convert_api_Role_To_v1_Role(in *authorizationapi.Role, out *apiv1.Role, s c
 	return nil
 }
 
-func convert_api_RoleBindingList_To_v1_RoleBindingList(in *authorizationapi.RoleBindingList, out *apiv1.RoleBindingList, s conversion.Scope) error {
+func convert_api_RoleBindingList_To_v1_RoleBindingList(in *api.RoleBindingList, out *v1.RoleBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.RoleBindingList))(in)
+		defaulting.(func(*api.RoleBindingList))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -554,7 +250,7 @@ func convert_api_RoleBindingList_To_v1_RoleBindingList(in *authorizationapi.Role
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1.RoleBinding, len(in.Items))
+		out.Items = make([]v1.RoleBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -566,9 +262,9 @@ func convert_api_RoleBindingList_To_v1_RoleBindingList(in *authorizationapi.Role
 	return nil
 }
 
-func convert_api_RoleList_To_v1_RoleList(in *authorizationapi.RoleList, out *apiv1.RoleList, s conversion.Scope) error {
+func convert_api_RoleList_To_v1_RoleList(in *api.RoleList, out *v1.RoleList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.RoleList))(in)
+		defaulting.(func(*api.RoleList))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -577,7 +273,7 @@ func convert_api_RoleList_To_v1_RoleList(in *authorizationapi.RoleList, out *api
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]apiv1.Role, len(in.Items))
+		out.Items = make([]v1.Role, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_Role_To_v1_Role(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -589,9 +285,9 @@ func convert_api_RoleList_To_v1_RoleList(in *authorizationapi.RoleList, out *api
 	return nil
 }
 
-func convert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse(in *authorizationapi.SubjectAccessReviewResponse, out *apiv1.SubjectAccessReviewResponse, s conversion.Scope) error {
+func convert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse(in *api.SubjectAccessReviewResponse, out *v1.SubjectAccessReviewResponse, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*authorizationapi.SubjectAccessReviewResponse))(in)
+		defaulting.(func(*api.SubjectAccessReviewResponse))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -602,9 +298,9 @@ func convert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse(i
 	return nil
 }
 
-func convert_v1_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *apiv1.ClusterPolicyBindingList, out *authorizationapi.ClusterPolicyBindingList, s conversion.Scope) error {
+func convert_v1_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *v1.ClusterPolicyBindingList, out *api.ClusterPolicyBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.ClusterPolicyBindingList))(in)
+		defaulting.(func(*v1.ClusterPolicyBindingList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -613,7 +309,7 @@ func convert_v1_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *api
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]authorizationapi.ClusterPolicyBinding, len(in.Items))
+		out.Items = make([]api.ClusterPolicyBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -625,9 +321,9 @@ func convert_v1_ClusterPolicyBindingList_To_api_ClusterPolicyBindingList(in *api
 	return nil
 }
 
-func convert_v1_ClusterPolicyList_To_api_ClusterPolicyList(in *apiv1.ClusterPolicyList, out *authorizationapi.ClusterPolicyList, s conversion.Scope) error {
+func convert_v1_ClusterPolicyList_To_api_ClusterPolicyList(in *v1.ClusterPolicyList, out *api.ClusterPolicyList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.ClusterPolicyList))(in)
+		defaulting.(func(*v1.ClusterPolicyList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -636,7 +332,7 @@ func convert_v1_ClusterPolicyList_To_api_ClusterPolicyList(in *apiv1.ClusterPoli
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]authorizationapi.ClusterPolicy, len(in.Items))
+		out.Items = make([]api.ClusterPolicy, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -648,9 +344,9 @@ func convert_v1_ClusterPolicyList_To_api_ClusterPolicyList(in *apiv1.ClusterPoli
 	return nil
 }
 
-func convert_v1_ClusterRole_To_api_ClusterRole(in *apiv1.ClusterRole, out *authorizationapi.ClusterRole, s conversion.Scope) error {
+func convert_v1_ClusterRole_To_api_ClusterRole(in *v1.ClusterRole, out *api.ClusterRole, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.ClusterRole))(in)
+		defaulting.(func(*v1.ClusterRole))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -659,7 +355,7 @@ func convert_v1_ClusterRole_To_api_ClusterRole(in *apiv1.ClusterRole, out *autho
 		return err
 	}
 	if in.Rules != nil {
-		out.Rules = make([]authorizationapi.PolicyRule, len(in.Rules))
+		out.Rules = make([]api.PolicyRule, len(in.Rules))
 		for i := range in.Rules {
 			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
 				return err
@@ -671,9 +367,9 @@ func convert_v1_ClusterRole_To_api_ClusterRole(in *apiv1.ClusterRole, out *autho
 	return nil
 }
 
-func convert_v1_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *apiv1.ClusterRoleBindingList, out *authorizationapi.ClusterRoleBindingList, s conversion.Scope) error {
+func convert_v1_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *v1.ClusterRoleBindingList, out *api.ClusterRoleBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.ClusterRoleBindingList))(in)
+		defaulting.(func(*v1.ClusterRoleBindingList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -682,7 +378,7 @@ func convert_v1_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *apiv1.C
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]authorizationapi.ClusterRoleBinding, len(in.Items))
+		out.Items = make([]api.ClusterRoleBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -694,9 +390,9 @@ func convert_v1_ClusterRoleBindingList_To_api_ClusterRoleBindingList(in *apiv1.C
 	return nil
 }
 
-func convert_v1_ClusterRoleList_To_api_ClusterRoleList(in *apiv1.ClusterRoleList, out *authorizationapi.ClusterRoleList, s conversion.Scope) error {
+func convert_v1_ClusterRoleList_To_api_ClusterRoleList(in *v1.ClusterRoleList, out *api.ClusterRoleList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.ClusterRoleList))(in)
+		defaulting.(func(*v1.ClusterRoleList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -705,7 +401,7 @@ func convert_v1_ClusterRoleList_To_api_ClusterRoleList(in *apiv1.ClusterRoleList
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]authorizationapi.ClusterRole, len(in.Items))
+		out.Items = make([]api.ClusterRole, len(in.Items))
 		for i := range in.Items {
 			if err := convert_v1_ClusterRole_To_api_ClusterRole(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -717,9 +413,9 @@ func convert_v1_ClusterRoleList_To_api_ClusterRoleList(in *apiv1.ClusterRoleList
 	return nil
 }
 
-func convert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in *apiv1.IsPersonalSubjectAccessReview, out *authorizationapi.IsPersonalSubjectAccessReview, s conversion.Scope) error {
+func convert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview(in *v1.IsPersonalSubjectAccessReview, out *api.IsPersonalSubjectAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.IsPersonalSubjectAccessReview))(in)
+		defaulting.(func(*v1.IsPersonalSubjectAccessReview))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -727,9 +423,9 @@ func convert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessRevi
 	return nil
 }
 
-func convert_v1_PolicyBindingList_To_api_PolicyBindingList(in *apiv1.PolicyBindingList, out *authorizationapi.PolicyBindingList, s conversion.Scope) error {
+func convert_v1_PolicyBindingList_To_api_PolicyBindingList(in *v1.PolicyBindingList, out *api.PolicyBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.PolicyBindingList))(in)
+		defaulting.(func(*v1.PolicyBindingList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -738,7 +434,7 @@ func convert_v1_PolicyBindingList_To_api_PolicyBindingList(in *apiv1.PolicyBindi
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]authorizationapi.PolicyBinding, len(in.Items))
+		out.Items = make([]api.PolicyBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -750,9 +446,9 @@ func convert_v1_PolicyBindingList_To_api_PolicyBindingList(in *apiv1.PolicyBindi
 	return nil
 }
 
-func convert_v1_PolicyList_To_api_PolicyList(in *apiv1.PolicyList, out *authorizationapi.PolicyList, s conversion.Scope) error {
+func convert_v1_PolicyList_To_api_PolicyList(in *v1.PolicyList, out *api.PolicyList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.PolicyList))(in)
+		defaulting.(func(*v1.PolicyList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -761,7 +457,7 @@ func convert_v1_PolicyList_To_api_PolicyList(in *apiv1.PolicyList, out *authoriz
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]authorizationapi.Policy, len(in.Items))
+		out.Items = make([]api.Policy, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -773,9 +469,9 @@ func convert_v1_PolicyList_To_api_PolicyList(in *apiv1.PolicyList, out *authoriz
 	return nil
 }
 
-func convert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *apiv1.ResourceAccessReview, out *authorizationapi.ResourceAccessReview, s conversion.Scope) error {
+func convert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *v1.ResourceAccessReview, out *api.ResourceAccessReview, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.ResourceAccessReview))(in)
+		defaulting.(func(*v1.ResourceAccessReview))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -789,9 +485,9 @@ func convert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *apiv1.Resou
 	return nil
 }
 
-func convert_v1_Role_To_api_Role(in *apiv1.Role, out *authorizationapi.Role, s conversion.Scope) error {
+func convert_v1_Role_To_api_Role(in *v1.Role, out *api.Role, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.Role))(in)
+		defaulting.(func(*v1.Role))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -800,7 +496,7 @@ func convert_v1_Role_To_api_Role(in *apiv1.Role, out *authorizationapi.Role, s c
 		return err
 	}
 	if in.Rules != nil {
-		out.Rules = make([]authorizationapi.PolicyRule, len(in.Rules))
+		out.Rules = make([]api.PolicyRule, len(in.Rules))
 		for i := range in.Rules {
 			if err := s.Convert(&in.Rules[i], &out.Rules[i], 0); err != nil {
 				return err
@@ -812,9 +508,9 @@ func convert_v1_Role_To_api_Role(in *apiv1.Role, out *authorizationapi.Role, s c
 	return nil
 }
 
-func convert_v1_RoleBindingList_To_api_RoleBindingList(in *apiv1.RoleBindingList, out *authorizationapi.RoleBindingList, s conversion.Scope) error {
+func convert_v1_RoleBindingList_To_api_RoleBindingList(in *v1.RoleBindingList, out *api.RoleBindingList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.RoleBindingList))(in)
+		defaulting.(func(*v1.RoleBindingList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -823,7 +519,7 @@ func convert_v1_RoleBindingList_To_api_RoleBindingList(in *apiv1.RoleBindingList
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]authorizationapi.RoleBinding, len(in.Items))
+		out.Items = make([]api.RoleBinding, len(in.Items))
 		for i := range in.Items {
 			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
@@ -835,9 +531,9 @@ func convert_v1_RoleBindingList_To_api_RoleBindingList(in *apiv1.RoleBindingList
 	return nil
 }
 
-func convert_v1_RoleList_To_api_RoleList(in *apiv1.RoleList, out *authorizationapi.RoleList, s conversion.Scope) error {
+func convert_v1_RoleList_To_api_RoleList(in *v1.RoleList, out *api.RoleList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.RoleList))(in)
+		defaulting.(func(*v1.RoleList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -846,7 +542,7 @@ func convert_v1_RoleList_To_api_RoleList(in *apiv1.RoleList, out *authorizationa
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]authorizationapi.Role, len(in.Items))
+		out.Items = make([]api.Role, len(in.Items))
 		for i := range in.Items {
 			if err := convert_v1_Role_To_api_Role(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -858,9 +554,9 @@ func convert_v1_RoleList_To_api_RoleList(in *apiv1.RoleList, out *authorizationa
 	return nil
 }
 
-func convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *apiv1.SubjectAccessReviewResponse, out *authorizationapi.SubjectAccessReviewResponse, s conversion.Scope) error {
+func convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in *v1.SubjectAccessReviewResponse, out *api.SubjectAccessReviewResponse, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*apiv1.SubjectAccessReviewResponse))(in)
+		defaulting.(func(*v1.SubjectAccessReviewResponse))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -871,7 +567,7 @@ func convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(i
 	return nil
 }
 
-func convert_api_Build_To_v1_Build(in *buildapi.Build, out *buildapiv1.Build, s conversion.Scope) error {
+func convert_api_Build_To_v1_Build(in *buildapi.Build, out *apiv1.Build, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.Build))(in)
 	}
@@ -890,7 +586,7 @@ func convert_api_Build_To_v1_Build(in *buildapi.Build, out *buildapiv1.Build, s 
 	return nil
 }
 
-func convert_api_BuildConfig_To_v1_BuildConfig(in *buildapi.BuildConfig, out *buildapiv1.BuildConfig, s conversion.Scope) error {
+func convert_api_BuildConfig_To_v1_BuildConfig(in *buildapi.BuildConfig, out *apiv1.BuildConfig, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfig))(in)
 	}
@@ -909,7 +605,7 @@ func convert_api_BuildConfig_To_v1_BuildConfig(in *buildapi.BuildConfig, out *bu
 	return nil
 }
 
-func convert_api_BuildConfigList_To_v1_BuildConfigList(in *buildapi.BuildConfigList, out *buildapiv1.BuildConfigList, s conversion.Scope) error {
+func convert_api_BuildConfigList_To_v1_BuildConfigList(in *buildapi.BuildConfigList, out *apiv1.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigList))(in)
 	}
@@ -920,7 +616,7 @@ func convert_api_BuildConfigList_To_v1_BuildConfigList(in *buildapi.BuildConfigL
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]buildapiv1.BuildConfig, len(in.Items))
+		out.Items = make([]apiv1.BuildConfig, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_BuildConfig_To_v1_BuildConfig(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -932,12 +628,12 @@ func convert_api_BuildConfigList_To_v1_BuildConfigList(in *buildapi.BuildConfigL
 	return nil
 }
 
-func convert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *buildapi.BuildConfigSpec, out *buildapiv1.BuildConfigSpec, s conversion.Scope) error {
+func convert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *buildapi.BuildConfigSpec, out *apiv1.BuildConfigSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigSpec))(in)
 	}
 	if in.Triggers != nil {
-		out.Triggers = make([]buildapiv1.BuildTriggerPolicy, len(in.Triggers))
+		out.Triggers = make([]apiv1.BuildTriggerPolicy, len(in.Triggers))
 		for i := range in.Triggers {
 			if err := s.Convert(&in.Triggers[i], &out.Triggers[i], 0); err != nil {
 				return err
@@ -952,7 +648,7 @@ func convert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *buildapi.BuildConfigS
 	return nil
 }
 
-func convert_api_BuildConfigStatus_To_v1_BuildConfigStatus(in *buildapi.BuildConfigStatus, out *buildapiv1.BuildConfigStatus, s conversion.Scope) error {
+func convert_api_BuildConfigStatus_To_v1_BuildConfigStatus(in *buildapi.BuildConfigStatus, out *apiv1.BuildConfigStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildConfigStatus))(in)
 	}
@@ -960,7 +656,7 @@ func convert_api_BuildConfigStatus_To_v1_BuildConfigStatus(in *buildapi.BuildCon
 	return nil
 }
 
-func convert_api_BuildList_To_v1_BuildList(in *buildapi.BuildList, out *buildapiv1.BuildList, s conversion.Scope) error {
+func convert_api_BuildList_To_v1_BuildList(in *buildapi.BuildList, out *apiv1.BuildList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildList))(in)
 	}
@@ -971,7 +667,7 @@ func convert_api_BuildList_To_v1_BuildList(in *buildapi.BuildList, out *buildapi
 		return err
 	}
 	if in.Items != nil {
-		out.Items = make([]buildapiv1.Build, len(in.Items))
+		out.Items = make([]apiv1.Build, len(in.Items))
 		for i := range in.Items {
 			if err := convert_api_Build_To_v1_Build(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
@@ -983,7 +679,7 @@ func convert_api_BuildList_To_v1_BuildList(in *buildapi.BuildList, out *buildapi
 	return nil
 }
 
-func convert_api_BuildLog_To_v1_BuildLog(in *buildapi.BuildLog, out *buildapiv1.BuildLog, s conversion.Scope) error {
+func convert_api_BuildLog_To_v1_BuildLog(in *buildapi.BuildLog, out *apiv1.BuildLog, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildLog))(in)
 	}
@@ -996,7 +692,7 @@ func convert_api_BuildLog_To_v1_BuildLog(in *buildapi.BuildLog, out *buildapiv1.
 	return nil
 }
 
-func convert_api_BuildLogOptions_To_v1_BuildLogOptions(in *buildapi.BuildLogOptions, out *buildapiv1.BuildLogOptions, s conversion.Scope) error {
+func convert_api_BuildLogOptions_To_v1_BuildLogOptions(in *buildapi.BuildLogOptions, out *apiv1.BuildLogOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildLogOptions))(in)
 	}
@@ -1008,7 +704,7 @@ func convert_api_BuildLogOptions_To_v1_BuildLogOptions(in *buildapi.BuildLogOpti
 	return nil
 }
 
-func convert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, out *buildapiv1.BuildRequest, s conversion.Scope) error {
+func convert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, out *apiv1.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildRequest))(in)
 	}
@@ -1019,7 +715,7 @@ func convert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, out 
 		return err
 	}
 	if in.Revision != nil {
-		out.Revision = new(buildapiv1.SourceRevision)
+		out.Revision = new(apiv1.SourceRevision)
 		if err := convert_api_SourceRevision_To_v1_SourceRevision(in.Revision, out.Revision, s); err != nil {
 			return err
 		}
@@ -1027,7 +723,7 @@ func convert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, out 
 		out.Revision = nil
 	}
 	if in.TriggeredByImage != nil {
-		out.TriggeredByImage = new(v1.ObjectReference)
+		out.TriggeredByImage = new(pkgapiv1.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1_ObjectReference(in.TriggeredByImage, out.TriggeredByImage, s); err != nil {
 			return err
 		}
@@ -1035,7 +731,7 @@ func convert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, out 
 		out.TriggeredByImage = nil
 	}
 	if in.From != nil {
-		out.From = new(v1.ObjectReference)
+		out.From = new(pkgapiv1.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1_ObjectReference(in.From, out.From, s); err != nil {
 			return err
 		}
@@ -1045,13 +741,13 @@ func convert_api_BuildRequest_To_v1_BuildRequest(in *buildapi.BuildRequest, out 
 	return nil
 }
 
-func convert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out *buildapiv1.BuildSource, s conversion.Scope) error {
+func convert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out *apiv1.BuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildSource))(in)
 	}
-	out.Type = buildapiv1.BuildSourceType(in.Type)
+	out.Type = apiv1.BuildSourceType(in.Type)
 	if in.Git != nil {
-		out.Git = new(buildapiv1.GitBuildSource)
+		out.Git = new(apiv1.GitBuildSource)
 		if err := convert_api_GitBuildSource_To_v1_GitBuildSource(in.Git, out.Git, s); err != nil {
 			return err
 		}
@@ -1060,7 +756,7 @@ func convert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out *bu
 	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
-		out.SourceSecret = new(v1.LocalObjectReference)
+		out.SourceSecret = new(pkgapiv1.LocalObjectReference)
 		if err := convert_api_LocalObjectReference_To_v1_LocalObjectReference(in.SourceSecret, out.SourceSecret, s); err != nil {
 			return err
 		}
@@ -1070,7 +766,7 @@ func convert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out *bu
 	return nil
 }
 
-func convert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *buildapiv1.BuildSpec, s conversion.Scope) error {
+func convert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *apiv1.BuildSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildSpec))(in)
 	}
@@ -1079,7 +775,7 @@ func convert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *buildapi
 		return err
 	}
 	if in.Revision != nil {
-		out.Revision = new(buildapiv1.SourceRevision)
+		out.Revision = new(apiv1.SourceRevision)
 		if err := convert_api_SourceRevision_To_v1_SourceRevision(in.Revision, out.Revision, s); err != nil {
 			return err
 		}
@@ -1098,11 +794,11 @@ func convert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *buildapi
 	return nil
 }
 
-func convert_api_BuildStatus_To_v1_BuildStatus(in *buildapi.BuildStatus, out *buildapiv1.BuildStatus, s conversion.Scope) error {
+func convert_api_BuildStatus_To_v1_BuildStatus(in *buildapi.BuildStatus, out *apiv1.BuildStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildStatus))(in)
 	}
-	out.Phase = buildapiv1.BuildPhase(in.Phase)
+	out.Phase = apiv1.BuildPhase(in.Phase)
 	out.Cancelled = in.Cancelled
 	out.Message = in.Message
 	if in.StartTimestamp != nil {
@@ -1121,7 +817,7 @@ func convert_api_BuildStatus_To_v1_BuildStatus(in *buildapi.BuildStatus, out *bu
 	}
 	out.Duration = in.Duration
 	if in.Config != nil {
-		out.Config = new(v1.ObjectReference)
+		out.Config = new(pkgapiv1.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1_ObjectReference(in.Config, out.Config, s); err != nil {
 			return err
 		}
@@ -1131,11 +827,11 @@ func convert_api_BuildStatus_To_v1_BuildStatus(in *buildapi.BuildStatus, out *bu
 	return nil
 }
 
-func convert_api_BuildStrategy_To_v1_BuildStrategy(in *buildapi.BuildStrategy, out *buildapiv1.BuildStrategy, s conversion.Scope) error {
+func convert_api_BuildStrategy_To_v1_BuildStrategy(in *buildapi.BuildStrategy, out *apiv1.BuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.BuildStrategy))(in)
 	}
-	out.Type = buildapiv1.BuildStrategyType(in.Type)
+	out.Type = apiv1.BuildStrategyType(in.Type)
 	if in.DockerStrategy != nil {
 		if err := s.Convert(&in.DockerStrategy, &out.DockerStrategy, 0); err != nil {
 			return err
@@ -1160,7 +856,7 @@ func convert_api_BuildStrategy_To_v1_BuildStrategy(in *buildapi.BuildStrategy, o
 	return nil
 }
 
-func convert_api_GitBuildSource_To_v1_GitBuildSource(in *buildapi.GitBuildSource, out *buildapiv1.GitBuildSource, s conversion.Scope) error {
+func convert_api_GitBuildSource_To_v1_GitBuildSource(in *buildapi.GitBuildSource, out *apiv1.GitBuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.GitBuildSource))(in)
 	}
@@ -1171,7 +867,7 @@ func convert_api_GitBuildSource_To_v1_GitBuildSource(in *buildapi.GitBuildSource
 	return nil
 }
 
-func convert_api_GitSourceRevision_To_v1_GitSourceRevision(in *buildapi.GitSourceRevision, out *buildapiv1.GitSourceRevision, s conversion.Scope) error {
+func convert_api_GitSourceRevision_To_v1_GitSourceRevision(in *buildapi.GitSourceRevision, out *apiv1.GitSourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.GitSourceRevision))(in)
 	}
@@ -1186,13 +882,13 @@ func convert_api_GitSourceRevision_To_v1_GitSourceRevision(in *buildapi.GitSourc
 	return nil
 }
 
-func convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *buildapiv1.ImageChangeTrigger, s conversion.Scope) error {
+func convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *buildapi.ImageChangeTrigger, out *apiv1.ImageChangeTrigger, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.ImageChangeTrigger))(in)
 	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
 	if in.From != nil {
-		out.From = new(v1.ObjectReference)
+		out.From = new(pkgapiv1.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1_ObjectReference(in.From, out.From, s); err != nil {
 			return err
 		}
@@ -1202,7 +898,7 @@ func convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *buildapi.ImageC
 	return nil
 }
 
-func convert_api_SourceControlUser_To_v1_SourceControlUser(in *buildapi.SourceControlUser, out *buildapiv1.SourceControlUser, s conversion.Scope) error {
+func convert_api_SourceControlUser_To_v1_SourceControlUser(in *buildapi.SourceControlUser, out *apiv1.SourceControlUser, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.SourceControlUser))(in)
 	}
@@ -1211,13 +907,13 @@ func convert_api_SourceControlUser_To_v1_SourceControlUser(in *buildapi.SourceCo
 	return nil
 }
 
-func convert_api_SourceRevision_To_v1_SourceRevision(in *buildapi.SourceRevision, out *buildapiv1.SourceRevision, s conversion.Scope) error {
+func convert_api_SourceRevision_To_v1_SourceRevision(in *buildapi.SourceRevision, out *apiv1.SourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.SourceRevision))(in)
 	}
-	out.Type = buildapiv1.BuildSourceType(in.Type)
+	out.Type = apiv1.BuildSourceType(in.Type)
 	if in.Git != nil {
-		out.Git = new(buildapiv1.GitSourceRevision)
+		out.Git = new(apiv1.GitSourceRevision)
 		if err := convert_api_GitSourceRevision_To_v1_GitSourceRevision(in.Git, out.Git, s); err != nil {
 			return err
 		}
@@ -1227,7 +923,7 @@ func convert_api_SourceRevision_To_v1_SourceRevision(in *buildapi.SourceRevision
 	return nil
 }
 
-func convert_api_WebHookTrigger_To_v1_WebHookTrigger(in *buildapi.WebHookTrigger, out *buildapiv1.WebHookTrigger, s conversion.Scope) error {
+func convert_api_WebHookTrigger_To_v1_WebHookTrigger(in *buildapi.WebHookTrigger, out *apiv1.WebHookTrigger, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.WebHookTrigger))(in)
 	}
@@ -1235,9 +931,9 @@ func convert_api_WebHookTrigger_To_v1_WebHookTrigger(in *buildapi.WebHookTrigger
 	return nil
 }
 
-func convert_v1_Build_To_api_Build(in *buildapiv1.Build, out *buildapi.Build, s conversion.Scope) error {
+func convert_v1_Build_To_api_Build(in *apiv1.Build, out *buildapi.Build, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.Build))(in)
+		defaulting.(func(*apiv1.Build))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -1254,9 +950,9 @@ func convert_v1_Build_To_api_Build(in *buildapiv1.Build, out *buildapi.Build, s 
 	return nil
 }
 
-func convert_v1_BuildConfig_To_api_BuildConfig(in *buildapiv1.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
+func convert_v1_BuildConfig_To_api_BuildConfig(in *apiv1.BuildConfig, out *buildapi.BuildConfig, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildConfig))(in)
+		defaulting.(func(*apiv1.BuildConfig))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -1273,9 +969,9 @@ func convert_v1_BuildConfig_To_api_BuildConfig(in *buildapiv1.BuildConfig, out *
 	return nil
 }
 
-func convert_v1_BuildConfigList_To_api_BuildConfigList(in *buildapiv1.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
+func convert_v1_BuildConfigList_To_api_BuildConfigList(in *apiv1.BuildConfigList, out *buildapi.BuildConfigList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildConfigList))(in)
+		defaulting.(func(*apiv1.BuildConfigList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -1296,9 +992,9 @@ func convert_v1_BuildConfigList_To_api_BuildConfigList(in *buildapiv1.BuildConfi
 	return nil
 }
 
-func convert_v1_BuildConfigSpec_To_api_BuildConfigSpec(in *buildapiv1.BuildConfigSpec, out *buildapi.BuildConfigSpec, s conversion.Scope) error {
+func convert_v1_BuildConfigSpec_To_api_BuildConfigSpec(in *apiv1.BuildConfigSpec, out *buildapi.BuildConfigSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildConfigSpec))(in)
+		defaulting.(func(*apiv1.BuildConfigSpec))(in)
 	}
 	if in.Triggers != nil {
 		out.Triggers = make([]buildapi.BuildTriggerPolicy, len(in.Triggers))
@@ -1316,17 +1012,17 @@ func convert_v1_BuildConfigSpec_To_api_BuildConfigSpec(in *buildapiv1.BuildConfi
 	return nil
 }
 
-func convert_v1_BuildConfigStatus_To_api_BuildConfigStatus(in *buildapiv1.BuildConfigStatus, out *buildapi.BuildConfigStatus, s conversion.Scope) error {
+func convert_v1_BuildConfigStatus_To_api_BuildConfigStatus(in *apiv1.BuildConfigStatus, out *buildapi.BuildConfigStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildConfigStatus))(in)
+		defaulting.(func(*apiv1.BuildConfigStatus))(in)
 	}
 	out.LastVersion = in.LastVersion
 	return nil
 }
 
-func convert_v1_BuildList_To_api_BuildList(in *buildapiv1.BuildList, out *buildapi.BuildList, s conversion.Scope) error {
+func convert_v1_BuildList_To_api_BuildList(in *apiv1.BuildList, out *buildapi.BuildList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildList))(in)
+		defaulting.(func(*apiv1.BuildList))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -1347,9 +1043,9 @@ func convert_v1_BuildList_To_api_BuildList(in *buildapiv1.BuildList, out *builda
 	return nil
 }
 
-func convert_v1_BuildLog_To_api_BuildLog(in *buildapiv1.BuildLog, out *buildapi.BuildLog, s conversion.Scope) error {
+func convert_v1_BuildLog_To_api_BuildLog(in *apiv1.BuildLog, out *buildapi.BuildLog, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildLog))(in)
+		defaulting.(func(*apiv1.BuildLog))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -1360,9 +1056,9 @@ func convert_v1_BuildLog_To_api_BuildLog(in *buildapiv1.BuildLog, out *buildapi.
 	return nil
 }
 
-func convert_v1_BuildLogOptions_To_api_BuildLogOptions(in *buildapiv1.BuildLogOptions, out *buildapi.BuildLogOptions, s conversion.Scope) error {
+func convert_v1_BuildLogOptions_To_api_BuildLogOptions(in *apiv1.BuildLogOptions, out *buildapi.BuildLogOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildLogOptions))(in)
+		defaulting.(func(*apiv1.BuildLogOptions))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -1372,9 +1068,9 @@ func convert_v1_BuildLogOptions_To_api_BuildLogOptions(in *buildapiv1.BuildLogOp
 	return nil
 }
 
-func convert_v1_BuildRequest_To_api_BuildRequest(in *buildapiv1.BuildRequest, out *buildapi.BuildRequest, s conversion.Scope) error {
+func convert_v1_BuildRequest_To_api_BuildRequest(in *apiv1.BuildRequest, out *buildapi.BuildRequest, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildRequest))(in)
+		defaulting.(func(*apiv1.BuildRequest))(in)
 	}
 	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -1391,7 +1087,7 @@ func convert_v1_BuildRequest_To_api_BuildRequest(in *buildapiv1.BuildRequest, ou
 		out.Revision = nil
 	}
 	if in.TriggeredByImage != nil {
-		out.TriggeredByImage = new(api.ObjectReference)
+		out.TriggeredByImage = new(pkgapi.ObjectReference)
 		if err := convert_v1_ObjectReference_To_api_ObjectReference(in.TriggeredByImage, out.TriggeredByImage, s); err != nil {
 			return err
 		}
@@ -1399,7 +1095,7 @@ func convert_v1_BuildRequest_To_api_BuildRequest(in *buildapiv1.BuildRequest, ou
 		out.TriggeredByImage = nil
 	}
 	if in.From != nil {
-		out.From = new(api.ObjectReference)
+		out.From = new(pkgapi.ObjectReference)
 		if err := convert_v1_ObjectReference_To_api_ObjectReference(in.From, out.From, s); err != nil {
 			return err
 		}
@@ -1409,9 +1105,9 @@ func convert_v1_BuildRequest_To_api_BuildRequest(in *buildapiv1.BuildRequest, ou
 	return nil
 }
 
-func convert_v1_BuildSource_To_api_BuildSource(in *buildapiv1.BuildSource, out *buildapi.BuildSource, s conversion.Scope) error {
+func convert_v1_BuildSource_To_api_BuildSource(in *apiv1.BuildSource, out *buildapi.BuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildSource))(in)
+		defaulting.(func(*apiv1.BuildSource))(in)
 	}
 	out.Type = buildapi.BuildSourceType(in.Type)
 	if in.Git != nil {
@@ -1424,7 +1120,7 @@ func convert_v1_BuildSource_To_api_BuildSource(in *buildapiv1.BuildSource, out *
 	}
 	out.ContextDir = in.ContextDir
 	if in.SourceSecret != nil {
-		out.SourceSecret = new(api.LocalObjectReference)
+		out.SourceSecret = new(pkgapi.LocalObjectReference)
 		if err := convert_v1_LocalObjectReference_To_api_LocalObjectReference(in.SourceSecret, out.SourceSecret, s); err != nil {
 			return err
 		}
@@ -1434,9 +1130,9 @@ func convert_v1_BuildSource_To_api_BuildSource(in *buildapiv1.BuildSource, out *
 	return nil
 }
 
-func convert_v1_BuildSpec_To_api_BuildSpec(in *buildapiv1.BuildSpec, out *buildapi.BuildSpec, s conversion.Scope) error {
+func convert_v1_BuildSpec_To_api_BuildSpec(in *apiv1.BuildSpec, out *buildapi.BuildSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildSpec))(in)
+		defaulting.(func(*apiv1.BuildSpec))(in)
 	}
 	out.ServiceAccount = in.ServiceAccount
 	if err := convert_v1_BuildSource_To_api_BuildSource(&in.Source, &out.Source, s); err != nil {
@@ -1462,9 +1158,9 @@ func convert_v1_BuildSpec_To_api_BuildSpec(in *buildapiv1.BuildSpec, out *builda
 	return nil
 }
 
-func convert_v1_BuildStatus_To_api_BuildStatus(in *buildapiv1.BuildStatus, out *buildapi.BuildStatus, s conversion.Scope) error {
+func convert_v1_BuildStatus_To_api_BuildStatus(in *apiv1.BuildStatus, out *buildapi.BuildStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildStatus))(in)
+		defaulting.(func(*apiv1.BuildStatus))(in)
 	}
 	out.Phase = buildapi.BuildPhase(in.Phase)
 	out.Cancelled = in.Cancelled
@@ -1485,7 +1181,7 @@ func convert_v1_BuildStatus_To_api_BuildStatus(in *buildapiv1.BuildStatus, out *
 	}
 	out.Duration = in.Duration
 	if in.Config != nil {
-		out.Config = new(api.ObjectReference)
+		out.Config = new(pkgapi.ObjectReference)
 		if err := convert_v1_ObjectReference_To_api_ObjectReference(in.Config, out.Config, s); err != nil {
 			return err
 		}
@@ -1495,9 +1191,9 @@ func convert_v1_BuildStatus_To_api_BuildStatus(in *buildapiv1.BuildStatus, out *
 	return nil
 }
 
-func convert_v1_BuildStrategy_To_api_BuildStrategy(in *buildapiv1.BuildStrategy, out *buildapi.BuildStrategy, s conversion.Scope) error {
+func convert_v1_BuildStrategy_To_api_BuildStrategy(in *apiv1.BuildStrategy, out *buildapi.BuildStrategy, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.BuildStrategy))(in)
+		defaulting.(func(*apiv1.BuildStrategy))(in)
 	}
 	out.Type = buildapi.BuildStrategyType(in.Type)
 	if in.DockerStrategy != nil {
@@ -1524,9 +1220,9 @@ func convert_v1_BuildStrategy_To_api_BuildStrategy(in *buildapiv1.BuildStrategy,
 	return nil
 }
 
-func convert_v1_GitBuildSource_To_api_GitBuildSource(in *buildapiv1.GitBuildSource, out *buildapi.GitBuildSource, s conversion.Scope) error {
+func convert_v1_GitBuildSource_To_api_GitBuildSource(in *apiv1.GitBuildSource, out *buildapi.GitBuildSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.GitBuildSource))(in)
+		defaulting.(func(*apiv1.GitBuildSource))(in)
 	}
 	out.URI = in.URI
 	out.Ref = in.Ref
@@ -1535,9 +1231,9 @@ func convert_v1_GitBuildSource_To_api_GitBuildSource(in *buildapiv1.GitBuildSour
 	return nil
 }
 
-func convert_v1_GitSourceRevision_To_api_GitSourceRevision(in *buildapiv1.GitSourceRevision, out *buildapi.GitSourceRevision, s conversion.Scope) error {
+func convert_v1_GitSourceRevision_To_api_GitSourceRevision(in *apiv1.GitSourceRevision, out *buildapi.GitSourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.GitSourceRevision))(in)
+		defaulting.(func(*apiv1.GitSourceRevision))(in)
 	}
 	out.Commit = in.Commit
 	if err := convert_v1_SourceControlUser_To_api_SourceControlUser(&in.Author, &out.Author, s); err != nil {
@@ -1550,13 +1246,13 @@ func convert_v1_GitSourceRevision_To_api_GitSourceRevision(in *buildapiv1.GitSou
 	return nil
 }
 
-func convert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *buildapiv1.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
+func convert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *apiv1.ImageChangeTrigger, out *buildapi.ImageChangeTrigger, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.ImageChangeTrigger))(in)
+		defaulting.(func(*apiv1.ImageChangeTrigger))(in)
 	}
 	out.LastTriggeredImageID = in.LastTriggeredImageID
 	if in.From != nil {
-		out.From = new(api.ObjectReference)
+		out.From = new(pkgapi.ObjectReference)
 		if err := convert_v1_ObjectReference_To_api_ObjectReference(in.From, out.From, s); err != nil {
 			return err
 		}
@@ -1566,18 +1262,18 @@ func convert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *buildapiv1.Imag
 	return nil
 }
 
-func convert_v1_SourceControlUser_To_api_SourceControlUser(in *buildapiv1.SourceControlUser, out *buildapi.SourceControlUser, s conversion.Scope) error {
+func convert_v1_SourceControlUser_To_api_SourceControlUser(in *apiv1.SourceControlUser, out *buildapi.SourceControlUser, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.SourceControlUser))(in)
+		defaulting.(func(*apiv1.SourceControlUser))(in)
 	}
 	out.Name = in.Name
 	out.Email = in.Email
 	return nil
 }
 
-func convert_v1_SourceRevision_To_api_SourceRevision(in *buildapiv1.SourceRevision, out *buildapi.SourceRevision, s conversion.Scope) error {
+func convert_v1_SourceRevision_To_api_SourceRevision(in *apiv1.SourceRevision, out *buildapi.SourceRevision, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.SourceRevision))(in)
+		defaulting.(func(*apiv1.SourceRevision))(in)
 	}
 	out.Type = buildapi.BuildSourceType(in.Type)
 	if in.Git != nil {
@@ -1591,9 +1287,9 @@ func convert_v1_SourceRevision_To_api_SourceRevision(in *buildapiv1.SourceRevisi
 	return nil
 }
 
-func convert_v1_WebHookTrigger_To_api_WebHookTrigger(in *buildapiv1.WebHookTrigger, out *buildapi.WebHookTrigger, s conversion.Scope) error {
+func convert_v1_WebHookTrigger_To_api_WebHookTrigger(in *apiv1.WebHookTrigger, out *buildapi.WebHookTrigger, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*buildapiv1.WebHookTrigger))(in)
+		defaulting.(func(*apiv1.WebHookTrigger))(in)
 	}
 	out.Secret = in.Secret
 	return nil
@@ -2343,9 +2039,9 @@ func convert_api_ProjectSpec_To_v1_ProjectSpec(in *projectapi.ProjectSpec, out *
 		defaulting.(func(*projectapi.ProjectSpec))(in)
 	}
 	if in.Finalizers != nil {
-		out.Finalizers = make([]v1.FinalizerName, len(in.Finalizers))
+		out.Finalizers = make([]pkgapiv1.FinalizerName, len(in.Finalizers))
 		for i := range in.Finalizers {
-			out.Finalizers[i] = v1.FinalizerName(in.Finalizers[i])
+			out.Finalizers[i] = pkgapiv1.FinalizerName(in.Finalizers[i])
 		}
 	} else {
 		out.Finalizers = nil
@@ -2357,7 +2053,7 @@ func convert_api_ProjectStatus_To_v1_ProjectStatus(in *projectapi.ProjectStatus,
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*projectapi.ProjectStatus))(in)
 	}
-	out.Phase = v1.NamespacePhase(in.Phase)
+	out.Phase = pkgapiv1.NamespacePhase(in.Phase)
 	return nil
 }
 
@@ -2423,9 +2119,9 @@ func convert_v1_ProjectSpec_To_api_ProjectSpec(in *projectapiv1.ProjectSpec, out
 		defaulting.(func(*projectapiv1.ProjectSpec))(in)
 	}
 	if in.Finalizers != nil {
-		out.Finalizers = make([]api.FinalizerName, len(in.Finalizers))
+		out.Finalizers = make([]pkgapi.FinalizerName, len(in.Finalizers))
 		for i := range in.Finalizers {
-			out.Finalizers[i] = api.FinalizerName(in.Finalizers[i])
+			out.Finalizers[i] = pkgapi.FinalizerName(in.Finalizers[i])
 		}
 	} else {
 		out.Finalizers = nil
@@ -2437,7 +2133,7 @@ func convert_v1_ProjectStatus_To_api_ProjectStatus(in *projectapiv1.ProjectStatu
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*projectapiv1.ProjectStatus))(in)
 	}
-	out.Phase = api.NamespacePhase(in.Phase)
+	out.Phase = pkgapi.NamespacePhase(in.Phase)
 	return nil
 }
 
@@ -3119,8 +2815,312 @@ func convert_v1_UserList_To_api_UserList(in *userapiv1.UserList, out *userapi.Us
 	return nil
 }
 
+func convert_api_EnvVar_To_v1_EnvVar(in *pkgapi.EnvVar, out *pkgapiv1.EnvVar, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapi.EnvVar))(in)
+	}
+	out.Name = in.Name
+	out.Value = in.Value
+	if in.ValueFrom != nil {
+		out.ValueFrom = new(pkgapiv1.EnvVarSource)
+		if err := convert_api_EnvVarSource_To_v1_EnvVarSource(in.ValueFrom, out.ValueFrom, s); err != nil {
+			return err
+		}
+	} else {
+		out.ValueFrom = nil
+	}
+	return nil
+}
+
+func convert_api_EnvVarSource_To_v1_EnvVarSource(in *pkgapi.EnvVarSource, out *pkgapiv1.EnvVarSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapi.EnvVarSource))(in)
+	}
+	if in.FieldRef != nil {
+		out.FieldRef = new(pkgapiv1.ObjectFieldSelector)
+		if err := convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(in.FieldRef, out.FieldRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.FieldRef = nil
+	}
+	return nil
+}
+
+func convert_api_ListMeta_To_v1_ListMeta(in *pkgapi.ListMeta, out *pkgapiv1.ListMeta, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapi.ListMeta))(in)
+	}
+	out.SelfLink = in.SelfLink
+	out.ResourceVersion = in.ResourceVersion
+	return nil
+}
+
+func convert_api_LocalObjectReference_To_v1_LocalObjectReference(in *pkgapi.LocalObjectReference, out *pkgapiv1.LocalObjectReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapi.LocalObjectReference))(in)
+	}
+	out.Name = in.Name
+	return nil
+}
+
+func convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(in *pkgapi.ObjectFieldSelector, out *pkgapiv1.ObjectFieldSelector, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapi.ObjectFieldSelector))(in)
+	}
+	out.APIVersion = in.APIVersion
+	out.FieldPath = in.FieldPath
+	return nil
+}
+
+func convert_api_ObjectMeta_To_v1_ObjectMeta(in *pkgapi.ObjectMeta, out *pkgapiv1.ObjectMeta, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapi.ObjectMeta))(in)
+	}
+	out.Name = in.Name
+	out.GenerateName = in.GenerateName
+	out.Namespace = in.Namespace
+	out.SelfLink = in.SelfLink
+	out.UID = in.UID
+	out.ResourceVersion = in.ResourceVersion
+	out.Generation = in.Generation
+	if err := s.Convert(&in.CreationTimestamp, &out.CreationTimestamp, 0); err != nil {
+		return err
+	}
+	if in.DeletionTimestamp != nil {
+		if err := s.Convert(&in.DeletionTimestamp, &out.DeletionTimestamp, 0); err != nil {
+			return err
+		}
+	} else {
+		out.DeletionTimestamp = nil
+	}
+	if in.Labels != nil {
+		out.Labels = make(map[string]string)
+		for key, val := range in.Labels {
+			out.Labels[key] = val
+		}
+	} else {
+		out.Labels = nil
+	}
+	if in.Annotations != nil {
+		out.Annotations = make(map[string]string)
+		for key, val := range in.Annotations {
+			out.Annotations[key] = val
+		}
+	} else {
+		out.Annotations = nil
+	}
+	return nil
+}
+
+func convert_api_ObjectReference_To_v1_ObjectReference(in *pkgapi.ObjectReference, out *pkgapiv1.ObjectReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapi.ObjectReference))(in)
+	}
+	out.Kind = in.Kind
+	out.Namespace = in.Namespace
+	out.Name = in.Name
+	out.UID = in.UID
+	out.APIVersion = in.APIVersion
+	out.ResourceVersion = in.ResourceVersion
+	out.FieldPath = in.FieldPath
+	return nil
+}
+
+func convert_api_ResourceRequirements_To_v1_ResourceRequirements(in *pkgapi.ResourceRequirements, out *pkgapiv1.ResourceRequirements, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapi.ResourceRequirements))(in)
+	}
+	if in.Limits != nil {
+		out.Limits = make(pkgapiv1.ResourceList)
+		for key, val := range in.Limits {
+			newVal := resource.Quantity{}
+			if err := s.Convert(&val, &newVal, 0); err != nil {
+				return err
+			}
+			out.Limits[pkgapiv1.ResourceName(key)] = newVal
+		}
+	} else {
+		out.Limits = nil
+	}
+	if in.Requests != nil {
+		out.Requests = make(pkgapiv1.ResourceList)
+		for key, val := range in.Requests {
+			newVal := resource.Quantity{}
+			if err := s.Convert(&val, &newVal, 0); err != nil {
+				return err
+			}
+			out.Requests[pkgapiv1.ResourceName(key)] = newVal
+		}
+	} else {
+		out.Requests = nil
+	}
+	return nil
+}
+
+func convert_api_TypeMeta_To_v1_TypeMeta(in *pkgapi.TypeMeta, out *pkgapiv1.TypeMeta, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapi.TypeMeta))(in)
+	}
+	out.Kind = in.Kind
+	out.APIVersion = in.APIVersion
+	return nil
+}
+
+func convert_v1_EnvVar_To_api_EnvVar(in *pkgapiv1.EnvVar, out *pkgapi.EnvVar, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapiv1.EnvVar))(in)
+	}
+	out.Name = in.Name
+	out.Value = in.Value
+	if in.ValueFrom != nil {
+		out.ValueFrom = new(pkgapi.EnvVarSource)
+		if err := convert_v1_EnvVarSource_To_api_EnvVarSource(in.ValueFrom, out.ValueFrom, s); err != nil {
+			return err
+		}
+	} else {
+		out.ValueFrom = nil
+	}
+	return nil
+}
+
+func convert_v1_EnvVarSource_To_api_EnvVarSource(in *pkgapiv1.EnvVarSource, out *pkgapi.EnvVarSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapiv1.EnvVarSource))(in)
+	}
+	if in.FieldRef != nil {
+		out.FieldRef = new(pkgapi.ObjectFieldSelector)
+		if err := convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(in.FieldRef, out.FieldRef, s); err != nil {
+			return err
+		}
+	} else {
+		out.FieldRef = nil
+	}
+	return nil
+}
+
+func convert_v1_ListMeta_To_api_ListMeta(in *pkgapiv1.ListMeta, out *pkgapi.ListMeta, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapiv1.ListMeta))(in)
+	}
+	out.SelfLink = in.SelfLink
+	out.ResourceVersion = in.ResourceVersion
+	return nil
+}
+
+func convert_v1_LocalObjectReference_To_api_LocalObjectReference(in *pkgapiv1.LocalObjectReference, out *pkgapi.LocalObjectReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapiv1.LocalObjectReference))(in)
+	}
+	out.Name = in.Name
+	return nil
+}
+
+func convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(in *pkgapiv1.ObjectFieldSelector, out *pkgapi.ObjectFieldSelector, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapiv1.ObjectFieldSelector))(in)
+	}
+	out.APIVersion = in.APIVersion
+	out.FieldPath = in.FieldPath
+	return nil
+}
+
+func convert_v1_ObjectMeta_To_api_ObjectMeta(in *pkgapiv1.ObjectMeta, out *pkgapi.ObjectMeta, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapiv1.ObjectMeta))(in)
+	}
+	out.Name = in.Name
+	out.GenerateName = in.GenerateName
+	out.Namespace = in.Namespace
+	out.SelfLink = in.SelfLink
+	out.UID = in.UID
+	out.ResourceVersion = in.ResourceVersion
+	out.Generation = in.Generation
+	if err := s.Convert(&in.CreationTimestamp, &out.CreationTimestamp, 0); err != nil {
+		return err
+	}
+	if in.DeletionTimestamp != nil {
+		if err := s.Convert(&in.DeletionTimestamp, &out.DeletionTimestamp, 0); err != nil {
+			return err
+		}
+	} else {
+		out.DeletionTimestamp = nil
+	}
+	if in.Labels != nil {
+		out.Labels = make(map[string]string)
+		for key, val := range in.Labels {
+			out.Labels[key] = val
+		}
+	} else {
+		out.Labels = nil
+	}
+	if in.Annotations != nil {
+		out.Annotations = make(map[string]string)
+		for key, val := range in.Annotations {
+			out.Annotations[key] = val
+		}
+	} else {
+		out.Annotations = nil
+	}
+	return nil
+}
+
+func convert_v1_ObjectReference_To_api_ObjectReference(in *pkgapiv1.ObjectReference, out *pkgapi.ObjectReference, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapiv1.ObjectReference))(in)
+	}
+	out.Kind = in.Kind
+	out.Namespace = in.Namespace
+	out.Name = in.Name
+	out.UID = in.UID
+	out.APIVersion = in.APIVersion
+	out.ResourceVersion = in.ResourceVersion
+	out.FieldPath = in.FieldPath
+	return nil
+}
+
+func convert_v1_ResourceRequirements_To_api_ResourceRequirements(in *pkgapiv1.ResourceRequirements, out *pkgapi.ResourceRequirements, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapiv1.ResourceRequirements))(in)
+	}
+	if in.Limits != nil {
+		out.Limits = make(pkgapi.ResourceList)
+		for key, val := range in.Limits {
+			newVal := resource.Quantity{}
+			if err := s.Convert(&val, &newVal, 0); err != nil {
+				return err
+			}
+			out.Limits[pkgapi.ResourceName(key)] = newVal
+		}
+	} else {
+		out.Limits = nil
+	}
+	if in.Requests != nil {
+		out.Requests = make(pkgapi.ResourceList)
+		for key, val := range in.Requests {
+			newVal := resource.Quantity{}
+			if err := s.Convert(&val, &newVal, 0); err != nil {
+				return err
+			}
+			out.Requests[pkgapi.ResourceName(key)] = newVal
+		}
+	} else {
+		out.Requests = nil
+	}
+	return nil
+}
+
+func convert_v1_TypeMeta_To_api_TypeMeta(in *pkgapiv1.TypeMeta, out *pkgapi.TypeMeta, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*pkgapiv1.TypeMeta))(in)
+	}
+	out.Kind = in.Kind
+	out.APIVersion = in.APIVersion
+	return nil
+}
+
 func init() {
-	err := api.Scheme.AddGeneratedConversionFuncs(
+	err := pkgapi.Scheme.AddGeneratedConversionFuncs(
 		convert_api_BuildConfigList_To_v1_BuildConfigList,
 		convert_api_BuildConfigSpec_To_v1_BuildConfigSpec,
 		convert_api_BuildConfigStatus_To_v1_BuildConfigStatus,

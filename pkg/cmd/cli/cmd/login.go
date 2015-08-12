@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"

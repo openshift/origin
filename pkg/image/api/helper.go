@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/docker/distribution/digest"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // DockerDefaultNamespace is the value for namespace when a single segment name is provided.

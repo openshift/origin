@@ -3,8 +3,8 @@ package util
 import (
 	"path"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 )
 
 // NoNamespaceKeyFunc is the default function for constructing etcd paths to a resource relative to prefix enforcing

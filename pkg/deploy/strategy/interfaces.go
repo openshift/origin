@@ -1,7 +1,7 @@
 package strategy
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // DeploymentStrategy knows how to make a deployment active.

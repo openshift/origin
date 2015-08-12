@@ -3,8 +3,8 @@ package clientcmd
 import (
 	"strings"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/clientcmd"
 )
 
 const (

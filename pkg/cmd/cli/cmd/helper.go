@@ -5,8 +5,8 @@ import (
 	"io"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 )
 
 func selectContainers(containers []kapi.Container, spec string) ([]*kapi.Container, []*kapi.Container) {

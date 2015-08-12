@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/credentialprovider"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/credentialprovider"
 )
 
 //TODO: Remove this code once the methods in Kubernetes kubelet/dockertools/config.go are public

@@ -6,9 +6,9 @@ import (
 	"io"
 	"strings"
 
-	kcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/spf13/cobra"
+	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"

@@ -3,8 +3,8 @@ package builder
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestImageTag(t *testing.T) {

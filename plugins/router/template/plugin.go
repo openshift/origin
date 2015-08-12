@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"text/template"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	ktypes "github.com/GoogleCloudPlatform/kubernetes/pkg/types"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	ktypes "k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )

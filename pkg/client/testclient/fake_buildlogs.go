@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/build/api"
 )

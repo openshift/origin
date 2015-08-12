@@ -3,9 +3,9 @@ package v1
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/ghodss/yaml"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
 )

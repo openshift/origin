@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kutil "k8s.io/kubernetes/pkg/util"
 )
 
 func ExpandResources(rawResources kutil.StringSet) kutil.StringSet {

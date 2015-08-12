@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"

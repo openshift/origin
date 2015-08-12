@@ -199,7 +199,7 @@ There are a number of helper functions available in `cmdutil` and `kcmdutil`. Im
 ----
 import (
   (...)
-  kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+  kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
   cmdutil "github.com/openshift/origin/pkg/cmd/util"
 ----
 ====
@@ -285,7 +285,7 @@ func (o DeployOptions) RunDeploy() error {
 <6> `Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error` is used to populate any object or variable that will be required to run the command and is still missing at this point. For example, if the command will make use of an API client it can be created from the factory in this method. Can also be used to take argument values from the `args` slice and hold it in explicit variables in your struct, store the `io.Writer` that will be used later, etc.
 <7> `Validate(args []string) error` perform validations on arguments as required. Notice that if the `Complete` and `Validate` methods implementations are simple enough, you may have only one of them that does both.
 <8> `Run<Command>() error` (e.g. `RunDeploy`, `RunCreate` and so on) does the actual command logic and returns errors as required. Notice that this method does not take anything as argument - it's expected that you previously extracted and stored in the `struct` anything that will be needed to run this command. This makes commands more easily testable once you can run and populate the command struct with the values you want to test and then just run this method and check for the returned error(s).
-<9> Try to always use the functions in `github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util` to check and handle errors. It is not expected that commands call `glog.Fatalf`, `os.Exit` or anything similar directly.
+<9> Try to always use the functions in `k8s.io/kubernetes/pkg/kubectl/cmd/util` to check and handle errors. It is not expected that commands call `glog.Fatalf`, `os.Exit` or anything similar directly.
 ====
 
 

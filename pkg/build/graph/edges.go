@@ -1,8 +1,8 @@
 package graph
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/gonum/graph"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/api"

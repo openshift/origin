@@ -23,13 +23,13 @@ make clean
 godep restore
 git fetch --tags
 
-pushd $GOPATH/src/github.com/GoogleCloudPlatform/kubernetes > /dev/null
+pushd $GOPATH/src/k8s.io/kubernetes > /dev/null
 echo "Fetching latest ..."
 git fetch
 git fetch --tags
 popd > /dev/null
 
-pushd $GOPATH/src/github.com/GoogleCloudPlatform/kubernetes > /dev/null
+pushd $GOPATH/src/k8s.io/kubernetes > /dev/null
 git checkout stable_proposed
 echo "Restoring any newer Kubernetes dependencies ..."
 rm -rf _output Godeps/_workspace/pkg

@@ -4,10 +4,10 @@ import (
 	"github.com/golang/glog"
 	"strconv"
 
-	knetwork "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/network"
-	kubeletTypes "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/types"
-	utilexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
 	"github.com/openshift/openshift-sdn/ovssubnet"
+	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
+	utilexec "k8s.io/kubernetes/pkg/util/exec"
 )
 
 const (

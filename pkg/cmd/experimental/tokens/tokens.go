@@ -5,9 +5,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
