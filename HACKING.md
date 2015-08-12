@@ -127,7 +127,7 @@ their own files so we can selectively build them.
 
 All integration tests are located under `test/integration/*`. All integration tests must set the
 `integration` build tag at the top of their source file, and also declare whether they need etcd
-with the `!no-etcd` build tag and whether they need Docker with the `!no-docker` build tag. For
+with the `etcd` build tag and whether they need Docker with the `docker` build tag. For
 special function sets please create subdirectories like `test/integration/deployimages`.
 
 Run the integration tests with:
