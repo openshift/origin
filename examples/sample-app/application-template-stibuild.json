@@ -415,18 +415,21 @@
       "name": "MYSQL_USER",
       "description": "database username",
       "generate": "expression",
-      "from": "user[A-Z0-9]{3}"
+      "from": "user[A-Z0-9]{3}",
+      "required": true
     },
     {
       "name": "MYSQL_PASSWORD",
       "description": "database password",
       "generate": "expression",
-      "from": "[a-zA-Z0-9]{8}"
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
     },
     {
       "name": "MYSQL_DATABASE",
       "description": "database name",
-      "value": "root"
+      "value": "root",
+      "required": true
     }
   ],
   "labels": {
