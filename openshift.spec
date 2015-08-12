@@ -384,6 +384,8 @@ fi
 %files sdn-ovs
 %defattr(-,root,root,-)
 %{_bindir}/%{name}-sdn-kube-subnet-setup.sh
+%{_bindir}/%{name}-ovs-multitenant
+%{_bindir}/%{name}-sdn-multitenant-setup.sh
 %{kube_plugin_path}/%{name}-ovs-subnet
 %{_unitdir}/%{name}-node.service.d/%{name}-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
@@ -542,6 +544,8 @@ fi
 %files -n atomic-enterprise-sdn-ovs
 %defattr(-,root,root,-)
 %{_bindir}/atomic-enterprise-sdn-kube-subnet-setup.sh
+%{_bindir}/atomic-enterprise-ovs-multitenant
+%{_bindir}/atomic-enterprise-sdn-multitenant-setup.sh
 %{kube_plugin_path}/atomic-enterprise-ovs-subnet
 %{_unitdir}/atomic-enterprise-node.service.d/atomic-enterprise-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
@@ -584,6 +588,9 @@ fi
 # ===
 
 %changelog
+* Wed Aug 12 2015 Steve Milner <smilner@redhat.com> 0.2-7
+- Added new ovs script(s) to file lists.
+
 * Wed Aug  5 2015 Steve Milner <smilner@redhat.com> 0.2-6
 - Using _unitdir instead of _prefix for unit data
 
