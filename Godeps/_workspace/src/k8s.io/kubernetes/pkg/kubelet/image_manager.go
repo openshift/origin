@@ -22,13 +22,13 @@ import (
 	"sync"
 	"time"
 
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/util"
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 )
 
 // Manages lifecycle of all images.
@@ -217,7 +217,7 @@ func (im *realImageManager) GarbageCollect() error {
 
 // Tries to free bytesToFree worth of images on the disk.
 //
-// Returns the number of bytes free and an error if any occured. The number of
+// Returns the number of bytes free and an error if any occurred. The number of
 // bytes freed is always returned.
 // Note that error may be nil and the number of bytes free may be less
 // than bytesToFree.

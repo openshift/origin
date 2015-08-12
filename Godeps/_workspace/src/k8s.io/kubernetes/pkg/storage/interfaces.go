@@ -69,7 +69,7 @@ func Everything(runtime.Object) bool {
 type UpdateFunc func(input runtime.Object, res ResponseMeta) (output runtime.Object, ttl *uint64, err error)
 
 // Interface offers a common interface for object marshaling/unmarshling operations and
-// hids all the storage-related operations behind it.
+// hides all the storage-related operations behind it.
 type Interface interface {
 	// Returns list of servers addresses of the underyling database.
 	// TODO: This method is used only in a single place. Consider refactoring and getting rid
@@ -124,10 +124,10 @@ type Interface interface {
 	// GuaranteedUpdate keeps calling 'tryUpdate()' to update key 'key' (of type 'ptrToType')
 	// retrying the update until success if there is index conflict.
 	// Note that object passed to tryUpdate may change acress incovations of tryUpdate() if
-	// other writers are simultanously updateing it, to tryUpdate() needs to take into account
+	// other writers are simultaneously updateing it, to tryUpdate() needs to take into account
 	// the current contents of the object when deciding how the update object should look.
 	//
-	// Exmaple:
+	// Example:
 	//
 	// s := /* implementation of Interface */
 	// err := s.GuaranteedUpdate(

@@ -33,6 +33,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
+	cadvisorApi "github.com/google/cadvisor/info/v1"
 	"k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -59,14 +61,13 @@ import (
 	utilErrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/mount"
 	nodeutil "k8s.io/kubernetes/pkg/util/node"
+	"k8s.io/kubernetes/pkg/util/oom"
+	"k8s.io/kubernetes/pkg/util/procfs"
 	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/watch"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
 	"k8s.io/kubernetes/third_party/golang/expansion"
-	"github.com/golang/glog"
-
-	cadvisorApi "github.com/google/cadvisor/info/v1"
 )
 
 const (
@@ -274,6 +275,14 @@ func NewMainKubelet(
 		klet.networkPlugin = plug
 	}
 
+	machineInfo, err := klet.GetCachedMachineInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	oomAdjuster := oom.NewOomAdjuster()
+	procFs := procfs.NewProcFs()
+
 	// Initialize the runtime.
 	switch containerRuntime {
 	case "docker":
@@ -283,6 +292,7 @@ func NewMainKubelet(
 			recorder,
 			readinessManager,
 			containerRefManager,
+			machineInfo,
 			podInfraContainerImage,
 			pullQPS,
 			pullBurst,
@@ -292,7 +302,9 @@ func NewMainKubelet(
 			klet,
 			klet.httpClient,
 			newKubeletRuntimeHooks(recorder),
-			dockerExecHandler)
+			dockerExecHandler,
+			oomAdjuster,
+			procFs)
 	case "rkt":
 		conf := &rkt.Config{InsecureSkipVerify: true}
 		rktRuntime, err := rkt.New(
@@ -869,7 +881,7 @@ func makePortMappings(container *api.Container) (ports []kubecontainer.PortMappi
 
 		// We need to create some default port name if it's not specified, since
 		// this is necessary for rkt.
-		// https://github.com/GoogleCloudPlatform/kubernetes/issues/7710
+		// http://issue.k8s.io/7710
 		if p.Name == "" {
 			pm.Name = fmt.Sprintf("%s-%s:%d", container.Name, p.Protocol, p.ContainerPort)
 		} else {
@@ -1568,19 +1580,19 @@ func checkHostPortConflicts(pods []*api.Pod) (fitting []*api.Pod, notFitting []*
 	return
 }
 
-// checkCapacityExceeded detects pods that exceeds node's resources.
-func (kl *Kubelet) checkCapacityExceeded(pods []*api.Pod) (fitting []*api.Pod, notFitting []*api.Pod) {
+// checkSufficientfFreeResources detects pods that exceeds node's resources.
+func (kl *Kubelet) checkSufficientfFreeResources(pods []*api.Pod) (fitting []*api.Pod, notFittingCPU, notFittingMemory []*api.Pod) {
 	info, err := kl.GetCachedMachineInfo()
 	if err != nil {
 		glog.Errorf("error getting machine info: %v", err)
-		return pods, nil
+		return pods, nil, nil
 	}
 
 	// Respect the pod creation order when resolving conflicts.
 	sort.Sort(podsByCreationTime(pods))
 
 	capacity := CapacityFromMachineInfo(info)
-	return predicates.CheckPodsExceedingCapacity(pods, capacity)
+	return predicates.CheckPodsExceedingFreeResources(pods, capacity)
 }
 
 // handleOutOfDisk detects if pods can't fit due to lack of disk space.
@@ -1673,14 +1685,22 @@ func (kl *Kubelet) handleNotFittingPods(pods []*api.Pod) []*api.Pod {
 			Reason:  reason,
 			Message: "Pod cannot be started due to node selector mismatch"})
 	}
-	fitting, notFitting = kl.checkCapacityExceeded(fitting)
-	for _, pod := range notFitting {
-		reason := "CapacityExceeded"
-		kl.recorder.Eventf(pod, reason, "Cannot start the pod due to exceeded capacity.")
+	fitting, notFittingCPU, notFittingMemory := kl.checkSufficientfFreeResources(fitting)
+	for _, pod := range notFittingCPU {
+		reason := "InsufficientFreeCPU"
+		kl.recorder.Eventf(pod, reason, "Cannot start the pod due to insufficient free CPU.")
 		kl.statusManager.SetPodStatus(pod, api.PodStatus{
 			Phase:   api.PodFailed,
 			Reason:  reason,
-			Message: "Pod cannot be started due to exceeded capacity"})
+			Message: "Pod cannot be started due to insufficient free CPU"})
+	}
+	for _, pod := range notFittingMemory {
+		reason := "InsufficientFreeMemory"
+		kl.recorder.Eventf(pod, reason, "Cannot start the pod due to insufficient free memory.")
+		kl.statusManager.SetPodStatus(pod, api.PodStatus{
+			Phase:   api.PodFailed,
+			Reason:  reason,
+			Message: "Pod cannot be started due to insufficient free memory"})
 	}
 	return fitting
 }
@@ -1689,7 +1709,7 @@ func (kl *Kubelet) handleNotFittingPods(pods []*api.Pod) []*api.Pod {
 // that don't fit on the node, and may reject pods if node is overcommitted.
 func (kl *Kubelet) admitPods(allPods []*api.Pod, podSyncTypes map[types.UID]SyncPodType) []*api.Pod {
 	// Pod phase progresses monotonically. Once a pod has reached a final state,
-	// it should never leave irregardless of the restart policy. The statuses
+	// it should never leave regardless of the restart policy. The statuses
 	// of such pods should not be changed, and there is no need to sync them.
 	// TODO: the logic here does not handle two cases:
 	//   1. If the containers were removed immediately after they died, kubelet
@@ -1989,7 +2009,10 @@ func (kl *Kubelet) setNodeStatus(node *api.Node) error {
 	} else {
 		addr := net.ParseIP(kl.hostname)
 		if addr != nil {
-			node.Status.Addresses = []api.NodeAddress{{Type: api.NodeLegacyHostIP, Address: addr.String()}}
+			node.Status.Addresses = []api.NodeAddress{
+				{Type: api.NodeLegacyHostIP, Address: addr.String()},
+				{Type: api.NodeInternalIP, Address: addr.String()},
+			}
 		} else {
 			addrs, err := net.LookupIP(node.Name)
 			if err != nil {
@@ -2005,7 +2028,10 @@ func (kl *Kubelet) setNodeStatus(node *api.Node) error {
 					}
 
 					if ip.To4() != nil {
-						node.Status.Addresses = []api.NodeAddress{{Type: api.NodeLegacyHostIP, Address: ip.String()}}
+						node.Status.Addresses = []api.NodeAddress{
+							{Type: api.NodeLegacyHostIP, Address: ip.String()},
+							{Type: api.NodeInternalIP, Address: ip.String()},
+						}
 						break
 					}
 				}
@@ -2016,7 +2042,10 @@ func (kl *Kubelet) setNodeStatus(node *api.Node) error {
 						return err
 					}
 
-					node.Status.Addresses = []api.NodeAddress{{Type: api.NodeLegacyHostIP, Address: ip.String()}}
+					node.Status.Addresses = []api.NodeAddress{
+						{Type: api.NodeLegacyHostIP, Address: ip.String()},
+						{Type: api.NodeInternalIP, Address: ip.String()},
+					}
 				}
 			}
 		}

@@ -261,12 +261,13 @@ func ExamplePrintReplicationControllerWithNamespace() {
 		Codec:  codec,
 		Client: nil,
 	}
-	cmd := NewCmdRun(f, os.Stdout)
+	cmd := NewCmdRun(f, os.Stdin, os.Stdout, os.Stderr)
 	ctrl := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{
-			Name:      "foo",
-			Namespace: "beep",
-			Labels:    map[string]string{"foo": "bar"},
+			Name:              "foo",
+			Namespace:         "beep",
+			Labels:            map[string]string{"foo": "bar"},
+			CreationTimestamp: util.Time{time.Now().AddDate(-10, 0, 0)},
 		},
 		Spec: api.ReplicationControllerSpec{
 			Replicas: 1,
@@ -291,8 +292,8 @@ func ExamplePrintReplicationControllerWithNamespace() {
 		fmt.Printf("Unexpected error: %v", err)
 	}
 	// Output:
-	// NAMESPACE   CONTROLLER   CONTAINER(S)   IMAGE(S)    SELECTOR   REPLICAS
-	// beep        foo          foo            someimage   foo=bar    1
+	// NAMESPACE   CONTROLLER   CONTAINER(S)   IMAGE(S)    SELECTOR   REPLICAS   AGE
+	// beep        foo          foo            someimage   foo=bar    1          10y
 }
 
 func ExamplePrintPodWithWideFormat() {
@@ -303,7 +304,7 @@ func ExamplePrintPodWithWideFormat() {
 		Client: nil,
 	}
 	nodeName := "kubernetes-minion-abcd"
-	cmd := NewCmdRun(f, os.Stdout)
+	cmd := NewCmdRun(f, os.Stdin, os.Stdout, os.Stderr)
 	pod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			Name:              "test1",
@@ -337,13 +338,14 @@ func ExamplePrintServiceWithNamespacesAndLabels() {
 		Codec:  codec,
 		Client: nil,
 	}
-	cmd := NewCmdRun(f, os.Stdout)
+	cmd := NewCmdRun(f, os.Stdin, os.Stdout, os.Stderr)
 	svc := &api.ServiceList{
 		Items: []api.Service{
 			{
 				ObjectMeta: api.ObjectMeta{
-					Name:      "svc1",
-					Namespace: "ns1",
+					Name:              "svc1",
+					Namespace:         "ns1",
+					CreationTimestamp: util.Time{time.Now().AddDate(-10, 0, 0)},
 					Labels: map[string]string{
 						"l1": "value",
 					},
@@ -362,8 +364,9 @@ func ExamplePrintServiceWithNamespacesAndLabels() {
 			},
 			{
 				ObjectMeta: api.ObjectMeta{
-					Name:      "svc2",
-					Namespace: "ns2",
+					Name:              "svc2",
+					Namespace:         "ns2",
+					CreationTimestamp: util.Time{time.Now().AddDate(-10, 0, 0)},
 					Labels: map[string]string{
 						"l1": "dolla-bill-yall",
 					},
@@ -388,15 +391,13 @@ func ExamplePrintServiceWithNamespacesAndLabels() {
 		fmt.Printf("Unexpected error: %v", err)
 	}
 	// Output:
-	// |NAMESPACE   NAME      LABELS               SELECTOR   IP(S)      PORT(S)    L1|
-	// |ns1         svc1      l1=value             s=magic    10.1.1.1   53/UDP     value|
-	// |                                                                 53/TCP     |
-	// |ns2         svc2      l1=dolla-bill-yall   s=kazam    10.1.1.2   80/TCP     dolla-bill-yall|
-	// |                                                                 8080/TCP   |
+	// |NAMESPACE   NAME      CLUSTER_IP   EXTERNAL_IP   PORT(S)           SELECTOR   AGE       L1|
+	// |ns1         svc1      10.1.1.1     unknown       53/UDP,53/TCP     s=magic    10y       value|
+	// |ns2         svc2      10.1.1.2     unknown       80/TCP,8080/TCP   s=kazam    10y       dolla-bill-yall|
 	// ||
 }
 
-func TestNormalizationFuncGlobalExistance(t *testing.T) {
+func TestNormalizationFuncGlobalExistence(t *testing.T) {
 	// This test can be safely deleted when we will not support multiple flag formats
 	root := NewKubectlCommand(cmdutil.NewFactory(nil), os.Stdin, os.Stdout, os.Stderr)
 

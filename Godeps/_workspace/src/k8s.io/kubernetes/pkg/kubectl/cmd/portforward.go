@@ -20,33 +20,32 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/golang/glog"
+	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/portforward"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/golang/glog"
-	"github.com/spf13/cobra"
 )
 
 const (
 	portforward_example = `
 // listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-$ kubectl port-forward -p mypod 5000 6000
+$ kubectl port-forward mypod 5000 6000
 
 // listens on port 8888 locally, forwarding to 5000 in the pod
-$ kubectl port-forward -p mypod 8888:5000
+$ kubectl port-forward mypod 8888:5000
 
 // listens on a random port locally, forwarding to 5000 in the pod
-$ kubectl port-forward -p mypod :5000
+$ kubectl port-forward mypod :5000
 
 // listens on a random port locally, forwarding to 5000 in the pod
-$ kubectl port-forward -p mypod 0:5000`
+$ kubectl port-forward  mypod 0:5000`
 )
 
 func NewCmdPortForward(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "port-forward -p POD_NAME [LOCAL_PORT:]REMOTE_PORT [...[LOCAL_PORT_N:]REMOTE_PORT_N]",
+		Use:     "port-forward POD [LOCAL_PORT:]REMOTE_PORT [...[LOCAL_PORT_N:]REMOTE_PORT_N]",
 		Short:   "Forward one or more local ports to a pod.",
 		Long:    "Forward one or more local ports to a pod.",
 		Example: portforward_example,
@@ -56,7 +55,6 @@ func NewCmdPortForward(f *cmdutil.Factory) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringP("pod", "p", "", "Pod name")
-	cmd.MarkFlagRequired("pod")
 	// TODO support UID
 	return cmd
 }
@@ -77,9 +75,17 @@ func (*defaultPortForwarder) ForwardPorts(req *client.Request, config *client.Co
 
 func RunPortForward(f *cmdutil.Factory, cmd *cobra.Command, args []string, fw portForwarder) error {
 	podName := cmdutil.GetFlagString(cmd, "pod")
-	if len(podName) == 0 {
-		return cmdutil.UsageError(cmd, "POD_NAME is required for port-forward")
+	if len(podName) == 0 && len(args) == 0 {
+		return cmdutil.UsageError(cmd, "POD is required for port-forward")
 	}
+
+	if len(podName) != 0 {
+		printDeprecationWarning("port-forward POD", "-p POD")
+	} else {
+		podName = args[0]
+		args = args[1:]
+	}
+
 	if len(args) < 1 {
 		return cmdutil.UsageError(cmd, "at least 1 PORT is required for port-forward")
 	}
@@ -124,28 +130,5 @@ func RunPortForward(f *cmdutil.Factory, cmd *cobra.Command, args []string, fw po
 		Name(pod.Name).
 		SubResource("portforward")
 
-	postErr := fw.ForwardPorts(req, config, args, stopCh)
-
-	// if we don't have an error, return.  If we did get an error, try a GET because v3.0.0 shipped with port-forward running as a GET.
-	if postErr == nil {
-		return nil
-	}
-
-	// only try the get if the error is either a forbidden or method not supported, otherwise trying with a GET probably won't help
-	if !apierrors.IsForbidden(postErr) && !apierrors.IsMethodNotSupported(postErr) {
-		return postErr
-	}
-
-	getReq := client.RESTClient.Get().
-		Resource("pods").
-		Namespace(namespace).
-		Name(pod.Name).
-		SubResource("portforward")
-	getErr := fw.ForwardPorts(getReq, config, args, stopCh)
-	if getErr == nil {
-		return nil
-	}
-
-	// if we got a getErr, return the postErr because it's more likely to be correct.  GET is legacy
-	return postErr
+	return fw.ForwardPorts(req, config, args, stopCh)
 }

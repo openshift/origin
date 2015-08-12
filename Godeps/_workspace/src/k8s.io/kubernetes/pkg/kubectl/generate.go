@@ -18,10 +18,11 @@ package kubectl
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/runtime"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // GeneratorParam is a parameter for a generator
@@ -87,4 +88,12 @@ func ParseLabels(labelString string) (map[string]string, error) {
 		labels[labelSpec[0]] = labelSpec[1]
 	}
 	return labels, nil
+}
+
+func GetBool(params map[string]string, key string, defValue bool) (bool, error) {
+	if val, found := params[key]; !found {
+		return defValue, nil
+	} else {
+		return strconv.ParseBool(val)
+	}
 }

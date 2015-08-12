@@ -334,7 +334,6 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		if !hasSubresource {
 			namer = scopeNaming{scope, a.group.Linker, gpath.Join(a.prefix, itemPath), true}
 			actions = appendIf(actions, action{"LIST", resource, params, namer}, isLister)
-			actions = appendIf(actions, action{"POST", resource, params, namer}, isCreater)
 			actions = appendIf(actions, action{"WATCHLIST", "watch/" + resource, params, namer}, allowWatchList)
 		}
 		break
@@ -548,7 +547,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 			addParams(route, action.Params)
 			ws.Route(route)
 		case "PROXY": // Proxy requests to a resource.
-			// Accept all methods as per https://github.com/GoogleCloudPlatform/kubernetes/issues/3996
+			// Accept all methods as per http://issue.k8s.io/3996
 			addProxyRoute(ws, "GET", a.prefix, action.Path, proxyHandler, namespaced, kind, resource, subresource, hasSubresource, action.Params)
 			addProxyRoute(ws, "PUT", a.prefix, action.Path, proxyHandler, namespaced, kind, resource, subresource, hasSubresource, action.Params)
 			addProxyRoute(ws, "POST", a.prefix, action.Path, proxyHandler, namespaced, kind, resource, subresource, hasSubresource, action.Params)
@@ -817,7 +816,7 @@ func typeToJSON(typeName string) string {
 		return "string"
 	case "float64", "float32":
 		return "number"
-	case "util.Time", "*util.Time":
+	case "util.Time":
 		return "string"
 	default:
 		return typeName

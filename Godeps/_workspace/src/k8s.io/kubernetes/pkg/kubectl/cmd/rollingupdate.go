@@ -21,23 +21,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/golang/glog"
 
+	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"github.com/spf13/cobra"
-	"k8s.io/kubernetes/pkg/api/v1beta3"
 )
 
 const (
-	updatePeriod       = "1m0s"
-	timeout            = "5m0s"
-	pollInterval       = "3s"
 	rollingUpdate_long = `Perform a rolling update of the given ReplicationController.
 
 Replaces the specified replication controller with a new replication controller by updating one pod at a time to use the
@@ -58,6 +55,12 @@ $ kubectl rolling-update frontend --image=image:v2
 `
 )
 
+var (
+	updatePeriod, _ = time.ParseDuration("1m0s")
+	timeout, _      = time.ParseDuration("5m0s")
+	pollInterval, _ = time.ParseDuration("3s")
+)
+
 func NewCmdRollingUpdate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "rolling-update OLD_CONTROLLER_NAME ([NEW_CONTROLLER_NAME] --image=NEW_CONTAINER_IMAGE | -f NEW_CONTROLLER_SPEC)",
@@ -71,11 +74,14 @@ func NewCmdRollingUpdate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 			cmdutil.CheckErr(err)
 		},
 	}
-	cmd.Flags().String("update-period", updatePeriod, `Time to wait between updating pods. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
-	cmd.Flags().String("poll-interval", pollInterval, `Time delay between polling for replication controller status after the update. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
-	cmd.Flags().String("timeout", timeout, `Max time to wait for a replication controller to update before giving up. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
-	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to use to create the new replication controller.")
+	cmd.Flags().Duration("update-period", updatePeriod, `Time to wait between updating pods. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
+	cmd.Flags().Duration("poll-interval", pollInterval, `Time delay between polling for replication controller status after the update. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
+	cmd.Flags().Duration("timeout", timeout, `Max time to wait for a replication controller to update before giving up. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".`)
+	usage := "Filename or URL to file to use to create the new replication controller."
+	kubectl.AddJsonFilenameFlag(cmd, usage)
+	cmd.MarkFlagRequired("filename")
 	cmd.Flags().String("image", "", "Image to use for upgrading the replication controller.  Can not be used with --filename/-f")
+	cmd.MarkFlagRequired("image")
 	cmd.Flags().String("deployment-label-key", "deployment", "The key to use to differentiate between two different controllers, default 'deployment'.  Only relevant when --image is specified, ignored otherwise")
 	cmd.Flags().Bool("dry-run", false, "If true, print out the changes that would be made, but don't actually make them.")
 	cmd.Flags().Bool("rollback", false, "If true, this is a request to abort an existing rollout that is partially rolled out. It effectively reverses current and next and runs a rollout")
@@ -85,16 +91,23 @@ func NewCmdRollingUpdate(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 
 func validateArguments(cmd *cobra.Command, args []string) (deploymentKey, filename, image, oldName string, err error) {
 	deploymentKey = cmdutil.GetFlagString(cmd, "deployment-label-key")
-	filename = cmdutil.GetFlagString(cmd, "filename")
 	image = cmdutil.GetFlagString(cmd, "image")
+	filenames := cmdutil.GetFlagStringSlice(cmd, "filename")
+	filename = ""
 
 	if len(deploymentKey) == 0 {
 		return "", "", "", "", cmdutil.UsageError(cmd, "--deployment-label-key can not be empty")
 	}
-	if len(filename) == 0 && len(image) == 0 {
+	if len(filenames) > 1 {
+		return "", "", "", "", cmdutil.UsageError(cmd, "May only specificy a single filename for new controller")
+	}
+	if len(filenames) > 0 {
+		filename = filenames[0]
+	}
+	if len(filenames) == 0 && len(image) == 0 {
 		return "", "", "", "", cmdutil.UsageError(cmd, "Must specify --filename or --image for new controller")
 	}
-	if len(filename) != 0 && len(image) != 0 {
+	if len(filenames) != 0 && len(image) != 0 {
 		return "", "", "", "", cmdutil.UsageError(cmd, "--filename and --image can not both be specified")
 	}
 	if len(args) < 1 {
@@ -301,10 +314,6 @@ func isReplicasDefaulted(info *resource.Info) bool {
 		return false
 	}
 	switch info.Mapping.APIVersion {
-	case "v1beta3":
-		if rc, ok := info.VersionedObject.(*v1beta3.ReplicationController); ok {
-			return rc.Spec.Replicas == nil
-		}
 	case "v1":
 		if rc, ok := info.VersionedObject.(*v1.ReplicationController); ok {
 			return rc.Spec.Replicas == nil

@@ -26,7 +26,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/api/v1beta3"
 )
 
 // Version is the string that represents the current external default version.
@@ -85,7 +84,6 @@ func init() {
 		"Minion",
 		"Namespace",
 		"PersistentVolume",
-		"SecurityContextConstraints",
 	)
 
 	// these kinds should be excluded from the list of resources
@@ -95,7 +93,9 @@ func init() {
 		"Status",
 		"PodLogOptions",
 		"PodExecOptions",
-		"PodProxyOptions")
+		"PodAttachOptions",
+		"PodProxyOptions",
+		"Daemon")
 
 	mapper := api.NewDefaultRESTMapper(versions, InterfacesFor, importPrefix, ignoredKinds, rootScoped)
 	// setup aliases for groups of resources
@@ -108,12 +108,6 @@ func init() {
 // string, or an error if the version is not known.
 func InterfacesFor(version string) (*meta.VersionInterfaces, error) {
 	switch version {
-	case "v1beta3":
-		return &meta.VersionInterfaces{
-			Codec:            v1beta3.Codec,
-			ObjectConvertor:  api.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
 	case "v1":
 		return &meta.VersionInterfaces{
 			Codec:            v1.Codec,

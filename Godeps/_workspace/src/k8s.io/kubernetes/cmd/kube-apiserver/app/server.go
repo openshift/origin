@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	systemd "github.com/coreos/go-systemd/daemon"
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
@@ -45,7 +46,6 @@ import (
 	"k8s.io/kubernetes/pkg/tools"
 	"k8s.io/kubernetes/pkg/util"
 	forked "k8s.io/kubernetes/third_party/forked/coreos/go-etcd/etcd"
-	systemd "github.com/coreos/go-systemd/daemon"
 
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
@@ -62,10 +62,10 @@ const (
 
 // APIServer runs a kubernetes api server.
 type APIServer struct {
-	InsecureBindAddress        util.IP
+	InsecureBindAddress        net.IP
 	InsecurePort               int
-	BindAddress                util.IP
-	AdvertiseAddress           util.IP
+	BindAddress                net.IP
+	AdvertiseAddress           net.IP
 	SecurePort                 int
 	ExternalHost               string
 	APIRate                    float32
@@ -89,12 +89,12 @@ type APIServer struct {
 	AuthorizationPolicyFile    string
 	AdmissionControl           string
 	AdmissionControlConfigFile string
-	EtcdServerList             util.StringList
+	EtcdServerList             []string
 	EtcdConfigFile             string
 	EtcdPathPrefix             string
-	CorsAllowedOriginList      util.StringList
+	CorsAllowedOriginList      []string
 	AllowPrivileged            bool
-	ServiceClusterIPRange      util.IPNet // TODO: make this a list
+	ServiceClusterIPRange      net.IPNet // TODO: make this a list
 	ServiceNodePortRange       util.PortRange
 	EnableLogsSupport          bool
 	MasterServiceNamespace     string
@@ -114,8 +114,8 @@ type APIServer struct {
 func NewAPIServer() *APIServer {
 	s := APIServer{
 		InsecurePort:           8080,
-		InsecureBindAddress:    util.IP(net.ParseIP("127.0.0.1")),
-		BindAddress:            util.IP(net.ParseIP("0.0.0.0")),
+		InsecureBindAddress:    net.ParseIP("127.0.0.1"),
+		BindAddress:            net.ParseIP("0.0.0.0"),
 		SecurePort:             6443,
 		APIRate:                10.0,
 		APIBurst:               200,
@@ -151,20 +151,20 @@ func (s *APIServer) AddFlags(fs *pflag.FlagSet) {
 		"the cluster and that port 443 on the cluster's public address is proxied to this "+
 		"port. This is performed by nginx in the default setup.")
 	fs.IntVar(&s.InsecurePort, "port", s.InsecurePort, "DEPRECATED: see --insecure-port instead")
-	fs.Var(&s.InsecureBindAddress, "insecure-bind-address", ""+
+	fs.IPVar(&s.InsecureBindAddress, "insecure-bind-address", s.InsecureBindAddress, ""+
 		"The IP address on which to serve the --insecure-port (set to 0.0.0.0 for all interfaces). "+
 		"Defaults to localhost.")
-	fs.Var(&s.InsecureBindAddress, "address", "DEPRECATED: see --insecure-bind-address instead")
-	fs.Var(&s.BindAddress, "bind-address", ""+
+	fs.IPVar(&s.InsecureBindAddress, "address", s.InsecureBindAddress, "DEPRECATED: see --insecure-bind-address instead")
+	fs.IPVar(&s.BindAddress, "bind-address", s.BindAddress, ""+
 		"The IP address on which to serve the --read-only-port and --secure-port ports. The "+
 		"associated interface(s) must be reachable by the rest of the cluster, and by CLI/web "+
 		"clients. If blank, all interfaces will be used (0.0.0.0).")
-	fs.Var(&s.AdvertiseAddress, "advertise-address", ""+
+	fs.IPVar(&s.AdvertiseAddress, "advertise-address", s.AdvertiseAddress, ""+
 		"The IP address on which to advertise the apiserver to members of the cluster. This "+
 		"address must be reachable by the rest of the cluster. If blank, the --bind-address "+
 		"will be used. If --bind-address is unspecified, the host's default interface will "+
 		"be used.")
-	fs.Var(&s.BindAddress, "public-address-override", "DEPRECATED: see --bind-address instead")
+	fs.IPVar(&s.BindAddress, "public-address-override", s.BindAddress, "DEPRECATED: see --bind-address instead")
 	fs.IntVar(&s.SecurePort, "secure-port", s.SecurePort, ""+
 		"The port on which to serve HTTPS with authentication and authorization. If 0, "+
 		"don't serve HTTPS at all.")
@@ -192,13 +192,13 @@ func (s *APIServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.AuthorizationPolicyFile, "authorization-policy-file", s.AuthorizationPolicyFile, "File with authorization policy in csv format, used with --authorization-mode=ABAC, on the secure port.")
 	fs.StringVar(&s.AdmissionControl, "admission-control", s.AdmissionControl, "Ordered list of plug-ins to do admission control of resources into cluster. Comma-delimited list of: "+strings.Join(admission.GetPlugins(), ", "))
 	fs.StringVar(&s.AdmissionControlConfigFile, "admission-control-config-file", s.AdmissionControlConfigFile, "File with admission control configuration.")
-	fs.Var(&s.EtcdServerList, "etcd-servers", "List of etcd servers to watch (http://ip:port), comma separated. Mutually exclusive with -etcd-config")
+	fs.StringSliceVar(&s.EtcdServerList, "etcd-servers", s.EtcdServerList, "List of etcd servers to watch (http://ip:port), comma separated. Mutually exclusive with -etcd-config")
 	fs.StringVar(&s.EtcdConfigFile, "etcd-config", s.EtcdConfigFile, "The config file for the etcd client. Mutually exclusive with -etcd-servers.")
 	fs.StringVar(&s.EtcdPathPrefix, "etcd-prefix", s.EtcdPathPrefix, "The prefix for all resource paths in etcd.")
-	fs.Var(&s.CorsAllowedOriginList, "cors-allowed-origins", "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  If this list is empty CORS will not be enabled.")
+	fs.StringSliceVar(&s.CorsAllowedOriginList, "cors-allowed-origins", s.CorsAllowedOriginList, "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  If this list is empty CORS will not be enabled.")
 	fs.BoolVar(&s.AllowPrivileged, "allow-privileged", s.AllowPrivileged, "If true, allow privileged containers.")
-	fs.Var(&s.ServiceClusterIPRange, "service-cluster-ip-range", "A CIDR notation IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
-	fs.Var(&s.ServiceClusterIPRange, "portal-net", "Deprecated: see --service-cluster-ip-range instead.")
+	fs.IPNetVar(&s.ServiceClusterIPRange, "service-cluster-ip-range", s.ServiceClusterIPRange, "A CIDR notation IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
+	fs.IPNetVar(&s.ServiceClusterIPRange, "portal-net", s.ServiceClusterIPRange, "Deprecated: see --service-cluster-ip-range instead.")
 	fs.MarkDeprecated("portal-net", "see --service-cluster-ip-range instead.")
 	fs.Var(&s.ServiceNodePortRange, "service-node-port-range", "A port range to reserve for services with NodePort visibility.  Example: '30000-32767'.  Inclusive at both ends of the range.")
 	fs.Var(&s.ServiceNodePortRange, "service-node-ports", "Deprecated: see --service-node-port-range instead.")
@@ -224,7 +224,7 @@ func (s *APIServer) verifyClusterIPFlags() {
 	}
 }
 
-func newEtcd(etcdConfigFile string, etcdServerList util.StringList, interfacesFunc meta.VersionInterfacesFunc, defaultVersion, storageVersion, pathPrefix string) (etcdStorage storage.Interface, err error) {
+func newEtcd(etcdConfigFile string, etcdServerList []string, interfacesFunc meta.VersionInterfacesFunc, defaultVersion, storageVersion, pathPrefix string) (etcdStorage storage.Interface, err error) {
 	var client tools.EtcdClient
 	if etcdConfigFile != "" {
 		client, err = etcd.NewClientFromFile(etcdConfigFile)
@@ -257,7 +257,7 @@ func (s *APIServer) Run(_ []string) error {
 	// If advertise-address is not specified, use bind-address. If bind-address
 	// is also unset (or 0.0.0.0), setDefaults() in pkg/master/master.go will
 	// do the right thing and use the host's default interface.
-	if s.AdvertiseAddress == nil || net.IP(s.AdvertiseAddress).IsUnspecified() {
+	if s.AdvertiseAddress == nil || s.AdvertiseAddress.IsUnspecified() {
 		s.AdvertiseAddress = s.BindAddress
 	}
 
@@ -325,7 +325,7 @@ func (s *APIServer) Run(_ []string) error {
 		glog.Fatalf("Invalid experimental storage version or misconfigured etcd: %v", err)
 	}
 
-	n := net.IPNet(s.ServiceClusterIPRange)
+	n := s.ServiceClusterIPRange
 
 	// Default to the private server key for service account token signing
 	if s.ServiceAccountKeyFile == "" && s.TLSPrivateKeyFile != "" {
@@ -394,7 +394,7 @@ func (s *APIServer) Run(_ []string) error {
 		ExpAPIPrefix:           s.ExpAPIPrefix,
 		CorsAllowedOriginList:  s.CorsAllowedOriginList,
 		ReadWritePort:          s.SecurePort,
-		PublicAddress:          net.IP(s.AdvertiseAddress),
+		PublicAddress:          s.AdvertiseAddress,
 		Authenticator:          authenticator,
 		SupportsBasicAuth:      len(s.BasicAuthFile) > 0,
 		Authorizer:             authorizer,
@@ -479,7 +479,7 @@ func (s *APIServer) Run(_ []string) error {
 				}
 				// err == systemd.SdNotifyNoSocket when not running on a systemd system
 				if err := systemd.SdNotify("READY=1\n"); err != nil && err != systemd.SdNotifyNoSocket {
-					glog.Errorf("Unable to send systemd daemon sucessful start message: %v\n", err)
+					glog.Errorf("Unable to send systemd daemon successful start message: %v\n", err)
 				}
 				if err := secureServer.ListenAndServeTLS(s.TLSCertFile, s.TLSPrivateKeyFile); err != nil {
 					glog.Errorf("Unable to listen for secure (%v); will try again.", err)
@@ -497,7 +497,7 @@ func (s *APIServer) Run(_ []string) error {
 	if secureLocation == "" {
 		// err == systemd.SdNotifyNoSocket when not running on a systemd system
 		if err := systemd.SdNotify("READY=1\n"); err != nil && err != systemd.SdNotifyNoSocket {
-			glog.Errorf("Unable to send systemd daemon sucessful start message: %v\n", err)
+			glog.Errorf("Unable to send systemd daemon successful start message: %v\n", err)
 		}
 	}
 	glog.Infof("Serving insecurely on %s", insecureLocation)

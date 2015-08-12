@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"testing"
 
+	docker "github.com/fsouza/go-dockerclient"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/registered"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -30,7 +31,6 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
-	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/google/gofuzz"
 	"speter.net/go/exp/math/dec/inf"
@@ -110,9 +110,8 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
 			//j.TemplateRef = nil // this is required for round trip
 		},
-		func(j *api.ReplicationControllerStatus, c fuzz.Continue) {
-			// only replicas round trips
-			j.Replicas = int(c.RandUint64())
+		func(j *api.DaemonSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(j) // fuzz self without calling this function again
 		},
 		func(j *api.List, c fuzz.Continue) {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
@@ -159,6 +158,22 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			//q.Amount.SetScale(inf.Scale(-c.Intn(12)))
 			q.Amount.SetUnscaled(c.Int63n(1000))
 		},
+		func(q *api.ResourceRequirements, c fuzz.Continue) {
+			randomQuantity := func() resource.Quantity {
+				return *resource.NewQuantity(c.Int63n(1000), resource.DecimalExponent)
+			}
+			q.Limits = make(api.ResourceList)
+			q.Requests = make(api.ResourceList)
+			cpuLimit := randomQuantity()
+			q.Limits[api.ResourceCPU] = *cpuLimit.Copy()
+			q.Requests[api.ResourceCPU] = *cpuLimit.Copy()
+			memoryLimit := randomQuantity()
+			q.Limits[api.ResourceMemory] = *memoryLimit.Copy()
+			q.Requests[api.ResourceMemory] = *memoryLimit.Copy()
+			storageLimit := randomQuantity()
+			q.Limits[api.ResourceStorage] = *storageLimit.Copy()
+			q.Requests[api.ResourceStorage] = *storageLimit.Copy()
+		},
 		func(p *api.PullPolicy, c fuzz.Continue) {
 			policies := []api.PullPolicy{api.PullAlways, api.PullNever, api.PullIfNotPresent}
 			*p = policies[c.Rand.Intn(len(policies))]
@@ -173,18 +188,7 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			i := int(c.RandUint64() % uint64(v.NumField()))
 			v = v.Field(i).Addr()
 			// Use a new fuzzer which cannot populate nil to ensure one field will be set.
-			f := fuzz.New().NilChance(0).NumElements(1, 1)
-			f.Funcs(
-				// Only api.Metadatafile needs to have a specific func since FieldRef has to be
-				// defaulted to a version otherwise roundtrip will fail
-				// For the remaining volume plugins the default fuzzer  is enough.
-				func(m *api.MetadataFile, c fuzz.Continue) {
-					m.Name = c.RandString()
-					versions := []string{"v1beta3", "v1"}
-					m.FieldRef.APIVersion = versions[c.Rand.Intn(len(versions))]
-					m.FieldRef.FieldPath = c.RandString()
-				},
-			).Fuzz(v.Interface())
+			fuzz.New().NilChance(0).NumElements(1, 1).Fuzz(v.Interface())
 		},
 		func(d *api.DNSPolicy, c fuzz.Continue) {
 			policies := []api.DNSPolicy{api.DNSClusterFirst, api.DNSDefault}
@@ -257,7 +261,6 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			types := []api.PersistentVolumeClaimPhase{api.ClaimBound, api.ClaimPending}
 			pvc.Status.Phase = types[c.Rand.Intn(len(types))]
 		},
-
 		func(s *api.NamespaceSpec, c fuzz.Continue) {
 			s.Finalizers = []api.FinalizerName{api.FinalizerKubernetes}
 		},
@@ -288,13 +291,6 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 		func(n *api.Node, c fuzz.Continue) {
 			c.FuzzNoCustom(n)
 			n.Spec.ExternalID = "external"
-		},
-		func(scc *api.SecurityContextConstraints, c fuzz.Continue) {
-			c.FuzzNoCustom(scc) // fuzz self without calling this function again
-			userTypes := []api.RunAsUserStrategyType{api.RunAsUserStrategyMustRunAsNonRoot, api.RunAsUserStrategyMustRunAs, api.RunAsUserStrategyRunAsAny, api.RunAsUserStrategyMustRunAsRange}
-			scc.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
-			seLinuxTypes := []api.SELinuxContextStrategyType{api.SELinuxStrategyRunAsAny, api.SELinuxStrategyMustRunAs}
-			scc.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
 		},
 	)
 	return f

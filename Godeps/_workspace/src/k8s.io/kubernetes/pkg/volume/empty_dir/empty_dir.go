@@ -21,21 +21,20 @@ import (
 	"os"
 	"path"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
-	"github.com/golang/glog"
 )
 
 // TODO: in the near future, this will be changed to be more restrictive
 // and the group will be set to allow containers to use emptyDir volumes
 // from the group attribute.
 //
-// https://github.com/GoogleCloudPlatform/kubernetes/issues/2630
+// http://issue.k8s.io/2630
 const perm os.FileMode = 0777
 
 // This is the primary entrypoint for volume plugins.
@@ -167,10 +166,7 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	// Determine the effective SELinuxOptions to use for this volume.
 	securityContext := ""
 	if selinuxEnabled() {
-		securityContext, err = ed.determineEffectiveSELinuxOptions()
-		if err != nil {
-			return err
-		}
+		securityContext = ed.rootContext
 	}
 
 	switch ed.medium {
@@ -187,45 +183,6 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	}
 
 	return err
-}
-
-// determineEffectiveSELinuxOptions determines the effective SELinux options
-// that should be used for a particular plugin.
-func (ed *emptyDir) determineEffectiveSELinuxOptions() (string, error) {
-	glog.V(4).Infof("Determining effective SELinux context for pod %v/%v", ed.pod.Namespace, ed.pod.Name)
-	var opts *api.SELinuxOptions
-	if ed.pod != nil {
-		// Use the security context, if defined, of the first
-		// container in the pod to mount this volume
-		for _, container := range ed.pod.Spec.Containers {
-			if !volumeutil.ContainerHasVolumeMountForName(&container, ed.volName) {
-				continue
-			}
-
-			if container.SecurityContext != nil &&
-				container.SecurityContext.SELinuxOptions != nil {
-				opts = container.SecurityContext.SELinuxOptions
-				break
-			}
-		}
-	}
-
-	if opts == nil {
-		return ed.rootContext, nil
-	}
-
-	glog.V(4).Infof("Specified security context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(opts))
-
-	rootContextOpts, err := securitycontext.ParseSELinuxOptions(ed.rootContext)
-	if err != nil {
-		return "", err
-	}
-
-	effectiveOpts := securitycontext.ProjectSELinuxOptions(opts, rootContextOpts)
-
-	glog.V(4).Infof("Effective SELinux context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(effectiveOpts))
-
-	return securitycontext.SELinuxOptionsString(effectiveOpts), nil
 }
 
 func (ed *emptyDir) IsReadOnly() bool {

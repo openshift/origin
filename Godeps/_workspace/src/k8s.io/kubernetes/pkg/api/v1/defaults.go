@@ -44,6 +44,21 @@ func addDefaultingFuncs() {
 				*obj.Spec.Replicas = 1
 			}
 		},
+		func(obj *Daemon) {
+			var labels map[string]string
+			if obj.Spec.Template != nil {
+				labels = obj.Spec.Template.Labels
+			}
+			// TODO: support templates defined elsewhere when we support them in the API
+			if labels != nil {
+				if len(obj.Spec.Selector) == 0 {
+					obj.Spec.Selector = labels
+				}
+				if len(obj.Labels) == 0 {
+					obj.Labels = labels
+				}
+			}
+		},
 		func(obj *Volume) {
 			if util.AllPtrFieldsNil(&obj.VolumeSource) {
 				obj.VolumeSource = VolumeSource{
@@ -54,14 +69,6 @@ func addDefaultingFuncs() {
 		func(obj *ContainerPort) {
 			if obj.Protocol == "" {
 				obj.Protocol = ProtocolTCP
-			}
-
-			// Carry conversion to make port case valid
-			switch strings.ToUpper(string(obj.Protocol)) {
-			case string(ProtocolTCP):
-				obj.Protocol = ProtocolTCP
-			case string(ProtocolUDP):
-				obj.Protocol = ProtocolUDP
 			}
 		},
 		func(obj *Container) {
@@ -95,20 +102,6 @@ func addDefaultingFuncs() {
 					sp.TargetPort = util.NewIntOrStringFromInt(sp.Port)
 				}
 			}
-
-			// Carry conversion
-			if len(obj.ClusterIP) == 0 && len(obj.DeprecatedPortalIP) > 0 {
-				obj.ClusterIP = obj.DeprecatedPortalIP
-			}
-		},
-		func(obj *ServicePort) {
-			// Carry conversion to make port case valid
-			switch strings.ToUpper(string(obj.Protocol)) {
-			case string(ProtocolTCP):
-				obj.Protocol = ProtocolTCP
-			case string(ProtocolUDP):
-				obj.Protocol = ProtocolUDP
-			}
 		},
 		func(obj *PodSpec) {
 			if obj.DNSPolicy == "" {
@@ -119,15 +112,6 @@ func addDefaultingFuncs() {
 			}
 			if obj.HostNetwork {
 				defaultHostNetworkPorts(&obj.Containers)
-			}
-
-			// Carry migration from serviceAccount to serviceAccountName
-			if len(obj.ServiceAccountName) == 0 && len(obj.DeprecatedServiceAccount) > 0 {
-				obj.ServiceAccountName = obj.DeprecatedServiceAccount
-			}
-			// Carry migration from host to nodeName
-			if len(obj.NodeName) == 0 && len(obj.DeprecatedHost) > 0 {
-				obj.NodeName = obj.DeprecatedHost
 			}
 		},
 		func(obj *Probe) {
@@ -164,15 +148,6 @@ func addDefaultingFuncs() {
 				}
 			}
 		},
-		func(obj *EndpointPort) {
-			// Carry conversion to make port case valid
-			switch strings.ToUpper(string(obj.Protocol)) {
-			case string(ProtocolTCP):
-				obj.Protocol = ProtocolTCP
-			case string(ProtocolUDP):
-				obj.Protocol = ProtocolUDP
-			}
-		},
 		func(obj *HTTPGetAction) {
 			if obj.Path == "" {
 				obj.Path = "/"
@@ -194,6 +169,19 @@ func addDefaultingFuncs() {
 		func(obj *ObjectFieldSelector) {
 			if obj.APIVersion == "" {
 				obj.APIVersion = "v1"
+			}
+		},
+		func(obj *ResourceRequirements) {
+			// Set requests to limits if requests are not specified (but limits are).
+			if obj.Limits != nil {
+				if obj.Requests == nil {
+					obj.Requests = make(ResourceList)
+				}
+				for key, value := range obj.Limits {
+					if _, exists := obj.Requests[key]; !exists {
+						obj.Requests[key] = *(value.Copy())
+					}
+				}
 			}
 		},
 	)

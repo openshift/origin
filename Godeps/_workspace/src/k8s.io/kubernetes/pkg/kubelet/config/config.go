@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/client/record"
@@ -32,7 +33,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/config"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
-	"github.com/golang/glog"
 )
 
 // PodConfigNotificationMode describes how changes are sent to the update channel.
@@ -58,8 +58,6 @@ type PodConfig struct {
 
 	// the channel of denormalized changes passed to listeners
 	updates chan kubelet.PodUpdate
-	// an optional wait channel
-	wait <-chan struct{}
 
 	// contains the list of all configured sources
 	sourcesLock sync.Mutex
@@ -80,20 +78,6 @@ func NewPodConfig(mode PodConfigNotificationMode, recorder record.EventRecorder)
 	return podConfig
 }
 
-func (c *PodConfig) Wait(waitCh <-chan struct{}) {
-	c.wait = waitCh
-	ch := make(chan kubelet.PodUpdate)
-	oldCh := c.updates
-	go util.Forever(func() {
-		<-waitCh
-		for {
-			update := <-oldCh
-			ch <- update
-		}
-	}, 0)
-	c.updates = ch
-}
-
 // Channel creates or returns a config source channel.  The channel
 // only accepts PodUpdates
 func (c *PodConfig) Channel(source string) chan<- interface{} {
@@ -108,13 +92,6 @@ func (c *PodConfig) Channel(source string) chan<- interface{} {
 func (c *PodConfig) SeenAllSources() bool {
 	if c.pods == nil {
 		return false
-	}
-	if c.wait != nil {
-		select {
-		case <-c.wait:
-		default:
-			return false
-		}
 	}
 	glog.V(6).Infof("Looking for %v, have seen %v", c.sources.List(), c.pods.sourcesSeen)
 	return c.pods.seenSources(c.sources.List()...)

@@ -19,10 +19,10 @@ package cmd
 import (
 	"io"
 
+	"github.com/golang/glog"
 	cmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
-	"github.com/golang/glog"
 
 	"github.com/spf13/cobra"
 )
@@ -141,11 +141,12 @@ Find more information at https://github.com/GoogleCloudPlatform/kubernetes.`,
 	cmds.AddCommand(NewCmdPortForward(f))
 	cmds.AddCommand(NewCmdProxy(f, out))
 
-	cmds.AddCommand(NewCmdRun(f, out))
+	cmds.AddCommand(NewCmdRun(f, in, out, err))
 	cmds.AddCommand(NewCmdStop(f, out))
 	cmds.AddCommand(NewCmdExposeService(f, out))
 
 	cmds.AddCommand(NewCmdLabel(f, out))
+	cmds.AddCommand(NewCmdAnnotate(f, out))
 
 	cmds.AddCommand(cmdconfig.NewCmdConfig(cmdconfig.NewDefaultPathOptions(), out))
 	cmds.AddCommand(NewCmdClusterInfo(f, out))

@@ -43,12 +43,10 @@ func addConversionFuncs() {
 			switch label {
 			case "metadata.name",
 				"metadata.namespace",
-				"metadata.labels",
-				"metadata.annotations",
 				"status.phase",
 				"spec.nodeName":
 				return label, value, nil
-				// This is for backwards compatability with old v1 clients which send spec.host
+				// This is for backwards compatibility with old v1 clients which send spec.host
 			case "spec.host":
 				return "spec.nodeName", value, nil
 			default:
@@ -291,10 +289,6 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conversi
 	} else {
 		out.ImagePullSecrets = nil
 	}
-
-	// carry conversion
-	out.DeprecatedHost = in.NodeName
-
 	return nil
 }
 
@@ -351,12 +345,6 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conversi
 		out.ServiceAccountName = in.DeprecatedServiceAccount
 	}
 	out.NodeName = in.NodeName
-
-	// carry conversion
-	if in.NodeName == "" {
-		out.NodeName = in.DeprecatedHost
-	}
-
 	out.HostNetwork = in.HostNetwork
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))

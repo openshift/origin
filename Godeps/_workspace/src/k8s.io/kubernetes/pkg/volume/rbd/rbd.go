@@ -19,13 +19,13 @@ package rbd
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
-	"github.com/golang/glog"
 )
 
 // This is the primary entrypoint for volume plugins.
@@ -148,13 +148,18 @@ func (plugin *rbdPlugin) NewCleaner(volName string, podUID types.UID, mounter mo
 }
 
 func (plugin *rbdPlugin) newCleanerInternal(volName string, podUID types.UID, manager diskManager, mounter mount.Interface) (volume.Cleaner, error) {
-	return &rbdCleaner{&rbd{
-		podUID:  podUID,
-		volName: volName,
-		manager: manager,
-		mounter: mounter,
-		plugin:  plugin,
-	}}, nil
+	return &rbdCleaner{
+		rbdBuilder: &rbdBuilder{
+			rbd: &rbd{
+				podUID:  podUID,
+				volName: volName,
+				manager: manager,
+				mounter: mounter,
+				plugin:  plugin,
+			},
+			Mon: make([]string, 0),
+		},
+	}, nil
 }
 
 type rbd struct {
@@ -211,7 +216,7 @@ func (b *rbdBuilder) SetUpAt(dir string) error {
 }
 
 type rbdCleaner struct {
-	*rbd
+	*rbdBuilder
 }
 
 var _ volume.Cleaner = &rbdCleaner{}

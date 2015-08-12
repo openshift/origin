@@ -28,11 +28,13 @@ import (
 	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
-	"k8s.io/kubernetes/pkg/proxy"
+	"k8s.io/kubernetes/pkg/kubelet/qos"
 	"k8s.io/kubernetes/pkg/proxy/config"
+	"k8s.io/kubernetes/pkg/proxy/userspace"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
+	"k8s.io/kubernetes/pkg/util/oom"
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -40,9 +42,9 @@ import (
 
 // ProxyServer contains configures and runs a Kubernetes proxy server
 type ProxyServer struct {
-	BindAddress        util.IP
+	BindAddress        net.IP
 	HealthzPort        int
-	HealthzBindAddress util.IP
+	HealthzBindAddress net.IP
 	OOMScoreAdj        int
 	ResourceContainer  string
 	Master             string
@@ -53,20 +55,20 @@ type ProxyServer struct {
 // NewProxyServer creates a new ProxyServer object with default parameters
 func NewProxyServer() *ProxyServer {
 	return &ProxyServer{
-		BindAddress:        util.IP(net.ParseIP("0.0.0.0")),
+		BindAddress:        net.ParseIP("0.0.0.0"),
 		HealthzPort:        10249,
-		HealthzBindAddress: util.IP(net.ParseIP("127.0.0.1")),
-		OOMScoreAdj:        -899,
+		HealthzBindAddress: net.ParseIP("127.0.0.1"),
+		OOMScoreAdj:        qos.KubeProxyOomScoreAdj,
 		ResourceContainer:  "/kube-proxy",
 	}
 }
 
 // AddFlags adds flags for a specific ProxyServer to the specified FlagSet
 func (s *ProxyServer) AddFlags(fs *pflag.FlagSet) {
-	fs.Var(&s.BindAddress, "bind-address", "The IP address for the proxy server to serve on (set to 0.0.0.0 for all interfaces)")
+	fs.IPVar(&s.BindAddress, "bind-address", s.BindAddress, "The IP address for the proxy server to serve on (set to 0.0.0.0 for all interfaces)")
 	fs.StringVar(&s.Master, "master", s.Master, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
 	fs.IntVar(&s.HealthzPort, "healthz-port", s.HealthzPort, "The port to bind the health check server. Use 0 to disable.")
-	fs.Var(&s.HealthzBindAddress, "healthz-bind-address", "The IP address for the health check server to serve on, defaulting to 127.0.0.1 (set to 0.0.0.0 for all interfaces)")
+	fs.IPVar(&s.HealthzBindAddress, "healthz-bind-address", s.HealthzBindAddress, "The IP address for the health check server to serve on, defaulting to 127.0.0.1 (set to 0.0.0.0 for all interfaces)")
 	fs.IntVar(&s.OOMScoreAdj, "oom-score-adj", s.OOMScoreAdj, "The oom_score_adj value for kube-proxy process. Values must be within the range [-1000, 1000]")
 	fs.StringVar(&s.ResourceContainer, "resource-container", s.ResourceContainer, "Absolute name of the resource-only container to create and run the Kube-proxy in (Default: /kube-proxy).")
 	fs.StringVar(&s.Kubeconfig, "kubeconfig", s.Kubeconfig, "Path to kubeconfig file with authorization information (the master location is set by the master flag).")
@@ -76,7 +78,8 @@ func (s *ProxyServer) AddFlags(fs *pflag.FlagSet) {
 // Run runs the specified ProxyServer.  This should never exit.
 func (s *ProxyServer) Run(_ []string) error {
 	// TODO(vmarmol): Use container config for this.
-	if err := util.ApplyOomScoreAdj(0, s.OOMScoreAdj); err != nil {
+	oomAdjuster := oom.NewOomAdjuster()
+	if err := oomAdjuster.ApplyOomScoreAdj(0, s.OOMScoreAdj); err != nil {
 		glog.V(2).Info(err)
 	}
 
@@ -91,11 +94,11 @@ func (s *ProxyServer) Run(_ []string) error {
 	endpointsConfig := config.NewEndpointsConfig()
 
 	protocol := iptables.ProtocolIpv4
-	if net.IP(s.BindAddress).To4() == nil {
+	if s.BindAddress.To4() == nil {
 		protocol = iptables.ProtocolIpv6
 	}
-	loadBalancer := proxy.NewLoadBalancerRR()
-	proxier, err := proxy.NewProxier(loadBalancer, net.IP(s.BindAddress), iptables.New(exec.New(), protocol), s.PortRange)
+	loadBalancer := userspace.NewLoadBalancerRR()
+	proxier, err := userspace.NewProxier(loadBalancer, s.BindAddress, iptables.New(exec.New(), protocol), s.PortRange)
 	if err != nil {
 		glog.Fatalf("Unable to create proxer: %v", err)
 	}

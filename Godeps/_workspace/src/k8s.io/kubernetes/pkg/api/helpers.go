@@ -53,7 +53,7 @@ var Semantic = conversion.EqualitiesOrDie(
 		// TODO: if we decide it's important, after we drop v1beta1/2, we
 		// could start comparing format.
 		//
-		// Uninitialized quantities are equivilent to 0 quantities.
+		// Uninitialized quantities are equivalent to 0 quantities.
 		if a.Amount == nil && b.MilliValue() == 0 {
 			return true
 		}
@@ -83,6 +83,7 @@ var standardResources = util.NewStringSet(
 	string(ResourceQuotas),
 	string(ResourceServices),
 	string(ResourceReplicationControllers),
+	string(ResourceDaemon),
 	string(ResourceSecrets),
 	string(ResourcePersistentVolumeClaims),
 	string(ResourceStorage))

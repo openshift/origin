@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coreos/go-etcd/etcd"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -32,7 +33,6 @@ import (
 	"k8s.io/kubernetes/pkg/tools/metrics"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
-	"github.com/coreos/go-etcd/etcd"
 
 	"github.com/golang/glog"
 )
@@ -72,11 +72,10 @@ func init() {
 	metrics.Register()
 }
 
-// Codec provides access to the underlying codec being usedby the implementation.
+// Codec provides access to the underlying codec being used by the implementation.
 func (h *etcdHelper) Codec() runtime.Codec {
 	return h.codec
 }
-
 
 // Implements storage.Interface.
 func (h *etcdHelper) Backends() []string {
@@ -477,7 +476,7 @@ func (h *etcdHelper) getFromCache(index uint64) (runtime.Object, bool) {
 	}()
 	obj, found := h.cache.Get(index)
 	if found {
-		// We should not return the object itself to avoid poluting the cache if someone
+		// We should not return the object itself to avoid polluting the cache if someone
 		// modifies returned values.
 		objCopy, err := h.copier.Copy(obj.(runtime.Object))
 		if err != nil {

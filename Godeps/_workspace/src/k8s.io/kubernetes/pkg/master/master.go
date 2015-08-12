@@ -39,7 +39,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
@@ -54,37 +53,36 @@ import (
 	controlleretcd "k8s.io/kubernetes/pkg/registry/controller/etcd"
 	"k8s.io/kubernetes/pkg/registry/endpoint"
 	endpointsetcd "k8s.io/kubernetes/pkg/registry/endpoint/etcd"
-	"k8s.io/kubernetes/pkg/registry/etcd"
 	"k8s.io/kubernetes/pkg/registry/event"
-	"k8s.io/kubernetes/pkg/registry/limitrange"
+	expcontrolleretcd "k8s.io/kubernetes/pkg/registry/experimental/controller/etcd"
+	limitrangeetcd "k8s.io/kubernetes/pkg/registry/limitrange/etcd"
 	"k8s.io/kubernetes/pkg/registry/minion"
 	nodeetcd "k8s.io/kubernetes/pkg/registry/minion/etcd"
 	"k8s.io/kubernetes/pkg/registry/namespace"
 	namespaceetcd "k8s.io/kubernetes/pkg/registry/namespace/etcd"
 	pvetcd "k8s.io/kubernetes/pkg/registry/persistentvolume/etcd"
 	pvcetcd "k8s.io/kubernetes/pkg/registry/persistentvolumeclaim/etcd"
-	"k8s.io/kubernetes/pkg/registry/pod"
 	podetcd "k8s.io/kubernetes/pkg/registry/pod/etcd"
 	podtemplateetcd "k8s.io/kubernetes/pkg/registry/podtemplate/etcd"
 	resourcequotaetcd "k8s.io/kubernetes/pkg/registry/resourcequota/etcd"
 	secretetcd "k8s.io/kubernetes/pkg/registry/secret/etcd"
 	"k8s.io/kubernetes/pkg/registry/service"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
+	serviceetcd "k8s.io/kubernetes/pkg/registry/service/etcd"
 	ipallocator "k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	serviceaccountetcd "k8s.io/kubernetes/pkg/registry/serviceaccount/etcd"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
-	//"k8s.io/kubernetes/pkg/ui"
+	"k8s.io/kubernetes/pkg/ui"
 	"k8s.io/kubernetes/pkg/util"
 
-	sccetcd "k8s.io/kubernetes/pkg/registry/securitycontextconstraints/etcd"
-	"k8s.io/kubernetes/pkg/registry/service/allocator"
-	"k8s.io/kubernetes/pkg/registry/service/portallocator"
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/kubernetes/pkg/registry/service/allocator"
+	"k8s.io/kubernetes/pkg/registry/service/portallocator"
 )
 
 const (
@@ -104,8 +102,6 @@ type Config struct {
 	EnableUISupport       bool
 	// allow downstream consumers to disable swagger
 	EnableSwaggerSupport bool
-	// allow v1beta3 to be conditionally enabled
-	EnableV1Beta3 bool
 	// allow api versions to be conditionally disabled
 	DisableV1 bool
 	EnableExp bool
@@ -114,7 +110,7 @@ type Config struct {
 	EnableProfiling       bool
 	APIPrefix             string
 	ExpAPIPrefix          string
-	CorsAllowedOriginList util.StringList
+	CorsAllowedOriginList []string
 	Authenticator         authenticator.Request
 	// TODO(roberthbailey): Remove once the server no longer supports http basic auth.
 	SupportsBasicAuth      bool
@@ -191,12 +187,11 @@ type Master struct {
 	enableProfiling       bool
 	apiPrefix             string
 	expAPIPrefix          string
-	corsAllowedOriginList util.StringList
+	corsAllowedOriginList []string
 	authenticator         authenticator.Request
 	authorizer            authorizer.Authorizer
 	admissionControl      admission.Interface
 	masterCount           int
-	v1beta3               bool
 	v1                    bool
 	exp                   bool
 	requestContextMapper  api.RequestContextMapper
@@ -319,7 +314,7 @@ func setDefaults(c *Config) {
 // Public fields:
 //   Handler -- The returned master has a field TopHandler which is an
 //   http.Handler which handles all the endpoints provided by the master,
-//   including the API, the UI, and miscelaneous debugging endpoints.  All
+//   including the API, the UI, and miscellaneous debugging endpoints.  All
 //   these are subject to authorization and authentication.
 //   InsecureHandler -- an http.Handler which handles all the same
 //   endpoints as Handler, but no authorization and authentication is done.
@@ -351,7 +346,6 @@ func New(c *Config) *Master {
 		authenticator:         c.Authenticator,
 		authorizer:            c.Authorizer,
 		admissionControl:      c.AdmissionControl,
-		v1beta3:               c.EnableV1Beta3,
 		v1:                    !c.DisableV1,
 		exp:                   c.EnableExp,
 		requestContextMapper:  c.RequestContextMapper,
@@ -435,12 +429,11 @@ func (m *Master) init(c *Config) {
 	healthzChecks := []healthz.HealthzChecker{}
 	m.clock = util.RealClock{}
 	podStorage := podetcd.NewStorage(c.DatabaseStorage, c.KubeletClient)
-	podRegistry := pod.NewRegistry(podStorage.Pod)
 
 	podTemplateStorage := podtemplateetcd.NewREST(c.DatabaseStorage)
 
 	eventRegistry := event.NewEtcdRegistry(c.DatabaseStorage, uint64(c.EventTTL.Seconds()))
-	limitRangeRegistry := limitrange.NewEtcdRegistry(c.DatabaseStorage)
+	limitRangeStorage := limitrangeetcd.NewStorage(c.DatabaseStorage)
 
 	resourceQuotaStorage, resourceQuotaStatusStorage := resourcequotaetcd.NewStorage(c.DatabaseStorage)
 	secretStorage := secretetcd.NewStorage(c.DatabaseStorage)
@@ -451,17 +444,14 @@ func (m *Master) init(c *Config) {
 	namespaceStorage, namespaceStatusStorage, namespaceFinalizeStorage := namespaceetcd.NewStorage(c.DatabaseStorage)
 	m.namespaceRegistry = namespace.NewRegistry(namespaceStorage)
 
-	securityContextConstraintsStorage := sccetcd.NewStorage(c.DatabaseStorage)
-
 	endpointsStorage := endpointsetcd.NewStorage(c.DatabaseStorage)
 	m.endpointRegistry = endpoint.NewRegistry(endpointsStorage)
 
 	nodeStorage, nodeStatusStorage := nodeetcd.NewStorage(c.DatabaseStorage, c.KubeletClient)
 	m.nodeRegistry = minion.NewRegistry(nodeStorage)
 
-	// TODO: split me up into distinct storage registries
-	registry := etcd.NewRegistry(c.DatabaseStorage, podRegistry, m.endpointRegistry)
-	m.serviceRegistry = registry
+	serviceStorage := serviceetcd.NewStorage(c.DatabaseStorage)
+	m.serviceRegistry = service.NewRegistry(serviceStorage)
 
 	var serviceClusterIPRegistry service.RangeRegistry
 	serviceClusterIPAllocator := ipallocator.NewAllocatorCIDRRange(m.serviceClusterIPRange, func(max int, rangeSpec string) allocator.Interface {
@@ -498,13 +488,13 @@ func (m *Master) init(c *Config) {
 		"podTemplates": podTemplateStorage,
 
 		"replicationControllers": controllerStorage,
-		"services":               service.NewStorage(m.serviceRegistry, m.nodeRegistry, m.endpointRegistry, serviceClusterIPAllocator, serviceNodePortAllocator, c.ClusterName),
+		"services":               service.NewStorage(m.serviceRegistry, m.endpointRegistry, serviceClusterIPAllocator, serviceNodePortAllocator),
 		"endpoints":              endpointsStorage,
 		"nodes":                  nodeStorage,
 		"nodes/status":           nodeStatusStorage,
 		"events":                 event.NewStorage(eventRegistry),
 
-		"limitRanges":                   limitrange.NewStorage(limitRangeRegistry),
+		"limitRanges":                   limitRangeStorage,
 		"resourceQuotas":                resourceQuotaStorage,
 		"resourceQuotas/status":         resourceQuotaStatusStorage,
 		"namespaces":                    namespaceStorage,
@@ -512,7 +502,6 @@ func (m *Master) init(c *Config) {
 		"namespaces/finalize":           namespaceFinalizeStorage,
 		"secrets":                       secretStorage,
 		"serviceAccounts":               serviceAccountStorage,
-		"securityContextConstraints":    securityContextConstraintsStorage,
 		"persistentVolumes":             persistentVolumeStorage,
 		"persistentVolumes/status":      persistentVolumeStatusStorage,
 		"persistentVolumeClaims":        persistentVolumeClaimStorage,
@@ -569,12 +558,6 @@ func (m *Master) init(c *Config) {
 	}
 
 	apiVersions := []string{}
-	if m.v1beta3 {
-		if err := m.api_v1beta3().InstallREST(m.handlerContainer); err != nil {
-			glog.Fatalf("Unable to setup API v1beta3: %v", err)
-		}
-		apiVersions = append(apiVersions, "v1beta3")
-	}
 	if m.v1 {
 		if err := m.api_v1().InstallREST(m.handlerContainer); err != nil {
 			glog.Fatalf("Unable to setup API v1: %v", err)
@@ -608,9 +591,9 @@ func (m *Master) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.muxHelper)
 	}
-	/*if c.EnableUISupport {
-		ui.InstallSupport(m.mux)
-	}*/
+	if c.EnableUISupport {
+		ui.InstallSupport(m.muxHelper, m.enableSwaggerSupport)
+	}
 
 	if c.EnableProfiling {
 		m.mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -627,7 +610,7 @@ func (m *Master) init(c *Config) {
 	if len(c.CorsAllowedOriginList) > 0 {
 		allowedOriginRegexps, err := util.CompileRegexps(c.CorsAllowedOriginList)
 		if err != nil {
-			glog.Fatalf("Invalid CORS allowed origin, --cors_allowed_origins flag was set to %v - %v", strings.Join(c.CorsAllowedOriginList, ","), err)
+			glog.Fatalf("Invalid CORS allowed origin, --cors-allowed-origins flag was set to %v - %v", strings.Join(c.CorsAllowedOriginList, ","), err)
 		}
 		handler = apiserver.CORS(handler, allowedOriginRegexps, nil, nil, "true")
 	}
@@ -779,22 +762,6 @@ func (m *Master) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	}
 }
 
-// api_v1beta3 returns the resources and codec for API version v1beta3.
-func (m *Master) api_v1beta3() *apiserver.APIGroupVersion {
-	storage := make(map[string]rest.Storage)
-	for k, v := range m.storage {
-		if k == "minions" || k == "minions/status" {
-			continue
-		}
-		storage[strings.ToLower(k)] = v
-	}
-	version := m.defaultAPIGroupVersion()
-	version.Storage = storage
-	version.Version = "v1beta3"
-	version.Codec = v1beta3.Codec
-	return version
-}
-
 // api_v1 returns the resources and codec for API version v1.
 func (m *Master) api_v1() *apiserver.APIGroupVersion {
 	storage := make(map[string]rest.Storage)
@@ -810,7 +777,13 @@ func (m *Master) api_v1() *apiserver.APIGroupVersion {
 
 // expapi returns the resources and codec for the experimental api
 func (m *Master) expapi(c *Config) *apiserver.APIGroupVersion {
-	storage := map[string]rest.Storage{}
+
+	controllerStorage := expcontrolleretcd.NewStorage(c.DatabaseStorage)
+	storage := map[string]rest.Storage{
+		strings.ToLower("replicationControllers"):        controllerStorage.ReplicationController,
+		strings.ToLower("replicationControllers/scaler"): controllerStorage.Scale,
+	}
+
 	return &apiserver.APIGroupVersion{
 		Root: m.expAPIPrefix,
 

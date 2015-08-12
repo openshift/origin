@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package replication
+package replicationcontroller
 
 import (
 	"fmt"
@@ -46,10 +46,10 @@ type FakePodControl struct {
 	err            error
 }
 
-// Give each test that starts a background controller upto 1/2 a second.
+// Give each test that starts a background controller up to 1/2 a second.
 // Since we need to start up a goroutine to test watch, this routine needs
 // to get cpu before the test can complete. If the test is starved of cpu,
-// the watch test will take upto 1/2 a second before timing out.
+// the watch test will take up to 1/2 a second before timing out.
 const controllerTimeout = 500 * time.Millisecond
 
 var alwaysReady = func() bool { return true }
@@ -638,7 +638,7 @@ func TestUpdatePods(t *testing.T) {
 }
 
 func TestControllerUpdateRequeue(t *testing.T) {
-	// This server should force a requeue of the controller becuase it fails to update status.Replicas.
+	// This server should force a requeue of the controller because it fails to update status.Replicas.
 	fakeHandler := util.FakeHandler{
 		StatusCode:   500,
 		ResponseBody: "",
@@ -682,8 +682,8 @@ func TestControllerUpdateRequeue(t *testing.T) {
 func TestControllerUpdateStatusWithFailure(t *testing.T) {
 	rc := newReplicationController(1)
 	fakeClient := &testclient.Fake{
-		ReactFn: func(f testclient.FakeAction) (runtime.Object, error) {
-			if f.Action == testclient.GetControllerAction {
+		ReactFn: func(action testclient.Action) (runtime.Object, error) {
+			if action.GetVerb() == "get" && action.GetResource() == "replicationcontrollers" {
 				return rc, nil
 			}
 			return &api.ReplicationController{}, fmt.Errorf("Fake error")
@@ -694,18 +694,23 @@ func TestControllerUpdateStatusWithFailure(t *testing.T) {
 	updateReplicaCount(fakeRCClient, *rc, numReplicas)
 	updates, gets := 0, 0
 	for _, a := range fakeClient.Actions() {
-		switch a.Action {
-		case testclient.GetControllerAction:
+		if a.GetResource() != "replicationcontrollers" {
+			t.Errorf("Unexpected action %+v", a)
+			continue
+		}
+
+		switch action := a.(type) {
+		case testclient.GetAction:
 			gets++
 			// Make sure the get is for the right rc even though the update failed.
-			if s, ok := a.Value.(string); !ok || s != rc.Name {
-				t.Errorf("Expected get for rc %v, got %+v instead", rc.Name, s)
+			if action.GetName() != rc.Name {
+				t.Errorf("Expected get for rc %v, got %+v instead", rc.Name, action.GetName())
 			}
-		case testclient.UpdateControllerAction:
+		case testclient.UpdateAction:
 			updates++
 			// Confirm that the update has the right status.Replicas even though the Get
 			// returned an rc with replicas=1.
-			if c, ok := a.Value.(*api.ReplicationController); !ok {
+			if c, ok := action.GetObject().(*api.ReplicationController); !ok {
 				t.Errorf("Expected an rc as the argument to update, got %T", c)
 			} else if c.Status.Replicas != numReplicas {
 				t.Errorf("Expected update for rc to contain replicas %v, got %v instead",
@@ -801,7 +806,7 @@ func doTestControllerBurstReplicas(t *testing.T, burstReplicas, numReplicas int)
 
 			// Create/Delete the last pod
 			// The last add pod will decrease the expectation of the rc to 0,
-			// which will cause it to create/delete the remaining replicas upto burstReplicas.
+			// which will cause it to create/delete the remaining replicas up to burstReplicas.
 			if replicas != 0 {
 				manager.podStore.Store.Add(&pods.Items[expectedPods-1])
 				manager.addPod(&pods.Items[expectedPods-1])

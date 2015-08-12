@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/metrics"
@@ -40,7 +41,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/httpstream"
 	"k8s.io/kubernetes/pkg/watch"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
-	"github.com/golang/glog"
 )
 
 // specialParams lists parameters that are handled specially and which users of Request
@@ -299,51 +299,19 @@ type versionToResourceToFieldMapping map[string]resourceTypeToFieldMapping
 func (v versionToResourceToFieldMapping) filterField(apiVersion, resourceType, field, value string) (newField, newValue string, err error) {
 	rMapping, ok := v[apiVersion]
 	if !ok {
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	newField, newValue, err = rMapping.filterField(resourceType, field, value)
 	if err != nil {
 		// This is only a warning until we find and fix all of the client's usages.
+		glog.Warningf("field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	return newField, newValue, nil
 }
 
 var fieldMappings = versionToResourceToFieldMapping{
-	"v1beta3": resourceTypeToFieldMapping{
-		"nodes": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "metadata.name",
-			NodeUnschedulable: "spec.unschedulable",
-		},
-		"minions": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "metadata.name",
-			NodeUnschedulable: "spec.unschedulable",
-		},
-		"pods": clientFieldNameToAPIVersionFieldName{
-			PodHost: "spec.host",
-		},
-		"secrets": clientFieldNameToAPIVersionFieldName{
-			SecretType: "type",
-		},
-		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField: "metadata.name",
-		},
-		"endpoints": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField: "metadata.name",
-		},
-		"events": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:              "metadata.name",
-			EventReason:                  "reason",
-			EventSource:                  "source",
-			EventInvolvedKind:            "involvedObject.kind",
-			EventInvolvedNamespace:       "involvedObject.namespace",
-			EventInvolvedName:            "involvedObject.name",
-			EventInvolvedUID:             "involvedObject.uid",
-			EventInvolvedAPIVersion:      "involvedObject.apiVersion",
-			EventInvolvedResourceVersion: "involvedObject.resourceVersion",
-			EventInvolvedFieldPath:       "involvedObject.fieldPath",
-		},
-	},
 	"v1": resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
 			ObjectNameField:   "metadata.name",
@@ -673,7 +641,7 @@ func (r *Request) Upgrade(config *Config, newRoundTripperFunc func(*tls.Config) 
 
 // request connects to the server and invokes the provided function when a server response is
 // received. It handles retry behavior and up front validation of requests. It wil invoke
-// fn at most once. It will return an error if a problem occured prior to connecting to the
+// fn at most once. It will return an error if a problem occurred prior to connecting to the
 // server - the provided function is responsible for handling server errors.
 func (r *Request) request(fn func(*http.Request, *http.Response)) error {
 	if r.err != nil {

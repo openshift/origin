@@ -36,10 +36,10 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
 	"github.com/rackspace/gophercloud/pagination"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"github.com/golang/glog"
 )
 
 const ProviderName = "openstack"
@@ -622,9 +622,10 @@ func (lb *LoadBalancer) CreateTCPLoadBalancer(name, region string, externalIP ne
 		Protocol:     "TCP",
 		ProtocolPort: ports[0].Port, //TODO: need to handle multi-port
 		PoolID:       pool.ID,
+		SubnetID:     lb.opts.SubnetId,
 		Persistence:  persistence,
 	}
-	if !externalIP.IsUnspecified() {
+	if externalIP != nil {
 		createOpts.Address = externalIP.String()
 	}
 

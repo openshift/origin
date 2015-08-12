@@ -202,10 +202,6 @@ type VolumeSource struct {
 	PersistentVolumeClaim *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty" description:"a reference to a PersistentVolumeClaim in the same namespace; see http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#persistentvolumeclaims"`
 	// RBD represents a Rados Block Device mount on the host that shares a pod's lifetime
 	RBD *RBDVolumeSource `json:"rbd,omitempty" description:"rados block volume that will be mounted on the host machine; see http://releases.k8s.io/HEAD/examples/rbd/README.md"`
-	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
-	CephFS *CephFSVolumeSource `json:"cephfs,omitempty" description:"Ceph filesystem that will be mounted on the host machine"`
-	// Metadata represents an host volume which contains pod's metadata
-	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description:"Metadata volume containing information about the pod"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {
@@ -228,7 +224,7 @@ type PersistentVolumeSource struct {
 	// HostPath represents a directory on the host.
 	// This is useful for development and testing only.
 	// on-host storage is not supported in any way.
-	HostPath *HostPathVolumeSource `json:"hostPath,omitempty" description:"a HostPath provisioned by a developer or tester; for develment use only; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#hostpath"`
+	HostPath *HostPathVolumeSource `json:"hostPath,omitempty" description:"a HostPath provisioned by a developer or tester; for development use only; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#hostpath"`
 	// Glusterfs represents a Glusterfs volume that is attached to a host and exposed to the pod
 	Glusterfs *GlusterfsVolumeSource `json:"glusterfs,omitempty" description:"Glusterfs volume resource provisioned by an admin; see http://releases.k8s.io/HEAD/examples/glusterfs/README.md"`
 	// NFS represents an NFS mount on the host
@@ -238,8 +234,6 @@ type PersistentVolumeSource struct {
 	// ISCSI represents an ISCSI Disk resource that is attached to a
 	// kubelet's host machine and then exposed to the pod.
 	ISCSI *ISCSIVolumeSource `json:"iscsi,omitempty" description:"an iSCSI disk resource provisioned by an admin"`
-	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
-	CephFS *CephFSVolumeSource `json:"cephfs,omitempty" description:"Ceph filesystem that will be mounted on the host machine"`
 }
 
 type PersistentVolume struct {
@@ -424,21 +418,6 @@ type RBDVolumeSource struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty"  description:"rbd volume to be mounted with read-only permissions; see http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it"`
-}
-
-// CephFSVolumeSource represents a Ceph Filesystem Mount that lasts the lifetime of a pod
-type CephFSVolumeSource struct {
-	// Required: Monitors is a collection of Ceph monitors
-	Monitors []string `json:"monitors" description:"a collection of Ceph monitors"`
-	// Optional: User is the rados user name, default is admin
-	User string `json:"user,omitempty" description:"rados user name; default is admin; optional"`
-	// Optional: SecretFile is the path to key ring for User, default is /etc/ceph/user.secret
-	SecretFile string `json:"secretFile,omitempty" description:"path to secret for rados user; default is /etc/ceph/user.secret; optional"`
-	// Optional: SecretRef is reference to the authentication secret for User, default is empty.
-	SecretRef *LocalObjectReference `json:"secretRef,omitempty" description:"name of a secret to authenticate the user; if provided overrides keyring; optional"`
-	// Optional: Defaults to false (read/write). ReadOnly here will force
-	// the ReadOnly setting in VolumeMounts.
-	ReadOnly bool `json:"readOnly,omitempty"  description:"Ceph fs to be mounted with read-only permissions"`
 }
 
 const (
@@ -630,7 +609,7 @@ const (
 // TCPSocketAction describes an action based on opening a socket
 type TCPSocketAction struct {
 	// Required: Port to connect to.
-	Port util.IntOrString `json:"port" description:"number of name of the port to access on the container; number must be in the range 1 to 65535; name must be an IANA_SVC_NAME"`
+	Port util.IntOrString `json:"port" description:"number or name of the port to access on the container; number must be in the range 1 to 65535; name must be an IANA_SVC_NAME"`
 }
 
 // ExecAction describes a "run in container" action.
@@ -677,13 +656,12 @@ type Capabilities struct {
 
 // ResourceRequirements describes the compute resource requirements.
 type ResourceRequirements struct {
-	// Limits describes the maximum amount of compute resources required.
+	// Limits describes the maximum amount of compute resources allowed.
 	Limits ResourceList `json:"limits,omitempty" description:"Maximum amount of compute resources allowed; see http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"`
 	// Requests describes the minimum amount of compute resources required.
-	// Note: 'Requests' are honored only for Persistent Volumes as of now.
-	// TODO: Update the scheduler to use 'Requests' in addition to 'Limits'. If Request is omitted for a container,
-	// it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value
-	Requests ResourceList `json:"requests,omitempty" description:"Minimum amount of resources requested; requests are honored only for persistent volumes as of now; see http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"`
+	// If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+	// otherwise to an implementation-defined value.
+	Requests ResourceList `json:"requests,omitempty" description:"Minimum amount of resources requested; if Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value; see http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"`
 }
 
 const (
@@ -725,6 +703,11 @@ type Container struct {
 	ImagePullPolicy PullPolicy `json:"imagePullPolicy,omitempty" description:"image pull policy; one of Always, Never, IfNotPresent; defaults to Always if :latest tag is specified, or IfNotPresent otherwise; cannot be updated; see http://releases.k8s.io/HEAD/docs/user-guide/images.md#updating-images"`
 	// Optional: SecurityContext defines the security options the pod should be run with
 	SecurityContext *SecurityContext `json:"securityContext,omitempty" description:"security options the pod should run with; see http://releases.k8s.io/HEAD/docs/design/security_context.md"`
+
+	// Variables for interactive containers, these have very specialized use-cases (e.g. debugging)
+	// and shouldn't be used for general purpose containers.
+	Stdin bool `json:"stdin,omitempty" description:"Whether this container should allocate a buffer for stdin in the container runtime; default is false"`
+	TTY   bool `json:"tty,omitempty" description:"Whether this container should allocate a TTY for itself, also requires 'stdin' to be true; default is false"`
 }
 
 // Handler defines a specific action that should be taken
@@ -896,9 +879,6 @@ type PodSpec struct {
 	// NodeSelector is a selector which must be true for the pod to fit on a node
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" description:"selector which must match a node's labels for the pod to be scheduled on that node; see http://releases.k8s.io/HEAD/docs/user-guide/node-selection/README.md"`
 
-	// DeprecatedHost is a request to schedule this pod onto a specific node
-	DeprecatedHost string `json:"host,omitempty" description:"deprecated, use nodeName instead"`
-
 	// ServiceAccountName is the name of the ServiceAccount to use to run this pod
 	ServiceAccountName string `json:"serviceAccountName,omitempty" description:"name of the ServiceAccount to use to run this pod; see http://releases.k8s.io/HEAD/docs/design/service_accounts.md"`
 	// DeprecatedServiceAccount is a depreciated alias for ServiceAccountName.
@@ -1047,6 +1027,54 @@ type ReplicationControllerList struct {
 	Items []ReplicationController `json:"items" description:"list of replication controllers; see http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md"`
 }
 
+// DaemonSpec is the specification of a daemon.
+type DaemonSpec struct {
+	// Selector is a label query over pods that are managed by the daemon.
+	Selector map[string]string `json:"selector,omitempty" description:"label keys and values that must match in order to be controlled by this daemon, if empty defaulted to labels on Pod template; see http://releases.k8s.io/HEAD/docs/user-guide/labels.md#label-selectors"`
+
+	// Template is the object that describes the pod that will be created.
+	// The Daemon will create exactly one copy of this pod on every node
+	// that matches the template's node selector (or on every node if no node
+	// selector is specified).
+	Template *PodTemplateSpec `json:"template,omitempty" description:"object that describes the pod that will be created by this daemon; see http://releases.k8s.io/HEAD/docs/user-guide/replication-controller.md#pod-template"`
+}
+
+// DaemonStatus represents the current status of a daemon.
+type DaemonStatus struct {
+	// CurrentNumberScheduled is the number of nodes that are running exactly 1 copy of the
+	// daemon and are supposed to run the daemon.
+	CurrentNumberScheduled int `json:"currentNumberScheduled" description:"number of nodes that are running exactly 1 copy of the daemon and are supposed to run the daemon"`
+
+	// NumberMisscheduled is the number of nodes that are running the daemon, but are
+	// not supposed to run the daemon.
+	NumberMisscheduled int `json:"numberMisscheduled" description:"number of nodes that are running the Daemon, but are not supposed to run the daemon"`
+
+	// DesiredNumberScheduled is the total number of nodes that should be running the daemon
+	// (including nodes correctly running the daemon).
+	DesiredNumberScheduled int `json:"desiredNumberScheduled" description:"total number of nodes that should be running the Daemon (including nodes correctly running the daemon)"`
+}
+
+// Daemon represents the configuration of a daemon.
+type Daemon struct {
+	TypeMeta   `json:",inline"`
+	ObjectMeta `json:"metadata,omitempty" description:"standard object metadata; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"`
+
+	// Spec defines the desired behavior of this daemon.
+	Spec DaemonSpec `json:"spec,omitempty" description:"specification of the desired behavior of the daemon; http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status"`
+
+	// Status is the current status of this daemon. This data may be
+	// out of date by some window of time.
+	Status DaemonStatus `json:"status,omitempty" description:"most recently observed status of the daemon; populated by the system, read-only; http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status"`
+}
+
+// DaemonList is a collection of daemon.
+type DaemonList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"`
+
+	Items []Daemon `json:"items" description:"list of daemons"`
+}
+
 // Session Affinity Type string
 type ServiceAffinity string
 
@@ -1109,9 +1137,6 @@ type ServiceSpec struct {
 
 	// This service will route traffic to pods having labels matching this selector. If null, no endpoints will be automatically created. If empty, all pods will be selected.
 	Selector map[string]string `json:"selector,omitempty" description:"label keys and values that must match in order to receive traffic for this service; if empty, all pods are selected, if not specified, endpoints must be manually specified; see http://releases.k8s.io/HEAD/docs/user-guide/services.md#overview"`
-
-	// DeprecatedPortalIP
-	DeprecatedPortalIP string `json:"portalIP,omitempty" description:"deprecated, use clusterIP instead"`
 
 	// ClusterIP is usually assigned by the master.  If specified by the user
 	// we will try to respect it or else fail the request.  This field can
@@ -1504,6 +1529,7 @@ type PodLogOptions struct {
 
 // PodAttachOptions is the query options to a Pod's remote attach call
 // TODO: merge w/ PodExecOptions below for stdin, stdout, etc
+// and also when we cut V2, we should export a "StreamOptions" or somesuch that contains Stdin, Stdout, Stder and TTY
 type PodAttachOptions struct {
 	TypeMeta `json:",inline"`
 
@@ -1525,6 +1551,8 @@ type PodAttachOptions struct {
 }
 
 // PodExecOptions is the query options to a Pod's remote exec call
+// TODO: This is largely identical to PodAttachOptions above, make sure they stay in sync and see about merging
+// and also when we cut V2, we should export a "StreamOptions" or somesuch that contains Stdin, Stdout, Stder and TTY
 type PodExecOptions struct {
 	TypeMeta `json:",inline"`
 
@@ -1687,7 +1715,7 @@ type StatusCause struct {
 }
 
 // CauseType is a machine readable value providing more detail about what
-// occured in a status response. An operation may have multiple causes for a
+// occurred in a status response. An operation may have multiple causes for a
 // status (whether Failure or Success).
 type CauseType string
 
@@ -1771,8 +1799,8 @@ type Event struct {
 	// The time at which the event was first recorded. (Time of server receipt is in TypeMeta.)
 	FirstTimestamp util.Time `json:"firstTimestamp,omitempty" description:"the time at which the event was first recorded"`
 
-	// The time at which the most recent occurance of this event was recorded.
-	LastTimestamp util.Time `json:"lastTimestamp,omitempty" description:"the time at which the most recent occurance of this event was recorded"`
+	// The time at which the most recent occurrence of this event was recorded.
+	LastTimestamp util.Time `json:"lastTimestamp,omitempty" description:"the time at which the most recent occurrence of this event was recorded"`
 
 	// The number of times this event has occurred.
 	Count int `json:"count,omitempty" description:"the number of times this event has occurred"`
@@ -1848,6 +1876,8 @@ const (
 	ResourceServices ResourceName = "services"
 	// ReplicationControllers, number
 	ResourceReplicationControllers ResourceName = "replicationcontrollers"
+	// Daemon, number
+	ResourceDaemon ResourceName = "daemon"
 	// ResourceQuotas, number
 	ResourceQuotas ResourceName = "resourcequotas"
 	// ResourceSecrets, number
@@ -1981,20 +2011,6 @@ type ComponentStatusList struct {
 	Items []ComponentStatus `json:"items" description:"list of component status objects"`
 }
 
-// MetadataVolumeSource represents a volume containing metadata about a pod.
-type MetadataVolumeSource struct {
-	// Items is a list of metadata file name
-	Items []MetadataFile `json:"items,omitempty" description:"list of metadata files"`
-}
-
-// MetadataFile expresses information about a file holding pod metadata.
-type MetadataFile struct {
-	// Required: Name is the name of the file
-	Name string `json:"name" description:"the name of the file to be created"`
-	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
-	FieldRef ObjectFieldSelector `json:"fieldRef" description:"selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"`
-}
-
 // SecurityContext holds security configuration that will be applied to a container.  SecurityContext
 // contains duplication of some existing fields from the Container resource.  These duplicate fields
 // will be populated based on the Container configuration if they are not set.  Defining them on
@@ -2043,84 +2059,4 @@ type RangeAllocation struct {
 
 	Range string `json:"range" description:"a range string that identifies the range represented by 'data'; required"`
 	Data  []byte `json:"data" description:"a bit array containing all allocated addresses in the previous segment"`
-}
-
-// SecurityContextConstraints governs the ability to make requests that affect the SecurityContext
-// that will be applied to a container.
-type SecurityContextConstraints struct {
-	TypeMeta   `json:",inline"`
-	ObjectMeta `json:"metadata,omitempty"`
-
-	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
-	AllowPrivilegedContainer bool `json:"allowPrivilegedContainer" description:"allow containers to run as privileged"`
-	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
-	AllowedCapabilities []Capability `json:"allowedCapabilities" description:"capabilities that are allowed to be added"`
-	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
-	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" description:"allow the use of the host dir volume plugin"`
-	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
-	AllowHostNetwork bool `json:"allowHostNetwork" description:"allow the use of the hostNetwork in the pod spec"`
-	// AllowHostPorts determines if the policy allows host ports in the containers.
-	AllowHostPorts bool `json:"allowHostPorts" description:"allow the use of the host ports in the containers"`
-	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
-	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" description:"strategy used to generate SELinuxOptions"`
-	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" description:"strategy used to generate RunAsUser"`
-
-	// The users who have permissions to use this security context constraints
-	Users []string `json:"users,omitempty" description:"users allowed to use this SecurityContextConstraints"`
-	// The groups that have permission to use this security context constraints
-	Groups []string `json:"groups,omitempty" description:"groups allowed to use this SecurityContextConstraints"`
-}
-
-// SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
-type SELinuxContextStrategyOptions struct {
-	// Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
-	Type SELinuxContextStrategyType `json:"type,omitempty" description:"strategy used to generate the SELinux context"`
-	// seLinuxOptions required to run as; required for MustRunAs
-	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty" description:"seLinuxOptions required to run as; required for MustRunAs"`
-}
-
-// RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
-type RunAsUserStrategyOptions struct {
-	// Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
-	Type RunAsUserStrategyType `json:"type,omitempty" description:"strategy used to generate RunAsUser"`
-	// UID is the user id that containers must run as.  Required for the MustRunAs strategy if not using
-	// namespace/service account allocated uids.
-	UID *int64 `json:"uid,omitempty" description:"the uid to always run as; required for MustRunAs"`
-	// UIDRangeMin defines the min value for a strategy that allocates by range.
-	UIDRangeMin *int64 `json:"uidRangeMin,omitempty" description:"min value for range based allocators"`
-	// UIDRangeMax defines the max value for a strategy that allocates by range.
-	UIDRangeMax *int64 `json:"uidRangeMax,omitempty" description:"max value for range based allocators"`
-}
-
-// SELinuxContextStrategyType denotes strategy types for generating SELinux options for a
-// SecurityContext
-type SELinuxContextStrategyType string
-
-// RunAsUserStrategyType denotes strategy types for generating RunAsUser values for a
-// SecurityContext
-type RunAsUserStrategyType string
-
-const (
-	// container must have SELinux labels of X applied.
-	SELinuxStrategyMustRunAs SELinuxContextStrategyType = "MustRunAs"
-	// container may make requests for any SELinux context labels.
-	SELinuxStrategyRunAsAny SELinuxContextStrategyType = "RunAsAny"
-
-	// container must run as a particular uid.
-	RunAsUserStrategyMustRunAs RunAsUserStrategyType = "MustRunAs"
-	// container must run as a particular uid.
-	RunAsUserStrategyMustRunAsRange RunAsUserStrategyType = "MustRunAsRange"
-	// container must run as a non-root uid
-	RunAsUserStrategyMustRunAsNonRoot RunAsUserStrategyType = "MustRunAsNonRoot"
-	// container may make requests for any uid.
-	RunAsUserStrategyRunAsAny RunAsUserStrategyType = "RunAsAny"
-)
-
-// SecurityContextConstraintsList is a list of SecurityContextConstraints objects
-type SecurityContextConstraintsList struct {
-	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata,omitempty"`
-
-	Items []SecurityContextConstraints `json:"items"`
 }

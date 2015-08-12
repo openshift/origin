@@ -69,29 +69,6 @@ func deepCopy_api_Capabilities(in Capabilities, out *Capabilities, c *conversion
 	return nil
 }
 
-func deepCopy_api_CephFSVolumeSource(in CephFSVolumeSource, out *CephFSVolumeSource, c *conversion.Cloner) error {
-	if in.Monitors != nil {
-		out.Monitors = make([]string, len(in.Monitors))
-		for i := range in.Monitors {
-			out.Monitors[i] = in.Monitors[i]
-		}
-	} else {
-		out.Monitors = nil
-	}
-	out.User = in.User
-	out.SecretFile = in.SecretFile
-	if in.SecretRef != nil {
-		out.SecretRef = new(LocalObjectReference)
-		if err := deepCopy_api_LocalObjectReference(*in.SecretRef, out.SecretRef, c); err != nil {
-			return err
-		}
-	} else {
-		out.SecretRef = nil
-	}
-	out.ReadOnly = in.ReadOnly
-	return nil
-}
-
 func deepCopy_api_ComponentCondition(in ComponentCondition, out *ComponentCondition, c *conversion.Cloner) error {
 	out.Type = in.Type
 	out.Status = in.Status
@@ -227,6 +204,8 @@ func deepCopy_api_Container(in Container, out *Container, c *conversion.Cloner) 
 	} else {
 		out.SecurityContext = nil
 	}
+	out.Stdin = in.Stdin
+	out.TTY = in.TTY
 	return nil
 }
 
@@ -307,6 +286,69 @@ func deepCopy_api_ContainerStatus(in ContainerStatus, out *ContainerStatus, c *c
 	out.Image = in.Image
 	out.ImageID = in.ImageID
 	out.ContainerID = in.ContainerID
+	return nil
+}
+
+func deepCopy_api_Daemon(in Daemon, out *Daemon, c *conversion.Cloner) error {
+	if err := deepCopy_api_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_DaemonSpec(in.Spec, &out.Spec, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_DaemonStatus(in.Status, &out.Status, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deepCopy_api_DaemonList(in DaemonList, out *DaemonList, c *conversion.Cloner) error {
+	if err := deepCopy_api_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_ListMeta(in.ListMeta, &out.ListMeta, c); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]Daemon, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_api_Daemon(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func deepCopy_api_DaemonSpec(in DaemonSpec, out *DaemonSpec, c *conversion.Cloner) error {
+	if in.Selector != nil {
+		out.Selector = make(map[string]string)
+		for key, val := range in.Selector {
+			out.Selector[key] = val
+		}
+	} else {
+		out.Selector = nil
+	}
+	if in.Template != nil {
+		out.Template = new(PodTemplateSpec)
+		if err := deepCopy_api_PodTemplateSpec(*in.Template, out.Template, c); err != nil {
+			return err
+		}
+	} else {
+		out.Template = nil
+	}
+	return nil
+}
+
+func deepCopy_api_DaemonStatus(in DaemonStatus, out *DaemonStatus, c *conversion.Cloner) error {
+	out.CurrentNumberScheduled = in.CurrentNumberScheduled
+	out.NumberMisscheduled = in.NumberMisscheduled
+	out.DesiredNumberScheduled = in.DesiredNumberScheduled
 	return nil
 }
 
@@ -754,28 +796,6 @@ func deepCopy_api_LocalObjectReference(in LocalObjectReference, out *LocalObject
 	return nil
 }
 
-func deepCopy_api_MetadataFile(in MetadataFile, out *MetadataFile, c *conversion.Cloner) error {
-	out.Name = in.Name
-	if err := deepCopy_api_ObjectFieldSelector(in.FieldRef, &out.FieldRef, c); err != nil {
-		return err
-	}
-	return nil
-}
-
-func deepCopy_api_MetadataVolumeSource(in MetadataVolumeSource, out *MetadataVolumeSource, c *conversion.Cloner) error {
-	if in.Items != nil {
-		out.Items = make([]MetadataFile, len(in.Items))
-		for i := range in.Items {
-			if err := deepCopy_api_MetadataFile(in.Items[i], &out.Items[i], c); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
 func deepCopy_api_NFSVolumeSource(in NFSVolumeSource, out *NFSVolumeSource, c *conversion.Cloner) error {
 	out.Server = in.Server
 	out.Path = in.Path
@@ -1182,14 +1202,6 @@ func deepCopy_api_PersistentVolumeSource(in PersistentVolumeSource, out *Persist
 		}
 	} else {
 		out.ISCSI = nil
-	}
-	if in.CephFS != nil {
-		out.CephFS = new(CephFSVolumeSource)
-		if err := deepCopy_api_CephFSVolumeSource(*in.CephFS, out.CephFS, c); err != nil {
-			return err
-		}
-	} else {
-		out.CephFS = nil
 	}
 	return nil
 }
@@ -1706,42 +1718,6 @@ func deepCopy_api_ResourceRequirements(in ResourceRequirements, out *ResourceReq
 	return nil
 }
 
-func deepCopy_api_RunAsUserStrategyOptions(in RunAsUserStrategyOptions, out *RunAsUserStrategyOptions, c *conversion.Cloner) error {
-	out.Type = in.Type
-	if in.UID != nil {
-		out.UID = new(int64)
-		*out.UID = *in.UID
-	} else {
-		out.UID = nil
-	}
-	if in.UIDRangeMin != nil {
-		out.UIDRangeMin = new(int64)
-		*out.UIDRangeMin = *in.UIDRangeMin
-	} else {
-		out.UIDRangeMin = nil
-	}
-	if in.UIDRangeMax != nil {
-		out.UIDRangeMax = new(int64)
-		*out.UIDRangeMax = *in.UIDRangeMax
-	} else {
-		out.UIDRangeMax = nil
-	}
-	return nil
-}
-
-func deepCopy_api_SELinuxContextStrategyOptions(in SELinuxContextStrategyOptions, out *SELinuxContextStrategyOptions, c *conversion.Cloner) error {
-	out.Type = in.Type
-	if in.SELinuxOptions != nil {
-		out.SELinuxOptions = new(SELinuxOptions)
-		if err := deepCopy_api_SELinuxOptions(*in.SELinuxOptions, out.SELinuxOptions, c); err != nil {
-			return err
-		}
-	} else {
-		out.SELinuxOptions = nil
-	}
-	return nil
-}
-
 func deepCopy_api_SELinuxOptions(in SELinuxOptions, out *SELinuxOptions, c *conversion.Cloner) error {
 	out.User = in.User
 	out.Role = in.Role
@@ -1828,70 +1804,6 @@ func deepCopy_api_SecurityContext(in SecurityContext, out *SecurityContext, c *c
 		out.RunAsUser = nil
 	}
 	out.RunAsNonRoot = in.RunAsNonRoot
-	return nil
-}
-
-func deepCopy_api_SecurityContextConstraints(in SecurityContextConstraints, out *SecurityContextConstraints, c *conversion.Cloner) error {
-	if err := deepCopy_api_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
-		return err
-	}
-	if err := deepCopy_api_ObjectMeta(in.ObjectMeta, &out.ObjectMeta, c); err != nil {
-		return err
-	}
-	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
-	if in.AllowedCapabilities != nil {
-		out.AllowedCapabilities = make([]Capability, len(in.AllowedCapabilities))
-		for i := range in.AllowedCapabilities {
-			out.AllowedCapabilities[i] = in.AllowedCapabilities[i]
-		}
-	} else {
-		out.AllowedCapabilities = nil
-	}
-	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
-	out.AllowHostNetwork = in.AllowHostNetwork
-	out.AllowHostPorts = in.AllowHostPorts
-	if err := deepCopy_api_SELinuxContextStrategyOptions(in.SELinuxContext, &out.SELinuxContext, c); err != nil {
-		return err
-	}
-	if err := deepCopy_api_RunAsUserStrategyOptions(in.RunAsUser, &out.RunAsUser, c); err != nil {
-		return err
-	}
-	if in.Users != nil {
-		out.Users = make([]string, len(in.Users))
-		for i := range in.Users {
-			out.Users[i] = in.Users[i]
-		}
-	} else {
-		out.Users = nil
-	}
-	if in.Groups != nil {
-		out.Groups = make([]string, len(in.Groups))
-		for i := range in.Groups {
-			out.Groups[i] = in.Groups[i]
-		}
-	} else {
-		out.Groups = nil
-	}
-	return nil
-}
-
-func deepCopy_api_SecurityContextConstraintsList(in SecurityContextConstraintsList, out *SecurityContextConstraintsList, c *conversion.Cloner) error {
-	if err := deepCopy_api_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
-		return err
-	}
-	if err := deepCopy_api_ListMeta(in.ListMeta, &out.ListMeta, c); err != nil {
-		return err
-	}
-	if in.Items != nil {
-		out.Items = make([]SecurityContextConstraints, len(in.Items))
-		for i := range in.Items {
-			if err := deepCopy_api_SecurityContextConstraints(in.Items[i], &out.Items[i], c); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
 	return nil
 }
 
@@ -2205,22 +2117,6 @@ func deepCopy_api_VolumeSource(in VolumeSource, out *VolumeSource, c *conversion
 	} else {
 		out.RBD = nil
 	}
-	if in.CephFS != nil {
-		out.CephFS = new(CephFSVolumeSource)
-		if err := deepCopy_api_CephFSVolumeSource(*in.CephFS, out.CephFS, c); err != nil {
-			return err
-		}
-	} else {
-		out.CephFS = nil
-	}
-	if in.Metadata != nil {
-		out.Metadata = new(MetadataVolumeSource)
-		if err := deepCopy_api_MetadataVolumeSource(*in.Metadata, out.Metadata, c); err != nil {
-			return err
-		}
-	} else {
-		out.Metadata = nil
-	}
 	return nil
 }
 
@@ -2259,7 +2155,6 @@ func init() {
 		deepCopy_api_AWSElasticBlockStoreVolumeSource,
 		deepCopy_api_Binding,
 		deepCopy_api_Capabilities,
-		deepCopy_api_CephFSVolumeSource,
 		deepCopy_api_ComponentCondition,
 		deepCopy_api_ComponentStatus,
 		deepCopy_api_ComponentStatusList,
@@ -2270,6 +2165,10 @@ func init() {
 		deepCopy_api_ContainerStateTerminated,
 		deepCopy_api_ContainerStateWaiting,
 		deepCopy_api_ContainerStatus,
+		deepCopy_api_Daemon,
+		deepCopy_api_DaemonList,
+		deepCopy_api_DaemonSpec,
+		deepCopy_api_DaemonStatus,
 		deepCopy_api_DeleteOptions,
 		deepCopy_api_EmptyDirVolumeSource,
 		deepCopy_api_EndpointAddress,
@@ -2301,8 +2200,6 @@ func init() {
 		deepCopy_api_LoadBalancerIngress,
 		deepCopy_api_LoadBalancerStatus,
 		deepCopy_api_LocalObjectReference,
-		deepCopy_api_MetadataFile,
-		deepCopy_api_MetadataVolumeSource,
 		deepCopy_api_NFSVolumeSource,
 		deepCopy_api_Namespace,
 		deepCopy_api_NamespaceList,
@@ -2353,15 +2250,11 @@ func init() {
 		deepCopy_api_ResourceQuotaSpec,
 		deepCopy_api_ResourceQuotaStatus,
 		deepCopy_api_ResourceRequirements,
-		deepCopy_api_RunAsUserStrategyOptions,
-		deepCopy_api_SELinuxContextStrategyOptions,
 		deepCopy_api_SELinuxOptions,
 		deepCopy_api_Secret,
 		deepCopy_api_SecretList,
 		deepCopy_api_SecretVolumeSource,
 		deepCopy_api_SecurityContext,
-		deepCopy_api_SecurityContextConstraints,
-		deepCopy_api_SecurityContextConstraintsList,
 		deepCopy_api_SerializedReference,
 		deepCopy_api_Service,
 		deepCopy_api_ServiceAccount,
