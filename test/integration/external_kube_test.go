@@ -3,9 +3,7 @@
 package integration
 
 import (
-	"crypto/tls"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"testing"
@@ -15,6 +13,8 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/probe"
+	httpprobe "k8s.io/kubernetes/pkg/probe/http"
 	"k8s.io/kubernetes/pkg/watch"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -90,13 +90,12 @@ func healthzProxyTest(masterConfig *configapi.MasterConfig, t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	url.Path = "/healthz"
-	response, err := doHTTPSProbe(url, 1*time.Second)
+	response, body, err := httpprobe.New().Probe(url, 1*time.Second)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Only valid "healthy" response from server is 200 - OK
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("Server reported unhealthy: %v", response)
+	if response != probe.Success {
+		t.Fatalf("Server reported unhealthy: %v", body)
 	}
 }
 
@@ -160,14 +159,5 @@ func copyFile(oldFile, newFile string) (err error) {
 		return
 	}
 	err = out.Sync()
-	return
-}
-
-// TODO(skuznets): Use Kube HTTPSProbe once HTTPS support is added and OpenShift GoDeps are updated
-func doHTTPSProbe(url *url.URL, timeout time.Duration) (result *http.Response, err error) {
-	tlsConfig := &tls.Config{InsecureSkipVerify: true}
-	transport := &http.Transport{TLSClientConfig: tlsConfig}
-	client := &http.Client{Timeout: timeout, Transport: transport}
-	result, err = client.Get(url.String())
 	return
 }
