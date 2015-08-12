@@ -9,6 +9,13 @@ function tryuntil {
   until eval "${@}" || [[ $(date +%s) -gt $timeout ]]; do :; done
 }
 
+# Cleanup cluster resources created by this test
+(
+  set +e
+  oc delete images test
+  exit 0
+) 2>/dev/null 1>&2
+
 defaultimage="openshift/origin-\${component}:latest"
 USE_IMAGES=${USE_IMAGES:-$defaultimage}
 
@@ -66,11 +73,12 @@ oc describe "${imagename}"
 [ "$(oc describe ${imagename} | grep "Image Name:")" ]
 echo "imageStreams: ok"
 
-# oc tag
-# start with an empty target image stream
-echo '{"apiVersion":"v1", "kind": "ImageStream", "metadata": {"name":"tagtest"}}' | oc create -f -
-echo '{"apiVersion":"v1", "kind": "ImageStream", "metadata": {"name":"tagtest2"}}' | oc create -f -
+[ ! "$(oc import-image mysql --from=mysql)" ]
+[ "$(oc import-image mysql --from=mysql --confirm | grep "sha256:")" ]
+oc describe is/mysql
+echo "import-image: ok"
 
+# oc tag
 oc tag mysql:latest tagtest:tag1
 [ "$(oc get is/tagtest -t '{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
 
@@ -78,7 +86,7 @@ oc tag mysql@${name} tagtest:tag2
 [ "$(oc get is/tagtest -t '{{(index .spec.tags 1).from.kind}}')" == "ImageStreamImage" ]
 
 oc tag mysql:notfound tagtest:tag3
-[ "$(oc get is/tagtest -t '{{(index .spec.tags 2).from.kind}}')" == "DockerImage" ]
+[ "$(oc get is/tagtest -t '{{(index .spec.tags 2).from.kind}}')" == "ImageStreamTag" ]
 
 oc tag --source=imagestreamtag mysql:latest tagtest:tag4
 [ "$(oc get is/tagtest -t '{{(index .spec.tags 3).from.kind}}')" == "ImageStreamTag" ]
@@ -98,6 +106,9 @@ oc tag --source=docker mysql:latest tagtest:tag8
 oc tag mysql:latest tagtest:zzz tagtest2:zzz
 [ "$(oc get is/tagtest -t '{{(index .spec.tags 8).from.kind}}')" == "ImageStreamTag" ]
 [ "$(oc get is/tagtest2 -t '{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
+
+# TODO: bug
+# oc tag registry-1.docker.io/openshift/origin:v1.0.4 newrepo:latest
 
 # test creating streams that don't exist
 [ -z "$(oc get imageStreams tagtest3 -t "{{.status.dockerImageRepository}}")" ]

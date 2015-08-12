@@ -520,6 +520,8 @@ _oc_import-image()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--confirm")
+    flags+=("--from=")
     flags+=("--help")
     flags+=("-h")
 
