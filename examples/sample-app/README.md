@@ -354,11 +354,11 @@ the ip address shown below with the correct one for your environment.
             # Create a service account that the router will use.  This service account must have access to use a
             # security context constraint that allows host ports
             $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
-            
+         
             # You may either create a new SCC or use an existing SCC.  The following command will
-            # display existing SCCs and true if they support host ports.
-            $ oc get scc -t "{{range .items}}{{.metadata.name}}: {{.allowHostPorts}}, {{end}}"
-            privileged: true, restricted: false,
+            # display existing SCCs and if they support host network and host ports.
+            $ oc get scc -t "{{range .items}}{{.metadata.name}}: n={{.allowHostNetwork}},p={{.allowHostPorts}}; {{end}}"
+            privileged: n=true,p=true; restricted: n=false,p=false;
             
             # Edit your security context constraint to add the new service account in the users section
             # in the form of system:serviceaccount:<namespace>:<name>.  In the above example the full
@@ -366,7 +366,10 @@ the ip address shown below with the correct one for your environment.
             $ oc edit scc <name>
 
             $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-            $ oadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig --service-account=router
+            # The router by default uses the host network. If you wish to
+            # use the container network stack and expose ports, add the
+            # --host-network=false option to the oadm router command.
+            $ oadm router --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig --service-account=router
               router # the service
               router # the deployment config
 
