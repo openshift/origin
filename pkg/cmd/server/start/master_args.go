@@ -36,10 +36,6 @@ type MasterArgs struct {
 	// etcd will be started.
 	EtcdAddr flagtypes.Addr
 
-	// PortalNet is a CIDR notation IP range from which to assign portal IPs. This must not overlap
-	// with any IP ranges assigned to nodes for pods.
-	PortalNet flagtypes.IPNet
-
 	// MasterPublicAddr is the master address for use by public clients, if different (host, host:port,
 	// or URL). Defaults to same as --master.
 	MasterPublicAddr flagtypes.Addr
@@ -84,7 +80,6 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 	flags.Var(&args.MasterAddr, prefix+"master", "The master address for use by OpenShift components (host, host:port, or URL). Scheme and port default to the --listen scheme and port. When unset, attempt to use the first public IPv4 non-loopback address registered on this host.")
 	flags.Var(&args.MasterPublicAddr, prefix+"public-master", "The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as --master.")
 	flags.Var(&args.EtcdAddr, prefix+"etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
-	flags.Var(&args.PortalNet, prefix+"portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 	flags.Var(&args.DNSBindAddr, prefix+"dns", "The address to listen for DNS requests on.")
 	flags.BoolVar(&args.PauseControllers, prefix+"pause", false, "If true, wait for a signal before starting the controllers.")
 
@@ -102,7 +97,6 @@ func NewDefaultMasterArgs() *MasterArgs {
 	config := &MasterArgs{
 		MasterAddr:       flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		EtcdAddr:         flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "https", DefaultPort: 4001}.Default(),
-		PortalNet:        flagtypes.DefaultIPNet("172.30.0.0/16"),
 		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "tcp", DefaultPort: 53, AllowPrefix: true}.Default(),
 
@@ -250,6 +244,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			NetworkPluginName:  args.NetworkArgs.NetworkPluginName,
 			ClusterNetworkCIDR: args.NetworkArgs.ClusterNetworkCIDR,
 			HostSubnetLength:   args.NetworkArgs.HostSubnetLength,
+			ServiceNetworkCIDR: args.NetworkArgs.ServiceNetworkCIDR,
 		},
 	}
 
@@ -420,8 +415,6 @@ func (args MasterArgs) BuildSerializeableEtcdConfig() (*configapi.EtcdConfig, er
 
 // BuildSerializeableKubeMasterConfig creates a fully specified kubernetes master startup configuration based on MasterArgs
 func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.KubernetesMasterConfig, error) {
-	servicesSubnet := net.IPNet(args.PortalNet)
-
 	masterAddr, err := args.GetMasterAddress()
 	if err != nil {
 		return nil, err
@@ -440,7 +433,7 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 
 	config := &configapi.KubernetesMasterConfig{
 		MasterIP:            masterIP,
-		ServicesSubnet:      servicesSubnet.String(),
+		ServicesSubnet:      args.NetworkArgs.ServiceNetworkCIDR,
 		StaticNodeNames:     staticNodeList.List(),
 		SchedulerConfigFile: args.SchedulerConfigFile,
 	}

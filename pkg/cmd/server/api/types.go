@@ -231,6 +231,7 @@ type NetworkConfig struct {
 	NetworkPluginName  string
 	ClusterNetworkCIDR string
 	HostSubnetLength   uint
+	ServiceNetworkCIDR string
 }
 
 type ImageConfig struct {

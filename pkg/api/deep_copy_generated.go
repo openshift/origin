@@ -2199,6 +2199,7 @@ func deepCopy_api_ClusterNetwork(in sdnapi.ClusterNetwork, out *sdnapi.ClusterNe
 	}
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
+	out.ServiceNetwork = in.ServiceNetwork
 	return nil
 }
 

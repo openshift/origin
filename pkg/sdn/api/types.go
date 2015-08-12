@@ -10,6 +10,7 @@ type ClusterNetwork struct {
 
 	Network          string
 	HostSubnetLength int
+	ServiceNetwork   string
 }
 
 type ClusterNetworkList struct {

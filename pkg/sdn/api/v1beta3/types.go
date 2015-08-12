@@ -10,6 +10,7 @@ type ClusterNetwork struct {
 
 	Network          string `json:"network" description:"CIDR string to specify the global overlay network's L3 space"`
 	HostSubnetLength int    `json:"hostsubnetlength" description:"number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host"`
+	ServiceNetwork   string `json:"serviceNetwork" description:"CIDR string to specify the service network"`
 }
 
 type ClusterNetworkList struct {

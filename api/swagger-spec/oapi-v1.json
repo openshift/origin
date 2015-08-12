@@ -14366,7 +14366,8 @@
     "id": "v1.ClusterNetwork",
     "required": [
      "network",
-     "hostsubnetlength"
+     "hostsubnetlength",
+     "serviceNetwork"
     ],
     "properties": {
      "kind": {
@@ -14388,6 +14389,10 @@
       "type": "integer",
       "format": "int32",
       "description": "number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host"
+     },
+     "serviceNetwork": {
+      "type": "string",
+      "description": "CIDR string to specify the service network"
      }
     }
    },

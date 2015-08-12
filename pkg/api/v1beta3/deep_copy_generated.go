@@ -2110,6 +2110,7 @@ func deepCopy_v1beta3_ClusterNetwork(in sdnapiv1beta3.ClusterNetwork, out *sdnap
 	}
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
+	out.ServiceNetwork = in.ServiceNetwork
 	return nil
 }
 
