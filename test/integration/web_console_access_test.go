@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"testing"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -30,8 +31,11 @@ func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirect
 	if resp.StatusCode != expectedStatus {
 		t.Errorf("Expected status %d for %q, got %d", expectedStatus, url, resp.StatusCode)
 	}
-	if resp.Header.Get("Location") != expectedRedirectLocation {
-		t.Errorf("Expected redirecttion to %q for %q, got %q instead", expectedRedirectLocation, url, resp.Header.Get("Location"))
+	// ignore query parameters
+	location := resp.Header.Get("Location")
+	location = strings.SplitN(location, "?", 2)[0]
+	if location != expectedRedirectLocation {
+		t.Errorf("Expected redirecttion to %q for %q, got %q instead", expectedRedirectLocation, url, location)
 	}
 	return resp
 }
@@ -49,12 +53,13 @@ func TestAccessOriginWebConsole(t *testing.T) {
 		statusCode int
 		location   string
 	}{
-		"":             {http.StatusFound, masterOptions.AssetConfig.PublicURL},
-		"healthz":      {http.StatusOK, ""},
-		"login":        {http.StatusOK, ""},
-		"console":      {http.StatusMovedPermanently, "/console/"},
-		"console/":     {http.StatusOK, ""},
-		"console/java": {http.StatusOK, ""},
+		"":                    {http.StatusFound, masterOptions.AssetConfig.PublicURL},
+		"healthz":             {http.StatusOK, ""},
+		"login":               {http.StatusOK, ""},
+		"oauth/token/request": {http.StatusFound, masterOptions.AssetConfig.MasterPublicURL + "/oauth/authorize"},
+		"console":             {http.StatusMovedPermanently, "/console/"},
+		"console/":            {http.StatusOK, ""},
+		"console/java":        {http.StatusOK, ""},
 	} {
 		url := masterOptions.AssetConfig.MasterPublicURL + "/" + endpoint
 		tryAccessURL(t, url, exp.statusCode, exp.location)
@@ -82,14 +87,18 @@ func TestAccessDisabledWebConsole(t *testing.T) {
 		}
 	}
 
-	for endpoint, expectedStatus := range map[string]int{
-		"healthz":      http.StatusOK,
-		"login":        http.StatusOK,
-		"console":      http.StatusForbidden,
-		"console/":     http.StatusForbidden,
-		"console/java": http.StatusForbidden,
+	for endpoint, exp := range map[string]struct {
+		statusCode int
+		location   string
+	}{
+		"healthz":             {http.StatusOK, ""},
+		"login":               {http.StatusOK, ""},
+		"oauth/token/request": {http.StatusFound, masterOptions.AssetConfig.MasterPublicURL + "/oauth/authorize"},
+		"console":             {http.StatusForbidden, ""},
+		"console/":            {http.StatusForbidden, ""},
+		"console/java":        {http.StatusForbidden, ""},
 	} {
 		url := masterOptions.AssetConfig.MasterPublicURL + "/" + endpoint
-		tryAccessURL(t, url, expectedStatus, "")
+		tryAccessURL(t, url, exp.statusCode, exp.location)
 	}
 }
