@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/watch"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
@@ -12,27 +13,39 @@ type FakeNetNamespace struct {
 	Fake *Fake
 }
 
-func (c *FakeNetNamespace) List() (*sdnapi.NetNamespaceList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-netnamespaces"}, &sdnapi.NetNamespaceList{})
-	return obj.(*sdnapi.NetNamespaceList), err
-}
-
 func (c *FakeNetNamespace) Get(name string) (*sdnapi.NetNamespace, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-netnamespaces"}, &sdnapi.NetNamespace{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("netnamespaces", name), &sdnapi.NetNamespace{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*sdnapi.NetNamespace), err
 }
 
-func (c *FakeNetNamespace) Create(sdn *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-netnamespace"}, &sdnapi.NetNamespace{})
+func (c *FakeNetNamespace) List() (*sdnapi.NetNamespaceList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("netnamespaces", nil, nil), &sdnapi.NetNamespaceList{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*sdnapi.NetNamespaceList), err
+}
+
+func (c *FakeNetNamespace) Create(inObj *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("netnamespaces", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*sdnapi.NetNamespace), err
 }
 
 func (c *FakeNetNamespace) Delete(name string) error {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-netnamespace"})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("netnamespaces", name), &sdnapi.NetNamespace{})
+	return err
 }
 
 func (c *FakeNetNamespace) Watch(resourceVersion string) (watch.Interface, error) {
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-netnamespaces"})
-	return nil, nil
+	c.Fake.Invokes(ktestclient.NewRootWatchAction("netnamespaces", nil, nil, resourceVersion), nil)
+	return c.Fake.Watch, c.Fake.Err()
 }

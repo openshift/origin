@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -13,30 +14,43 @@ type FakeClusterRoles struct {
 	Fake *Fake
 }
 
+func (c *FakeClusterRoles) Get(name string) (*authorizationapi.ClusterRole, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("clusterroles", name), &authorizationapi.ClusterRole{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*authorizationapi.ClusterRole), err
+}
+
 func (c *FakeClusterRoles) List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterRoleList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-clusterRoles"}, &authorizationapi.ClusterRoleList{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("clusterroles", label, field), &authorizationapi.ClusterRoleList{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.ClusterRoleList), err
 }
 
-func (c *FakeClusterRoles) Get(name string) (*authorizationapi.ClusterRole, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-clusterRole"}, &authorizationapi.ClusterRole{})
+func (c *FakeClusterRoles) Create(inObj *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("clusterroles", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.ClusterRole), err
 }
 
-func (c *FakeClusterRoles) Create(role *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-clusterRole", Value: role}, &authorizationapi.ClusterRole{})
-	return obj.(*authorizationapi.ClusterRole), err
-}
+func (c *FakeClusterRoles) Update(inObj *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("clusterroles", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
 
-func (c *FakeClusterRoles) Update(role *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-clusterRole"}, &authorizationapi.ClusterRole{})
 	return obj.(*authorizationapi.ClusterRole), err
 }
 
 func (c *FakeClusterRoles) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-clusterRole", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("clusterroles", name), &authorizationapi.ClusterRole{})
+	return err
 }

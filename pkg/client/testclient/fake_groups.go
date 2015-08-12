@@ -1,9 +1,11 @@
 package testclient
 
 import (
-	userapi "github.com/openshift/origin/pkg/user/api"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+
+	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 // FakeGroups implements GroupsInterface. Meant to be embedded into a struct to get a default
@@ -12,30 +14,43 @@ type FakeGroups struct {
 	Fake *Fake
 }
 
+func (c *FakeGroups) Get(name string) (*userapi.Group, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("groups", name), &userapi.Group{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*userapi.Group), err
+}
+
 func (c *FakeGroups) List(label labels.Selector, field fields.Selector) (*userapi.GroupList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-groups"}, &userapi.GroupList{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("groups", label, field), &userapi.GroupList{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*userapi.GroupList), err
 }
 
-func (c *FakeGroups) Get(name string) (*userapi.Group, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-group", Value: name}, &userapi.Group{})
+func (c *FakeGroups) Create(inObj *userapi.Group) (*userapi.Group, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("groups", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*userapi.Group), err
 }
 
-func (c *FakeGroups) Create(group *userapi.Group) (*userapi.Group, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-group", Value: group}, &userapi.Group{})
-	return obj.(*userapi.Group), err
-}
+func (c *FakeGroups) Update(inObj *userapi.Group) (*userapi.Group, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("groups", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
 
-func (c *FakeGroups) Update(group *userapi.Group) (*userapi.Group, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-group", Value: group}, &userapi.Group{})
 	return obj.(*userapi.Group), err
 }
 
 func (c *FakeGroups) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-group"})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("groups", name), &userapi.Group{})
+	return err
 }

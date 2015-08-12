@@ -94,7 +94,7 @@ func TestCreateProjectOK(t *testing.T) {
 	if len(mockClient.Actions()) != 1 {
 		t.Errorf("Expected client action for create")
 	}
-	if mockClient.Actions()[0].Action != "create-namespace" {
+	if !mockClient.Actions()[0].Matches("create", "namespaces") {
 		t.Errorf("Expected call to create-namespace")
 	}
 }
@@ -136,7 +136,7 @@ func TestDeleteProject(t *testing.T) {
 	if len(mockClient.Actions()) != 1 {
 		t.Errorf("Expected client action for delete")
 	}
-	if mockClient.Actions()[0].Action != "delete-namespace" {
+	if !mockClient.Actions()[0].Matches("delete", "namespaces") {
 		t.Errorf("Expected call to delete-namespace")
 	}
 }

@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/watch"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
@@ -12,33 +13,39 @@ type FakeHostSubnet struct {
 	Fake *Fake
 }
 
-func (c *FakeHostSubnet) List() (*sdnapi.HostSubnetList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-subnets"}, &sdnapi.HostSubnetList{})
-	return obj.(*sdnapi.HostSubnetList), err
-}
-
 func (c *FakeHostSubnet) Get(name string) (*sdnapi.HostSubnet, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-subnets"}, &sdnapi.HostSubnet{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("hostsubnets", name), &sdnapi.HostSubnet{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*sdnapi.HostSubnet), err
 }
 
-func (c *FakeHostSubnet) Create(sdn *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-subnet"}, &sdnapi.HostSubnet{})
+func (c *FakeHostSubnet) List() (*sdnapi.HostSubnetList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("hostsubnets", nil, nil), &sdnapi.HostSubnetList{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*sdnapi.HostSubnetList), err
+}
+
+func (c *FakeHostSubnet) Create(inObj *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("hostsubnets", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*sdnapi.HostSubnet), err
 }
 
 func (c *FakeHostSubnet) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-subnet"})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("hostsubnets", name), &sdnapi.HostSubnet{})
+	return err
 }
 
 func (c *FakeHostSubnet) Watch(resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-subnets"})
-	return nil, nil
+	c.Fake.Invokes(ktestclient.NewRootWatchAction("hostsubnets", nil, nil, resourceVersion), nil)
+	return c.Fake.Watch, c.Fake.Err()
 }

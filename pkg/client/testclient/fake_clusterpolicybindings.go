@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
@@ -14,33 +15,39 @@ type FakeClusterPolicyBindings struct {
 	Fake *Fake
 }
 
-func (c *FakeClusterPolicyBindings) List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-clusterPolicyBindings"}, &authorizationapi.ClusterPolicyBindingList{})
-	return obj.(*authorizationapi.ClusterPolicyBindingList), err
-}
-
 func (c *FakeClusterPolicyBindings) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-clusterPolicyBinding"}, &authorizationapi.ClusterPolicyBinding{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("clusterpolicybindings", name), &authorizationapi.ClusterPolicyBinding{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.ClusterPolicyBinding), err
 }
 
-func (c *FakeClusterPolicyBindings) Create(policyBinding *authorizationapi.ClusterPolicyBinding) (*authorizationapi.ClusterPolicyBinding, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-clusterPolicyBinding", Value: policyBinding}, &authorizationapi.ClusterPolicyBinding{})
+func (c *FakeClusterPolicyBindings) List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyBindingList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("clusterpolicybindings", label, field), &authorizationapi.ClusterPolicyBindingList{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*authorizationapi.ClusterPolicyBindingList), err
+}
+
+func (c *FakeClusterPolicyBindings) Create(inObj *authorizationapi.ClusterPolicyBinding) (*authorizationapi.ClusterPolicyBinding, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("clusterpolicybindings", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.ClusterPolicyBinding), err
 }
 
 func (c *FakeClusterPolicyBindings) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-clusterPolicyBinding", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("clusterpolicybindings", name), &authorizationapi.ClusterPolicyBinding{})
+	return err
 }
 
 func (c *FakeClusterPolicyBindings) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-clusterPolicyBinding"})
-	return nil, nil
+	c.Fake.Invokes(ktestclient.NewRootWatchAction("clusterpolicybindings", label, field, resourceVersion), nil)
+	return c.Fake.Watch, c.Fake.Err()
 }

@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
@@ -15,38 +16,48 @@ type FakeTemplates struct {
 	Namespace string
 }
 
+func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("templates", c.Namespace, name), &templateapi.Template{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*templateapi.Template), err
+}
+
 func (c *FakeTemplates) List(label labels.Selector, field fields.Selector) (*templateapi.TemplateList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-templates"}, &templateapi.TemplateList{})
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("templates", c.Namespace, label, field), &templateapi.TemplateList{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*templateapi.TemplateList), err
 }
 
-func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-template"}, &templateapi.Template{})
+func (c *FakeTemplates) Create(inObj *templateapi.Template) (*templateapi.Template, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("templates", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*templateapi.Template), err
 }
 
-func (c *FakeTemplates) Create(template *templateapi.Template) (*templateapi.Template, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-template", Value: template}, &templateapi.Template{})
-	return obj.(*templateapi.Template), err
-}
+func (c *FakeTemplates) Update(inObj *templateapi.Template) (*templateapi.Template, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("templates", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
 
-func (c *FakeTemplates) Update(template *templateapi.Template) (*templateapi.Template, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-template"}, &templateapi.Template{})
 	return obj.(*templateapi.Template), err
 }
 
 func (c *FakeTemplates) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-template", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("templates", c.Namespace, name), &templateapi.Template{})
+	return err
 }
 
 func (c *FakeTemplates) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-templates"})
-	return nil, nil
+	c.Fake.Invokes(ktestclient.NewWatchAction("templates", c.Namespace, label, field, resourceVersion), nil)
+	return c.Fake.Watch, nil
 }

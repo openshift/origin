@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
@@ -19,14 +20,50 @@ type FakeBuildConfigs struct {
 	Namespace string
 }
 
+func (c *FakeBuildConfigs) Get(name string) (*buildapi.BuildConfig, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("buildconfigs", c.Namespace, name), &buildapi.BuildConfig{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*buildapi.BuildConfig), err
+}
+
 func (c *FakeBuildConfigs) List(label labels.Selector, field fields.Selector) (*buildapi.BuildConfigList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-buildconfig"}, &buildapi.BuildConfigList{})
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("buildconfigs", c.Namespace, label, field), &buildapi.BuildConfigList{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*buildapi.BuildConfigList), err
 }
 
-func (c *FakeBuildConfigs) Get(name string) (*buildapi.BuildConfig, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-buildconfig", Value: name}, &buildapi.BuildConfig{})
+func (c *FakeBuildConfigs) Create(inObj *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("buildconfigs", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*buildapi.BuildConfig), err
+}
+
+func (c *FakeBuildConfigs) Update(inObj *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("buildconfigs", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*buildapi.BuildConfig), err
+}
+
+func (c *FakeBuildConfigs) Delete(name string) error {
+	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("buildconfigs", c.Namespace, name), &buildapi.BuildConfig{})
+	return err
+}
+
+func (c *FakeBuildConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	c.Fake.Invokes(ktestclient.NewWatchAction("buildconfigs", c.Namespace, label, field, resourceVersion), nil)
+	return c.Fake.Watch, nil
 }
 
 func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {
@@ -40,30 +77,13 @@ func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTrigge
 	}
 }
 
-func (c *FakeBuildConfigs) Create(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-buildconfig"}, &buildapi.BuildConfig{})
-	return obj.(*buildapi.BuildConfig), err
-}
-
-func (c *FakeBuildConfigs) Update(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-buildconfig"}, &buildapi.BuildConfig{})
-	return obj.(*buildapi.BuildConfig), err
-}
-
-func (c *FakeBuildConfigs) Delete(name string) error {
-	_, err := c.Fake.Invokes(FakeAction{Action: "delete-buildconfig", Value: name}, &buildapi.BuildConfig{})
-	return err
-}
-
-func (c *FakeBuildConfigs) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-buildconfigs"})
-	return nil, nil
-}
-
 func (c *FakeBuildConfigs) Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "instantiate-buildconfig", Value: request}, &buildapi.Build{})
+	action := ktestclient.NewCreateAction("buildconfigs", c.Namespace, request)
+	action.Subresource = "instantiate"
+	obj, err := c.Fake.Invokes(action, &buildapi.Build{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*buildapi.Build), err
 }
