@@ -35,7 +35,7 @@ type AuthConfig struct {
 }
 
 func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
-	client, err := etcd.GetAndTestEtcdClient(options.EtcdClientInfo)
+	client, err := etcd.EtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}

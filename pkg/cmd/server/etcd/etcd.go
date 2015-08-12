@@ -74,6 +74,18 @@ func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 // connect to the etcd server and block until the server responds at least once, or return an
 // error if the server never responded.
 func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
+	etcdClient, err := EtcdClient(etcdClientInfo)
+	if err != nil {
+		return nil, err
+	}
+	if err := TestEtcdClient(etcdClient); err != nil {
+		return nil, err
+	}
+	return etcdClient, nil
+}
+
+// EtcdClient creates an etcd client based on the provided config.
+func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
 	// etcd does a poor job of setting up the transport - use the Kube client stack
 	transport, err := client.TransportFor(&client.Config{
 		TLSClientConfig: client.TLSClientConfig{
@@ -89,19 +101,24 @@ func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdcli
 
 	etcdClient := etcdclient.NewClient(etcdClientInfo.URLs)
 	etcdClient.SetTransport(transport.(*http.Transport))
+	return etcdClient, nil
+}
 
+// TestEtcdClient verifies a client is functional.  It will attempt to
+// connect to the etcd server and block until the server responds at least once, or return an
+// error if the server never responded.
+func TestEtcdClient(etcdClient *etcdclient.Client) error {
 	for i := 0; ; i++ {
 		_, err := etcdClient.Get("/", false, false)
 		if err == nil || etcdstorage.IsEtcdNotFound(err) {
 			break
 		}
 		if i > 100 {
-			return nil, fmt.Errorf("could not reach etcd: %v", err)
+			return fmt.Errorf("could not reach etcd: %v", err)
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-
-	return etcdClient, nil
+	return nil
 }
 
 // DefaultEtcdClientTransport sets defaults for an etcd Transport that are suitable

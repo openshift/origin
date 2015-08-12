@@ -42,7 +42,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	// Connect and setup etcd interfaces
-	etcdClient, err := etcd.GetAndTestEtcdClient(options.EtcdClientInfo)
+	etcdClient, err := etcd.EtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}

@@ -201,18 +201,18 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
 
 func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, error) {
 	startOptions := start.AllInOneOptions{}
-	startOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions()
-	startOptions.MasterArgs.NodeList = nil
+	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions()
+	startOptions.MasterOptions.MasterArgs.NodeList = nil
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.Complete()
-	startOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", "master"))
+	startOptions.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", "master"))
 	startOptions.NodeArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
-	startOptions.NodeArgs.MasterCertDir = startOptions.MasterArgs.ConfigDir.Value()
+	startOptions.NodeArgs.MasterCertDir = startOptions.MasterOptions.MasterArgs.ConfigDir.Value()
 
-	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
+	if err := CreateMasterCerts(startOptions.MasterOptions.MasterArgs); err != nil {
 		return nil, nil, err
 	}
-	if err := CreateBootstrapPolicy(startOptions.MasterArgs); err != nil {
+	if err := CreateBootstrapPolicy(startOptions.MasterOptions.MasterArgs); err != nil {
 		return nil, nil, err
 	}
 
@@ -220,7 +220,7 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, e
 		return nil, nil, err
 	}
 
-	masterOptions, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	masterOptions, err := startOptions.MasterOptions.MasterArgs.BuildSerializeableMasterConfig()
 	if err != nil {
 		return nil, nil, err
 	}

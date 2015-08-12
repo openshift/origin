@@ -125,7 +125,7 @@ type MasterConfig struct {
 }
 
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
-	client, err := etcd.GetAndTestEtcdClient(options.EtcdClientInfo)
+	client, err := etcd.EtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}

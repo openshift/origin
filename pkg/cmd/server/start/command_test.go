@@ -271,5 +271,5 @@ func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.M
 	if nodeCfg == nil && nodeErr == nil {
 		nodeErr = errors.New("did not find node config")
 	}
-	return cfg.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
+	return cfg.MasterOptions.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
 }
