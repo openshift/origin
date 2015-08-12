@@ -17,31 +17,37 @@
 %global commit 86b5e46426ba828f49195af21c56f7c6674b48f7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
-# OpenShift specific ldflags from hack/common.sh os::build:ldflags
+# ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.0.1 -X github.com/openshift/origin/pkg/version.commitFromGit 86b5e46 -X k8s.io/kubernetes/pkg/version.gitCommit 6241a21 -X k8s.io/kubernetes/pkg/version.gitVersion v0.11.0-330-g6241a21
 }
 
-Name:           openshift
+%if "%{dist}" == ".el7aos"
+%global package_name atomic-openshift
+%global product_name Atomic OpenShift
+%else
+%global package_name origin
+%global product_name Origin
+%endif
+
+Name:           %{package_name}
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the rel-eng directory of this project
 Version:        0.0.1
 Release:        0%{?dist}
-Summary:        Open Source Platform as a Service by Red Hat
+Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
 ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
-
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.4
-
 
 %description
 %{summary}
 
 %package master
-Summary:        OpenShift Master
+Summary:        %{product_name} Master
 Requires:       %{name} = %{version}-%{release}
 Requires(post): systemd
 Requires(preun): systemd
@@ -51,7 +57,7 @@ Requires(postun): systemd
 %{summary}
 
 %package node
-Summary:        OpenShift Node
+Summary:        %{product_name} Node
 Requires:       %{name} = %{version}-%{release}
 Requires:       docker-io >= %{docker_version}
 Requires:       tuned-profiles-%{name}-node
@@ -66,7 +72,7 @@ Requires(postun): systemd
 %{summary}
 
 %package -n tuned-profiles-%{name}-node
-Summary:        Tuned profiles for OpenShift Node hosts
+Summary:        Tuned profiles for %{product_name} Node hosts
 Requires:       tuned >= %{tuned_version}
 Requires:       %{name} = %{version}-%{release}
 
@@ -74,7 +80,7 @@ Requires:       %{name} = %{version}-%{release}
 %{summary}
 
 %package clients
-Summary:      Openshift Client binaries for Linux, Mac OSX, and Windows
+Summary:      %{product_name} Client binaries for Linux, Mac OSX, and Windows
 BuildRequires: golang-pkg-darwin-amd64
 BuildRequires: golang-pkg-windows-386
 
@@ -82,21 +88,21 @@ BuildRequires: golang-pkg-windows-386
 %{summary}
 
 %package dockerregistry
-Summary:        Docker Registry v2 for OpenShift
+Summary:        Docker Registry v2 for %{product_name}
 Requires:       %{name} = %{version}-%{release}
 
 %description dockerregistry
 %{summary}
 
 %package pod
-Summary:        OpenShift Pod
+Summary:        %{product_name} Pod
 Requires:       %{name} = %{version}-%{release}
 
 %description pod
 %{summary}
 
 %package sdn-ovs
-Summary:          OpenShift SDN Plugin for Open vSwitch
+Summary:          %{product_name} SDN Plugin for Open vSwitch
 Requires:         openvswitch >= %{openvswitch_version}
 Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
@@ -104,81 +110,6 @@ Requires:         ethtool
 
 %description sdn-ovs
 %{summary}
-
-
-# ====
-%package -n atomic-enterprise
-Summary:         Open Source Platform as a Service by Red Hat
-
-
-%description -n atomic-enterprise
-%{summary}
-
-
-%package -n atomic-enterprise-master
-Summary:        Atomic Enterprise Master
-Requires:       atomic-enterprise = %{version}-%{release}
-Requires(post): systemd
-Requires(preun): systemd
-Requires(postun): systemd
-
-%description -n atomic-enterprise-master
-%{summary}
-
-%package -n atomic-enterprise-node
-Summary:        Origin Node
-Requires:       atomic-enterprise = %{version}-%{release}
-Requires:       docker-io >= %{docker_version}
-Requires:       tuned-profiles-atomic-enterprise-node
-Requires:       util-linux
-Requires:       socat
-Requires:       nfs-utils
-Requires(post): systemd
-Requires(preun): systemd
-Requires(postun): systemd
-
-%description -n atomic-enterprise-node
-%{summary}
-
-%package -n tuned-profiles-atomic-enterprise-node
-Summary:        Tuned profiles for Origin Node hosts
-Requires:       tuned >= %{tuned_version}
-Requires:       atomic-enterprise = %{version}-%{release}
-
-%description -n tuned-profiles-atomic-enterprise-node
-%{summary}
-
-%package -n atomic-enterprise-clients
-Summary:      Origin Client binaries for Linux, Mac OSX, and Windows
-BuildRequires: golang-pkg-windows-386
-
-%description -n atomic-enterprise-clients
-%{summary}
-
-%package -n atomic-enterprise-dockerregistry
-Summary:        Docker Registry v2 for Origin
-Requires:       atomic-enterprise = %{version}-%{release}
-
-%description -n atomic-enterprise-dockerregistry
-%{summary}
-
-%package -n atomic-enterprise-pod
-Summary:        Origin Pod
-Requires:       atomic-enterprise = %{version}-%{release}
-
-%description -n atomic-enterprise-pod
-%{summary}
-
-%package -n atomic-enterprise-sdn-ovs
-Summary:          Origin SDN Plugin for Open vSwitch
-Requires:         openvswitch >= %{openvswitch_version}
-Requires:         atomic-enterprise-node = %{version}-%{release}
-Requires:         bridge-utils
-Requires:         ethtool
-
-%description -n atomic-enterprise-sdn-ovs
-%{summary}
-# ========
 
 %prep
 %setup -q
@@ -210,7 +141,8 @@ do
         go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
 
-# Build only 'openshift' for other platforms
+# Build clients for other platforms
+# TODO: build cmd/oc instead of openshift
 GOOS=windows GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
 GOOS=darwin GOARCH=amd64 go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
 
@@ -230,49 +162,38 @@ do
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
 done
 
-# openshift == atomic-enterprise
-install -p -m 755 _build/bin/openshift _build/bin/atomic-enterprise
-install -p -m 755 _build/bin/atomic-enterprise %{buildroot}%{_bindir}/atomic-enterprise
+# Install client executable for windows and mac
+install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
+install -p -m 755 _build/bin/openshift %{buildroot}%{_datadir}/%{name}/linux/oc
+install -p -m 755 _build/bin/darwin_amd64/openshift %{buildroot}/%{_datadir}/%{name}/macosx/oc
+install -p -m 755 _build/bin/windows_386/openshift.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 
-# Install 'openshift' as client executable for windows and mac
-for pkgname in openshift atomic-enterprise
-do
-  install -d %{buildroot}%{_datadir}/${pkgname}/{linux,macosx,windows}
-  install -p -m 755 _build/bin/openshift %{buildroot}%{_datadir}/${pkgname}/linux/oc
-  install -p -m 755 _build/bin/darwin_amd64/openshift %{buildroot}%{_datadir}/${pkgname}/macosx/oc
-  install -p -m 755 _build/bin/windows_386/openshift.exe %{buildroot}%{_datadir}/${pkgname}/windows/oc.exe
-done
-
-#Install openshift pod
+#Install pod
 install -p -m 755 images/pod/pod %{buildroot}%{_bindir}/
 
 install -d -m 0755 %{buildroot}%{_unitdir}
 
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
-for cmd in oc oadm; do
-    ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/$cmd
+for cmd in oc openshift-router openshift-deploy openshift-sti-build openshift-docker-build origin atomic-enterprise \
+  oadm kubectl kubernetes kubelet kube-proxy kube-apiserver kube-controller-manager kube-scheduler ; do
+    ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
 done
-ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/kubectl
 
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
-for pkgname in openshift atomic-enterprise
-do
-  install -m 0644 rel-eng/${pkgname}-master.service %{buildroot}%{_unitdir}/${pkgname}-master.service
-  install -m 0644 rel-eng/${pkgname}-node.service %{buildroot}%{_unitdir}/${pkgname}-node.service
+# different service for origin vs aos
+install -m 0644 rel-eng/%{name}-master.service %{buildroot}%{_unitdir}/%{name}-master.service
+install -m 0644 rel-eng/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
+# same sysconfig files for origin vs aos
+install -m 0644 rel-eng/origin-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-master
+install -m 0644 rel-eng/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
+install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/%{name}-node-{guest,host}
+install -m 0644 tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
+install -m 0644 tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
+install -d -m 0755 %{buildroot}%{_mandir}/man7
+install -m 0644 tuned/man/tuned-profiles-origin-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-%{name}-node.7
 
-  install -m 0644 rel-eng/${pkgname}-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/${pkgname}-master
-  install -m 0644 rel-eng/${pkgname}-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/${pkgname}-node
-  install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/${pkgname}-node-{guest,host}
-  install -m 0644 tuned/%{name}-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/${pkgname}-node-guest/tuned.conf
-  install -m 0644 tuned/%{name}-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/${pkgname}-node-host/tuned.conf
-  install -d -m 0755 %{buildroot}%{_mandir}/man7
-  install -m 0644 tuned/man/tuned-profiles-%{name}-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-${pkgname}-node.7
-
-done
-
-mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
 
@@ -280,20 +201,16 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 install -d -m 0755 %{buildroot}%{kube_plugin_path}
 install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
 install -p -m 0644 rel-eng/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
-for pkgname in openshift atomic-enterprise
-do
-
-  pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/kube/bin
-     install -p -m 755 %{name}-ovs-subnet %{buildroot}%{kube_plugin_path}/${pkgname}-ovs-subnet
-     install -p -m 755 %{name}-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/${pkgname}-sdn-kube-subnet-setup.sh
-  popd
-  pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/multitenant/bin
-     install -p -m 755 %{name}-ovs-multitenant %{buildroot}%{_bindir}/${pkgname}-ovs-multitenant
-     install -p -m 755 %{name}-sdn-multitenant-setup.sh %{buildroot}%{_bindir}/${pkgname}-sdn-multitenant-setup.sh
-  popd
-  install -d -m 0755 %{buildroot}%{_unitdir}/${pkgname}-node.service.d
-  install -p -m 0644 rel-eng/%{name}-sdn-ovs.conf %{buildroot}%{_unitdir}/${pkgname}-node.service.d/${pkgname}-sdn-ovs.conf
-done
+pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/kube/bin
+   install -p -m 755 openshift-ovs-subnet %{buildroot}%{kube_plugin_path}/openshift-ovs-subnet
+   install -p -m 755 openshift-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/openshift-sdn-kube-subnet-setup.sh
+popd
+pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/multitenant/bin
+   install -p -m 755 openshift-ovs-multitenant %{buildroot}%{_bindir}/openshift-ovs-multitenant
+   install -p -m 755 openshift-sdn-multitenant-setup.sh %{buildroot}%{_bindir}/openshift-sdn-multitenant-setup.sh
+popd
+install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
+install -p -m 0644 rel-eng/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
@@ -304,11 +221,23 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %files
 %defattr(-,root,root,-)
 %doc README.md LICENSE
-%{_bindir}/openshift
 %{_bindir}/oc
+%{_bindir}/openshift
+%{_bindir}/openshift-router
+%{_bindir}/openshift-deploy
+%{_bindir}/openshift-sti-build
+%{_bindir}/openshift-docker-build
+%{_bindir}/origin
+%{_bindir}/atomic-enterprise
 %{_bindir}/oadm
 %{_bindir}/kubectl
-%{_sharedstatedir}/%{name}
+%{_bindir}/kubernetes
+%{_bindir}/kubelet
+%{_bindir}/kube-proxy
+%{_bindir}/kube-apiserver
+%{_bindir}/kube-controller-manager
+%{_bindir}/kube-scheduler
+%{_sharedstatedir}/origin
 %{_sysconfdir}/bash_completion.d/*
 %dir %config(noreplace) %{_sysconfdir}/origin
 
@@ -321,8 +250,8 @@ fi
 %files master
 %defattr(-,root,root,-)
 %{_unitdir}/%{name}-master.service
-%ghost %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
-%ghost %config(noreplace) %{_sysconfdir}/origin/master
+%config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
+%config(noreplace) %{_sysconfdir}/origin/master
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.crt
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.key
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.kubeconfig
@@ -352,14 +281,26 @@ fi
 %ghost %config(noreplace) %{_sysconfdir}/origin/serviceaccounts.public.key
 
 %post master
-%systemd_post %{basename:openshift-master.service}
-# Create master configs if they do not exist
-if [ ! -e %{_sysconfdir}/origin/master/master-config.yaml ]; then
-  %{_bindir}/%{name} start master --write-config=%{_sysconfdir}/origin/master
+%systemd_post %{basename:%{name}-master.service}
+# Create master config and certs if both do not exist
+if [[ ! -e %{_sysconfdir}/origin/master/master-config.yaml &&
+     ! -e %{_sysconfdir}/origin/master/ca.crt ]]; then
+%if "%{dist}" == ".el7aos"
+  %{_bindir}/atomic-enterprise start master --write-config=%{_sysconfdir}/origin/master
+%else
+  %{_bindir}/openshift start master --write-config=%{_sysconfdir}/origin/master
+%endif
+  # Create node configs if they do not already exist
+  if ! find %{_sysconfdir}/origin/ -type f -name "node-config.yaml" | grep -E "node-config.yaml"; then
+    %{_bindir}/oadm create-node-config --node-dir=%{_sysconfdir}/origin/node/ --node=localhost --hostnames=localhost,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/master/ca.crt --signer-cert=%{_sysconfdir}/origin/master/ca.crt --signer-key=%{_sysconfdir}/origin/master/ca.key --signer-serial=%{_sysconfdir}/origin/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/master/ca.crt
+  fi
+  # Generate a marker file that indicates config and certs were RPM generated
+  echo "# Config generated by RPM at "`date -u` > %{_sysconfdir}/origin/.config_managed
 fi
 
+
 %preun master
-%systemd_preun %{basename:openshift-master.service}
+%systemd_preun %{basename:%{name}-master.service}
 
 %postun master
 %systemd_postun
@@ -371,44 +312,38 @@ fi
 %config(noreplace) %{_sysconfdir}/origin/node
 
 %post node
-%systemd_post %{basename:openshift-node.service}
-# Create node configs if the master is on the same system AND they do not already exist
-if rpm -q %{name}-master > /dev/null; then
-  if ! find %{_sysconfdir}/origin/ -type f -name "node-config.yaml" | grep -E "node-config.yaml"; then
-    %{_bindir}/oadm create-node-config --node-dir=%{_sysconfdir}/origin/node/ --node=`hostname` --hostnames=`hostname`,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/master/ca.crt --signer-cert=%{_sysconfdir}/origin/master/ca.crt --signer-key=%{_sysconfdir}/origin/master/ca.key --signer-serial=%{_sysconfdir}/origin/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/master/ca.crt
-  fi
-fi
+%systemd_post %{basename:%{name}-node.service}
 
 %preun node
-%systemd_preun %{basename:openshift-node.service}
+%systemd_preun %{basename:%{name}-node.service}
 
 %postun node
 %systemd_postun
 
 %files sdn-ovs
 %defattr(-,root,root,-)
-%{_bindir}/%{name}-sdn-kube-subnet-setup.sh
-%{_bindir}/%{name}-ovs-multitenant
-%{_bindir}/%{name}-sdn-multitenant-setup.sh
-%{kube_plugin_path}/%{name}-ovs-subnet
-%{_unitdir}/%{name}-node.service.d/%{name}-sdn-ovs.conf
+%{_bindir}/openshift-sdn-kube-subnet-setup.sh
+%{_bindir}/openshift-ovs-multitenant
+%{_bindir}/openshift-sdn-multitenant-setup.sh
+%{kube_plugin_path}/openshift-ovs-subnet
+%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_unitdir}/docker.service.d/docker-sdn-ovs.conf
 
-%files -n tuned-profiles-openshift-node
+%files -n tuned-profiles-%{name}-node
 %defattr(-,root,root,-)
-%{_prefix}/lib/tuned/openshift-node-host
-%{_prefix}/lib/tuned/openshift-node-guest
-%{_mandir}/man7/tuned-profiles-openshift-node.7*
+%{_prefix}/lib/tuned/%{name}-node-host
+%{_prefix}/lib/tuned/%{name}-node-guest
+%{_mandir}/man7/tuned-profiles-%{name}-node.7*
 
-%post -n tuned-profiles-openshift-node
+%post -n tuned-profiles-%{name}-node
 recommended=`/usr/sbin/tuned-adm recommend`
 if [[ "${recommended}" =~ guest ]] ; then
-  /usr/sbin/tuned-adm profile openshift-node-guest > /dev/null 2>&1
+  /usr/sbin/tuned-adm profile %{name}-node-guest > /dev/null 2>&1
 else
-  /usr/sbin/tuned-adm profile openshift-node-host > /dev/null 2>&1
+  /usr/sbin/tuned-adm profile %{name}-node-host > /dev/null 2>&1
 fi
 
-%preun -n tuned-profiles-openshift-node
+%preun -n tuned-profiles-%{name}-node
 # reset the tuned profile to the recommended profile
 # $1 = 0 when we're being removed > 0 during upgrades
 if [ "$1" = 0 ]; then
@@ -429,145 +364,12 @@ fi
 %defattr(-,root,root,-)
 %{_bindir}/pod
 
-# ===
-%files -n atomic-enterprise
-%defattr(-,root,root,-)
-%doc README.md LICENSE
-%{_bindir}/openshift
-%{_bindir}/atomic-enterprise
-%{_bindir}/oc
-%{_bindir}/oadm
-%{_bindir}/kubectl
-%{_sharedstatedir}/origin
-%{_sysconfdir}/bash_completion.d/*
-%dir %config(noreplace) %{_sysconfdir}/origin
-
-%pre -n atomic-enterprise
-# If /etc/openshift exists symlink it to /etc/origin
-if [ -d "%{_sysconfdir}/openshift" ]; then
-  ln -s %{_sysconfdir}/openshift %{_sysconfdir}/origin
-fi
-
-%files -n atomic-enterprise-master
-%defattr(-,root,root,-)
-%{_unitdir}/atomic-enterprise-master.service
-%config(noreplace) %{_sysconfdir}/sysconfig/atomic-enterprise-master
-%dir %config(noreplace) %{_sysconfdir}/origin/master
-%ghost %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
-%ghost %config(noreplace) %{_sysconfdir}/origin/master
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/ca.serial.txt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/etcd.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master-config.yaml
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.etcd-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.kubelet-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/master.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-master.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-registry.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/openshift-router.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/policy.json
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.private.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.public.key
-
-%post -n atomic-enterprise-master
-%systemd_post %{basename:atomic-enterprise-master.service}
-# Create master configs if they do not exist
-if [ ! -e %{_sysconfdir}/origin/master/master-config.yaml ]; then
-  %{_bindir}/atomic-enterprise start master --write-config=%{_sysconfdir}/origin/master
-fi
-
-%preun -n atomic-enterprise-master
-%systemd_preun %{basename:atomic-enterprise-master.service}
-
-%postun -n atomic-enterprise-master
-%systemd_postun
-
-%files -n atomic-enterprise-node
-%defattr(-,root,root,-)
-%{_unitdir}/atomic-enterprise-node.service
-%config(noreplace) %{_sysconfdir}/sysconfig/atomic-enterprise-node
-%config(noreplace) %{_sysconfdir}/origin/node
-
-%post -n atomic-enterprise-node
-%systemd_post %{basename:atomic-enterprise-node.service}
-# Create node configs if the master is on the same system AND they do not already exist
-if rpm -q atomic-enterprise-master > /dev/null; then
-  if ! find %{_sysconfdir}/origin/ -type f -name "node-config.yaml" | grep -E "node-config.yaml"; then
-    %{_bindir}/oadm create-node-config --node-dir=%{_sysconfdir}/origin/node/ --node=`hostname` --hostnames=`hostname`,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/master/ca.crt --signer-cert=%{_sysconfdir}/origin/master/ca.crt --signer-key=%{_sysconfdir}/origin/master/ca.key --signer-serial=%{_sysconfdir}/origin/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/master/ca.crt
-  fi
-fi
-
-%preun -n atomic-enterprise-node
-%systemd_preun %{basename:atomic-enterprise-node.service}
-
-%postun -n atomic-enterprise-node
-%systemd_postun
-
-
-%files -n atomic-enterprise-sdn-ovs
-%defattr(-,root,root,-)
-%{_bindir}/atomic-enterprise-sdn-kube-subnet-setup.sh
-%{_bindir}/atomic-enterprise-ovs-multitenant
-%{_bindir}/atomic-enterprise-sdn-multitenant-setup.sh
-%{kube_plugin_path}/atomic-enterprise-ovs-subnet
-%{_unitdir}/atomic-enterprise-node.service.d/atomic-enterprise-sdn-ovs.conf
-%{_unitdir}/docker.service.d/docker-sdn-ovs.conf
-
-%files -n tuned-profiles-atomic-enterprise-node
-%defattr(-,root,root,-)
-%{_prefix}/lib/tuned/atomic-enterprise-node-host
-%{_prefix}/lib/tuned/atomic-enterprise-node-guest
-%{_mandir}/man7/tuned-profiles-atomic-enterprise-node.7*
-
-%post -n tuned-profiles-atomic-enterprise-node
-recommended=`/usr/sbin/tuned-adm recommend`
-if [[ "${recommended}" =~ guest ]] ; then
-  /usr/sbin/tuned-adm profile atomic-enterprise-node-guest > /dev/null 2>&1
-else
-  /usr/sbin/tuned-adm profile atomic-enterprise-node-host > /dev/null 2>&1
-fi
-
-%preun -n tuned-profiles-atomic-enterprise-node
-# reset the tuned profile to the recommended profile
-# $1 = 0 when we're being removed > 0 during upgrades
-if [ "$1" = 0 ]; then
-  recommended=`/usr/sbin/tuned-adm recommend`
-  /usr/sbin/tuned-adm profile $recommended > /dev/null 2>&1
-fi
-
-%files -n atomic-enterprise-clients
-%{_datadir}/atomic-enterprise/linux/oc
-%{_datadir}/atomic-enterprise/macosx/oc
-%{_datadir}/atomic-enterprise/windows/oc.exe
-
-%files -n atomic-enterprise-dockerregistry
-%defattr(-,root,root,-)
-%{_bindir}/dockerregistry
-
-%files -n atomic-enterprise-pod
-%defattr(-,root,root,-)
-%{_bindir}/pod
-
-# ===
 
 %changelog
 * Wed Aug 12 2015 Steve Milner <smilner@redhat.com> 0.2-8
-- Master configs will be generated if none are found.
-- Node configs will be generated if none are found and master is installed.
+- Master configs will be generated if none are found when the master is installed.
+- Node configs will be generated if none are found when the master is installed.
+- Additional notice file added if config is generated by the RPM.
 - All-In-One services removed.
 
 * Wed Aug 12 2015 Steve Milner <smilner@redhat.com> 0.2-7
@@ -621,4 +423,3 @@ fi
 
 * Mon Sep 15 2014 Adam Miller <admiller@redhat.com> - 0-0.0.2.git2647df5
 - Update to latest upstream.
-

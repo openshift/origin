@@ -1,7 +1,7 @@
 [buildconfig]
-builder = openshift.builder.OpenshiftBuilder
-tagger = openshift.tagger.OpenshiftTagger
-forceversiontagger = openshift.tagger.OpenshiftForceVersionTagger
+builder = origin.builder.OriginBuilder
+tagger = origin.tagger.OriginTagger
+forceversiontagger = origin.tagger.OriginForceVersionTagger
 changelog_do_not_remove_cherrypick = 0
 changelog_format = %s (%ae)
 lib_dir = rel-eng/lib

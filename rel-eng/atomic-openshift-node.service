@@ -1,21 +1,19 @@
 [Unit]
-Description=Atomic Enterprise Node
+Description=Atomic OpenShift Node
 After=docker.service
-After=atomic-enterprise-master.service
-After=atomic-enterprise-sdn-master.service
-After=atomic-enterprise-sdn-node.service
+After=atomic-openshift-master.service
 Wants=docker.service
 Documentation=https://github.com/openshift/origin
 
 [Service]
 Type=notify
-EnvironmentFile=/etc/sysconfig/atomic-enterprise-node
+EnvironmentFile=/etc/sysconfig/atomic-openshift-node
 Environment=GOTRACEBACK=crash
 ExecStart=/usr/bin/atomic-enterprise start node --config=${CONFIG_FILE} $OPTIONS
 LimitNOFILE=65536
 LimitCORE=infinity
 WorkingDirectory=/var/lib/origin/
-SyslogIdentifier=atomic-enterprise-node
+SyslogIdentifier=atomic-openshift-node
 
 [Install]
 WantedBy=multi-user.target

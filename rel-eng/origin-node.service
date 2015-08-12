@@ -1,21 +1,19 @@
 [Unit]
-Description=OpenShift Node
+Description=Origin Node
 After=docker.service
-After=openshift-master.service
-After=openshift-sdn-master.service
-After=openshift-sdn-node.service
+After=origin-master.service
 Wants=docker.service
 Documentation=https://github.com/openshift/origin
 
 [Service]
 Type=notify
-EnvironmentFile=/etc/sysconfig/openshift-node
+EnvironmentFile=/etc/sysconfig/origin-node
 Environment=GOTRACEBACK=crash
 ExecStart=/usr/bin/openshift start node --config=${CONFIG_FILE} $OPTIONS
 LimitNOFILE=65536
 LimitCORE=infinity
-WorkingDirectory=/var/lib/openshift/
-SyslogIdentifier=openshift-node
+WorkingDirectory=/var/lib/origin/
+SyslogIdentifier=origin-node
 
 [Install]
 WantedBy=multi-user.target
