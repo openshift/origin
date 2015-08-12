@@ -5,7 +5,7 @@ package integration
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	clusterdiags "github.com/openshift/origin/pkg/diagnostics/cluster"
 	diagtype "github.com/openshift/origin/pkg/diagnostics/types"

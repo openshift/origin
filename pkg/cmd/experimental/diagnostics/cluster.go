@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	clientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kclient "k8s.io/kubernetes/pkg/client"
+	clientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -18,17 +18,23 @@ import (
 )
 
 var (
-	AvailableClusterDiagnostics = util.NewStringSet("NodeDefinitions", "ClusterRegistry", "ClusterRouter")
+	// availableClusterDiagnostics contains the names of cluster diagnostics that can be executed
+	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
+	availableClusterDiagnostics = util.NewStringSet(clustdiags.NodeDefinitionsName, clustdiags.ClusterRegistryName, clustdiags.ClusterRouterName)
 )
 
-func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool /* ok */, error) {
-	requestedDiagnostics := intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableClusterDiagnostics).List()
+// buildClusterDiagnostics builds cluster Diagnostic objects if a cluster-admin client can be extracted from the rawConfig passed in.
+// Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
+func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
+	requestedDiagnostics := intersection(util.NewStringSet(o.RequestedDiagnostics...), availableClusterDiagnostics).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
 		return nil, true, nil // don't waste time on discovery
 	}
 
-	var clusterClient *client.Client
-	var kclusterClient *kclient.Client
+	var (
+		clusterClient  *client.Client
+		kclusterClient *kclient.Client
+	)
 
 	clusterClient, kclusterClient, found, err := o.findClusterClients(rawConfig)
 	if !found {
@@ -39,11 +45,11 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	diagnostics := []types.Diagnostic{}
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
-		case "NodeDefinitions":
+		case clustdiags.NodeDefinitionsName:
 			diagnostics = append(diagnostics, &clustdiags.NodeDefinitions{kclusterClient, clusterClient})
-		case "ClusterRegistry":
+		case clustdiags.ClusterRegistryName:
 			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{kclusterClient, clusterClient})
-		case "ClusterRouter":
+		case clustdiags.ClusterRouterName:
 			diagnostics = append(diagnostics, &clustdiags.ClusterRouter{kclusterClient, clusterClient})
 
 		default:
@@ -53,6 +59,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	return diagnostics, true, nil
 }
 
+// attempts to find which context in the config might be a cluster-admin for the server in the current context.
 func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (*client.Client, *kclient.Client, bool, error) {
 	if o.ClientClusterContext != "" { // user has specified cluster context to use
 		if context, exists := rawConfig.Contexts[o.ClientClusterContext]; exists {
@@ -88,6 +95,7 @@ func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (
 	return nil, nil, false, nil
 }
 
+// makes the client from the specified context and determines whether it is a cluster-admin.
 func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (*client.Client, *kclient.Client, bool, error) {
 	overrides := &clientcmd.ConfigOverrides{Context: *context}
 	clientConfig := clientcmd.NewDefaultClientConfig(*rawConfig, overrides)

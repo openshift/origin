@@ -5,17 +5,16 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	flag "github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/client/clientcmd"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
-// This diagnostic is a little special in that it is run separately as a precondition
-// in order to determine whether we can run other dependent diagnostics
-
+// ConfigLoading is a little special in that it is run separately as a precondition
+// in order to determine whether we can run other dependent diagnostics.
 type ConfigLoading struct {
 	ConfFlagName   string
 	ClientFlags    *flag.FlagSet
@@ -38,7 +37,7 @@ func (d *ConfigLoading) SuccessfulLoad() bool {
 	return d.successfulLoad
 }
 
-func (d *ConfigLoading) Check() *types.DiagnosticResult {
+func (d *ConfigLoading) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult("ConfigLoading")
 	confFlagValue := d.ClientFlags.Lookup(d.ConfFlagName).Value.String()
 
@@ -110,7 +109,7 @@ location for use by the client and diagnostics.
 // ----------------------------------------------------------
 // Attempt to open file at path as client config
 // If there is a problem and errmsg is set, log an error
-func (d ConfigLoading) canOpenConfigFile(path string, errmsg string, r *types.DiagnosticResult) bool {
+func (d ConfigLoading) canOpenConfigFile(path string, errmsg string, r types.DiagnosticResult) bool {
 	var file *os.File
 	var err error
 	if path == "" { // empty param/envvar

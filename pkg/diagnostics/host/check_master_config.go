@@ -8,13 +8,15 @@ import (
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
-// MasterConfigCheck
+// MasterConfigCheck is a Diagnostic to check that the master config file is valid
 type MasterConfigCheck struct {
 	MasterConfigFile string
 }
 
+const MasterConfigCheckName = "MasterConfigCheck"
+
 func (d MasterConfigCheck) Name() string {
-	return "MasterConfigCheck"
+	return MasterConfigCheckName
 }
 
 func (d MasterConfigCheck) Description() string {
@@ -27,8 +29,8 @@ func (d MasterConfigCheck) CanRun() (bool, error) {
 
 	return true, nil
 }
-func (d MasterConfigCheck) Check() *types.DiagnosticResult {
-	r := types.NewDiagnosticResult("MasterConfigCheck")
+func (d MasterConfigCheck) Check() types.DiagnosticResult {
+	r := types.NewDiagnosticResult(MasterConfigCheckName)
 
 	r.Debugf("discMCfile", "Looking for master config file at '%s'", d.MasterConfigFile)
 	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(d.MasterConfigFile)

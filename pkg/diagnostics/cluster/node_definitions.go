@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -47,14 +47,16 @@ other options for 'oadm manage-node').
 `
 )
 
-// NodeDefinitions
+// NodeDefinitions is a Diagnostic for analyzing the nodes in a cluster.
 type NodeDefinitions struct {
 	KubeClient *kclient.Client
 	OsClient   *osclient.Client
 }
 
+const NodeDefinitionsName = "NodeDefinitions"
+
 func (d *NodeDefinitions) Name() string {
-	return "NodeDefinitions"
+	return NodeDefinitionsName
 }
 
 func (d *NodeDefinitions) Description() string {
@@ -79,7 +81,7 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 	return true, nil
 }
 
-func (d *NodeDefinitions) Check() *types.DiagnosticResult {
+func (d *NodeDefinitions) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult("NodeDefinition")
 
 	nodes, err := d.KubeClient.Nodes().List(labels.LabelSelector{}, fields.Everything())
@@ -116,7 +118,7 @@ func (d *NodeDefinitions) Check() *types.DiagnosticResult {
 		}
 	}
 	if !anyNodesAvail {
-		r.Error("clNoAvailNodes", nil, "There were no nodes available for OpenShift to use.")
+		r.Error("clNoAvailNodes", nil, "There were no nodes available to use. No new pods can be scheduled.")
 	}
 
 	return r

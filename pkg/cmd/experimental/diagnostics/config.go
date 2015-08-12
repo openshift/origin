@@ -1,14 +1,15 @@
 package diagnostics
 
 import (
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
 
 	clientdiagnostics "github.com/openshift/origin/pkg/diagnostics/client"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
+// determine if we even have a client config
 func (o DiagnosticsOptions) detectClientConfig() (bool, []types.DiagnosticError, []types.DiagnosticError) {
 	diagnostic := &clientdiagnostics.ConfigLoading{ConfFlagName: config.OpenShiftConfigFlagName, ClientFlags: o.ClientFlags}
 	o.Logger.Noticet("diagRun", "Determining if client configuration exists for client/cluster diagnostics",
@@ -20,6 +21,7 @@ func (o DiagnosticsOptions) detectClientConfig() (bool, []types.DiagnosticError,
 	return diagnostic.SuccessfulLoad(), result.Warnings(), result.Errors()
 }
 
+// use the base factory to return a raw config (not specific to a context)
 func (o DiagnosticsOptions) buildRawConfig() (*clientcmdapi.Config, error) {
 	kubeConfig, configErr := o.Factory.OpenShiftClientConfig.RawConfig()
 	if len(kubeConfig.Contexts) == 0 {
