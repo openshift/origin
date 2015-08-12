@@ -3,10 +3,10 @@ package registry
 import (
 	"net/http"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/openshift/origin/pkg/client"
 	oclient "github.com/openshift/origin/pkg/oauth/client"
+	"k8s.io/kubernetes/pkg/auth/user"
+	kclient "k8s.io/kubernetes/pkg/client"
 )
 
 type OAuthAccessTokenSource interface {

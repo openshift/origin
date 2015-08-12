@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/user/registry/user"
+	"k8s.io/kubernetes/pkg/api"
+	kuser "k8s.io/kubernetes/pkg/auth/user"
 )
 
 type TokenAuthenticator struct {

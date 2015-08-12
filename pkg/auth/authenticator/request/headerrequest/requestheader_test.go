@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type TestUserIdentityMapper struct{}

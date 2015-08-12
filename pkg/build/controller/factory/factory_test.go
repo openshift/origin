@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	controller "github.com/openshift/origin/pkg/controller"
+	kutil "k8s.io/kubernetes/pkg/util"
 )
 
 type buildUpdater struct {

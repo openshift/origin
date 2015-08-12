@@ -9,8 +9,8 @@ import (
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	etcdstorage "github.com/GoogleCloudPlatform/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/client"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )

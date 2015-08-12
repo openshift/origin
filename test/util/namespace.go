@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/cmd/util"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // Namespace returns the test namespace. The default namespace is set to

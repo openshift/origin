@@ -4,11 +4,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	current "github.com/openshift/origin/pkg/deploy/api/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {

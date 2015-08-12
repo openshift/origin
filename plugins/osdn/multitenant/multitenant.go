@@ -4,9 +4,9 @@ import (
 	"github.com/golang/glog"
 	"strings"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	knetwork "github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/network"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
+	kclient "k8s.io/kubernetes/pkg/client"
+	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	"k8s.io/kubernetes/pkg/util/exec"
 
 	"github.com/openshift/openshift-sdn/ovssubnet"
 	osclient "github.com/openshift/origin/pkg/client"

@@ -11,7 +11,7 @@ source "${OS_ROOT}/hack/common.sh"
 cd "${OS_ROOT}"
 
 KUBE_ROOT=${1:-""}
-KUBE_GODEP_ROOT="${OS_ROOT}/Godeps/_workspace/src/github.com/GoogleCloudPlatform/kubernetes"
+KUBE_GODEP_ROOT="${OS_ROOT}/Godeps/_workspace/src/k8s.io/kubernetes"
 
 if [ -z "$KUBE_ROOT" ]; then
   echo "usage: copy-kube-artifacts.sh <kubernetes root dir>"

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	kclient "k8s.io/kubernetes/pkg/client"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"

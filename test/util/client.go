@@ -3,9 +3,9 @@ package util
 import (
 	"path/filepath"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	kclient "k8s.io/kubernetes/pkg/client"
 )
 
 func KubeConfigPath() string {

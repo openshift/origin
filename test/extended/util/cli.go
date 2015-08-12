@@ -9,10 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	clientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	. "github.com/GoogleCloudPlatform/kubernetes/test/e2e"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	cmdapi "github.com/openshift/origin/pkg/cmd/cli/cmd"
@@ -20,6 +16,10 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 	"github.com/spf13/cobra"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	clientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	. "k8s.io/kubernetes/test/e2e"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift

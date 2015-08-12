@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/version"
 	templateplugin "github.com/openshift/origin/plugins/router/template"
 
-	ktypes "github.com/GoogleCloudPlatform/kubernetes/pkg/types"
+	ktypes "k8s.io/kubernetes/pkg/types"
 )
 
 const (

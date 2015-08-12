@@ -8,7 +8,7 @@ import (
 	"github.com/evanphx/json-patch"
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/yaml"
+	"k8s.io/kubernetes/pkg/util/yaml"
 )
 
 // Delta represents a change between two JSON documents.

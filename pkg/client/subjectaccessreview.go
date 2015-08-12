@@ -3,7 +3,7 @@ package client
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )

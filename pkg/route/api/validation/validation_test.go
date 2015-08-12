@@ -3,8 +3,8 @@ package validation
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/route/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // TestValidateRouteBad ensures not specifying a required field results in error and a fully specified

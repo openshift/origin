@@ -1,7 +1,7 @@
 package prune
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // sortableReplicationControllers supports sorting ReplicationController items by most recently created

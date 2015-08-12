@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/credentialprovider"
+	"k8s.io/kubernetes/pkg/credentialprovider"
 )
 
 func TestReadDockercfg(t *testing.T) {

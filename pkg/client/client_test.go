@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client"
 )
 
 func TestUserAgent(t *testing.T) {

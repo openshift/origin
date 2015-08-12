@@ -3,7 +3,7 @@ package test
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl"
 )
 
 type FakeScaler struct {

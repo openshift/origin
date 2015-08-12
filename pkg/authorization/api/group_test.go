@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 func TestEscalating(t *testing.T) {

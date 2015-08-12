@@ -1,8 +1,8 @@
 package dockerpre012
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // DockerImage is for earlier versions of the Docker API (pre-012 to be specific). It is also the

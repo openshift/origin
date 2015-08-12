@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
 	log "github.com/Sirupsen/logrus"
 	ctxu "github.com/docker/distribution/context"

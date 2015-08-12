@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"

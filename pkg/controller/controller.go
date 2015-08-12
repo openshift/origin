@@ -1,8 +1,8 @@
 package controller
 
 import (
-	kcache "github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kcache "k8s.io/kubernetes/pkg/client/cache"
+	kutil "k8s.io/kubernetes/pkg/util"
 )
 
 // RunnableController is a controller which implements a Run loop.

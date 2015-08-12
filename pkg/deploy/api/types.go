@@ -1,7 +1,7 @@
 package api
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // DeploymentStatus describes the possible states a deployment can be in.

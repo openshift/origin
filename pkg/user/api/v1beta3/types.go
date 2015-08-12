@@ -1,6 +1,6 @@
 package v1beta3
 
-import kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
+import kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object

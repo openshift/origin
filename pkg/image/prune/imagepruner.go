@@ -6,9 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
@@ -23,6 +20,9 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 // TODO these edges should probably have an `Add***Edges` method in images/graph and be moved there

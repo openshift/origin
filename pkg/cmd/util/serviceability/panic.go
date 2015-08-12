@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // BehaviorOnPanic is a helper for setting the crash mode of OpenShift when a panic is caught.

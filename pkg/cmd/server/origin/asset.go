@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
@@ -16,6 +15,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/version"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // InstallAPI adds handlers for serving static assets into the provided mux,

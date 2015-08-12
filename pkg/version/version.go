@@ -3,8 +3,8 @@ package version
 import (
 	"fmt"
 
-	kubeversion "github.com/GoogleCloudPlatform/kubernetes/pkg/version"
 	"github.com/spf13/cobra"
+	kubeversion "k8s.io/kubernetes/pkg/version"
 )
 
 var (

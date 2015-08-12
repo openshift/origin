@@ -3,8 +3,8 @@ package validation
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/user/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestValidateGroup(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/RangelReale/osincli"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/auth/server/login"
 )

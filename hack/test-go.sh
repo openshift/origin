@@ -14,7 +14,7 @@ cd "${OS_ROOT}"
 
 PRINT_PACKAGES=${PRINT_PACKAGES:-""}
 TEST_KUBE=${TEST_KUBE:-""}
-KUBE_GODEP_PATH="./Godeps/_workspace/src/github.com/GoogleCloudPlatform/kubernetes/pkg"
+KUBE_GODEP_PATH="./Godeps/_workspace/src/k8s.io/kubernetes/pkg"
 
 os::build::setup_env
 
@@ -44,11 +44,11 @@ special_upstream_test_dirs() {
 # https://github.com/GoogleCloudPlatform/kubernetes/pull/9971
 find_upstream_test_dirs() {
   cd "${OS_ROOT}"
-  find ./Godeps/_workspace/src/github.com/GoogleCloudPlatform/kubernetes -not \( \
+  find ./Godeps/_workspace/src/k8s.io/kubernetes -not \( \
       \( \
         -wholename "${KUBE_GODEP_PATH}/api" \
         -o -wholename "${KUBE_GODEP_PATH}/api/v1" \
-        -o -wholename './Godeps/_workspace/src/github.com/GoogleCloudPlatform/kubernetes/pkg/runtime' \
+        -o -wholename './Godeps/_workspace/src/k8s.io/kubernetes/pkg/runtime' \
       \) -prune \
     \) -name '*_test.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 }

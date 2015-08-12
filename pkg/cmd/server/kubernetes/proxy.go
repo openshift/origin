@@ -3,9 +3,9 @@ package kubernetes
 import (
 	"net/url"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
+	kclient "k8s.io/kubernetes/pkg/client"
 
 	"github.com/openshift/origin/pkg/util/httpproxy"
 )
