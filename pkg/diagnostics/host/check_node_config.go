@@ -8,13 +8,15 @@ import (
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
-// NodeConfigCheck
+// NodeConfigCheck is a Diagnostic to check that the node config file is valid
 type NodeConfigCheck struct {
 	NodeConfigFile string
 }
 
+const NodeConfigCheckName = "NodeConfigCheck"
+
 func (d NodeConfigCheck) Name() string {
-	return "NodeConfigCheck"
+	return NodeConfigCheckName
 }
 
 func (d NodeConfigCheck) Description() string {
@@ -27,8 +29,8 @@ func (d NodeConfigCheck) CanRun() (bool, error) {
 
 	return true, nil
 }
-func (d NodeConfigCheck) Check() *types.DiagnosticResult {
-	r := types.NewDiagnosticResult("NodeConfigCheck")
+func (d NodeConfigCheck) Check() types.DiagnosticResult {
+	r := types.NewDiagnosticResult(NodeConfigCheckName)
 	r.Debugf("discNCfile", "Looking for node config file at '%s'", d.NodeConfigFile)
 	nodeConfig, err := configapilatest.ReadAndResolveNodeConfig(d.NodeConfigFile)
 	if err != nil {

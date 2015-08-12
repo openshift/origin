@@ -9,11 +9,11 @@ import (
 	"regexp"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -22,13 +22,15 @@ import (
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
-//
+// ClusterRouter is a Diagnostic to check that there is a working router.
 type ClusterRouter struct {
 	KubeClient *kclient.Client
 	OsClient   *osclient.Client
 }
 
 const (
+	ClusterRouterName = "ClusterRouter"
+
 	routerName = "router"
 
 	clientAccessError = `Client error while retrieving router records. Client retrieved records
@@ -42,9 +44,9 @@ problem with getting router records. The error was:
 There is no "%s" DeploymentConfig. The router may have been named
 something different, in which case this warning may be ignored.
 
-A router is not strictly required to use OpenShift; however it is usually
-required for accessing pods externally and its absence likely indicates
-an incomplete installation of OpenShift.
+A router is not strictly required; however it is needed for accessing
+pods from external networks and its absence likely indicates an incomplete
+installation of the cluster.
 
 Use the 'oadm router' command to create a router.
 `
@@ -83,7 +85,7 @@ Time: {{.timestamp}}`
 )
 
 func (d *ClusterRouter) Name() string {
-	return "ClusterRouter"
+	return "ClusterRouterName"
 }
 
 func (d *ClusterRouter) Description() string {
@@ -109,8 +111,8 @@ func (d *ClusterRouter) CanRun() (bool, error) {
 	return true, nil
 }
 
-func (d *ClusterRouter) Check() *types.DiagnosticResult {
-	r := types.NewDiagnosticResult("ClusterRouter")
+func (d *ClusterRouter) Check() types.DiagnosticResult {
+	r := types.NewDiagnosticResult(ClusterRouterName)
 	if dc := d.getRouterDC(r); dc != nil {
 		// Check that it actually has running pod(s) selected
 		if podList := d.getRouterPods(dc, r); podList != nil {
@@ -123,7 +125,7 @@ func (d *ClusterRouter) Check() *types.DiagnosticResult {
 	return r
 }
 
-func (d *ClusterRouter) getRouterDC(r *types.DiagnosticResult) *osapi.DeploymentConfig {
+func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *osapi.DeploymentConfig {
 	dc, err := d.OsClient.DeploymentConfigs(kapi.NamespaceDefault).Get(routerName)
 	if err != nil && reflect.TypeOf(err) == reflect.TypeOf(&kerrs.StatusError{}) {
 		r.Warnf("clGetRtNone", err, clGetRtNone, routerName)
@@ -136,7 +138,7 @@ func (d *ClusterRouter) getRouterDC(r *types.DiagnosticResult) *osapi.Deployment
 	return dc
 }
 
-func (d *ClusterRouter) getRouterPods(dc *osapi.DeploymentConfig, r *types.DiagnosticResult) *kapi.PodList {
+func (d *ClusterRouter) getRouterPods(dc *osapi.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
 	pods, err := d.KubeClient.Pods(kapi.NamespaceDefault).List(labels.SelectorFromSet(dc.Template.ControllerTemplate.Selector), fields.Everything())
 	if err != nil {
 		r.Errorf("clRtListPods", err, "Finding pods for '%s' DeploymentConfig failed. This should never happen. Error: (%[2]T) %[2]v", routerName, err)
@@ -187,7 +189,7 @@ func (d *ClusterRouter) getPodLogScanner(pod *kapi.Pod) (*lineScanner, error) {
 // reference time is Mon Jan 2 15:04:05 -0700 MST 2006
 var referenceTimestampLayout = "2006-01-02T15:04:05.000000000Z"
 
-func (d *ClusterRouter) checkRouterLogs(pod *kapi.Pod, r *types.DiagnosticResult) {
+func (d *ClusterRouter) checkRouterLogs(pod *kapi.Pod, r types.DiagnosticResult) {
 	scanner, err := d.getPodLogScanner(pod)
 	if err != nil {
 		r.Warnt("clRtPodLog", err, clRtPodLog, log.Hash{

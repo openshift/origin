@@ -13,18 +13,20 @@ import (
 )
 
 const (
+	AnalyzeLogsName = "AnalyzeLogs"
+
 	sdLogReadErr = `Diagnostics failed to query journalctl for the '%s' unit logs.
 This should be very unusual, so please report this error:
 %s`
 )
 
-// AnalyzeLogs
+// AnalyzeLogs is a Diagnostic to check for recent problems in systemd service logs
 type AnalyzeLogs struct {
 	SystemdUnits map[string]types.SystemdUnit
 }
 
 func (d AnalyzeLogs) Name() string {
-	return "AnalyzeLogs"
+	return AnalyzeLogsName
 }
 
 func (d AnalyzeLogs) Description() string {
@@ -35,8 +37,8 @@ func (d AnalyzeLogs) CanRun() (bool, error) {
 	return true, nil
 }
 
-func (d AnalyzeLogs) Check() *types.DiagnosticResult {
-	r := types.NewDiagnosticResult("AnalyzeLogs")
+func (d AnalyzeLogs) Check() types.DiagnosticResult {
+	r := types.NewDiagnosticResult(AnalyzeLogsName)
 
 	for _, unit := range unitLogSpecs {
 		if svc := d.SystemdUnits[unit.Name]; svc.Enabled || svc.Active {
@@ -87,9 +89,8 @@ func (d AnalyzeLogs) Check() *types.DiagnosticResult {
 							// if matches: print interpretation, remove from matchCopy, and go on to next log entry
 							keep := match.KeepAfterMatch // generic keep logic
 							if match.Interpret != nil {  // apply custom match logic
-								currKeep, result := match.Interpret(&entry, strings)
+								currKeep := match.Interpret(&entry, strings, r)
 								keep = currKeep
-								r.Append(result)
 							} else { // apply generic match processing
 								template := "Found '{{.unit}}' journald log message:\n  {{.logMsg}}\n{{.interpretation}}"
 								templateData := log.Hash{"unit": unit.Name, "logMsg": entry.Message, "interpretation": match.Interpretation}

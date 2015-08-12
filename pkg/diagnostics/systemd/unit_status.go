@@ -10,17 +10,19 @@ import (
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
-// UnitStatus
+// UnitStatus is a Diagnostic to check status of systemd units that are related to each other.
 type UnitStatus struct {
 	SystemdUnits map[string]types.SystemdUnit
 }
 
+const UnitStatusName = "UnitStatus"
+
 func (d UnitStatus) Name() string {
-	return "UnitStatus"
+	return UnitStatusName
 }
 
 func (d UnitStatus) Description() string {
-	return "Check status for OpenShift-related systemd units"
+	return "Check status for related systemd units"
 }
 func (d UnitStatus) CanRun() (bool, error) {
 	if runtime.GOOS == "linux" {
@@ -31,15 +33,15 @@ func (d UnitStatus) CanRun() (bool, error) {
 
 	return false, errors.New("systemd is not present on this host")
 }
-func (d UnitStatus) Check() *types.DiagnosticResult {
-	r := types.NewDiagnosticResult("UnitStatus")
+func (d UnitStatus) Check() types.DiagnosticResult {
+	r := types.NewDiagnosticResult(UnitStatusName)
 
 	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["iptables"], nodeRequiresIPTables)
-	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["docker"], `OpenShift nodes use Docker to run containers.`)
+	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["docker"], `Nodes use Docker to run containers.`)
 	unitRequiresUnit(r, d.SystemdUnits["openshift-node"], d.SystemdUnits["openvswitch"], sdUnitSDNreqOVS)
-	unitRequiresUnit(r, d.SystemdUnits["openshift-master"], d.SystemdUnits["openvswitch"], `OpenShift masters use openvswitch for access to cluster SDN networking`)
+	unitRequiresUnit(r, d.SystemdUnits["openshift-master"], d.SystemdUnits["openvswitch"], `Masters use openvswitch for access to cluster SDN networking`)
 	// all-in-one networking *could* be simpler, so fewer checks
-	unitRequiresUnit(r, d.SystemdUnits["openshift"], d.SystemdUnits["docker"], `OpenShift nodes use Docker to run containers.`)
+	unitRequiresUnit(r, d.SystemdUnits["openshift"], d.SystemdUnits["docker"], `Nodes use Docker to run containers.`)
 
 	// Anything that is enabled but not running deserves notice
 	for name, unit := range d.SystemdUnits {
@@ -50,7 +52,7 @@ func (d UnitStatus) Check() *types.DiagnosticResult {
 	return r
 }
 
-func unitRequiresUnit(r *types.DiagnosticResult, unit types.SystemdUnit, requires types.SystemdUnit, reason string) {
+func unitRequiresUnit(r types.DiagnosticResult, unit types.SystemdUnit, requires types.SystemdUnit, reason string) {
 	templateData := log.Hash{"unit": unit.Name, "required": requires.Name, "reason": reason}
 
 	if (unit.Active || unit.Enabled) && !requires.Exists {
@@ -66,7 +68,7 @@ func errStr(err error) string {
 
 const (
 	nodeRequiresIPTables = `
-iptables is used by OpenShift nodes for container networking.
+iptables is used by nodes for container networking.
 Connections to a container will fail without it.`
 
 	sdUnitSDNreqOVS = `

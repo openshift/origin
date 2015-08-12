@@ -6,32 +6,34 @@ import (
 	"regexp"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
+// ConfigContext diagnostics (one per context) validate that the client config context is complete and has connectivity to the master.
 type ConfigContext struct {
 	RawConfig   *kclientcmdapi.Config
 	ContextName string
 }
 
 const (
+	ConfigContextsName    = "ConfigContexts"
 	currentContextMissing = `Your client config specifies a current context of '{{.context}}'
 which is not defined; it is likely that a mistake was introduced while
 manually editing your config. If this is a simple typo, you may be
 able to fix it manually.
-The OpenShift master creates a fresh config when it is started; it may be
+The master creates a fresh client config when it is started; it may be
 useful to use this as a base if available.`
 
 	currentContextSummary = `The current context from client config is '{{.context}}'
-This will be used by default to contact your OpenShift server.
+This will be used by default to contact the master API.
 `
 	contextDesc = `
 For client config context '{{.context}}':
@@ -53,7 +55,7 @@ Of course, your config could also simply have the wrong hostname specified.
 `
 	clientUnknownCa = `
 This means that we cannot validate the certificate in use by the
-OpenShift API server, so we cannot securely communicate with it.
+master API server, so we cannot securely communicate with it.
 Connections could be intercepted and your credentials stolen.
 
 Since the server certificate we see when connecting is not validated
@@ -68,7 +70,7 @@ but this is risky and should not be necessary.
 ** Connections could be intercepted and your credentials stolen. **
 `
 	clientUnneededCa = `
-This means that for client connections to the OpenShift API server, you
+This means that for client connections to the master API server, you
 (or your kubeconfig) specified both a validating certificate authority
 and that the client should bypass connection security validation.
 
@@ -80,7 +82,7 @@ from your command line options or kubeconfig file(s). Of course, it
 would be far better to obtain and use a correct CA cert.
 `
 	clientInvCertName = `
-This means that the certificate in use by the OpenShift API server
+This means that the certificate in use by the master API server
 (master) does not match the hostname by which you are addressing it:
   %s
 so a secure connection is not allowed. In theory, this *could* mean that
@@ -91,12 +93,12 @@ fails in this case.
 However, the most likely explanation is that the server certificate
 needs to be updated to include the name you are using to reach it.
 
-If the OpenShift server is generating its own certificates (which
-is default), then the --public-master flag on the OpenShift master is
-usually the easiest way to do this. If you need something more complicated
-(for instance, multiple public addresses for the API, or your own CA),
-then you will need to custom-generate the server certificate with the
-right names yourself.
+If the master API server is generating its own certificates (which is
+default), then specify the public master address in the master-config.yaml
+or with the --public-master flag is usually the easiest way to do
+this. If you need something more complicated (for instance, multiple
+public addresses for the API, or your own CA), then you will need to
+custom-generate the server certificate with the right names yourself.
 
 If you are unconcerned about any of this, you can add the
 --insecure-skip-tls-verify flag to bypass secure (TLS) verification,
@@ -104,18 +106,18 @@ but this is risky and should not be necessary.
 ** Connections could be intercepted and your credentials stolen. **
 `
 	clientConnRefused = `
-This means that when we tried to connect to the OpenShift API
-server (master), we reached the host, but nothing accepted the port
-connection. This could mean that the OpenShift master is stopped, or
-that a firewall or security policy is blocking access at that port.
+This means that when we tried to connect to the master API server, we
+reached the host, but nothing accepted the port connection. This could
+mean that the master is stopped, or that a firewall or security policy
+is blocking access at that port.
 
-You will not be able to connect or do anything at all with OpenShift
+You will not be able to connect or do anything at all with this server
 until this server problem is resolved or you specify a corrected
 server address.`
 
 	clientConnTimeout = `
-This means that when we tried to connect to the OpenShift API server
-(master), we could not reach the host at all.
+This means that when we tried to connect to the master API server,
+we could not reach the host at all.
 * You may have specified the wrong host address.
 * This could mean the host is completely unavailable (down).
 * This could indicate a routing problem or a firewall that simply
@@ -124,35 +126,35 @@ This means that when we tried to connect to the OpenShift API server
   would be a different error) though the problem could be that it
   gave the wrong address.`
 	clientMalformedHTTP = `
-This means that when we tried to connect to the OpenShift API server
-(master) with a plain HTTP connection, the server did not speak
-HTTP back to us. The most common explanation is that a secure server
-is listening but you specified an http: connection instead of https:.
-There could also be another service listening at the intended port
-speaking some other protocol entirely.
+This means that when we tried to connect to the master API server with
+a plain HTTP connection, the server did not speak HTTP back to us. The
+most common explanation is that a secure server is listening but you
+specified an http: connection instead of https:.  There could also
+be another service listening at the intended port speaking some other
+protocol entirely.
 
-You will not be able to connect or do anything at all with OpenShift
+You will not be able to connect or do anything at all with the server
 until this server problem is resolved or you specify a corrected
 server address.`
 	clientMalformedTLS = `
-This means that when we tried to connect to the OpenShift API server
-(master) with a secure HTTPS connection, the server did not speak
-HTTPS back to us. The most common explanation is that the server
-listening at that port is not the secure server you expected - it
-may be a non-secure HTTP server or the wrong service may be
-listening there, or you may have specified an incorrect port.
+This means that when we tried to connect to the master API server
+with a secure HTTPS connection, the server did not speak HTTPS back to
+us. The most common explanation is that the server listening at that
+port is not the secure server you expected - it may be a non-secure
+HTTP server or the wrong service may be listening there, or you may have
+specified an incorrect port.
 
-You will not be able to connect or do anything at all with OpenShift
+You will not be able to connect or do anything at all with the server
 until this server problem is resolved or you specify a corrected
 server address.`
 	clientUnauthn = `
-This means that when we tried to make a request to the OpenShift API
+This means that when we tried to make a request to the master API
 server, your kubeconfig did not present valid credentials to
 authenticate your client. Credentials generally consist of a client
 key/certificate or an access token. Your kubeconfig may not have
 presented any, or they may be invalid.`
 	clientUnauthz = `
-This means that when we tried to make a request to the OpenShift API
+This means that when we tried to make a request to the master API
 server, the request required credentials that were not presented.
 This can happen when an authentication token expires. Try logging in
 with this user again.`
@@ -163,7 +165,7 @@ var (
 )
 
 func (d ConfigContext) Name() string {
-	return fmt.Sprintf("ConfigContext[%s]", d.ContextName)
+	return fmt.Sprintf("%s[%s]", ConfigContextsName, d.ContextName)
 }
 
 func (d ConfigContext) Description() string {
@@ -183,8 +185,8 @@ func (d ConfigContext) CanRun() (bool, error) {
 	return true, nil
 }
 
-func (d ConfigContext) Check() *types.DiagnosticResult {
-	r := types.NewDiagnosticResult("ConfigContext")
+func (d ConfigContext) Check() types.DiagnosticResult {
+	r := types.NewDiagnosticResult(ConfigContextsName)
 
 	isDefaultContext := d.RawConfig.CurrentContext == d.ContextName
 
@@ -217,7 +219,7 @@ func (d ConfigContext) Check() *types.DiagnosticResult {
 	// we found a fully-defined context
 	project := context.Namespace
 	if project == "" {
-		project = kapi.NamespaceDefault // OpenShift/k8s fills this in if missing
+		project = kapi.NamespaceDefault // k8s fills this in anyway if missing from the context
 	}
 	msgData := log.Hash{"context": d.ContextName, "server": cluster.Server, "user": authName, "project": project}
 	msgText := contextDesc
@@ -275,7 +277,7 @@ func (d ConfigContext) Check() *types.DiagnosticResult {
 		errId, reason = "clientMalformedHTTP", clientMalformedHTTP
 	case strings.Contains(errMsg, "tls: oversized record received with length"):
 		errId, reason = "clientMalformedTLS", clientMalformedTLS
-	case strings.Contains(errMsg, `403 Forbidden: Forbidden: "/osapi/v1beta1/projects?namespace=" denied by default`):
+	case regexp.MustCompile(`403 Forbidden: Forbidden: "/osapi/v\w+/projects?namespace=" denied by default`).MatchString(errMsg):
 		errId, reason = "clientUnauthn", clientUnauthn
 	case regexp.MustCompile("401 Unauthorized: Unauthorized$").MatchString(errMsg):
 		errId, reason = "clientUnauthz", clientUnauthz

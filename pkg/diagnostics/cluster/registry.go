@@ -7,11 +7,11 @@ import (
 	"regexp"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -20,19 +20,21 @@ import (
 	osapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// ClusterRegistry
+// ClusterRegistry is a Diagnostic to check that there is a working Docker registry.
 type ClusterRegistry struct {
 	KubeClient *kclient.Client
 	OsClient   *osclient.Client
 }
 
 const (
+	ClusterRegistryName = "ClusterRegistry"
+
 	registryName   = "docker-registry"
 	registryVolume = "registry-storage"
 	clGetRegNone   = `
-There is no "%s" service in project "%s". This is not strictly
-required to use OpenShift; however it is required for builds and its
-absence probably indicates an incomplete installation of OpenShift.
+There is no "%s" service in project "%s". This is not strictly required to
+be present; however, it is required for builds, and its absence probably
+indicates an incomplete installation.
 
 Please consult the documentation and use the 'oadm registry' command
 to create a Docker registry.`
@@ -87,7 +89,7 @@ problem:
 	clRegNoEP = `
 The "{{.registryName}}" service exists with {{.numPods}} associated pod(s), but there
 are {{.numEP}} endpoints in the "{{.registryName}}" service.
-This mismatch likely indicates a bug in OpenShift, and builds and
+This mismatch likely indicates a system bug, and builds and
 deployments that require the registry may fail sporadically.`
 
 	clRegISDelFail = `
@@ -121,7 +123,7 @@ be sufficient. Existing ImageStreams may need to be re-created.`
 )
 
 func (d *ClusterRegistry) Name() string {
-	return "ClusterRegistry"
+	return ClusterRegistryName
 }
 
 func (d *ClusterRegistry) Description() string {
@@ -139,8 +141,8 @@ func (d *ClusterRegistry) CanRun() (bool, error) {
 	})
 }
 
-func (d *ClusterRegistry) Check() *types.DiagnosticResult {
-	r := types.NewDiagnosticResult("ClusterRegistry")
+func (d *ClusterRegistry) Check() types.DiagnosticResult {
+	r := types.NewDiagnosticResult(ClusterRegistryName)
 	if service := d.getRegistryService(r); service != nil {
 		// Check that it actually has pod(s) selected and running
 		if runningPods := d.getRegistryPods(service, r); len(runningPods) == 0 {
@@ -154,7 +156,7 @@ func (d *ClusterRegistry) Check() *types.DiagnosticResult {
 	return r
 }
 
-func (d *ClusterRegistry) getRegistryService(r *types.DiagnosticResult) *kapi.Service {
+func (d *ClusterRegistry) getRegistryService(r types.DiagnosticResult) *kapi.Service {
 	service, err := d.KubeClient.Services(kapi.NamespaceDefault).Get(registryName)
 	if err != nil && reflect.TypeOf(err) == reflect.TypeOf(&kerrs.StatusError{}) {
 		r.Warnf("clGetRegNone", err, clGetRegNone, registryName, kapi.NamespaceDefault)
@@ -167,7 +169,7 @@ func (d *ClusterRegistry) getRegistryService(r *types.DiagnosticResult) *kapi.Se
 	return service
 }
 
-func (d *ClusterRegistry) getRegistryPods(service *kapi.Service, r *types.DiagnosticResult) []*kapi.Pod {
+func (d *ClusterRegistry) getRegistryPods(service *kapi.Service, r types.DiagnosticResult) []*kapi.Pod {
 	runningPods := []*kapi.Pod{}
 	pods, err := d.KubeClient.Pods(kapi.NamespaceDefault).List(labels.SelectorFromSet(service.Spec.Selector), fields.Everything())
 	if err != nil {
@@ -198,7 +200,7 @@ func (d *ClusterRegistry) getRegistryPods(service *kapi.Service, r *types.Diagno
 	return runningPods
 }
 
-func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r *types.DiagnosticResult) {
+func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r types.DiagnosticResult) {
 	// pull out logs from the pod
 	readCloser, err := d.KubeClient.RESTClient.Get().
 		Namespace("default").Name(pod.ObjectMeta.Name).
@@ -219,7 +221,7 @@ func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r *types.DiagnosticRe
 	scanner := bufio.NewScanner(readCloser)
 	for scanner.Scan() {
 		logLine := scanner.Text()
-		if regexp.MustCompile(`level=error msg="OpenShift client error: Post http(\S+)/subjectaccessreviews`).MatchString(logLine) {
+		if regexp.MustCompile(`level=error msg="client error: Post http(\S+)/subjectaccessreviews`).MatchString(logLine) {
 			r.Errort("clRegPodConn", nil, clRegPodConn, log.Hash{
 				"log":          logLine,
 				"podName":      pod.ObjectMeta.Name,
@@ -230,7 +232,7 @@ func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r *types.DiagnosticRe
 	}
 }
 
-func (d *ClusterRegistry) checkRegistryEndpoints(pods []*kapi.Pod, r *types.DiagnosticResult) bool {
+func (d *ClusterRegistry) checkRegistryEndpoints(pods []*kapi.Pod, r types.DiagnosticResult) bool {
 	endPoint, err := d.KubeClient.Endpoints(kapi.NamespaceDefault).Get(registryName)
 	if err != nil {
 		r.Errorf("clRegGetEP", err, `Finding endpoints for "%s" service failed. This should never happen. Error: (%[2]T) %[2]v`, registryName, err)
@@ -247,7 +249,7 @@ func (d *ClusterRegistry) checkRegistryEndpoints(pods []*kapi.Pod, r *types.Diag
 	return true
 }
 
-func (d *ClusterRegistry) verifyRegistryImageStream(service *kapi.Service, r *types.DiagnosticResult) {
+func (d *ClusterRegistry) verifyRegistryImageStream(service *kapi.Service, r types.DiagnosticResult) {
 	imgStream, err := d.OsClient.ImageStreams(kapi.NamespaceDefault).Create(&osapi.ImageStream{ObjectMeta: kapi.ObjectMeta{GenerateName: "diagnostic-test"}})
 	if err != nil {
 		r.Errorf("clRegISCFail", err, "Creating test ImageStream failed. Error: (%T) %[1]v", err)

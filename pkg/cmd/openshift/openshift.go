@@ -53,8 +53,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = irouter.NewCommandRouter(basename)
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
-	case "openshift-diagnostics":
-		cmd = diagnostics.NewCommandDiagnostics(basename, basename, os.Stdout)
 	case "openshift-sti-build":
 		cmd = builder.NewCommandSTIBuilder(basename)
 	case "openshift-docker-build":

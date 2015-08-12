@@ -2,24 +2,29 @@ package diagnostics
 
 import (
 	"fmt"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/openshift/origin/pkg/diagnostics/host"
-	systemddiagnostics "github.com/openshift/origin/pkg/diagnostics/systemd"
+	hostdiags "github.com/openshift/origin/pkg/diagnostics/host"
+	systemddiags "github.com/openshift/origin/pkg/diagnostics/systemd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
+	"k8s.io/kubernetes/pkg/util"
 	"os"
 )
 
 const (
+	// Standard locations for the host config files OpenShift uses.
 	StandardMasterConfigPath string = "/etc/openshift/master/master-config.yaml"
 	StandardNodeConfigPath   string = "/etc/openshift/node/node-config.yaml"
 )
 
 var (
-	AvailableHostDiagnostics = util.NewStringSet("AnalyzeLogs", "UnitStatus", "MasterConfigCheck", "NodeConfigCheck")
+	// availableHostDiagnostics contains the names of host diagnostics that can be executed
+	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
+	availableHostDiagnostics = util.NewStringSet(systemddiags.AnalyzeLogsName, systemddiags.UnitStatusName, hostdiags.MasterConfigCheckName, hostdiags.NodeConfigCheckName)
 )
 
-func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool /* ok */, error) {
-	requestedDiagnostics := intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableHostDiagnostics).List()
+// buildHostDiagnostics builds host Diagnostic objects based on the host environment.
+// Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
+func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool, error) {
+	requestedDiagnostics := intersection(util.NewStringSet(o.RequestedDiagnostics...), availableHostDiagnostics).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
 		return nil, true, nil // don't waste time on discovery
 	}
@@ -48,23 +53,23 @@ func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool /* 
 	}
 
 	diagnostics := []types.Diagnostic{}
-	systemdUnits := systemddiagnostics.GetSystemdUnits(o.Logger)
+	systemdUnits := systemddiags.GetSystemdUnits(o.Logger)
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
-		case "AnalyzeLogs":
-			diagnostics = append(diagnostics, systemddiagnostics.AnalyzeLogs{systemdUnits})
+		case systemddiags.AnalyzeLogsName:
+			diagnostics = append(diagnostics, systemddiags.AnalyzeLogs{systemdUnits})
 
-		case "UnitStatus":
-			diagnostics = append(diagnostics, systemddiagnostics.UnitStatus{systemdUnits})
+		case systemddiags.UnitStatusName:
+			diagnostics = append(diagnostics, systemddiags.UnitStatus{systemdUnits})
 
-		case "MasterConfigCheck":
+		case hostdiags.MasterConfigCheckName:
 			if len(o.MasterConfigLocation) > 0 {
-				diagnostics = append(diagnostics, host.MasterConfigCheck{o.MasterConfigLocation})
+				diagnostics = append(diagnostics, hostdiags.MasterConfigCheck{o.MasterConfigLocation})
 			}
 
-		case "NodeConfigCheck":
+		case hostdiags.NodeConfigCheckName:
 			if len(o.NodeConfigLocation) > 0 {
-				diagnostics = append(diagnostics, host.NodeConfigCheck{o.NodeConfigLocation})
+				diagnostics = append(diagnostics, hostdiags.NodeConfigCheck{o.NodeConfigLocation})
 			}
 
 		default:
