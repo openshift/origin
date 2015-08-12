@@ -255,9 +255,7 @@ for cmd in oc oadm; do
 done
 ln -s %{_bindir}/%{name} %{buildroot}%{_bindir}/kubectl
 
-install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node,allinone}
-# Atomic-Enterprise has an allinone directory for all-in-one use.
-install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/allinone/{master,node}
+install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
 for pkgname in openshift atomic-enterprise
 do
@@ -273,10 +271,6 @@ do
   install -m 0644 tuned/man/tuned-profiles-%{name}-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-${pkgname}-node.7
 
 done
-
-# Atomic-Enterprise has an additional unit and config
-install -m 0644 rel-eng/atomic-enterprise-allinone.service %{buildroot}%{_unitdir}/atomic-enterprise-allinone.service
-install -m 0644 rel-eng/atomic-enterprise-allinone.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/atomic-enterprise-allinone
 
 mkdir -p %{buildroot}%{_sharedstatedir}/%{name}
 mkdir -p %{buildroot}%{_sharedstatedir}/origin
@@ -359,6 +353,10 @@ fi
 
 %post master
 %systemd_post %{basename:openshift-master.service}
+# Create master configs if they do not exist
+if [ ! -e %{_sysconfdir}/origin/master/master-config.yaml ]; then
+  %{_bindir}/%{name} start master --write-config=%{_sysconfdir}/origin/master
+fi
 
 %preun master
 %systemd_preun %{basename:openshift-master.service}
@@ -374,6 +372,12 @@ fi
 
 %post node
 %systemd_post %{basename:openshift-node.service}
+# Create node configs if the master is on the same system AND they do not already exist
+if rpm -q %{name}-master > /dev/null; then
+  if ! find %{_sysconfdir}/origin/ -type f -name "node-config.yaml" | grep -E "node-config.yaml"; then
+    %{_bindir}/oadm create-node-config --node-dir=%{_sysconfdir}/origin/node/ --node=`hostname` --hostnames=`hostname`,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/master/ca.crt --signer-cert=%{_sysconfdir}/origin/master/ca.crt --signer-key=%{_sysconfdir}/origin/master/ca.key --signer-serial=%{_sysconfdir}/origin/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/master/ca.crt
+  fi
+fi
 
 %preun node
 %systemd_preun %{basename:openshift-node.service}
@@ -447,13 +451,8 @@ fi
 %files -n atomic-enterprise-master
 %defattr(-,root,root,-)
 %{_unitdir}/atomic-enterprise-master.service
-%{_unitdir}/atomic-enterprise-allinone.service
 %config(noreplace) %{_sysconfdir}/sysconfig/atomic-enterprise-master
-%config(noreplace) %{_sysconfdir}/sysconfig/atomic-enterprise-allinone
 %dir %config(noreplace) %{_sysconfdir}/origin/master
-%dir %config(noreplace) %{_sysconfdir}/origin/allinone/
-%dir %config(noreplace) %{_sysconfdir}/origin/allinone/master
-%dir %config(noreplace) %{_sysconfdir}/origin/allinone/node
 %ghost %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
 %ghost %config(noreplace) %{_sysconfdir}/origin/master
 %ghost %config(noreplace) %{_sysconfdir}/origin/master/admin.crt
@@ -483,44 +482,16 @@ fi
 %ghost %config(noreplace) %{_sysconfdir}/origin/master/policy.json
 %ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.private.key
 %ghost %config(noreplace) %{_sysconfdir}/origin/master/serviceaccounts.public.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/admin.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/admin.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/admin.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/ca.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/ca.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/ca.serial.txt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/etcd.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/etcd.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master-config.yaml
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.etcd-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.etcd-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.kubelet-client.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.kubelet-client.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.server.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/master.server.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-master.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-master.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-master.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-registry.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-registry.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-registry.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-router.crt
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-router.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/openshift-router.kubeconfig
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/policy.json
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/serviceaccounts.private.key
-%ghost %config(noreplace) %{_sysconfdir}/origin/allinone/master/serviceaccounts.public.key
 
 %post -n atomic-enterprise-master
 %systemd_post %{basename:atomic-enterprise-master.service}
-# Create all-in-one master configs
-%{_bindir}/atomic-enterprise start master --write-config=%{_sysconfdir}/origin/allinone/master
-# Create all-in-one node configs
-%{_bindir}/oadm create-node-config --node-dir=%{_sysconfdir}/origin/allinone/node/ --node=localhost --hostnames=localhost,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/allinone/master/ca.crt --signer-cert=%{_sysconfdir}/origin/allinone/master/ca.crt --signer-key=%{_sysconfdir}/origin/allinone/master/ca.key --signer-serial=%{_sysconfdir}/origin/allinone/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/allinone/master/ca.crt
+# Create master configs if they do not exist
+if [ ! -e %{_sysconfdir}/origin/master/master-config.yaml ]; then
+  %{_bindir}/atomic-enterprise start master --write-config=%{_sysconfdir}/origin/master
+fi
 
 %preun -n atomic-enterprise-master
 %systemd_preun %{basename:atomic-enterprise-master.service}
-%systemd_preun %{basename:atomic-enterprise-allinone.service}
 
 %postun -n atomic-enterprise-master
 %systemd_postun
@@ -533,6 +504,12 @@ fi
 
 %post -n atomic-enterprise-node
 %systemd_post %{basename:atomic-enterprise-node.service}
+# Create node configs if the master is on the same system AND they do not already exist
+if rpm -q atomic-enterprise-master > /dev/null; then
+  if ! find %{_sysconfdir}/origin/ -type f -name "node-config.yaml" | grep -E "node-config.yaml"; then
+    %{_bindir}/oadm create-node-config --node-dir=%{_sysconfdir}/origin/node/ --node=`hostname` --hostnames=`hostname`,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/master/ca.crt --signer-cert=%{_sysconfdir}/origin/master/ca.crt --signer-key=%{_sysconfdir}/origin/master/ca.key --signer-serial=%{_sysconfdir}/origin/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/master/ca.crt
+  fi
+fi
 
 %preun -n atomic-enterprise-node
 %systemd_preun %{basename:atomic-enterprise-node.service}
@@ -588,6 +565,11 @@ fi
 # ===
 
 %changelog
+* Wed Aug 12 2015 Steve Milner <smilner@redhat.com> 0.2-8
+- Master configs will be generated if none are found.
+- Node configs will be generated if none are found and master is installed.
+- All-In-One services removed.
+
 * Wed Aug 12 2015 Steve Milner <smilner@redhat.com> 0.2-7
 - Added new ovs script(s) to file lists.
 

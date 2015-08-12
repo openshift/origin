@@ -1,5 +1,5 @@
 OPTIONS="--loglevel=0"
-CONFIG_FILE=/etc/origin/master/master.yaml
+CONFIG_FILE=/etc/origin/master/master-config.yaml
 
 # Proxy configuration
 # Origin uses standard HTTP_PROXY environment variables. Be sure to set
