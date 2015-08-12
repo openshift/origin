@@ -77,7 +77,11 @@ func main() {
 			glog.Errorf("error while generating deep copy functions for %v: %v", knownType, err)
 		}
 	}
+
 	generator.RepackImports()
+	// the repack changes the name of the import
+	apiShort = generator.AddImport("k8s.io/kubernetes/pkg/api")
+
 	if err := generator.WriteImports(funcOut); err != nil {
 		glog.Fatalf("error while writing imports: %v", err)
 	}
