@@ -2,24 +2,21 @@
 set -ex
 source $(dirname $0)/provision-config.sh
 
-pushd $HOME
-# build openshift-sdn
-if [ -d openshift-sdn ]; then
-    cd openshift-sdn
-    git fetch origin
-    git reset --hard origin/master
-    git checkout -b multitenant
-else
-    git clone https://github.com/openshift/openshift-sdn -b multitenant
-    cd openshift-sdn
-fi
+# Setup openshift-sdn
+echo "Setup openshift-sdn"
+OSDN_BASE_PATH="Godeps/_workspace/src/github.com/openshift/openshift-sdn"
+OSDN_CONTROLLER="${OSDN_BASE_PATH}/ovssubnet/controller"
+KUBE_OSDN_PATH="/usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet/"
 
-make clean
-make
-make install
+pushd /vagrant/${OSDN_CONTROLLER}
+  cp -f kube/bin/openshift-ovs-subnet /usr/bin/
+  cp -f kube/bin/openshift-sdn-kube-subnet-setup.sh /usr/bin/
+
+  mkdir -p ${KUBE_OSDN_PATH}
+  cp -f kube/bin/openshift-ovs-subnet ${KUBE_OSDN_PATH}
+  cp -f multitenant/bin/openshift-ovs-multitenant /usr/bin/
+  cp -f multitenant/bin/openshift-sdn-multitenant-setup.sh /usr/bin/
 popd
 
 systemctl enable openvswitch
 systemctl start openvswitch
-
-# no need to start openshift-sdn, as it is integrated with openshift binary
