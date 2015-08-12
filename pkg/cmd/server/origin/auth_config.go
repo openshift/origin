@@ -62,7 +62,10 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
 	// TODO: allow configuring this
 	// TODO: remove hard-coding of development UI server
-	assetPublicURLs := []string{options.OAuthConfig.AssetPublicURL, "http://localhost:9000", "https://localhost:9000"}
+	assetPublicURLs := []string{}
+	if !options.DisabledFeatures.Has(configapi.FeatureWebConsole) {
+		assetPublicURLs = []string{options.OAuthConfig.AssetPublicURL, "http://localhost:9000", "https://localhost:9000"}
+	}
 
 	userStorage := useretcd.NewREST(etcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)
