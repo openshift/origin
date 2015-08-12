@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osdnapi "github.com/openshift/openshift-sdn/ovssubnet/api"
@@ -40,29 +41,29 @@ func (oi *OsdnRegistryInterface) GetSubnets() (*[]osdnapi.Subnet, error) {
 	// convert HostSubnet to osdnapi.Subnet
 	subList := make([]osdnapi.Subnet, 0)
 	for _, subnet := range hostSubnetList.Items {
-		subList = append(subList, osdnapi.Subnet{Minion: subnet.HostIP, Sub: subnet.Subnet})
+		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, Sub: subnet.Subnet})
 	}
 	return &subList, nil
 }
 
-func (oi *OsdnRegistryInterface) GetSubnet(minion string) (*osdnapi.Subnet, error) {
-	hs, err := oi.oClient.HostSubnets().Get(minion)
+func (oi *OsdnRegistryInterface) GetSubnet(node string) (*osdnapi.Subnet, error) {
+	hs, err := oi.oClient.HostSubnets().Get(node)
 	if err != nil {
 		return nil, err
 	}
-	return &osdnapi.Subnet{Minion: hs.Host, Sub: hs.Subnet}, nil
+	return &osdnapi.Subnet{NodeIP: hs.HostIP, Sub: hs.Subnet}, nil
 }
 
-func (oi *OsdnRegistryInterface) DeleteSubnet(minion string) error {
-	return oi.oClient.HostSubnets().Delete(minion)
+func (oi *OsdnRegistryInterface) DeleteSubnet(node string) error {
+	return oi.oClient.HostSubnets().Delete(node)
 }
 
-func (oi *OsdnRegistryInterface) CreateSubnet(minion string, sub *osdnapi.Subnet) error {
+func (oi *OsdnRegistryInterface) CreateSubnet(node string, sub *osdnapi.Subnet) error {
 	hs := &api.HostSubnet{
 		TypeMeta:   kapi.TypeMeta{Kind: "HostSubnet"},
-		ObjectMeta: kapi.ObjectMeta{Name: minion},
-		Host:       minion,
-		HostIP:     sub.Minion,
+		ObjectMeta: kapi.ObjectMeta{Name: node},
+		Host:       node,
+		HostIP:     sub.NodeIP,
 		Subnet:     sub.Sub,
 	}
 	_, err := oi.oClient.HostSubnets().Create(hs)
@@ -90,41 +91,56 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan *osdnapi.SubnetEvent
 		case watch.Added, watch.Modified:
 			// create SubnetEvent
 			hs := obj.(*api.HostSubnet)
-			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, Minion: hs.Host, Sub: osdnapi.Subnet{Minion: hs.HostIP, Sub: hs.Subnet}}
+			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, Node: hs.Host, Sub: osdnapi.Subnet{NodeIP: hs.HostIP, Sub: hs.Subnet}}
 		case watch.Deleted:
 			// TODO: There is a chance that a Delete event will not get triggered.
 			// Need to use a periodic sync loop that lists and compares.
 			hs := obj.(*api.HostSubnet)
-			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, Minion: hs.Host, Sub: osdnapi.Subnet{Minion: hs.HostIP, Sub: hs.Subnet}}
+			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, Node: hs.Host, Sub: osdnapi.Subnet{NodeIP: hs.HostIP, Sub: hs.Subnet}}
 		}
 	}
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) InitMinions() error {
+func (oi *OsdnRegistryInterface) InitNodes() error {
 	// return no error, as this gets initialized by apiserver
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetMinions() (*[]string, error) {
+func (oi *OsdnRegistryInterface) GetNodes() (*[]string, error) {
 	nodes, err := oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
 	// convert kapi.NodeList to []string
-	minionList := make([]string, 0)
-	for _, minion := range nodes.Items {
-		minionList = append(minionList, minion.Name)
+	nodeList := make([]string, 0)
+	for _, node := range nodes.Items {
+		nodeList = append(nodeList, node.Name)
 	}
-	return &minionList, nil
+	return &nodeList, nil
 }
 
-func (oi *OsdnRegistryInterface) CreateMinion(minion string, data string) error {
-	return fmt.Errorf("Feature not supported in native mode. SDN cannot create/register minions.")
+func (oi *OsdnRegistryInterface) CreateNode(node string, data string) error {
+	return fmt.Errorf("Feature not supported in native mode. SDN cannot create/register nodes.")
 }
 
-func (oi *OsdnRegistryInterface) WatchMinions(receiver chan *osdnapi.MinionEvent, stop chan bool) error {
-	minionEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+func (oi *OsdnRegistryInterface) getNodeAddressMap() (map[types.UID]string, error) {
+	nodeAddressMap := map[types.UID]string{}
+
+	nodes, err := oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return nodeAddressMap, err
+	}
+	for _, node := range nodes.Items {
+		if len(node.Status.Addresses) > 0 {
+			nodeAddressMap[node.ObjectMeta.UID] = node.Status.Addresses[0].Address
+		}
+	}
+	return nodeAddressMap, nil
+}
+
+func (oi *OsdnRegistryInterface) WatchNodes(receiver chan *osdnapi.NodeEvent, stop chan bool) error {
+	nodeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	listWatch := &cache.ListWatch{
 		ListFunc: func() (runtime.Object, error) {
 			return oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
@@ -133,26 +149,40 @@ func (oi *OsdnRegistryInterface) WatchMinions(receiver chan *osdnapi.MinionEvent
 			return oi.kClient.Nodes().Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		},
 	}
-	cache.NewReflector(listWatch, &kapi.Node{}, minionEventQueue, 4*time.Minute).Run()
+	cache.NewReflector(listWatch, &kapi.Node{}, nodeEventQueue, 4*time.Minute).Run()
+
+	nodeAddressMap, err := oi.getNodeAddressMap()
+	if err != nil {
+		return err
+	}
 
 	for {
-		eventType, obj, err := minionEventQueue.Pop()
+		eventType, obj, err := nodeEventQueue.Pop()
 		if err != nil {
 			return err
 		}
+		node := obj.(*kapi.Node)
+		nodeIP := ""
+		if len(node.Status.Addresses) > 0 {
+			nodeIP = node.Status.Addresses[0].Address
+		}
+
 		switch eventType {
 		case watch.Added:
-			// we should ignore the modified event because status updates cause unnecessary noise
-			// the only time we would care about modified would be if the minion changes its IP address
-			// and hence all nodes need to update their vtep entries for the respective subnet
-			// create minionEvent
-			node := obj.(*kapi.Node)
-			receiver <- &osdnapi.MinionEvent{Type: osdnapi.Added, Minion: node.ObjectMeta.Name}
+			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: node.ObjectMeta.Name, NodeIP: nodeIP}
+			nodeAddressMap[node.ObjectMeta.UID] = nodeIP
+		case watch.Modified:
+			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
+			if ok && oldNodeIP != nodeIP {
+				// Node Added event will handle update subnet if there is ip mismatch
+				receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: node.ObjectMeta.Name, NodeIP: nodeIP}
+				nodeAddressMap[node.ObjectMeta.UID] = nodeIP
+			}
 		case watch.Deleted:
 			// TODO: There is a chance that a Delete event will not get triggered.
 			// Need to use a periodic sync loop that lists and compares.
-			node := obj.(*kapi.Node)
-			receiver <- &osdnapi.MinionEvent{Type: osdnapi.Deleted, Minion: node.ObjectMeta.Name}
+			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Deleted, Node: node.ObjectMeta.Name}
+			delete(nodeAddressMap, node.ObjectMeta.UID)
 		}
 	}
 	return nil
@@ -212,9 +242,9 @@ func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan *osdnapi.Namespac
 		switch eventType {
 		case watch.Added:
 			// we should ignore the modified event because status updates cause unnecessary noise
-			// the only time we would care about modified would be if the minion changes its IP address
+			// the only time we would care about modified would be if the node changes its IP address
 			// and hence all nodes need to update their vtep entries for the respective subnet
-			// create minionEvent
+			// create nodeEvent
 			ns := obj.(*kapi.Namespace)
 			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Added, Name: ns.ObjectMeta.Name}
 		case watch.Deleted:
@@ -247,9 +277,9 @@ func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan *osdnapi.NetNa
 		switch eventType {
 		case watch.Added:
 			// we should ignore the modified event because status updates cause unnecessary noise
-			// the only time we would care about modified would be if the minion changes its IP address
+			// the only time we would care about modified would be if the node changes its IP address
 			// and hence all nodes need to update their vtep entries for the respective subnet
-			// create minionEvent
+			// create nodeEvent
 			netns := obj.(*api.NetNamespace)
 			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Added, Name: netns.NetName, NetID: netns.NetID}
 		case watch.Deleted:

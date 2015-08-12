@@ -83,8 +83,23 @@ function setup() {
         DOCKER_NETWORK_OPTIONS='-b=lbr0 --mtu=1450'
     fi
 
-    mkdir -p /run/openshift-sdn
-    cat <<EOF > /run/openshift-sdn/docker-network
+    # Assume supervisord-managed docker for docker-in-docker deployments
+    if [ -f /.dockerinit ]; then
+        conf=/etc/supervisord.conf
+        if [ ! -f "${conf}" ]; then
+            >&2 echo "Running in docker but /etc/supervisord.conf not found."
+            exit 1
+        fi
+        if ! grep "DOCKER_DAEMON_ARGS=\"${DOCKER_NETWORK_OPTIONS}\"" "${conf}"; then
+            >&2 echo "Docker networking options have changed; manual restart required."
+            sed -i.bak -e \
+                "s+\(DOCKER_DAEMON_ARGS=\)\"\"+\1\"${DOCKER_NETWORK_OPTIONS}\"+" \
+                "${conf}"
+        fi
+    # Otherwise assume systemd-managed docker
+    else
+        mkdir -p /run/openshift-sdn
+        cat <<EOF > /run/openshift-sdn/docker-network
 # This file has been modified by openshift-sdn. Please modify the
 # DOCKER_NETWORK_OPTIONS variable in /etc/sysconfig/openshift-node if this
 # is an integrated install or /etc/sysconfig/openshift-sdn-node if this is a
@@ -93,14 +108,22 @@ function setup() {
 DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'
 EOF
 
-    systemctl daemon-reload
-    systemctl restart docker.service
+        systemctl daemon-reload
+        systemctl restart docker.service
 
-    # disable iptables for lbr0
-    # for kernel version 3.18+, module br_netfilter needs to be loaded upfront
-    # for older ones, br_netfilter may not exist, but is covered by bridge (bridge-utils)
-    modprobe br_netfilter || true 
-    sysctl -w net.bridge.bridge-nf-call-iptables=0
+        # disable iptables for lbr0
+        # for kernel version 3.18+, module br_netfilter needs to be loaded upfront
+        # for older ones, br_netfilter may not exist, but is covered by bridge (bridge-utils)
+        #
+        # This operation is assumed to have been performed in advance
+        # for docker-in-docker deployments.
+        modprobe br_netfilter || true
+        sysctl -w net.bridge.bridge-nf-call-iptables=0
+    fi
+
+    # enable IP forwarding for ipv4 packets
+    sysctl -w net.ipv4.ip_forward=1
+    sysctl -w net.ipv4.conf.${TUN}.forwarding=1
 
     # delete the subnet routing entry created because of lbr0
     ip route del ${subnet} dev lbr0 proto kernel scope link src ${subnet_gateway} || true
