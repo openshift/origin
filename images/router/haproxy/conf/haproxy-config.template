@@ -86,7 +86,8 @@ frontend fe_sni
 
   # re-ssl?
   acl reencrypt hdr(host),map(/var/lib/haproxy/conf/os_reencrypt.map) -m found
-  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
+  use_backend be_secure_%[base,map_beg(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
+  use_backend be_secure_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
 
   # map to http backend
   use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
@@ -118,7 +119,8 @@ frontend fe_no_sni
 
   # re-ssl?
   acl reencrypt hdr(host),map(/var/lib/haproxy/conf/os_reencrypt.map) -m found
-  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
+  use_backend be_secure_%[base,map_beg(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
+  use_backend be_secure_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
 
   # map to http backend
   use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
