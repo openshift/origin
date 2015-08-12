@@ -319,7 +319,7 @@ func TestPostExecute(t *testing.T) {
 		}
 		// Ensure Callback was called
 		if ci.CallbackURL != bh.config.CallbackURL {
-			t.Errorf("(%d) Unexpected callbackURL, expected %s, got %", i, bh.config.CallbackURL, ci.CallbackURL)
+			t.Errorf("(%d) Unexpected callbackURL, expected %s, got %s", i, bh.config.CallbackURL, ci.CallbackURL)
 		}
 	}
 }
