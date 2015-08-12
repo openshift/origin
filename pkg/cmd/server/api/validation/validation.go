@@ -11,7 +11,6 @@ import (
 
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -94,12 +93,8 @@ func ValidateHTTPServingInfo(info api.HTTPServingInfo) fielderrors.ValidationErr
 func ValidateDisabledFeatures(disabledFeatures []string, field string) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	known := sets.NewString()
-	for _, feature := range api.KnownOpenShiftFeatures {
-		known.Insert(strings.ToLower(feature))
-	}
 	for i, feature := range disabledFeatures {
-		if !known.Has(strings.ToLower(feature)) {
+		if _, isKnown := api.NormalizeOpenShiftFeature(feature); !isKnown {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("%s[%d]", field, i), disabledFeatures[i], fmt.Sprintf("not one of valid features: %s", strings.Join(api.KnownOpenShiftFeatures, ", "))))
 		}
 	}

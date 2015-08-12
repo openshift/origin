@@ -30,9 +30,9 @@ import (
 )
 
 const openshiftLong = `
-%[2]s Application Platform
+%[2]s
 
-The %[2]s distribution of Kubernetes helps you build, deploy, and manage your applications on top of
+The %[3]s helps you build, deploy, and manage your applications on top of
 Docker containers. To start an all-in-one server with the default configuration, run:
 
   $ %[1]s start &`
@@ -97,18 +97,10 @@ func CommandFor(basename string) *cobra.Command {
 func NewCommandOpenShift(name string) *cobra.Command {
 	in, out, errout := os.Stdin, os.Stdout, os.Stderr
 
-	product := "Origin"
-	switch name {
-	case "openshift":
-		product = "OpenShift"
-	case "atomic-enterprise":
-		product = "Atomic"
-	}
-
 	root := &cobra.Command{
 		Use:   name,
 		Short: "Build, deploy, and manage your cloud applications",
-		Long:  fmt.Sprintf(openshiftLong, name, product),
+		Long:  fmt.Sprintf(openshiftLong, name, cmdutil.GetPlatformName(name), cmdutil.GetDistributionName(name)),
 		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 

@@ -43,8 +43,7 @@ type MasterOptions struct {
 }
 
 func (o *MasterOptions) DefaultsFromName(basename string) {
-	switch basename {
-	case "atomic-enterprise":
+	if cmdutil.GetProductName(basename) == cmdutil.ProductAtomicEnterprise {
 		o.DisabledFeatures = configapi.AtomicDisabledFeatures
 	}
 }
