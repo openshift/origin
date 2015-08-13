@@ -99,7 +99,6 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan *osdnapi.SubnetEvent
 			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, Node: hs.Host, Sub: osdnapi.Subnet{NodeIP: hs.HostIP, Sub: hs.Subnet}}
 		}
 	}
-	return nil
 }
 
 func (oi *OsdnRegistryInterface) InitNodes() error {
@@ -185,7 +184,6 @@ func (oi *OsdnRegistryInterface) WatchNodes(receiver chan *osdnapi.NodeEvent, st
 			delete(nodeAddressMap, node.ObjectMeta.UID)
 		}
 	}
-	return nil
 }
 
 func (oi *OsdnRegistryInterface) WriteNetworkConfig(network string, subnetLength uint) error {
@@ -254,7 +252,6 @@ func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan *osdnapi.Namespac
 			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Deleted, Name: ns.ObjectMeta.Name}
 		}
 	}
-	return nil
 }
 
 func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan *osdnapi.NetNamespaceEvent, stop chan bool) error {
@@ -289,7 +286,6 @@ func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan *osdnapi.NetNa
 			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Deleted, Name: netns.NetName}
 		}
 	}
-	return nil
 }
 
 func (oi *OsdnRegistryInterface) GetNetNamespaces() ([]osdnapi.NetNamespace, error) {

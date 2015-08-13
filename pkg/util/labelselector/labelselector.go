@@ -232,7 +232,6 @@ func (p *Parser) parse() (map[string]string, error) {
 			return nil, fmt.Errorf("found '%s', expected: identifier or 'end of string'", lit)
 		}
 	}
-	return labelsMap, nil
 }
 
 func (p *Parser) parseLabel() (string, string, error) {

@@ -56,9 +56,11 @@ func (f *finder) Find(dir string) ([]string, error) {
 
 		// Add files named Dockerfile
 		if info.Name() == "Dockerfile" && err == nil {
-			relpath, err := filepath.Rel(dir, path)
-			if err == nil {
+			relpath, relerr := filepath.Rel(dir, path)
+			if relerr == nil {
 				dockerfiles = append(dockerfiles, relpath)
+			} else {
+				return relerr
 			}
 		}
 		return err

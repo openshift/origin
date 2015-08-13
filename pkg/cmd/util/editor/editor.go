@@ -127,7 +127,7 @@ func (e Editor) LaunchTempFile(prefix, suffix string, r io.Reader) ([]byte, stri
 	}
 	defer f.Close()
 	path := f.Name()
-	if _, err := io.Copy(f, r); err != nil {
+	if _, err = io.Copy(f, r); err != nil {
 		os.Remove(path)
 		return nil, path, err
 	}

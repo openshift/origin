@@ -134,8 +134,6 @@ func (o NodeOptions) StartNode() error {
 
 	go daemon.SdNotify("READY=1")
 	select {}
-
-	return nil
 }
 
 // RunNode takes the options and:

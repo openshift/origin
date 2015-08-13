@@ -135,9 +135,9 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 
 	var result runtime.Object
 	if len(asTemplate) > 0 {
-		objects, err := resource.AsVersionedObjects(infos, outputVersion)
-		if err != nil {
-			return err
+		objects, objectsErr := resource.AsVersionedObjects(infos, outputVersion)
+		if objectsErr != nil {
+			return objectsErr
 		}
 		template := &templateapi.Template{
 			Objects: objects,
@@ -148,9 +148,9 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 			return err
 		}
 	} else {
-		object, err := resource.AsVersionedObject(infos, !one, outputVersion)
-		if err != nil {
-			return err
+		object, objectErr := resource.AsVersionedObject(infos, !one, outputVersion)
+		if objectErr != nil {
+			return objectErr
 		}
 		result = object
 	}

@@ -75,8 +75,8 @@ func (c *Repair) RunOnce() error {
 		if !ok {
 			continue
 		}
-		block, err := uid.ParseBlock(value)
-		if err != nil {
+		block, blockErr := uid.ParseBlock(value)
+		if blockErr != nil {
 			continue
 		}
 		switch err := uids.Allocate(block); err {

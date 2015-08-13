@@ -63,7 +63,7 @@ func TestInitializeVolumeDir(t *testing.T) {
 			}
 		}
 
-		path, err := nc.initializeVolumeDir(ce, nc.VolumeDir)
+		volumePath, pathErr := nc.initializeVolumeDir(ce, nc.VolumeDir)
 
 		if testCase.removeVolumeDir {
 			if !ce.lookCalled {
@@ -75,11 +75,11 @@ func TestInitializeVolumeDir(t *testing.T) {
 			if testCase.chconFound && !ce.runCalled {
 				t.Fatalf("%d: expected chcon run", i)
 			}
-			if err != nil {
-				t.Fatalf("%d: unexpected err: %s", i, err)
+			if pathErr != nil {
+				t.Fatalf("%d: unexpected err: %s", i, pathErr)
 			}
-			if path != nc.VolumeDir {
-				t.Fatalf("%d:, expected path(%s) == nc.VolumeDir(%s)", i, path, nc.VolumeDir)
+			if volumePath != nc.VolumeDir {
+				t.Fatalf("%d:, expected path(%s) == nc.VolumeDir(%s)", i, volumePath, nc.VolumeDir)
 			}
 		} else {
 			if ce.lookCalled {

@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -71,7 +71,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 
 	// Make sure the service account doesn't have access
 	failNS := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-fail"}}
-	if _, err := cluster1SAKubeClient.Namespaces().Create(failNS); !errors.IsForbidden(err) {
+	if _, err = cluster1SAKubeClient.Namespaces().Create(failNS); !errors.IsForbidden(err) {
 		t.Fatalf("expected forbidden error, got %v", err)
 	}
 
@@ -91,7 +91,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	// Make sure the service account now has access
 	// This tests authentication using the etcd-based token getter
 	passNS := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-pass"}}
-	if _, err := cluster1SAKubeClient.Namespaces().Create(passNS); err != nil {
+	if _, err = cluster1SAKubeClient.Namespaces().Create(passNS); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

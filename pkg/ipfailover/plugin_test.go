@@ -95,15 +95,15 @@ func TestNewPlugin(t *testing.T) {
 
 func RunPluginInterfaceTest(t *testing.T, name string, cb PluginCallback) {
 	idx := 0
-	expectedErrors := []error{nil, fmt.Errorf("error-test-%f", name)}
+	expectedErrors := []error{nil, fmt.Errorf("error-test-%s", name)}
 	for _, err := range expectedErrors {
 		for _, val := range []int{1, 1, 2, 3, 5, 8} {
 			idx = idx + 1
 			runPluginCallCountTest(t, name, idx, err, val, func(n string, p IPFailoverConfiguratorPlugin) error {
 				for cnt := 0; cnt < val; cnt++ {
 					reterr := cb(n, p)
-					if nil != err && nil == reterr {
-						t.Errorf("Test %q failed - got no error, expected %v", err)
+					if err != nil && reterr == nil {
+						t.Errorf("Test %q failed - got no error, expected %v", name, err)
 					}
 				}
 				return nil

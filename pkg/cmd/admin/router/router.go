@@ -191,9 +191,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	label := map[string]string{"router": name}
 	if cfg.Labels != defaultLabel {
-		valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Labels, ","))
-		if err != nil {
-			glog.Fatal(err)
+		valid, remove, labelErr := app.LabelsFromSpec(strings.Split(cfg.Labels, ","))
+		if labelErr != nil {
+			glog.Fatal(labelErr)
 		}
 		if len(remove) > 0 {
 			return cmdutil.UsageError(cmd, "You may not pass negative labels in %q", cfg.Labels)
@@ -203,9 +203,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 	nodeSelector := map[string]string{}
 	if len(cfg.Selector) > 0 {
-		valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Selector, ","))
-		if err != nil {
-			glog.Fatal(err)
+		valid, remove, labelErr := app.LabelsFromSpec(strings.Split(cfg.Selector, ","))
+		if labelErr != nil {
+			glog.Fatal(labelErr)
 		}
 		if len(remove) > 0 {
 			return cmdutil.UsageError(cmd, "You may not pass negative labels in selector %q", cfg.Selector)
@@ -278,7 +278,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 		defaultCert, err := loadDefaultCert(cfg.DefaultCertificate)
 		if err != nil {
-			return fmt.Errorf("router could not be created; error reading default certificate file", err)
+			return fmt.Errorf("router could not be created; error reading default certificate file: %v", err)
 		}
 
 		if len(cfg.StatsPassword) == 0 {

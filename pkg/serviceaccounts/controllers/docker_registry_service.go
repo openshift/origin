@@ -183,9 +183,9 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 		t := credentialprovider.DockerConfig(dockercfgMap)
 		dockercfg = &t
 
-		dockercfgContent, err := json.Marshal(dockercfg)
-		if err != nil {
-			util.HandleError(err)
+		dockercfgContent, marshalErr := json.Marshal(dockercfg)
+		if marshalErr != nil {
+			util.HandleError(marshalErr)
 			continue
 		}
 		dockercfgSecret.Data[api.DockerConfigKey] = dockercfgContent

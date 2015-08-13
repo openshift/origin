@@ -356,7 +356,7 @@ func (c *connection) getImage(repo *repository, image, userTag string) (*docker.
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
 		delete(c.cached, repo.name)
-		if body, err := ioutil.ReadAll(resp.Body); err == nil {
+		if body, readErr := ioutil.ReadAll(resp.Body); readErr == nil {
 			glog.V(6).Infof("unable to fetch image %s: %#v\n%s", req.URL, resp, string(body))
 		}
 		return nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)

@@ -506,7 +506,7 @@ func newInvalidExtensionPolicies() []authorizationapi.Policy {
 						{
 							Verbs:                 util.NewStringSet("watch", "list", "get"),
 							Resources:             util.NewStringSet("buildConfigs"),
-							AttributeRestrictions: runtime.EmbeddedObject{&authorizationapi.Role{}},
+							AttributeRestrictions: runtime.EmbeddedObject{Object: &authorizationapi.Role{}},
 						},
 						{
 							Verbs:     util.NewStringSet("update"),

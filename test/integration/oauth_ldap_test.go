@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -85,7 +85,7 @@ func TestOAuthLDAP(t *testing.T) {
 		UseAsChallenger: true,
 		UseAsLogin:      true,
 		Provider: runtime.EmbeddedObject{
-			&configapi.LDAPPasswordIdentityProvider{
+			Object: &configapi.LDAPPasswordIdentityProvider{
 				URL:          fmt.Sprintf("ldap://%s/%s?%s?%s?%s", ldapAddress, searchDN, searchAttr, searchScope, searchFilter),
 				BindDN:       bindDN,
 				BindPassword: bindPassword,
@@ -123,14 +123,14 @@ func TestOAuthLDAP(t *testing.T) {
 
 	// Make sure we can't authenticate as a missing user
 	ldapServer.ResetRequests()
-	if _, err := tokencmd.RequestToken(&anonConfig, nil, myUserUID, myUserPassword); err == nil {
+	if _, err = tokencmd.RequestToken(&anonConfig, nil, myUserUID, myUserPassword); err == nil {
 		t.Error("Expected error, got none")
 	}
 	if len(ldapServer.BindRequests) != 1 {
-		t.Error("Expected a single bind request for the search phase, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
+		t.Errorf("Expected a single bind request for the search phase, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
 	}
 	if len(ldapServer.SearchRequests) != 1 {
-		t.Error("Expected a single search request, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
+		t.Errorf("Expected a single search request, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
 	}
 
 	// Add user
@@ -139,14 +139,14 @@ func TestOAuthLDAP(t *testing.T) {
 
 	// Make sure we can't authenticate with a bad password
 	ldapServer.ResetRequests()
-	if _, err := tokencmd.RequestToken(&anonConfig, nil, myUserUID, "badpassword"); err == nil {
+	if _, err = tokencmd.RequestToken(&anonConfig, nil, myUserUID, "badpassword"); err == nil {
 		t.Error("Expected error, got none")
 	}
 	if len(ldapServer.BindRequests) != 2 {
-		t.Error("Expected a bind request for the search phase and a failed bind request for the auth phase, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
+		t.Errorf("Expected a bind request for the search phase and a failed bind request for the auth phase, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
 	}
 	if len(ldapServer.SearchRequests) != 1 {
-		t.Error("Expected a single search request, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
+		t.Errorf("Expected a single search request, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
 	}
 
 	// Make sure we can get a token with a good password
@@ -156,13 +156,13 @@ func TestOAuthLDAP(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if len(accessToken) == 0 {
-		t.Errorf("Expected access token, got none")
+		t.Error("Expected access token, got none")
 	}
 	if len(ldapServer.BindRequests) != 2 {
-		t.Error("Expected a bind request for the search phase and a failed bind request for the auth phase, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
+		t.Errorf("Expected a bind request for the search phase and a failed bind request for the auth phase, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
 	}
 	if len(ldapServer.SearchRequests) != 1 {
-		t.Error("Expected a single search request, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
+		t.Errorf("Expected a single search request, got %d:\n%#v", len(ldapServer.BindRequests), ldapServer.BindRequests)
 	}
 	if !reflect.DeepEqual(expectedSearchRequest.BaseObject, ldapServer.SearchRequests[0].BaseObject) {
 		t.Errorf("Expected search base DN\n\t%#v\ngot\n\t%#v",
@@ -212,16 +212,16 @@ func TestOAuthLDAP(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	if identity.ProviderUserName != myUserDN {
-		t.Error("Expected %q, got %q", myUserDN, identity.ProviderUserName)
+		t.Errorf("Expected %q, got %q", myUserDN, identity.ProviderUserName)
 	}
 	if v := identity.Extra[authapi.IdentityDisplayNameKey]; v != myUserName {
-		t.Error("Expected %q, got %q", myUserName, v)
+		t.Errorf("Expected %q, got %q", myUserName, v)
 	}
 	if v := identity.Extra[authapi.IdentityPreferredUsernameKey]; v != myUserUID {
-		t.Error("Expected %q, got %q", myUserUID, v)
+		t.Errorf("Expected %q, got %q", myUserUID, v)
 	}
 	if v := identity.Extra[authapi.IdentityEmailKey]; v != myUserEmail {
-		t.Error("Expected %q, got %q", myUserEmail, v)
+		t.Errorf("Expected %q, got %q", myUserEmail, v)
 	}
 
 }

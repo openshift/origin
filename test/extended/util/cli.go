@@ -262,7 +262,7 @@ func (c *CLI) Execute() error {
 	if err != nil {
 		FatalErr(fmt.Errorf("%v", err))
 	}
-	if _, err := io.Copy(os.Stdout, strings.NewReader(out+"\n")); err != nil {
+	if _, err = io.Copy(os.Stdout, strings.NewReader(out+"\n")); err != nil {
 		fmt.Printf("ERROR: Unable to copy the output to stdout")
 	}
 	os.Stdout.Sync()

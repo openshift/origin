@@ -158,7 +158,7 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthA
 	token := &api.OAuthAuthorizeToken{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              data.Code,
-			CreationTimestamp: util.Time{data.CreatedAt},
+			CreationTimestamp: util.Time{Time: data.CreatedAt},
 		},
 		ClientName:  data.Client.GetId(),
 		ExpiresIn:   int64(data.ExpiresIn),
@@ -198,7 +198,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.OAuthAccessT
 	token := &api.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              data.AccessToken,
-			CreationTimestamp: util.Time{data.CreatedAt},
+			CreationTimestamp: util.Time{Time: data.CreatedAt},
 		},
 		ExpiresIn:    int64(data.ExpiresIn),
 		RefreshToken: data.RefreshToken,

@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -65,7 +65,7 @@ func TestImageStreamCreate(t *testing.T) {
 
 	stream := mockImageStream()
 
-	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(&imageapi.ImageStream{}); err == nil || !errors.IsInvalid(err) {
+	if _, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Create(&imageapi.ImageStream{}); err == nil || !errors.IsInvalid(err) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -148,7 +148,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 			},
 		},
 	}
-	if _, err := clusterAdminClient.Images().Create(image); err == nil {
+	if _, err = clusterAdminClient.Images().Create(image); err == nil {
 		t.Error("unexpected non-error")
 	}
 	image.DockerImageReference = "some/other/name" // can reuse references across multiple images

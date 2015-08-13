@@ -133,15 +133,15 @@ func (s *REST) createOrUpdate(ctx kapi.Context, obj runtime.Object, forceCreate 
 
 	// Update the new user to point at the identity. If this fails, Update is re-entrant
 	if addIdentityToUser(identity, newUser) {
-		if _, err := s.userRegistry.UpdateUser(ctx, newUser); err != nil {
+		if _, err = s.userRegistry.UpdateUser(ctx, newUser); err != nil {
 			return nil, false, err
 		}
 	}
 
 	// Update the identity to point at the new user. If this fails. Update is re-entrant
 	if setIdentityUser(identity, newUser) {
-		if updatedIdentity, err := s.identityRegistry.UpdateIdentity(ctx, identity); err != nil {
-			return nil, false, err
+		if updatedIdentity, updateErr := s.identityRegistry.UpdateIdentity(ctx, identity); updateErr != nil {
+			return nil, false, updateErr
 		} else {
 			identity = updatedIdentity
 		}
@@ -153,7 +153,7 @@ func (s *REST) createOrUpdate(ctx kapi.Context, obj runtime.Object, forceCreate 
 	// Update the old user to no longer point at the identity.
 	// If this fails, log the error, but continue, because Update is no longer re-entrant
 	if oldUser != nil && removeIdentityFromUser(identity, oldUser) {
-		if _, err := s.userRegistry.UpdateUser(ctx, oldUser); err != nil {
+		if _, err = s.userRegistry.UpdateUser(ctx, oldUser); err != nil {
 			util.HandleError(fmt.Errorf("error removing identity reference %s from user %s: %v", identity.Name, oldUser.Name, err))
 		}
 	}

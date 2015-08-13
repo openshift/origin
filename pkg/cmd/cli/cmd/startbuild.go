@@ -165,9 +165,9 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 	}
 
 	if isBuild {
-		build, err := client.Builds(namespace).Get(name)
-		if err != nil {
-			return err
+		build, getErr := client.Builds(namespace).Get(name)
+		if getErr != nil {
+			return getErr
 		}
 		ref := build.Status.Config
 		if ref == nil {

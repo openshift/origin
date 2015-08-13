@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -126,7 +126,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := clusterAdminClient.Projects().Create(&projectapi.Project{ObjectMeta: kapi.ObjectMeta{Name: namespace}}); err != nil {
+	if _, err = clusterAdminClient.Projects().Create(&projectapi.Project{ObjectMeta: kapi.ObjectMeta{Name: namespace}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -189,7 +189,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	role.Rules = []authorizationapi.PolicyRule{}
-	if _, err := clusterAdminClient.ClusterRoles().Update(role); err != nil {
+	if _, err = clusterAdminClient.ClusterRoles().Update(role); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

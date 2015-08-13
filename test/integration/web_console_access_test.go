@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -72,7 +72,7 @@ func TestAccessDisabledWebConsole(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	masterOptions.DisabledFeatures.Add(configapi.FeatureWebConsole)
-	if _, err := testutil.StartConfiguredMaster(masterOptions); err != nil {
+	if _, err = testutil.StartConfiguredMaster(masterOptions); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

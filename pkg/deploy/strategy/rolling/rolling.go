@@ -177,7 +177,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// https://github.com/GoogleCloudPlatform/kubernetes/pull/7183
 	to, err = s.client.GetReplicationController(to.Namespace, to.Name)
 	if err != nil {
-		return fmt.Errorf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(to))
+		return fmt.Errorf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(to), err)
 	}
 	if _, hasSourceId := to.Annotations[sourceIdAnnotation]; !hasSourceId {
 		to.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", from.Name, from.ObjectMeta.UID)

@@ -104,9 +104,9 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	// Setup namespace
 	if o.allNamespaces {
 		// TODO: Handle different uses of build-chain; user and admin
-		projectList, err := oc.Projects().List(labels.Everything(), fields.Everything())
-		if err != nil {
-			return err
+		projectList, projectListErr := oc.Projects().List(labels.Everything(), fields.Everything())
+		if projectListErr != nil {
+			return projectListErr
 		}
 		for _, project := range projectList.Items {
 			glog.V(4).Infof("Found namespace %q", project.Name)

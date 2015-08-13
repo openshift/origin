@@ -120,12 +120,12 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	// When storedTemplate is not empty, then we fetch the template from the
 	// server, otherwise we require to set the `-f` parameter.
 	if len(storedTemplate) > 0 {
-		templateObj, err := client.Templates(namespace).Get(storedTemplate)
-		if err != nil {
-			if errors.IsNotFound(err) {
+		templateObj, templateErr := client.Templates(namespace).Get(storedTemplate)
+		if templateErr != nil {
+			if errors.IsNotFound(templateErr) {
 				return fmt.Errorf("template %q could not be found", storedTemplate)
 			}
-			return err
+			return templateErr
 		}
 		templateObj.CreationTimestamp = util.Now()
 		infos = append(infos, &resource.Info{Object: templateObj})
@@ -168,9 +168,9 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		}
 
 		if label := kcmdutil.GetFlagString(cmd, "labels"); len(label) > 0 {
-			lbl, err := kubectl.ParseLabels(label)
-			if err != nil {
-				fmt.Fprintf(cmd.Out(), "error parsing labels: %v\n", err)
+			lbl, labelErr := kubectl.ParseLabels(label)
+			if labelErr != nil {
+				fmt.Fprintf(cmd.Out(), "error parsing labels: %v\n", labelErr)
 				continue
 			}
 			if obj.ObjectLabels == nil {
@@ -187,19 +187,19 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 			injectUserVars(cmd, obj)
 		}
 
-		resultObj, err := client.TemplateConfigs(namespace).Create(obj)
-		if err != nil {
-			fmt.Fprintf(cmd.Out(), "error processing the template %q: %v\n", obj.Name, err)
+		resultObj, createErr := client.TemplateConfigs(namespace).Create(obj)
+		if createErr != nil {
+			fmt.Fprintf(cmd.Out(), "error processing the template %q: %v\n", obj.Name, createErr)
 			continue
 		}
 
 		if outputFormat == "describe" {
-			if s, err := (&describe.TemplateDescriber{
+			if s, describeErr := (&describe.TemplateDescriber{
 				MetadataAccessor: meta.NewAccessor(),
 				ObjectTyper:      kapi.Scheme,
 				ObjectDescriber:  nil,
-			}).DescribeTemplate(resultObj); err != nil {
-				fmt.Fprintf(cmd.Out(), "error describing %q: %v\n", obj.Name, err)
+			}).DescribeTemplate(resultObj); describeErr != nil {
+				fmt.Fprintf(cmd.Out(), "error describing %q: %v\n", obj.Name, describeErr)
 			} else {
 				fmt.Fprintf(out, s)
 			}

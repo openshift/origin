@@ -141,7 +141,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 
 		// generate the file to edit
 		buf := &bytes.Buffer{}
-		if err := results.header.WriteTo(buf); err != nil {
+		if _, err := results.header.WriteTo(buf); err != nil {
 			return preservedFile(err, results.file, cmd.Out())
 		}
 		if err := printer.PrintObj(obj, buf); err != nil {
@@ -217,13 +217,13 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 		}
 
 		err = visitor.Visit(func(info *resource.Info) error {
-			data, err := info.Mapping.Codec.Encode(info.Object)
-			if err != nil {
-				return err
+			data, dataErr := info.Mapping.Codec.Encode(info.Object)
+			if dataErr != nil {
+				return dataErr
 			}
-			updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, data)
-			if err != nil {
-				fmt.Fprintln(cmd.Out(), results.AddError(err, info))
+			updated, updatedErr := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, data)
+			if updatedErr != nil {
+				fmt.Fprintln(cmd.Out(), results.AddError(updatedErr, info))
 				return nil
 			}
 			info.Refresh(updated, true)
@@ -254,7 +254,6 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 		// loop again and edit the remaining items
 		infos = results.edit
 	}
-	return nil
 }
 
 // editReason preserves a message about the reason this file must be edited again
@@ -269,24 +268,29 @@ type editHeader struct {
 }
 
 // WriteTo outputs the current header information into a stream
-func (h *editHeader) WriteTo(w io.Writer) error {
-	fmt.Fprint(w, `# Please edit the object below. Lines beginning with a '#' will be ignored,
+func (h *editHeader) WriteTo(w io.Writer) (int64, error) {
+	var length int
+	editMsg := `# Please edit the object below. Lines beginning with a '#' will be ignored,
 # and an empty file will abort the edit. If an error occurs while saving this file will be
 # reopened with the relevant failures.
 #
-`)
+`
+	fmt.Fprint(w, editMsg)
+	length = length + len(editMsg)
 	for _, r := range h.reasons {
 		if len(r.other) > 0 {
 			fmt.Fprintf(w, "# %s:\n", r.head)
 		} else {
 			fmt.Fprintf(w, "# %s\n", r.head)
 		}
+		length = length + len(r.head) + 3
 		for _, o := range r.other {
 			fmt.Fprintf(w, "# * %s\n", o)
+			length = length + len(o)
 		}
 		fmt.Fprintln(w, "#")
 	}
-	return nil
+	return int64(length), nil
 }
 
 // editResults capture the result of an update
@@ -391,7 +395,7 @@ func applyPatch(delta *jsonmerge.Delta, info *resource.Info, version string) err
 // their updates were preserved.
 func preservedFile(err error, path string, out io.Writer) error {
 	if len(path) > 0 {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
+		if _, err = os.Stat(path); !os.IsNotExist(err) {
 			fmt.Fprintf(out, "A copy of your changes has been stored to %q\n", path)
 		}
 	}
