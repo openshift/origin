@@ -205,6 +205,10 @@ openshift admin policy add-role-to-user view e2e-user --namespace=default
 # pre-load some image streams and templates
 oc create -f examples/image-streams/image-streams-centos7.json --namespace=openshift
 oc create -f examples/sample-app/application-template-stibuild.json --namespace=openshift
+oc create -f examples/jenkins/application-template.json --namespace=openshift
+oc create -f examples/db-templates/mongodb-ephemeral-template.json --namespace=openshift
+oc create -f examples/db-templates/mysql-ephemeral-template.json --namespace=openshift
+oc create -f examples/db-templates/postgresql-ephemeral-template.json --namespace=openshift
 
 # create test project so that this shows up in the console
 openshift admin new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
