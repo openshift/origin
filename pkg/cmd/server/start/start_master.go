@@ -182,8 +182,6 @@ func (o MasterOptions) StartMaster() error {
 
 	go daemon.SdNotify("READY=1")
 	select {}
-
-	return nil
 }
 
 // RunMaster takes the options and:
