@@ -689,6 +689,7 @@ func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, o
 	for _, p := range params {
 		formatString(out, indent+"Name", p.Name)
 		formatString(out, indent+"Description", p.Description)
+		formatString(out, indent+"Required", p.Required)
 		if len(p.Generate) == 0 {
 			formatString(out, indent+"Value", p.Value)
 			continue
