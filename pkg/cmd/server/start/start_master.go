@@ -470,11 +470,13 @@ func StartControllers(openshiftConfig *origin.MasterConfig, kubeMasterConfig *ku
 		kubeMasterConfig.RunPersistentVolumeClaimRecycler(openshiftConfig.ImageFor("deployer"))
 	}
 
-	// no special order
-	openshiftConfig.RunBuildController()
-	openshiftConfig.RunBuildPodController()
-	openshiftConfig.RunBuildConfigChangeController()
-	openshiftConfig.RunBuildImageChangeTriggerController()
+	// no special order\
+	if configapi.IsBuildEnabled(&openshiftConfig.Options) {
+		openshiftConfig.RunBuildController()
+		openshiftConfig.RunBuildPodController()
+		openshiftConfig.RunBuildConfigChangeController()
+		openshiftConfig.RunBuildImageChangeTriggerController()
+	}
 	openshiftConfig.RunDeploymentController()
 	openshiftConfig.RunDeployerPodController()
 	openshiftConfig.RunDeploymentConfigController()

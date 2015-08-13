@@ -400,13 +400,6 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	)
 
 	storage := map[string]rest.Storage{
-		"builds":                   buildStorage,
-		"buildConfigs":             buildConfigStorage,
-		"buildConfigs/webhooks":    buildConfigWebHooks,
-		"builds/clone":             buildclonestorage.NewStorage(buildGenerator),
-		"buildConfigs/instantiate": buildinstantiatestorage.NewStorage(buildGenerator),
-		"builds/log":               buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient),
-
 		"images":              imageStorage,
 		"imageStreams":        imageStreamStorage,
 		"imageStreams/status": imageStreamStatusStorage,
@@ -452,6 +445,15 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterPolicyBindings": clusterPolicyBindingStorage,
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
+	}
+
+	if configapi.IsBuildEnabled(&c.Options) {
+		storage["builds"] = buildStorage
+		storage["buildConfigs"] = buildConfigStorage
+		storage["buildConfigs/webhooks"] = buildConfigWebHooks
+		storage["builds/clone"] = buildclonestorage.NewStorage(buildGenerator)
+		storage["buildConfigs/instantiate"] = buildinstantiatestorage.NewStorage(buildGenerator)
+		storage["builds/log"] = buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient)
 	}
 
 	return storage
