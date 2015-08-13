@@ -36,7 +36,7 @@ func getClientConfig(path string) (*kclient.Config, error) {
 	}
 
 	if err := kclient.LoadTLSFiles(config); err != nil {
-		fmt.Errorf("Unable to load certificate info using credentials from %q: %v", path, err)
+		return nil, fmt.Errorf("Unable to load certificate info using credentials from %q: %v", path, err)
 	}
 
 	return config, nil
