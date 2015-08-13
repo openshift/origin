@@ -1012,8 +1012,7 @@
 		},
 		{
 			"ImportPath": "github.com/jteeuwen/go-bindata",
-			"Comment": "v3.0.7-2-gf94581b",
-			"Rev": "f94581bd91620d0ccd9c22bb1d2de13f6a605857"
+			"Rev": "dce55d09e24ac40a6e725c8420902b86554f8046"
 		},
 		{
 			"ImportPath": "github.com/juju/ratelimit",
