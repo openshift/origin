@@ -218,7 +218,7 @@ curl http://$IP_FROM_ABOVE:8080/
 
 18 Try new things
 -----------------
-That’s it, your system should be up and running.  You can now add new nodes.  Try adding the internal registry with the “oadm registry” command.  Or try adding the enterprise router with the “oadm router” command.  You can also take a look at other kubernetes examples: https://github.com/GoogleCloudPlatform/kubernetes/tree/master/examples
+That’s it, your system should be up and running.  You can now add new nodes.  Try adding the internal registry with the “oadm registry” command.  Or try adding the enterprise router with the “oadm router” command.  You can also take a look at other kubernetes examples: https://github.com/kubernetes/kubernetes/tree/master/examples
 
 [IMPORTANT]
 Remember to use the “oc” command instead of the “kubectl” command when using Atomic Enterprise Platform.

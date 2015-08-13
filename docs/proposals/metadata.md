@@ -162,7 +162,7 @@ to work properly. The UI might warn the user that deploying this Docker image
 may exceed their user quota.
 
 The values must be compatible with [Kubernetes
-quantity](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/resources.md#resource-quantities) values for CPU and memory.
+quantity](https://github.com/kubernetes/kubernetes/blob/master/docs/design/resources.md#resource-quantities) values for CPU and memory.
 
 *Example:*
 

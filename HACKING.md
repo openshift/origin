@@ -186,7 +186,7 @@ were properly reflected* in the Origin codebase.
 ### 1. Preparation
 
 Before you begin, make sure you have both [openshift/origin](https://github.com/openshift/origin) and
-[GoogleCloudPlatform/kubernetes](https://github.com/GoogleCloudPlatform/kubernetes) in your $GOPATH:
+[kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) in your $GOPATH:
 
 ```
 $ go get github.com/openshift/origin
@@ -194,7 +194,7 @@ $ go get k8s.io/kubernetes
 ```
 
 Check out the version of Kubernetes you want to rebase as a branch or tag named `stable_proposed` in
-[GoogleCloudPlatform/kubernetes](https://github.com/GoogleCloudPlatform/kubernetes). For example,
+[kubernetes/kubernetes](https://github.com/kubernetes/kubernetes). For example,
 if you are going to rebase the latest `master` of Kubernetes:
 
 ```

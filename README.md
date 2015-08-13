@@ -5,7 +5,7 @@ OpenShift Application Platform
 [![Travis](https://travis-ci.org/openshift/origin.svg?branch=master)](https://travis-ci.org/openshift/origin)
 
 This is the source repository for [OpenShift 3](https://openshift.github.io), based on top of [Docker](https://www.docker.io) containers and the
-[Kubernetes](https://github.com/GoogleCloudPlatform/kubernetes) container cluster manager.
+[Kubernetes](https://github.com/kubernetes/kubernetes) container cluster manager.
 OpenShift adds developer and operational centric tools on top of Kubernetes to enable rapid application development,
 easy deployment and scaling, and long-term lifecycle maintenance for small and large teams and applications.
 
@@ -108,8 +108,8 @@ We highly recommend trying out the [OpenShift walkthrough](https://github.com/op
 Both OpenShift and Kubernetes have a strong focus on documentation - see the following for more information about them:
 
 * [OpenShift Documentation](http://docs.openshift.org/latest/welcome/index.html)
-* [Kubernetes Getting Started](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/README.md)
-* [Kubernetes Documentation](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/README.md)
+* [Kubernetes Getting Started](https://github.com/kubernetes/kubernetes/blob/master/README.md)
+* [Kubernetes Documentation](https://github.com/kubernetes/kubernetes/blob/master/docs/README.md)
 
 
 ### Troubleshooting
@@ -177,7 +177,7 @@ You can develop [locally on your host](CONTRIBUTING.adoc#develop-locally-on-your
 
 First, **get up and running with the** [**Contributing Guide**](CONTRIBUTING.adoc).
 
-All contributions are welcome - OpenShift uses the Apache 2 license and does not require any contributor agreement to submit patches.  Please open issues for any bugs or problems you encounter, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved in the [Kubernetes project](https://github.com/GoogleCloudPlatform/kubernetes) at the container runtime layer.
+All contributions are welcome - OpenShift uses the Apache 2 license and does not require any contributor agreement to submit patches.  Please open issues for any bugs or problems you encounter, ask questions on the OpenShift IRC channel (#openshift-dev on freenode), or get involved in the [Kubernetes project](https://github.com/kubernetes/kubernetes) at the container runtime layer.
 
 See [HACKING.md](https://github.com/openshift/origin/blob/master/HACKING.md) for more details on developing on OpenShift including how different tests are setup.
 
