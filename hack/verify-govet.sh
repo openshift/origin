@@ -25,7 +25,6 @@ do
               -methods=false \
               -structtags=false \
               -composites=false \
-              -buildtags=false \
               -shadow=false \
               -unusedresult=false \
               $test_dir 2>&1 | sed '/exit status/d'
