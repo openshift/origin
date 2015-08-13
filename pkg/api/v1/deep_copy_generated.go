@@ -1053,6 +1053,16 @@ func deepCopy_v1_CustomBuildStrategy(in apiv1.CustomBuildStrategy, out *apiv1.Cu
 	}
 	out.ExposeDockerSocket = in.ExposeDockerSocket
 	out.ForcePull = in.ForcePull
+	if in.Secrets != nil {
+		out.Secrets = make([]apiv1.SecretSpec, len(in.Secrets))
+		for i := range in.Secrets {
+			if err := deepCopy_v1_SecretSpec(in.Secrets[i], &out.Secrets[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Secrets = nil
+	}
 	return nil
 }
 
@@ -1123,6 +1133,16 @@ func deepCopy_v1_ImageChangeTrigger(in apiv1.ImageChangeTrigger, out *apiv1.Imag
 	} else {
 		out.From = nil
 	}
+	return nil
+}
+
+func deepCopy_v1_SecretSpec(in apiv1.SecretSpec, out *apiv1.SecretSpec, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.SecretSource); err != nil {
+		return err
+	} else {
+		out.SecretSource = newVal.(pkgapiv1.LocalObjectReference)
+	}
+	out.MountPath = in.MountPath
 	return nil
 }
 
@@ -2537,6 +2557,7 @@ func init() {
 		deepCopy_v1_GitBuildSource,
 		deepCopy_v1_GitSourceRevision,
 		deepCopy_v1_ImageChangeTrigger,
+		deepCopy_v1_SecretSpec,
 		deepCopy_v1_SourceBuildStrategy,
 		deepCopy_v1_SourceControlUser,
 		deepCopy_v1_SourceRevision,

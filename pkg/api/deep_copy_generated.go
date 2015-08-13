@@ -1028,6 +1028,16 @@ func deepCopy_api_CustomBuildStrategy(in buildapi.CustomBuildStrategy, out *buil
 	}
 	out.ExposeDockerSocket = in.ExposeDockerSocket
 	out.ForcePull = in.ForcePull
+	if in.Secrets != nil {
+		out.Secrets = make([]buildapi.SecretSpec, len(in.Secrets))
+		for i := range in.Secrets {
+			if err := deepCopy_api_SecretSpec(in.Secrets[i], &out.Secrets[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Secrets = nil
+	}
 	return nil
 }
 
@@ -1098,6 +1108,16 @@ func deepCopy_api_ImageChangeTrigger(in buildapi.ImageChangeTrigger, out *builda
 	} else {
 		out.From = nil
 	}
+	return nil
+}
+
+func deepCopy_api_SecretSpec(in buildapi.SecretSpec, out *buildapi.SecretSpec, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.SecretSource); err != nil {
+		return err
+	} else {
+		out.SecretSource = newVal.(pkgapi.LocalObjectReference)
+	}
+	out.MountPath = in.MountPath
 	return nil
 }
 
@@ -2612,6 +2632,7 @@ func init() {
 		deepCopy_api_GitBuildSource,
 		deepCopy_api_GitSourceRevision,
 		deepCopy_api_ImageChangeTrigger,
+		deepCopy_api_SecretSpec,
 		deepCopy_api_SourceBuildStrategy,
 		deepCopy_api_SourceControlUser,
 		deepCopy_api_SourceRevision,

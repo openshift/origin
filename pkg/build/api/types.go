@@ -252,6 +252,9 @@ type CustomBuildStrategy struct {
 	// ForcePull describes if the controller should configure the build pod to always pull the images
 	// for the builder or only pull if it is not present locally
 	ForcePull bool
+
+	// Secrets is a list of additional secrets that will be included in the custom build pod
+	Secrets []SecretSpec
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -488,4 +491,13 @@ type BuildLogOptions struct {
 	// NoWait if true causes the call to return immediately even if the build
 	// is not available yet. Otherwise the server will wait until the build has started.
 	NoWait bool
+}
+
+// SecretSpec specifies a secret to be included in a build pod and its corresponding mount point
+type SecretSpec struct {
+	// SecretSource is a reference to the secret
+	SecretSource kapi.LocalObjectReference
+
+	// MountPath is the path at which to mount the secret
+	MountPath string
 }

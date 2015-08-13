@@ -872,6 +872,17 @@ func convert_api_ImageChangeTrigger_To_v1_ImageChangeTrigger(in *buildapi.ImageC
 	return nil
 }
 
+func convert_api_SecretSpec_To_v1_SecretSpec(in *buildapi.SecretSpec, out *apiv1.SecretSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.SecretSpec))(in)
+	}
+	if err := convert_api_LocalObjectReference_To_v1_LocalObjectReference(&in.SecretSource, &out.SecretSource, s); err != nil {
+		return err
+	}
+	out.MountPath = in.MountPath
+	return nil
+}
+
 func convert_api_SourceControlUser_To_v1_SourceControlUser(in *buildapi.SourceControlUser, out *apiv1.SourceControlUser, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.SourceControlUser))(in)
@@ -1239,6 +1250,17 @@ func convert_v1_ImageChangeTrigger_To_api_ImageChangeTrigger(in *apiv1.ImageChan
 	} else {
 		out.From = nil
 	}
+	return nil
+}
+
+func convert_v1_SecretSpec_To_api_SecretSpec(in *apiv1.SecretSpec, out *buildapi.SecretSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1.SecretSpec))(in)
+	}
+	if err := convert_v1_LocalObjectReference_To_api_LocalObjectReference(&in.SecretSource, &out.SecretSource, s); err != nil {
+		return err
+	}
+	out.MountPath = in.MountPath
 	return nil
 }
 
@@ -3173,6 +3195,7 @@ func init() {
 		convert_api_RoleList_To_v1_RoleList,
 		convert_api_Role_To_v1_Role,
 		convert_api_RouteList_To_v1_RouteList,
+		convert_api_SecretSpec_To_v1_SecretSpec,
 		convert_api_SourceControlUser_To_v1_SourceControlUser,
 		convert_api_SourceRevision_To_v1_SourceRevision,
 		convert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse,
@@ -3250,6 +3273,7 @@ func init() {
 		convert_v1_RoleList_To_api_RoleList,
 		convert_v1_Role_To_api_Role,
 		convert_v1_RouteList_To_api_RouteList,
+		convert_v1_SecretSpec_To_api_SecretSpec,
 		convert_v1_SourceControlUser_To_api_SourceControlUser,
 		convert_v1_SourceRevision_To_api_SourceRevision,
 		convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse,
