@@ -194,6 +194,10 @@ start_os_server
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default
 
+# pre-load some image streams and templates
+oc create -f examples/image-streams/image-streams-centos7.json --namespace=openshift
+oc create -f examples/sample-app/application-template-stibuild.json --namespace=openshift
+
 # create test project so that this shows up in the console
 openshift admin new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 openshift admin new-project docker --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
