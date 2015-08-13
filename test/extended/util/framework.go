@@ -8,10 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/api/latest"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/util/namer"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/fields"
@@ -20,19 +16,16 @@ import (
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e"
+
+	"github.com/openshift/origin/pkg/api/latest"
+	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/client"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/util/namer"
 )
 
 var TestContext e2e.TestContextType
-
-// The build succeeded
-var CheckBuildSuccessFunc = func(b *buildapi.Build) bool {
-	return b.Status.Phase == buildapi.BuildPhaseComplete
-}
-
-// The build failed
-var CheckBuildFailedFunc = func(b *buildapi.Build) bool {
-	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
-}
 
 // WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
 // file.
@@ -85,6 +78,16 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 	}
 }
 
+// CheckBuildSuccessFunc returns true if the build succeeded
+var CheckBuildSuccessFunc = func(b *buildapi.Build) bool {
+	return b.Status.Phase == buildapi.BuildPhaseComplete
+}
+
+// CheckBuildFailedFunc return true if the build failed
+var CheckBuildFailedFunc = func(b *buildapi.Build) bool {
+	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
+}
+
 // WaitForBuilderAccount waits until the builder service account gets fully
 // provisioned
 func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
@@ -101,6 +104,123 @@ func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
 		return false, nil
 	}
 	return wait.Poll(60, time.Duration(1*time.Second), waitFunc)
+}
+
+// WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
+func WaitForAnImageStream(client client.ImageStreamInterface,
+	name string,
+	isOK, isFailed func(*imageapi.ImageStream) bool) error {
+	for {
+		list, err := client.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
+		if err != nil {
+			return err
+		}
+		for i := range list.Items {
+			if isOK(&list.Items[i]) {
+				return nil
+			}
+			if isFailed(&list.Items[i]) {
+				return fmt.Errorf("The deployment %q status is %q",
+					name, list.Items[i].Annotations[imageapi.DockerImageRepositoryCheckAnnotation])
+			}
+		}
+
+		rv := list.ResourceVersion
+		w, err := client.Watch(labels.Everything(), fields.Set{"name": name}.AsSelector(), rv)
+		if err != nil {
+			return err
+		}
+		defer w.Stop()
+
+		for {
+			val, ok := <-w.ResultChan()
+			if !ok {
+				// reget and re-watch
+				break
+			}
+			if e, ok := val.Object.(*imageapi.ImageStream); ok {
+				if isOK(e) {
+					return nil
+				}
+				if isFailed(e) {
+					return fmt.Errorf("The image stream %q status is %q",
+						name, e.Annotations[imageapi.DockerImageRepositoryCheckAnnotation])
+				}
+			}
+		}
+	}
+}
+
+// CheckImageStreamLatestTagPopulatedFunc returns true if the imagestream has a ':latest' tag filed
+var CheckImageStreamLatestTagPopulatedFunc = func(i *imageapi.ImageStream) bool {
+	_, ok := i.Status.Tags["latest"]
+	return ok
+}
+
+// CheckImageStreamTagNotFoundFunc return true if the imagestream update was not successful
+var CheckImageStreamTagNotFoundFunc = func(i *imageapi.ImageStream) bool {
+	return strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "not") ||
+		strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "error")
+}
+
+// WaitForADeployment waits for a Deployment to fulfill the isOK function
+func WaitForADeployment(client kclient.ReplicationControllerInterface,
+	name string,
+	isOK, isFailed func(*kapi.ReplicationController) bool) error {
+	for {
+		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, kutil.NewStringSet(name))
+		if err != nil {
+			return fmt.Errorf("unexpected error generating label selector: %v", err)
+		}
+
+		list, err := client.List(labels.LabelSelector{*requirement})
+		if err != nil {
+			return err
+		}
+		for i := range list.Items {
+			if isOK(&list.Items[i]) {
+				return nil
+			}
+			if isFailed(&list.Items[i]) {
+				return fmt.Errorf("The deployment %q status is %q",
+					name, list.Items[i].Annotations[deployapi.DeploymentStatusAnnotation])
+			}
+		}
+
+		rv := list.ResourceVersion
+		w, err := client.Watch(labels.LabelSelector{*requirement}, fields.Everything(), rv)
+		if err != nil {
+			return err
+		}
+		defer w.Stop()
+
+		for {
+			val, ok := <-w.ResultChan()
+			if !ok {
+				// reget and re-watch
+				break
+			}
+			if e, ok := val.Object.(*kapi.ReplicationController); ok {
+				if isOK(e) {
+					return nil
+				}
+				if isFailed(e) {
+					return fmt.Errorf("The deployment %q status is %q",
+						name, e.Annotations[deployapi.DeploymentStatusAnnotation])
+				}
+			}
+		}
+	}
+}
+
+// CheckDeploymentCompletedFunc returns true if the deployment completed
+var CheckDeploymentCompletedFunc = func(d *kapi.ReplicationController) bool {
+	return d.Annotations[deployapi.DeploymentStatusAnnotation] == string(deployapi.DeploymentStatusComplete)
+}
+
+// CheckDeploymentFailedFunc returns true if the deployment failed
+var CheckDeploymentFailedFunc = func(d *kapi.ReplicationController) bool {
+	return d.Annotations[deployapi.DeploymentStatusAnnotation] == string(deployapi.DeploymentStatusFailed)
 }
 
 // GetDockerImageReference retrieves the full Docker pull spec from the given ImageStream
