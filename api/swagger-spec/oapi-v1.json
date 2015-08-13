@@ -14823,7 +14823,8 @@
       "description": "restricts tag updates to a set of container names in the pod"
      },
      "from": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "a reference to an ImageRepository, ImageStream, or ImageStreamTag to watch for changes"
      },
      "lastTriggeredImage": {
       "type": "string",
