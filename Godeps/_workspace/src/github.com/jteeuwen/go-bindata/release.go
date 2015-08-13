@@ -359,7 +359,12 @@ func asset_release_common(w io.Writer, c *Config, asset *Asset) error {
 
 	mode := uint(fi.Mode())
 	modTime := fi.ModTime().Unix()
-
+	size := fi.Size()
+	if c.NoMetadata {
+		mode = 0
+		modTime = 0
+		size = 0
+	}
 	if c.Mode > 0 {
 		mode = uint(os.ModePerm) & c.Mode
 	}
@@ -377,6 +382,6 @@ func asset_release_common(w io.Writer, c *Config, asset *Asset) error {
 	return a, nil
 }
 
-`, asset.Func, asset.Func, asset.Name, fi.Size(), mode, modTime)
+`, asset.Func, asset.Func, asset.Name, size, mode, modTime)
 	return err
 }

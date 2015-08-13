@@ -127,6 +127,8 @@ type Config struct {
 	// repository.
 	Dev bool
 
+	// When true, size, mode and modtime are not preserved from files
+	NoMetadata bool
 	// When nonzero, use this as mode for all files.
 	Mode uint
 	// When nonzero, use this as unix timestamp for all files.
