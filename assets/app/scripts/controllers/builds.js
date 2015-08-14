@@ -100,7 +100,7 @@ angular.module('openshiftConsole')
     $scope.startBuild = function(buildConfigName) {
       var req = {
         kind: "BuildRequest",
-        apiVersion: "v1beta3",
+        apiVersion: "v1",
         metadata: {
           name: buildConfigName
         }
@@ -130,7 +130,7 @@ angular.module('openshiftConsole')
     $scope.cloneBuild = function(buildName) {
       var req = {
         kind: "BuildRequest",
-        apiVersion: "v1beta3",
+        apiVersion: "v1",
         metadata: {
           name: buildName
         }
