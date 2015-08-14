@@ -12,17 +12,17 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/record"
-	"k8s.io/kubernetes/pkg/cloudprovider/nodecontroller"
-	"k8s.io/kubernetes/pkg/controller/replication"
+	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
+	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
+	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
+	volumeclaimbinder "k8s.io/kubernetes/pkg/controller/persistentvolume"
+	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
+	resourcequotacontroller "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/master"
-	"k8s.io/kubernetes/pkg/namespace"
-	"k8s.io/kubernetes/pkg/resourcequota"
-	"k8s.io/kubernetes/pkg/service"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/host_path"
 	"k8s.io/kubernetes/pkg/volume/nfs"
-	"k8s.io/kubernetes/pkg/volumeclaimbinder"
 	"k8s.io/kubernetes/plugin/pkg/scheduler"
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
@@ -57,7 +57,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 // RunNamespaceController starts the Kubernetes Namespace Manager
 func (c *MasterConfig) RunNamespaceController() {
-	namespaceController := namespace.NewNamespaceManager(c.KubeClient, c.ControllerManager.NamespaceSyncPeriod)
+	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, c.ControllerManager.NamespaceSyncPeriod)
 	namespaceController.Run()
 	glog.Infof("Started Kubernetes Namespace Manager")
 }
@@ -99,14 +99,14 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replication.NewReplicationManager(client, replication.BurstReplicas)
+	controllerManager := replicationcontroller.NewReplicationManager(client, replicationcontroller.BurstReplicas)
 	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
 	glog.Infof("Started Kubernetes Replication Manager")
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController() {
-	endpoints := service.NewEndpointController(c.KubeClient)
+	endpoints := endpointcontroller.NewEndpointController(c.KubeClient)
 	go endpoints.Run(c.ControllerManager.ConcurrentEndpointSyncs, util.NeverStop)
 
 	glog.Infof("Started Kubernetes Endpoint Controller")
@@ -129,7 +129,7 @@ func (c *MasterConfig) RunScheduler() {
 
 // RunResourceQuotaManager starts the resource quota manager
 func (c *MasterConfig) RunResourceQuotaManager() {
-	resourceQuotaManager := resourcequota.NewResourceQuotaManager(c.KubeClient)
+	resourceQuotaManager := resourcequotacontroller.NewResourceQuotaController(c.KubeClient)
 	resourceQuotaManager.Run(c.ControllerManager.ResourceQuotaSyncPeriod)
 }
 
@@ -139,7 +139,6 @@ func (c *MasterConfig) RunNodeController() {
 	controller := nodecontroller.NewNodeController(
 		c.CloudProvider,
 		c.KubeClient,
-		s.RegisterRetryCount,
 		s.PodEvictionTimeout,
 
 		nodecontroller.NewPodEvictor(util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst)),
@@ -151,6 +150,7 @@ func (c *MasterConfig) RunNodeController() {
 		(*net.IPNet)(&s.ClusterCIDR),
 		s.AllocateNodeCIDRs,
 	)
+
 	controller.Run(s.NodeSyncPeriod)
 
 	glog.Infof("Started Kubernetes Node Controller")
@@ -160,7 +160,8 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	var policy schedulerapi.Policy
 	var configData []byte
 
-	configFactory := factory.NewConfigFactory(c.KubeClient)
+	// TODO make the rate limiter configurable
+	configFactory := factory.NewConfigFactory(c.KubeClient, util.NewTokenBucketRateLimiter(15.0, 20))
 	if _, err := os.Stat(c.Options.SchedulerConfigFile); err == nil {
 		configData, err = ioutil.ReadFile(c.Options.SchedulerConfigFile)
 		if err != nil {

@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
@@ -14,28 +15,30 @@ type FakeClusterPolicies struct {
 	Fake *Fake
 }
 
-func (c *FakeClusterPolicies) List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-clusterPolicies"}, &authorizationapi.ClusterPolicyList{})
-	return obj.(*authorizationapi.ClusterPolicyList), err
-}
-
 func (c *FakeClusterPolicies) Get(name string) (*authorizationapi.ClusterPolicy, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-clusterPolicy"}, &authorizationapi.ClusterPolicy{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("clusterpolicies", name), &authorizationapi.ClusterPolicy{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.ClusterPolicy), err
 }
 
-func (c *FakeClusterPolicies) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
+func (c *FakeClusterPolicies) List(label labels.Selector, field fields.Selector) (*authorizationapi.ClusterPolicyList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("clusterpolicies", label, field), &authorizationapi.ClusterPolicyList{})
+	if obj == nil {
+		return nil, err
+	}
 
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-clusterPolicy", Value: name})
-	return nil
+	return obj.(*authorizationapi.ClusterPolicyList), err
+}
+
+func (c *FakeClusterPolicies) Delete(name string) error {
+	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("clusterpolicies", name), &authorizationapi.ClusterPolicy{})
+	return err
 }
 
 func (c *FakeClusterPolicies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-clusterPolicy"})
-	return nil, nil
+	c.Fake.Invokes(ktestclient.NewRootWatchAction("clusterpolicies", label, field, resourceVersion), nil)
+	return c.Fake.Watch, c.Fake.Err()
 }

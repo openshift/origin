@@ -96,9 +96,9 @@ func fakeUser() user.Info {
 func fakeClient(expectedResource string, reviewResponse *authorizationapi.SubjectAccessReviewResponse) client.Interface {
 	emptyResponse := &authorizationapi.SubjectAccessReviewResponse{}
 	return &testclient.Fake{
-		ReactFn: func(action ktestclient.FakeAction) (runtime.Object, error) {
-			if action.Action == "create-subjectAccessReview" {
-				review, ok := action.Value.(*authorizationapi.SubjectAccessReview)
+		ReactFn: func(action ktestclient.Action) (runtime.Object, error) {
+			if action.Matches("create", "subjectaccessreviews") {
+				review, ok := action.(ktestclient.CreateAction).GetObject().(*authorizationapi.SubjectAccessReview)
 				if !ok {
 					return emptyResponse, fmt.Errorf("unexpected object received: %#v", review)
 				}

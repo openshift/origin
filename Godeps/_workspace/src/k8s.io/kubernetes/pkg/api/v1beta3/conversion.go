@@ -266,6 +266,9 @@ func convert_v1beta3_Container_To_api_Container(in *Container, out *api.Containe
 	} else {
 		out.SecurityContext = nil
 	}
+
+	out.Stdin = in.Stdin
+	out.TTY = in.TTY
 	return nil
 }
 
@@ -357,6 +360,9 @@ func convert_api_Container_To_v1beta3_Container(in *api.Container, out *Containe
 	if out.SecurityContext != nil && out.SecurityContext.Capabilities != nil {
 		out.Capabilities = *out.SecurityContext.Capabilities
 	}
+
+	out.Stdin = in.Stdin
+	out.TTY = in.TTY
 	return nil
 }
 

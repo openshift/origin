@@ -97,6 +97,7 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 
 	generators := map[string]kubectl.Generator{
 		"run/v1":     kubectl.BasicReplicationController{},
+		"run-pod/v1": kubectl.BasicPod{},
 		"service/v1": kubectl.ServiceGeneratorV1{},
 		"service/v2": kubectl.ServiceGeneratorV2{},
 	}
@@ -248,7 +249,7 @@ func (f *Factory) BindFlags(flags *pflag.FlagSet) {
 	// to do that automatically for every subcommand.
 	flags.BoolVar(&f.clients.matchVersion, FlagMatchBinaryVersion, false, "Require server version to match client version")
 
-	// Normalize all flags that are comming from other packages or pre-configurations
+	// Normalize all flags that are coming from other packages or pre-configurations
 	// a.k.a. change all "_" to "-". e.g. glog package
 	flags.SetNormalizeFunc(util.WordSepNormalizeFunc)
 }
@@ -396,7 +397,12 @@ func (f *Factory) PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMappin
 		}
 		printer = kubectl.NewVersionedPrinter(printer, mapping.ObjectConvertor, version, mapping.APIVersion)
 	} else {
-		printer, err = f.Printer(mapping, GetFlagBool(cmd, "no-headers"), withNamespace, GetWideFlag(cmd), GetFlagStringList(cmd, "label-columns"))
+		// Some callers do not have "label-columns" so we can't use the GetFlagStringSlice() helper
+		columnLabel, err := cmd.Flags().GetStringSlice("label-columns")
+		if err != nil {
+			columnLabel = []string{}
+		}
+		printer, err = f.Printer(mapping, GetFlagBool(cmd, "no-headers"), withNamespace, GetWideFlag(cmd), columnLabel)
 		if err != nil {
 			return nil, err
 		}

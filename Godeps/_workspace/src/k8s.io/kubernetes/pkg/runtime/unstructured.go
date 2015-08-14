@@ -74,6 +74,14 @@ func (unstructuredJSONScheme) DecodeInto(data []byte, obj Object) error {
 	return nil
 }
 
+func (unstructuredJSONScheme) DecodeIntoWithSpecifiedVersionKind(data []byte, obj Object, kind, version string) error {
+	return nil
+}
+
+func (unstructuredJSONScheme) DecodeToVersion(data []byte, version string) (Object, error) {
+	return nil, nil
+}
+
 func (unstructuredJSONScheme) DataVersionAndKind(data []byte) (version, kind string, err error) {
 	obj := TypeMeta{}
 	if err := json.Unmarshal(data, &obj); err != nil {

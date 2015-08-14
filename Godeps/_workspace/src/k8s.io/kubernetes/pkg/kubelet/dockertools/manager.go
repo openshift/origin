@@ -31,6 +31,10 @@ import (
 	"sync"
 	"time"
 
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
+	"github.com/golang/groupcache/lru"
+	cadvisorApi "github.com/google/cadvisor/info/v1"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/client/record"
@@ -39,23 +43,17 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/kubelet/prober"
+	"k8s.io/kubernetes/pkg/kubelet/qos"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/probe"
 	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
-	"github.com/golang/groupcache/lru"
+	"k8s.io/kubernetes/pkg/util/oom"
+	"k8s.io/kubernetes/pkg/util/procfs"
 )
 
 const (
-	// The oom_score_adj of the POD infrastructure container. The default is 0 for
-	// any other docker containers, so any value below that makes it *less* likely
-	// to get OOM killed.
-	podOomScoreAdj           = -100
-	userContainerOomScoreAdj = 0
-
 	maxReasonCacheEntries = 200
 
 	kubernetesPodLabel       = "io.kubernetes.pod.data"
@@ -69,12 +67,16 @@ const (
 // DockerManager implements the Runtime interface.
 var _ kubecontainer.Runtime = &DockerManager{}
 
+// TODO: make this a TTL based pull (if image older than X policy, pull)
+var podInfraContainerImagePullPolicy = api.PullIfNotPresent
+
 type DockerManager struct {
 	client              DockerInterface
 	recorder            record.EventRecorder
 	readinessManager    *kubecontainer.ReadinessManager
 	containerRefManager *kubecontainer.RefManager
 	os                  kubecontainer.OSInterface
+	machineInfo         *cadvisorApi.MachineInfo
 
 	// The image name of the pod infra container.
 	podInfraContainerImage string
@@ -114,6 +116,12 @@ type DockerManager struct {
 
 	// Handler used to execute commands in containers.
 	execHandler ExecHandler
+
+	// Used to set OOM scores of processes.
+	oomAdjuster *oom.OomAdjuster
+
+	// Get information from /proc mount.
+	procFs procfs.ProcFsInterface
 }
 
 func NewDockerManager(
@@ -121,6 +129,7 @@ func NewDockerManager(
 	recorder record.EventRecorder,
 	readinessManager *kubecontainer.ReadinessManager,
 	containerRefManager *kubecontainer.RefManager,
+	machineInfo *cadvisorApi.MachineInfo,
 	podInfraContainerImage string,
 	qps float32,
 	burst int,
@@ -130,7 +139,9 @@ func NewDockerManager(
 	generator kubecontainer.RunContainerOptionsGenerator,
 	httpClient kubeletTypes.HttpGetter,
 	runtimeHooks kubecontainer.RuntimeHooks,
-	execHandler ExecHandler) *DockerManager {
+	execHandler ExecHandler,
+	oomAdjuster *oom.OomAdjuster,
+	procFs procfs.ProcFsInterface) *DockerManager {
 	// Work out the location of the Docker runtime, defaulting to /var/lib/docker
 	// if there are any problems.
 	dockerRoot := "/var/lib/docker"
@@ -164,11 +175,12 @@ func NewDockerManager(
 	reasonCache := stringCache{cache: lru.New(maxReasonCacheEntries)}
 
 	dm := &DockerManager{
-		client:              client,
-		recorder:            recorder,
-		readinessManager:    readinessManager,
-		containerRefManager: containerRefManager,
-		os:                  osInterface,
+		client:                 client,
+		recorder:               recorder,
+		readinessManager:       readinessManager,
+		containerRefManager:    containerRefManager,
+		os:                     osInterface,
+		machineInfo:            machineInfo,
 		podInfraContainerImage: podInfraContainerImage,
 		reasonCache:            reasonCache,
 		puller:                 newDockerPuller(client, qps, burst),
@@ -179,6 +191,8 @@ func NewDockerManager(
 		generator:              generator,
 		runtimeHooks:           runtimeHooks,
 		execHandler:            execHandler,
+		oomAdjuster:            oomAdjuster,
+		procFs:                 procFs,
 	}
 	dm.runner = lifecycle.NewHandlerRunner(httpClient, dm, dm)
 	dm.prober = prober.New(dm, readinessManager, containerRefManager, recorder)
@@ -262,7 +276,7 @@ type containerStatusResult struct {
 	err    error
 }
 
-func (dm *DockerManager) inspectContainer(dockerID, containerName, tPath string) *containerStatusResult {
+func (dm *DockerManager) inspectContainer(dockerID, containerName, tPath string, pod *api.Pod) *containerStatusResult {
 	result := containerStatusResult{api.ContainerStatus{}, "", nil}
 
 	inspectResult, err := dm.client.InspectContainer(dockerID)
@@ -288,8 +302,19 @@ func (dm *DockerManager) inspectContainer(dockerID, containerName, tPath string)
 		result.status.State.Running = &api.ContainerStateRunning{
 			StartedAt: util.NewTime(inspectResult.State.StartedAt),
 		}
-		if containerName == PodInfraContainerName && inspectResult.NetworkSettings != nil {
-			result.ip = inspectResult.NetworkSettings.IPAddress
+		if containerName == PodInfraContainerName {
+			if inspectResult.NetworkSettings != nil {
+				result.ip = inspectResult.NetworkSettings.IPAddress
+			}
+			// override the above if a network plugin exists
+			if dm.networkPlugin.Name() != network.DefaultPluginName {
+				netStatus, err := dm.networkPlugin.Status(pod.Namespace, pod.Name, kubeletTypes.DockerID(dockerID))
+				if err != nil {
+					glog.Errorf("NetworkPlugin %s failed on the status hook for pod '%s' - %v", dm.networkPlugin.Name(), pod.Name, err)
+				} else if netStatus != nil {
+					result.ip = netStatus.IP.String()
+				}
+			}
 		}
 	} else if !inspectResult.State.FinishedAt.IsZero() {
 		reason := ""
@@ -389,7 +414,7 @@ func (dm *DockerManager) GetPodStatus(pod *api.Pod) (*api.PodStatus, error) {
 
 		var terminationState *api.ContainerState = nil
 		// Inspect the container.
-		result := dm.inspectContainer(value.ID, dockerContainerName, terminationMessagePath)
+		result := dm.inspectContainer(value.ID, dockerContainerName, terminationMessagePath, pod)
 		if result.err != nil {
 			return nil, result.err
 		} else if result.status.State.Terminated != nil {
@@ -579,7 +604,19 @@ func (dm *DockerManager) runContainer(
 		}
 	}
 	memoryLimit := container.Resources.Limits.Memory().Value()
-	cpuShares := milliCPUToShares(container.Resources.Limits.Cpu().MilliValue())
+	cpuRequest := container.Resources.Requests.Cpu()
+	cpuLimit := container.Resources.Limits.Cpu()
+	var cpuShares int64
+	// If request is not specified, but limit is, we want request to default to limit.
+	// API server does this for new containers, but we repeat this logic in Kubelet
+	// for containers running on existing Kubernetes clusters.
+	if cpuRequest.Amount == nil && cpuLimit.Amount != nil {
+		cpuShares = milliCPUToShares(cpuLimit.MilliValue())
+	} else {
+		// if cpuRequest.Amount is nil, then milliCPUToShares will return the minimal number
+		// of CPU shares.
+		cpuShares = milliCPUToShares(cpuRequest.MilliValue())
+	}
 	dockerOpts := docker.CreateContainerOptions{
 		Name: BuildDockerName(dockerName, container),
 		Config: &docker.Config{
@@ -593,6 +630,9 @@ func (dm *DockerManager) runContainer(
 			CPUShares:  cpuShares,
 			WorkingDir: container.WorkingDir,
 			Labels:     labels,
+			// Interactive containers:
+			OpenStdin: container.Stdin,
+			Tty:       container.TTY,
 		},
 	}
 
@@ -829,9 +869,10 @@ func (dm *DockerManager) podInfraContainerChanged(pod *api.Pod, podInfraContaine
 		}
 	}
 	expectedPodInfraContainer := &api.Container{
-		Name:  PodInfraContainerName,
-		Image: dm.podInfraContainerImage,
-		Ports: ports,
+		Name:            PodInfraContainerName,
+		Image:           dm.podInfraContainerImage,
+		Ports:           ports,
+		ImagePullPolicy: podInfraContainerImagePullPolicy,
 	}
 	return podInfraContainer.Hash != kubecontainer.HashContainer(expectedPodInfraContainer), nil
 }
@@ -1228,32 +1269,42 @@ func (dm *DockerManager) runContainerInPod(pod *api.Pod, container *api.Containe
 		glog.Errorf("Failed to create symbolic link to the log file of pod %q container %q: %v", podFullName, container.Name, err)
 	}
 
-	// Set OOM score of POD container to lower than those of the other containers
-	// which have OOM score 0 by default in the pod. This ensures that it is
-	// killed only as a last resort.
+	// Container information is used in adjusting OOM scores and adding ndots.
 	containerInfo, err := dm.client.InspectContainer(string(id))
 	if err != nil {
 		return "", err
 	}
-
 	// Ensure the PID actually exists, else we'll move ourselves.
 	if containerInfo.State.Pid == 0 {
 		return "", fmt.Errorf("failed to get init PID for Docker container %q", string(id))
 	}
+
+	// Set OOM score of the container based on the priority of the container.
+	// Processes in lower-priority pods should be killed first if the system runs out of memory.
+	// The main pod infrastructure container is considered high priority, since if it is killed the
+	// whole pod will die.
+	var oomScoreAdj int
 	if container.Name == PodInfraContainerName {
-		util.ApplyOomScoreAdj(containerInfo.State.Pid, podOomScoreAdj)
-		// currently, Docker does not have a flag by which the ndots option can be passed.
-		// (A seperate issue has been filed with Docker to add a ndots flag)
-		// The addNDotsOption call appends the ndots option to the resolv.conf file generated by docker.
-		// This resolv.conf file is shared by all containers of the same pod, and needs to be modified only once per pod.
-		// we modify it when the pause container is created since it is the first container created in the pod since it holds
-		// the networking namespace.
-		err = addNDotsOption(containerInfo.ResolvConfPath)
+		oomScoreAdj = qos.PodInfraOomAdj
 	} else {
-		// Children processes of docker daemon will inheritant the OOM score from docker
-		// daemon process. We explicitly apply OOM score 0 by default to the user
-		// containers to avoid daemons or POD containers are killed by oom killer.
-		util.ApplyOomScoreAdj(containerInfo.State.Pid, userContainerOomScoreAdj)
+		oomScoreAdj = qos.GetContainerOomScoreAdjust(container, dm.machineInfo.MemoryCapacity)
+	}
+	cgroupName, err := dm.procFs.GetFullContainerName(containerInfo.State.Pid)
+	if err != nil {
+		return "", err
+	}
+	if err = dm.oomAdjuster.ApplyOomScoreAdjContainer(cgroupName, oomScoreAdj, 5); err != nil {
+		return "", err
+	}
+
+	// currently, Docker does not have a flag by which the ndots option can be passed.
+	// (A separate issue has been filed with Docker to add a ndots flag)
+	// The addNDotsOption call appends the ndots option to the resolv.conf file generated by docker.
+	// This resolv.conf file is shared by all containers of the same pod, and needs to be modified only once per pod.
+	// we modify it when the pause container is created since it is the first container created in the pod since it holds
+	// the networking namespace.
+	if container.Name == PodInfraContainerName {
+		err = addNDotsOption(containerInfo.ResolvConfPath)
 	}
 
 	return kubeletTypes.DockerID(id), err
@@ -1310,36 +1361,15 @@ func (dm *DockerManager) createPodInfraContainer(pod *api.Pod) (kubeletTypes.Doc
 	}
 
 	container := &api.Container{
-		Name:  PodInfraContainerName,
-		Image: dm.podInfraContainerImage,
-		Ports: ports,
+		Name:            PodInfraContainerName,
+		Image:           dm.podInfraContainerImage,
+		Ports:           ports,
+		ImagePullPolicy: podInfraContainerImagePullPolicy,
 	}
-	ref, err := kubecontainer.GenerateContainerRef(pod, container)
-	if err != nil {
-		glog.Errorf("Couldn't make a ref to pod %v, container %v: '%v'", pod.Name, container.Name, err)
-	}
-	spec := kubecontainer.ImageSpec{container.Image}
-	// TODO: make this a TTL based pull (if image older than X policy, pull)
-	ok, err := dm.IsImagePresent(spec)
-	if err != nil {
-		if ref != nil {
-			dm.recorder.Eventf(ref, "failed", "Failed to inspect image %q: %v", container.Image, err)
-		}
+
+	// No pod secrets for the infra container.
+	if err := dm.pullImage(pod, container, nil); err != nil {
 		return "", err
-	}
-	if !ok {
-		if err := dm.PullImage(spec, nil /* no pod secrets for the infra container */); err != nil {
-			if ref != nil {
-				dm.recorder.Eventf(ref, "failed", "Failed to pull image %q: %v", container.Image, err)
-			}
-			return "", err
-		}
-		if ref != nil {
-			dm.recorder.Eventf(ref, "pulled", "Successfully pulled Pod container image %q", container.Image)
-		}
-	}
-	if ok && ref != nil {
-		dm.recorder.Eventf(ref, "pulled", "Pod container image %q already present on machine", container.Image)
 	}
 
 	id, err := dm.runContainerInPod(pod, container, netNamespace, "")
@@ -1497,25 +1527,28 @@ func (dm *DockerManager) clearReasonCache(pod *api.Pod, container *api.Container
 
 // Pull the image for the specified pod and container.
 func (dm *DockerManager) pullImage(pod *api.Pod, container *api.Container, pullSecrets []api.Secret) error {
+	ref, err := kubecontainer.GenerateContainerRef(pod, container)
+	if err != nil {
+		glog.Errorf("Couldn't make a ref to pod %v, container %v: '%v'", pod.Name, container.Name, err)
+	}
 	spec := kubecontainer.ImageSpec{container.Image}
 	present, err := dm.IsImagePresent(spec)
-
 	if err != nil {
-		ref, err := kubecontainer.GenerateContainerRef(pod, container)
-		if err != nil {
-			glog.Errorf("Couldn't make a ref to pod %v, container %v: '%v'", pod.Name, container.Name, err)
-		}
 		if ref != nil {
 			dm.recorder.Eventf(ref, "failed", "Failed to inspect image %q: %v", container.Image, err)
 		}
 		return fmt.Errorf("failed to inspect image %q: %v", container.Image, err)
 	}
 	if !dm.runtimeHooks.ShouldPullImage(pod, container, present) {
+		if present && ref != nil {
+			dm.recorder.Eventf(ref, "pulled", "Container image %q already present on machine", container.Image)
+		}
 		return nil
 	}
 
+	dm.runtimeHooks.ReportImagePulling(pod, container)
 	err = dm.PullImage(spec, pullSecrets)
-	dm.runtimeHooks.ReportImagePull(pod, container, err)
+	dm.runtimeHooks.ReportImagePulled(pod, container, err)
 	return err
 }
 

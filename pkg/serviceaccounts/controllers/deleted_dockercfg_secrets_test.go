@@ -16,34 +16,34 @@ func TestDockercfgDeletion(t *testing.T) {
 
 		DeletedSecret *api.Secret
 
-		ExpectedActions []testclient.FakeAction
+		ExpectedActions []testclient.Action
 	}{
 		"deleted dockercfg secret without serviceaccount": {
 			DeletedSecret: createdDockercfgSecret(),
 
-			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
-				{Action: "delete-secret", Value: "token-secret-1"},
+			ExpectedActions: []testclient.Action{
+				testclient.NewGetAction("serviceaccounts", "default", "default"),
+				testclient.NewDeleteAction("secrets", "default", "token-secret-1"),
 			},
 		},
 		"deleted dockercfg secret with serviceaccount with reference": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 
 			DeletedSecret: createdDockercfgSecret(),
-			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
-				{Action: "update-serviceaccount", Value: serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())},
-				{Action: "delete-secret", Value: "token-secret-1"},
+			ExpectedActions: []testclient.Action{
+				testclient.NewGetAction("serviceaccounts", "default", "default"),
+				testclient.NewUpdateAction("serviceaccounts", "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
+				testclient.NewDeleteAction("secrets", "default", "token-secret-1"),
 			},
 		},
 		"deleted dockercfg secret with serviceaccount without reference": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 
 			DeletedSecret: createdDockercfgSecret(),
-			ExpectedActions: []testclient.FakeAction{
-				{Action: "get-serviceaccount", Value: "default"},
-				{Action: "update-serviceaccount", Value: serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())},
-				{Action: "delete-secret", Value: "token-secret-1"},
+			ExpectedActions: []testclient.Action{
+				testclient.NewGetAction("serviceaccounts", "default", "default"),
+				testclient.NewUpdateAction("serviceaccounts", "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
+				testclient.NewDeleteAction("secrets", "default", "token-secret-1"),
 			},
 		},
 	}
@@ -67,12 +67,8 @@ func TestDockercfgDeletion(t *testing.T) {
 			}
 
 			expectedAction := tc.ExpectedActions[i]
-			if expectedAction.Action != action.Action {
-				t.Errorf("%s: Expected %s, got %s", k, expectedAction.Action, action.Action)
-				continue
-			}
-			if !reflect.DeepEqual(expectedAction.Value, action.Value) {
-				t.Errorf("%s: Expected\n\t%#v\ngot\n\t%#v", k, expectedAction.Value, action.Value)
+			if !reflect.DeepEqual(expectedAction, action) {
+				t.Errorf("%s: Expected %v, got %v", k, expectedAction, action)
 				continue
 			}
 		}

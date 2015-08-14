@@ -19,8 +19,8 @@ package cache
 import (
 	"time"
 
-	"k8s.io/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // Enumerator should be able to return the list of objects to be synced with
@@ -30,7 +30,7 @@ type Enumerator interface {
 	Get(index int) (object interface{})
 }
 
-// GetFunc should return an enumerator that you wish the Poller to proccess.
+// GetFunc should return an enumerator that you wish the Poller to process.
 type GetFunc func() (Enumerator, error)
 
 // Poller is like Reflector, but it periodically polls instead of watching.

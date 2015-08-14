@@ -13,8 +13,8 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
-	"k8s.io/kubernetes/pkg/proxy"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
+	proxy "k8s.io/kubernetes/pkg/proxy/userspace"
 	"k8s.io/kubernetes/pkg/util"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
@@ -128,7 +128,7 @@ func (c *NodeConfig) RunKubelet() {
 		if service, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
 			if ip, ok := firstIP(service, 53); ok {
 				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", ip, 53), 50*time.Millisecond, 0, 2); err == nil {
-					c.KubeletConfig.ClusterDNS = util.IP(net.ParseIP(ip))
+					c.KubeletConfig.ClusterDNS = net.ParseIP(ip)
 				}
 			}
 		}

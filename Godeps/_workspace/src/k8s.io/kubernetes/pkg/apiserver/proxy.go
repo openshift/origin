@@ -39,8 +39,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/httpstream"
 	proxyutil "k8s.io/kubernetes/pkg/util/proxy"
 
-	"k8s.io/kubernetes/third_party/golang/netutil"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/third_party/golang/netutil"
 )
 
 // ProxyHandler provides a http.Handler which will proxy traffic to locations
@@ -169,7 +169,7 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect requests of the form "/{resource}/{name}" to "/{resource}/{name}/"
-	// This is essentially a hack for https://github.com/GoogleCloudPlatform/kubernetes/issues/4958.
+	// This is essentially a hack for http://issue.k8s.io/4958.
 	// Note: Keep this code after tryUpgrade to not break that flow.
 	if len(parts) == 2 && !strings.HasSuffix(req.URL.Path, "/") {
 		var queryPart string

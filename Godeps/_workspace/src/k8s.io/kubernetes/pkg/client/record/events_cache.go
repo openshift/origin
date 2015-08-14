@@ -19,19 +19,19 @@ package record
 import (
 	"sync"
 
+	"github.com/golang/groupcache/lru"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
-	"github.com/golang/groupcache/lru"
 )
 
 type history struct {
-	// The number of times the event has occured since first occurance.
+	// The number of times the event has occurred since first occurrence.
 	Count int
 
 	// The time at which the event was first recorded.
 	FirstTimestamp util.Time
 
-	// The unique name of the first occurance of this event
+	// The unique name of the first occurrence of this event
 	Name string
 
 	// Resource version returned from previous interaction with server

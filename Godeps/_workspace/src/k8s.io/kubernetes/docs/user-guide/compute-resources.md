@@ -219,14 +219,14 @@ Events:
 
 The `Restart Count:  5` indicates that the `simmemleak` container in this pod was terminated and restarted 5 times.
 
-Once [#10861](https://github.com/GoogleCloudPlatform/kubernetes/issues/10861) is resolved the reason for the termination of the last container will also be printed in this output.
+Once [#10861](https://k8s.io/kubernetes/issues/10861) is resolved the reason for the termination of the last container will also be printed in this output.
 
 Until then you can call `get pod` with the `-o template -t ...` option to fetch the status of previously terminated containers:
 
 ```console
 [13:59:01] $ ./cluster/kubectl.sh  get pod -o template -t '{{range.status.containerStatuses}}{{"Container Name: "}}{{.name}}{{"\r\nLastState: "}}{{.lastState}}{{end}}'  simmemleak-60xbc
 Container Name: simmemleak
-LastState: map[terminated:map[exitCode:137 reason:OOM Killed startedAt:2015-07-07T20:58:43Z finishedAt:2015-07-07T20:58:43Z containerID:docker://0e4095bba1feccdfe7ef9fb6ebffe972b4b14285d5acdec6f0d3ae8a22fad8b2]][13:59:03] clusterScaleDoc ~/go/src/github.com/GoogleCloudPlatform/kubernetes $ 
+LastState: map[terminated:map[exitCode:137 reason:OOM Killed startedAt:2015-07-07T20:58:43Z finishedAt:2015-07-07T20:58:43Z containerID:docker://0e4095bba1feccdfe7ef9fb6ebffe972b4b14285d5acdec6f0d3ae8a22fad8b2]][13:59:03] clusterScaleDoc ~/go/src/k8s.io/kubernetes $ 
 ```
 
 We can see that this container was terminated because `reason:OOM Killed`, where *OOM* stands for Out Of Memory.
@@ -243,7 +243,7 @@ resource, and a framework for adding custom [resource types](../design/resources
 
 The current system does not facilitate overcommitment of resources because resources reserved
 with container limits are assured.  It is planned to support multiple levels of [Quality of
-Service](https://github.com/GoogleCloudPlatform/kubernetes/issues/168).
+Service](https://k8s.io/kubernetes/issues/168).
 
 Currently, one unit of CPU means different things on different cloud providers, and on different
 machine types within the same cloud providers.  For example, on AWS, the capacity of a node

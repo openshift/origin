@@ -28,10 +28,8 @@ func (r *fakeRange) CreateOrUpdate(update *kapi.RangeAllocation) error {
 }
 
 func TestRepair(t *testing.T) {
-	var action testclient.FakeAction
 	client := &testclient.Fake{
-		ReactFn: func(a testclient.FakeAction) (runtime.Object, error) {
-			action = a
+		ReactFn: func(a testclient.Action) (runtime.Object, error) {
 			list := &kapi.NamespaceList{
 				Items: []kapi.Namespace{
 					{ObjectMeta: kapi.ObjectMeta{Name: "default"}},

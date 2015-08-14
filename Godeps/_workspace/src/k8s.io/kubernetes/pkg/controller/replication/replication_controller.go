@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package replication
+package replicationcontroller
 
 import (
 	"reflect"
@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
@@ -34,7 +35,6 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
-	"github.com/golang/glog"
 )
 
 const (
@@ -63,6 +63,8 @@ const (
 
 // ReplicationManager is responsible for synchronizing ReplicationController objects stored
 // in the system with actual running pods.
+// TODO: this really should be called ReplicationController. The only reason why it's a Manager
+// is to distinguish this type from API object "ReplicationController". We should fix this.
 type ReplicationManager struct {
 	kubeClient client.Interface
 	podControl controller.PodControlInterface
@@ -137,7 +139,7 @@ func NewReplicationManager(kubeClient client.Interface, burstReplicas int) *Repl
 				}
 				rm.enqueueController(cur)
 			},
-			// This will enter the sync loop and no-op, becuase the controller has been deleted from the store.
+			// This will enter the sync loop and no-op, because the controller has been deleted from the store.
 			// Note that deleting a controller immediately after scaling it to 0 will not work. The recommended
 			// way of achieving this is by performing a `stop` operation on the controller.
 			DeleteFunc: rm.enqueueController,

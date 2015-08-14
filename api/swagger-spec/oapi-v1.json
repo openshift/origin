@@ -13844,7 +13844,7 @@
      },
      "requests": {
       "type": "any",
-      "description": "Minimum amount of resources requested; requests are honored only for persistent volumes as of now; see http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
+      "description": "Minimum amount of resources requested; if Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value; see http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
      }
     }
    },
@@ -15353,6 +15353,14 @@
      "securityContext": {
       "$ref": "v1.SecurityContext",
       "description": "security options the pod should run with; see http://releases.k8s.io/HEAD/docs/design/security_context.md"
+     },
+     "stdin": {
+      "type": "boolean",
+      "description": "Whether this container should allocate a buffer for stdin in the container runtime; default is false"
+     },
+     "tty": {
+      "type": "boolean",
+      "description": "Whether this container should allocate a TTY for itself, also requires 'stdin' to be true; default is false"
      }
     }
    },
@@ -15478,7 +15486,7 @@
     "properties": {
      "port": {
       "type": "string",
-      "description": "number of name of the port to access on the container; number must be in the range 1 to 65535; name must be an IANA_SVC_NAME"
+      "description": "number or name of the port to access on the container; number must be in the range 1 to 65535; name must be an IANA_SVC_NAME"
      }
     }
    },

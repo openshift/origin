@@ -19,17 +19,16 @@ package cmd
 import (
 	"io"
 
+	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util"
-	"github.com/spf13/cobra"
 )
 
 const (
 	stop_long = `Deprecated: Gracefully shut down a resource by name or filename.
 
-stop command is deprecated, all its functionalities are covered by delete command.
+The stop command is deprecated, all its functionalities are covered by delete command.
 See 'kubectl delete --help' for more details.
 
 Attempts to shut down and delete a resource that supports graceful termination.
@@ -48,22 +47,18 @@ $ kubectl stop -f path/to/resources`
 )
 
 func NewCmdStop(f *cmdutil.Factory, out io.Writer) *cobra.Command {
-	flags := &struct {
-		Filenames util.StringList
-	}{}
 	cmd := &cobra.Command{
-		Use:     "stop (-f FILENAME | RESOURCE (NAME | -l label | --all))",
+		Use:     "stop (-f FILENAME | TYPE (NAME | -l label | --all))",
 		Short:   "Deprecated: Gracefully shut down a resource by name or filename.",
 		Long:    stop_long,
 		Example: stop_example,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(cmdutil.ValidateOutputArgs(cmd))
-			shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
-			cmdutil.CheckErr(RunStop(f, cmd, args, flags.Filenames, out, shortOutput))
+			cmdutil.CheckErr(RunStop(f, cmd, args, out))
 		},
 	}
 	usage := "Filename, directory, or URL to file of resource(s) to be stopped."
-	kubectl.AddJsonFilenameFlag(cmd, &flags.Filenames, usage)
+	kubectl.AddJsonFilenameFlag(cmd, usage)
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on.")
 	cmd.Flags().Bool("all", false, "[-all] to select all the specified resources.")
 	cmd.Flags().Bool("ignore-not-found", false, "Treat \"resource not found\" as a successful stop.")
@@ -73,11 +68,13 @@ func NewCmdStop(f *cmdutil.Factory, out io.Writer) *cobra.Command {
 	return cmd
 }
 
-func RunStop(f *cmdutil.Factory, cmd *cobra.Command, args []string, filenames util.StringList, out io.Writer, shortOutput bool) error {
+func RunStop(f *cmdutil.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	cmdNamespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
+
+	filenames := cmdutil.GetFlagStringSlice(cmd, "filename")
 	mapper, typer := f.Object()
 	r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 		ContinueOnError().
@@ -91,5 +88,6 @@ func RunStop(f *cmdutil.Factory, cmd *cobra.Command, args []string, filenames ut
 	if r.Err() != nil {
 		return r.Err()
 	}
+	shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
 	return ReapResult(r, f, out, false, cmdutil.GetFlagBool(cmd, "ignore-not-found"), cmdutil.GetFlagDuration(cmd, "timeout"), cmdutil.GetFlagInt(cmd, "grace-period"), shortOutput, mapper)
 }

@@ -33,7 +33,15 @@ func (fakeCodec) Decode([]byte) (runtime.Object, error) {
 	return nil, nil
 }
 
+func (fakeCodec) DecodeToVersion([]byte, string) (runtime.Object, error) {
+	return nil, nil
+}
+
 func (fakeCodec) DecodeInto([]byte, runtime.Object) error {
+	return nil
+}
+
+func (fakeCodec) DecodeIntoWithSpecifiedVersionKind([]byte, runtime.Object, string, string) error {
 	return nil
 }
 

@@ -97,7 +97,7 @@ func init() {
 	kubeMapper := klatest.RESTMapper
 
 	// list of versions we support on the server, in preferred order
-	versions := []string{"v1beta3", "v1"}
+	versions := []string{"v1", "v1beta3"}
 
 	originMapper := kmeta.NewDefaultRESTMapper(
 		versions,

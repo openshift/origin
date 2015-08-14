@@ -30,6 +30,13 @@ import (
 	"syscall"
 	"time"
 
+	appcschema "github.com/appc/spec/schema"
+	appctypes "github.com/appc/spec/schema/types"
+	"github.com/coreos/go-systemd/dbus"
+	"github.com/coreos/go-systemd/unit"
+	"github.com/docker/docker/pkg/parsers"
+	docker "github.com/fsouza/go-dockerclient"
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -38,13 +45,6 @@ import (
 	"k8s.io/kubernetes/pkg/probe"
 	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/types"
-	appcschema "github.com/appc/spec/schema"
-	appctypes "github.com/appc/spec/schema/types"
-	"github.com/coreos/go-systemd/dbus"
-	"github.com/coreos/go-systemd/unit"
-	"github.com/docker/docker/pkg/parsers"
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 )
 
 const (
@@ -273,7 +273,7 @@ func setIsolators(app *appctypes.App, c *api.Container) error {
 		r.request = quantity.String()
 		resources[name] = r
 	}
-	var acName appctypes.ACName
+	var acName appctypes.ACIdentifier
 	for name, res := range resources {
 		switch name {
 		case api.ResourceCPU:
@@ -412,10 +412,14 @@ func (r *runtime) makePodManifest(pod *api.Pod) (*appcschema.PodManifest, error)
 			return nil, err
 		}
 
+		name, err := appctypes.SanitizeACName(c.Name)
+		if err != nil {
+			return nil, err
+		}
+		appName := appctypes.MustACName(name)
+
 		manifest.Apps = append(manifest.Apps, appcschema.RuntimeApp{
-			// TODO(yifan): We should allow app name to be different with
-			// image name. See https://github.com/coreos/rkt/pull/640.
-			Name:  imgManifest.Name,
+			Name:  *appName,
 			Image: appcschema.RuntimeImage{ID: *hash},
 			App:   imgManifest.App,
 		})
@@ -636,7 +640,7 @@ func (r *runtime) makeRuntimePod(unitName string, podInfos map[string]*podInfo) 
 }
 
 // GetPods runs 'systemctl list-unit' and 'rkt list' to get the list of rkt pods.
-// Then it will use the result to contruct a list of container runtime pods.
+// Then it will use the result to construct a list of container runtime pods.
 // If all is false, then only running pods will be returned, otherwise all pods will be
 // returned.
 func (r *runtime) GetPods(all bool) ([]*kubecontainer.Pod, error) {
@@ -768,7 +772,7 @@ func (r *runtime) writeDockerAuthConfig(image string, credsSlice []docker.AuthCo
 // TODO(yifan): Now we only support docker images, this should be changed
 // once the format of image is landed, see:
 //
-// https://github.com/GoogleCloudPlatform/kubernetes/issues/7203
+// http://issue.k8s.io/7203
 //
 func (r *runtime) PullImage(image kubecontainer.ImageSpec, pullSecrets []api.Secret) error {
 	img := image.Image

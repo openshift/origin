@@ -81,7 +81,8 @@ func OutputVersion(cmd *cobra.Command, defaultVersion string) string {
 // Requires that printer flags have been added to cmd (see AddPrinterFlags).
 func PrinterForCommand(cmd *cobra.Command) (kubectl.ResourcePrinter, bool, error) {
 	outputFormat := GetFlagString(cmd, "output")
-	templateFile := GetFlagString(cmd, "template")
+	// TODO this is a bandaid until https://github.com/kubernetes/kubernetes/issues/12668 is fixed
+	templateFile, _ := cmd.Flags().GetString("template")
 	if len(outputFormat) == 0 && len(templateFile) != 0 {
 		outputFormat = "template"
 	}

@@ -2,6 +2,7 @@ package testclient
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -14,12 +15,20 @@ type FakeProjectRequests struct {
 	Fake *Fake
 }
 
-func (c *FakeProjectRequests) Create(project *projectapi.ProjectRequest) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-newProject", Value: project}, &projectapi.ProjectRequest{})
-	return obj.(*projectapi.Project), err
+func (c *FakeProjectRequests) List(label labels.Selector, field fields.Selector) (*kapi.Status, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("newprojects", label, field), &kapi.Status{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*kapi.Status), err
 }
 
-func (c *FakeProjectRequests) List(label labels.Selector, field fields.Selector) (*kapi.Status, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-newProject"}, &kapi.Status{})
-	return obj.(*kapi.Status), err
+func (c *FakeProjectRequests) Create(inObj *projectapi.ProjectRequest) (*projectapi.Project, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("newprojects", inObj), &projectapi.Project{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*projectapi.Project), err
 }

@@ -462,25 +462,25 @@ func TestValidateVolumes(t *testing.T) {
 		{Name: "cephfs", VolumeSource: api.VolumeSource{CephFS: &api.CephFSVolumeSource{Monitors: []string{"foo"}}}},
 		{Name: "metadata", VolumeSource: api.VolumeSource{Metadata: &api.MetadataVolumeSource{Items: []api.MetadataFile{
 			{Name: "labels", FieldRef: api.ObjectFieldSelector{
-				APIVersion: "v1beta3",
+				APIVersion: "v1",
 				FieldPath:  "metadata.labels"}},
 			{Name: "annotations", FieldRef: api.ObjectFieldSelector{
-				APIVersion: "v1beta3",
+				APIVersion: "v1",
 				FieldPath:  "metadata.annotations"}},
 			{Name: "namespace", FieldRef: api.ObjectFieldSelector{
-				APIVersion: "v1beta3",
+				APIVersion: "v1",
 				FieldPath:  "metadata.namespace"}},
 			{Name: "name", FieldRef: api.ObjectFieldSelector{
-				APIVersion: "v1beta3",
+				APIVersion: "v1",
 				FieldPath:  "metadata.name"}},
 			{Name: "path/withslash/andslash", FieldRef: api.ObjectFieldSelector{
-				APIVersion: "v1beta3",
+				APIVersion: "v1",
 				FieldPath:  "metadata.labels"}},
 			{Name: "path/./withdot", FieldRef: api.ObjectFieldSelector{
-				APIVersion: "v1beta3",
+				APIVersion: "v1",
 				FieldPath:  "metadata.labels"}},
 			{Name: "path/with..dot", FieldRef: api.ObjectFieldSelector{
-				APIVersion: "v1beta3",
+				APIVersion: "v1",
 				FieldPath:  "metadata.labels"}},
 		}}}},
 	}
@@ -501,17 +501,17 @@ func TestValidateVolumes(t *testing.T) {
 	emptyCephFSMon := api.VolumeSource{CephFS: &api.CephFSVolumeSource{Monitors: []string{}}}
 	emptyPathName := api.VolumeSource{Metadata: &api.MetadataVolumeSource{[]api.MetadataFile{{Name: "",
 		FieldRef: api.ObjectFieldSelector{
-			APIVersion: "v1beta3",
+			APIVersion: "v1",
 			FieldPath:  "metadata.labels"}}},
 	}}
 	absolutePathName := api.VolumeSource{Metadata: &api.MetadataVolumeSource{[]api.MetadataFile{{Name: "/absolutepath",
 		FieldRef: api.ObjectFieldSelector{
-			APIVersion: "v1beta3",
+			APIVersion: "v1",
 			FieldPath:  "metadata.labels"}}},
 	}}
 	dotDotPathName := api.VolumeSource{Metadata: &api.MetadataVolumeSource{[]api.MetadataFile{{Name: "../../passwd",
 		FieldRef: api.ObjectFieldSelector{
-			APIVersion: "v1beta3",
+			APIVersion: "v1",
 			FieldPath:  "metadata.labels"}}},
 	}}
 	errorCases := map[string]struct {
@@ -647,7 +647,7 @@ func TestValidateEnv(t *testing.T) {
 		{
 			name:          "name not a C identifier",
 			envs:          []api.EnvVar{{Name: "a.b.c"}},
-			expectedError: `[0].name: invalid value 'a.b.c': must be a C identifier (matching regex [A-Za-z_][A-Za-z0-9_]*): e.g. "my_name" or "MyName"`,
+			expectedError: `[0].name: invalid value 'a.b.c', Details: must be a C identifier (matching regex [A-Za-z_][A-Za-z0-9_]*): e.g. "my_name" or "MyName"`,
 		},
 		{
 			name: "value and valueFrom specified",
@@ -661,7 +661,7 @@ func TestValidateEnv(t *testing.T) {
 					},
 				},
 			}},
-			expectedError: "[0].valueFrom: invalid value '': sources cannot be specified when value is not empty",
+			expectedError: "[0].valueFrom: invalid value '', Details: sources cannot be specified when value is not empty",
 		},
 		{
 			name: "missing FieldPath on ObjectFieldSelector",
@@ -698,7 +698,7 @@ func TestValidateEnv(t *testing.T) {
 					},
 				},
 			}},
-			expectedError: "[0].valueFrom.fieldRef.fieldPath: invalid value 'metadata.whoops': error converting fieldPath",
+			expectedError: "[0].valueFrom.fieldRef.fieldPath: invalid value 'metadata.whoops', Details: error converting fieldPath",
 		},
 		{
 			name: "invalid fieldPath labels",
@@ -707,7 +707,7 @@ func TestValidateEnv(t *testing.T) {
 				ValueFrom: &api.EnvVarSource{
 					FieldRef: &api.ObjectFieldSelector{
 						FieldPath:  "metadata.labels",
-						APIVersion: "v1beta3",
+						APIVersion: "v1",
 					},
 				},
 			}},
@@ -720,7 +720,7 @@ func TestValidateEnv(t *testing.T) {
 				ValueFrom: &api.EnvVarSource{
 					FieldRef: &api.ObjectFieldSelector{
 						FieldPath:  "metadata.annotations",
-						APIVersion: "v1beta3",
+						APIVersion: "v1",
 					},
 				},
 			}},
@@ -737,7 +737,7 @@ func TestValidateEnv(t *testing.T) {
 					},
 				},
 			}},
-			expectedError: "[0].valueFrom.fieldRef.fieldPath: unsupported value 'status.phase': supported values: metadata.name, metadata.namespace",
+			expectedError: "[0].valueFrom.fieldRef.fieldPath: unsupported value 'status.phase', Details: supported values: metadata.name, metadata.namespace",
 		},
 	}
 	for _, tc := range errorCases {
@@ -915,6 +915,62 @@ func TestValidateContainers(t *testing.T) {
 			ImagePullPolicy: "IfNotPresent",
 		},
 		{
+			Name:  "resources-request-limit-simple",
+			Image: "image",
+			Resources: api.ResourceRequirements{
+				Requests: api.ResourceList{
+					api.ResourceName(api.ResourceCPU): resource.MustParse("8"),
+				},
+				Limits: api.ResourceList{
+					api.ResourceName(api.ResourceCPU): resource.MustParse("10"),
+				},
+			},
+			ImagePullPolicy: "IfNotPresent",
+		},
+		{
+			Name:  "resources-request-limit-edge",
+			Image: "image",
+			Resources: api.ResourceRequirements{
+				Requests: api.ResourceList{
+					api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+					api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+					api.ResourceName("my.org/resource"):  resource.MustParse("10m"),
+				},
+				Limits: api.ResourceList{
+					api.ResourceName(api.ResourceCPU):    resource.MustParse("10"),
+					api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+					api.ResourceName("my.org/resource"):  resource.MustParse("10m"),
+				},
+			},
+			ImagePullPolicy: "IfNotPresent",
+		},
+		{
+			Name:  "resources-request-limit-partials",
+			Image: "image",
+			Resources: api.ResourceRequirements{
+				Requests: api.ResourceList{
+					api.ResourceName(api.ResourceCPU):    resource.MustParse("9.5"),
+					api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+				},
+				Limits: api.ResourceList{
+					api.ResourceName(api.ResourceCPU):   resource.MustParse("10"),
+					api.ResourceName("my.org/resource"): resource.MustParse("10m"),
+				},
+			},
+			ImagePullPolicy: "IfNotPresent",
+		},
+		{
+			Name:  "resources-request",
+			Image: "image",
+			Resources: api.ResourceRequirements{
+				Requests: api.ResourceList{
+					api.ResourceName(api.ResourceCPU):    resource.MustParse("9.5"),
+					api.ResourceName(api.ResourceMemory): resource.MustParse("10G"),
+				},
+			},
+			ImagePullPolicy: "IfNotPresent",
+		},
+		{
 			Name:  "same-host-port-different-protocol",
 			Image: "image",
 			Ports: []api.ContainerPort{
@@ -1077,6 +1133,28 @@ func TestValidateContainers(t *testing.T) {
 				Image: "image",
 				Resources: api.ResourceRequirements{
 					Limits: getResourceLimits("0", "-10"),
+				},
+				ImagePullPolicy: "IfNotPresent",
+			},
+		},
+		"Request limit simple invalid": {
+			{
+				Name:  "abc-123",
+				Image: "image",
+				Resources: api.ResourceRequirements{
+					Limits:   getResourceLimits("5", "3"),
+					Requests: getResourceLimits("6", "3"),
+				},
+				ImagePullPolicy: "IfNotPresent",
+			},
+		},
+		"Request limit multiple invalid": {
+			{
+				Name:  "abc-123",
+				Image: "image",
+				Resources: api.ResourceRequirements{
+					Limits:   getResourceLimits("5", "3"),
+					Requests: getResourceLimits("6", "4"),
 				},
 				ImagePullPolicy: "IfNotPresent",
 			},
@@ -1400,30 +1478,6 @@ func TestValidatePodUpdate(t *testing.T) {
 		},
 		{
 			api.Pod{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
-				Spec: api.PodSpec{
-					Containers: []api.Container{
-						{
-							Image: "foo:V1",
-						},
-					},
-				},
-			},
-			api.Pod{
-				ObjectMeta: api.ObjectMeta{Name: "foo"},
-				Spec: api.PodSpec{
-					Containers: []api.Container{
-						{
-							Image: "foo:V2",
-						},
-					},
-				},
-			},
-			true,
-			"image change",
-		},
-		{
-			api.Pod{
 				Spec: api.PodSpec{
 					ActiveDeadlineSeconds: &activeDeadlineSecondsZero,
 				},
@@ -1461,6 +1515,30 @@ func TestValidatePodUpdate(t *testing.T) {
 			api.Pod{},
 			true,
 			"activedeadlineseconds change back to nil",
+		},
+		{
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				Spec: api.PodSpec{
+					Containers: []api.Container{
+						{
+							Image: "foo:V1",
+						},
+					},
+				},
+			},
+			api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "foo"},
+				Spec: api.PodSpec{
+					Containers: []api.Container{
+						{
+							Image: "foo:V2",
+						},
+					},
+				},
+			},
+			true,
+			"image change",
 		},
 		{
 			api.Pod{
@@ -2358,12 +2436,424 @@ func TestValidateReplicationController(t *testing.T) {
 		for i := range errs {
 			field := errs[i].(*errors.ValidationError).Field
 			if !strings.HasPrefix(field, "spec.template.") &&
-				field != "metadata.name" &&
+				field != "metadata.name or metadata.generateName" &&
 				field != "metadata.namespace" &&
 				field != "spec.selector" &&
 				field != "spec.template" &&
 				field != "GCEPersistentDisk.ReadOnly" &&
 				field != "spec.replicas" &&
+				field != "spec.template.labels" &&
+				field != "metadata.annotations" &&
+				field != "metadata.labels" {
+				t.Errorf("%s: missing prefix for: %v", k, errs[i])
+			}
+		}
+	}
+}
+
+func TestValidateDaemonUpdate(t *testing.T) {
+	validSelector := map[string]string{"a": "b"}
+	validSelector2 := map[string]string{"c": "d"}
+	invalidSelector := map[string]string{"NoUppercaseOrSpecialCharsLike=Equals": "b"}
+
+	validPodSpecAbc := api.PodSpec{
+		RestartPolicy: api.RestartPolicyAlways,
+		DNSPolicy:     api.DNSClusterFirst,
+		Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+	}
+	validPodSpecDef := api.PodSpec{
+		RestartPolicy: api.RestartPolicyAlways,
+		DNSPolicy:     api.DNSClusterFirst,
+		Containers:    []api.Container{{Name: "def", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+	}
+	validPodSpecNodeSelector := api.PodSpec{
+		NodeSelector:  validSelector,
+		NodeName:      "xyz",
+		RestartPolicy: api.RestartPolicyAlways,
+		DNSPolicy:     api.DNSClusterFirst,
+		Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+	}
+	validPodSpecVolume := api.PodSpec{
+		Volumes:       []api.Volume{{Name: "gcepd", VolumeSource: api.VolumeSource{GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{"my-PD", "ext4", 1, false}}}},
+		RestartPolicy: api.RestartPolicyAlways,
+		DNSPolicy:     api.DNSClusterFirst,
+		Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+	}
+
+	validPodTemplateAbc := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			ObjectMeta: api.ObjectMeta{
+				Labels: validSelector,
+			},
+			Spec: validPodSpecAbc,
+		},
+	}
+	validPodTemplateNodeSelector := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			ObjectMeta: api.ObjectMeta{
+				Labels: validSelector,
+			},
+			Spec: validPodSpecNodeSelector,
+		},
+	}
+	validPodTemplateAbc2 := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			ObjectMeta: api.ObjectMeta{
+				Labels: validSelector2,
+			},
+			Spec: validPodSpecAbc,
+		},
+	}
+	validPodTemplateDef := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			ObjectMeta: api.ObjectMeta{
+				Labels: validSelector2,
+			},
+			Spec: validPodSpecDef,
+		},
+	}
+	invalidPodTemplate := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			Spec: api.PodSpec{
+				RestartPolicy: api.RestartPolicyAlways,
+				DNSPolicy:     api.DNSClusterFirst,
+			},
+			ObjectMeta: api.ObjectMeta{
+				Labels: invalidSelector,
+			},
+		},
+	}
+	readWriteVolumePodTemplate := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			ObjectMeta: api.ObjectMeta{
+				Labels: validSelector,
+			},
+			Spec: validPodSpecVolume,
+		},
+	}
+
+	type dcUpdateTest struct {
+		old    api.Daemon
+		update api.Daemon
+	}
+	successCases := []dcUpdateTest{
+		{
+			old: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+			update: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+		},
+		{
+			old: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+			update: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector2,
+					Template: &validPodTemplateAbc2.Template,
+				},
+			},
+		},
+		{
+			old: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+			update: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateNodeSelector.Template,
+				},
+			},
+		},
+	}
+	for _, successCase := range successCases {
+		successCase.old.ObjectMeta.ResourceVersion = "1"
+		successCase.update.ObjectMeta.ResourceVersion = "1"
+		if errs := ValidateDaemonUpdate(&successCase.old, &successCase.update); len(errs) != 0 {
+			t.Errorf("expected success: %v", errs)
+		}
+	}
+	errorCases := map[string]dcUpdateTest{
+		"change daemon name": {
+			old: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+			update: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+		},
+		"invalid selector": {
+			old: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+			update: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: invalidSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+		},
+		"invalid pod": {
+			old: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+			update: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &invalidPodTemplate.Template,
+				},
+			},
+		},
+		"change container image": {
+			old: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+			update: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateDef.Template,
+				},
+			},
+		},
+		"read-write volume": {
+			old: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &validPodTemplateAbc.Template,
+				},
+			},
+			update: api.Daemon{
+				ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+				Spec: api.DaemonSpec{
+					Selector: validSelector,
+					Template: &readWriteVolumePodTemplate.Template,
+				},
+			},
+		},
+	}
+	for testName, errorCase := range errorCases {
+		if errs := ValidateDaemonUpdate(&errorCase.old, &errorCase.update); len(errs) == 0 {
+			t.Errorf("expected failure: %s", testName)
+		}
+	}
+}
+
+func TestValidateDaemon(t *testing.T) {
+	validSelector := map[string]string{"a": "b"}
+	validPodTemplate := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			ObjectMeta: api.ObjectMeta{
+				Labels: validSelector,
+			},
+			Spec: api.PodSpec{
+				RestartPolicy: api.RestartPolicyAlways,
+				DNSPolicy:     api.DNSClusterFirst,
+				Containers:    []api.Container{{Name: "abc", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+			},
+		},
+	}
+	invalidSelector := map[string]string{"NoUppercaseOrSpecialCharsLike=Equals": "b"}
+	invalidPodTemplate := api.PodTemplate{
+		Template: api.PodTemplateSpec{
+			Spec: api.PodSpec{
+				RestartPolicy: api.RestartPolicyAlways,
+				DNSPolicy:     api.DNSClusterFirst,
+			},
+			ObjectMeta: api.ObjectMeta{
+				Labels: invalidSelector,
+			},
+		},
+	}
+	successCases := []api.Daemon{
+		{
+			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+			Spec: api.DaemonSpec{
+				Selector: validSelector,
+				Template: &validPodTemplate.Template,
+			},
+		},
+		{
+			ObjectMeta: api.ObjectMeta{Name: "abc-123", Namespace: api.NamespaceDefault},
+			Spec: api.DaemonSpec{
+				Selector: validSelector,
+				Template: &validPodTemplate.Template,
+			},
+		},
+	}
+	for _, successCase := range successCases {
+		if errs := ValidateDaemon(&successCase); len(errs) != 0 {
+			t.Errorf("expected success: %v", errs)
+		}
+	}
+
+	errorCases := map[string]api.Daemon{
+		"zero-length ID": {
+			ObjectMeta: api.ObjectMeta{Name: "", Namespace: api.NamespaceDefault},
+			Spec: api.DaemonSpec{
+				Selector: validSelector,
+				Template: &validPodTemplate.Template,
+			},
+		},
+		"missing-namespace": {
+			ObjectMeta: api.ObjectMeta{Name: "abc-123"},
+			Spec: api.DaemonSpec{
+				Selector: validSelector,
+				Template: &validPodTemplate.Template,
+			},
+		},
+		"empty selector": {
+			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+			Spec: api.DaemonSpec{
+				Template: &validPodTemplate.Template,
+			},
+		},
+		"selector_doesnt_match": {
+			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+			Spec: api.DaemonSpec{
+				Selector: map[string]string{"foo": "bar"},
+				Template: &validPodTemplate.Template,
+			},
+		},
+		"invalid manifest": {
+			ObjectMeta: api.ObjectMeta{Name: "abc", Namespace: api.NamespaceDefault},
+			Spec: api.DaemonSpec{
+				Selector: validSelector,
+			},
+		},
+		"invalid_label": {
+			ObjectMeta: api.ObjectMeta{
+				Name:      "abc-123",
+				Namespace: api.NamespaceDefault,
+				Labels: map[string]string{
+					"NoUppercaseOrSpecialCharsLike=Equals": "bar",
+				},
+			},
+			Spec: api.DaemonSpec{
+				Selector: validSelector,
+				Template: &validPodTemplate.Template,
+			},
+		},
+		"invalid_label 2": {
+			ObjectMeta: api.ObjectMeta{
+				Name:      "abc-123",
+				Namespace: api.NamespaceDefault,
+				Labels: map[string]string{
+					"NoUppercaseOrSpecialCharsLike=Equals": "bar",
+				},
+			},
+			Spec: api.DaemonSpec{
+				Template: &invalidPodTemplate.Template,
+			},
+		},
+		"invalid_annotation": {
+			ObjectMeta: api.ObjectMeta{
+				Name:      "abc-123",
+				Namespace: api.NamespaceDefault,
+				Annotations: map[string]string{
+					"NoUppercaseOrSpecialCharsLike=Equals": "bar",
+				},
+			},
+			Spec: api.DaemonSpec{
+				Selector: validSelector,
+				Template: &validPodTemplate.Template,
+			},
+		},
+		"invalid restart policy 1": {
+			ObjectMeta: api.ObjectMeta{
+				Name:      "abc-123",
+				Namespace: api.NamespaceDefault,
+			},
+			Spec: api.DaemonSpec{
+				Selector: validSelector,
+				Template: &api.PodTemplateSpec{
+					Spec: api.PodSpec{
+						RestartPolicy: api.RestartPolicyOnFailure,
+						DNSPolicy:     api.DNSClusterFirst,
+						Containers:    []api.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+					},
+					ObjectMeta: api.ObjectMeta{
+						Labels: validSelector,
+					},
+				},
+			},
+		},
+		"invalid restart policy 2": {
+			ObjectMeta: api.ObjectMeta{
+				Name:      "abc-123",
+				Namespace: api.NamespaceDefault,
+			},
+			Spec: api.DaemonSpec{
+				Selector: validSelector,
+				Template: &api.PodTemplateSpec{
+					Spec: api.PodSpec{
+						RestartPolicy: api.RestartPolicyNever,
+						DNSPolicy:     api.DNSClusterFirst,
+						Containers:    []api.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+					},
+					ObjectMeta: api.ObjectMeta{
+						Labels: validSelector,
+					},
+				},
+			},
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidateDaemon(&v)
+		if len(errs) == 0 {
+			t.Errorf("expected failure for %s", k)
+		}
+		for i := range errs {
+			field := errs[i].(*errors.ValidationError).Field
+			if !strings.HasPrefix(field, "spec.template.") &&
+				field != "metadata.name or metadata.generateName" &&
+				field != "metadata.namespace" &&
+				field != "spec.selector" &&
+				field != "spec.template" &&
+				field != "GCEPersistentDisk.ReadOnly" &&
 				field != "spec.template.labels" &&
 				field != "metadata.annotations" &&
 				field != "metadata.labels" {
@@ -2473,11 +2963,11 @@ func TestValidateNode(t *testing.T) {
 		for i := range errs {
 			field := errs[i].(*errors.ValidationError).Field
 			expectedFields := map[string]bool{
-				"metadata.name":        true,
-				"metadata.labels":      true,
-				"metadata.annotations": true,
-				"metadata.namespace":   true,
-				"spec.ExternalID":      true,
+				"metadata.name or metadata.generateName": true,
+				"metadata.labels":                        true,
+				"metadata.annotations":                   true,
+				"metadata.namespace":                     true,
+				"spec.ExternalID":                        true,
 			}
 			if expectedFields[field] == false {
 				t.Errorf("%s: missing prefix for: %v", k, errs[i])
@@ -3007,7 +3497,7 @@ func TestValidateResourceQuota(t *testing.T) {
 		for i := range errs {
 			field := errs[i].(*errors.ValidationError).Field
 			detail := errs[i].(*errors.ValidationError).Detail
-			if field != "metadata.name" && field != "metadata.namespace" {
+			if field != "metadata.name" && field != "metadata.name or metadata.generateName" && field != "metadata.namespace" {
 				t.Errorf("%s: missing prefix for: %v", k, field)
 			}
 			if detail != v.D {

@@ -15,12 +15,12 @@ import (
 
 func testImageStreamClient(imageStreams *imageapi.ImageStreamList, images map[string]*imageapi.ImageStreamImage) client.Interface {
 	return &testclient.Fake{
-		ReactFn: func(action ktestclient.FakeAction) (runtime.Object, error) {
-			switch action.Action {
-			case "list-imagestreams":
+		ReactFn: func(action ktestclient.Action) (runtime.Object, error) {
+			if action.Matches("list", "imagestreams") {
 				return imageStreams, nil
-			case "get-imagestream-image":
-				return images[action.Value.(string)], nil
+			}
+			if action.Matches("get", "imagestreamimages") {
+				return images[action.(ktestclient.GetAction).GetName()], nil
 			}
 			return nil, nil
 		},

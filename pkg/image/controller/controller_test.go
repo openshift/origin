@@ -104,7 +104,7 @@ func TestControllerRepoHandled(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) == 0 {
 		t.Errorf("did not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 1 {
+	if len(fake.Actions()) != 1 {
 		t.Errorf("expected an update action: %#v", fake.Actions)
 	}
 }
@@ -125,7 +125,7 @@ func TestControllerTagRetrievalFails(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) != 0 {
 		t.Errorf("should not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 0 {
+	if len(fake.Actions()) != 0 {
 		t.Error("expected no actions on fake client")
 	}
 }
@@ -155,7 +155,7 @@ func TestControllerRetrievesInsecure(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) != 0 {
 		t.Errorf("should not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 0 {
+	if len(fake.Actions()) != 0 {
 		t.Error("expected no actions on fake client")
 	}
 }
@@ -175,8 +175,8 @@ func TestControllerImageNotFoundError(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) == 0 {
 		t.Errorf("did not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 1 {
-		t.Errorf("expected an update action: %#v", fake.Actions)
+	if len(fake.Actions()) != 1 {
+		t.Errorf("expected an update action: %#v", fake.Actions())
 	}
 }
 
@@ -203,8 +203,8 @@ func TestControllerImageWithGenericError(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) != 0 {
 		t.Errorf("did not expect annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 0 {
-		t.Errorf("expected no update action: %#v", fake.Actions)
+	if len(fake.Actions()) != 0 {
+		t.Errorf("expected no update action: %#v", fake.Actions())
 	}
 }
 
@@ -234,8 +234,8 @@ func TestControllerWithImage(t *testing.T) {
 	if !isRFC3339(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) {
 		t.Fatalf("did not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 2 {
-		t.Errorf("expected an update action: %#v", fake.Actions)
+	if len(fake.Actions()) != 2 {
+		t.Errorf("expected an update action: %#v", fake.Actions())
 	}
 }
 
@@ -303,21 +303,21 @@ func TestControllerWithSpecTags(t *testing.T) {
 			t.Fatalf("%s: did not set annotation: %#v", name, stream)
 		}
 		if test.expectUpdate {
-			if len(fake.Actions) != 2 {
-				t.Errorf("%s: expected an update action: %#v", name, fake.Actions)
+			if len(fake.Actions()) != 2 {
+				t.Errorf("%s: expected an update action: %#v", name, fake.Actions())
 			}
-			if e, a := "create-imagestream-mapping", fake.Actions[0].Action; e != a {
-				t.Errorf("%s: expected %s, got %s", name, e, a)
+			if !fake.Actions()[0].Matches("create", "imagestreammappings") {
+				t.Errorf("%s: expected %s, got %v", name, "create-imagestreammappings", fake.Actions()[0])
 			}
-			if e, a := "update-imagestream", fake.Actions[1].Action; e != a {
-				t.Errorf("%s: expected %s, got %s", name, e, a)
+			if !fake.Actions()[1].Matches("update", "imagestreams") {
+				t.Errorf("%s: expected %s, got %v", name, "update-imagestreams", fake.Actions()[1])
 			}
 		} else {
-			if len(fake.Actions) != 1 {
-				t.Errorf("%s: expected no update action: %#v", name, fake.Actions)
+			if len(fake.Actions()) != 1 {
+				t.Errorf("%s: expected no update action: %#v", name, fake.Actions())
 			}
-			if e, a := "update-imagestream", fake.Actions[0].Action; e != a {
-				t.Errorf("%s: expected %s, got %s", name, e, a)
+			if !fake.Actions()[0].Matches("update", "imagestreams") {
+				t.Errorf("%s: expected %s, got %v", name, "update-imagestreams", fake.Actions()[0])
 			}
 		}
 	}

@@ -713,9 +713,8 @@ func TestDeletingImagePruner(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		imageClient := testclient.Fake{
-			Err: test.imageDeletionError,
-		}
+		imageClient := testclient.Fake{}
+		imageClient.SetErr(test.imageDeletionError)
 		imagePruner := NewDeletingImagePruner(imageClient.Images())
 		err := imagePruner.PruneImage(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}})
 		if test.imageDeletionError != nil {
@@ -725,13 +724,13 @@ func TestDeletingImagePruner(t *testing.T) {
 			continue
 		}
 
-		if e, a := 1, len(imageClient.Actions); e != a {
-			t.Errorf("%s: expected %d actions, got %d: %#v", name, e, a, imageClient.Actions)
+		if e, a := 1, len(imageClient.Actions()); e != a {
+			t.Errorf("%s: expected %d actions, got %d: %#v", name, e, a, imageClient.Actions())
 			continue
 		}
 
-		if e, a := "delete-image", imageClient.Actions[0].Action; e != a {
-			t.Errorf("%s: expected action %q, got %q", name, e, a)
+		if !imageClient.Actions()[0].Matches("delete", "images") {
+			t.Errorf("%s: expected action %s, got %v", name, "delete-images", imageClient.Actions()[0])
 		}
 	}
 }

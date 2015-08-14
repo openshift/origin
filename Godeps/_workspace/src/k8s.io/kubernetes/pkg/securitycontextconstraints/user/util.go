@@ -18,9 +18,10 @@ package user
 
 import (
 	"fmt"
+	"strconv"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client"
-	"strconv"
 )
 
 func AnnotationToIntPtr(sUID string) (*int64, error) {

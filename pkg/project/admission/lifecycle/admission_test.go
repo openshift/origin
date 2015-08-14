@@ -37,7 +37,7 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 // TestAdmissionExists verifies you cannot create Origin content if namespace is not known
 func TestAdmissionExists(t *testing.T) {
 	mockClient := &testclient.Fake{
-		ReactFn: func(f testclient.FakeAction) (runtime.Object, error) {
+		ReactFn: func(f testclient.Action) (runtime.Object, error) {
 			return &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
 		},
 	}

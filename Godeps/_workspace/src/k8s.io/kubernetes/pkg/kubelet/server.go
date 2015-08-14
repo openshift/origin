@@ -32,6 +32,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/glog"
+	cadvisorApi "github.com/google/cadvisor/info/v1"
+	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/healthz"
@@ -41,9 +44,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/flushwriter"
 	"k8s.io/kubernetes/pkg/util/httpstream"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
-	"github.com/golang/glog"
-	cadvisorApi "github.com/google/cadvisor/info/v1"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Server is a http.Handler which exposes kubelet functionality over HTTP.
@@ -690,11 +690,11 @@ type StatsRequest struct {
 	NumStats int `json:"num_stats,omitempty"`
 
 	// Start time for which to query information.
-	// If ommitted, the beginning of time is assumed.
+	// If omitted, the beginning of time is assumed.
 	Start time.Time `json:"start,omitempty"`
 
 	// End time for which to query information.
-	// If ommitted, current time is assumed.
+	// If omitted, current time is assumed.
 	End time.Time `json:"end,omitempty"`
 
 	// Whether to also include information from subcontainers.

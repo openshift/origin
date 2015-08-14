@@ -51,7 +51,7 @@ Below, we outline one of the more common git workflows that core developers use.
 
 ### Fork the main repository
 
-1. Go to https://github.com/GoogleCloudPlatform/kubernetes
+1. Go to https://k8s.io/kubernetes
 2. Click the "Fork" button (at the top right)
 
 ### Clone your fork
@@ -64,7 +64,7 @@ cd $GOPATH/src/github.com/GoogleCloudPlatform/
 # Replace "$YOUR_GITHUB_USERNAME" below with your github username
 git clone https://github.com/$YOUR_GITHUB_USERNAME/kubernetes.git
 cd kubernetes
-git remote add upstream 'https://github.com/GoogleCloudPlatform/kubernetes.git'
+git remote add upstream 'https://k8s.io/kubernetes.git'
 ```
 
 ### Create a branch and make changes
@@ -81,7 +81,7 @@ git fetch upstream
 git rebase upstream/master
 ```
 
-Note: If you have write access to the main repository at github.com/GoogleCloudPlatform/kubernetes, you should modify your git configuration so that you can't accidentally push to upstream:
+Note: If you have write access to the main repository at k8s.io/kubernetes, you should modify your git configuration so that you can't accidentally push to upstream:
 
 ```sh
 git remote set-url --push upstream no_push
@@ -146,8 +146,8 @@ Here's a quick walkthrough of one way to use godeps to add or update a Kubernete
 
 ```sh
 export KPATH=$HOME/code/kubernetes
-mkdir -p $KPATH/src/github.com/GoogleCloudPlatform/kubernetes
-cd $KPATH/src/github.com/GoogleCloudPlatform/kubernetes
+mkdir -p $KPATH/src/k8s.io/kubernetes
+cd $KPATH/src/k8s.io/kubernetes
 git clone https://path/to/your/fork .
 # Or copy your existing local repo here. IMPORTANT: making a symlink doesn't work.
 ```
@@ -165,7 +165,7 @@ export GOPATH=$KPATH
 3) Populate your new GOPATH.
 
 ```sh
-cd $KPATH/src/github.com/GoogleCloudPlatform/kubernetes
+cd $KPATH/src/k8s.io/kubernetes
 godep restore
 ```
 
@@ -173,13 +173,13 @@ godep restore
 
 ```sh
 # To add a new dependency, do:
-cd $KPATH/src/github.com/GoogleCloudPlatform/kubernetes
+cd $KPATH/src/k8s.io/kubernetes
 go get path/to/dependency
 # Change code in Kubernetes to use the dependency.
 godep save ./...
 
 # To update an existing dependency, do:
-cd $KPATH/src/github.com/GoogleCloudPlatform/kubernetes
+cd $KPATH/src/k8s.io/kubernetes
 go get -u path/to/dependency
 # Change code in Kubernetes accordingly if necessary.
 godep update path/to/dependency
@@ -223,7 +223,7 @@ $ cd pkg/kubelet
 $ godep go test
 # some output from unit tests
 PASS
-ok      github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet   0.317s
+ok      k8s.io/kubernetes/pkg/kubelet   0.317s
 ```
 
 ## Coverage

@@ -21,6 +21,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/types"
@@ -28,14 +29,13 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 	volumeutil "k8s.io/kubernetes/pkg/volume/util"
-	"github.com/golang/glog"
 )
 
 // TODO: in the near future, this will be changed to be more restrictive
 // and the group will be set to allow containers to use emptyDir volumes
 // from the group attribute.
 //
-// https://github.com/GoogleCloudPlatform/kubernetes/issues/2630
+// http://issue.k8s.io/2630
 const perm os.FileMode = 0777
 
 // This is the primary entrypoint for volume plugins.

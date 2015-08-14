@@ -7,7 +7,7 @@ import (
 	etcderr "k8s.io/kubernetes/pkg/api/errors/etcd"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	kubeetcd "k8s.io/kubernetes/pkg/registry/etcd"
+	kubeetcd "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -32,11 +32,11 @@ func New(storage storage.Interface) *Etcd {
 }
 
 func makeRouteListKey(ctx kapi.Context) string {
-	return kubeetcd.MakeEtcdListKey(ctx, RoutePath)
+	return kubeetcd.NamespaceKeyRootFunc(ctx, RoutePath)
 }
 
 func makeRouteKey(ctx kapi.Context, id string) (string, error) {
-	return kubeetcd.MakeEtcdItemKey(ctx, RoutePath, id)
+	return kubeetcd.NamespaceKeyFunc(ctx, RoutePath, id)
 }
 
 // ListRoutes obtains a list of Routes.
@@ -121,7 +121,7 @@ func (registry *Etcd) WatchRoutes(ctx kapi.Context, label labels.Selector, field
 	}
 
 	if field.Empty() {
-		key := kubeetcd.MakeEtcdListKey(ctx, RoutePath)
+		key := makeRouteListKey(ctx)
 		return registry.WatchList(key, version, storage.Everything)
 	}
 	return nil, fmt.Errorf("only the 'ID' and default (everything) field selectors are supported")

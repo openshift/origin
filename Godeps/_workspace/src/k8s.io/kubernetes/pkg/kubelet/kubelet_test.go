@@ -31,6 +31,8 @@ import (
 	"testing"
 	"time"
 
+	cadvisorApi "github.com/google/cadvisor/info/v1"
+	cadvisorApiv2 "github.com/google/cadvisor/info/v2"
 	"k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -48,8 +50,6 @@ import (
 	"k8s.io/kubernetes/pkg/version"
 	"k8s.io/kubernetes/pkg/volume"
 	_ "k8s.io/kubernetes/pkg/volume/host_path"
-	cadvisorApi "github.com/google/cadvisor/info/v1"
-	cadvisorApiv2 "github.com/google/cadvisor/info/v2"
 )
 
 func init() {
@@ -409,7 +409,7 @@ func TestMountExternalVolumes(t *testing.T) {
 	}
 	podVolumes, err := kubelet.mountExternalVolumes(&pod)
 	if err != nil {
-		t.Errorf("Expected sucess: %v", err)
+		t.Errorf("Expected success: %v", err)
 	}
 	expectedPodVolumes := []string{"vol1"}
 	if len(expectedPodVolumes) != len(podVolumes) {
@@ -2100,7 +2100,7 @@ func TestHandleMemExceeded(t *testing.T) {
 	testKubelet.fakeCadvisor.On("RootFsInfo").Return(cadvisorApiv2.FsInfo{}, nil)
 
 	spec := api.PodSpec{Containers: []api.Container{{Resources: api.ResourceRequirements{
-		Limits: api.ResourceList{
+		Requests: api.ResourceList{
 			"memory": resource.MustParse("90"),
 		},
 	}}}}
@@ -2314,7 +2314,10 @@ func TestUpdateNewNodeStatus(t *testing.T) {
 				api.ResourceMemory: *resource.NewQuantity(1024, resource.BinarySI),
 				api.ResourcePods:   *resource.NewQuantity(0, resource.DecimalSI),
 			},
-			Addresses: []api.NodeAddress{{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"}},
+			Addresses: []api.NodeAddress{
+				{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"},
+				{Type: api.NodeInternalIP, Address: "127.0.0.1"},
+			},
 		},
 	}
 
@@ -2323,10 +2326,13 @@ func TestUpdateNewNodeStatus(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	actions := kubeClient.Actions()
-	if len(actions) != 2 || actions[1].Action != "update-status-node" {
+	if len(actions) != 2 {
 		t.Fatalf("unexpected actions: %v", actions)
 	}
-	updatedNode, ok := actions[1].Value.(*api.Node)
+	if !actions[1].Matches("update", "nodes") || actions[1].GetSubresource() != "status" {
+		t.Fatalf("unexpected actions: %v", actions)
+	}
+	updatedNode, ok := actions[1].(testclient.UpdateAction).GetObject().(*api.Node)
 	if !ok {
 		t.Errorf("unexpected object type")
 	}
@@ -2412,7 +2418,10 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 				api.ResourceMemory: *resource.NewQuantity(1024, resource.BinarySI),
 				api.ResourcePods:   *resource.NewQuantity(0, resource.DecimalSI),
 			},
-			Addresses: []api.NodeAddress{{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"}},
+			Addresses: []api.NodeAddress{
+				{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"},
+				{Type: api.NodeInternalIP, Address: "127.0.0.1"},
+			},
 		},
 	}
 
@@ -2424,7 +2433,11 @@ func TestUpdateExistingNodeStatus(t *testing.T) {
 	if len(actions) != 2 {
 		t.Errorf("unexpected actions: %v", actions)
 	}
-	updatedNode, ok := actions[1].Value.(*api.Node)
+	updateAction, ok := actions[1].(testclient.UpdateAction)
+	if !ok {
+		t.Errorf("unexpected action type.  expected UpdateAction, got %#v", actions[1])
+	}
+	updatedNode, ok := updateAction.GetObject().(*api.Node)
 	if !ok {
 		t.Errorf("unexpected object type")
 	}
@@ -2499,7 +2512,10 @@ func TestUpdateNodeStatusWithoutContainerRuntime(t *testing.T) {
 				api.ResourceMemory: *resource.NewQuantity(1024, resource.BinarySI),
 				api.ResourcePods:   *resource.NewQuantity(0, resource.DecimalSI),
 			},
-			Addresses: []api.NodeAddress{{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"}},
+			Addresses: []api.NodeAddress{
+				{Type: api.NodeLegacyHostIP, Address: "127.0.0.1"},
+				{Type: api.NodeInternalIP, Address: "127.0.0.1"},
+			},
 		},
 	}
 
@@ -2509,12 +2525,15 @@ func TestUpdateNodeStatusWithoutContainerRuntime(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	actions := kubeClient.Actions()
-	if len(actions) != 2 || actions[1].Action != "update-status-node" {
+	if len(actions) != 2 {
 		t.Fatalf("unexpected actions: %v", actions)
 	}
-	updatedNode, ok := actions[1].Value.(*api.Node)
+	if !actions[1].Matches("update", "nodes") || actions[1].GetSubresource() != "status" {
+		t.Fatalf("unexpected actions: %v", actions)
+	}
+	updatedNode, ok := actions[1].(testclient.UpdateAction).GetObject().(*api.Node)
 	if !ok {
-		t.Errorf("unexpected object type")
+		t.Errorf("unexpected action type.  expected UpdateAction, got %#v", actions[1])
 	}
 
 	if updatedNode.Status.Conditions[0].LastHeartbeatTime.IsZero() {
@@ -2926,13 +2945,8 @@ func TestRegisterExistingNodeWithApiserver(t *testing.T) {
 	testKubelet := newTestKubelet(t)
 	kubelet := testKubelet.kubelet
 	kubeClient := testKubelet.fakeKubeClient
-	kubeClient.ReactFn = func(action testclient.FakeAction) (runtime.Object, error) {
-		segments := strings.Split(action.Action, "-")
-		if len(segments) < 2 {
-			return nil, fmt.Errorf("unrecognized action, need two or three segments <verb>-<resource> or <verb>-<subresource>-<resource>: %s", action.Action)
-		}
-		verb := segments[0]
-		switch verb {
+	kubeClient.ReactFn = func(action testclient.Action) (runtime.Object, error) {
+		switch action.GetVerb() {
 		case "create":
 			// Return an error on create.
 			return &api.Node{}, &apierrors.StatusError{
@@ -2945,7 +2959,7 @@ func TestRegisterExistingNodeWithApiserver(t *testing.T) {
 				Spec:       api.NodeSpec{ExternalID: testKubeletHostname},
 			}, nil
 		default:
-			return nil, fmt.Errorf("no reaction implemented for %s", action.Action)
+			return nil, fmt.Errorf("no reaction implemented for %s", action)
 		}
 	}
 	machineInfo := &cadvisorApi.MachineInfo{

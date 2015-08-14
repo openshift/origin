@@ -27,35 +27,36 @@ import (
 // embedded into a struct to get a default implementation. This makes faking out just
 // the method you want to test easier.
 type FakeSecurityContextConstraints struct {
-	Fake *Fake
+	Fake      *Fake
+	Namespace string
 }
 
-func (c *FakeSecurityContextConstraints) List(labels labels.Selector, field fields.Selector) (*api.SecurityContextConstraintsList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-securitycontextconstraints"}, &api.SecurityContextConstraintsList{})
+func (c *FakeSecurityContextConstraints) List(label labels.Selector, field fields.Selector) (*api.SecurityContextConstraintsList, error) {
+	obj, err := c.Fake.Invokes(NewListAction("securitycontextconstraints", c.Namespace, label, field), &api.SecurityContextConstraintsList{})
 	return obj.(*api.SecurityContextConstraintsList), err
 }
 
 func (c *FakeSecurityContextConstraints) Get(name string) (*api.SecurityContextConstraints, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-securitycontextconstraints", Value: name}, &api.SecurityContextConstraints{})
+	obj, err := c.Fake.Invokes(NewGetAction("securitycontextconstraints", c.Namespace, name), &api.SecurityContextConstraints{})
 	return obj.(*api.SecurityContextConstraints), err
 }
 
 func (c *FakeSecurityContextConstraints) Create(scc *api.SecurityContextConstraints) (*api.SecurityContextConstraints, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-securitycontextconstraints", Value: scc}, &api.SecurityContextConstraints{})
+	obj, err := c.Fake.Invokes(NewCreateAction("securitycontextconstraints", c.Namespace, scc), &api.SecurityContextConstraints{})
 	return obj.(*api.SecurityContextConstraints), err
 }
 
 func (c *FakeSecurityContextConstraints) Update(scc *api.SecurityContextConstraints) (*api.SecurityContextConstraints, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-securitycontextconstraints", Value: scc}, &api.SecurityContextConstraints{})
+	obj, err := c.Fake.Invokes(NewUpdateAction("securitycontextconstraints", c.Namespace, scc), &api.SecurityContextConstraints{})
 	return obj.(*api.SecurityContextConstraints), err
 }
 
 func (c *FakeSecurityContextConstraints) Delete(name string) error {
-	_, err := c.Fake.Invokes(FakeAction{Action: "delete-securitycontextconstraints", Value: name}, &api.SecurityContextConstraints{})
+	_, err := c.Fake.Invokes(NewDeleteAction("securitycontextconstraints", c.Namespace, name), &api.SecurityContextConstraints{})
 	return err
 }
 
 func (c *FakeSecurityContextConstraints) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Invokes(FakeAction{Action: "watch-securitycontextconstraints", Value: resourceVersion}, nil)
+	c.Fake.Invokes(NewWatchAction("securitycontextconstraints", c.Namespace, label, field, resourceVersion), nil)
 	return c.Fake.Watch, c.Fake.Err()
 }

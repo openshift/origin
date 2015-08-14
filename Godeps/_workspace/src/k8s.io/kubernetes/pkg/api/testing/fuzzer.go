@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"testing"
 
+	docker "github.com/fsouza/go-dockerclient"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/registered"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -30,7 +31,6 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
-	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/google/gofuzz"
 	"speter.net/go/exp/math/dec/inf"
@@ -110,9 +110,8 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
 			//j.TemplateRef = nil // this is required for round trip
 		},
-		func(j *api.ReplicationControllerStatus, c fuzz.Continue) {
-			// only replicas round trips
-			j.Replicas = int(c.RandUint64())
+		func(j *api.DaemonSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(j) // fuzz self without calling this function again
 		},
 		func(j *api.List, c fuzz.Continue) {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
@@ -158,6 +157,22 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			q.Format = resource.DecimalExponent
 			//q.Amount.SetScale(inf.Scale(-c.Intn(12)))
 			q.Amount.SetUnscaled(c.Int63n(1000))
+		},
+		func(q *api.ResourceRequirements, c fuzz.Continue) {
+			randomQuantity := func() resource.Quantity {
+				return *resource.NewQuantity(c.Int63n(1000), resource.DecimalExponent)
+			}
+			q.Limits = make(api.ResourceList)
+			q.Requests = make(api.ResourceList)
+			cpuLimit := randomQuantity()
+			q.Limits[api.ResourceCPU] = *cpuLimit.Copy()
+			q.Requests[api.ResourceCPU] = *cpuLimit.Copy()
+			memoryLimit := randomQuantity()
+			q.Limits[api.ResourceMemory] = *memoryLimit.Copy()
+			q.Requests[api.ResourceMemory] = *memoryLimit.Copy()
+			storageLimit := randomQuantity()
+			q.Limits[api.ResourceStorage] = *storageLimit.Copy()
+			q.Requests[api.ResourceStorage] = *storageLimit.Copy()
 		},
 		func(p *api.PullPolicy, c fuzz.Continue) {
 			policies := []api.PullPolicy{api.PullAlways, api.PullNever, api.PullIfNotPresent}

@@ -17,9 +17,9 @@ import (
 )
 
 func TestController(t *testing.T) {
-	var action testclient.FakeAction
+	var action testclient.Action
 	client := &testclient.Fake{
-		ReactFn: func(a testclient.FakeAction) (runtime.Object, error) {
+		ReactFn: func(a testclient.Action) (runtime.Object, error) {
 			action = a
 			return (*kapi.Namespace)(nil), nil
 		},
@@ -38,7 +38,7 @@ func TestController(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := action.Value.(*kapi.Namespace)
+	got := action.(testclient.CreateAction).GetObject().(*kapi.Namespace)
 	if got.Annotations[security.UIDRangeAnnotation] != "10/2" {
 		t.Errorf("unexpected annotation: %#v", got)
 	}
@@ -69,8 +69,8 @@ func TestControllerError(t *testing.T) {
 		},
 		"conflict": {
 			actions: 4,
-			reactFn: func(a testclient.FakeAction) (runtime.Object, error) {
-				if a.Action == "get-namespace" {
+			reactFn: func(a testclient.Action) (runtime.Object, error) {
+				if a.Matches("get", "namespaces") {
 					return &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: "test"}}, nil
 				}
 				return (*kapi.Namespace)(nil), errors.NewConflict("namespace", "test", fmt.Errorf("test conflict"))
@@ -84,7 +84,7 @@ func TestControllerError(t *testing.T) {
 	for s, testCase := range testCases {
 		client := &testclient.Fake{ReactFn: testCase.reactFn}
 		if client.ReactFn == nil {
-			client.ReactFn = func(a testclient.FakeAction) (runtime.Object, error) {
+			client.ReactFn = func(a testclient.Action) (runtime.Object, error) {
 				return (*kapi.Namespace)(nil), testCase.err()
 			}
 		}

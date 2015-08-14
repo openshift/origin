@@ -17,7 +17,9 @@ limitations under the License.
 package e2e
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -36,28 +38,13 @@ type Framework struct {
 
 	Namespace *api.Namespace
 	Client    *client.Client
-
-	nsCreateFunc func(string, *client.Client) (*api.Namespace, error)
 }
 
 // NewFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
 func NewFramework(baseName string) *Framework {
 	f := &Framework{
-		BaseName:     baseName,
-		nsCreateFunc: createTestingNS,
-	}
-
-	BeforeEach(f.beforeEach)
-	AfterEach(f.afterEach)
-
-	return f
-}
-
-func NewCustomFramework(baseName string, nsCreateFunc func(string, *client.Client) (*api.Namespace, error)) *Framework {
-	f := &Framework{
-		BaseName:     baseName,
-		nsCreateFunc: nsCreateFunc,
+		BaseName: baseName,
 	}
 
 	BeforeEach(f.beforeEach)
@@ -75,7 +62,7 @@ func (f *Framework) beforeEach() {
 	f.Client = c
 
 	By("Building a namespace api object")
-	namespace, err := f.nsCreateFunc(f.BaseName, f.Client)
+	namespace, err := createTestingNS(f.BaseName, f.Client)
 	Expect(err).NotTo(HaveOccurred())
 
 	f.Namespace = namespace
@@ -107,7 +94,8 @@ func (f *Framework) afterEach() {
 	}
 
 	By(fmt.Sprintf("Destroying namespace %q for this suite.", f.Namespace.Name))
-	if err := f.Client.Namespaces().Delete(f.Namespace.Name); err != nil {
+
+	if err := deleteNS(f.Client, f.Namespace.Name); err != nil {
 		Failf("Couldn't delete ns %q: %s", f.Namespace.Name, err)
 	}
 	// Paranoia-- prevent reuse!
@@ -169,4 +157,51 @@ func (f *Framework) WaitForAnEndpoint(serviceName string) error {
 			}
 		}
 	}
+}
+
+// Write a file using kubectl exec echo <contents> > <path> via specified container
+// Because of the primitive technique we're using here, we only allow ASCII alphanumeric characters
+func (f *Framework) WriteFileViaContainer(podName, containerName string, path string, contents string) error {
+	By("writing a file in the container")
+	allowedCharacters := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	for _, c := range contents {
+		if !strings.ContainsRune(allowedCharacters, c) {
+			return fmt.Errorf("Unsupported character in string to write: %v", c)
+		}
+	}
+	command := fmt.Sprintf("echo '%s' > '%s'", contents, path)
+	stdout, stderr, err := kubectlExec(f.Namespace.Name, podName, containerName, "--", "/bin/sh", "-c", command)
+	if err != nil {
+		Logf("error running kubectl exec to write file: %v\nstdout=%v\nstderr=%v)", err, string(stdout), string(stderr))
+	}
+	return err
+}
+
+// Read a file using kubectl exec cat <path>
+func (f *Framework) ReadFileViaContainer(podName, containerName string, path string) (string, error) {
+	By("reading a file in the container")
+
+	stdout, stderr, err := kubectlExec(f.Namespace.Name, podName, containerName, "--", "cat", path)
+	if err != nil {
+		Logf("error running kubectl exec to read file: %v\nstdout=%v\nstderr=%v)", err, string(stdout), string(stderr))
+	}
+	return string(stdout), err
+}
+
+func kubectlExec(namespace string, podName, containerName string, args ...string) ([]byte, []byte, error) {
+	var stdout, stderr bytes.Buffer
+	cmdArgs := []string{
+		"exec",
+		fmt.Sprintf("--namespace=%v", namespace),
+		podName,
+		fmt.Sprintf("-c=%v", containerName),
+	}
+	cmdArgs = append(cmdArgs, args...)
+
+	cmd := kubectlCmd(cmdArgs...)
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+
+	Logf("Running '%s %s'", cmd.Path, strings.Join(cmd.Args, " "))
+	err := cmd.Run()
+	return stdout.Bytes(), stderr.Bytes(), err
 }

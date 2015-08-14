@@ -22,14 +22,14 @@ import (
 	"testing"
 	"time"
 
+	docker "github.com/fsouza/go-dockerclient"
+	cadvisorApi "github.com/google/cadvisor/info/v1"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/kubelet/network"
-	docker "github.com/fsouza/go-dockerclient"
-	cadvisorApi "github.com/google/cadvisor/info/v1"
 )
 
 type listContainersResult struct {
@@ -154,6 +154,7 @@ func TestRunOnce(t *testing.T) {
 		kb.recorder,
 		kb.readinessManager,
 		kb.containerRefManager,
+		&cadvisorApi.MachineInfo{},
 		dockertools.PodInfraContainerImage,
 		0,
 		0,

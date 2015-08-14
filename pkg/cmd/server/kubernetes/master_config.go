@@ -81,7 +81,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 
 	server := app.NewAPIServer()
 	server.EventTTL = 2 * time.Hour
-	server.ServiceClusterIPRange = util.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
+	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
 	server.AdmissionControl = strings.Join([]string{
 		"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "ResourceQuota",

@@ -1976,6 +1976,14 @@
         "allowMultiple": false
        },
        {
+        "type": "v1.DeleteOptions",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -12313,7 +12321,7 @@
      "lastTimestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "the time at which the most recent occurance of this event was recorded"
+      "description": "the time at which the most recent occurrence of this event was recorded"
      },
      "count": {
       "type": "integer",
@@ -12781,7 +12789,7 @@
      },
      "requests": {
       "type": "any",
-      "description": "Minimum amount of resources requested; requests are honored only for persistent volumes as of now; see http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
+      "description": "Minimum amount of resources requested; if Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value; see http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
      }
     }
    },
@@ -12871,7 +12879,7 @@
      },
      "hostPath": {
       "$ref": "v1.HostPathVolumeSource",
-      "description": "a HostPath provisioned by a developer or tester; for develment use only; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#hostpath"
+      "description": "a HostPath provisioned by a developer or tester; for development use only; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#hostpath"
      },
      "glusterfs": {
       "$ref": "v1.GlusterfsVolumeSource",
@@ -13518,6 +13526,14 @@
      "securityContext": {
       "$ref": "v1.SecurityContext",
       "description": "security options the pod should run with; see http://releases.k8s.io/HEAD/docs/design/security_context.md"
+     },
+     "stdin": {
+      "type": "boolean",
+      "description": "Whether this container should allocate a buffer for stdin in the container runtime; default is false"
+     },
+     "tty": {
+      "type": "boolean",
+      "description": "Whether this container should allocate a TTY for itself, also requires 'stdin' to be true; default is false"
      }
     }
    },
@@ -13675,7 +13691,7 @@
     "properties": {
      "port": {
       "type": "string",
-      "description": "number of name of the port to access on the container; number must be in the range 1 to 65535; name must be an IANA_SVC_NAME"
+      "description": "number or name of the port to access on the container; number must be in the range 1 to 65535; name must be an IANA_SVC_NAME"
      }
     }
    },

@@ -25,19 +25,18 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/evanphx/json-patch"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/clientcmd"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"github.com/evanphx/json-patch"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -79,7 +78,7 @@ func checkErr(err error, handleErr func(string)) {
 
 	if errors.IsInvalid(err) {
 		details := err.(*errors.StatusError).Status().Details
-		prefix := fmt.Sprintf("The %s %q is invalid:", details.Kind, details.Name)
+		prefix := fmt.Sprintf("The %s %q is invalid.\n", details.Kind, details.Name)
 		errs := statusCausesToAggrError(details.Causes)
 		handleErr(MultilineError(prefix, errs))
 	}
@@ -94,59 +93,7 @@ func checkErr(err error, handleErr func(string)) {
 
 	msg, ok := StandardErrorMessage(err)
 	if !ok {
-		msg = fmt.Sprintf("error: %s\n", err.Error())
-	}
-	handleErr(msg)
-}
-
-// CheckCustomErr is like CheckErr except a custom prefix error
-// string may be provied to help produce more specific error messages.
-// For example, for the update failed case this function could be called
-// with:
-//    cmdutil.CheckCustomErr("Update failed", err)
-// This function supresses the detailed output that is produced by CheckErr
-// and specifically the field is erased and the error message has the details
-// of the spec removed. Unfortunately, what starts off as a detail message is
-// a sperate field ends up being concatentated into one string which contains
-// the spec and the detail string. To avoid significant refactoring of the error
-// data structures we just extract the required detail string by looking for it
-// after "}': " which is horrible but expedient.
-func CheckCustomErr(customPrefix string, err error) {
-	checkCustomErr(customPrefix, err, fatal)
-}
-
-func checkCustomErr(customPrefix string, err error, handleErr func(string)) {
-	if err == nil {
-		return
-	}
-
-	if errors.IsInvalid(err) {
-		details := err.(*errors.StatusError).Status().Details
-		for i := range details.Causes {
-			c := &details.Causes[i]
-			s := strings.Split(c.Message, "}': ")
-			if len(s) == 2 {
-				c.Message =
-					s[1]
-				c.Field = ""
-			}
-		}
-		prefix := fmt.Sprintf("%s", customPrefix)
-		errs := statusCausesToAggrError(details.Causes)
-		handleErr(MultilineError(prefix, errs))
-	}
-
-	// handle multiline errors
-	if clientcmd.IsConfigurationInvalid(err) {
-		handleErr(MultilineError("Error in configuration: ", err))
-	}
-	if agg, ok := err.(utilerrors.Aggregate); ok && len(agg.Errors()) > 0 {
-		handleErr(MultipleErrors("", agg.Errors()))
-	}
-
-	msg, ok := StandardErrorMessage(err)
-	if !ok {
-		msg = fmt.Sprintf("error: %s\n", err.Error())
+		msg = fmt.Sprintf("error: %s", err.Error())
 	}
 	handleErr(msg)
 }
@@ -262,17 +209,20 @@ func getFlag(cmd *cobra.Command, flag string) *pflag.Flag {
 }
 
 func GetFlagString(cmd *cobra.Command, flag string) string {
-	f := getFlag(cmd, flag)
-	return f.Value.String()
+	s, err := cmd.Flags().GetString(flag)
+	if err != nil {
+		glog.Fatalf("err %v accessing flag %s for command %s: %s", err, flag, cmd.Name())
+	}
+	return s
 }
 
 // GetFlagStringList can be used to accept multiple argument with flag repetition (e.g. -f arg1 -f arg2 ...)
-func GetFlagStringList(cmd *cobra.Command, flag string) util.StringList {
-	f := cmd.Flags().Lookup(flag)
-	if f == nil {
-		return util.StringList{}
+func GetFlagStringSlice(cmd *cobra.Command, flag string) []string {
+	s, err := cmd.Flags().GetStringSlice(flag)
+	if err != nil {
+		glog.Fatalf("err %v accessing flag %s for command %s: %s", err, flag, cmd.Name())
 	}
-	return *f.Value.(*util.StringList)
+	return s
 }
 
 // GetWideFlag is used to determine if "-o wide" is used
@@ -285,33 +235,28 @@ func GetWideFlag(cmd *cobra.Command) bool {
 }
 
 func GetFlagBool(cmd *cobra.Command, flag string) bool {
-	f := getFlag(cmd, flag)
-	result, err := strconv.ParseBool(f.Value.String())
+	b, err := cmd.Flags().GetBool(flag)
 	if err != nil {
-		glog.Fatalf("Invalid value for a boolean flag: %s", f.Value.String())
+		glog.Fatalf("err %v accessing flag %s for command %s: %s", err, flag, cmd.Name())
 	}
-	return result
+	return b
 }
 
 // Assumes the flag has a default value.
 func GetFlagInt(cmd *cobra.Command, flag string) int {
-	f := getFlag(cmd, flag)
-	v, err := strconv.Atoi(f.Value.String())
-	// This is likely not a sufficiently friendly error message, but cobra
-	// should prevent non-integer values from reaching here.
+	i, err := cmd.Flags().GetInt(flag)
 	if err != nil {
-		glog.Fatalf("unable to convert flag value to int: %v", err)
+		glog.Fatalf("err: %v accessing flag %s for command %s: %s", err, flag, cmd.Name())
 	}
-	return v
+	return i
 }
 
 func GetFlagDuration(cmd *cobra.Command, flag string) time.Duration {
-	f := getFlag(cmd, flag)
-	v, err := time.ParseDuration(f.Value.String())
+	d, err := cmd.Flags().GetDuration(flag)
 	if err != nil {
-		glog.Fatalf("unable to convert flag value to Duration: %v", err)
+		glog.Fatalf("err: %v accessing flag %s for command %s: %s", err, flag, cmd.Name())
 	}
-	return v
+	return d
 }
 
 func ReadConfigDataFromReader(reader io.Reader, source string) ([]byte, error) {
@@ -430,4 +375,24 @@ func DumpReaderToFile(reader io.Reader, filename string) error {
 		}
 	}
 	return nil
+}
+
+// UpdateObject updates resource object with updateFn
+func UpdateObject(info *resource.Info, updateFn func(runtime.Object) error) (runtime.Object, error) {
+	helper := resource.NewHelper(info.Client, info.Mapping)
+
+	err := updateFn(info.Object)
+	if err != nil {
+		return nil, err
+	}
+	data, err := helper.Codec.Encode(info.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = helper.Replace(info.Namespace, info.Name, true, data)
+	if err != nil {
+		return nil, err
+	}
+	return info.Object, nil
 }
