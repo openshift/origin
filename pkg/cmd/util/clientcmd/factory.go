@@ -2,6 +2,7 @@ package clientcmd
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/spf13/pflag"
@@ -15,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -132,6 +134,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		}
 		return kReaperFunc(mapping)
 	}
+	// Override the Kubernetes Generator and add support for routes
 	kGeneratorFunc := w.Factory.Generator
 	w.Generator = func(name string) (kubectl.Generator, bool) {
 		if generator, ok := generators[name]; ok {
@@ -155,6 +158,21 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return getPorts(t.Template.ControllerTemplate.Template.Spec), nil
 		default:
 			return kPortsForObjectFunc(object)
+		}
+	}
+	kLogsForObjectFunc := w.Factory.LogsForObject
+	w.LogsForObject = func(object runtime.Object, opts *api.PodLogOptions) (io.ReadCloser, error) {
+		client, err := clients.ClientForVersion("")
+		if err != nil {
+			return nil, err
+		}
+
+		switch t := object.(type) {
+		case *buildapi.Build:
+			opt := buildapi.BuildLogOptions{Follow: opts.Follow}
+			return client.BuildLogs(t.Namespace).Get(t.Name, opt).Stream()
+		default:
+			return kLogsForObjectFunc(object, opts)
 		}
 	}
 	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, columnLabels []string) (kubectl.ResourcePrinter, error) {

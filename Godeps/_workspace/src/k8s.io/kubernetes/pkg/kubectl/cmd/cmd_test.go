@@ -210,6 +210,21 @@ func NewAPIFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 		Printer: func(mapping *meta.RESTMapping, noHeaders, withNamespace bool, wide bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
 			return t.Printer, t.Err
 		},
+		LogsForObject: func(object runtime.Object, opts *api.PodLogOptions) (io.ReadCloser, error) {
+			switch t := object.(type) {
+			case *api.Pod:
+				if len(opts.Container) == 0 && len(t.Spec.Containers) != 1 {
+					return nil, fmt.Errorf("POD %s has more than one container; please specify the container to print logs for with -c", t.ObjectMeta.Name)
+				}
+				return ioutil.NopCloser(bytes.NewBufferString(logContent)), nil
+			default:
+				kind, err := meta.NewAccessor().Kind(object)
+				if err != nil {
+					return nil, err
+				}
+				return nil, fmt.Errorf("it is not possible to get logs from %s", kind)
+			}
+		},
 		Validator: func() (validation.Schema, error) {
 			return t.Validator, t.Err
 		},
