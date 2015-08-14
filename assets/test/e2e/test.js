@@ -250,9 +250,9 @@ describe('', function() {
           goToAddToProjectPage(projectName);
           requestCreateFromSource(projectName, sourceUrl).then(function() {
             attachBuilderImageToSource(projectName, builderImage).then(function() {
-              createFromSourceSummary(projectName, builderImage, appName).then(function() {
-                checkServiceCreated(projectName, appName);
-              });
+              // createFromSourceSummary(projectName, builderImage, appName).then(function() {
+              //   checkServiceCreated(projectName, appName);
+              // });
             });
           });
         });
@@ -270,10 +270,10 @@ describe('', function() {
           var labelNames = ["template"];
           goToAddToProjectPage(projectName);
           requestCreateFromTemplate(projectName, templateName).then(function() {
-            createFromTemplateSummary(projectName, templateName, parameterNames, labelNames).then(function() {
-              checkServiceCreated(projectName, "frontend");
-              checkServiceCreated(projectName, "database");
-            });
+            // createFromTemplateSummary(projectName, templateName, parameterNames, labelNames).then(function() {
+            //   checkServiceCreated(projectName, "frontend");
+            //   checkServiceCreated(projectName, "database");
+            // });
           });
         });
       });
