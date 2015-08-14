@@ -293,12 +293,12 @@ describe('', function() {
         for (var key in project) {
           element(by.model(key)).clear().sendKeys(project[key]);
         }
-        element(by.buttonText("Create")).click().then(function() {
-          var uri = '/project/' + project['name'] + '/overview';
-          expect(browser.getCurrentUrl()).toContain(uri);
-          expect(element(by.cssContainingText("h1", project['displayName'])).isPresent()).toBe(true);
-          checkProjectSettings(project['name'], project['displayName'], project['description']);
-        });
+        // element(by.buttonText("Create")).click().then(function() {
+        //   var uri = '/project/' + project['name'] + '/overview';
+        //   expect(browser.getCurrentUrl()).toContain(uri);
+        //   expect(element(by.cssContainingText("h1", project['displayName'])).isPresent()).toBe(true);
+        //   checkProjectSettings(project['name'], project['displayName'], project['description']);
+        // });
       });
 
       it('should validate taken name when trying to create', function() {
