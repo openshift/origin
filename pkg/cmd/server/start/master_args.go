@@ -372,7 +372,7 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 			UseAsChallenger: true,
 			UseAsLogin:      true,
 			Provider: runtime.EmbeddedObject{
-				&configapi.AllowAllPasswordIdentityProvider{},
+				Object: &configapi.AllowAllPasswordIdentityProvider{},
 			},
 		},
 	)

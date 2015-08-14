@@ -85,7 +85,7 @@ func TestOAuthLDAP(t *testing.T) {
 		UseAsChallenger: true,
 		UseAsLogin:      true,
 		Provider: runtime.EmbeddedObject{
-			&configapi.LDAPPasswordIdentityProvider{
+			Object: &configapi.LDAPPasswordIdentityProvider{
 				URL:          fmt.Sprintf("ldap://%s/%s?%s?%s?%s", ldapAddress, searchDN, searchAttr, searchScope, searchFilter),
 				BindDN:       bindDN,
 				BindPassword: bindPassword,
