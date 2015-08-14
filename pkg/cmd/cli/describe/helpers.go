@@ -37,7 +37,7 @@ func tabbedString(f func(*tabwriter.Writer) error) (string, error) {
 }
 
 func toString(v interface{}) string {
-	value := fmt.Sprintf("%s", v)
+	value := fmt.Sprintf("%v", v)
 	if len(value) == 0 {
 		value = emptyString
 	}
