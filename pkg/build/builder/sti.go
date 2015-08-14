@@ -95,7 +95,7 @@ func (s *STIBuilder) Build() error {
 	if err != nil {
 		return err
 	}
-	defer removeImage(s.dockerClient, tag)
+
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
 
 	origProxy := make(map[string]string)
