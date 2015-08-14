@@ -12,7 +12,7 @@ angular.module('openshiftConsole')
     $scope.createProject = function() {
       if ($scope.createProjectForm.$valid) {
         DataService.create('projectrequests', null, {
-          apiVersion: "v1beta3",
+          apiVersion: "v1",
           kind: "ProjectRequest",
           metadata: {
             name: $scope.name,
