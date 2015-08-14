@@ -278,7 +278,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 		defaultCert, err := loadDefaultCert(cfg.DefaultCertificate)
 		if err != nil {
-			return fmt.Errorf("router could not be created; error reading default certificate file", err)
+			return fmt.Errorf("router could not be created; error reading default certificate file: %v", err)
 		}
 
 		if len(cfg.StatsPassword) == 0 {

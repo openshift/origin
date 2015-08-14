@@ -190,7 +190,7 @@ func getJSONValue(data map[string]interface{}, keys ...string) (interface{}, boo
 			return nil, false, fmt.Errorf("Key %s did not hold a slice", key)
 		}
 		if index >= len(valueSlice) {
-			return nil, false, fmt.Errorf("Index %d out of bounds for slice at key", index, key)
+			return nil, false, fmt.Errorf("Index %d out of bounds for slice at key: %v", index, key)
 		}
 		value = valueSlice[index]
 	}

@@ -171,7 +171,7 @@ func (p *Processor) GenerateParameterValues(t *api.Template) error {
 		}
 		if len(param.Value) == 0 && param.Required {
 			err := fielderrors.NewFieldRequired(fmt.Sprintf("parameters[%d].value", i))
-			err.Detail = fmt.Sprintf("parameter %s is required and must be specified")
+			err.Detail = fmt.Sprintf("parameter %s is required and must be specified", param.Name)
 			return err
 		}
 	}

@@ -20,7 +20,7 @@ func runConfiguratorCallCountTest(t *testing.T, name string, idx int, err error,
 
 func RunConfiguratorTest(t *testing.T, name string, cb ConfiguratorCallback) {
 	idx := 0
-	expectedErrors := []error{nil, fmt.Errorf("error-test-%f", name)}
+	expectedErrors := []error{nil, fmt.Errorf("error-test-%s", name)}
 	for _, err := range expectedErrors {
 		for _, val := range []int{1, 1, 2, 3, 5, 8} {
 			idx = idx + 1

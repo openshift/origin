@@ -289,9 +289,9 @@ func (c *retryDeploymentCommand) retry(config *deployapi.DeploymentConfig, out i
 	if status := deployutil.DeploymentStatusFor(deployment); status != deployapi.DeploymentStatusFailed {
 		message := fmt.Sprintf("#%d is %s; only failed deployments can be retried.\n", config.LatestVersion, status)
 		if status == deployapi.DeploymentStatusComplete {
-			message += fmt.Sprintf("You can start a new deployment using the --latest option.")
+			message += "You can start a new deployment using the --latest option."
 		} else {
-			message += fmt.Sprintf("Optionally, you can cancel this deployment using the --cancel option.", config.LatestVersion)
+			message += "Optionally, you can cancel this deployment using the --cancel option."
 		}
 
 		return fmt.Errorf(message)

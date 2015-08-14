@@ -66,10 +66,10 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 		err = verifyImageStreamAccess("foo", "bar", "create", client)
 		if err == nil || test.expectedError == nil {
 			if err != test.expectedError {
-				t.Fatal("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
+				t.Fatalf("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
 			}
 		} else if err.Error() != test.expectedError.Error() {
-			t.Fatal("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
+			t.Fatalf("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
 		}
 		server.Close()
 	}
