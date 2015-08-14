@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
@@ -21,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	kutil "k8s.io/kubernetes/pkg/util"
+	kutilrand "k8s.io/kubernetes/pkg/util/rand"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -58,6 +60,7 @@ import (
 	groupstorage "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
+	"github.com/openshift/origin/pkg/util/leaderlease"
 )
 
 const (
@@ -83,7 +86,8 @@ type MasterConfig struct {
 
 	TLS bool
 
-	ControllerPlug plug.Plug
+	ControllerPlug      plug.Plug
+	ControllerPlugStart func()
 
 	// a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
@@ -174,6 +178,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
+	plug, plugStart := newControllerPlug(options, client)
+
 	config := &MasterConfig{
 		Options: options,
 
@@ -191,7 +197,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		TLS: configapi.UseTLS(options.ServingInfo.ServingInfo),
 
-		ControllerPlug: plug.NewPlug(!options.PauseControllers),
+		ControllerPlug:      plug,
+		ControllerPlugStart: plugStart,
 
 		ImageFor:            imageTemplate.ExpandOrDie,
 		EtcdHelper:          etcdHelper,
@@ -211,6 +218,27 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 
 	return config, nil
+}
+
+func newControllerPlug(options configapi.MasterConfig, client *etcdclient.Client) (plug.Plug, func()) {
+	switch {
+	case options.ControllerLeaseTTL > 0:
+		// TODO: replace with future API for leasing from Kube
+		id := fmt.Sprintf("master-%s", kutilrand.String(8))
+		leaser := leaderlease.NewEtcd(
+			client,
+			path.Join(options.EtcdStorageConfig.OpenShiftStoragePrefix, "leases/controllers"),
+			id,
+			uint64(options.ControllerLeaseTTL),
+		)
+		leased := plug.NewLeased(leaser)
+		return leased, func() {
+			glog.V(2).Infof("Attempting to acquire controller lease as %s, renewing every %d seconds", id, options.ControllerLeaseTTL)
+			go leased.Run()
+		}
+	default:
+		return plug.New(!options.PauseControllers), func() {}
+	}
 }
 
 func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdclient.Client) (serviceaccount.ServiceAccountTokenGetter, error) {

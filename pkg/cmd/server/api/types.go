@@ -116,7 +116,14 @@ type MasterConfig struct {
 	Controllers string
 	// PauseControllers instructs the master to not automatically start controllers, but instead
 	// to wait until a notification to the server is received before launching them.
+	// TODO: will be disabled in function for 1.1.
 	PauseControllers bool
+	// ControllerLeaseTTL enables controller election, instructing the master to attempt to acquire
+	// a lease before controllers start and renewing it within a number of seconds defined by this value.
+	// Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or
+	// omitted) and controller election can be disabled with -1.
+	ControllerLeaseTTL int
+	// TODO: the next field added to controllers must be added to a new controllers struct
 
 	// Allow to disable OpenShift components
 	DisabledFeatures FeatureList

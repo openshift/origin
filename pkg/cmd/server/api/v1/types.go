@@ -99,6 +99,11 @@ type MasterConfig struct {
 	// PauseControllers instructs the master to not automatically start controllers, but instead
 	// to wait until a notification to the server is received before launching them.
 	PauseControllers bool `json:"pauseControllers,omitempty"`
+	// ControllerLeaseTTL enables controller election, instructing the master to attempt to acquire
+	// a lease before controllers start and renewing it within a number of seconds defined by this value.
+	// Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or
+	// omitted) and controller election can be disabled with -1.
+	ControllerLeaseTTL int `json:"controllerLeaseTTL,omitempty"`
 
 	// DisabledFeatures is a list of features that should not be started.  We
 	// omitempty here because its very unlikely that anyone will want to

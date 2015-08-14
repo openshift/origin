@@ -437,12 +437,16 @@ func StartControllers(openshiftConfig *origin.MasterConfig, kubeMasterConfig *ku
 	}
 
 	go func() {
+		openshiftConfig.ControllerPlugStart()
+		// when a manual shutdown (DELETE /controllers) or lease lost occurs, the process should exit
+		// this ensures no code is still running as a controller, and allows a process manager to reset
+		// the controller to come back into a candidate state and compete for the lease
 		openshiftConfig.ControllerPlug.WaitForStop()
-		glog.Fatalf("Master shutdown requested")
+		glog.Fatalf("Controller shutdown requested")
 	}()
 
 	openshiftConfig.ControllerPlug.WaitForStart()
-	glog.Infof("Master controllers starting (%s)", openshiftConfig.Options.Controllers)
+	glog.Infof("Controllers starting (%s)", openshiftConfig.Options.Controllers)
 
 	// Start these first, because they provide credentials for other controllers' clients
 	openshiftConfig.RunServiceAccountsController()

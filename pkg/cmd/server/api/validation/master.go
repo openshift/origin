@@ -61,6 +61,13 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 		validationResults.AddErrors(urlErrs...)
 	}
 
+	switch {
+	case config.ControllerLeaseTTL > 300,
+		config.ControllerLeaseTTL < -1,
+		config.ControllerLeaseTTL > 0 && config.ControllerLeaseTTL < 10:
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("controllerLeaseTTL", config.ControllerLeaseTTL, "TTL must be -1 (disabled), 0 (default), or between 10 and 300 seconds"))
+	}
+
 	validationResults.AddErrors(ValidateDisabledFeatures(config.DisabledFeatures, "disabledFeatures")...)
 
 	if config.AssetConfig != nil {
