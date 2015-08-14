@@ -182,6 +182,9 @@ angular.module("openshiftConsole")
             secret: scope._generateSecret()
           },
           type: "Generic"
+        },
+        {
+          type: "ConfigChange"
         }
       ];
       if(input.buildConfig.buildOnSourceChange){

@@ -66,7 +66,7 @@ type BuildControllerFactory struct {
 // Create constructs a BuildController
 func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue, 2*time.Minute).Run()
+	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(factory.KubeClient.Events(""))
@@ -102,7 +102,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 func (factory *BuildControllerFactory) CreateDeleteController() controller.RunnableController {
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	queue := cache.NewDeltaFIFO(cache.MetaNamespaceKeyFunc, nil, nil)
-	cache.NewReflector(&buildDeleteLW{client, queue}, &buildapi.Build{}, queue, 5*time.Minute).Run()
+	cache.NewReflector(&buildDeleteLW{client, queue}, &buildapi.Build{}, queue, 5*time.Minute).RunUntil(factory.Stop)
 
 	buildDeleteController := &buildcontroller.BuildDeleteController{
 		PodManager: client,
@@ -138,13 +138,35 @@ type BuildPodControllerFactory struct {
 	buildStore cache.Store
 }
 
+// retryFunc returns a function to retry a controller event
+func retryFunc(kind string, isFatal func(err error) bool) controller.RetryFunc {
+	return func(obj interface{}, err error, retries controller.Retry) bool {
+		name, keyErr := cache.MetaNamespaceKeyFunc(obj)
+		if keyErr != nil {
+			name = "Unknown"
+		}
+		if isFatal != nil && isFatal(err) {
+			glog.V(3).Infof("Will not retry fatal error for %s %s: %v", kind, name, err)
+			kutil.HandleError(err)
+			return false
+		}
+		if retries.Count > maxRetries {
+			glog.V(3).Infof("Giving up retrying %s %s: %v", kind, name, err)
+			kutil.HandleError(err)
+			return false
+		}
+		glog.V(4).Infof("Retrying %s %s: %v", kind, name, err)
+		return true
+	}
+}
+
 // Create constructs a BuildPodController
 func (factory *BuildPodControllerFactory) Create() controller.RunnableController {
 	factory.buildStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore, 2*time.Minute).Run()
+	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore, 2*time.Minute).RunUntil(factory.Stop)
 
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&podLW{client: factory.KubeClient}, &kapi.Pod{}, queue, 2*time.Minute).Run()
+	cache.NewReflector(&podLW{client: factory.KubeClient}, &kapi.Pod{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildPodController := &buildcontroller.BuildPodController{
@@ -158,16 +180,7 @@ func (factory *BuildPodControllerFactory) Create() controller.RunnableController
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, retries controller.Retry) bool {
-				pod := obj.(*kapi.Pod)
-				if retries.Count < maxRetries {
-					glog.V(3).Infof("Retrying BuildPod update event %s/%s: %v", pod.Namespace, pod.Name, err)
-					return true
-				}
-				glog.V(3).Infof("Giving up retrying BuildPod update event %s/%s: %v", pod.Namespace, pod.Name, err)
-				kutil.HandleError(err)
-				return false
-			},
+			retryFunc("BuildPod", nil),
 			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			pod := obj.(*kapi.Pod)
@@ -181,7 +194,7 @@ func (factory *BuildPodControllerFactory) CreateDeleteController() controller.Ru
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	queue := cache.NewDeltaFIFO(cache.MetaNamespaceKeyFunc, nil, nil)
-	cache.NewReflector(&buildPodDeleteLW{client, queue}, &kapi.Pod{}, queue, 5*time.Minute).Run()
+	cache.NewReflector(&buildPodDeleteLW{client, queue}, &kapi.Pod{}, queue, 5*time.Minute).RunUntil(factory.Stop)
 
 	buildPodDeleteController := &buildcontroller.BuildPodDeleteController{
 		BuildStore:   factory.buildStore,
@@ -220,15 +233,14 @@ type ImageChangeControllerFactory struct {
 // image is available
 func (factory *ImageChangeControllerFactory) Create() controller.RunnableController {
 	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&imageStreamLW{factory.Client}, &imageapi.ImageStream{}, queue, 2*time.Minute).Run()
+	cache.NewReflector(&imageStreamLW{factory.Client}, &imageapi.ImageStream{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store, 2*time.Minute).Run()
+	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, store, 2*time.Minute).RunUntil(factory.Stop)
 
 	imageChangeController := &buildcontroller.ImageChangeController{
 		BuildConfigStore:        store,
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
-		Stop: factory.Stop,
 	}
 
 	return &controller.RetryController{
@@ -236,27 +248,45 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			func(obj interface{}, err error, retries controller.Retry) bool {
-				imageStream := obj.(*imageapi.ImageStream)
-				if _, isFatal := err.(buildcontroller.ImageChangeControllerFatalError); isFatal {
-					glog.V(3).Infof("Will not retry fatal error for ImageStream update event %s/%s: %v", imageStream.Namespace, imageStream.Name, err)
-					kutil.HandleError(err)
-					return false
-				}
-				if maxRetries > retries.Count {
-					glog.V(3).Infof("Giving up retrying ImageStream update event %s/%s: %v", imageStream.Namespace, imageStream.Name, err)
-					kutil.HandleError(err)
-					return false
-				}
-				glog.V(4).Infof("Retrying ImageStream update event %s/%s: %v", imageStream.Namespace, imageStream.Name, err)
-				return true
-
-			},
+			retryFunc("ImageStream update", func(err error) bool {
+				_, isFatal := err.(buildcontroller.ImageChangeControllerFatalError)
+				return isFatal
+			}),
 			kutil.NewTokenBucketRateLimiter(1, 10),
 		),
 		Handle: func(obj interface{}) error {
 			imageRepo := obj.(*imageapi.ImageStream)
 			return imageChangeController.HandleImageRepo(imageRepo)
+		},
+	}
+}
+
+type BuildConfigControllerFactory struct {
+	Client                  osclient.Interface
+	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+	// Stop may be set to allow controllers created by this factory to be terminated.
+	Stop <-chan struct{}
+}
+
+// Create creates a new ConfigChangeController which is used to trigger builds on creation
+func (factory *BuildConfigControllerFactory) Create() controller.RunnableController {
+	queue := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
+	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, queue, 2*time.Minute).RunUntil(factory.Stop)
+
+	bcController := &buildcontroller.BuildConfigController{
+		BuildConfigInstantiator: factory.BuildConfigInstantiator,
+	}
+
+	return &controller.RetryController{
+		Queue: queue,
+		RetryManager: controller.NewQueueRetryManager(
+			queue,
+			cache.MetaNamespaceKeyFunc,
+			retryFunc("BuildConfig", nil),
+			kutil.NewTokenBucketRateLimiter(1, 10)),
+		Handle: func(obj interface{}) error {
+			bc := obj.(*buildapi.BuildConfig)
+			return bcController.HandleBuildConfig(bc)
 		},
 	}
 }

@@ -397,6 +397,10 @@ const (
 	// availability of a new version of an image
 	ImageChangeBuildTriggerType           BuildTriggerType = "ImageChange"
 	ImageChangeBuildTriggerTypeDeprecated BuildTriggerType = "imageChange"
+
+	// ConfigChangeBuildTriggerType will trigger a build on an initial build config creation
+	// WARNING: In the future the behavior will change to trigger a build on any config change
+	ConfigChangeBuildTriggerType BuildTriggerType = "ConfigChange"
 )
 
 // BuildList is a collection of Builds.
@@ -462,6 +466,11 @@ type BuildRequest struct {
 
 	// From is the reference to the ImageStreamTag that triggered the build.
 	From *kapi.ObjectReference
+
+	// LastVersion (optional) is the LastVersion of the BuildConfig that was used
+	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
+	// not be generated.
+	LastVersion *int
 }
 
 // BuildLogOptions is the REST options for a build log

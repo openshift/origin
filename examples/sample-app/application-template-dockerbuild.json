@@ -112,6 +112,9 @@
           {
             "type": "imageChange",
             "imageChange": {}
+          },
+          {
+            "type": "ConfigChange"
           }
         ],
         "source": {

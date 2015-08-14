@@ -33,8 +33,6 @@ func (e ImageChangeControllerFatalError) Error() string {
 type ImageChangeController struct {
 	BuildConfigStore        cache.Store
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
-	// Stop is an optional channel that controls when the controller exits
-	Stop <-chan struct{}
 }
 
 // getImageStreamNameFromReference strips off the :tag or @id suffix

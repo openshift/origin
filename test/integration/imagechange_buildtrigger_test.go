@@ -34,6 +34,15 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(t *testing.T) {
 	runTest(t, "SimpleImageChangeBuildTriggerFromImageStreamTagSTI", clusterAdminClient, imageStream, imageStreamMapping, config, tag)
 }
 
+func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange(t *testing.T) {
+	clusterAdminClient := setup(t)
+	imageStream := mockImageStream2(tag)
+	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
+	strategy := stiStrategy("ImageStreamTag", streamName+":"+tag)
+	config := imageChangeBuildConfigWithConfigChange("sti-imagestreamtag", strategy)
+	runTest(t, "SimpleImageChangeBuildTriggerFromImageStreamTagSTI", clusterAdminClient, imageStream, imageStreamMapping, config, tag)
+}
+
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker(t *testing.T) {
 	clusterAdminClient := setup(t)
 	imageStream := mockImageStream2(tag)
@@ -43,12 +52,30 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker(t *testing.T) {
 	runTest(t, "SimpleImageChangeBuildTriggerFromImageStreamTagDocker", clusterAdminClient, imageStream, imageStreamMapping, config, tag)
 }
 
+func TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange(t *testing.T) {
+	clusterAdminClient := setup(t)
+	imageStream := mockImageStream2(tag)
+	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
+	strategy := dockerStrategy("ImageStreamTag", streamName+":"+tag)
+	config := imageChangeBuildConfigWithConfigChange("docker-imagestreamtag", strategy)
+	runTest(t, "SimpleImageChangeBuildTriggerFromImageStreamTagDocker", clusterAdminClient, imageStream, imageStreamMapping, config, tag)
+}
+
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 	clusterAdminClient := setup(t)
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
 	strategy := customStrategy("ImageStreamTag", streamName+":"+tag)
 	config := imageChangeBuildConfig("custom-imagestreamtag", strategy)
+	runTest(t, "SimpleImageChangeBuildTriggerFromImageStreamTagCustom", clusterAdminClient, imageStream, imageStreamMapping, config, tag)
+}
+
+func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t *testing.T) {
+	clusterAdminClient := setup(t)
+	imageStream := mockImageStream2(tag)
+	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
+	strategy := customStrategy("ImageStreamTag", streamName+":"+tag)
+	config := imageChangeBuildConfigWithConfigChange("custom-imagestreamtag", strategy)
 	runTest(t, "SimpleImageChangeBuildTriggerFromImageStreamTagCustom", clusterAdminClient, imageStream, imageStreamMapping, config, tag)
 }
 
@@ -118,6 +145,11 @@ func imageChangeBuildConfig(name string, strategy buildapi.BuildStrategy) *build
 			},
 		},
 	}
+}
+func imageChangeBuildConfigWithConfigChange(name string, strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
+	bc := imageChangeBuildConfig(name, strategy)
+	bc.Spec.Triggers = append(bc.Spec.Triggers, buildapi.BuildTriggerPolicy{Type: buildapi.ConfigChangeBuildTriggerType})
+	return bc
 }
 
 func mockImageStream2(tag string) *imageapi.ImageStream {
