@@ -47,6 +47,7 @@ func parseArgs() *bindata.Config {
 	flag.StringVar(&c.Package, "pkg", c.Package, "Package name to use in the generated code.")
 	flag.BoolVar(&c.NoMemCopy, "nomemcopy", c.NoMemCopy, "Use a .rodata hack to get rid of unnecessary memcopies. Refer to the documentation to see what implications this carries.")
 	flag.BoolVar(&c.NoCompress, "nocompress", c.NoCompress, "Assets will *not* be GZIP compressed when this flag is specified.")
+	flag.BoolVar(&c.NoMetadata, "nometadata", c.NoMetadata, "Assets will not preserve size, mode, and modtime info.")
 	flag.UintVar(&c.Mode, "mode", c.Mode, "Optional file mode override for all files.")
 	flag.Int64Var(&c.ModTime, "modtime", c.ModTime, "Optional modification unix timestamp override for all files.")
 	flag.StringVar(&c.Output, "o", c.Output, "Optional name of the output file to be generated.")
