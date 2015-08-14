@@ -134,18 +134,7 @@ func (r DockerImageReference) Minimal() DockerImageReference {
 	return r
 }
 
-// String converts a DockerImageReference to a Docker pull spec.
-func (r DockerImageReference) String() string {
-	registry := r.Registry
-	if len(registry) > 0 {
-		registry += "/"
-	}
-
-	if len(r.Namespace) == 0 {
-		r.Namespace = DockerDefaultNamespace
-	}
-	r.Namespace += "/"
-
+func (r DockerImageReference) NameString() string {
 	var ref string
 	if len(r.Tag) > 0 {
 		ref = ":" + r.Tag
@@ -158,8 +147,22 @@ func (r DockerImageReference) String() string {
 			ref = ":" + r.ID
 		}
 	}
+	return r.Name + ref
+}
 
-	return fmt.Sprintf("%s%s%s%s", registry, r.Namespace, r.Name, ref)
+// String converts a DockerImageReference to a Docker pull spec.
+func (r DockerImageReference) String() string {
+	registry := r.Registry
+	if len(registry) > 0 {
+		registry += "/"
+	}
+
+	if len(r.Namespace) == 0 {
+		r.Namespace = DockerDefaultNamespace
+	}
+	r.Namespace += "/"
+
+	return fmt.Sprintf("%s%s%s", registry, r.Namespace, r.NameString())
 }
 
 // SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.
