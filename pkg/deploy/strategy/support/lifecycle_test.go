@@ -118,7 +118,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	err := executor.executeExecNewPod(hook, deployment, "hook")
 
 	if err == nil {
-		t.Fatalf("expected an error", err)
+		t.Fatalf("expected an error, got none")
 	}
 	t.Logf("got expected error: %s", err)
 }
