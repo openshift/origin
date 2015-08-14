@@ -23,7 +23,6 @@ for test_dir in $test_dirs
 do
   go tool vet -printf=false \
               -methods=false \
-              -composites=false \
               -shadow=false \
               $test_dir 2>&1 | sed '/exit status/d'
   if [ "$?" -ne 0 ]
