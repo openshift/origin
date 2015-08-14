@@ -34,7 +34,7 @@ fi
 
 APIROOT_REL="pkg/api"
 APIROOT="${OS_ROOT}/${APIROOT_REL}"
-TMP_APIROOT_REL="_tmp/verify-generated-deep-copies"
+TMP_APIROOT_REL="_output/verify-generated-deep-copies"
 TMP_APIROOT="${OS_ROOT}/${TMP_APIROOT_REL}/${APIROOT_REL}"
 
 echo "Generating fresh deep copies..."
@@ -45,7 +45,7 @@ then
   exit 1
 fi
 
-cp -au "${APIROOT}" "${TMP_APIROOT}/.."
+rsync -au "${APIROOT}" "${TMP_APIROOT}/.."
 
 echo "Diffing current deep copies against freshly generated deep copies..."
 ret=0

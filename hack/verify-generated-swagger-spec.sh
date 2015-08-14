@@ -13,7 +13,7 @@ echo "===== Verifying Swagger Spec ====="
 
 SPECROOT_REL="api/swagger-spec"
 SPECROOT="${OS_ROOT}/${SPECROOT_REL}"
-REL_TMP_PATH="_tmp/verify-generated-swagger-spec"
+REL_TMP_PATH="_output/verify-generated-swagger-spec"
 TMP_SPECROOT="${OS_ROOT}/${REL_TMP_PATH}/${SPECROOT_REL}"
 
 echo "Generating a fresh spec..."

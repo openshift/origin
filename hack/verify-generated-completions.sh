@@ -13,7 +13,7 @@ echo "===== Verifying Generated Completions ====="
 
 COMPLETION_ROOT_REL="rel-eng/completions"
 COMPLETION_ROOT="${OS_ROOT}/${COMPLETION_ROOT_REL}"
-TMP_COMPLETION_ROOT_REL="_tmp/verify-generated-completions/"
+TMP_COMPLETION_ROOT_REL="_output/verify-generated-completions/"
 TMP_COMPLETION_ROOT="${OS_ROOT}/${TMP_COMPLETION_ROOT_REL}/${COMPLETION_ROOT_REL}"
 
 echo "Generating fresh completions..."
