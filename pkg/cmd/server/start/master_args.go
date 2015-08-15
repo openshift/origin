@@ -44,6 +44,12 @@ type MasterArgs struct {
 	// or URL). Defaults to same as --master.
 	MasterPublicAddr flagtypes.Addr
 
+	// StartAPI controls whether the API component of the master is started (to support the API role)
+	// TODO: once we implement bastion role and kube/os controller role, revisit
+	StartAPI bool
+	// StartControllers controls whether the controller component of the master is started (to support
+	// the controller role)
+	StartControllers bool
 	PauseControllers bool
 
 	// DNSBindAddr exposed for integration tests to set

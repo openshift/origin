@@ -156,10 +156,54 @@ __handle_word()
     __handle_word
 }
 
+_openshift_start_master_api()
+{
+    last_command="openshift_start_master_api"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--listen=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_start_master_controllers()
+{
+    last_command="openshift_start_master_controllers"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("__handle_filename_extension_flag yaml|yml")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--listen=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_start_master()
 {
     last_command="openshift_start_master"
     commands=()
+    commands+=("api")
+    commands+=("controllers")
 
     flags=()
     two_word_flags=()
