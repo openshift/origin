@@ -364,7 +364,7 @@
 		},
 		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
-			"Rev": "933433faa3e1c0bbc825b251143f8e77affbf797"
+			"Rev": "42d06e2b125654477366c320dcea99107a86e9c2"
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
@@ -567,7 +567,7 @@
 		},
 		{
 			"ImportPath": "github.com/jteeuwen/go-bindata",
-			"Rev": "dce55d09e24ac40a6e725c8420902b86554f8046"
+			"Rev": "bfe36d3254337b7cc18024805dfab2106613abdf"
 		},
 		{
 			"ImportPath": "github.com/juju/ratelimit",
