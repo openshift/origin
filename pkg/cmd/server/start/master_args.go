@@ -75,6 +75,8 @@ type MasterArgs struct {
 	SchedulerConfigFile string
 
 	NetworkArgs *NetworkArgs
+
+	OverrideConfig func(config *configapi.MasterConfig) error
 }
 
 // BindMasterArgs binds the options to the flags with prefix + default flag names

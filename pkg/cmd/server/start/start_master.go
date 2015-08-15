@@ -182,6 +182,8 @@ func (o MasterOptions) StartMaster() error {
 		return nil
 	}
 
+	// TODO: this should be encapsulated by RunMaster, but StartAllInOne has no
+	// way to communicate whether RunMaster should block.
 	go daemon.SdNotify("READY=1")
 	select {}
 }
@@ -213,6 +215,12 @@ func (o MasterOptions) RunMaster() error {
 	}
 	if err != nil {
 		return err
+	}
+
+	if o.MasterArgs.OverrideConfig != nil {
+		if err := o.MasterArgs.OverrideConfig(masterConfig); err != nil {
+			return err
+		}
 	}
 
 	if o.IsWriteConfigOnly() {
@@ -269,20 +277,12 @@ func (o MasterOptions) RunMaster() error {
 		masterConfig.Controllers = configapi.ControllersDisabled
 	}
 
-	if !o.MasterArgs.StartAPI {
-		openshiftConfig, err := origin.BuildMasterConfig(*masterConfig)
-		if err != nil {
-			return err
-		}
-
-		_, kubeMasterConfig, err := buildKubernetesMasterConfig(openshiftConfig)
-		if err != nil {
-			return err
-		}
-		return StartControllers(openshiftConfig, kubeMasterConfig)
+	m := &master{
+		config:      masterConfig,
+		api:         o.MasterArgs.StartAPI,
+		controllers: o.MasterArgs.StartControllers,
 	}
-
-	return StartMaster(masterConfig)
+	return m.Start()
 }
 
 func (o MasterOptions) CreateBootstrapPolicy() error {
@@ -327,25 +327,24 @@ func (o MasterOptions) CreateCerts() error {
 	return nil
 }
 
-func buildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (bool, *kubernetes.MasterConfig, error) {
+func buildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
 	if openshiftConfig.Options.KubernetesMasterConfig == nil {
-		return false, nil, nil
+		return nil, nil
 	}
 	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient())
-	return true, kubeConfig, err
+	return kubeConfig, err
 }
 
-func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
-	glog.Infof("Starting master on %s (%s)", openshiftMasterConfig.ServingInfo.BindAddress, version.Get().String())
-	glog.Infof("Public master address is %s", openshiftMasterConfig.AssetConfig.MasterPublicURL)
-	if len(openshiftMasterConfig.DisabledFeatures) > 0 {
-		glog.V(4).Infof("Disabled features: %s", strings.Join(openshiftMasterConfig.DisabledFeatures, ", "))
-	}
+// master encapsulates starting the components of the master
+type master struct {
+	config      *configapi.MasterConfig
+	controllers bool
+	api         bool
+}
 
-	if openshiftMasterConfig.EtcdConfig != nil {
-		etcd.RunEtcd(openshiftMasterConfig.EtcdConfig)
-	}
-
+// Start launches a master. It will error if possible, but some background processes may still
+// be running and the process should exit after it finishes.
+func (m *master) Start() error {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	capabilities.Initialize(capabilities.Capabilities{
@@ -353,25 +352,85 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
 	})
 
-	openshiftConfig, err := origin.BuildMasterConfig(*openshiftMasterConfig)
+	openshiftConfig, err := origin.BuildMasterConfig(*m.config)
 	if err != nil {
 		return err
 	}
 
+	kubeMasterConfig, err := buildKubernetesMasterConfig(openshiftConfig)
+	if err != nil {
+		return err
+	}
+
+	if m.api {
+		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
+		glog.Infof("Public master address is %s", m.config.AssetConfig.MasterPublicURL)
+		if len(m.config.DisabledFeatures) > 0 {
+			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
+		}
+		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
+
+		if err := startAPI(openshiftConfig, kubeMasterConfig); err != nil {
+			return err
+		}
+		if m.controllers {
+			// run controllers asynchronously (not required to be "ready")
+			go func() {
+				if err := startControllers(openshiftConfig, kubeMasterConfig); err != nil {
+					glog.Fatal(err)
+				}
+			}()
+		}
+		return nil
+	}
+
+	if m.controllers {
+		glog.Infof("Starting controllers on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
+		if len(m.config.DisabledFeatures) > 0 {
+			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
+		}
+		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
+
+		if err := startHealth(openshiftConfig); err != nil {
+			return err
+		}
+		if err := startControllers(openshiftConfig, kubeMasterConfig); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func startHealth(openshiftConfig *origin.MasterConfig) error {
+	openshiftConfig.RunHealth()
+	return nil
+}
+
+// startAPI starts the components of the master that are considered part of the API - the Kubernetes
+// API and core controllers, the Origin API, the group, policy, project, and authorization caches,
+// etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
+// TODO: allow to be more granularly targeted
+func startAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
+	// start etcd
+	if oc.Options.EtcdConfig != nil {
+		etcd.RunEtcd(oc.Options.EtcdConfig)
+	}
+
 	// verify we can connect to etcd with the provided config
-	if err := etcd.TestEtcdClient(openshiftConfig.EtcdClient); err != nil {
+	if err := etcd.TestEtcdClient(oc.EtcdClient); err != nil {
 		return err
 	}
 
 	// Must start policy caching immediately
-	openshiftConfig.RunGroupCache()
-	openshiftConfig.RunPolicyCache()
-	openshiftConfig.RunProjectCache()
+	oc.RunGroupCache()
+	oc.RunPolicyCache()
+	oc.RunProjectCache()
 
 	unprotectedInstallers := []origin.APIInstaller{}
 
-	if openshiftMasterConfig.OAuthConfig != nil {
-		authConfig, err := origin.BuildAuthConfig(*openshiftMasterConfig)
+	if oc.Options.OAuthConfig != nil {
+		authConfig, err := origin.BuildAuthConfig(oc.Options)
 		if err != nil {
 			return err
 		}
@@ -379,116 +438,109 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	}
 
 	var standaloneAssetConfig *origin.AssetConfig
-	if openshiftConfig.WebConsoleEnabled() {
-		config, err := origin.BuildAssetConfig(*openshiftMasterConfig.AssetConfig)
+	if oc.WebConsoleEnabled() {
+		config, err := origin.BuildAssetConfig(*oc.Options.AssetConfig)
 		if err != nil {
 			return err
 		}
 
-		if openshiftMasterConfig.AssetConfig.ServingInfo.BindAddress == openshiftMasterConfig.ServingInfo.BindAddress {
+		if oc.Options.AssetConfig.ServingInfo.BindAddress == oc.Options.ServingInfo.BindAddress {
 			unprotectedInstallers = append(unprotectedInstallers, config)
 		} else {
 			standaloneAssetConfig = config
 		}
 	}
 
-	startKubeMaster, kubeMasterConfig, err := buildKubernetesMasterConfig(openshiftConfig)
-	if err != nil {
-		return err
-	}
-	if startKubeMaster {
-		openshiftConfig.Run([]origin.APIInstaller{kubeMasterConfig}, unprotectedInstallers)
+	if kc != nil {
+		oc.Run([]origin.APIInstaller{kc}, unprotectedInstallers)
 	} else {
-		_, kubeMasterConfig, err := configapi.GetKubeClient(openshiftConfig.Options.MasterClients.ExternalKubernetesKubeConfig)
+		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig)
 		if err != nil {
 			return err
 		}
 		proxy := &kubernetes.ProxyConfig{
-			ClientConfig: kubeMasterConfig,
+			ClientConfig: kubeClientConfig,
 		}
-		openshiftConfig.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
+		oc.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
 	}
 
-	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
+	oc.InitializeObjects()
 
 	if standaloneAssetConfig != nil {
 		standaloneAssetConfig.Run()
 	}
-	if openshiftMasterConfig.DNSConfig != nil {
-		openshiftConfig.RunDNSServer()
+
+	if oc.Options.DNSConfig != nil {
+		oc.RunDNSServer()
 	}
 
-	openshiftConfig.RunProjectAuthorizationCache()
-
-	// controllers don't block startup
-	go func() {
-		if err := StartControllers(openshiftConfig, kubeMasterConfig); err != nil {
-			glog.Fatal(err)
-		}
-	}()
-
+	oc.RunProjectAuthorizationCache()
 	return nil
 }
 
-// StartControllers launches the controllers
-func StartControllers(openshiftConfig *origin.MasterConfig, kubeMasterConfig *kubernetes.MasterConfig) error {
-	if openshiftConfig.Options.Controllers == configapi.ControllersDisabled {
+// startControllers launches the controllers
+func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
+	if oc.Options.Controllers == configapi.ControllersDisabled {
 		return nil
 	}
 
 	go func() {
-		openshiftConfig.ControllerPlugStart()
+		oc.ControllerPlugStart()
 		// when a manual shutdown (DELETE /controllers) or lease lost occurs, the process should exit
 		// this ensures no code is still running as a controller, and allows a process manager to reset
 		// the controller to come back into a candidate state and compete for the lease
-		openshiftConfig.ControllerPlug.WaitForStop()
+		oc.ControllerPlug.WaitForStop()
 		glog.Fatalf("Controller shutdown requested")
 	}()
 
-	openshiftConfig.ControllerPlug.WaitForStart()
-	glog.Infof("Controllers starting (%s)", openshiftConfig.Options.Controllers)
+	oc.ControllerPlug.WaitForStart()
+	glog.Infof("Controllers starting (%s)", oc.Options.Controllers)
 
 	// Start these first, because they provide credentials for other controllers' clients
-	openshiftConfig.RunServiceAccountsController()
-	openshiftConfig.RunServiceAccountTokensController()
+	oc.RunServiceAccountsController()
+	oc.RunServiceAccountTokensController()
 	// used by admission controllers
-	openshiftConfig.RunServiceAccountPullSecretsControllers()
-	openshiftConfig.RunSecurityAllocationController()
+	oc.RunServiceAccountPullSecretsControllers()
+	oc.RunSecurityAllocationController()
 
-	if kubeMasterConfig != nil {
-		_, rcClient, err := openshiftConfig.GetServiceAccountClients(openshiftConfig.ReplicationControllerServiceAccount)
+	if kc != nil {
+		_, rcClient, err := oc.GetServiceAccountClients(oc.ReplicationControllerServiceAccount)
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
 
 		// called by admission control
-		kubeMasterConfig.RunResourceQuotaManager()
+		kc.RunResourceQuotaManager()
 
 		// no special order
-		kubeMasterConfig.RunNodeController()
-		kubeMasterConfig.RunScheduler()
-		kubeMasterConfig.RunReplicationController(rcClient)
-		kubeMasterConfig.RunEndpointController()
-		kubeMasterConfig.RunNamespaceController()
-		kubeMasterConfig.RunPersistentVolumeClaimBinder()
-		kubeMasterConfig.RunPersistentVolumeClaimRecycler(openshiftConfig.ImageFor("deployer"))
+		kc.RunNodeController()
+		kc.RunScheduler()
+		kc.RunReplicationController(rcClient)
+		kc.RunEndpointController()
+		kc.RunNamespaceController()
+		kc.RunPersistentVolumeClaimBinder()
+		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("deployer"))
 	}
 
-	// no special order\
-	if configapi.IsBuildEnabled(&openshiftConfig.Options) {
-		openshiftConfig.RunBuildController()
-		openshiftConfig.RunBuildPodController()
-		openshiftConfig.RunBuildConfigChangeController()
-		openshiftConfig.RunBuildImageChangeTriggerController()
+	// no special order
+	if configapi.IsBuildEnabled(&oc.Options) {
+		oc.RunBuildController()
+		oc.RunBuildPodController()
+		oc.RunBuildConfigChangeController()
+		oc.RunBuildImageChangeTriggerController()
 	}
-	openshiftConfig.RunDeploymentController()
-	openshiftConfig.RunDeployerPodController()
-	openshiftConfig.RunDeploymentConfigController()
-	openshiftConfig.RunDeploymentConfigChangeController()
-	openshiftConfig.RunDeploymentImageChangeTriggerController()
-	openshiftConfig.RunImageImportController()
-	openshiftConfig.RunOriginNamespaceController()
-	openshiftConfig.RunSDNController()
+	oc.RunBuildController()
+	oc.RunBuildPodController()
+	oc.RunBuildConfigChangeController()
+	oc.RunBuildImageChangeTriggerController()
+	oc.RunDeploymentController()
+	oc.RunDeployerPodController()
+	oc.RunDeploymentConfigController()
+	oc.RunDeploymentConfigChangeController()
+	oc.RunDeploymentImageChangeTriggerController()
+	oc.RunImageImportController()
+	oc.RunOriginNamespaceController()
+	oc.RunSDNController()
 
 	return nil
 }

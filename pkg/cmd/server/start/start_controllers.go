@@ -10,6 +10,9 @@ import (
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 const controllersLong = `Start the master controllers
@@ -63,15 +66,28 @@ func NewCommandStartMasterControllers(name, basename string, out io.Writer) (*co
 		},
 	}
 
+	// start controllers on a non conflicting health port from the default master
+	listenArg := &ListenArg{
+		ListenAddr: flagtypes.Addr{
+			Value:         "127.0.0.1:8444",
+			DefaultScheme: "https",
+			DefaultPort:   8444,
+			AllowPrefix:   true,
+		}.Default(),
+	}
+
 	options.MasterArgs = NewDefaultMasterArgs()
 	options.MasterArgs.StartControllers = true
+	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
+		config.ServingInfo.BindAddress = listenArg.ListenAddr.URL.Host
+		return nil
+	}
 
 	flags := cmd.Flags()
 	// This command only supports reading from config and the listen argument
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. Required")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
-	// TODO: add health and metrics endpoints on this listen argument
-	BindListenArg(options.MasterArgs.ListenArg, flags, "")
+	BindListenArg(listenArg, flags, "")
 
 	return cmd, options
 }
