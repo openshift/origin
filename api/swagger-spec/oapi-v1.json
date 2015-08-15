@@ -14004,6 +14004,11 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "ImageStreamTag that triggered this build"
+     },
+     "lastVersion": {
+      "type": "integer",
+      "format": "int32",
+      "description": "LastVersion of the BuildConfig that triggered this build"
      }
     }
    },

@@ -820,6 +820,12 @@ func deepCopy_v1beta3_BuildRequest(in apiv1beta3.BuildRequest, out *apiv1beta3.B
 	} else {
 		out.From = nil
 	}
+	if in.LastVersion != nil {
+		out.LastVersion = new(int)
+		*out.LastVersion = *in.LastVersion
+	} else {
+		out.LastVersion = nil
+	}
 	return nil
 }
 

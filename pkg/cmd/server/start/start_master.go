@@ -438,6 +438,7 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 			// no special order
 			openshiftConfig.RunBuildController()
 			openshiftConfig.RunBuildPodController()
+			openshiftConfig.RunBuildConfigChangeController()
 			openshiftConfig.RunBuildImageChangeTriggerController()
 			openshiftConfig.RunDeploymentController()
 			openshiftConfig.RunDeployerPodController()

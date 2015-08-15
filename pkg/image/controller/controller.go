@@ -58,7 +58,7 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 	if client == nil {
 		client = dockerregistry.NewClient()
 	}
-	conn, err := client.Connect(ref.Registry, insecure)
+	conn, err := client.Connect(ref.Registry, insecure, false)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 			return err
 		}
 		var image api.DockerImage
-		if err := kapi.Scheme.Convert(dockerImage, &image); err != nil {
+		if err := kapi.Scheme.Convert(&dockerImage.Image, &image); err != nil {
 			err = fmt.Errorf("could not convert image: %#v", err)
 			util.HandleError(err)
 			return c.done(stream, err.Error(), retryCount)
@@ -111,16 +111,21 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 			if idTagPresent && id == tag {
 				continue
 			}
-			pullRefTag := tag
-			if idTagPresent {
-				// if there is a tag for the image by its id (tag=tag), we can pull by id
-				pullRefTag = id
-			}
+
 			pullRef := api.DockerImageReference{
 				Registry:  ref.Registry,
 				Namespace: ref.Namespace,
 				Name:      ref.Name,
-				Tag:       pullRefTag,
+				Tag:       tag,
+			}
+			// prefer to pull by ID always
+			if dockerImage.PullByID {
+				// if the registry indicates the image is pullable by ID, clear the tag
+				pullRef.Tag = ""
+				pullRef.ID = dockerImage.ID
+			} else if idTagPresent {
+				// if there is a tag for the image by its id (tag=tag), we can pull by id
+				pullRef.Tag = id
 			}
 
 			mapping := &api.ImageStreamMapping{
@@ -131,7 +136,7 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 				Tag: tag,
 				Image: api.Image{
 					ObjectMeta: kapi.ObjectMeta{
-						Name: id,
+						Name: dockerImage.ID,
 					},
 					DockerImageReference: pullRef.String(),
 					DockerImageMetadata:  image,

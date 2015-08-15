@@ -394,12 +394,19 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	configChangeTrigger := buildapi.BuildTriggerPolicy{
+		Type: buildapi.ConfigChangeBuildTriggerType,
+	}
+
+	triggers := append(sourceTriggers, configChangeTrigger)
+	triggers = append(triggers, strategyTriggers...)
+
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
 		Spec: buildapi.BuildConfigSpec{
-			Triggers: append(sourceTriggers, strategyTriggers...),
+			Triggers: triggers,
 			BuildSpec: buildapi.BuildSpec{
 				Source:   *source,
 				Strategy: *strategy,

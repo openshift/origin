@@ -347,6 +347,8 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) fielderrors.Validatio
 			break
 		}
 		allErrs = append(allErrs, validateFromImageReference(trigger.ImageChange.From).Prefix("from")...)
+	case buildapi.ConfigChangeBuildTriggerType:
+		// doesn't reuqire additional validation
 	default:
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("type", trigger.Type, "invalid trigger type"))
 	}

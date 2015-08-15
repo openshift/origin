@@ -154,6 +154,9 @@ func describeBuildRequest(request *buildapi.BuildRequest) string {
 			request.TriggeredByImage.Kind, request.TriggeredByImage.Name,
 			request.From.Kind, request.From.Name)
 	}
+	if request.LastVersion != nil {
+		desc += fmt.Sprintf(", LastVersion: %d", *request.LastVersion)
+	}
 	return desc
 }
 
@@ -162,6 +165,10 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	glog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
 	bc, err := g.Client.GetBuildConfig(ctx, request.Name)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := g.checkLastVersion(bc, request.LastVersion); err != nil {
 		return nil, err
 	}
 
@@ -186,6 +193,17 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	// condition in which two builds get kicked off.  Doing it in this order ensures that we catch the race while
 	// updating the BC.
 	return g.createBuild(ctx, newBuild)
+}
+
+// checkBuildConfigLastVersion will return an error if the BuildConfig's LastVersion doesn't match the passed in lastVersion
+// when lastVersion is not nil
+func (g *BuildGenerator) checkLastVersion(bc *buildapi.BuildConfig, lastVersion *int) error {
+	if lastVersion != nil && bc.Status.LastVersion != *lastVersion {
+		glog.V(2).Infof("Aborting version triggered build for BuildConfig %s/%s because the BuildConfig LastVersion (%d) does not match the requested LastVersion (%d)", bc.Namespace, bc.Name, bc.Status.LastVersion, *lastVersion)
+		return fmt.Errorf("the LastVersion(%s) on build config %s/%s does not match the build request LastVersion(%d)",
+			bc.Status.LastVersion, bc.Namespace, bc.Name, *lastVersion)
+	}
+	return nil
 }
 
 // updateImageTriggers sets the LastTriggeredImageID on all the ImageChangeTriggers on the BuildConfig and

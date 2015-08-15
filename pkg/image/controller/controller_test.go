@@ -17,7 +17,7 @@ import (
 type expectedImage struct {
 	Tag   string
 	ID    string
-	Image *docker.Image
+	Image *dockerregistry.Image
 	Err   error
 }
 
@@ -32,7 +32,7 @@ type fakeDockerRegistryClient struct {
 	Images []expectedImage
 }
 
-func (f *fakeDockerRegistryClient) Connect(registry string, insecure bool) (dockerregistry.Connection, error) {
+func (f *fakeDockerRegistryClient) Connect(registry string, insecure, disableV2 bool) (dockerregistry.Connection, error) {
 	f.Registry = registry
 	f.Insecure = insecure
 	return f, nil
@@ -43,7 +43,7 @@ func (f *fakeDockerRegistryClient) ImageTags(namespace, name string) (map[string
 	return f.Tags, f.Err
 }
 
-func (f *fakeDockerRegistryClient) ImageByTag(namespace, name, tag string) (*docker.Image, error) {
+func (f *fakeDockerRegistryClient) ImageByTag(namespace, name, tag string) (*dockerregistry.Image, error) {
 	if len(tag) == 0 {
 		tag = api.DefaultImageTag
 	}
@@ -56,7 +56,7 @@ func (f *fakeDockerRegistryClient) ImageByTag(namespace, name, tag string) (*doc
 	return nil, dockerregistry.NewImageNotFoundError(fmt.Sprintf("%s/%s", namespace, name), tag, tag)
 }
 
-func (f *fakeDockerRegistryClient) ImageByID(namespace, name, id string) (*docker.Image, error) {
+func (f *fakeDockerRegistryClient) ImageByID(namespace, name, id string) (*dockerregistry.Image, error) {
 	f.Namespace, f.Name, f.ID = namespace, name, id
 	for _, t := range f.Images {
 		if t.ID == id {
@@ -214,9 +214,11 @@ func TestControllerWithImage(t *testing.T) {
 		Images: []expectedImage{
 			{
 				ID: "found",
-				Image: &docker.Image{
-					Comment: "foo",
-					Config:  &docker.Config{},
+				Image: &dockerregistry.Image{
+					Image: docker.Image{
+						Comment: "foo",
+						Config:  &docker.Config{},
+					},
 				},
 			},
 		},
@@ -277,9 +279,11 @@ func TestControllerWithSpecTags(t *testing.T) {
 			Images: []expectedImage{
 				{
 					ID: "found",
-					Image: &docker.Image{
-						Comment: "foo",
-						Config:  &docker.Config{},
+					Image: &dockerregistry.Image{
+						Image: docker.Image{
+							Comment: "foo",
+							Config:  &docker.Config{},
+						},
 					},
 				},
 			},

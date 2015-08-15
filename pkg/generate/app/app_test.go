@@ -115,7 +115,7 @@ func TestBuildConfigOutput(t *testing.T) {
 		if config.Spec.Output.To.Name != "origin:latest" || config.Spec.Output.To.Kind != test.expectedKind {
 			t.Errorf("(%d) unexpected output image: %s/%s", i, config.Spec.Output.To.Kind, config.Spec.Output.To.Name)
 		}
-		if len(config.Spec.Triggers) != 3 {
+		if len(config.Spec.Triggers) != 4 {
 			t.Errorf("(%d) unexpected number of triggers %d: %#v\n", i, len(config.Spec.Triggers), config.Spec.Triggers)
 		}
 		imageChangeTrigger := false
