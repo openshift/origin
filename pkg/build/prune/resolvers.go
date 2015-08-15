@@ -98,14 +98,14 @@ func (o *perBuildConfigResolver) Resolve() ([]*buildapi.Build, error) {
 	completeStates := util.NewStringSet(string(buildapi.BuildPhaseComplete))
 	failedStates := util.NewStringSet(string(buildapi.BuildPhaseFailed), string(buildapi.BuildPhaseError), string(buildapi.BuildPhaseCancelled))
 
-	results := []*buildapi.Build{}
+	prunableBuilds := []*buildapi.Build{}
 	for _, buildConfig := range buildConfigs {
 		builds, err := o.dataSet.ListBuildsByBuildConfig(buildConfig)
 		if err != nil {
 			return nil, err
 		}
 
-		completeBuilds, failedBuilds := []*buildapi.Build{}, []*buildapi.Build{}
+		var completeBuilds, failedBuilds []*buildapi.Build
 		for _, build := range builds {
 			if completeStates.Has(string(build.Status.Phase)) {
 				completeBuilds = append(completeBuilds, build)
@@ -113,15 +113,15 @@ func (o *perBuildConfigResolver) Resolve() ([]*buildapi.Build, error) {
 				failedBuilds = append(failedBuilds, build)
 			}
 		}
-		sort.Sort(sortableBuilds(completeBuilds))
-		sort.Sort(sortableBuilds(failedBuilds))
+		sort.Sort(sort.Reverse(buildapi.BuildPtrSliceByCreationTimestamp(completeBuilds)))
+		sort.Sort(sort.Reverse(buildapi.BuildPtrSliceByCreationTimestamp(failedBuilds)))
 
 		if o.keepComplete >= 0 && o.keepComplete < len(completeBuilds) {
-			results = append(results, completeBuilds[o.keepComplete:]...)
+			prunableBuilds = append(prunableBuilds, completeBuilds[o.keepComplete:]...)
 		}
 		if o.keepFailed >= 0 && o.keepFailed < len(failedBuilds) {
-			results = append(results, failedBuilds[o.keepFailed:]...)
+			prunableBuilds = append(prunableBuilds, failedBuilds[o.keepFailed:]...)
 		}
 	}
-	return results, nil
+	return prunableBuilds, nil
 }
