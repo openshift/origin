@@ -259,8 +259,6 @@ func (o AllInOneOptions) StartAllInOne() error {
 
 	daemon.SdNotify("READY=1")
 	select {}
-
-	return nil
 }
 
 func startProfiler() {

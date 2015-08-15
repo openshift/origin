@@ -347,7 +347,6 @@ func waitForWatch(t *testing.T, name string, w watchapi.Interface) *watchapi.Eve
 		t.Fatalf("Timed out waiting for watch: %s", name)
 		return nil
 	}
-	return nil
 }
 
 func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {

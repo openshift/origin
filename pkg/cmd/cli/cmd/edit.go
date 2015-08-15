@@ -254,7 +254,6 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 		// loop again and edit the remaining items
 		infos = results.edit
 	}
-	return nil
 }
 
 // editReason preserves a message about the reason this file must be edited again
