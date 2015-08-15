@@ -27,7 +27,6 @@ do
               -composites=false \
               -buildtags=false \
               -shadow=false \
-              -unusedresult=false \
               $test_dir 2>&1 | sed '/exit status/d'
   if [ "$?" -ne 0 ]
   then 
