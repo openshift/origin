@@ -547,3 +547,19 @@ os::log::status() {
     echo "    $message"
   done
 }
+
+find_files() {
+  find . -not \( \
+      \( \
+        -wholename './output' \
+        -o -wholename './_output' \
+        -o -wholename './.*' \
+        -o -wholename './release' \
+        -o -wholename './pkg/assets/bindata.go' \
+        -o -wholename './pkg/assets/*/bindata.go' \
+        -o -wholename './target' \
+        -o -wholename '*/third_party/*' \
+        -o -wholename '*/Godeps/*' \
+      \) -prune \
+    \) -name '*.go' | sort -u
+}
