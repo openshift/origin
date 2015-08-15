@@ -8,7 +8,8 @@ env:
  - TEST_ASSETS=false
 
 install:
-  - PATH=$HOME/gopath/bin:$PATH make install-travis
+  - export PATH=$GOPATH/bin:./third_party/etcd:$PATH
+  - make install-travis
 
 script:
   - make check-test TESTFLAGS="-p=4" TESTS="''" # empty quotes are because hack/test-go.sh requires 2 args

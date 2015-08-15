@@ -5,10 +5,9 @@
 TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
 
-# setup_env_vars exports all the necessary environment variables for configuring and  
+# setup_env_vars exports all the necessary environment variables for configuring and
 # starting OS server.
 function setup_env_vars {
-  export TRAVIS_TEST="${TRAVIS_TEST:-false}"
   export ETCD_DATA_DIR="${BASETMPDIR}/etcd"
   export VOLUME_DIR="${BASETMPDIR}/volumes"
   export FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"

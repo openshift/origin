@@ -47,6 +47,21 @@ check:
 	TEST_KUBE=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
 .PHONY: check
 
+# Verify code is properly organized.
+#
+# Example:
+#   make verify
+verify: build
+	hack/verify-gofmt.sh
+	hack/verify-govet.sh
+	hack/verify-generated-deep-copies.sh
+	hack/verify-generated-conversions.sh
+	hack/verify-generated-completions.sh
+	hack/verify-generated-docs.sh
+	hack/verify-generated-swagger-spec.sh
+	hack/verify-api-descriptions.sh
+.PHONY: verify
+
 # Install travis dependencies
 #
 # Args:
@@ -61,7 +76,7 @@ install-travis:
 endif
 .PHONY: install-travis
 
-# Build and run unit and integration tests that don't require Docker.
+# Run unit and integration tests that don't require Docker.
 #
 # Args:
 #   GOFLAGS: Extra flags to pass to 'go' when building.
@@ -76,16 +91,7 @@ ifeq ($(TEST_ASSETS), true)
 check-test:
 	hack/test-assets.sh
 else
-check-test: build check
-check-test:
-	hack/verify-gofmt.sh
-	hack/verify-govet.sh
-	hack/verify-generated-deep-copies.sh
-	hack/verify-generated-conversions.sh
-	hack/verify-generated-completions.sh
-	hack/verify-generated-docs.sh
-	hack/verify-generated-swagger-spec.sh
-	hack/verify-api-descriptions.sh
+check-test: verify check
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration.sh
 endif
@@ -104,19 +110,11 @@ test: export KUBE_COVER= -cover -covermode=atomic
 test: export KUBE_RACE=  -race
 ifeq ($(SKIP_BUILD), true)
 $(info build is being skipped)
-test: check
+test: check verify
 else
-test: build check
+test: build check verify
 endif
 test:
-	hack/verify-gofmt.sh
-	hack/verify-govet.sh
-	hack/verify-generated-deep-copies.sh
-	hack/verify-generated-conversions.sh
-	hack/verify-generated-completions.sh
-	hack/verify-generated-docs.sh
-	hack/verify-generated-swagger-spec.sh
-	hack/verify-api-descriptions.sh
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration-docker.sh
 	hack/test-end-to-end-docker.sh
