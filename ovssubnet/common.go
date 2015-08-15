@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	MaxUint = ^uint(0)
+	// Maximum VXLAN Network Identifier as per RFC#7348
+	MaxVNID = ((1 << 24) - 1)
 )
 
 type OvsController struct {
@@ -27,7 +28,7 @@ type OvsController struct {
 	sig             chan struct{}
 	ready           chan struct{}
 	flowController  FlowController
-	VnidMap         map[string]uint
+	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
 }
 
@@ -85,7 +86,7 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready
 		hostName:        hostname,
 		localSubnet:     nil,
 		subnetAllocator: nil,
-		VnidMap:         make(map[string]uint),
+		VNIDMap:         make(map[string]uint),
 		sig:             make(chan struct{}),
 		ready:           ready,
 	}, nil
@@ -140,9 +141,11 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		inUse := make([]uint, 0)
 		for _, net := range nets {
 			inUse = append(inUse, net.NetID)
-			oc.VnidMap[net.Name] = net.NetID
+			oc.VNIDMap[net.Name] = net.NetID
 		}
-		oc.netIDManager, err = netutils.NewNetIDAllocator(10, MaxUint, inUse)
+		// VNID: 0 reserved for default namespace and can reach any network in the cluster
+		// VNID: 1 to 9 are internally reserved for any special cases in the future
+		oc.netIDManager, err = netutils.NewNetIDAllocator(10, MaxVNID, inUse)
 		if err != nil {
 			return err
 		}
@@ -173,16 +176,25 @@ func (oc *OvsController) watchNetworks() {
 						log.Error("Error writing new network ID: %v", err)
 						continue
 					}
-					oc.VnidMap[ev.Name] = netid
+					oc.VNIDMap[ev.Name] = netid
 				}
 			case api.Deleted:
 				err := oc.subnetRegistry.DeleteNetNamespace(ev.Name)
 				if err != nil {
 					log.Error("Error while deleting Net Id: %v", err)
+					continue
 				}
-				netid := oc.VnidMap[ev.Name]
-				oc.netIDManager.ReleaseNetID(netid)
-				delete(oc.VnidMap, ev.Name)
+				netid, ok := oc.VNIDMap[ev.Name]
+				if !ok {
+					log.Error("Error while fetching Net Id for namespace: %s", ev.Name)
+					continue
+				}
+				err = oc.netIDManager.ReleaseNetID(netid)
+				if err != nil {
+					log.Error("Error while releasing Net Id: %v", err)
+					continue
+				}
+				delete(oc.VNIDMap, ev.Name)
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of nodes.")
@@ -318,7 +330,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 			return err
 		}
 		for _, ns := range nslist {
-			oc.VnidMap[ns.Name] = ns.NetID
+			oc.VNIDMap[ns.Name] = ns.NetID
 		}
 		go oc.watchVnids()
 	}
@@ -340,9 +352,9 @@ func (oc *OvsController) watchVnids() {
 		case ev := <-netNsEvent:
 			switch ev.Type {
 			case api.Added:
-				oc.VnidMap[ev.Name] = ev.NetID
+				oc.VNIDMap[ev.Name] = ev.NetID
 			case api.Deleted:
-				delete(oc.VnidMap, ev.Name)
+				delete(oc.VNIDMap, ev.Name)
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of NetNamespaces.")
