@@ -221,7 +221,6 @@
     }
     .pod {
       .osc-object-highlight();
-      .flex(@columns: 1 1 0);
       max-width: 450px;
       min-width: 120px;
       background-size: 20px 20px;
@@ -232,17 +231,44 @@
       margin: 0 10px 10px 0;
       text-align: center;
       -webkit-font-smoothing: antialiased;
+
+      &:last-child {
+        // no right margin on the last one so collapse links align properly
+        margin-right: 0;
+      }
+
       .pod-status-label {
         &:before, &:after {
           font-family: 'PatternFlyIcons-webfont';
           font-weight: normal;
         }
       }
+      &.pod-multiple {
+        position: relative;
+        cursor: pointer;
+
+        // we always want pod-multiple to get the hover color, event at mobile
+        &:hover {
+          border-color: @osc-object-hover-color;
+        }
+        
+        .fa-ellipsis-h {
+          position: absolute;
+          right: 5px;
+          bottom: 0;
+          font-size: 14px;
+          color: #333;
+        }
+      }
       &.pod-pending {
         background-color: #ececec;
         .striped(@color: rgba(255,255,255,.45); @angle: 45deg);
+
+        &.pod-multiple {
+          .pod-multiple-box-shadow(#f4f4f4);
+        }
       }
-      &.pod-failed, &.pod-warning {
+      &.pod-failed {
         background-image: none;
         .pod-status-label {
           position: relative;
@@ -255,13 +281,26 @@
           }
         }
       }
-      &.pod-running {
+      &.pod-running, &.pod-succeeded {
         background-color: @pod-running-bg;
         background-image: none;
+
+        &.pod-multiple {
+          .pod-multiple-box-shadow(#e4f5bc);
+        }
       }
       &.pod-failed {
         background-color: @pod-failed-bg;
         border: @pod-failed-border;
+        &.pod-multiple {
+          box-shadow: 
+            0px 0px 0 rgba(0, 0, 0, 0),
+            3px 3px 0 #eeecec,
+            4px 4px 0 rgb(201, 8, 19),
+            6px 6px 0 #eeecec,
+            7px 7px 0 rgb(201, 8, 19);        
+        }
+
         .pod-status-label {
           &:after {
             content: "\e608"; // pficon-error-exclamation
@@ -276,20 +315,10 @@
           }
         }
       }
-      &.pod-warning {
+      &.pod-warning, &.pod-unknown {
         background-color: @pod-warning-bg;
-        .pod-status-label {
-          &:after {
-            content: "\e608"; // pficon-error-exclamation
-            left: -15px;
-            top: 0;
-          }
-          &:before {
-            content: "\e60c"; // pficon-warning-triangle
-            color: @brand-warning;
-            left: -16px;
-            top: -1px;
-          }
+        &.pod-multiple {
+          .pod-multiple-box-shadow(#f9d67a);
         }
       }
       .pod-text {
@@ -298,6 +327,12 @@
       }
     }
   }
+}
+
+.popover {
+  min-width: 300px;
+  font-size: 13px;
+  line-height: 1.66667;
 }
 
 .build-well, .pod-well {
