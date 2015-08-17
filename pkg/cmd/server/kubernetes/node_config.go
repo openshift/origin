@@ -108,6 +108,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.Address = kubeAddress
 	server.Port = uint(kubePort)
 	server.ReadOnlyPort = 0 // no read only access
+	server.CadvisorPort = 0 // no unsecured cadvisor access
+	server.HealthzPort = 0  // no unsecured healthz access
 	server.ClusterDNS = dnsIP
 	server.ClusterDomain = options.DNSDomain
 	server.NetworkPluginName = options.NetworkPluginName
