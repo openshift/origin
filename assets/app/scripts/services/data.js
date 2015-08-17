@@ -1,5 +1,5 @@
 'use strict';
-/* jshint eqeqeq: false, unused: false */
+/* jshint eqeqeq: false, unused: false, expr: true */
 
 angular.module('openshiftConsole')
 .factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger, $timeout) {
@@ -360,6 +360,51 @@ angular.module('openshiftConsole')
     return deferred.promise;
   };
 
+// https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/btoa
+function utf8_to_b64( str ) {
+    return window.btoa(window.unescape(encodeURIComponent( str )));
+}
+function b64_to_utf8( str ) {
+    return decodeURIComponent(window.escape(window.atob( str )));
+}
+
+// TODO (bpeterse): ideally DataService would be more general & log specific function
+// could be in a separate service, but we need the helper functions
+DataService.prototype.watchLogStream = function(kind, name, context, onMessage, onClose) {
+  var urlForResource = this._urlForResource.bind(this);
+  kind = this.kindToResource(kind) ?
+              this.kindToResource(kind) :
+              normalizeResource(kind);
+
+  return this
+          ._getNamespace(kind, context, {})
+          .then(function(params) {
+            return  $ws({
+                      url: urlForResource(kind, name, null, context, true, _.extend(params, {follow: true})),
+                      onmessage: function(event) {
+                        _.isString(event.data) ?
+                          onMessage(b64_to_utf8(event.data)) :
+                          Logger.log('log stream response is not a string', event.data);
+                      },
+                      onclose: function() {
+                        Logger.log('log stream closed');
+                        onClose && onClose();
+                      },
+                      protocols: "base64.binary.k8s.io"
+                    }).then(function(ws) {
+                      Logger.log("Streaming pod log", ws);
+                      return ws;
+                    });
+          });
+};
+
+// handle = the websocket
+DataService.prototype.unwatchLogStream = function(handle) {
+  return handle.close();
+};
+
+
+
 // resource:  API resource (e.g. "pods")
 // context:   API context (e.g. {project: "..."})
 // callback:  optional function to be called with the initial list of the requested resource,
@@ -420,14 +465,14 @@ angular.module('openshiftConsole')
       if (callback) {
         var existingData = this._data(resource, context);
         if (existingData) {
-          $timeout(function() {          
+          $timeout(function() {
             callback(existingData);
           }, 0);
         }
       }
       if (!this._listInFlight(resource, context)) {
         this._startListOp(resource, context);
-      }      
+      }
     }
 
     // returned handle needs resource, context, and callback in order to unwatch
@@ -438,6 +483,8 @@ angular.module('openshiftConsole')
       opts: opts
     };
   };
+
+
 
 // resource:  API resource (e.g. "pods")
 // name:      API name, the unique name for the object
@@ -490,7 +537,7 @@ angular.module('openshiftConsole')
     var handle = this.watch(resource, context, wrapperCallback, opts);
     handle.objectCallback = callback;
     handle.objectName = name;
-    
+
     return handle;
   };
 
@@ -501,7 +548,7 @@ angular.module('openshiftConsole')
     var callback = handle.callback;
     var objectCallback = handle.objectCallback;
     var opts = handle.opts;
-    
+
     if (objectCallback && objectName) {
       var objCallbacks = this._watchObjectCallbacks(resource, objectName, context);
       objCallbacks.remove(objectCallback);
@@ -551,7 +598,7 @@ angular.module('openshiftConsole')
       this._watchObjectCallbacksMap[key] = $.Callbacks();
     }
     return this._watchObjectCallbacksMap[key];
-  };  
+  };
 
   DataService.prototype._listCallbacks = function(resource, context) {
     var key = this._uniqueKeyForResourceContext(resource, context);
@@ -704,10 +751,10 @@ angular.module('openshiftConsole')
       return resource + "/" + context.project.metadata.name;
     }
     else if (context.namespace) {
-      return resource + "/" + context.namespace; 
+      return resource + "/" + context.namespace;
     }
     else if (context.projectName) {
-      return resource + "/" + context.projectName;      
+      return resource + "/" + context.projectName;
     }
     else {
       return resource;
@@ -1019,8 +1066,15 @@ angular.module('openshiftConsole')
       namespace: namespace,
       q: params
     };
+    // TODO (bpeterse): The URL_OBJECT_SUBRESOURCE & URL_NAMESPACED_OBJECT_SUBRESOURCE
+    // have both been removed.  Need to figure out what to use now in place of these.
     if (isWebsocket) {
-      template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
+      if (subresource) {
+        templateOptions.subresource = subresource;
+        template = namespaceInPath ? URL_NAMESPACED_OBJECT : URL_OBJECT;
+      } else {
+        template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
+      }
     }
     else if (name) {
       template = namespaceInPath ? URL_NAMESPACED_OBJECT : URL_OBJECT;

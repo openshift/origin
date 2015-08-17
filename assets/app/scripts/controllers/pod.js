@@ -7,15 +7,16 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('PodController', function ($scope, $routeParams, DataService, project, $filter, ImageStreamResolver) {
+  .controller('PodController', function ($scope, $routeParams, $timeout, DataService, project, $filter, ImageStreamResolver) {
+
     $scope.pod = null;
     $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};
     $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
-    $scope.builds = {};     
+    $scope.builds = {};
     $scope.alerts = {};
-    $scope.renderOptions = $scope.renderOptions || {};    
-    $scope.renderOptions.hideFilterWidget = true;    
+    $scope.renderOptions = $scope.renderOptions || {};
+    $scope.renderOptions.hideFilterWidget = true;
     $scope.breadcrumbs = [
       {
         title: "Pods",
@@ -53,10 +54,11 @@ angular.module('openshiftConsole')
               $scope.alerts["deleted"] = {
                 type: "warning",
                 message: "This pod has been deleted."
-              }; 
+              };
             }
             $scope.pod = pod;
-          }));          
+          }));
+
         },
         // failure
         function(e) {
@@ -79,10 +81,35 @@ angular.module('openshiftConsole')
       watches.push(DataService.watch("builds", $scope, function(builds) {
         $scope.builds = builds.by("metadata.name");
         Logger.log("builds (subscribe)", $scope.builds);
-      }));      
+      }));
+
+      (function initLogs() {
+        angular.extend($scope, {
+          logs: [],
+          logsLoading: true,
+          canShowDownload: false,
+          initLogs: initLogs
+        });
+        DataService.watchLogStream("pods/log", $routeParams.pod, $scope, function(line) {
+          $scope.$apply(function() {
+            $scope.logs.push({text: line});
+            $scope.canShowDownload = true;
+          });
+        }, function() {
+          $scope.$apply(function() {
+            $scope.logsLoading = false;
+          });
+        })
+        .then(function(ws) {
+          $scope.$on("$destroy", function() {
+            DataService.unwatchLogStream(ws);
+          });
+        });
+      })();
+
     });
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-    });    
+    });
   });
