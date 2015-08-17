@@ -220,7 +220,7 @@ angular.module('openshiftConsole')
         id: buildConfig,
         namespace: project,
         secret: secret,
-        hookType: type
+        hookType: type.toLowerCase()
       });
     };
   })
