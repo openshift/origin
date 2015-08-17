@@ -786,6 +786,7 @@
 		},
 		{
 			"ImportPath": "github.com/vjeantet/ldapserver",
+			"Comment": "UPSTREAM pull requests: 15",
 			"Rev": "5700661e721f508db936af42597a254c4ea6aea4"
 		},
 		{
