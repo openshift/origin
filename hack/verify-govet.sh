@@ -23,7 +23,6 @@ for test_dir in $test_dirs
 do
   go tool vet -printf=false \
               -methods=false \
-              -structtags=false \
               -composites=false \
               -buildtags=false \
               -shadow=false \
