@@ -24,7 +24,7 @@ function cleanup()
 }
 
 package="${OS_TEST_PACKAGE:-test/integration}"
-tags="${OS_TEST_TAGS:-integration !docker}"
+tags="${OS_TEST_TAGS:-integration !docker etcd}"
 
 export GOMAXPROCS="$(grep "processor" -c /proc/cpuinfo 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || 1)"
 TMPDIR=${TMPDIR:-/tmp}
