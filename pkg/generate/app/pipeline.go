@@ -3,13 +3,11 @@ package app
 import (
 	"fmt"
 	"math/rand"
-	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
 
@@ -163,26 +161,6 @@ func (g PipelineGroup) String() string {
 	return strings.Join(s, "+")
 }
 
-const maxServiceNameLength = 24
-
-var invalidServiceChars = regexp.MustCompile("[^-a-z0-9]")
-
-func makeValidServiceName(name string) (string, string) {
-	if ok, _ := validation.ValidateServiceName(name, false); ok {
-		return name, ""
-	}
-	name = strings.ToLower(name)
-	name = invalidServiceChars.ReplaceAllString(name, "")
-	name = strings.TrimFunc(name, func(r rune) bool { return r == '-' })
-	switch {
-	case len(name) == 0:
-		return "", "service-"
-	case len(name) > maxServiceNameLength:
-		name = name[:maxServiceNameLength]
-	}
-	return name, ""
-}
-
 type sortablePorts []kapi.ContainerPort
 
 func (s sortablePorts) Len() int           { return len(s) }
@@ -207,7 +185,10 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 	for _, o := range objects {
 		switch t := o.(type) {
 		case *deploy.DeploymentConfig:
-			name, generateName := makeValidServiceName(t.Name)
+			name, generateName := t.Name, ""
+			if len(name) == 0 {
+				generateName = "service-"
+			}
 			svc := &kapi.Service{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:         name,
