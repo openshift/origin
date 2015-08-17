@@ -2,10 +2,10 @@
   "kind": "Template",
   "apiVersion": "v1",
   "metadata": {
-    "name": "jenkins-ephemeral",
+    "name": "jenkins-persistent",
     "creationTimestamp": null,
     "annotations": {
-      "description": "Jenkins service, without persistent storage. WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
+      "description": "Jenkins service, with persistent storage.",
       "iconClass": "icon-jenkins",
       "tags": "database,jenkins"
     }
@@ -56,6 +56,23 @@
         }
       }
     },
+    {
+      "kind": "PersistentVolumeClaim",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "${VOLUME_CAPACITY}"
+          }
+        }
+      }
+    },    
     {
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
@@ -114,8 +131,8 @@
             "volumes": [
               {
                 "name": "${JENKINS_SERVICE_NAME}-data",
-                "emptyDir": {
-                  "medium": ""
+                "persistentVolumeClaim": {
+                  "claimName": "${JENKINS_SERVICE_NAME}"
                 }
               }
             ],
@@ -137,9 +154,15 @@
       "description": "Password for the Jenkins user",
       "generate": "expression",
       "value": "password"
+    },
+    {
+      "name": "VOLUME_CAPACITY",
+      "description": "Volume space available for data, e.g. 512Mi, 2Gi",
+      "value": "512Mi",
+      "required": true
     }
   ],
   "labels": {
-    "template": "jenkins-ephemeral-template"
+    "template": "jenkins-persistent-template"
   }
 }
