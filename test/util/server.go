@@ -273,7 +273,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 		DeleteAllEtcdKeys()
 	}
 
-	if err := start.StartMaster(masterConfig); err != nil {
+	if err := start.NewMaster(masterConfig, true, true).Start(); err != nil {
 		return "", err
 	}
 	adminKubeConfigFile := KubeConfigPath()

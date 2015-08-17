@@ -70,7 +70,6 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 	// This command only supports reading from config and the listen argument
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. Required")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
-	BindListenArg(options.MasterArgs.ListenArg, flags, "")
 
 	return cmd, options
 }

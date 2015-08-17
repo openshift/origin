@@ -277,7 +277,7 @@ func (o MasterOptions) RunMaster() error {
 		masterConfig.Controllers = configapi.ControllersDisabled
 	}
 
-	m := &master{
+	m := &Master{
 		config:      masterConfig,
 		api:         o.MasterArgs.StartAPI,
 		controllers: o.MasterArgs.StartControllers,
@@ -335,16 +335,25 @@ func buildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	return kubeConfig, err
 }
 
-// master encapsulates starting the components of the master
-type master struct {
+// Master encapsulates starting the components of the master
+type Master struct {
 	config      *configapi.MasterConfig
 	controllers bool
 	api         bool
 }
 
+// NewMaster create a master launcher
+func NewMaster(config *configapi.MasterConfig, controllers, api bool) *Master {
+	return &Master{
+		config:      config,
+		controllers: controllers,
+		api:         api,
+	}
+}
+
 // Start launches a master. It will error if possible, but some background processes may still
 // be running and the process should exit after it finishes.
-func (m *master) Start() error {
+func (m *Master) Start() error {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	capabilities.Initialize(capabilities.Capabilities{
