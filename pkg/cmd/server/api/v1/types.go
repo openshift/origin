@@ -95,20 +95,20 @@ type MasterConfig struct {
 	// will start automatically. The default value is "*" which will start all controllers. When
 	// using "*", you may exclude controllers by prepending a "-" in front of their name. No other
 	// values are recognized at this time.
-	Controllers string `json:"controllers,omitempty"`
+	Controllers string `json:"controllers"`
 	// PauseControllers instructs the master to not automatically start controllers, but instead
 	// to wait until a notification to the server is received before launching them.
-	PauseControllers bool `json:"pauseControllers,omitempty"`
+	PauseControllers bool `json:"pauseControllers"`
 	// ControllerLeaseTTL enables controller election, instructing the master to attempt to acquire
 	// a lease before controllers start and renewing it within a number of seconds defined by this value.
 	// Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or
 	// omitted) and controller election can be disabled with -1.
-	ControllerLeaseTTL int `json:"controllerLeaseTTL,omitempty"`
+	ControllerLeaseTTL int `json:"controllerLeaseTTL"`
 
 	// DisabledFeatures is a list of features that should not be started.  We
 	// omitempty here because its very unlikely that anyone will want to
 	// manually disable features and we don't want to encourage it.
-	DisabledFeatures FeatureList `json:"disabledFeatures,omitempty"`
+	DisabledFeatures FeatureList `json:"disabledFeatures"`
 
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the
