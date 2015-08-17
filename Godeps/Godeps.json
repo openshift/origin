@@ -385,7 +385,7 @@
 		{
 			"ImportPath": "github.com/go-ldap/ldap",
 			"Comment": "v1-19-g83e6542",
-			"Rev": "83e65426fd1c06626e88aa8a085e5bfed0208e29"
+			"Rev": "c265aaa27b1c60c66f6d4695c6f33eb8b28989ad"
 		},
 		{
 			"ImportPath": "github.com/godbus/dbus",
