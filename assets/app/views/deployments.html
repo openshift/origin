@@ -10,7 +10,7 @@
       </div>
 
       <div class="tile" ng-repeat="(deploymentConfigName, deploymentConfig) in deploymentConfigs track by (deploymentConfig | uid)">
-        <div> 
+        <div>
           <h2>{{deploymentConfigName}}</h2>
           <dl class="dl-horizontal left indent">
             <div>
@@ -74,7 +74,7 @@
                       <dt>New image for:</dt>
                       <dd>{{trigger.imageChangeParams.from | imageObjectRef : deploymentConfig.metadata.namespace}}</dd>
                     </span>
-                    <span ng-switch-when="ConfigChange">  
+                    <span ng-switch-when="ConfigChange">
                       <dt>Change of:</dt>
                       <dd>Config</dd>
                     </span>
@@ -82,12 +82,25 @@
                 </div>
               </dl>
             </div>
-          
+
             <div class="well" ng-repeat="deployment in deploymentsByDeploymentConfig[deploymentConfigName] | orderObjectsByDate : true">
-              <h3>
-                {{deployment.metadata.name}}
-                <span ng-if="(deployment | annotation:'deploymentVersion') == deploymentConfig.status.latestVersion">(latest)</span>
-              </h3>
+              <div class="row">
+                <div class="col-md-7 col-sm-7 col-xs-7">
+                  <h3>
+                    {{deployment.metadata.name}}
+                    <span ng-if="(deployment | annotation:'deploymentVersion') == deploymentConfig.status.latestVersion">(latest)</span>
+                  </h3>
+                </div>
+                <div class="col-md-4 col-sm-4 col-xs-offset-1 col-xs-4 text-right">
+                  <!-- TOO: deployments/pods are related... should this be able to work?
+                  <a
+                    href="/project/{{projectName}}/logs/deployments/{{deployment.metadata.name}}/log"
+                    class="btn bt-primary">
+                    View Log
+                  </a>
+                  -->
+                </div>
+              </div>
               <div>
                 <dt>Created:</dt>
                 <dd><relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp></dd>
@@ -132,7 +145,7 @@
                 <dt>Pod Template:</dt>
                 <dd>
                   <pod-template
-                    pod-template="deployment.spec.template" 
+                    pod-template="deployment.spec.template"
                     images-by-docker-reference="imagesByDockerReference"
                     builds="builds"></pod-template>
                 </dd>
@@ -216,7 +229,7 @@
 
                 <dd>
                   <pod-template
-                    pod-template="deployment.spec.template" 
+                    pod-template="deployment.spec.template"
                     images-by-docker-reference="imagesByDockerReference"
                     builds="builds">
                   </pod-template>
@@ -226,7 +239,7 @@
             </div>
           </dl>
         </div>
-      </div>      
+      </div>
     </div>
   </project-page>
 </div>

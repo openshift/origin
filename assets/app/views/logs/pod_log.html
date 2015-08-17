@@ -1,0 +1,17 @@
+<div class="content">
+  <project-page>
+    <div layout flex row class="page-header page-header-bleed-right">
+      <div flex>
+        <h1>Pod log for {{logName}}</h1>
+      </div>
+      <div flex cross-axis="end" column main-axis="center">
+        <button class="btn btn-default actions">View log archive</button>
+      </div>
+    </div>
+    <alerts alerts="alerts"></alerts>
+      <ng-include
+        src="'/views/logs/_log_controls.html'"></ng-include>
+      <ng-include
+        src="'/views/logs/_log_formatted.html'"></ng-include>
+  </project-page>
+</div>

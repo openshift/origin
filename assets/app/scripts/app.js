@@ -80,6 +80,19 @@ angular
     tab.icon = "sitemap";
     tabs.push(tab);
 
+    tab = builder
+            .create()
+            .id(builder.join(pluginName, 'logs'))
+            .title(function() { return 'Logs'; })
+            .template(template)
+            .href(projectHref('logs'))
+            .subPath('Builds', 'builds' )
+            //.subPath('Deployments', 'deployments' )
+            .subPath('Pods', 'pods')
+            .build();
+    tab.icon = 'list-ol';
+    tabs.push(tab);
+
     tab = builder.create()
      .id(builder.join(pluginName, "settings"))
      .title(function () { return "Settings"; })
@@ -149,6 +162,33 @@ angular
       })
       .when('/project/:project/create/fromimage', {
         templateUrl: 'views/create/fromimage.html'
+      })
+      .when('/project/:project/logs', {
+        redirectTo: function(params) {
+          return '/project/' + encodeURIComponent(params.project) + "/logs/builds";
+        }
+      })
+      .when('/project/:project/logs/builds', {
+        templateUrl: 'views/logs/builds.html'
+      })
+      .when('/project/:project/logs/builds/:build/log', {
+        controller: 'BuildLog',
+        templateUrl: function(params) {
+          return params.view ?
+                    'views/logs/'+params.view+'_log.html' :
+                    'views/logs/build_log.html';
+        }
+      })
+      .when('/project/:project/logs/pods', {
+        templateUrl: 'views/logs/pods.html'
+      })
+      .when('/project/:project/logs/pods/:pod/log', {
+        controller: 'PodLog',
+        templateUrl: function(params) {
+          return params.view ?
+                    'views/logs/'+params.view+'_log.html' :
+                    'views/logs/pod_log.html';
+        }
       })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',

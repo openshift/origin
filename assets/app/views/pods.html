@@ -4,14 +4,25 @@
       <div class="page-header page-header-bleed-right">
         <h1>Pods</h1>
       </div>
-      <alerts alerts="alerts"></alerts>      
+      <alerts alerts="alerts"></alerts>
       <div ng-if="(pods | hashSize) == 0">
         <div>
           <em>{{emptyMessage}}</em>
         </div>
-      </div>      
+      </div>
       <div ng-repeat="pod in pods | orderObjectsByDate : true" class="tile pod-well">
-        <h2>{{pod.metadata.name}}</h2>
+        <div class="row">
+          <div class="col-md-7 col-sm-7 col-xs-7">
+            <h2>{{pod.metadata.name}}</h2>
+          </div>
+          <div class="col-md-4 col-sm-4 col-xs-offset-1 col-xs-4 text-right">
+            <a
+              href="/project/{{projectName}}/logs/pods/{{pod.metadata.name}}/log"
+              class="btn btn-primary">
+              View Log
+            </a>
+          </div>
+        </div>
         <div class="row">
           <div class="col-md-6">
               <div class="pod-detail">
@@ -33,7 +44,7 @@
             </div>
             <div class="pod-detail">
               <span class="pod-detail-label">Restart policy:</span>
-              {{pod.spec.restartPolicy || 'Always'}}          
+              {{pod.spec.restartPolicy || 'Always'}}
             </div>
             <div ng-if="pod.spec.volumes.length">
               <span class="pod-detail-label">Volumes:</span>
@@ -59,7 +70,7 @@
           <div class="col-md-6">
           <div>Pod template:</div>
           <pod-template
-            pod-template="pod" 
+            pod-template="pod"
             images-by-docker-reference="imagesByDockerReference"
             builds="builds">
           </pod-template>

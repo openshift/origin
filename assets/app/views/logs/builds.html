@@ -1,0 +1,20 @@
+<div ng-controller="ProjectController" class="content">
+    <project-page>
+        <div ng-controller="projects.logs.builds">
+          <div class="page-header page-header-bleed-right">
+            <h1>Project {{projectName}} build logs</h1>
+          </div>
+          <alerts alerts="alerts"></alerts>
+          <div
+            ng-repeat="build in builds | orderObjectsByDate : true"
+            class="pod-well">
+            <div>
+              <a
+                href="/project/{{projectName}}/logs/builds/{{build.metadata.name}}/log">
+                 {{build.metadata.name}}
+              </a>
+            </div>
+          </div>
+        </div>
+    </project-page>
+</div>

@@ -293,8 +293,13 @@ html, body {
   margin-left: 3px;
 }
 
-// Misc
+
+// Misc 
+// TODO: pull out into _partials where it makes sense 
 // --------------------------------------------------
+a[ng-click] {
+  cursor: pointer;
+}
 .action-inline {
   margin-left: @action-link-inline-margin;
   font-size: @font-size-small;
@@ -442,6 +447,11 @@ select:invalid {
   width: 12px;
 }
 
+.spinner.spinner-inverse {
+  border-color: rgba(0,153,211, .25);
+  border-top-color: rgba(0,153,211, .75);
+}
+
 .attention-message {
   background-color: lighten(@brand-primary, 20%);
   border: 1px solid darken(@brand-primary, 10%);
@@ -468,4 +478,9 @@ select:invalid {
 }
 .input-number {
   width: 60px;
+}
+
+[flex].page-header {
+  // reduced for consistency if used with flex 
+  margin-top: 21px;
 }

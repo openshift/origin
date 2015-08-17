@@ -1,0 +1,24 @@
+<div ng-controller="ProjectController" class="content">
+  <project-page>
+    <div ng-controller="projects.logs.pods">
+      <div class="page-header page-header-bleed-right">
+        <h1>Project {{projectName}} pod and container logs</h1>
+      </div>
+      <alerts alerts="alerts"></alerts>
+      <div
+        ng-repeat="pod in pods | orderObjectsByDate : true"
+        class="pod-well">
+        <div>
+           {{pod.metadata.name}}
+        </div>
+        <div>Containers:</div>
+        <div ng-repeat="container in pod.spec.containers">
+
+          <a href="/project/{{projectName}}/logs/pods/{{pod.metadata.name}}/log?container={{container.name}}">
+          - <strong>{{container.name}}</strong>, {{container.image | limitTo:50}}
+          </a>
+        </div>
+      </div>
+    </div>
+  </project-page>
+</div>
