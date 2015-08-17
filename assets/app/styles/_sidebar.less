@@ -236,6 +236,17 @@
   }
 }
 
+@media (min-width: @screen-sm-min) and (max-width: @screen-lg-max) {
+  //Ensure icon and text stack
+  ul.nav-sidenav > li {
+    > a {
+      span {
+        padding: 0 10px;
+      }
+    }
+  }
+}
+
 @media (min-width: @screen-lg-min) { 
   .console-os {
     .wrap {

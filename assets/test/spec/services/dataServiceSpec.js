@@ -53,9 +53,20 @@ describe("DataService", function(){
       // Subresources aren't lowercased
       [{resource:'buildconfigs/webhooks/Aa1/github',     name:"mycfg",      namespace:"foo"}, "http://localhost:8443/oapi/v1/namespaces/foo/buildconfigs/mycfg/webhooks/Aa1/github"],
 
-      // Watch
-      [{resource:'pods', namespace:"foo", isWebsocket:true                     }, "ws://localhost:8443/api/v1/watch/namespaces/foo/pods"],
-      [{resource:'pods', namespace:"foo", isWebsocket:true, resourceVersion:"5"}, "ws://localhost:8443/api/v1/watch/namespaces/foo/pods?resourceVersion=5"],
+
+
+      // Plain websocket
+      [{resource:'pods', namespace:"foo", isWebsocket:true      }, "ws://localhost:8443/api/v1/namespaces/foo/pods"],
+
+      // Watch resource
+      [{resource:'pods', namespace:"foo", isWebsocket:true, watch: true                       }, "ws://localhost:8443/api/v1/namespaces/foo/pods?watch=true"],
+      [{resource:'pods', namespace:"foo", isWebsocket:true, watch: true, resourceVersion:"5"  }, "ws://localhost:8443/api/v1/namespaces/foo/pods?watch=true&resourceVersion=5"],
+
+      // Follow log
+      [{resource:'pods/log', namespace:"foo", isWebsocket:true, follow: true                       }, "ws://localhost:8443/api/v1/namespaces/foo/pods?follow=true"],
+      [{resource:'builds/log', namespace:"foo", isWebsocket:true, follow: true                     }, "ws://localhost:8443/oapi/v1/namespaces/foo/builds?follow=true"],
+
+
 
       // Namespaced subresource with params
       [{resource:'pods/proxy', name:"mypod", namespace:"myns", myparam1:"myvalue"}, "http://localhost:8443/api/v1/namespaces/myns/pods/mypod/proxy?myparam1=myvalue"],
