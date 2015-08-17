@@ -6,16 +6,17 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/credentialprovider"
+	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/util"
+	"github.com/openshift/origin/pkg/util/namer"
 )
 
 // BuildGenerator is a central place responsible for generating new Build objects
@@ -550,7 +551,11 @@ func getNextBuildNameFromBuild(build *buildapi.Build) string {
 		nameElems := strings.Split(buildName, "-")
 		buildName = strings.Join(nameElems[:len(nameElems)-1], "-")
 	}
-	return fmt.Sprintf("%s-%d", buildName, int32(util.Now().Unix()))
+	suffix := fmt.Sprintf("%v", util.Now().UnixNano())
+	if len(suffix) > 10 {
+		suffix = suffix[len(suffix)-10:]
+	}
+	return namer.GetName(buildName, suffix, util.DNS1123SubdomainMaxLength)
 }
 
 // getStrategyImageChangeTrigger returns the ImageChangeTrigger that corresponds to the BuildConfig's strategy
