@@ -232,13 +232,17 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			// Update the existing resource version
 			currClient.ResourceVersion = existing.ResourceVersion
 
-			// Add in any redirects from the existing one
-			// This preserves any additional customized redirects in the default clients
-			redirects := util.NewStringSet(currClient.RedirectURIs...)
-			for _, redirect := range existing.RedirectURIs {
-				if !redirects.Has(redirect) {
-					currClient.RedirectURIs = append(currClient.RedirectURIs, redirect)
-					redirects.Insert(redirect)
+			// Preserve redirects for clients other than the CLI client
+			// The CLI client doesn't care about the redirect URL, just the token or error fragment
+			if currClient.Name != OSCliClientBase.Name {
+				// Add in any redirects from the existing one
+				// This preserves any additional customized redirects in the default clients
+				redirects := util.NewStringSet(currClient.RedirectURIs...)
+				for _, redirect := range existing.RedirectURIs {
+					if !redirects.Has(redirect) {
+						currClient.RedirectURIs = append(currClient.RedirectURIs, redirect)
+						redirects.Insert(redirect)
+					}
 				}
 			}
 
