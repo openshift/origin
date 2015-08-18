@@ -25,7 +25,7 @@
                           required
                           minlength="2"
                           maxlength="24"
-                          pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+                          pattern="[a-z]([-a-z0-9]*[a-z0-9])?"
                           ng-model="name"
                           name="appname"
                           ng-change="nameTaken = false">
@@ -33,7 +33,7 @@
                   <p class="help-block">Used to uniquely identify within this project all the resources created to support the application.</p>
                   <div class="has-error" ng-show="form.appname.$error.pattern">
                     <span class="help-block"><strong>Please enter a valid name.</strong>
-                    <p>A valid name is applied to all generated resources and is an alphanumeric (a-z, and 0-9) string, with a maximum length of 24 characters, with the '-' character allowed anywhere except the first or last character.</p>
+                    <p>A valid name is applied to all generated resources. It is an alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.</p>
                     </span>
                   </div>
                   <div class="has-error" ng-show="form.appname.$error.required">
