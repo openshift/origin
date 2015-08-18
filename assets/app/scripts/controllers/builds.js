@@ -17,6 +17,8 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     // Expand builds on load if there's a hash that might link to a hidden build.
     $scope.expanded = !!$location.hash();
+    // Show only 3 builds for each build config by default.
+    $scope.defaultBuildLimit = 3;
 
     $scope.buildsByBuildConfig = {};
 
