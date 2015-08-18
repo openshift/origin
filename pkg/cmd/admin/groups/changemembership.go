@@ -70,7 +70,7 @@ func NewCmdRemoveUsers(name, fullName string, f *clientcmd.Factory, out io.Write
 		Use:     name + " GROUP USER [USER ...]",
 		Short:   "Remove users from a group",
 		Long:    removeLong,
-		Example: fmt.Sprintf(addExample, fullName),
+		Example: fmt.Sprintf(removeExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
