@@ -109,7 +109,7 @@ func TestRouter(t *testing.T) {
 		},
 		{
 			name:              "non-secure-path",
-			serviceName:       "example",
+			serviceName:       "example-path",
 			endpoints:         []kapi.EndpointSubset{httpEndpoint},
 			routeAlias:        "www.example-unsecure.com",
 			routePath:         "/test",
@@ -124,7 +124,7 @@ func TestRouter(t *testing.T) {
 			name:              "edge termination",
 			serviceName:       "example-edge",
 			endpoints:         []kapi.EndpointSubset{httpEndpoint},
-			routeAlias:        "www.example.com",
+			routeAlias:        "www.example-edge.com",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
 			protocol:          "https",
@@ -139,9 +139,9 @@ func TestRouter(t *testing.T) {
 		},
 		{
 			name:              "edge termination path",
-			serviceName:       "example-edge",
+			serviceName:       "example-edge-path",
 			endpoints:         []kapi.EndpointSubset{httpEndpoint},
-			routeAlias:        "www.example.com",
+			routeAlias:        "www.example-edge.com",
 			routePath:         "/test",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
@@ -156,10 +156,47 @@ func TestRouter(t *testing.T) {
 			routerUrl: "0.0.0.0/test",
 		},
 		{
+			name:              "reencrypt",
+			serviceName:       "example-reencrypt",
+			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
+			routeAlias:        "www.example-reencrypt.com",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "https",
+			expectedResponse:  tr.HelloPodSecure,
+			routeTLS: &routeapi.TLSConfig{
+				Termination:              routeapi.TLSTerminationReencrypt,
+				Certificate:              tr.ExampleCert,
+				Key:                      tr.ExampleKey,
+				CACertificate:            tr.ExampleCACert,
+				DestinationCACertificate: tr.ExampleCACert,
+			},
+			routerUrl: "0.0.0.0",
+		},
+		{
+			name:              "reencrypt path",
+			serviceName:       "example-reencrypt-path",
+			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
+			routeAlias:        "www.example-reencrypt.com",
+			routePath:         "/test",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "https",
+			expectedResponse:  tr.HelloPodPathSecure,
+			routeTLS: &routeapi.TLSConfig{
+				Termination:              routeapi.TLSTerminationReencrypt,
+				Certificate:              tr.ExampleCert,
+				Key:                      tr.ExampleKey,
+				CACertificate:            tr.ExampleCACert,
+				DestinationCACertificate: tr.ExampleCACert,
+			},
+			routerUrl: "0.0.0.0/test",
+		},
+		{
 			name:              "passthrough termination",
 			serviceName:       "example-passthrough",
 			endpoints:         []kapi.EndpointSubset{httpsEndpoint},
-			routeAlias:        "www.example2.com",
+			routeAlias:        "www.example-passthrough.com",
 			endpointEventType: watch.Added,
 			routeEventType:    watch.Added,
 			protocol:          "https",
@@ -213,6 +250,7 @@ func TestRouter(t *testing.T) {
 		},
 	}
 
+	ns := "rotorouter"
 	for _, tc := range testCases {
 		//simulate the events
 		endpointEvent := &watch.Event{
@@ -220,7 +258,8 @@ func TestRouter(t *testing.T) {
 
 			Object: &kapi.Endpoints{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: tc.serviceName,
+					Name:      tc.serviceName,
+					Namespace: ns,
 				},
 				Subsets: tc.endpoints,
 			},
@@ -229,6 +268,10 @@ func TestRouter(t *testing.T) {
 		routeEvent := &watch.Event{
 			Type: tc.routeEventType,
 			Object: &routeapi.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      tc.serviceName,
+					Namespace: ns,
+				},
 				Host:        tc.routeAlias,
 				Path:        tc.routePath,
 				ServiceName: tc.serviceName,

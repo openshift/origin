@@ -3,12 +3,12 @@
 config_file=/var/lib/haproxy/conf/haproxy.config
 pid_file=/var/lib/haproxy/run/haproxy.pid
 old_pid=""
-path_map_file=/var/lib/haproxy/conf/os_http_be.map
-edge_path_map_file=/var/lib/haproxy/conf/os_edge_http_be.map
+haproxy_conf_dir=/var/lib/haproxy/conf
 
 # sort the path based map files for the haproxy map_beg function
-sort -r $path_map_file -o $path_map_file
-sort -r $edge_path_map_file -o $edge_path_map_file
+for mapfile in "$haproxy_conf_dir"/*.map; do
+  sort -r "$mapfile" -o "$mapfile"
+done
 
 if [ -f $pid_file ]; then
   old_pid=$(<$pid_file)
