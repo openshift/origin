@@ -143,7 +143,7 @@ Remove users from a group
 
 [options="nowrap"]
 ----
-  // Add user1 and user2 to my-group
+  // Remove user1 and user2 from my-group
   $ openshift admin groups remove-users my-group user1 user2
 ----
 ====
