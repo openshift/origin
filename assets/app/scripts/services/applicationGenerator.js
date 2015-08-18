@@ -202,6 +202,16 @@ angular.module("openshiftConsole")
           type: "ImageChange"
         });
       }
+
+      // User can input a URL that contains a ref
+      var uri = new URI(input.buildConfig.sourceUrl);
+      var sourceRef = uri.fragment();
+      if (!sourceRef || sourceRef.length === 0) {
+        sourceRef = "master";
+      }
+      uri.fragment("");
+      var sourceUrl = uri.href();
+
       return {
         apiVersion: oApiVersion,
         kind: "BuildConfig",
@@ -219,8 +229,8 @@ angular.module("openshiftConsole")
           },
           source: {
             git: {
-              ref: "master",
-              uri: input.buildConfig.sourceUrl
+              ref: sourceRef,
+              uri: sourceUrl
             },
             type: "Git"
           },
