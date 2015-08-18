@@ -185,7 +185,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			}
 			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.ClusterIP, portMappings)
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "A build was created - you can run `%s start-build %s` to start it.\n", fullName, t.Name)
+			fmt.Fprintf(c.Out(), "Build %q created and started - you can run `%s status` to check the progress.\n", t.Name, fullName)
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
 				if hasMissingRepo {
