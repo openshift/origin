@@ -14,6 +14,10 @@ func (e UriValidationError) Error() string {
 	return string(e)
 }
 
+func newUriValidationError(msg string, base string, redirect string) UriValidationError {
+	return UriValidationError(fmt.Sprintf("%s: %s / %s", msg, base, redirect))
+}
+
 // ValidateUriList validates that redirectUri is contained in baseUriList.
 // baseUriList may be a string separated by separator.
 // If separator is blank, validate only 1 URI.
@@ -40,7 +44,7 @@ func ValidateUriList(baseUriList string, redirectUri string, separator string) e
 		}
 	}
 
-	return UriValidationError(fmt.Sprintf("urls don't validate: %s / %s\n", baseUriList, redirectUri))
+	return newUriValidationError("urls don't validate", baseUriList, redirectUri)
 }
 
 // ValidateUri validates that redirectUri is contained in baseUri
@@ -67,11 +71,32 @@ func ValidateUri(baseUri string, redirectUri string) error {
 	}
 
 	// check if urls match
-	if base.Scheme == redirect.Scheme && base.Host == redirect.Host && len(redirect.Path) >= len(base.Path) && strings.HasPrefix(redirect.Path, base.Path) {
+	if base.Scheme != redirect.Scheme {
+		return newUriValidationError("scheme mismatch", baseUri, redirectUri)
+	}
+	if base.Host != redirect.Host {
+		return newUriValidationError("host mismatch", baseUri, redirectUri)
+	}
+
+	// allow exact path matches
+	if base.Path == redirect.Path {
 		return nil
 	}
 
-	return UriValidationError(fmt.Sprintf("urls don't validate: %s / %s\n", baseUri, redirectUri))
+	// ensure prefix matches are actually subpaths
+	requiredPrefix := strings.TrimRight(base.Path, "/") + "/"
+	if !strings.HasPrefix(redirect.Path, requiredPrefix) {
+		return newUriValidationError("path is not a subpath", baseUri, redirectUri)
+	}
+
+	// ensure prefix matches don't contain path traversals
+	for _, s := range strings.Split(strings.TrimPrefix(redirect.Path, requiredPrefix), "/") {
+		if s == ".." {
+			return newUriValidationError("subpath cannot contain path traversal", baseUri, redirectUri)
+		}
+	}
+
+	return nil
 }
 
 // Returns the first uri from an uri list
