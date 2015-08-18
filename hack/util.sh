@@ -55,31 +55,16 @@ function configure_os_server {
   oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
 
   echo "[INFO] Creating OpenShift config"
-  # FIXME
-  # test-cmd which is tested in Travis needs to set OS server
-  # to listen on localhost.
-  if [[ "${TRAVIS_TEST}" == "true" ]]; then
-    openshift start \
-      --write-config=${SERVER_CONFIG_DIR} \
-      --create-certs=false \
-      --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-      --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-      --hostname="${KUBELET_HOST}" \
-      --volume-dir="${VOLUME_DIR}" \
-      --etcd-dir="${ETCD_DATA_DIR}" \
-      --images="${USE_IMAGES}"
-  else
-    openshift start \
-      --write-config=${SERVER_CONFIG_DIR} \
-      --create-certs=false \
-      --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
-      --master="${MASTER_ADDR}" \
-      --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
-      --hostname="${KUBELET_HOST}" \
-      --volume-dir="${VOLUME_DIR}" \
-      --etcd-dir="${ETCD_DATA_DIR}" \
-      --images="${USE_IMAGES}"
-  fi
+  openshift start \
+    --write-config=${SERVER_CONFIG_DIR} \
+    --create-certs=false \
+    --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
+    --master="${MASTER_ADDR}" \
+    --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
+    --hostname="${KUBELET_HOST}" \
+    --volume-dir="${VOLUME_DIR}" \
+    --etcd-dir="${ETCD_DATA_DIR}" \
+    --images="${USE_IMAGES}"
 }
 
 
@@ -87,21 +72,11 @@ function configure_os_server {
 # and waits until OS server endpoints are available
 function start_os_server {
   echo "[INFO] Starting OpenShift server"
-  # FIXME
-  # test-cmd which is tested in Travis cant run as sudo
-  if [[ "${TRAVIS_TEST}" == "true" ]]; then
-    OPENSHIFT_ON_PANIC=crash openshift start \
-      --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
-      --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-      --loglevel=4 \
-      1>&2 2>"${BASETMPDIR}/openshift.log" &
-  else
-    sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
-      --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
-      --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-      --loglevel=4 \
-      &> "${BASETMPDIR}/openshift.log" &
-  fi
+  sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
+    --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+    --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+    --loglevel=4 \
+    &> "${BASETMPDIR}/openshift.log" &
   export OS_PID=$!
 
   wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
@@ -378,20 +353,20 @@ remove_tmp_dir() {
   fi
 }
 
-# stop_openshift_server utility function to terminate an
-# all-in-one running instance of OpenShift
-function stop_openshift_server()
+# kill_all_processes function will kill all 
+# all processes created by the test script.
+function kill_all_processes()
 {
-    set +e
-    set +u
-    if [ -n $OS_PID ] ; then
-      echo "[INFO] Found running OpenShift Server instance"
-      sudo kill -INT $OS_PID 1>&2 2>/dev/null
-      unset OS_PID
-      echo "[INFO] Terminated OpenShift Server"
-    fi
-    set -u
-    set -e
+  sudo=
+  if type sudo &> /dev/null; then
+    sudo=sudo
+  fi
+
+  pids=($(jobs -pr))
+  for i in ${pids[@]}; do
+    ps --ppid=${i} | xargs $sudo kill &> /dev/null
+    $sudo kill ${i} &> /dev/null &> /dev/null
+  done
 }
 
 # time_now return the time since the epoch in millis
