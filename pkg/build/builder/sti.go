@@ -75,6 +75,15 @@ func (s *STIBuilder) Build() error {
 		config.Ref = s.build.Spec.Source.Git.Ref
 	}
 
+	allowedUIDs := os.Getenv("ALLOWED_UIDS")
+	glog.V(2).Infof("The value of ALLOWED_UIDS is [%s]", allowedUIDs)
+	if len(allowedUIDs) > 0 {
+		err := config.AllowedUIDs.Set(allowedUIDs)
+		if err != nil {
+			return err
+		}
+	}
+
 	if errs := validation.ValidateConfig(config); len(errs) != 0 {
 		var buffer bytes.Buffer
 		for _, ve := range errs {

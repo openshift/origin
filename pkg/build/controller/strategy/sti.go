@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -19,7 +22,8 @@ type SourceBuildStrategy struct {
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
-	Codec runtime.Codec
+	Codec            runtime.Codec
+	AdmissionControl admission.Interface
 }
 
 type TempDirectoryCreator interface {
@@ -53,6 +57,11 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
 	}
 
+	// check if can run container as root
+	if !bs.canRunAsRoot(build) {
+		containerEnv = append(containerEnv, kapi.EnvVar{Name: "ALLOWED_UIDS", Value: "1-"})
+	}
+
 	privileged := true
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
@@ -84,4 +93,35 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret)
 	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
 	return pod, nil
+}
+
+func (bs *SourceBuildStrategy) canRunAsRoot(build *buildapi.Build) bool {
+	var rootUser int64
+	rootUser = 0
+	pod := &kapi.Pod{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      buildutil.GetBuildPodName(build),
+			Namespace: build.Namespace,
+		},
+		Spec: kapi.PodSpec{
+			ServiceAccountName: build.Spec.ServiceAccount,
+			Containers: []kapi.Container{
+				{
+					Name:  "sti-build",
+					Image: bs.Image,
+					SecurityContext: &kapi.SecurityContext{
+						RunAsUser: &rootUser,
+					},
+				},
+			},
+			RestartPolicy: kapi.RestartPolicyNever,
+		},
+	}
+	userInfo := serviceaccount.UserInfo(build.Namespace, build.Spec.ServiceAccount, "")
+	attrs := admission.NewAttributesRecord(pod, "Pod", pod.Namespace, pod.Name, "pods", "", admission.Create, userInfo)
+	err := bs.AdmissionControl.Admit(attrs)
+	if err != nil {
+		glog.V(2).Infof("Admit for root user returned error: %v", err)
+	}
+	return err == nil
 }
