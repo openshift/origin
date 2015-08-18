@@ -11,10 +11,8 @@ import (
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
 	sti "github.com/openshift/source-to-image/pkg/build/strategies"
-	stidocker "github.com/openshift/source-to-image/pkg/docker"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 )
@@ -23,18 +21,14 @@ import (
 type STIBuilder struct {
 	dockerClient DockerClient
 	dockerSocket string
-	authPresent  bool
-	auth         docker.AuthConfiguration
 	build        *api.Build
 }
 
 // NewSTIBuilder creates a new STIBuilder instance
-func NewSTIBuilder(client DockerClient, dockerSocket string, authCfg docker.AuthConfiguration, authPresent bool, build *api.Build) *STIBuilder {
+func NewSTIBuilder(client DockerClient, dockerSocket string, build *api.Build) *STIBuilder {
 	return &STIBuilder{
 		dockerClient: client,
 		dockerSocket: dockerSocket,
-		authPresent:  authPresent,
-		auth:         authCfg,
 		build:        build,
 	}
 }
@@ -44,7 +38,7 @@ func (s *STIBuilder) Build() error {
 	var push bool
 
 	// if there is no output target, set one up so the docker build logic
-	// will still work, but we won't push it at the end.
+	// (which requires a tag) will still work, but we won't push it at the end.
 	if s.build.Spec.Output.To == nil || len(s.build.Spec.Output.To.Name) == 0 {
 		s.build.Spec.Output.To = &kapi.ObjectReference{
 			Kind: "DockerImage",
@@ -86,10 +80,9 @@ func (s *STIBuilder) Build() error {
 
 	// If DockerCfgPath is provided in api.Config, then attempt to read the the
 	// dockercfg file and get the authentication for pulling the builder image.
-	if r, err := os.Open(config.DockerCfgPath); err == nil {
-		config.PullAuthentication = stidocker.GetImageRegistryAuth(r, config.BuilderImage)
-		glog.Infof("Using provided pull secret for pulling %s image", config.BuilderImage)
-	}
+	config.PullAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)
+	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(tag, dockercfg.PushAuthType)
+
 	glog.V(2).Infof("Creating a new S2I builder with build config: %#v\n", describe.DescribeConfig(config))
 	builder, err := sti.GetStrategy(config)
 	if err != nil {
@@ -144,10 +137,9 @@ func (s *STIBuilder) Build() error {
 		)
 		if authPresent {
 			glog.Infof("Using provided push secret for pushing %s image", tag)
-			s.auth = pushAuthConfig
 		}
 		glog.Infof("Pushing %s image ...", tag)
-		if err := pushImage(s.dockerClient, tag, s.auth); err != nil {
+		if err := pushImage(s.dockerClient, tag, pushAuthConfig); err != nil {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
 		glog.Infof("Successfully pushed %s", tag)
