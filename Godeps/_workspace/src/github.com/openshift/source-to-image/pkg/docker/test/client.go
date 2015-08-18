@@ -132,3 +132,7 @@ func (d *FakeDockerClient) BuildImage(opts docker.BuildImageOptions) error {
 	d.BuildImageOpts = opts
 	return d.BuildImageErr
 }
+
+func (d *FakeDockerClient) InspectContainer(id string) (*docker.Container, error) {
+	return nil, d.BuildImageErr
+}

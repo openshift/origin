@@ -35,6 +35,9 @@ func DescribeConfig(config *api.Config) string {
 			fmt.Fprintf(out, "Environment File:\t%s\n", config.EnvironmentFile)
 		}
 		fmt.Fprintf(out, "Incremental Build:\t%s\n", printBool(config.Incremental))
+		if config.Incremental {
+			fmt.Fprintf(out, "Incremental Image Pull User:\t%s\n", config.IncrementalAuthentication.Username)
+		}
 		fmt.Fprintf(out, "Remove Old Build:\t%s\n", printBool(config.RemovePreviousImage))
 		fmt.Fprintf(out, "Force Pull:\t%s\n", printBool(config.ForcePull))
 		fmt.Fprintf(out, "Quiet:\t%s\n", printBool(config.Quiet))
@@ -72,6 +75,7 @@ func describeBuilderImage(config *api.Config, image string, out io.Writer) {
 		BuilderImage:       config.BuilderImage,
 		ForcePull:          config.ForcePull,
 		Tag:                config.Tag,
+		IncrementalAuthentication: config.IncrementalAuthentication,
 	}
 	build.GenerateConfigFromLabels(image, c)
 	if len(c.DisplayName) > 0 {
