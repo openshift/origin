@@ -83,27 +83,30 @@ func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (s
 	return isTag.Items[0].DockerImageReference, nil
 }
 
-// CreatePodForImage creates a Pod for the given image name. The dockerImageReference
-// must be full docker pull spec.
-func CreatePodForImage(dockerImageReference string) *kapi.Pod {
-	podName := namer.GetPodName("test-pod", string(kutil.NewUUID()))
+// GetPodForContainer creates a new Pod that runs specified container
+func GetPodForContainer(container kapi.Container) *kapi.Pod {
+	name := namer.GetPodName("test-pod", string(kutil.NewUUID()))
 	return &kapi.Pod{
 		TypeMeta: kapi.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
 		ObjectMeta: kapi.ObjectMeta{
-			Name:   podName,
-			Labels: map[string]string{"name": podName},
+			Name:   name,
+			Labels: map[string]string{"name": name},
 		},
 		Spec: kapi.PodSpec{
-			Containers: []kapi.Container{
-				{
-					Name:  podName,
-					Image: dockerImageReference,
-				},
-			},
+			Containers:    []kapi.Container{container},
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
+}
+
+// GetPodForImage creates a new Pod that runs the containers from specified
+// Docker image reference
+func GetPodForImage(dockerImageReference string) *kapi.Pod {
+	return GetPodForContainer(kapi.Container{
+		Name:  "test",
+		Image: dockerImageReference,
+	})
 }

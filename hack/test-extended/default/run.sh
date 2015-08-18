@@ -15,20 +15,18 @@ source ${OS_ROOT}/hack/common.sh
 
 
 cleanup() {
-    stop_openshift_server
-    rm -rf ${ETCD_DIR-}
+  stop_openshift_server
+  rm -rf ${ETCD_DIR-}
 
-	echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-	if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-		echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-	fi
+  echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+  if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
+    echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
+  fi
 
-    echo "[INFO] Cleanup complete"
+  echo "[INFO] Cleanup complete"
 }
 
 test_privileges
-
-echo "[INFO] Starting 'default' extended tests"
 
 TIME_SEC=1000
 TIME_MIN=$((60 * $TIME_SEC))
@@ -133,6 +131,8 @@ echo "[INFO] Starting extended tests ..."
 echo "[INFO] MASTER IP - ${MASTER_ADDR}"
 echo "[INFO] SERVER CONFIG PATH - ${SERVER_CONFIG_DIR}"
 
+TEST_TAGS="${TEST_TAGS:-default}"
+
 KUBECONFIG="${ADMIN_KUBECONFIG}" \
 	GOPATH="${OS_ROOT}/Godeps/_workspace:${GOPATH}" \
-	go test -v -tags=default ./test/extended
+	go test -v -tags=${TEST_TAGS} "$@" ./test/extended
