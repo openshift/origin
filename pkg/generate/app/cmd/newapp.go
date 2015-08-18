@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -435,9 +434,6 @@ func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, util.DNS1123SubdomainMaxLength)
 		name = name[:util.DNS1123SubdomainMaxLength]
 	}
-
-	// Make all names lowercase
-	name = strings.ToLower(name)
 
 	count, existing := names[name]
 	if !existing {
