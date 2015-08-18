@@ -235,14 +235,15 @@ func TestWasExpectedError(t *testing.T) {
 
 func testBuildHandler() *STI {
 	s := &STI{
-		docker:          &test.FakeDocker{},
-		installer:       &test.FakeInstaller{},
-		git:             &test.FakeGit{},
-		fs:              &test.FakeFileSystem{ExistsResult: map[string]bool{"a-repo-source/.": true}},
-		tar:             &test.FakeTar{},
-		config:          &api.Config{},
-		result:          &api.Result{},
-		callbackInvoker: &test.FakeCallbackInvoker{},
+		docker:            &test.FakeDocker{},
+		incrementalDocker: &test.FakeDocker{},
+		installer:         &test.FakeInstaller{},
+		git:               &test.FakeGit{},
+		fs:                &test.FakeFileSystem{ExistsResult: map[string]bool{"a-repo-source/.": true}},
+		tar:               &test.FakeTar{},
+		config:            &api.Config{},
+		result:            &api.Result{},
+		callbackInvoker:   &test.FakeCallbackInvoker{},
 	}
 	s.source = &git.Clone{s.git, s.fs}
 	return s
@@ -359,8 +360,8 @@ func TestExists(t *testing.T) {
 		bh.config.Incremental = ti.incremental
 		bh.config.ForcePull = true
 		bh.installedScripts = map[string]bool{api.SaveArtifacts: ti.scriptInstalled}
-		bh.docker.(*test.FakeDocker).PullResult = ti.previousImage
-
+		bh.incrementalDocker.(*test.FakeDocker).PullResult = ti.previousImage
+		bh.config.DockerConfig = &api.DockerConfig{Endpoint: "http://localhost:4243"}
 		incremental := bh.Exists(bh.config)
 		if incremental != ti.expected {
 			t.Errorf("(%d) Unexpected incremental result: %v. Expected: %v",

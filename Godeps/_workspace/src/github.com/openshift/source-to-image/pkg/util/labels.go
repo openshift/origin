@@ -32,7 +32,6 @@ func GenerateLabelsFromConfig(labels map[string]string, config *api.Config, name
 	}
 
 	addBuildLabel(labels, "image", config.BuilderImage, namespace)
-	addBuildLabel(labels, "source-context-dir", config.ContextDir, namespace)
 	return labels
 }
 
@@ -50,6 +49,7 @@ func GenerateLabelsFromSourceInfo(labels map[string]string, info *api.SourceInfo
 	addBuildLabel(labels, "commit.ref", info.Ref, namespace)
 	addBuildLabel(labels, "commit.message", info.Message, namespace)
 	addBuildLabel(labels, "source-location", info.Location, namespace)
+	addBuildLabel(labels, "source-context-dir", info.ContextDir, namespace)
 	return labels
 }
 

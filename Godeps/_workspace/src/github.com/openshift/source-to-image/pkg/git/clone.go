@@ -53,6 +53,10 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 			info = c.GetInfo(targetSourceDir)
 		}
 
+		if len(config.ContextDir) > 0 {
+			info.ContextDir = config.ContextDir
+		}
+
 		return info, nil
 	}
 	// we want to copy entire dir contents, thus we need to use dir/. construct
