@@ -12,6 +12,7 @@ import (
 	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -188,6 +189,27 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
 	}
 
+	c.serve(handler, extra)
+
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+func (c *MasterConfig) RunHealth() {
+	ws := &restful.WebService{}
+	mux := http.NewServeMux()
+	hc := kmaster.NewHandlerContainer(mux)
+	hc.Add(ws)
+
+	initHealthCheckRoute(ws, "/healthz")
+	initReadinessCheckRoute(ws, "/healthz/ready", func() bool { return true })
+	initMetricsRoute(ws, "/metrics")
+
+	c.serve(hc, []string{"Started health checks at %s"})
+}
+
+// serve starts serving the provided http.Handler using security settings derived from the MasterConfig
+func (c *MasterConfig) serve(handler http.Handler, extra []string) {
 	timeout := c.Options.ServingInfo.RequestTimeoutSeconds
 	if timeout == -1 {
 		timeout = 0
@@ -219,20 +241,19 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 			glog.Fatal(server.ListenAndServe())
 		}
 	}, 0)
+}
 
-	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-
+// InitializeObjects ensures objects in Kubernetes and etcd are properly populated.
+// Requires a Kube client to be established and that etcd be started.
+func (c *MasterConfig) InitializeObjects() {
 	// Create required policy rules if needed
 	c.ensureComponentAuthorizationRules()
 	// Ensure the default SCCs are created
 	c.ensureDefaultSecurityContextConstraints()
 	// Bind default roles for service accounts in the default namespace if needed
 	c.ensureDefaultNamespaceServiceAccountRoles()
-
 	// Create the infra namespace
 	c.ensureOpenShiftInfraNamespace()
-
 	// Create the shared resource namespace
 	c.ensureOpenShiftSharedResourcesNamespace()
 }
@@ -278,11 +299,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		container.Add(root)
 	}
 
-	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
 	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
-	initHealthCheckRoute(root, "healthz")
-	initReadinessCheckRoute(root, "healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
+
+	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
+	initHealthCheckRoute(root, "/healthz")
+	initReadinessCheckRoute(root, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 
 	return messages
 }
@@ -501,6 +523,17 @@ func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc fu
 		Returns(http.StatusOK, "if the master is ready", nil).
 		Returns(http.StatusServiceUnavailable, "if the master is not ready", nil).
 		Produces(restful.MIME_JSON))
+}
+
+// initHealthCheckRoute initalizes an HTTP endpoint for health checking.
+// OpenShift is deemed healthy if the API server can respond with an OK messages
+func initMetricsRoute(root *restful.WebService, path string) {
+	h := prometheus.Handler()
+	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
+		h.ServeHTTP(resp.ResponseWriter, req.Request)
+	}).Doc("return metrics for this process").
+		Returns(http.StatusOK, "if metrics are available", nil).
+		Produces("text/plain"))
 }
 
 func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {

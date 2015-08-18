@@ -171,7 +171,6 @@ _openshift_start_master_api()
     flags_completion+=("__handle_filename_extension_flag yaml|yml")
     flags+=("--help")
     flags+=("-h")
-    flags+=("--listen=")
 
     must_have_one_flag=()
     must_have_one_noun=()

@@ -59,7 +59,10 @@ assetConfig:
     keyFile: ""
     maxRequestsInFlight: 0
     requestTimeoutSeconds: 0
+controllerLeaseTTL: 0
+controllers: ""
 corsAllowedOrigins: null
+disabledFeatures: null
 dnsConfig:
   bindAddress: ""
   bindNetwork: ""
@@ -221,6 +224,7 @@ oauthConfig:
   tokenConfig:
     accessTokenMaxAgeSeconds: 0
     authorizeTokenMaxAgeSeconds: 0
+pauseControllers: false
 policyConfig:
   bootstrapPolicyFile: ""
   openshiftInfrastructureNamespace: ""
