@@ -84,7 +84,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
 	server.AdmissionControl = strings.Join([]string{
-		"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "ResourceQuota",
+		"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "ResourceQuota", "DenyExecOnPrivileged",
 	}, ",")
 
 	// resolve extended arguments

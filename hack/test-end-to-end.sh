@@ -136,6 +136,15 @@ function wait_for_app() {
 	wait_for_command '[[ "$(curl -s http://${FRONTEND_IP}:5432/keys/foo)" = "1337" ]]'
 }
 
+# Wait for builds to start
+# $1 namespace
+function wait_for_build_start() {
+        echo "[INFO] Waiting for $1 namespace build to start"
+        wait_for_command "oc get -n $1 builds | grep -i running" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
+        BUILD_ID=`oc get -n $1 builds  --output-version=v1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+        echo "[INFO] Build ${BUILD_ID} started"
+}
+
 # Wait for builds to complete
 # $1 namespace
 function wait_for_build() {
@@ -281,6 +290,9 @@ oc create -f "${STI_CONFIG_FILE}"
 # Wait for build which should have triggered automatically
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
 #oc start-build -n test ruby-sample-build --follow
+wait_for_build_start "test"
+# Ensure that the build pod doesn't allow exec
+[ "$(oc rsh ${BUILD_ID}-build 2>&1 | grep 'forbidden')" ]
 wait_for_build "test"
 wait_for_app "test"
 
