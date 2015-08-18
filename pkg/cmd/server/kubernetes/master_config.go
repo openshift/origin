@@ -40,7 +40,7 @@ type MasterConfig struct {
 	CloudProvider     cloudprovider.Interface
 }
 
-func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client) (*MasterConfig, error) {
+func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextMapper kapi.RequestContextMapper, kubeClient *kclient.Client, admissionControlClient kclient.Interface) (*MasterConfig, error) {
 	if options.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
 	}
@@ -115,13 +115,13 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		switch pluginName {
 		case saadmit.PluginName:
 			// we need to set some custom parameters on the service account admission controller, so create that one by hand
-			saAdmitter := saadmit.NewServiceAccount(kubeClient)
+			saAdmitter := saadmit.NewServiceAccount(admissionControlClient)
 			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
 			saAdmitter.Run()
 			plugins = append(plugins, saAdmitter)
 
 		default:
-			plugin := admission.InitPlugin(pluginName, kubeClient, server.AdmissionControlConfigFile)
+			plugin := admission.InitPlugin(pluginName, admissionControlClient, server.AdmissionControlConfigFile)
 			if plugin != nil {
 				plugins = append(plugins, plugin)
 			}

@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -397,7 +398,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
-	_, kClient, err := f.Clients()
+	osClient, kClient, err := f.Clients()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
@@ -427,7 +428,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			return fmt.Errorf("router could not be created; you must specify a service account with --service-account")
 		}
 
-		err := validateServiceAccount(kClient, namespace, cfg.ServiceAccount)
+		err := validateServiceAccount(osClient, namespace, cfg.ServiceAccount)
 		if err != nil {
 			return fmt.Errorf("router could not be created; %v", err)
 		}
@@ -599,9 +600,9 @@ func generateStatsPassword() string {
 	return strings.Join(password, "")
 }
 
-func validateServiceAccount(kClient *kclient.Client, ns string, sa string) error {
+func validateServiceAccount(osClient osclient.Interface, ns string, sa string) error {
 	// get cluster sccs
-	sccList, err := kClient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	sccList, err := osClient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return fmt.Errorf("unable to validate service account %v", err)
 	}
