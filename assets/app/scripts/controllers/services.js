@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ServicesController', function ($scope, DataService, $filter, LabelFilter, Logger) {
+  .controller('ServicesController', function ($scope, DataService, $filter, LabelFilter, Logger, $location, $anchorScroll) {
     $scope.services = {};
     $scope.unfilteredServices = {};
     $scope.routesByService = {};
@@ -17,13 +17,20 @@ angular.module('openshiftConsole')
     $scope.emptyMessage = "Loading...";
     var watches = [];
 
-    watches.push(DataService.watch("services", $scope, function(services) {
+    watches.push(DataService.watch("services", $scope, function(services, action) {
       $scope.unfilteredServices = services.by("metadata.name");
       LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredServices, $scope.labelSuggestions);
       LabelFilter.setLabelSuggestions($scope.labelSuggestions);
       $scope.services = LabelFilter.getLabelSelector().select($scope.unfilteredServices);
       $scope.emptyMessage = "No services to show";
       updateFilterWarning();
+
+      // Scroll to anchor on first load if location has a hash.
+      if (!action && $location.hash()) {
+        // Wait until the digest loop completes.
+        setTimeout($anchorScroll, 10);
+      }
+
       Logger.log("services (subscribe)", $scope.unfilteredServices);
     }));
 

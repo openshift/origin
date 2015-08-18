@@ -560,6 +560,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 				Resources: resources,
 			},
 		},
+		Status: buildapi.BuildConfigStatus{
+			LastVersion: 12,
+		},
 	}
 	revision := &buildapi.SourceRevision{
 		Type: buildapi.BuildSourceGit,
@@ -600,6 +603,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	if build.Status.Config.Name != bc.Name || build.Status.Config.Namespace != bc.Namespace || build.Status.Config.Kind != "BuildConfig" {
 		t.Errorf("Build does not contain correct BuildConfig reference: %v", build.Status.Config)
+	}
+	if build.Annotations[buildapi.BuildNumberAnnotation] != "13" {
+		t.Errorf("Build number annotation value %s does not match expected value 13", build.Annotations[buildapi.BuildNumberAnnotation])
 	}
 }
 

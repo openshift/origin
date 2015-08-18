@@ -25,7 +25,8 @@ angular.module('openshiftConsole')
       "encodedDeploymentConfig": ["openshift.io/encoded-deployment-config"],
       "deploymentVersion": ["openshift.io/deployment-config.latest-version"],
       "displayName": ["openshift.io/display-name"],
-      "description": ["openshift.io/description"]
+      "description": ["openshift.io/description"],
+      "buildNumber": ["openshift.io/build.number"]
     };
     return function(resource, key) {
       if (resource && resource.metadata && resource.metadata.annotations) {

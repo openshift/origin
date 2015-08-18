@@ -191,7 +191,7 @@ describe('', function() {
         expect(element(by.cssContainingText(".component .service","database")).isPresent()).toBe(true);
         expect(element(by.cssContainingText(".component .service","frontend")).isPresent()).toBe(true);
         expect(element(by.cssContainingText(".component .route","www.example.com")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".pod-template-build","Build: ruby-sample-build")).isPresent()).toBe(true);
+        expect(element(by.cssContainingText(".pod-template-build a","ruby-sample-build #1")).isPresent()).toBe(true);
         expect(element(by.cssContainingText(".deployment-trigger","new image for origin-ruby-sample:latest")).isPresent()).toBe(true);
         expect(element.all(by.css(".pod-running")).count()).toEqual(3);
         // TODO: validate correlated images, builds, source
