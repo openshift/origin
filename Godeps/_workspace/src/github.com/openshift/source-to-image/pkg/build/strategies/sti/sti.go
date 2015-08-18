@@ -11,18 +11,13 @@ import (
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/build/strategies/layered"
-	"github.com/openshift/source-to-image/pkg/docker"
+	dockerpkg "github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/ignore"
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
-)
-
-const (
-	// maxErrorOutput is the maximum length of the error output saved for processing
-	maxErrorOutput = 1024
 )
 
 var (
@@ -38,22 +33,23 @@ var (
 // STI strategy executes the STI build.
 // For more details about STI, visit https://github.com/openshift/source-to-image
 type STI struct {
-	config           *api.Config
-	result           *api.Result
-	postExecutor     docker.PostExecutor
-	installer        scripts.Installer
-	git              git.Git
-	fs               util.FileSystem
-	tar              tar.Tar
-	docker           docker.Docker
-	callbackInvoker  util.CallbackInvoker
-	requiredScripts  []string
-	optionalScripts  []string
-	externalScripts  map[string]bool
-	installedScripts map[string]bool
-	scriptsURL       map[string]string
-	incremental      bool
-	sourceInfo       *api.SourceInfo
+	config            *api.Config
+	result            *api.Result
+	postExecutor      dockerpkg.PostExecutor
+	installer         scripts.Installer
+	git               git.Git
+	fs                util.FileSystem
+	tar               tar.Tar
+	docker            dockerpkg.Docker
+	incrementalDocker dockerpkg.Docker
+	callbackInvoker   util.CallbackInvoker
+	requiredScripts   []string
+	optionalScripts   []string
+	externalScripts   map[string]bool
+	installedScripts  map[string]bool
+	scriptsURL        map[string]string
+	incremental       bool
+	sourceInfo        *api.SourceInfo
 
 	// Interfaces
 	preparer  build.Preparer
@@ -70,25 +66,34 @@ type STI struct {
 // be used for the case that the base Docker image does not have 'tar' or 'bash'
 // installed.
 func New(req *api.Config) (*STI, error) {
-	docker, err := docker.New(req.DockerConfig, req.PullAuthentication)
+	docker, err := dockerpkg.New(req.DockerConfig, req.PullAuthentication)
 	if err != nil {
 		return nil, err
 	}
+	var incrementalDocker dockerpkg.Docker
+	if req.Incremental {
+		incrementalDocker, err = dockerpkg.New(req.DockerConfig, req.IncrementalAuthentication)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	inst := scripts.NewInstaller(req.BuilderImage, req.ScriptsURL, docker, req.PullAuthentication)
 
 	b := &STI{
-		installer:        inst,
-		config:           req,
-		docker:           docker,
-		git:              git.New(),
-		fs:               util.NewFileSystem(),
-		tar:              tar.New(),
-		callbackInvoker:  util.NewCallbackInvoker(),
-		requiredScripts:  []string{api.Assemble, api.Run},
-		optionalScripts:  []string{api.SaveArtifacts},
-		externalScripts:  map[string]bool{},
-		installedScripts: map[string]bool{},
-		scriptsURL:       map[string]string{},
+		installer:         inst,
+		config:            req,
+		docker:            docker,
+		incrementalDocker: incrementalDocker,
+		git:               git.New(),
+		fs:                util.NewFileSystem(),
+		tar:               tar.New(),
+		callbackInvoker:   util.NewCallbackInvoker(),
+		requiredScripts:   []string{api.Assemble, api.Run},
+		optionalScripts:   []string{api.SaveArtifacts},
+		externalScripts:   map[string]bool{},
+		installedScripts:  map[string]bool{},
+		scriptsURL:        map[string]string{},
 	}
 
 	// The sources are downloaded using the GIT downloader.
@@ -239,7 +244,7 @@ func (b *STI) PostExecute(containerID, location string) error {
 		// were extracted and append scripts dir and name
 		runCmd = filepath.Join(location, "scripts", api.Run)
 	}
-	opts := docker.CommitContainerOptions{
+	opts := dockerpkg.CommitContainerOptions{
 		Command:     append([]string{}, runCmd),
 		Env:         buildEnv,
 		ContainerID: containerID,
@@ -286,8 +291,8 @@ func (b *STI) Exists(config *api.Config) bool {
 
 	// can only do incremental build if runtime image exists, so always pull image
 	previousImageExists, _ := b.docker.IsImageInLocalRegistry(config.Tag)
-	if config.ForcePull {
-		if image, _ := b.docker.PullImage(config.Tag); image != nil {
+	if !previousImageExists || config.ForcePull {
+		if image, _ := b.incrementalDocker.PullImage(config.Tag); image != nil {
 			previousImageExists = true
 		}
 	}
@@ -314,7 +319,7 @@ func (b *STI) Save(config *api.Config) (err error) {
 		return b.tar.ExtractTarStream(artifactTmpDir, outReader)
 	}
 
-	opts := docker.RunContainerOptions{
+	opts := dockerpkg.RunContainerOptions{
 		Image:           image,
 		ExternalScripts: b.externalScripts[api.SaveArtifacts],
 		ScriptsURL:      config.ScriptsURL,
@@ -325,7 +330,7 @@ func (b *STI) Save(config *api.Config) (err error) {
 		OnStart:         extractFunc,
 	}
 
-	go streamContainerError(errReader, nil, config)
+	go dockerpkg.StreamContainerIO(errReader, nil, glog.Error)
 	err = b.docker.RunContainer(opts)
 
 	if e, ok := err.(errors.ContainerError); ok {
@@ -369,7 +374,7 @@ func (b *STI) Execute(command string, config *api.Config) error {
 	if config.LayeredBuild {
 		externalScripts = false
 	}
-	opts := docker.RunContainerOptions{
+	opts := dockerpkg.RunContainerOptions{
 		Image:           config.BuilderImage,
 		Stdout:          outWriter,
 		Stderr:          errWriter,
@@ -403,32 +408,13 @@ func (b *STI) Execute(command string, config *api.Config) error {
 		}
 	}(outReader)
 
-	go streamContainerError(errReader, &errOutput, config)
+	go dockerpkg.StreamContainerIO(errReader, &errOutput, glog.Error)
 
 	err = b.docker.RunContainer(opts)
 	if e, ok := err.(errors.ContainerError); ok {
 		return errors.NewContainerError(config.BuilderImage, e.ErrorCode, errOutput)
 	}
 	return err
-}
-
-func streamContainerError(errStream io.Reader, errOutput *string, config *api.Config) {
-	scanner := bufio.NewReader(errStream)
-	for {
-		text, err := scanner.ReadString('\n')
-		if err != nil {
-			// we're ignoring ErrClosedPipe, as this is information
-			// the docker container ended streaming logs
-			if err != io.ErrClosedPipe && err != io.EOF {
-				glog.Errorf("Error reading docker stderr, %v", err)
-			}
-			break
-		}
-		glog.Error(text)
-		if errOutput != nil && len(*errOutput) < maxErrorOutput {
-			*errOutput += text + "\n"
-		}
-	}
 }
 
 func (b *STI) generateConfigEnv() (configEnv []string) {
