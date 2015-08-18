@@ -2,6 +2,7 @@ package osdn
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -13,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
 
+	log "github.com/golang/glog"
 	osdnapi "github.com/openshift/openshift-sdn/ovssubnet/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -33,7 +35,7 @@ func (oi *OsdnRegistryInterface) InitSubnets() error {
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetSubnets() (*[]osdnapi.Subnet, error) {
+func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, error) {
 	hostSubnetList, err := oi.oClient.HostSubnets().List()
 	if err != nil {
 		return nil, err
@@ -43,7 +45,7 @@ func (oi *OsdnRegistryInterface) GetSubnets() (*[]osdnapi.Subnet, error) {
 	for _, subnet := range hostSubnetList.Items {
 		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, SubnetIP: subnet.Subnet})
 	}
-	return &subList, nil
+	return subList, nil
 }
 
 func (oi *OsdnRegistryInterface) GetSubnet(nodeName string) (*osdnapi.Subnet, error) {
@@ -106,17 +108,27 @@ func (oi *OsdnRegistryInterface) InitNodes() error {
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetNodes() (*[]string, error) {
-	nodes, err := oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
+func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, error) {
+	knodes, err := oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
-	// convert kapi.NodeList to []string
-	nodeList := make([]string, 0)
-	for _, node := range nodes.Items {
-		nodeList = append(nodeList, node.Name)
+
+	nodes := make([]osdnapi.Node, 0)
+	for _, node := range knodes.Items {
+		var nodeIP string
+		if len(node.Status.Addresses) > 0 {
+			nodeIP = node.Status.Addresses[0].Address
+		} else {
+			var err error
+			nodeIP, err = getNodeIP(node.ObjectMeta.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		nodes = append(nodes, osdnapi.Node{Name: node.ObjectMeta.Name, IP: nodeIP})
 	}
-	return &nodeList, nil
+	return nodes, nil
 }
 
 func (oi *OsdnRegistryInterface) CreateNode(nodeName string, data string) error {
@@ -164,23 +176,28 @@ func (oi *OsdnRegistryInterface) WatchNodes(receiver chan *osdnapi.NodeEvent, st
 		nodeIP := ""
 		if len(node.Status.Addresses) > 0 {
 			nodeIP = node.Status.Addresses[0].Address
+		} else {
+			nodeIP, err = getNodeIP(node.ObjectMeta.Name)
+			if err != nil {
+				return err
+			}
 		}
 
 		switch eventType {
 		case watch.Added:
-			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, NodeName: node.ObjectMeta.Name, NodeIP: nodeIP}
+			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: osdnapi.Node{Name: node.ObjectMeta.Name, IP: nodeIP}}
 			nodeAddressMap[node.ObjectMeta.UID] = nodeIP
 		case watch.Modified:
 			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
 			if ok && oldNodeIP != nodeIP {
 				// Node Added event will handle update subnet if there is ip mismatch
-				receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, NodeName: node.ObjectMeta.Name, NodeIP: nodeIP}
+				receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: osdnapi.Node{Name: node.ObjectMeta.Name, IP: nodeIP}}
 				nodeAddressMap[node.ObjectMeta.UID] = nodeIP
 			}
 		case watch.Deleted:
 			// TODO: There is a chance that a Delete event will not get triggered.
 			// Need to use a periodic sync loop that lists and compares.
-			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Deleted, NodeName: node.ObjectMeta.Name}
+			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Deleted, Node: osdnapi.Node{Name: node.ObjectMeta.Name}}
 			delete(nodeAddressMap, node.ObjectMeta.UID)
 		}
 	}
@@ -334,7 +351,7 @@ func (oi *OsdnRegistryInterface) InitServices() error {
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetServices() (*[]osdnapi.Service, error) {
+func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, error) {
 	oServList := make([]osdnapi.Service, 0)
 	kNsList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 	if err != nil {
@@ -363,7 +380,7 @@ func (oi *OsdnRegistryInterface) GetServices() (*[]osdnapi.Service, error) {
 			}
 		}
 	}
-	return &oServList, nil
+	return oServList, nil
 }
 
 func (oi *OsdnRegistryInterface) WatchServices(receiver chan *osdnapi.ServiceEvent, stop chan bool) error {
@@ -467,4 +484,27 @@ func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, rec
 			}
 		}
 	}
+}
+
+// TODO: This method exists in openshift-sdn/ovssubnet/common.go
+// Reuse the existing method in common.go
+func getNodeIP(nodeName string) (string, error) {
+	ip := net.ParseIP(nodeName)
+	if ip == nil {
+		addrs, err := net.LookupIP(nodeName)
+		if err != nil {
+			log.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
+			return "", err
+		}
+		for _, addr := range addrs {
+			if addr.String() != "127.0.0.1" {
+				ip = addr
+				break
+			}
+		}
+	}
+	if ip == nil || len(ip.String()) == 0 {
+		return "", fmt.Errorf("Failed to obtain IP address from node name: %s", nodeName)
+	}
+	return ip.String(), nil
 }
