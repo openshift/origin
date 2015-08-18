@@ -27,7 +27,7 @@ ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
 
 
-TEST_TYPE="openshift-e2e"
+TEST_TYPE="openshift-e2e-assets"
 TMPDIR="${TMPDIR:-"/tmp"}"
 BASETMPDIR="${TMPDIR}/${TEST_TYPE}"
 
@@ -187,6 +187,17 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 fi
 
 start_os_server
+
+# install the registry. The --mount-host option is provided to reuse local storage.
+echo "[INFO] Installing the registry"
+openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
+
+# pre-load some image streams and templates
+oc create -f examples/image-streams/image-streams-centos7.json --namespace=openshift
+oc create -f examples/sample-app/application-template-stibuild.json --namespace=openshift
+
+# create a test project so that this shows up in the console
+openshift admin new-project "test" --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
 
 echo "[INFO] Running UI e2e tests..."
 pushd ${OS_ROOT}/assets > /dev/null
