@@ -1,5 +1,3 @@
-// +build default
-
 package extended
 
 import (
@@ -12,7 +10,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = Describe("MySQL ephemeral template", func() {
+var _ = Describe("default: MySQL ephemeral template", func() {
 	defer GinkgoRecover()
 	var (
 		templatePath = filepath.Join("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")

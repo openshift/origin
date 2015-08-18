@@ -32,6 +32,16 @@ cleanup() {
 	exit $out
 }
 
+# Check if we have ginkgo command
+set -e
+which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
+set +e
+
+# Compile the extended tests first to avoid waiting for OpenShift server to
+# start and fail sooner on compilation errors.
+GOPATH="${OS_ROOT}/Godeps/_workspace:${GOPATH}" \
+  ginkgo build -r ./test/extended 
+
 test_privileges
 
 echo "[INFO] Starting 'default' extended tests"
@@ -140,6 +150,6 @@ echo "[INFO] Starting extended tests ..."
 echo "[INFO] MASTER IP - ${MASTER_ADDR}"
 echo "[INFO] SERVER CONFIG PATH - ${SERVER_CONFIG_DIR}"
 
+# Run the tests
 KUBECONFIG="${ADMIN_KUBECONFIG}" \
-	GOPATH="${OS_ROOT}/Godeps/_workspace:${GOPATH}" \
-	go test -v -tags=default ./test/extended
+  ginkgo -progress -focus="default:" -p ./test/extended/extended.test
