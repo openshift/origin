@@ -102,7 +102,15 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server := kapp.NewKubeletServer()
 	server.Config = path
 	server.RootDirectory = options.VolumeDirectory
-	server.HostnameOverride = options.NodeName
+
+	// kubelet finds the node IP address by doing net.ParseIP(hostname) and if that fails,
+	// it does net.LookupIP(NodeName) and picks the first non-loopback address.
+	// Pass node IP as hostname to make kubelet use the desired IP address.
+	if len(options.NodeIP) > 0 {
+		server.HostnameOverride = options.NodeIP
+	} else {
+		server.HostnameOverride = options.NodeName
+	}
 	server.AllowPrivileged = true
 	server.RegisterNode = true
 	server.Address = kubeAddress
@@ -139,6 +147,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	}
 
 	// provide any config overrides
+	cfg.NodeName = options.NodeName
 	cfg.StreamingConnectionIdleTimeout = 5 * time.Minute // TODO: should be set
 	cfg.KubeClient = kubeClient
 	cfg.DockerExecHandler = dockerExecHandler
