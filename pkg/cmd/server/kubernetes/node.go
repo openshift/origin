@@ -85,7 +85,7 @@ func (c *NodeConfig) HandleDockerError(message string) {
 		glog.Fatalf("ERROR: %s", message)
 	}
 	glog.Errorf("WARNING: %s", message)
-	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env{"ApiVersion=1.18"}}
+	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env([]string{"ApiVersion=1.18"})}
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
