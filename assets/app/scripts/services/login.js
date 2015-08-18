@@ -86,7 +86,7 @@ angular.module('openshiftConsole')
         }
 
         // Handle an access_token response
-        if (fragmentParams.access_token && fragmentParams.token_type === "bearer") {
+        if (fragmentParams.access_token && (fragmentParams.token_type || "").toLowerCase() === "bearer") {
           var deferred = $q.defer();
           deferred.resolve({
             token: fragmentParams.access_token,
