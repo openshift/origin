@@ -345,12 +345,14 @@ function start_etcd {
 # 
 # $1 expression for which the mounts should be checked 
 remove_tmp_dir() {
+  set +e
   sudo rm -rf ${BASETMPDIR} &>/dev/null
   if [[ $? != 0 ]]; then
     echo "[INFO] Unmounting previously used volumes ..."
     findmnt -lo TARGET | grep $1 | xargs -r sudo umount
     sudo rm -rf ${BASETMPDIR}
   fi
+  set -e
 }
 
 # kill_all_processes function will kill all 
