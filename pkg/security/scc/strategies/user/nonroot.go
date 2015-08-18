@@ -19,8 +19,10 @@ package user
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 type nonRoot struct{}
@@ -33,7 +35,7 @@ func NewRunAsNonRoot(options *api.RunAsUserStrategyOptions) (RunAsUserSecurityCo
 
 // Generate creates the uid based on policy rules.  This strategy does return a UID.  It assumes
 // that the user will specify a UID or the container image specifies a UID.
-func (s *nonRoot) Generate(pod *api.Pod, container *api.Container) (*int64, error) {
+func (s *nonRoot) Generate(pod *kapi.Pod, container *kapi.Container) (*int64, error) {
 	return nil, nil
 }
 
@@ -41,7 +43,7 @@ func (s *nonRoot) Generate(pod *api.Pod, container *api.Container) (*int64, erro
 // of this will pass if either the UID is not set, assuming that the image will provided the UID
 // or if the UID is set it is not root.  In order to work properly this assumes that the kubelet
 // will populate an
-func (s *nonRoot) Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
+func (s *nonRoot) Validate(pod *kapi.Pod, container *kapi.Container) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	if container.SecurityContext == nil {
 		detail := fmt.Sprintf("unable to validate nil security context for container %s", container.Name)

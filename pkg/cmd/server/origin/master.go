@@ -89,6 +89,8 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
+
+	sccetcd "github.com/openshift/origin/pkg/security/scc/registry/etcd"
 )
 
 const (
@@ -476,6 +478,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterPolicyBindings": clusterPolicyBindingStorage,
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
+
+		"securityContextConstraints": sccetcd.NewStorage(c.EtcdHelper),
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {

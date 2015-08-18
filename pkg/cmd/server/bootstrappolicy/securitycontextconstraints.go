@@ -2,6 +2,8 @@ package bootstrappolicy
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+
+	sccapi "github.com/openshift/origin/pkg/security/scc/api"
 )
 
 const (
@@ -13,8 +15,8 @@ const (
 
 // GetBootstrapSecurityContextConstraints returns the slice of default SecurityContextConstraints
 // for system bootstrapping.
-func GetBootstrapSecurityContextConstraints(buildControllerUsername string) []kapi.SecurityContextConstraints {
-	constraints := []kapi.SecurityContextConstraints{
+func GetBootstrapSecurityContextConstraints(buildControllerUsername string) []sccapi.SecurityContextConstraints {
+	constraints := []sccapi.SecurityContextConstraints{
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: SecurityContextConstraintPrivileged,
@@ -23,11 +25,11 @@ func GetBootstrapSecurityContextConstraints(buildControllerUsername string) []ka
 			AllowHostDirVolumePlugin: true,
 			AllowHostNetwork:         true,
 			AllowHostPorts:           true,
-			SELinuxContext: kapi.SELinuxContextStrategyOptions{
-				Type: kapi.SELinuxStrategyRunAsAny,
+			SELinuxContext: sccapi.SELinuxContextStrategyOptions{
+				Type: sccapi.SELinuxStrategyRunAsAny,
 			},
-			RunAsUser: kapi.RunAsUserStrategyOptions{
-				Type: kapi.RunAsUserStrategyRunAsAny,
+			RunAsUser: sccapi.RunAsUserStrategyOptions{
+				Type: sccapi.RunAsUserStrategyRunAsAny,
 			},
 			Users:  []string{buildControllerUsername},
 			Groups: []string{ClusterAdminGroup, NodesGroup},
@@ -36,17 +38,17 @@ func GetBootstrapSecurityContextConstraints(buildControllerUsername string) []ka
 			ObjectMeta: kapi.ObjectMeta{
 				Name: SecurityContextConstraintRestricted,
 			},
-			SELinuxContext: kapi.SELinuxContextStrategyOptions{
+			SELinuxContext: sccapi.SELinuxContextStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
 				// will fail.
-				Type: kapi.SELinuxStrategyMustRunAs,
+				Type: sccapi.SELinuxStrategyMustRunAs,
 			},
-			RunAsUser: kapi.RunAsUserStrategyOptions{
+			RunAsUser: sccapi.RunAsUserStrategyOptions{
 				// This strategy requires that annotations on the namespace which will be populated
 				// by the admission controller.  If namespaces are not annotated creating the strategy
 				// will fail.
-				Type: kapi.RunAsUserStrategyMustRunAsRange,
+				Type: sccapi.RunAsUserStrategyMustRunAsRange,
 			},
 			Groups: []string{AuthenticatedGroup},
 		},

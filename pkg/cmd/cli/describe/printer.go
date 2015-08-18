@@ -21,6 +21,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sccapi "github.com/openshift/origin/pkg/security/scc/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -58,6 +59,8 @@ var (
 	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
 	netNamespaceColumns   = []string{"NAME", "NETID"}
 	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK"}
+
+	securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "HOSTDIR", "SELINUX", "RUNASUSER"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -126,6 +129,9 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, showAll bool, 
 	p.Handler(netNamespaceColumns, printNetNamespace)
 	p.Handler(clusterNetworkColumns, printClusterNetwork)
 	p.Handler(clusterNetworkColumns, printClusterNetworkList)
+
+	p.Handler(securityContextConstraintsColumns, printSecurityContextConstraints)
+	p.Handler(securityContextConstraintsColumns, printSecurityContextConstraintsList)
 
 	return p
 }
@@ -718,5 +724,22 @@ func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer, withN
 			return err
 		}
 	}
+	return nil
+}
+
+func printSecurityContextConstraints(item *sccapi.SecurityContextConstraints, w io.Writer, withNamespace bool, wide bool, columnLabels []string) error {
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
+		item.AllowedCapabilities, item.AllowHostDirVolumePlugin, item.SELinuxContext.Type,
+		item.RunAsUser.Type)
+	return err
+}
+
+func printSecurityContextConstraintsList(list *sccapi.SecurityContextConstraintsList, w io.Writer, withNamespace bool, wide bool, columnLabels []string) error {
+	for _, item := range list.Items {
+		if err := printSecurityContextConstraints(&item, w, withNamespace, wide, columnLabels); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

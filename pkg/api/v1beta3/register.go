@@ -12,6 +12,7 @@ import (
 	_ "github.com/openshift/origin/pkg/project/api/v1beta3"
 	_ "github.com/openshift/origin/pkg/route/api/v1beta3"
 	_ "github.com/openshift/origin/pkg/sdn/api/v1beta3"
+	_ "github.com/openshift/origin/pkg/security/scc/api/v1beta3"
 	_ "github.com/openshift/origin/pkg/template/api/v1beta3"
 	_ "github.com/openshift/origin/pkg/user/api/v1beta3"
 )

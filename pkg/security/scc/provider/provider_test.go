@@ -21,17 +21,19 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 func TestCreateSecurityContextNonmutating(t *testing.T) {
 	// Create a pod with a security context that needs filling in
-	createPod := func() *api.Pod {
-		return &api.Pod{
-			Spec: api.PodSpec{
-				Containers: []api.Container{{
-					SecurityContext: &api.SecurityContext{},
+	createPod := func() *kapi.Pod {
+		return &kapi.Pod{
+			Spec: kapi.PodSpec{
+				Containers: []kapi.Container{{
+					SecurityContext: &kapi.SecurityContext{},
 				}},
 			},
 		}
@@ -41,7 +43,7 @@ func TestCreateSecurityContextNonmutating(t *testing.T) {
 	createSCC := func() *api.SecurityContextConstraints {
 		var uid int64 = 1
 		return &api.SecurityContextConstraints{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: "scc-sa",
 			},
 			RunAsUser: api.RunAsUserStrategyOptions{
@@ -50,7 +52,7 @@ func TestCreateSecurityContextNonmutating(t *testing.T) {
 			},
 			SELinuxContext: api.SELinuxContextStrategyOptions{
 				Type:           api.SELinuxStrategyMustRunAs,
-				SELinuxOptions: &api.SELinuxOptions{User: "you"},
+				SELinuxOptions: &kapi.SELinuxOptions{User: "you"},
 			},
 		}
 	}
@@ -85,7 +87,7 @@ func TestCreateSecurityContextNonmutating(t *testing.T) {
 func TestValidateFailures(t *testing.T) {
 	defaultSCC := func() *api.SecurityContextConstraints {
 		return &api.SecurityContextConstraints{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: "scc-sa",
 			},
 			RunAsUser: api.RunAsUserStrategyOptions{
@@ -98,12 +100,12 @@ func TestValidateFailures(t *testing.T) {
 	}
 
 	var notPriv bool = false
-	defaultPod := func() *api.Pod {
-		return &api.Pod{
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+	defaultPod := func() *kapi.Pod {
+		return &kapi.Pod{
+			Spec: kapi.PodSpec{
+				Containers: []kapi.Container{
 					{
-						SecurityContext: &api.SecurityContext{
+						SecurityContext: &kapi.SecurityContext{
 							// expected to be set by defaulting mechanisms
 							Privileged: &notPriv,
 							// fill in the rest for test cases
@@ -129,12 +131,12 @@ func TestValidateFailures(t *testing.T) {
 	failSELinuxSCC := defaultSCC()
 	failSELinuxSCC.SELinuxContext = api.SELinuxContextStrategyOptions{
 		Type: api.SELinuxStrategyMustRunAs,
-		SELinuxOptions: &api.SELinuxOptions{
+		SELinuxOptions: &kapi.SELinuxOptions{
 			Level: "foo",
 		},
 	}
 	failSELinuxPod := defaultPod()
-	failSELinuxPod.Spec.Containers[0].SecurityContext.SELinuxOptions = &api.SELinuxOptions{
+	failSELinuxPod.Spec.Containers[0].SecurityContext.SELinuxOptions = &kapi.SELinuxOptions{
 		Level: "bar",
 	}
 
@@ -143,16 +145,16 @@ func TestValidateFailures(t *testing.T) {
 	failPrivPod.Spec.Containers[0].SecurityContext.Privileged = &priv
 
 	failCapsPod := defaultPod()
-	failCapsPod.Spec.Containers[0].SecurityContext.Capabilities = &api.Capabilities{
-		Add: []api.Capability{"foo"},
+	failCapsPod.Spec.Containers[0].SecurityContext.Capabilities = &kapi.Capabilities{
+		Add: []kapi.Capability{"foo"},
 	}
 
 	failHostDirPod := defaultPod()
-	failHostDirPod.Spec.Volumes = []api.Volume{
+	failHostDirPod.Spec.Volumes = []kapi.Volume{
 		{
 			Name: "bad volume",
-			VolumeSource: api.VolumeSource{
-				HostPath: &api.HostPathVolumeSource{},
+			VolumeSource: kapi.VolumeSource{
+				HostPath: &kapi.HostPathVolumeSource{},
 			},
 		},
 	}
@@ -161,10 +163,10 @@ func TestValidateFailures(t *testing.T) {
 	failHostNetworkPod.Spec.HostNetwork = true
 
 	failHostPortPod := defaultPod()
-	failHostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
+	failHostPortPod.Spec.Containers[0].Ports = []kapi.ContainerPort{{HostPort: 1}}
 
 	errorCases := map[string]struct {
-		pod           *api.Pod
+		pod           *kapi.Pod
 		scc           *api.SecurityContextConstraints
 		expectedError string
 	}{
@@ -224,7 +226,7 @@ func TestValidateFailures(t *testing.T) {
 func TestValidateSuccess(t *testing.T) {
 	defaultSCC := func() *api.SecurityContextConstraints {
 		return &api.SecurityContextConstraints{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: "scc-sa",
 			},
 			RunAsUser: api.RunAsUserStrategyOptions{
@@ -237,12 +239,12 @@ func TestValidateSuccess(t *testing.T) {
 	}
 
 	var notPriv bool = false
-	defaultPod := func() *api.Pod {
-		return &api.Pod{
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+	defaultPod := func() *kapi.Pod {
+		return &kapi.Pod{
+			Spec: kapi.PodSpec{
+				Containers: []kapi.Container{
 					{
-						SecurityContext: &api.SecurityContext{
+						SecurityContext: &kapi.SecurityContext{
 							// expected to be set by defaulting mechanisms
 							Privileged: &notPriv,
 							// fill in the rest for test cases
@@ -267,12 +269,12 @@ func TestValidateSuccess(t *testing.T) {
 	seLinuxSCC := defaultSCC()
 	seLinuxSCC.SELinuxContext = api.SELinuxContextStrategyOptions{
 		Type: api.SELinuxStrategyMustRunAs,
-		SELinuxOptions: &api.SELinuxOptions{
+		SELinuxOptions: &kapi.SELinuxOptions{
 			Level: "foo",
 		},
 	}
 	seLinuxPod := defaultPod()
-	seLinuxPod.Spec.Containers[0].SecurityContext.SELinuxOptions = &api.SELinuxOptions{
+	seLinuxPod.Spec.Containers[0].SecurityContext.SELinuxOptions = &kapi.SELinuxOptions{
 		Level: "foo",
 	}
 
@@ -283,20 +285,20 @@ func TestValidateSuccess(t *testing.T) {
 	privPod.Spec.Containers[0].SecurityContext.Privileged = &priv
 
 	capsSCC := defaultSCC()
-	capsSCC.AllowedCapabilities = []api.Capability{"foo"}
+	capsSCC.AllowedCapabilities = []kapi.Capability{"foo"}
 	capsPod := defaultPod()
-	capsPod.Spec.Containers[0].SecurityContext.Capabilities = &api.Capabilities{
-		Add: []api.Capability{"foo"},
+	capsPod.Spec.Containers[0].SecurityContext.Capabilities = &kapi.Capabilities{
+		Add: []kapi.Capability{"foo"},
 	}
 
 	hostDirSCC := defaultSCC()
 	hostDirSCC.AllowHostDirVolumePlugin = true
 	hostDirPod := defaultPod()
-	hostDirPod.Spec.Volumes = []api.Volume{
+	hostDirPod.Spec.Volumes = []kapi.Volume{
 		{
 			Name: "bad volume",
-			VolumeSource: api.VolumeSource{
-				HostPath: &api.HostPathVolumeSource{},
+			VolumeSource: kapi.VolumeSource{
+				HostPath: &kapi.HostPathVolumeSource{},
 			},
 		},
 	}
@@ -309,10 +311,10 @@ func TestValidateSuccess(t *testing.T) {
 	hostPortSCC := defaultSCC()
 	hostPortSCC.AllowHostPorts = true
 	hostPortPod := defaultPod()
-	hostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
+	hostPortPod.Spec.Containers[0].Ports = []kapi.ContainerPort{{HostPort: 1}}
 
 	errorCases := map[string]struct {
-		pod *api.Pod
+		pod *kapi.Pod
 		scc *api.SecurityContextConstraints
 	}{
 		"pass user must run as SCC": {

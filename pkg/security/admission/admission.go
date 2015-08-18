@@ -1,6 +1,7 @@
 package admission
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -8,28 +9,34 @@ import (
 
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
-
-	allocator "github.com/openshift/origin/pkg/security"
-	"github.com/openshift/origin/pkg/security/uid"
-	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/auth/user"
+
+	osclient "github.com/openshift/origin/pkg/client"
+	allocator "github.com/openshift/origin/pkg/security"
+	sccapi "github.com/openshift/origin/pkg/security/scc/api"
+	sccprovider "github.com/openshift/origin/pkg/security/scc/provider"
+	"github.com/openshift/origin/pkg/security/uid"
 
 	"github.com/golang/glog"
 )
 
 func init() {
-	kadmission.RegisterPlugin("SecurityContextConstraint", func(client client.Interface, config io.Reader) (kadmission.Interface, error) {
-		constraintAdmitter := NewConstraint(client)
+	kadmission.RegisterPlugin("SecurityContextConstraint", func(client kclient.Interface, config io.Reader) (kadmission.Interface, error) {
+		osClient, ok := client.(osclient.Interface)
+		if !ok {
+			return nil, errors.New("client is not an Origin client")
+		}
+		constraintAdmitter := NewConstraint(client, osClient)
 		constraintAdmitter.Run()
 		return constraintAdmitter, nil
 	})
@@ -37,7 +44,7 @@ func init() {
 
 type constraint struct {
 	*kadmission.Handler
-	client client.Interface
+	client kclient.Interface
 
 	reflector *cache.Reflector
 	stopChan  chan struct{}
@@ -47,18 +54,18 @@ type constraint struct {
 var _ kadmission.Interface = &constraint{}
 
 // NewConstraint creates a new SCC constraint admission plugin.
-func NewConstraint(kclient client.Interface) *constraint {
+func NewConstraint(kclient kclient.Interface, osClient osclient.Interface) *constraint {
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
 			ListFunc: func() (runtime.Object, error) {
-				return kclient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+				return osClient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
 			},
 			WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-				return kclient.SecurityContextConstraints().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+				return osClient.SecurityContextConstraints().Watch(labels.Everything(), fields.Everything(), resourceVersion)
 			},
 		},
-		&kapi.SecurityContextConstraints{},
+		&sccapi.SecurityContextConstraints{},
 		store,
 		0,
 	)
@@ -159,7 +166,7 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 // assignSecurityContext creates a security context for each container in the pod
 // and validates that the sc falls within the scc constraints.  All containers must validate against
 // the same scc or is not considered valid.
-func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod *kapi.Pod) fielderrors.ValidationErrorList {
+func assignSecurityContext(provider sccprovider.SecurityContextConstraintsProvider, pod *kapi.Pod) fielderrors.ValidationErrorList {
 	generatedSCs := make([]*kapi.SecurityContext, len(pod.Spec.Containers))
 
 	errs := fielderrors.ValidationErrorList{}
@@ -190,12 +197,12 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 
 // createProvidersFromConstraints creates providers from the constraints supplied, including
 // looking up pre-allocated values if necessary using the pod's namespace.
-func (c *constraint) createProvidersFromConstraints(ns string, sccs []*kapi.SecurityContextConstraints) ([]scc.SecurityContextConstraintsProvider, []error) {
+func (c *constraint) createProvidersFromConstraints(ns string, sccs []*sccapi.SecurityContextConstraints) ([]sccprovider.SecurityContextConstraintsProvider, []error) {
 	var (
 		// namespace is declared here for reuse but we will not fetch it unless required by the matched constraints
 		namespace *kapi.Namespace
 		// collected providers
-		providers []scc.SecurityContextConstraintsProvider
+		providers []sccprovider.SecurityContextConstraintsProvider
 		// collected errors to return
 		errs []error
 	)
@@ -231,7 +238,7 @@ func (c *constraint) createProvidersFromConstraints(ns string, sccs []*kapi.Secu
 			}
 
 			// Make a copy of the constraint so we don't mutate the store's cache
-			var constraintCopy kapi.SecurityContextConstraints = *constraint
+			var constraintCopy sccapi.SecurityContextConstraints = *constraint
 			constraint = &constraintCopy
 			if resolveSELinuxLevel && constraint.SELinuxContext.SELinuxOptions != nil {
 				// Make a copy of the SELinuxOptions so we don't mutate the store's cache
@@ -253,7 +260,7 @@ func (c *constraint) createProvidersFromConstraints(ns string, sccs []*kapi.Secu
 		}
 
 		// Create the provider
-		provider, err := scc.NewSimpleProvider(constraint)
+		provider, err := sccprovider.NewSimpleProvider(constraint)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("error creating provider for SCC %s in namespace %s: %v", constraint.Name, ns, err))
 			continue
@@ -273,13 +280,13 @@ func (c *constraint) getNamespace(name string, ns *kapi.Namespace) (*kapi.Namesp
 
 // getMatchingSecurityContextConstraints returns constraints from the store that match the group,
 // uid, or user of the service account.
-func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info) ([]*kapi.SecurityContextConstraints, error) {
-	matchedConstraints := make([]*kapi.SecurityContextConstraints, 0)
+func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info) ([]*sccapi.SecurityContextConstraints, error) {
+	matchedConstraints := make([]*sccapi.SecurityContextConstraints, 0)
 
 	for _, c := range store.List() {
-		constraint, ok := c.(*kapi.SecurityContextConstraints)
+		constraint, ok := c.(*sccapi.SecurityContextConstraints)
 		if !ok {
-			return nil, errors.NewInternalError(fmt.Errorf("error converting object from store to a security context constraint: %v", c))
+			return nil, kerrors.NewInternalError(fmt.Errorf("error converting object from store to a security context constraint: %v", c))
 		}
 		if ConstraintAppliesTo(constraint, userInfo) {
 			matchedConstraints = append(matchedConstraints, constraint)
@@ -291,7 +298,7 @@ func getMatchingSecurityContextConstraints(store cache.Store, userInfo user.Info
 
 // constraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
 // if it is usable by the userInfo.
-func ConstraintAppliesTo(constraint *kapi.SecurityContextConstraints, userInfo user.Info) bool {
+func ConstraintAppliesTo(constraint *sccapi.SecurityContextConstraints, userInfo user.Info) bool {
 	for _, user := range constraint.Users {
 		if userInfo.GetName() == user {
 			return true
@@ -351,16 +358,16 @@ func getPreallocatedLevel(ns *kapi.Namespace) (string, error) {
 
 // requiresPreAllocatedUIDRange returns true if the strategy is must run in range and the min or max
 // is not set.
-func requiresPreAllocatedUIDRange(constraint *kapi.SecurityContextConstraints) bool {
-	if constraint.RunAsUser.Type != kapi.RunAsUserStrategyMustRunAsRange {
+func requiresPreAllocatedUIDRange(constraint *sccapi.SecurityContextConstraints) bool {
+	if constraint.RunAsUser.Type != sccapi.RunAsUserStrategyMustRunAsRange {
 		return false
 	}
 	return constraint.RunAsUser.UIDRangeMin == nil && constraint.RunAsUser.UIDRangeMax == nil
 }
 
 // requiresPreAllocatedSELinuxLevel returns true if the strategy is must run as and the level is not set.
-func requiresPreAllocatedSELinuxLevel(constraint *kapi.SecurityContextConstraints) bool {
-	if constraint.SELinuxContext.Type != kapi.SELinuxStrategyMustRunAs {
+func requiresPreAllocatedSELinuxLevel(constraint *sccapi.SecurityContextConstraints) bool {
+	if constraint.SELinuxContext.Type != sccapi.SELinuxStrategyMustRunAs {
 		return false
 	}
 	if constraint.SELinuxContext.SELinuxOptions == nil {
@@ -370,8 +377,8 @@ func requiresPreAllocatedSELinuxLevel(constraint *kapi.SecurityContextConstraint
 }
 
 // deduplicateSecurityContextConstraints ensures we have a unique slice of constraints.
-func deduplicateSecurityContextConstraints(sccs []*kapi.SecurityContextConstraints) []*kapi.SecurityContextConstraints {
-	deDuped := []*kapi.SecurityContextConstraints{}
+func deduplicateSecurityContextConstraints(sccs []*sccapi.SecurityContextConstraints) []*sccapi.SecurityContextConstraints {
+	deDuped := []*sccapi.SecurityContextConstraints{}
 	added := sets.NewString()
 
 	for _, s := range sccs {
@@ -385,7 +392,7 @@ func deduplicateSecurityContextConstraints(sccs []*kapi.SecurityContextConstrain
 
 // logProviders logs what providers were found for the pod as well as any errors that were encountered
 // while creating providers.
-func logProviders(pod *kapi.Pod, providers []scc.SecurityContextConstraintsProvider, providerCreationErrs []error) {
+func logProviders(pod *kapi.Pod, providers []sccprovider.SecurityContextConstraintsProvider, providerCreationErrs []error) {
 	names := make([]string, len(providers))
 	for i, p := range providers {
 		names[i] = p.GetSCCName()

@@ -17,10 +17,12 @@ limitations under the License.
 package testclient
 
 import (
-	"k8s.io/kubernetes/pkg/api"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 // FakeSecurityContextConstraints implements SecurityContextConstraintInterface. Meant to be
@@ -32,30 +34,31 @@ type FakeSecurityContextConstraints struct {
 }
 
 func (c *FakeSecurityContextConstraints) List(label labels.Selector, field fields.Selector) (*api.SecurityContextConstraintsList, error) {
-	obj, err := c.Fake.Invokes(NewListAction("securitycontextconstraints", c.Namespace, label, field), &api.SecurityContextConstraintsList{})
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("securitycontextconstraints", c.Namespace, label, field), &api.SecurityContextConstraintsList{})
 	return obj.(*api.SecurityContextConstraintsList), err
 }
 
 func (c *FakeSecurityContextConstraints) Get(name string) (*api.SecurityContextConstraints, error) {
-	obj, err := c.Fake.Invokes(NewGetAction("securitycontextconstraints", c.Namespace, name), &api.SecurityContextConstraints{})
+	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("securitycontextconstraints", c.Namespace, name), &api.SecurityContextConstraints{})
 	return obj.(*api.SecurityContextConstraints), err
 }
 
 func (c *FakeSecurityContextConstraints) Create(scc *api.SecurityContextConstraints) (*api.SecurityContextConstraints, error) {
-	obj, err := c.Fake.Invokes(NewCreateAction("securitycontextconstraints", c.Namespace, scc), &api.SecurityContextConstraints{})
+	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("securitycontextconstraints", c.Namespace, scc), &api.SecurityContextConstraints{})
 	return obj.(*api.SecurityContextConstraints), err
 }
 
 func (c *FakeSecurityContextConstraints) Update(scc *api.SecurityContextConstraints) (*api.SecurityContextConstraints, error) {
-	obj, err := c.Fake.Invokes(NewUpdateAction("securitycontextconstraints", c.Namespace, scc), &api.SecurityContextConstraints{})
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("securitycontextconstraints", c.Namespace, scc), &api.SecurityContextConstraints{})
 	return obj.(*api.SecurityContextConstraints), err
 }
 
 func (c *FakeSecurityContextConstraints) Delete(name string) error {
-	_, err := c.Fake.Invokes(NewDeleteAction("securitycontextconstraints", c.Namespace, name), &api.SecurityContextConstraints{})
+	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("securitycontextconstraints", c.Namespace, name), &api.SecurityContextConstraints{})
 	return err
 }
 
 func (c *FakeSecurityContextConstraints) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(NewWatchAction("securitycontextconstraints", c.Namespace, label, field, resourceVersion))
+	c.Fake.Invokes(ktestclient.NewWatchAction("securitycontextconstraints", c.Namespace, label, field, resourceVersion), nil)
+	return c.Fake.Watch, c.Fake.Err()
 }

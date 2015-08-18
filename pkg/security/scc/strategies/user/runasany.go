@@ -14,29 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package selinux
+package user
 
 import (
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
-// runAsAny implements the SELinuxSecurityContextConstraintsStrategy interface.
+// runAsAny implements the interface RunAsUserSecurityContextConstraintsStrategy.
 type runAsAny struct{}
 
-var _ SELinuxSecurityContextConstraintsStrategy = &runAsAny{}
+var _ RunAsUserSecurityContextConstraintsStrategy = &runAsAny{}
 
-// NewRunAsAny provides a strategy that will return the configured se linux context or nil.
-func NewRunAsAny(options *api.SELinuxContextStrategyOptions) (SELinuxSecurityContextConstraintsStrategy, error) {
+// NewRunAsAny provides a strategy that will return nil.
+func NewRunAsAny(options *api.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
 	return &runAsAny{}, nil
 }
 
-// Generate creates the SELinuxOptions based on constraint rules.
-func (s *runAsAny) Generate(pod *api.Pod, container *api.Container) (*api.SELinuxOptions, error) {
+// Generate creates the uid based on policy rules.
+func (s *runAsAny) Generate(pod *kapi.Pod, container *kapi.Container) (*int64, error) {
 	return nil, nil
 }
 
 // Validate ensures that the specified values fall within the range of the strategy.
-func (s *runAsAny) Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
+func (s *runAsAny) Validate(pod *kapi.Pod, container *kapi.Container) fielderrors.ValidationErrorList {
 	return fielderrors.ValidationErrorList{}
 }

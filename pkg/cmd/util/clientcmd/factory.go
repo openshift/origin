@@ -252,6 +252,7 @@ func expandResourceShortcut(resource string) string {
 		"sa":      "serviceAccounts",
 		"pv":      "persistentVolumes",
 		"pvc":     "persistentVolumeClaims",
+		"scc":     "securityContextConstraints",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded

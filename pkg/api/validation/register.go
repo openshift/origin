@@ -9,6 +9,7 @@ import (
 	projectvalidation "github.com/openshift/origin/pkg/project/api/validation"
 	routevalidation "github.com/openshift/origin/pkg/route/api/validation"
 	sdnvalidation "github.com/openshift/origin/pkg/sdn/api/validation"
+	sccvalidation "github.com/openshift/origin/pkg/security/scc/api/validation"
 	templatevalidation "github.com/openshift/origin/pkg/template/api/validation"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 
@@ -20,6 +21,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sccapi "github.com/openshift/origin/pkg/security/scc/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -71,4 +73,6 @@ func init() {
 	Validator.Register(&userapi.Identity{}, uservalidation.ValidateIdentity, uservalidation.ValidateIdentityUpdate)
 	Validator.Register(&userapi.UserIdentityMapping{}, uservalidation.ValidateUserIdentityMapping, uservalidation.ValidateUserIdentityMappingUpdate)
 	Validator.Register(&userapi.Group{}, uservalidation.ValidateGroup, uservalidation.ValidateGroupUpdate)
+
+	Validator.Register(&sccapi.SecurityContextConstraints{}, sccvalidation.ValidateSecurityContextConstraints, sccvalidation.ValidateSecurityContextConstraintsUpdate)
 }

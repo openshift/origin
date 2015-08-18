@@ -18,38 +18,40 @@ package user
 
 import (
 	"fmt"
-	"k8s.io/kubernetes/pkg/api"
+
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 // mustRunAs implements the RunAsUserSecurityContextConstraintsStrategy interface
-type mustRunAsRange struct {
+type mustRunAs struct {
 	opts *api.RunAsUserStrategyOptions
 }
 
-// NewMustRunAs provides a strategy that requires the container to run as a specific UID in a range.
-func NewMustRunAsRange(options *api.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
+var _ RunAsUserSecurityContextConstraintsStrategy = &mustRunAs{}
+
+// NewMustRunAs provides a strategy that requires the container to run as a specific UID.
+func NewMustRunAs(options *api.RunAsUserStrategyOptions) (RunAsUserSecurityContextConstraintsStrategy, error) {
 	if options == nil {
-		return nil, fmt.Errorf("MustRunAsRange requires run as user options")
+		return nil, fmt.Errorf("MustRunAs requires run as user options")
 	}
-	if options.UIDRangeMin == nil {
-		return nil, fmt.Errorf("MustRunAsRange requires a UIDRangeMin")
+	if options.UID == nil {
+		return nil, fmt.Errorf("MustRunAs requires a UID")
 	}
-	if options.UIDRangeMax == nil {
-		return nil, fmt.Errorf("MustRunAsRange requires a UIDRangeMax")
-	}
-	return &mustRunAsRange{
+	return &mustRunAs{
 		opts: options,
 	}, nil
 }
 
-// Generate creates the uid based on policy rules.  MustRunAs returns the UIDRangeMin it is initialized with.
-func (s *mustRunAsRange) Generate(pod *api.Pod, container *api.Container) (*int64, error) {
-	return s.opts.UIDRangeMin, nil
+// Generate creates the uid based on policy rules.  MustRunAs returns the UID it is initialized with.
+func (s *mustRunAs) Generate(pod *kapi.Pod, container *kapi.Container) (*int64, error) {
+	return s.opts.UID, nil
 }
 
 // Validate ensures that the specified values fall within the range of the strategy.
-func (s *mustRunAsRange) Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
+func (s *mustRunAs) Validate(pod *kapi.Pod, container *kapi.Container) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
 	if container.SecurityContext == nil {
@@ -58,17 +60,13 @@ func (s *mustRunAsRange) Validate(pod *api.Pod, container *api.Container) fielde
 		return allErrs
 	}
 	if container.SecurityContext.RunAsUser == nil {
-		detail := fmt.Sprintf("unable to validate nil RunAsUser for container %s", container.Name)
+		detail := fmt.Sprintf("unable to validate nil runAsUser for container %s", container.Name)
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext.runAsUser", container.SecurityContext.RunAsUser, detail))
 		return allErrs
 	}
 
-	if *container.SecurityContext.RunAsUser < *s.opts.UIDRangeMin || *container.SecurityContext.RunAsUser > *s.opts.UIDRangeMax {
-		detail := fmt.Sprintf("UID on container %s does not match required range.  Found %d, required min: %d max: %d",
-			container.Name,
-			*container.SecurityContext.RunAsUser,
-			*s.opts.UIDRangeMin,
-			*s.opts.UIDRangeMax)
+	if *s.opts.UID != *container.SecurityContext.RunAsUser {
+		detail := fmt.Sprintf("UID on container %s does not match required UID.  Found %d, wanted %d", container.Name, *container.SecurityContext.RunAsUser, *s.opts.UID)
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("securityContext.runAsUser", *container.SecurityContext.RunAsUser, detail))
 	}
 

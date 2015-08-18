@@ -17,10 +17,12 @@ limitations under the License.
 package selinux
 
 import (
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 func TestMustRunAsOptions(t *testing.T) {
@@ -33,7 +35,7 @@ func TestMustRunAsOptions(t *testing.T) {
 			pass: false,
 		},
 		"valid opts": {
-			opts: &api.SELinuxContextStrategyOptions{SELinuxOptions: &api.SELinuxOptions{}},
+			opts: &api.SELinuxContextStrategyOptions{SELinuxOptions: &kapi.SELinuxOptions{}},
 			pass: true,
 		},
 	}
@@ -50,7 +52,7 @@ func TestMustRunAsOptions(t *testing.T) {
 
 func TestMustRunAsGenerate(t *testing.T) {
 	opts := &api.SELinuxContextStrategyOptions{
-		SELinuxOptions: &api.SELinuxOptions{
+		SELinuxOptions: &kapi.SELinuxOptions{
 			User:  "user",
 			Role:  "role",
 			Type:  "type",
@@ -71,8 +73,8 @@ func TestMustRunAsGenerate(t *testing.T) {
 }
 
 func TestMustRunAsValidate(t *testing.T) {
-	newValidOpts := func() *api.SELinuxOptions {
-		return &api.SELinuxOptions{
+	newValidOpts := func() *kapi.SELinuxOptions {
+		return &kapi.SELinuxOptions{
 			User:  "user",
 			Role:  "role",
 			Level: "level",
@@ -93,7 +95,7 @@ func TestMustRunAsValidate(t *testing.T) {
 	seType.Type = "invalid"
 
 	tests := map[string]struct {
-		seLinux     *api.SELinuxOptions
+		seLinux     *kapi.SELinuxOptions
 		expectedMsg string
 	}{
 		"invalid role": {
@@ -128,8 +130,8 @@ func TestMustRunAsValidate(t *testing.T) {
 			t.Errorf("unexpected error initializing NewMustRunAs for testcase %s: %#v", name, err)
 			continue
 		}
-		container := &api.Container{
-			SecurityContext: &api.SecurityContext{
+		container := &kapi.Container{
+			SecurityContext: &kapi.SecurityContext{
 				SELinuxOptions: tc.seLinux,
 			},
 		}

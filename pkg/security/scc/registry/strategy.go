@@ -20,12 +20,14 @@ import (
 	"fmt"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	sccapi "github.com/openshift/origin/pkg/security/scc/api"
+	"github.com/openshift/origin/pkg/security/scc/api/validation"
 )
 
 // strategy implements behavior for SecurityContextConstraints objects
@@ -61,17 +63,17 @@ func (strategy) PrepareForUpdate(obj, old runtime.Object) {
 }
 
 func (strategy) Validate(ctx api.Context, obj runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateSecurityContextConstraints(obj.(*api.SecurityContextConstraints))
+	return validation.ValidateSecurityContextConstraints(obj.(*sccapi.SecurityContextConstraints))
 }
 
 func (strategy) ValidateUpdate(ctx api.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateSecurityContextConstraintsUpdate(old.(*api.SecurityContextConstraints), obj.(*api.SecurityContextConstraints))
+	return validation.ValidateSecurityContextConstraintsUpdate(old.(*sccapi.SecurityContextConstraints), obj.(*sccapi.SecurityContextConstraints))
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
-		scc, ok := obj.(*api.SecurityContextConstraints)
+		scc, ok := obj.(*sccapi.SecurityContextConstraints)
 		if !ok {
 			return false, fmt.Errorf("not a securitycontextconstraint")
 		}
@@ -81,7 +83,7 @@ func Matcher(label labels.Selector, field fields.Selector) generic.Matcher {
 }
 
 // SelectableFields returns a label set that represents the object
-func SelectableFields(obj *api.SecurityContextConstraints) labels.Set {
+func SelectableFields(obj *sccapi.SecurityContextConstraints) labels.Set {
 	return labels.Set{
 		"metadata.name": obj.Name,
 	}

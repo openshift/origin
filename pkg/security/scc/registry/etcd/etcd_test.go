@@ -19,10 +19,12 @@ package etcd
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/tools"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
@@ -32,7 +34,7 @@ func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
 
 func validNewSecurityContextConstraints(name string) *api.SecurityContextConstraints {
 	return &api.SecurityContextConstraints{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
 		SELinuxContext: api.SELinuxContextStrategyOptions{
@@ -48,13 +50,13 @@ func TestCreate(t *testing.T) {
 	storage, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd).ClusterScope()
 	scc := validNewSecurityContextConstraints("foo")
-	scc.ObjectMeta = api.ObjectMeta{GenerateName: "foo-"}
+	scc.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo-"}
 	test.TestCreate(
 		// valid
 		scc,
 		// invalid
 		&api.SecurityContextConstraints{
-			ObjectMeta: api.ObjectMeta{Name: "name with spaces"},
+			ObjectMeta: kapi.ObjectMeta{Name: "name with spaces"},
 		},
 	)
 }

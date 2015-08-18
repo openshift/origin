@@ -19,8 +19,10 @@ package selinux
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 type mustRunAs struct {
@@ -42,12 +44,12 @@ func NewMustRunAs(options *api.SELinuxContextStrategyOptions) (SELinuxSecurityCo
 }
 
 // Generate creates the SELinuxOptions based on constraint rules.
-func (s *mustRunAs) Generate(pod *api.Pod, container *api.Container) (*api.SELinuxOptions, error) {
+func (s *mustRunAs) Generate(pod *kapi.Pod, container *kapi.Container) (*kapi.SELinuxOptions, error) {
 	return s.opts.SELinuxOptions, nil
 }
 
 // Validate ensures that the specified values fall within the range of the strategy.
-func (s *mustRunAs) Validate(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
+func (s *mustRunAs) Validate(pod *kapi.Pod, container *kapi.Container) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
 	if container.SecurityContext == nil {

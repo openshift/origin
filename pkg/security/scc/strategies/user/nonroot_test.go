@@ -17,8 +17,11 @@ limitations under the License.
 package user
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"testing"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 func TestNonRootOptions(t *testing.T) {
@@ -53,8 +56,8 @@ func TestNonRootValidate(t *testing.T) {
 	if err != nil {
 		t.Fatal("unexpected error initializing NewMustRunAs %v", err)
 	}
-	container := &api.Container{
-		SecurityContext: &api.SecurityContext{
+	container := &kapi.Container{
+		SecurityContext: &kapi.SecurityContext{
 			RunAsUser: &badUID,
 		},
 	}

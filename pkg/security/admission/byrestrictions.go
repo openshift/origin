@@ -1,11 +1,11 @@
 package admission
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 // ByRestrictions is a helper to sort SCCs in order of most restrictive to least restrictive.
-type ByRestrictions []*kapi.SecurityContextConstraints
+type ByRestrictions []*api.SecurityContextConstraints
 
 func (s ByRestrictions) Len() int {
 	return len(s)
@@ -17,7 +17,7 @@ func (s ByRestrictions) Less(i, j int) bool {
 
 // pointValue places a value on the SCC based on the settings of the SCC that can be used
 // to determine how restrictive it is.  The lower the number, the more restrictive it is.
-func (s ByRestrictions) pointValue(constraint *kapi.SecurityContextConstraints) int {
+func (s ByRestrictions) pointValue(constraint *api.SecurityContextConstraints) int {
 	points := 0
 
 	// make sure these are always valued higher than the combination of the highest strategies
@@ -32,20 +32,20 @@ func (s ByRestrictions) pointValue(constraint *kapi.SecurityContextConstraints) 
 
 	// strategies in order of least restrictive to most restrictive
 	switch constraint.SELinuxContext.Type {
-	case kapi.SELinuxStrategyRunAsAny:
+	case api.SELinuxStrategyRunAsAny:
 		points += 4
-	case kapi.SELinuxStrategyMustRunAs:
+	case api.SELinuxStrategyMustRunAs:
 		points += 1
 	}
 
 	switch constraint.RunAsUser.Type {
-	case kapi.RunAsUserStrategyRunAsAny:
+	case api.RunAsUserStrategyRunAsAny:
 		points += 4
-	case kapi.RunAsUserStrategyMustRunAsNonRoot:
+	case api.RunAsUserStrategyMustRunAsNonRoot:
 		points += 3
-	case kapi.RunAsUserStrategyMustRunAsRange:
+	case api.RunAsUserStrategyMustRunAsRange:
 		points += 2
-	case kapi.RunAsUserStrategyMustRunAs:
+	case api.RunAsUserStrategyMustRunAs:
 		points += 1
 	}
 	return points

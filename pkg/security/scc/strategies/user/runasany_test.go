@@ -17,8 +17,9 @@ limitations under the License.
 package user
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"testing"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 func TestRunAsAnyOptions(t *testing.T) {

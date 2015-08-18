@@ -19,10 +19,12 @@ package securitycontextconstraints
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/securitycontextconstraints/selinux"
-	"k8s.io/kubernetes/pkg/securitycontextconstraints/user"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
+	"github.com/openshift/origin/pkg/security/scc/strategies/selinux"
+	"github.com/openshift/origin/pkg/security/scc/strategies/user"
 )
 
 // simpleProvider is the default implementation of SecurityContextConstraintsProvider
@@ -86,14 +88,14 @@ func NewSimpleProvider(scc *api.SecurityContextConstraints) (SecurityContextCons
 //
 // NOTE: this method works on a copy of the SC of the container.  It is up to the caller to apply
 // the SC if validation passes.
-func (s *simpleProvider) CreateSecurityContext(pod *api.Pod, container *api.Container) (*api.SecurityContext, error) {
-	var sc *api.SecurityContext = nil
+func (s *simpleProvider) CreateSecurityContext(pod *kapi.Pod, container *kapi.Container) (*kapi.SecurityContext, error) {
+	var sc *kapi.SecurityContext = nil
 	if container.SecurityContext != nil {
 		// work with a copy of the original
 		copy := *container.SecurityContext
 		sc = &copy
 	} else {
-		sc = &api.SecurityContext{}
+		sc = &kapi.SecurityContext{}
 	}
 	if sc.RunAsUser == nil {
 		uid, err := s.runAsUserStrategy.Generate(pod, container)
@@ -128,7 +130,7 @@ func (s *simpleProvider) CreateSecurityContext(pod *api.Pod, container *api.Cont
 }
 
 // Ensure a container's SecurityContext is in compliance with the given constraints
-func (s *simpleProvider) ValidateSecurityContext(pod *api.Pod, container *api.Container) fielderrors.ValidationErrorList {
+func (s *simpleProvider) ValidateSecurityContext(pod *kapi.Pod, container *kapi.Container) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
 	if container.SecurityContext == nil {
@@ -180,7 +182,7 @@ func (s *simpleProvider) ValidateSecurityContext(pod *api.Pod, container *api.Co
 }
 
 // hasHostPort checks the port definitions on the container for HostPort > 0.
-func (s *simpleProvider) hasHostPort(container *api.Container) fielderrors.ValidationErrorList {
+func (s *simpleProvider) hasHostPort(container *kapi.Container) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	for _, cp := range container.Ports {
 		if cp.HostPort > 0 {

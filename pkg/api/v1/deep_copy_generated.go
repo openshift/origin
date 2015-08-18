@@ -10,6 +10,7 @@ import (
 	projectapiv1 "github.com/openshift/origin/pkg/project/api/v1"
 	routeapiv1 "github.com/openshift/origin/pkg/route/api/v1"
 	sdnapiv1 "github.com/openshift/origin/pkg/sdn/api/v1"
+	sccapiv1 "github.com/openshift/origin/pkg/security/scc/api/v1"
 	templateapiv1 "github.com/openshift/origin/pkg/template/api/v1"
 	userapiv1 "github.com/openshift/origin/pkg/user/api/v1"
 	api "k8s.io/kubernetes/pkg/api"
@@ -2309,6 +2310,115 @@ func deepCopy_v1_NetNamespaceList(in sdnapiv1.NetNamespaceList, out *sdnapiv1.Ne
 	return nil
 }
 
+func deepCopy_v1_RunAsUserStrategyOptions(in sccapiv1.RunAsUserStrategyOptions, out *sccapiv1.RunAsUserStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.UID != nil {
+		out.UID = new(int64)
+		*out.UID = *in.UID
+	} else {
+		out.UID = nil
+	}
+	if in.UIDRangeMin != nil {
+		out.UIDRangeMin = new(int64)
+		*out.UIDRangeMin = *in.UIDRangeMin
+	} else {
+		out.UIDRangeMin = nil
+	}
+	if in.UIDRangeMax != nil {
+		out.UIDRangeMax = new(int64)
+		*out.UIDRangeMax = *in.UIDRangeMax
+	} else {
+		out.UIDRangeMax = nil
+	}
+	return nil
+}
+
+func deepCopy_v1_SELinuxContextStrategyOptions(in sccapiv1.SELinuxContextStrategyOptions, out *sccapiv1.SELinuxContextStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.SELinuxOptions != nil {
+		if newVal, err := c.DeepCopy(in.SELinuxOptions); err != nil {
+			return err
+		} else {
+			out.SELinuxOptions = newVal.(*pkgapiv1.SELinuxOptions)
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	return nil
+}
+
+func deepCopy_v1_SecurityContextConstraints(in sccapiv1.SecurityContextConstraints, out *sccapiv1.SecurityContextConstraints, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapiv1.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
+		return err
+	} else {
+		out.ObjectMeta = newVal.(pkgapiv1.ObjectMeta)
+	}
+	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
+	if in.AllowedCapabilities != nil {
+		out.AllowedCapabilities = make([]pkgapiv1.Capability, len(in.AllowedCapabilities))
+		for i := range in.AllowedCapabilities {
+			out.AllowedCapabilities[i] = in.AllowedCapabilities[i]
+		}
+	} else {
+		out.AllowedCapabilities = nil
+	}
+	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	out.AllowHostNetwork = in.AllowHostNetwork
+	out.AllowHostPorts = in.AllowHostPorts
+	if err := deepCopy_v1_SELinuxContextStrategyOptions(in.SELinuxContext, &out.SELinuxContext, c); err != nil {
+		return err
+	}
+	if err := deepCopy_v1_RunAsUserStrategyOptions(in.RunAsUser, &out.RunAsUser, c); err != nil {
+		return err
+	}
+	if in.Users != nil {
+		out.Users = make([]string, len(in.Users))
+		for i := range in.Users {
+			out.Users[i] = in.Users[i]
+		}
+	} else {
+		out.Users = nil
+	}
+	if in.Groups != nil {
+		out.Groups = make([]string, len(in.Groups))
+		for i := range in.Groups {
+			out.Groups[i] = in.Groups[i]
+		}
+	} else {
+		out.Groups = nil
+	}
+	return nil
+}
+
+func deepCopy_v1_SecurityContextConstraintsList(in sccapiv1.SecurityContextConstraintsList, out *sccapiv1.SecurityContextConstraintsList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapiv1.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(pkgapiv1.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]sccapiv1.SecurityContextConstraints, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_v1_SecurityContextConstraints(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_v1_Parameter(in templateapiv1.Parameter, out *templateapiv1.Parameter, c *conversion.Cloner) error {
 	out.Name = in.Name
 	out.DisplayName = in.DisplayName
@@ -2676,6 +2786,10 @@ func init() {
 		deepCopy_v1_HostSubnetList,
 		deepCopy_v1_NetNamespace,
 		deepCopy_v1_NetNamespaceList,
+		deepCopy_v1_RunAsUserStrategyOptions,
+		deepCopy_v1_SELinuxContextStrategyOptions,
+		deepCopy_v1_SecurityContextConstraints,
+		deepCopy_v1_SecurityContextConstraintsList,
 		deepCopy_v1_Parameter,
 		deepCopy_v1_Template,
 		deepCopy_v1_TemplateList,

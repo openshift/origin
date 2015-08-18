@@ -122,6 +122,11 @@ func (c *Fake) Actions() []ktestclient.Action {
 
 var _ client.Interface = &Fake{}
 
+// SecurityContextConstraints provides a fake REST client for SecurityContextConstraints.
+func (c *Fake) SecurityContextConstraints() client.SecurityContextConstraintInterface {
+	return &FakeSecurityContextConstraints{Fake: c}
+}
+
 // Builds provides a fake REST client for Builds
 func (c *Fake) Builds(namespace string) client.BuildInterface {
 	return &FakeBuilds{Fake: c, Namespace: namespace}

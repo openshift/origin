@@ -17,8 +17,11 @@ limitations under the License.
 package selinux
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"testing"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+
+	"github.com/openshift/origin/pkg/security/scc/api"
 )
 
 func TestRunAsAnyOptions(t *testing.T) {
@@ -48,7 +51,7 @@ func TestRunAsAnyGenerate(t *testing.T) {
 
 func TestRunAsAnyValidate(t *testing.T) {
 	s, err := NewRunAsAny(&api.SELinuxContextStrategyOptions{
-		SELinuxOptions: &api.SELinuxOptions{
+		SELinuxOptions: &kapi.SELinuxOptions{
 			Level: "foo",
 		},
 	},

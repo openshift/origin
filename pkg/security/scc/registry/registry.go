@@ -22,20 +22,22 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
+
+	sccapi "github.com/openshift/origin/pkg/security/scc/api"
 )
 
 // Registry is an interface implemented by things that know how to store SecurityContextConstraints objects.
 type Registry interface {
 	// ListSecurityContextConstraints obtains a list of SecurityContextConstraints having labels which match selector.
-	ListSecurityContextConstraints(ctx api.Context, selector labels.Selector) (*api.SecurityContextConstraintsList, error)
+	ListSecurityContextConstraints(ctx api.Context, selector labels.Selector) (*sccapi.SecurityContextConstraintsList, error)
 	// Watch for new/changed/deleted SecurityContextConstraints
 	WatchSecurityContextConstraints(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 	// Get a specific SecurityContextConstraints
-	GetSecurityContextConstraint(ctx api.Context, name string) (*api.SecurityContextConstraints, error)
+	GetSecurityContextConstraint(ctx api.Context, name string) (*sccapi.SecurityContextConstraints, error)
 	// Create a SecurityContextConstraints based on a specification.
-	CreateSecurityContextConstraint(ctx api.Context, scc *api.SecurityContextConstraints) error
+	CreateSecurityContextConstraint(ctx api.Context, scc *sccapi.SecurityContextConstraints) error
 	// Update an existing SecurityContextConstraints
-	UpdateSecurityContextConstraint(ctx api.Context, scc *api.SecurityContextConstraints) error
+	UpdateSecurityContextConstraint(ctx api.Context, scc *sccapi.SecurityContextConstraints) error
 	// Delete an existing SecurityContextConstraints
 	DeleteSecurityContextConstraint(ctx api.Context, name string) error
 }
@@ -51,32 +53,32 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListSecurityContextConstraints(ctx api.Context, label labels.Selector) (*api.SecurityContextConstraintsList, error) {
+func (s *storage) ListSecurityContextConstraints(ctx api.Context, label labels.Selector) (*sccapi.SecurityContextConstraintsList, error) {
 	obj, err := s.List(ctx, label, fields.Everything())
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.SecurityContextConstraintsList), nil
+	return obj.(*sccapi.SecurityContextConstraintsList), nil
 }
 
 func (s *storage) WatchSecurityContextConstraints(ctx api.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return s.Watch(ctx, label, field, resourceVersion)
 }
 
-func (s *storage) GetSecurityContextConstraint(ctx api.Context, name string) (*api.SecurityContextConstraints, error) {
+func (s *storage) GetSecurityContextConstraint(ctx api.Context, name string) (*sccapi.SecurityContextConstraints, error) {
 	obj, err := s.Get(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.SecurityContextConstraints), nil
+	return obj.(*sccapi.SecurityContextConstraints), nil
 }
 
-func (s *storage) CreateSecurityContextConstraint(ctx api.Context, scc *api.SecurityContextConstraints) error {
+func (s *storage) CreateSecurityContextConstraint(ctx api.Context, scc *sccapi.SecurityContextConstraints) error {
 	_, err := s.Create(ctx, scc)
 	return err
 }
 
-func (s *storage) UpdateSecurityContextConstraint(ctx api.Context, scc *api.SecurityContextConstraints) error {
+func (s *storage) UpdateSecurityContextConstraint(ctx api.Context, scc *sccapi.SecurityContextConstraints) error {
 	_, _, err := s.Update(ctx, scc)
 	return err
 }

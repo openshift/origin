@@ -24,9 +24,11 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
-	"k8s.io/kubernetes/pkg/registry/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
+
+	sccapi "github.com/openshift/origin/pkg/security/scc/api"
+	scc "github.com/openshift/origin/pkg/security/scc/registry"
 )
 
 // REST implements a RESTStorage for security context constraints against etcd
@@ -39,8 +41,8 @@ const Prefix = "/securitycontextconstraints"
 // NewStorage returns a RESTStorage object that will work against security context constraints objects.
 func NewStorage(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
-		NewFunc:     func() runtime.Object { return &api.SecurityContextConstraints{} },
-		NewListFunc: func() runtime.Object { return &api.SecurityContextConstraintsList{} },
+		NewFunc:     func() runtime.Object { return &sccapi.SecurityContextConstraints{} },
+		NewListFunc: func() runtime.Object { return &sccapi.SecurityContextConstraintsList{} },
 		KeyRootFunc: func(ctx api.Context) string {
 			return Prefix
 		},
@@ -48,15 +50,15 @@ func NewStorage(s storage.Interface) *REST {
 			return path.Join(Prefix, name), nil
 		},
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.SecurityContextConstraints).Name, nil
+			return obj.(*sccapi.SecurityContextConstraints).Name, nil
 		},
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
-			return securitycontextconstraints.Matcher(label, field)
+			return scc.Matcher(label, field)
 		},
 		EndpointName: "securitycontextconstraints",
 
-		CreateStrategy:      securitycontextconstraints.Strategy,
-		UpdateStrategy:      securitycontextconstraints.Strategy,
+		CreateStrategy:      scc.Strategy,
+		UpdateStrategy:      scc.Strategy,
 		ReturnDeletedObject: true,
 		Storage:             s,
 	}
