@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
@@ -426,6 +427,13 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 	return errors.NewAggregate(errs)
 }
 
+func (c *AppConfig) validateEnforcedName() error {
+	if ok, _ := validation.ValidateServiceName(c.Name, false); !ok {
+		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", c.Name)
+	}
+	return nil
+}
+
 func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 	// Ensure that name meets length requirements
 	if len(name) < 2 {
@@ -768,6 +776,12 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 
 	if len(repositories) == 0 && len(components) == 0 {
 		return nil, ErrNoInputs
+	}
+
+	if len(c.Name) > 0 {
+		if err := c.validateEnforcedName(); err != nil {
+			return nil, err
+		}
 	}
 
 	if len(components.ImageComponentRefs()) > 1 && len(c.Name) > 0 {
