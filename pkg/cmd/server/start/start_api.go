@@ -10,6 +10,9 @@ import (
 
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 const apiLong = `Start the master API
@@ -63,13 +66,27 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 		},
 	}
 
+	masterAddr := flagtypes.Addr{
+		Value:         "127.0.0.1:8443",
+		DefaultScheme: "https",
+		DefaultPort:   8443,
+		AllowPrefix:   true,
+	}.Default()
+
 	options.MasterArgs = NewDefaultMasterArgs()
 	options.MasterArgs.StartAPI = true
+	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
+		if config.KubernetesMasterConfig != nil && masterAddr.Provided {
+			config.KubernetesMasterConfig.MasterIP = masterAddr.Host
+		}
+		return nil
+	}
 
 	flags := cmd.Flags()
-	// This command only supports reading from config and the listen argument
+	// This command only supports reading from config and the override master address
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. Required")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
+	flags.Var(&masterAddr, "master-ip", "The IP address the master should register for itself. Defaults to the master address from the config.")
 
 	return cmd, options
 }

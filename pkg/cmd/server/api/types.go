@@ -604,7 +604,8 @@ type KubernetesMasterConfig struct {
 	APILevels []string
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string
-	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
+	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer,
+	// or if set to -1, indicates this is part of a cluster.
 	MasterCount int
 	// ServicesSubnet is the subnet to use for assigning service IPs
 	ServicesSubnet string
