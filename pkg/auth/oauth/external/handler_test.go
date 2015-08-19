@@ -17,7 +17,10 @@ func TestHandler(t *testing.T) {
 }
 
 func TestRedirectingStateValidCSRF(t *testing.T) {
-	fakeCSRF := &csrf.FakeCSRF{"xyz", nil}
+	fakeCSRF := &csrf.FakeCSRF{
+		Token: "xyz",
+		Err:   nil,
+	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 
 	req, _ := http.NewRequest("GET", "http://www.example.com", nil)
@@ -38,7 +41,10 @@ func TestRedirectingStateValidCSRF(t *testing.T) {
 }
 
 func TestRedirectingStateInvalidCSRF(t *testing.T) {
-	fakeCSRF := &csrf.FakeCSRF{"xyz", nil}
+	fakeCSRF := &csrf.FakeCSRF{
+		Token: "xyz",
+		Err:   nil,
+	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 
 	req, _ := http.NewRequest("GET", "http://www.example.com", nil)
@@ -65,7 +71,10 @@ func TestRedirectingStateInvalidCSRF(t *testing.T) {
 func TestRedirectingStateSuccess(t *testing.T) {
 	originalURL := "http://www.example.com"
 
-	fakeCSRF := &csrf.FakeCSRF{"xyz", nil}
+	fakeCSRF := &csrf.FakeCSRF{
+		Token: "xyz",
+		Err:   nil,
+	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 
 	req, _ := http.NewRequest("GET", originalURL, nil)
@@ -94,7 +103,10 @@ func TestRedirectingStateOAuthError(t *testing.T) {
 	originalURL := "http://www.example.com"
 	expectedURL := "http://www.example.com?error=access_denied"
 
-	fakeCSRF := &csrf.FakeCSRF{"xyz", nil}
+	fakeCSRF := &csrf.FakeCSRF{
+		Token: "xyz",
+		Err:   nil,
+	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 
 	req, _ := http.NewRequest("GET", originalURL, nil)
@@ -123,7 +135,10 @@ func TestRedirectingStateOAuthError(t *testing.T) {
 }
 
 func TestRedirectingStateError(t *testing.T) {
-	fakeCSRF := &csrf.FakeCSRF{"xyz", nil}
+	fakeCSRF := &csrf.FakeCSRF{
+		Token: "xyz",
+		Err:   nil,
+	}
 	redirectingState := CSRFRedirectingState(fakeCSRF)
 
 	req2, _ := http.NewRequest("GET", "http://www.example.com/callback", nil)

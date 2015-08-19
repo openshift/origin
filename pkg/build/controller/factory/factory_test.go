@@ -28,7 +28,10 @@ func TestLimitedLogAndRetryFinish(t *testing.T) {
 	err := errors.New("funky error")
 
 	now := kutil.Now()
-	retry := controller.Retry{0, kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-31, now.Second(), now.Nanosecond(), now.Location())}
+	retry := controller.Retry{
+		Count:          0,
+		StartTimestamp: kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-31, now.Second(), now.Nanosecond(), now.Location()),
+	}
 	if limitedLogAndRetry(updater, 30*time.Minute)(&buildapi.Build{Status: buildapi.BuildStatus{Phase: buildapi.BuildPhaseNew}}, err, retry) {
 		t.Error("Expected no more retries after reaching timeout!")
 	}
@@ -51,7 +54,10 @@ func TestLimitedLogAndRetryProcessing(t *testing.T) {
 	err := errors.New("funky error")
 
 	now := kutil.Now()
-	retry := controller.Retry{0, kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-10, now.Second(), now.Nanosecond(), now.Location())}
+	retry := controller.Retry{
+		Count:          0,
+		StartTimestamp: kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-10, now.Second(), now.Nanosecond(), now.Location()),
+	}
 	if !limitedLogAndRetry(updater, 30*time.Minute)(&buildapi.Build{Status: buildapi.BuildStatus{Phase: buildapi.BuildPhaseNew}}, err, retry) {
 		t.Error("Expected more retries!")
 	}

@@ -17,7 +17,12 @@ type ClusterRoleStorage struct {
 }
 
 func NewClusterRoleStorage(clusterPolicyRegistry clusterpolicyregistry.Registry) *ClusterRoleStorage {
-	return &ClusterRoleStorage{rolestorage.VirtualStorage{clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry), roleregistry.ClusterStrategy, roleregistry.ClusterStrategy}}
+	return &ClusterRoleStorage{
+		roleStorage: rolestorage.VirtualStorage{
+			PolicyStorage:  clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry),
+			CreateStrategy: roleregistry.ClusterStrategy,
+			UpdateStrategy: roleregistry.ClusterStrategy},
+	}
 }
 
 func (s *ClusterRoleStorage) New() runtime.Object {

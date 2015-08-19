@@ -513,7 +513,7 @@ func (c *MasterConfig) GetServiceAccountClients(name string) (*osclient.Client, 
 	}
 	return serviceaccounts.Clients(
 		c.PrivilegedLoopbackClientConfig,
-		&serviceaccounts.ClientLookupTokenRetriever{c.PrivilegedLoopbackKubernetesClient},
+		&serviceaccounts.ClientLookupTokenRetriever{Client: c.PrivilegedLoopbackKubernetesClient},
 		c.Options.PolicyConfig.OpenShiftInfrastructureNamespace,
 		name,
 	)

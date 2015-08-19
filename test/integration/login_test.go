@@ -101,7 +101,7 @@ func TestLogin(t *testing.T) {
 	// 	t.Fatalf("unexpected error: %v", err)
 	// }
 
-	userWhoamiOptions := cmd.WhoAmIOptions{oClient.Users(), ioutil.Discard}
+	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: oClient.Users(), Out: ioutil.Discard}
 	retrievedUser, err := userWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -110,7 +110,7 @@ func TestLogin(t *testing.T) {
 		t.Errorf("expected %v, got %v", retrievedUser.Name, username)
 	}
 
-	adminWhoamiOptions := cmd.WhoAmIOptions{clusterAdminClient.Users(), ioutil.Discard}
+	adminWhoamiOptions := cmd.WhoAmIOptions{UserInterface: clusterAdminClient.Users(), Out: ioutil.Discard}
 	retrievedAdmin, err := adminWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

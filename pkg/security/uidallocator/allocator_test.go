@@ -35,7 +35,7 @@ func TestAllocate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	released := uid.Block{2, 3}
+	released := uid.Block{Start: 2, End: 3}
 	if err := r.Release(released); err != nil {
 		t.Fatal(err)
 	}
@@ -53,10 +53,10 @@ func TestAllocate(t *testing.T) {
 	if err := r.Release(released); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Allocate(uid.Block{11, 11}); err != ErrNotInRange {
+	if err := r.Allocate(uid.Block{Start: 11, End: 11}); err != ErrNotInRange {
 		t.Fatal(err)
 	}
-	if err := r.Allocate(uid.Block{8, 11}); err != ErrNotInRange {
+	if err := r.Allocate(uid.Block{Start: 8, End: 11}); err != ErrNotInRange {
 		t.Fatal(err)
 	}
 	if f := r.Free(); f != 1 {
