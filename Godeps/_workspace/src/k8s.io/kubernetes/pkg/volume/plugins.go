@@ -123,13 +123,6 @@ type VolumeHost interface {
 	NewWrapperCleaner(spec *Spec, podUID types.UID, mounter mount.Interface) (Cleaner, error)
 }
 
-type RecyclableVolumeHost interface {
-	VolumeHost
-	// RecyclableVolumeConfigFor returns a RecyclableVolumeConfig for a specific volume plugin.
-	// Configs are registered with the host to allow override of the recycling implementation.
-	RecyclableVolumeConfigFor(name string) (*RecyclableVolumeConfig, error)
-}
-
 // VolumePluginMgr tracks registered plugins.
 type VolumePluginMgr struct {
 	mutex   sync.Mutex
@@ -142,14 +135,6 @@ type Spec struct {
 	VolumeSource           api.VolumeSource
 	PersistentVolumeSource api.PersistentVolumeSource
 	ReadOnly               bool
-}
-
-// RecyclableVolumeConfig describes the things needed to generate a pod that scrubs a PV clean for reuse by another PVClaim
-type RecyclableVolumeConfig struct {
-	ImageName string
-	Command   []string
-	Args      []string
-	Timeout   int64
 }
 
 // NewSpecFromVolume creates an Spec from an api.Volume
