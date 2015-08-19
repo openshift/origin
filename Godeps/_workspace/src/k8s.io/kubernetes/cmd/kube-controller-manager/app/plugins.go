@@ -37,13 +37,13 @@ import (
 )
 
 // ProbeRecyclableVolumePlugins collects all persistent volume plugins into an easy to use list.
-func ProbeRecyclableVolumePlugins() []volume.VolumePlugin {
+func ProbeRecyclableVolumePlugins(volumeConfig *volume.VolumeConfig) []volume.VolumePlugin {
 	allPlugins := []volume.VolumePlugin{}
 
 	// The list of plugins to probe is decided by the kubelet binary, not
 	// by dynamic linking or other "magic".  Plugins will be analyzed and
 	// initialized later.
-	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins()...)
-	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(volumeConfig)...)
+	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(volumeConfig)...)
 	return allPlugins
 }
