@@ -58,7 +58,7 @@ func (plugin *metadataPlugin) Name() string {
 }
 
 func (plugin *metadataPlugin) CanSupport(spec *volume.Spec) bool {
-	return spec.VolumeSource.Metadata != nil
+	return spec.Volume != nil && spec.Volume.VolumeSource.Metadata != nil
 }
 
 func (plugin *metadataPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions, mounter mount.Interface) (volume.Builder, error) {
@@ -72,7 +72,7 @@ func (plugin *metadataPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod
 		opts:    &opts,
 		mounter: mounter}
 	v.fieldReferenceFileNames = make(map[string]string)
-	for _, fileInfo := range spec.VolumeSource.Metadata.Items {
+	for _, fileInfo := range spec.Volume.VolumeSource.Metadata.Items {
 		v.fieldReferenceFileNames[fileInfo.FieldRef.FieldPath] = fileInfo.Name
 	}
 	return v, nil
@@ -102,8 +102,8 @@ type metadataVolume struct {
 
 // This is the spec for the volume that this plugin wraps.
 var wrappedVolumeSpec = &volume.Spec{
-	Name:         "not-used",
-	VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{Medium: api.StorageMediumMemory}},
+	Name:   "not-used",
+	Volume: &api.Volume{VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{Medium: api.StorageMediumMemory}}},
 }
 
 // IsReadOnly exposes if the volume is read only.
