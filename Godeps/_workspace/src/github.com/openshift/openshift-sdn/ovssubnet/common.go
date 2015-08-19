@@ -33,9 +33,11 @@ type OvsController struct {
 }
 
 type FlowController interface {
-	Setup(localSubnetIP, globalSubnetIP string) error
+	Setup(localSubnetIP, globalSubnetIP, servicesSubnetIP string) error
 	AddOFRules(nodeIP, localSubnetIP, localIP string) error
 	DelOFRules(nodeIP, localIP string) error
+	AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
+	DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
 }
 
 func NewKubeController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
@@ -92,7 +94,7 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready
 	}, nil
 }
 
-func (oc *OvsController) StartMaster(sync bool, containerNetwork string, containerSubnetLength uint) error {
+func (oc *OvsController) StartMaster(sync bool, containerNetwork string, containerSubnetLength uint, serviceNetwork string) error {
 	// wait a minute for etcd to come alive
 	status := oc.subnetRegistry.CheckEtcdIsAlive(60)
 	if !status {
@@ -119,7 +121,7 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		subrange = append(subrange, sub.SubnetIP)
 	}
 
-	err = oc.subnetRegistry.WriteNetworkConfig(containerNetwork, containerSubnetLength)
+	err = oc.subnetRegistry.WriteNetworkConfig(containerNetwork, containerSubnetLength, serviceNetwork)
 	if err != nil {
 		return err
 	}
@@ -312,7 +314,12 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 			log.Errorf("Failed to obtain ContainerNetwork: %v", err)
 			return err
 		}
-		err = oc.flowController.Setup(oc.localSubnet.SubnetIP, containerNetwork)
+		servicesNetwork, err := oc.subnetRegistry.GetServicesNetwork()
+		if err != nil {
+			log.Errorf("Failed to obtain ServicesNetwork: %v", err)
+			return err
+		}
+		err = oc.flowController.Setup(oc.localSubnet.SubnetIP, containerNetwork, servicesNetwork)
 		if err != nil {
 			return err
 		}
@@ -333,6 +340,15 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 			oc.VNIDMap[ns.Name] = ns.NetID
 		}
 		go oc.watchVnids()
+
+		services, err := oc.subnetRegistry.GetServices()
+		if err != nil {
+			return err
+		}
+		for _, svc := range *services {
+			oc.flowController.AddServiceOFRules(oc.VNIDMap[svc.Namespace], svc.IP, svc.Protocol, svc.Port)
+		}
+		go oc.watchServices()
 	}
 	go oc.watchCluster()
 
@@ -414,6 +430,28 @@ func (oc *OvsController) watchNodes() {
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of nodes.")
+			stop <- true
+			return
+		}
+	}
+}
+
+func (oc *OvsController) watchServices() {
+	stop := make(chan bool)
+	svcevent := make(chan *api.ServiceEvent)
+	go oc.subnetRegistry.WatchServices(svcevent, stop)
+	for {
+		select {
+		case ev := <-svcevent:
+			netid := oc.VNIDMap[ev.Service.Namespace]
+			switch ev.Type {
+			case api.Added:
+				oc.flowController.AddServiceOFRules(netid, ev.Service.IP, ev.Service.Protocol, ev.Service.Port)
+			case api.Deleted:
+				oc.flowController.DelServiceOFRules(netid, ev.Service.IP, ev.Service.Protocol, ev.Service.Port)
+			}
+		case <-oc.sig:
+			log.Error("Signal received. Stopping watching of services.")
 			stop <- true
 			return
 		}
