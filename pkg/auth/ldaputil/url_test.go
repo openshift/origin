@@ -1,4 +1,4 @@
-package ldappassword
+package ldaputil
 
 import (
 	"reflect"

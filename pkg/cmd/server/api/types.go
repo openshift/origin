@@ -492,11 +492,11 @@ type LDAPPasswordIdentityProvider struct {
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
 	CA string
-	// Attributes maps LDAP attributes to identities
-	Attributes LDAPAttributes
+	// LDAPEntryAttributeMapping maps LDAP attributes to identities
+	LDAPEntryAttributeMapping LDAPAttributeMapping
 }
 
-type LDAPAttributes struct {
+type LDAPAttributeMapping struct {
 	// ID is the list of attributes whose values should be used as the user ID. Required.
 	// LDAP standard identity attribute is "dn"
 	ID []string

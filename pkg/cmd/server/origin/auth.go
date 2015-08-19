@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
+	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
@@ -462,7 +463,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		return denypassword.New(), nil
 
 	case (*configapi.LDAPPasswordIdentityProvider):
-		url, err := ldappassword.ParseURL(provider.URL)
+		url, err := ldaputil.ParseURL(provider.URL)
 		if err != nil {
 			return nil, fmt.Errorf("Error parsing LDAPPasswordIdentityProvider URL: %v", err)
 		}
@@ -478,15 +479,11 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 
 		opts := ldappassword.Options{
 			URL:          url,
-			Insecure:     provider.Insecure,
-			TLSConfig:    tlsConfig,
+			ClientConfig: ldaputil.NewLDAPClientConfig(url, provider.Insecure, tlsConfig),
 			BindDN:       provider.BindDN,
 			BindPassword: provider.BindPassword,
 
-			AttributeEmail:             provider.Attributes.Email,
-			AttributeName:              provider.Attributes.Name,
-			AttributeID:                provider.Attributes.ID,
-			AttributePreferredUsername: provider.Attributes.PreferredUsername,
+			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.LDAPEntryAttributeMapping),
 		}
 		return ldappassword.New(identityProvider.Name, opts, identityMapper)
 

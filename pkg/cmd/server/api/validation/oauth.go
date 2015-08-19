@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/origin/pkg/auth/authenticator/password/ldappassword"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
+
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
+	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/user/api/validation"
-	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/fielderrors"
 )
 
 func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
@@ -113,7 +114,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 			validationResults.AddErrors(ValidateFile(provider.File, "provider.file")...)
 
 		case (*api.LDAPPasswordIdentityProvider):
-			validationResults.Append(ValidateLDAPIdentityProvider(provider, identityProvider))
+			validationResults.Append(ValidateLDAPIdentityProvider(provider))
 
 		case (*api.GitHubIdentityProvider):
 			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
@@ -130,7 +131,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 	return validationResults
 }
 
-func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, identityProvider api.IdentityProvider) ValidationResults {
+func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if len(provider.URL) == 0 {
@@ -138,7 +139,7 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, id
 		return validationResults
 	}
 
-	u, err := ldappassword.ParseURL(provider.URL)
+	u, err := ldaputil.ParseURL(provider.URL)
 	if err != nil {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.url", provider.URL, err.Error()))
 		return validationResults
@@ -153,7 +154,7 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, id
 	}
 
 	if provider.Insecure {
-		if u.Scheme == ldappassword.SchemeLDAPS {
+		if u.Scheme == ldaputil.SchemeLDAPS {
 			validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.url", provider.URL, fmt.Sprintf("Cannot use %s scheme with insecure=true", u.Scheme)))
 		}
 		if len(provider.CA) > 0 {
@@ -166,7 +167,7 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, id
 	}
 
 	// At least one attribute to use as the user id is required
-	if len(provider.Attributes.ID) == 0 {
+	if len(provider.LDAPEntryAttributeMapping.ID) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.attributes.id", "[]", "at least one id attribute is required (LDAP standard identity attribute is 'dn')"))
 	}
 
