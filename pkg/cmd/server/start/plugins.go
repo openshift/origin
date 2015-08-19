@@ -8,6 +8,7 @@ import (
 	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
 	_ "github.com/openshift/origin/pkg/security/admission"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/admit"
+	_ "k8s.io/kubernetes/plugin/pkg/admission/exec/denyprivileged"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/exists"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
