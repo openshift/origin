@@ -3,6 +3,7 @@ package registry
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path"
 	"strconv"
 	"sync"
@@ -164,11 +165,11 @@ func (sub *EtcdSubnetRegistry) InitServices() error {
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) GetServices() (*[]api.Service, error) {
+func (sub *EtcdSubnetRegistry) GetServices() ([]api.Service, error) {
 	return nil, nil
 }
 
-func (sub *EtcdSubnetRegistry) GetSubnets() (*[]api.Subnet, error) {
+func (sub *EtcdSubnetRegistry) GetSubnets() ([]api.Subnet, error) {
 	key := sub.etcdCfg.SubnetPath
 	resp, err := sub.client().Get(key, false, true)
 	if err != nil {
@@ -190,7 +191,7 @@ func (sub *EtcdSubnetRegistry) GetSubnets() (*[]api.Subnet, error) {
 		}
 		subnets = append(subnets, s)
 	}
-	return &subnets, err
+	return subnets, err
 }
 
 func (sub *EtcdSubnetRegistry) GetSubnet(nodeName string) (*api.Subnet, error) {

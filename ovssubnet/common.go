@@ -108,7 +108,7 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		log.Errorf("Error in initializing/fetching subnets: %v", err)
 		return err
 	}
-	for _, sub := range *subnets {
+	for _, sub := range subnets {
 		subrange = append(subrange, sub.SubnetIP)
 	}
 
@@ -295,7 +295,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 	if err != nil {
 		log.Errorf("Could not fetch existing subnets: %v", err)
 	}
-	for _, s := range *subnets {
+	for _, s := range subnets {
 		oc.flowController.AddOFRules(s.NodeIP, s.SubnetIP, oc.localIP)
 	}
 	if _, ok := oc.flowController.(*multitenant.FlowController); ok {
@@ -312,7 +312,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		if err != nil {
 			return err
 		}
-		for _, svc := range *services {
+		for _, svc := range services {
 			oc.flowController.AddServiceOFRules(oc.VNIDMap[svc.Namespace], svc.IP, svc.Protocol, svc.Port)
 		}
 		go oc.watchServices()
