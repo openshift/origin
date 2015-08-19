@@ -406,7 +406,8 @@ func describeAdditionalBuildDetail(build *buildgraph.BuildConfigNode, lastSucces
 		lastTime = passTime
 	}
 
-	if lastSuccessfulBuild != nil && includeSuccess {
+	// display the last successful build if specifically requested or we're going to display an active build for context
+	if lastSuccessfulBuild != nil && (includeSuccess || len(activeBuilds) > 0) {
 		out = append(out, describeBuildPhase(lastSuccessfulBuild.Build, &passTime, build.BuildConfig.Name, pushTargetResolved))
 	}
 	if passTime.Before(failTime) {
