@@ -213,7 +213,7 @@ func TestGetTagFallback(t *testing.T) {
 		return
 	}
 	if img.ID != "image2" {
-		t.Errorf("unexpected image for tag: %s", img)
+		t.Errorf("unexpected image for tag: %v", img)
 	}
 	// Case when tag is not found
 	img, err = repo.getTaggedImage(c, "test2", "")

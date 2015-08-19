@@ -123,7 +123,7 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 	_ = r.Visit(func(info *resource.Info) error {
 		node, ok := info.Object.(*kapi.Node)
 		if !ok {
-			err := fmt.Errorf("cannot convert input to Node: ", reflect.TypeOf(info.Object))
+			err := fmt.Errorf("cannot convert input to Node: %v", reflect.TypeOf(info.Object))
 			errList = append(errList, err)
 			// Don't bail out if one node fails
 			return nil
