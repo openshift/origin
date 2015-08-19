@@ -59,7 +59,7 @@ frontend public_ssl
   use_backend be_tcp_%[req.ssl_sni,map(/var/lib/haproxy/conf/os_tcp_be.map)] if sni sni_passthrough
 
   # if the route is SNI and NOT passthrough enter the termination flow
-  use_backend be_sni if { req.ssl_sni -m found }
+  use_backend be_sni if sni
 
   # non SNI requests should enter a default termination backend rather than the custom cert SNI backend since it
   # will not be able to match a cert to an SNI host
