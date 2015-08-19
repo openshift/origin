@@ -33,8 +33,8 @@ type OvsController struct {
 }
 
 type FlowController interface {
-	Setup(localSubnet, globalSubnet string) error
-	AddOFRules(nodeIP, localSubnet, localIP string) error
+	Setup(localSubnetIP, globalSubnetIP string) error
+	AddOFRules(nodeIP, localSubnetIP, localIP string) error
 	DelOFRules(nodeIP, localIP string) error
 }
 
@@ -116,7 +116,7 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		return err
 	}
 	for _, sub := range *subnets {
-		subrange = append(subrange, sub.Sub)
+		subrange = append(subrange, sub.SubnetIP)
 	}
 
 	err = oc.subnetRegistry.WriteNetworkConfig(containerNetwork, containerSubnetLength)
@@ -210,13 +210,13 @@ func (oc *OvsController) ServeExistingNodes() error {
 		return err
 	}
 
-	for _, node := range *nodes {
-		_, err := oc.subnetRegistry.GetSubnet(node)
+	for _, nodeName := range *nodes {
+		_, err := oc.subnetRegistry.GetSubnet(nodeName)
 		if err == nil {
 			// subnet already exists, continue
 			continue
 		}
-		err = oc.AddNode(node, "")
+		err = oc.AddNode(nodeName, "")
 		if err != nil {
 			return err
 		}
@@ -224,12 +224,12 @@ func (oc *OvsController) ServeExistingNodes() error {
 	return nil
 }
 
-func (oc *OvsController) getNodeIP(node string) (string, error) {
-	ip := net.ParseIP(node)
+func (oc *OvsController) getNodeIP(nodeName string) (string, error) {
+	ip := net.ParseIP(nodeName)
 	if ip == nil {
-		addrs, err := net.LookupIP(node)
+		addrs, err := net.LookupIP(nodeName)
 		if err != nil {
-			log.Errorf("Failed to lookup IP address for node %s: %v", node, err)
+			log.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
 			return "", err
 		}
 		for _, addr := range addrs {
@@ -240,50 +240,50 @@ func (oc *OvsController) getNodeIP(node string) (string, error) {
 		}
 	}
 	if ip == nil || len(ip.String()) == 0 {
-		return "", fmt.Errorf("Failed to obtain IP address from node label: %s", node)
+		return "", fmt.Errorf("Failed to obtain IP address from node label: %s", nodeName)
 	}
 	return ip.String(), nil
 }
 
-func (oc *OvsController) AddNode(node string, nodeIP string) error {
+func (oc *OvsController) AddNode(nodeName string, nodeIP string) error {
 	sn, err := oc.subnetAllocator.GetNetwork()
 	if err != nil {
-		log.Errorf("Error creating network for node %s.", node)
+		log.Errorf("Error creating network for node %s.", nodeName)
 		return err
 	}
 
 	if nodeIP == "" || nodeIP == "127.0.0.1" {
-		nodeIP, err = oc.getNodeIP(node)
+		nodeIP, err = oc.getNodeIP(nodeName)
 		if err != nil {
 			return err
 		}
 	}
 
-	sub := &api.Subnet{
-		NodeIP: nodeIP,
-		Sub:    sn.String(),
+	subnet := &api.Subnet{
+		NodeIP:   nodeIP,
+		SubnetIP: sn.String(),
 	}
-	err = oc.subnetRegistry.CreateSubnet(node, sub)
+	err = oc.subnetRegistry.CreateSubnet(nodeName, subnet)
 	if err != nil {
-		log.Errorf("Error writing subnet to etcd for node %s: %v", node, sn)
+		log.Errorf("Error writing subnet to etcd for node %s: %v", nodeName, sn)
 		return err
 	}
 	return nil
 }
 
-func (oc *OvsController) DeleteNode(node string) error {
-	sub, err := oc.subnetRegistry.GetSubnet(node)
+func (oc *OvsController) DeleteNode(nodeName string) error {
+	sub, err := oc.subnetRegistry.GetSubnet(nodeName)
 	if err != nil {
-		log.Errorf("Error fetching subnet for node %s for delete operation.", node)
+		log.Errorf("Error fetching subnet for node %s for delete operation.", nodeName)
 		return err
 	}
-	_, ipnet, err := net.ParseCIDR(sub.Sub)
+	_, ipnet, err := net.ParseCIDR(sub.SubnetIP)
 	if err != nil {
-		log.Errorf("Error parsing subnet for node %s for deletion: %s", node, sub.Sub)
+		log.Errorf("Error parsing subnet for node %s for deletion: %s", nodeName, sub.SubnetIP)
 		return err
 	}
 	oc.subnetAllocator.ReleaseNetwork(ipnet)
-	return oc.subnetRegistry.DeleteSubnet(node)
+	return oc.subnetRegistry.DeleteSubnet(nodeName)
 }
 
 func (oc *OvsController) syncWithMaster() error {
@@ -312,7 +312,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 			log.Errorf("Failed to obtain ContainerNetwork: %v", err)
 			return err
 		}
-		err = oc.flowController.Setup(oc.localSubnet.Sub, containerNetwork)
+		err = oc.flowController.Setup(oc.localSubnet.SubnetIP, containerNetwork)
 		if err != nil {
 			return err
 		}
@@ -322,7 +322,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 		log.Errorf("Could not fetch existing subnets: %v", err)
 	}
 	for _, s := range *subnets {
-		oc.flowController.AddOFRules(s.NodeIP, s.Sub, oc.localIP)
+		oc.flowController.AddOFRules(s.NodeIP, s.SubnetIP, oc.localIP)
 	}
 	if _, ok := oc.flowController.(*multitenant.FlowController); ok {
 		nslist, err := oc.subnetRegistry.GetNetNamespaces()
@@ -388,29 +388,29 @@ func (oc *OvsController) watchNodes() {
 		case ev := <-nodeEvent:
 			switch ev.Type {
 			case api.Added:
-				sub, err := oc.subnetRegistry.GetSubnet(ev.Node)
+				sub, err := oc.subnetRegistry.GetSubnet(ev.NodeName)
 				if err != nil {
 					// subnet does not exist already
-					oc.AddNode(ev.Node, ev.NodeIP)
+					oc.AddNode(ev.NodeName, ev.NodeIP)
 				} else {
 					// Current node IP is obtained from event, ev.NodeIP to
 					// avoid cached/stale IP lookup by net.LookupIP()
 					if sub.NodeIP != ev.NodeIP {
-						err = oc.subnetRegistry.DeleteSubnet(ev.Node)
+						err = oc.subnetRegistry.DeleteSubnet(ev.NodeName)
 						if err != nil {
-							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.Node, sub.NodeIP)
+							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.NodeName, sub.NodeIP)
 							continue
 						}
 						sub.NodeIP = ev.NodeIP
-						err = oc.subnetRegistry.CreateSubnet(ev.Node, sub)
+						err = oc.subnetRegistry.CreateSubnet(ev.NodeName, sub)
 						if err != nil {
-							log.Errorf("Error creating subnet for node %s, ip %s", ev.Node, sub.NodeIP)
+							log.Errorf("Error creating subnet for node %s, ip %s", ev.NodeName, sub.NodeIP)
 							continue
 						}
 					}
 				}
 			case api.Deleted:
-				oc.DeleteNode(ev.Node)
+				oc.DeleteNode(ev.NodeName)
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of nodes.")
@@ -430,10 +430,10 @@ func (oc *OvsController) watchCluster() {
 			switch ev.Type {
 			case api.Added:
 				// add openflow rules
-				oc.flowController.AddOFRules(ev.Sub.NodeIP, ev.Sub.Sub, oc.localIP)
+				oc.flowController.AddOFRules(ev.Subnet.NodeIP, ev.Subnet.SubnetIP, oc.localIP)
 			case api.Deleted:
 				// delete openflow rules meant for the node
-				oc.flowController.DelOFRules(ev.Sub.NodeIP, oc.localIP)
+				oc.flowController.DelOFRules(ev.Subnet.NodeIP, oc.localIP)
 			}
 		case <-oc.sig:
 			stop <- true
