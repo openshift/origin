@@ -140,7 +140,8 @@
             </dl>
           </div>
         </div>
-        <div ng-show="$first || expanded" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true" ng-attr-id="build-{{build.metadata.name}}" class="well build-well">
+        <!-- When expanded, pass undefined to limitToOrAll to show all builds. -->
+        <div ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true | limitToOrAll: (expanded ? undefined : defaultBuildLimit)" class="well build-well">
           <div class="row">
             <div class="col-md-7 col-sm-7 col-xs-7">
               <h3>{{build.metadata.name}}</h3>
@@ -212,7 +213,7 @@
             </div><!-- /.col -->
           </div><!-- /.row -->
         </div><!-- /build .well -->
-        <div ng-hide="expanded || (buildsByBuildConfig[buildConfigName] | hashSize) <= 1"><a href="" ng-click="expanded = true">Show older builds</a></div>
+        <div ng-hide="expanded || (buildsByBuildConfig[buildConfigName] | hashSize) <= defaultBuildLimit"><a href="" ng-click="expanded = true">Show older builds</a></div>
       </div><!-- /buildConfig .tile -->
 
       <!-- render any builds whose build configs no longer exist -->
