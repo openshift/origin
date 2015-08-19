@@ -501,6 +501,22 @@ type LDAPAttributes struct {
 type RequestHeaderIdentityProvider struct {
 	v1.TypeMeta `json:",inline"`
 
+	// LoginURL is a URL to redirect unauthenticated /authorize requests to
+	// Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here
+	// ${url} is replaced with the current URL, escaped to be safe in a query parameter
+	//   https://www.example.com/sso-login?then=${url}
+	// ${query} is replaced with the current query string
+	//   https://www.example.com/auth-proxy/oauth/authorize?${query}
+	LoginURL string `json:"loginURL"`
+
+	// ChallengeURL is a URL to redirect unauthenticated /authorize requests to
+	// Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here
+	// ${url} is replaced with the current URL, escaped to be safe in a query parameter
+	//   https://www.example.com/sso-login?then=${url}
+	// ${query} is replaced with the current query string
+	//   https://www.example.com/auth-proxy/oauth/authorize?${query}
+	ChallengeURL string `json:"challengeURL"`
+
 	// ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
 	ClientCA string `json:"clientCA"`
 	// Headers is the set of headers to check for identity information
