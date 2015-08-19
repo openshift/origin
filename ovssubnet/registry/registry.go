@@ -40,7 +40,7 @@ func newNodeEvent(action, key, value string) *api.NodeEvent {
 	}
 
 	if key != "" {
-		_, nodeEvent.Node = path.Split(key)
+		_, nodeEvent.NodeName = path.Split(key)
 
 		var node map[string]interface{}
 		err := json.Unmarshal([]byte(value), &node)
@@ -78,9 +78,9 @@ func newSubnetEvent(resp *etcd.Response) *api.SubnetEvent {
 	var sub api.Subnet
 	if err := json.Unmarshal([]byte(value), &sub); err == nil {
 		return &api.SubnetEvent{
-			Type: t,
-			Node: nodeKey,
-			Sub:  sub,
+			Type:     t,
+			NodeName: nodeKey,
+			Subnet:   sub,
 		}
 	}
 	log.Errorf("Failed to unmarshal response: %v", resp)
@@ -191,8 +191,8 @@ func (sub *EtcdSubnetRegistry) GetSubnets() (*[]api.Subnet, error) {
 	return &subnets, err
 }
 
-func (sub *EtcdSubnetRegistry) GetSubnet(nodeip string) (*api.Subnet, error) {
-	key := path.Join(sub.etcdCfg.SubnetPath, nodeip)
+func (sub *EtcdSubnetRegistry) GetSubnet(nodeName string) (*api.Subnet, error) {
+	key := path.Join(sub.etcdCfg.SubnetPath, nodeName)
 	resp, err := sub.client().Get(key, false, false)
 	if err == nil {
 		log.Infof("Unmarshalling response: %s", resp.Node.Value)
@@ -205,8 +205,8 @@ func (sub *EtcdSubnetRegistry) GetSubnet(nodeip string) (*api.Subnet, error) {
 	return nil, err
 }
 
-func (sub *EtcdSubnetRegistry) DeleteSubnet(node string) error {
-	key := path.Join(sub.etcdCfg.SubnetPath, node)
+func (sub *EtcdSubnetRegistry) DeleteSubnet(nodeName string) error {
+	key := path.Join(sub.etcdCfg.SubnetPath, nodeName)
 	_, err := sub.client().Delete(key, false)
 	return err
 }
@@ -254,8 +254,8 @@ func (sub *EtcdSubnetRegistry) GetSubnetLength() (uint64, error) {
 	return 0, err
 }
 
-func (sub *EtcdSubnetRegistry) CreateNode(node string, data string) error {
-	key := path.Join(sub.etcdCfg.NodePath, node)
+func (sub *EtcdSubnetRegistry) CreateNode(nodeName string, data string) error {
+	key := path.Join(sub.etcdCfg.NodePath, nodeName)
 	_, err := sub.client().Get(key, false, false)
 	if err != nil {
 		// good, it does not exist, write it
@@ -269,11 +269,11 @@ func (sub *EtcdSubnetRegistry) CreateNode(node string, data string) error {
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) CreateSubnet(node string, subnet *api.Subnet) error {
+func (sub *EtcdSubnetRegistry) CreateSubnet(nodeName string, subnet *api.Subnet) error {
 	subbytes, _ := json.Marshal(subnet)
 	data := string(subbytes)
 	log.Infof("Node subnet structure: %s", data)
-	key := path.Join(sub.etcdCfg.SubnetPath, node)
+	key := path.Join(sub.etcdCfg.SubnetPath, nodeName)
 	_, err := sub.client().Create(key, data, 0)
 	if err != nil {
 		_, err = sub.client().Update(key, data, 0)
