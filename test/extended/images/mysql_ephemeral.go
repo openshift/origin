@@ -1,8 +1,7 @@
-package extended
+package images
 
 import (
 	"fmt"
-	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,12 +12,12 @@ import (
 var _ = Describe("default: MySQL ephemeral template", func() {
 	defer GinkgoRecover()
 	var (
-		templatePath = filepath.Join("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
-		oc           = exutil.NewCLI("mysql-create", kubeConfigPath())
+		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")
+		oc           = exutil.NewCLI("mysql-create", exutil.KubeConfigPath())
 	)
 	Describe("Creating from a template", func() {
 		It(fmt.Sprintf("should process and create the %q template", templatePath), func() {
-			oc.SetOutputDir(testContext.OutputDir)
+			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			By(fmt.Sprintf("calling oc process -f %q", templatePath))
 			configFile, err := oc.Run("process").Args("-f", templatePath).OutputToFile("config.json")

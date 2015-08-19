@@ -3,6 +3,8 @@ package util
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -13,7 +15,10 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/test/e2e"
 )
+
+var TestContext e2e.TestContextType
 
 // WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
 // file.
@@ -106,4 +111,20 @@ func CreatePodForImage(dockerImageReference string) *kapi.Pod {
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
+}
+
+// KubeConfigPath returns the value of KUBECONFIG environment variable
+func KubeConfigPath() string {
+	return os.Getenv("KUBECONFIG")
+}
+
+// ExtendedTestPath returns absolute path to extended tests directory
+func ExtendedTestPath() string {
+	return os.Getenv("EXTENDED_TEST_PATH")
+}
+
+// FixturePath returns absolute path to given fixture file
+// The path is relative to EXTENDED_TEST_PATH (./test/extended/*)
+func FixturePath(elem ...string) string {
+	return filepath.Join(append([]string{ExtendedTestPath()}, elem...)...)
 }
