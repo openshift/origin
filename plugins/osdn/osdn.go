@@ -41,30 +41,30 @@ func (oi *OsdnRegistryInterface) GetSubnets() (*[]osdnapi.Subnet, error) {
 	// convert HostSubnet to osdnapi.Subnet
 	subList := make([]osdnapi.Subnet, 0)
 	for _, subnet := range hostSubnetList.Items {
-		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, Sub: subnet.Subnet})
+		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, SubnetIP: subnet.Subnet})
 	}
 	return &subList, nil
 }
 
-func (oi *OsdnRegistryInterface) GetSubnet(node string) (*osdnapi.Subnet, error) {
-	hs, err := oi.oClient.HostSubnets().Get(node)
+func (oi *OsdnRegistryInterface) GetSubnet(nodeName string) (*osdnapi.Subnet, error) {
+	hs, err := oi.oClient.HostSubnets().Get(nodeName)
 	if err != nil {
 		return nil, err
 	}
-	return &osdnapi.Subnet{NodeIP: hs.HostIP, Sub: hs.Subnet}, nil
+	return &osdnapi.Subnet{NodeIP: hs.HostIP, SubnetIP: hs.Subnet}, nil
 }
 
-func (oi *OsdnRegistryInterface) DeleteSubnet(node string) error {
-	return oi.oClient.HostSubnets().Delete(node)
+func (oi *OsdnRegistryInterface) DeleteSubnet(nodeName string) error {
+	return oi.oClient.HostSubnets().Delete(nodeName)
 }
 
-func (oi *OsdnRegistryInterface) CreateSubnet(node string, sub *osdnapi.Subnet) error {
+func (oi *OsdnRegistryInterface) CreateSubnet(nodeName string, sub *osdnapi.Subnet) error {
 	hs := &api.HostSubnet{
 		TypeMeta:   kapi.TypeMeta{Kind: "HostSubnet"},
-		ObjectMeta: kapi.ObjectMeta{Name: node},
-		Host:       node,
+		ObjectMeta: kapi.ObjectMeta{Name: nodeName},
+		Host:       nodeName,
 		HostIP:     sub.NodeIP,
-		Subnet:     sub.Sub,
+		Subnet:     sub.SubnetIP,
 	}
 	_, err := oi.oClient.HostSubnets().Create(hs)
 	return err
@@ -91,12 +91,12 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan *osdnapi.SubnetEvent
 		case watch.Added, watch.Modified:
 			// create SubnetEvent
 			hs := obj.(*api.HostSubnet)
-			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, Node: hs.Host, Sub: osdnapi.Subnet{NodeIP: hs.HostIP, Sub: hs.Subnet}}
+			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetIP: hs.Subnet}}
 		case watch.Deleted:
 			// TODO: There is a chance that a Delete event will not get triggered.
 			// Need to use a periodic sync loop that lists and compares.
 			hs := obj.(*api.HostSubnet)
-			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, Node: hs.Host, Sub: osdnapi.Subnet{NodeIP: hs.HostIP, Sub: hs.Subnet}}
+			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetIP: hs.Subnet}}
 		}
 	}
 }
@@ -119,7 +119,7 @@ func (oi *OsdnRegistryInterface) GetNodes() (*[]string, error) {
 	return &nodeList, nil
 }
 
-func (oi *OsdnRegistryInterface) CreateNode(node string, data string) error {
+func (oi *OsdnRegistryInterface) CreateNode(nodeName string, data string) error {
 	return fmt.Errorf("Feature not supported in native mode. SDN cannot create/register nodes.")
 }
 
@@ -168,19 +168,19 @@ func (oi *OsdnRegistryInterface) WatchNodes(receiver chan *osdnapi.NodeEvent, st
 
 		switch eventType {
 		case watch.Added:
-			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: node.ObjectMeta.Name, NodeIP: nodeIP}
+			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, NodeName: node.ObjectMeta.Name, NodeIP: nodeIP}
 			nodeAddressMap[node.ObjectMeta.UID] = nodeIP
 		case watch.Modified:
 			oldNodeIP, ok := nodeAddressMap[node.ObjectMeta.UID]
 			if ok && oldNodeIP != nodeIP {
 				// Node Added event will handle update subnet if there is ip mismatch
-				receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, Node: node.ObjectMeta.Name, NodeIP: nodeIP}
+				receiver <- &osdnapi.NodeEvent{Type: osdnapi.Added, NodeName: node.ObjectMeta.Name, NodeIP: nodeIP}
 				nodeAddressMap[node.ObjectMeta.UID] = nodeIP
 			}
 		case watch.Deleted:
 			// TODO: There is a chance that a Delete event will not get triggered.
 			// Need to use a periodic sync loop that lists and compares.
-			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Deleted, Node: node.ObjectMeta.Name}
+			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Deleted, NodeName: node.ObjectMeta.Name}
 			delete(nodeAddressMap, node.ObjectMeta.UID)
 		}
 	}
