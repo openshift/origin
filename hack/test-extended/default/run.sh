@@ -39,8 +39,9 @@ set +e
 
 # Compile the extended tests first to avoid waiting for OpenShift server to
 # start and fail sooner on compilation errors.
+echo "[INFO] Compiling test/extended package ..."
 GOPATH="${OS_ROOT}/Godeps/_workspace:${GOPATH}" \
-  ginkgo build -r ./test/extended 
+  go test -c ./test/extended -o ${OS_OUTPUT_BINPATH}/extended.test || exit 1
 
 test_privileges
 
@@ -144,12 +145,13 @@ oc create -n openshift -f examples/image-streams/image-streams-centos7.json --co
 registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
 echo "[INFO] Registry IP - ${registry}"
 
-echo "[INFO] Starting extended tests ..."
-
-# time go test ./test/extended/ #"${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testdir}"  | grep --color=never -E "${1-Test}" | xargs -I {} -n 1 bash -c "exectest {} ${@:2}" # "${testexec}" -test.run="^{}$" "${@:2}"
 echo "[INFO] MASTER IP - ${MASTER_ADDR}"
 echo "[INFO] SERVER CONFIG PATH - ${SERVER_CONFIG_DIR}"
+echo "[INFO] Starting extended tests ..."
 
 # Run the tests
-KUBECONFIG="${ADMIN_KUBECONFIG}" \
-  ginkgo -progress -focus="default:" -p ./test/extended/extended.test
+pushd ${OS_ROOT}/test/extended >/dev/null
+export KUBECONFIG="${ADMIN_KUBECONFIG}"
+export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
+ginkgo -progress -stream -v -focus="default:" -p ${OS_OUTPUT_BINPATH}/extended.test
+popd >/dev/null

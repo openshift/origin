@@ -48,7 +48,7 @@ func NewCLI(project, adminConfigPath string) *CLI {
 	client.outputDir = os.TempDir()
 	client.username = "admin"
 	if len(adminConfigPath) == 0 {
-		FatalErr(fmt.Errorf("The adminConfigPath can not be empty"))
+		FatalErr(fmt.Errorf("You must set the KUBECONFIG variable to admin kubeconfig."))
 	}
 	client.adminConfigPath = adminConfigPath
 	return client

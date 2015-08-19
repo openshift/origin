@@ -1,4 +1,4 @@
-package extended
+package builds
 
 import (
 	"fmt"
@@ -16,14 +16,14 @@ import (
 var _ = Describe("default: STI build with .sti/environment file", func() {
 	defer GinkgoRecover()
 	var (
-		imageStreamFixture = filepath.Join("..", "integration", "fixtures", "test-image-stream.json")
-		stiEnvBuildFixture = filepath.Join("fixtures", "test-env-build.json")
-		oc                 = exutil.NewCLI("build-sti-env", kubeConfigPath())
+		imageStreamFixture = exutil.FixturePath("..", "integration", "fixtures", "test-image-stream.json")
+		stiEnvBuildFixture = exutil.FixturePath("fixtures", "test-env-build.json")
+		oc                 = exutil.NewCLI("build-sti-env", exutil.KubeConfigPath())
 	)
 
 	Describe("Building from a template", func() {
 		It(fmt.Sprintf("should create a image from %q template and run it in a pod", stiEnvBuildFixture), func() {
-			oc.SetOutputDir(testContext.OutputDir)
+			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			By(fmt.Sprintf("calling oc create -f %q", imageStreamFixture))
 			err := oc.Run("create").Args("-f", imageStreamFixture).Execute()
@@ -58,7 +58,7 @@ var _ = Describe("default: STI build with .sti/environment file", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("writing the pod defintion to a file")
-			outputPath := filepath.Join(testContext.OutputDir, oc.Namespace()+"-sample-pod.json")
+			outputPath := filepath.Join(exutil.TestContext.OutputDir, oc.Namespace()+"-sample-pod.json")
 			pod := exutil.CreatePodForImage(imageName)
 			err = exutil.WriteObjectToFile(pod, outputPath)
 			Expect(err).NotTo(HaveOccurred())

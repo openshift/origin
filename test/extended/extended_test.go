@@ -15,6 +15,11 @@ import (
 	flag "github.com/spf13/pflag"
 	"k8s.io/kubernetes/pkg/client/clientcmd"
 	"k8s.io/kubernetes/test/e2e"
+
+	_ "github.com/openshift/origin/test/extended/builds"
+	_ "github.com/openshift/origin/test/extended/images"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var (
@@ -23,7 +28,7 @@ var (
 
 // init initialize the extended testing suite.
 // You can set these environment variables to configure extended tests:
-// KUBECONFIG - Path to kubeconfig containing embeded authinfo
+// KUBECONFIG - Path to kubeconfig containing embedded authinfo
 func init() {
 	// Turn on verbose by default to get spec names
 	config.DefaultReporterConfig.Verbose = true
@@ -37,11 +42,11 @@ func init() {
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0600)
 
-	flag.StringVar(&testContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, kubeConfigPath(), "Path to kubeconfig containing embeded authinfo.")
-	flag.StringVar(&testContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
+	flag.StringVar(&exutil.TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, exutil.KubeConfigPath(), "Path to kubeconfig containing embedded authinfo.")
+	flag.StringVar(&exutil.TestContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
 
 	// Override the default Kubernetes E2E configuration
-	e2e.SetTestContext(testContext)
+	e2e.SetTestContext(exutil.TestContext)
 }
 
 func TestExtended(t *testing.T) {
