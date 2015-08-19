@@ -22,7 +22,7 @@ test_dirs=$(find_files | cut --delimiter=/ --fields=1-2 | sort -u)
 for test_dir in $test_dirs
 do
   go tool vet -shadow=false \
-              $test_dir 2>&1 | sed '/exit status/d'
+              $test_dir
   if [ "$?" -ne 0 ]
   then 
     FAILURE=true

@@ -124,7 +124,7 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 
 	fmt.Fprint(cmd.Out(), "The import completed successfully.", "\n\n")
 
-	d := describe.ImageStreamDescriber{osClient}
+	d := describe.ImageStreamDescriber{Interface: osClient}
 	info, err := d.Describe(stream.Namespace, stream.Name)
 	if err != nil {
 		return err

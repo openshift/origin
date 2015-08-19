@@ -202,7 +202,7 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 func (g *BuildGenerator) checkLastVersion(bc *buildapi.BuildConfig, lastVersion *int) error {
 	if lastVersion != nil && bc.Status.LastVersion != *lastVersion {
 		glog.V(2).Infof("Aborting version triggered build for BuildConfig %s/%s because the BuildConfig LastVersion (%d) does not match the requested LastVersion (%d)", bc.Namespace, bc.Name, bc.Status.LastVersion, *lastVersion)
-		return fmt.Errorf("the LastVersion(%s) on build config %s/%s does not match the build request LastVersion(%d)",
+		return fmt.Errorf("the LastVersion(%v) on build config %s/%s does not match the build request LastVersion(%d)",
 			bc.Status.LastVersion, bc.Namespace, bc.Name, *lastVersion)
 	}
 	return nil
