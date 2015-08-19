@@ -52,6 +52,17 @@ Getting Started
 ---------------
 The easiest way to run OpenShift Origin is in a Docker container (OpenShift requires Docker 1.6.2 or higher):
 
+You'll need to configure the Docker daemon on your host to trust the Docker registry service you'll be starting.
+
+To do this, you need to add "--insecure-registry 172.30.0.0/16" to the Docker daemon invocation, eg:
+
+    $ docker -d --insecure-registry 172.30.0.0/16
+
+If you are running Docker as a service via `systemd`, you can add this argument to the options value in `/etc/sysconfig/docker`
+
+This will instruct the Docker daemon to trust any Docker registry on the 172.30.0.0/16 subnet,
+rather than requiring the registry to have a verifiable certificate.
+
 **Important!**: Docker on non-RedHat distributions (Ubuntu, Debian, boot2docker) has mount propagation PRIVATE, which [breaks](https://github.com/openshift/origin/issues/3072) running OpenShift inside a container. Please use the [Vagrant](CONTRIBUTING.adoc#develop-on-virtual-machine-using-vagrant) or binary installation paths on those distributions.
 
     $ sudo docker run -d --name "origin" \
