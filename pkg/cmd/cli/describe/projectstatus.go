@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -448,25 +449,30 @@ func describeBuildPhase(build *buildapi.Build, t *util.Time, parentName string, 
 	} else {
 		time = strings.ToLower(formatRelativeTime(t.Time))
 	}
-	name := build.Name
+	buildIdentification := fmt.Sprintf("build/%s", build.Name)
 	prefix := parentName + "-"
-	if strings.HasPrefix(name, prefix) {
-		name = name[len(prefix):]
+	if strings.HasPrefix(build.Name, prefix) {
+		suffix := build.Name[len(prefix):]
+
+		if buildNumber, err := strconv.Atoi(suffix); err == nil {
+			buildIdentification = fmt.Sprintf("#%d build", buildNumber)
+		}
 	}
+
 	revision := describeSourceRevision(build.Spec.Revision)
 	if len(revision) != 0 {
 		revision = fmt.Sprintf(" - %s", revision)
 	}
 	switch build.Status.Phase {
 	case buildapi.BuildPhaseComplete:
-		return fmt.Sprintf("build %s succeeded %s ago%s%s", name, time, revision, imageStreamFailure)
+		return fmt.Sprintf("%s succeeded %s ago%s%s", buildIdentification, time, revision, imageStreamFailure)
 	case buildapi.BuildPhaseError:
-		return fmt.Sprintf("build %s stopped with an error %s ago%s%s", name, time, revision, imageStreamFailure)
+		return fmt.Sprintf("%s stopped with an error %s ago%s%s", buildIdentification, time, revision, imageStreamFailure)
 	case buildapi.BuildPhaseFailed:
-		return fmt.Sprintf("build %s failed %s ago%s%s", name, time, revision, imageStreamFailure)
+		return fmt.Sprintf("%s failed %s ago%s%s", buildIdentification, time, revision, imageStreamFailure)
 	default:
 		status := strings.ToLower(string(build.Status.Phase))
-		return fmt.Sprintf("build %s %s for %s%s%s", name, status, time, revision, imageStreamFailure)
+		return fmt.Sprintf("%s %s for %s%s%s", buildIdentification, status, time, revision, imageStreamFailure)
 	}
 }
 
