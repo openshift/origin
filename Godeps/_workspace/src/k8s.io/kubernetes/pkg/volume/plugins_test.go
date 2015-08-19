@@ -29,7 +29,7 @@ func TestSpecSourceConverters(t *testing.T) {
 	}
 
 	converted := NewSpecFromVolume(v)
-	if converted.VolumeSource.EmptyDir == nil {
+	if converted.Volume.EmptyDir == nil {
 		t.Errorf("Unexpected nil EmptyDir: %+v", converted)
 	}
 	if v.Name != converted.Name {
@@ -44,7 +44,7 @@ func TestSpecSourceConverters(t *testing.T) {
 	}
 
 	converted = NewSpecFromPersistentVolume(pv, false)
-	if converted.PersistentVolumeSource.AWSElasticBlockStore == nil {
+	if converted.PersistentVolume.Spec.AWSElasticBlockStore == nil {
 		t.Errorf("Unexpected nil AWSElasticBlockStore: %+v", converted)
 	}
 	if pv.Name != converted.Name {

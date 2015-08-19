@@ -131,26 +131,26 @@ type VolumePluginMgr struct {
 
 // Spec is an internal representation of a volume.  All API volume types translate to Spec.
 type Spec struct {
-	Name                   string
-	VolumeSource           api.VolumeSource
-	PersistentVolumeSource api.PersistentVolumeSource
-	ReadOnly               bool
+	Name             string
+	Volume           *api.Volume
+	PersistentVolume *api.PersistentVolume
+	ReadOnly         bool
 }
 
 // NewSpecFromVolume creates an Spec from an api.Volume
 func NewSpecFromVolume(vs *api.Volume) *Spec {
 	return &Spec{
-		Name:         vs.Name,
-		VolumeSource: vs.VolumeSource,
+		Name:   vs.Name,
+		Volume: vs,
 	}
 }
 
 // NewSpecFromPersistentVolume creates an Spec from an api.PersistentVolume
 func NewSpecFromPersistentVolume(pv *api.PersistentVolume, readOnly bool) *Spec {
 	return &Spec{
-		Name: pv.Name,
-		PersistentVolumeSource: pv.Spec.PersistentVolumeSource,
-		ReadOnly:               readOnly,
+		Name:             pv.Name,
+		PersistentVolume: pv,
+		ReadOnly:         readOnly,
 	}
 }
 
