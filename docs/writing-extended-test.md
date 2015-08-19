@@ -58,3 +58,84 @@ var _ = Describe("ldap: Authenticate using LDAP", func() {
 ```
 
 
+CLI interface
+---------------------
+
+In order to be able to call the OpenShift CLI and Kubernetes and OpenShift REST client and simulate the OpenShift `oc` command in the test suit, first we need to create an instance of the CLI, in the top-level Ginkgo describe container. The top-level describe container shall also specify the the bucket, into which the test belongs and short test description. Other globally accessible variables can be declared(eg. fixtures) can be declared as well.
+
+```
+package extended
+
+import (
+    . "github.com/onsi/ginkgo"
+    . "github.com/onsi/gomega"
+)
+
+var _ = Describe("<test bucket>: <Testing scenario>", func() {
+	defer GinkgoRecover()
+	var (
+		oc = exutil.NewCLI("test-name", exutil.KubeConfigPath())
+		testFixture = filepath.Join("fixtures", "test.json")
+	)
+})
+```
+
+The test suit shall be organized in lower-level Ginkgo describe container, together with an message which informs about the goal of the test. Inside the lower-level describe container specify a single spec with the `It` container , which shares the context in which the spec runs. The `It` container also takes a message, which informs how should be the goal achieved.
+
+```
+var _ = Describe("default: STI build", func() {
+	defer GinkgoRecover()
+	var (
+		stiBuildFixture = filepath.Join("fixtures", "test-build.json")
+		oc              = exutil.NewCLI("build-sti", kubeConfigPath())
+	)
+
+	Describe("Building from a template", func() {
+		It(fmt.Sprintf("should create a image from %q template", stiBuildFixture), func() {
+			...
+		}
+	}
+}
+```
+
+After that you are free to simulate any `oc` command by calling the CLI methods from the extended package.
+
+As first, the command verb (get, create, start-build, ...) has to be specified upon the created CLI instance with the `Run()` method.
+```
+oc = oc.Run("create")
+```
+
+Then the command parameters have to be specified by using the `Args()` command. You may also notice the methods can be easily chained.
+```
+oc = oc.Run("create").Args("-f", testFixture)
+```
+
+A Go template can be set as a parameter for the OpenShift CLI command, by using the `Template()` method. Keep in mind that in order to use this method, the `get` verb has to be specified by the `Run()` command.
+```
+oc = oc.Run("get").Template({{ .spec }})
+```
+is an equivalent to
+```
+oc get foo -o template -t '{{ .spec }}
+```
+
+To execute the command you will need to call either `Execute()`, which will execute the command and return only error if any occurs, or `Output()` command which besides error also returns the output of the command in a form of a string.
+
+```
+err := oc.Run("create").Args("-f", testFixture).Execute()
+```
+```
+buildName, err := oc.Run("start-build").Args("test").Output()
+```
+
+To print out the purpose the next command, or set of command, use the Ginkgo’s `By` function.
+```
+By("starting a test build")
+buildName, err := oc.Run("start-build").Args("test").Output()
+```
+
+To evaluate if the the command was successfully executed, without any errors retrieved, use the Gomega’s `Expect` syntax to make expectations on the error.
+```
+err = oc.Run("create").Args("-f", stiEnvBuildFixture).Execute()
+Expect(err).NotTo(HaveOccurred())
+```
