@@ -38,10 +38,10 @@ frontend public
   tcp-request content accept if HTTP
 
   # map to http backend
+  # Search from most specific to general path (host case).
+  # Note: If no match, haproxy uses the default_backend, no other
+  #       use_backend directives below this will be processed.
   use_backend be_http_%[base,map_beg(/var/lib/haproxy/conf/os_http_be.map)]
-
-  # if a specific path based lookup was not found then revert to a host header lookup
-  use_backend be_http_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_http_be.map)] if TRUE
 
   default_backend openshift_default
 
@@ -59,7 +59,7 @@ frontend public_ssl
   use_backend be_tcp_%[req.ssl_sni,map(/var/lib/haproxy/conf/os_tcp_be.map)] if sni sni_passthrough
 
   # if the route is SNI and NOT passthrough enter the termination flow
-  use_backend be_sni if { req.ssl_sni -m found }
+  use_backend be_sni if sni
 
   # non SNI requests should enter a default termination backend rather than the custom cert SNI backend since it
   # will not be able to match a cert to an SNI host
@@ -84,15 +84,17 @@ frontend fe_sni
   bind 127.0.0.1:10444 ssl {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt /var/lib/containers/router/certs accept-proxy
   mode http
 
-  # re-ssl?
-  acl reencrypt hdr(host),map(/var/lib/haproxy/conf/os_reencrypt.map) -m found
-  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
+  # check re-encrypt backends first - from most specific to general path.
+  acl reencrypt base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
+
+  # Search from most specific to general path (host case).
+  use_backend be_secure_%[base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
 
   # map to http backend
+  # Search from most specific to general path (host case).
+  # Note: If no match, haproxy uses the default_backend, no other
+  #       use_backend directives below this will be processed.
   use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
-
-  # if a specific path based lookup was not found then revert to a host header lookup
-  use_backend be_edge_http_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)] if TRUE
 
   default_backend openshift_default
 
@@ -116,15 +118,17 @@ frontend fe_no_sni
   bind 127.0.0.1:10443 ssl {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
   mode http
 
-  # re-ssl?
-  acl reencrypt hdr(host),map(/var/lib/haproxy/conf/os_reencrypt.map) -m found
-  use_backend be_secure_%[hdr(host),map(/var/lib/haproxy/conf/os_tcp_be.map)] if reencrypt
+  # check re-encrypt backends first - path or host based.
+  acl reencrypt base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
+
+  # Search from most specific to general path (host case).
+  use_backend be_secure_%[base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
 
   # map to http backend
+  # Search from most specific to general path (host case).
+  # Note: If no match, haproxy uses the default_backend, no other
+  #       use_backend directives below this will be processed.
   use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
-
-  # if a specific path based lookup was not found then revert to a host header lookup
-  use_backend be_edge_http_%[hdr(host),map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)] if TRUE
 
   default_backend openshift_default
 
@@ -260,9 +264,9 @@ backend be_secure_{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/os_reencrypt.map" }}
 {{   range $id, $serviceUnit := .State }}
 {{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
-{{       if and (eq $cfg.Path "") (eq $cfg.TLSTermination "reencrypt") }}
-{{$cfg.Host}} 1
+{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "reencrypt") }}
+{{$cfg.Host}}{{$cfg.Path}} {{$idx}}
 {{       end }}
 {{     end }}
 {{   end }}
-{{ end }}{{/* end sni passthrough map template */}}
+{{ end }}{{/* end reencrypt passthrough map template */}}

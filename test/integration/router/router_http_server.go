@@ -65,6 +65,8 @@ const (
 	HelloPodPath = "Hello Pod Path!"
 	// HelloPodSecure is the expected response to a call to PodHttpsAddr (usually called through a route)
 	HelloPodSecure = "Hello Pod Secure!"
+	// HelloPodPathSecure is the expected response to a call to PodHttpsAddr (usually called through a route)
+	HelloPodPathSecure = "Hello Pod Path Secure!"
 )
 
 // handleHelloMaster handles calls to MasterHttpAddr
@@ -85,6 +87,11 @@ func (s *TestHttpService) handleHelloPodTest(w http.ResponseWriter, r *http.Requ
 // handleHelloPodSecure handles calls to PodHttpsAddr (usually called through a route)
 func (s *TestHttpService) handleHelloPodSecure(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, HelloPodSecure)
+}
+
+// handleHelloPodTestSecure handles calls to PodHttpsAddr (usually called through a route) with the /test/ path
+func (s *TestHttpService) handleHelloPodTestSecure(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, HelloPodPathSecure)
 }
 
 // handleRouteWatch handles calls to /osapi/v1beta1/watch/routes and uses the route channel to simulate watch events
@@ -179,6 +186,7 @@ func (s *TestHttpService) startPod() error {
 
 	securePodServer := http.NewServeMux()
 	securePodServer.HandleFunc("/", s.handleHelloPodSecure)
+	securePodServer.HandleFunc("/"+s.PodTestPath, s.handleHelloPodTestSecure)
 	securePodServer.Handle("/"+s.PodWebSocketPath, websocket.Handler(s.handleWebSocket))
 	if err := s.startServingTLS(s.PodHttpsAddr, s.PodHttpsCert, s.PodHttpsKey, s.PodHttpsCaCert, securePodServer); err != nil {
 		return err
