@@ -141,7 +141,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 
 		// generate the file to edit
 		buf := &bytes.Buffer{}
-		if err := results.header.WriteTo(buf); err != nil {
+		if _, err := results.header.WriteTo(buf); err != nil {
 			return preservedFile(err, results.file, cmd.Out())
 		}
 		if err := printer.PrintObj(obj, buf); err != nil {
@@ -268,24 +268,27 @@ type editHeader struct {
 }
 
 // WriteTo outputs the current header information into a stream
-func (h *editHeader) WriteTo(w io.Writer) error {
-	fmt.Fprint(w, `# Please edit the object below. Lines beginning with a '#' will be ignored,
+func (h *editHeader) WriteTo(w io.Writer) (int64, error) {
+	var buffer bytes.Buffer
+	buffer.WriteString(`# Please edit the object below. Lines beginning with a '#' will be ignored,
 # and an empty file will abort the edit. If an error occurs while saving this file will be
 # reopened with the relevant failures.
 #
 `)
 	for _, r := range h.reasons {
 		if len(r.other) > 0 {
-			fmt.Fprintf(w, "# %s:\n", r.head)
+			buffer.WriteString(fmt.Sprintf("# %s:\n", r.head))
 		} else {
-			fmt.Fprintf(w, "# %s\n", r.head)
+			buffer.WriteString(fmt.Sprintf("# %s\n", r.head))
 		}
+
 		for _, o := range r.other {
-			fmt.Fprintf(w, "# * %s\n", o)
+			buffer.WriteString(fmt.Sprintf("# * %s\n", o))
 		}
-		fmt.Fprintln(w, "#")
+		buffer.WriteString("#")
 	}
-	return nil
+	fmt.Fprintln(w, buffer.String())
+	return int64(buffer.Len()), nil
 }
 
 // editResults capture the result of an update
