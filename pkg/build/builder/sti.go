@@ -110,7 +110,7 @@ func (s *STIBuilder) Build() error {
 		setHttps = true
 	}
 	if len(s.build.Spec.Source.Git.HTTPProxy) != 0 {
-		glog.V(2).Infof("Setting http proxy variables for Git to %s", s.build.Spec.Source.Git.HTTPSProxy)
+		glog.V(2).Infof("Setting http proxy variables for Git to %s", s.build.Spec.Source.Git.HTTPProxy)
 		origProxy["HTTP_PROXY"] = os.Getenv("HTTP_PROXY")
 		origProxy["http_proxy"] = os.Getenv("http_proxy")
 		os.Setenv("HTTP_PROXY", s.build.Spec.Source.Git.HTTPProxy)
