@@ -16,7 +16,7 @@ type SubnetRegistry interface {
 	WatchSubnets(receiver chan *SubnetEvent, stop chan bool) error
 
 	InitNodes() error
-	GetNodes() (*[]string, error)
+	GetNodes() ([]Node, error)
 	CreateNode(nodeName string, data string) error
 	WatchNodes(receiver chan *NodeEvent, stop chan bool) error
 
@@ -33,21 +33,25 @@ type SubnetRegistry interface {
 	DeleteNetNamespace(name string) error
 }
 
+type Subnet struct {
+	NodeIP   string
+	SubnetIP string
+}
+
 type SubnetEvent struct {
 	Type     EventType
 	NodeName string
 	Subnet   Subnet
 }
 
-type NodeEvent struct {
-	Type     EventType
-	NodeName string
-	NodeIP   string
+type Node struct {
+	Name string
+	IP   string
 }
 
-type Subnet struct {
-	NodeIP   string
-	SubnetIP string
+type NodeEvent struct {
+	Type EventType
+	Node Node
 }
 
 type NetNamespace struct {
