@@ -1,5 +1,3 @@
-// +build default
-
 package extended
 
 import (
@@ -15,7 +13,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = Describe("STI build with .sti/environment file", func() {
+var _ = Describe("default: STI build with .sti/environment file", func() {
 	defer GinkgoRecover()
 	var (
 		imageStreamFixture = filepath.Join("..", "integration", "fixtures", "test-image-stream.json")

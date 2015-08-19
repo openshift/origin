@@ -44,7 +44,7 @@ type CLI struct {
 // role bindings for the namespace.
 func NewCLI(project, adminConfigPath string) *CLI {
 	client := &CLI{}
-	client.kubeFramework = NewCustomFramework(project, client.SetupProject)
+	client.kubeFramework = InitializeFramework(project, client.SetupProject)
 	client.outputDir = os.TempDir()
 	client.username = "admin"
 	if len(adminConfigPath) == 0 {
