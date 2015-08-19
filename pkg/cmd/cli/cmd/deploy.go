@@ -126,7 +126,16 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	o.out = out
 
 	if len(args) > 0 {
-		o.deploymentConfigName = args[0]
+		name := args[0]
+		// Strip out any existing resource prefix.
+		// TODO: consider switching to using a resource.Builder.
+		i := strings.Index(name, "/")
+		if i >= 0 {
+			i++
+		} else {
+			i = 0
+		}
+		o.deploymentConfigName = name[i:]
 	}
 
 	return nil
