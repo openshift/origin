@@ -281,6 +281,5 @@ func trimmedOutput(stdout io.Writer) string {
 
 // FatalErr exits the test in case a fatal error has occured.
 func FatalErr(msg interface{}) {
-	fmt.Printf("ERROR: %v\n", msg)
-	os.Exit(1)
+	Failf("%v", msg)
 }
