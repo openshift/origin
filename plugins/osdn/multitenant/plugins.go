@@ -31,7 +31,7 @@ func (plugin *MultitenantPlugin) getExecutable() string {
 
 func (plugin *MultitenantPlugin) getVnid(namespace string) (uint, error) {
 	// get vnid for the namespace
-	vnid, ok := plugin.OvsController.VnidMap[namespace]
+	vnid, ok := plugin.OvsController.VNIDMap[namespace]
 	if !ok {
 		// vnid does not exist for this pod, set it to zero (or error?)
 		vnid = 0
