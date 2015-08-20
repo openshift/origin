@@ -473,14 +473,13 @@ module.exports = function (grunt) {
 
     protractor: {
       options: {
-        configFile: "test/protractor.conf.js", // Default config file
+        configFile: "test/protractor-chrome.conf.js", // Default config file
         keepAlive: false, // If false, the grunt process stops when the test fails.
         noColor: false, // If true, protractor will not use colors in its output.
         args: {
           // Arguments passed to the command
         }
       },
-      phantomjs: {},
       chrome: {
         options: {
           configFile: "test/protractor-chrome.conf.js", // Target-specific config file
@@ -542,15 +541,6 @@ module.exports = function (grunt) {
   ]);
 
   grunt.registerTask('test-e2e', [
-    'clean:server',
-    'concurrent:server',
-    'autoprefixer',
-    'connect:test',
-    'protractor:phantomjs',
-    'clean:server'
-  ]);
-
-  grunt.registerTask('test-e2e-chrome', [
     'clean:server',
     'concurrent:server',
     'autoprefixer',

@@ -382,6 +382,6 @@ if [[ "$TEST_ASSETS" == "true" ]]; then
 
 	echo "[INFO] Running UI e2e tests..."
 	pushd ${OS_ROOT}/assets > /dev/null
-		grunt test-e2e-chrome
+		grunt test-e2e
 	popd > /dev/null
 fi
