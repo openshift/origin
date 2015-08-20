@@ -93,15 +93,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "box_url"      => AWS_BOX_URL,
       "ami"          => "<AMI>",
       "ami_region"   => "<AMI_REGION>",
-      "ssh_user"     => "<SSH_USER>",
+      "ssh_user"     => "<SSH_USER>"
     },
     "openstack" => {
       '_see_also_'  => OPENSTACK_CRED_FILE,
       'box_name'    => "openstack-dummy-box",
       'box_url'     => OPENSTACK_BOX_URL,
-      'flavor'      => "m1.tiny",
       'image'       => "Fedora",
-      'ssh_user'    => "root",
+      'ssh_user'    => "root"
     },
   }
 
@@ -265,7 +264,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       os.username     = ENV['OS_USERNAME']    || creds['OSUsername']
       os.api_key      = ENV['OS_PASSWORD']    || creds['OSAPIKey']
       os.keypair_name = voc['key_pair']       || creds['OSKeyPairName'] || "<OSKeypair>" # as stored in Nova
-      os.flavor       = voc['flavor']         || creds['OSFlavor']   || /m1.small/       # Regex or String
+      os.flavor       = vagrant_openshift_config['instance_type']  || creds['OSFlavor']   || /m1.small/       # Regex or String
       os.image        = voc['image']          || creds['OSImage']    || /Fedora/         # Regex or String
       os.ssh_username = user = voc['ssh_user']|| creds['OSSshUser']  || "root"           # login for the VM instance
       os.server_name  = ENV['OS_HOSTNAME']    || vagrant_openshift_config['instance_name'] # name for the instance created
@@ -301,7 +300,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         aws.keypair_name      = aws_creds["AWSKeyPairName"] || "AWS KEYPAIR NAME"
         aws.ami               = voc['ami']
         aws.region            = voc['ami_region']
-        aws.instance_type     = voc['instance_type'] || "c3.large"
+        aws.instance_type     = vagrant_openshift_config['instance_type'] || "c3.large"
         aws.instance_ready_timeout = 240
         aws.tags              = { "Name" => ENV['AWS_HOSTNAME'] || vagrant_openshift_config['instance_name'] }
         aws.user_data         = %{
