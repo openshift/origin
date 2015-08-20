@@ -430,8 +430,8 @@ function delete_large_and_empty_logs()
 # start of common functions for extended test group's run.sh scripts
 ######
 
-# exit run if ginkgo not installed
-function require_ginkgo_or_die {
+# require_ginkgo_or_die check if the 'ginkgo' binary is available or exit
+function require_ginkgo_or_die() {
   set -e
   which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
   set +e
@@ -562,6 +562,13 @@ function create_image_streams_extended {
 
     registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
     echo "[INFO] Registry IP - ${registry}"
+}
+
+# compile_extended_tests compiles the extended test suite
+function compile_extended_tests() {
+  echo "[INFO] Compiling test/extended package ..."
+  GOPATH="${OS_ROOT}/Godeps/_workspace:${GOPATH}" \
+    go test -c ./test/extended -o ${OS_OUTPUT_BINPATH}/extended.test || exit 1
 }
 
 # run_extended_tests runs the extended tests suite
