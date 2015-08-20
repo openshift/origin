@@ -44,7 +44,7 @@ func testNewClusterBindings() []authorizationapi.ClusterPolicyBinding {
 				"cluster-admins": {
 					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admins"},
 					RoleRef:    kapi.ObjectReference{Name: "cluster-admin"},
-					Users:      util.NewStringSet("system:admin"),
+					Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemUserKind, Name: "system:admin"}},
 				},
 			},
 		},

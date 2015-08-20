@@ -8,17 +8,20 @@ set -o pipefail
 
 oc policy add-role-to-group cluster-admin system:unauthenticated
 oc policy add-role-to-user cluster-admin system:no-user
+oc get rolebinding/cluster-admin --no-headers
 oc get rolebinding/cluster-admin --no-headers | grep -q "system:no-user"
 
 oc policy add-role-to-user cluster-admin -z=one,two --serviceaccount=three,four
-oc get rolebinding/cluster-admin --no-headers | grep -q "system:serviceaccount:cmd-policy:one"
-oc get rolebinding/cluster-admin --no-headers | grep -q "system:serviceaccount:cmd-policy:four"
+oc get rolebinding/cluster-admin --no-headers
+oc get rolebinding/cluster-admin --no-headers | grep -q "one"
+oc get rolebinding/cluster-admin --no-headers | grep -q "four"
 
 oc policy remove-role-from-group cluster-admin system:unauthenticated
 
 oc policy remove-role-from-user cluster-admin system:no-user
 oc policy remove-role-from-user cluster-admin -z=one,two --serviceaccount=three,four
-[ ! "$(oc get rolebinding/cluster-admin --no-headers | grep -q "system:serviceaccount:cmd-policy:four")" ]
+oc get rolebinding/cluster-admin --no-headers
+[ ! "$(oc get rolebinding/cluster-admin --no-headers | grep -q "four")" ]
 
 oc policy remove-group system:unauthenticated
 oc policy remove-user system:no-user

@@ -463,7 +463,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 					RoleRef: kapi.ObjectReference{
 						Name: bootstrappolicy.AdminRoleName,
 					},
-					Users: util.NewStringSet("Matthew"),
+					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Matthew"}},
 				},
 				"viewers": {
 					ObjectMeta: kapi.ObjectMeta{
@@ -473,7 +473,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 					RoleRef: kapi.ObjectReference{
 						Name: bootstrappolicy.ViewRoleName,
 					},
-					Users: util.NewStringSet("Victor"),
+					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Victor"}},
 				},
 				"editors": {
 					ObjectMeta: kapi.ObjectMeta{
@@ -483,7 +483,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 					RoleRef: kapi.ObjectReference{
 						Name: bootstrappolicy.EditRoleName,
 					},
-					Users: util.NewStringSet("Edgar"),
+					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Edgar"}},
 				},
 			},
 		},
@@ -534,7 +534,7 @@ func newInvalidExtensionBindings() []authorizationapi.PolicyBinding {
 						Name:      "badExtension",
 						Namespace: "mallet",
 					},
-					Users: util.NewStringSet("Brad"),
+					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Brad"}},
 				},
 			},
 		},

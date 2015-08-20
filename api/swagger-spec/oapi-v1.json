@@ -14618,6 +14618,7 @@
     "required": [
      "userNames",
      "groupNames",
+     "subjects",
      "roleRef"
     ],
     "properties": {
@@ -14645,6 +14646,13 @@
        "type": "string"
       },
       "description": "all the groups directly bound to the role"
+     },
+     "subjects": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ObjectReference"
+      },
+      "description": "references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."
      },
      "roleRef": {
       "$ref": "v1.ObjectReference",
@@ -16900,6 +16908,7 @@
     "required": [
      "userNames",
      "groupNames",
+     "subjects",
      "roleRef"
     ],
     "properties": {
@@ -16927,6 +16936,13 @@
        "type": "string"
       },
       "description": "all the groups directly bound to the role"
+     },
+     "subjects": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ObjectReference"
+      },
+      "description": "references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."
      },
      "roleRef": {
       "$ref": "v1.ObjectReference",

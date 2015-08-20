@@ -1003,6 +1003,7 @@ func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error
 }
 
 func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (string, error) {
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, policyBinding.ObjectMeta)
 		formatString(out, "Last Modified", policyBinding.LastModified)
@@ -1011,10 +1012,14 @@ func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (strin
 		// using .List() here because I always want the sorted order that it provides
 		for _, key := range util.KeySet(reflect.ValueOf(policyBinding.RoleBindings)).List() {
 			roleBinding := policyBinding.RoleBindings[key]
+			users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
+
 			formatString(out, "RoleBinding["+key+"]", " ")
 			formatString(out, "\tRole", roleBinding.RoleRef.Name)
-			formatString(out, "\tUsers", roleBinding.Users.List())
-			formatString(out, "\tGroups", roleBinding.Groups.List())
+			formatString(out, "\tUsers", strings.Join(users, ", "))
+			formatString(out, "\tGroups", strings.Join(groups, ", "))
+			formatString(out, "\tServiceAccounts", strings.Join(sas, ", "))
+			formatString(out, "\tSubjects", strings.Join(others, ", "))
 		}
 
 		return nil
@@ -1048,12 +1053,16 @@ func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) 
 
 // DescribeRoleBinding prints out information about a role binding and its associated role
 func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *authorizationapi.Role, err error) (string, error) {
+	users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, roleBinding.ObjectMeta)
 
 		formatString(out, "Role", roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name)
-		formatString(out, "Users", roleBinding.Users.List())
-		formatString(out, "Groups", roleBinding.Groups.List())
+		formatString(out, "Users", strings.Join(users, ", "))
+		formatString(out, "Groups", strings.Join(groups, ", "))
+		formatString(out, "ServiceAccounts", strings.Join(sas, ", "))
+		formatString(out, "Subjects", strings.Join(others, ", "))
 
 		switch {
 		case err != nil:

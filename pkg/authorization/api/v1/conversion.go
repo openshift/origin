@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 
 	newer "github.com/openshift/origin/pkg/authorization/api"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
 func convert_v1_ResourceAccessReview_To_api_ResourceAccessReview(in *ResourceAccessReview, out *newer.ResourceAccessReview, s conversion.Scope) error {
@@ -181,8 +182,12 @@ func convert_v1_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *newer.RoleB
 		return err
 	}
 
-	out.Users = util.NewStringSet(in.UserNames...)
-	out.Groups = util.NewStringSet(in.GroupNames...)
+	// if the users and groups fields are cleared, then respect only subjects.  The field was set in the DefaultConvert above
+	if in.UserNames == nil && in.GroupNames == nil {
+		return nil
+	}
+
+	out.Subjects = newer.BuildSubjects(in.UserNames, in.GroupNames, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
 	return nil
 }
@@ -192,8 +197,7 @@ func convert_api_RoleBinding_To_v1_RoleBinding(in *newer.RoleBinding, out *RoleB
 		return err
 	}
 
-	out.UserNames = in.Users.List()
-	out.GroupNames = in.Groups.List()
+	out.UserNames, out.GroupNames = newer.StringSubjectsFor(in.Namespace, in.Subjects)
 
 	return nil
 }
@@ -228,8 +232,12 @@ func convert_v1_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRoleBind
 		return err
 	}
 
-	out.Users = util.NewStringSet(in.UserNames...)
-	out.Groups = util.NewStringSet(in.GroupNames...)
+	// if the users and groups fields are cleared, then respect only subjects.  The field was set in the DefaultConvert above
+	if in.UserNames == nil && in.GroupNames == nil {
+		return nil
+	}
+
+	out.Subjects = newer.BuildSubjects(in.UserNames, in.GroupNames, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
 	return nil
 }
@@ -239,8 +247,7 @@ func convert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *newer.ClusterRo
 		return err
 	}
 
-	out.UserNames = in.Users.List()
-	out.GroupNames = in.Groups.List()
+	out.UserNames, out.GroupNames = newer.StringSubjectsFor(in.Namespace, in.Subjects)
 
 	return nil
 }
