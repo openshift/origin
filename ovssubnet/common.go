@@ -66,19 +66,10 @@ func NewDefaultController(sub api.SubnetRegistry, hostname string, selfIP string
 
 func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
 	if selfIP == "" {
-		addrs, err := net.LookupIP(hostname)
+		var err error
+		selfIP, err = getNodeIP(hostname)
 		if err != nil {
-			log.Errorf("Failed to lookup IP Address for %s", hostname)
 			return nil, err
-		}
-		for _, addr := range addrs {
-			if addr.String() != "127.0.0.1" {
-				selfIP = addr.String()
-				break
-			}
-		}
-		if selfIP == "" {
-			return nil, fmt.Errorf("failed to lookup valid IP Address for %s (%v)", hostname, addrs)
 		}
 	}
 	log.Infof("Self IP: %s.", selfIP)
@@ -212,39 +203,18 @@ func (oc *OvsController) ServeExistingNodes() error {
 		return err
 	}
 
-	for _, nodeName := range *nodes {
-		_, err := oc.subnetRegistry.GetSubnet(nodeName)
+	for _, node := range nodes {
+		_, err := oc.subnetRegistry.GetSubnet(node.Name)
 		if err == nil {
 			// subnet already exists, continue
 			continue
 		}
-		err = oc.AddNode(nodeName, "")
+		err = oc.AddNode(node.Name, node.IP)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func (oc *OvsController) getNodeIP(nodeName string) (string, error) {
-	ip := net.ParseIP(nodeName)
-	if ip == nil {
-		addrs, err := net.LookupIP(nodeName)
-		if err != nil {
-			log.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
-			return "", err
-		}
-		for _, addr := range addrs {
-			if addr.String() != "127.0.0.1" {
-				ip = addr
-				break
-			}
-		}
-	}
-	if ip == nil || len(ip.String()) == 0 {
-		return "", fmt.Errorf("Failed to obtain IP address from node label: %s", nodeName)
-	}
-	return ip.String(), nil
 }
 
 func (oc *OvsController) AddNode(nodeName string, nodeIP string) error {
@@ -255,10 +225,7 @@ func (oc *OvsController) AddNode(nodeName string, nodeIP string) error {
 	}
 
 	if nodeIP == "" || nodeIP == "127.0.0.1" {
-		nodeIP, err = oc.getNodeIP(nodeName)
-		if err != nil {
-			return err
-		}
+		return fmt.Errorf("Invalid node IP")
 	}
 
 	subnet := &api.Subnet{
@@ -404,29 +371,29 @@ func (oc *OvsController) watchNodes() {
 		case ev := <-nodeEvent:
 			switch ev.Type {
 			case api.Added:
-				sub, err := oc.subnetRegistry.GetSubnet(ev.NodeName)
+				sub, err := oc.subnetRegistry.GetSubnet(ev.Node.Name)
 				if err != nil {
 					// subnet does not exist already
-					oc.AddNode(ev.NodeName, ev.NodeIP)
+					oc.AddNode(ev.Node.Name, ev.Node.IP)
 				} else {
 					// Current node IP is obtained from event, ev.NodeIP to
 					// avoid cached/stale IP lookup by net.LookupIP()
-					if sub.NodeIP != ev.NodeIP {
-						err = oc.subnetRegistry.DeleteSubnet(ev.NodeName)
+					if sub.NodeIP != ev.Node.IP {
+						err = oc.subnetRegistry.DeleteSubnet(ev.Node.Name)
 						if err != nil {
-							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.NodeName, sub.NodeIP)
+							log.Errorf("Error deleting subnet for node %s, old ip %s", ev.Node.Name, sub.NodeIP)
 							continue
 						}
-						sub.NodeIP = ev.NodeIP
-						err = oc.subnetRegistry.CreateSubnet(ev.NodeName, sub)
+						sub.NodeIP = ev.Node.IP
+						err = oc.subnetRegistry.CreateSubnet(ev.Node.Name, sub)
 						if err != nil {
-							log.Errorf("Error creating subnet for node %s, ip %s", ev.NodeName, sub.NodeIP)
+							log.Errorf("Error creating subnet for node %s, ip %s", ev.Node.Name, sub.NodeIP)
 							continue
 						}
 					}
 				}
 			case api.Deleted:
-				oc.DeleteNode(ev.NodeName)
+				oc.DeleteNode(ev.Node.Name)
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of nodes.")
@@ -483,4 +450,25 @@ func (oc *OvsController) watchCluster() {
 func (oc *OvsController) Stop() {
 	close(oc.sig)
 	//oc.sig <- struct{}{}
+}
+
+func getNodeIP(nodeName string) (string, error) {
+	ip := net.ParseIP(nodeName)
+	if ip == nil {
+		addrs, err := net.LookupIP(nodeName)
+		if err != nil {
+			log.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
+			return "", err
+		}
+		for _, addr := range addrs {
+			if addr.String() != "127.0.0.1" {
+				ip = addr
+				break
+			}
+		}
+	}
+	if ip == nil || len(ip.String()) == 0 {
+		return "", fmt.Errorf("Failed to obtain IP address from node name: %s", nodeName)
+	}
+	return ip.String(), nil
 }
