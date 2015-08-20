@@ -623,12 +623,12 @@
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/ovssubnet",
 			"Comment": "v0.1-110-gcdd9955",
-			"Rev": "d534b3b254fe2a41b77260dcc5f6061b04f633b8"
+			"Rev": "9dd0b510146571d42c5c9371b4054eae2dc5f82c"
 		},
 		{
 			"ImportPath": "github.com/openshift/openshift-sdn/pkg/netutils",
 			"Comment": "v0.1-110-gcdd9955",
-			"Rev": "a15dc76526039229cfb0c93a4c0389d226550bc9"
+			"Rev": "9dd0b510146571d42c5c9371b4054eae2dc5f82c"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
