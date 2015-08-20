@@ -336,9 +336,9 @@ func (c *MasterConfig) RunSDNController() {
 	osclient, kclient := c.SDNControllerClients()
 	switch c.Options.NetworkConfig.NetworkPluginName {
 	case flatsdn.NetworkPluginName():
-		flatsdn.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
+		flatsdn.Master(osclient, kclient, &c.Options.NetworkConfig)
 	case multitenant.NetworkPluginName():
-		multitenant.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
+		multitenant.Master(osclient, kclient, &c.Options.NetworkConfig)
 	}
 }
 

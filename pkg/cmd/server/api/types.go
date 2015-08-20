@@ -232,6 +232,9 @@ type NetworkConfig struct {
 	ClusterNetworkCIDR string
 	HostSubnetLength   uint
 	ServiceNetworkCIDR string
+
+	// AdminNamespaces are the namespaces/projects that are allowed to reach all networks in case of multi-tenant SDN
+	AdminNamespaces []string
 }
 
 type ImageConfig struct {
