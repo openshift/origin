@@ -19,7 +19,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client"
 	clientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
-	. "k8s.io/kubernetes/test/e2e"
+	"k8s.io/kubernetes/test/e2e"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -36,7 +36,7 @@ type CLI struct {
 	stdout          io.Writer
 	verbose         bool
 	cmd             *cobra.Command
-	kubeFramework   *Framework
+	kubeFramework   *e2e.Framework
 }
 
 // NewCLI initialize the upstream E2E framework and set the namespace to match
@@ -44,7 +44,7 @@ type CLI struct {
 // role bindings for the namespace.
 func NewCLI(project, adminConfigPath string) *CLI {
 	client := &CLI{}
-	client.kubeFramework = InitializeFramework(project, client.SetupProject)
+	client.kubeFramework = e2e.InitializeFramework(project, client.SetupProject)
 	client.outputDir = os.TempDir()
 	client.username = "admin"
 	if len(adminConfigPath) == 0 {
@@ -56,7 +56,7 @@ func NewCLI(project, adminConfigPath string) *CLI {
 
 // KubeFramework returns Kubernetes framework which contains helper functions
 // specific for Kubernetes resources
-func (c *CLI) KubeFramework() *Framework {
+func (c *CLI) KubeFramework() *e2e.Framework {
 	return c.kubeFramework
 }
 
@@ -117,14 +117,14 @@ func (c *CLI) SetOutputDir(dir string) *CLI {
 func (c *CLI) SetupProject(name string, kubeClient *kclient.Client) (*kapi.Namespace, error) {
 	newNamespace := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("extended-test-%s-", name))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", c.Namespace()))
-	Logf("The user is now %q", c.Username())
+	e2e.Logf("The user is now %q", c.Username())
 
 	projectOpts := cmdapi.NewProjectOptions{
 		ProjectName: c.Namespace(),
 		Client:      c.REST(),
 		Out:         c.stdout,
 	}
-	Logf("Creating project %q", c.Namespace())
+	e2e.Logf("Creating project %q", c.Namespace())
 	return c.kubeFramework.Namespace, projectOpts.Run()
 }
 
@@ -281,5 +281,5 @@ func trimmedOutput(stdout io.Writer) string {
 
 // FatalErr exits the test in case a fatal error has occured.
 func FatalErr(msg interface{}) {
-	Failf("%v", msg)
+	e2e.Failf("%v", msg)
 }
