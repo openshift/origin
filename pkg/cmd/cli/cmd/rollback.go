@@ -255,7 +255,7 @@ func (o *RollbackOptions) Run() error {
 			disabled = append(disabled, trigger.ImageChangeParams.From.Name)
 		}
 		if len(disabled) > 0 {
-			reenable := fmt.Sprintf("oc deploy %s --enable-triggers", rolledback.Name)
+			reenable := fmt.Sprintf("oc deploy %s --enable-triggers -n %s", rolledback.Name, o.Namespace)
 			fmt.Fprintf(o.out, "Warning: the following images triggers were disabled: %s\n  You can re-enable them with: %s\n", strings.Join(disabled, ","), reenable)
 		}
 	}
