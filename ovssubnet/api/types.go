@@ -9,7 +9,7 @@ const (
 
 type SubnetRegistry interface {
 	InitSubnets() error
-	GetSubnets() (*[]Subnet, error)
+	GetSubnets() ([]Subnet, error)
 	GetSubnet(nodeName string) (*Subnet, error)
 	DeleteSubnet(nodeName string) error
 	CreateSubnet(sn string, sub *Subnet) error
@@ -33,7 +33,7 @@ type SubnetRegistry interface {
 	DeleteNetNamespace(name string) error
 
 	GetServicesNetwork() (string, error)
-	GetServices() (*[]Service, error)
+	GetServices() ([]Service, error)
 	WatchServices(receiver chan *ServiceEvent, stop chan bool) error
 }
 
