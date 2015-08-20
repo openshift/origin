@@ -47,7 +47,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project Test (example)\n",
+				"In project Test (example) on server https://example.com:8443\n",
 				"You have no services, deployment configs, or build configs.",
 			},
 		},
@@ -60,7 +60,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project example\n",
+				"In project example on server https://example.com:8443\n",
 				"service/empty-service",
 				"<initializing>:5432",
 				"To see more, use",
@@ -75,7 +75,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project example\n",
+				"In project example on server https://example.com:8443\n",
 				"service/database-rc",
 				"rc/database-rc-1 runs mysql",
 				"0/1 pods growing to 1",
@@ -91,7 +91,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project example\n",
+				"In project example on server https://example.com:8443\n",
 				"rc/my-rc runs openshift/mysql-55-centos7",
 				"0/1 pods growing to 1",
 				"rc/my-rc is attempting to mount a secret secret/existing-secret disallowed by sa/default",
@@ -121,7 +121,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project example\n",
+				"In project example on server https://example.com:8443\n",
 				"service/frontend-app",
 				"pod/frontend-app-1-bjwh8 runs openshift/ruby-hello-world",
 				"To see more, use",
@@ -136,7 +136,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project example\n",
+				"In project example on server https://example.com:8443\n",
 				"  rc/database-1 runs openshift/mysql-55-centos7",
 				"rc/frontend-rc-1 runs openshift/ruby-hello-world",
 			},
@@ -150,7 +150,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project example\n",
+				"In project example on server https://example.com:8443\n",
 				"service/sinatra-example-2 - 172.30.17.48:8080",
 				"builds git://github.com",
 				"with docker.io/openshift/ruby-20-centos7:latest",
@@ -192,7 +192,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project example\n",
+				"In project example on server https://example.com:8443\n",
 				"service/sinatra-example-1 - 172.30.17.47:8080",
 				"builds git://github.com",
 				"with docker.io/openshift/ruby-20-centos7:latest",
@@ -211,7 +211,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project example\n",
+				"In project example on server https://example.com:8443\n",
 				"service/sinatra-app-example - 172.30.17.49:8080",
 				"sinatra-app-example-a deploys",
 				"sinatra-app-example-b deploys",
@@ -231,7 +231,7 @@ func TestProjectStatus(t *testing.T) {
 			},
 			ErrFn: func(err error) bool { return err == nil },
 			Contains: []string{
-				"In project example\n",
+				"In project example on server https://example.com:8443\n",
 				"service/database - 172.30.17.240:5434 -> 3306",
 				"service/frontend - 172.30.17.154:5432 -> 8080",
 				"database deploys",
@@ -265,7 +265,7 @@ func TestProjectStatus(t *testing.T) {
 			o.Add(obj)
 		}
 		oc, kc := testclient.NewFixtureClients(o)
-		d := ProjectStatusDescriber{C: oc, K: kc}
+		d := ProjectStatusDescriber{C: oc, K: kc, Server: "https://example.com:8443"}
 		out, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)
