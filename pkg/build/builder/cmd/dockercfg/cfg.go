@@ -41,10 +41,12 @@ func (h *Helper) InstallFlags(flags *pflag.FlagSet) {
 // GetDockerAuth returns a valid Docker AuthConfiguration entry, and whether it was read
 // from the local dockercfg file
 func (h *Helper) GetDockerAuth(imageName, authType string) (docker.AuthConfiguration, bool) {
-	dockercfgPath := getDockercfgFile("")
+	glog.V(3).Infof("Locating docker auth for image %s and type %s", imageName, authType)
+	var dockercfgPath string
 	if pathForAuthType := os.Getenv(authType); len(pathForAuthType) > 0 {
-		glog.V(3).Infof("%s=%s", authType, pathForAuthType)
 		dockercfgPath = getDockercfgFile(pathForAuthType)
+	} else {
+		dockercfgPath = getDockercfgFile("")
 	}
 	if _, err := os.Stat(dockercfgPath); err != nil {
 		glog.V(3).Infof("Problem accessing %s: %v", dockercfgPath, err)
@@ -61,7 +63,7 @@ func (h *Helper) GetDockerAuth(imageName, authType string) (docker.AuthConfigura
 	if !found || len(authConfs) == 0 {
 		return docker.AuthConfiguration{}, false
 	}
-	glog.V(3).Infof("Using %s user for Docker authentication", authConfs[0].Username)
+	glog.V(3).Infof("Using %s user for Docker authentication for image %s", authConfs[0].Username, imageName)
 	return authConfs[0], true
 }
 
@@ -73,9 +75,9 @@ func getDockercfgFile(path string) string {
 	} else if os.Getenv("DOCKERCFG_PATH") != "" {
 		cfgPath = os.Getenv("DOCKERCFG_PATH")
 	} else if currentUser, err := user.Current(); err == nil {
-		cfgPath = filepath.Join(currentUser.HomeDir, ".dockercfg")
+		cfgPath = filepath.Join(currentUser.HomeDir, ".docker", "config.json")
 	}
-	glog.V(5).Infof("Found Docker authentication configuration in '%s'", cfgPath)
+	glog.V(5).Infof("Using Docker authentication configuration in '%s'", cfgPath)
 	return cfgPath
 }
 

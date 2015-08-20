@@ -39,8 +39,6 @@ const (
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
 	dockerClient DockerClient
-	authPresent  bool
-	auth         docker.AuthConfiguration
 	git          git.Git
 	tar          tar.Tar
 	build        *api.Build
@@ -48,11 +46,9 @@ type DockerBuilder struct {
 }
 
 // NewDockerBuilder creates a new instance of DockerBuilder
-func NewDockerBuilder(dockerClient DockerClient, authCfg docker.AuthConfiguration, authPresent bool, build *api.Build) *DockerBuilder {
+func NewDockerBuilder(dockerClient DockerClient, build *api.Build) *DockerBuilder {
 	return &DockerBuilder{
 		dockerClient: dockerClient,
-		authPresent:  authPresent,
-		auth:         authCfg,
 		build:        build,
 		git:          git.New(),
 		tar:          tar.New(),
@@ -100,11 +96,10 @@ func (d *DockerBuilder) Build() error {
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.V(3).Infof("Using Docker authentication provided")
-			d.auth = pushAuthConfig
+			glog.Infof("Using provided push secret for pushing %s image", d.build.Spec.Output.To.Name)
 		}
 		glog.Infof("Pushing %s image ...", d.build.Spec.Output.To.Name)
-		if err := pushImage(d.dockerClient, d.build.Spec.Output.To.Name, d.auth); err != nil {
+		if err := pushImage(d.dockerClient, d.build.Spec.Output.To.Name, pushAuthConfig); err != nil {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
 		glog.Infof("Successfully pushed %s", d.build.Spec.Output.To.Name)
@@ -400,12 +395,12 @@ func traverseAST(cmd string, node *parser.Node) int {
 // setupPullSecret provides a Docker authentication configuration when the
 // PullSecret is specified.
 func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
-	if len(os.Getenv("PULL_DOCKERCFG_PATH")) == 0 {
+	if len(os.Getenv(dockercfg.PullAuthType)) == 0 {
 		return nil, nil
 	}
-	r, err := os.Open(os.Getenv("PULL_DOCKERCFG_PATH"))
+	r, err := os.Open(os.Getenv(dockercfg.PullAuthType))
 	if err != nil {
-		return nil, fmt.Errorf("'%s': %s", os.Getenv("PULL_DOCKERCFG_PATH"), err)
+		return nil, fmt.Errorf("'%s': %s", os.Getenv(dockercfg.PullAuthType), err)
 	}
 	return docker.NewAuthConfigurations(r)
 }
