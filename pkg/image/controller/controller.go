@@ -58,7 +58,7 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 	if client == nil {
 		client = dockerregistry.NewClient()
 	}
-	conn, err := client.Connect(ref.Registry, insecure, false)
+	conn, err := client.Connect(ref.Registry, insecure)
 	if err != nil {
 		return err
 	}

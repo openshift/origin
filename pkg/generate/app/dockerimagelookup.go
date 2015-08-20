@@ -136,7 +136,7 @@ func (r DockerRegistrySearcher) Search(terms ...string) (ComponentMatches, error
 		}
 
 		glog.V(4).Infof("checking Docker registry for %q", ref.String())
-		connection, err := r.Client.Connect(ref.Registry, r.AllowInsecure, false)
+		connection, err := r.Client.Connect(ref.Registry, r.AllowInsecure)
 		if err != nil {
 			if dockerregistry.IsRegistryNotFound(err) {
 				return nil, ErrNoMatch{value: term}
