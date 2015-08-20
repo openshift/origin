@@ -31,6 +31,11 @@ function setup_env_vars {
 # configure_and_start_os will create and write OS master certificates, node config,
 # OS config.
 function configure_os_server {
+  if ! which openshift &>/dev/null; then
+    echo 'ERROR: The "openshift" binary is missing.'
+    echo 'Run: "make clean build"'
+    exit 255
+  fi
   openshift admin ca create-master-certs \
     --overwrite=false \
     --cert-dir="${MASTER_CONFIG_DIR}" \
@@ -92,9 +97,9 @@ function start_os_server {
     echo `date`
 }
 
-# test_privileges tests if the testing machine has iptables available
+# require_iptables_or_die tests if the testing machine has iptables available
 # and in PATH. Also test whether current user has sudo privileges.  
-function test_privileges {
+function require_iptables_or_die {
   if [[ -z "$(which iptables)" ]]; then
     echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
     exit 1
@@ -376,12 +381,13 @@ remove_tmp_dir() {
 # all processes created by the test script.
 function kill_all_processes()
 {
-  sudo=
+  local sudo=""
   if type sudo &> /dev/null; then
     sudo=sudo
   fi
 
   pids=($(jobs -pr))
+  [ ${#pids[@]} -eq 0 ] && return
   for i in ${pids[@]}; do
     ps --ppid=${i} | xargs $sudo kill &> /dev/null
     $sudo kill ${i} &> /dev/null &> /dev/null
@@ -425,8 +431,10 @@ function delete_large_and_empty_logs()
 ######
 
 # exit run if ginkgo not installed
-function ginkgo_check_extended {
-    which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
+function require_ginkgo_or_die {
+  set -e
+  which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
+  set +e
 }
 
 # create extended.test binary to run extended tests
@@ -554,6 +562,19 @@ function create_image_streams_extended {
 
     registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
     echo "[INFO] Registry IP - ${registry}"
+}
+
+# run_extended_tests runs the extended tests suite
+function run_extended_tests() {
+  local focus="$1"
+  echo "[INFO] Starting extended tests (FOCUS=${focus})..."
+  echo "[INFO] OpenShift Master IP: ${MASTER_ADDR}"
+
+  pushd ${OS_ROOT}/test/extended >/dev/null
+  export KUBECONFIG="${ADMIN_KUBECONFIG}"
+  export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
+  ginkgo ${focus} -p ${OS_OUTPUT_BINPATH}/extended.test
+  popd >/dev/null
 }
 
 ######
