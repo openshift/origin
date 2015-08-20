@@ -52,7 +52,7 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		}
 
 		errMsg := fmt.Sprintf("%s", err)
-		if !strings.Contains(errMsg, "ping attempt failed with error") || !strings.Contains(errMsg, "is already in progress") {
+		if !strings.Contains(errMsg, "ping attempt failed with error") && !strings.Contains(errMsg, "is already in progress") {
 			return err
 		}
 
