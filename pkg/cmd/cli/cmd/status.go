@@ -63,12 +63,17 @@ func RunStatus(f *clientcmd.Factory, out io.Writer) error {
 		return err
 	}
 
+	config, err := f.OpenShiftClientConfig.ClientConfig()
+	if err != nil {
+		return err
+	}
+
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 
-	describer := &describe.ProjectStatusDescriber{K: kclient, C: client}
+	describer := &describe.ProjectStatusDescriber{K: kclient, C: client, Server: config.Host}
 	s, err := describer.Describe(namespace, "")
 	if err != nil {
 		return err
@@ -85,12 +90,17 @@ func RunGraph(f *clientcmd.Factory, out io.Writer) error {
 		return err
 	}
 
+	config, err := f.OpenShiftClientConfig.ClientConfig()
+	if err != nil {
+		return err
+	}
+
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
 
-	describer := &describe.ProjectStatusDescriber{K: kclient, C: client}
+	describer := &describe.ProjectStatusDescriber{K: kclient, C: client, Server: config.Host}
 	g, _, err := describer.MakeGraph(namespace)
 	if err != nil {
 		return err
