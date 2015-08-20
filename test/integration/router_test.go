@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -385,8 +386,18 @@ func TestRouterPathSpecificity(t *testing.T) {
 	time.Sleep(time.Second * tcWaitSeconds)
 	//ensure you can curl path but not main host
 	validateRoute("0.0.0.0/test", "www.example.com", "http", tr.HelloPodPath, t)
-	//should fall through to the default backend which is 127.0.0.1:8080 where the test server is simulating a master
-	validateRoute("0.0.0.0", "www.example.com", "http", tr.HelloMaster, t)
+	//should fall through to the default backend and get a 503.
+	resp, err := getRoute("0.0.0.0", "www.example.com", "http", "")
+	if err != nil {
+		t.Fatalf("Error getting route to default backend: %v", err)
+	}
+
+	// We can get back an empty response or a 503 page. A better check
+	// here would be to verify the response code is 503 but that needs
+	// getRoute + wrappers around that to change.
+	if resp != "" && !strings.Contains(resp, "<h1>503 Service Unavailable</h1>") {
+		t.Fatalf("Expected a 503 service unavailable got response :%v:", resp)
+	}
 
 	//create host based route
 	routeEvent = &watch.Event{
