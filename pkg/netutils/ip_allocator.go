@@ -3,6 +3,8 @@ package netutils
 import (
 	"fmt"
 	"net"
+
+	log "github.com/golang/glog"
 )
 
 type IPAllocator struct {
@@ -20,11 +22,11 @@ func NewIPAllocator(network string, inUse []string) (*IPAllocator, error) {
 	for _, netStr := range inUse {
 		_, nIp, err := net.ParseCIDR(netStr)
 		if err != nil {
-			fmt.Println("Failed to parse network address: ", netStr)
+			log.Errorf("Failed to parse network address: %s", netStr)
 			continue
 		}
 		if !netIP.Contains(nIp.IP) {
-			fmt.Println("Provided subnet doesn't belong to network: ", nIp)
+			log.Errorf("Provided subnet doesn't belong to network: %s", nIp)
 			continue
 		}
 		amap[netStr] = true
@@ -56,17 +58,17 @@ func (ipa *IPAllocator) GetIP() (*net.IPNet, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("No IPs available.")
+	return nil, fmt.Errorf("No IPs available")
 }
 
 func (ipa *IPAllocator) ReleaseIP(ip *net.IPNet) error {
 	if !ipa.network.Contains(ip.IP) {
-		return fmt.Errorf("Provided IP %v doesn't belong to the network %v.", ip, ipa.network)
+		return fmt.Errorf("Provided IP %v doesn't belong to the network %v", ip, ipa.network)
 	}
 
 	ipStr := ip.String()
 	if !ipa.allocMap[ipStr] {
-		return fmt.Errorf("Provided IP %v is already available.", ip)
+		return fmt.Errorf("Provided IP %v is already available", ip)
 	}
 
 	ipa.allocMap[ipStr] = false

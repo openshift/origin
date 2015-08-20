@@ -3,7 +3,6 @@ package registry
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"path"
 	"strconv"
 	"sync"
@@ -49,7 +48,7 @@ func newNodeEvent(action, key, value string) *api.NodeEvent {
 		}
 	}
 
-	fmt.Printf("Error decoding node event: nil key (%s,%s,%s).\n", action, key, value)
+	log.Errorf("Error decoding node event: nil key (%s,%s,%s)", action, key, value)
 	return nil
 }
 
@@ -407,7 +406,7 @@ func (sub *EtcdSubnetRegistry) resetClient() {
 	var err error
 	sub.cli, err = newEtcdClient(sub.etcdCfg)
 	if err != nil {
-		panic(fmt.Errorf("resetClient: error recreating etcd client: %v", err))
+		log.Fatalf("resetClient: error recreating etcd client: %v", err)
 	}
 }
 
