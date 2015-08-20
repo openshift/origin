@@ -18,8 +18,7 @@ func NewNetIDAllocator(min uint, max uint, inUse []uint) (*NetIDAllocator, error
 	amap := make(map[uint]bool)
 	for _, netid := range inUse {
 		if netid < min || netid > max {
-			fmt.Println("Provided net id doesn't belong to range: ", min, max)
-			continue
+			return nil, fmt.Errorf("Provided net id doesn't belong to range: [%d, %d]", min, max)
 		}
 		amap[netid] = true
 	}
@@ -29,7 +28,6 @@ func NewNetIDAllocator(min uint, max uint, inUse []uint) (*NetIDAllocator, error
 
 func (nia *NetIDAllocator) GetNetID() (uint, error) {
 	var i uint
-	// We exclude the last address as it is reserved for broadcast
 	for i = nia.min; i <= nia.max; i++ {
 		taken, found := nia.allocMap[i]
 		if !found || !taken {
@@ -43,12 +41,12 @@ func (nia *NetIDAllocator) GetNetID() (uint, error) {
 
 func (nia *NetIDAllocator) ReleaseNetID(netid uint) error {
 	if nia.min > netid || nia.max < netid {
-		return fmt.Errorf("Provided net id %v doesn't belong to the given range (%v-%v)", netid, nia.min, nia.max)
+		return fmt.Errorf("Provided net id %d doesn't belong to the given range [%d, %d]", netid, nia.min, nia.max)
 	}
 
 	taken, found := nia.allocMap[netid]
 	if !found || !taken {
-		return fmt.Errorf("Provided net id %v is already available.", netid)
+		return fmt.Errorf("Provided net id %d is already available.", netid)
 	}
 
 	nia.allocMap[netid] = false
