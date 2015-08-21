@@ -192,8 +192,87 @@ func TestRouteKey(t *testing.T) {
 
 	key := router.routeKey(route)
 
-	if key != "foo-bar" {
-		t.Errorf("Expected key 'foo-bar' but got: %s", key)
+	if key != "foo_bar" {
+		t.Errorf("Expected key 'foo_bar' but got: %s", key)
+	}
+
+	testCases := []struct {
+		Namespace string
+		Name      string
+	}{
+		{
+			Namespace: "foo-bar",
+			Name:      "baz",
+		},
+		{
+			Namespace: "foo",
+			Name:      "bar-baz",
+		},
+		{
+			Namespace: "usain-bolt",
+			Name:      "dash-dash",
+		},
+		{
+			Namespace: "usain",
+			Name:      "bolt-dash-dash",
+		},
+		{
+			Namespace: "",
+			Name:      "ab-testing",
+		},
+		{
+			Namespace: "ab-testing",
+			Name:      "",
+		},
+		{
+			Namespace: "ab",
+			Name:      "testing",
+		},
+	}
+
+	suKey := "test"
+	router.CreateServiceUnit(suKey)
+	su, ok := router.FindServiceUnit(suKey)
+	if !ok {
+		t.Fatalf("Unable to find created service unit %s", suKey)
+	}
+
+	startCount := len(su.ServiceAliasConfigs)
+	for _, tc := range testCases {
+		route := &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				Namespace: tc.Namespace,
+				Name:      tc.Name,
+			},
+			Host: "host",
+			Path: "path",
+			TLS: &routeapi.TLSConfig{
+				Termination:              routeapi.TLSTerminationEdge,
+				Certificate:              "abc",
+				Key:                      "def",
+				CACertificate:            "ghi",
+				DestinationCACertificate: "jkl",
+			},
+		}
+
+		// add route always returns true
+		added := router.AddRoute(suKey, route)
+		if !added {
+			t.Fatalf("expected AddRoute to return true but got false")
+		}
+
+		routeKey := router.routeKey(route)
+		_, ok := su.ServiceAliasConfigs[routeKey]
+		if !ok {
+			t.Errorf("Unable to find created service alias config for route %s", routeKey)
+		}
+	}
+
+	// ensure all the generated routes were added.
+	numRoutesAdded := len(su.ServiceAliasConfigs) - startCount
+	expectedCount := len(testCases)
+	if numRoutesAdded != expectedCount {
+		t.Errorf("Expected %v routes to be added but only %v were actually added", expectedCount, numRoutesAdded)
 	}
 }
 
