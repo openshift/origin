@@ -375,13 +375,6 @@ module.exports = function (grunt) {
       }
     },
 
-    // Replace Google CDN references
-    cdnify: {
-      dist: {
-        html: ['<%= yeoman.dist %>/*.html']
-      }
-    },
-
     // Copies remaining files to places other tasks can use
     copy: {
       dist: {
@@ -480,14 +473,13 @@ module.exports = function (grunt) {
 
     protractor: {
       options: {
-        configFile: "test/protractor.conf.js", // Default config file
+        configFile: "test/protractor-chrome.conf.js", // Default config file
         keepAlive: false, // If false, the grunt process stops when the test fails.
         noColor: false, // If true, protractor will not use colors in its output.
         args: {
           // Arguments passed to the command
         }
       },
-      phantomjs: {},
       chrome: {
         options: {
           configFile: "test/protractor-chrome.conf.js", // Target-specific config file
@@ -553,15 +545,6 @@ module.exports = function (grunt) {
     'concurrent:server',
     'autoprefixer',
     'connect:test',
-    'protractor:phantomjs',
-    'clean:server'
-  ]);
-
-  grunt.registerTask('test-e2e-chrome', [
-    'clean:server',
-    'concurrent:server',
-    'autoprefixer',
-    'connect:test',
     'protractor:chrome',
     'clean:server'
   ]);
@@ -577,7 +560,6 @@ module.exports = function (grunt) {
     'concat',
     'ngAnnotate',
     'copy:dist',
-    'cdnify',
     'less',
     'cssmin',
     'uglify',

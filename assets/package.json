@@ -57,7 +57,6 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "grunt test",
-    "postinstall": "node test/backport-selenium.js"
+    "test": "grunt test"
   }
 }

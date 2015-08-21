@@ -30,8 +30,8 @@ describe('', function() {
   // It requires the example project be created with all of its resources in order to pass
 
   var commonSetup = function() {
-      // The default phantom window size is a mobile resolution, let's make it bigger
-      browser.driver.manage().window().setSize(1024, 768);
+      // Want a longer browser size since the screenshot reporter only grabs the visible window
+      browser.driver.manage().window().setSize(1024, 2048);
   };
 
   var login = function(loginPageAlreadyLoaded) {
@@ -46,7 +46,11 @@ describe('', function() {
 
     driver.findElement(by.name("username")).sendKeys("e2e-user");
     driver.findElement(by.name("password")).sendKeys("e2e-user");
-    return driver.findElement(by.css("button[type='submit']")).click();
+    driver.findElement(by.css("button[type='submit']")).click();
+
+    driver.wait(function() {
+      return driver.isElementPresent(by.css(".navbar-utility .username"));
+    }, 3000);
   };
 
   var goToAddToProjectPage = function(projectName) {

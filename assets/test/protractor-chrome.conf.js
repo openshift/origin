@@ -212,7 +212,19 @@ exports.config = {
     jasmine.getEnv().addReporter(new SpecReporter({
       displayStacktrace: true,
       displaySuccessfulSpec: false,  // display each successful spec
-      displayFailedSpec: false      // display each failed spec      
+      displayFailedSpec: false      // display each failed spec
+    }));
+
+    var ScreenShotReporter = require('protractor-screenshot-reporter');
+    // Add a screenshot reporter and store screenshots to `/tmp/screnshots`:
+    jasmine.getEnv().addReporter(new ScreenShotReporter({
+      baseDirectory: './test/tmp/screenshots',
+      takeScreenShotsOnlyForFailedSpecs: true,
+      pathBuilder: function pathBuilder(spec, descriptions, results, capabilities) {
+        // Return '<specname>' as path for screenshots: 
+        // Example: 'list-should work'. 
+        return descriptions.reverse().join(' ');
+      }       
     }));
   },
 
