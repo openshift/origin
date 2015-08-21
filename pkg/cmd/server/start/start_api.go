@@ -3,6 +3,7 @@ package start
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 
 	"github.com/golang/glog"
@@ -66,6 +67,7 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 		},
 	}
 
+	// allow the master IP address to be overriden on a per process basis
 	masterAddr := flagtypes.Addr{
 		Value:         "127.0.0.1:8443",
 		DefaultScheme: "https",
@@ -73,11 +75,31 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 		AllowPrefix:   true,
 	}.Default()
 
+	// allow the listen address to be overriden on a per process basis
+	listenArg := &ListenArg{
+		ListenAddr: flagtypes.Addr{
+			Value:         "127.0.0.1:8444",
+			DefaultScheme: "https",
+			DefaultPort:   8444,
+			AllowPrefix:   true,
+		}.Default(),
+	}
+
 	options.MasterArgs = NewDefaultMasterArgs()
 	options.MasterArgs.StartAPI = true
 	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
-		if config.KubernetesMasterConfig != nil && masterAddr.Provided {
-			config.KubernetesMasterConfig.MasterIP = masterAddr.Host
+		// we do not currently enable multi host etcd for the cluster
+		config.EtcdConfig = nil
+		if config.KubernetesMasterConfig != nil {
+			if masterAddr.Provided {
+				glog.V(2).Infof("Using a master address override %q", masterAddr.Host)
+				config.KubernetesMasterConfig.MasterIP = masterAddr.Host
+			}
+			if listenArg.ListenAddr.Provided {
+				addr := listenArg.ListenAddr.URL.Host
+				glog.V(2).Infof("Using a listen address override %q", addr)
+				applyBindAddressOverride(addr, config)
+			}
 		}
 		return nil
 	}
@@ -86,7 +108,51 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 	// This command only supports reading from config and the override master address
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. Required")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
-	flags.Var(&masterAddr, "master-ip", "The IP address the master should register for itself. Defaults to the master address from the config.")
+	flags.Var(&masterAddr, "master", "The address the master should register for itself. Defaults to the master address from the config.")
+	BindListenArg(listenArg, flags, "")
 
 	return cmd, options
+}
+
+// applyBindAddressOverride takes a given address and overrides the relevant sections of a MasterConfig
+// TODO: move into helpers
+func applyBindAddressOverride(addr string, config *configapi.MasterConfig) {
+	defaultHost, defaultPort, err := net.SplitHostPort(addr)
+	if err != nil {
+		// is just a host
+		defaultHost = addr
+	}
+	config.ServingInfo.BindAddress = overrideAddress(config.ServingInfo.BindAddress, defaultHost, defaultPort)
+	if config.EtcdConfig != nil {
+		config.EtcdConfig.ServingInfo.BindAddress = overrideAddress(config.EtcdConfig.ServingInfo.BindAddress, defaultHost, "")
+		config.EtcdConfig.PeerServingInfo.BindAddress = overrideAddress(config.EtcdConfig.PeerServingInfo.BindAddress, defaultHost, "")
+	}
+	if config.DNSConfig != nil {
+		config.DNSConfig.BindAddress = overrideAddress(config.DNSConfig.BindAddress, defaultHost, "")
+	}
+	if config.AssetConfig != nil {
+		config.AssetConfig.ServingInfo.BindAddress = overrideAddress(config.AssetConfig.ServingInfo.BindAddress, defaultHost, defaultPort)
+	}
+}
+
+// overrideAddress applies an optional host or port override to a incoming addr. If host or port are empty they will
+// not override the existing addr values.
+func overrideAddress(addr, host, port string) string {
+	existingHost, existingPort, err := net.SplitHostPort(addr)
+	if err != nil {
+		if len(host) > 0 {
+			return host
+		}
+		return addr
+	}
+	if len(host) > 0 {
+		existingHost = host
+	}
+	if len(port) > 0 {
+		existingPort = port
+	}
+	if len(existingPort) == 0 {
+		return existingHost
+	}
+	return net.JoinHostPort(existingHost, existingPort)
 }

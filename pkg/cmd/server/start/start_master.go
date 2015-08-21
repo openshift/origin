@@ -108,7 +108,7 @@ func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *Mas
 	options.MasterArgs.StartControllers = true
 	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
 		if config.KubernetesMasterConfig != nil && options.MasterArgs.MasterAddr.Provided {
-			config.KubernetesMasterConfig.MasterIP = options.MasterArgs.MasterAddr.URL.Host
+			config.KubernetesMasterConfig.MasterIP = options.MasterArgs.MasterAddr.Host
 		}
 		return nil
 	}
