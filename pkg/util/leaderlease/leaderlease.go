@@ -96,8 +96,9 @@ func (e *Etcd) tryAcquire() (ok bool, ttl uint64, nextIndex uint64, err error) {
 	resp, err := e.client.Create(e.key, e.value, ttl)
 	if err == nil {
 		// we hold the lease
-		glog.V(4).Infof("Lease %s acquired, ttl %d seconds", e.key, e.ttl)
-		return true, ttl, resp.EtcdIndex + 1, nil
+		index := resp.EtcdIndex
+		glog.V(4).Infof("Lease %s acquired at %d, ttl %d seconds", e.key, index, e.ttl)
+		return true, ttl, index + 1, nil
 	}
 
 	if !storage.IsEtcdNodeExist(err) {
@@ -115,7 +116,7 @@ func (e *Etcd) tryAcquire() (ok bool, ttl uint64, nextIndex uint64, err error) {
 	}
 
 	if latest.Node.Value != e.value {
-		glog.V(4).Infof("Lease %s owned by %s, waiting for expiration", e.key, latest.Node.Value)
+		glog.V(4).Infof("Lease %s owned by %s at %d ttl %d seconds, waiting for expiration", e.key, latest.Node.Value, nextIndex-1, ttl)
 		// waits until the lease expires or changes to us.
 		// TODO: it's possible we were given the lease during the watch, but we just expect to go
 		//   through this loop again and let this condition check
@@ -162,7 +163,7 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 			util.HandleError(fmt.Errorf("error watching for lease expiration %s: %v", e.key, err))
 			return
 		}
-		glog.V(4).Infof("Lease %s lost due to deletion", e.key)
+		glog.V(4).Infof("Lease %s lost due to deletion at %d", e.key, watchIndex)
 		close(lost)
 	}, 100*time.Millisecond, stop)
 	defer close(stop)
@@ -180,7 +181,7 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 		select {
 		case <-time.After(after):
 			err := wait.Poll(interval, last, func() (bool, error) {
-				glog.V(4).Infof("Renewing lease %s", e.key)
+				glog.V(4).Infof("Renewing lease %s at %d", e.key, index-1)
 				resp, err := e.client.CompareAndSwap(e.key, e.value, e.ttl, e.value, index-1)
 				switch {
 				case err == nil:
@@ -201,15 +202,15 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 			switch err {
 			case nil:
 				// wait again
-				glog.V(4).Infof("Lease %s renewed", e.key)
+				glog.V(4).Infof("Lease %s renewed at %d", e.key, index-1)
 			case wait.ErrWaitTimeout:
-				return fmt.Errorf("unable to renew lease %s: %v", e.key, err)
+				return fmt.Errorf("unable to renew lease %s at %d: %v", e.key, index, err)
 			default:
-				return fmt.Errorf("lost lease %s: %v", e.key, err)
+				return fmt.Errorf("lost lease %s at %d: %v", e.key, index, err)
 			}
 
 		case <-lost:
-			return fmt.Errorf("the lease has been lost %s", e.key)
+			return fmt.Errorf("the lease has been lost %s at %d", e.key, index)
 		}
 	}
 }
@@ -241,6 +242,7 @@ func (e *Etcd) waitExpiration(held bool, from uint64, stop chan struct{}) (bool,
 			return false, from, nil
 		default:
 		}
+		glog.V(5).Infof("watching for expiration of lease %s from %d", e.key, from)
 		resp, err := e.client.Watch(e.key, from, false, nil, nil)
 		if err != nil {
 			return false, etcdIndexFor(err, from), err
@@ -262,6 +264,8 @@ func (e *Etcd) waitExpiration(held bool, from uint64, stop chan struct{}) (bool,
 			// taken away from us
 			return true, index, nil
 		}
+
+		from = index
 	}
 }
 
