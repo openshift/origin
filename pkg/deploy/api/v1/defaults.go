@@ -12,6 +12,13 @@ func init() {
 	}
 
 	err := api.Scheme.AddDefaultingFuncs(
+		func(obj *DeploymentConfigSpec) {
+			if obj.Triggers == nil {
+				obj.Triggers = []DeploymentTriggerPolicy{
+					{Type: DeploymentTriggerOnConfigChange},
+				}
+			}
+		},
 		func(obj *DeploymentStrategy) {
 			if len(obj.Type) == 0 {
 				obj.Type = DeploymentStrategyTypeRolling

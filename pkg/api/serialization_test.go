@@ -192,6 +192,10 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
 			}
 		},
+		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
+		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			mkintp := func(i int) *int64 {

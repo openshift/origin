@@ -33,10 +33,16 @@ oc delete deploymentConfigs test-deployment-config
 echo "deploymentConfigs: ok"
 
 oc delete all --all
+# TODO: remove, flake caused by deployment controller updating the following dc
+sleep 1
+oc delete all --all
 
 oc create -f test/integration/fixtures/test-deployment-config.json
-oc deploy test-deployment-config --latest
 tryuntil oc get rc/test-deployment-config-1
+# oc deploy test-deployment-config --cancel # TODO: does not block until success
+# oc deploy test-deployment-config --latest
+# tryuntil oc get rc/test-deployment-config-2
+
 # scale rc via deployment configuration
 oc scale dc test-deployment-config --replicas=1
 # scale directly
