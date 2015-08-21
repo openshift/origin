@@ -8,6 +8,8 @@ set -o pipefail
 
 oc new-app -f examples/sample-app/application-template-stibuild.json --name=sample
 
+oc export all --all --all-namespaces --exact
+
 [ "$(oc export svc --all -t '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | wc -l)" -ne 0 ]
 [ "$(oc export svc --all --as-template=template | grep 'kind: Template')" ]
 [ ! "$(oc export svc --all | grep 'clusterIP')" ]
