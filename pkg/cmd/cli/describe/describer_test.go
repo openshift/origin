@@ -45,6 +45,14 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),             // normal users don't ever look at these
 	reflect.TypeOf(&projectapi.ProjectRequest{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // not a top level resource
+
+	// these resources can't be "GET"ed, so you can't make a describer for them
+	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),
+	reflect.TypeOf(&authorizationapi.ResourceAccessReviewResponse{}),
+	reflect.TypeOf(&authorizationapi.SubjectAccessReview{}),
+	reflect.TypeOf(&authorizationapi.ResourceAccessReview{}),
+	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
+	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
 }
 
 // MissingDescriberCoverageExceptions is the list of types that were missing describer methods when I started
@@ -52,10 +60,6 @@ var DescriberCoverageExceptions = []reflect.Type{
 // TODO describers should be added for these types
 var MissingDescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
-	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),
-	reflect.TypeOf(&authorizationapi.ResourceAccessReviewResponse{}),
-	reflect.TypeOf(&authorizationapi.SubjectAccessReview{}),
-	reflect.TypeOf(&authorizationapi.ResourceAccessReview{}),
 	reflect.TypeOf(&oauthapi.OAuthClient{}),
 	reflect.TypeOf(&sdnapi.ClusterNetwork{}),
 	reflect.TypeOf(&sdnapi.HostSubnet{}),

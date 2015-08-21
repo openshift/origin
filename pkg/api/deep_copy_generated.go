@@ -18,6 +18,19 @@ import (
 	util "k8s.io/kubernetes/pkg/util"
 )
 
+func deepCopy_api_AuthorizationAttributes(in api.AuthorizationAttributes, out *api.AuthorizationAttributes, c *conversion.Cloner) error {
+	out.Namespace = in.Namespace
+	out.Verb = in.Verb
+	out.Resource = in.Resource
+	out.ResourceName = in.ResourceName
+	if newVal, err := c.DeepCopy(in.Content); err != nil {
+		return err
+	} else {
+		out.Content = newVal.(runtime.EmbeddedObject)
+	}
+	return nil
+}
+
 func deepCopy_api_ClusterPolicy(in api.ClusterPolicy, out *api.ClusterPolicy, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -257,6 +270,43 @@ func deepCopy_api_IsPersonalSubjectAccessReview(in api.IsPersonalSubjectAccessRe
 	return nil
 }
 
+func deepCopy_api_LocalResourceAccessReview(in api.LocalResourceAccessReview, out *api.LocalResourceAccessReview, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapi.TypeMeta)
+	}
+	if err := deepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deepCopy_api_LocalSubjectAccessReview(in api.LocalSubjectAccessReview, out *api.LocalSubjectAccessReview, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapi.TypeMeta)
+	}
+	if err := deepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+		return err
+	}
+	out.User = in.User
+	if in.Groups != nil {
+		out.Groups = make(util.StringSet)
+		for key, val := range in.Groups {
+			if newVal, err := c.DeepCopy(val); err != nil {
+				return err
+			} else {
+				out.Groups[key] = newVal.(util.Empty)
+			}
+		}
+	} else {
+		out.Groups = nil
+	}
+	return nil
+}
+
 func deepCopy_api_Policy(in api.Policy, out *api.Policy, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -435,14 +485,9 @@ func deepCopy_api_ResourceAccessReview(in api.ResourceAccessReview, out *api.Res
 	} else {
 		out.TypeMeta = newVal.(pkgapi.TypeMeta)
 	}
-	out.Verb = in.Verb
-	out.Resource = in.Resource
-	if newVal, err := c.DeepCopy(in.Content); err != nil {
+	if err := deepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
 		return err
-	} else {
-		out.Content = newVal.(runtime.EmbeddedObject)
 	}
-	out.ResourceName = in.ResourceName
 	return nil
 }
 
@@ -601,8 +646,9 @@ func deepCopy_api_SubjectAccessReview(in api.SubjectAccessReview, out *api.Subje
 	} else {
 		out.TypeMeta = newVal.(pkgapi.TypeMeta)
 	}
-	out.Verb = in.Verb
-	out.Resource = in.Resource
+	if err := deepCopy_api_AuthorizationAttributes(in.Action, &out.Action, c); err != nil {
+		return err
+	}
 	out.User = in.User
 	if in.Groups != nil {
 		out.Groups = make(util.StringSet)
@@ -616,12 +662,6 @@ func deepCopy_api_SubjectAccessReview(in api.SubjectAccessReview, out *api.Subje
 	} else {
 		out.Groups = nil
 	}
-	if newVal, err := c.DeepCopy(in.Content); err != nil {
-		return err
-	} else {
-		out.Content = newVal.(runtime.EmbeddedObject)
-	}
-	out.ResourceName = in.ResourceName
 	return nil
 }
 
@@ -2549,6 +2589,7 @@ func deepCopy_api_UserList(in userapi.UserList, out *userapi.UserList, c *conver
 
 func init() {
 	err := pkgapi.Scheme.AddGeneratedDeepCopyFuncs(
+		deepCopy_api_AuthorizationAttributes,
 		deepCopy_api_ClusterPolicy,
 		deepCopy_api_ClusterPolicyBinding,
 		deepCopy_api_ClusterPolicyBindingList,
@@ -2558,6 +2599,8 @@ func init() {
 		deepCopy_api_ClusterRoleBindingList,
 		deepCopy_api_ClusterRoleList,
 		deepCopy_api_IsPersonalSubjectAccessReview,
+		deepCopy_api_LocalResourceAccessReview,
+		deepCopy_api_LocalSubjectAccessReview,
 		deepCopy_api_Policy,
 		deepCopy_api_PolicyBinding,
 		deepCopy_api_PolicyBindingList,

@@ -154,12 +154,14 @@ func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Select
 	// the caller might not have permission to run a subject access review (he has it by default, but it could have been removed).
 	// So we'll escalate for the subject access review to determine rights
 	accessReview := &authorizationapi.SubjectAccessReview{
-		Verb:     "create",
-		Resource: "projectrequests",
-		User:     userInfo.GetName(),
-		Groups:   util.NewStringSet(userInfo.GetGroups()...),
+		Action: authorizationapi.AuthorizationAttributes{
+			Verb:     "create",
+			Resource: "projectrequests",
+		},
+		User:   userInfo.GetName(),
+		Groups: util.NewStringSet(userInfo.GetGroups()...),
 	}
-	accessReviewResponse, err := r.openshiftClient.ClusterSubjectAccessReviews().Create(accessReview)
+	accessReviewResponse, err := r.openshiftClient.SubjectAccessReviews().Create(accessReview)
 	if err != nil {
 		return nil, err
 	}

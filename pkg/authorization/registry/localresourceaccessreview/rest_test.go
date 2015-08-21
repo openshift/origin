@@ -1,4 +1,4 @@
-package resourceaccessreview
+package localresourceaccessreview
 
 import (
 	"errors"
@@ -10,18 +10,18 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 )
 
 type resourceAccessTest struct {
 	authorizer    *testAuthorizer
-	reviewRequest *authorizationapi.ResourceAccessReview
+	reviewRequest *authorizationapi.LocalResourceAccessReview
 }
 
 type testAuthorizer struct {
-	users            util.StringSet
-	groups           util.StringSet
-	err              string
-	deniedNamespaces util.StringSet
+	users  util.StringSet
+	groups util.StringSet
+	err    string
 
 	actualAttributes authorizer.DefaultAuthorizationAttributes
 }
@@ -29,14 +29,10 @@ type testAuthorizer struct {
 func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
 	// allow the initial check for "can I run this RAR at all"
 	if attributes.GetResource() == "localresourceaccessreviews" {
-		if len(a.deniedNamespaces) != 0 && a.deniedNamespaces.Has(kapi.NamespaceValue(ctx)) {
-			return false, "denied initial check", nil
-		}
-
 		return true, "", nil
 	}
 
-	return false, "", errors.New("unsupported")
+	return false, "", errors.New("Unsupported")
 }
 func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
 	attributes, ok := passedAttributes.(authorizer.DefaultAuthorizationAttributes)
@@ -51,17 +47,14 @@ func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes a
 	return a.users, a.groups, errors.New(a.err)
 }
 
-func TestDeniedNamespace(t *testing.T) {
+func TestNoNamespace(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			users:            util.StringSet{},
-			groups:           util.StringSet{},
-			err:              "denied initial check",
-			deniedNamespaces: util.NewStringSet("foo"),
+			err: "namespace is required on this type: ",
 		},
-		reviewRequest: &authorizationapi.ResourceAccessReview{
+		reviewRequest: &authorizationapi.LocalResourceAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
-				Namespace: "foo",
+				Namespace: "",
 				Verb:      "get",
 				Resource:  "pods",
 			},
@@ -71,16 +64,38 @@ func TestDeniedNamespace(t *testing.T) {
 	test.runTest(t)
 }
 
+func TestConflictingNamespace(t *testing.T) {
+	authorizer := &testAuthorizer{}
+	reviewRequest := &authorizationapi.LocalResourceAccessReview{
+		Action: authorizationapi.AuthorizationAttributes{
+			Namespace: "foo",
+			Verb:      "get",
+			Resource:  "pods",
+		},
+	}
+
+	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(authorizer)))
+	ctx := kapi.WithNamespace(kapi.NewContext(), "bar")
+	_, err := storage.Create(ctx, reviewRequest)
+	if err == nil {
+		t.Fatalf("unexpected non-error: %v", err)
+	}
+	if e, a := "namespace: invalid value 'foo', Details: namespace must be: bar", err.Error(); e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+}
+
 func TestEmptyReturn(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
 			users:  util.StringSet{},
 			groups: util.StringSet{},
 		},
-		reviewRequest: &authorizationapi.ResourceAccessReview{
+		reviewRequest: &authorizationapi.LocalResourceAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
-				Verb:     "get",
-				Resource: "pods",
+				Namespace: "unittest",
+				Verb:      "get",
+				Resource:  "pods",
 			},
 		},
 	}
@@ -94,10 +109,11 @@ func TestNoErrors(t *testing.T) {
 			users:  util.NewStringSet("one", "two"),
 			groups: util.NewStringSet("three", "four"),
 		},
-		reviewRequest: &authorizationapi.ResourceAccessReview{
+		reviewRequest: &authorizationapi.LocalResourceAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
-				Verb:     "delete",
-				Resource: "deploymentConfig",
+				Namespace: "unittest",
+				Verb:      "delete",
+				Resource:  "deploymentConfig",
 			},
 		},
 	}
@@ -112,10 +128,11 @@ func TestErrors(t *testing.T) {
 			groups: util.StringSet{},
 			err:    "some-random-failure",
 		},
-		reviewRequest: &authorizationapi.ResourceAccessReview{
+		reviewRequest: &authorizationapi.LocalResourceAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
-				Verb:     "get",
-				Resource: "pods",
+				Namespace: "unittest",
+				Verb:      "get",
+				Resource:  "pods",
 			},
 		},
 	}
@@ -124,7 +141,7 @@ func TestErrors(t *testing.T) {
 }
 
 func (r *resourceAccessTest) runTest(t *testing.T) {
-	storage := REST{r.authorizer}
+	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(r.authorizer)))
 
 	expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 		Namespace: r.reviewRequest.Action.Namespace,
@@ -134,7 +151,7 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 
 	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(r.reviewRequest.Action)
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	ctx := kapi.WithNamespace(kapi.NewContext(), r.reviewRequest.Action.Namespace)
 	obj, err := storage.Create(ctx, r.reviewRequest)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)

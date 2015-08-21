@@ -20,6 +20,16 @@ type DefaultAuthorizationAttributes struct {
 	URL               string
 }
 
+// ToDefaultAuthorizationAttributes coerces AuthorizationAttributes to DefaultAuthorizationAttributes.  Namespace is not included
+// because the authorizer takes that information on the context
+func ToDefaultAuthorizationAttributes(in authorizationapi.AuthorizationAttributes) DefaultAuthorizationAttributes {
+	return DefaultAuthorizationAttributes{
+		Verb:         in.Verb,
+		Resource:     in.Resource,
+		ResourceName: in.ResourceName,
+	}
+}
+
 func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.PolicyRule) (bool, error) {
 	if a.IsNonResourceURL() {
 		if a.nonResourceMatches(rule) {

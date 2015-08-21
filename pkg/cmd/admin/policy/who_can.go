@@ -21,7 +21,7 @@ const WhoCanRecommendedName = "who-can"
 type whoCanOptions struct {
 	allNamespaces    bool
 	bindingNamespace string
-	client           client.Interface
+	client           *client.Client
 
 	verb     string
 	resource string
@@ -68,18 +68,19 @@ func (o *whoCanOptions) complete(args []string) error {
 }
 
 func (o *whoCanOptions) run() error {
-	resourceAccessReview := &authorizationapi.ResourceAccessReview{}
-	resourceAccessReview.Resource = o.resource
-	resourceAccessReview.Verb = o.verb
-
-	var reviewInterface client.ResourceAccessReviewInterface
-	if o.allNamespaces {
-		reviewInterface = o.client.ClusterResourceAccessReviews()
-	} else {
-		reviewInterface = o.client.ResourceAccessReviews(o.bindingNamespace)
+	authorizationAttributes := authorizationapi.AuthorizationAttributes{
+		Resource: o.resource,
+		Verb:     o.verb,
 	}
 
-	resourceAccessReviewResponse, err := reviewInterface.Create(resourceAccessReview)
+	resourceAccessReviewResponse := &authorizationapi.ResourceAccessReviewResponse{}
+	var err error
+	if o.allNamespaces {
+		resourceAccessReviewResponse, err = o.client.ResourceAccessReviews().Create(&authorizationapi.ResourceAccessReview{Action: authorizationAttributes})
+	} else {
+		resourceAccessReviewResponse, err = o.client.LocalResourceAccessReviews(o.bindingNamespace).Create(&authorizationapi.LocalResourceAccessReview{Action: authorizationAttributes})
+	}
+
 	if err != nil {
 		return err
 	}

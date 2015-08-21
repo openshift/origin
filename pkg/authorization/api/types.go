@@ -64,15 +64,18 @@ const (
 
 var (
 	GroupsToResources = map[string][]string{
-		BuildGroupName:              {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone", "buildconfigs/webhooks"},
-		ImageGroupName:              {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
-		DeploymentGroupName:         {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
-		SDNGroupName:                {"clusternetworks", "hostsubnets", "netnamespaces"},
-		TemplateGroupName:           {"templates", "templateconfigs", "processedtemplates"},
-		UserGroupName:               {"identities", "users", "useridentitymappings", "groups"},
-		OAuthGroupName:              {"oauthauthorizetokens", "oauthaccesstokens", "oauthclients", "oauthclientauthorizations"},
-		PolicyOwnerGroupName:        {"policies", "policybindings"},
-		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews", "subjectaccessreviews"},
+		BuildGroupName:       {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone", "buildconfigs/webhooks"},
+		ImageGroupName:       {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
+		DeploymentGroupName:  {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
+		SDNGroupName:         {"clusternetworks", "hostsubnets", "netnamespaces"},
+		TemplateGroupName:    {"templates", "templateconfigs", "processedtemplates"},
+		UserGroupName:        {"identities", "users", "useridentitymappings", "groups"},
+		OAuthGroupName:       {"oauthauthorizetokens", "oauthaccesstokens", "oauthclients", "oauthclientauthorizations"},
+		PolicyOwnerGroupName: {"policies", "policybindings"},
+
+		// RAR and SAR are in this list to support backwards compatibility with clients that expect access to those resource in a namespace scope and a cluster scope.
+		// TODO remove once we have eliminated the namespace scoped resource.
+		PermissionGrantingGroupName: {"roles", "rolebindings", "resourceaccessreviews" /* cluster scoped*/, "subjectaccessreviews" /* cluster scoped*/, "localresourceaccessreviews", "localsubjectaccessreviews"},
 		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, TemplateGroupName, "routes"},
 		OpenshiftAllGroupName: {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects",
 			"clusterroles", "clusterrolebindings", "clusterpolicies", "clusterpolicybindings", "images" /* cluster scoped*/, "projectrequests"},
@@ -195,14 +198,8 @@ type ResourceAccessReviewResponse struct {
 type ResourceAccessReview struct {
 	kapi.TypeMeta
 
-	// Verb is one of: get, list, watch, create, update, delete
-	Verb string
-	// Resource is one of the existing resource types
-	Resource string
-	// Content is the actual content of the request for create and update
-	Content kruntime.EmbeddedObject
-	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
-	ResourceName string
+	// Action describes the action being tested
+	Action AuthorizationAttributes
 }
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action
@@ -221,18 +218,45 @@ type SubjectAccessReviewResponse struct {
 type SubjectAccessReview struct {
 	kapi.TypeMeta
 
-	// Verb is one of: get, list, watch, create, update, delete
-	Verb string
-	// Resource is one of the existing resource types
-	Resource string
+	// Action describes the action being tested
+	Action AuthorizationAttributes
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
 	Groups util.StringSet
-	// Content is the actual content of the request for create and update
-	Content kruntime.EmbeddedObject
+}
+
+// LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
+type LocalResourceAccessReview struct {
+	kapi.TypeMeta
+
+	// Action describes the action being tested
+	Action AuthorizationAttributes
+}
+
+// LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
+type LocalSubjectAccessReview struct {
+	kapi.TypeMeta
+
+	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+	Action AuthorizationAttributes
+	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
+	User string
+	// Groups is optional.  Groups is the list of groups to which the User belongs.
+	Groups util.StringSet
+}
+
+type AuthorizationAttributes struct {
+	// Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces
+	Namespace string
+	// Verb is one of: get, list, watch, create, update, delete
+	Verb string
+	// Resource is one of the existing resource types
+	Resource string
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
 	ResourceName string
+	// Content is the actual content of the request for create and update
+	Content kruntime.EmbeddedObject
 }
 
 // PolicyList is a collection of Policies

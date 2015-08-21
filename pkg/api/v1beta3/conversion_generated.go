@@ -219,22 +219,6 @@ func convert_api_PolicyList_To_v1beta3_PolicyList(in *api.PolicyList, out *v1bet
 	return nil
 }
 
-func convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview(in *api.ResourceAccessReview, out *v1beta3.ResourceAccessReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.ResourceAccessReview))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	out.Verb = in.Verb
-	out.Resource = in.Resource
-	if err := s.Convert(&in.Content, &out.Content, 0); err != nil {
-		return err
-	}
-	out.ResourceName = in.ResourceName
-	return nil
-}
-
 func convert_api_Role_To_v1beta3_Role(in *api.Role, out *v1beta3.Role, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.Role))(in)
@@ -504,22 +488,6 @@ func convert_v1beta3_PolicyList_To_api_PolicyList(in *v1beta3.PolicyList, out *a
 	} else {
 		out.Items = nil
 	}
-	return nil
-}
-
-func convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview(in *v1beta3.ResourceAccessReview, out *api.ResourceAccessReview, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*v1beta3.ResourceAccessReview))(in)
-	}
-	if err := convert_v1beta3_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	out.Verb = in.Verb
-	out.Resource = in.Resource
-	if err := s.Convert(&in.Content, &out.Content, 0); err != nil {
-		return err
-	}
-	out.ResourceName = in.ResourceName
 	return nil
 }
 
@@ -3130,7 +3098,6 @@ func init() {
 		convert_api_ProjectSpec_To_v1beta3_ProjectSpec,
 		convert_api_ProjectStatus_To_v1beta3_ProjectStatus,
 		convert_api_Project_To_v1beta3_Project,
-		convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview,
 		convert_api_ResourceRequirements_To_v1beta3_ResourceRequirements,
 		convert_api_RoleBindingList_To_v1beta3_RoleBindingList,
 		convert_api_RoleList_To_v1beta3_RoleList,
@@ -3206,7 +3173,6 @@ func init() {
 		convert_v1beta3_ProjectSpec_To_api_ProjectSpec,
 		convert_v1beta3_ProjectStatus_To_api_ProjectStatus,
 		convert_v1beta3_Project_To_api_Project,
-		convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview,
 		convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements,
 		convert_v1beta3_RoleBindingList_To_api_RoleBindingList,
 		convert_v1beta3_RoleList_To_api_RoleList,

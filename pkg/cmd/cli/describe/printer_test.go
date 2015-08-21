@@ -22,16 +22,20 @@ import (
 var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&imageapi.DockerImage{}), // not a top level resource
 	reflect.TypeOf(&buildapi.BuildLog{}),    // just a marker type
+
+	// these resources can't be "GET"ed, so we probably don't need a printer for them
+	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),
+	reflect.TypeOf(&authorizationapi.ResourceAccessReviewResponse{}),
+	reflect.TypeOf(&authorizationapi.SubjectAccessReview{}),
+	reflect.TypeOf(&authorizationapi.ResourceAccessReview{}),
+	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
+	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
 }
 
 // MissingPrinterCoverageExceptions is the list of types that were missing printer methods when I started
 // You should never add to this list
 // TODO printers should be added for these types
 var MissingPrinterCoverageExceptions = []reflect.Type{
-	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),
-	reflect.TypeOf(&authorizationapi.ResourceAccessReviewResponse{}),
-	reflect.TypeOf(&authorizationapi.SubjectAccessReview{}),
-	reflect.TypeOf(&authorizationapi.ResourceAccessReview{}),
 	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),
 	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),

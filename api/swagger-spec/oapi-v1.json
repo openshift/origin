@@ -6837,6 +6837,194 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/localresourceaccessreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.LocalResourceAccessReview",
+      "method": "POST",
+      "summary": "create a LocalResourceAccessReview",
+      "nickname": "createNamespacedLocalResourceAccessReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.LocalResourceAccessReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.LocalResourceAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/localresourceaccessreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.LocalResourceAccessReview",
+      "method": "POST",
+      "summary": "create a LocalResourceAccessReview",
+      "nickname": "createLocalResourceAccessReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.LocalResourceAccessReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.LocalResourceAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/namespaces/{namespace}/localsubjectaccessreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.LocalSubjectAccessReview",
+      "method": "POST",
+      "summary": "create a LocalSubjectAccessReview",
+      "nickname": "createNamespacedLocalSubjectAccessReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.LocalSubjectAccessReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.LocalSubjectAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/localsubjectaccessreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.LocalSubjectAccessReview",
+      "method": "POST",
+      "summary": "create a LocalSubjectAccessReview",
+      "nickname": "createLocalSubjectAccessReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.LocalSubjectAccessReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.LocalSubjectAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/netnamespaces",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -16111,6 +16299,97 @@
      }
     }
    },
+   "v1.LocalResourceAccessReview": {
+    "id": "v1.LocalResourceAccessReview",
+    "required": [
+     "namespace",
+     "verb",
+     "resource",
+     "resourceName"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the action being requested"
+     },
+     "verb": {
+      "type": "string",
+      "description": "one of get, list, watch, create, update, delete"
+     },
+     "resource": {
+      "type": "string",
+      "description": "one of the existing resource types"
+     },
+     "resourceName": {
+      "type": "string",
+      "description": "name of the resource being requested for a get or delete"
+     },
+     "content": {
+      "type": "string",
+      "description": "actual content of the request for create and update"
+     }
+    }
+   },
+   "v1.LocalSubjectAccessReview": {
+    "id": "v1.LocalSubjectAccessReview",
+    "required": [
+     "namespace",
+     "verb",
+     "resource",
+     "resourceName",
+     "user",
+     "groups"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the action being requested"
+     },
+     "verb": {
+      "type": "string",
+      "description": "one of get, list, watch, create, update, delete"
+     },
+     "resource": {
+      "type": "string",
+      "description": "one of the existing resource types"
+     },
+     "resourceName": {
+      "type": "string",
+      "description": "name of the resource being requested for a get or delete"
+     },
+     "content": {
+      "type": "string",
+      "description": "actual content of the request for create and update"
+     },
+     "user": {
+      "type": "string",
+      "description": "optional, if both user and groups are empty, the current authenticated user is used"
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "optional, list of groups to which the user belongs"
+     }
+    }
+   },
    "v1.NetNamespaceList": {
     "id": "v1.NetNamespaceList",
     "required": [
@@ -16835,8 +17114,10 @@
    "v1.ResourceAccessReview": {
     "id": "v1.ResourceAccessReview",
     "required": [
+     "namespace",
      "verb",
-     "resource"
+     "resource",
+     "resourceName"
     ],
     "properties": {
      "kind": {
@@ -16847,6 +17128,10 @@
       "type": "string",
       "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the action being requested"
+     },
      "verb": {
       "type": "string",
       "description": "one of get, list, watch, create, update, delete"
@@ -16855,13 +17140,13 @@
       "type": "string",
       "description": "one of the existing resource types"
      },
-     "content": {
-      "type": "string",
-      "description": "actual content of the request for a create or update"
-     },
      "resourceName": {
       "type": "string",
-      "description": "name of the resource being requested for a get or delete operation"
+      "description": "name of the resource being requested for a get or delete"
+     },
+     "content": {
+      "type": "string",
+      "description": "actual content of the request for create and update"
      }
     }
    },
@@ -17002,11 +17287,12 @@
    "v1.SubjectAccessReview": {
     "id": "v1.SubjectAccessReview",
     "required": [
+     "namespace",
      "verb",
      "resource",
+     "resourceName",
      "user",
-     "groups",
-     "resourceName"
+     "groups"
     ],
     "properties": {
      "kind": {
@@ -17017,6 +17303,10 @@
       "type": "string",
       "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the action being requested"
+     },
      "verb": {
       "type": "string",
       "description": "one of get, list, watch, create, update, delete"
@@ -17024,6 +17314,14 @@
      "resource": {
       "type": "string",
       "description": "one of the existing resource types"
+     },
+     "resourceName": {
+      "type": "string",
+      "description": "name of the resource being requested for a get or delete"
+     },
+     "content": {
+      "type": "string",
+      "description": "actual content of the request for create and update"
      },
      "user": {
       "type": "string",
@@ -17035,14 +17333,6 @@
        "type": "string"
       },
       "description": "optional, list of groups to which the user belongs"
-     },
-     "content": {
-      "type": "string",
-      "description": "actual content of the request for create and update"
-     },
-     "resourceName": {
-      "type": "string",
-      "description": "name of the resource being requested for a get or delete"
      }
     }
    },

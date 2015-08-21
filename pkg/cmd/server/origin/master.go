@@ -77,11 +77,13 @@ import (
 	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
 	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
 	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
+	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
+	"github.com/openshift/origin/pkg/authorization/registry/localsubjectaccessreview"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
-	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
+	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -359,6 +361,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
+	localSubjectAccessReviewStorage := localsubjectaccessreview.NewREST(subjectAccessReviewRegistry)
+	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.Authorizer)
+	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
+	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
 	imageStorage := imageetcd.NewREST(c.EtcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
@@ -455,8 +461,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
 		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
 
-		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
-		"subjectAccessReviews":  subjectAccessReviewStorage,
+		"resourceAccessReviews":      resourceAccessReviewStorage,
+		"subjectAccessReviews":       subjectAccessReviewStorage,
+		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
+		"localResourceAccessReviews": localResourceAccessReviewStorage,
 
 		"policies":       policyStorage,
 		"policyBindings": policyBindingStorage,

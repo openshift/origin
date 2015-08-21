@@ -156,14 +156,14 @@ func fakeClient(expectedResource string, reviewResponse *authorizationapi.Subjec
 	return &testclient.Fake{
 		ReactFn: func(action ktestclient.Action) (runtime.Object, error) {
 			switch {
-			case action.Matches("create", "subjectaccessreviews"):
-				review, ok := action.(ktestclient.CreateAction).GetObject().(*authorizationapi.SubjectAccessReview)
+			case action.Matches("create", "localsubjectaccessreviews"):
+				review, ok := action.(ktestclient.CreateAction).GetObject().(*authorizationapi.LocalSubjectAccessReview)
 				if !ok {
 					return emptyResponse, fmt.Errorf("unexpected object received: %#v", review)
 				}
-				if review.Resource != expectedResource {
+				if review.Action.Resource != expectedResource {
 					return emptyResponse, fmt.Errorf("unexpected resource received: %s. expected: %s",
-						review.Resource, expectedResource)
+						review.Action.Resource, expectedResource)
 				}
 				return reviewResponse, nil
 			case action.Matches("get", "buildconfigs"):

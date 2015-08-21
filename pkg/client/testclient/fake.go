@@ -211,24 +211,24 @@ func (c *Fake) PolicyBindings(namespace string) client.PolicyBindingInterface {
 	return &FakePolicyBindings{Fake: c, Namespace: namespace}
 }
 
-// ResourceAccessReviews provides a fake REST client for ResourceAccessReviews
-func (c *Fake) ResourceAccessReviews(namespace string) client.ResourceAccessReviewInterface {
-	return &FakeResourceAccessReviews{Fake: c, Namespace: namespace}
+// LocalResourceAccessReviews provides a fake REST client for ResourceAccessReviews
+func (c *Fake) LocalResourceAccessReviews(namespace string) client.LocalResourceAccessReviewInterface {
+	return &FakeLocalResourceAccessReviews{Fake: c}
 }
 
-// ClusterResourceAccessReviews provides a fake REST client for ClusterResourceAccessReviews
-func (c *Fake) ClusterResourceAccessReviews() client.ResourceAccessReviewInterface {
+// ResourceAccessReviews provides a fake REST client for ClusterResourceAccessReviews
+func (c *Fake) ResourceAccessReviews() client.ResourceAccessReviewInterface {
 	return &FakeClusterResourceAccessReviews{Fake: c}
 }
 
-// SubjectAccessReviews provides a fake REST client for SubjectAccessReviews
-func (c *Fake) SubjectAccessReviews(namespace string) client.SubjectAccessReviewInterface {
-	return &FakeSubjectAccessReviews{Fake: c, Namespace: namespace}
+// ImpersonateSubjectAccessReviews provides a fake REST client for SubjectAccessReviews
+func (c *Fake) ImpersonateSubjectAccessReviews(token string) client.SubjectAccessReviewInterface {
+	return &FakeClusterSubjectAccessReviews{Fake: c}
 }
 
 // ImpersonateSubjectAccessReviews provides a fake REST client for SubjectAccessReviews
-func (c *Fake) ImpersonateSubjectAccessReviews(token, namespace string) client.SubjectAccessReviewInterface {
-	return &FakeSubjectAccessReviews{Fake: c, Namespace: namespace}
+func (c *Fake) ImpersonateLocalSubjectAccessReviews(namespace, token string) client.LocalSubjectAccessReviewInterface {
+	return &FakeLocalSubjectAccessReviews{Fake: c, Namespace: namespace}
 }
 
 // OAuthAccessTokens provides a fake REST client for OAuthAccessTokens
@@ -236,8 +236,13 @@ func (c *Fake) OAuthAccessTokens() client.OAuthAccessTokenInterface {
 	return &FakeOAuthAccessTokens{Fake: c}
 }
 
-// ClusterSubjectAccessReviews provides a fake REST client for ClusterSubjectAccessReviews
-func (c *Fake) ClusterSubjectAccessReviews() client.SubjectAccessReviewInterface {
+// LocalSubjectAccessReviews provides a fake REST client for SubjectAccessReviews
+func (c *Fake) LocalSubjectAccessReviews(namespace string) client.LocalSubjectAccessReviewInterface {
+	return &FakeLocalSubjectAccessReviews{Fake: c}
+}
+
+// SubjectAccessReviews provides a fake REST client for ClusterSubjectAccessReviews
+func (c *Fake) SubjectAccessReviews() client.SubjectAccessReviewInterface {
 	return &FakeClusterSubjectAccessReviews{Fake: c}
 }
 

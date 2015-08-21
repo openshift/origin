@@ -12,10 +12,10 @@ import (
 func ValidateSubjectAccessReview(review *authorizationapi.SubjectAccessReview) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(review.Verb) == 0 {
+	if len(review.Action.Verb) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
 	}
-	if len(review.Resource) == 0 {
+	if len(review.Action.Resource) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
 	}
 
@@ -25,10 +25,36 @@ func ValidateSubjectAccessReview(review *authorizationapi.SubjectAccessReview) f
 func ValidateResourceAccessReview(review *authorizationapi.ResourceAccessReview) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(review.Verb) == 0 {
+	if len(review.Action.Verb) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
 	}
-	if len(review.Resource) == 0 {
+	if len(review.Action.Resource) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
+	}
+
+	return allErrs
+}
+
+func ValidateLocalSubjectAccessReview(review *authorizationapi.LocalSubjectAccessReview) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(review.Action.Verb) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
+	}
+	if len(review.Action.Resource) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
+	}
+
+	return allErrs
+}
+
+func ValidateLocalResourceAccessReview(review *authorizationapi.LocalResourceAccessReview) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(review.Action.Verb) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
+	}
+	if len(review.Action.Resource) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
 	}
 

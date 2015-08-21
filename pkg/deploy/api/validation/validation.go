@@ -87,7 +87,7 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy) fielderr
 		}
 	}
 
-	// TODO: validate resource requirements (prereq: https://github.com/GoogleCloudPlatform/kubernetes/pull/7059)
+	// TODO: validate resource requirements (prereq: https://k8s.io/kubernetes/pull/7059)
 
 	return errs
 }

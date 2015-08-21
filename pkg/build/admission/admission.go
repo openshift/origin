@@ -84,26 +84,30 @@ func resourceName(objectMeta kapi.ObjectMeta) string {
 
 func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr admission.Attributes) error {
 	strategyType := build.Spec.Strategy.Type
-	subjectAccessReview := &authorizationapi.SubjectAccessReview{
-		Verb:         "create",
-		Resource:     resourceForStrategyType(strategyType),
-		User:         attr.GetUserInfo().GetName(),
-		Groups:       util.NewStringSet(attr.GetUserInfo().GetGroups()...),
-		Content:      runtime.EmbeddedObject{Object: build},
-		ResourceName: resourceName(build.ObjectMeta),
+	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
+		Action: authorizationapi.AuthorizationAttributes{
+			Verb:         "create",
+			Resource:     resourceForStrategyType(strategyType),
+			Content:      runtime.EmbeddedObject{Object: build},
+			ResourceName: resourceName(build.ObjectMeta),
+		},
+		User:   attr.GetUserInfo().GetName(),
+		Groups: util.NewStringSet(attr.GetUserInfo().GetGroups()...),
 	}
 	return a.checkAccess(strategyType, subjectAccessReview, attr)
 }
 
 func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.BuildConfig, attr admission.Attributes) error {
 	strategyType := buildConfig.Spec.Strategy.Type
-	subjectAccessReview := &authorizationapi.SubjectAccessReview{
-		Verb:         "create",
-		Resource:     resourceForStrategyType(strategyType),
-		User:         attr.GetUserInfo().GetName(),
-		Groups:       util.NewStringSet(attr.GetUserInfo().GetGroups()...),
-		Content:      runtime.EmbeddedObject{Object: buildConfig},
-		ResourceName: resourceName(buildConfig.ObjectMeta),
+	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
+		Action: authorizationapi.AuthorizationAttributes{
+			Verb:         "create",
+			Resource:     resourceForStrategyType(strategyType),
+			Content:      runtime.EmbeddedObject{Object: buildConfig},
+			ResourceName: resourceName(buildConfig.ObjectMeta),
+		},
+		User:   attr.GetUserInfo().GetName(),
+		Groups: util.NewStringSet(attr.GetUserInfo().GetGroups()...),
 	}
 	return a.checkAccess(strategyType, subjectAccessReview, attr)
 }
@@ -127,8 +131,8 @@ func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequ
 	}
 }
 
-func (a *buildByStrategy) checkAccess(strategyType buildapi.BuildStrategyType, subjectAccessReview *authorizationapi.SubjectAccessReview, attr admission.Attributes) error {
-	resp, err := a.client.SubjectAccessReviews(attr.GetNamespace()).Create(subjectAccessReview)
+func (a *buildByStrategy) checkAccess(strategyType buildapi.BuildStrategyType, subjectAccessReview *authorizationapi.LocalSubjectAccessReview, attr admission.Attributes) error {
+	resp, err := a.client.LocalSubjectAccessReviews(attr.GetNamespace()).Create(subjectAccessReview)
 	if err != nil {
 		return err
 	}

@@ -19,3 +19,8 @@ when that change will happen.
 1. The `pauseControllers` field in `master-config.yaml` is deprecated as of Origin 1.0.4 and will
   no longer be supported in Origin 1.1. After that, a warning will be printed on startup if it
   is set to true.
+
+1. The `/ns/namespace-name/subjectaccessreview` endpoint is deprecated, use `/subjectaccessreview` 
+(with the `namespace` field set) or `/ns/namespace-name/localsubjectaccessreview`.  In 
+Origin 1.y / OSE 3.y, support for `/ns/namespace-name/subjectaccessreview` wil be removed.
+At that time, the openshift docker registry image must be upgraded in order to continue functioning.
