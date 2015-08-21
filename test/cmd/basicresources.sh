@@ -4,6 +4,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/util.sh"
+os::log::install_errexit
+
 # This test validates basic resource retrieval and command interaction
 
 # Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
@@ -23,7 +27,7 @@ oc delete pods hello-openshift
 echo "pods: ok"
 
 oc create -f examples/hello-openshift/hello-pod.json
-oc label pod/hello-openshift acustom=label
+tryuntil oc label pod/hello-openshift acustom=label # can race against scheduling and status updates
 [ "$(oc describe pod/hello-openshift | grep 'acustom=label')" ]
 oc delete pods -l acustom=label
 [ ! "$(oc get pod/hello-openshift)" ]
