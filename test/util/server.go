@@ -119,7 +119,14 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 		return nil, err
 	}
 
-	return startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	masterConfig, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
+	masterConfig.ServiceAccountConfig.LimitSecretReferences = true
+	return masterConfig, nil
 }
 
 func CreateBootstrapPolicy(masterArgs *start.MasterArgs) error {
