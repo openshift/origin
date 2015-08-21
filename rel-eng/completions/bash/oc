@@ -837,6 +837,32 @@ _oc_label()
     must_have_one_noun=()
 }
 
+_oc_annotate()
+{
+    last_command="oc_annotate"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overwrite")
+    flags+=("--resource-version=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oc_expose()
 {
     last_command="oc_expose"
@@ -1197,6 +1223,68 @@ _oc_export()
     two_word_flags+=("-l")
     flags+=("--template=")
     two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_run()
+{
+    last_command="oc_run"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--attach")
+    flags+=("--dry-run")
+    flags+=("--generator=")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--hostport=")
+    flags+=("--image=")
+    flags+=("--labels=")
+    two_word_flags+=("-l")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overrides=")
+    flags+=("--port=")
+    flags+=("--replicas=")
+    two_word_flags+=("-r")
+    flags+=("--restart=")
+    flags+=("--stdin")
+    flags+=("-i")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--tty")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--image=")
+    must_have_one_noun=()
+}
+
+_oc_attach()
+{
+    last_command="oc_attach"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--stdin")
+    flags+=("-i")
+    flags+=("--tty")
+    flags+=("-t")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -1693,6 +1781,7 @@ _oc()
     commands+=("env")
     commands+=("volume")
     commands+=("label")
+    commands+=("annotate")
     commands+=("expose")
     commands+=("stop")
     commands+=("delete")
@@ -1706,6 +1795,8 @@ _oc()
     commands+=("patch")
     commands+=("process")
     commands+=("export")
+    commands+=("run")
+    commands+=("attach")
     commands+=("policy")
     commands+=("secrets")
     commands+=("logout")

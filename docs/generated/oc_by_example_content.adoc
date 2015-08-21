@@ -4,6 +4,54 @@
 toc::[]
 
 
+== oc annotate
+Update the annotations on a resource
+
+====
+
+[options="nowrap"]
+----
+  // Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
+  // If the same annotation is set multiple times, only the last value will be applied
+  $ openshift cli annotate pods foo description='my frontend'
+
+  // Update pod 'foo' with the annotation 'description' and the value
+  // 'my frontend running nginx', overwriting any existing value.
+  $ openshift cli annotate --overwrite pods foo description='my frontend running nginx'
+
+  // Update all pods in the namespace
+  $ openshift cli annotate pods --all description='my frontend running nginx'
+
+  // Update pod 'foo' only if the resource is unchanged from version 1.
+  $ openshift cli annotate pods foo description='my frontend running nginx' --resource-version=1
+
+  // Update pod 'foo' by removing an annotation named 'description' if it exists.
+  // Does not require the --overwrite flag.
+  $ openshift cli annotate pods foo description-
+----
+====
+
+
+== oc attach
+Attach to a running container.
+
+====
+
+[options="nowrap"]
+----
+  // get output from running pod 123456-7890, using the first container by default
+  $ openshift cli attach 123456-7890
+
+  // get output from ruby-container from pod 123456-7890
+  $ openshift cli attach 123456-7890 -c ruby-container date
+
+  // switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
+  // and sends stdout/stderr from 'bash' back to the client
+  $ openshift cli attach 123456-7890 -c ruby-container -i -t
+----
+====
+
+
 == oc build-logs
 Show logs from a build
 
@@ -657,6 +705,32 @@ Start a shell session in a pod
 
   // Open a shell session on the first container in pod 'foo'
   $ openshift cli rsh foo
+----
+====
+
+
+== oc run
+Run a particular image on the cluster.
+
+====
+
+[options="nowrap"]
+----
+  // Starts a single instance of nginx.
+  $ openshift cli run nginx --image=nginx
+
+  // Starts a replicated instance of nginx.
+  $ openshift cli run nginx --image=nginx --replicas=5
+
+  // Dry run. Print the corresponding API objects without creating them.
+  $ openshift cli run nginx --image=nginx --dry-run
+
+  // Start a single instance of nginx, but overload the spec of the replication
+  // controller with a partial set of values parsed from JSON.
+  $ openshift cli run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
+
+  // Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
+  $ openshift cli run -i -tty nginx --image=nginx --restart=Never
 ----
 ====
 
