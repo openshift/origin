@@ -19,6 +19,13 @@ var (
 	DefaultPushRetryCount = 6
 	// DefaultPushRetryDelay is the time to wait before triggering a push retry
 	DefaultPushRetryDelay = 5 * time.Second
+	// RetriableErrors is a set of strings that indicate that an retriable error occurred.
+	RetriableErrors = []string{
+		"ping attempt failed with error",
+		"is already in progress",
+		"connection reset by peer",
+		"transport closed before response was received",
+	}
 )
 
 // DockerClient is an interface to the Docker client that contains
@@ -44,6 +51,7 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		opts.OutputStream = os.Stderr
 	}
 	var err error
+	var retriableError = false
 
 	for retries := 0; retries <= DefaultPushRetryCount; retries++ {
 		err = client.PushImage(opts, authConfig)
@@ -52,7 +60,13 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		}
 
 		errMsg := fmt.Sprintf("%s", err)
-		if !strings.Contains(errMsg, "ping attempt failed with error") && !strings.Contains(errMsg, "is already in progress") {
+		for _, errorString := range RetriableErrors {
+			if strings.Contains(errMsg, errorString) {
+				retriableError = true
+				break
+			}
+		}
+		if !retriableError {
 			return err
 		}
 
