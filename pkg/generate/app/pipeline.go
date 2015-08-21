@@ -301,7 +301,7 @@ func (a *acceptUnique) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	key := fmt.Sprintf("%s/%s", kind, meta.Name)
+	key := fmt.Sprintf("%s/%s/%s", kind, meta.Namespace, meta.Name)
 	_, exists := a.objects[key]
 	if exists {
 		return false
