@@ -306,8 +306,9 @@ func NewCmdStop(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 const (
 	runLong = `Create and run a particular image, possibly replicated
 
-Creates a replication controller to manage the created container(s). You can choose to run in the
-foreground for an interactive container execution.`
+Creates a deployment config to manage the created container(s). You can choose to run in the
+foreground for an interactive container execution.  You may pass 'run-controller/v1' to
+--generator to create a replication controller instead of a deployment config.`
 
 	runExample = `  // Starts a single instance of nginx.
   $ %[1]s run nginx --image=nginx
@@ -340,6 +341,9 @@ func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 	cmd := kcmd.NewCmdRun(f.Factory, in, out, errout)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)
+	cmd.Flags().Set("generator", "")
+	cmd.Flag("generator").Usage = "The name of the API generator to use.  Default is 'run/v1' if --restart=Always, otherwise the default is 'run-pod/v1'."
+	cmd.Flag("generator").DefValue = ""
 	return cmd
 }
 

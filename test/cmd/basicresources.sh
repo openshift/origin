@@ -60,7 +60,9 @@ echo "expose: ok"
 oc delete all --all
 
 oc run --image=openshift/hello-openshift test
-oc delete rc/test
+oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2
+oc run --image=openshift/hello-openshift --restart=Never test3
+oc delete dc/test rc/test2 pod/test3
 
 oc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | oc create -f -
 oc delete all -l name=mytemplate

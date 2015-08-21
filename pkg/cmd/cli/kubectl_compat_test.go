@@ -15,7 +15,7 @@ import (
 // MissingCommands is the list of commands we're already missing.
 // NEVER ADD TO THIS LIST
 // TODO kill this list
-var MissingCommands = util.NewStringSet("namespace", "rolling-update", "attach", "run", "annotate", "cluster-info", "api-versions")
+var MissingCommands = util.NewStringSet("namespace", "rolling-update", "cluster-info", "api-versions")
 
 // WhitelistedCommands is the list of commands we're never going to have in oc
 // defend each one with a comment
@@ -29,14 +29,21 @@ func TestKubectlCompatibility(t *testing.T) {
 
 kubectlLoop:
 	for _, kubecmd := range kubectl.Commands() {
-		if MissingCommands.Has(kubecmd.Name()) || WhitelistedCommands.Has(kubecmd.Name()) {
-			continue
-		}
-
 		for _, occmd := range oc.Commands() {
 			if kubecmd.Name() == occmd.Name() {
+				if MissingCommands.Has(kubecmd.Name()) {
+					t.Errorf("%s was supposed to be missing", kubecmd.Name())
+					continue
+				}
+				if WhitelistedCommands.Has(kubecmd.Name()) {
+					t.Errorf("%s was supposed to be whitelisted", kubecmd.Name())
+					continue
+				}
 				continue kubectlLoop
 			}
+		}
+		if MissingCommands.Has(kubecmd.Name()) || WhitelistedCommands.Has(kubecmd.Name()) {
+			continue
 		}
 
 		t.Errorf("missing %q in oc", kubecmd.Name())
