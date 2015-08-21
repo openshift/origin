@@ -2,7 +2,7 @@
   <project-page class="project-overview-page">
     <div ng-controller="OverviewController">
       <tasks></tasks>
-      <div class="page-header page-header-bleed-right">
+      <div ng-if="!renderOptions.showGetStarted" class="page-header page-header-bleed-right">
         <h1 title="{{project | displayName}}">Project {{project | displayName}}</h1>
       </div>
 
@@ -13,16 +13,27 @@
       <div ng-if="(services | hashSize) == 0">
 
         <!-- Getting started -->
-        <div ng-if="renderOptions.showGetStarted" class="center-block empty-state-msg">
-          <h2>Welcome.</h2>
+        <div ng-if="renderOptions.showGetStarted" class="empty-project">
+          <h2 class="text-center">Get started with your project.</h2>
 
-          <p class="text-muted">
-            You can create a new application from a Git source repository
-            or a template to begin.
+          <p class="gutter-top">
+            Begin creating your application by
+
+          <dl>
+            <dt><i class="fa fa-code"></i> Building from source code</dt>
+            <dd>Use your source or one of our example repositories to build an application image.</dd>
+
+            <dt><i class="fa fa-bolt"></i> Creating from templates</dt>
+            <dd>Launch ready-to-run Instant Apps or add components like databases and message queues.</dd>
+          </dl>
+
           </p>
-          <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
-            Get Started
-          </a>
+          <p class="gutter-top text-center">
+            <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
+              Add to Project
+            </a>
+          </p>
+
         </div>
 
         <!-- Normal empty message (loading... or filtered) -->

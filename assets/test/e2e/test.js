@@ -300,7 +300,7 @@ describe('', function() {
         element(by.buttonText("Create")).click().then(function() {
           var uri = '/project/' + project['name'] + '/overview';
           expect(browser.getCurrentUrl()).toContain(uri);
-          expect(element(by.cssContainingText("h1", project['displayName'])).isPresent()).toBe(true);
+          expect(element(by.cssContainingText(".navbar-project .bootstrap-select .selected .text", project['displayName'])).isPresent()).toBe(true);
           checkProjectSettings(project['name'], project['displayName'], project['description']);
         });
       });
