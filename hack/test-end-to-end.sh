@@ -385,8 +385,38 @@ oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.after.txt
 
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then
+
+	# TODO: move install/setup to to vagrant-openshift
+	pushd /tmp > /dev/null
+
+	# Add signing key for Chrome repo
+	wget https://dl.google.com/linux/linux_signing_key.pub
+	sudo rpm --import linux_signing_key.pub
+
+	# Add Chrome yum repo
+	sudo yum-config-manager --add-repo=http://dl.google.com/linux/chrome/rpm/stable/x86_64
+
+	# Install chrome, unzip, and a virtual framebuffer
+	sudo yum install -y google-chrome-stable unzip Xvfb
+
+	# Install chromedriver
+	wget https://chromedriver.storage.googleapis.com/2.16/chromedriver_linux64.zip
+	unzip chromedriver_linux64.zip
+	sudo mv chromedriver /usr/bin/chromedriver
+	sudo chown root /usr/bin/chromedriver
+	sudo chmod 755 /usr/bin/chromedriver
+
+	popd > /dev/null
+
+	# TODO: re-enable the envvar check
+	#if [[ "$TEST_ASSETS_HEADLESS" == "true" ]]; then
+		echo "[INFO] Starting virtual framebuffer for headless tests..."
+		export DISPLAY=:10
+		Xvfb :10 -screen 0 1024x768x24 -ac &
+	#fi
+
 	echo "[INFO] Running UI e2e tests..."
 	pushd ${OS_ROOT}/assets > /dev/null
-		grunt test-e2e
+		grunt test-e2e-chrome
 	popd > /dev/null
 fi
