@@ -141,7 +141,11 @@ backend openshift_default
   option forwardfor
   #option http-keep-alive
   option http-pretend-keepalive
-  server openshift_backend 127.0.0.1:8080
+  # To configure custom default errors, you can either uncomment the
+  # line below (server ... 127.0.0.1:8080) and point it to your custom
+  # backend service or alternatively, you can send a custom 503 error.
+  #server openshift_backend 127.0.0.1:8080
+  #errorfile 503 /path/to/custom-503-page.html
 
 ##-------------- app level backends ----------------
 {{/*
