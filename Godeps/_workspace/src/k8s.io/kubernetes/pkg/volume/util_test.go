@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"strings"
 )
 
@@ -98,5 +99,32 @@ func (c *mockScrubberClient) DeletePod(name, namespace string) error {
 func (c *mockScrubberClient) WatchPod(name, namespace, resourceVersion string, stopChannel chan struct{}) func() *api.Pod {
 	return func() *api.Pod {
 		return c.pod
+	}
+}
+
+func TestCalculateTimeoutForVolume(t *testing.T) {
+	pv := &api.PersistentVolume{
+		Spec: api.PersistentVolumeSpec{
+			Capacity: api.ResourceList{
+				api.ResourceName(api.ResourceStorage): resource.MustParse("500M"),
+			},
+		},
+	}
+
+	timeout := CalculateTimeoutForVolume(50, 30, pv)
+	if timeout != 50 {
+		t.Errorf("Expected 50 for timeout but got %v", timeout)
+	}
+
+	pv.Spec.Capacity[api.ResourceStorage] = resource.MustParse("2Gi")
+	timeout = CalculateTimeoutForVolume(50, 30, pv)
+	if timeout != 60 {
+		t.Errorf("Expected 60 for timeout but got %v", timeout)
+	}
+
+	pv.Spec.Capacity[api.ResourceStorage] = resource.MustParse("150Gi")
+	timeout = CalculateTimeoutForVolume(50, 30, pv)
+	if timeout != 4500 {
+		t.Errorf("Expected 4500 for timeout but got %v", timeout)
 	}
 }

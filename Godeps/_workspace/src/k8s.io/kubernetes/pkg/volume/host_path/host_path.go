@@ -21,31 +21,30 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
 // This is the primary entrypoint for volume plugins.
-// The recyclerConfig arg provides the ability to configure recycler behavior.  It is implemented as a pointer to allow nils.
-// The hostPathPlugin is used to store the recyclerConfig and give it, when needed, to the func that creates HostPath Recyclers.
+// The volumeConfig arg provides the ability to configure volume behavior.  It is implemented as a pointer to allow nils.
+// The hostPathPlugin is used to store the volumeConfig and give it, when needed, to the func that creates HostPath Recyclers.
 // Tests that exercise recycling should not use this func but instead use ProbeRecyclablePlugins() to override default behavior.
-func ProbeVolumePlugins(recyclerConfig *volume.RecyclableVolumeConfig) []volume.VolumePlugin {
+func ProbeVolumePlugins(volumeConfig *volume.VolumeConfig) []volume.VolumePlugin {
 	return []volume.VolumePlugin{
 		&hostPathPlugin{
 			host:            nil,
 			newRecyclerFunc: newRecycler,
-			recyclerConfig:  recyclerConfig,
+			volumeConfig:    volumeConfig,
 		},
 	}
 }
 
-func ProbeRecyclableVolumePlugins(recyclerFunc func(spec *volume.Spec, host volume.VolumeHost, recyclerConfig *volume.RecyclableVolumeConfig) (volume.Recycler, error), recyclerConfig *volume.RecyclableVolumeConfig) []volume.VolumePlugin {
+func ProbeRecyclableVolumePlugins(recyclerFunc func(spec *volume.Spec, host volume.VolumeHost, volumeConfig *volume.VolumeConfig) (volume.Recycler, error), volumeConfig *volume.VolumeConfig) []volume.VolumePlugin {
 	return []volume.VolumePlugin{
 		&hostPathPlugin{
 			host:            nil,
 			newRecyclerFunc: recyclerFunc,
-			recyclerConfig:  recyclerConfig,
+			volumeConfig:    volumeConfig,
 		},
 	}
 }
@@ -53,8 +52,8 @@ func ProbeRecyclableVolumePlugins(recyclerFunc func(spec *volume.Spec, host volu
 type hostPathPlugin struct {
 	host volume.VolumeHost
 	// decouple creating recyclers by deferring to a function.  Allows for easier testing.
-	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost, recyclerConfig *volume.RecyclableVolumeConfig) (volume.Recycler, error)
-	recyclerConfig  *volume.RecyclableVolumeConfig
+	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost, volumeConfig *volume.VolumeConfig) (volume.Recycler, error)
+	volumeConfig    *volume.VolumeConfig
 }
 
 var _ volume.VolumePlugin = &hostPathPlugin{}
@@ -74,7 +73,8 @@ func (plugin *hostPathPlugin) Name() string {
 }
 
 func (plugin *hostPathPlugin) CanSupport(spec *volume.Spec) bool {
-	return spec.VolumeSource.HostPath != nil || spec.PersistentVolumeSource.HostPath != nil
+	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.HostPath != nil) ||
+		(spec.Volume != nil && spec.Volume.HostPath != nil)
 }
 
 func (plugin *hostPathPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -84,14 +84,14 @@ func (plugin *hostPathPlugin) GetAccessModes() []api.PersistentVolumeAccessMode 
 }
 
 func (plugin *hostPathPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, _ volume.VolumeOptions, _ mount.Interface) (volume.Builder, error) {
-	if spec.VolumeSource.HostPath != nil {
+	if spec.Volume != nil && spec.Volume.HostPath != nil {
 		return &hostPathBuilder{
-			hostPath: &hostPath{path: spec.VolumeSource.HostPath.Path},
+			hostPath: &hostPath{path: spec.Volume.HostPath.Path},
 			readOnly: false,
 		}, nil
 	} else {
 		return &hostPathBuilder{
-			hostPath: &hostPath{path: spec.PersistentVolumeSource.HostPath.Path},
+			hostPath: &hostPath{path: spec.PersistentVolume.Spec.HostPath.Path},
 			readOnly: spec.ReadOnly,
 		}, nil
 	}
@@ -102,28 +102,23 @@ func (plugin *hostPathPlugin) NewCleaner(volName string, podUID types.UID, _ mou
 }
 
 func (plugin *hostPathPlugin) NewRecycler(spec *volume.Spec) (volume.Recycler, error) {
-	if plugin.recyclerConfig == nil {
-		return nil, fmt.Errorf("RecyclableVolumeConfig is nil for this plugin.  Recycler cannot be created.")
+	if plugin.volumeConfig == nil {
+		return nil, fmt.Errorf("VolumeConfig is nil for this plugin.  Recycler cannot be created.")
 	}
-	return plugin.newRecyclerFunc(spec, plugin.host, plugin.recyclerConfig)
+	return plugin.newRecyclerFunc(spec, plugin.host, plugin.volumeConfig)
 }
 
-func newRecycler(spec *volume.Spec, host volume.VolumeHost, recyclableConfig *volume.RecyclableVolumeConfig) (volume.Recycler, error) {
-	if spec.VolumeSource.HostPath != nil {
-		return &hostPathRecycler{
-			name:             spec.Name,
-			path:             spec.VolumeSource.HostPath.Path,
-			host:             host,
-			recyclableConfig: *recyclableConfig,
-		}, nil
-	} else {
-		return &hostPathRecycler{
-			name:             spec.Name,
-			path:             spec.PersistentVolumeSource.HostPath.Path,
-			host:             host,
-			recyclableConfig: *recyclableConfig,
-		}, nil
+func newRecycler(spec *volume.Spec, host volume.VolumeHost, volumeConfig *volume.VolumeConfig) (volume.Recycler, error) {
+	if spec.PersistentVolume == nil || spec.PersistentVolume.Spec.HostPath == nil {
+		return nil, fmt.Errorf("spec.PersistentVolumeSource.HostPath is nil")
 	}
+	return &hostPathRecycler{
+		name:         spec.Name,
+		path:         spec.PersistentVolume.Spec.HostPath.Path,
+		host:         host,
+		volumeConfig: *volumeConfig,
+		timeout:      volume.CalculateTimeoutForVolume(volumeConfig.PersistentVolumeRecyclerMinTimeoutHostPath, volumeConfig.PersistentVolumeRecyclerTimeoutIncrementHostPath, spec.PersistentVolume),
+	}, nil
 }
 
 // HostPath volumes represent a bare host file or directory mount.
@@ -180,10 +175,11 @@ func (c *hostPathCleaner) TearDownAt(dir string) error {
 // hostPathRecycler scrubs a hostPath volume by running "rm -rf" on the volume in a pod
 // This recycler only works on a single host cluster and is for testing purposes only.
 type hostPathRecycler struct {
-	name             string
-	path             string
-	host             volume.VolumeHost
-	recyclableConfig volume.RecyclableVolumeConfig
+	name         string
+	path         string
+	host         volume.VolumeHost
+	volumeConfig volume.VolumeConfig
+	timeout      int64
 }
 
 func (r *hostPathRecycler) GetPath() string {
@@ -195,36 +191,15 @@ func (r *hostPathRecycler) GetPath() string {
 // development and testing in a single node cluster only.
 // Recycle blocks until the pod has completed or any error occurs.
 func (r *hostPathRecycler) Recycle() error {
-	// TODO:  remove the duplication between this Recycle func and the one in nfs.go
-	pod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
-			GenerateName: "pv-scrubber-" + util.ShortenString(r.name, 44) + "-",
-			Namespace:    api.NamespaceDefault,
-		},
-		Spec: api.PodSpec{
-			ActiveDeadlineSeconds: &r.recyclableConfig.Timeout,
-			RestartPolicy:         api.RestartPolicyNever,
-			Volumes: []api.Volume{
-				{
-					Name: "vol",
-					VolumeSource: api.VolumeSource{
-						HostPath: &api.HostPathVolumeSource{r.path},
-					},
-				},
-			},
-			Containers: []api.Container{
-				{
-					Name:    "scrubber",
-					Image:   r.recyclableConfig.ImageName,
-					Command: r.recyclableConfig.Command,
-					Args:    r.recyclableConfig.Args,
-					VolumeMounts: []api.VolumeMount{
-						{
-							Name:      "vol",
-							MountPath: "/scrub",
-						},
-					},
-				},
+	pod := r.volumeConfig.PersistentVolumeRecyclerDefaultScrubPod
+
+	// overrides
+	pod.Spec.ActiveDeadlineSeconds = &r.timeout
+	pod.GenerateName = "pv-scrubber-hostpath-"
+	pod.Spec.Volumes[0] = api.Volume{
+		VolumeSource: api.VolumeSource{
+			HostPath: &api.HostPathVolumeSource{
+				Path: r.path,
 			},
 		},
 	}
