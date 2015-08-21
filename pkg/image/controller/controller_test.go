@@ -32,7 +32,7 @@ type fakeDockerRegistryClient struct {
 	Images []expectedImage
 }
 
-func (f *fakeDockerRegistryClient) Connect(registry string, insecure, disableV2 bool) (dockerregistry.Connection, error) {
+func (f *fakeDockerRegistryClient) Connect(registry string, insecure bool) (dockerregistry.Connection, error) {
 	f.Registry = registry
 	f.Insecure = insecure
 	return f, nil

@@ -15,6 +15,7 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	kclient "k8s.io/kubernetes/pkg/client"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -35,7 +36,7 @@ type Image struct {
 // Client includes methods for accessing a Docker registry by name.
 type Client interface {
 	// Connect to a Docker registry by name. Pass "" for the Docker Hub
-	Connect(registry string, allowInsecure, disableV2 bool) (Connection, error)
+	Connect(registry string, allowInsecure bool) (Connection, error)
 }
 
 // Connection allows you to retrieve data from a Docker V1 registry.
@@ -51,8 +52,14 @@ type Connection interface {
 	ImageByTag(namespace, name, tag string) (*Image, error)
 }
 
+// client implements the Client interface
+type client struct {
+	connections map[string]*connection
+}
+
 // NewClient returns a client object which allows public access to
-// a Docker registry.
+// a Docker registry. enableV2 allows a client to prefer V1 registry
+// API connections.
 // TODO: accept a docker auth config
 func NewClient() Client {
 	return &client{
@@ -60,17 +67,10 @@ func NewClient() Client {
 	}
 }
 
-// client implements the Client interface
-type client struct {
-	connections map[string]*connection
-}
-
 // Connect accepts the name of a registry in the common form Docker provides and will
 // create a connection to the registry. Callers may provide a host, a host:port, or
 // a fully qualified URL. When not providing a URL, the default scheme will be "https"
-// disableV2 allows a client to prefer V1 registry API connections for a particular
-// server.
-func (c *client) Connect(name string, allowInsecure, disableV2 bool) (Connection, error) {
+func (c *client) Connect(name string, allowInsecure bool) (Connection, error) {
 	target, err := normalizeRegistryName(name)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (c *client) Connect(name string, allowInsecure, disableV2 bool) (Connection
 	if conn, ok := c.connections[prefix]; ok && conn.allowInsecure == allowInsecure {
 		return conn, nil
 	}
-	conn := newConnection(*target, allowInsecure, disableV2)
+	conn := newConnection(*target, allowInsecure, true)
 	c.connections[prefix] = conn
 	return conn, nil
 }
@@ -156,18 +156,16 @@ type connection struct {
 }
 
 // newConnection creates a new connection
-func newConnection(url url.URL, allowInsecure, disableV2 bool) *connection {
-	jar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: jar}
-
+func newConnection(url url.URL, allowInsecure, enableV2 bool) *connection {
 	var isV2 *bool
-	if disableV2 {
+	if !enableV2 {
 		v2 := false
 		isV2 = &v2
 	}
 
+	var transport http.RoundTripper
 	if allowInsecure {
-		client.Transport = &http.Transport{
+		transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			Proxy:           http.ProxyFromEnvironment,
 			Dial: (&net.Dialer{
@@ -176,7 +174,23 @@ func newConnection(url url.URL, allowInsecure, disableV2 bool) *connection {
 			}).Dial,
 			TLSHandshakeTimeout: 10 * time.Second,
 		}
+	} else {
+		transport = http.DefaultTransport
 	}
+
+	switch {
+	case bool(glog.V(9)):
+		transport = kclient.NewDebuggingRoundTripper(transport, kclient.CurlCommand, kclient.URLTiming, kclient.ResponseHeaders)
+	case bool(glog.V(8)):
+		transport = kclient.NewDebuggingRoundTripper(transport, kclient.JustURL, kclient.RequestHeaders, kclient.ResponseStatus, kclient.ResponseHeaders)
+	case bool(glog.V(7)):
+		transport = kclient.NewDebuggingRoundTripper(transport, kclient.JustURL, kclient.RequestHeaders, kclient.ResponseStatus)
+	case bool(glog.V(6)):
+		transport = kclient.NewDebuggingRoundTripper(transport, kclient.URLTiming)
+	}
+
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Jar: jar, Transport: transport}
 	return &connection{
 		url:    url,
 		client: client,
@@ -280,7 +294,8 @@ func (c *connection) getCachedRepository(name string) (repository, error) {
 // https://docs.docker.com/registry/spec/api/
 func (c *connection) checkV2() (bool, error) {
 	base := c.url
-	base.Path = path.Join(base.Path, "v2")
+	base.Host = normalizeDockerHubHost(base.Host, true)
+	base.Path = path.Join(base.Path, "v2") + "/"
 	req, err := http.NewRequest("GET", base.String(), nil)
 	if err != nil {
 		return false, fmt.Errorf("error creating request: %v", err)
@@ -298,11 +313,12 @@ func (c *connection) checkV2() (bool, error) {
 	defer resp.Body.Close()
 
 	switch code := resp.StatusCode; {
-	case code >= 300 || resp.StatusCode < 200:
-		return false, nil
 	case code == http.StatusUnauthorized:
 		// handle auth challenges on individual repositories
+	case code >= 300 || resp.StatusCode < 200:
+		return false, nil
 	}
+	glog.V(5).Infof("Found registry v2 API at %s", base.String())
 	// TODO: check Docker-Distribution-API-Version?
 	return true, nil
 }

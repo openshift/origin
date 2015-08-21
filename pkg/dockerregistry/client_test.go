@@ -24,10 +24,12 @@ func TestHTTPFallback(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true, true)
+	conn, err := NewClient().Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+	v2 := false
+	conn.(*connection).isV2 = &v2
 	if _, err := conn.ImageTags("foo", "bar"); !IsRepositoryNotFound(err) {
 		t.Error(err)
 	}
@@ -40,7 +42,7 @@ func TestV2Check(t *testing.T) {
 	var uri *url.URL
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called <- struct{}{}
-		if strings.HasSuffix(r.URL.Path, "/v2") {
+		if strings.HasSuffix(r.URL.Path, "/v2/") {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -52,7 +54,7 @@ func TestV2Check(t *testing.T) {
 		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.RequestURI())
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true, false)
+	conn, err := NewClient().Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,10 +86,12 @@ func TestInsecureHTTPS(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true, true)
+	conn, err := NewClient().Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
+	v2 := false
+	conn.(*connection).isV2 = &v2
 	if _, err := conn.ImageTags("foo", "bar"); !IsRepositoryNotFound(err) {
 		t.Error(err)
 	}
@@ -138,11 +142,12 @@ func TestTokenExpiration(t *testing.T) {
 	}))
 
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true, true)
+	conn, err := NewClient().Connect(uri.Host, true)
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	v2 := false
+	conn.(*connection).isV2 = &v2
 	if _, err := conn.ImageTags("foo", "bar"); err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +202,7 @@ func TestGetTagFallback(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	uri, _ = url.Parse(server.URL)
-	conn, err := NewClient().Connect(uri.Host, true, true)
+	conn, err := NewClient().Connect(uri.Host, true)
 	c := conn.(*connection)
 	if err != nil {
 		t.Fatal(err)
