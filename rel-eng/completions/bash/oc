@@ -1181,6 +1181,7 @@ _oc_export()
     flags_completion=()
 
     flags+=("--all")
+    flags+=("--all-namespaces")
     flags+=("--as-template=")
     flags+=("--exact")
     flags+=("--filename=")
