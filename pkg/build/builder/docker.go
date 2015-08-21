@@ -21,6 +21,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 )
@@ -416,9 +417,38 @@ func (d *DockerBuilder) dockerBuild(dir string) error {
 		noCache = d.build.Spec.Strategy.DockerStrategy.NoCache
 		forcePull = d.build.Spec.Strategy.DockerStrategy.ForcePull
 	}
+
+	// TODO: Remove this method call when Docker build auth is fixed
+	var err error
+	if forcePull, err = d.pullDockerImage(forcePull); err != nil {
+		return err
+	}
+
 	auth, err := d.setupPullSecret()
 	if err != nil {
 		return err
 	}
 	return buildImage(d.dockerClient, dir, noCache, d.build.Spec.Output.To.Name, d.tar, auth, forcePull)
+}
+
+// TODO: Remove this method when Docker build auth is fixed
+func (d *DockerBuilder) pullDockerImage(force bool) (bool, error) {
+	if d.build.Spec.Strategy.DockerStrategy.From == nil || d.build.Spec.Strategy.DockerStrategy.From.Kind != "DockerImage" {
+		return force, nil
+	}
+	image := d.build.Spec.Strategy.DockerStrategy.From.Name
+	_, tag := docker.ParseRepositoryTag(image)
+	if len(tag) == 0 {
+		image = strings.Join([]string{image, imageapi.DefaultImageTag}, ":")
+	}
+	pullAuthConfig, authPresent := dockercfg.NewHelper().GetDockerAuth(image, dockercfg.PullAuthType)
+	if !authPresent {
+		return force, nil
+	}
+	glog.V(2).Infof("Pre-pulling docker image %s", image)
+	pullOpts := docker.PullImageOptions{Repository: image}
+	if err := d.dockerClient.PullImage(pullOpts, pullAuthConfig); err != nil {
+		return force, fmt.Errorf("error pulling image %s: %v", image, err)
+	}
+	return false, nil
 }
