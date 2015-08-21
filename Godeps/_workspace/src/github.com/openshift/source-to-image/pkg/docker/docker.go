@@ -404,8 +404,8 @@ func runContainerDockerRun(container *docker.Container, d *stiDocker, image stri
 	cleanupDone := make(chan bool)
 	signal.Notify(signalChan, os.Interrupt)
 	go func() {
-		for range signalChan {
-			glog.V(2).Info("\nReceived an interrupt, stopping services...\n")
+		for signal := range signalChan {
+			glog.V(2).Info("\nReceived signal %s, stopping services...\n", signal)
 			cleanupDone <- true
 		}
 	}()
