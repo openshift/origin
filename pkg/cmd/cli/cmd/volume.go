@@ -173,7 +173,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVarP(&opts.Output, "output", "o", "", "Display the changed objects instead of updating them. One of: json|yaml")
 	cmd.Flags().String("output-version", "", "Output the changed objects with the given version (default api-version).")
 
-	cmd.Flags().StringVarP(&addOpts.Type, "type", "t", "emptyDir", "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, persistentVolumeClaim")
+	cmd.Flags().StringVarP(&addOpts.Type, "type", "t", "", "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, persistentVolumeClaim")
 	cmd.Flags().StringVarP(&addOpts.MountPath, "mount-path", "m", "", "Mount path inside the container. Optional param for --add or --remove op")
 	cmd.Flags().BoolVar(&addOpts.Overwrite, "overwrite", false, "If true, replace existing volume source and/or volume mount for the given resource")
 	cmd.Flags().StringVar(&addOpts.Path, "path", "", "Host path. Must be provided for hostPath volume type")
@@ -234,14 +234,19 @@ func (v *VolumeOptions) Validate(args []string) error {
 
 func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 	if isAddOp {
+		if len(a.Type) == 0 && (len(a.ClaimName) > 0 || len(a.ClaimSize) > 0) {
+			a.Type = "persistentvolumeclaim"
+			a.TypeChanged = true
+		}
+
+		if len(a.Type) == 0 {
+			a.Type = "emptydir"
+		}
+
 		if len(a.Type) == 0 && len(a.Source) == 0 {
 			return errors.New("must provide --type or --source for --add operation")
 		} else if a.TypeChanged && len(a.Source) > 0 {
 			return errors.New("either specify --type or --source but not both for --add operation")
-		}
-
-		if len(a.Type) == 0 && (len(a.ClaimName) > 0 || len(a.ClaimSize) > 0) {
-			a.Type = "persistentvolumeclaim"
 		}
 
 		if len(a.Type) > 0 {
