@@ -284,10 +284,10 @@ Export resources so they can be used elsewhere
   openshift cli export svc,dc -l name=test
 
   // export all services to a template
-  openshift cli export service --all --as-template=test
+  openshift cli export service --as-template=test
 
   // export to JSON
-  openshift cli export service --all -o json
+  openshift cli export service -o json
 
   // convert a file on disk to the latest API version (in YAML, the default)
   openshift cli export -f a_v1beta3_service.json --output-version=v1 --exact
