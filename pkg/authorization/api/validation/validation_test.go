@@ -168,6 +168,13 @@ func TestValidateRoleBinding(t *testing.T) {
 		&authorizationapi.RoleBinding{
 			ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
 			RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+			Subjects: []kapi.ObjectReference{
+				{Name: "validsaname", Kind: authorizationapi.ServiceAccountKind},
+				{Name: "valid@username", Kind: authorizationapi.UserKind},
+				{Name: "system:admin", Kind: authorizationapi.SystemUserKind},
+				{Name: "valid@groupname", Kind: authorizationapi.GroupKind},
+				{Name: "system:authenticated", Kind: authorizationapi.SystemGroupKind},
+			},
 		},
 		true,
 	)
@@ -211,6 +218,60 @@ func TestValidateRoleBinding(t *testing.T) {
 			},
 			T: fielderrors.ValidationErrorTypeRequired,
 			F: "roleRef.name",
+		},
+		"bad subject kind": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+				Subjects:   []kapi.ObjectReference{{Name: "subject"}},
+			},
+			T: fielderrors.ValidationErrorTypeNotSupported,
+			F: "subjects[0].kind",
+		},
+		"bad subject name": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+				Subjects:   []kapi.ObjectReference{{Name: "subject:bad", Kind: authorizationapi.ServiceAccountKind}},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "subjects[0].name",
+		},
+		"bad system user name": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+				Subjects:   []kapi.ObjectReference{{Name: "user", Kind: authorizationapi.SystemUserKind}},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "subjects[0].name",
+		},
+		"bad system group name": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+				Subjects:   []kapi.ObjectReference{{Name: "valid", Kind: authorizationapi.SystemGroupKind}},
+			},
+			T: fielderrors.ValidationErrorTypeInvalid,
+			F: "subjects[0].name",
+		},
+		"forbidden fields": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+				Subjects:   []kapi.ObjectReference{{Name: "subject", Kind: authorizationapi.ServiceAccountKind, APIVersion: "foo"}},
+			},
+			T: fielderrors.ValidationErrorTypeForbidden,
+			F: "subjects[0].apiVersion",
+		},
+		"missing subject name": {
+			A: authorizationapi.RoleBinding{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "master"},
+				RoleRef:    kapi.ObjectReference{Namespace: "master", Name: "valid"},
+				Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.ServiceAccountKind}},
+			},
+			T: fielderrors.ValidationErrorTypeRequired,
+			F: "subjects[0].name",
 		},
 	}
 	for k, v := range errorCases {

@@ -39,7 +39,7 @@ var (
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
-	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS"}
+	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
 	roleColumns             = []string{"NAME"}
 
 	oauthClientColumns              = []string{"NAME", "SECRET", "WWW-CHALLENGE", "REDIRECT URIS"}
@@ -512,7 +512,9 @@ func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer, wi
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\n", roleBinding.Name, roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, roleBinding.Users.List(), roleBinding.Groups.List())
+	users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
+
+	_, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v\n", roleBinding.Name, roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, strings.Join(users, ", "), strings.Join(groups, ", "), strings.Join(sas, ", "), strings.Join(others, ", "))
 	return err
 }
 

@@ -8,6 +8,7 @@ import (
 
 	testutil "github.com/openshift/origin/test/util"
 
+	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
@@ -50,11 +51,12 @@ func TestPolicyCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !viewers.Users.Has("valerie") {
-		t.Errorf("expected valerie in users: %v", viewers.Users)
+	binding := authorizationinterfaces.NewLocalRoleBindingAdapter(viewers)
+	if !binding.Users().Has("valerie") {
+		t.Errorf("expected valerie in users: %v", binding.Users())
 	}
-	if !viewers.Groups.Has("my-group") {
-		t.Errorf("expected my-group in groups: %v", viewers.Groups)
+	if !binding.Groups().Has("my-group") {
+		t.Errorf("expected my-group in groups: %v", binding.Groups())
 	}
 
 	removeValerie := policy.RemoveFromProjectOptions{
@@ -71,11 +73,12 @@ func TestPolicyCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if viewers.Users.Has("valerie") {
-		t.Errorf("unexpected valerie in users: %v", viewers.Users)
+	binding = authorizationinterfaces.NewLocalRoleBindingAdapter(viewers)
+	if binding.Users().Has("valerie") {
+		t.Errorf("unexpected valerie in users: %v", binding.Users())
 	}
-	if !viewers.Groups.Has("my-group") {
-		t.Errorf("expected my-group in groups: %v", viewers.Groups)
+	if !binding.Groups().Has("my-group") {
+		t.Errorf("expected my-group in groups: %v", binding.Groups())
 	}
 
 	removeMyGroup := policy.RemoveFromProjectOptions{
@@ -92,11 +95,12 @@ func TestPolicyCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if viewers.Users.Has("valerie") {
-		t.Errorf("unexpected valerie in users: %v", viewers.Users)
+	binding = authorizationinterfaces.NewLocalRoleBindingAdapter(viewers)
+	if binding.Users().Has("valerie") {
+		t.Errorf("unexpected valerie in users: %v", binding.Users())
 	}
-	if viewers.Groups.Has("my-group") {
-		t.Errorf("unexpected my-group in groups: %v", viewers.Groups)
+	if binding.Groups().Has("my-group") {
+		t.Errorf("unexpected my-group in groups: %v", binding.Groups())
 	}
 
 }

@@ -19,6 +19,12 @@ const (
 	ResourceAll    = "*"
 	VerbAll        = "*"
 	NonResourceAll = "*"
+
+	UserKind           = "User"
+	GroupKind          = "Group"
+	ServiceAccountKind = "ServiceAccount"
+	SystemUserKind     = "SystemUser"
+	SystemGroupKind    = "SystemGroup"
 )
 
 const (
@@ -142,10 +148,8 @@ type RoleBinding struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 
-	// Users holds all the usernames directly bound to the role
-	Users util.StringSet
-	// Groups holds all the groups directly bound to the role
-	Groups util.StringSet
+	// Subjects hold object references of to authorize with this rule
+	Subjects []kapi.ObjectReference
 
 	// RoleRef can only reference the current namespace and the global namespace
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
@@ -311,10 +315,8 @@ type ClusterRoleBinding struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 
-	// Users holds all the usernames directly bound to the role
-	Users util.StringSet
-	// GroupNames holds all the groups directly bound to the role
-	Groups util.StringSet
+	// Subjects hold object references of to authorize with this rule
+	Subjects []kapi.ObjectReference
 
 	// RoleRef can only reference the current namespace and the global namespace
 	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.

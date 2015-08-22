@@ -194,6 +194,18 @@ func deepCopy_v1_ClusterRoleBinding(in v1.ClusterRoleBinding, out *v1.ClusterRol
 	} else {
 		out.GroupNames = nil
 	}
+	if in.Subjects != nil {
+		out.Subjects = make([]pkgapiv1.ObjectReference, len(in.Subjects))
+		for i := range in.Subjects {
+			if newVal, err := c.DeepCopy(in.Subjects[i]); err != nil {
+				return err
+			} else {
+				out.Subjects[i] = newVal.(pkgapiv1.ObjectReference)
+			}
+		}
+	} else {
+		out.Subjects = nil
+	}
 	if newVal, err := c.DeepCopy(in.RoleRef); err != nil {
 		return err
 	} else {
@@ -564,6 +576,18 @@ func deepCopy_v1_RoleBinding(in v1.RoleBinding, out *v1.RoleBinding, c *conversi
 		}
 	} else {
 		out.GroupNames = nil
+	}
+	if in.Subjects != nil {
+		out.Subjects = make([]pkgapiv1.ObjectReference, len(in.Subjects))
+		for i := range in.Subjects {
+			if newVal, err := c.DeepCopy(in.Subjects[i]); err != nil {
+				return err
+			} else {
+				out.Subjects[i] = newVal.(pkgapiv1.ObjectReference)
+			}
+		}
+	} else {
+		out.Subjects = nil
 	}
 	if newVal, err := c.DeepCopy(in.RoleRef); err != nil {
 		return err

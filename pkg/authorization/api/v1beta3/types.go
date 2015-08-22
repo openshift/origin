@@ -58,6 +58,8 @@ type RoleBinding struct {
 	UserNames []string `json:"userNames"`
 	// GroupNames holds all the groups directly bound to the role
 	GroupNames []string `json:"groupNames"`
+	// Subjects hold object references to authorize with this rule
+	Subjects []kapi.ObjectReference `json:"subjects"`
 
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	// RoleRefs can only reference the current namespace and the global namespace
@@ -229,6 +231,8 @@ type ClusterRoleBinding struct {
 	UserNames []string `json:"userNames"`
 	// GroupNames holds all the groups directly bound to the role
 	GroupNames []string `json:"groupNames"`
+	// Subjects hold object references to authorize with this rule
+	Subjects []kapi.ObjectReference `json:"subjects"`
 
 	// Since Policy is a singleton, this is sufficient knowledge to locate a role
 	// ClusterRoleRefs can only reference the current namespace and the global namespace

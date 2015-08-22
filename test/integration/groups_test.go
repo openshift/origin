@@ -6,12 +6,11 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/util"
-
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	groupscmd "github.com/openshift/origin/pkg/cmd/admin/groups"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 	testutil "github.com/openshift/origin/test/util"
 )
 
@@ -85,7 +84,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	roleBinding := &authorizationapi.RoleBinding{}
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
-	roleBinding.Groups = util.NewStringSet(valerieGroups...)
+	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, valerieGroups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 	_, err = clusterAdminClient.RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -145,7 +144,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 	roleBinding := &authorizationapi.RoleBinding{}
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
-	roleBinding.Groups = util.NewStringSet(theGroup.Name)
+	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, []string{theGroup.Name}, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 	_, err = clusterAdminClient.RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

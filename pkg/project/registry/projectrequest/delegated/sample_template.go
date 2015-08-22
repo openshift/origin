@@ -1,7 +1,7 @@
 package delegated
 
 import (
-	"k8s.io/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -39,7 +39,7 @@ func DefaultTemplate() *templateapi.Template {
 	binding := &authorizationapi.RoleBinding{}
 	binding.Name = "admins"
 	binding.Namespace = ns
-	binding.Users = util.NewStringSet("${" + ProjectAdminUserParam + "}")
+	binding.Subjects = []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "${" + ProjectAdminUserParam + "}"}}
 	binding.RoleRef.Name = bootstrappolicy.AdminRoleName
 	ret.Objects = append(ret.Objects, binding)
 

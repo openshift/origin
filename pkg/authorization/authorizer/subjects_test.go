@@ -34,7 +34,7 @@ func TestSubjects(t *testing.T) {
 			Verb:     "get",
 			Resource: "pods",
 		},
-		expectedUsers:  util.NewStringSet("Anna", "ClusterAdmin", "Ellen", "Valerie"),
+		expectedUsers:  util.NewStringSet("Anna", "ClusterAdmin", "Ellen", "Valerie", "system:serviceaccount:adze:second", "system:serviceaccount:foo:default", "system:serviceaccount:other:first"),
 		expectedGroups: util.NewStringSet("RootUsers", "system:cluster-admins", "system:cluster-readers", "system:masters", "system:nodes"),
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()

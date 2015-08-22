@@ -8,6 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -65,6 +66,58 @@ func TestResourceNameAllow(t *testing.T) {
 	test.test(t)
 }
 
+func TestClusterBindingServiceAccountSubject(t *testing.T) {
+	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: serviceaccount.MakeUsername("foo", "default")}),
+		attributes: &DefaultAuthorizationAttributes{
+			Verb:         "get",
+			Resource:     "users",
+			ResourceName: "any",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by cluster rule",
+	}
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.test(t)
+}
+
+func TestLocalBindingServiceAccountSubject(t *testing.T) {
+	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: serviceaccount.MakeUsername("adze", "second")}),
+		attributes: &DefaultAuthorizationAttributes{
+			Verb:     "get",
+			Resource: "pods",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in adze",
+	}
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+
+	test.test(t)
+}
+
+func TestLocalBindingOtherServiceAccountSubject(t *testing.T) {
+	test := &authorizeTest{
+		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: serviceaccount.MakeUsername("other", "first")}),
+		attributes: &DefaultAuthorizationAttributes{
+			Verb:     "get",
+			Resource: "pods",
+		},
+		expectedAllowed: true,
+		expectedReason:  "allowed by rule in adze",
+	}
+	test.clusterPolicies = newDefaultClusterPolicies()
+	test.policies = append(test.policies, newAdzePolicies()...)
+	test.clusterBindings = newDefaultClusterPolicyBindings()
+	test.bindings = append(test.bindings, newAdzeBindings()...)
+
+	test.test(t)
+}
+
 func TestDeniedWithError(t *testing.T) {
 	test := &authorizeTest{
 		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
@@ -86,7 +139,7 @@ func TestDeniedWithError(t *testing.T) {
 		RoleRef: kapi.ObjectReference{
 			Name: "not-a-real-binding",
 		},
-		Users: util.NewStringSet("Anna"),
+		Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Anna"}},
 	}
 	test.policyRetrievalError = errors.New("my special error")
 
@@ -114,7 +167,7 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 		RoleRef: kapi.ObjectReference{
 			Name: "not-a-real-binding",
 		},
-		Users: util.NewStringSet("Anna"),
+		Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Anna"}},
 	}
 
 	test.test(t)
@@ -446,8 +499,7 @@ func newDefaultClusterPolicyBindings() []authorizationapi.ClusterPolicyBinding {
 				RoleRef: kapi.ObjectReference{
 					Name: "cluster-admin",
 				},
-				Users:  util.NewStringSet("ClusterAdmin"),
-				Groups: util.NewStringSet("RootUsers"),
+				Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "ClusterAdmin"}, {Kind: authorizationapi.GroupKind, Name: "RootUsers"}, {Name: "default", Namespace: "foo", Kind: authorizationapi.ServiceAccountKind}},
 			},
 			"user-only": {
 				ObjectMeta: kapi.ObjectMeta{
@@ -456,7 +508,7 @@ func newDefaultClusterPolicyBindings() []authorizationapi.ClusterPolicyBinding {
 				RoleRef: kapi.ObjectReference{
 					Name: "basic-user",
 				},
-				Users: util.NewStringSet("just-a-user"),
+				Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "just-a-user"}},
 			},
 		},
 	}
@@ -504,7 +556,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 					RoleRef: kapi.ObjectReference{
 						Name: bootstrappolicy.AdminRoleName,
 					},
-					Users: util.NewStringSet("Anna"),
+					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Anna"}},
 				},
 				"viewers": {
 					ObjectMeta: kapi.ObjectMeta{
@@ -514,7 +566,11 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 					RoleRef: kapi.ObjectReference{
 						Name: bootstrappolicy.ViewRoleName,
 					},
-					Users: util.NewStringSet("Valerie"),
+					Subjects: []kapi.ObjectReference{
+						{Kind: authorizationapi.UserKind, Name: "Valerie"},
+						{Name: "first", Namespace: "other", Kind: authorizationapi.ServiceAccountKind},
+						{Name: "second", Kind: authorizationapi.ServiceAccountKind},
+					},
 				},
 				"editors": {
 					ObjectMeta: kapi.ObjectMeta{
@@ -524,7 +580,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 					RoleRef: kapi.ObjectReference{
 						Name: bootstrappolicy.EditRoleName,
 					},
-					Users: util.NewStringSet("Ellen"),
+					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Ellen"}},
 				},
 			},
 		},
@@ -543,7 +599,7 @@ func newAdzeBindings() []authorizationapi.PolicyBinding {
 						Name:      "restrictedViewer",
 						Namespace: "adze",
 					},
-					Users: util.NewStringSet("Rachel"),
+					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Rachel"}},
 				},
 			},
 		},

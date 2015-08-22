@@ -55,6 +55,8 @@ type RoleBinding struct {
 	UserNames []string `json:"userNames" description:"all the usernames directly bound to the role"`
 	// GroupNames holds all the groups directly bound to the role
 	GroupNames []string `json:"groupNames" description:"all the groups directly bound to the role"`
+	// Subjects hold object references to authorize with this rule
+	Subjects []kapi.ObjectReference `json:"subjects" description:"references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."`
 
 	// RoleRef can only reference the current namespace and the global namespace
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
@@ -234,6 +236,8 @@ type ClusterRoleBinding struct {
 	UserNames []string `json:"userNames" description:"all user names directly bound to the role"`
 	// GroupNames holds all the groups directly bound to the role
 	GroupNames []string `json:"groupNames" description:"all the groups directly bound to the role"`
+	// Subjects hold object references to authorize with this rule
+	Subjects []kapi.ObjectReference `json:"subjects" description:"references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."`
 
 	// RoleRef can only reference the current namespace and the global namespace
 	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.

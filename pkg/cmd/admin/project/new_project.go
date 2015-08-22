@@ -128,8 +128,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,
 			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(o.ProjectName, o.Client),
-			Users:               binding.Users.List(),
-			Groups:              binding.Groups.List(),
+			Subjects:            binding.Subjects,
 		}
 		if err := addRole.AddRole(); err != nil {
 			fmt.Printf("Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)

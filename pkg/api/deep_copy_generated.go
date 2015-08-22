@@ -181,29 +181,17 @@ func deepCopy_api_ClusterRoleBinding(in api.ClusterRoleBinding, out *api.Cluster
 	} else {
 		out.ObjectMeta = newVal.(pkgapi.ObjectMeta)
 	}
-	if in.Users != nil {
-		out.Users = make(util.StringSet)
-		for key, val := range in.Users {
-			if newVal, err := c.DeepCopy(val); err != nil {
+	if in.Subjects != nil {
+		out.Subjects = make([]pkgapi.ObjectReference, len(in.Subjects))
+		for i := range in.Subjects {
+			if newVal, err := c.DeepCopy(in.Subjects[i]); err != nil {
 				return err
 			} else {
-				out.Users[key] = newVal.(util.Empty)
+				out.Subjects[i] = newVal.(pkgapi.ObjectReference)
 			}
 		}
 	} else {
-		out.Users = nil
-	}
-	if in.Groups != nil {
-		out.Groups = make(util.StringSet)
-		for key, val := range in.Groups {
-			if newVal, err := c.DeepCopy(val); err != nil {
-				return err
-			} else {
-				out.Groups[key] = newVal.(util.Empty)
-			}
-		}
-	} else {
-		out.Groups = nil
+		out.Subjects = nil
 	}
 	if newVal, err := c.DeepCopy(in.RoleRef); err != nil {
 		return err
@@ -560,29 +548,17 @@ func deepCopy_api_RoleBinding(in api.RoleBinding, out *api.RoleBinding, c *conve
 	} else {
 		out.ObjectMeta = newVal.(pkgapi.ObjectMeta)
 	}
-	if in.Users != nil {
-		out.Users = make(util.StringSet)
-		for key, val := range in.Users {
-			if newVal, err := c.DeepCopy(val); err != nil {
+	if in.Subjects != nil {
+		out.Subjects = make([]pkgapi.ObjectReference, len(in.Subjects))
+		for i := range in.Subjects {
+			if newVal, err := c.DeepCopy(in.Subjects[i]); err != nil {
 				return err
 			} else {
-				out.Users[key] = newVal.(util.Empty)
+				out.Subjects[i] = newVal.(pkgapi.ObjectReference)
 			}
 		}
 	} else {
-		out.Users = nil
-	}
-	if in.Groups != nil {
-		out.Groups = make(util.StringSet)
-		for key, val := range in.Groups {
-			if newVal, err := c.DeepCopy(val); err != nil {
-				return err
-			} else {
-				out.Groups[key] = newVal.(util.Empty)
-			}
-		}
-	} else {
-		out.Groups = nil
+		out.Subjects = nil
 	}
 	if newVal, err := c.DeepCopy(in.RoleRef); err != nil {
 		return err

@@ -7,12 +7,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/controller/serviceaccount"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
 const (
@@ -32,8 +33,9 @@ type RoleModificationOptions struct {
 	RoleName            string
 	RoleBindingAccessor RoleBindingAccessor
 
-	Users  []string
-	Groups []string
+	Users    []string
+	Groups   []string
+	Subjects []kapi.ObjectReference
 }
 
 // NewCmdAddRoleToGroup implements the OpenShift cli add-role-to-group command
@@ -246,7 +248,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args 
 	o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, osClient)
 
 	for _, sa := range saNames {
-		o.Users = append(o.Users, serviceaccount.MakeUsername(roleBindingNamespace, sa))
+		o.Subjects = append(o.Subjects, kapi.ObjectReference{Name: sa, Kind: "ServiceAccount"})
 	}
 
 	return nil
@@ -293,7 +295,7 @@ func (o *RoleModificationOptions) AddRole() error {
 	var roleBinding *authorizationapi.RoleBinding
 	isUpdate := true
 	if len(roleBindings) == 0 {
-		roleBinding = &authorizationapi.RoleBinding{Users: util.NewStringSet(), Groups: util.NewStringSet()}
+		roleBinding = &authorizationapi.RoleBinding{}
 		isUpdate = false
 	} else {
 		// only need to add the user or group to a single roleBinding on the role.  Just choose the first one
@@ -303,8 +305,21 @@ func (o *RoleModificationOptions) AddRole() error {
 	roleBinding.RoleRef.Namespace = o.RoleNamespace
 	roleBinding.RoleRef.Name = o.RoleName
 
-	roleBinding.Users.Insert(o.Users...)
-	roleBinding.Groups.Insert(o.Groups...)
+	newSubjects := authorizationapi.BuildSubjects(o.Users, o.Groups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	newSubjects = append(newSubjects, o.Subjects...)
+
+subjectCheck:
+	for _, newSubject := range newSubjects {
+		for _, existingSubject := range roleBinding.Subjects {
+			if existingSubject.Kind == newSubject.Kind &&
+				existingSubject.Name == newSubject.Name &&
+				existingSubject.Namespace == newSubject.Namespace {
+				continue subjectCheck
+			}
+		}
+
+		roleBinding.Subjects = append(roleBinding.Subjects, newSubject)
+	}
 
 	if isUpdate {
 		err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
@@ -328,9 +343,11 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		return fmt.Errorf("unable to locate RoleBinding for %v/%v", o.RoleNamespace, o.RoleName)
 	}
 
+	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	subjectsToRemove = append(subjectsToRemove, o.Subjects...)
+
 	for _, roleBinding := range roleBindings {
-		roleBinding.Groups.Delete(o.Groups...)
-		roleBinding.Users.Delete(o.Users...)
+		roleBinding.Subjects = removeSubjects(roleBinding.Subjects, subjectsToRemove)
 
 		err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
 		if err != nil {
@@ -339,4 +356,24 @@ func (o *RoleModificationOptions) RemoveRole() error {
 	}
 
 	return nil
+}
+
+func removeSubjects(haystack, needles []kapi.ObjectReference) []kapi.ObjectReference {
+	newSubjects := []kapi.ObjectReference{}
+
+existingLoop:
+	for _, existingSubject := range haystack {
+		for _, toRemove := range needles {
+			if existingSubject.Kind == toRemove.Kind &&
+				existingSubject.Name == toRemove.Name &&
+				existingSubject.Namespace == toRemove.Namespace {
+				continue existingLoop
+
+			}
+		}
+
+		newSubjects = append(newSubjects, existingSubject)
+	}
+
+	return newSubjects
 }
