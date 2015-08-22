@@ -4,10 +4,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-function tryuntil {
-  timeout=$(($(date +%s) + 60))
-  until eval "${@}" || [[ $(date +%s) -gt $timeout ]]; do :; done
-}
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/util.sh"
+os::log::install_errexit
 
 # Cleanup cluster resources created by this test
 (

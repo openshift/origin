@@ -4,6 +4,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/util.sh"
+os::log::install_errexit
+
 url=":${API_PORT:-8443}"
 project="$(oc project -q)"
 

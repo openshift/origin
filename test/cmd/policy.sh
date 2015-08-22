@@ -4,6 +4,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/util.sh"
+os::log::install_errexit
+
 # This test validates user level policy
 
 oc policy add-role-to-group cluster-admin system:unauthenticated

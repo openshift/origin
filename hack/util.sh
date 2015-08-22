@@ -107,6 +107,12 @@ function test_privileges {
   set -e
 }
 
+# tryuntil loops up to 60 seconds to redo this action
+function tryuntil {
+  timeout=$(($(date +%s) + 60))
+  until eval "${@}" || [[ $(date +%s) -gt $timeout ]]; do :; done
+}
+
 # wait_for_command executes a command and waits for it to
 # complete or times out after max_wait.
 #

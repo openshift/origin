@@ -4,12 +4,17 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/util.sh"
+os::log::install_errexit
+
 # This test validates the 'volume' command
 
 oc create -f test/integration/fixtures/test-deployment-config.json
 
 [ "$(oc volume dc/test-deployment-config --list | grep vol1)" ]
-[ "$(oc volume dc/test-deployment-config --add --name=vol2 -m /opt)" ]
+[ "$(oc volume dc/test-deployment-config --add --name=vol0 -m /opt5)" ]
+[ "$(oc volume dc/test-deployment-config --add --name=vol2 --type=emptydir -m /opt)" ]
 [ "$(oc volume dc/test-deployment-config --add --name=vol1 --type=secret --secret-name='$ecret' -m /data 2>&1 | grep overwrite)" ]
 [ "$(oc volume dc/test-deployment-config --add --name=vol1 --type=emptyDir -m /data --overwrite)" ]
 [ "$(oc volume dc/test-deployment-config --add -m /opt 2>&1 | grep exists)" ]
