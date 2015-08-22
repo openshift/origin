@@ -385,6 +385,7 @@ oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.after.txt
 # make sure there were changes to the registry's storage
 [ -n "$(diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt)" ]
 
+
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then
 
@@ -394,8 +395,13 @@ if [[ "$TEST_ASSETS" == "true" ]]; then
 		Xvfb :10 -screen 0 1024x768x24 -ac &
 	fi
 
-	echo "[INFO] Running UI e2e tests..."
+	echo "[INFO] Running UI e2e tests at time..."
+	echo `date`
 	pushd ${OS_ROOT}/assets > /dev/null
 		grunt test-e2e
+	echo "UI  e2e done at time "
+	echo `date`
+
 	popd > /dev/null
+
 fi

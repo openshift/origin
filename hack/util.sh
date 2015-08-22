@@ -71,18 +71,26 @@ function configure_os_server {
 # start_os_server starts the OS server, exports the PID of the OS server
 # and waits until OS server endpoints are available
 function start_os_server {
-  echo "[INFO] Starting OpenShift server"
-  sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
-    --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
-    --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-    --loglevel=4 \
-    &> "${BASETMPDIR}/openshift.log" &
-  export OS_PID=$!
+    echo "[INFO] Scan of OpenShift related processes already up via ps -ef  | grep openshift : "
+    ps -ef | grep openshift
+    echo "[INFO] Starting OpenShift server"
+    sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
+	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
+	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+	 --loglevel=4 \
+    &> "${LOG_DIR}/openshift.log" &
+    export OS_PID=$!
 
-  wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
-  wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-  wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
-  wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
+    echo "[INFO] OpenShift server start at: "
+    echo `date`
+  
+    wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
+    wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+    wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+    wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
+    
+    echo "[INFO] OpenShift server health checks done at: "
+    echo `date`
 }
 
 # test_privileges tests if the testing machine has iptables available
@@ -223,7 +231,7 @@ function wait_for_url {
 
   set +e
   cmd="env -i CURL_CA_BUNDLE=${CURL_CA_BUNDLE:-} $(which curl) ${clientcert_args} -fs ${url}"
-  #echo "run: ${cmd}"
+  echo "wait_for_url - run: ${cmd}"
   for i in $(seq 1 $times); do
     out=$(${cmd})
     if [ $? -eq 0 ]; then
@@ -231,6 +239,7 @@ function wait_for_url {
       echo "${prefix}${out}"
       return 0
     fi
+    echo " wait_for_url: ${cmd} non zero rc: ${out}"
     sleep $wait
   done
   echo "ERROR: gave up waiting for ${url}"
@@ -408,6 +417,146 @@ function delete_large_and_empty_logs()
   find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
   find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
 }
+
+######
+# start of common functions for extended test group's run.sh scripts
+######
+
+# exit run if ginkgo not installed
+function ginkgo_check_extended {
+    which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
+}
+
+# create extended.test binary to run extended tests
+function compile_extended {
+    # Compile the extended tests first to avoid waiting for OpenShift server to
+    # start and fail sooner on compilation errors.
+    echo "[INFO] Compiling test/extended package ..."
+    GOPATH="${OS_ROOT}/Godeps/_workspace:${GOPATH}" \
+	  go test -c ./test/extended -o ${OS_OUTPUT_BINPATH}/extended.test || exit 1
+    export GOPATH
+}
+
+# various env var and setup for directories and image related information
+function dirs_image_env_setup_extended {
+    export TIME_SEC=1000
+    export TIME_MIN=$((60 * $TIME_SEC))
+
+    export TEST_TYPE="openshift-extended-tests"
+    export TMPDIR="${TMPDIR:-"/tmp"}"
+    export BASETMPDIR="${TMPDIR}/${TEST_TYPE}"
+
+    if [[ -d "${BASETMPDIR}" ]]; then
+	remove_tmp_dir $TEST_TYPE
+    fi
+
+    mkdir -p ${BASETMPDIR}
+
+    # Use either the latest release built images, or latest.
+    if [[ -z "${USE_IMAGES-}" ]]; then
+	export USE_IMAGES='openshift/origin-${component}:latest'
+	if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
+	    export COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
+	    export USE_IMAGES="openshift/origin-\${component}:${COMMIT}"
+	fi
+    fi
+
+    export LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
+    export ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
+    export DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}'`
+    export API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
+    mkdir -p $LOG_DIR $ARTIFACT_DIR
+}
+
+# cleanup function for the extended tests
+function cleanup_extended {
+	out=$?
+	set +e
+	
+	echo "[INFO] Tearing down test"
+	kill_all_processes
+	rm -rf ${ETCD_DIR-}
+	echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+	if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
+		echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
+	fi
+
+	set -e
+	echo "[INFO] Cleanup complete"
+	echo "[INFO] Exiting"
+	exit $out
+}    
+
+# ip/host setup function for the extended tests, along with some debug
+function info_msgs_ip_host_setup_extended {
+    echo "[INFO] `openshift version`"
+    echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
+    echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
+    echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
+    echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
+    echo "[INFO] Using images:              ${USE_IMAGES}"
+
+    # Start All-in-one server and wait for health
+    echo "[INFO] Create certificates for the OpenShift server"
+    # find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
+    ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
+    SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
+    while read -r IP_ADDRESS
+    do
+	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
+    done <<< "${ALL_IP_ADDRESSES}"
+    export ALL_IP_ADDRESSES
+    export SERVER_HOSTNAME_LIST
+}
+
+# auth set up for extended tests
+function auth_setup_extended {
+    export HOME="${FAKE_HOME_DIR}"
+    # This directory must exist so Docker can store credentials in $HOME/.dockercfg
+    mkdir -p ${FAKE_HOME_DIR}
+
+    export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+    export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
+
+    if [[ "${API_SCHEME}" == "https" ]]; then
+	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
+	export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
+	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
+
+	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
+	sudo chmod -R a+rwX "${ADMIN_KUBECONFIG}"
+	echo "[INFO] To debug: export ADMIN_KUBECONFIG=$ADMIN_KUBECONFIG"
+    fi
+
+}
+
+# install the router for the extended tests
+function install_router_extended {
+    echo "[INFO] Installing the router"
+    echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f - --config="${ADMIN_KUBECONFIG}"
+    oc get scc privileged -o json --config="${ADMIN_KUBECONFIG}" | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f - --config="${ADMIN_KUBECONFIG}"
+    openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
+}
+
+# install registry for the extended tests
+function install_registry_extended {
+    # The --mount-host option is provided to reuse local storage.
+    echo "[INFO] Installing the registry"
+    openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}"
+}
+
+# create the images streams for the extended tests suites
+function create_image_streams_extended {
+    echo "[INFO] Creating image streams"
+    oc create -n openshift -f examples/image-streams/image-streams-centos7.json --config="${ADMIN_KUBECONFIG}"
+
+    registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
+    echo "[INFO] Registry IP - ${registry}"
+}
+
+######
+# end of common functions for extended test group's run.sh scripts
+######
 
 # Handler for when we exit automatically on an error.
 # Borrowed from https://gist.github.com/ahendrix/7030300

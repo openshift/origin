@@ -1,0 +1,30 @@
+{
+    "kind": "BuildConfig",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "ruby-sample-build",
+        "creationTimestamp": null,
+        "labels": {
+            "name": "ruby-sample-build"
+        }
+    },
+    "spec": {
+        "triggers": [],
+        "source": {
+            "type": "Git",
+            "git": {
+		"uri": "https://github.com/openshift/ruby-hello-world.git"
+            }
+        },
+        "strategy": {
+            "type": "Source",
+            "sourceStrategy": {
+		"from": {
+		    "kind": "DockerImage",
+		    "name": "docker.io/openshift/ruby-20-centos7"
+		},
+		"forcePull": true
+            }
+        }
+    }
+}

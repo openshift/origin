@@ -16,3 +16,4 @@ origin.iml
 *.pyc
 .tag*
 .project
+*.go~
