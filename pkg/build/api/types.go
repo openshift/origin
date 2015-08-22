@@ -16,6 +16,8 @@ const (
 	BuildNumberAnnotation = "openshift.io/build.number"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	BuildLabel = "openshift.io/build.name"
+	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
+	DefaultDockerLabelNamespace = "io.openshift."
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
