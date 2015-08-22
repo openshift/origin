@@ -707,7 +707,7 @@ func validateEnv(vars []api.EnvVar) errs.ValidationErrorList {
 	return allErrs
 }
 
-var validFieldPathExpressions = util.NewStringSet("metadata.name", "metadata.namespace")
+var validFieldPathExpressions = util.NewStringSet("metadata.name", "metadata.namespace", "status.podIP")
 
 func validateEnvVarValueFrom(ev api.EnvVar) errs.ValidationErrorList {
 	allErrs := errs.ValidationErrorList{}

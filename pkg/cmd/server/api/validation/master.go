@@ -311,8 +311,8 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) Validati
 		validationResults.AddErrors(ValidateSpecifiedIP(config.MasterIP, "masterIP")...)
 	}
 
-	if config.MasterCount < 1 {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("masterCount", config.MasterCount, "must be a positive integer"))
+	if config.MasterCount == 0 || config.MasterCount < -1 {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("masterCount", config.MasterCount, "must be a positive integer or -1"))
 	}
 
 	if len(config.ServicesSubnet) > 0 {

@@ -46,6 +46,7 @@ func addConversionFuncs() {
 				"metadata.labels",
 				"metadata.annotations",
 				"status.phase",
+				"status.podIP",
 				"spec.nodeName":
 				return label, value, nil
 				// This is for backwards compatibility with old v1 clients which send spec.host
