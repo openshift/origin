@@ -8,7 +8,7 @@ env:
  - TEST_ASSETS=false
 
 install:
-  - export PATH=$GOPATH/bin:./third_party/etcd:$PATH
+  - export PATH=$GOPATH/bin:./_tools/etcd/bin:$PATH
   - make install-travis
 
 script:

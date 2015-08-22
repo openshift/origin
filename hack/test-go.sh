@@ -23,13 +23,12 @@ find_test_dirs() {
   find . -not \( \
       \( \
         -wholename './Godeps' \
-        -o -wholename './release' \
-        -o -wholename './target' \
-        -o -wholename '*/Godeps/*' \
-        -o -wholename '*/_output/*' \
+        -o -wholename './_output' \
+        -o -wholename './_tools' \
         -o -wholename './.git' \
-        -o -wholename './assets/node_modules' \
         -o -wholename './openshift.local.*' \
+        -o -wholename '*/Godeps/*' \
+        -o -wholename './assets/node_modules' \
         -o -wholename './test/extended' \
       \) -prune \
     \) -name '*_test.go' -print0 | xargs -0n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"

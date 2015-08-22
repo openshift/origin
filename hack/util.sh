@@ -308,8 +308,11 @@ function start_etcd {
   set +e
 
   if [ "$(which etcd)" == "" ]; then
-    echo "etcd must be in your PATH"
-    exit 1
+    if [[ ! -f ${OS_ROOT}/_tools/etcd/bin/etcd ]]; then
+      echo "etcd must be in your PATH or installed in _tools/etcd/bin/ with hack/install-etcd.sh"
+      exit 1
+    fi
+    export PATH="${OS_ROOT}/_tools/etcd/bin:$PATH"
   fi
 
   running_etcd=$(ps -ef | grep etcd | grep -c name)
@@ -527,14 +530,12 @@ os::log::status() {
 find_files() {
   find . -not \( \
       \( \
-        -wholename './output' \
-        -o -wholename './_output' \
+        -wholename './_output' \
+        -o -wholename './_tools' \
         -o -wholename './.*' \
-        -o -wholename './release' \
         -o -wholename './pkg/assets/bindata.go' \
         -o -wholename './pkg/assets/*/bindata.go' \
-        -o -wholename './target' \
-        -o -wholename '*/third_party/*' \
+        -o -wholename './openshift.local.*' \
         -o -wholename '*/Godeps/*' \
       \) -prune \
     \) -name '*.go' | sort -u
