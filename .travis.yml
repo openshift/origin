@@ -8,14 +8,11 @@ env:
  - TEST_ASSETS=false
 
 install:
-  - ./hack/verify-jsonformat.sh
-  - ./hack/install-etcd.sh
-  - ./hack/install-std-race.sh
-  - ./hack/install-tools.sh
-  - ./hack/build-go.sh
-  - ./hack/install-assets.sh
+  - export PATH=$GOPATH/bin:./_tools/etcd/bin:$PATH
+  - make install-travis
 
-script: ./hack/test-assets.sh && export TRAVIS_TEST=true && PATH=$HOME/gopath/bin:./_output/etcd/bin:$PATH make check-test WHAT="''" TESTFLAGS="-p=4"
+script:
+  - make check-test TESTFLAGS="-p=4" TESTS="''" # empty quotes are because hack/test-go.sh requires 2 args
 
 notifications:
   irc: "chat.freenode.net#openshift-dev"

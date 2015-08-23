@@ -47,18 +47,11 @@ check:
 	TEST_KUBE=1 hack/test-go.sh $(WHAT) $(TESTS) $(TESTFLAGS)
 .PHONY: check
 
-# Build and run unit and integration tests that don't require Docker.
-#
-# Args:
-#   GOFLAGS: Extra flags to pass to 'go' when building.
-#   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
+# Verify code is properly organized.
 #
 # Example:
-#   make check-test
-check-test: export KUBE_COVER= -cover -covermode=atomic
-check-test: export KUBE_RACE=  -race
-check-test: build check
-check-test:
+#   make verify
+verify: build
 	hack/verify-gofmt.sh
 	hack/verify-govet.sh
 	hack/verify-generated-deep-copies.sh
@@ -67,8 +60,41 @@ check-test:
 	hack/verify-generated-docs.sh
 	hack/verify-generated-swagger-spec.sh
 	hack/verify-api-descriptions.sh
+.PHONY: verify
+
+# Install travis dependencies
+#
+# Args:
+#   TEST_ASSETS: Instead of running tests, test assets only.
+ifeq ($(TEST_ASSETS), true)
+install-travis:
+	hack/install-assets.sh
+else
+install-travis:
+	hack/install-etcd.sh
+	hack/install-tools.sh
+endif
+.PHONY: install-travis
+
+# Run unit and integration tests that don't require Docker.
+#
+# Args:
+#   GOFLAGS: Extra flags to pass to 'go' when building.
+#   TESTFLAGS: Extra flags that should only be passed to hack/test-go.sh
+#   TEST_ASSETS: Instead of running tests, test assets only.
+#
+# Example:
+#   make check-test
+check-test: export KUBE_COVER= -cover -covermode=atomic
+check-test: export KUBE_RACE=  -race
+ifeq ($(TEST_ASSETS), true)
+check-test:
+	hack/test-assets.sh
+else
+check-test: verify check
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration.sh
+endif
 .PHONY: check-test
 
 # Build and run the complete test-suite.
@@ -84,19 +110,11 @@ test: export KUBE_COVER= -cover -covermode=atomic
 test: export KUBE_RACE=  -race
 ifeq ($(SKIP_BUILD), true)
 $(info build is being skipped)
-test: check
+test: check verify
 else
-test: build check
+test: build check verify
 endif
 test:
-	hack/verify-gofmt.sh
-	hack/verify-govet.sh
-	hack/verify-generated-deep-copies.sh
-	hack/verify-generated-conversions.sh
-	hack/verify-generated-completions.sh
-	hack/verify-generated-docs.sh
-	hack/verify-generated-swagger-spec.sh
-	hack/verify-api-descriptions.sh
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration-docker.sh
 	hack/test-end-to-end-docker.sh

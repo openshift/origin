@@ -28,7 +28,7 @@ tags="${OS_TEST_TAGS:-integration !docker etcd}"
 
 export GOMAXPROCS="$(grep "processor" -c /proc/cpuinfo 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || 1)"
 TMPDIR=${TMPDIR:-/tmp}
-export BASETMPDIR=${BASETMPDIR:-"${TMPDIR}/openshift-integration"}
+export BASETMPDIR=${BASETMPDIR:-${TMPDIR}/openshift-integration}
 
 echo
 echo "Test ${package} -tags='${tags}' ..."

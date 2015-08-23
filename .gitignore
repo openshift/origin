@@ -1,4 +1,5 @@
 /_output
+/_tools
 /openshift.local.*
 /.project
 /.vagrant

@@ -18,7 +18,7 @@ cd "${OS_ROOT}"
 mkdir -p _output/govet
 
 FAILURE=false
-test_dirs=$(find_files | cut --delimiter=/ --fields=1-2 | sort -u)
+test_dirs=$(find_files | cut -d '/' -f 1-2 | sort -u)
 for test_dir in $test_dirs
 do
   go tool vet -shadow=false \
