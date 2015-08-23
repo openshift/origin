@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deploygen "github.com/openshift/origin/pkg/deploy/generator"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
 	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
 	routegen "github.com/openshift/origin/pkg/route/generator"
@@ -58,7 +59,9 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 
 	generators := map[string]kubectl.Generator{
-		"route/v1": routegen.RouteGenerator{},
+		"route/v1":          routegen.RouteGenerator{},
+		"run/v1":            deploygen.BasicDeploymentConfigController{},
+		"run-controller/v1": kubectl.BasicReplicationController{},
 	}
 
 	w := &Factory{

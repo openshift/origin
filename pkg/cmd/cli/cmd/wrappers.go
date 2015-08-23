@@ -304,11 +304,122 @@ func NewCmdStop(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 }
 
 const (
-	labelLong = `Update the labels on a resource
+	runLong = `Create and run a particular image, possibly replicated
 
-A valid label value is consisted of letters and/or numbers with a max length of %[1]d characters.
-If --overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
-If --resource-version is specified, then updates will use this resource version, otherwise the existing resource-version will be used.`
+Creates a deployment config to manage the created container(s). You can choose to run in the
+foreground for an interactive container execution.  You may pass 'run-controller/v1' to
+--generator to create a replication controller instead of a deployment config.`
+
+	runExample = `  // Starts a single instance of nginx.
+  $ %[1]s run nginx --image=nginx
+
+  // Starts a replicated instance of nginx.
+  $ %[1]s run nginx --image=nginx --replicas=5
+
+  // Dry run. Print the corresponding API objects without creating them.
+  $ %[1]s run nginx --image=nginx --dry-run
+
+  // Start a single instance of nginx, but overload the spec of the replication
+  // controller with a partial set of values parsed from JSON.
+  $ %[1]s run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
+
+  // Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
+  $ %[1]s run -i -tty nginx --image=nginx --restart=Never`
+
+	// TODO: uncomment these when arguments are delivered upstream
+
+	// Start the nginx container using the default command, but use custom
+	// arguments (arg1 .. argN) for that command.
+	//$ %[1]s run nginx --image=nginx -- <arg1> <arg2> ... <argN>
+
+	// Start the nginx container using a different command and custom arguments
+	//$ %[1]s run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>`
+)
+
+// NewCmdRun is a wrapper for the Kubernetes cli run command
+func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdRun(f.Factory, in, out, errout)
+	cmd.Long = runLong
+	cmd.Example = fmt.Sprintf(runExample, fullName)
+	cmd.Flags().Set("generator", "")
+	cmd.Flag("generator").Usage = "The name of the API generator to use.  Default is 'run/v1' if --restart=Always, otherwise the default is 'run-pod/v1'."
+	cmd.Flag("generator").DefValue = ""
+	return cmd
+}
+
+const (
+	attachLong = `Attach to a running container
+
+Attach the current shell to a remote container, returning output or setting up a full
+terminal session. Can be used to debug containers and invoke interactive commands.`
+
+	attachExample = `  // get output from running pod 123456-7890, using the first container by default
+  $ %[1]s attach 123456-7890
+
+  // get output from ruby-container from pod 123456-7890
+  $ %[1]s attach 123456-7890 -c ruby-container date
+
+  // switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
+  // and sends stdout/stderr from 'bash' back to the client
+  $ %[1]s attach 123456-7890 -c ruby-container -i -t`
+)
+
+// NewCmdAttach is a wrapper for the Kubernetes cli attach command
+func NewCmdAttach(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdAttach(f.Factory, in, out, errout)
+	cmd.Long = attachLong
+	cmd.Example = fmt.Sprintf(attachExample, fullName)
+	return cmd
+}
+
+const (
+	annotateLong = `Update the annotations on one or more resources
+
+An annotation is a key/value pair that can hold larger (compared to a label),
+and possibly not human-readable, data. It is intended to store non-identifying
+auxiliary data, especially data manipulated by tools and system extensions. If
+--overwrite is true, then existing annotations can be overwritten, otherwise
+attempting to overwrite an annotation will result in an error. If
+--resource-version is specified, then updates will use this resource version,
+otherwise the existing resource-version will be used.
+
+Run '%[1]s types' for a list of valid resources.`
+
+	annotateExample = `  // Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
+  // If the same annotation is set multiple times, only the last value will be applied
+  $ %[1]s annotate pods foo description='my frontend'
+
+  // Update pod 'foo' with the annotation 'description' and the value
+  // 'my frontend running nginx', overwriting any existing value.
+  $ %[1]s annotate --overwrite pods foo description='my frontend running nginx'
+
+  // Update all pods in the namespace
+  $ %[1]s annotate pods --all description='my frontend running nginx'
+
+  // Update pod 'foo' only if the resource is unchanged from version 1.
+  $ %[1]s annotate pods foo description='my frontend running nginx' --resource-version=1
+
+  // Update pod 'foo' by removing an annotation named 'description' if it exists.
+  // Does not require the --overwrite flag.
+  $ %[1]s annotate pods foo description-`
+)
+
+// NewCmdAnnotate is a wrapper for the Kubernetes cli annotate command
+func NewCmdAnnotate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdAnnotate(f.Factory, out)
+	cmd.Long = fmt.Sprintf(annotateLong, fullName)
+	cmd.Example = fmt.Sprintf(annotateExample, fullName)
+	return cmd
+}
+
+const (
+	labelLong = `Update the labels on one or more resources
+
+A valid label value is consisted of letters and/or numbers with a max length of %[1]d
+characters. If --overwrite is true, then existing labels can be overwritten, otherwise
+attempting to overwrite a label will result in an error. If --resource-version is
+specified, then updates will use this resource version, otherwise the existing
+resource-version will be used.`
 
 	labelExample = `  // Update pod 'foo' with the label 'unhealthy' and the value 'true'.
   $ %[1]s label pods foo unhealthy=true

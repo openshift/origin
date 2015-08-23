@@ -29,6 +29,8 @@ echo "pods: ok"
 oc create -f examples/hello-openshift/hello-pod.json
 tryuntil oc label pod/hello-openshift acustom=label # can race against scheduling and status updates
 [ "$(oc describe pod/hello-openshift | grep 'acustom=label')" ]
+oc annotate pod/hello-openshift foo=bar
+[ "$(oc get -o yaml pod/hello-openshift | grep 'foo: bar')" ]
 oc delete pods -l acustom=label
 [ ! "$(oc get pod/hello-openshift)" ]
 echo "label: ok"
@@ -56,6 +58,11 @@ oc delete svc,route -l name=frontend
 echo "expose: ok"
 
 oc delete all --all
+
+oc run --image=openshift/hello-openshift test
+oc run --image=openshift/hello-openshift --generator=run-controller/v1 test2
+oc run --image=openshift/hello-openshift --restart=Never test3
+oc delete dc/test rc/test2 pod/test3
 
 oc process -f examples/sample-app/application-template-stibuild.json -l name=mytemplate | oc create -f -
 oc delete all -l name=mytemplate
