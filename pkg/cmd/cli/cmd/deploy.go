@@ -172,9 +172,6 @@ func (o *DeployOptions) RunDeploy() error {
 		ResourceTypeOrNameArgs(false, o.deploymentConfigName).
 		SingleResourceType().
 		Do()
-	if r.Err() != nil {
-		return r.Err()
-	}
 	resultObj, err := r.Object()
 	if err != nil {
 		return err
@@ -215,12 +212,11 @@ func (o *DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer
 			return fmt.Errorf("couldn't find deployment %q", deploymentName)
 		}
 		return err
-	} else {
-		// Reject attempts to start a concurrent deployment.
-		status := deployutil.DeploymentStatusFor(deployment)
-		if status != deployapi.DeploymentStatusComplete && status != deployapi.DeploymentStatusFailed {
-			return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.", config.LatestVersion, status)
-		}
+	}
+	// Reject attempts to start a concurrent deployment.
+	status := deployutil.DeploymentStatusFor(deployment)
+	if status != deployapi.DeploymentStatusComplete && status != deployapi.DeploymentStatusFailed {
+		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.", config.LatestVersion, status)
 	}
 
 	config.LatestVersion++
