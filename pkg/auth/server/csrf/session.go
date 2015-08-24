@@ -3,9 +3,9 @@ package csrf
 import (
 	"net/http"
 
-	"github.com/openshift/origin/pkg/auth/server/session"
+	"github.com/pborman/uuid"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/openshift/origin/pkg/auth/server/session"
 )
 
 const CSRFKey = "csrf"

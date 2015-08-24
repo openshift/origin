@@ -3,8 +3,8 @@ package simple
 import (
 	"fmt"
 
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/golang/glog"
+	"github.com/pborman/uuid"
 	"k8s.io/kubernetes/pkg/util"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
