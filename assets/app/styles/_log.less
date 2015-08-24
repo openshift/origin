@@ -6,6 +6,7 @@
 }
 .log-view {
   background-color: @log-bg-color;
+  min-height: 60px;
   padding: 0;
   position: relative;
   pre, pre code {
@@ -55,6 +56,7 @@
     .spinner-inverse {
       left: 50%;
       position: absolute;
+      top: 15px;
     }
   }
 }
@@ -97,4 +99,12 @@
       right: 10px;
     }
   }
+}
+
+.table-log-pods {
+  > tbody + tbody {
+    border-top-width: 1px;
+  }
+  background-color: #fff;
+  border: 1px solid #D1D1D1;
 }
