@@ -17006,6 +17006,10 @@
       "type": "string",
       "description": "name of the parameter"
      },
+     "displayName": {
+      "type": "string",
+      "description": "optional: provides human readable name for the parameter"
+     },
      "description": {
       "type": "string",
       "description": "optional: describes the parameter"

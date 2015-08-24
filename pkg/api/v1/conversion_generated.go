@@ -2398,6 +2398,7 @@ func convert_api_Parameter_To_v1_Parameter(in *templateapi.Parameter, out *templ
 		defaulting.(func(*templateapi.Parameter))(in)
 	}
 	out.Name = in.Name
+	out.DisplayName = in.DisplayName
 	out.Description = in.Description
 	out.Value = in.Value
 	out.Generate = in.Generate
@@ -2434,6 +2435,7 @@ func convert_v1_Parameter_To_api_Parameter(in *templateapiv1.Parameter, out *tem
 		defaulting.(func(*templateapiv1.Parameter))(in)
 	}
 	out.Name = in.Name
+	out.DisplayName = in.DisplayName
 	out.Description = in.Description
 	out.Value = in.Value
 	out.Generate = in.Generate

@@ -2309,6 +2309,7 @@ func deepCopy_api_NetNamespaceList(in sdnapi.NetNamespaceList, out *sdnapi.NetNa
 
 func deepCopy_api_Parameter(in templateapi.Parameter, out *templateapi.Parameter, c *conversion.Cloner) error {
 	out.Name = in.Name
+	out.DisplayName = in.DisplayName
 	out.Description = in.Description
 	out.Value = in.Value
 	out.Generate = in.Generate

@@ -362,6 +362,7 @@
   "parameters": [
     {
       "name": "ZOOKEEPER_IMAGE",
+      "displayName": "Zookeeper Docker Image",
       "description": "The name of Zookeeper Docker image to use",
       "value": "openshift/zookeeper-346-fedora20"
     }
