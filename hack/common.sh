@@ -336,7 +336,7 @@ os::build::place_bins() {
 os::build::make_openshift_binary_symlinks() {
   if [[ -f "${OS_LOCAL_BINPATH}/openshift" ]]; then
     for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
-      ln -sf "${OS_LOCAL_BINPATH}/openshift" "${OS_LOCAL_BINPATH}/${linkname}"
+      ln -sf openshift "${OS_LOCAL_BINPATH}/${linkname}"
     done
   fi
 }
