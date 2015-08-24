@@ -202,6 +202,8 @@ func TestHookExecutor_makeHookPodOk(t *testing.T) {
 	expectedEnv := map[string]string{
 		"name": "value",
 		"ENV1": "overridden",
+		"OPENSHIFT_DEPLOYMENT_NAME":      deployment.Name,
+		"OPENSHIFT_DEPLOYMENT_NAMESPACE": deployment.Namespace,
 	}
 
 	for k, v := range expectedEnv {

@@ -122,6 +122,8 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 	for k, v := range envMap {
 		mergedEnv = append(mergedEnv, kapi.EnvVar{Name: k, Value: v})
 	}
+	mergedEnv = append(mergedEnv, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAME", Value: deployment.Name})
+	mergedEnv = append(mergedEnv, kapi.EnvVar{Name: "OPENSHIFT_DEPLOYMENT_NAMESPACE", Value: deployment.Namespace})
 
 	// Inherit resources from the base container
 	resources := kapi.ResourceRequirements{}
