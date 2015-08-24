@@ -13,7 +13,7 @@ iptables --list > /dev/null 2>&1
 if [ $? -ne 0 ]; then
 	sudo iptables --list > /dev/null 2>&1
 	if [ $? -ne 0 ]; then
-		echo "You do not have iptables or sudo privileges.	Kubernetes services will not work without iptables access.	See https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.	Try 'sudo hack/test-end-to-end.sh'."
+		echo "You do not have iptables or sudo privileges.	Kubernetes services will not work without iptables access.	See https://github.com/kubernetes/kubernetes/issues/1859.	Try 'sudo hack/test-end-to-end.sh'."
 		exit 1
 	fi
 fi

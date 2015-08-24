@@ -41,7 +41,7 @@ special_upstream_test_dirs() {
 
 # find the upstream test directories, excluding special-case directories and the upstream runtime package.
 # The tests for the upstream runtime package are not solvent currently due to a patch for:
-# https://github.com/GoogleCloudPlatform/kubernetes/pull/9971
+# https://github.com/kubernetes/kubernetes/pull/9971
 find_upstream_test_dirs() {
   cd "${OS_ROOT}"
   find ./Godeps/_workspace/src/k8s.io/kubernetes -not \( \

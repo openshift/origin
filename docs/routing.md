@@ -1,7 +1,7 @@
 ## Description
 
 The `openshift/origin-haproxy-router` is an [HAProxy](http://www.haproxy.org/) router that is used as an external to internal
-interface to OpenShift [services](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md).
+interface to OpenShift [services](https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/services.md).
 
 The router is meant to run as a pod.  When running the router you must
 ensure that the router can use ports 80 and 443 on the host (minion) in
@@ -29,7 +29,7 @@ A router requires a service account that has access to a security context constr
 To create this service account:
 
     $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
-    
+
     # You may either create a new SCC or use an existing SCC.  The following command will
     # display existing SCCs and if they support host network and host ports.
     $ oc get scc -t "{{range .items}}{{.metadata.name}}: n={{.allowHostNetwork}},p={{.allowHostPorts}}; {{end}}"
@@ -193,7 +193,7 @@ service.json
         "sessionAffinity": "None"
       }
     }
-    
+
 route.json
 
     {
@@ -228,24 +228,24 @@ and `KeyFile` (at a minimum).  You may also specify your `CACertificateFile` to 
 
 #### Passthrough Termination
 Passthrough termination is a mechanism to send encrypted traffic straight to the destination without the router providing
-TLS termination.    
+TLS termination.
 
 Passthrough termination is configured by setting `TLS.Termination` to `passthrough` on your `route`.  No other information is required.
-The destination (such as an Nginx, Apache, or another HAProxy instance) will be responsible for serving certificates for 
+The destination (such as an Nginx, Apache, or another HAProxy instance) will be responsible for serving certificates for
 the traffic.
 
 #### Re-encryption Termination
-Re-encryption is a special case of edge termination where the traffic is first decrypted with certificate A and then 
+Re-encryption is a special case of edge termination where the traffic is first decrypted with certificate A and then
 re-encrypted with certificate B when sending the traffic to the destination.
- 
+
 Re-encryption termination is configured by setting `TLS.Termination` to `reencrypt` and providing the `CertificateFile`,
 `KeyFile`, the `CACertificateFile`, and a `DestinationCACertificateFile`.  The edge certificates remain the same as in the edge
-termination use case.  The `DestinationCACertificateFile` is used in order to validate the secure connection from the 
+termination use case.  The `DestinationCACertificateFile` is used in order to validate the secure connection from the
 router to the destination.
 
 ### Special Notes About Secure Routes
-At this point, password protected key files are not supported.  HAProxy prompts you for a password when starting up and 
-does not have a way to automate this process.  We will need a follow up for `KeyPassPhrase`.  To remove a passphrase from 
+At this point, password protected key files are not supported.  HAProxy prompts you for a password when starting up and
+does not have a way to automate this process.  We will need a follow up for `KeyPassPhrase`.  To remove a passphrase from
 a keyfile you may run `openssl rsa -in passwordProtectedKey.key -out new.key`
 
 ## Running HA Routers
@@ -259,7 +259,7 @@ As a simple example, you may create a zone file for a DNS server like [BIND](htt
 multiple A records for a single domain name.  When clients do a lookup they will be given one of the many records, in order
 as a round robin scheme.  The files below illustrate an example of using wild card DNS with multiple A records to achieve
 the desired round robin.  The wild card could be further distributed into shards with `*.<shard>`.  Finally, a test using
-`dig` (available in the `bind-utils` package) is shown from the vagrant environment that shows multiple answers for the 
+`dig` (available in the `bind-utils` package) is shown from the vagrant environment that shows multiple answers for the
 same lookup.  Doing multiple pings show the resolution swapping between IP addresses.
 
 #### named.conf - add a new zone that points to your file
@@ -339,11 +339,11 @@ in `docker images` that is ready to use.
 
 ## Dev - router internals
 
-The router is an [HAProxy](http://www.haproxy.org/) container that is run via a go wrapper (`openshift-router.go`) that 
-provides a watch on `routes` and `endpoints`.  The watch funnels down to the configuration files for the [HAProxy](http://www.haproxy.org/) 
+The router is an [HAProxy](http://www.haproxy.org/) container that is run via a go wrapper (`openshift-router.go`) that
+provides a watch on `routes` and `endpoints`.  The watch funnels down to the configuration files for the [HAProxy](http://www.haproxy.org/)
 plugin which can be found in `plugins/router/haproxy/haproxy.go`.  The router is then issued a reload command.
 
-When debugging the router it is sometimes useful to inspect these files.  To do this you must enter the namespace of the 
+When debugging the router it is sometimes useful to inspect these files.  To do this you must enter the namespace of the
 running container by getting the pid and using nsenter
 `nsenter -m -u -n -i -p -t $(docker inspect --format "{{.State.Pid }}" <container-id>)`
 Listed below are the files used for configuration.

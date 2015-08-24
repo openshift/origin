@@ -700,7 +700,7 @@ This destroys the session token, preventing further access until next login (wit
 
 ### oc config
 
-This manages the OpenShift [kubeconfig files](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubeconfig-file.md).
+This manages the OpenShift [kubeconfig files](https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md).
 The general form is:
 
 ```bash

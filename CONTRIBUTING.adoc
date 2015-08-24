@@ -5,7 +5,7 @@ OpenShift Developers <dev@lists.openshift.redhat.com>
 :toc2:
 :sectanchors:
 
-The OpenShift architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/GoogleCloudPlatform/kubernetes[Kubernetes] to deliver a powerful new https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service] system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.  Kubernetes is included in this repo for ease of development, and the version we include is periodically updated.
+The OpenShift architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/kubernetes/kubernetes[Kubernetes] to deliver a powerful new https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service] system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.  Kubernetes is included in this repo for ease of development, and the version we include is periodically updated.
 
 To get started you can either:
 
@@ -24,7 +24,7 @@ The OpenShift team periodically publishes binaries to GitHub on https://github.c
 
 The tar file for each platform contains a single binary `openshift` which is the all-in-one OpenShift installation.
 
-* Use `sudo openshift start` to launch the server.  Root access is required to create services due to the need to modify IPTables.  See issue: https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.
+* Use `sudo openshift start` to launch the server.  Root access is required to create services due to the need to modify IPTables.  See issue: https://github.com/kubernetes/kubernetes/issues/1859.
 * Use `oc login <server> ...` to connect to an OpenShift server
 * Use `openshift help` to see more about the commands in the binary
 
@@ -202,7 +202,7 @@ https://github.com/openshift/origin[github.com/openshift/origin]
 Ready to play with some code? Hop down and read up on our link:#_the_roadmap[roadmap] for ideas on where you can contribute.
 
 *If you are interested in contributing to Kubernetes directly:* +
-https://github.com/GoogleCloudPlatform/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/GoogleCloudPlatform/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
+https://github.com/kubernetes/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/kubernetes/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
 
 == Troubleshooting
 
