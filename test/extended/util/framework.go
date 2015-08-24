@@ -24,6 +24,16 @@ import (
 
 var TestContext e2e.TestContextType
 
+// The build succeeded
+var CheckBuildSuccessFunc = func(b *buildapi.Build) bool {
+	return b.Status.Phase == buildapi.BuildPhaseComplete
+}
+
+// The build failed
+var CheckBuildFailedFunc = func(b *buildapi.Build) bool {
+	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
+}
+
 // WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
 // file.
 func WriteObjectToFile(obj runtime.Object, filename string) error {
@@ -42,10 +52,10 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 			return err
 		}
 		for i := range list.Items {
-			if isOK(&list.Items[i]) {
+			if name == list.Items[i].Name && isOK(&list.Items[i]) {
 				return nil
 			}
-			if isFailed(&list.Items[i]) {
+			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
 				return fmt.Errorf("The build %q status is %q", name, &list.Items[i].Status.Phase)
 			}
 		}
@@ -64,10 +74,10 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 				break
 			}
 			if e, ok := val.Object.(*buildapi.Build); ok {
-				if isOK(e) {
+				if name == e.Name && isOK(e) {
 					return nil
 				}
-				if isFailed(e) {
+				if name != e.Name || isFailed(e) {
 					return fmt.Errorf("The build %q status is %q", name, e.Status.Phase)
 				}
 			}

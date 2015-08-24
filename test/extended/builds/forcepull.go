@@ -58,6 +58,12 @@ var _ = g.Describe("forcepull: ForcePull from OpenShift induced builds (vs. sti)
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("force-pull-s2i", exutil.KubeConfigPath())
 
+	g.JustBeforeEach(func() {
+		g.By("waiting for builder service account")
+		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
 	g.Describe("\n FORCE PULL TEST:  Force pull and s2i builder", func() {
 		// corrupt the s2i builder image
 		g.BeforeEach(func() {
