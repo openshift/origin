@@ -15,11 +15,6 @@
 			"Rev": "c2d3050044d05357eaf6c3547249ba57c5e235cb"
 		},
 		{
-			"ImportPath": "code.google.com/p/go-uuid/uuid",
-			"Comment": "null-12",
-			"Rev": "7dda39b2e7d5e265014674c5af696ba4186679e9"
-		},
-		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
 			"Rev": "7fd1620f09261338b6b1ca1289ace83aee0ec946"
 		},

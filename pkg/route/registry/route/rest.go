@@ -3,7 +3,7 @@ package route
 import (
 	"fmt"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"

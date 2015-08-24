@@ -3,7 +3,7 @@ package csrf
 import (
 	"net/http"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 )
 
 type cookieCsrf struct {

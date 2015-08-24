@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 
 	"k8s.io/kubernetes/pkg/storage"
 
