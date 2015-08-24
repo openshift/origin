@@ -1,11 +1,11 @@
 {
   "kind": "ImageStreamList",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {},
   "items": [
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "ruby",
         "creationTimestamp": null
@@ -35,7 +35,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "nodejs",
         "creationTimestamp": null
@@ -65,7 +65,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "perl",
         "creationTimestamp": null
@@ -95,7 +95,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "php",
         "creationTimestamp": null
@@ -125,7 +125,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "python",
         "creationTimestamp": null
@@ -155,25 +155,25 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "wildfly",
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/wildfly-8-centos",
+        "dockerImageRepository": "openshift/wildfly-81-centos7",
         "tags": [
           {
             "name": "latest"
           },
           {
-            "name": "8",
+            "name": "8.1",
             "annotations": {
-              "description": "Build and run Java applications on Wildfly 8",
+              "description": "Build and run Java applications on Wildfly 8.1",
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
-              "supports":"wildfly:8,jee,java",
-              "version": "8"
+              "supports":"wildfly:8.1,jee,java",
+              "version": "8.1"
             },
             "from": {
               "Kind": "ImageStreamTag",
@@ -185,7 +185,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "mysql",
         "creationTimestamp": null
@@ -208,7 +208,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "postgresql",
         "creationTimestamp": null
@@ -231,7 +231,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "mongodb",
         "creationTimestamp": null
@@ -254,7 +254,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "jenkins",
         "creationTimestamp": null
