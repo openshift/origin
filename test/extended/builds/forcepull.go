@@ -14,8 +14,9 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	exutil "github.com/openshift/origin/test/extended/util"
 	"time"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var (
@@ -55,6 +56,7 @@ var _ = g.BeforeSuite(func() {
 
 var _ = g.Describe("forcepull: ForcePull from OpenShift induced builds (vs. sti)", func() {
 	defer g.GinkgoRecover()
+	var oc = exutil.NewCLI("force-pull-s2i", exutil.KubeConfigPath())
 
 	g.Describe("\n FORCE PULL TEST:  Force pull and s2i builder", func() {
 		// corrupt the s2i builder image
@@ -66,10 +68,14 @@ var _ = g.Describe("forcepull: ForcePull from OpenShift induced builds (vs. sti)
 			exutil.ResetImage(resetData)
 		})
 
+		g.JustBeforeEach(func() {
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
 		g.Context("\n FORCE PULL TEST:  when s2i force pull is false and the image is bad", func() {
-			var (
-				oc = exutil.NewCLI("force-pull-s2i-false-env", exutil.KubeConfigPath())
-			)
+
 			g.It("\n FORCE PULL TEST s2i false", func() {
 				fpFalseS2I := exutil.FixturePath("fixtures", "forcepull-false-s2i.json")
 				g.By(fmt.Sprintf("\n%s FORCE PULL TEST s2i false:  calling create on %s", time.Now().Format(time.RFC850), fpFalseS2I))
@@ -83,9 +89,6 @@ var _ = g.Describe("forcepull: ForcePull from OpenShift induced builds (vs. sti)
 		})
 
 		g.Context("\n FORCE PULL TEST:  when s2i force pull is true and the image is bad", func() {
-			var (
-				oc = exutil.NewCLI("force-pull-s2i-true-env", exutil.KubeConfigPath())
-			)
 			g.It("\n FORCE PULL TEST s2i true", func() {
 				fpTrueS2I := exutil.FixturePath("fixtures", "forcepull-true-s2i.json")
 				g.By(fmt.Sprintf("\n%s FORCE PULL TEST s2i true:  calling create on %s", time.Now().Format(time.RFC850), fpTrueS2I))
@@ -109,9 +112,6 @@ var _ = g.Describe("forcepull: ForcePull from OpenShift induced builds (vs. sti)
 		})
 
 		g.Context("\n FORCE PULL TEST:  when docker force pull is false and the image is bad", func() {
-			var (
-				oc = exutil.NewCLI("force-pull-dock-false-env", exutil.KubeConfigPath())
-			)
 			g.It("\n FORCE PULL TEST dock false", func() {
 				fpFalseDock := exutil.FixturePath("fixtures", "forcepull-false-dock.json")
 				g.By(fmt.Sprintf("\n%s FORCE PULL TEST dock false:  calling create on %s", time.Now().Format(time.RFC850), fpFalseDock))
@@ -125,9 +125,6 @@ var _ = g.Describe("forcepull: ForcePull from OpenShift induced builds (vs. sti)
 		})
 
 		g.Context("\n FORCE PULL TEST:  docker when force pull is true and the image is bad", func() {
-			var (
-				oc = exutil.NewCLI("force-pull-dock-true-env", exutil.KubeConfigPath())
-			)
 			g.It("\n FORCE PULL TEST dock true", func() {
 				fpTrueDock := exutil.FixturePath("fixtures", "forcepull-true-dock.json")
 				g.By(fmt.Sprintf("\n%s FORCE PULL TEST dock true:  calling create on %s", time.Now().Format(time.RFC850), fpTrueDock))
@@ -152,9 +149,6 @@ var _ = g.Describe("forcepull: ForcePull from OpenShift induced builds (vs. sti)
 		})
 
 		g.Context("\n FORCE PULL TEST:  when custom force pull is false and the image is bad", func() {
-			var (
-				oc = exutil.NewCLI("force-pull-cust-false-env", exutil.KubeConfigPath())
-			)
 			g.It("\nFORCE PULL TEST cust false", func() {
 				fpFalseCust := exutil.FixturePath("fixtures", "forcepull-false-cust.json")
 				g.By(fmt.Sprintf("\n%s FORCE PULL TEST cust false:  calling create on %s", time.Now().Format(time.RFC850), fpFalseCust))
@@ -169,9 +163,6 @@ var _ = g.Describe("forcepull: ForcePull from OpenShift induced builds (vs. sti)
 		})
 
 		g.Context("\n FORCE PULL TEST:  when custom force pull is true and the image is bad", func() {
-			var (
-				oc = exutil.NewCLI("force-pull-cust-true-env", exutil.KubeConfigPath())
-			)
 			g.It("\n FORCE PULL TEST cust true", func() {
 				fpTrueCust := exutil.FixturePath("fixtures", "forcepull-true-cust.json")
 				g.By(fmt.Sprintf("\n%s FORCE PULL TEST cust true:  calling create on %s", time.Now().Format(time.RFC850), fpTrueCust))

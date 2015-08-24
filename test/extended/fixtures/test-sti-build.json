@@ -18,6 +18,12 @@
     },
     "strategy":{
       "type":"Source",
+      "env": [
+        {
+          "name": "BUILD_LOGLEVEL",
+          "value": "5"
+        }
+      ],
       "sourceStrategy":{
         "from":{
           "kind":"DockerImage",
