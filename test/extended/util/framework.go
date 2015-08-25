@@ -5,16 +5,20 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/util/namer"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e"
 )
 
@@ -69,6 +73,24 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 			}
 		}
 	}
+}
+
+// WaitForBuilderAccount waits until the builder service account gets fully
+// provisioned
+func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
+	waitFunc := func() (bool, error) {
+		sc, err := c.Get("builder")
+		if err != nil {
+			return false, err
+		}
+		for _, s := range sc.Secrets {
+			if strings.Contains(s.Name, "dockercfg") {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+	return wait.Poll(60, time.Duration(1*time.Second), waitFunc)
 }
 
 // GetDockerImageReference retrieves the full Docker pull spec from the given ImageStream

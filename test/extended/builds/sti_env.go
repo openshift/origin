@@ -22,6 +22,12 @@ var _ = g.Describe("default: STI build with .sti/environment file", func() {
 		oc                 = exutil.NewCLI("build-sti-env", exutil.KubeConfigPath())
 	)
 
+	g.JustBeforeEach(func() {
+		g.By("waiting for builder service account")
+		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
 	g.Describe("Building from a template", func() {
 		g.It(fmt.Sprintf("should create a image from %q template and run it in a pod", stiEnvBuildFixture), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
