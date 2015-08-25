@@ -30,6 +30,7 @@ type OvsController struct {
 	flowController  FlowController
 	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
+	AdminNamespaces []string
 }
 
 type FlowController interface {
@@ -82,6 +83,7 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready
 		VNIDMap:         make(map[string]uint),
 		sig:             make(chan struct{}),
 		ready:           ready,
+		AdminNamespaces: make([]string, 0),
 	}, nil
 }
 
@@ -142,9 +144,58 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		if err != nil {
 			return err
 		}
+
+		// Handle existing namespaces without VNID
+		existingNamespaces, err := oc.subnetRegistry.GetNamespaces()
+		if err != nil {
+			return err
+		}
+		for _, nsName := range existingNamespaces {
+			// Skip admin namespaces, they will have VNID: 0
+			if oc.isAdminNamespace(nsName) {
+				continue
+			}
+			// Skip if VNID already exists for the namespace
+			if _, ok := oc.VNIDMap[nsName]; ok {
+				continue
+			}
+			err := oc.assignVNID(nsName)
+			if err != nil {
+				return err
+			}
+		}
 		go oc.watchNetworks()
 	}
 	go oc.watchNodes()
+	return nil
+}
+
+func (oc *OvsController) isAdminNamespace(nsName string) bool {
+	for _, name := range oc.AdminNamespaces {
+		if name == nsName {
+			return true
+		}
+	}
+	return false
+}
+
+func (oc *OvsController) assignVNID(namespaceName string) error {
+	_, err := oc.subnetRegistry.GetNetNamespace(namespaceName)
+	if err != nil {
+		netid, err := oc.netIDManager.GetNetID()
+		if err != nil {
+			return err
+		}
+		err = oc.subnetRegistry.WriteNetNamespace(namespaceName, netid)
+		if err != nil {
+			e := oc.netIDManager.ReleaseNetID(netid)
+			if e != nil {
+				log.Error("Error while releasing Net ID: %v", e)
+			}
+			return err
+		}
+		oc.VNIDMap[namespaceName] = netid
+	}
 	return nil
 }
 
@@ -157,34 +208,25 @@ func (oc *OvsController) watchNetworks() {
 		case ev := <-nsevent:
 			switch ev.Type {
 			case api.Added:
-				_, err := oc.subnetRegistry.GetNetNamespace(ev.Name)
+				err := oc.assignVNID(ev.Name)
 				if err != nil {
-					netid, err := oc.netIDManager.GetNetID()
-					if err != nil {
-						log.Error("Error getting new network IDS: %v", err)
-						continue
-					}
-					err = oc.subnetRegistry.WriteNetNamespace(ev.Name, netid)
-					if err != nil {
-						log.Error("Error writing new network ID: %v", err)
-						continue
-					}
-					oc.VNIDMap[ev.Name] = netid
+					log.Error("Error assigning Net ID: %v", err)
+					continue
 				}
 			case api.Deleted:
 				err := oc.subnetRegistry.DeleteNetNamespace(ev.Name)
 				if err != nil {
-					log.Error("Error while deleting Net Id: %v", err)
+					log.Error("Error while deleting Net ID: %v", err)
 					continue
 				}
 				netid, ok := oc.VNIDMap[ev.Name]
 				if !ok {
-					log.Error("Error while fetching Net Id for namespace: %s", ev.Name)
+					log.Error("Error while fetching Net ID for namespace: %s", ev.Name)
 					continue
 				}
 				err = oc.netIDManager.ReleaseNetID(netid)
 				if err != nil {
-					log.Error("Error while releasing Net Id: %v", err)
+					log.Error("Error while releasing Net ID: %v", err)
 					continue
 				}
 				delete(oc.VNIDMap, ev.Name)
