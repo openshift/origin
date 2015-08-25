@@ -5,20 +5,24 @@
         <h1>Project {{projectName}} pod and container logs</h1>
       </div>
       <alerts alerts="alerts"></alerts>
-      <div
-        ng-repeat="pod in pods | orderObjectsByDate : true"
-        class="pod-well">
-        <div>
-           {{pod.metadata.name}}
-        </div>
-        <div>Containers:</div>
-        <div ng-repeat="container in pod.spec.containers">
+      
 
-          <a href="/project/{{projectName}}/logs/pods/{{pod.metadata.name}}/log?container={{container.name}}">
-          - <strong>{{container.name}}</strong>, {{container.image | limitTo:50}}
-          </a>
-        </div>
-      </div>
-    </div>
+      <table class="table table-condensed table-log-pods">
+        <thead>
+          <tr>
+            <th>Pod</th>
+            <th>Container</th>
+            <th>Image</th>
+          </tr>
+        </thead>
+        <tbody ng-repeat="pod in pods | orderObjectsByDate : true">
+          <tr>
+            <td>{{pod.metadata.name}}</td>
+            <td ng-repeat="container in pod.spec.containers"><a href="/project/{{projectName}}/logs/pods/{{pod.metadata.name}}/log?container={{container.name}}">{{container.name}}</a></td>
+            <td ng-repeat="container in pod.spec.containers">{{container.image | limitTo:50}}</td>
+          </tr>
+        </tbody>
+      </table>
+      
   </project-page>
 </div>
