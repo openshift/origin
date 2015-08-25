@@ -33,9 +33,11 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	containerEnv := []kapi.EnvVar{
 		{Name: "BUILD", Value: string(data)},
-		{Name: "SOURCE_REPOSITORY", Value: build.Spec.Source.Git.URI},
 		{Name: "BUILD_LOGLEVEL", Value: fmt.Sprintf("%d", cmdutil.GetLogLevel())},
 	}
+
+	addSourceEnvVars(build.Spec.Source, &containerEnv)
+
 	if len(strategy.Env) > 0 {
 		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
 	}

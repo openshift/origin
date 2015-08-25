@@ -43,8 +43,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 6 {
-		t.Fatalf("Expected 6 elements in Env table, got %d: %+v", len(container.Env), container.Env)
+	if len(container.Env) != 8 {
+		t.Fatalf("Expected 8 elements in Env table, got %d: %+v", len(container.Env), container.Env)
 	}
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
@@ -103,6 +103,7 @@ func mockDockerBuild() *buildapi.Build {
 			Source: buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
+					Ref: "master",
 				},
 				ContextDir:   "my/test/dir",
 				SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},

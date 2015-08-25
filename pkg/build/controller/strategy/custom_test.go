@@ -66,7 +66,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
 	}
-	standardEnv := []string{"SOURCE_URI", "SOURCE_REF", "OUTPUT_IMAGE", "OUTPUT_REGISTRY"}
+	standardEnv := []string{"SOURCE_REPOSITORY", "SOURCE_CONTEXT_DIR", "SOURCE_REF", "OUTPUT_IMAGE", "OUTPUT_REGISTRY"}
 	for index, exp := range errorCases {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
 			t.Errorf("Expected %s:%s, got %s:%s!\n", exp[0], exp[1], e.Name, e.Value)
@@ -113,6 +113,7 @@ func mockCustomBuild(forcePull bool) *buildapi.Build {
 					URI: "http://my.build.com/the/dockerbuild/Dockerfile",
 					Ref: "master",
 				},
+				ContextDir:   "foo",
 				SourceSecret: &kapi.LocalObjectReference{Name: "secretFoo"},
 			},
 			Strategy: buildapi.BuildStrategy{
