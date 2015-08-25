@@ -29,7 +29,7 @@ echo "pods: ok"
 oc create -f examples/hello-openshift/hello-pod.json
 tryuntil oc label pod/hello-openshift acustom=label # can race against scheduling and status updates
 [ "$(oc describe pod/hello-openshift | grep 'acustom=label')" ]
-oc annotate pod/hello-openshift foo=bar
+tryuntil oc annotate pod/hello-openshift foo=bar # can race against scheduling and status updates
 [ "$(oc get -o yaml pod/hello-openshift | grep 'foo: bar')" ]
 oc delete pods -l acustom=label
 [ ! "$(oc get pod/hello-openshift)" ]
