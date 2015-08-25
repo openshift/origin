@@ -10,6 +10,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/record"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -543,64 +544,118 @@ func TestHandle_cancelNew(t *testing.T) {
 
 // TestHandle_cancelPendingRunning ensures that deployer pods are terminated
 // for deployments in post-New phases.
-func TestHandle_cancelPendingRunning(t *testing.T) {
-	deployerPodCount := 3
-	updatedPods := []kapi.Pod{}
-
-	controller := &DeploymentController{
-		decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
-			return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
-		},
-		deploymentClient: &deploymentClientImpl{
-			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				// None of these tests should transition the phase.
-				t.Errorf("unexpected call to updateDeployment")
-				return nil, nil
+func TestHandle_cancelScenarios(t *testing.T) {
+	tests := []struct {
+		pods      map[string]kapi.PodPhase
+		deleted   kutil.StringSet
+		cancelled kutil.StringSet
+		status    deployapi.DeploymentStatus
+		newStatus deployapi.DeploymentStatus
+	}{
+		{
+			pods: map[string]kapi.PodPhase{
+				"a": kapi.PodRunning,
+				"b": kapi.PodSucceeded,
+				"c": kapi.PodRunning,
 			},
+			deleted:   kutil.NewStringSet(),
+			cancelled: kutil.NewStringSet("a", "b", "c"),
+			status:    deployapi.DeploymentStatusRunning,
+			newStatus: deployapi.DeploymentStatusRunning,
 		},
-		podClient: &podClientImpl{
-			getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
-				return ttlNonZeroPod(), nil
+		{
+			pods: map[string]kapi.PodPhase{
+				"a": kapi.PodPending,
 			},
-			updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
-				updatedPods = append(updatedPods, *pod)
-				return pod, nil
-			},
-			getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
-				pods := []kapi.Pod{}
-				for i := 0; i < deployerPodCount; i++ {
-					pods = append(pods, *ttlNonZeroPod())
-				}
-				return pods, nil
-			},
+			deleted:   kutil.NewStringSet("a"),
+			cancelled: kutil.NewStringSet(),
+			status:    deployapi.DeploymentStatusRunning,
+			newStatus: deployapi.DeploymentStatusRunning,
 		},
-		makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
-			return okContainer(), nil
+		{
+			// the deployer pod is pending, so it should be deleted and the
+			// deployment failed right away.
+			pods: map[string]kapi.PodPhase{
+				"config-1-deploy": kapi.PodPending,
+				"a":               kapi.PodPending,
+				"b":               kapi.PodRunning,
+			},
+			deleted:   kutil.NewStringSet("config-1-deploy", "a"),
+			cancelled: kutil.NewStringSet("b"),
+			status:    deployapi.DeploymentStatusRunning,
+			newStatus: deployapi.DeploymentStatusFailed,
 		},
-		recorder: &record.FakeRecorder{},
 	}
 
-	cases := []deployapi.DeploymentStatus{
-		deployapi.DeploymentStatusPending,
-		deployapi.DeploymentStatusRunning,
-	}
+	for i, test := range tests {
+		t.Logf("evaluating scenario %d", i)
+		deletedPods := kutil.NewStringSet()
+		updatedPods := kutil.NewStringSet()
+		var updatedDeployment *kapi.ReplicationController
 
-	for _, status := range cases {
-		updatedPods = []kapi.Pod{}
+		controller := &DeploymentController{
+			decodeConfig: func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+				return deployutil.DecodeDeploymentConfig(deployment, api.Codec)
+			},
+			deploymentClient: &deploymentClientImpl{
+				updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
+					updatedDeployment = deployment
+					return deployment, nil
+				},
+			},
+			podClient: &podClientImpl{
+				getPodFunc: func(namespace, name string) (*kapi.Pod, error) {
+					return ttlNonZeroPod(), nil
+				},
+				updatePodFunc: func(namespace string, pod *kapi.Pod) (*kapi.Pod, error) {
+					if e, a := int64(1), *pod.Spec.ActiveDeadlineSeconds; e != a {
+						t.Errorf("expected pod %s ActiveDeadlineSeconds %d, got %d", pod.Name, e, a)
+					}
+					updatedPods.Insert(pod.Name)
+					return pod, nil
+				},
+				deletePodFunc: func(namespace, name string) error {
+					deletedPods.Insert(name)
+					return nil
+				},
+				getDeployerPodsForFunc: func(namespace, name string) ([]kapi.Pod, error) {
+					pods := []kapi.Pod{}
+					for name, phase := range test.pods {
+						pod := ttlNonZeroPod()
+						pod.Name = name
+						pod.Status.Phase = phase
+						pods = append(pods, *pod)
+					}
+					return pods, nil
+				},
+			},
+			makeContainer: func(strategy *deployapi.DeploymentStrategy) (*kapi.Container, error) {
+				return okContainer(), nil
+			},
+			recorder: &record.FakeRecorder{},
+		}
+
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codec)
-		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(status)
+		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.status)
 		deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 		err := controller.Handle(deployment)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-
-		if e, a := len(updatedPods), deployerPodCount; e != a {
-			t.Fatalf("expected %d updated pods, got %d", e, a)
+		diff := test.deleted.Difference(deletedPods)
+		if diff.Len() > 0 {
+			t.Fatalf("unexpected deletion diffs: expected=%v, actual=%v", test.deleted, deletedPods)
 		}
-		for _, pod := range updatedPods {
-			if e, a := int64(1), *pod.Spec.ActiveDeadlineSeconds; e != a {
-				t.Errorf("expected ActiveDeadlineSeconds %d, got %d", e, a)
+		diff = test.cancelled.Difference(updatedPods)
+		if diff.Len() > 0 {
+			t.Fatalf("unexpected deletion diffs: expected=%v, actual=%v", test.cancelled, updatedPods)
+		}
+		if test.status != test.newStatus {
+			if updatedDeployment == nil {
+				t.Fatalf("expected a deployment update from status %s to %s, got no update at all", test.status, test.newStatus)
+			}
+			if e, a := test.newStatus, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
+				t.Fatalf("expected deployment status update to %s, got %s", e, a)
 			}
 		}
 	}
