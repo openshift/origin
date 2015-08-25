@@ -1,5 +1,5 @@
 """
-Code for building Openshift v3
+Code for building Origin
 """
 
 import sys
@@ -8,7 +8,7 @@ from tito.common import (get_latest_commit, get_latest_tagged_version, check_tag
         run_command, get_script_path, find_spec_file, get_spec_version_and_release, munge_specfile)
 from tito.builder import Builder
 
-class OpenshiftBuilder(Builder):
+class OriginBuilder(Builder):
   """
   builder which defines 'commit' as the git hash prior to building
 
@@ -28,6 +28,7 @@ class OpenshiftBuilder(Builder):
                 self.rpmbuild_sourcedir, self.rpmbuild_builddir,
                 self.rpmbuild_basedir, self.rpmbuild_basedir,
                 ldflags, git_hash))
+
   def _setup_test_specfile(self):
       if self.test and not self.ran_setup_test_specfile:
           # If making a test rpm we need to get a little crazy with the spec

@@ -1,24 +1,21 @@
 [Unit]
-Description=Atomic Enterprise Master
+Description=Atomic OpenShift Master
 Documentation=https://github.com/openshift/origin
 After=network.target
 After=etcd.service
-Before=atomic-enterpries-node.service
-Before=atomic-enterprise-sdn-node.service
-Before=atomic-enterprise-sdn-master.service
+Before=atomic-openshift-node.service
 Requires=network.target
 
 [Service]
 Type=notify
-EnvironmentFile=/etc/sysconfig/atomic-enterprise-master
+EnvironmentFile=/etc/sysconfig/atomic-openshift-master
 Environment=GOTRACEBACK=crash
 ExecStart=/usr/bin/atomic-enterprise start master --config=${CONFIG_FILE} $OPTIONS
 LimitNOFILE=131072
 LimitCORE=infinity
 WorkingDirectory=/var/lib/origin/
-SyslogIdentifier=atomic-enterprise-master
+SyslogIdentifier=atomic-openshift-master
 
 [Install]
 WantedBy=multi-user.target
-WantedBy=atomic-enterprise-sdn-master.service
-WantedBy=atomic-enterprise-node.service
+WantedBy=atomic-openshift-node.service
