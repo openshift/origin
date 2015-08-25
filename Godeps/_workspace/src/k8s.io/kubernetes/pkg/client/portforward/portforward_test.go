@@ -177,6 +177,8 @@ func (s *fakeUpgradeStream) Read(p []byte) (int, error) {
 	s.readCalled = true
 	b := []byte(s.data)
 	n := copy(p, b)
+	// Indicate we returned all the data, and have no more data (EOF)
+	// Returning an EOF here will cause the port forwarder to immediately terminate, which is correct when we have no more data to send
 	return n, io.EOF
 }
 
@@ -184,9 +186,10 @@ func (s *fakeUpgradeStream) Write(p []byte) (int, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.writeCalled = true
-	s.dataWritten = make([]byte, len(p))
-	copy(s.dataWritten, p)
-	return len(p), io.EOF
+	s.dataWritten = append(s.dataWritten, p...)
+	// Indicate the stream accepted all the data, and can accept more (no err)
+	// Returning an EOF here will cause the port forwarder to immediately terminate, which is incorrect, in case someone writes more data
+	return len(p), nil
 }
 
 func (s *fakeUpgradeStream) Close() error {
@@ -305,13 +308,13 @@ func TestForwardPorts(t *testing.T) {
 		},
 		{
 			Upgrader: &fakeUpgrader{conn: newFakeUpgradeConnection()},
-			Ports:    []string{"5000", "6000"},
+			Ports:    []string{"5001", "6000"},
 			Send: map[uint16]string{
-				5000: "abcd",
+				5001: "abcd",
 				6000: "ghij",
 			},
 			Receive: map[uint16]string{
-				5000: "1234",
+				5001: "1234",
 				6000: "5678",
 			},
 		},
@@ -392,4 +395,27 @@ func TestForwardPorts(t *testing.T) {
 		}
 	}
 
+}
+
+func TestForwardPortsReturnsErrorWhenAllBindsFailed(t *testing.T) {
+	stopChan1 := make(chan struct{}, 1)
+	defer close(stopChan1)
+
+	pf1, err := New(&client.Request{}, &client.Config{}, []string{"5555"}, stopChan1)
+	if err != nil {
+		t.Fatalf("error creating pf1: %v", err)
+	}
+	pf1.upgrader = &fakeUpgrader{conn: newFakeUpgradeConnection()}
+	go pf1.ForwardPorts()
+	<-pf1.Ready
+
+	stopChan2 := make(chan struct{}, 1)
+	pf2, err := New(&client.Request{}, &client.Config{}, []string{"5555"}, stopChan2)
+	if err != nil {
+		t.Fatalf("error creating pf2: %v", err)
+	}
+	pf2.upgrader = &fakeUpgrader{conn: newFakeUpgradeConnection()}
+	if err := pf2.ForwardPorts(); err == nil {
+		t.Fatal("expected non-nil error for pf2.ForwardPorts")
+	}
 }
