@@ -69,7 +69,6 @@ image openshift/origin-gitserver             examples/gitserver
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
 # unpublished images
 image openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
-image openshift/sti-image-builder            images/builder/docker/sti-image-builder
 
 # extra images (not part of infrastructure)
 image openshift/hello-openshift              examples/hello-openshift
