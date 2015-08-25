@@ -181,7 +181,7 @@ service.json
           {
             "protocol": "TCP",
             "port": 27017,
-            "targetPort": 5050,
+            "targetPort": 8080,
             "nodePort": 0
           }
         ],
