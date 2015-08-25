@@ -20,7 +20,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
-	deploy "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
@@ -820,7 +820,7 @@ func TestRunAll(t *testing.T) {
 			case *imageapi.ImageStream:
 				got["imageStream"] = append(got["imageStream"], tp.Name)
 				imageStreams = append(imageStreams, tp)
-			case *deploy.DeploymentConfig:
+			case *deployapi.DeploymentConfig:
 				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
 				if podTemplate := tp.Template.ControllerTemplate.Template; podTemplate != nil {
 					for _, volume := range podTemplate.Spec.Volumes {
@@ -985,6 +985,86 @@ func TestRunBuild(t *testing.T) {
 				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
 				continue
 			}
+		}
+	}
+}
+
+func TestBuildWithExplicitEnvVars(t *testing.T) {
+	dockerSearcher := app.DockerRegistrySearcher{
+		Client: dockerregistry.NewClient(),
+	}
+
+	tests := []struct {
+		name           string
+		config         *AppConfig
+		expectedValues map[string]kapi.EnvVar
+		expected       []kapi.EnvVar
+		expectedErr    error
+	}{
+		{
+			name: "explicit environment variables for buildConfig and deploymentConfig",
+			config: &AppConfig{
+				SourceRepositories:  util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+				DockerImages:        util.StringList([]string{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"}),
+				OutputDocker:        true,
+				BuildConfigEnv:      util.StringList([]string{"BUILD_ENV=env_value"}),
+				DeploymentConfigEnv: util.StringList([]string{"DEPLOYMENT_ENV=env_value"}),
+				dockerSearcher:      dockerSearcher,
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expectedValues: map[string]kapi.EnvVar{
+				"buildConfig":      {Name: "BUILD_ENV", Value: "env_value"},
+				"deploymentConfig": {Name: "DEPLOYMENT_ENV", Value: "env_value"},
+			},
+			// Because of two deploymentConfigs (DB and frontend) there are two, the same
+			// DEPLOYMENT_ENV variables.
+			expected: []kapi.EnvVar{
+				{Name: "BUILD_ENV", Value: "env_value"},
+				{Name: "DEPLOYMENT_ENV", Value: "env_value"},
+				{Name: "DEPLOYMENT_ENV", Value: "env_value"},
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		test.config.refBuilder = &app.ReferenceBuilder{}
+		res, err := test.config.RunAll(os.Stdout, os.Stderr)
+		if err != test.expectedErr {
+			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+			continue
+		}
+		got := []kapi.EnvVar{}
+		for _, obj := range res.List.Items {
+			switch tp := obj.(type) {
+			case *buildapi.BuildConfig:
+				for _, env := range tp.Spec.Strategy.SourceStrategy.Env {
+					if env == test.expectedValues["buildConfig"] {
+						got = append(got, env)
+						break
+					}
+				}
+			case *deployapi.DeploymentConfig:
+				for i := range tp.Template.ControllerTemplate.Template.Spec.Containers {
+					for _, env := range tp.Template.ControllerTemplate.Template.Spec.Containers[i].Env {
+						if env == test.expectedValues["deploymentConfig"] {
+							got = append(got, env)
+							break
+						}
+					}
+				}
+			}
+		}
+
+		if len(test.expected) != len(got) {
+			t.Errorf("%s: Resource kind size mismatch! Expected %d, got %d", test.name, len(test.expected), len(got))
+			continue
 		}
 	}
 }
