@@ -292,10 +292,6 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 						Secret: "secret101",
 					},
 				},
-				{
-					Type:        buildapi.ImageChangeBuildTriggerType,
-					ImageChange: &buildapi.ImageChangeTrigger{},
-				},
 			},
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
@@ -337,10 +333,6 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 					GitHubWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret101",
 					},
-				},
-				{
-					Type:        buildapi.ImageChangeBuildTriggerType,
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 			BuildSpec: buildapi.BuildSpec{
