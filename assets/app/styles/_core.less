@@ -39,28 +39,39 @@ html, body {
   .navbar-pf {
     background: @navbar-os-bg-color;
     .navbar-header {
-      border-bottom-color: lighten(@navbar-pf-bg-color, 62%);
     }
-    .navbar-utility > li {
+    .navbar-nav li {
       > a {
         border: 0;
         font-size: 12px;
         &:hover {
         }
       }
+      + li {
+        border-top: 0;
+      }
+    }
+    @media (max-width: @screen-xs-max) {
+      .navbar-utility {
+        border-top: 1px solid @navbar-pf-navbar-header-border-color;
+      }
     }
     .navbar-brand { 
       border: 0;
+      margin-left: 20px;
+      margin-top: 4px;
       padding: 8px 0 8px;
+
     }
   }
 }
 
 .console-os .navbar-project {
-  border-bottom: 1px solid @navbar-os-project-border-color; 
-  padding-bottom: 20px;
+  border-bottom: 1px solid @navbar-os-project-border-color;
+  padding-bottom: 3px;
+  padding-top: 6px;
   position: relative;
-  background: @navbar-os-project-bg;
+  background: #fff;
   label.control-label {
     color: @navbar-project-label-color;
     font-size: 11px;
@@ -111,9 +122,51 @@ html, body {
     margin-top: 15px;
   }
 }
-@media (min-width: @screen-sm-min) {
+@media (max-width: @screen-xs-max) {
+  // Project nav at mobile widths
   .console-os {
     .navbar-project {
+      .form-group {
+        display: inline;
+        .form-control {
+          width: 60%;
+        }
+      }
+      .project-actions {
+        float: right;
+        margin-right: -10px;
+        a {
+          color: lighten(@navbar-os-project-menu-color, 20%);
+          cursor: pointer;
+          display: inline-block;
+          font-size: 18px;
+          padding: 7px 14px;
+          &:hover, &:active, &:focus {
+            background-color: @sidebar-os-hover-bg;
+            color: @navbar-os-project-menu-color;
+          }
+        }
+      }
+      .navbar-filter-widget {
+        margin-top: 10px;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+ @media (min-width: @screen-sm-min) {
+  .console-os {
+    .navbar-pf {
+      .navbar-header {
+        .navbar-brand {
+          margin-top: 0;
+        }
+      }
+    }
+    .navbar-project {
+      background: @navbar-os-project-bg;
+      padding-bottom: 20px;
+      padding-top: 0;
       .navbar-filter-widget {
         /* Prevent the filter button from wrapping at wide screen sizes. */
         min-width: 340px;

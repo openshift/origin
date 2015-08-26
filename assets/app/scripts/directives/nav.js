@@ -97,8 +97,18 @@ angular.module('openshiftConsole')
         $scope.$watch("project", clearAndUpdateOptions);
         $scope.$watch("projects", clearAndUpdateOptions);
 
+        // We collapse the filter widget at mobile res
+        if($(window).width() < 768) {
+          $(".navbar-filter-widget-collapse", element).addClass("collapse");
+        }
+
         LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element), { addButtonText: "Add" });
         LabelFilter.toggleFilterWidget(!$scope.renderOptions || !$scope.renderOptions.hideFilterWidget);
+
+        // If there are active filters, show the filter widget by default at mobile res
+        if($(window).width() < 768 && ! LabelFilter.getLabelSelector().isEmpty()) {
+          $(".navbar-filter-widget-collapse", element).addClass("in");
+        }
 
         $scope.$watch("renderOptions", function(renderOptions) {
           LabelFilter.toggleFilterWidget(!renderOptions || !renderOptions.hideFilterWidget);
