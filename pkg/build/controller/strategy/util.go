@@ -129,6 +129,19 @@ func setupSourceSecrets(pod *kapi.Pod, sourceSecret *kapi.LocalObjectReference) 
 	}...)
 }
 
+// addSourceEnvVars adds environment variables related to the source code
+// repository to builder container
+func addSourceEnvVars(source buildapi.BuildSource, output *[]kapi.EnvVar) {
+	sourceVars := []kapi.EnvVar{{Name: "SOURCE_REPOSITORY", Value: source.Git.URI}}
+	if len(source.ContextDir) > 0 {
+		sourceVars = append(sourceVars, kapi.EnvVar{Name: "SOURCE_CONTEXT_DIR", Value: source.ContextDir})
+	}
+	if len(source.Git.Ref) > 0 {
+		sourceVars = append(sourceVars, kapi.EnvVar{Name: "SOURCE_REF", Value: source.Git.Ref})
+	}
+	*output = append(*output, sourceVars...)
+}
+
 // mergeTrustedEnvWithoutDuplicates merges two environment lists without having
 // duplicate items in the output list.  Only trusted environment variables
 // will be merged.
