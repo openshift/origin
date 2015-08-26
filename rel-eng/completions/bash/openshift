@@ -2877,6 +2877,66 @@ _openshift_cli_secrets_new-dockercfg()
     must_have_one_noun=()
 }
 
+_openshift_cli_secrets_new-basicauth()
+{
+    last_command="openshift_cli_secrets_new-basicauth"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--ca-cert=")
+    flags_with_completion+=("--ca-cert")
+    flags_completion+=("_filedir")
+    flags+=("--gitconfig=")
+    flags_with_completion+=("--gitconfig")
+    flags_completion+=("_filedir")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--password=")
+    flags+=("--prompt")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--username=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_cli_secrets_new-sshauth()
+{
+    last_command="openshift_cli_secrets_new-sshauth"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--ca-cert=")
+    flags_with_completion+=("--ca-cert")
+    flags_completion+=("_filedir")
+    flags+=("--gitconfig=")
+    flags_with_completion+=("--gitconfig")
+    flags_completion+=("_filedir")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--ssh-privatekey=")
+    flags_with_completion+=("--ssh-privatekey")
+    flags_completion+=("_filedir")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_cli_secrets_add()
 {
     last_command="openshift_cli_secrets_add"
@@ -2899,6 +2959,8 @@ _openshift_cli_secrets()
     commands=()
     commands+=("new")
     commands+=("new-dockercfg")
+    commands+=("new-basicauth")
+    commands+=("new-sshauth")
     commands+=("add")
 
     flags=()

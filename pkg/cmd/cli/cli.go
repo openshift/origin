@@ -129,7 +129,7 @@ func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
 				cmd.NewCmdRun(fullName, f, in, out, errout),
 				cmd.NewCmdAttach(fullName, f, in, out, errout),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
-				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, out, fullName+" edit"),
+				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit"),
 			},
 		},
 		{
