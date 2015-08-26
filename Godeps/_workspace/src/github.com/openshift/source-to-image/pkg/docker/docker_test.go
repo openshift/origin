@@ -463,16 +463,16 @@ func TestRunContainer(t *testing.T) {
 		}
 
 		// Verify that AttachToContainer was called twice (Stdin/Stdout)
-		if len(fakeDocker.AttachToContainerOpts) != 2 {
+		if len(fakeDocker.AttachToContainerOpts) != 1 {
 			t.Errorf("%s: AttachToContainer was not called the expected number of times.", desc)
 		}
 		// Make sure AttachToContainer was not called with both Stdin & Stdout
 		for _, opt := range fakeDocker.AttachToContainerOpts {
-			if opt.InputStream != nil && (opt.OutputStream != nil) {
-				t.Errorf("%s: AttachToContainer was called with both Stdin and Stdout: %#v", desc, opt)
+			if opt.InputStream == nil || opt.OutputStream == nil {
+				t.Errorf("%s: AttachToContainer was not called with both Stdin and Stdout: %#v", desc, opt)
 			}
-			if opt.Stdin && (opt.Stdout) {
-				t.Errorf("%s: AttachToContainer was called with both Stdin and Stdout flags: %#v", desc, opt)
+			if !opt.Stdin || !opt.Stdout {
+				t.Errorf("%s: AttachToContainer was not called with both Stdin and Stdout flags: %#v", desc, opt)
 			}
 		}
 	}

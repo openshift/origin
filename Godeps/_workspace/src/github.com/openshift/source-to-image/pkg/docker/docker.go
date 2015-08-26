@@ -405,7 +405,7 @@ func runContainerDockerRun(container *docker.Container, d *stiDocker, image stri
 	signal.Notify(signalChan, os.Interrupt)
 	go func() {
 		for signal := range signalChan {
-			glog.V(2).Info("\nReceived signal %s, stopping services...\n", signal)
+			glog.V(2).Infof("\nReceived signal '%s', stopping services...\n", signal)
 			cleanupDone <- true
 		}
 	}()
@@ -413,7 +413,7 @@ func runContainerDockerRun(container *docker.Container, d *stiDocker, image stri
 }
 
 // this funtion simply abstracts out the first phase of attaching to the container that was originally in line with the RunContainer() method
-func runContainerAttachOne(attached chan struct{}, container *docker.Container, opts RunContainerOptions, d *stiDocker) sync.WaitGroup {
+func runContainerAttach(attached chan struct{}, container *docker.Container, opts RunContainerOptions, d *stiDocker) *sync.WaitGroup {
 	attachOpts := docker.AttachToContainerOptions{
 		Container: container.ID,
 		Success:   attached,
@@ -422,11 +422,11 @@ func runContainerAttachOne(attached chan struct{}, container *docker.Container, 
 	if opts.Stdin != nil {
 		attachOpts.InputStream = opts.Stdin
 		attachOpts.Stdin = true
-	} else if opts.Stdout != nil {
+	}
+	if opts.Stdout != nil {
 		attachOpts.OutputStream = opts.Stdout
 		attachOpts.Stdout = true
 	}
-
 	if opts.Stderr != nil {
 		attachOpts.ErrorStream = opts.Stderr
 		attachOpts.Stderr = true
@@ -440,33 +440,11 @@ func runContainerAttachOne(attached chan struct{}, container *docker.Container, 
 			glog.Errorf("Unable to attach container with %v", attachOpts)
 		}
 	}()
-	return wg
-}
-
-// this funtion simply abstracts out the second phase of attaching to the container that was originally in line with the RunContainer() method
-func runContainerAttachTwo(attached2 chan struct{}, container *docker.Container, opts RunContainerOptions, d *stiDocker, wg sync.WaitGroup) {
-	attachOpts2 := docker.AttachToContainerOptions{
-		Container:    container.ID,
-		Success:      attached2,
-		Stream:       true,
-		OutputStream: opts.Stdout,
-		Stdout:       true,
-	}
-	if opts.Stderr != nil {
-		attachOpts2.Stderr = true
-		attachOpts2.ErrorStream = opts.Stderr
-	}
-	go func() {
-		wg.Add(1)
-		defer wg.Done()
-		if err := d.client.AttachToContainer(attachOpts2); err != nil {
-			glog.Errorf("Unable to attach container with %v", attachOpts2)
-		}
-	}()
+	return &wg
 }
 
 // this funtion simply abstracts out the waiting on the container hosting the builder function that was originally in line with the RunContainer() method
-func runContainerWait(wg sync.WaitGroup, d *stiDocker, container *docker.Container) error {
+func runContainerWait(wg *sync.WaitGroup, d *stiDocker, container *docker.Container) error {
 	glog.V(2).Infof("Waiting for container")
 	exitCode, err := d.client.WaitContainer(container.ID)
 	glog.V(2).Infof("Container wait returns with %d and %v\n", exitCode, err)
@@ -528,21 +506,10 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	defer d.RemoveContainer(container.ID)
 
 	glog.V(2).Infof("Attaching to container")
-	// creating / piping the channels in runContainerAttachOne lead to unintended hangs
+	// creating / piping the channels in runContainerAttach lead to unintended hangs
 	attached := make(chan struct{})
-	wg := runContainerAttachOne(attached, container, opts, d)
+	wg := runContainerAttach(attached, container, opts, d)
 	attached <- <-attached
-
-	// If attaching both stdin and stdout or stderr, attach stdout and stderr in
-	// a second goroutine
-	// TODO remove this goroutine when docker 1.4 will be in broad usage,
-	// see: https://github.com/docker/docker/commit/f936a10d8048f471d115978472006e1b58a7c67d
-	if opts.Stdin != nil && opts.Stdout != nil {
-		// creating / piping the channels in runContainerAttachTwo lead to unintended hangs
-		attached2 := make(chan struct{})
-		runContainerAttachTwo(attached2, container, opts, d, wg)
-		attached2 <- <-attached2
-	}
 
 	glog.V(2).Infof("Starting container")
 	if err = d.client.StartContainer(container.ID, nil); err != nil {
