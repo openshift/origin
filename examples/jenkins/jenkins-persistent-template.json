@@ -105,7 +105,7 @@
             "containers": [
               {
                 "name": "jenkins",
-                "image": "openshift/jenkins-16-centos7",
+                "image": "${JENKINS_IMAGE}",
                 "env": [
                   {
                     "name": "JENKINS_PASSWORD",
@@ -154,6 +154,11 @@
       "description": "Password for the Jenkins user",
       "generate": "expression",
       "value": "password"
+    },
+    {
+      "name": "JENKINS_IMAGE",
+      "description": "Jenkins Docker image to use",
+      "value": "openshift/jenkins-16-centos7"
     },
     {
       "name": "VOLUME_CAPACITY",
