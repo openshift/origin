@@ -326,6 +326,13 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		glog.Fatalf("Unable to configure Kubelet client: %v", err)
 	}
 
+	kubeEtcdStorage, err := NewEtcdStorage(c.EtcdClient,
+		c.Options.EtcdStorageConfig.KubernetesStorageVersion,
+		c.Options.EtcdStorageConfig.KubernetesStoragePrefix)
+	if err != nil {
+		glog.Fatalf("Unable to initialize Kubernetes storage: %v", err)
+	}
+
 	buildStorage := buildetcd.NewStorage(c.EtcdHelper)
 	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
@@ -479,7 +486,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
 
-		"securityContextConstraints": sccetcd.NewStorage(c.EtcdHelper),
+		"securityContextConstraints": sccetcd.NewStorage(kubeEtcdStorage),
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {
