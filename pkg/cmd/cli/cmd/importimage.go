@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -95,6 +96,7 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 					if !confirm {
 						return fmt.Errorf("the image stream has a different import spec %q, pass --confirm to update", stream.Spec.DockerImageRepository)
 					}
+					stream.Spec.DockerImageRepository = from
 				}
 			}
 		}
@@ -117,15 +119,18 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 
 	fmt.Fprintln(cmd.Out(), "Waiting for the import to complete, CTRL+C to stop waiting.")
 
-	stream, err = waitForImport(imageStreamClient, stream.Name, resourceVersion)
+	updatedStream, err := waitForImport(imageStreamClient, stream.Name, resourceVersion)
 	if err != nil {
+		if _, ok := err.(importError); ok {
+			return err
+		}
 		return fmt.Errorf("unable to determine if the import completed successfully - please run 'oc describe -n %s imagestream/%s' to see if the tags were updated as expected: %v", stream.Namespace, stream.Name, err)
 	}
 
 	fmt.Fprint(cmd.Out(), "The import completed successfully.", "\n\n")
 
 	d := describe.ImageStreamDescriber{Interface: osClient}
-	info, err := d.Describe(stream.Namespace, stream.Name)
+	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name)
 	if err != nil {
 		return err
 	}
@@ -134,8 +139,13 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	return nil
 }
 
-func hasImportAnnotation(stream *imageapi.ImageStream) bool {
-	return stream.Annotations != nil && len(stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]) != 0
+// TODO: move to image/api as a helper
+type importError struct {
+	annotation string
+}
+
+func (e importError) Error() string {
+	return fmt.Sprintf("unable to import image: %s", e.annotation)
 }
 
 func waitForImport(imageStreamClient client.ImageStreamInterface, name, resourceVersion string) (*imageapi.ImageStream, error) {
@@ -158,10 +168,16 @@ func waitForImport(imageStreamClient client.ImageStreamInterface, name, resource
 				if !ok {
 					continue
 				}
+				annotation, ok := s.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]
+				if !ok {
+					continue
+				}
 
-				if hasImportAnnotation(s) {
+				if _, err := time.Parse(time.RFC3339, annotation); err == nil {
 					return s, nil
 				}
+				return nil, importError{annotation}
+
 			case watch.Deleted:
 				return nil, fmt.Errorf("the image stream was deleted")
 			case watch.Error:
