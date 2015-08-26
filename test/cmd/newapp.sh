@@ -60,7 +60,7 @@ oc get template ruby-helloworld-sample
 [ "$(oc new-app --search --image-stream=postgresql | grep openshift/postgresql-92-centos7)" ]
 [ "$(oc new-app -S --image-stream=python | grep openshift/python-33-centos7)" ]
 [ "$(oc new-app -S --image-stream=ruby | grep openshift/ruby-20-centos7)" ]
-[ "$(oc new-app -S --image-stream=wildfly | grep openshift/wildfly-8-centos)" ]
+[ "$(oc new-app -S --image-stream=wildfly | grep openshift/wildfly-81-centos7)" ]
 [ "$(oc new-app --search --template=ruby-helloworld-sample | grep ruby-helloworld-sample)" ]
 # check search - no matches
 [ "$(oc new-app -S foo-the-bar 2>&1 | grep 'no matches found')" ]
