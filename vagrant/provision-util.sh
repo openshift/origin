@@ -1,0 +1,145 @@
+#!/bin/bash
+
+os::util::join() {
+  local IFS="$1"
+
+  shift
+  echo "$*"
+}
+
+os::util::install-cmds() {
+  local deployed_root=$1
+
+  cp ${deployed_root}/_output/local/go/bin/{openshift,oc} /usr/bin
+}
+
+os::util::add-to-hosts-file() {
+  local ip=$1
+  local name=$2
+
+  if ! grep -q "${ip}" /etc/hosts; then
+    local entry="${ip}\t${name}"
+    echo -e "Adding '${entry}' to hosts file"
+    echo -e "${entry}" >> /etc/hosts
+  fi
+}
+
+os::util::setup-hosts-file() {
+  local master_name=$1
+  local master_ip=$2
+  local -n node_names=$3
+  local -n node_ips=$4
+
+  # Setup hosts file to support ping by hostname to master
+  os::util::add-to-hosts-file "${master_ip}" "${master_name}"
+
+  # Setup hosts file to support ping by hostname to each node in the cluster
+  for (( i=0; i < ${#node_names[@]}; i++ )); do
+    os::util::add-to-hosts-file "${node_ips[$i]}" "${node_names[$i]}"
+  done
+}
+
+os::util::init-certs() {
+  local openshift_root=$1
+  local network_plugin=$2
+  local master_name=$3
+  local master_ip=$4
+  local -n node_names=$5
+  local -n node_ips=$6
+
+  local server_config_dir=${openshift_root}/openshift.local.config
+  local volumes_dir="/var/lib/openshift.local.volumes"
+  local cert_dir="${server_config_dir}/master"
+
+  echo "Generating certs"
+
+  pushd "${openshift_root}"
+
+  # Master certs
+  /usr/bin/openshift admin ca create-master-certs \
+    --overwrite=false \
+    --cert-dir="${cert_dir}" \
+    --master="https://${master_ip}:8443" \
+    --hostnames="${master_ip},${master_name}"
+
+  # Certs for nodes
+  for (( i=0; i < ${#node_names[@]}; i++ )); do
+    local name=${node_names[$i]}
+    local ip=${node_ips[$i]}
+    /usr/bin/openshift admin create-node-config \
+      --node-dir="${server_config_dir}/node-${name}" \
+      --node="${name}" \
+      --hostnames="${name},${ip}" \
+      --master="https://${master_ip}:8443" \
+      --network-plugin="${network_plugin}" \
+      --node-client-certificate-authority="${cert_dir}/ca.crt" \
+      --certificate-authority="${cert_dir}/ca.crt" \
+      --signer-cert="${cert_dir}/ca.crt" \
+      --signer-key="${cert_dir}/ca.key" \
+      --signer-serial="${cert_dir}/ca.serial.txt" \
+      --volume-dir="${volumes_dir}"
+  done
+
+  popd
+}
+
+# Set up the KUBECONFIG environment variable for use by oc
+os::util::set-oc-env() {
+  local deployed_root=$1
+  local target=$2
+
+  if [ "${deployed_root}" = "/" ]; then
+    deployed_root=""
+  fi
+
+  local path="${deployed_root}/openshift.local.config/master/admin.kubeconfig"
+  echo "export KUBECONFIG=${path}" >> "${target}"
+}
+
+os::util::get-network-plugin() {
+  local plugin=$1
+
+  local subnet_plugin="redhat/openshift-ovs-subnet"
+  local multitenant_plugin="redhat/openshift-ovs-multitenant"
+  local default_plugin="${subnet_plugin}"
+
+  if [ "${plugin}" != "${subnet_plugin}" ] && \
+     [ "${plugin}" != "${multitenant_plugin}" ]; then
+    if [ "${plugin}" != "" ]; then
+        >&2 echo "Invalid network plugin: ${plugin}"
+    fi
+    >&2 echo "Using default network plugin: ${default_plugin}"
+    plugin="${default_plugin}"
+  fi
+  echo "${plugin}"
+}
+
+os::util::install-sdn() {
+  local deployed_root=$1
+
+  # Source scripts from an openshift-sdn repo if present to support
+  # openshift-sdn development.
+  local sdn_root="${deployed_root}/third-party/openshift-sdn"
+  if [ -d "${sdn_root}" ]; then
+    pushd "${sdn_root}"
+      make
+      make "install-dev"
+    popd
+  else
+    local osdn_base_path="${deployed_root}/Godeps/_workspace/src/github.com/openshift/openshift-sdn"
+    local osdn_controller_path="${osdn_base_path}/ovssubnet/controller"
+    pushd "${osdn_controller_path}"
+      # The subnet plugin is discovered via the kube network plugin path.
+      local kube_osdn_path="/usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet"
+      mkdir -p "${kube_osdn_path}"
+      cp -f kube/bin/openshift-ovs-subnet "${kube_osdn_path}/"
+      cp -f kube/bin/openshift-sdn-kube-subnet-setup.sh /usr/bin/
+
+      # The multitenant plugin only needs to be in PATH because the
+      # origin multitenant plugin knows how to discover it.
+      cp -f multitenant/bin/openshift-ovs-multitenant /usr/bin/
+      cp -f multitenant/bin/openshift-sdn-multitenant-setup.sh /usr/bin/
+    popd
+  fi
+
+}
