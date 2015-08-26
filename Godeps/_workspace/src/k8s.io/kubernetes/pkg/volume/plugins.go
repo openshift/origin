@@ -18,13 +18,11 @@ package volume
 
 import (
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"sync"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -137,31 +135,6 @@ type Spec struct {
 	Volume           *api.Volume
 	PersistentVolume *api.PersistentVolume
 	ReadOnly         bool
-}
-
-// VolumeConfig contains any configuration item required by a plugin.  Config is passed to the volume plugin
-// in the ProbeVolumePlugins func, which allows configuration by the binary hosting the volume plugins.
-// Usage of this struct directly is possible but NewVolumeConfig is recommended because it will contain default values.
-type VolumeConfig struct {
-	// the default scrub pod is a template pod used by plugins when creating new Recyclers.
-	// The plugin is required to change the pod's VolumeSource to match the volume of the plugin and set any
-	// necessary information on the scrubber, such as path, server, or timeout.
-	PersistentVolumeRecyclerDefaultScrubPod *api.Pod
-	// the minimum ActiveDeadlineSeconds for an NFS scrubber pod
-	PersistentVolumeRecyclerMinTimeoutNfs int64
-	// the increment of time added per Gi to ActiveDeadlineSeconds for an NFS scrubber pod
-	PersistentVolumeRecyclerTimeoutIncrementNfs int64
-	// the minimum ActiveDeadlineSeconds for an HostPath scrubber pod
-	PersistentVolumeRecyclerMinTimeoutHostPath int64
-	// the increment of time added per Gi to ActiveDeadlineSeconds for an HostPath scrubber pod
-	PersistentVolumeRecyclerTimeoutIncrementHostPath int64
-}
-
-// NewVolumeConfig creates a VolumeConfig with default values.
-func NewVolumeConfig() *VolumeConfig {
-	return &VolumeConfig{
-		PersistentVolumeRecyclerDefaultScrubPod: createDefaultScrubberPodTemplate(),
-	}
 }
 
 // NewSpecFromVolume creates an Spec from an api.Volume
@@ -292,65 +265,4 @@ func (pm *VolumePluginMgr) FindRecyclablePluginBySpec(spec *Spec) (RecyclableVol
 		return recyclableVolumePlugin, nil
 	}
 	return nil, fmt.Errorf("no recyclable volume plugin matched")
-}
-
-// createDefaultScrubberPodTemplate creates a template for a scrubber pod.  Most attributes are correct for scrubbers,
-// but other plugins are required to change the VolumeSource.  Plugins should also consider changing the pod's
-// ActiveDeadlineSeconds timeout and GenerateName. See the NFS plugin and its overrides.
-func createDefaultScrubberPodTemplate() *api.Pod {
-	timeout := int64(60)
-	pod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
-			GenerateName: "pv-scrubber-hostpath-",
-			Namespace:    api.NamespaceDefault,
-		},
-		Spec: api.PodSpec{
-			ActiveDeadlineSeconds: &timeout,
-			RestartPolicy:         api.RestartPolicyNever,
-			Volumes: []api.Volume{
-				{
-					Name: "vol",
-					// IMPORTANT!  All plugins using this template must override the VolumeSource
-					// and make it applicable to the PersistentVolume being recycled.
-					// See HostPath and NFS implementations for examples.
-					VolumeSource: api.VolumeSource{
-						HostPath: &api.HostPathVolumeSource{"/thePathToScrub"},
-					},
-				},
-			},
-			Containers: []api.Container{
-				{
-					Name:    "scrubber",
-					Image:   "gcr.io/google_containers/busybox",
-					Command: []string{"/bin/sh"},
-					Args:    []string{"-c", "test -e /scrub && echo $(date) > /scrub/trash.txt && rm -rf /scrub/* && test -z \"$(ls -A /scrub)\" || exit 1"},
-					VolumeMounts: []api.VolumeMount{
-						{
-							Name:      "vol",
-							MountPath: "/scrub",
-						},
-					},
-				},
-			},
-		},
-	}
-	return pod
-}
-
-func InitScrubPod(filePath string) (*api.Pod, error) {
-	if filePath == "" {
-		return nil, fmt.Errorf("PersistentVolume scrub file path not specified")
-	}
-	podDef, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading PersistentVolume scrub file path %s: %+v", filePath, err)
-	}
-	if len(podDef) == 0 {
-		return nil, fmt.Errorf("PersistentVolume scrub file was empty: %s", filePath)
-	}
-	pod := &api.Pod{}
-	if err := latest.Codec.DecodeInto(podDef, pod); err != nil {
-		return nil, fmt.Errorf("Error decoding PersistentVolume scrub file: %v", err)
-	}
-	return pod, nil
 }
