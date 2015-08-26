@@ -312,7 +312,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         aws.ami               = voc['ami']
         aws.region            = voc['ami_region']
         aws.subnet_id         = ENV['AWS_SUBNET_ID'] || vagrant_openshift_config['aws']['subnet_id'] || "subnet-cf57c596"
-        aws.instance_type     = vagrant_openshift_config['instance_type'] || "c3.large"
+        aws.instance_type     = ENV['AWS_INSTANCE_TYPE'] || vagrant_openshift_config['instance_type'] || "t2.medium"
         aws.instance_ready_timeout = 240
         aws.tags              = { "Name" => ENV['AWS_HOSTNAME'] || vagrant_openshift_config['instance_name'] }
         aws.user_data         = %{
