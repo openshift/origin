@@ -40,26 +40,16 @@ func newNodeEvent(action, key, value string) *api.NodeEvent {
 	}
 
 	if key != "" {
-		_, nodeEvent.NodeName = path.Split(key)
+		_, nodeEvent.Node.Name = path.Split(key)
 
-		var node map[string]interface{}
-		err := json.Unmarshal([]byte(value), &node)
+		nodeIP, err := getNodeIP(value)
 		if err == nil {
-			nodeStatus, ok := node["Status"].(map[string]interface{})
-			if ok {
-				nodeAddresses, ok := nodeStatus["Addresses"].([]interface{})
-				if ok {
-					nodeAddressMap, ok := nodeAddresses[0].(map[string]interface{})
-					if ok {
-						nodeEvent.NodeIP = nodeAddressMap["Address"].(string)
-						return nodeEvent
-					}
-				}
-			}
+			nodeEvent.Node.IP = nodeIP
+			return nodeEvent
 		}
 	}
 
-	fmt.Printf("Error decoding node event: nil key (%s,%s,%s).\n", action, key, value)
+	log.Errorf("Error decoding node event: nil key (%s,%s,%s)", action, key, value)
 	return nil
 }
 
@@ -142,7 +132,7 @@ func (sub *EtcdSubnetRegistry) InitNodes() error {
 	return err
 }
 
-func (sub *EtcdSubnetRegistry) GetNodes() (*[]string, error) {
+func (sub *EtcdSubnetRegistry) GetNodes() ([]api.Node, error) {
 	key := sub.etcdCfg.NodePath
 	resp, err := sub.client().Get(key, false, true)
 	if err != nil {
@@ -153,28 +143,33 @@ func (sub *EtcdSubnetRegistry) GetNodes() (*[]string, error) {
 		return nil, errors.New("Node path is not a directory")
 	}
 
-	nodes := make([]string, 0)
+	nodes := make([]api.Node, 0)
 
 	for _, node := range resp.Node.Nodes {
 		if node.Key == "" {
 			log.Errorf("Error unmarshalling GetNodes response node %s", node.Key)
 			continue
 		}
-		_, node := path.Split(node.Key)
-		nodes = append(nodes, node)
+		_, nodeName := path.Split(node.Key)
+
+		nodeIP, err := getNodeIP(node.Value)
+		if err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, api.Node{Name: nodeName, IP: nodeIP})
 	}
-	return &nodes, nil
+	return nodes, nil
 }
 
 func (sub *EtcdSubnetRegistry) InitServices() error {
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) GetServices() (*[]api.Service, error) {
+func (sub *EtcdSubnetRegistry) GetServices() ([]api.Service, error) {
 	return nil, nil
 }
 
-func (sub *EtcdSubnetRegistry) GetSubnets() (*[]api.Subnet, error) {
+func (sub *EtcdSubnetRegistry) GetSubnets() ([]api.Subnet, error) {
 	key := sub.etcdCfg.SubnetPath
 	resp, err := sub.client().Get(key, false, true)
 	if err != nil {
@@ -196,7 +191,7 @@ func (sub *EtcdSubnetRegistry) GetSubnets() (*[]api.Subnet, error) {
 		}
 		subnets = append(subnets, s)
 	}
-	return &subnets, err
+	return subnets, err
 }
 
 func (sub *EtcdSubnetRegistry) GetSubnet(nodeName string) (*api.Subnet, error) {
@@ -412,6 +407,25 @@ func (sub *EtcdSubnetRegistry) resetClient() {
 	var err error
 	sub.cli, err = newEtcdClient(sub.etcdCfg)
 	if err != nil {
-		panic(fmt.Errorf("resetClient: error recreating etcd client: %v", err))
+		log.Fatalf("resetClient: error recreating etcd client: %v", err)
 	}
+}
+
+func getNodeIP(nodeRawObject string) (string, error) {
+	var node map[string]interface{}
+
+	err := json.Unmarshal([]byte(nodeRawObject), &node)
+	if err == nil {
+		nodeStatus, ok := node["Status"].(map[string]interface{})
+		if ok {
+			nodeAddresses, ok := nodeStatus["Addresses"].([]interface{})
+			if ok {
+				nodeAddressMap, ok := nodeAddresses[0].(map[string]interface{})
+				if ok {
+					return nodeAddressMap["Address"].(string), nil
+				}
+			}
+		}
+	}
+	return "", fmt.Errorf("Error decoding node raw object: %s", nodeRawObject)
 }
