@@ -16,6 +16,9 @@ NODE_NAMES=( $(eval echo ${NODE_PREFIX}{1..${NUM_NODES}}) )
 
 DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
 
+DEPLOYED_ROOT="/data"
+SCRIPT_ROOT="${DEPLOYED_ROOT}/hack/dind"
+
 os::dind::set-dind-env() {
   # Set up the KUBECONFIG environment variable for use by oc
   local deployed_root=$1

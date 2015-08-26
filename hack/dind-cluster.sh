@@ -86,6 +86,19 @@ function check-selinux() {
   fi
 }
 
+IMAGE_REPO="${OS_DIND_IMAGE_REPO:-}"
+IMAGE_TAG="${OS_DIND_IMAGE_TAG:-}"
+function get-image-name() {
+  local name=$1
+
+  echo "${IMAGE_REPO}openshift/dind-${name}${IMAGE_TAG}"
+}
+
+BASE_IMAGE=$(get-image-name base)
+MASTER_IMAGE=$(get-image-name master)
+NODE_IMAGE=$(get-image-name node)
+BUILD_IMAGES="${OS_DIND_BUILD_IMAGES:-1}"
+
 function build-image() {
   local build_root=$1
   local image_name=$2
@@ -93,6 +106,32 @@ function build-image() {
   pushd "${build_root}"
   ${DOCKER_CMD} build -t "${image_name}" .
   popd
+}
+
+function build-images() {
+  # Building images is done by default but can be disabled to allow
+  # separation of image build from cluster creation.
+  if [ "${BUILD_IMAGES}" = "1" ]; then
+    echo "Building container images"
+    if [ "${IMAGE_REPO}" != "" ]; then
+      # Failure to cache is assumed to not be worth failing the build.
+      ${DOCKER_CMD} pull "${BASE_IMAGE}" || true
+      ${DOCKER_CMD} pull "${MASTER_IMAGE}" || true
+      ${DOCKER_CMD} pull "${NODE_IMAGE}" || true
+    fi
+    build-image "${ORIGIN_ROOT}/images/dind/base" "${BASE_IMAGE}"
+    if [ "${IMAGE_REPO}" != "" ]; then
+      # Tag the base image for use by master and node image builds
+      ${DOCKER_CMD} tag "${BASE_IMAGE}" "openshift/dind-base" || true
+    fi
+    build-image "${ORIGIN_ROOT}/images/dind/master" "${MASTER_IMAGE}"
+    build-image "${ORIGIN_ROOT}/images/dind/node" "${NODE_IMAGE}"
+    if [ "${IMAGE_REPO}" != "" ]; then
+      ${DOCKER_CMD} push "${BASE_IMAGE}" || true
+      ${DOCKER_CMD} push "${MASTER_IMAGE}" || true
+      ${DOCKER_CMD} push "${NODE_IMAGE}" || true
+    fi
+  fi
 }
 
 function get-docker-ip() {
@@ -141,39 +180,30 @@ function start() {
   sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
   ensure-loopback-for-dind "${NUM_NODES}"
 
-  echo "Building containers"
-  local master_image="openshift/dind-master"
-  local node_image="openshift/dind-node"
-  build-image "${ORIGIN_ROOT}/images/dind/master" "${master_image}"
-  build-image "${ORIGIN_ROOT}/images/dind/node" "${node_image}"
+  build-images
 
   ## Create containers
   echo "Launching containers"
-  local deployed_root="/data"
-  local base_run_cmd="${DOCKER_CMD} run -dt -v ${ORIGIN_ROOT}:${deployed_root}"
-
-  # Ensure the deployed root is usable in the container
-  sudo chcon -Rt svirt_sandbox_file_t $(pwd)
+  local base_run_cmd="${DOCKER_CMD} run -dt -v ${ORIGIN_ROOT}:${DEPLOYED_ROOT}"
 
   local master_cid=$(${base_run_cmd} --name="${MASTER_NAME}" \
-    --hostname="${MASTER_NAME}" "${master_image}")
+    --hostname="${MASTER_NAME}" "${MASTER_IMAGE}")
   local master_ip=$(get-docker-ip "${master_cid}")
 
   local node_cids=()
   local node_ips=()
   for name in "${NODE_NAMES[@]}"; do
     local cid=$(${base_run_cmd} --privileged --name="${name}" \
-      --hostname="${name}" "${node_image}")
+      --hostname="${name}" "${NODE_IMAGE}")
     node_cids+=( "${cid}" )
     node_ips+=( $(get-docker-ip "${cid}") )
   done
   node_ips=$(os::util::join , ${node_ips[@]})
 
   ## Provision containers
-  local script_root="${deployed_root}/hack/dind"
   echo "Provisioning ${MASTER_NAME}"
   ${DOCKER_CMD} exec -t "${master_cid}" bash -c "\
-    ${script_root}/provision-master.sh \
+    ${SCRIPT_ROOT}/provision-master.sh \
     ${master_ip} ${NUM_NODES} ${node_ips} ${MASTER_NAME} ${NETWORK_PLUGIN}"
 
   for (( i=0; i < ${#node_cids[@]}; i++ )); do
@@ -181,7 +211,7 @@ function start() {
     local name="${NODE_NAMES[$i]}"
     echo "Provisioning ${name}"
     ${DOCKER_CMD} exec "${cid}" bash -c "\
-      ${script_root}/provision-node.sh \
+      ${SCRIPT_ROOT}/provision-node.sh \
       ${master_ip} ${NUM_NODES} ${node_ips} ${name}"
   done
 }
@@ -197,18 +227,15 @@ function stop() {
   if [[ "${node_cids}" ]]; then
     node_cids=(${node_cids//\n/ })
     for cid in "${node_cids[@]}"; do
+      # Ensure that the nested docker daemon is stopped before attempting
+      # container removal so associated loopback devices are properly
+      # released.
+      #
+      # See: https://github.com/jpetazzo/dind/issues/19
+      #
       local is_running=$(${DOCKER_CMD} inspect -f {{.State.Running}} "${cid}")
       if [ "${is_running}" = "true" ]; then
-        # Make sure to ensure that the the docker daemon has stopped
-        # before container removal so associated loopback devices are
-        # released.
-        #
-        # See: https://github.com/jpetazzo/dind/issues/19
-        #
-        local exec_cmd="${DOCKER_CMD} exec -t ${cid}"
-        if ${exec_cmd} supervisorctl status docker | grep -q 'RUNNING'; then
-          ${exec_cmd} supervisorctl stop docker
-        fi
+        ${DOCKER_CMD} exec -t "${cid}" "${SCRIPT_ROOT}/kill-docker.sh"
       fi
       ${DOCKER_CMD} rm -f "${cid}"
     done
@@ -242,6 +269,10 @@ case "${1:-""}" in
     stop
     start
     ;;
+  build-images)
+    BUILD_IMAGES=1
+    build-images
+    ;;
   wipe)
     wipe-config
     ;;
@@ -251,6 +282,6 @@ case "${1:-""}" in
     start
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|wipe|wipe-restart}"
+    echo "Usage: $0 {start|stop|restart|build-images|wipe|wipe-restart}"
     exit 2
 esac

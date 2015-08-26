@@ -28,9 +28,23 @@ supervisorctl update
 
 # Ensure that openshift-sdn has written configuration for docker
 # before triggering a docker restart.
-while grep 'DOCKER_DAEMON_ARGS=\"\"' "${SUPERVISORD_CONF}" > /dev/null; do
-  sleep 1
+echo "Waiting for openshift-sdn to update supervisord.conf with docker config"
+COUNTER=0
+TIMEOUT=30
+while grep -q 'DOCKER_DAEMON_ARGS=\"\"' "${SUPERVISORD_CONF}"; do
+  if [[ "${COUNTER}" -lt "${TIMEOUT}" ]]; then
+    COUNTER=$((COUNTER + 1))
+    echo -n '.'
+    sleep 1
+  else
+    echo -e "\n[ERROR] Timeout waiting for openshift-sdn to update supervisord.conf"
+    exit 1
+  fi
 done
+echo -e '\nDone'
+
+# Stop docker gracefully
+${SCRIPT_ROOT}/kill-docker.sh
 
 # Restart docker
 supervisorctl update
