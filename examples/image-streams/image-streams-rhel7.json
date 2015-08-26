@@ -230,13 +230,13 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/openshift3/jenkins-16-rhel7",
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/jenkins-1-rhel7",
         "tags": [
           {
             "name": "latest"
           },
           {
-            "name": "1.6",
+            "name": "1",
             "from": {
               "Kind": "ImageStreamTag",
               "Name": "latest"

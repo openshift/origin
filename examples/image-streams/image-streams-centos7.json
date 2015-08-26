@@ -260,13 +260,13 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "openshift/jenkins-16-centos7",
+        "dockerImageRepository": "openshift/jenkins-1-centos7",
         "tags": [
           {
             "name": "latest"
           },
           {
-            "name": "1.6",
+            "name": "1",
             "from": {
               "Kind": "ImageStreamTag",
               "Name": "latest"

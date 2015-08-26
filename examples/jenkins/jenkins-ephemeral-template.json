@@ -135,7 +135,7 @@
     {
       "name": "JENKINS_IMAGE",
       "description": "Jenkins Docker image to use",
-      "value": "openshift/jenkins-16-centos7"
+      "value": "openshift/jenkins-1-centos7"
     },
     {
       "name": "JENKINS_PASSWORD",
