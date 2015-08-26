@@ -149,8 +149,7 @@ function start() {
 
   ## Create containers
   echo "Launching containers"
-  local deployed_root="/data"
-  local base_run_cmd="${DOCKER_CMD} run -dt -v ${ORIGIN_ROOT}:${deployed_root}"
+  local base_run_cmd="${DOCKER_CMD} run -dt -v ${ORIGIN_ROOT}:${DEPLOYED_ROOT}"
 
   # Ensure the deployed root is usable in the container
   sudo chcon -Rt svirt_sandbox_file_t $(pwd)
@@ -170,10 +169,9 @@ function start() {
   node_ips=$(os::util::join , ${node_ips[@]})
 
   ## Provision containers
-  local script_root="${deployed_root}/hack/dind"
   echo "Provisioning ${MASTER_NAME}"
   ${DOCKER_CMD} exec -t "${master_cid}" bash -c "\
-    ${script_root}/provision-master.sh \
+    ${SCRIPT_ROOT}/provision-master.sh \
     ${master_ip} ${NUM_NODES} ${node_ips} ${MASTER_NAME} ${NETWORK_PLUGIN}"
 
   for (( i=0; i < ${#node_cids[@]}; i++ )); do
@@ -181,7 +179,7 @@ function start() {
     local name="${NODE_NAMES[$i]}"
     echo "Provisioning ${name}"
     ${DOCKER_CMD} exec "${cid}" bash -c "\
-      ${script_root}/provision-node.sh \
+      ${SCRIPT_ROOT}/provision-node.sh \
       ${master_ip} ${NUM_NODES} ${node_ips} ${name}"
   done
 }
@@ -197,18 +195,15 @@ function stop() {
   if [[ "${node_cids}" ]]; then
     node_cids=(${node_cids//\n/ })
     for cid in "${node_cids[@]}"; do
+      # Ensure that the nested docker daemon is stopped before attempting
+      # container removal so associated loopback devices are properly
+      # released.
+      #
+      # See: https://github.com/jpetazzo/dind/issues/19
+      #
       local is_running=$(${DOCKER_CMD} inspect -f {{.State.Running}} "${cid}")
       if [ "${is_running}" = "true" ]; then
-        # Make sure to ensure that the the docker daemon has stopped
-        # before container removal so associated loopback devices are
-        # released.
-        #
-        # See: https://github.com/jpetazzo/dind/issues/19
-        #
-        local exec_cmd="${DOCKER_CMD} exec -t ${cid}"
-        if ${exec_cmd} supervisorctl status docker | grep -q 'RUNNING'; then
-          ${exec_cmd} supervisorctl stop docker
-        fi
+        ${DOCKER_CMD} exec -t "${cid}" "${SCRIPT_ROOT}/kill-docker.sh"
       fi
       ${DOCKER_CMD} rm -f "${cid}"
     done
