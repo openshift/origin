@@ -68,7 +68,7 @@ func NewDefaultController(sub api.SubnetRegistry, hostname string, selfIP string
 func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
 	if selfIP == "" {
 		var err error
-		selfIP, err = getNodeIP(hostname)
+		selfIP, err = GetNodeIP(hostname)
 		if err != nil {
 			return nil, err
 		}
@@ -494,7 +494,7 @@ func (oc *OvsController) Stop() {
 	//oc.sig <- struct{}{}
 }
 
-func getNodeIP(nodeName string) (string, error) {
+func GetNodeIP(nodeName string) (string, error) {
 	ip := net.ParseIP(nodeName)
 	if ip == nil {
 		addrs, err := net.LookupIP(nodeName)
