@@ -60,8 +60,7 @@ func (plugin *hostPathPlugin) Name() string {
 }
 
 func (plugin *hostPathPlugin) CanSupport(spec *volume.Spec) bool {
-	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.HostPath != nil) ||
-		(spec.Volume != nil && spec.Volume.HostPath != nil)
+	return spec.VolumeSource.HostPath != nil || spec.PersistentVolumeSource.HostPath != nil
 }
 
 func (plugin *hostPathPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -71,14 +70,14 @@ func (plugin *hostPathPlugin) GetAccessModes() []api.PersistentVolumeAccessMode 
 }
 
 func (plugin *hostPathPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, _ volume.VolumeOptions, _ mount.Interface) (volume.Builder, error) {
-	if spec.Volume != nil && spec.Volume.HostPath != nil {
+	if spec.VolumeSource.HostPath != nil {
 		return &hostPathBuilder{
-			hostPath: &hostPath{path: spec.Volume.HostPath.Path},
+			hostPath: &hostPath{path: spec.VolumeSource.HostPath.Path},
 			readOnly: false,
 		}, nil
 	} else {
 		return &hostPathBuilder{
-			hostPath: &hostPath{path: spec.PersistentVolume.Spec.HostPath.Path},
+			hostPath: &hostPath{path: spec.PersistentVolumeSource.HostPath.Path},
 			readOnly: spec.ReadOnly,
 		}, nil
 	}
@@ -93,10 +92,10 @@ func (plugin *hostPathPlugin) NewRecycler(spec *volume.Spec) (volume.Recycler, e
 }
 
 func newRecycler(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error) {
-	if spec.PersistentVolume == nil || spec.PersistentVolume.Spec.HostPath == nil {
+	if spec.PersistentVolumeSource.HostPath == nil {
 		return nil, fmt.Errorf("spec.PersistentVolumeSource.HostPath is nil")
 	}
-	return &hostPathRecycler{spec.Name, spec.PersistentVolume.Spec.HostPath.Path, host}, nil
+	return &hostPathRecycler{spec.Name, spec.PersistentVolumeSource.HostPath.Path, host}, nil
 }
 
 // HostPath volumes represent a bare host file or directory mount.

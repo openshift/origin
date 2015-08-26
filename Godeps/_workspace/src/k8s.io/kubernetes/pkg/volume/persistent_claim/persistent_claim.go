@@ -49,13 +49,13 @@ func (plugin *persistentClaimPlugin) Name() string {
 }
 
 func (plugin *persistentClaimPlugin) CanSupport(spec *volume.Spec) bool {
-	return spec.Volume != nil && spec.Volume.PersistentVolumeClaim != nil
+	return spec.VolumeSource.PersistentVolumeClaim != nil
 }
 
 func (plugin *persistentClaimPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions, mounter mount.Interface) (volume.Builder, error) {
-	claim, err := plugin.host.GetKubeClient().PersistentVolumeClaims(pod.Namespace).Get(spec.Volume.PersistentVolumeClaim.ClaimName)
+	claim, err := plugin.host.GetKubeClient().PersistentVolumeClaims(pod.Namespace).Get(spec.VolumeSource.PersistentVolumeClaim.ClaimName)
 	if err != nil {
-		glog.Errorf("Error finding claim: %+v\n", spec.Volume.PersistentVolumeClaim.ClaimName)
+		glog.Errorf("Error finding claim: %+v\n", spec.VolumeSource.PersistentVolumeClaim.ClaimName)
 		return nil, err
 	}
 

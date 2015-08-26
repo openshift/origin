@@ -54,7 +54,7 @@ func (plugin *rbdPlugin) Name() string {
 }
 
 func (plugin *rbdPlugin) CanSupport(spec *volume.Spec) bool {
-	if (spec.Volume != nil && spec.Volume.RBD == nil) || (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.RBD == nil) {
+	if spec.VolumeSource.RBD == nil && spec.PersistentVolumeSource.RBD == nil {
 		return false
 	}
 	// see if rbd is there
@@ -101,10 +101,10 @@ func (plugin *rbdPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, _ volume.Vo
 func (plugin *rbdPlugin) getRBDVolumeSource(spec *volume.Spec) (*api.RBDVolumeSource, bool) {
 	// rbd volumes used directly in a pod have a ReadOnly flag set by the pod author.
 	// rbd volumes used as a PersistentVolume gets the ReadOnly flag indirectly through the persistent-claim volume used to mount the PV
-	if spec.Volume != nil && spec.Volume.RBD != nil {
-		return spec.Volume.RBD, spec.Volume.RBD.ReadOnly
+	if spec.VolumeSource.RBD != nil {
+		return spec.VolumeSource.RBD, spec.VolumeSource.RBD.ReadOnly
 	} else {
-		return spec.PersistentVolume.Spec.RBD, spec.ReadOnly
+		return spec.PersistentVolumeSource.RBD, spec.ReadOnly
 	}
 }
 

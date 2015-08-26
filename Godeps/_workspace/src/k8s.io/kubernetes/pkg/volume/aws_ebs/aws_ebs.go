@@ -60,8 +60,7 @@ func (plugin *awsElasticBlockStorePlugin) Name() string {
 }
 
 func (plugin *awsElasticBlockStorePlugin) CanSupport(spec *volume.Spec) bool {
-	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.AWSElasticBlockStore != nil) ||
-		(spec.Volume != nil && spec.Volume.AWSElasticBlockStore != nil)
+	return spec.PersistentVolumeSource.AWSElasticBlockStore != nil || spec.VolumeSource.AWSElasticBlockStore != nil
 }
 
 func (plugin *awsElasticBlockStorePlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -80,11 +79,11 @@ func (plugin *awsElasticBlockStorePlugin) newBuilderInternal(spec *volume.Spec, 
 	// EBSs used as a PersistentVolume gets the ReadOnly flag indirectly through the persistent-claim volume used to mount the PV
 	var readOnly bool
 	var ebs *api.AWSElasticBlockStoreVolumeSource
-	if spec.Volume != nil && spec.Volume.AWSElasticBlockStore != nil {
-		ebs = spec.Volume.AWSElasticBlockStore
+	if spec.VolumeSource.AWSElasticBlockStore != nil {
+		ebs = spec.VolumeSource.AWSElasticBlockStore
 		readOnly = ebs.ReadOnly
 	} else {
-		ebs = spec.PersistentVolume.Spec.AWSElasticBlockStore
+		ebs = spec.PersistentVolumeSource.AWSElasticBlockStore
 		readOnly = spec.ReadOnly
 	}
 

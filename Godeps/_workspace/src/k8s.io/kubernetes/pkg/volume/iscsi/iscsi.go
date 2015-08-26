@@ -54,7 +54,7 @@ func (plugin *iscsiPlugin) Name() string {
 }
 
 func (plugin *iscsiPlugin) CanSupport(spec *volume.Spec) bool {
-	if (spec.Volume != nil && spec.Volume.ISCSI == nil) || (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.ISCSI == nil) {
+	if spec.VolumeSource.ISCSI == nil && spec.PersistentVolumeSource.ISCSI == nil {
 		return false
 	}
 	// TODO:  turn this into a func so CanSupport can be unit tested without
@@ -85,11 +85,11 @@ func (plugin *iscsiPlugin) newBuilderInternal(spec *volume.Spec, podUID types.UI
 	// iscsi volumes used as a PersistentVolume gets the ReadOnly flag indirectly through the persistent-claim volume used to mount the PV
 	var readOnly bool
 	var iscsi *api.ISCSIVolumeSource
-	if spec.Volume != nil && spec.Volume.ISCSI != nil {
-		iscsi = spec.Volume.ISCSI
+	if spec.VolumeSource.ISCSI != nil {
+		iscsi = spec.VolumeSource.ISCSI
 		readOnly = iscsi.ReadOnly
 	} else {
-		iscsi = spec.PersistentVolume.Spec.ISCSI
+		iscsi = spec.PersistentVolumeSource.ISCSI
 		readOnly = spec.ReadOnly
 	}
 

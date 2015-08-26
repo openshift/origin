@@ -55,8 +55,7 @@ func (plugin *gcePersistentDiskPlugin) Name() string {
 }
 
 func (plugin *gcePersistentDiskPlugin) CanSupport(spec *volume.Spec) bool {
-	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.GCEPersistentDisk != nil) ||
-		(spec.Volume != nil && spec.Volume.GCEPersistentDisk != nil)
+	return spec.VolumeSource.GCEPersistentDisk != nil || spec.PersistentVolumeSource.GCEPersistentDisk != nil
 }
 
 func (plugin *gcePersistentDiskPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -77,11 +76,11 @@ func (plugin *gcePersistentDiskPlugin) newBuilderInternal(spec *volume.Spec, pod
 	var readOnly bool
 
 	var gce *api.GCEPersistentDiskVolumeSource
-	if spec.Volume != nil && spec.Volume.GCEPersistentDisk != nil {
-		gce = spec.Volume.GCEPersistentDisk
+	if spec.VolumeSource.GCEPersistentDisk != nil {
+		gce = spec.VolumeSource.GCEPersistentDisk
 		readOnly = gce.ReadOnly
 	} else {
-		gce = spec.PersistentVolume.Spec.GCEPersistentDisk
+		gce = spec.PersistentVolumeSource.GCEPersistentDisk
 		readOnly = spec.ReadOnly
 	}
 

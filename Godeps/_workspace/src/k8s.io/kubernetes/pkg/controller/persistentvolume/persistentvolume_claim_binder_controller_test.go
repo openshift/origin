@@ -388,7 +388,7 @@ func (c *mockBinderClient) UpdatePersistentVolumeClaimStatus(claim *api.Persiste
 
 func newMockRecycler(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error) {
 	return &mockRecycler{
-		path: spec.PersistentVolume.Spec.HostPath.Path,
+		path: spec.PersistentVolumeSource.HostPath.Path,
 	}, nil
 }
 
