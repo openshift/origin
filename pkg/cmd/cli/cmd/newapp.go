@@ -90,6 +90,19 @@ application is created.`
 
   // Search for "ruby" in stored templates and print the output as an YAML
   $ %[1]s new-app --search --template=ruby --output=yaml`
+
+	newAppNoInput = `You must specify one or more images, image streams, templates, or source code locations to create an application.
+
+To list all local templates and image streams, use:
+
+  $ oc new-app -L
+
+To search templates, image streams, and Docker images that match the arguments provided, use:
+
+  $ oc new-app -S php
+  $ oc new-app -S --template=ruby
+  $ oc new-app -S --image=mysql
+`
 )
 
 // NewCmdNewApplication implements the OpenShift cli new-app command
@@ -306,7 +319,7 @@ func handleRunError(c *cobra.Command, err error) error {
 	}
 	if err == newcmd.ErrNoInputs {
 		// TODO: suggest things to the user
-		return cmdutil.UsageError(c, "You must specify one or more images, image streams, templates or source code locations to create an application.")
+		return cmdutil.UsageError(c, newAppNoInput)
 	}
 	return err
 }
