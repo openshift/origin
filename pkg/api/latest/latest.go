@@ -88,6 +88,30 @@ var UserResources = []string{
 	"pods",
 }
 
+// RemoveFromUserResources removes types from the user facing resource list.  This is used
+// to allow the client to find which types are supported by the server when making calls
+// to the alias "all".
+func RemoveFromUserResources(types ...string) {
+	newUserResources := []string{}
+	for _, r := range UserResources {
+		if excludeUserResource(r, types...) {
+			continue
+		}
+		newUserResources = append(newUserResources, r)
+	}
+	UserResources = newUserResources
+}
+
+// excludeUserResource returns true if resource is in exclusions.
+func excludeUserResource(resource string, exclusions ...string) bool {
+	for _, e := range exclusions {
+		if resource == e {
+			return true
+		}
+	}
+	return false
+}
+
 // OriginKind returns true if OpenShift owns the kind described in a given apiVersion.
 func OriginKind(kind, apiVersion string) bool {
 	return originTypes.Has(kind)

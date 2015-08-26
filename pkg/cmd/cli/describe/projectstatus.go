@@ -8,6 +8,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client"
@@ -26,6 +28,7 @@ import (
 	buildanalysis "github.com/openshift/origin/pkg/build/graph/analysis"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	"github.com/openshift/origin/pkg/client"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
@@ -55,13 +58,15 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, uti
 		&secretLoader{namespace: namespace, lister: d.K},
 		&rcLoader{namespace: namespace, lister: d.K},
 		&podLoader{namespace: namespace, lister: d.K},
-		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
-		// then remove tolerateNotFoundErrors method.
-		&bcLoader{namespace: namespace, lister: d.C},
-		&buildLoader{namespace: namespace, lister: d.C},
 		&isLoader{namespace: namespace, lister: d.C},
 		&dcLoader{namespace: namespace, lister: d.C},
 	}
+
+	if isBuildEnabled(d.C) {
+		loaders = append(loaders, &bcLoader{namespace: namespace, lister: d.C})
+		loaders = append(loaders, &buildLoader{namespace: namespace, lister: d.C})
+	}
+
 	loadingFuncs := []func() error{}
 	for _, loader := range loaders {
 		loadingFuncs = append(loadingFuncs, loader.Load)
@@ -890,7 +895,7 @@ type bcLoader struct {
 func (l *bcLoader) Load() error {
 	list, err := l.lister.BuildConfigs(l.namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return tolerateNotFoundErrors(err)
+		return err
 	}
 
 	l.items = list.Items
@@ -914,7 +919,7 @@ type buildLoader struct {
 func (l *buildLoader) Load() error {
 	list, err := l.lister.Builds(l.namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return tolerateNotFoundErrors(err)
+		return err
 	}
 
 	l.items = list.Items
@@ -929,11 +934,19 @@ func (l *buildLoader) AddToGraph(g osgraph.Graph) error {
 	return nil
 }
 
-// tolerateNotFoundErrors is tolerant of not found errors in case builds are disabled server
-// side (Atomic).
-func tolerateNotFoundErrors(err error) error {
-	if kapierrors.IsNotFound(err) {
-		return nil
+func isBuildEnabled(osClient client.Interface) bool {
+	c, ok := osClient.(*client.Client)
+
+	if !ok {
+		glog.V(2).Infof("Error converting osclient interface to rest client")
+		return true
 	}
-	return err
+
+	resources, err := cmdutil.GetUserResources(c)
+	if err != nil {
+		glog.V(2).Infof("Error getting user resources: %v", err)
+		return true
+	}
+
+	return cmdutil.IsBuildEnabled(resources)
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	oscmdutil "github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploygen "github.com/openshift/origin/pkg/deploy/generator"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
@@ -51,8 +52,6 @@ type Factory struct {
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
-	mapper := ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
-
 	clients := &clientCache{
 		clients: make(map[string]*client.Client),
 		loader:  clientConfig,
@@ -69,6 +68,9 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		OpenShiftClientConfig: clientConfig,
 		clients:               clients,
 	}
+
+	osClient, _, _ := w.Clients()
+	mapper := NewShortcutExpander(kubectl.ShortcutExpander{latest.RESTMapper}, osClient)
 
 	w.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
 		if cfg, err := clientConfig.ClientConfig(); err == nil {
@@ -218,6 +220,14 @@ func (f *Factory) Clients() (*client.Client, *kclient.Client, error) {
 // ShortcutExpander is a RESTMapper that can be used for OpenShift resources.
 type ShortcutExpander struct {
 	meta.RESTMapper
+	client *client.Client
+}
+
+func NewShortcutExpander(mapper meta.RESTMapper, c *client.Client) ShortcutExpander {
+	return ShortcutExpander{
+		mapper,
+		c,
+	}
 }
 
 // VersionAndKindForResource implements meta.RESTMapper. It expands the resource first, then invokes the wrapped
@@ -230,13 +240,27 @@ func (e ShortcutExpander) VersionAndKindForResource(resource string) (defaultVer
 // AliasesForResource returns whether a resource has an alias or not
 func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
 	aliases := map[string][]string{
-		"all": latest.UserResources,
+		"all": e.getUserResources(),
 	}
 
 	if res, ok := aliases[resource]; ok {
 		return res, true
 	}
 	return nil, false
+}
+
+// getUserResources queries the server to find the available server side resources to use
+// for the all alias.  If the server cannot be reached for any reason latest.UserResources will
+// be returned.
+func (e ShortcutExpander) getUserResources() []string {
+	if e.client == nil {
+		return latest.UserResources
+	}
+	resources, err := oscmdutil.GetUserResources(e.client)
+	if err != nil {
+		return latest.UserResources
+	}
+	return resources
 }
 
 // expandResourceShortcut will return the expanded version of resource

@@ -206,6 +206,7 @@ func (c *MasterConfig) RunHealth() {
 	initHealthCheckRoute(ws, "/healthz")
 	initReadinessCheckRoute(ws, "/healthz/ready", func() bool { return true })
 	initMetricsRoute(ws, "/metrics")
+	initUserResourcesRoute(ws, "/userresources")
 
 	c.serve(hc, []string{"Started health checks at %s"})
 }
@@ -307,6 +308,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	initHealthCheckRoute(root, "/healthz")
 	initReadinessCheckRoute(root, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
+	initUserResourcesRoute(root, "/userresources")
 
 	return messages
 }
@@ -484,6 +486,9 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		storage["builds/clone"] = buildclonestorage.NewStorage(buildGenerator)
 		storage["buildConfigs/instantiate"] = buildinstantiatestorage.NewStorage(buildGenerator)
 		storage["builds/log"] = buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient)
+	} else {
+		// remove the user facing resources.
+		latest.RemoveFromUserResources("buildConfigs", "builds")
 	}
 
 	return storage
@@ -541,6 +546,17 @@ func initMetricsRoute(root *restful.WebService, path string) {
 		h.ServeHTTP(resp.ResponseWriter, req.Request)
 	}).Doc("return metrics for this process").
 		Returns(http.StatusOK, "if metrics are available", nil).
+		Produces("text/plain"))
+}
+
+// initUserResourcesRoute initializes an HTTP endpoint to show the user facing resources.
+// This is used by the client to determine available resources on the server for client commands.
+func initUserResourcesRoute(root *restful.WebService, path string) {
+	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
+		resp.ResponseWriter.WriteHeader(http.StatusOK)
+		resp.ResponseWriter.Write([]byte(strings.Join(latest.UserResources, ",")))
+	}).Doc("return the user resources supported by the master").
+		Returns(http.StatusOK, "if the master is available", nil).
 		Produces("text/plain"))
 }
 

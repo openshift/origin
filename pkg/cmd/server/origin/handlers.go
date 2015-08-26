@@ -42,6 +42,7 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 				"/oapi",
 				"/oapi/v1",
 				"/swaggerapi/",
+				"/userresources",
 			}}
 			// TODO it would be nice if apiserver.writeRawJSON was not private
 			output, err := json.MarshalIndent(object, "", "  ")
