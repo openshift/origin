@@ -56,6 +56,8 @@
                   header="Routing" 
                   about-title="Routing"
                   about="Routing is a way to make your application publicly visible. Otherwise you may only be able to access your application by its IP address, if allowed by the system administrator."
+                  expand="true"
+                  can-toggle="false"
                   class="first-section"
                   >
                   <div ng-hide="$parent.expand">
@@ -84,6 +86,8 @@
                   about-title="Deployment Configuration"
                   about="Deployment configurations describe how your application is configured
                     by the cluster and under what conditions it should be recreated (e.g. when the image changes)."
+                  expand="true"
+                  can-toggle="false"
                   >
                   <div ng-hide="$parent.expand">
                     <h3>Autodeploy when</h3>
@@ -107,7 +111,7 @@
                       delimiter="="
                       key-validator="env"
                       delete-policy="added"
-                      editable="false"
+                      editable="true"
                      />
                   </div>
                   <div class="animate-drawer" ng-show="$parent.expand">
@@ -149,6 +153,8 @@
                   about-title="Build Configuration"
                   about="A build configuration describes how to build your deployable image.  This includes
                     your source, the base builder image, and when to launch new builds."
+                  expand="true"
+                  can-toggle="false"
                   >
                   <div class="animate-drawer" ng-hide="$parent.expand">
                     <div>
@@ -201,6 +207,8 @@
                   header="Scaling"
                   about-title="Scaling"
                   about="Scaling defines the number of running instances of your built image."
+                  expand="true"
+                  can-toggle="false"
                   >
                   <div ng-hide="$parent.expand">
                     <div>
@@ -221,7 +229,7 @@
 
                 <!-- /scaling -->
 
-                <labels labels="labels"></labels>
+                <labels labels="labels" expand="true" can-toggle="false"></labels>
                 <div class="buttons gutter-top-bottom gutter-top-bottom-2x">
                   <!-- unable to use form.valid.  need to fix validators in labels and key values directive -->
                   <button class="btn btn-primary btn-lg" 

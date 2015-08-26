@@ -1,19 +1,19 @@
-<div class="template-options" ng-show="hasParameters" ng-form="paramForm">
+<div class="template-options" ng-show="parameters.length" ng-form="paramForm">
   <div class="flow">
     <div class="flow-block">
       <h2>Parameters</h2>
     </div>
-    <div class="flow-block right">
-      <a class="action action-inline" href="javascript:;" ng-click="toggleOptionsExpanded()" ng-show="optionsExpanded"><i class="pficon pficon-remove"></i> Collapse</a>
-      <a class="action action-inline" href="javascript:;" ng-click="toggleOptionsExpanded()" ng-hide="optionsExpanded"><i class="pficon pficon-edit"></i> Edit Parameters</a>
+    <div ng-show="canToggle" class="flow-block right">
+      <a class="action action-inline" href="" ng-click="expand = false" ng-show="expand"><i class="pficon pficon-remove"></i> Collapse</a>
+      <a class="action action-inline" href="" ng-click="expand = true" ng-hide="expand"><i class="pficon pficon-edit"></i> Edit Parameters</a>
     </div>
   </div>
   <div
       class="form-group options"
-      ng-repeat="parameter in template.parameters"
-      ng-show="optionsExpanded"
+      ng-repeat="parameter in parameters"
+      ng-show="expand"
       ng-init="paramID = 'param-' + $index">
-    <label ng-attr-for="{{paramID}}" ng-class="{required: parameter.required}">{{parameter.name}}</label>
+    <label ng-attr-for="{{paramID}}" ng-attr-title="{{parameter.name}}" ng-class="{required: parameter.required}">{{parameter.displayName || parameter.name}}</label>
     <span ng-class="{'has-error': (paramForm[paramID].$error.required && paramForm[paramID].$touched)}">
       <input
           ng-attr-id="{{paramID}}"
@@ -29,9 +29,9 @@
       <div class="help-block">{{parameter.name}} is required.</div>
     </div>
   </div>
-  <ul class="list-unstyled env-variable-list" ng-hide="optionsExpanded">
+  <ul class="list-unstyled env-variable-list" ng-hide="expand">
     <li class="options"
-        ng-repeat="parameter in template.parameters"
+        ng-repeat="parameter in parameters"
         ng-init="paramID = 'param-' + $index">
       <label for="" class="key truncate" ng-class="{required: parameter.required}" ng-attr-title="{{ parameter.name }}">{{parameter.name}}</label>
       <span class="value truncate" ng-attr-title="{{parameter | parameterValue}}">{{ parameter | parameterValue }}</span>
