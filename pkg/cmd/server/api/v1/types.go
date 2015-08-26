@@ -212,6 +212,7 @@ type NetworkConfig struct {
 	NetworkPluginName  string `json:"networkPluginName"`
 	ClusterNetworkCIDR string `json:"clusterNetworkCIDR"`
 	HostSubnetLength   uint   `json:"hostSubnetLength"`
+	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
 }
 
 type ImageConfig struct {

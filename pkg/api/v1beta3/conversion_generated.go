@@ -2111,6 +2111,7 @@ func convert_api_ClusterNetwork_To_v1beta3_ClusterNetwork(in *sdnapi.ClusterNetw
 	}
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
+	out.ServiceNetwork = in.ServiceNetwork
 	return nil
 }
 
@@ -2226,6 +2227,7 @@ func convert_v1beta3_ClusterNetwork_To_api_ClusterNetwork(in *sdnapiv1beta3.Clus
 	}
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
+	out.ServiceNetwork = in.ServiceNetwork
 	return nil
 }
 

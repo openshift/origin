@@ -120,6 +120,7 @@ networkConfig:
   clusterNetworkCIDR: ""
   hostSubnetLength: 0
   networkPluginName: ""
+  serviceNetworkCIDR: ""
 oauthConfig:
   assetPublicURL: ""
   grantConfig:

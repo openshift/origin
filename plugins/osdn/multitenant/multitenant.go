@@ -17,7 +17,7 @@ func NetworkPluginName() string {
 	return "redhat/openshift-ovs-multitenant"
 }
 
-func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork string, clusterNetworkLength uint) {
+func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork string, clusterNetworkLength uint, serviceNetwork string) {
 	osdnInterface := osdn.NewOsdnRegistryInterface(osClient, kClient)
 
 	// get hostname from the gateway
@@ -31,7 +31,7 @@ func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork s
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
-	err = kc.StartMaster(false, clusterNetwork, clusterNetworkLength)
+	err = kc.StartMaster(false, clusterNetwork, clusterNetworkLength, serviceNetwork)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}

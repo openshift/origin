@@ -466,6 +466,10 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     util.NewStringSet("get"),
 					Resources: util.NewStringSet("clusternetworks"),
 				},
+				{
+					Verbs:     util.NewStringSet("get", "list", "watch"),
+					Resources: util.NewStringSet("namespaces"),
+				},
 			},
 		},
 

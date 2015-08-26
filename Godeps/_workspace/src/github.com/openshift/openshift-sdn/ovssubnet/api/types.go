@@ -20,7 +20,7 @@ type SubnetRegistry interface {
 	CreateNode(nodeName string, data string) error
 	WatchNodes(receiver chan *NodeEvent, stop chan bool) error
 
-	WriteNetworkConfig(network string, subnetLength uint) error
+	WriteNetworkConfig(network string, subnetLength uint, serviceNetwork string) error
 	GetContainerNetwork() (string, error)
 	GetSubnetLength() (uint64, error)
 	CheckEtcdIsAlive(seconds uint64) bool
@@ -31,6 +31,10 @@ type SubnetRegistry interface {
 	GetNetNamespace(name string) (NetNamespace, error)
 	WriteNetNamespace(name string, id uint) error
 	DeleteNetNamespace(name string) error
+
+	GetServicesNetwork() (string, error)
+	GetServices() (*[]Service, error)
+	WatchServices(receiver chan *ServiceEvent, stop chan bool) error
 }
 
 type SubnetEvent struct {
@@ -64,4 +68,24 @@ type NetNamespaceEvent struct {
 type NamespaceEvent struct {
 	Type EventType
 	Name string
+}
+
+type ServiceProtocol string
+
+const (
+	TCP ServiceProtocol = "TCP"
+	UDP ServiceProtocol = "UDP"
+)
+
+type Service struct {
+	Name      string
+	Namespace string
+	IP        string
+	Protocol  ServiceProtocol
+	Port      uint
+}
+
+type ServiceEvent struct {
+	Type    EventType
+	Service Service
 }

@@ -25,6 +25,11 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) fielderrors.Valid
 		}
 	}
 
+	_, _, err = net.ParseCIDR(clusterNet.ServiceNetwork)
+	if err != nil {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("serviceNetwork", clusterNet.ServiceNetwork, err.Error()))
+	}
+
 	return allErrs
 }
 
@@ -34,6 +39,9 @@ func ValidateClusterNetworkUpdate(obj *sdnapi.ClusterNetwork, old *sdnapi.Cluste
 
 	if obj.Network != old.Network {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("Network", obj.Network, "cannot change the cluster's network CIDR midflight."))
+	}
+	if obj.ServiceNetwork != old.ServiceNetwork {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("ServiceNetwork", obj.ServiceNetwork, "cannot change the cluster's serviceNetwork CIDR midflight."))
 	}
 
 	return allErrs
