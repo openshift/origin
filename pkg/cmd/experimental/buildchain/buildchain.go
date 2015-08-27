@@ -185,7 +185,7 @@ func buildChainInput(input string) (string, string, error) {
 	case 1:
 	case 2:
 		resourceType := resource[0]
-		if resourceType != "ist" && resourceType != "imagestreamtag" {
+		if resourceType != "istag" && resourceType != "imagestreamtag" {
 			return "", "", fmt.Errorf("invalid resource type %q", resourceType)
 		}
 	default:
