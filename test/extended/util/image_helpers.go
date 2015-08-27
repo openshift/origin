@@ -4,7 +4,6 @@ import (
 	"fmt"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	buildapi "github.com/openshift/origin/pkg/build/api"
 	"time"
 )
 
@@ -63,19 +62,7 @@ func VerifyImagesDifferent(comp1, comp2, strategy string) {
 //WaitForBuild is a wrapper for WaitForABuild in this package that takes in an oc/cli client; some ginkgo based debug along with ginkgo error checking
 func WaitForBuild(context, buildName string, oc *CLI) {
 	g.By(fmt.Sprintf("\n%s %s:   waiting for %s", time.Now().Format(time.RFC850), context, buildName))
-	WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName,
-		// The build passed
-		func(b *buildapi.Build) bool {
-			return b.Name == buildName && b.Status.Phase == buildapi.BuildPhaseComplete
-		},
-		// The build failed
-		func(b *buildapi.Build) bool {
-			if b.Name != buildName {
-				return false
-			}
-			return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
-		},
-	)
+	WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, CheckBuildSuccessFunc, CheckBuildFailedFunc)
 	// do not care if build returned an error ... entirely possible ... we only check if the image was updated or left the same appropriately
 	g.By(fmt.Sprintf("\n%s %s   done waiting for %s", time.Now().Format(time.RFC850), context, buildName))
 }

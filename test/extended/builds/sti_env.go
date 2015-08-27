@@ -10,7 +10,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -45,19 +44,7 @@ var _ = g.Describe("default: STI build with .sti/environment file", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName,
-				// The build passed
-				func(b *buildapi.Build) bool {
-					return b.Name == buildName && b.Status.Phase == buildapi.BuildPhaseComplete
-				},
-				// The build failed
-				func(b *buildapi.Build) bool {
-					if b.Name != buildName {
-						return false
-					}
-					return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
-				},
-			)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the Docker image reference from ImageStream")

@@ -6,7 +6,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
 	eximages "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -19,6 +18,12 @@ var _ = g.Describe("default: Check S2I and Docker build image for proper Docker 
 		dockerBuildFixture = exutil.FixturePath("fixtures", "test-docker-build.json")
 		oc                 = exutil.NewCLI("build-sti-env", exutil.KubeConfigPath())
 	)
+
+	g.JustBeforeEach(func() {
+		g.By("waiting for builder service account")
+		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
 
 	g.Describe("S2I build from a template", func() {
 		g.It(fmt.Sprintf("should create a image from %q template with proper Docker labels", stiBuildFixture), func() {
@@ -37,19 +42,7 @@ var _ = g.Describe("default: Check S2I and Docker build image for proper Docker 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("o.Expecting the S2I build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName,
-				// The build passed
-				func(b *buildapi.Build) bool {
-					return b.Name == buildName && b.Status.Phase == buildapi.BuildPhaseComplete
-				},
-				// The build failed
-				func(b *buildapi.Build) bool {
-					if b.Name != buildName {
-						return false
-					}
-					return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
-				},
-			)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the Docker image reference from ImageStream")
@@ -82,19 +75,7 @@ var _ = g.Describe("default: Check S2I and Docker build image for proper Docker 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("o.Expecting the Docker build is in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName,
-				// The build passed
-				func(b *buildapi.Build) bool {
-					return b.Name == buildName && b.Status.Phase == buildapi.BuildPhaseComplete
-				},
-				// The build failed
-				func(b *buildapi.Build) bool {
-					if b.Name != buildName {
-						return false
-					}
-					return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
-				},
-			)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the Docker image reference from ImageStream")
