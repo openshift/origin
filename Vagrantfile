@@ -66,7 +66,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   vagrant_openshift_config = {
     "instance_name"     => "origin-dev",
     "os"                => "fedora",
-    "dev_cluster"       => ENV['OPENSHIFT_DEV_CLUSTER'] || false,
+    "dev_cluster"       => false,
     "dind_dev_cluster"  => ENV['OPENSHIFT_DIND_DEV_CLUSTER'] || false,
     "insert_key"        => true,
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
@@ -76,8 +76,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "sync_folders_type" => nil,
     "master_ip"         => ENV['OPENSHIFT_MASTER_IP'] || "10.245.2.2",
     "minion_ip_base"    => ENV['OPENSHIFT_MINION_IP_BASE'] || "10.245.2.",
-    "sync_from"         => ENV["VAGRANT_SYNC_FROM"] || '.',
-    "sync_to"           => ENV["VAGRANT_SYNC_TO"] || "/data/src/github.com/openshift/origin",
     "virtualbox"        => {
       "box_name" => "fedora_inst",
       "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
@@ -91,14 +89,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "box_url"  => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_libvirt_inst.box"
     },
     "aws"               => {
-      "_see_also_"    => AWS_CRED_FILE,
-      "box_name"      => "aws-dummy-box",
-      "box_url"       => AWS_BOX_URL,
-      "ami"           => "<AMI>",
-      "ami_region"    => "<AMI_REGION>",
-      "ssh_user"      => "<SSH_USER>",
-      "instance_type" => ENV['AWS_INSTANCE_TYPE'] || "t2.medium",
-      "subnet_id"     => ENV['AWS_SUBNET_ID'] || "subnet-cf57c596"
+      "_see_also_"   => AWS_CRED_FILE,
+      "box_name"     => "aws-dummy-box",
+      "box_url"      => AWS_BOX_URL,
+      "ami"          => "<AMI>",
+      "ami_region"   => "<AMI_REGION>",
+      "ssh_user"     => "<SSH_USER>"
     },
     "openstack" => {
       '_see_also_'  => OPENSTACK_CRED_FILE,
@@ -120,7 +116,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # Determine the OS platform to use
-  kube_os = vagrant_openshift_config['os']
+  kube_os = vagrant_openshift_config['os'] || "fedora"
 
   # OS platform to box information
   kube_box = {
@@ -131,7 +127,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   }
 
   dind_dev_cluster = vagrant_openshift_config['dind_dev_cluster']
-  dev_cluster = vagrant_openshift_config['dev_cluster']
+  dev_cluster = vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
   if dind_dev_cluster
     config.vm.define "#{VM_NAME_PREFIX}dind-host" do |config|
       config.vm.box = kube_box[kube_os]["name"]
@@ -146,7 +142,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Currently this only works with the (default) VirtualBox provider.
 
     # The number of minions to provision.
-    num_minion = vagrant_openshift_config['num_minions'].to_i
+    num_minion = (vagrant_openshift_config['num_minions'] || ENV['OPENSHIFT_NUM_MINIONS'] || 2).to_i
 
     # IP configuration
     master_ip = vagrant_openshift_config['master_ip']
@@ -176,8 +172,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
     end
   else # Single VM dev environment
-    sync_from = vagrant_openshift_config['sync_from']
-    sync_to = vagrant_openshift_config['sync_to']
+    sync_from = vagrant_openshift_config['sync_from'] || ENV["VAGRANT_SYNC_FROM"] || '.'
+    sync_to = vagrant_openshift_config['sync_to'] || ENV["VAGRANT_SYNC_TO"] || "/data/src/github.com/openshift/origin"
 
     ##########################
     # define settings for the single VM being created.
@@ -269,8 +265,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         Hash[*(File.open(creds_file_path).readlines.map{ |l| l.strip!; l.split('=') }.flatten)] : {}
       voc = vagrant_openshift_config['openstack']
 
-      override.vm.box = voc["box_name"]
-      override.vm.box_url = voc["box_url"]
+      override.vm.box = voc["box_name"] || "openstack-dummy-box"
+      override.vm.box_url = voc["box_url"] || OPENSTACK_BOX_URL
       # Make sure the private key from the key pair is provided
       override.ssh.private_key_path = creds['OSPrivateKeyPath'] || "~/.ssh/id_rsa"
 
@@ -303,8 +299,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
                                                           l.split('=') }.flatten)] : {}
 
         voc = vagrant_openshift_config['aws']
-        override.vm.box               = voc['box_name']
-        override.vm.box_url           = voc['box_url']
+        override.vm.box               = voc['box_name'] || "aws-dummy-box"
+        override.vm.box_url           = voc['box_url'] || AWS_BOX_URL
         override.vm.synced_folder sync_from, sync_to, disabled: true # rsyncing to public cloud not a great experience, use git
         override.ssh.username         = vagrant_openshift_config['aws']['ssh_user']
         override.ssh.private_key_path = aws_creds["AWSPrivateKeyPath"] || "PATH TO AWS KEYPAIR PRIVATE KEY"
@@ -315,8 +311,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         aws.keypair_name      = aws_creds["AWSKeyPairName"] || "AWS KEYPAIR NAME"
         aws.ami               = voc['ami']
         aws.region            = voc['ami_region']
-        aws.subnet_id         = voc['subnet_id']
-        aws.instance_type     = voc['instance_type']
+        aws.subnet_id         = ENV['AWS_SUBNET_ID'] || vagrant_openshift_config['aws']['subnet_id'] || "subnet-cf57c596"
+        aws.instance_type     = ENV['AWS_INSTANCE_TYPE'] || vagrant_openshift_config['instance_type'] || "t2.medium"
         aws.instance_ready_timeout = 240
         aws.tags              = { "Name" => ENV['AWS_HOSTNAME'] || vagrant_openshift_config['instance_name'] }
         aws.user_data         = %{
