@@ -5,7 +5,7 @@
         <h1>Project {{projectName}} pod and container logs</h1>
       </div>
       <alerts alerts="alerts"></alerts>
-      
+
 
       <table class="table table-condensed table-log-pods">
         <thead>
@@ -13,6 +13,7 @@
             <th>Pod</th>
             <th>Container</th>
             <th>Image</th>
+            <th>Created On</th>
           </tr>
         </thead>
         <tbody ng-repeat="pod in pods | orderObjectsByDate : true">
@@ -20,9 +21,12 @@
             <td>{{pod.metadata.name}}</td>
             <td ng-repeat="container in pod.spec.containers"><a href="/project/{{projectName}}/logs/pods/{{pod.metadata.name}}/log?container={{container.name}}">{{container.name}}</a></td>
             <td ng-repeat="container in pod.spec.containers">{{container.image | limitTo:50}}</td>
+            <td>
+                {{pod.metadata.creationTimestamp | date : 'MMM d, y h:mm:ss a' }}
+            </td>
           </tr>
         </tbody>
       </table>
-      
+
   </project-page>
 </div>

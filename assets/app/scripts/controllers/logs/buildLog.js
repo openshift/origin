@@ -20,6 +20,11 @@ angular.module('openshiftConsole')
         projectPromise: $.Deferred()
       };
 
+      DataService.list("projects", $scope, function(projects) {
+        $scope.projects = projects.by("metadata.name");
+        Logger.log("projects", $scope.projects);
+      });
+
       AuthService
         .withUser()
         .then(function(user) {
@@ -41,6 +46,7 @@ angular.module('openshiftConsole')
                   .get('builds', $routeParams.build, requestContext)
                   .then(function(build) {
                     angular.extend($scope, {
+                      project: project,
                       build: build,
                       logName: build.metadata.name
                     });
@@ -53,6 +59,7 @@ angular.module('openshiftConsole')
                   .then(function(log) {
                     angular.extend($scope, {
                       ready: true,
+                      canDownload: logLinks.canDownload(),
                       makeDownload: logLinks.makeDownload,
                       scrollTo: logLinks.scrollTo,
                       scrollTop: logLinks.scrollTop,

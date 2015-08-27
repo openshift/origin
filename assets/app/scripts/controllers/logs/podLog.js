@@ -19,6 +19,11 @@ angular.module('openshiftConsole')
         projectPromise: $.Deferred()
       };
 
+      DataService.list("projects", $scope, function(projects) {
+        $scope.projects = projects.by("metadata.name");
+        Logger.log("projects", $scope.projects);
+      });
+
       AuthService
         .withUser()
         .then(function(user) {
@@ -34,11 +39,12 @@ angular.module('openshiftConsole')
                     requestContext.projectPromise.reject(e);
                   });
         })
-        .then(function() {
+        .then(function(project) {
           return DataService
                   .get('pods', $routeParams.pod, requestContext)
                   .then(function(pod) {
                     angular.extend($scope, {
+                      project: project,
                       pod: pod,
                       logName: pod.metadata.name
                     });
@@ -51,6 +57,7 @@ angular.module('openshiftConsole')
                   .then(function(log) {
                     angular.extend($scope, {
                       ready: true,
+                      canDownload: logLinks.canDownload(),
                       makeDownload: logLinks.makeDownload,
                       scrollTo: logLinks.scrollTo,
                       goFull: logLinks.fullPageLink,
