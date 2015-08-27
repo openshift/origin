@@ -2,22 +2,37 @@ package images
 
 import "fmt"
 
+type ImageBaseType string
+
+const (
+	RHELBased   ImageBaseType = "rhel7"
+	CentosBased ImageBaseType = "centos7"
+	AllImages   ImageBaseType = "all"
+)
+
 type tc struct {
 	// The image version string (eg. '27' or '34')
 	Version string
 	// The base OS ('rhel7' or 'centos7')
-	BaseOS string
+	BaseOS ImageBaseType
 	// Command to execute
 	Cmd string
 	// Expected output from the command
 	Expected string
 
+	// Repository is either openshift/ or rhcsl/
+	// The default is 'openshift'
+	Repository string
+
 	// Internal: We resolve this in JustBeforeEach
 	DockerImageReference string
 }
 
+// Internal OpenShift registry to fetch the RHEL7 images from
+const InternalRegistryAddr = "ci.dev.openshift.redhat.com:5000"
+
 // This is a complete list of supported S2I images
-var s2iImages = map[string][]*tc{
+var s2iImages = map[string][]tc{
 	"ruby": {
 		{
 			Version:  "20",
@@ -40,11 +55,6 @@ var s2iImages = map[string][]*tc{
 			Version:  "33",
 			Cmd:      "python --version",
 			Expected: "Python 3.3.2",
-		},
-		{
-			Version:  "34",
-			Cmd:      "python --version",
-			Expected: "Python 3.4.2",
 		},
 	},
 	"nodejs": {
@@ -80,43 +90,42 @@ var s2iImages = map[string][]*tc{
 	},
 }
 
-// S2ICentosImages returns a map of all supported S2I images based on Centos
-func S2ICentosImages() map[string][]*tc {
-	result := s2iImages
-	for _, tcs := range result {
-		for _, t := range tcs {
-			t.BaseOS = "centos7"
+func GetTestCaseForImages(base ImageBaseType) map[string][]tc {
+	if base == AllImages {
+		result := GetTestCaseForImages(RHELBased)
+		for n, t := range GetTestCaseForImages(CentosBased) {
+			result[n] = append(result[n], t...)
+		}
+		return result
+	}
+	result := make(map[string][]tc)
+	for name, variants := range s2iImages {
+		switch base {
+		case RHELBased:
+			for i := range variants {
+				variants[i].BaseOS = RHELBased
+				resolveDockerImageReference(name, &variants[i])
+				result[name] = append(result[name], variants[i])
+			}
+		case CentosBased:
+			for i := range variants {
+				variants[i].BaseOS = CentosBased
+				resolveDockerImageReference(name, &variants[i])
+				result[name] = append(result[name], variants[i])
+
+			}
 		}
 	}
 	return result
-}
-
-// S2IRhelImages returns a map of all supported S2I images based on RHEL7
-func S2IRhelImages() map[string][]*tc {
-	result := s2iImages
-	for _, tcs := range result {
-		for _, t := range tcs {
-			t.BaseOS = "rhel7"
-		}
-	}
-	return result
-}
-
-// S2IAllImages returns a map of all supported S2I images
-func S2IAllImages() map[string][]*tc {
-	centos := S2ICentosImages()
-	rhel := S2IRhelImages()
-	for imageName, tcs := range centos {
-		centos[imageName] = append(tcs, rhel[imageName]...)
-	}
-	return centos
 }
 
 // resolveDockerImageReferences resolves the pull specs for all images
-func resolveDockerImageReferences() {
-	for imageName, tcs := range s2iImages {
-		for _, t := range tcs {
-			t.DockerImageReference = fmt.Sprintf("openshift/%s-%s-%s", imageName, t.Version, t.BaseOS)
-		}
+func resolveDockerImageReference(name string, t *tc) {
+	if len(t.Repository) == 0 {
+		t.Repository = "openshift"
+	}
+	t.DockerImageReference = fmt.Sprintf("%s/%s-%s-%s", t.Repository, name, t.Version, t.BaseOS)
+	if t.BaseOS == RHELBased {
+		t.DockerImageReference = fmt.Sprintf("%s/%s", InternalRegistryAddr, t.DockerImageReference)
 	}
 }
