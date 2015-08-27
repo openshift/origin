@@ -2336,6 +2336,7 @@ func convert_api_Parameter_To_v1beta3_Parameter(in *templateapi.Parameter, out *
 		defaulting.(func(*templateapi.Parameter))(in)
 	}
 	out.Name = in.Name
+	out.DisplayName = in.DisplayName
 	out.Description = in.Description
 	out.Value = in.Value
 	out.Generate = in.Generate
@@ -2372,6 +2373,7 @@ func convert_v1beta3_Parameter_To_api_Parameter(in *templateapiv1beta3.Parameter
 		defaulting.(func(*templateapiv1beta3.Parameter))(in)
 	}
 	out.Name = in.Name
+	out.DisplayName = in.DisplayName
 	out.Description = in.Description
 	out.Value = in.Value
 	out.Generate = in.Generate

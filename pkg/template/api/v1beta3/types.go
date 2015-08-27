@@ -36,6 +36,9 @@ type Parameter struct {
 	// Items using ${PARAMETER_NAME}
 	Name string `json:"name"`
 
+	// Optional: The name that will show in UI instead of parameter 'Name'
+	DisplayName string `json:"displayName,omitempty" description:"optional: provides human readable name for the parameter"`
+
 	// Optional: Parameter can have description
 	Description string `json:"description,omitempty"`
 

@@ -2231,6 +2231,7 @@ func deepCopy_v1_NetNamespaceList(in sdnapiv1.NetNamespaceList, out *sdnapiv1.Ne
 
 func deepCopy_v1_Parameter(in templateapiv1.Parameter, out *templateapiv1.Parameter, c *conversion.Cloner) error {
 	out.Name = in.Name
+	out.DisplayName = in.DisplayName
 	out.Description = in.Description
 	out.Value = in.Value
 	out.Generate = in.Generate

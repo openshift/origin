@@ -36,6 +36,9 @@ type Parameter struct {
 	// Items using ${PARAMETER_NAME}
 	Name string
 
+	// Optional: The name that will show in UI instead of parameter 'Name'
+	DisplayName string
+
 	// Optional: Parameter can have description
 	Description string
 
