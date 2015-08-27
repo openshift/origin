@@ -18,7 +18,7 @@ set -e
 ginkgo_check_extended
 set +e
 
-compile_extended
+os::build::extended
 
 test_privileges
 

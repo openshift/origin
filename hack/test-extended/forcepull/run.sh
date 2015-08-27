@@ -16,12 +16,11 @@ cd "${OS_ROOT}"
 source ${OS_ROOT}/hack/util.sh
 source ${OS_ROOT}/hack/common.sh
 
-
 set -e
 ginkgo_check_extended
 set +e
 
-compile_extended
+os::build::extended
 
 test_privileges
 
