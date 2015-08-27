@@ -2,6 +2,7 @@ package templaterouter
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"text/template"
 
@@ -59,11 +60,12 @@ type router interface {
 
 // NewTemplatePlugin creates a new TemplatePlugin.
 func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
+	templateBaseName := filepath.Base(cfg.TemplatePath)
 	masterTemplate := template.Must(template.New("config").ParseFiles(cfg.TemplatePath))
 	templates := map[string]*template.Template{}
 
 	for _, template := range masterTemplate.Templates() {
-		if template == masterTemplate {
+		if template.Name() == templateBaseName {
 			continue
 		}
 
