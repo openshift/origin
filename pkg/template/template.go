@@ -53,6 +53,10 @@ func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorL
 		if err != nil {
 			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("parameters", template.Parameters, err.Error()))
 		}
+		// If an object definition's metadata includes a namespace field, the field will be stripped out of
+		// the definition during template instantiation.  This is necessary because all objects created during
+		// instantiation are placed into the target namespace, so it would be invalid for the object to declare
+		//a different namespace.
 		stripNamespace(newItem)
 		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
 			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("labels", err, "label could not be applied"))
