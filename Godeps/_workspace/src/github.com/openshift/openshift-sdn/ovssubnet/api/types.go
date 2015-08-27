@@ -9,14 +9,14 @@ const (
 
 type SubnetRegistry interface {
 	InitSubnets() error
-	GetSubnets() (*[]Subnet, error)
+	GetSubnets() ([]Subnet, error)
 	GetSubnet(nodeName string) (*Subnet, error)
 	DeleteSubnet(nodeName string) error
 	CreateSubnet(sn string, sub *Subnet) error
 	WatchSubnets(receiver chan *SubnetEvent, stop chan bool) error
 
 	InitNodes() error
-	GetNodes() (*[]string, error)
+	GetNodes() ([]Node, error)
 	CreateNode(nodeName string, data string) error
 	WatchNodes(receiver chan *NodeEvent, stop chan bool) error
 
@@ -33,8 +33,13 @@ type SubnetRegistry interface {
 	DeleteNetNamespace(name string) error
 
 	GetServicesNetwork() (string, error)
-	GetServices() (*[]Service, error)
+	GetServices() ([]Service, error)
 	WatchServices(receiver chan *ServiceEvent, stop chan bool) error
+}
+
+type Subnet struct {
+	NodeIP   string
+	SubnetIP string
 }
 
 type SubnetEvent struct {
@@ -43,15 +48,14 @@ type SubnetEvent struct {
 	Subnet   Subnet
 }
 
-type NodeEvent struct {
-	Type     EventType
-	NodeName string
-	NodeIP   string
+type Node struct {
+	Name string
+	IP   string
 }
 
-type Subnet struct {
-	NodeIP   string
-	SubnetIP string
+type NodeEvent struct {
+	Type EventType
+	Node Node
 }
 
 type NetNamespace struct {
