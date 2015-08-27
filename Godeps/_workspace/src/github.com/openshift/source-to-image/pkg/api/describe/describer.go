@@ -49,7 +49,7 @@ func DescribeConfig(config *api.Config) string {
 			fmt.Fprintf(out, "Callback URL:\t%s\n", config.CallbackURL)
 		}
 		if len(config.ScriptsURL) > 0 {
-			fmt.Fprintf(out, "STI Scripts URL:\t%s\n", config.ScriptsURL)
+			fmt.Fprintf(out, "S2I Scripts URL:\t%s\n", config.ScriptsURL)
 		}
 		if len(config.WorkingDir) > 0 {
 			fmt.Fprintf(out, "Workdir:\t%s\n", config.WorkingDir)
