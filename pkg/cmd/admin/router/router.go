@@ -57,23 +57,98 @@ you have failover protection.`
 
   // Use a different router image and see the router configuration
   $ %[1]s %[2]s region-west -o yaml --images=myrepo/somerouter:mytag`
+
+	secretsVolumeName = "secret-volume"
+	secretsPath       = "/etc/secret-volume"
+
+	privkeySecretName = "external-host-private-key-secret"
+	privkeyVolumeName = "external-host-private-key-volume"
+	privkeyName       = "router.pem"
+	privkeyPath       = secretsPath + "/" + privkeyName
 )
 
+// RouterConfig contains the configuration parameters necessary to
+// launch a router, including general parameters, type of router, and
+// type-specific parameters.
 type RouterConfig struct {
-	Type               string
-	ImageTemplate      variable.ImageTemplate
-	Ports              string
-	Replicas           int
-	Labels             string
-	DryRun             bool
-	Credentials        string
+	// Type is the router type, which determines which plugin to use (f5
+	// or template).
+	Type string
+
+	// ImageTemplate specifies the image from which the router will be created.
+	ImageTemplate variable.ImageTemplate
+
+	// Ports specifies the container ports for the router.
+	Ports string
+
+	// Replicas specifies the initial replica count for the router.
+	Replicas int
+
+	// Labels specifies the label or labels that will be assigned to the router
+	// pod.
+	Labels string
+
+	// DryRun specifies that the router command should not launch a router but
+	// should instead exit with code 1 to indicate if a router is already running
+	// or code 0 otherwise.
+	DryRun bool
+
+	// Credentials specifies the path to a .kubeconfig file with the credentials
+	// with which the router may contact the master.
+	Credentials string
+
+	// DefaultCertificate holds the certificate that will be used if no more
+	// specific certificate is found.  This is typically a wildcard certificate.
 	DefaultCertificate string
-	Selector           string
-	ServiceAccount     string
-	StatsPort          int
-	StatsPassword      string
-	StatsUsername      string
-	HostNetwork        bool
+
+	// Selector specifies a label or set of labels that determines the nodes on
+	// which the router pod can be scheduled.
+	Selector string
+
+	// StatsPort specifies a port at which the router can provide statistics.
+	StatsPort int
+
+	// StatsPassword specifies a password required to authenticate connections to
+	// the statistics port.
+	StatsPassword string
+
+	// StatsUsername specifies a username required to authenticate connections to
+	// the statistics port.
+	StatsUsername string
+
+	// HostNetwork specifies whether to configure the router pod to use the host's
+	// network namespace or the container's.
+	HostNetwork bool
+
+	// ServiceAccount specifies the service account under which the router will
+	// run.
+	ServiceAccount string
+
+	// ExternalHost specifies the hostname or IP address of an external host for
+	// router plugins that integrate with an external load balancer (such as f5).
+	ExternalHost string
+
+	// ExternalHostUsername specifies the username for authenticating with the
+	// external host.
+	ExternalHostUsername string
+
+	// ExternalHostPassword specifies the password for authenticating with the
+	// external host.
+	ExternalHostPassword string
+
+	// ExternalHostHttpVserver specifies the virtual server for HTTP connections.
+	ExternalHostHttpVserver string
+
+	// ExternalHostHttpsVserver specifies the virtual server for HTTPS connections.
+	ExternalHostHttpsVserver string
+
+	// ExternalHostPrivateKey specifies an SSH private key for authenticating with
+	// the external host.
+	ExternalHostPrivateKey string
+
+	// ExternalHostInsecure specifies that the router should skip strict
+	// certificate verification when connecting to the external host.
+	ExternalHostInsecure bool
 }
 
 var errExit = fmt.Errorf("exit")
@@ -85,7 +160,7 @@ const (
 	defaultPorts = "80:80,443:443"
 )
 
-// NewCmdRouter implements the OpenShift cli router command
+// NewCmdRouter implements the OpenShift CLI router command.
 func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
 	cfg := &RouterConfig{
 		ImageTemplate: variable.NewDefaultImageTemplate(),
@@ -129,6 +204,13 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.")
 	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth.")
 	cmd.Flags().BoolVar(&cfg.HostNetwork, "host-network", cfg.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack.")
+	cmd.Flags().StringVar(&cfg.ExternalHost, "external-host", cfg.ExternalHost, "If the underlying router implementation connects with an external host, this is the external host's hostname.")
+	cmd.Flags().StringVar(&cfg.ExternalHostUsername, "external-host-username", cfg.ExternalHostUsername, "If the underlying router implementation connects with an external host, this is the username for authenticating with the external host.")
+	cmd.Flags().StringVar(&cfg.ExternalHostPassword, "external-host-password", cfg.ExternalHostPassword, "If the underlying router implementation connects with an external host, this is the password for authenticating with the external host.")
+	cmd.Flags().StringVar(&cfg.ExternalHostHttpVserver, "external-host-http-vserver", cfg.ExternalHostHttpVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTP connections.")
+	cmd.Flags().StringVar(&cfg.ExternalHostHttpsVserver, "external-host-https-vserver", cfg.ExternalHostHttpsVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTPS connections.")
+	cmd.Flags().StringVar(&cfg.ExternalHostPrivateKey, "external-host-private-key", cfg.ExternalHostPrivateKey, "If the underlying router implementation requires an SSH private key, this is the path to the private key file.")
+	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
 
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
 
@@ -137,18 +219,114 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	return cmd
 }
 
-func loadDefaultCert(file string) (string, error) {
+// Read the specified file and return it as a bytes array.
+func loadData(file string) ([]byte, error) {
 	if len(file) == 0 {
-		return "", nil
+		return []byte{}, nil
 	}
+
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
+
+	return bytes, nil
+}
+
+// Read the specified certificate file and return it as a string.
+func loadCert(file string) (string, error) {
+	bytes, err := loadData(file)
+
 	return string(bytes), err
 }
 
-// RunCmdRouter contains all the necessary functionality for the OpenShift cli router command
+// Read the specified key file and return it as a bytes array.
+func loadKey(file string) ([]byte, error) {
+	return loadData(file)
+}
+
+// generateSecretsConfig generates any Secret and Volume objects, such
+// as SSH private keys, that are necessary for the router container.
+func generateSecretsConfig(cfg *RouterConfig, kClient *kclient.Client,
+	namespace string) ([]*kapi.Secret, []kapi.Volume, []kapi.VolumeMount,
+	error) {
+	secrets := []*kapi.Secret{}
+	volumes := []kapi.Volume{}
+	mounts := []kapi.VolumeMount{}
+
+	if len(cfg.ExternalHostPrivateKey) != 0 {
+		privkeyData, err := loadKey(cfg.ExternalHostPrivateKey)
+		if err != nil {
+			return secrets, volumes, mounts, fmt.Errorf("error reading private key"+
+				" for external host: %v", err)
+		}
+
+		serviceAccount, err := kClient.ServiceAccounts(namespace).Get(cfg.ServiceAccount)
+		if err != nil {
+			return secrets, volumes, mounts, fmt.Errorf("error looking up"+
+				" service account %s: %v", cfg.ServiceAccount, err)
+		}
+
+		privkeySecret := &kapi.Secret{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: privkeySecretName,
+				Annotations: map[string]string{
+					kapi.ServiceAccountNameKey: serviceAccount.Name,
+					kapi.ServiceAccountUIDKey:  string(serviceAccount.UID),
+				},
+			},
+			Data: map[string][]byte{privkeyName: privkeyData},
+		}
+
+		secrets = append(secrets, privkeySecret)
+	}
+
+	// We need a secrets volume and mount iff we have secrets.
+	if len(secrets) != 0 {
+		secretsVolume := kapi.Volume{
+			Name: secretsVolumeName,
+			VolumeSource: kapi.VolumeSource{
+				Secret: &kapi.SecretVolumeSource{
+					SecretName: privkeySecretName,
+				},
+			},
+		}
+
+		secretsMount := kapi.VolumeMount{
+			Name:      secretsVolumeName,
+			ReadOnly:  true,
+			MountPath: secretsPath,
+		}
+
+		volumes = []kapi.Volume{secretsVolume}
+		mounts = []kapi.VolumeMount{secretsMount}
+	}
+
+	return secrets, volumes, mounts, nil
+}
+
+func generateLivenessProbeConfig(cfg *RouterConfig,
+	ports []kapi.ContainerPort) *kapi.Probe {
+	var probe *kapi.Probe
+
+	if cfg.Type == "haproxy-router" {
+		probe = &kapi.Probe{
+			Handler: kapi.Handler{
+				TCPSocket: &kapi.TCPSocketAction{
+					Port: kutil.IntOrString{
+						IntVal: ports[0].ContainerPort,
+					},
+				},
+			},
+			InitialDelaySeconds: 10,
+		}
+	}
+
+	return probe
+}
+
+// RunCmdRouter contains all the necessary functionality for the
+// OpenShift CLI router command.
 func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *RouterConfig, args []string) error {
 	var name string
 	switch len(args) {
@@ -276,7 +454,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			insecure = "true"
 		}
 
-		defaultCert, err := loadDefaultCert(cfg.DefaultCertificate)
+		defaultCert, err := loadCert(cfg.DefaultCertificate)
 		if err != nil {
 			return fmt.Errorf("router could not be created; error reading default certificate file: %v", err)
 		}
@@ -287,20 +465,35 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		}
 
 		env := app.Environment{
-			"OPENSHIFT_MASTER":         config.Host,
-			"OPENSHIFT_CA_DATA":        string(config.CAData),
-			"OPENSHIFT_KEY_DATA":       string(config.KeyData),
-			"OPENSHIFT_CERT_DATA":      string(config.CertData),
-			"OPENSHIFT_INSECURE":       insecure,
-			"DEFAULT_CERTIFICATE":      defaultCert,
-			"ROUTER_SERVICE_NAME":      name,
-			"ROUTER_SERVICE_NAMESPACE": namespace,
-			"STATS_PORT":               strconv.Itoa(cfg.StatsPort),
-			"STATS_USERNAME":           cfg.StatsUsername,
-			"STATS_PASSWORD":           cfg.StatsPassword,
+			"OPENSHIFT_MASTER":                   config.Host,
+			"OPENSHIFT_CA_DATA":                  string(config.CAData),
+			"OPENSHIFT_KEY_DATA":                 string(config.KeyData),
+			"OPENSHIFT_CERT_DATA":                string(config.CertData),
+			"OPENSHIFT_INSECURE":                 insecure,
+			"DEFAULT_CERTIFICATE":                defaultCert,
+			"ROUTER_SERVICE_NAME":                name,
+			"ROUTER_SERVICE_NAMESPACE":           namespace,
+			"ROUTER_EXTERNAL_HOST_HOSTNAME":      cfg.ExternalHost,
+			"ROUTER_EXTERNAL_HOST_USERNAME":      cfg.ExternalHostUsername,
+			"ROUTER_EXTERNAL_HOST_PASSWORD":      cfg.ExternalHostPassword,
+			"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":  cfg.ExternalHostHttpVserver,
+			"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER": cfg.ExternalHostHttpsVserver,
+			"ROUTER_EXTERNAL_HOST_INSECURE":      strconv.FormatBool(cfg.ExternalHostInsecure),
+			"ROUTER_EXTERNAL_HOST_PRIVKEY":       privkeyPath,
+			"STATS_PORT":                         strconv.Itoa(cfg.StatsPort),
+			"STATS_USERNAME":                     cfg.StatsUsername,
+			"STATS_PASSWORD":                     cfg.StatsPassword,
 		}
 
 		updatePercent := int(-10)
+
+		secrets, volumes, mounts, err := generateSecretsConfig(cfg, kClient,
+			namespace)
+		if err != nil {
+			return fmt.Errorf("router could not be created: %v", err)
+		}
+
+		livenessProbe := generateLivenessProbeConfig(cfg, ports)
 
 		objects := []runtime.Object{
 			&dapi.DeploymentConfig{
@@ -327,29 +520,44 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 								NodeSelector:       nodeSelector,
 								Containers: []kapi.Container{
 									{
-										Name:  "router",
-										Image: image,
-										Ports: ports,
-										Env:   env.List(),
-										LivenessProbe: &kapi.Probe{
-											Handler: kapi.Handler{
-												TCPSocket: &kapi.TCPSocketAction{
-													Port: kutil.IntOrString{
-														IntVal: ports[0].ContainerPort,
-													},
-												},
-											},
-											InitialDelaySeconds: 10,
-										},
+										Name:            "router",
+										Image:           image,
+										Ports:           ports,
+										Env:             env.List(),
+										LivenessProbe:   livenessProbe,
 										ImagePullPolicy: kapi.PullIfNotPresent,
+										VolumeMounts:    mounts,
 									},
 								},
+								Volumes: volumes,
 							},
 						},
 					},
 				},
 			},
 		}
+
+		if len(secrets) != 0 {
+			serviceAccount, err := kClient.ServiceAccounts(namespace).Get(cfg.ServiceAccount)
+			if err != nil {
+				return fmt.Errorf("error looking up service account %s: %v",
+					cfg.ServiceAccount, err)
+			}
+
+			for _, secret := range secrets {
+				objects = append(objects, secret)
+
+				serviceAccount.Secrets = append(serviceAccount.Secrets,
+					kapi.ObjectReference{Name: secret.Name})
+			}
+
+			_, err = kClient.ServiceAccounts(namespace).Update(serviceAccount)
+			if err != nil {
+				return fmt.Errorf("error adding secret key to service account %s: %v",
+					cfg.ServiceAccount, err)
+			}
+		}
+
 		objects = app.AddServices(objects, true)
 		// TODO: label all created objects with the same label - router=<name>
 		list := &kapi.List{Items: objects}
@@ -379,7 +587,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 	return nil
 }
 
-// generateStatsPassword creates a random password
+// generateStatsPassword creates a random password.
 func generateStatsPassword() string {
 	allowableChars := []rune("abcdefghijlkmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 	allowableCharLength := len(allowableChars)
