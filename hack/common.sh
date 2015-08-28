@@ -504,3 +504,21 @@ os::build::gen-docs() {
 
   echo "Assets generated in ${dest}"
 }
+
+# While upstream docker supports a `docker` group, in Project Atomic
+# we decided to discourage its use; see https://lists.projectatomic.io/projectatomic-archives/atomic-devel/2015-January/msg00034.html
+# If the docker socket isn't writable, try sudo.
+os::docker_needs_sudo() {
+    if test -w /run/docker.sock; then
+       return 1
+    else
+       return 0
+    fi
+}
+os::docker() {
+    if os::docker_needs_sudo; then
+       sudo docker "$@"
+    else
+       docker "$@"
+    fi
+}
