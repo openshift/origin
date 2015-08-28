@@ -6,7 +6,6 @@ import (
 	log "github.com/golang/glog"
 	"net"
 	"os/exec"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -21,11 +20,11 @@ func NewFlowController() *FlowController {
 	return &FlowController{}
 }
 
-func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork string) error {
+func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork string, mtu uint) error {
 	_, ipnet, err := net.ParseCIDR(localSubnet)
 	subnetMaskLength, _ := ipnet.Mask.Size()
 	gateway := netutils.GenerateDefaultGateway(ipnet).String()
-	out, err := exec.Command("openshift-sdn-multitenant-setup.sh", gateway, ipnet.String(), containerNetwork, strconv.Itoa(subnetMaskLength), gateway, servicesNetwork).CombinedOutput()
+	out, err := exec.Command("openshift-sdn-multitenant-setup.sh", gateway, ipnet.String(), containerNetwork, fmt.Sprint(subnetMaskLength), gateway, servicesNetwork, fmt.Sprint(mtu)).CombinedOutput()
 	log.Infof("Output of setup script:\n%s", out)
 	if err != nil {
 		exitErr, ok := err.(*exec.ExitError)
