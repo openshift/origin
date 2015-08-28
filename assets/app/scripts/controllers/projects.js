@@ -8,11 +8,13 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectsController', function ($scope, $route, DataService, AuthService, Logger, hashSizeFilter) {
+  .controller('ProjectsController', function ($scope, $route, $timeout, $filter, DataService, AuthService, Logger, hashSizeFilter) {
     $scope.projects = {};
     $scope.alerts = $scope.alerts || {};
     $scope.showGetStarted = false;
     $scope.canCreate = undefined;
+    $scope.confirmingMap = {};
+    $scope.deletingMap = {};
 
     $('#openshift-logo').on('click.projectsPage', function() {
       // Force a reload. Angular doesn't reload the view when the URL doesn't change.
@@ -23,6 +25,49 @@ angular.module('openshiftConsole')
       // The click handler is only necessary on the projects page.
       $('#openshift-logo').off('click.projectsPage');
     });
+
+    $scope.toggleConfirm = function(project) {
+      // toggle prompt for user to decide if they are sure about deletion
+      var projectName = project.metadata.name;
+
+      // disable the trash button if current project is being deleted
+      if (!$scope.deletingMap[projectName]) {
+        $scope.confirmingMap[projectName] = !$scope.confirmingMap[projectName];
+      }
+    };
+
+    $scope.deleteProject = function(project) {
+      // actually deleting the project
+      var projectName = project.metadata.name;
+      delete $scope.alerts[projectName];
+      $scope.confirmingMap[projectName] = false;
+      $scope.deletingMap[projectName] = true;
+      DataService.delete('projects', projectName, $scope)
+      .then(function() {
+        // called if successful deletion
+        $scope.alerts[projectName] = {
+          type: "success",
+          message: "Project " + $filter('displayName')(project) + " was successfully deleted."
+        };
+        delete $scope.projects[projectName];
+      })
+      .catch(function(err) {
+        // called if failure to delete
+        $scope.alerts[projectName] = {
+          type: "error",
+          message: "Project " + $filter('displayName')(project) + " could not be deleted.",
+          details: err
+        };
+        Logger.error("Project " + $filter('displayName')(project) + " could not be deleted.", err);
+      })
+      .finally(function() {
+        // common stuff
+        $scope.deletingMap[projectName] = false;
+        $timeout(function() {
+          delete $scope.alerts[projectName];
+        }, 10000);
+      });
+    };
 
     AuthService.withUser().then(function() {
       DataService.list("projects", $scope, function(projects) {
