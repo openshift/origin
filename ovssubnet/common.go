@@ -34,7 +34,7 @@ type OvsController struct {
 }
 
 type FlowController interface {
-	Setup(localSubnetIP, globalSubnetIP, serviceSubnetIP string) error
+	Setup(localSubnetIP, globalSubnetIP, serviceSubnetIP string, mtu uint) error
 	AddOFRules(nodeIP, localSubnetIP, localIP string) error
 	DelOFRules(nodeIP, localIP string) error
 	AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
@@ -314,7 +314,7 @@ func (oc *OvsController) syncWithMaster() error {
 	return oc.subnetRegistry.CreateNode(oc.hostName, oc.localIP)
 }
 
-func (oc *OvsController) StartNode(sync, skipsetup bool) error {
+func (oc *OvsController) StartNode(sync, skipsetup bool, mtu uint) error {
 	if sync {
 		err := oc.syncWithMaster()
 		if err != nil {
@@ -341,7 +341,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool) error {
 			log.Errorf("Failed to obtain ServicesNetwork: %v", err)
 			return err
 		}
-		err = oc.flowController.Setup(oc.localSubnet.SubnetIP, containerNetwork, servicesNetwork)
+		err = oc.flowController.Setup(oc.localSubnet.SubnetIP, containerNetwork, servicesNetwork, mtu)
 		if err != nil {
 			return err
 		}
