@@ -2,7 +2,6 @@ package osdn
 
 import (
 	"fmt"
-	"net"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -14,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
 
-	log "github.com/golang/glog"
+	osdn "github.com/openshift/openshift-sdn/ovssubnet"
 	osdnapi "github.com/openshift/openshift-sdn/ovssubnet/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -121,7 +120,7 @@ func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, error) {
 			nodeIP = node.Status.Addresses[0].Address
 		} else {
 			var err error
-			nodeIP, err = getNodeIP(node.ObjectMeta.Name)
+			nodeIP, err = osdn.GetNodeIP(node.ObjectMeta.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -177,7 +176,7 @@ func (oi *OsdnRegistryInterface) WatchNodes(receiver chan *osdnapi.NodeEvent, st
 		if len(node.Status.Addresses) > 0 {
 			nodeIP = node.Status.Addresses[0].Address
 		} else {
-			nodeIP, err = getNodeIP(node.ObjectMeta.Name)
+			nodeIP, err = osdn.GetNodeIP(node.ObjectMeta.Name)
 			if err != nil {
 				return err
 			}
@@ -496,27 +495,4 @@ func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, rec
 			}
 		}
 	}
-}
-
-// TODO: This method exists in openshift-sdn/ovssubnet/common.go
-// Reuse the existing method in common.go
-func getNodeIP(nodeName string) (string, error) {
-	ip := net.ParseIP(nodeName)
-	if ip == nil {
-		addrs, err := net.LookupIP(nodeName)
-		if err != nil {
-			log.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
-			return "", err
-		}
-		for _, addr := range addrs {
-			if addr.String() != "127.0.0.1" {
-				ip = addr
-				break
-			}
-		}
-	}
-	if ip == nil || len(ip.String()) == 0 {
-		return "", fmt.Errorf("Failed to obtain IP address from node name: %s", nodeName)
-	}
-	return ip.String(), nil
 }
