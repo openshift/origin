@@ -19,6 +19,8 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 const (
@@ -27,14 +29,17 @@ Print the logs for a container in a pod
 
 If the pod has only one container, the container name is optional.`
 
-	logsExample = `  # Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ %[1]s logs 123456-7890 -c ruby-container
+	logsExample = `  # Returns snapshot of ruby-container logs from pod backend.
+  $ %[1]s logs backend -c ruby-container
 
-  # Starts streaming of ruby-container logs from pod 123456-7890.
-  $ %[1]s logs -f 123456-7890 -c ruby-container
+  # Starts streaming of ruby-container logs from pod backend.
+  $ %[1]s logs -f pod/backend -c ruby-container
 
-  # Starts streaming the logs of the most recent build of the openldap BuildConfig.
-  $ %[1]s logs -f bc/openldap`
+  # Starts streaming the logs of the most recent build of the openldap buildConfig.
+  $ %[1]s logs -f bc/openldap
+
+  # Starts streaming the logs of the latest deployment of the mysql deploymentConfig
+  $ %[1]s logs -f dc/mysql`
 )
 
 type OpenShiftLogsOptions struct {
@@ -153,6 +158,7 @@ func (o *OpenShiftLogsOptions) RunLog() error {
 		return errors.New("container cannot be specified with anything besides a pod")
 	}
 
+	// TODO: Use osutil.ResolveResource to resolve resource types
 	switch resourceType {
 	case "bc", "buildconfig", "buildconfigs":
 		buildsForBCSelector := labels.SelectorFromSet(map[string]string{buildapi.BuildConfigLabel: resourceName})
@@ -175,6 +181,13 @@ func (o *OpenShiftLogsOptions) RunLog() error {
 		}
 		return o.runLogsForBuild(build)
 
+	case "dc", "deploymentconfig", "deploymentconfigs":
+		dc, err := o.OriginClient.DeploymentConfigs(o.Namespace).Get(resourceName)
+		if err != nil {
+			return err
+		}
+		return o.runLogsForDeployment(dc)
+
 	default:
 		return fmt.Errorf("cannot display logs for resource type %v", resourceType)
 	}
@@ -196,4 +209,39 @@ func (o *OpenShiftLogsOptions) runLogsForBuild(build *buildapi.Build) error {
 
 	_, err = io.Copy(o.KubeLogOptions.Out, readCloser)
 	return err
+}
+
+func (o *OpenShiftLogsOptions) runLogsForDeployment(dc *deployapi.DeploymentConfig) error {
+	opts := deployapi.DeploymentLogOptions{
+		Follow: o.KubeLogOptions.Follow,
+		NoWait: false,
+	}
+
+	readCloser, err := o.OriginClient.DeploymentLogs(dc.Namespace).Get(dc.Name, opts).Stream()
+	if err != nil {
+		return err
+	}
+	defer readCloser.Close()
+
+	written, err := io.Copy(o.KubeLogOptions.Out, readCloser)
+	if err != nil {
+		return err
+	}
+
+	// If nothing is written, it means there are no logs returned. Normally
+	// in two cases we will get no logs: either if we don't want to wait
+	// for the deployer pod to be created (NoWait = true) or if the deployer
+	// pod has been deleted (successful deployment).
+	//
+	// Note that in case of manual pod deletion or deployment pruning, this may
+	// be inaccurate.
+	if written == 0 && !opts.NoWait {
+		if opts.Version == nil {
+			fmt.Fprintln(o.KubeLogOptions.Out, "Latest deployment successfully made active, no logs to show.")
+			return nil
+		}
+		fmt.Fprintf(o.KubeLogOptions.Out, "No logs exist for deployment %s.\n", deployutil.DeploymentNameForConfigVersion(dc.Name, *opts.Version))
+	}
+
+	return nil
 }

@@ -502,14 +502,17 @@ Print the logs for a resource.
 
 [options="nowrap"]
 ----
-  # Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ openshift cli logs 123456-7890 -c ruby-container
+  # Returns snapshot of ruby-container logs from pod backend.
+  $ openshift cli logs backend -c ruby-container
 
-  # Starts streaming of ruby-container logs from pod 123456-7890.
-  $ openshift cli logs -f 123456-7890 -c ruby-container
+  # Starts streaming of ruby-container logs from pod backend.
+  $ openshift cli logs -f pod/backend -c ruby-container
 
-  # Starts streaming the logs of the most recent build of the openldap BuildConfig.
+  # Starts streaming the logs of the most recent build of the openldap buildConfig.
   $ openshift cli logs -f bc/openldap
+
+  # Starts streaming the logs of the latest deployment of the mysql deploymentConfig
+  $ openshift cli logs -f dc/mysql
 ----
 ====
 
