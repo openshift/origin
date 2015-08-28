@@ -1,6 +1,7 @@
 package f5
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -183,7 +184,18 @@ func newTestRouterWithState(state mockF5State) (*F5Plugin, *mockF5, error) {
 
 	execCommand = mockExecCommand
 
-	server := httptest.NewTLSServer(newF5Routes(state))
+	server := httptest.NewUnstartedServer(newF5Routes(state))
+	// Work around performance issues with Golang's ECDHE implementation.
+	// See <https://github.com/openshift/origin/issues/4407>.
+	server.Config.TLSConfig = new(tls.Config)
+	server.Config.TLSConfig.CipherSuites = []uint16{
+		tls.TLS_RSA_WITH_RC4_128_SHA,
+		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+	}
+	server.TLS = server.Config.TLSConfig
+	server.StartTLS()
 
 	url, err := url.Parse(server.URL)
 	if err != nil {
