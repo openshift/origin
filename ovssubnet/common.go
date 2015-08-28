@@ -153,6 +153,13 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		for _, nsName := range existingNamespaces {
 			// Skip admin namespaces, they will have VNID: 0
 			if oc.isAdminNamespace(nsName) {
+				// Revoke VNID if already exists
+				if _, ok := oc.VNIDMap[nsName]; ok {
+					err := oc.revokeVNID(nsName)
+					if err != nil {
+						return err
+					}
+				}
 				continue
 			}
 			// Skip if VNID already exists for the namespace
@@ -199,6 +206,23 @@ func (oc *OvsController) assignVNID(namespaceName string) error {
 	return nil
 }
 
+func (oc *OvsController) revokeVNID(namespaceName string) error {
+	err := oc.subnetRegistry.DeleteNetNamespace(namespaceName)
+	if err != nil {
+		return err
+	}
+	netid, ok := oc.VNIDMap[namespaceName]
+	if !ok {
+		return fmt.Errorf("Error while fetching Net ID for namespace: %s", namespaceName)
+	}
+	err = oc.netIDManager.ReleaseNetID(netid)
+	if err != nil {
+		return fmt.Errorf("Error while releasing Net ID: %v", err)
+	}
+	delete(oc.VNIDMap, namespaceName)
+	return nil
+}
+
 func (oc *OvsController) watchNetworks() {
 	nsevent := make(chan *api.NamespaceEvent)
 	stop := make(chan bool)
@@ -214,22 +238,11 @@ func (oc *OvsController) watchNetworks() {
 					continue
 				}
 			case api.Deleted:
-				err := oc.subnetRegistry.DeleteNetNamespace(ev.Name)
+				err := oc.revokeVNID(ev.Name)
 				if err != nil {
-					log.Error("Error while deleting Net ID: %v", err)
+					log.Error("Error revoking Net ID: %v", err)
 					continue
 				}
-				netid, ok := oc.VNIDMap[ev.Name]
-				if !ok {
-					log.Error("Error while fetching Net ID for namespace: %s", ev.Name)
-					continue
-				}
-				err = oc.netIDManager.ReleaseNetID(netid)
-				if err != nil {
-					log.Error("Error while releasing Net ID: %v", err)
-					continue
-				}
-				delete(oc.VNIDMap, ev.Name)
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of nodes.")
