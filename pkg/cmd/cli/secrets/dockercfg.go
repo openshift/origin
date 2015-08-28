@@ -116,10 +116,6 @@ func (o CreateDockerConfigOptions) CreateDockerSecret() error {
 }
 
 func (o CreateDockerConfigOptions) MakeDockerSecret() (*api.Secret, error) {
-	if err := o.Validate(); err != nil {
-		return nil, err
-	}
-
 	dockercfgAuth := credentialprovider.DockerConfigEntry{
 		Username: o.Username,
 		Password: o.Password,
