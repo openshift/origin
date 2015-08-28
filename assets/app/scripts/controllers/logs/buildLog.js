@@ -9,54 +9,26 @@ angular.module('openshiftConsole')
     '$scope',
     '$timeout',
     '$window',
-    'AuthService',
     'DataService',
+    'project',
     'logLinks',
-    function($anchorScroll, $location, $q, $routeParams, $scope, $timeout, $window, AuthService, DataService, logLinks) {
-
-      var requestContext = {
-        projectName: $routeParams.project,
-        // TODO: possible to hide this away in the service?
-        projectPromise: $.Deferred()
-      };
+    function($anchorScroll, $location, $q, $routeParams, $scope, $timeout, $window, DataService, project, logLinks) {
 
       DataService.list("projects", $scope, function(projects) {
         $scope.projects = projects.by("metadata.name");
         Logger.log("projects", $scope.projects);
       });
 
-      AuthService
-        .withUser()
-        .then(function(user) {
-          return DataService
-                  .get('projects', requestContext.projectName, requestContext, {errorNotification: false})
-                  .then(function(project) {
-                    // though the above .get('projects') is really my project promise...
-                    requestContext.projectPromise.resolve(project);
-                    angular.extend(requestContext, {
-                      project: project
-                    });
-                    return project;
-                  }, function(e) {
-                    requestContext.projectPromise.reject(e);
-                  });
-        })
-        .then(function(project) {
-          return DataService
-                  .get('builds', $routeParams.build, requestContext)
-                  .then(function(build) {
-                    angular.extend($scope, {
-                      project: project,
-                      build: build,
-                      logName: build.metadata.name
-                    });
-                    return build;
-                  });
-        })
-        .then(function() {
-          return DataService
-                  .get('builds/log', $routeParams.build, requestContext)
-                  .then(function(log) {
+      project
+        .get($routeParams.project)
+        .then(_.spread(function(project, context) {
+          return $q.all([
+                    DataService
+                      .get('builds', $routeParams.build, context),
+                    DataService
+                      .get('builds/log', $routeParams.build, context)
+                  ])
+                  .then(_.spread(function(build, log) {
                     angular.extend($scope, {
                       ready: true,
                       canDownload: logLinks.canDownload(),
@@ -67,6 +39,9 @@ angular.module('openshiftConsole')
                       goFull: logLinks.fullPageLink,
                       goChromeless: logLinks.chromelessLink,
                       goText: logLinks.textOnlyLink,
+                      project: project,
+                      build: build,
+                      logName: build.metadata.name,
                       // optionally as a text string or array.
                       // experimenting w/angular's ability to render...
                       log:  log ?
@@ -94,11 +69,10 @@ angular.module('openshiftConsole')
                       $anchorScroll();
                     });
                     return log;
-                  });
-        })
+                  }));
+        }))
         .catch(function(err) {
           angular.extend($scope, {
-            // for the moment just passing the error response up to print
             log: err
           });
         });
