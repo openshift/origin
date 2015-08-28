@@ -49,6 +49,12 @@ func LabelForDeploymentConfig(config *deployapi.DeploymentConfig) string {
 	return fmt.Sprintf("%s/%s:%d", config.Namespace, config.Name, config.LatestVersion)
 }
 
+// DeploymentNameForConfigVersion returns the name of the version-th deployment
+// for the config that has the provided name
+func DeploymentNameForConfigVersion(name string, version int) string {
+	return fmt.Sprintf("%s-%d", name, version)
+}
+
 // ConfigSelector returns a label Selector which can be used to find all
 // deployments for a DeploymentConfig.
 //
