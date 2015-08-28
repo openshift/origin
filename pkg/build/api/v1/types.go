@@ -448,7 +448,6 @@ type GitInfo struct {
 // BuildLog is the (unused) resource associated with the build log redirector
 type BuildLog struct {
 	unversioned.TypeMeta `json:",inline"`
-	unversioned.ListMeta `json:"metadata,omitempty"`
 }
 
 // BuildRequest is the resource used to pass parameters to build generator
@@ -481,6 +480,7 @@ type BuildLogOptions struct {
 
 	// NoWait if true causes the call to return immediately even if the build
 	// is not available yet. Otherwise the server will wait until the build has started.
+	// TODO: Fix the tag to 'noWait' in v2
 	NoWait bool `json:"nowait,omitempty" description:"if true indicates that the server should not wait for a log to be available before returning; defaults to false"`
 }
 
