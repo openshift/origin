@@ -41,7 +41,7 @@ func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, error) {
 		return nil, err
 	}
 	// convert HostSubnet to osdnapi.Subnet
-	subList := make([]osdnapi.Subnet, 0)
+	subList := make([]osdnapi.Subnet, 0, len(hostSubnetList.Items))
 	for _, subnet := range hostSubnetList.Items {
 		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, SubnetIP: subnet.Subnet})
 	}
@@ -114,7 +114,7 @@ func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, error) {
 		return nil, err
 	}
 
-	nodes := make([]osdnapi.Node, 0)
+	nodes := make([]osdnapi.Node, 0, len(knodes.Items))
 	for _, node := range knodes.Items {
 		var nodeIP string
 		if len(node.Status.Addresses) > 0 {
@@ -243,6 +243,18 @@ func (oi *OsdnRegistryInterface) CheckEtcdIsAlive(seconds uint64) bool {
 	return true
 }
 
+func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, error) {
+	namespaceList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return nil, err
+	}
+	namespaces := make([]string, 0, len(namespaceList.Items))
+	for _, ns := range namespaceList.Items {
+		namespaces = append(namespaces, ns.Name)
+	}
+	return namespaces, nil
+}
+
 func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan *osdnapi.NamespaceEvent, stop chan bool) error {
 	nsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	listWatch := &cache.ListWatch{
@@ -317,7 +329,7 @@ func (oi *OsdnRegistryInterface) GetNetNamespaces() ([]osdnapi.NetNamespace, err
 		return nil, err
 	}
 	// convert api.NetNamespace to osdnapi.NetNamespace
-	nsList := make([]osdnapi.NetNamespace, 0)
+	nsList := make([]osdnapi.NetNamespace, 0, len(netNamespaceList.Items))
 	for _, netns := range netNamespaceList.Items {
 		nsList = append(nsList, osdnapi.NetNamespace{Name: netns.Name, NetID: netns.NetID})
 	}
@@ -352,11 +364,11 @@ func (oi *OsdnRegistryInterface) InitServices() error {
 }
 
 func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, error) {
-	oServList := make([]osdnapi.Service, 0)
 	kNsList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
+	oServList := make([]osdnapi.Service, 0)
 	for _, ns := range kNsList.Items {
 		kServList, err := oi.kClient.Services(ns.Name).List(labels.Everything())
 		if err != nil {
