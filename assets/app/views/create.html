@@ -1,5 +1,5 @@
 <div ng-controller="ProjectController">
-  <div ng-controller="CreateController">
+  <div ng-controller="CreateController" class="add-to-project">
     <div class="container">
       <ol class="breadcrumb">
         <li><a href="{{projectName | projectOverviewURL}}">{{(project | displayName) || projectName}}</a></li>
@@ -7,7 +7,7 @@
       </ol>
       <div class="row">
         <div class="col-md-12">
-          <h1>Create Using Your Code</h1>
+          <h1><i class="fa fa-code"></i> Create Using Your Code</h1>
           <form name="from_source_form" class="form-inline gutter-bottom">
             <p>Create your application from a Git source code repository. Optionally specify a branch, tag, or commit ID with #ref.</p>
             <div class="row">
@@ -38,7 +38,7 @@
           <div class="row">
             <div class="col-md-12">
               <div class="separator"></div>
-              <h1>Create Using a Template</h1>
+              <h1><i class="fa fa-bolt"></i> Create Using a Template</h1>
               <p>Templates have predefined resources for quickly creating components. You can customize some options in the next step.</p>
               <h3>Instant Apps</h3>
               <div ng-if="!templatesLoaded && (instantApps | hashSize) === 0">Loading...</div>

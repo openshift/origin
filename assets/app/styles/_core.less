@@ -192,19 +192,31 @@ html, body {
   margin-bottom: 0;
 }
 
-.empty-state-msg {
-  background-color: #ffffff;
-  border-radius: @border-radius-sm;
-  box-shadow: @osc-object-box-shadow;
-  font-weight: 300;
-  margin: auto;
-  max-width: 600px;
+.empty-project {
+  margin: 10px auto;
+  max-width: 500px;
   padding: 30px;
-  text-align: center;
-  p {
-    font-size: @font-size-large;
-    max-width: 400px;
-    margin: 30px auto;
+  // Make sure icons are the same size so text aligns.
+  .fa {
+    width: 16px;
+    text-align: center;
+  }
+  dd {
+    margin-left: 20px;
+    margin-bottom: 10px;
+  }
+}
+
+.empty-project-list {
+  .text-center;
+  margin: @grid-gutter-width auto;
+  max-width: 600px;
+  padding: 0 (@grid-gutter-width / 2);
+  .btn {
+    margin: 10px 0 20px;
+  }
+  @media (min-height: 500px) {
+    margin-top: 150px;
   }
 }
 
@@ -214,6 +226,12 @@ html, body {
 
  label.checkbox {
   font-weight: normal;
+}
+
+// Make sure icons are the same size so headings align.
+.add-to-project h1 .fa {
+  width: 24px;
+  text-align: center;
 }
 
 .create-from-template,

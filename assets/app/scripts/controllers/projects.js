@@ -8,10 +8,10 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectsController', function ($scope, $route, DataService, AuthService, Logger) {
+  .controller('ProjectsController', function ($scope, $route, DataService, AuthService, Logger, hashSizeFilter) {
     $scope.projects = {};
     $scope.alerts = $scope.alerts || {};
-    $scope.emptyMessage = "Loading...";
+    $scope.showGetStarted = false;
     $scope.canCreate = undefined;
 
     $('#openshift-logo').on('click.projectsPage', function() {
@@ -27,7 +27,7 @@ angular.module('openshiftConsole')
     AuthService.withUser().then(function() {
       DataService.list("projects", $scope, function(projects) {
         $scope.projects = projects.by("metadata.name");
-        $scope.emptyMessage = "No projects to show.";
+        $scope.showGetStarted = hashSizeFilter($scope.projects) === 0;
       });
     });
 

@@ -1,28 +1,49 @@
-<div class="container">
-  <div>
+<div ng-if="!showGetStarted" class="container">
+  <div ng-if="(projects | hashSize) === 0" class="text-muted">Loading...</div>
+  <div ng-if="(projects | hashSize) !== 0">
     <h1 style="display: inline-block;">Projects</h1>
     <a ng-if="canCreate" href="createProject" style="margin-top: 10px;" class="btn btn-lg btn-primary pull-right">New Project</a>
-  </div>
-  <div class="tile tile-project tile-click" style="margin: 10px 0;" ng-repeat="project in projects | orderByDisplayName">
-    <h2 class="project">
-      <a class="tile-target" href="project/{{project.metadata.name}}">{{(project | displayName) || project.metadata.name}}</a>
-      <span  ng-if="project.status.phase != 'Active'" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This project has been marked for deletion." style="cursor: help; vertical-align: top; margin-left: 5px;">
-        <span class="pficon pficon-warning-triangle"></span>
-        <span class="pficon pficon-warning-exclamation"></span>
-      </span>
-    </h2>
-    <div class="muted" style="margin-top: -5px;" ng-if="project | description">
-      <truncate-long-text content="project | description" limit="512" use-word-boundary="true"></truncate-long-text>
+    <div class="tile tile-project tile-click" style="margin: 10px 0;" ng-repeat="project in projects | orderByDisplayName">
+      <h2 class="project">
+        <a class="tile-target" href="project/{{project.metadata.name}}">{{(project | displayName) || project.metadata.name}}</a>
+        <span  ng-if="project.status.phase != 'Active'" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This project has been marked for deletion." style="cursor: help; vertical-align: top; margin-left: 5px;">
+          <span class="pficon pficon-warning-triangle"></span>
+          <span class="pficon pficon-warning-exclamation"></span>
+        </span>
+      </h2>
+      <div class="muted" style="margin-top: -5px;" ng-if="project | description">
+        <truncate-long-text content="project | description" limit="512" use-word-boundary="true"></truncate-long-text>
+      </div>
+    </div>
+    <div ng-if="canCreate === false" style="margin-top: 10px;">
+      <span ng-if="!newProjectMessage">A cluster admin can create a project for you by running the command
+        <code>oadm new-project &lt;projectname&gt; --admin={{user.metadata.name || '&lt;YourUsername&gt;'}}</code></span>
+      <span ng-if="newProjectMessage" ng-bind-html="newProjectMessage | linky" style="white-space:pre;"></span>
+    </div>
+    <div style="margin-top: 10px;">
+      A project admin can add you as an admin to a project by running the command
+      <code>oc policy add-role-to-user admin {{user.metadata.name || '&lt;YourUsername&gt;'}} -n &lt;projectname&gt;</code>
     </div>
   </div>
-  <div ng-if="emptyMessage && (projects | hashSize) == 0">{{emptyMessage}}</div>
-  <div ng-if="canCreate === false" style="margin-top: 10px;">
-    <span ng-if="!newProjectMessage">A cluster admin can create a project for you by running the command
+</div>
+
+<div ng-if="showGetStarted" class="empty-project-list">
+  <h1>Welcome to OpenShift.</h1>
+
+  <p>
+    OpenShift helps you quickly develop, host, and scale applications.<br>
+    <span ng-if="canCreate">Create a project for your application.</span>
+  </p>
+
+  <a ng-if="canCreate" href="createProject" class="btn btn-lg btn-primary">New Project</a>
+
+  <p>To learn more, visit the OpenShift <a ng-href="{{'' | helpLink}}">documentation</a>.</p>
+
+  <p ng-if="canCreate === false">
+    <span ng-if="!newProjectMessage">A cluster admin can create a project for you by running the command<br>
       <code>oadm new-project &lt;projectname&gt; --admin={{user.metadata.name || '&lt;YourUsername&gt;'}}</code></span>
     <span ng-if="newProjectMessage" ng-bind-html="newProjectMessage | linky" style="white-space:pre;"></span>
-  </div>
-  <div style="margin-top: 10px;">
-    A project admin can add you as an admin to a project by running the command
-    <code>oc policy add-role-to-user admin {{user.metadata.name || '&lt;YourUsername&gt;'}} -n &lt;projectname&gt;</code>
-  </div>
+  </p>
+
 </div>
+
