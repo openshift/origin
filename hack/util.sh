@@ -429,16 +429,6 @@ function ginkgo_check_extended {
     which ginkgo &>/dev/null || (echo 'Run: "go get github.com/onsi/ginkgo/ginkgo"' && exit 1)
 }
 
-# create extended.test binary to run extended tests
-function compile_extended {
-    # Compile the extended tests first to avoid waiting for OpenShift server to
-    # start and fail sooner on compilation errors.
-    echo "[INFO] Compiling test/extended package ..."
-    GOPATH="${OS_ROOT}/Godeps/_workspace:${GOPATH}" \
-	  go test -c ./test/extended -o ${OS_OUTPUT_BINPATH}/extended.test || exit 1
-    export GOPATH
-}
-
 # various env var and setup for directories and image related information
 function dirs_image_env_setup_extended {
     export TIME_SEC=1000
