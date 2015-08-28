@@ -14,11 +14,6 @@ angular.module('openshiftConsole')
     'logLinks',
     function($anchorScroll, $location, $q, $routeParams, $scope, $timeout, $window, DataService, project, logLinks) {
 
-      DataService.list("projects", $scope, function(projects) {
-        $scope.projects = projects.by("metadata.name");
-        Logger.log("projects", $scope.projects);
-      });
-
       project
         .get($routeParams.project)
         .then(_.spread(function(project, context) {
