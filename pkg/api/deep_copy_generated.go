@@ -779,11 +779,6 @@ func deepCopy_api_BuildLog(in buildapi.BuildLog, out *buildapi.BuildLog, c *conv
 	} else {
 		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
-	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
-		return err
-	} else {
-		out.ListMeta = newVal.(unversioned.ListMeta)
-	}
 	return nil
 }
 
@@ -1345,6 +1340,32 @@ func deepCopy_api_DeploymentDetails(in deployapi.DeploymentDetails, out *deploya
 		}
 	} else {
 		out.Causes = nil
+	}
+	return nil
+}
+
+func deepCopy_api_DeploymentLog(in deployapi.DeploymentLog, out *deployapi.DeploymentLog, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
+	}
+	return nil
+}
+
+func deepCopy_api_DeploymentLogOptions(in deployapi.DeploymentLogOptions, out *deployapi.DeploymentLogOptions, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
+	}
+	out.Follow = in.Follow
+	out.NoWait = in.NoWait
+	if in.Version != nil {
+		out.Version = new(int)
+		*out.Version = *in.Version
+	} else {
+		out.Version = nil
 	}
 	return nil
 }
@@ -2725,6 +2746,8 @@ func init() {
 		deepCopy_api_DeploymentConfigRollback,
 		deepCopy_api_DeploymentConfigRollbackSpec,
 		deepCopy_api_DeploymentDetails,
+		deepCopy_api_DeploymentLog,
+		deepCopy_api_DeploymentLogOptions,
 		deepCopy_api_DeploymentStrategy,
 		deepCopy_api_DeploymentTemplate,
 		deepCopy_api_DeploymentTriggerImageChangeParams,

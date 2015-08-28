@@ -357,3 +357,24 @@ type DeploymentConfigRollbackSpec struct {
 	// IncludeStrategy specifies whether to include the deployment Strategy.
 	IncludeStrategy bool
 }
+
+// DeploymentLog represents the logs for a deployment
+type DeploymentLog struct {
+	unversioned.TypeMeta
+}
+
+// DeploymentLogOptions is the REST options for a deployment log
+type DeploymentLogOptions struct {
+	unversioned.TypeMeta
+
+	// Follow if true indicates that the deployment log should be streamed until
+	// the deployment terminates.
+	Follow bool
+
+	// NoWait if true causes the call to return immediately even if the deployment
+	// is not available yet. Otherwise the server will wait until the deployment has started.
+	NoWait bool
+
+	// Version of the deploymentConfig for which to view logs.
+	Version *int
+}

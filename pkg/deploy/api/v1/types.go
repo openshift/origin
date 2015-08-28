@@ -348,3 +348,25 @@ type DeploymentConfigRollbackSpec struct {
 	// IncludeStrategy specifies whether to include the deployment Strategy.
 	IncludeStrategy bool `json:"includeStrategy" description:"whether to include the deployment strategy in the rollback"`
 }
+
+// DeploymentLog represents the logs for a deployment
+type DeploymentLog struct {
+	unversioned.TypeMeta `json:",inline"`
+}
+
+// DeploymentLogOptions is the REST options for a deployment log
+type DeploymentLogOptions struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// Follow if true indicates that the deployment log should be streamed until
+	// the deployment terminates.
+	Follow bool `json:"follow,omitempty" description:"if true indicates that the log should be streamed; defaults to false"`
+
+	// NoWait if true causes the call to return immediately even if the deployment
+	// is not available yet. Otherwise the server will wait until the deployment has started.
+	// TODO: Fix the tag to 'noWait' in v2
+	NoWait bool `json:"nowait,omitempty" description:"if true indicates that the server should not wait for a log to be available before returning; defaults to false"`
+
+	// Version of the deploymentConfig for which to view logs.
+	Version *int `json:"version,omitempty" description:"the version of the deploymentConfig for which to view logs"`
+}

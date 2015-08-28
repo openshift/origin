@@ -489,7 +489,6 @@ type GitRefInfo struct {
 // BuildLog is the (unused) resource associated with the build log redirector
 type BuildLog struct {
 	unversioned.TypeMeta
-	unversioned.ListMeta
 }
 
 // BuildRequest is the resource used to pass parameters to build generator

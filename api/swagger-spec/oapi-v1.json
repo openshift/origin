@@ -4213,6 +4213,81 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/log",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.DeploymentLog",
+      "method": "GET",
+      "summary": "read log of the specified DeploymentLog",
+      "nickname": "readNamespacedDeploymentLogLog",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "follow",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "nowait",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "*int",
+        "paramType": "query",
+        "name": "version",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the DeploymentLog",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.DeploymentLog"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/generatedeploymentconfigs/{name}",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -14556,6 +14631,7 @@
    },
    "v1.BuildLog": {
     "id": "v1.BuildLog",
+    "description": "TypeMeta describes an individual object in an API response or request with strings representing the type of the object and its API schema version. Structures that are versioned or persisted should inline TypeMeta.",
     "properties": {
      "kind": {
       "type": "string",
@@ -14564,9 +14640,6 @@
      "apiVersion": {
       "type": "string",
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
-     },
-     "metadata": {
-      "$ref": "unversioned.ListMeta"
      }
     }
    },
@@ -16266,6 +16339,20 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "a reference the changed object which triggered a deployment"
+     }
+    }
+   },
+   "v1.DeploymentLog": {
+    "id": "v1.DeploymentLog",
+    "description": "TypeMeta describes an individual object in an API response or request with strings representing the type of the object and its API schema version. Structures that are versioned or persisted should inline TypeMeta.",
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      }
     }
    },
