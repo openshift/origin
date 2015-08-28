@@ -16,49 +16,5 @@ cd "${OS_ROOT}"
 source ${OS_ROOT}/hack/util.sh
 source ${OS_ROOT}/hack/common.sh
 
-
-set -e
-ginkgo_check_extended
-set +e
-
-compile_extended
-
-test_privileges
-
-echo "[INFO] Starting 'forcepull' extended tests"
-
-dirs_image_env_setup_extended
-
-setup_env_vars
-
-trap "exit" INT TERM
-trap "cleanup_extended" EXIT
-
-info_msgs_ip_host_setup_extended
-
-configure_os_server
-
-auth_setup_extended
-
-start_os_server
-
-install_router_extended
-
-install_registry_extended
-
-# I've seen this hang, even though when I run it manually concurrently it works ... simply bypassing this check has simply accelerated the test ... so far, not seeing value in this verification ... the registry seems to come up consistently
-#wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=/tmp/openshift-extended-tests/openshift.local.config/master/admin.kubeconfig || echo "0")" != "0" ]]' $((5*TIME_MIN))
-
-create_image_streams_extended
-
-echo "[INFO] MASTER IP - ${MASTER_ADDR}"
-echo "[INFO] SERVER CONFIG PATH - ${SERVER_CONFIG_DIR}"
-echo "[INFO] Starting extended tests for forcepull ..."
-
-# Run the tests
-pushd ${OS_ROOT}/test/extended >/dev/null
-export KUBECONFIG="${ADMIN_KUBECONFIG}"
-export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
-# we don't run in parallel with this suite - do not want different tests tagging the same image in different was at the same time
-ginkgo -progress -stream -v -focus="forcepull:" ${OS_OUTPUT_BINPATH}/extended.test
-popd >/dev/null
+exec env FOCUS="-focus=forcepull:" \
+  /bin/bash -c ${OS_ROOT}/hack/test-extended/default/run.sh
