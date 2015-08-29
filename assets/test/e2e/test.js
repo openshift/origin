@@ -1,23 +1,10 @@
 require('jasmine-beforeall');
-var fs = require('fs');
 
 describe('', function() {
   var commonTeardown = function() {
     browser.executeScript('window.sessionStorage.clear();');
     browser.executeScript('window.localStorage.clear();');
   };
-
-  afterEach(function () {
-    // var spec = jasmine.getEnv().currentSpec;
-    // var filename = __dirname + '/screenshots/' + spec.description.split(' ').join('_') + '.png';
-    // if (!spec.results().passed()) {
-    //   browser.takeScreenshot().then(function(png) {
-    //     var stream = fs.createWriteStream(filename);
-    //     stream.write(new Buffer(png, 'base64'));
-    //     stream.end();
-    //   });
-    // }
-  });
 
   afterAll(function(){
     // Just to be sure lets teardown at the end of EVERYTHING, and then we need to sleep to make sure it is flushed to disk
@@ -53,9 +40,33 @@ describe('', function() {
     }, 3000);
   };
 
+  var setInputValue = function(name, value) {
+    var input = element(by.model(name));
+    expect(input).toBeTruthy();
+    input.clear();
+    input.sendKeys(value);
+    expect(input.getAttribute("value")).toBe(value);
+    return input;
+  };
+
+  var clickAndGo = function(buttonText, uri) {
+    var button = element(by.buttonText(buttonText));
+    browser.wait(protractor.ExpectedConditions.elementToBeClickable(button), 2000);
+    button.click().then(function() {
+      return browser.getCurrentUrl().then(function(url) {
+        return url.indexOf(uri) > -1;
+      });
+    });
+  }
+
+  var goToPage = function(uri) {
+    browser.get(uri);
+    expect(browser.getCurrentUrl()).toContain(uri);
+  };
+
   var goToAddToProjectPage = function(projectName) {
     var uri = '/project/' + projectName + '/create';
-    browser.get(uri);
+    goToPage(uri);
     expect(element(by.cssContainingText('h1', "Create Using Your Code")).isPresent()).toBe(true);
     expect(element(by.cssContainingText('h1', "Create Using a Template")).isPresent()).toBe(true);
     expect(element(by.model('from_source_url')).isPresent()).toBe(true);
@@ -63,7 +74,7 @@ describe('', function() {
   }
 
   var goToCreateProjectPage = function() {
-    browser.get('/createProject');
+    goToPage('/createProject');
     expect(element(by.cssContainingText('h1', "New Project")).isPresent()).toBe(true);
     expect(element(by.model('name')).isPresent()).toBe(true);
     expect(element(by.model('displayName')).isPresent()).toBe(true);
@@ -73,10 +84,10 @@ describe('', function() {
   var requestCreateFromSource = function(projectName, sourceUrl) {
     var uri = '/project/' + projectName + '/create';
     expect(browser.getCurrentUrl()).toContain(uri);
-    element(by.model('from_source_url')).clear().sendKeys(sourceUrl);
+    setInputValue('from_source_url', sourceUrl);
     var nextButton = element(by.buttonText('Next'));
-    browser.wait(protractor.ExpectedConditions.elementToBeClickable(nextButton), 3000);
-    return nextButton.click();
+    browser.wait(protractor.ExpectedConditions.elementToBeClickable(nextButton), 2000);
+    nextButton.click();
   }
 
   var requestCreateFromTemplate = function(projectName, templateName) {
@@ -84,7 +95,7 @@ describe('', function() {
     expect(browser.getCurrentUrl()).toContain(uri);
     var template = element(by.cssContainingText('.catalog h3 > a', templateName));
     expect(template.isPresent()).toBe(true);
-    return template.click();
+    template.click();
   }
 
   var attachBuilderImageToSource = function(projectName, builderImageName) {
@@ -93,10 +104,10 @@ describe('', function() {
     expect(element(by.cssContainingText('h1', "Select a builder image")).isPresent()).toBe(true);
     var builderImageLink = element(by.cssContainingText('h3 > a', builderImageName));
     expect(builderImageLink.isPresent()).toBe(true);
-    return builderImageLink.click();
+    builderImageLink.click();
   }
 
-  var createFromSourceSummary = function(projectName, builderImageName, appName) {
+  var createFromSource = function(projectName, builderImageName, appName) {
     var uri = '/project/' + projectName + '/create/fromimage';
     expect(browser.getCurrentUrl()).toContain(uri);
     expect(element(by.css('.create-from-image h1')).getText()).toEqual(builderImageName);
@@ -106,11 +117,13 @@ describe('', function() {
     expect(element(by.cssContainingText('h2', "Build Configuration")).isPresent()).toBe(true);
     expect(element(by.cssContainingText('h2', "Scaling")).isPresent()).toBe(true);
     expect(element(by.cssContainingText('h2', "Labels")).isPresent()).toBe(true);
-    element(by.name('appname')).clear().sendKeys(appName);
-    return element(by.buttonText("Create")).click();
+    var appNameInput = element(by.name('appname'));
+    appNameInput.clear();
+    appNameInput.sendKeys(appName);
+    clickAndGo('Create', '/project/' + projectName + '/overview');
   }
 
-  var createFromTemplateSummary = function(projectName, templateName, parameterNames, labelNames) {
+  var createFromTemplate = function(projectName, templateName, parameterNames, labelNames) {
     var uri = '/project/' + projectName + '/create/fromtemplate';
     expect(browser.getCurrentUrl()).toContain(uri);
     expect(element(by.css('.create-from-template h1')).getText()).toEqual(templateName);
@@ -127,19 +140,22 @@ describe('', function() {
         expect(element(by.cssContainingText('.label-list span.key', labelNames[i])).isPresent()).toBe(true);
       }
     }
-    return element(by.buttonText("Create")).click();
+    clickAndGo('Create', '/project/' + projectName + '/overview');
   }
 
   var checkServiceCreated = function(projectName, serviceName) {
     var uri = '/project/' + projectName + '/overview';
-    expect(browser.getCurrentUrl()).toContain(uri);
+    goToPage(uri);
     var service = element(by.cssContainingText('.component .service', serviceName));
-    browser.wait(protractor.ExpectedConditions.presenceOf(service), 5000);
+    browser.wait(protractor.ExpectedConditions.presenceOf(service), 10000);
+    var uri = '/project/' + projectName + '/browse/services';
+    goToPage(uri);
+    browser.wait(protractor.ExpectedConditions.presenceOf(element(by.cssContainingText('h3', serviceName))), 10000);
   }
 
   var checkProjectSettings = function(projectName, displayName, description) {
     var uri = '/project/' + projectName + '/settings';
-    browser.get(uri);
+    goToPage(uri);
     expect(element.all(by.css("dl > dd")).get(0).getText()).toEqual(projectName);
     expect(element.all(by.css("dl > dd")).get(1).getText()).toEqual(displayName);
     expect(element.all(by.css("dl > dd")).get(2).getText()).toEqual(description);
@@ -183,6 +199,74 @@ describe('', function() {
       commonTeardown();
     });
 
+    describe('new project', function() {
+      describe('when creating a new project', function() {
+        it('should be able to show the create project page', goToCreateProjectPage);
+
+        it('should successfully create a new project', function() {
+          var project = {
+            name:        'console-integration-test-project',
+            displayName: 'Console integration test Project',
+            description: 'Created by assets/test/e2e/test.js'
+          };
+
+          goToCreateProjectPage();
+          for (var key in project) {
+            setInputValue(key, project[key]);
+          }
+          clickAndGo('Create', '/project/' + project['name'] + '/overview');
+          expect(element(by.cssContainingText(".navbar-project .bootstrap-select .selected .text", project['displayName'])).isPresent()).toBe(true);
+          checkProjectSettings(project['name'], project['displayName'], project['description']);
+        });
+
+        it('should validate taken name when trying to create', function() {
+          goToCreateProjectPage();
+          element(by.model('name')).clear().sendKeys("console-integration-test-project");
+          element(by.buttonText("Create")).click();
+          expect(element(by.css("[ng-if=nameTaken]")).isDisplayed()).toBe(true);
+          expect(browser.getCurrentUrl()).toMatch(/\/createProject$/);
+        });
+      });
+
+      describe('when using console-integration-test-project', function() {
+        describe('when adding to project', function() {
+          it('should view the create page', function() { goToAddToProjectPage("console-integration-test-project"); });
+
+          it('should create from source', function() {
+            var projectName = "console-integration-test-project";
+            var sourceUrl = "https://github.com/openshift/rails-ex#master";
+            var appName = "rails-ex-mine";
+            var builderImage = "ruby";
+
+            goToAddToProjectPage(projectName);
+            requestCreateFromSource(projectName, sourceUrl);
+            attachBuilderImageToSource(projectName, builderImage);
+            createFromSource(projectName, builderImage, appName);
+            checkServiceCreated(projectName, appName);
+          });
+
+          it('should create from template', function() {
+            var projectName = "console-integration-test-project";
+            var templateName = "ruby-helloworld-sample";
+            var parameterNames = [
+              "ADMIN_USERNAME",
+              "ADMIN_PASSWORD",
+              "MYSQL_USER",
+              "MYSQL_PASSWORD",
+              "MYSQL_DATABASE"
+            ];
+            var labelNames = ["template"];
+
+            goToAddToProjectPage(projectName);
+            requestCreateFromTemplate(projectName, templateName);
+            createFromTemplate(projectName, templateName, parameterNames, labelNames);
+            checkServiceCreated(projectName, "frontend");
+            checkServiceCreated(projectName, "database");
+          });
+        });
+      });
+    });
+
     describe('with test project', function() {
       it('should be able to list the test project', function() {
         browser.get('/');
@@ -191,127 +275,56 @@ describe('', function() {
 
       it('should have access to the test project', function() {
         browser.get('/project/test');
-        expect(element(by.css('h1')).getText()).toEqual("Project test");
-        expect(element(by.cssContainingText(".component .service","database")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".component .service","frontend")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".component .route","www.example.com")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".pod-template-build a","ruby-sample-build #1")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".deployment-trigger","new image for origin-ruby-sample:latest")).isPresent()).toBe(true);
+        expect(element(by.cssContainingText("h1", "Project test")).isPresent()).toBe(true);
+        expect(element(by.cssContainingText(".component .service", "database")).isPresent()).toBe(true);
+        expect(element(by.cssContainingText(".component .service", "frontend")).isPresent()).toBe(true);
+        expect(element(by.cssContainingText(".component .route", "www.example.com")).isPresent()).toBe(true);
+        expect(element(by.cssContainingText(".pod-template-build a", "ruby-sample-build #1")).isPresent()).toBe(true);
+        expect(element(by.cssContainingText(".deployment-trigger", "new image for origin-ruby-sample:latest")).isPresent()).toBe(true);
         expect(element.all(by.css(".pod-running")).count()).toEqual(3);
         // TODO: validate correlated images, builds, source
       });
 
       it('should browse builds', function() {
         browser.get('/project/test/browse/builds');
-        expect(element(by.css('h1')).getText()).toEqual("Builds");
+        expect(element(by.cssContainingText("h1", "Builds")).isPresent()).toBe(true);
         // TODO: validate presented strategies, images, repos
       });
 
       it('should browse deployments', function() {
         browser.get('/project/test/browse/deployments');
-        expect(element(by.css('h1')).getText()).toEqual("Deployments");
+        expect(element(by.cssContainingText("h1", "Deployments")).isPresent()).toBe(true);
         // TODO: validate presented deployments
       });
 
       it('should browse events', function() {
         browser.get('/project/test/browse/events');
-        expect(element(by.css('h1')).getText()).toEqual("Events");
+        expect(element(by.cssContainingText("h1", "Events")).isPresent()).toBe(true);
         // TODO: validate presented events
       });
 
       it('should browse image streams', function() {
         browser.get('/project/test/browse/images');
-        expect(element(by.css('h1')).getText()).toEqual("Image Streams");
+        expect(element(by.cssContainingText("h1", "Image Streams")).isPresent()).toBe(true);
         // TODO: validate presented images
       });
 
       it('should browse pods', function() {
         browser.get('/project/test/browse/pods');
-        expect(element(by.css('h1')).getText()).toEqual("Pods");
+        expect(element(by.cssContainingText("h1", "Pods")).isPresent()).toBe(true);
         // TODO: validate presented pods, containers, correlated images, builds, source
       });
 
       it('should browse services', function() {
         browser.get('/project/test/browse/services');
-        expect(element(by.css('h1')).getText()).toEqual("Services");
+        expect(element(by.cssContainingText("h1", "Services")).isPresent()).toBe(true);
         // TODO: validate presented ports, routes, selectors
       });
 
       it('should browse settings', function() {
         browser.get('/project/test/settings');
-        expect(element(by.css('h1')).getText()).toEqual("Project Settings");
+        expect(element(by.cssContainingText("h1", "Project Settings")).isPresent()).toBe(true);
         // TODO: validate presented project info, quota and resource info
-      });
-
-      describe('when adding to project', function() {
-        it('should view the create page', function() { goToAddToProjectPage("test"); });
-
-        it('should create from source', function() {
-          var projectName = "test";
-          var sourceUrl = "https://github.com/openshift/rails-ex";
-          var appName = "my-rails-ex";
-          var builderImage = "ruby";
-          goToAddToProjectPage(projectName);
-          requestCreateFromSource(projectName, sourceUrl).then(function() {
-            attachBuilderImageToSource(projectName, builderImage).then(function() {
-              // createFromSourceSummary(projectName, builderImage, appName).then(function() {
-              //   checkServiceCreated(projectName, appName);
-              // });
-            });
-          });
-        });
-
-        it('should create from template', function() {
-          var projectName = "test";
-          var templateName = "ruby-helloworld-sample";
-          var parameterNames = [
-            "ADMIN_USERNAME",
-            "ADMIN_PASSWORD",
-            "MYSQL_USER",
-            "MYSQL_PASSWORD",
-            "MYSQL_DATABASE"
-          ];
-          var labelNames = ["template"];
-          goToAddToProjectPage(projectName);
-          requestCreateFromTemplate(projectName, templateName).then(function() {
-            // createFromTemplateSummary(projectName, templateName, parameterNames, labelNames).then(function() {
-            //   checkServiceCreated(projectName, "frontend");
-            //   checkServiceCreated(projectName, "database");
-            // });
-          });
-        });
-      });
-    });
-
-    describe('when creating a new project', function() {
-      it('should be able to show the create project page', goToCreateProjectPage);
-
-      it('should successfully create a new project', function() {
-        var project = {
-          name:        'e2e-test-project',
-          displayName: 'End-to-end Test Project',
-          description: 'Project created by the e2e web console tests.'
-        };
-
-        goToCreateProjectPage();
-        for (var key in project) {
-          element(by.model(key)).clear().sendKeys(project[key]);
-        }
-        element(by.buttonText("Create")).click().then(function() {
-          var uri = '/project/' + project['name'] + '/overview';
-          expect(browser.getCurrentUrl()).toContain(uri);
-          expect(element(by.cssContainingText(".navbar-project .bootstrap-select .selected .text", project['displayName'])).isPresent()).toBe(true);
-          checkProjectSettings(project['name'], project['displayName'], project['description']);
-        });
-      });
-
-      it('should validate taken name when trying to create', function() {
-        goToCreateProjectPage();
-        element(by.model('name')).clear().sendKeys("test");
-        element(by.cssContainingText('button', "Create")).click().then(function() {
-          expect(element(by.css("[ng-if=nameTaken]")).isDisplayed()).toBe(true);
-          expect(browser.getCurrentUrl()).toMatch(/\/createProject$/);
-        });    
       });
     });
   });
