@@ -2,8 +2,16 @@
   <project-page>
     <div ng-controller="SettingsController">
       <div class="page-header page-header-bleed-right">
+        <div class="actions action-button pull-right">
+          <i class="fa fa-trash-o fa-2x" 
+            ng-click="openDeleteModal()"
+            data-toggle="tooltip" 
+            data-placement="left" 
+            title="Delete Project"></i>
+        </div>
         <h1>Project Settings</h1>
       </div>
+
       <alerts alerts="alerts"></alerts>
       <h2>General information</h2>
       <!-- TODO make these fields editable - probably with a cog icon that flips into inline-editing -->

@@ -27,7 +27,7 @@ html, body {
     margin-top: 35px;
     margin-bottom: @grid-gutter-width * 2;
     h1 {
-      margin-top: 10px;
+      margin: 10px 0 20px;
     }
   }
 }
@@ -555,7 +555,20 @@ select:invalid {
 
 .action-button {
   color: @gray-light;
+  cursor: pointer;
   &:hover {
     color: #000;
+  }
+}
+
+.modal-project-delete {
+  background-color: @gray-lighter;
+  h1 {
+    font-size: 21px;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  p {
+    font-size: @font-size-large + 1;
   }
 }
