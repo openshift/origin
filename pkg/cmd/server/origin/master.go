@@ -53,8 +53,7 @@ import (
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
-	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
-	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
+	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
@@ -333,7 +332,9 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	deployConfigStorage := deployconfigetcd.NewStorage(c.EtcdHelper)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
-	routeEtcd := routeetcd.New(c.EtcdHelper)
+	routeAllocator := c.RouteAllocator()
+
+	routeEtcd := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
 	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
 	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
 	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
@@ -375,8 +376,6 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
-
-	routeAllocator := c.RouteAllocator()
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
@@ -442,7 +441,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
 
-		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
+		"routes": routeEtcd,
 
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,

@@ -11453,7 +11453,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "v1.Route",
+      "type": "v1.RouteList",
       "method": "GET",
       "summary": "list or watch objects of kind Route",
       "nickname": "listNamespacedRoute",
@@ -11511,7 +11511,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Route"
+        "responseModel": "v1.RouteList"
        }
       ],
       "produces": [
@@ -11815,6 +11815,14 @@
         "allowMultiple": false
        },
        {
+        "type": "v1.DeleteOptions",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -11935,7 +11943,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "v1.Route",
+      "type": "v1.RouteList",
       "method": "GET",
       "summary": "list or watch objects of kind Route",
       "nickname": "listRoute",
@@ -11985,7 +11993,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Route"
+        "responseModel": "v1.RouteList"
        }
       ],
       "produces": [
@@ -17224,6 +17232,32 @@
        "$ref": "v1.Role"
       },
       "description": "list of roles"
+     }
+    }
+   },
+   "v1.RouteList": {
+    "id": "v1.RouteList",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ListMeta"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Route"
+      },
+      "description": "list of routes"
      }
     }
    },

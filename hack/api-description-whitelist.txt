@@ -185,6 +185,7 @@ v1.rolebinding
 v1.rolebindinglist
 v1.rolelist
 v1.rollingdeploymentstrategyparams
+v1.routelist
 v1.routespec
 v1.routestatus
 v1.runasuserstrategyoptions
