@@ -2,15 +2,39 @@ package router
 
 import (
 	"errors"
+	"fmt"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/version"
 	f5plugin "github.com/openshift/origin/plugins/router/f5"
 )
 
-// f5RouterConfig is the config necessary to start an F5 router plugin.
-type f5RouterConfig struct {
+const (
+	f5Long = `
+Start an F5 route synchronizer
+
+This command launches a process that will synchronize an F5 to the route configuration of your master.
+You may restrict the set of routes the F5 will expose by using the --labels, --fields, or --namespace
+arguments.`
+)
+
+// F5RouterOptions represent the complete structure needed to start an F5 router
+// sync process.
+type F5RouterOptions struct {
+	Config *clientcmd.Config
+
+	F5Router
+	RouterSelection
+}
+
+// F5Router is the config necessary to start an F5 router plugin.
+type F5Router struct {
 	// Host specifies the hostname or IP address of the F5 BIG-IP host.
 	Host string
 
@@ -40,45 +64,97 @@ type f5RouterConfig struct {
 	Insecure bool
 }
 
-// bindFlagsForTemplateRouterConfig binds flags for template router
-// configuration.
-func bindFlagsForF5RouterConfig(flag *pflag.FlagSet, cfg *routerConfig) {
-	flag.StringVar(&cfg.F5RouterConfig.Host, "f5-host", util.Env("ROUTER_EXTERNAL_HOST_HOSTNAME", ""), "The host of F5 BIG-IP's management interface")
-	flag.StringVar(&cfg.F5RouterConfig.Username, "f5-username", util.Env("ROUTER_EXTERNAL_HOST_USERNAME", ""), "The username for F5 BIG-IP's management utility")
-	flag.StringVar(&cfg.F5RouterConfig.Password, "f5-password", util.Env("ROUTER_EXTERNAL_HOST_PASSWORD", ""), "The password for F5 BIG-IP's management utility")
-	flag.StringVar(&cfg.F5RouterConfig.HttpVserver, "f5-http-vserver", util.Env("ROUTER_EXTERNAL_HOST_HTTP_VSERVER", "ose-vserver"), "The F5 BIG-IP virtual server for HTTP connections")
-	flag.StringVar(&cfg.F5RouterConfig.HttpsVserver, "f5-https-vserver", util.Env("ROUTER_EXTERNAL_HOST_HTTPS_VSERVER", "https-ose-vserver"), "The F5 BIG-IP virtual server for HTTPS connections")
-	flag.StringVar(&cfg.F5RouterConfig.PrivateKey, "f5-private-key", util.Env("ROUTER_EXTERNAL_HOST_PRIVKEY", ""), "The path to the F5 BIG-IP SSH private key file")
-	flag.BoolVar(&cfg.F5RouterConfig.Insecure, "f5-insecure", util.Env("ROUTER_EXTERNAL_HOST_INSECURE", "") == "true", "Skip strict certificate verification")
+// Bind binds F5Router arguments to flags
+func (o *F5Router) Bind(flag *pflag.FlagSet) {
+	flag.StringVar(&o.Host, "f5-host", util.Env("ROUTER_EXTERNAL_HOST_HOSTNAME", ""), "The host of F5 BIG-IP's management interface")
+	flag.StringVar(&o.Username, "f5-username", util.Env("ROUTER_EXTERNAL_HOST_USERNAME", ""), "The username for F5 BIG-IP's management utility")
+	flag.StringVar(&o.Password, "f5-password", util.Env("ROUTER_EXTERNAL_HOST_PASSWORD", ""), "The password for F5 BIG-IP's management utility")
+	flag.StringVar(&o.HttpVserver, "f5-http-vserver", util.Env("ROUTER_EXTERNAL_HOST_HTTP_VSERVER", "ose-vserver"), "The F5 BIG-IP virtual server for HTTP connections")
+	flag.StringVar(&o.HttpsVserver, "f5-https-vserver", util.Env("ROUTER_EXTERNAL_HOST_HTTPS_VSERVER", "https-ose-vserver"), "The F5 BIG-IP virtual server for HTTPS connections")
+	flag.StringVar(&o.PrivateKey, "f5-private-key", util.Env("ROUTER_EXTERNAL_HOST_PRIVKEY", ""), "The path to the F5 BIG-IP SSH private key file")
+	flag.BoolVar(&o.Insecure, "f5-insecure", util.Env("ROUTER_EXTERNAL_HOST_INSECURE", "") == "true", "Skip strict certificate verification")
 }
 
-// makeF5Plugin makes an F5 router plugin.
-func makeF5Plugin(cfg *routerConfig) (*f5plugin.F5Plugin, error) {
-	if cfg.F5RouterConfig.Host == "" {
-		return nil, errors.New("F5 host must be specified")
+// Validate verifies the required F5 flags are present
+func (o *F5Router) Validate() error {
+	if o.Host == "" {
+		return errors.New("F5 host must be specified")
 	}
 
-	if cfg.F5RouterConfig.Username == "" {
-		return nil, errors.New("F5 username must be specified")
+	if o.Username == "" {
+		return errors.New("F5 username must be specified")
 	}
 
-	if cfg.F5RouterConfig.Password == "" {
-		return nil, errors.New("F5 password must be specified")
+	if o.Password == "" {
+		return errors.New("F5 password must be specified")
 	}
 
-	if cfg.F5RouterConfig.HttpVserver == "" &&
-		cfg.F5RouterConfig.HttpsVserver == "" {
-		return nil, errors.New("F5 HTTP and HTTPS vservers cannot both be blank")
+	if len(o.HttpVserver) == 0 && len(o.HttpsVserver) == 0 {
+		return errors.New("F5 HTTP and HTTPS vservers cannot both be blank")
+	}
+	return nil
+}
+
+// NewCommndF5Router provides CLI handler for the F5 router sync plugin.
+func NewCommandF5Router(name string) *cobra.Command {
+	options := &F5RouterOptions{
+		Config: clientcmd.NewConfig(),
+	}
+	options.Config.FromFile = true
+
+	cmd := &cobra.Command{
+		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
+		Short: "Start an F5 route synchronizer",
+		Long:  f5Long,
+		Run: func(c *cobra.Command, args []string) {
+			options.RouterSelection.Namespace = cmdutil.GetFlagString(c, "namespace")
+			cmdutil.CheckErr(options.Complete())
+			cmdutil.CheckErr(options.Validate())
+			cmdutil.CheckErr(options.Run())
+		},
 	}
 
-	f5PluginCfg := f5plugin.F5PluginConfig{
-		Host:         cfg.F5RouterConfig.Host,
-		Username:     cfg.F5RouterConfig.Username,
-		Password:     cfg.F5RouterConfig.Password,
-		HttpVserver:  cfg.F5RouterConfig.HttpVserver,
-		HttpsVserver: cfg.F5RouterConfig.HttpsVserver,
-		PrivateKey:   cfg.F5RouterConfig.PrivateKey,
-		Insecure:     cfg.F5RouterConfig.Insecure,
+	cmd.AddCommand(version.NewVersionCommand(name))
+
+	flag := cmd.Flags()
+	options.Config.Bind(flag)
+	options.RouterSelection.Bind(flag)
+
+	return cmd
+}
+
+func (o *F5RouterOptions) Complete() error {
+	return o.RouterSelection.Complete()
+}
+
+func (o *F5RouterOptions) Validate() error {
+	return o.F5Router.Validate()
+}
+
+// Run launches an F5 route sync process using the provided options. It never exits.
+func (o *F5RouterOptions) Run() error {
+	cfg := f5plugin.F5PluginConfig{
+		Host:         o.Host,
+		Username:     o.Username,
+		Password:     o.Password,
+		HttpVserver:  o.HttpVserver,
+		HttpsVserver: o.HttpsVserver,
+		PrivateKey:   o.PrivateKey,
+		Insecure:     o.Insecure,
 	}
-	return f5plugin.NewF5Plugin(f5PluginCfg)
+	plugin, err := f5plugin.NewF5Plugin(cfg)
+	if err != nil {
+		return err
+	}
+
+	oc, kc, err := o.Config.Clients()
+	if err != nil {
+		return err
+	}
+
+	factory := o.RouterSelection.NewFactory(oc, kc)
+	controller := factory.Create(plugin)
+	controller.Run()
+
+	select {}
 }

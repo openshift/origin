@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"text/template"
 
@@ -21,9 +22,9 @@ const (
 )
 
 const (
-	routeFile       = "/var/lib/containers/router/routes.json"
-	certDir         = "/var/lib/containers/router/certs/"
-	caCertDir       = "/var/lib/containers/router/cacerts/"
+	routeFile       = "routes.json"
+	certDir         = "certs"
+	caCertDir       = "cacerts"
 	defaultCertName = "default"
 
 	caCertPostfix   = "_ca"
@@ -34,6 +35,8 @@ const (
 // that generates configuration files via a set of templates
 // and manages the backend process with a reload script.
 type templateRouter struct {
+	// the directory to write router output to
+	dir              string
 	templates        map[string]*template.Template
 	reloadScriptPath string
 	state            map[string]ServiceUnit
@@ -62,6 +65,7 @@ type templateRouter struct {
 
 // templateRouterCfg holds all configuration items required to initialize the template router
 type templateRouterCfg struct {
+	dir                string
 	templates          map[string]*template.Template
 	reloadScriptPath   string
 	defaultCertificate string
@@ -74,6 +78,8 @@ type templateRouterCfg struct {
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
 // the correct configuration.
 type templateData struct {
+	// the directory that files will be written to, defaults to /var/lib/containers/router
+	WorkingDir string
 	// the routes
 	State map[string]ServiceUnit
 	// full path and file name to the default certificate
@@ -89,14 +95,18 @@ type templateData struct {
 }
 
 func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
-	glog.Infof("Creating a new template router")
-	glog.Infof("Router will use %s service to identify peers", cfg.peerEndpointsKey)
+	dir := cfg.dir
+
+	glog.V(2).Infof("Creating a new template router, writing to %s", dir)
+	if len(cfg.peerEndpointsKey) > 0 {
+		glog.V(2).Infof("Router will use %s service to identify peers", cfg.peerEndpointsKey)
+	}
 	certManagerConfig := &certificateManagerConfig{
 		certKeyFunc:     generateCertKey,
 		caCertKeyFunc:   generateCACertKey,
 		destCertKeyFunc: generateDestCertKey,
-		certDir:         certDir,
-		caCertDir:       caCertDir,
+		certDir:         filepath.Join(dir, certDir),
+		caCertDir:       filepath.Join(dir, caCertDir),
 	}
 	certManager, err := newSimpleCertificateManager(certManagerConfig, newSimpleCertificateWriter())
 	if err != nil {
@@ -104,6 +114,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 	}
 
 	router := &templateRouter{
+		dir:                    dir,
 		templates:              cfg.templates,
 		reloadScriptPath:       cfg.reloadScriptPath,
 		state:                  map[string]ServiceUnit{},
@@ -119,11 +130,11 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 	if err := router.writeDefaultCert(); err != nil {
 		return nil, err
 	}
-	glog.Infof("Reading any persisted state")
+	glog.V(4).Infof("Reading persisted state")
 	if err := router.readState(); err != nil {
 		return nil, err
 	}
-	glog.Infof("Performing initial commit")
+	glog.V(4).Infof("Committing state")
 	if err := router.Commit(); err != nil {
 		return nil, err
 	}
@@ -132,32 +143,32 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 
 // writeDefaultCert is called a single time during init to write out the default certificate
 func (r *templateRouter) writeDefaultCert() error {
-	if len(r.defaultCertificate) > 0 {
-		glog.Infof("Writing default certificate to %s", certDir)
-		err := r.certManager.CertificateWriter().WriteCertificate(certDir, defaultCertName, []byte(r.defaultCertificate))
-		if err == nil {
-			r.defaultCertificatePath = fmt.Sprintf("%s%s.pem", certDir, defaultCertName)
-		}
+	if len(r.defaultCertificate) == 0 {
+		return nil
+	}
+
+	dir := filepath.Join(r.dir, certDir)
+	glog.V(2).Infof("Writing default certificate to %s", dir)
+	if err := r.certManager.CertificateWriter().WriteCertificate(dir, defaultCertName, []byte(r.defaultCertificate)); err != nil {
 		return err
 	}
+	r.defaultCertificatePath = filepath.Join(dir, fmt.Sprintf("%s.pem", defaultCertName))
 	return nil
 }
 
 func (r *templateRouter) readState() error {
-	dat, err := ioutil.ReadFile(routeFile)
-	// XXX: rework
+	data, err := ioutil.ReadFile(filepath.Join(r.dir, routeFile))
+	// TODO: rework
 	if err != nil {
 		r.state = make(map[string]ServiceUnit)
 		return nil
 	}
 
-	return json.Unmarshal(dat, &r.state)
+	return json.Unmarshal(data, &r.state)
 }
 
 // Commit refreshes the backend and persists the router state.
 func (r *templateRouter) Commit() error {
-	glog.V(4).Info("Commiting router changes")
-
 	if err := r.writeState(); err != nil {
 		return err
 	}
@@ -175,17 +186,13 @@ func (r *templateRouter) Commit() error {
 
 // writeState writes the state of this router to disk.
 func (r *templateRouter) writeState() error {
-	dat, err := json.MarshalIndent(r.state, "", "  ")
+	data, err := json.MarshalIndent(r.state, "", "  ")
 	if err != nil {
-		glog.Errorf("Failed to marshal route table: %v", err)
-		return err
+		return fmt.Errorf("failed to marshal route table: %v", err)
 	}
-	err = ioutil.WriteFile(routeFile, dat, 0644)
-	if err != nil {
-		glog.Errorf("Failed to write route table: %v", err)
-		return err
+	if err := ioutil.WriteFile(filepath.Join(r.dir, routeFile), data, 0644); err != nil {
+		return fmt.Errorf("failed to write route table: %v", err)
 	}
-
 	return nil
 }
 
@@ -194,10 +201,8 @@ func (r *templateRouter) writeConfig() error {
 	//write out any certificate files that don't exist
 	for _, serviceUnit := range r.state {
 		for k, cfg := range serviceUnit.ServiceAliasConfigs {
-			err := r.writeCertificates(&cfg)
-			if err != nil {
-				glog.Errorf("Error writing certificates for %s: %v", serviceUnit.Name, err)
-				return err
+			if err := r.writeCertificates(&cfg); err != nil {
+				return fmt.Errorf("error writing certificates for %s: %v", serviceUnit.Name, err)
 			}
 			cfg.Status = ServiceAliasConfigStatusSaved
 			serviceUnit.ServiceAliasConfigs[k] = cfg
@@ -207,11 +212,11 @@ func (r *templateRouter) writeConfig() error {
 	for path, template := range r.templates {
 		file, err := os.Create(path)
 		if err != nil {
-			glog.Errorf("Error creating config file %v: %v", path, err)
-			return err
+			return fmt.Errorf("error creating config file %s: %v", path, err)
 		}
 
 		data := templateData{
+			WorkingDir:         r.dir,
 			State:              r.state,
 			DefaultCertificate: r.defaultCertificatePath,
 			PeerEndpoints:      r.peerEndpoints,
@@ -219,12 +224,10 @@ func (r *templateRouter) writeConfig() error {
 			StatsPassword:      r.statsPassword,
 			StatsPort:          r.statsPort,
 		}
-		err = template.Execute(file, data)
-		if err != nil {
-			glog.Errorf("Error executing template for file %v: %v", path, err)
-			return err
+		if err := template.Execute(file, data); err != nil {
+			file.Close()
+			return fmt.Errorf("error executing template for file %s: %v", path, err)
 		}
-
 		file.Close()
 	}
 
@@ -244,11 +247,10 @@ func (r *templateRouter) writeCertificates(cfg *ServiceAliasConfig) error {
 // reloadRouter executes the router's reload script.
 func (r *templateRouter) reloadRouter() error {
 	cmd := exec.Command(r.reloadScriptPath)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		glog.Errorf("Error reloading router: %v\n Reload output: %v", err, string(out))
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("error reloading router: %v\n---\n%s", err, string(out))
 	}
-	return err
+	return nil
 }
 
 // CreateServiceUnit creates a new service named with the given id.
