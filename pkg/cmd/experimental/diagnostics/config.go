@@ -12,7 +12,7 @@ import (
 // determine if we even have a client config
 func (o DiagnosticsOptions) detectClientConfig() (bool, []types.DiagnosticError, []types.DiagnosticError) {
 	diagnostic := &clientdiagnostics.ConfigLoading{ConfFlagName: config.OpenShiftConfigFlagName, ClientFlags: o.ClientFlags}
-	o.Logger.Noticet("diagRun", "Determining if client configuration exists for client/cluster diagnostics",
+	o.Logger.Noticet("CED2011", "Determining if client configuration exists for client/cluster diagnostics",
 		log.Hash{"area": "client", "name": diagnostic.Name(), "diag": diagnostic.Description()})
 	result := diagnostic.Check()
 	for _, entry := range result.Logs() {

@@ -151,15 +151,15 @@ var (
 
 // Provide a summary at the end
 func (l *Logger) Summary(warningsSeen int, errorsSeen int) {
-	l.Noticef("summary", "\nSummary of diagnostics execution (version %v):\n", version.Get())
+	l.Noticef("DL0001", "\nSummary of diagnostics execution (version %v):\n", version.Get())
 	if warningsSeen > 0 {
-		l.Noticet("sumWarn", "Warnings seen: {{.warnings}}", Hash{"warnings": warningsSeen})
+		l.Noticet("DL0002", "Warnings seen: {{.warnings}}", Hash{"warnings": warningsSeen})
 	}
 	if errorsSeen > 0 {
-		l.Noticet("sumErr", "Errors seen: {{.errors}}", Hash{"errors": errorsSeen})
+		l.Noticet("DL0003", "Errors seen: {{.errors}}", Hash{"errors": errorsSeen})
 	}
 	if warningsSeen == 0 && errorsSeen == 0 {
-		l.Notice("sumNone", "Completed with no errors or warnings seen.")
+		l.Notice("DL0004", "Completed with no errors or warnings seen.")
 	}
 }
 
@@ -257,13 +257,13 @@ func origin(skip int) string {
 	}
 }
 func (l *Logger) logp(level Level, id string, text string) {
-	l.LogEntry(Entry{id, origin(1), level, Message{ID: id, EvaluatedText: text}})
+	l.LogEntry(Entry{id, origin(2), level, Message{ID: id, EvaluatedText: text}})
 }
 func (l *Logger) logf(level Level, id string, msg string, a ...interface{}) {
-	l.LogEntry(Entry{id, origin(1), level, Message{ID: id, EvaluatedText: fmt.Sprintf(msg, a...)}})
+	l.LogEntry(Entry{id, origin(2), level, Message{ID: id, EvaluatedText: fmt.Sprintf(msg, a...)}})
 }
 func (l *Logger) logt(level Level, id string, template string, data interface{}) {
-	l.LogEntry(Entry{id, origin(1), level, Message{ID: id, Template: template, TemplateData: data}})
+	l.LogEntry(Entry{id, origin(2), level, Message{ID: id, Template: template, TemplateData: data}})
 }
 
 func (l *Logger) Finish() {

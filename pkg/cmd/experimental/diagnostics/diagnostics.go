@@ -133,12 +133,12 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 	if len(o.RequestedDiagnostics) == 0 {
 		o.RequestedDiagnostics = AvailableDiagnostics.List()
 	} else if common := intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableDiagnostics); len(common) == 0 {
-		o.Logger.Errort("emptyReqDiag", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
+		o.Logger.Errort("CED3012", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
 			log.Hash{"requested": o.RequestedDiagnostics, "available": AvailableDiagnostics.List()})
 		return false, fmt.Errorf("No requested diagnostics available"), 0, 1
 	} else if len(common) < len(o.RequestedDiagnostics) {
 		errors = append(errors, fmt.Errorf("Not all requested diagnostics are available"))
-		o.Logger.Errort("notAllReqDiag", `
+		o.Logger.Errort("CED3013", `
 Of the requested diagnostics:
     {{.requested}}
 only these are available:
@@ -163,13 +163,13 @@ The list of all possible is:
 			errors = append(errors, err)
 		}
 		if !detected { // there just plain isn't any client config file available
-			o.Logger.Notice("discNoClientConf", "No client configuration specified; skipping client and cluster diagnostics.")
+			o.Logger.Notice("CED3014", "No client configuration specified; skipping client and cluster diagnostics.")
 		} else if rawConfig, err := o.buildRawConfig(); rawConfig == nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
-			o.Logger.Errorf("discBrokenClientConf", "Client configuration failed to load; skipping client and cluster diagnostics due to error: {{.error}}", log.Hash{"error": err.Error()})
+			o.Logger.Errorf("CED3015", "Client configuration failed to load; skipping client and cluster diagnostics due to error: {{.error}}", log.Hash{"error": err.Error()})
 			errors = append(errors, err)
 		} else {
 			if err != nil { // error encountered, proceed with caution
-				o.Logger.Errorf("discClientConfErr", "Client configuration loading encountered an error, but proceeding anyway. Error was:\n{{.error}}", log.Hash{"error": err.Error()})
+				o.Logger.Errorf("CED3016", "Client configuration loading encountered an error, but proceeding anyway. Error was:\n{{.error}}", log.Hash{"error": err.Error()})
 				errors = append(errors, err)
 			}
 			clientDiags, ok, err := o.buildClientDiagnostics(rawConfig)
@@ -220,7 +220,7 @@ func (o DiagnosticsOptions) Run(diagnostics []types.Diagnostic) (bool, error, in
 			defer func() {
 				if r := recover(); r != nil {
 					errorCount += 1
-					o.Logger.Errort("diagPanic",
+					o.Logger.Errort("CED3017",
 						"While running the {{.name}} diagnostic, a panic was encountered.\nThis is a bug in diagnostics. Stack trace follows : \n{{.error}}",
 						log.Hash{"name": diagnostic.Name(), "error": fmt.Sprintf("%v", r)})
 				}
@@ -228,16 +228,16 @@ func (o DiagnosticsOptions) Run(diagnostics []types.Diagnostic) (bool, error, in
 
 			if canRun, reason := diagnostic.CanRun(); !canRun {
 				if reason == nil {
-					o.Logger.Noticet("diagSkip", "Skipping diagnostic: {{.name}}\nDescription: {{.diag}}",
+					o.Logger.Noticet("CED3018", "Skipping diagnostic: {{.name}}\nDescription: {{.diag}}",
 						log.Hash{"name": diagnostic.Name(), "diag": diagnostic.Description()})
 				} else {
-					o.Logger.Noticet("diagSkip", "Skipping diagnostic: {{.name}}\nDescription: {{.diag}}\nBecause: {{.reason}}",
+					o.Logger.Noticet("CED3019", "Skipping diagnostic: {{.name}}\nDescription: {{.diag}}\nBecause: {{.reason}}",
 						log.Hash{"name": diagnostic.Name(), "diag": diagnostic.Description(), "reason": reason.Error()})
 				}
 				return
 			}
 
-			o.Logger.Noticet("diagRun", "Running diagnostic: {{.name}}\nDescription: {{.diag}}",
+			o.Logger.Noticet("CED3020", "Running diagnostic: {{.name}}\nDescription: {{.diag}}",
 				log.Hash{"name": diagnostic.Name(), "diag": diagnostic.Description()})
 			r := diagnostic.Check()
 			for _, entry := range r.Logs() {

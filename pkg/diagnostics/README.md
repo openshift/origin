@@ -26,6 +26,19 @@ Diagnostics looks for config files in standard locations. If not found,
 related diagnostics are just skipped. Non-standard locations can be
 specified with flags.
 
+Standard config file locations are:
+
+* Client:
+  * as indicated by --config flag
+  * as indicated by $KUBECONFIG env var
+  * ~/.kube/config file
+* Master:
+  * as indicated by --master-config flag
+  * /etc/openshift/master/master-config.yaml
+* Node:
+  * as indicated by --node-config flag
+  * /etc/openshift/node/node-config.yaml
+
 Host environment
 ================
 
@@ -36,14 +49,14 @@ logic. This provides two major benefits:
 * master/node configuration is based on a configuration file in a standard location
 * all components log to journald
 
-Having configuration files in standard locations means you will generally
+Having configuration files where ansible places them means you will generally
 not even need to specify where to find them. Running:
 
     openshift ex diagnostics
 
 by itself will look for master and node configs (in addition to client
 config file) in the standard locations and use them if found; so this
-should make the Enterprise use case as simple as possible. It's also
+should make the ansible-installed use case as simple as possible. It's also
 very easy to use configuration files when they are not in the expected
 Enterprise locations:
 
@@ -53,7 +66,7 @@ Having logs in journald is necessary for the current log analysis
 logic. Other usage may have logs going into files, output to stdout,
 combined node/master... it may not be too hard to extend analysis to
 other log sources but the priority has been to look at journald logs
-as created by components in Enterprise deployments (including docker,
+as created by components in systemd-based deployments (including docker,
 openvswitch, etc.).
 
 Client environment
@@ -97,17 +110,18 @@ paths or flooding them with non-issues that obscure real problems.
 * Warnings indicate issues that may be a problem but could be valid for
   some configurations / situations, for example a node being disabled.
 
-Enabling automation
-===================
+**Message IDs**
 
-Diagnostic messages are designed to be logged either for human consumption
-("text" format) or for scripting/automation ("yaml" or "json" formats). So
-messages should:
+All messages should have a unique, unchanging, otherwise-meaningless
+message ID to facilitate the user greping for specific errors/warnings
+without having to depend on text that may change. Although nothing yet
+depends on them being unique, the message ID scheme attempts to ensure
+they are. That scheme is:
 
-* Have an ID that is unique and unchanging, such that automated alerts
-  could filter on specific IDs rather than rely on message text or level.
-* Log any data that might be relevant in an automated alert as
-  template data; for example, when a node is down, include the name of
-  the node so that automation could decide how important it is.
-* Not put anything in message template data that cannot be serialized.
+    Initials of package + index of file in package + index of message in file
+
+E.g. "DClu1001" is in package diagnostics/cluster (which needed to be
+differentiated from diagnostics/client), the first file indexed, and
+the first message in the file.  This format is not important; it's just
+a convenience to help keep IDs unique. But don't change existing IDs.
 

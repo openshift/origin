@@ -67,7 +67,7 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 	if d.KubeClient == nil || d.OsClient == nil {
 		return false, errors.New("must have kube and os client")
 	}
-	can, err := adminCan(d.OsClient, kapi.NamespaceDefault, &authorizationapi.SubjectAccessReview{
+	can, err := adminCan(d.OsClient, authorizationapi.AuthorizationAttributes{
 		Verb:     "list",
 		Resource: "nodes",
 	})
@@ -75,7 +75,7 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 		msg := log.Message{ID: "clGetNodesFailed", EvaluatedText: fmt.Sprintf(clientErrorGettingNodes, err)}
 		return false, types.DiagnosticError{msg.ID, &msg, err}
 	} else if !can {
-		msg := log.Message{ID: "clGetNodesFailed", EvaluatedText: "Client does not have cluster-admin access and cannot see node records"}
+		msg := log.Message{ID: "clGetNodesFailed", EvaluatedText: "Client does not have access to see node status"}
 		return false, types.DiagnosticError{msg.ID, &msg, err}
 	}
 	return true, nil
@@ -86,7 +86,7 @@ func (d *NodeDefinitions) Check() types.DiagnosticResult {
 
 	nodes, err := d.KubeClient.Nodes().List(labels.LabelSelector{}, fields.Everything())
 	if err != nil {
-		r.Errorf("clGetNodesFailed", err, clientErrorGettingNodes, err)
+		r.Errorf("DClu0001", err, clientErrorGettingNodes, err)
 		return r
 	}
 
@@ -110,15 +110,15 @@ func (d *NodeDefinitions) Check() types.DiagnosticResult {
 				templateData["status"] = ready.Status
 				templateData["reason"] = ready.Reason
 			}
-			r.Warnt("clNodeNotReady", nil, nodeNotReady, templateData)
+			r.Warnt("DClu0002", nil, nodeNotReady, templateData)
 		} else if node.Spec.Unschedulable {
-			r.Warnt("clNodeNotSched", nil, nodeNotSched, log.Hash{"node": node.Name})
+			r.Warnt("DClu0003", nil, nodeNotSched, log.Hash{"node": node.Name})
 		} else {
 			anyNodesAvail = true
 		}
 	}
 	if !anyNodesAvail {
-		r.Error("clNoAvailNodes", nil, "There were no nodes available to use. No new pods can be scheduled.")
+		r.Error("DClu0004", nil, "There were no nodes available to use. No new pods can be scheduled.")
 	}
 
 	return r

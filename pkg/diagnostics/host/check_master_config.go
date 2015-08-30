@@ -32,17 +32,17 @@ func (d MasterConfigCheck) CanRun() (bool, error) {
 func (d MasterConfigCheck) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterConfigCheckName)
 
-	r.Debugf("discMCfile", "Looking for master config file at '%s'", d.MasterConfigFile)
+	r.Debugf("DH0001", "Looking for master config file at '%s'", d.MasterConfigFile)
 	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(d.MasterConfigFile)
 	if err != nil {
-		r.Errorf("discMCfail", err, "Could not read master config file '%s':\n(%T) %[2]v", d.MasterConfigFile, err)
+		r.Errorf("DH0002", err, "Could not read master config file '%s':\n(%T) %[2]v", d.MasterConfigFile, err)
 		return r
 	}
 
-	r.Infof("discMCfound", "Found a master config file: %[1]s", d.MasterConfigFile)
+	r.Infof("DH0003", "Found a master config file: %[1]s", d.MasterConfigFile)
 
 	for _, err := range configvalidation.ValidateMasterConfig(masterConfig).Errors {
-		r.Errorf("discMCinvalid", err, "Validation of master config file '%s' failed:\n(%T) %[2]v", d.MasterConfigFile, err)
+		r.Errorf("DH0004", err, "Validation of master config file '%s' failed:\n(%T) %[2]v", d.MasterConfigFile, err)
 	}
 	return r
 }

@@ -31,17 +31,17 @@ func (d NodeConfigCheck) CanRun() (bool, error) {
 }
 func (d NodeConfigCheck) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(NodeConfigCheckName)
-	r.Debugf("discNCfile", "Looking for node config file at '%s'", d.NodeConfigFile)
+	r.Debugf("DH1001", "Looking for node config file at '%s'", d.NodeConfigFile)
 	nodeConfig, err := configapilatest.ReadAndResolveNodeConfig(d.NodeConfigFile)
 	if err != nil {
-		r.Errorf("discNCfail", err, "Could not read node config file '%s':\n(%T) %[2]v", d.NodeConfigFile, err)
+		r.Errorf("DH1002", err, "Could not read node config file '%s':\n(%T) %[2]v", d.NodeConfigFile, err)
 		return r
 	}
 
-	r.Infof("discNCfound", "Found a node config file: %[1]s", d.NodeConfigFile)
+	r.Infof("DH1003", "Found a node config file: %[1]s", d.NodeConfigFile)
 
 	for _, err := range configvalidation.ValidateNodeConfig(nodeConfig) {
-		r.Errorf("discNCinvalid", err, "Validation of node config file '%s' failed:\n(%T) %[2]v", d.NodeConfigFile, err)
+		r.Errorf("DH1004", err, "Validation of node config file '%s' failed:\n(%T) %[2]v", d.NodeConfigFile, err)
 	}
 	return r
 }
