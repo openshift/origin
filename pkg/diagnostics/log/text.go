@@ -37,7 +37,7 @@ func (t *textLogger) Write(entry Entry) {
 	}
 	text := strings.TrimSpace(entry.Message.EvaluatedText)
 	if entry.Level.Level >= WarnLevel.Level {
-		text = fmt.Sprintf("[ID \"%s\" from %s]\n", entry.ID, entry.Origin) + text
+		text = fmt.Sprintf("[%s from %s]\n", entry.ID, entry.Origin) + text
 	}
 	if strings.Contains(text, "\n") { // separate multiline comments with newlines
 		if !t.lastNewline {

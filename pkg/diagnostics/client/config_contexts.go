@@ -24,17 +24,8 @@ type ConfigContext struct {
 }
 
 const (
-	ConfigContextsName    = "ConfigContexts"
-	currentContextMissing = `Your client config specifies a current context of '{{.context}}'
-which is not defined; it is likely that a mistake was introduced while
-manually editing your config. If this is a simple typo, you may be
-able to fix it manually.
-The master creates a fresh client config when it is started; it may be
-useful to use this as a base if available.`
+	ConfigContextsName = "ConfigContexts"
 
-	currentContextSummary = `The current context from client config is '{{.context}}'
-This will be used by default to contact the master API.
-`
 	contextDesc = `
 For client config context '{{.context}}':
 The server URL is '{{.server}}'
@@ -93,12 +84,12 @@ fails in this case.
 However, the most likely explanation is that the server certificate
 needs to be updated to include the name you are using to reach it.
 
-If the master API server is generating its own certificates (which is
-default), then specify the public master address in the master-config.yaml
-or with the --public-master flag is usually the easiest way to do
-this. If you need something more complicated (for instance, multiple
-public addresses for the API, or your own CA), then you will need to
-custom-generate the server certificate with the right names yourself.
+If the master API server is generating its own certificates (which
+is the default), then specifying the public master address in the
+master-config.yaml or with the --public-master flag is usually the easiest
+way to do this. If you need something more complicated (for instance,
+multiple public addresses for the API, or your own CA), then you will need
+to custom-generate the server certificate with the right names yourself.
 
 If you are unconcerned about any of this, you can add the
 --insecure-skip-tls-verify flag to bypass secure (TLS) verification,
@@ -121,7 +112,7 @@ we could not reach the host at all.
 * You may have specified the wrong host address.
 * This could mean the host is completely unavailable (down).
 * This could indicate a routing problem or a firewall that simply
-  drops requests rather than responding by reseting the connection.
+  drops requests rather than responding by resetting the connection.
 * It does not generally mean that DNS name resolution failed (which
   would be a different error) though the problem could be that it
   gave the wrong address.`
@@ -155,9 +146,9 @@ key/certificate or an access token. Your kubeconfig may not have
 presented any, or they may be invalid.`
 	clientUnauthz = `
 This means that when we tried to make a request to the master API
-server, the request required credentials that were not presented.
-This can happen when an authentication token expires. Try logging in
-with this user again.`
+server, the request required credentials that were not presented. This
+can happen with an expired or invalid authentication token. Try logging
+in with this user again.`
 )
 
 var (
@@ -191,10 +182,10 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	isDefaultContext := d.RawConfig.CurrentContext == d.ContextName
 
 	// prepare bad news message
-	errorKey := "clientCfgError"
+	errorKey := "DCli0001"
 	unusableLine := fmt.Sprintf("The client config context '%s' is unusable", d.ContextName)
 	if isDefaultContext {
-		errorKey = "currentccError"
+		errorKey = "DCli0002"
 		unusableLine = fmt.Sprintf("The current client config context '%s' is unusable", d.ContextName)
 	}
 
@@ -212,7 +203,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	}
 	authName := context.AuthInfo
 	if _, exists := d.RawConfig.AuthInfos[authName]; !exists {
-		r.Errorf(errorKey, nil, "%s:\n Client config context '%s' has a user identity '%s' which is not defined.", unusableLine, d.ContextName, authName)
+		r.Errorf(errorKey, nil, "%s:\n Client config context '%s' has a user '%s' which is not defined.", unusableLine, d.ContextName, authName)
 		return r
 	}
 
@@ -230,7 +221,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	// Actually send a request to see if context has connectivity.
 	// Note: we cannot reuse factories as they cache the clients, so build new factory for each context.
 	osClient, _, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).Clients()
-	// client create now fails if cannot connect to server, so address connectivity errors below
+	// client create now *fails* if cannot connect to server; so, address connectivity errors below
 	if err == nil {
 		if projects, projerr := osClient.Projects().List(labels.Everything(), fields.Everything()); projerr != nil {
 			err = projerr
@@ -245,9 +236,9 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 			}
 			msgData["projects"] = list
 			if len(list) == 0 {
-				r.Infot("CCctxSuccess", msgText+"Successfully requested project list, but it is empty, so user has no access to anything.", msgData)
+				r.Infot("DCli0003", msgText+"Successfully requested project list, but it is empty, so user has no access to anything.", msgData)
 			} else {
-				r.Infot("CCctxSuccess", msgText+"Successfully requested project list; has access to project(s):\n  {{.projects}}", msgData)
+				r.Infot("DCli0004", msgText+"Successfully requested project list; has access to project(s):\n  {{.projects}}", msgData)
 			}
 			return r
 		}
@@ -260,29 +251,29 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	var reason, errId string
 	switch {
 	case regexp.MustCompile("dial tcp: lookup (\\S+): no such host").MatchString(errMsg):
-		errId, reason = "clientNoResolve", clientNoResolve
+		errId, reason = "DCli0005", clientNoResolve
 	case strings.Contains(errMsg, "x509: certificate signed by unknown authority"):
-		errId, reason = "clientUnknownCa", clientUnknownCa
+		errId, reason = "DCli0006", clientUnknownCa
 	case strings.Contains(errMsg, "specifying a root certificates file with the insecure flag is not allowed"):
-		errId, reason = "clientUnneededCa", clientUnneededCa
+		errId, reason = "DCli0007", clientUnneededCa
 	case invalidCertNameRx.MatchString(errMsg):
 		match := invalidCertNameRx.FindStringSubmatch(errMsg)
 		serverHost := match[len(match)-1]
-		errId, reason = "clientInvCertName", fmt.Sprintf(clientInvCertName, serverHost)
+		errId, reason = "DCli0008", fmt.Sprintf(clientInvCertName, serverHost)
 	case regexp.MustCompile("dial tcp (\\S+): connection refused").MatchString(errMsg):
-		errId, reason = "clientConnRefused", clientConnRefused
+		errId, reason = "DCli0009", clientConnRefused
 	case regexp.MustCompile("dial tcp (\\S+): (?:connection timed out|i/o timeout|no route to host)").MatchString(errMsg):
-		errId, reason = "clientConnTimeout", clientConnTimeout
+		errId, reason = "DCli0010", clientConnTimeout
 	case strings.Contains(errMsg, "malformed HTTP response"):
-		errId, reason = "clientMalformedHTTP", clientMalformedHTTP
+		errId, reason = "DCli0011", clientMalformedHTTP
 	case strings.Contains(errMsg, "tls: oversized record received with length"):
-		errId, reason = "clientMalformedTLS", clientMalformedTLS
-	case regexp.MustCompile(`403 Forbidden: Forbidden: "/osapi/v\w+/projects?namespace=" denied by default`).MatchString(errMsg):
-		errId, reason = "clientUnauthn", clientUnauthn
-	case regexp.MustCompile("401 Unauthorized: Unauthorized$").MatchString(errMsg):
-		errId, reason = "clientUnauthz", clientUnauthz
+		errId, reason = "DCli0012", clientMalformedTLS
+	case strings.Contains(errMsg, `User "system:anonymous" cannot`):
+		errId, reason = "DCli0013", clientUnauthn
+	case strings.Contains(errMsg, "provide credentials"):
+		errId, reason = "DCli0014", clientUnauthz
 	default:
-		errId, reason = "clientUnknownConnErr", `Diagnostics does not have an explanation for what this means. Please report this error so one can be added.`
+		errId, reason = "DCli0015", `Diagnostics does not have an explanation for what this means. Please report this error so one can be added.`
 	}
 	r.Errort(errId, err, msgText+"{{.errMsg}}\n"+reason, msgData)
 	return r

@@ -46,7 +46,7 @@ func (d UnitStatus) Check() types.DiagnosticResult {
 	// Anything that is enabled but not running deserves notice
 	for name, unit := range d.SystemdUnits {
 		if unit.Enabled && !unit.Active {
-			r.Errort("sdUnitInactive", nil, sdUnitInactive, log.Hash{"unit": name})
+			r.Errort("DS3001", nil, sdUnitInactive, log.Hash{"unit": name})
 		}
 	}
 	return r
@@ -56,9 +56,9 @@ func unitRequiresUnit(r types.DiagnosticResult, unit types.SystemdUnit, requires
 	templateData := log.Hash{"unit": unit.Name, "required": requires.Name, "reason": reason}
 
 	if (unit.Active || unit.Enabled) && !requires.Exists {
-		r.Errort("sdUnitReqLoaded", nil, sdUnitReqLoaded, templateData)
+		r.Errort("DS3002", nil, sdUnitReqLoaded, templateData)
 	} else if unit.Active && !requires.Active {
-		r.Errort("sdUnitReqActive", nil, sdUnitReqActive, templateData)
+		r.Errort("DS3003", nil, sdUnitReqActive, templateData)
 	}
 }
 

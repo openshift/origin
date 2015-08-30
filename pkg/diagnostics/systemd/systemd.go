@@ -61,24 +61,14 @@ var tlsClientErrorSeen map[string]bool
 var unitLogSpecs = []*unitSpec{
 	{
 		Name:       "openshift-master",
-		StartMatch: regexp.MustCompile("Starting master on"),
+		StartMatch: regexp.MustCompile("Starting \\w+ Master"),
 		LogMatchers: []logMatcher{
 			badImageTemplate,
 			{
 				Regexp:         regexp.MustCompile("Unable to decode an event from the watch stream: local error: unexpected message"),
 				Level:          log.InfoLevel,
-				Id:             "sdLogOMIgnore",
+				Id:             "DS2003",
 				Interpretation: "You can safely ignore this message.",
-			},
-			{
-				Regexp: regexp.MustCompile("HTTP probe error: Get .*/healthz: dial tcp .*:10250: connection refused"),
-				Level:  log.InfoLevel,
-				Id:     "sdLogOMhzRef",
-				Interpretation: `
-The master does a health check on nodes that are defined in its records,
-and this error is the result when the node is not available yet.
-This is not usually a problem, unless it continues in the logs after
-the node is actually available.`,
 			},
 			{
 				// TODO: don't rely on ipv4 format, should be ipv6 "soon"
@@ -90,7 +80,7 @@ the node is actually available.`,
 					if tlsClientErrorSeen == nil { // first time this message was seen
 						tlsClientErrorSeen = map[string]bool{client: true}
 						// TODO: too generic, adjust message depending on subnet of the "from" address
-						r.Warn("sdLogOMreBadCert", nil, prelude+`
+						r.Warn("DS2001", nil, prelude+`
 This error indicates that a client attempted to connect to the master
 HTTPS API server but broke off the connection because the master's
 certificate is not validated by a cerificate authority (CA) acceptable
@@ -101,8 +91,8 @@ At this time, the master API certificate is signed by a private CA
 (created the first time the master runs) and clients should have a copy of
 that CA certificate in order to validate connections to the master. Most
 likely, either:
-1. the master has generated a new CA (after the administrator deleted
-   the old one) and the client has a copy of the old CA cert, or
+1. the master has generated a new CA (e.g. after the administrator
+   deleted the old one) and the client has a copy of the old CA cert, or
 2. the client hasn't been configured with a private CA at all (or the
    wrong one), or
 3. the client is attempting to reach the master at a URL that isn't
@@ -131,99 +121,66 @@ log message:
 
 					} else if !tlsClientErrorSeen[client] {
 						tlsClientErrorSeen[client] = true
-						r.Warn("sdLogOMreBadCert", nil, prelude+`This message was diagnosed above, but for a different client address.`)
+						r.Warn("DS2002", nil, prelude+`This message was diagnosed above, but for a different client address.`)
 					} // else, it's a repeat, don't mention it
 					return true // show once for every client failing to connect, not just the first
 				},
-			},
-			{
-				// user &{system:anonymous  [system:unauthenticated]} -> /api/v\\w+/services?namespace="
-				Regexp: regexp.MustCompile("system:anonymous\\W*system:unauthenticated\\W*/api/v\\w+/services\\?namespace="),
-				Level:  log.WarnLevel,
-				Id:     "sdLogOMunauthNode",
-				Interpretation: `
-This indicates the API server (master) received an unscoped request to
-get Services. Requests like this probably come from a node trying to
-discover where it should proxy services.
-
-However, the request was unauthenticated, so it was denied. The node
-either did not offer a client certificate for credential, or offered an
-invalid one (not signed by the certificate authority the master uses).
-The node will not be able to function without this access.
-
-Unfortunately, this message does not tell us *which* node is the
-problem. But running diagnostics on your node hosts should find a log
-message for any node with this problem.
-`,
 			},
 		},
 	},
 	{
 		Name:       "openshift-node",
-		StartMatch: regexp.MustCompile("Starting OpenShift node"), //systemd puts this out; could change
+		StartMatch: regexp.MustCompile("Starting \\w+ Node"), //systemd puts this out; could change
 		LogMatchers: []logMatcher{
 			badImageTemplate,
 			{
-				Regexp: regexp.MustCompile("Unable to load services: Get (http\\S+/api/v\\w+/services\\?namespace=): (.+)"), // e.g. x509: certificate signed by unknown authority
+				Regexp: regexp.MustCompile(`Unable to register.*"system:anonymous"`),
 				Level:  log.ErrorLevel,
-				Id:     "sdLogONconnMaster",
+				Id:     "DS2004",
 				Interpretation: `
-openshift-node could not connect to the master API in order to determine
-its responsibilities. This host will not function as a node until this
-is resolved. Pods scheduled for this node will remain in pending or
-unknown state forever.`,
-			},
-			{
-				Regexp: regexp.MustCompile(`Unable to load services: request.*403 Forbidden: Forbidden: "/api/v\w+/services\?namespace=" denied by default`),
-				Level:  log.ErrorLevel,
-				Id:     "sdLogONMasterForbids",
-				Interpretation: `
-openshift-node could not connect to the master API to determine
-its responsibilities because it lacks the proper credentials. Nodes
-should specify a client certificate in order to identify themselves to
-the master. This message typically means that either no client key/cert
-was supplied, or it is not validated by the certificate authority (CA)
-the master uses. You should supply a correct client key and certificate
-in the .kubeconfig specified in node-config.yaml
+openshift-node could not register with the master API because it lacks
+the proper credentials. Nodes should specify a client certificate in
+order to identify themselves to the master. This message typically means
+that either no client key/cert was supplied, or it is not validated
+by the certificate authority (CA) the master uses. You should supply
+a correct client key and certificate in the .kubeconfig specified in
+node-config.yaml
 
 This host will not function as a node until this is resolved. Pods
 scheduled for this node will remain in pending or unknown state forever.`,
 			},
 			{
-				Regexp: regexp.MustCompile("Could not find an allocated subnet for this minion.*Waiting.."),
+				Regexp: regexp.MustCompile("Could not find an allocated subnet for"),
 				Level:  log.WarnLevel,
-				Id:     "sdLogOSNnoSubnet",
+				Id:     "DS2005",
 				Interpretation: `
 This warning occurs when openshift-node is trying to request the
 SDN subnet it should be configured with according to the master,
-but either can't connect to it ("All the given peers are not reachable")
-or has not yet been assigned a subnet ("Key not found").
+but either can't connect to it or has not yet been assigned a subnet.
 
-This can just be a matter of waiting for the master to become fully
-available and define a record for the node (aka "minion") to use,
-and openshift-node will wait until that occurs, so the presence
-of this message in the node log isn't necessarily a problem as
-long as the SDN is actually working, but this message may help indicate
-the problem if it is not working.
+This can occur before the master becomes fully available and defines a
+record for the node to use; openshift-node will wait until that occurs,
+so the presence of this message in the node log isn't necessarily a
+problem as long as the SDN is actually working, but this message may
+help indicate the problem if it is not working.
 
-If the master is available and this node's record is defined and this
-message persists, then it may be a sign of a different misconfiguration.
-Unfortunately the message is not specific about why the connection failed.
-Check the master's URL in the node configuration.
+If the master is available and this log message persists, then it may
+be a sign of a different misconfiguration. Check the master's URL in
+the node kubeconfig.
  * Is the protocol http? It should be https.
- * Can you reach the address and port from the node using curl?
-   ("404 page not found" is correct response)`,
+ * Can you reach the address and port from the node using curl -k?
+`,
 			},
 		},
 	},
 	{
 		Name:       "docker",
-		StartMatch: regexp.MustCompile(`Starting Docker Application Container Engine.`), // RHEL Docker at least
+		StartMatch: regexp.MustCompile(`Starting Docker`), // RHEL Docker at least
 		LogMatchers: []logMatcher{
 			{
 				Regexp: regexp.MustCompile(`Usage: docker \\[OPTIONS\\] COMMAND`),
 				Level:  log.ErrorLevel,
-				Id:     "sdLogDbadOpt",
+				Id:     "DS2006",
 				Interpretation: `
 This indicates that docker failed to parse its command line
 successfully, so it just printed a standard usage message and exited.
@@ -236,7 +193,7 @@ The node will not run on this host until this is resolved.`,
 			{
 				Regexp: regexp.MustCompile(`^Unable to open the database file: unable to open database file$`),
 				Level:  log.ErrorLevel,
-				Id:     "sdLogDopenDB",
+				Id:     "DS2007",
 				Interpretation: `
 This indicates that docker failed to record its state to its database.
 The most likely reason is that it is out of disk space. It is also
@@ -254,7 +211,7 @@ The node will not run on this host until this is resolved.`,
 			{
 				Regexp: regexp.MustCompile(`no space left on device$`),
 				Level:  log.ErrorLevel,
-				Id:     "sdLogDfull",
+				Id:     "DS2008",
 				Interpretation: `
 This indicates that docker has run out of space for container volumes
 or metadata (by default, stored in /var/lib/docker, but configurable).
@@ -272,7 +229,7 @@ The node will not run on this host until this is resolved.`,
 			{ // generic error seen - do this last
 				Regexp: regexp.MustCompile(`\\slevel="fatal"\\s`),
 				Level:  log.ErrorLevel,
-				Id:     "sdLogDfatal",
+				Id:     "DS2009",
 				Interpretation: `
 This is not a known problem, but it is causing Docker to crash,
 so the node will not run on this host until it is resolved.`,

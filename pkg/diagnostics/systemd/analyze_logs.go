@@ -42,7 +42,7 @@ func (d AnalyzeLogs) Check() types.DiagnosticResult {
 
 	for _, unit := range unitLogSpecs {
 		if svc := d.SystemdUnits[unit.Name]; svc.Enabled || svc.Active {
-			r.Infof("sdCheckLogs", "Checking journalctl logs for '%s' service", unit.Name)
+			r.Infof("DS0001", "Checking journalctl logs for '%s' service", unit.Name)
 
 			cmd := exec.Command("journalctl", "-ru", unit.Name, "--output=json")
 			// JSON comes out of journalctl one line per record
@@ -58,7 +58,7 @@ func (d AnalyzeLogs) Check() types.DiagnosticResult {
 			}(cmd)
 
 			if err != nil {
-				r.Errorf("sdLogReadErr", err, sdLogReadErr, unit.Name, errStr(err))
+				r.Errorf("DS0002", err, sdLogReadErr, unit.Name, errStr(err))
 				return r
 			}
 			defer func() { // close out pipe once done reading
@@ -75,10 +75,10 @@ func (d AnalyzeLogs) Check() types.DiagnosticResult {
 				}
 				bytes, entry := lineReader.Bytes(), logEntry{}
 				if err := json.Unmarshal(bytes, &entry); err != nil {
-					r.Debugf("sdLogBadJSON", "Couldn't read the JSON for this log message:\n%s\nGot error %s", string(bytes), errStr(err))
+					r.Debugf("DS0003", "Couldn't read the JSON for this log message:\n%s\nGot error %s", string(bytes), errStr(err))
 				} else {
 					if lineCount > 500 && stampTooOld(entry.TimeStamp, timeLimit) {
-						r.Debugf("sdLogTrunc", "Stopped reading %s log: timestamp %s too old", unit.Name, entry.TimeStamp)
+						r.Debugf("DS0004", "Stopped reading %s log: timestamp %s too old", unit.Name, entry.TimeStamp)
 						break // if we've analyzed at least 500 entries, stop when age limit reached (don't scan days of logs)
 					}
 					if unit.StartMatch.MatchString(entry.Message) {
