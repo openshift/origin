@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/master/ports"
+	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 
@@ -494,6 +495,13 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		"kubernetes.default",
 		"kubernetes",
 		masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
+
+	if _, ipnet, err := net.ParseCIDR(args.NetworkArgs.ServiceNetworkCIDR); err == nil {
+		// CIDR is ignored if it is invalid, other code handles validation.
+		if firstServiceIP, err := ipallocator.GetIndexedIP(ipnet, 1); err == nil {
+			allHostnames.Insert(firstServiceIP.String())
+		}
+	}
 
 	listenIP := net.ParseIP(args.ListenArg.ListenAddr.Host)
 	// add the IPs that might be used based on the ListenAddr.
