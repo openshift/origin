@@ -375,6 +375,19 @@ module.exports = function (grunt) {
       }
     },
 
+    ngtemplates: {
+      dist: {
+        cwd: '<%= yeoman.app %>',
+        src: 'views/**/*.html',
+        dest: '<%= yeoman.dist %>/scripts/templates.js',
+        options: {
+          module: 'openshiftConsole',
+          htmlmin: '<%= htmlmin.dist %>',
+          usemin: 'scripts/scripts.js'
+        }
+      }
+    },
+
     // Copies remaining files to places other tasks can use
     copy: {
       dist: {
@@ -530,6 +543,8 @@ module.exports = function (grunt) {
 
   grunt.loadNpmTasks('grunt-htmlhint');
 
+  grunt.loadNpmTasks('grunt-angular-templates');
+
   // karma must run prior to coverage since karma will generate the coverage results
   grunt.registerTask('test', [
     'clean:server',
@@ -555,6 +570,7 @@ module.exports = function (grunt) {
     'htmlhint',
     'wiredep',
     'useminPrepare',
+    'ngtemplates',
     'concurrent:dist',
     'autoprefixer',
     'concat',
