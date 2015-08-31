@@ -20,96 +20,78 @@ angular.module('openshiftConsole')
       templateUrl: "views/_sidebar-main-nav-item.html"
     };
   })
-  .directive('projectNav', function($timeout, $location, $filter, LabelFilter) {
+  .directive('projectNav', function($timeout, $location, $filter, LabelFilter, DataService) {
     return {
-      restrict: 'E',
+      restrict: 'EA',
       templateUrl: 'views/_project-nav.html',
-      link: function ($scope, element) {
-        var select = $('.selectpicker', element);
+      link: function($scope, $elem) {
+        var select = $elem.find('.selectpicker');
+        var projects = {};
+        var sortedProjects = [];
+        var options = [];
 
         var updateOptions = function() {
-          var currentProject = $scope.project;
-          if (!currentProject || angular.equals({}, currentProject)) {
-            if (!$scope.projectName) {
-              // Wait until we have at least $scope.projectName or $scope.project.
+          var project = $scope.project || {};
+          var name = $scope.projectName;
+          var isRealProject = !_.isEmpty(project);
+
+          if(!isRealProject) {
+            if(!name) {
               return;
             }
-
-            currentProject = {
+            project = {
               metadata: {
-                name: $scope.projectName
+                name: name
               }
             };
           }
-          var projectName = $scope.projectName || currentProject.metadata.name;
 
-          // Locally add the "current" project to the projects list if it
-          // doesn't exist. This can happen when creating a new project from
-          // the web, which navigates immediately to the project page.
-          var projects;
-          if (!$scope.projects || !$scope.projects[projectName]) {
-            projects = {};
-            projects[$scope.projectName] = currentProject;
-            projects = angular.extend(projects, $scope.projects);
-          } else {
-            projects = $scope.projects;
+          if(!projects[name]) {
+            projects[name] = project;
           }
 
-          var sortedProjects = $filter('orderByDisplayName')(projects);
-          // Create options from the sorted array.
-          angular.forEach(sortedProjects, function(project) {
-            $('<option>')
-              .attr("value", project.metadata.name)
-              .attr("selected", project.metadata.name === projectName)
-              .text($filter('displayName')(project))
-              .appendTo(select);
+          sortedProjects = $filter('orderByDisplayName')(projects);
+
+          options = _.map(sortedProjects, function(item) {
+            return $('<option>')
+                      .attr("value", item.metadata.name)
+                      .attr("selected", item.metadata.name === name)
+                      .text($filter('displayName')(item));
           });
-          // TODO
-          // <option data-divider="true"></option>
-          // <option>Create new</option>
+          select.empty();
+          select.append(options);
+          select.selectpicker('refresh');
         };
+
+
+        DataService.list("projects", $scope, function(items) {
+          projects = items.by("metadata.name");
+          updateOptions();
+        });
 
         updateOptions();
 
-        select.selectpicker({
-              iconBase: 'fa',
-              tickIcon: 'fa-check'
-          }).change(function() {
-          var newProject = $( this ).val();
-          var currentURL = $location.url();
-          var currProjRegex = /\/project\/[^\/]+/;
-          var currProjPrefix = currProjRegex.exec(currentURL);
-          var newURL = currentURL.replace(currProjPrefix, "/project/" + encodeURIComponent(newProject));
-          $scope.$apply(function() {
-            $location.url(newURL);
+        select
+          .selectpicker({
+            iconBase: 'fa',
+            tickIcon: 'fa-check'
+          })
+          .change(function() {
+            var newProject = $( this ).val();
+            var currentURL = $location.url();
+            var currProjRegex = /\/project\/[^\/]+/;
+            var currProjPrefix = currProjRegex.exec(currentURL);
+            var newURL = currentURL.replace(currProjPrefix, "/project/" + encodeURIComponent(newProject));
+            // $location.path(newUrl) may be sufficient...
+            $scope.$apply(function() {
+              $location.url(newURL);
+            });
           });
-        });
 
-        var clearAndUpdateOptions = function(newValue, oldValue) {
-          if (newValue === oldValue) {
-            return;
-          }
-
-          select.empty();
-          updateOptions();
-          select.selectpicker('refresh');
-        };
-        $scope.$watch("project", clearAndUpdateOptions);
-        $scope.$watch("projects", clearAndUpdateOptions);
-
-        // We collapse the filter widget at mobile res
-        if($(window).width() < 768) {
-          $(".navbar-filter-widget-collapse", element).addClass("collapse");
-        }
-
-        LabelFilter.setupFilterWidget($(".navbar-filter-widget", element), $(".active-filters", element), { addButtonText: "Add" });
+        LabelFilter.setupFilterWidget($elem.find('.navbar-filter-widget'), $elem.find('.active-filters'), { addButtonText: "Add" });
         LabelFilter.toggleFilterWidget(!$scope.renderOptions || !$scope.renderOptions.hideFilterWidget);
 
-        // If there are active filters, show the filter widget by default at mobile res
-        if($(window).width() < 768 && ! LabelFilter.getLabelSelector().isEmpty()) {
-          $(".navbar-filter-widget-collapse", element).addClass("in");
-        }
-
+        $scope.$watch("project", updateOptions);
         $scope.$watch("renderOptions", function(renderOptions) {
           LabelFilter.toggleFilterWidget(!renderOptions || !renderOptions.hideFilterWidget);
         });
