@@ -35,13 +35,13 @@ by creating a dockercfg secret and attaching it to your service account.
 
 If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
 
-  $ %s SECRET_NAME --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+  $ %[1]s SECRET_NAME --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
 
 If you do already have a .dockercfg file, you can create a dockercfg secret by using:
 
-  $ %s SECRET_NAME path/to/.dockercfg
+  $ %[2]s SECRET_NAME path/to/.dockercfg
 
-You can then use '%s SERVICE_ACCOUNT' to add the new secret to 'imagePullSecrets' for the node to use or
+You can then use '%[3]s SERVICE_ACCOUNT' to add the new secret to 'imagePullSecrets' for the node to use or
 'secrets' for builds to use.
 `
 )
