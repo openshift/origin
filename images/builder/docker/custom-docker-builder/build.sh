@@ -33,12 +33,10 @@ if [ -n "${SOURCE_REF}" ]; then
     exit 1
   fi
   pushd "${BUILD_DIR}"
-  if [ -n "${SOURCE_REF}" ]; then
-    git checkout "${SOURCE_REF}"
-    if [ $? != 0 ]; then
-      echo "Error trying to checkout branch: ${SOURCE_REF}"
-      exit 1
-    fi
+  git checkout "${SOURCE_REF}"
+  if [ $? != 0 ]; then
+    echo "Error trying to checkout branch: ${SOURCE_REF}"
+    exit 1
   fi
   popd
   docker build --rm -t "${TAG}" "${BUILD_DIR}"
