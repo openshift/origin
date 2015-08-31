@@ -243,6 +243,18 @@ func (oi *OsdnRegistryInterface) CheckEtcdIsAlive(seconds uint64) bool {
 	return true
 }
 
+func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, error) {
+	namespaceList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return nil, err
+	}
+	namespaces := make([]string, 0)
+	for _, ns := range namespaceList.Items {
+		namespaces = append(namespaces, ns.Name)
+	}
+	return namespaces, nil
+}
+
 func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan *osdnapi.NamespaceEvent, stop chan bool) error {
 	nsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	listWatch := &cache.ListWatch{

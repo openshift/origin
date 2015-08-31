@@ -28,6 +28,9 @@ func init() {
 			if len(obj.RoutingConfig.Subdomain) == 0 {
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
 			}
+			if len(obj.NetworkConfig.AdminNamespaces) == 0 {
+				obj.NetworkConfig.AdminNamespaces = append(obj.NetworkConfig.AdminNamespaces, "default")
+			}
 		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {

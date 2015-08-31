@@ -213,6 +213,9 @@ type NetworkConfig struct {
 	ClusterNetworkCIDR string `json:"clusterNetworkCIDR"`
 	HostSubnetLength   uint   `json:"hostSubnetLength"`
 	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
+
+	// AdminNamespaces are the namespaces/projects that are allowed to reach all networks in case of multi-tenant SDN
+	AdminNamespaces []string `json:"adminNamespaces"`
 }
 
 type ImageConfig struct {
