@@ -6,7 +6,6 @@ import (
 	log "github.com/golang/glog"
 	"net"
 	"os/exec"
-	"strconv"
 
 	"github.com/openshift/openshift-sdn/ovssubnet/api"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
@@ -19,10 +18,10 @@ func NewFlowController() *FlowController {
 	return &FlowController{}
 }
 
-func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork string) error {
+func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork string, mtu uint) error {
 	_, ipnet, err := net.ParseCIDR(localSubnet)
 	subnetMaskLength, _ := ipnet.Mask.Size()
-	out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), containerNetwork, strconv.Itoa(subnetMaskLength)).CombinedOutput()
+	out, err := exec.Command("openshift-sdn-simple-setup-node.sh", netutils.GenerateDefaultGateway(ipnet).String(), ipnet.String(), containerNetwork, fmt.Sprint(subnetMaskLength), fmt.Sprint(mtu)).CombinedOutput()
 	log.Infof("Output of setup script:\n%s", out)
 	if err != nil {
 		log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)

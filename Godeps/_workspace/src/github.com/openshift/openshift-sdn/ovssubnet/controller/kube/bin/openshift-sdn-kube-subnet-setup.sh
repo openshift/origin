@@ -8,7 +8,8 @@ subnet=$2
 cluster_subnet=$3
 subnet_mask_len=$4
 tun_gateway=$5
-printf 'Container network is "%s"; local host has subnet "%s" and gateway "%s".\n' "${cluster_subnet}" "${subnet}" "${subnet_gateway}"
+mtu=$6
+printf 'Container network is "%s"; local host has subnet "%s", mtu "%d" and gateway "%s".\n' "${cluster_subnet}" "${subnet}" "${mtu}" "${subnet_gateway}"
 TUN=tun0
 
 # Synchronize code execution with a file lock.
@@ -80,7 +81,7 @@ function setup() {
     ## docker
     if [[ -z "${DOCKER_NETWORK_OPTIONS}" ]]
     then
-        DOCKER_NETWORK_OPTIONS='-b=lbr0 --mtu=1450'
+        DOCKER_NETWORK_OPTIONS="-b=lbr0 --mtu=${mtu}"
     fi
 
     # Assume supervisord-managed docker for docker-in-docker deployments

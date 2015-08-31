@@ -120,7 +120,9 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
 
-		NetworkPluginName: args.NetworkPluginName,
+		NetworkConfig: configapi.NodeNetworkConfig{
+			NetworkPluginName: args.NetworkPluginName,
+		},
 
 		VolumeDirectory:     args.VolumeDir,
 		AllowDisabledDocker: args.AllowDisabledDocker,

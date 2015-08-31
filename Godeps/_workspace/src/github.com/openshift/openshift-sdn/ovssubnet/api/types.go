@@ -25,7 +25,9 @@ type SubnetRegistry interface {
 	GetSubnetLength() (uint64, error)
 	CheckEtcdIsAlive(seconds uint64) bool
 
+	GetNamespaces() ([]string, error)
 	WatchNamespaces(receiver chan *NamespaceEvent, stop chan bool) error
+
 	WatchNetNamespaces(receiver chan *NetNamespaceEvent, stop chan bool) error
 	GetNetNamespaces() ([]NetNamespace, error)
 	GetNetNamespace(name string) (NetNamespace, error)

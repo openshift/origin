@@ -376,7 +376,9 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 
 		MasterKubeConfig: kubeConfigFile,
 
-		NetworkPluginName: o.NetworkPluginName,
+		NetworkConfig: configapi.NodeNetworkConfig{
+			NetworkPluginName: o.NetworkPluginName,
+		},
 	}
 
 	if o.UseTLS() {

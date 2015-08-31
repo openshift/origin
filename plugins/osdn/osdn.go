@@ -2,7 +2,6 @@ package osdn
 
 import (
 	"fmt"
-	"net"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -14,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
 
-	log "github.com/golang/glog"
+	osdn "github.com/openshift/openshift-sdn/ovssubnet"
 	osdnapi "github.com/openshift/openshift-sdn/ovssubnet/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -41,7 +40,7 @@ func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, error) {
 		return nil, err
 	}
 	// convert HostSubnet to osdnapi.Subnet
-	subList := make([]osdnapi.Subnet, 0)
+	subList := make([]osdnapi.Subnet, 0, len(hostSubnetList.Items))
 	for _, subnet := range hostSubnetList.Items {
 		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, SubnetIP: subnet.Subnet})
 	}
@@ -114,14 +113,14 @@ func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, error) {
 		return nil, err
 	}
 
-	nodes := make([]osdnapi.Node, 0)
+	nodes := make([]osdnapi.Node, 0, len(knodes.Items))
 	for _, node := range knodes.Items {
 		var nodeIP string
 		if len(node.Status.Addresses) > 0 {
 			nodeIP = node.Status.Addresses[0].Address
 		} else {
 			var err error
-			nodeIP, err = getNodeIP(node.ObjectMeta.Name)
+			nodeIP, err = osdn.GetNodeIP(node.ObjectMeta.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -177,7 +176,7 @@ func (oi *OsdnRegistryInterface) WatchNodes(receiver chan *osdnapi.NodeEvent, st
 		if len(node.Status.Addresses) > 0 {
 			nodeIP = node.Status.Addresses[0].Address
 		} else {
-			nodeIP, err = getNodeIP(node.ObjectMeta.Name)
+			nodeIP, err = osdn.GetNodeIP(node.ObjectMeta.Name)
 			if err != nil {
 				return err
 			}
@@ -241,6 +240,18 @@ func (oi *OsdnRegistryInterface) GetServicesNetwork() (string, error) {
 func (oi *OsdnRegistryInterface) CheckEtcdIsAlive(seconds uint64) bool {
 	// always assumed to be true as we run through the apiserver
 	return true
+}
+
+func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, error) {
+	namespaceList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return nil, err
+	}
+	namespaces := make([]string, 0, len(namespaceList.Items))
+	for _, ns := range namespaceList.Items {
+		namespaces = append(namespaces, ns.Name)
+	}
+	return namespaces, nil
 }
 
 func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan *osdnapi.NamespaceEvent, stop chan bool) error {
@@ -317,7 +328,7 @@ func (oi *OsdnRegistryInterface) GetNetNamespaces() ([]osdnapi.NetNamespace, err
 		return nil, err
 	}
 	// convert api.NetNamespace to osdnapi.NetNamespace
-	nsList := make([]osdnapi.NetNamespace, 0)
+	nsList := make([]osdnapi.NetNamespace, 0, len(netNamespaceList.Items))
 	for _, netns := range netNamespaceList.Items {
 		nsList = append(nsList, osdnapi.NetNamespace{Name: netns.Name, NetID: netns.NetID})
 	}
@@ -352,11 +363,11 @@ func (oi *OsdnRegistryInterface) InitServices() error {
 }
 
 func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, error) {
-	oServList := make([]osdnapi.Service, 0)
 	kNsList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
+	oServList := make([]osdnapi.Service, 0)
 	for _, ns := range kNsList.Items {
 		kServList, err := oi.kClient.Services(ns.Name).List(labels.Everything())
 		if err != nil {
@@ -484,27 +495,4 @@ func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, rec
 			}
 		}
 	}
-}
-
-// TODO: This method exists in openshift-sdn/ovssubnet/common.go
-// Reuse the existing method in common.go
-func getNodeIP(nodeName string) (string, error) {
-	ip := net.ParseIP(nodeName)
-	if ip == nil {
-		addrs, err := net.LookupIP(nodeName)
-		if err != nil {
-			log.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
-			return "", err
-		}
-		for _, addr := range addrs {
-			if addr.String() != "127.0.0.1" {
-				ip = addr
-				break
-			}
-		}
-	}
-	if ip == nil || len(ip.String()) == 0 {
-		return "", fmt.Errorf("Failed to obtain IP address from node name: %s", nodeName)
-	}
-	return ip.String(), nil
 }

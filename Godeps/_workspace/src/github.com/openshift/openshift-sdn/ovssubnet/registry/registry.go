@@ -363,6 +363,12 @@ func (sub *EtcdSubnetRegistry) WatchSubnets(receiver chan *api.SubnetEvent, stop
 	}
 }
 
+func (sub *EtcdSubnetRegistry) GetNamespaces() ([]string, error) {
+	namespaces := make([]string, 0)
+	// TODO
+	return namespaces, nil
+}
+
 func (sub *EtcdSubnetRegistry) WatchNamespaces(receiver chan *api.NamespaceEvent, stop chan bool) error {
 	// TODO
 	return nil

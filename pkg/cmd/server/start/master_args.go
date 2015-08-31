@@ -240,7 +240,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			SecurityAllocator: &configapi.SecurityAllocator{},
 		},
 
-		NetworkConfig: configapi.NetworkConfig{
+		NetworkConfig: configapi.MasterNetworkConfig{
 			NetworkPluginName:  args.NetworkArgs.NetworkPluginName,
 			ClusterNetworkCIDR: args.NetworkArgs.ClusterNetworkCIDR,
 			HostSubnetLength:   args.NetworkArgs.HostSubnetLength,

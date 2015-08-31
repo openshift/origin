@@ -36,13 +36,13 @@ func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork s
 	}
 }
 
-func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, publicIP string, ready chan struct{}) {
+func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, publicIP string, ready chan struct{}, mtu uint) {
 	osdnInterface := osdn.NewOsdnRegistryInterface(osClient, kClient)
 	kc, err := ovssubnet.NewKubeController(&osdnInterface, hostname, publicIP, ready)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
-	err = kc.StartNode(false, false)
+	err = kc.StartNode(false, false, mtu)
 	if err != nil {
 		glog.Fatalf("SDN Node failed: %v", err)
 	}
