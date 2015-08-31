@@ -384,6 +384,7 @@ _oadm_policy_reconcile-cluster-roles()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--additive-only")
     flags+=("--confirm")
     flags+=("--help")
     flags+=("-h")

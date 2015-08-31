@@ -213,6 +213,9 @@ Replace cluster roles to match the recommended bootstrap policy
 
   // Replace cluster roles that don't match the current defaults
   $ openshift admin policy reconcile-cluster-roles --confirm
+
+  // Display the union of the default and modified cluster roles
+  $ openshift admin policy reconcile-cluster-roles --additive-only
 ----
 ====
 

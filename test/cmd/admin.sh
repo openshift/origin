@@ -62,6 +62,11 @@ oadm policy reconcile-cluster-roles
 [ ! "$(oc get clusterrole/cluster-status)" ]
 oadm policy reconcile-cluster-roles --confirm
 oc get clusterrole/cluster-status
+oc replace --force -f ./test/fixtures/basic-user.json
+oadm policy reconcile-cluster-roles --additive-only --confirm
+[ "$(oc get clusterroles/basic-user -o json | grep groups)" ]
+oadm policy reconcile-cluster-roles --confirm
+[ ! "$(oc get clusterroles/basic-user -o json | grep groups)" ]
 echo "admin-policy: ok"
 
 # Test the commands the UI projects page tells users to run
