@@ -76,8 +76,8 @@ html, body {
 
 .console-os .navbar-project {
   border-bottom: 1px solid @navbar-os-project-border-color;
-  padding-bottom: 3px;
-  padding-top: 6px;
+  padding-bottom: 5px;
+  padding-top: 5px;
   position: relative;
   background: #fff;
   label.control-label {
@@ -136,19 +136,16 @@ html, body {
     .navbar-project {
       .form-group {
         display: inline;
-        .form-control {
-          width: 60%;
-        }
       }
       .project-actions {
-        float: right;
         margin-right: -10px;
+        margin-left: 10px;
         a {
           color: lighten(@navbar-os-project-menu-color, 20%);
           cursor: pointer;
           display: inline-block;
           font-size: 18px;
-          padding: 7px 14px;
+          padding: 4px 14px 5px;
           &:hover, &:active, &:focus {
             background-color: @sidebar-os-hover-bg;
             color: @navbar-os-project-menu-color;
@@ -175,6 +172,10 @@ html, body {
       background: @navbar-os-project-bg;
       padding-bottom: 20px;
       padding-top: 0;
+      .navbar-filter-widget-collapse.collapse {
+        // Prevent filter field from being hidden when going from mobile to desktop width
+        display: block;
+      }
       .navbar-filter-widget {
         /* Prevent the filter button from wrapping at wide screen sizes. */
         min-width: 340px;
