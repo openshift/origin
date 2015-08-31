@@ -9,34 +9,34 @@ const (
 
 type SubnetRegistry interface {
 	InitSubnets() error
-	GetSubnets() ([]Subnet, error)
+	GetSubnets() ([]Subnet, string, error)
 	GetSubnet(nodeName string) (*Subnet, error)
 	DeleteSubnet(nodeName string) error
 	CreateSubnet(sn string, sub *Subnet) error
-	WatchSubnets(receiver chan *SubnetEvent, stop chan bool) error
+	WatchSubnets(receiver chan<- *SubnetEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
 	InitNodes() error
-	GetNodes() ([]Node, error)
+	GetNodes() ([]Node, string, error)
 	CreateNode(nodeName string, data string) error
-	WatchNodes(receiver chan *NodeEvent, stop chan bool) error
+	WatchNodes(receiver chan<- *NodeEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
 	WriteNetworkConfig(network string, subnetLength uint, serviceNetwork string) error
 	GetContainerNetwork() (string, error)
 	GetSubnetLength() (uint64, error)
 	CheckEtcdIsAlive(seconds uint64) bool
 
-	GetNamespaces() ([]string, error)
-	WatchNamespaces(receiver chan *NamespaceEvent, stop chan bool) error
+	GetNamespaces() ([]string, string, error)
+	WatchNamespaces(receiver chan<- *NamespaceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
-	WatchNetNamespaces(receiver chan *NetNamespaceEvent, stop chan bool) error
-	GetNetNamespaces() ([]NetNamespace, error)
+	WatchNetNamespaces(receiver chan<- *NetNamespaceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
+	GetNetNamespaces() ([]NetNamespace, string, error)
 	GetNetNamespace(name string) (NetNamespace, error)
 	WriteNetNamespace(name string, id uint) error
 	DeleteNetNamespace(name string) error
 
 	GetServicesNetwork() (string, error)
-	GetServices() ([]Service, error)
-	WatchServices(receiver chan *ServiceEvent, stop chan bool) error
+	GetServices() ([]Service, string, error)
+	WatchServices(receiver chan<- *ServiceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 }
 
 type Subnet struct {
