@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -322,7 +323,7 @@ func TestRouter(t *testing.T) {
 			}
 
 			if resp != tc.expectedResponse {
-				t.Errorf("TC %s failed! Response body %v did not match expected %v", tc.name, resp, tc.expectedResponse)
+				t.Errorf("TC %s failed! Response body %q did not match expected %q", tc.name, resp, tc.expectedResponse)
 
 				// The following is related to the workaround above, q.v.
 				if getRouterImage() != defaultRouterImage {
@@ -636,7 +637,7 @@ func isValidRoute(url, host, scheme, expected string) (valid bool, response stri
 // if you need to check the response/status manually
 func validateRoute(url, host, scheme, expected string, t *testing.T) {
 	if valid, response := isValidRoute(url, host, scheme, expected); !valid {
-		t.Errorf("Unexepected response, wanted: %s but got: %s", expected, response)
+		t.Errorf("Unexepected response, wanted: %q but got: %q", expected, response)
 	}
 }
 
@@ -686,15 +687,13 @@ func getRoute(routerUrl string, hostName string, protocol string, expectedRespon
 
 		req.Host = hostName
 		resp, err := httpClient.Do(req)
-
 		if err != nil {
 			return "", err
 		}
+		defer resp.Body.Close()
+		respBody, err := ioutil.ReadAll(resp.Body)
+		return string(respBody), err
 
-		var respBody = make([]byte, len([]byte(expectedResponse)))
-		resp.Body.Read(respBody)
-
-		return string(respBody), nil
 	case "ws", "wss":
 		origin := fmt.Sprintf("http://%s/", tr.GetDefaultLocalAddress())
 		wsConfig, err := websocket.NewConfig(url, origin)
@@ -784,6 +783,11 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 		vols = privkeyFilename
 		privkeyBindmount := fmt.Sprintf("%[1]s:%[1]s", privkeyFilename)
 		hostVols = append(hostVols, privkeyBindmount)
+	}
+
+	binary := os.Getenv("ROUTER_OPENSHIFT_BINARY")
+	if len(binary) != 0 {
+		hostVols = append(hostVols, fmt.Sprintf("%[1]s:/usr/bin/openshift", binary))
 	}
 
 	containerOpts := dockerClient.CreateContainerOptions{

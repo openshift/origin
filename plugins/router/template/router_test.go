@@ -256,7 +256,7 @@ func TestRouteKey(t *testing.T) {
 		}
 
 		// add route always returns true
-		added := router.AddRoute(suKey, route)
+		added := router.AddRoute(suKey, route, route.Host)
 		if !added {
 			t.Fatalf("expected AddRoute to return true but got false")
 		}
@@ -298,7 +298,7 @@ func TestAddRoute(t *testing.T) {
 	router.CreateServiceUnit(suKey)
 
 	// add route always returns true
-	added := router.AddRoute(suKey, route)
+	added := router.AddRoute(suKey, route, route.Host)
 	if !added {
 		t.Fatalf("expected AddRoute to return true but got false")
 	}
@@ -374,8 +374,8 @@ func TestRemoveRoute(t *testing.T) {
 	suKey := "test"
 
 	router.CreateServiceUnit(suKey)
-	router.AddRoute(suKey, route)
-	router.AddRoute(suKey, route2)
+	router.AddRoute(suKey, route, route.Host)
+	router.AddRoute(suKey, route2, route2.Host)
 
 	su, ok := router.FindServiceUnit(suKey)
 	if !ok {
@@ -543,18 +543,18 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 
 	// setup the router
 	router := newFakeTemplateRouter()
-	routeWithBadServiceKey := routeKey(*routeWithBadService)
+	routeWithBadServiceKey := routeKey(routeWithBadService)
 	routeWithBadServiceCfgKey := router.routeKey(routeWithBadService)
-	routeWithGoodServiceKey := routeKey(*routeWithGoodService)
+	routeWithGoodServiceKey := routeKey(routeWithGoodService)
 	routeWithGoodServiceCfgKey := router.routeKey(routeWithGoodService)
-	routeWithGoodServiceDifferentNamespaceKey := routeKey(*routeWithGoodServiceDifferentNamespace)
+	routeWithGoodServiceDifferentNamespaceKey := routeKey(routeWithGoodServiceDifferentNamespace)
 	routeWithGoodServiceDifferentNamespaceCfgKey := router.routeKey(routeWithGoodServiceDifferentNamespace)
 	router.CreateServiceUnit(routeWithBadServiceKey)
 	router.CreateServiceUnit(routeWithGoodServiceKey)
 	router.CreateServiceUnit(routeWithGoodServiceDifferentNamespaceKey)
 
 	// add the route with the bad service name, it should add fine
-	router.AddRoute(routeWithBadServiceKey, routeWithBadService)
+	router.AddRoute(routeWithBadServiceKey, routeWithBadService, routeWithBadService.Host)
 	route, ok := router.FindServiceUnit(routeWithBadServiceKey)
 
 	if !ok {
@@ -567,7 +567,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 
 	// now add the same route with a modified service name, it should exists under the new service
 	// and no longer exist under the old service
-	router.AddRoute(routeWithGoodServiceKey, routeWithGoodService)
+	router.AddRoute(routeWithGoodServiceKey, routeWithGoodService, routeWithGoodService.Host)
 	route, ok = router.FindServiceUnit(routeWithGoodServiceKey)
 	if !ok {
 		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceKey)
@@ -587,7 +587,7 @@ func TestRouteExistsUnderOneServiceOnly(t *testing.T) {
 	}
 
 	// add a route with the same name but under a different namespace.
-	router.AddRoute(routeWithGoodServiceDifferentNamespaceKey, routeWithGoodServiceDifferentNamespace)
+	router.AddRoute(routeWithGoodServiceDifferentNamespaceKey, routeWithGoodServiceDifferentNamespace, routeWithGoodServiceDifferentNamespace.Host)
 	route, ok = router.FindServiceUnit(routeWithGoodServiceDifferentNamespaceKey)
 	if !ok {
 		t.Fatalf("unable to find route %s after adding", routeWithGoodServiceDifferentNamespaceKey)

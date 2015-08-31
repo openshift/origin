@@ -326,10 +326,22 @@ func (eq *EventQueue) Replace(objects []interface{}) error {
 	return nil
 }
 
-// NewEventQueue returns a new EventQueue ready for action.
+// NewEventQueue returns a new EventQueue.
 func NewEventQueue(keyFn kcache.KeyFunc) *EventQueue {
 	q := &EventQueue{
 		store:  kcache.NewStore(keyFn),
+		events: map[string]watch.EventType{},
+		queue:  []string{},
+		keyFn:  keyFn,
+	}
+	q.cond.L = &q.lock
+	return q
+}
+
+// NewEventQueueForStore returns a new EventQueue that uses the provided store.
+func NewEventQueueForStore(keyFn kcache.KeyFunc, store kcache.Store) *EventQueue {
+	q := &EventQueue{
+		store:  store,
 		events: map[string]watch.EventType{},
 		queue:  []string{},
 		keyFn:  keyFn,

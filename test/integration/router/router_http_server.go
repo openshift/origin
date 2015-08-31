@@ -89,22 +89,22 @@ const (
 
 // handleHelloPod handles calls to PodHttpAddr (usually called through a route)
 func (s *TestHttpService) handleHelloPod(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, HelloPod)
+	fmt.Fprint(w, HelloPod)
 }
 
 // handleHelloPodTest handles calls to PodHttpAddr (usually called through a route) with the /test/ path
 func (s *TestHttpService) handleHelloPodTest(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, HelloPodPath)
+	fmt.Fprint(w, HelloPodPath)
 }
 
 // handleHelloPodSecure handles calls to PodHttpsAddr (usually called through a route)
 func (s *TestHttpService) handleHelloPodSecure(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, HelloPodSecure)
+	fmt.Fprint(w, HelloPodSecure)
 }
 
 // handleHelloPodTestSecure handles calls to PodHttpsAddr (usually called through a route) with the /test/ path
 func (s *TestHttpService) handleHelloPodTestSecure(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, HelloPodPathSecure)
+	fmt.Fprint(w, HelloPodPathSecure)
 }
 
 // handleRouteWatch handles calls to /osapi/v1beta1/watch/routes and uses the route channel to simulate watch events
@@ -114,7 +114,7 @@ func (s *TestHttpService) handleRouteWatch(w http.ResponseWriter, r *http.Reques
 
 // handleRouteList handles calls to /osapi/v1beta1/routes and always returns empty data
 func (s *TestHttpService) handleRouteList(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "{}")
+	fmt.Fprint(w, "{}")
 }
 
 // handleEndpointWatch handles calls to /api/v1beta1/watch/endpoints and uses the endpoint channel to simulate watch events
@@ -124,7 +124,7 @@ func (s *TestHttpService) handleEndpointWatch(w http.ResponseWriter, r *http.Req
 
 // handleEndpointList handles calls to /api/v1beta1/endpoints and always returns empty data
 func (s *TestHttpService) handleEndpointList(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "{}")
+	fmt.Fprint(w, "{}")
 }
 
 // handleWebSocket copies whatever is written to the web socket back to the socket

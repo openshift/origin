@@ -17,8 +17,23 @@ import (
 // TemplatePlugin implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type TemplatePlugin struct {
-	Router router
+	Router       router
+	HostForRoute func(*routeapi.Route) string
+	hostToRoute  HostToRouteMap
+	routeToHost  RouteToHostMap
 }
+
+func newDefaultTemplatePlugin(router router) *TemplatePlugin {
+	return &TemplatePlugin{
+		Router:       router,
+		HostForRoute: defaultHostForRoute,
+		hostToRoute:  make(HostToRouteMap),
+		routeToHost:  make(RouteToHostMap),
+	}
+}
+
+type HostToRouteMap map[string]*routeapi.Route
+type RouteToHostMap map[string]string
 
 type TemplatePluginConfig struct {
 	WorkingDir         string
@@ -49,9 +64,9 @@ type router interface {
 	// DeleteEndpoints deletes the endpoints for the frontend with the given id.
 	DeleteEndpoints(id string)
 
-	// AddRoute adds a route for the given id.  Returns true if a change was made
-	// and the state should be stored with Commit().
-	AddRoute(id string, route *routeapi.Route) bool
+	// AddRoute adds a route for the given id and the calculated host.  Returns true if a
+	// change was made and the state should be stored with Commit().
+	AddRoute(id string, route *routeapi.Route, host string) bool
 	// RemoveRoute removes the given route for the given id.
 	RemoveRoute(id string, route *routeapi.Route)
 
@@ -92,12 +107,12 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 		peerEndpointsKey:   peerKey,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
-	return &TemplatePlugin{router}, err
+	return newDefaultTemplatePlugin(router), err
 }
 
 // HandleEndpoints processes watch events on the Endpoints resource.
 func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
-	key := endpointsKey(*endpoints)
+	key := endpointsKey(endpoints)
 
 	glog.V(4).Infof("Processing %d Endpoints for Name: %v (%v)", len(endpoints.Subsets), endpoints.Name, eventType)
 
@@ -113,7 +128,7 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying endpoints for %s", key)
 		routerEndpoints := createRouterEndpoints(endpoints)
-		key := endpointsKey(*endpoints)
+		key := endpointsKey(endpoints)
 		commit := p.Router.AddEndpoints(key, routerEndpoints)
 		if commit {
 			return p.Router.Commit()
@@ -125,34 +140,77 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 
 // HandleRoute processes watch events on the Route resource.
 func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	key := routeKey(*route)
-	if _, ok := p.Router.FindServiceUnit(key); !ok {
-		glog.V(4).Infof("Creating new frontend for key: %v", key)
-		p.Router.CreateServiceUnit(key)
+	key := routeKey(route)
+	routeName := routeNameKey(route)
+
+	host := p.HostForRoute(route)
+	if len(host) == 0 {
+		return nil
+	}
+
+	// ensure hosts can only be claimed by one route at a time
+	// TODO: this could be abstracted above this layer?
+	if old, ok := p.hostToRoute[host]; ok {
+		if old.CreationTimestamp.Before(route.CreationTimestamp) {
+			glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(old))
+			return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(old), host, key)
+		}
+		glog.V(4).Infof("Route %s is reclaiming %s from %s", routeName, host, routeNameKey(old))
+		p.Router.RemoveRoute(routeKey(old), old)
+		p.hostToRoute[host] = route
+	} else {
+		glog.V(4).Infof("Route %s claims %s", key, host)
+		p.hostToRoute[host] = route
 	}
 
 	switch eventType {
 	case watch.Added, watch.Modified:
+		// TODO: this could be abstracted above this layer?
+		if old, ok := p.routeToHost[routeName]; ok {
+			if old != host {
+				glog.V(4).Infof("Route %s changed from serving host %s to host %s", key, old, host)
+				delete(p.hostToRoute, old)
+			}
+		}
+		p.routeToHost[routeName] = host
+
+		if _, ok := p.Router.FindServiceUnit(key); !ok {
+			glog.V(4).Infof("Creating new frontend for key: %v", key)
+			p.Router.CreateServiceUnit(key)
+		}
+
 		glog.V(4).Infof("Modifying routes for %s", key)
-		commit := p.Router.AddRoute(key, route)
+		commit := p.Router.AddRoute(key, route, host)
 		if commit {
 			return p.Router.Commit()
 		}
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)
+		delete(p.hostToRoute, host)
+		delete(p.routeToHost, routeName)
 		p.Router.RemoveRoute(key, route)
 		return p.Router.Commit()
 	}
 	return nil
 }
 
+// defaultHostForRoute return the host based on the string value on a route.
+func defaultHostForRoute(route *routeapi.Route) string {
+	return route.Host
+}
+
 // routeKey returns the internal router key to use for the given Route.
-func routeKey(route routeapi.Route) string {
+func routeKey(route *routeapi.Route) string {
 	return fmt.Sprintf("%s/%s", route.Namespace, route.ServiceName)
 }
 
+// routeNameKey returns a unique name for a given route
+func routeNameKey(route *routeapi.Route) string {
+	return fmt.Sprintf("%s/%s", route.Namespace, route.Name)
+}
+
 // endpointsKey returns the internal router key to use for the given Endpoints.
-func endpointsKey(endpoints kapi.Endpoints) string {
+func endpointsKey(endpoints *kapi.Endpoints) string {
 	return fmt.Sprintf("%s/%s", endpoints.Namespace, endpoints.Name)
 }
 
