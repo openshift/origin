@@ -57,11 +57,26 @@ describe('', function() {
         return url.indexOf(uri) > -1;
       });
     });
-  }
+  };
+
+  var waitForUri = function(uri) {
+    browser.wait(function() {
+      return browser.getCurrentUrl().then(function(url) {
+        return url.indexOf(uri) > -1;
+      });
+    }, 5000, "URL hasn't changed to " + uri); 
+  };
+
+  var waitForPresence = function(selector, elementText, timeout) {
+    if (!timeout) { timeout = 5000; }
+    var el = element(by.cssContainingText(selector, elementText));
+    browser.wait(protractor.ExpectedConditions.presenceOf(el), timeout, "Element not found: " + selector);
+  };
 
   var goToPage = function(uri) {
-    browser.get(uri);
-    expect(browser.getCurrentUrl()).toContain(uri);
+    browser.get(uri).then(function() {
+      waitForUri(uri);
+    });
   };
 
   var goToAddToProjectPage = function(projectName) {
@@ -83,7 +98,7 @@ describe('', function() {
 
   var requestCreateFromSource = function(projectName, sourceUrl) {
     var uri = '/project/' + projectName + '/create';
-    expect(browser.getCurrentUrl()).toContain(uri);
+    waitForUri(uri);
     setInputValue('from_source_url', sourceUrl);
     var nextButton = element(by.buttonText('Next'));
     browser.wait(protractor.ExpectedConditions.elementToBeClickable(nextButton), 2000);
@@ -92,7 +107,7 @@ describe('', function() {
 
   var requestCreateFromTemplate = function(projectName, templateName) {
     var uri = '/project/' + projectName + '/create';
-    expect(browser.getCurrentUrl()).toContain(uri);
+    waitForUri(uri);
     var template = element(by.cssContainingText('.catalog h3 > a', templateName));
     expect(template.isPresent()).toBe(true);
     template.click();
@@ -100,7 +115,7 @@ describe('', function() {
 
   var attachBuilderImageToSource = function(projectName, builderImageName) {
     var uri = '/project/' + projectName + '/catalog/images';
-    expect(browser.getCurrentUrl()).toContain(uri);
+    waitForUri(uri);
     expect(element(by.cssContainingText('h1', "Select a builder image")).isPresent()).toBe(true);
     var builderImageLink = element(by.cssContainingText('h3 > a', builderImageName));
     expect(builderImageLink.isPresent()).toBe(true);
@@ -109,7 +124,7 @@ describe('', function() {
 
   var createFromSource = function(projectName, builderImageName, appName) {
     var uri = '/project/' + projectName + '/create/fromimage';
-    expect(browser.getCurrentUrl()).toContain(uri);
+    waitForUri(uri);
     expect(element(by.css('.create-from-image h1')).getText()).toEqual(builderImageName);
     expect(element(by.cssContainingText('h2', "Name")).isPresent()).toBe(true);
     expect(element(by.cssContainingText('h2', "Routing")).isPresent()).toBe(true);
@@ -125,7 +140,7 @@ describe('', function() {
 
   var createFromTemplate = function(projectName, templateName, parameterNames, labelNames) {
     var uri = '/project/' + projectName + '/create/fromtemplate';
-    expect(browser.getCurrentUrl()).toContain(uri);
+    waitForUri(uri);
     expect(element(by.css('.create-from-template h1')).getText()).toEqual(templateName);
     expect(element(by.cssContainingText('h2', "Images")).isPresent()).toBe(true);
     expect(element(by.cssContainingText('h2', "Parameters")).isPresent()).toBe(true);
@@ -146,11 +161,10 @@ describe('', function() {
   var checkServiceCreated = function(projectName, serviceName) {
     var uri = '/project/' + projectName + '/overview';
     goToPage(uri);
-    var service = element(by.cssContainingText('.component .service', serviceName));
-    browser.wait(protractor.ExpectedConditions.presenceOf(service), 10000);
+    waitForPresence('.component .service', serviceName, 10000);
     var uri = '/project/' + projectName + '/browse/services';
     goToPage(uri);
-    browser.wait(protractor.ExpectedConditions.presenceOf(element(by.cssContainingText('h3', serviceName))), 10000);
+    waitForPresence('h3', serviceName, 10000);
   }
 
   var checkProjectSettings = function(projectName, displayName, description) {
@@ -215,7 +229,7 @@ describe('', function() {
             setInputValue(key, project[key]);
           }
           clickAndGo('Create', '/project/' + project['name'] + '/overview');
-          expect(element(by.cssContainingText(".navbar-project .bootstrap-select .selected .text", project['displayName'])).isPresent()).toBe(true);
+          waitForPresence('.navbar-project .bootstrap-select .selected .text', project['displayName']);
           checkProjectSettings(project['name'], project['displayName'], project['description']);
         });
 
@@ -271,61 +285,62 @@ describe('', function() {
 
     describe('with test project', function() {
       it('should be able to list the test project', function() {
-        browser.get('/');
-        expect(element(by.cssContainingText("h2.project","test")).isPresent()).toBe(true);
+        browser.get('/').then(function() {
+          waitForPresence('h2.project', 'test');
+        });
       });
 
       it('should have access to the test project', function() {
-        browser.get('/project/test');
-        expect(element(by.cssContainingText("h1", "Project test")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".component .service", "database")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".component .service", "frontend")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".component .route", "www.example.com")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".pod-template-build a", "ruby-sample-build #1")).isPresent()).toBe(true);
-        expect(element(by.cssContainingText(".deployment-trigger", "new image for origin-ruby-sample:latest")).isPresent()).toBe(true);
+        goToPage('/project/test');
+        waitForPresence('h1', 'Project test');
+        waitForPresence('.component .service', 'database');
+        waitForPresence('.component .service', 'frontend');
+        waitForPresence('.component .route', 'www.example.com');
+        waitForPresence('.pod-template-build a', 'ruby-sample-build #1');
+        waitForPresence('.deployment-trigger', 'new image for origin-ruby-sample:latest');
         expect(element.all(by.css(".pod-running")).count()).toEqual(3);
         // TODO: validate correlated images, builds, source
       });
 
       it('should browse builds', function() {
-        browser.get('/project/test/browse/builds');
-        expect(element(by.cssContainingText("h1", "Builds")).isPresent()).toBe(true);
+        goToPage('/project/test/browse/builds');
+        waitForPresence('h1', 'Builds');
         // TODO: validate presented strategies, images, repos
       });
 
       it('should browse deployments', function() {
-        browser.get('/project/test/browse/deployments');
-        expect(element(by.cssContainingText("h1", "Deployments")).isPresent()).toBe(true);
+        goToPage('/project/test/browse/deployments');
+        waitForPresence("h1", "Deployments");
         // TODO: validate presented deployments
       });
 
       it('should browse events', function() {
-        browser.get('/project/test/browse/events');
-        expect(element(by.cssContainingText("h1", "Events")).isPresent()).toBe(true);
+        goToPage('/project/test/browse/events');
+        waitForPresence("h1", "Events");
         // TODO: validate presented events
       });
 
       it('should browse image streams', function() {
-        browser.get('/project/test/browse/images');
-        expect(element(by.cssContainingText("h1", "Image Streams")).isPresent()).toBe(true);
+        goToPage('/project/test/browse/images');
+        waitForPresence("h1", "Image Streams");
         // TODO: validate presented images
       });
 
       it('should browse pods', function() {
-        browser.get('/project/test/browse/pods');
-        expect(element(by.cssContainingText("h1", "Pods")).isPresent()).toBe(true);
+        goToPage('/project/test/browse/pods');
+        waitForPresence("h1", "Pods");
         // TODO: validate presented pods, containers, correlated images, builds, source
       });
 
       it('should browse services', function() {
-        browser.get('/project/test/browse/services');
-        expect(element(by.cssContainingText("h1", "Services")).isPresent()).toBe(true);
+        goToPage('/project/test/browse/services');
+        waitForPresence("h1", "Services");
         // TODO: validate presented ports, routes, selectors
       });
 
       it('should browse settings', function() {
-        browser.get('/project/test/settings');
-        expect(element(by.cssContainingText("h1", "Project Settings")).isPresent()).toBe(true);
+        goToPage('/project/test/settings');
+        waitForPresence("h1", "Project Settings");
         // TODO: validate presented project info, quota and resource info
       });
     });
