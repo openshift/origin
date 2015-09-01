@@ -1,6 +1,8 @@
 package login
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -15,6 +17,13 @@ import (
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 )
 
+const (
+	thenParam     = "then"
+	csrfParam     = "csrf"
+	usernameParam = "username"
+	passwordParam = "password"
+)
+
 type PasswordAuthenticator interface {
 	authenticator.Password
 	handlers.AuthenticationSuccessHandler
@@ -27,10 +36,11 @@ type LoginFormRenderer interface {
 type LoginForm struct {
 	Action string
 	Error  string
-	Values LoginFormValues
+	Names  LoginFormFields
+	Values LoginFormFields
 }
 
-type LoginFormValues struct {
+type LoginFormFields struct {
 	Then     string
 	CSRF     string
 	Username string
@@ -81,6 +91,12 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 
 	form := LoginForm{
 		Action: uri.String(),
+		Names: LoginFormFields{
+			Then:     thenParam,
+			CSRF:     csrfParam,
+			Username: usernameParam,
+			Password: passwordParam,
+		},
 	}
 	if then := req.URL.Query().Get("then"); then != "" {
 		// TODO: sanitize 'then'
@@ -133,19 +149,157 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 	l.auth.AuthenticationSucceeded(context, then, w, req)
 }
 
-var DefaultLoginFormRenderer = loginTemplateRenderer{}
+// NewLoginFormRenderer creates a login form renderer that takes in an optional custom template to
+// allow branding of the login page. Uses the default if customLoginTemplateFile is not set.
+func NewLoginFormRenderer(customLoginTemplateFile string) (*loginTemplateRenderer, error) {
+	r := &loginTemplateRenderer{}
+	if len(customLoginTemplateFile) > 0 {
+		customTemplate, err := template.ParseFiles(customLoginTemplateFile)
+		if err != nil {
+			return nil, err
+		}
+		r.loginTemplate = customTemplate
+	} else {
+		r.loginTemplate = defaultLoginTemplate
+	}
 
-type loginTemplateRenderer struct{}
+	return r, nil
+}
+
+func ValidateLoginTemplate(templateContent []byte) []error {
+	var allErrs []error
+
+	template, err := template.New("loginTemplateTest").Parse(string(templateContent))
+	if err != nil {
+		return append(allErrs, err)
+	}
+
+	// Execute the template with dummy values and check if they're there.
+	form := LoginForm{
+		Action: "MyAction",
+		Error:  "MyError",
+		Names: LoginFormFields{
+			Then:     "MyThenName",
+			CSRF:     "MyCSRFName",
+			Username: "MyUsernameName",
+			Password: "MyPasswordName",
+		},
+		Values: LoginFormFields{
+			Then:     "MyThenValue",
+			CSRF:     "MyCSRFValue",
+			Username: "MyUsernameValue",
+		},
+	}
+
+	var buffer bytes.Buffer
+	err = template.Execute(&buffer, form)
+	if err != nil {
+		return append(allErrs, err)
+	}
+	output := buffer.Bytes()
+
+	var testFields = map[string]string{
+		"Action":          form.Action,
+		"Error":           form.Error,
+		"Names.Then":      form.Names.Then,
+		"Names.CSRF":      form.Values.CSRF,
+		"Names.Username":  form.Names.Username,
+		"Names.Password":  form.Names.Password,
+		"Values.Then":     form.Values.Then,
+		"Values.CSRF":     form.Values.CSRF,
+		"Values.Username": form.Values.Username,
+	}
+
+	for field, value := range testFields {
+		if !bytes.Contains(output, []byte(value)) {
+			allErrs = append(allErrs, errors.New(fmt.Sprintf("template is missing parameter {{ .%s }}", field)))
+		}
+	}
+
+	return allErrs
+}
+
+type loginTemplateRenderer struct {
+	loginTemplate *template.Template
+}
 
 func (r loginTemplateRenderer) Render(form LoginForm, w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	if err := loginTemplate.Execute(w, form); err != nil {
+	if err := r.loginTemplate.Execute(w, form); err != nil {
 		util.HandleError(fmt.Errorf("unable to render login template: %v", err))
 	}
 }
 
-var loginTemplate = template.Must(template.New("loginForm").Parse(`<!DOCTYPE html>
+// LoginTemplateExample is a basic template for customizing the login page.
+const LoginTemplateExample = `<!DOCTYPE html>
+<!--
+
+This template can be modified and used to customize the login page. To replace
+the login page, set master configuration option oauthConfig.templates.login to
+the path of the template file. Don't remove parameters in curly braces below.
+
+oauthConfig:
+  templates:
+    login: templates/login-template.html
+
+-->
+<html>
+  <head>
+    <title>Login</title>
+    <style type="text/css">
+      body {
+        font-family: "Open Sans", Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        margin: 15px;
+      }
+
+      input {
+        margin-bottom: 10px;
+        width: 300px;
+      }
+
+      .error {
+        color: red;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+
+    {{ if .Error }}
+      <div class="error">{{ .Error }}</div>
+    {{ end }}
+
+    <form action="{{ .Action }}" method="POST">
+      <input type="hidden" name="{{ .Names.Then }}" value="{{ .Values.Then }}">
+      <input type="hidden" name="{{ .Names.CSRF }}" value="{{ .Values.CSRF }}">
+
+      <div>
+        <label for="inputUsername">Username</label>
+      </div>
+      <div>
+        <input type="text" id="inputUsername" autofocus="autofocus" type="text" name="{{ .Names.Username }}" value="{{ .Values.Username }}">
+      </div>
+
+      <div>
+        <label for="inputPassword">Password</label>
+      </div>
+      <div>
+        <input type="password" id="inputPassword" type="password" name="{{ .Names.Password }}" value="">
+      </div>
+
+      <button type="submit">Log In</button>
+
+    </form>
+
+  </body>
+</html>
+`
+
+var defaultLoginTemplate = template.Must(template.New("defaultLoginForm").Parse(defaultLoginTemplateString))
+
+const defaultLoginTemplateString = `<!DOCTYPE html>
 <!--[if IE 8]><html class="ie8 login-pf"><![endif]-->
 <!--[if IE 9]><html class="ie9 login-pf"><![endif]-->
 <!--[if gt IE 9]><!-->
@@ -2468,18 +2622,18 @@ hr {
         </div><!--/.col-*-->
         <div class="col-sm-7 col-md-6 col-lg-5 login">
           <form class="form-horizontal" role="form" action="{{ .Action }}" method="POST">
-            <input type="hidden" name="then" value="{{ .Values.Then }}">
-            <input type="hidden" name="csrf" value="{{ .Values.CSRF }}">
+            <input type="hidden" name="{{ .Names.Then }}" value="{{ .Values.Then }}">
+            <input type="hidden" name="{{ .Names.CSRF }}" value="{{ .Values.CSRF }}">
             <div class="form-group">
               <label for="inputUsername" class="col-sm-2 col-md-2 control-label">Username</label>
               <div class="col-sm-10 col-md-10">
-                <input type="text" class="form-control" id="inputUsername" placeholder="" tabindex="1" autofocus="autofocus" type="text" name="username" value="{{ .Values.Username }}">
+                <input type="text" class="form-control" id="inputUsername" placeholder="" tabindex="1" autofocus="autofocus" type="text" name="{{ .Names.Username }}" value="{{ .Values.Username }}">
               </div>
             </div>
             <div class="form-group">
               <label for="inputPassword" class="col-sm-2 col-md-2 control-label">Password</label>
               <div class="col-sm-10 col-md-10">
-                <input type="password" class="form-control" id="inputPassword" placeholder="" tabindex="2" type="password" name="password" value="">
+                <input type="password" class="form-control" id="inputPassword" placeholder="" tabindex="2" type="password" name="{{ .Names.Password }}" value="">
               </div>
             </div>
             <div class="form-group">
@@ -2507,4 +2661,4 @@ hr {
     </div><!--/.container-->
   </body>
 </html>
-`))
+`

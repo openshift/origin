@@ -159,6 +159,10 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 			}
 		}
+
+		if config.OAuthConfig.Templates != nil {
+			refs = append(refs, &config.OAuthConfig.Templates.Login)
+		}
 	}
 
 	if config.AssetConfig != nil {

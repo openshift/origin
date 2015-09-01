@@ -343,7 +343,17 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 
 				// Since we're redirecting to a local login page, we don't need to force absolute URL resolution
 				redirectors["login-"+identityProvider.Name+"-redirect"] = redirector.NewRedirector(nil, OpenShiftLoginPrefix+"?then=${url}")
-				login := login.NewLogin(c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, login.DefaultLoginFormRenderer)
+
+				var loginTemplateFile string
+				if c.Options.Templates != nil {
+					loginTemplateFile = c.Options.Templates.Login
+				}
+				loginFormRenderer, err := login.NewLoginFormRenderer(loginTemplateFile)
+				if err != nil {
+					return nil, err
+				}
+
+				login := login.NewLogin(c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
 				login.Install(mux, OpenShiftLoginPrefix)
 			}
 			if identityProvider.UseAsChallenger {

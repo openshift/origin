@@ -367,6 +367,15 @@ type OAuthConfig struct {
 	SessionConfig *SessionConfig `json:"sessionConfig"`
 
 	TokenConfig TokenConfig `json:"tokenConfig"`
+
+	// Templates allow you to customize pages like the login page.
+	Templates *OAuthTemplates `json:"templates"`
+}
+
+type OAuthTemplates struct {
+	// Login is a path to a file containing a go template used to render the login page.
+	// If unspecified, the default login page is used.
+	Login string `json:"login"`
 }
 
 type ServiceAccountConfig struct {
