@@ -50,6 +50,7 @@ type WebHook struct {
 
 var _ rest.Connecter = &WebHook{}
 
+// NewWebHook creates an adapter that implements rest.Connector for the given HookHandler.
 func NewWebHook(handler HookHandler, allowGet bool) *WebHook {
 	return &WebHook{
 		h:        handler,
@@ -57,6 +58,7 @@ func NewWebHook(handler HookHandler, allowGet bool) *WebHook {
 	}
 }
 
+// NewHTTPWebHook creates an adapter that implements rest.Connector for the given http.Handler.
 func NewHTTPWebHook(handler http.Handler, allowGet bool) *WebHook {
 	return &WebHook{
 		h:        httpHookHandler{handler},
@@ -64,10 +66,12 @@ func NewHTTPWebHook(handler http.Handler, allowGet bool) *WebHook {
 	}
 }
 
+// New() responds with the status object.
 func (h *WebHook) New() runtime.Object {
 	return &api.Status{}
 }
 
+// Connect responds to connections with a ConnectHandler
 func (h *WebHook) Connect(ctx api.Context, name string, options runtime.Object) (rest.ConnectHandler, error) {
 	return &WebHookHandler{
 		handler: h.h,
@@ -77,10 +81,12 @@ func (h *WebHook) Connect(ctx api.Context, name string, options runtime.Object) 
 	}, nil
 }
 
+// NewConnectionOptions identifies the options that should be passed to this hook
 func (h *WebHook) NewConnectOptions() (runtime.Object, bool, string) {
 	return &api.PodProxyOptions{}, true, "path"
 }
 
+// ConnectMethods returns the supported web hook types.
 func (h *WebHook) ConnectMethods() []string {
 	if h.allowGet {
 		return []string{"GET", "POST"}
@@ -88,6 +94,7 @@ func (h *WebHook) ConnectMethods() []string {
 	return []string{"POST"}
 }
 
+// WebHookHandler responds to web hook requests from the master.
 type WebHookHandler struct {
 	handler HookHandler
 	ctx     api.Context
