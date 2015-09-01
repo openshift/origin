@@ -24,7 +24,7 @@ set -o pipefail
 
 CONFIG_ROOT_DIR=$(dirname "${BASH_SOURCE}")/config
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../../..
-source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/test/old-start-configs/v1.0.0/util.sh"
 
 if [[ -z "${BASETMPDIR-}" ]]; then
 	TMPDIR="${TMPDIR:-"/tmp"}"
@@ -242,6 +242,13 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.2
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 
+# COMPATIBILITY update the cluster roles so that new images can be used.
+oadm policy reconcile-cluster-roles --confirm
+# COMPATIBILITY create a service account for the router
+echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
+# COMPATIBILITY add the router SA to the privileged SCC so that it can be use to create the router
+oc get scc privileged -o json | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f -
+
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default
 
@@ -256,7 +263,8 @@ echo "Log in as 'e2e-user' to see the 'test' project."
 
 # install the router
 echo "[INFO] Installing the router"
-openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}"
+# COMPATIBILITY add --service-account parameter
+openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}" --service-account=router
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"
