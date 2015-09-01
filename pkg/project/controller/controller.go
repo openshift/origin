@@ -39,7 +39,7 @@ func (c *NamespaceController) Handle(namespace *kapi.Namespace) (err error) {
 	}
 
 	// there may still be content for us to remove
-	err = deleteAllContent(c.Client, namespace.Name)
+	err = deleteAllContent(c.Client, c.KubeClient, namespace.Name)
 	if err != nil {
 		return err
 	}
@@ -54,48 +54,75 @@ func (c *NamespaceController) Handle(namespace *kapi.Namespace) (err error) {
 }
 
 // deleteAllContent will purge all content in openshift in the specified namespace
-func deleteAllContent(client osclient.Interface, namespace string) (err error) {
-	err = deleteBuildConfigs(client, namespace)
+func deleteAllContent(oc osclient.Interface, kc kclient.Interface, namespace string) (err error) {
+	err = deleteBuildConfigs(oc, namespace)
 	if err != nil {
 		return err
 	}
-	err = deleteBuilds(client, namespace)
+	err = deleteBuilds(oc, namespace)
 	if err != nil {
 		return err
 	}
-	err = deleteDeploymentConfigs(client, namespace)
+	err = deleteDeploymentConfigs(oc, namespace)
 	if err != nil {
 		return err
 	}
-	err = deleteImageStreams(client, namespace)
+	err = deleteImageStreams(oc, namespace)
 	if err != nil {
 		return err
 	}
-	err = deletePolicies(client, namespace)
+	err = deletePolicies(oc, namespace)
 	if err != nil {
 		return err
 	}
-	err = deletePolicyBindings(client, namespace)
+	err = deletePolicyBindings(oc, namespace)
 	if err != nil {
 		return err
 	}
-	err = deleteRoleBindings(client, namespace)
+	err = deleteRoleBindings(oc, namespace)
 	if err != nil {
 		return err
 	}
-	err = deleteRoles(client, namespace)
+	err = deleteRoles(oc, namespace)
 	if err != nil {
 		return err
 	}
-	err = deleteRoutes(client, namespace)
+	err = deleteRoutes(oc, namespace)
 	if err != nil {
 		return err
 	}
-	err = deleteTemplates(client, namespace)
+	err = deleteTemplates(oc, namespace)
 	if err != nil {
 		return err
 	}
-	return nil
+	return deleteServiceAccounts(kc, namespace)
+}
+
+func deleteServiceAccounts(client kclient.ServiceAccountsNamespacer, ns string) error {
+	sas, err := client.ServiceAccounts(ns).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+	sccs, err := client.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+	errs := []error{}
+	for _, sa := range sas.Items {
+	out:
+		for _, scc := range sccs.Items {
+			for _, group := range scc.Groups {
+				if group == sa.Name {
+					if err := client.ServiceAccounts(ns).Delete(sa.Name); err != nil {
+						errs = append(errs, err)
+					}
+					break out
+				}
+			}
+		}
+	}
+
+	return errors.NewAggregate(errs)
 }
 
 func deleteTemplates(client osclient.Interface, ns string) error {
