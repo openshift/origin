@@ -322,7 +322,7 @@ function start_etcd {
 
   set +e
 
-  if [ "$(which etcd)" == "" ]; then
+  if [ "$(which etcd 2>/dev/null)" == "" ]; then
     if [[ ! -f ${OS_ROOT}/_tools/etcd/bin/etcd ]]; then
       echo "etcd must be in your PATH or installed in _tools/etcd/bin/ with hack/install-etcd.sh"
       exit 1
