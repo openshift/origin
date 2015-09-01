@@ -279,8 +279,8 @@ func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Co
 const (
 	stopLong = `Gracefully shut down a resource by id or filename
 
-Attempts to shut down and delete a resource that supports graceful termination.
-If the resource is scalable it will be scaled to 0 before deletion.`
+The stop command is deprecated, all its functionalities are covered by the delete command.
+See '%[1]s delete --help' for more details.`
 
 	stopExample = `  // Shut down foo.
   $ %[1]s stop replicationcontroller foo
@@ -298,7 +298,7 @@ If the resource is scalable it will be scaled to 0 before deletion.`
 // NewCmdStop is a wrapper for the Kubernetes cli stop command
 func NewCmdStop(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdStop(f.Factory, out)
-	cmd.Long = stopLong
+	cmd.Long = fmt.Sprintf(stopLong, fullName)
 	cmd.Example = fmt.Sprintf(stopExample, fullName)
 	return cmd
 }

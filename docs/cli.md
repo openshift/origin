@@ -485,16 +485,6 @@ $ oc expose service frontend
 $ oc expose dc ruby-hello-world --port=8080 --name=myservice --generator=service/v1
 ```
 
-### oc stop
-
-This gracefully shuts down a resource by id or filename.
-It attempts to shut down and delete a resource that supports graceful termination.
-If the resource is resizable, it will be resized to 0 before deletion.
-
-```bash
-$ oc stop service frontend
-```
-
 ### oc delete
 
 This deletes a specified resource.
