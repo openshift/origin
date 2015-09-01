@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientcmd"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
-	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
@@ -65,18 +64,18 @@ func (d *ConfigLoading) Check() types.DiagnosticResult {
 	if foundPath != "" {
 		if confFlagValue != "" && confFlagValue != foundPath {
 			// found config but not where --config said
-			r.Errorf("DCli1001", nil, `
+			r.Error("DCli1001", nil, fmt.Sprintf(`
 The client configuration file was not found where the --%s flag indicated:
   %s
 A config file was found at the following location:
   %s
 If you wish to use this file for client configuration, you can specify it
 with the --%[1]s flag, or just not specify the flag.
-			`, d.ConfFlagName, confFlagValue, foundPath)
+			`, d.ConfFlagName, confFlagValue, foundPath))
 		}
 	} else { // not found, check for master-generated ones to recommend
 		if confFlagValue != "" {
-			r.Errorf("DCli1002", nil, "Did not find config file where --%s=%s indicated", d.ConfFlagName, confFlagValue)
+			r.Error("DCli1002", nil, fmt.Sprintf("Did not find config file where --%s=%s indicated", d.ConfFlagName, confFlagValue))
 		}
 		adminWarningF := `
 No client config file was available; however, one exists at
@@ -98,7 +97,7 @@ location for use by the client and diagnostics.
 		for _, path := range adminPaths {
 			msg := fmt.Sprintf("Looking for a possible client config at %s\n", path)
 			if d.canOpenConfigFile(path, msg, r) {
-				r.Warnf("DCli1003", nil, adminWarningF, config.OpenShiftConfigPathEnvVar, path, config.RecommendedHomeFile)
+				r.Warn("DCli1003", nil, fmt.Sprintf(adminWarningF, config.OpenShiftConfigPathEnvVar, path, config.RecommendedHomeFile))
 				break
 			}
 		}
@@ -115,28 +114,28 @@ func (d ConfigLoading) canOpenConfigFile(path string, errmsg string, r types.Dia
 	if path == "" { // empty param/envvar
 		return false
 	} else if file, err = os.Open(path); err == nil {
-		r.Debugt("DCli1004", "Reading client config at {{.path}}", log.Hash{"path": path})
+		r.Debug("DCli1004", fmt.Sprintf("Reading client config at %s", path))
 	} else if errmsg == "" {
-		r.Debugf("DCli1005", "Could not read client config at %s:\n%#v", path, err)
+		r.Debug("DCli1005", fmt.Sprintf("Could not read client config at %s:\n%#v", path, err))
 	} else if os.IsNotExist(err) {
 		r.Debug("DCli1006", errmsg+"but that file does not exist.")
 	} else if os.IsPermission(err) {
 		r.Error("DCli1007", err, errmsg+"but lack permission to read that file.")
 	} else {
-		r.Errorf("DCli1008", err, "%sbut there was an error opening it:\n%#v", errmsg, err)
+		r.Error("DCli1008", err, fmt.Sprintf("%sbut there was an error opening it:\n%#v", errmsg, err))
 	}
 	if file != nil { // it is open for reading
 		defer file.Close()
 		if buffer, err := ioutil.ReadAll(file); err != nil {
-			r.Errorf("DCli1009", err, "Unexpected error while reading client config file (%s): %v", path, err)
+			r.Error("DCli1009", err, fmt.Sprintf("Unexpected error while reading client config file (%s): %v", path, err))
 		} else if _, err := clientcmd.Load(buffer); err != nil {
-			r.Errorf("DCli1010", err, `
+			r.Error("DCli1010", err, fmt.Sprintf(`
 Error reading YAML from client config file (%s):
   %v
 This file may have been truncated or mis-edited.
-Please fix, remove, or obtain a new client config`, file.Name(), err)
+Please fix, remove, or obtain a new client config`, file.Name(), err))
 		} else {
-			r.Infof("DCli1011", "Successfully read a client config file at '%s'", path)
+			r.Info("DCli1011", fmt.Sprintf("Successfully read a client config file at '%s'", path))
 			/* Note, we're not going to use this config file directly.
 			 * Instead, we'll defer to the openshift client code to assimilate
 			 * flags, env vars, and the potential hierarchy of config files

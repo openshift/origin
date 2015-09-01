@@ -17,18 +17,18 @@ func GetSystemdUnits(logger *log.Logger) map[string]types.SystemdUnit {
 		systemdUnits[name] = discoverSystemdUnit(logger, name)
 
 		if systemdUnits[name].Exists {
-			logger.Debugf("DS1002", "Saw systemd unit %s", name)
+			logger.Debug("DS1002", fmt.Sprintf("Saw systemd unit %s", name))
 		}
 	}
 
-	logger.Debugf("DS1003", "%v", systemdUnits)
+	logger.Debug("DS1003", fmt.Sprintf("%v", systemdUnits))
 	return systemdUnits
 }
 
 func discoverSystemdUnit(logger *log.Logger, name string) types.SystemdUnit {
 	unit := types.SystemdUnit{Name: name, Exists: false}
 	if output, err := exec.Command("systemctl", "show", name).Output(); err != nil {
-		logger.Errorf("DS1004", "Error running `systemctl show %s`: %s\nCannot analyze systemd units.", name, err.Error())
+		logger.Error("DS1004", fmt.Sprintf("Error running `systemctl show %s`: %s\nCannot analyze systemd units.", name, err.Error()))
 
 	} else {
 		attr := make(map[string]string)
@@ -40,7 +40,7 @@ func discoverSystemdUnit(logger *log.Logger, name string) types.SystemdUnit {
 		}
 
 		if val := attr["LoadState"]; val != "loaded" {
-			logger.Debugf("DS1005", "systemd unit '%s' does not exist. LoadState is '%s'", name, val)
+			logger.Debug("DS1005", fmt.Sprintf("systemd unit '%s' does not exist. LoadState is '%s'", name, val))
 			return unit // doesn't exist - leave everything blank
 
 		} else {
@@ -48,19 +48,19 @@ func discoverSystemdUnit(logger *log.Logger, name string) types.SystemdUnit {
 		}
 
 		if val := attr["UnitFileState"]; val == "enabled" {
-			logger.Debugf("DS1006", "systemd unit '%s' is enabled - it will start automatically at boot.", name)
+			logger.Debug("DS1006", fmt.Sprintf("systemd unit '%s' is enabled - it will start automatically at boot.", name))
 			unit.Enabled = true
 
 		} else {
-			logger.Debugf("DS1007", "systemd unit '%s' is not enabled - it does not start automatically at boot. UnitFileState is '%s'", name, val)
+			logger.Debug("DS1007", fmt.Sprintf("systemd unit '%s' is not enabled - it does not start automatically at boot. UnitFileState is '%s'", name, val))
 		}
 
 		if val := attr["ActiveState"]; val == "active" {
-			logger.Debugf("DS1008", "systemd unit '%s' is currently running", name)
+			logger.Debug("DS1008", fmt.Sprintf("systemd unit '%s' is currently running", name))
 			unit.Active = true
 
 		} else {
-			logger.Debugf("DS1009", "systemd unit '%s' is not currently running. ActiveState is '%s'; exit code was %d.", name, val, unit.ExitStatus)
+			logger.Debug("DS1009", fmt.Sprintf("systemd unit '%s' is not currently running. ActiveState is '%s'; exit code was %d.", name, val, unit.ExitStatus))
 		}
 
 		fmt.Sscanf(attr["StatusErrno"], "%d", &unit.ExitStatus) // ignore errors...

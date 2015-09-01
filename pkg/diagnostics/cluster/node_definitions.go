@@ -72,11 +72,9 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 		Resource: "nodes",
 	})
 	if err != nil {
-		msg := log.Message{ID: "clGetNodesFailed", EvaluatedText: fmt.Sprintf(clientErrorGettingNodes, err)}
-		return false, types.DiagnosticError{msg.ID, &msg, err}
+		return false, types.DiagnosticError{"DClu0005", fmt.Sprintf(clientErrorGettingNodes, err), err}
 	} else if !can {
-		msg := log.Message{ID: "clGetNodesFailed", EvaluatedText: "Client does not have access to see node status"}
-		return false, types.DiagnosticError{msg.ID, &msg, err}
+		return false, types.DiagnosticError{"DClu0006", "Client does not have access to see node status", err}
 	}
 	return true, nil
 }
@@ -86,7 +84,7 @@ func (d *NodeDefinitions) Check() types.DiagnosticResult {
 
 	nodes, err := d.KubeClient.Nodes().List(labels.LabelSelector{}, fields.Everything())
 	if err != nil {
-		r.Errorf("DClu0001", err, clientErrorGettingNodes, err)
+		r.Error("DClu0001", err, fmt.Sprintf(clientErrorGettingNodes, err))
 		return r
 	}
 
@@ -110,9 +108,9 @@ func (d *NodeDefinitions) Check() types.DiagnosticResult {
 				templateData["status"] = ready.Status
 				templateData["reason"] = ready.Reason
 			}
-			r.Warnt("DClu0002", nil, nodeNotReady, templateData)
+			r.Warn("DClu0002", nil, log.EvalTemplate("DClu0002", nodeNotReady, templateData))
 		} else if node.Spec.Unschedulable {
-			r.Warnt("DClu0003", nil, nodeNotSched, log.Hash{"node": node.Name})
+			r.Warn("DClu0003", nil, log.EvalTemplate("DClu0003", nodeNotSched, log.Hash{"node": node.Name}))
 		} else {
 			anyNodesAvail = true
 		}

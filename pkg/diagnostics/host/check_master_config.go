@@ -2,6 +2,7 @@ package host
 
 import (
 	"errors"
+	"fmt"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	configvalidation "github.com/openshift/origin/pkg/cmd/server/api/validation"
@@ -32,17 +33,17 @@ func (d MasterConfigCheck) CanRun() (bool, error) {
 func (d MasterConfigCheck) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterConfigCheckName)
 
-	r.Debugf("DH0001", "Looking for master config file at '%s'", d.MasterConfigFile)
+	r.Debug("DH0001", fmt.Sprintf("Looking for master config file at '%s'", d.MasterConfigFile))
 	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(d.MasterConfigFile)
 	if err != nil {
-		r.Errorf("DH0002", err, "Could not read master config file '%s':\n(%T) %[2]v", d.MasterConfigFile, err)
+		r.Error("DH0002", err, fmt.Sprintf("Could not read master config file '%s':\n(%T) %[2]v", d.MasterConfigFile, err))
 		return r
 	}
 
-	r.Infof("DH0003", "Found a master config file: %[1]s", d.MasterConfigFile)
+	r.Info("DH0003", fmt.Sprintf("Found a master config file: %[1]s", d.MasterConfigFile))
 
 	for _, err := range configvalidation.ValidateMasterConfig(masterConfig).Errors {
-		r.Errorf("DH0004", err, "Validation of master config file '%s' failed:\n(%T) %[2]v", d.MasterConfigFile, err)
+		r.Error("DH0004", err, fmt.Sprintf("Validation of master config file '%s' failed:\n(%T) %[2]v", d.MasterConfigFile, err))
 	}
 	return r
 }

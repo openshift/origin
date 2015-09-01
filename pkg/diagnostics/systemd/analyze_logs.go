@@ -3,6 +3,7 @@ package systemd
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -42,7 +43,7 @@ func (d AnalyzeLogs) Check() types.DiagnosticResult {
 
 	for _, unit := range unitLogSpecs {
 		if svc := d.SystemdUnits[unit.Name]; svc.Enabled || svc.Active {
-			r.Infof("DS0001", "Checking journalctl logs for '%s' service", unit.Name)
+			r.Info("DS0001", fmt.Sprintf("Checking journalctl logs for '%s' service", unit.Name))
 
 			cmd := exec.Command("journalctl", "-ru", unit.Name, "--output=json")
 			// JSON comes out of journalctl one line per record
@@ -58,7 +59,7 @@ func (d AnalyzeLogs) Check() types.DiagnosticResult {
 			}(cmd)
 
 			if err != nil {
-				r.Errorf("DS0002", err, sdLogReadErr, unit.Name, errStr(err))
+				r.Error("DS0002", err, fmt.Sprintf(sdLogReadErr, unit.Name, errStr(err)))
 				return r
 			}
 			defer func() { // close out pipe once done reading
@@ -75,10 +76,10 @@ func (d AnalyzeLogs) Check() types.DiagnosticResult {
 				}
 				bytes, entry := lineReader.Bytes(), logEntry{}
 				if err := json.Unmarshal(bytes, &entry); err != nil {
-					r.Debugf("DS0003", "Couldn't read the JSON for this log message:\n%s\nGot error %s", string(bytes), errStr(err))
+					r.Debug("DS0003", fmt.Sprintf("Couldn't read the JSON for this log message:\n%s\nGot error %s", string(bytes), errStr(err)))
 				} else {
 					if lineCount > 500 && stampTooOld(entry.TimeStamp, timeLimit) {
-						r.Debugf("DS0004", "Stopped reading %s log: timestamp %s too old", unit.Name, entry.TimeStamp)
+						r.Debug("DS0004", fmt.Sprintf("Stopped reading %s log: timestamp %s too old", unit.Name, entry.TimeStamp))
 						break // if we've analyzed at least 500 entries, stop when age limit reached (don't scan days of logs)
 					}
 					if unit.StartMatch.MatchString(entry.Message) {
@@ -92,18 +93,16 @@ func (d AnalyzeLogs) Check() types.DiagnosticResult {
 								currKeep := match.Interpret(&entry, strings, r)
 								keep = currKeep
 							} else { // apply generic match processing
-								template := "Found '{{.unit}}' journald log message:\n  {{.logMsg}}\n{{.interpretation}}"
-								templateData := log.Hash{"unit": unit.Name, "logMsg": entry.Message, "interpretation": match.Interpretation}
-
+								text := fmt.Sprintf("Found '%s' journald log message:\n  %s\n%s", unit.Name, entry.Message, match.Interpretation)
 								switch match.Level {
 								case log.DebugLevel:
-									r.Debugt(match.Id, template, templateData)
+									r.Debug(match.Id, text)
 								case log.InfoLevel:
-									r.Infot(match.Id, template, templateData)
+									r.Info(match.Id, text)
 								case log.WarnLevel:
-									r.Warnt(match.Id, nil, template, templateData)
+									r.Warn(match.Id, nil, text)
 								case log.ErrorLevel:
-									r.Errort(match.Id, nil, template, templateData)
+									r.Error(match.Id, nil, text)
 								}
 							}
 

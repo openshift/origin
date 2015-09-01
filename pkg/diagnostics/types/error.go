@@ -2,22 +2,20 @@ package types
 
 import (
 	"fmt"
-
-	"github.com/openshift/origin/pkg/diagnostics/log"
 )
 
 // DiagnosticError is an error created by the diagnostic framework and has a little
 // more info than a regular error to make them easier to identify in the receiver.
 type DiagnosticError struct {
 	ID         string
-	LogMessage *log.Message
+	LogMessage string
 	Cause      error
 }
 
 // Error() method means it conforms to the error interface.
 func (e DiagnosticError) Error() string {
-	if e.LogMessage != nil {
-		return fmt.Sprintf("%v", e.LogMessage)
+	if e.LogMessage != "" {
+		return fmt.Sprintf("(%s) %s", e.ID, e.LogMessage)
 	}
 	if e.Cause != nil {
 		return e.Cause.Error()

@@ -36,17 +36,9 @@ type DiagnosticResult interface {
 	// <Level>t interface{} should be a log.Hash for a template
 	// Error and Warning add an entry to both logs and corresponding list of errors/warnings.
 	Error(id string, err error, text string)
-	Errorf(id string, err error, format string, a ...interface{})
-	Errort(id string, err error, template string, data interface{})
 	Warn(id string, err error, text string)
-	Warnf(id string, err error, format string, a ...interface{})
-	Warnt(id string, err error, template string, data interface{})
 	Info(id string, text string)
-	Infof(id string, format string, a ...interface{})
-	Infot(id string, template string, data interface{})
 	Debug(id string, text string)
-	Debugf(id string, format string, a ...interface{})
-	Debugt(id string, template string, data interface{})
 }
 
 type diagnosticResultImpl struct {
@@ -76,7 +68,7 @@ func (r *diagnosticResultImpl) appendLogs(stackDepth int, entry ...log.Entry) {
 	// glog immediately for debugging when a diagnostic silently chokes
 	for _, entry := range entry {
 		if glog.V(glog.Level(6 - entry.Level.Level)) {
-			glog.InfoDepth(stackDepth, entry.Message.String())
+			glog.InfoDepth(stackDepth, entry.Message)
 		}
 	}
 }
@@ -129,65 +121,41 @@ func (r *diagnosticResultImpl) caller(depth int) string {
 	}
 	return "diagnostic " + r.origin
 }
-func (r *diagnosticResultImpl) logError(id string, err error, msg *log.Message) {
-	r.appendLogs(2, log.Entry{id, r.caller(2), log.ErrorLevel, *msg})
+func (r *diagnosticResultImpl) logError(id string, err error, msg string) {
+	r.appendLogs(2, log.Entry{id, r.caller(2), log.ErrorLevel, msg})
 	if de, ok := err.(DiagnosticError); ok {
 		r.appendErrors(de)
 	} else {
 		r.appendErrors(DiagnosticError{id, msg, err})
 	}
 }
-func (r *diagnosticResultImpl) logWarning(id string, err error, msg *log.Message) {
-	r.appendLogs(2, log.Entry{id, r.caller(2), log.WarnLevel, *msg})
+func (r *diagnosticResultImpl) logWarning(id string, err error, msg string) {
+	r.appendLogs(2, log.Entry{id, r.caller(2), log.WarnLevel, msg})
 	if de, ok := err.(DiagnosticError); ok {
 		r.appendWarnings(de)
 	} else {
 		r.appendWarnings(DiagnosticError{id, msg, err})
 	}
 }
-func (r *diagnosticResultImpl) logMessage(id string, level log.Level, msg *log.Message) {
-	r.appendLogs(2, log.Entry{id, r.caller(2), level, *msg})
+func (r *diagnosticResultImpl) logMessage(id string, level log.Level, msg string) {
+	r.appendLogs(2, log.Entry{id, r.caller(2), level, msg})
 }
 
 // Public ingress functions
 // Errors are recorded in the result as errors plus log entries
 func (r *diagnosticResultImpl) Error(id string, err error, text string) {
-	r.logError(id, err, &log.Message{id, "", nil, text})
-}
-func (r *diagnosticResultImpl) Errorf(id string, err error, format string, a ...interface{}) {
-	r.logError(id, err, &log.Message{id, "", nil, fmt.Sprintf(format, a...)})
-}
-func (r *diagnosticResultImpl) Errort(id string, err error, template string, data interface{} /* log.Hash */) {
-	r.logError(id, err, &log.Message{id, template, data, ""})
+	r.logError(id, err, text)
 }
 
 // Warnings are recorded in the result as warnings plus log entries
 func (r *diagnosticResultImpl) Warn(id string, err error, text string) {
-	r.logWarning(id, err, &log.Message{id, "", nil, text})
-}
-func (r *diagnosticResultImpl) Warnf(id string, err error, format string, a ...interface{}) {
-	r.logWarning(id, err, &log.Message{id, "", nil, fmt.Sprintf(format, a...)})
-}
-func (r *diagnosticResultImpl) Warnt(id string, err error, template string, data interface{} /* log.Hash */) {
-	r.logWarning(id, err, &log.Message{id, template, data, ""})
+	r.logWarning(id, err, text)
 }
 
 // Info/Debug are just recorded as log entries.
 func (r *diagnosticResultImpl) Info(id string, text string) {
-	r.logMessage(id, log.InfoLevel, &log.Message{id, "", nil, text})
-}
-func (r *diagnosticResultImpl) Infof(id string, format string, a ...interface{}) {
-	r.logMessage(id, log.InfoLevel, &log.Message{id, "", nil, fmt.Sprintf(format, a...)})
-}
-func (r *diagnosticResultImpl) Infot(id string, template string, data interface{} /* log.Hash */) {
-	r.logMessage(id, log.InfoLevel, &log.Message{id, template, data, ""})
+	r.logMessage(id, log.InfoLevel, text)
 }
 func (r *diagnosticResultImpl) Debug(id string, text string) {
-	r.logMessage(id, log.DebugLevel, &log.Message{id, "", nil, text})
-}
-func (r *diagnosticResultImpl) Debugf(id string, format string, a ...interface{}) {
-	r.logMessage(id, log.DebugLevel, &log.Message{id, "", nil, fmt.Sprintf(format, a...)})
-}
-func (r *diagnosticResultImpl) Debugt(id string, template string, data interface{} /* log.Hash */) {
-	r.logMessage(id, log.DebugLevel, &log.Message{id, template, data, ""})
+	r.logMessage(id, log.DebugLevel, text)
 }

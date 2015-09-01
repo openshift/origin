@@ -35,7 +35,7 @@ func (t *textLogger) Write(entry Entry) {
 	if t.ttyOutput {
 		ct.ChangeColor(entry.Level.Color, entry.Level.Bright, ct.None, false)
 	}
-	text := strings.TrimSpace(entry.Message.EvaluatedText)
+	text := strings.TrimSpace(entry.Message)
 	if entry.Level.Level >= WarnLevel.Level {
 		text = fmt.Sprintf("[%s from %s]\n", entry.ID, entry.Origin) + text
 	}

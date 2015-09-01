@@ -18,7 +18,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/deploy/api"
-	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
@@ -63,14 +62,14 @@ The "%s" DeploymentConfig exists but has no running pods, so it
 is not available. Apps will not be externally accessible via the router.`
 
 	clRtPodLog = `
-Failed to read the logs for the "{{.podName}}" pod belonging to
+Failed to read the logs for the "%s" pod belonging to
 the router deployment. This is not a problem by itself but prevents
 diagnostics from looking for errors in those logs. The error encountered
 was:
-{{.error}}`
+%s`
 
 	clRtPodConn = `
-Recent pod logs for the "{{.podName}}" pod belonging to
+Recent pod logs for the "%s" pod belonging to
 the router deployment indicated a problem requesting route information
 from the master. This prevents the router from functioning, so
 applications will not be externally accessible via the router.
@@ -80,8 +79,8 @@ credentials, DNS failures, master outages, and so on. Examine the
 following error message from the router pod logs to determine the
 cause of the problem:
 
-{{.reason}}
-Time: {{.timestamp}}`
+%s
+Time: %s`
 )
 
 func (d *ClusterRouter) Name() string {
@@ -103,11 +102,9 @@ func (d *ClusterRouter) CanRun() (bool, error) {
 		ResourceName: routerName,
 	})
 	if err != nil {
-		msg := log.Message{ID: "clGetRouterFailed", EvaluatedText: fmt.Sprintf(clientAccessError, err)}
-		return false, types.DiagnosticError{msg.ID, &msg, err}
+		return false, types.DiagnosticError{"DClu2010", fmt.Sprintf(clientAccessError, err), err}
 	} else if !can {
-		msg := log.Message{ID: "clGetRouterFailed", EvaluatedText: "Client does not have cluster-admin access"}
-		return false, types.DiagnosticError{msg.ID, &msg, err}
+		return false, types.DiagnosticError{"DClu2011", "Client does not have cluster-admin access", err}
 	}
 	return true, nil
 }
@@ -129,34 +126,34 @@ func (d *ClusterRouter) Check() types.DiagnosticResult {
 func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *osapi.DeploymentConfig {
 	dc, err := d.OsClient.DeploymentConfigs(kapi.NamespaceDefault).Get(routerName)
 	if err != nil && reflect.TypeOf(err) == reflect.TypeOf(&kerrs.StatusError{}) {
-		r.Warnf("DClu2001", err, clGetRtNone, routerName)
+		r.Warn("DClu2001", err, fmt.Sprintf(clGetRtNone, routerName))
 		return nil
 	} else if err != nil {
-		r.Errorf("DClu2002", err, clGetRtFailed, routerName, err)
+		r.Error("DClu2002", err, fmt.Sprintf(clGetRtFailed, routerName, err))
 		return nil
 	}
-	r.Debugf("DClu2003", "Found default router DC")
+	r.Debug("DClu2003", fmt.Sprintf("Found default router DC"))
 	return dc
 }
 
 func (d *ClusterRouter) getRouterPods(dc *osapi.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
 	pods, err := d.KubeClient.Pods(kapi.NamespaceDefault).List(labels.SelectorFromSet(dc.Template.ControllerTemplate.Selector), fields.Everything())
 	if err != nil {
-		r.Errorf("DClu2004", err, "Finding pods for '%s' DeploymentConfig failed. This should never happen. Error: (%[2]T) %[2]v", routerName, err)
+		r.Error("DClu2004", err, fmt.Sprintf("Finding pods for '%s' DeploymentConfig failed. This should never happen. Error: (%[2]T) %[2]v", routerName, err))
 		return nil
 	}
 	running := []kapi.Pod{}
 	for _, pod := range pods.Items {
 		if pod.Status.Phase != kapi.PodRunning {
-			r.Debugf("DClu2005", "router pod with name %s is not running", pod.ObjectMeta.Name)
+			r.Debug("DClu2005", fmt.Sprintf("router pod with name %s is not running", pod.ObjectMeta.Name))
 		} else {
 			running = append(running, pod)
-			r.Debugf("DClu2006", "Found running router pod with name %s", pod.ObjectMeta.Name)
+			r.Debug("DClu2006", fmt.Sprintf("Found running router pod with name %s", pod.ObjectMeta.Name))
 		}
 	}
 	pods.Items = running
 	if len(running) == 0 {
-		r.Errorf("DClu2007", nil, clRtNoPods, routerName)
+		r.Error("DClu2007", nil, fmt.Sprintf(clRtNoPods, routerName))
 		return nil
 	}
 	return pods
@@ -193,10 +190,7 @@ var referenceTimestampLayout = "2006-01-02T15:04:05.000000000Z"
 func (d *ClusterRouter) checkRouterLogs(pod *kapi.Pod, r types.DiagnosticResult) {
 	scanner, err := d.getPodLogScanner(pod)
 	if err != nil {
-		r.Warnt("DClu2008", err, clRtPodLog, log.Hash{
-			"error":   fmt.Sprintf("(%T) %[1]v", err),
-			"podName": pod.ObjectMeta.Name,
-		})
+		r.Warn("DClu2008", err, fmt.Sprintf(clRtPodLog, pod.ObjectMeta.Name, fmt.Sprintf("(%T) %[1]v", err)))
 		return
 	}
 	defer scanner.Close()
@@ -208,11 +202,7 @@ func (d *ClusterRouter) checkRouterLogs(pod *kapi.Pod, r types.DiagnosticResult)
 			// router checks every second. error only if failure is recent.
 			// of course... we cannot always trust the local clock.
 			if err == nil && time.Since(stamp).Seconds() < 30.0 {
-				r.Errort("DClu2009", nil, clRtPodConn, log.Hash{
-					"reason":    matches[2],
-					"timestamp": matches[1],
-					"podName":   pod.ObjectMeta.Name,
-				})
+				r.Error("DClu2009", nil, fmt.Sprintf(clRtPodConn, pod.ObjectMeta.Name, matches[2], matches[1]))
 				break
 			}
 		}
