@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
-	"github.com/golang/glog"
 )
 
 // This is the primary entrypoint for volume plugins.
@@ -52,7 +52,7 @@ func (plugin *cephfsPlugin) Name() string {
 }
 
 func (plugin *cephfsPlugin) CanSupport(spec *volume.Spec) bool {
-	return spec.VolumeSource.CephFS != nil || spec.PersistentVolumeSource.CephFS != nil
+	return (spec.Volume != nil && spec.Volume.VolumeSource.CephFS != nil) || (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.PersistentVolumeSource.CephFS != nil)
 }
 
 func (plugin *cephfsPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -98,7 +98,7 @@ func (plugin *cephfsPlugin) newBuilderInternal(spec *volume.Spec, podUID types.U
 
 	return &cephfs{
 		podUID:      podUID,
-		volName:     spec.Name,
+		volName:     spec.Name(),
 		mon:         cephvs.Monitors,
 		secret:      secret,
 		readonly:    cephvs.ReadOnly,
@@ -123,10 +123,10 @@ func (plugin *cephfsPlugin) newCleanerInternal(volName string, podUID types.UID,
 }
 
 func (plugin *cephfsPlugin) getVolumeSource(spec *volume.Spec) *api.CephFSVolumeSource {
-	if spec.VolumeSource.CephFS != nil {
-		return spec.VolumeSource.CephFS
+	if (spec.Volume != nil) && (spec.Volume.VolumeSource.CephFS != nil) {
+		return spec.Volume.VolumeSource.CephFS
 	} else {
-		return spec.PersistentVolumeSource.CephFS
+		return spec.PersistentVolume.Spec.PersistentVolumeSource.CephFS
 	}
 }
 
