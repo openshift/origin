@@ -14015,6 +14015,30 @@
      "forcePull": {
       "type": "boolean",
       "description": "forces pulling of builder image from remote registry if true"
+     },
+     "secrets": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.SecretSpec"
+      },
+      "description": "a list of secrets to include in the build pod in addition to pull, push and source secrets"
+     }
+    }
+   },
+   "v1.SecretSpec": {
+    "id": "v1.SecretSpec",
+    "required": [
+     "secretSource",
+     "mountPath"
+    ],
+    "properties": {
+     "secretSource": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "a reference to a secret"
+     },
+     "mountPath": {
+      "type": "string",
+      "description": "path within the container at which the secret should be mounted"
      }
     }
    },

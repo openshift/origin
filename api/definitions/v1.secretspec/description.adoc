@@ -1,0 +1,1 @@
+A SecretSpec specifies a secret and its corresponding mount point for a custom builder. The specified secret must be assigned to the service account that will run the build.

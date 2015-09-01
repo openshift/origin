@@ -142,6 +142,14 @@ func addSourceEnvVars(source buildapi.BuildSource, output *[]kapi.EnvVar) {
 	*output = append(*output, sourceVars...)
 }
 
+// setupAdditionalSecrets creates secret volume mounts in the given pod for the given list of secrets
+func setupAdditionalSecrets(pod *kapi.Pod, secrets []buildapi.SecretSpec) {
+	for _, secretSpec := range secrets {
+		mountSecretVolume(pod, secretSpec.SecretSource.Name, secretSpec.MountPath, "secret")
+		glog.V(3).Infof("Installed additional secret in %s, in Pod %s/%s", secretSpec.MountPath, pod.Namespace, pod.Name)
+	}
+}
+
 // mergeTrustedEnvWithoutDuplicates merges two environment lists without having
 // duplicate items in the output list.  Only trusted environment variables
 // will be merged.

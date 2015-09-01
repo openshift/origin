@@ -88,5 +88,6 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret)
 	}
 	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
+	setupAdditionalSecrets(pod, build.Spec.Strategy.CustomStrategy.Secrets)
 	return pod, nil
 }
