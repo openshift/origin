@@ -535,6 +535,8 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNamespaceController()
 		kc.RunPersistentVolumeClaimBinder()
 		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("deployer"))
+
+		glog.Infof("Started Kubernetes Controllers")
 	}
 
 	// no special order
@@ -552,6 +554,8 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunImageImportController()
 	oc.RunOriginNamespaceController()
 	oc.RunSDNController()
+
+	glog.Infof("Started Origin Controllers")
 
 	return nil
 }

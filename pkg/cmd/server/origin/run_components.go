@@ -78,7 +78,6 @@ func (c *MasterConfig) RunServiceAccountsController() {
 	}
 
 	serviceaccount.NewServiceAccountsController(c.KubeClient(), options).Run()
-	glog.Infof("Started Service Account Manager")
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -109,7 +108,6 @@ func (c *MasterConfig) RunServiceAccountTokensController() {
 	}
 
 	serviceaccount.NewTokensController(c.KubeClient(), options).Run()
-	glog.Infof("Started Service Account Token Manager")
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
@@ -127,8 +125,6 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 		DefaultDockerURL:    serviceaccountcontrollers.DefaultOpenshiftDockerURL,
 	}
 	serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run()
-
-	glog.Infof("Started Service Account Pull Secret Controllers")
 }
 
 // RunPolicyCache starts the policy cache
