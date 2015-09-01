@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"runtime"
 	"strings"
-	"text/template"
+	txttemplate "text/template"
 
 	"github.com/openshift/origin/pkg/version"
 )
@@ -76,49 +76,11 @@ func NewLogger(setLevel int, setFormat string, out io.Writer) (*Logger, error) {
 	}, err
 }
 
-type Message struct {
-	// ID: an identifier unique to the message being logged
-	ID string
-	// Template: a template string as understood by text/template that can use any of the
-	//           TemplateData entries in this Message as inputs.
-	Template string
-	// TemplateData is passed to template executor to complete the message
-	TemplateData interface{}
-	// EvaluatedText: human-readable message text
-	EvaluatedText string
-}
-
-type Hash map[string]interface{} // convenience/cosmetic type
-
-func (m Message) String() string {
-	if len(m.EvaluatedText) > 0 {
-		return m.EvaluatedText
-	}
-
-	if len(m.Template) == 0 {
-		return fmt.Sprintf("%s: %s %#v", m.ID, m.Template, m.TemplateData)
-	}
-
-	// if given a template, convert it to text
-	parsedTmpl, err := template.New(m.ID).Parse(m.Template)
-	if err != nil { // unless the template is broken of course
-		return fmt.Sprintf("%s: %s %#v: %v", m.ID, m.Template, m.TemplateData, err)
-	}
-
-	var buff bytes.Buffer
-	err = parsedTmpl.Execute(&buff, m.TemplateData)
-	if err != nil {
-		return fmt.Sprintf("%s: %s %#v: %v", m.ID, m.Template, m.TemplateData, err)
-	}
-
-	return buff.String()
-}
-
 type Entry struct {
-	ID     string
-	Origin string
-	Level  Level
-	Message
+	ID      string
+	Origin  string
+	Level   Level
+	Message string
 }
 
 var (
@@ -131,12 +93,12 @@ var (
 
 // Provide a summary at the end
 func (l *Logger) Summary(warningsSeen int, errorsSeen int) {
-	l.Noticef("DL0001", "\nSummary of diagnostics execution (version %v):\n", version.Get())
+	l.Notice("DL0001", fmt.Sprintf("Summary of diagnostics execution (version %v):\n", version.Get()))
 	if warningsSeen > 0 {
-		l.Noticet("DL0002", "Warnings seen: {{.warnings}}", Hash{"warnings": warningsSeen})
+		l.Notice("DL0002", fmt.Sprintf("Warnings seen: %d", warningsSeen))
 	}
 	if errorsSeen > 0 {
-		l.Noticet("DL0003", "Errors seen: {{.errors}}", Hash{"errors": errorsSeen})
+		l.Notice("DL0003", fmt.Sprintf("Errors seen: %d", errorsSeen))
 	}
 	if warningsSeen == 0 && errorsSeen == 0 {
 		l.Notice("DL0004", "Completed with no errors or warnings seen.")
@@ -150,82 +112,24 @@ func (l *Logger) LogEntry(entry Entry) {
 	if entry.Level.Level < l.level.Level { // logging level says skip this entry
 		return
 	}
-
-	if msg := &entry.Message; msg.EvaluatedText == "" && msg.Template != "" {
-		// if given a template instead of text, convert it to text
-		parsedTmpl, err := template.New(msg.ID).Parse(msg.Template)
-		if err != nil {
-			entry.Message = Message{
-				ID: "templateParseErr",
-				TemplateData: Hash{
-					"error":           err.Error(),
-					"originalMessage": msg,
-				},
-				EvaluatedText: fmt.Sprintf("Error parsing template for %s:\n%s=== Error was:\n%v\nOriginal message:\n%#v", msg.ID, msg.Template, err, msg),
-			}
-			entry.ID = entry.Message.ID
-			l.Write(entry)
-			return
-		}
-
-		var buff bytes.Buffer
-		err = parsedTmpl.Execute(&buff, msg.TemplateData)
-		if err != nil {
-			entry.Message = Message{
-				ID: "templateExecErr",
-				TemplateData: Hash{
-					"error":           err.Error(),
-					"originalMessage": msg,
-				},
-				EvaluatedText: fmt.Sprintf("Error executing template for %s:\n%s=== Error was:\n%v\nOriginal message:\n%#v", msg.ID, msg.Template, err, msg),
-			}
-			entry.ID = entry.Message.ID
-			l.Write(entry)
-			return
-		}
-
-		msg.EvaluatedText = buff.String()
-	}
-
 	l.Write(entry)
 }
 
 // Convenience functions
 func (l *Logger) Error(id string, text string) {
-	l.logp(ErrorLevel, id, text)
-}
-func (l *Logger) Errorf(id string, msg string, a ...interface{}) {
-	l.logf(ErrorLevel, id, msg, a...)
-}
-func (l *Logger) Errort(id string, template string, data interface{}) {
-	l.logt(ErrorLevel, id, template, data)
+	l.LogEntry(Entry{id, origin(1), ErrorLevel, text})
 }
 func (l *Logger) Warn(id string, text string) {
-	l.logp(WarnLevel, id, text)
-}
-func (l *Logger) Warnf(id string, msg string, a ...interface{}) {
-	l.logf(WarnLevel, id, msg, a...)
+	l.LogEntry(Entry{id, origin(1), WarnLevel, text})
 }
 func (l *Logger) Info(id string, text string) {
-	l.logp(InfoLevel, id, text)
-}
-func (l *Logger) Infof(id string, msg string, a ...interface{}) {
-	l.logf(InfoLevel, id, msg, a...)
+	l.LogEntry(Entry{id, origin(1), InfoLevel, text})
 }
 func (l *Logger) Notice(id string, text string) {
-	l.logp(NoticeLevel, id, text)
-}
-func (l *Logger) Noticef(id string, msg string, a ...interface{}) {
-	l.logf(NoticeLevel, id, msg, a...)
-}
-func (l *Logger) Noticet(id string, template string, data interface{}) {
-	l.logt(NoticeLevel, id, template, data)
+	l.LogEntry(Entry{id, origin(1), NoticeLevel, text})
 }
 func (l *Logger) Debug(id string, text string) {
-	l.logp(DebugLevel, id, text)
-}
-func (l *Logger) Debugf(id string, msg string, a ...interface{}) {
-	l.logf(DebugLevel, id, msg, a...)
+	l.LogEntry(Entry{id, origin(1), DebugLevel, text})
 }
 
 func origin(skip int) string {
@@ -236,15 +140,8 @@ func origin(skip int) string {
 		return "unknown"
 	}
 }
-func (l *Logger) logp(level Level, id string, text string) {
-	l.LogEntry(Entry{id, origin(2), level, Message{ID: id, EvaluatedText: text}})
-}
-func (l *Logger) logf(level Level, id string, msg string, a ...interface{}) {
-	l.LogEntry(Entry{id, origin(2), level, Message{ID: id, EvaluatedText: fmt.Sprintf(msg, a...)}})
-}
-func (l *Logger) logt(level Level, id string, template string, data interface{}) {
-	l.LogEntry(Entry{id, origin(2), level, Message{ID: id, Template: template, TemplateData: data}})
-}
+
+// Utilities related to output
 
 // turn excess lines into [...]
 func LimitLines(msg string, n int) string {
@@ -253,4 +150,22 @@ func LimitLines(msg string, n int) string {
 		lines[n] = "[...]"
 	}
 	return strings.Join(lines, "\n")
+}
+
+type Hash map[string]interface{} // convenience/cosmetic type
+func EvalTemplate(id string, template string, data map[string]interface{}) string {
+	if len(template) == 0 {
+		return fmt.Sprintf("%s: %s %#v", id, template, data)
+	}
+	// if given a template, convert it to text
+	parsedTmpl, err := txttemplate.New(id).Parse(template)
+	if err != nil { // if the template is broken ...
+		return fmt.Sprintf("%s: %s %#v: %v", id, template, data, err)
+	}
+	var buff bytes.Buffer
+	err = parsedTmpl.Execute(&buff, data)
+	if err != nil { // if execution choked ...
+		return fmt.Sprintf("%s: %s %#v: %v", id, template, data, err)
+	}
+	return buff.String()
 }

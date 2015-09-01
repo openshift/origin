@@ -2,6 +2,7 @@ package host
 
 import (
 	"errors"
+	"fmt"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	configvalidation "github.com/openshift/origin/pkg/cmd/server/api/validation"
@@ -31,17 +32,17 @@ func (d NodeConfigCheck) CanRun() (bool, error) {
 }
 func (d NodeConfigCheck) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(NodeConfigCheckName)
-	r.Debugf("DH1001", "Looking for node config file at '%s'", d.NodeConfigFile)
+	r.Debug("DH1001", fmt.Sprintf("Looking for node config file at '%s'", d.NodeConfigFile))
 	nodeConfig, err := configapilatest.ReadAndResolveNodeConfig(d.NodeConfigFile)
 	if err != nil {
-		r.Errorf("DH1002", err, "Could not read node config file '%s':\n(%T) %[2]v", d.NodeConfigFile, err)
+		r.Error("DH1002", err, fmt.Sprintf("Could not read node config file '%s':\n(%T) %[2]v", d.NodeConfigFile, err))
 		return r
 	}
 
-	r.Infof("DH1003", "Found a node config file: %[1]s", d.NodeConfigFile)
+	r.Info("DH1003", fmt.Sprintf("Found a node config file: %[1]s", d.NodeConfigFile))
 
 	for _, err := range configvalidation.ValidateNodeConfig(nodeConfig) {
-		r.Errorf("DH1004", err, "Validation of node config file '%s' failed:\n(%T) %[2]v", d.NodeConfigFile, err)
+		r.Error("DH1004", err, fmt.Sprintf("Validation of node config file '%s' failed:\n(%T) %[2]v", d.NodeConfigFile, err))
 	}
 	return r
 }

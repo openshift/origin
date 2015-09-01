@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
@@ -46,19 +45,18 @@ func (d UnitStatus) Check() types.DiagnosticResult {
 	// Anything that is enabled but not running deserves notice
 	for name, unit := range d.SystemdUnits {
 		if unit.Enabled && !unit.Active {
-			r.Errort("DS3001", nil, sdUnitInactive, log.Hash{"unit": name})
+			r.Error("DS3001", nil, fmt.Sprintf(sdUnitInactive, name))
 		}
 	}
 	return r
 }
 
 func unitRequiresUnit(r types.DiagnosticResult, unit types.SystemdUnit, requires types.SystemdUnit, reason string) {
-	templateData := log.Hash{"unit": unit.Name, "required": requires.Name, "reason": reason}
 
 	if (unit.Active || unit.Enabled) && !requires.Exists {
-		r.Errort("DS3002", nil, sdUnitReqLoaded, templateData)
+		r.Error("DS3002", nil, fmt.Sprintf(sdUnitReqLoaded, unit.Name, requires.Name, reason))
 	} else if unit.Active && !requires.Active {
-		r.Errort("DS3003", nil, sdUnitReqActive, templateData)
+		r.Error("DS3003", nil, fmt.Sprintf(sdUnitReqActive, unit.Name, requires.Name, reason))
 	}
 }
 
@@ -91,38 +89,38 @@ To ensure it is not repeatedly failing to run, check the status and logs with:
   # journalctl -ru openvswitch `
 
 	sdUnitInactive = `
-The {{.unit}} systemd unit is intended to start at boot but is not currently active.
-An administrator can start the {{.unit}} unit with:
+The %[1]s systemd unit is intended to start at boot but is not currently active.
+An administrator can start the %[1]s unit with:
 
-  # systemctl start {{.unit}}
+  # systemctl start %[1]s
 
 To ensure it is not failing to run, check the status and logs with:
 
-  # systemctl status {{.unit}}
-  # journalctl -ru {{.unit}}`
+  # systemctl status %[1]s
+  # journalctl -ru %[1]s`
 
 	sdUnitReqLoaded = `
-systemd unit {{.unit}} depends on unit {{.required}}, which is not loaded.
-{{.reason}}
-An administrator probably needs to install the {{.required}} unit with:
+systemd unit %[1]s depends on unit %[2]s, which is not loaded.
+%[3]s
+An administrator probably needs to install the %[2]s unit with:
 
-  # yum install {{.required}}
+  # yum install %[2]s
 
 If it is already installed, you may to reload the definition with:
 
-  # systemctl reload {{.required}}
+  # systemctl reload %[2]s
   `
 
 	sdUnitReqActive = `
-systemd unit {{.unit}} is running but {{.required}} is not.
-{{.reason}}
-An administrator can start the {{.required}} unit with:
+systemd unit %[1]s is running but %[2]s is not.
+%[1]s
+An administrator can start the %[2]s unit with:
 
-  # systemctl start {{.required}}
+  # systemctl start %[2]s
 
 To ensure it is not failing to run, check the status and logs with:
 
-  # systemctl status {{.required}}
-  # journalctl -ru {{.required}}
+  # systemctl status %[2]s
+  # journalctl -ru %[2]s
   `
 )

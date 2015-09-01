@@ -132,19 +132,19 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 	if len(o.RequestedDiagnostics) == 0 {
 		o.RequestedDiagnostics = AvailableDiagnostics.List()
 	} else if common := intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableDiagnostics); len(common) == 0 {
-		o.Logger.Errort("CED3012", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
-			log.Hash{"requested": o.RequestedDiagnostics, "available": AvailableDiagnostics.List()})
+		o.Logger.Error("CED3012", log.EvalTemplate("CED3012", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
+			log.Hash{"requested": o.RequestedDiagnostics, "available": AvailableDiagnostics.List()}))
 		return false, fmt.Errorf("No requested diagnostics available"), 0, 1
 	} else if len(common) < len(o.RequestedDiagnostics) {
 		errors = append(errors, fmt.Errorf("Not all requested diagnostics are available"))
-		o.Logger.Errort("CED3013", `
+		o.Logger.Error("CED3013", log.EvalTemplate("CED3013", `
 Of the requested diagnostics:
     {{.requested}}
 only these are available:
     {{.common}}
 The list of all possible is:
     {{.available}}
-		`, log.Hash{"requested": o.RequestedDiagnostics, "common": common.List(), "available": AvailableDiagnostics.List()})
+		`, log.Hash{"requested": o.RequestedDiagnostics, "common": common.List(), "available": AvailableDiagnostics.List()}))
 	}
 
 	func() { // don't trust discovery/build of diagnostics; wrap panic nicely in case of developer error
@@ -164,11 +164,11 @@ The list of all possible is:
 		if !detected { // there just plain isn't any client config file available
 			o.Logger.Notice("CED3014", "No client configuration specified; skipping client and cluster diagnostics.")
 		} else if rawConfig, err := o.buildRawConfig(); rawConfig == nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
-			o.Logger.Errorf("CED3015", "Client configuration failed to load; skipping client and cluster diagnostics due to error: {{.error}}", log.Hash{"error": err.Error()})
+			o.Logger.Error("CED3015", fmt.Sprintf("Client configuration failed to load; skipping client and cluster diagnostics due to error: %s", err.Error()))
 			errors = append(errors, err)
 		} else {
 			if err != nil { // error encountered, proceed with caution
-				o.Logger.Errorf("CED3016", "Client configuration loading encountered an error, but proceeding anyway. Error was:\n{{.error}}", log.Hash{"error": err.Error()})
+				o.Logger.Error("CED3016", fmt.Sprintf("Client configuration loading encountered an error, but proceeding anyway. Error was:\n%s", err.Error()))
 				errors = append(errors, err)
 			}
 			clientDiags, ok, err := o.buildClientDiagnostics(rawConfig)
@@ -219,25 +219,22 @@ func (o DiagnosticsOptions) Run(diagnostics []types.Diagnostic) (bool, error, in
 			defer func() {
 				if r := recover(); r != nil {
 					errorCount += 1
-					o.Logger.Errort("CED3017",
-						"While running the {{.name}} diagnostic, a panic was encountered.\nThis is a bug in diagnostics. Stack trace follows : \n{{.error}}",
-						log.Hash{"name": diagnostic.Name(), "error": fmt.Sprintf("%v", r)})
+					o.Logger.Error("CED3017",
+						fmt.Sprintf("While running the %s diagnostic, a panic was encountered.\nThis is a bug in diagnostics. Stack trace follows : \n%s",
+							diagnostic.Name(), fmt.Sprintf("%v", r)))
 				}
 			}()
 
 			if canRun, reason := diagnostic.CanRun(); !canRun {
 				if reason == nil {
-					o.Logger.Noticet("CED3018", "Skipping diagnostic: {{.name}}\nDescription: {{.diag}}",
-						log.Hash{"name": diagnostic.Name(), "diag": diagnostic.Description()})
+					o.Logger.Notice("CED3018", fmt.Sprintf("Skipping diagnostic: %s\nDescription: %s", diagnostic.Name(), diagnostic.Description()))
 				} else {
-					o.Logger.Noticet("CED3019", "Skipping diagnostic: {{.name}}\nDescription: {{.diag}}\nBecause: {{.reason}}",
-						log.Hash{"name": diagnostic.Name(), "diag": diagnostic.Description(), "reason": reason.Error()})
+					o.Logger.Notice("CED3019", fmt.Sprintf("Skipping diagnostic: %s\nDescription: %s\nBecause: %s", diagnostic.Name(), diagnostic.Description(), reason.Error()))
 				}
 				return
 			}
 
-			o.Logger.Noticet("CED3020", "Running diagnostic: {{.name}}\nDescription: {{.diag}}",
-				log.Hash{"name": diagnostic.Name(), "diag": diagnostic.Description()})
+			o.Logger.Notice("CED3020", fmt.Sprintf("Running diagnostic: %s\nDescription: %s", diagnostic.Name(), diagnostic.Description()))
 			r := diagnostic.Check()
 			for _, entry := range r.Logs() {
 				o.Logger.LogEntry(entry)

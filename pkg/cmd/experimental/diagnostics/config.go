@@ -5,15 +5,13 @@ import (
 	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
 
 	clientdiagnostics "github.com/openshift/origin/pkg/diagnostics/client"
-	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
 // determine if we even have a client config
 func (o DiagnosticsOptions) detectClientConfig() (bool, []types.DiagnosticError, []types.DiagnosticError) {
 	diagnostic := &clientdiagnostics.ConfigLoading{ConfFlagName: config.OpenShiftConfigFlagName, ClientFlags: o.ClientFlags}
-	o.Logger.Noticet("CED2011", "Determining if client configuration exists for client/cluster diagnostics",
-		log.Hash{"area": "client", "name": diagnostic.Name(), "diag": diagnostic.Description()})
+	o.Logger.Notice("CED2011", "Determining if client configuration exists for client/cluster diagnostics")
 	result := diagnostic.Check()
 	for _, entry := range result.Logs() {
 		o.Logger.LogEntry(entry)

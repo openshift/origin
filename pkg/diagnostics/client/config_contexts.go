@@ -13,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
@@ -27,16 +26,16 @@ const (
 	ConfigContextsName = "ConfigContexts"
 
 	contextDesc = `
-For client config context '{{.context}}':
-The server URL is '{{.server}}'
-The user authentication is '{{.user}}'
-The current project is '{{.project}}'
+For client config context '%s':
+The server URL is '%s'
+The user authentication is '%s'
+The current project is '%s'
 `
 	currContextDesc = `
-The current client config context is '{{.context}}':
-The server URL is '{{.server}}'
-The user authentication is '{{.user}}'
-The current project is '{{.project}}'
+The current client config context is '%s':
+The server URL is '%s'
+The user authentication is '%s'
+The current project is '%s'
 `
 	clientNoResolve = `
 This usually means that the hostname does not resolve to an IP.
@@ -192,18 +191,18 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	// check that the context and its constitutuents are defined in the kubeconfig
 	context, exists := d.RawConfig.Contexts[d.ContextName]
 	if !exists {
-		r.Errorf(errorKey, nil, "%s:\n Client config context '%s' is not defined.", unusableLine, d.ContextName)
+		r.Error(errorKey, nil, fmt.Sprintf("%s:\n Client config context '%s' is not defined.", unusableLine, d.ContextName))
 		return r
 	}
 	clusterName := context.Cluster
 	cluster, exists := d.RawConfig.Clusters[clusterName]
 	if !exists {
-		r.Errorf(errorKey, nil, "%s:\n Client config context '%s' has a cluster '%s' which is not defined.", unusableLine, d.ContextName, clusterName)
+		r.Error(errorKey, nil, fmt.Sprintf("%s:\n Client config context '%s' has a cluster '%s' which is not defined.", unusableLine, d.ContextName, clusterName))
 		return r
 	}
 	authName := context.AuthInfo
 	if _, exists := d.RawConfig.AuthInfos[authName]; !exists {
-		r.Errorf(errorKey, nil, "%s:\n Client config context '%s' has a user '%s' which is not defined.", unusableLine, d.ContextName, authName)
+		r.Error(errorKey, nil, fmt.Sprintf("%s:\n Client config context '%s' has a user '%s' which is not defined.", unusableLine, d.ContextName, authName))
 		return r
 	}
 
@@ -212,11 +211,11 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	if project == "" {
 		project = kapi.NamespaceDefault // k8s fills this in anyway if missing from the context
 	}
-	msgData := log.Hash{"context": d.ContextName, "server": cluster.Server, "user": authName, "project": project}
 	msgText := contextDesc
 	if isDefaultContext {
 		msgText = currContextDesc
 	}
+	msgText = fmt.Sprintf(msgText, d.ContextName, cluster.Server, authName, project)
 
 	// Actually send a request to see if context has connectivity.
 	// Note: we cannot reuse factories as they cache the clients, so build new factory for each context.
@@ -234,11 +233,10 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 				}
 				list = append(list, project.Name)
 			}
-			msgData["projects"] = list
 			if len(list) == 0 {
-				r.Infot("DCli0003", msgText+"Successfully requested project list, but it is empty, so user has no access to anything.", msgData)
+				r.Info("DCli0003", msgText+"Successfully requested project list, but it is empty, so user has no access to anything.")
 			} else {
-				r.Infot("DCli0004", msgText+"Successfully requested project list; has access to project(s):\n  {{.projects}}", msgData)
+				r.Info("DCli0004", msgText+fmt.Sprintf("Successfully requested project list; has access to project(s):\n  %v", list))
 			}
 			return r
 		}
@@ -247,7 +245,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	// something went wrong; couldn't create client or get project list.
 	// interpret the terse error messages with helpful info.
 	errMsg := err.Error()
-	msgData["errMsg"] = fmt.Sprintf("(%T) %[1]v", err)
+	errFull := fmt.Sprintf("(%T) %[1]v\n", err)
 	var reason, errId string
 	switch {
 	case regexp.MustCompile("dial tcp: lookup (\\S+): no such host").MatchString(errMsg):
@@ -275,6 +273,6 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	default:
 		errId, reason = "DCli0015", `Diagnostics does not have an explanation for what this means. Please report this error so one can be added.`
 	}
-	r.Errort(errId, err, msgText+"{{.errMsg}}\n"+reason, msgData)
+	r.Error(errId, err, msgText+errFull+reason)
 	return r
 }
