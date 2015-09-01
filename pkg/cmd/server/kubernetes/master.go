@@ -71,18 +71,18 @@ func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 
 func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string) {
 	// VolumeConfig contains defaults that can be overridden
-	volumeConfig := volume.NewVolumeConfig()
+	volumeConfig := volume.VolumeConfig{}
 
-	defaultScrubPod := volumeConfig.PersistentVolumeRecyclerDefaultScrubPod
-	defaultScrubPod.Spec.Containers[0].Image = recyclerImageName
-	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/share/openshift/scripts/volumes/recycler.sh"}
-	defaultScrubPod.Spec.Containers[0].Args = []string{"/scrub"}
-
-	volumeConfig.PersistentVolumeRecyclerDefaultScrubPod = defaultScrubPod
-	volumeConfig.PersistentVolumeRecyclerMinTimeoutNfs = 300
-	volumeConfig.PersistentVolumeRecyclerTimeoutIncrementNfs = 30
-	volumeConfig.PersistentVolumeRecyclerMinTimeoutHostPath = 120
-	volumeConfig.PersistentVolumeRecyclerTimeoutIncrementHostPath = 30
+//	defaultScrubPod := volumeConfig.PersistentVolumeRecyclerDefaultScrubPod
+//	defaultScrubPod.Spec.Containers[0].Image = recyclerImageName
+//	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/share/openshift/scripts/volumes/recycler.sh"}
+//	defaultScrubPod.Spec.Containers[0].Args = []string{"/scrub"}
+//
+//	volumeConfig.PersistentVolumeRecyclerDefaultScrubPod = defaultScrubPod
+//	volumeConfig.PersistentVolumeRecyclerMinTimeoutNfs = 300
+//	volumeConfig.PersistentVolumeRecyclerTimeoutIncrementNfs = 30
+//	volumeConfig.PersistentVolumeRecyclerMinTimeoutHostPath = 120
+//	volumeConfig.PersistentVolumeRecyclerTimeoutIncrementHostPath = 30
 
 	allPlugins := []volume.VolumePlugin{}
 	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(volumeConfig)...)
