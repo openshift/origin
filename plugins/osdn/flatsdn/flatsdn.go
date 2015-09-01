@@ -17,7 +17,7 @@ func NetworkPluginName() string {
 }
 
 func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork string, clusterNetworkLength uint, serviceNetwork string) {
-	osdnInterface := osdn.NewOsdnRegistryInterface(osClient, kClient)
+	osdnInterface := osdn.NewOsdnRegistry(osClient, kClient)
 
 	// get hostname from the gateway
 	output, err := exec.New().Command("hostname", "-f").CombinedOutput()
@@ -37,7 +37,7 @@ func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork s
 }
 
 func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, publicIP string, ready chan struct{}, mtu uint) {
-	osdnInterface := osdn.NewOsdnRegistryInterface(osClient, kClient)
+	osdnInterface := osdn.NewOsdnRegistry(osClient, kClient)
 	kc, err := ovssubnet.NewKubeController(&osdnInterface, hostname, publicIP, ready)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)

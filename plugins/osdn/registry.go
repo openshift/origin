@@ -26,21 +26,21 @@ import (
 	"github.com/openshift/origin/pkg/sdn/api"
 )
 
-type OsdnRegistryInterface struct {
+type OsdnRegistry struct {
 	oClient osclient.Interface
 	kClient kclient.Interface
 }
 
-func NewOsdnRegistryInterface(osClient *osclient.Client, kClient *kclient.Client) OsdnRegistryInterface {
-	return OsdnRegistryInterface{osClient, kClient}
+func NewOsdnRegistry(osClient *osclient.Client, kClient *kclient.Client) OsdnRegistry {
+	return OsdnRegistry{osClient, kClient}
 }
 
-func (oi *OsdnRegistryInterface) InitSubnets() error {
+func (registry *OsdnRegistry) InitSubnets() error {
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, string, error) {
-	hostSubnetList, err := oi.oClient.HostSubnets().List()
+func (registry *OsdnRegistry) GetSubnets() ([]osdnapi.Subnet, string, error) {
+	hostSubnetList, err := registry.oClient.HostSubnets().List()
 	if err != nil {
 		return nil, "", err
 	}
@@ -52,19 +52,19 @@ func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, string, error) 
 	return subList, hostSubnetList.ListMeta.ResourceVersion, nil
 }
 
-func (oi *OsdnRegistryInterface) GetSubnet(nodeName string) (*osdnapi.Subnet, error) {
-	hs, err := oi.oClient.HostSubnets().Get(nodeName)
+func (registry *OsdnRegistry) GetSubnet(nodeName string) (*osdnapi.Subnet, error) {
+	hs, err := registry.oClient.HostSubnets().Get(nodeName)
 	if err != nil {
 		return nil, err
 	}
 	return &osdnapi.Subnet{NodeIP: hs.HostIP, SubnetIP: hs.Subnet}, nil
 }
 
-func (oi *OsdnRegistryInterface) DeleteSubnet(nodeName string) error {
-	return oi.oClient.HostSubnets().Delete(nodeName)
+func (registry *OsdnRegistry) DeleteSubnet(nodeName string) error {
+	return registry.oClient.HostSubnets().Delete(nodeName)
 }
 
-func (oi *OsdnRegistryInterface) CreateSubnet(nodeName string, sub *osdnapi.Subnet) error {
+func (registry *OsdnRegistry) CreateSubnet(nodeName string, sub *osdnapi.Subnet) error {
 	hs := &api.HostSubnet{
 		TypeMeta:   kapi.TypeMeta{Kind: "HostSubnet"},
 		ObjectMeta: kapi.ObjectMeta{Name: nodeName},
@@ -72,12 +72,12 @@ func (oi *OsdnRegistryInterface) CreateSubnet(nodeName string, sub *osdnapi.Subn
 		HostIP:     sub.NodeIP,
 		Subnet:     sub.SubnetIP,
 	}
-	_, err := oi.oClient.HostSubnets().Create(hs)
+	_, err := registry.oClient.HostSubnets().Create(hs)
 	return err
 }
 
-func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan<- *osdnapi.SubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := oi.createAndRunEventQueue("HostSubnet", nil, ready, start)
+func (registry *OsdnRegistry) WatchSubnets(receiver chan<- *osdnapi.SubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+	eventQueue, startVersion := registry.createAndRunEventQueue("HostSubnet", nil, ready, start)
 
 	checkCondition := true
 	for {
@@ -96,13 +96,13 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan<- *osdnapi.SubnetEve
 	}
 }
 
-func (oi *OsdnRegistryInterface) InitNodes() error {
+func (registry *OsdnRegistry) InitNodes() error {
 	// return no error, as this gets initialized by apiserver
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, string, error) {
-	knodes, err := oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
+func (registry *OsdnRegistry) GetNodes() ([]osdnapi.Node, string, error) {
+	knodes, err := registry.kClient.Nodes().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, "", err
 	}
@@ -124,14 +124,14 @@ func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, string, error) {
 	return nodes, knodes.ListMeta.ResourceVersion, nil
 }
 
-func (oi *OsdnRegistryInterface) CreateNode(nodeName string, data string) error {
+func (registry *OsdnRegistry) CreateNode(nodeName string, data string) error {
 	return fmt.Errorf("Feature not supported in native mode. SDN cannot create/register nodes.")
 }
 
-func (oi *OsdnRegistryInterface) getNodeAddressMap() (map[types.UID]string, error) {
+func (registry *OsdnRegistry) getNodeAddressMap() (map[types.UID]string, error) {
 	nodeAddressMap := map[types.UID]string{}
 
-	nodes, err := oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
+	nodes, err := registry.kClient.Nodes().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nodeAddressMap, err
 	}
@@ -143,10 +143,10 @@ func (oi *OsdnRegistryInterface) getNodeAddressMap() (map[types.UID]string, erro
 	return nodeAddressMap, nil
 }
 
-func (oi *OsdnRegistryInterface) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := oi.createAndRunEventQueue("Node", nil, ready, start)
+func (registry *OsdnRegistry) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+	eventQueue, startVersion := registry.createAndRunEventQueue("Node", nil, ready, start)
 
-	nodeAddressMap, err := oi.getNodeAddressMap()
+	nodeAddressMap, err := registry.getNodeAddressMap()
 	if err != nil {
 		return err
 	}
@@ -187,15 +187,15 @@ func (oi *OsdnRegistryInterface) WatchNodes(receiver chan<- *osdnapi.NodeEvent, 
 	}
 }
 
-func (oi *OsdnRegistryInterface) WriteNetworkConfig(network string, subnetLength uint, serviceNetwork string) error {
-	cn, err := oi.oClient.ClusterNetwork().Get("default")
+func (registry *OsdnRegistry) WriteNetworkConfig(network string, subnetLength uint, serviceNetwork string) error {
+	cn, err := registry.oClient.ClusterNetwork().Get("default")
 	if err == nil {
 		if cn.Network == network && cn.HostSubnetLength == int(subnetLength) && cn.ServiceNetwork == serviceNetwork {
 			return nil
 		} else if cn.Network == network && cn.HostSubnetLength == int(subnetLength) && cn.ServiceNetwork == "" {
 			// Upgrade from 3.0.0
 			cn.ServiceNetwork = serviceNetwork
-			_, err = oi.oClient.ClusterNetwork().Update(cn)
+			_, err = registry.oClient.ClusterNetwork().Update(cn)
 			return err
 		} else {
 			return fmt.Errorf("A network already exists and does not match the new network's parameters - Existing: (%s, %d, %s); New: (%s, %d, %s) ", cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, network, subnetLength, serviceNetwork)
@@ -208,32 +208,32 @@ func (oi *OsdnRegistryInterface) WriteNetworkConfig(network string, subnetLength
 		HostSubnetLength: int(subnetLength),
 		ServiceNetwork:   serviceNetwork,
 	}
-	_, err = oi.oClient.ClusterNetwork().Create(cn)
+	_, err = registry.oClient.ClusterNetwork().Create(cn)
 	return err
 }
 
-func (oi *OsdnRegistryInterface) GetContainerNetwork() (string, error) {
-	cn, err := oi.oClient.ClusterNetwork().Get("default")
+func (registry *OsdnRegistry) GetContainerNetwork() (string, error) {
+	cn, err := registry.oClient.ClusterNetwork().Get("default")
 	return cn.Network, err
 }
 
-func (oi *OsdnRegistryInterface) GetSubnetLength() (uint64, error) {
-	cn, err := oi.oClient.ClusterNetwork().Get("default")
+func (registry *OsdnRegistry) GetSubnetLength() (uint64, error) {
+	cn, err := registry.oClient.ClusterNetwork().Get("default")
 	return uint64(cn.HostSubnetLength), err
 }
 
-func (oi *OsdnRegistryInterface) GetServicesNetwork() (string, error) {
-	cn, err := oi.oClient.ClusterNetwork().Get("default")
+func (registry *OsdnRegistry) GetServicesNetwork() (string, error) {
+	cn, err := registry.oClient.ClusterNetwork().Get("default")
 	return cn.ServiceNetwork, err
 }
 
-func (oi *OsdnRegistryInterface) CheckEtcdIsAlive(seconds uint64) bool {
+func (registry *OsdnRegistry) CheckEtcdIsAlive(seconds uint64) bool {
 	// always assumed to be true as we run through the apiserver
 	return true
 }
 
-func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, string, error) {
-	namespaceList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
+func (registry *OsdnRegistry) GetNamespaces() ([]string, string, error) {
+	namespaceList, err := registry.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, "", err
 	}
@@ -244,8 +244,8 @@ func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, string, error) {
 	return namespaces, namespaceList.ListMeta.ResourceVersion, nil
 }
 
-func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan<- *osdnapi.NamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := oi.createAndRunEventQueue("Namespace", nil, ready, start)
+func (registry *OsdnRegistry) WatchNamespaces(receiver chan<- *osdnapi.NamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+	eventQueue, startVersion := registry.createAndRunEventQueue("Namespace", nil, ready, start)
 
 	checkCondition := true
 	for {
@@ -266,8 +266,8 @@ func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan<- *osdnapi.Namesp
 	}
 }
 
-func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan<- *osdnapi.NetNamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := oi.createAndRunEventQueue("NetNamespace", nil, ready, start)
+func (registry *OsdnRegistry) WatchNetNamespaces(receiver chan<- *osdnapi.NetNamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+	eventQueue, startVersion := registry.createAndRunEventQueue("NetNamespace", nil, ready, start)
 
 	checkCondition := true
 	for {
@@ -288,8 +288,8 @@ func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan<- *osdnapi.Net
 	}
 }
 
-func (oi *OsdnRegistryInterface) GetNetNamespaces() ([]osdnapi.NetNamespace, string, error) {
-	netNamespaceList, err := oi.oClient.NetNamespaces().List()
+func (registry *OsdnRegistry) GetNetNamespaces() ([]osdnapi.NetNamespace, string, error) {
+	netNamespaceList, err := registry.oClient.NetNamespaces().List()
 	if err != nil {
 		return nil, "", err
 	}
@@ -301,41 +301,41 @@ func (oi *OsdnRegistryInterface) GetNetNamespaces() ([]osdnapi.NetNamespace, str
 	return nsList, netNamespaceList.ListMeta.ResourceVersion, nil
 }
 
-func (oi *OsdnRegistryInterface) GetNetNamespace(name string) (osdnapi.NetNamespace, error) {
-	netns, err := oi.oClient.NetNamespaces().Get(name)
+func (registry *OsdnRegistry) GetNetNamespace(name string) (osdnapi.NetNamespace, error) {
+	netns, err := registry.oClient.NetNamespaces().Get(name)
 	if err != nil {
 		return osdnapi.NetNamespace{}, err
 	}
 	return osdnapi.NetNamespace{Name: netns.Name, NetID: netns.NetID}, nil
 }
 
-func (oi *OsdnRegistryInterface) WriteNetNamespace(name string, id uint) error {
+func (registry *OsdnRegistry) WriteNetNamespace(name string, id uint) error {
 	netns := &api.NetNamespace{
 		TypeMeta:   kapi.TypeMeta{Kind: "NetNamespace"},
 		ObjectMeta: kapi.ObjectMeta{Name: name},
 		NetName:    name,
 		NetID:      id,
 	}
-	_, err := oi.oClient.NetNamespaces().Create(netns)
+	_, err := registry.oClient.NetNamespaces().Create(netns)
 	return err
 }
 
-func (oi *OsdnRegistryInterface) DeleteNetNamespace(name string) error {
-	return oi.oClient.NetNamespaces().Delete(name)
+func (registry *OsdnRegistry) DeleteNetNamespace(name string) error {
+	return registry.oClient.NetNamespaces().Delete(name)
 }
 
-func (oi *OsdnRegistryInterface) InitServices() error {
+func (registry *OsdnRegistry) InitServices() error {
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, string, error) {
-	kNsList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
+func (registry *OsdnRegistry) GetServices() ([]osdnapi.Service, string, error) {
+	kNsList, err := registry.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, "", err
 	}
 	oServList := make([]osdnapi.Service, 0)
 	for _, ns := range kNsList.Items {
-		kServList, err := oi.kClient.Services(ns.Name).List(labels.Everything())
+		kServList, err := registry.kClient.Services(ns.Name).List(labels.Everything())
 		if err != nil {
 			return nil, "", err
 		}
@@ -353,12 +353,12 @@ func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, string, error
 	return oServList, kNsList.ListMeta.ResourceVersion, nil
 }
 
-func (oi *OsdnRegistryInterface) WatchServices(receiver chan<- *osdnapi.ServiceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+func (registry *OsdnRegistry) WatchServices(receiver chan<- *osdnapi.ServiceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	// watch for namespaces, and launch a go func for each namespace that is new
 	// kill the watch for each namespace that is deleted
 	nsevent := make(chan *osdnapi.NamespaceEvent)
 	namespaceTable := make(map[string]chan bool)
-	go oi.WatchNamespaces(nsevent, ready, start, stop)
+	go registry.WatchNamespaces(nsevent, ready, start, stop)
 	for {
 		select {
 		case ev := <-nsevent:
@@ -366,7 +366,7 @@ func (oi *OsdnRegistryInterface) WatchServices(receiver chan<- *osdnapi.ServiceE
 			case osdnapi.Added:
 				stopChannel := make(chan bool)
 				namespaceTable[ev.Name] = stopChannel
-				go oi.watchServicesForNamespace(ev.Name, receiver, stopChannel)
+				go registry.watchServicesForNamespace(ev.Name, receiver, stopChannel)
 			case osdnapi.Deleted:
 				stopChannel, ok := namespaceTable[ev.Name]
 				if ok {
@@ -384,8 +384,8 @@ func (oi *OsdnRegistryInterface) WatchServices(receiver chan<- *osdnapi.ServiceE
 	}
 }
 
-func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, receiver chan<- *osdnapi.ServiceEvent, stop chan bool) error {
-	serviceEventQueue, _ := oi.runEventQueue("Service", namespace)
+func (registry *OsdnRegistry) watchServicesForNamespace(namespace string, receiver chan<- *osdnapi.ServiceEvent, stop chan bool) error {
+	serviceEventQueue, _ := registry.runEventQueue("Service", namespace)
 	go func() {
 		select {
 		case <-stop:
@@ -422,7 +422,7 @@ func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, rec
 			// Ignore, we don't need to update SDN in case of service updates
 		case watch.Error:
 			// Check if the namespace is dead, if so quit
-			_, err = oi.kClient.Namespaces().Get(namespace)
+			_, err = registry.kClient.Namespaces().Get(namespace)
 			if err != nil {
 				break
 			}
@@ -441,7 +441,7 @@ func newSDNService(kServ *kapi.Service, namespace string, port kapi.ServicePort)
 }
 
 // Run event queue for the given resource
-func (oi *OsdnRegistryInterface) runEventQueue(resourceName string, args interface{}) (*oscache.EventQueue, *cache.Reflector) {
+func (registry *OsdnRegistry) runEventQueue(resourceName string, args interface{}) (*oscache.EventQueue, *cache.Reflector) {
 	eventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	lw := &cache.ListWatch{}
 	var expectedType interface{}
@@ -449,43 +449,43 @@ func (oi *OsdnRegistryInterface) runEventQueue(resourceName string, args interfa
 	case "hostsubnet":
 		expectedType = &api.HostSubnet{}
 		lw.ListFunc = func() (runtime.Object, error) {
-			return oi.oClient.HostSubnets().List()
+			return registry.oClient.HostSubnets().List()
 		}
 		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
-			return oi.oClient.HostSubnets().Watch(resourceVersion)
+			return registry.oClient.HostSubnets().Watch(resourceVersion)
 		}
 	case "node":
 		expectedType = &kapi.Node{}
 		lw.ListFunc = func() (runtime.Object, error) {
-			return oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
+			return registry.kClient.Nodes().List(labels.Everything(), fields.Everything())
 		}
 		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
-			return oi.kClient.Nodes().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			return registry.kClient.Nodes().Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		}
 	case "namespace":
 		expectedType = &kapi.Namespace{}
 		lw.ListFunc = func() (runtime.Object, error) {
-			return oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
+			return registry.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 		}
 		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
-			return oi.kClient.Namespaces().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			return registry.kClient.Namespaces().Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		}
 	case "netnamespace":
 		expectedType = &api.NetNamespace{}
 		lw.ListFunc = func() (runtime.Object, error) {
-			return oi.oClient.NetNamespaces().List()
+			return registry.oClient.NetNamespaces().List()
 		}
 		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
-			return oi.oClient.NetNamespaces().Watch(resourceVersion)
+			return registry.oClient.NetNamespaces().Watch(resourceVersion)
 		}
 	case "service":
 		expectedType = &kapi.Service{}
 		namespace := args.(string)
 		lw.ListFunc = func() (runtime.Object, error) {
-			return oi.kClient.Services(namespace).List(labels.Everything())
+			return registry.kClient.Services(namespace).List(labels.Everything())
 		}
 		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
-			return oi.kClient.Services(namespace).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			return registry.kClient.Services(namespace).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		}
 	default:
 		log.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
@@ -536,8 +536,8 @@ func getStartVersion(start <-chan string, resourceName string) uint64 {
 }
 
 // createAndRunEventQueue will create and run event queue and also returns start version for watching any new changes
-func (oi *OsdnRegistryInterface) createAndRunEventQueue(resourceName string, args interface{}, ready chan<- bool, start <-chan string) (*oscache.EventQueue, uint64) {
-	eventQueue, reflector := oi.runEventQueue(resourceName, args)
+func (registry *OsdnRegistry) createAndRunEventQueue(resourceName string, args interface{}, ready chan<- bool, start <-chan string) (*oscache.EventQueue, uint64) {
+	eventQueue, reflector := registry.runEventQueue(resourceName, args)
 	sendWatchReadiness(reflector, ready)
 	startVersion := getStartVersion(start, resourceName)
 	return eventQueue, startVersion

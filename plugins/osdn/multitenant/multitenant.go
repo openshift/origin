@@ -18,7 +18,7 @@ func NetworkPluginName() string {
 }
 
 func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork string, clusterNetworkLength uint, serviceNetwork string) {
-	osdnInterface := osdn.NewOsdnRegistryInterface(osClient, kClient)
+	osdnInterface := osdn.NewOsdnRegistry(osClient, kClient)
 
 	// get hostname from the gateway
 	output, err := exec.New().Command("hostname", "-f").CombinedOutput()
@@ -43,7 +43,7 @@ func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, p
 	if !ok {
 		glog.Fatalf("Failed to type cast provided plugin to a multitenant type plugin")
 	}
-	osdnInterface := osdn.NewOsdnRegistryInterface(osClient, kClient)
+	osdnInterface := osdn.NewOsdnRegistry(osClient, kClient)
 	kc, err := ovssubnet.NewMultitenantController(&osdnInterface, hostname, publicIP, ready)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
