@@ -143,10 +143,6 @@ angular.module('openshiftConsole')
       );
     };
 
-    $scope.toggleOptionsExpanded = function() {
-      $scope.optionsExpanded = !$scope.optionsExpanded;
-    };
-
     var name = $routeParams.name;
     var namespace = $routeParams.namespace;
 
@@ -169,7 +165,6 @@ angular.module('openshiftConsole')
         $scope.template = template;
         $scope.templateImages = imageItems(template);
         $scope.hasParameters = $scope.template.parameters && $scope.template.parameters.length > 0;
-        $scope.optionsExpanded = false;
         $scope.templateUrl = template.metadata.selfLink;
         template.labels = template.labels || {};
       },
