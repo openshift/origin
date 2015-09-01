@@ -228,6 +228,7 @@ describe('', function() {
         });
       });
 
+/*
       describe('when using console-integration-test-project', function() {
         describe('when adding to project', function() {
           it('should view the create page', function() { goToAddToProjectPage("console-integration-test-project"); });
@@ -265,6 +266,7 @@ describe('', function() {
           });
         });
       });
+*/
     });
 
     describe('with test project', function() {
