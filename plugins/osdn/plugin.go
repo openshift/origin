@@ -22,11 +22,11 @@ const (
 type NetworkPlugin struct {
 	name          string
 	host          knetwork.Host
-	OvsController *ovssubnet.OvsController
+	ovsController *ovssubnet.OvsController
 }
 
 func GetNetworkPlugin(pluginName string) knetwork.NetworkPlugin {
-	if pluginName != "redhat/openshift-ovs-multitenant" {
+	if pluginName != multitenantNetworkPluginName {
 		return nil
 	}
 	return &NetworkPlugin{name: pluginName}
@@ -39,7 +39,7 @@ func (plugin *NetworkPlugin) getExecutable() string {
 
 func (plugin *NetworkPlugin) getVnid(namespace string) (uint, error) {
 	// get vnid for the namespace
-	vnid, ok := plugin.OvsController.VNIDMap[namespace]
+	vnid, ok := plugin.ovsController.VNIDMap[namespace]
 	if !ok {
 		// vnid does not exist for this pod, set it to zero (or error?)
 		vnid = 0
