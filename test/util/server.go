@@ -188,6 +188,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
 	}
 
 	createNodeConfig := admin.NewDefaultCreateNodeConfigOptions()
+	createNodeConfig.Output = os.Stdout
 	createNodeConfig.SignerCertOptions = getSignerOptions
 	createNodeConfig.NodeConfigDir = nodeArgs.ConfigDir.Value()
 	createNodeConfig.NodeName = nodeArgs.NodeName
@@ -207,7 +208,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
 }
 
 func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, error) {
-	startOptions := start.AllInOneOptions{}
+	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
 	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions()
 	startOptions.MasterOptions.MasterArgs.NodeList = nil
 	startOptions.NodeArgs.AllowDisabledDocker = true

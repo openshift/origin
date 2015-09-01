@@ -40,7 +40,7 @@ type unitSpec struct {
 
 // Reusable log matchers:
 var badImageTemplate = logMatcher{
-	Regexp: regexp.MustCompile(`Unable to find an image for .* due to an error processing the format: %!v\\(MISSING\\)`),
+	Regexp: regexp.MustCompile(`Unable to find an image for .* due to an error processing the format: the key .* is not recognized`),
 	Level:  log.InfoLevel,
 	Interpretation: `
 This error indicates the openshift command was given the --images flag
