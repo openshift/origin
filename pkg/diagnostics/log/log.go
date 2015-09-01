@@ -38,39 +38,20 @@ type Level struct {
 	Bright bool
 }
 
-func (l Level) MarshalJSON() ([]byte, error) {
-	return []byte(`"` + l.Name + `"`), nil
-}
-
-func (l Level) MarshalYAML() (interface{}, error) {
-	return l.Name, nil
-}
-
 type Logger struct {
-	loggerType
+	loggerInterface
 	level        Level
 	warningsSeen int
 	errorsSeen   int
 }
 
-// Internal type to deal with different log formats
-type loggerType interface {
+// Internal interface to implement logging
+type loggerInterface interface {
 	Write(Entry)
-	Finish()
 }
 
 func NewLogger(setLevel int, setFormat string, out io.Writer) (*Logger, error) {
-	var logger loggerType
-	switch setFormat {
-	case "json":
-		logger = &jsonLogger{out: out}
-	case "yaml":
-		logger = &yamlLogger{out: out}
-	case "text", "":
-		logger = newTextLogger(out)
-	default:
-		return nil, errors.New("Output format must be one of: text, json, yaml")
-	}
+	logger := newTextLogger(out)
 
 	var err error = nil
 	level := DebugLevel
@@ -90,22 +71,21 @@ func NewLogger(setLevel int, setFormat string, out io.Writer) (*Logger, error) {
 	}
 
 	return &Logger{
-		loggerType: logger,
-		level:      level,
+		loggerInterface: logger,
+		level:           level,
 	}, err
 }
 
 type Message struct {
-	// ID: an identifier unique to the message being logged, intended for json/yaml output
-	//     so that automation can recognize specific messages without trying to parse them.
-	ID string `json:"-" yaml:"-"`
+	// ID: an identifier unique to the message being logged
+	ID string
 	// Template: a template string as understood by text/template that can use any of the
 	//           TemplateData entries in this Message as inputs.
-	Template string `json:"-" yaml:"-"`
+	Template string
 	// TemplateData is passed to template executor to complete the message
-	TemplateData interface{} `json:"data,omitempty" yaml:"data,omitempty"`
-
-	EvaluatedText string `json:"text" yaml:"text"` // human-readable message text
+	TemplateData interface{}
+	// EvaluatedText: human-readable message text
+	EvaluatedText string
 }
 
 type Hash map[string]interface{} // convenience/cosmetic type
@@ -135,10 +115,10 @@ func (m Message) String() string {
 }
 
 type Entry struct {
-	ID      string `json:"id"`
-	Origin  string `json:"origin"`
-	Level   Level  `json:"level"`
-	Message `yaml:"-,inline"`
+	ID     string
+	Origin string
+	Level  Level
+	Message
 }
 
 var (
@@ -264,10 +244,6 @@ func (l *Logger) logf(level Level, id string, msg string, a ...interface{}) {
 }
 func (l *Logger) logt(level Level, id string, template string, data interface{}) {
 	l.LogEntry(Entry{id, origin(2), level, Message{ID: id, Template: template, TemplateData: data}})
-}
-
-func (l *Logger) Finish() {
-	l.loggerType.Finish()
 }
 
 // turn excess lines into [...]
