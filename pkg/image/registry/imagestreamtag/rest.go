@@ -89,8 +89,9 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 
 	ist := api.ImageStreamTag{
 		ObjectMeta: kapi.ObjectMeta{
-			Namespace: kapi.NamespaceValue(ctx),
-			Name:      id,
+			Namespace:         kapi.NamespaceValue(ctx),
+			Name:              id,
+			CreationTimestamp: event.Created,
 		},
 		Image: *imageWithMetadata,
 	}
