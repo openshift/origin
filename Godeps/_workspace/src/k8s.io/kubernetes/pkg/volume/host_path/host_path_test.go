@@ -63,7 +63,7 @@ func TestGetAccessModes(t *testing.T) {
 
 func TestRecycler(t *testing.T) {
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins([]volume.VolumePlugin{&hostPathPlugin{nil, newMockRecycler}}, volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+	plugMgr.InitPlugins([]volume.VolumePlugin{&hostPathPlugin{nil, newMockRecycler, volume.VolumeConfig{}}}, volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
 
 	spec := &volume.Spec{PersistentVolume: &api.PersistentVolume{Spec: api.PersistentVolumeSpec{PersistentVolumeSource: api.PersistentVolumeSource{HostPath: &api.HostPathVolumeSource{Path: "/foo"}}}}}
 	plug, err := plugMgr.FindRecyclablePluginBySpec(spec)
@@ -82,7 +82,7 @@ func TestRecycler(t *testing.T) {
 	}
 }
 
-func newMockRecycler(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error) {
+func newMockRecycler(spec *volume.Spec, host volume.VolumeHost, config volume.VolumeConfig) (volume.Recycler, error) {
 	return &mockRecycler{
 		path: spec.PersistentVolume.Spec.HostPath.Path,
 	}, nil
@@ -179,7 +179,7 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
 
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins(ProbeVolumePlugins(nil), volume.NewFakeVolumeHost("/tmp/fake", client, nil))
+	plugMgr.InitPlugins(ProbeVolumePlugins(volume.VolumeConfig{}), volume.NewFakeVolumeHost("/tmp/fake", client, nil))
 	plug, _ := plugMgr.FindPluginByName(hostPathPluginName)
 
 	// readOnly bool is supplied by persistent-claim volume source when its builder creates other volumes

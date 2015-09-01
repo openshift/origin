@@ -165,6 +165,20 @@ func (spec *Spec) Name() string {
 // The binary should still use strong typing for this value when binding CLI values before they are passed as strings
 // in OtherAttributes.
 type VolumeConfig struct {
+
+	// RecyclerDefaultPod is the default pod used to scrub a persistent volume clean after its release.
+	// The default scrubber supplied by the system is a simple "rm -rf /* /.*" of a volume.
+	RecyclerDefaultPod *api.Pod
+
+	// RecyclerMinimumTimeout is the minimum amount of time in seconds for the scrub pod's ActiveDeadlineSeconds attribute.
+	// Added to the minimum timeout is the increment per Gi of capacity.
+	RecyclerMinimumTimeout int
+
+	// RecyclerTimeoutIncrement is the number of seconds added to the scrub pod's ActiveDeadlineSeconds for each
+	// Gi of capacity in the persistent volume.
+	// Example: 5Gi volume x 30s increment = 150s + 30s minimum = 180s ActiveDeadlineSeconds for scrub pod
+	RecyclerTimeoutIncrement int
+
 	// thockin: do we want to wait on this until we have an actual use case?  I can change the comments above to
 	// reflect our intention for one-off config.
 	OtherAttributes map[string]string
@@ -296,4 +310,47 @@ func (pm *VolumePluginMgr) FindRecyclablePluginBySpec(spec *Spec) (RecyclableVol
 		return recyclableVolumePlugin, nil
 	}
 	return nil, fmt.Errorf("no recyclable volume plugin matched")
+}
+
+// GetDefaultPersistentVolumeRecyclerPod creates a template for a scrubber pod.  Most attributes are correct for scrubbers,
+// but other plugins are required to change the VolumeSource.  Plugins should also consider changing the pod's
+// ActiveDeadlineSeconds timeout and GenerateName. See the NFS plugin and its overrides.
+func GetDefaultPersistentVolumeRecyclerPod() *api.Pod {
+	timeout := int64(60)
+	pod := &api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			GenerateName: "pv-scrubber-hostpath-",
+			Namespace:    api.NamespaceDefault,
+		},
+		Spec: api.PodSpec{
+			ActiveDeadlineSeconds: &timeout,
+			RestartPolicy:         api.RestartPolicyNever,
+			Volumes: []api.Volume{
+				{
+					Name: "vol",
+					// IMPORTANT!  All plugins using this template must override the VolumeSource
+					// and make it applicable to the PersistentVolume being recycled.
+					// See HostPath and NFS implementations for examples.
+					VolumeSource: api.VolumeSource{
+						HostPath: &api.HostPathVolumeSource{"/thePathToScrub"},
+					},
+				},
+			},
+			Containers: []api.Container{
+				{
+					Name:    "scrubber",
+					Image:   "gcr.io/google_containers/busybox",
+					Command: []string{"/bin/sh"},
+					Args:    []string{"-c", "test -e /scrub && echo $(date) > /scrub/trash.txt && rm -rf /scrub/* /scrub/.* && test -z \"$(ls -A /scrub)\" || exit 1"},
+					VolumeMounts: []api.VolumeMount{
+						{
+							Name:      "vol",
+							MountPath: "/scrub",
+						},
+					},
+				},
+			},
+		},
+	}
+	return pod
 }

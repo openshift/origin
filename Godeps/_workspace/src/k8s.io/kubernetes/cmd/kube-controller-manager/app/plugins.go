@@ -48,11 +48,14 @@ func ProbeRecyclableVolumePlugins(flags VolumeConfigFlags) []volume.VolumePlugin
 	// CLI flags meant to configure volume plugins.  From that single config, create an instance of volume.VolumeConfig
 	// for a specific plugin and pass that instance to the plugin's ProbeVolumePlugins(config) func.
 	hostPathConfig := volume.VolumeConfig{
-	// transfer attributes from VolumeConfig to this instance of volume.VolumeConfig
+		RecyclerMinimumTimeout:   flags.PersistentVolumeRecyclerMinimumTimeoutHostPath,
+		RecyclerTimeoutIncrement: flags.PersistentVolumeRecyclerIncrementTimeoutHostPath,
+		RecyclerDefaultPod:       flags.PersistentVolumeRecyclerDefaultPod,
 	}
 	nfsConfig := volume.VolumeConfig{
-	// TODO transfer config.PersistentVolumeRecyclerTimeoutNFS and other flags to this instance of VolumeConfig
-	// Configuring recyclers will be done in a follow-up PR
+		RecyclerMinimumTimeout:   flags.PersistentVolumeRecyclerMinimumTimeoutNFS,
+		RecyclerTimeoutIncrement: flags.PersistentVolumeRecyclerIncrementTimeoutNFS,
+		RecyclerDefaultPod:       flags.PersistentVolumeRecyclerDefaultPod,
 	}
 
 	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(hostPathConfig)...)

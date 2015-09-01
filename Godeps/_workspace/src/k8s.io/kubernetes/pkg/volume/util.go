@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/api/resource"
 )
 
 func GetAccessModesAsString(modes []api.PersistentVolumeAccessMode) string {
@@ -152,5 +153,20 @@ func (c *realScrubberClient) WatchPod(name, namespace, resourceVersion string, s
 	return func() *api.Pod {
 		obj := queue.Pop()
 		return obj.(*api.Pod)
+	}
+}
+
+// CalculateTimeoutForVolume calculates time for a Scrubber pod to complete a recycle operation.
+// The calculation and return value is either the minimumTimeout or the timeoutIncrement per Gi of storage size, whichever is greater.
+func CalculateTimeoutForVolume(minimumTimeout, timeoutIncrement int, pv *api.PersistentVolume) int64 {
+	giQty := resource.MustParse("1Gi")
+	pvQty := pv.Spec.Capacity[api.ResourceStorage]
+	giSize := giQty.Value()
+	pvSize := pvQty.Value()
+	timeout := (pvSize / giSize) * int64(timeoutIncrement)
+	if timeout < int64(minimumTimeout) {
+		return int64(minimumTimeout)
+	} else {
+		return timeout
 	}
 }
