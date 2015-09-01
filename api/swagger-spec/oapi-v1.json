@@ -14826,6 +14826,8 @@
    "v1.DeploymentConfigSpec": {
     "id": "v1.DeploymentConfigSpec",
     "required": [
+     "strategy",
+     "triggers",
      "replicas",
      "selector"
     ],
