@@ -53,4 +53,3 @@ func (t *textLogger) Write(entry Entry) {
 		ct.ResetColor()
 	}
 }
-func (t *textLogger) Finish() {}

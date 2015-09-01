@@ -50,6 +50,5 @@ const (
 	FlagClusterContextName = "cluster-context"
 	FlagDiagnosticsName    = "diagnostics"
 	FlagLevelName          = "diaglevel"
-	FlagFormatName         = "output"
 	FlagIsHostName         = "host"
 )
