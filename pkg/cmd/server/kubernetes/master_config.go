@@ -27,6 +27,9 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 
+// AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
+var AdmissionPlugins = []string{"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "ResourceQuota", "DenyExecOnPrivileged"}
+
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
 	Options    configapi.KubernetesMasterConfig
@@ -84,9 +87,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	server.EventTTL = 2 * time.Hour
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
-	server.AdmissionControl = strings.Join([]string{
-		"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "ResourceQuota", "DenyExecOnPrivileged",
-	}, ",")
+	server.AdmissionControl = strings.Join(AdmissionPlugins, ",")
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
