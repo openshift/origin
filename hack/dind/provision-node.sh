@@ -16,7 +16,7 @@ SUPERVISORD_CONF="/etc/supervisord.conf"
 cat <<EOF >> "${SUPERVISORD_CONF}"
 
 [program:openshift-node]
-command=/usr/bin/openshift start node --loglevel=5 --config=/${ORIGIN_ROOT}/openshift.local.config/node-${HOST_NAME}/node-config.yaml
+command=/usr/bin/openshift start node --loglevel=5 --config=${DEPLOYED_CONFIG_ROOT}/openshift.local.config/node-${HOST_NAME}/node-config.yaml
 priority=20
 startsecs=20
 stderr_events_enabled=true
@@ -49,4 +49,4 @@ ${SCRIPT_ROOT}/kill-docker.sh
 # Restart docker
 supervisorctl update
 
-os::dind::set-dind-env "${ORIGIN_ROOT}"
+os::dind::set-dind-env "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}"

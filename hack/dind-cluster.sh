@@ -179,12 +179,15 @@ function start() {
   sudo modprobe br_netfilter || true
   sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
   ensure-loopback-for-dind "${NUM_NODES}"
+  mkdir -p "${CONFIG_ROOT}"
 
   build-images
 
   ## Create containers
   echo "Launching containers"
-  local base_run_cmd="${DOCKER_CMD} run -dt -v ${ORIGIN_ROOT}:${DEPLOYED_ROOT}"
+  local root_volume="-v ${ORIGIN_ROOT}:${DEPLOYED_ROOT}"
+  local config_volume="-v ${CONFIG_ROOT}:${DEPLOYED_CONFIG_ROOT}"
+  local base_run_cmd="${DOCKER_CMD} run -dt ${root_volume} ${config_volume}"
 
   local master_cid=$(${base_run_cmd} --name="${MASTER_NAME}" \
     --hostname="${MASTER_NAME}" "${MASTER_IMAGE}")
@@ -241,6 +244,10 @@ function stop() {
     done
   fi
 
+  echo "Clearing configuration to avoid conflict with a future cluster"
+  # The container will have created configuration as root
+  sudo rm -rf ${CONFIG_ROOT}/openshift.local.*
+
   # Volume cleanup is not compatible with SELinux
   check-selinux
 
@@ -252,10 +259,6 @@ function stop() {
   ${DOCKER_CMD} run -v /var/run/docker.sock:/var/run/docker.sock \
     -v /var/lib/docker:/var/lib/docker --rm martin/docker-cleanup-volumes
 
-}
-
-function wipe-config() {
-  rm -rf "${ORIGIN_ROOT}/openshift.local.*"
 }
 
 case "${1:-""}" in
@@ -273,15 +276,7 @@ case "${1:-""}" in
     BUILD_IMAGES=1
     build-images
     ;;
-  wipe)
-    wipe-config
-    ;;
-  wipe-restart)
-    stop
-    wipe-config
-    start
-    ;;
   *)
-    echo "Usage: $0 {start|stop|restart|build-images|wipe|wipe-restart}"
+    echo "Usage: $0 {start|stop|restart|build-images}"
     exit 2
 esac

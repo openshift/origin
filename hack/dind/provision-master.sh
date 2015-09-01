@@ -16,15 +16,15 @@ os::util::install-cmds "${ORIGIN_ROOT}"
 ${ORIGIN_ROOT}/hack/install-etcd.sh
 os::util::install-sdn "${ORIGIN_ROOT}"
 
-os::util::init-certs "${ORIGIN_ROOT}" "${NETWORK_PLUGIN}" "${MASTER_NAME}" \
-  "${MASTER_IP}" NODE_NAMES NODE_IPS
+os::util::init-certs "${DEPLOYED_CONFIG_ROOT}" "${NETWORK_PLUGIN}" \
+  "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES NODE_IPS
 
 NODE_NAME_LIST=$(os::util::join , ${NODE_NAMES[@]})
 cat <<EOF >> /etc/supervisord.conf
 
 [program:openshift-master]
 command=/usr/bin/openshift start master --loglevel=5 --master=https://${MASTER_IP}:8443 --nodes=${NODE_NAME_LIST} --network-plugin=${NETWORK_PLUGIN}
-directory=${ORIGIN_ROOT}
+directory=${DEPLOYED_CONFIG_ROOT}
 priority=10
 startsecs=20
 stderr_events_enabled=true
@@ -34,4 +34,4 @@ EOF
 # Start openshift
 supervisorctl update
 
-os::dind::set-dind-env "${ORIGIN_ROOT}"
+os::dind::set-dind-env "${ORIGIN_ROOT}" "${DEPLOYED_CONFIG_ROOT}"

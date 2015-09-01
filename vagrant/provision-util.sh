@@ -40,20 +40,20 @@ os::util::setup-hosts-file() {
 }
 
 os::util::init-certs() {
-  local openshift_root=$1
+  local config_root=$1
   local network_plugin=$2
   local master_name=$3
   local master_ip=$4
   local -n node_names=$5
   local -n node_ips=$6
 
-  local server_config_dir=${openshift_root}/openshift.local.config
+  local server_config_dir=${config_root}/openshift.local.config
   local volumes_dir="/var/lib/openshift.local.volumes"
   local cert_dir="${server_config_dir}/master"
 
   echo "Generating certs"
 
-  pushd "${openshift_root}"
+  pushd "${config_root}"
 
   # Master certs
   /usr/bin/openshift admin ca create-master-certs \
@@ -85,14 +85,14 @@ os::util::init-certs() {
 
 # Set up the KUBECONFIG environment variable for use by oc
 os::util::set-oc-env() {
-  local deployed_root=$1
+  local config_root=$1
   local target=$2
 
-  if [ "${deployed_root}" = "/" ]; then
-    deployed_root=""
+  if [ "${config_root}" = "/" ]; then
+    config_root=""
   fi
 
-  local path="${deployed_root}/openshift.local.config/master/admin.kubeconfig"
+  local path="${config_root}/openshift.local.config/master/admin.kubeconfig"
   echo "export KUBECONFIG=${path}" >> "${target}"
 }
 
