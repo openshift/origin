@@ -92,8 +92,10 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 		config.EtcdConfig = nil
 		if config.KubernetesMasterConfig != nil {
 			if masterAddr.Provided {
-				glog.V(2).Infof("Using a master address override %q", masterAddr.Host)
-				config.KubernetesMasterConfig.MasterIP = masterAddr.Host
+				if ip := net.ParseIP(masterAddr.Host); ip != nil {
+					glog.V(2).Infof("Using a masterIP override %q", ip)
+					config.KubernetesMasterConfig.MasterIP = ip.String()
+				}
 			}
 			if listenArg.ListenAddr.Provided {
 				addr := listenArg.ListenAddr.URL.Host
