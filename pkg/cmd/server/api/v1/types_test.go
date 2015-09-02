@@ -166,7 +166,7 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
-      attributes:
+      attributeMappings:
         email: null
         id: null
         name: null
