@@ -462,21 +462,24 @@ function dirs_image_env_setup_extended {
 
 # cleanup function for the extended tests
 function cleanup_extended {
-	out=$?
-	set +e
-	
-	echo "[INFO] Tearing down test"
-	kill_all_processes
-	rm -rf ${ETCD_DIR-}
-	echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-	if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-		echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-	fi
+  out=$?
+  set +e
 
-	set -e
-	echo "[INFO] Cleanup complete"
-	echo "[INFO] Exiting"
-	exit $out
+  echo "[INFO] Tearing down test"
+  kill_all_processes
+  rm -rf ${ETCD_DIR-}
+  echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+
+  dump_container_logs
+
+  if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
+    echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
+  fi
+
+  set -e
+  echo "[INFO] Cleanup complete"
+  echo "[INFO] Exiting"
+  exit $out
 }    
 
 # ip/host setup function for the extended tests, along with some debug
