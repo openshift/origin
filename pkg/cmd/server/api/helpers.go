@@ -165,6 +165,15 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.CertFile)
 		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.KeyFile)
 		refs = append(refs, &config.AssetConfig.ServingInfo.ClientCA)
+		for i := range config.AssetConfig.ExtensionScripts {
+			refs = append(refs, &config.AssetConfig.ExtensionScripts[i])
+		}
+		for i := range config.AssetConfig.ExtensionStylesheets {
+			refs = append(refs, &config.AssetConfig.ExtensionStylesheets[i])
+		}
+		for i := range config.AssetConfig.Extensions {
+			refs = append(refs, &config.AssetConfig.Extensions[i].SourceDirectory)
+		}
 	}
 
 	if config.KubernetesMasterConfig != nil {
