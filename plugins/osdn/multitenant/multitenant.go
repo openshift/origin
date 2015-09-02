@@ -39,7 +39,7 @@ func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork s
 }
 
 func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, publicIP string, ready chan struct{}, plugin knetwork.NetworkPlugin, mtu uint) {
-	mp, ok := plugin.(*MultitenantPlugin)
+	op, ok := plugin.(*osdn.NetworkPlugin)
 	if !ok {
 		glog.Fatalf("Failed to type cast provided plugin to a multitenant type plugin")
 	}
@@ -48,7 +48,7 @@ func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, p
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
-	mp.OvsController = kc
+	op.OvsController = kc
 	err = kc.StartNode(false, false, mtu)
 	if err != nil {
 		glog.Fatalf("SDN Node failed: %v", err)

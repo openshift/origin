@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	"github.com/openshift/origin/plugins/osdn"
 	"github.com/openshift/origin/plugins/osdn/flatsdn"
 	"github.com/openshift/origin/plugins/osdn/multitenant"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
@@ -253,7 +254,7 @@ func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeCo
 	case multitenant.NetworkPluginName():
 		ch := make(chan struct{})
 		config.KubeletConfig.StartUpdates = ch
-		plugin := multitenant.GetKubeNetworkPlugin()
+		plugin := osdn.GetNetworkPlugin(multitenant.NetworkPluginName())
 		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, plugin)
 		go multitenant.Node(oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch, plugin, nodeConfig.NetworkConfig.MTU)
 	}
