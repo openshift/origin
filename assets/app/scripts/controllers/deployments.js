@@ -162,6 +162,8 @@ angular.module('openshiftConsole')
       var deployment = $scope.deploymentsByDeploymentConfig[deploymentConfigName][deploymentName];
       var req = deployment;
 
+      // TODO: we need a "retry" api endpoint so we don't have to do this manually
+
       // delete the deployer pod as well as the deployment hooks pods, if any
       DataService.list("pods", $scope, function(list) {
         var pods = list.by("metadata.name");
@@ -233,6 +235,8 @@ angular.module('openshiftConsole')
         }
       };
 
+      // TODO: we need a "rollback" api endpoint so we don't have to do this manually
+
       // create the deployment config rollback 
       DataService.create("deploymentconfigrollbacks", null, req, $scope).then(
         function(newDeploymentConfig) {
@@ -272,6 +276,8 @@ angular.module('openshiftConsole')
     $scope.cancelRunningDeployment = function(deploymentConfigName, deploymentName) {
       var deployment = $scope.deploymentsByDeploymentConfig[deploymentConfigName][deploymentName];
       var req = deployment;
+
+      // TODO: we need a "cancel" api endpoint so we don't have to do this manually
 
       // set the cancellation annotations
       var deploymentCancelledAnnotation = $filter('annotationName')('deploymentCancelled');

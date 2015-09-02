@@ -129,7 +129,7 @@
                 <span style="margin-left: 7px;">
                   <button ng-show="!rollBackCollapsed && deploymentStatus(deployment) == 'Complete' && !deploymentIsLatest(deploymentConfig, deployment)" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" type="button" class="btn btn-primary" ng-click="rollBackCollapsed = !rollBackCollapsed">Roll Back</button>
                   <div ng-show="rollBackCollapsed" class="well well-sm">
-                    Use the following settings from {{deployment.metadata.name}}: 
+                    Use the following settings from {{deployment.metadata.name}} when rolling back: 
                     <div class="checkbox">
                       <label>
                         <input type="checkbox" ng-model="changeScaleSettings" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0"> replica count and selector
@@ -146,8 +146,10 @@
                       </label>
                     </div>
                     <button type="button" ng-click="rollbackToDeployment(deploymentConfigName, deployment.metadata.name, changeScaleSettings, changeStrategy, changeTriggers)" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" class="btn btn-primary">Roll Back</button>
-                  </div> 
+                  </div>
+                  <!-- disabled until we have an api endpoint for retry
                   <button ng-show="deploymentStatus(deployment) == 'Failed'" type="button" ng-click="retryFailedDeployment(deploymentConfigName, deployment.metadata.name)" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" class="btn btn-primary" ng-if="deploymentIsLatest(deploymentConfig, deployment)">Retry</button>
+                  -->
                   <button ng-show="deploymentIsInProgress(deployment)" type="button" ng-click="cancelRunningDeployment(deploymentConfigName, deployment.metadata.name)" class="btn btn-primary">Cancel</button>
                 </span>                
               </div>
