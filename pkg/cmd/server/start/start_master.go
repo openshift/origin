@@ -357,6 +357,8 @@ func NewMaster(config *configapi.MasterConfig, controllers, api bool) *Master {
 	}
 }
 
+var MasterStartupMessage = "Starting master on %s (%s)"
+
 // Start launches a master. It will error if possible, but some background processes may still
 // be running and the process should exit after it finishes.
 func (m *Master) Start() error {
@@ -378,7 +380,7 @@ func (m *Master) Start() error {
 	}
 
 	if m.api {
-		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
+		glog.Infof(MasterStartupMessage, m.config.ServingInfo.BindAddress, version.Get().String())
 		glog.Infof("Public master address is %s", m.config.AssetConfig.MasterPublicURL)
 		if len(m.config.DisabledFeatures) > 0 {
 			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))

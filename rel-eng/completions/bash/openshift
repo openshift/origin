@@ -4392,6 +4392,34 @@ _openshift_ex_build-chain()
     must_have_one_noun=()
 }
 
+_openshift_ex_diagnostics()
+{
+    last_command="openshift_ex_diagnostics"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--cluster-context=")
+    flags+=("--config=")
+    flags+=("--context=")
+    flags+=("--diaglevel=")
+    two_word_flags+=("-l")
+    flags+=("--diagnostics=")
+    two_word_flags+=("-d")
+    flags+=("--help")
+    flags+=("-h")
+    flags+=("--host")
+    flags+=("--loglevel=")
+    flags+=("--master-config=")
+    flags+=("--node-config=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_ex_options()
 {
     last_command="openshift_ex_options"
@@ -4416,6 +4444,7 @@ _openshift_ex()
     commands+=("tokens")
     commands+=("ipfailover")
     commands+=("build-chain")
+    commands+=("diagnostics")
     commands+=("options")
 
     flags=()

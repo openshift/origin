@@ -32,11 +32,13 @@ func NewDefaultImageTemplate() ImageTemplate {
 	}
 }
 
+var BrokenImageFormat = "Unable to find an image for %q due to an error processing the format: %v"
+
 // ExpandOrDie will either expand a string or exit in case of failure
 func (t *ImageTemplate) ExpandOrDie(component string) string {
 	value, err := t.Expand(component)
 	if err != nil {
-		glog.Fatalf("Unable to find an image for %q due to an error processing the format: %v", component, err)
+		glog.Fatalf(BrokenImageFormat, component, err)
 	}
 	return value
 }
