@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -42,6 +43,15 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 			if err, ok := err.(kclient.APIStatus); ok {
 				if msg := err.Status().Message; strings.HasSuffix(msg, buildutil.NoBuildLogsMessage) {
 					fmt.Fprintf(out, msg)
+					os.Exit(1)
+				}
+				if err.Status().Code == http.StatusNotFound {
+					switch err.Status().Details.Kind {
+					case "build":
+						fmt.Fprintf(out, "The build %s could not be found.  Therefore build logs cannot be retrieved.\n", err.Status().Details.Name)
+					case "pod":
+						fmt.Fprintf(out, "The pod %s for build %s could not be found.  Therefore build logs cannot be retrieved.\n", err.Status().Details.Name, args[0])
+					}
 					os.Exit(1)
 				}
 			}

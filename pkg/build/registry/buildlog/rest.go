@@ -97,6 +97,9 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	}
 	location, transport, err := pod.LogLocation(r.PodGetter, r.ConnectionInfo, ctx, buildPodName, logOpts)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, errors.NewNotFound("pod", buildPodName)
+		}
 		return nil, errors.NewBadRequest(err.Error())
 	}
 	return &genericrest.LocationStreamer{
