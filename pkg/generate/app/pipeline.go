@@ -40,7 +40,7 @@ func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 
 // NewBuildPipeline creates a new pipeline with components that are
 // expected to be built
-func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy *BuildStrategyRef, source *SourceRef) (*Pipeline, error) {
+func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy *BuildStrategyRef, env Environment, source *SourceRef) (*Pipeline, error) {
 	name, ok := NameSuggestions{source, input}.SuggestName()
 	if !ok {
 		name = fmt.Sprintf("app%d", rand.Intn(10000))
@@ -66,6 +66,7 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 		Input:    input,
 		Strategy: strategy,
 		Output:   output,
+		Env:      env,
 	}
 
 	return &Pipeline{

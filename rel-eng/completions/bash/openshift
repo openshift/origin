@@ -2028,6 +2028,8 @@ _openshift_cli_new-build()
 
     flags+=("--code=")
     flags+=("--docker-image=")
+    flags+=("--env=")
+    two_word_flags+=("-e")
     flags+=("--help")
     flags+=("-h")
     flags+=("--image=")
