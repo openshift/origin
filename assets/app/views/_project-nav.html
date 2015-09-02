@@ -1,7 +1,7 @@
 <div class="navbar-project container-fluid">
   <div class="row">
-    <div class="col-sm-4">
-      <div class="form-group">
+    <div row class="col-sm-4">
+      <div flex class="form-group">
         <label class="control-label hidden-xs" for="boostrapSelect">Projects</label>
         <!-- TODO add multiple attribute back to the select tag when we support selecting multiple -->
         <!-- Use title="" to prevent "Nothing selected" from briefly flashing while the projects are still loading. -->
@@ -9,10 +9,10 @@
       </div>
       <!-- Filter and create buttons show at mobile -->
       <div class="project-actions visible-xs-inline-block">
-        <a role="button" data-toggle="collapse" data-target=".navbar-collapse-3" aria-expanded="false" title="Filter by labels" aria-pressed="false" ng-if="!renderOptions || !renderOptions.hideFilterWidget">
+        <a class="btn-flat-default" href="javascript:;" role="button" data-toggle="collapse" data-target=".navbar-collapse-3" aria-expanded="false" title="Filter by labels" aria-pressed="false" ng-if="!renderOptions || !renderOptions.hideFilterWidget">
           <i class="fa fa-filter"></i>
         </a>
-        <a href="project/{{projectName}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
+        <a class="btn-flat-default" href="project/{{projectName}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
           <i class="fa fa-plus"></i>
         </a>
       </div>
