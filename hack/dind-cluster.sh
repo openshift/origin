@@ -103,9 +103,9 @@ function build-image() {
   local build_root=$1
   local image_name=$2
 
-  pushd "${build_root}"
-  ${DOCKER_CMD} build -t "${image_name}" .
-  popd
+  pushd "${build_root}" > /dev/null
+    ${DOCKER_CMD} build -t "${image_name}" .
+  popd > /dev/null
 }
 
 function build-images() {
