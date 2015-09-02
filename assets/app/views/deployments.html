@@ -11,7 +11,10 @@
 
       <div class="tile" ng-repeat="(deploymentConfigName, deploymentConfig) in deploymentConfigs track by (deploymentConfig | uid)">
         <div> 
-          <h2>{{deploymentConfigName}}</h2>
+          <h2>
+            {{deploymentConfigName}}
+            <delete-button resource-type="deploymentconfig" resource-name="{{deploymentConfigName}}" alerts="alerts"></delete-button>
+          </h2>
           <dl class="dl-horizontal left indent">
             <div>
                 <dt>Created:</dt>

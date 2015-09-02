@@ -18,12 +18,11 @@
             <truncate-long-text content="project | description" limit="512" use-word-boundary="true"></truncate-long-text>
           </div>
         </div>    
-        <div row main-axis="end" ng-if="project.status.phase == 'Active'">
-          <i class="fa fa-trash-o fa-2x action-button" 
-            ng-click="$event.stopPropagation(); openDeleteModal(project);"
-            data-toggle="tooltip" 
-            data-placement="left" 
-            title="Delete Project"></i>
+        <div row flex main-axis="end" ng-if="project.status.phase == 'Active'">
+          <delete-button resource-type="project" 
+                         resource-name="{{project.metadata.name}}" 
+                         alerts="alerts" 
+                         display-name="{{(project | displayName)}}"></delete-button>
         </div>
       </div>
     </div>

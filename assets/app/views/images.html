@@ -13,6 +13,7 @@
       <div ng-repeat="imageStream in imageStreams track by (imageStream | uid)" class="tile">
         <h2>
           {{imageStream.metadata.name}}
+          <delete-button resource-type="imagestream" resource-name="{{imageStream.metadata.name}}" alerts="alerts"></delete-button>
         </h2>
         <div ng-if="imageStream.spec.dockerImageRepository" class="small">Docker image repository: {{imageStream.spec.dockerImageRepository}}</div>
         <!-- Print out missing status tags with a warning. If the dockerRepositoryCheck annotation
