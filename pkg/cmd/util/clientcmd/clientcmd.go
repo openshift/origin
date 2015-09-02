@@ -101,6 +101,7 @@ func (cfg *Config) bindEnv() error {
 		if err != nil {
 			return err
 		}
+
 		if !cfg.MasterAddr.Provided {
 			cfg.MasterAddr.Set(cfg.CommonConfig.Host)
 		}

@@ -3,6 +3,7 @@ package templaterouter
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -94,6 +95,21 @@ func (r *TestRouter) RemoveRoute(id string, route *routeapi.Route) {
 		return
 	} else {
 		delete(r.State[id].ServiceAliasConfigs, r.routeKey(route))
+	}
+}
+
+func (r *TestRouter) FilterNamespaces(namespaces util.StringSet) {
+	if len(namespaces) == 0 {
+		r.State = make(map[string]ServiceUnit)
+	}
+	for k := range r.State {
+		// TODO: the id of a service unit should be defined inside this class, not passed in from the outside
+		//   remove the leak of the abstraction when we refactor this code
+		ns := strings.SplitN(k, "/", 2)[0]
+		if namespaces.Has(ns) {
+			continue
+		}
+		delete(r.State, k)
 	}
 }
 
@@ -347,7 +363,59 @@ func TestHandleRoute(t *testing.T) {
 	if len(plugin.hostToRoute) != 0 {
 		t.Errorf("did not clear claimed route: %#v", plugin.hostToRoute)
 	}
+}
 
+func TestNamespaceScopingFromEmpty(t *testing.T) {
+	router := newTestRouter(make(map[string]ServiceUnit))
+	plugin := newDefaultTemplatePlugin(router)
+
+	// no namespaces allowed
+	plugin.HandleNamespaces(util.StringSet{})
+
+	//add
+	route := &routeapi.Route{
+		ObjectMeta:  kapi.ObjectMeta{Namespace: "foo", Name: "test"},
+		Host:        "www.example.com",
+		ServiceName: "TestService",
+	}
+
+	// ignores all events for namespace that doesn't match
+	for _, s := range []watch.EventType{watch.Added, watch.Modified, watch.Deleted} {
+		plugin.HandleRoute(s, route)
+		if _, ok := router.FindServiceUnit("foo/TestService"); ok || len(plugin.hostToRoute) != 0 {
+			t.Errorf("unexpected router state %#v", router)
+		}
+	}
+
+	// allow non matching
+	plugin.HandleNamespaces(util.NewStringSet("bar"))
+	for _, s := range []watch.EventType{watch.Added, watch.Modified, watch.Deleted} {
+		plugin.HandleRoute(s, route)
+		if _, ok := router.FindServiceUnit("foo/TestService"); ok || len(plugin.hostToRoute) != 0 {
+			t.Errorf("unexpected router state %#v", router)
+		}
+	}
+
+	// allow foo
+	plugin.HandleNamespaces(util.NewStringSet("foo", "bar"))
+	plugin.HandleRoute(watch.Added, route)
+	if _, ok := router.FindServiceUnit("foo/TestService"); !ok || len(plugin.hostToRoute) != 1 {
+		t.Errorf("unexpected router state %#v", router)
+	}
+
+	// forbid foo, and make sure it's cleared
+	plugin.HandleNamespaces(util.NewStringSet("bar"))
+	if _, ok := router.FindServiceUnit("foo/TestService"); ok || len(plugin.hostToRoute) != 0 {
+		t.Errorf("unexpected router state %#v", router)
+	}
+	plugin.HandleRoute(watch.Modified, route)
+	if _, ok := router.FindServiceUnit("foo/TestService"); ok || len(plugin.hostToRoute) != 0 {
+		t.Errorf("unexpected router state %#v", router)
+	}
+	plugin.HandleRoute(watch.Added, route)
+	if _, ok := router.FindServiceUnit("foo/TestService"); ok || len(plugin.hostToRoute) != 0 {
+		t.Errorf("unexpected router state %#v", router)
+	}
 }
 
 func TestUnchangingEndpointsDoesNotCommit(t *testing.T) {

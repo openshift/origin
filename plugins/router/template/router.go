@@ -8,9 +8,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"text/template"
 
 	"github.com/golang/glog"
+
+	"k8s.io/kubernetes/pkg/util"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -253,6 +256,21 @@ func (r *templateRouter) reloadRouter() error {
 	return nil
 }
 
+func (r *templateRouter) FilterNamespaces(namespaces util.StringSet) {
+	if len(namespaces) == 0 {
+		r.state = make(map[string]ServiceUnit)
+	}
+	for k := range r.state {
+		// TODO: the id of a service unit should be defined inside this class, not passed in from the outside
+		//   remove the leak of the abstraction when we refactor this code
+		ns := strings.SplitN(k, "/", 2)[0]
+		if namespaces.Has(ns) {
+			continue
+		}
+		delete(r.state, k)
+	}
+}
+
 // CreateServiceUnit creates a new service named with the given id.
 func (r *templateRouter) CreateServiceUnit(id string) {
 	service := ServiceUnit{
@@ -265,9 +283,9 @@ func (r *templateRouter) CreateServiceUnit(id string) {
 }
 
 // FindServiceUnit finds the service with the given id.
-func (r *templateRouter) FindServiceUnit(id string) (v ServiceUnit, ok bool) {
-	v, ok = r.state[id]
-	return
+func (r *templateRouter) FindServiceUnit(id string) (ServiceUnit, bool) {
+	v, ok := r.state[id]
+	return v, ok
 }
 
 // DeleteServiceUnit deletes the service with the given id.
@@ -293,6 +311,8 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 
 	r.state[id] = service
 
+	// TODO: this is not safe (assuming that the subset of elements we are watching includes the peer endpoints)
+	// should be a DNS lookup for endpoints of our service name.
 	if id == r.peerEndpointsKey {
 		r.peerEndpoints = []Endpoint{}
 		glog.V(4).Infof("Peer endpoint table has been cleared")

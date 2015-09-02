@@ -27,7 +27,10 @@ created by users and keeps a local router configuration up to date with those ch
 
 You may customize the router by providing your own --template and --reload scripts.
 
-You may restrict the set of routes exposed by using the --labels, --fields, or --namespace arguments.`
+You may restrict the set of routes exposed to a single project (with --namespace), projects your client has
+access to with a set of labels (--project-labels), namespaces matching a label (--namespace-labels), or all
+namespaces (no argument). You can limit the routes to those matching a --labels or --fields selector. Note
+that you must have a cluster-wide administrative role to view all namespaces.`
 )
 
 type TemplateRouterOptions struct {
@@ -116,7 +119,6 @@ func (o *TemplateRouterOptions) Complete() error {
 		}
 		o.StatsPort = statsPort
 	}
-
 	return o.RouterSelection.Complete()
 }
 

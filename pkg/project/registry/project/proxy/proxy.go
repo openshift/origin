@@ -9,6 +9,8 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
+	nsregistry "k8s.io/kubernetes/pkg/registry/namespace"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/project/api"
@@ -98,7 +100,12 @@ func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Select
 	if err != nil {
 		return nil, err
 	}
-	return convertNamespaceList(namespaceList), nil
+	m := nsregistry.MatchNamespace(label, field)
+	list, err := generic.FilterList(namespaceList, m, nil)
+	if err != nil {
+		return nil, err
+	}
+	return convertNamespaceList(list.(*kapi.NamespaceList)), nil
 }
 
 // Get retrieves a Project by name
