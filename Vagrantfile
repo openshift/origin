@@ -178,8 +178,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ##########################
     # define settings for the single VM being created.
     config.vm.define "#{VM_NAME_PREFIX}openshiftdev", primary: true do |config|
-      config.vm.hostname = "openshiftdev.local"
-
       if vagrant_openshift_config['rebuild_yum_cache']
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
