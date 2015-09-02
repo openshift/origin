@@ -11,7 +11,7 @@ source "${OS_ROOT}/hack/util.sh"
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
-test_privileges
+ensure_iptables_or_die
 
 
 EXTENDED_BUCKET_STRING="${1:-all}"

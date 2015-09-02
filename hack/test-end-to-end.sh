@@ -10,47 +10,12 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 
-test_privileges
+ensure_iptables_or_die
 
 echo "[INFO] Starting end-to-end test"
 
-# Use either the latest release built images, or latest.
-if [[ -z "${USE_IMAGES-}" ]]; then
-	USE_IMAGES='openshift/origin-${component}:latest'
-	if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
-		COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
-		USE_IMAGES="openshift/origin-\${component}:${COMMIT}"
-	fi
-fi
-
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
-
-
-TEST_TYPE="openshift-e2e"
-TMPDIR="${TMPDIR:-"/tmp"}"
-BASETMPDIR="${TMPDIR}/${TEST_TYPE}"
-
-if [[ -d "${BASETMPDIR}" ]]; then
-	remove_tmp_dir $TEST_TYPE && mkdir -p "${BASETMPDIR}"
-fi
-
-LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
-ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
-DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}'`
-API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
-setup_env_vars
-mkdir -p $LOG_DIR $ARTIFACT_DIR
-
-# use the docker bridge ip address until there is a good way to get the auto-selected address from master
-# this address is considered stable
-# used as a resolve IP to test routing
-CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
-
-STI_CONFIG_FILE="${LOG_DIR}/stiAppConfig.json"
-DOCKER_CONFIG_FILE="${LOG_DIR}/dockerAppConfig.json"
-CUSTOM_CONFIG_FILE="${LOG_DIR}/customAppConfig.json"
-
 
 function cleanup()
 {
@@ -63,47 +28,7 @@ function cleanup()
 	fi
 	echo
 
-	set +e
-	dump_container_logs
-
-	echo "[INFO] Dumping build log to ${LOG_DIR}"
-
-	oc get -n test builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n test >"${LOG_DIR}/stibuild.log"
-	oc get -n docker builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
-	oc get -n custom builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n custom >"${LOG_DIR}/custombuild.log"
-
-	oc export all --all-namespaces --raw -o json > ${LOG_DIR}/export_all.json
-
-	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
-	set_curl_args 0 1
-	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:4001/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-	echo
-
-	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-		echo "[INFO] Switch back to 'default' project with 'admin' user for cleanup"
-		oc project ${CLUSTER_ADMIN_CONTEXT}
-
-		echo "[INFO] Deleting test constructs"
-		oc delete -n test all --all
-		oc delete -n docker all --all
-		oc delete -n custom all --all
-		oc delete -n cache all --all
-		oc delete -n default all --all
-
-		echo "[INFO] Tearing down test"
-		kill_all_processes
-
-		set +u
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-		fi
-		set -u
-	fi
-	set -e
-
-	delete_large_and_empty_logs
-
+	cleanup_openshift
 	echo "[INFO] Exiting"
 	exit $out
 }
@@ -160,44 +85,18 @@ function wait_for_build() {
   set -e
 }
 
-# Setup
-echo "[INFO] `openshift version`"
-echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
-echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
-echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
-echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
-echo "[INFO] Using images:              ${USE_IMAGES}"
 
 # Start All-in-one server and wait for health
-echo "[INFO] Create certificates for the OpenShift server"
-# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
-SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
-while read -r IP_ADDRESS
-do
-	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
-done <<< "${ALL_IP_ADDRESSES}"
-
+TMPDIR="${TMPDIR:-"/tmp"}"
+BASETMPDIR="${TMPDIR}/openshift-e2e"
+setup_env_vars
+reset_tmp_dir 
 configure_os_server
-
-export HOME="${FAKE_HOME_DIR}"
-# This directory must exist so Docker can store credentials in $HOME/.dockercfg
-mkdir -p ${FAKE_HOME_DIR}
-
-export KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
-
-if [[ "${API_SCHEME}" == "https" ]]; then
-	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
-	export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
-	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
-
-	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
-	sudo chmod -R a+rwX "${KUBECONFIG}"
-	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
-fi
-
 start_os_server
+
+# set our default KUBECONFIG location
+export KUBECONFIG="${ADMIN_KUBECONFIG}"
+
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default
@@ -219,23 +118,15 @@ openshift admin new-project cache --description="This is an example project to d
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
 
-# install the router
-echo "[INFO] Installing the router"
-echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
-oc get scc privileged -o json | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f -
-openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}" --service-account=router
-
-# install the registry. The --mount-host option is provided to reuse local storage.
-echo "[INFO] Installing the registry"
-openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
+install_router
+install_registry
 
 echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
 docker pull openshift/ruby-20-centos7:latest
 echo "[INFO] Pulled ruby-20-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
-# TODO: simplify when #4702 is fixed upstream
-wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_registry
 
 # services can end up on any IP.	Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
@@ -281,6 +172,9 @@ wait_for_command "oc get -n test serviceaccount/builder -o yaml | grep dockercfg
 
 # Process template and create
 echo "[INFO] Submitting application template json for processing..."
+STI_CONFIG_FILE="${ARTIFACT_DIR}/stiAppConfig.json"
+DOCKER_CONFIG_FILE="${ARTIFACT_DIR}/dockerAppConfig.json"
+CUSTOM_CONFIG_FILE="${ARTIFACT_DIR}/customAppConfig.json"
 oc process -n test -f examples/sample-app/application-template-stibuild.json > "${STI_CONFIG_FILE}"
 oc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
 oc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
@@ -338,6 +232,10 @@ oc project ${CLUSTER_ADMIN_CONTEXT}
 wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 echo "[INFO] Validating routed app response..."
+# use the docker bridge ip address until there is a good way to get the auto-selected address from master
+# this address is considered stable
+# used as a resolve IP to test routing
+CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
 

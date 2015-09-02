@@ -41,7 +41,7 @@ func init() {
 	config.GinkgoConfig.RandomizeAllSpecs = false
 
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
-	os.MkdirAll(extendedOutputDir, 0600)
+	os.MkdirAll(extendedOutputDir, 0777)
 
 	flag.StringVar(&exutil.TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, exutil.KubeConfigPath(), "Path to kubeconfig containing embedded authinfo.")
 	flag.StringVar(&exutil.TestContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
