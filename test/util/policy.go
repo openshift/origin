@@ -30,3 +30,20 @@ func WaitForPolicyUpdate(c *client.Client, namespace, verb, resource string, all
 	})
 	return err
 }
+
+// WaitForClusterPolicyUpdate checks if the given client can perform the named verb and action.
+// If PolicyCachePollTimeout is reached without the expected condition matching, an error is returned
+func WaitForClusterPolicyUpdate(c *client.Client, verb, resource string, allowed bool) error {
+	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.AuthorizationAttributes{Verb: verb, Resource: resource}}
+	err := wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
+		response, err := c.SubjectAccessReviews().Create(review)
+		if err != nil {
+			return false, err
+		}
+		if response.Allowed != allowed {
+			return false, nil
+		}
+		return true, nil
+	})
+	return err
+}
