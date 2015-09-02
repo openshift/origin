@@ -191,12 +191,12 @@ type DeploymentConfig struct {
 // DeploymentStrategy.
 type DeploymentConfigSpec struct {
 	// Strategy describes how a deployment is executed.
-	Strategy DeploymentStrategy `json:"strategy,omitempty" description:"how a deployment is executed"`
+	Strategy DeploymentStrategy `json:"strategy" description:"how a deployment is executed"`
 
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
 	// DeploymentConfig with a new LatestVersion.
-	Triggers []DeploymentTriggerPolicy `json:"triggers,omitempty" description:"how new deployments are triggered"`
+	Triggers []DeploymentTriggerPolicy `json:"triggers" description:"how new deployments are triggered"`
 
 	// Replicas is the number of desired replicas.
 	Replicas int `json:"replicas" description:"the desired number of replicas"`
