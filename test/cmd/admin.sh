@@ -95,7 +95,7 @@ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' 
 oc get scc privileged -o yaml | sed '/users:/ a\
 - system:serviceaccount:default:router\
 ' | oc replace scc privileged -f -
-[ "$(oadm router -o yaml --credentials="${KUBECONFIG}" --service-account=router -n default | grep 'openshift/origin-haproxy-')" ]
+[ "$(oadm router -o yaml --credentials="${KUBECONFIG}" --service-account=router -n default | egrep 'image:.*-haproxy-router:')" ]
 oadm router --credentials="${KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router -n default
 [ "$(oadm router -n default | grep 'service exists')" ]
 echo "router: ok"
