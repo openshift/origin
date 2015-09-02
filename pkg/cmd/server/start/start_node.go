@@ -172,7 +172,7 @@ func (o NodeOptions) RunNode() error {
 	if err != nil {
 		return err
 	}
-	glog.Infof("Starting a node connected to %s", kubeClientConfig.Host)
+	glog.Infof(NodeStartupMessage, kubeClientConfig.Host)
 
 	if err := StartNode(*nodeConfig); err != nil {
 		return err
@@ -180,6 +180,8 @@ func (o NodeOptions) RunNode() error {
 
 	return nil
 }
+
+var NodeStartupMessage = "Starting a node connected to %s"
 
 func (o NodeOptions) CreateNodeConfig() error {
 	getSignerOptions := &admin.SignerCertOptions{

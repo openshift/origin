@@ -40,8 +40,9 @@ type unitSpec struct {
 
 // Reusable log matchers:
 var badImageTemplate = logMatcher{
-	Regexp: regexp.MustCompile(`Unable to find an image for .* due to an error processing the format: %!v\\(MISSING\\)`),
+	Regexp: regexp.MustCompile(`Unable to find an image for .* due to an error processing the format: the key .* is not recognized`),
 	Level:  log.InfoLevel,
+	Id:     "DS2010",
 	Interpretation: `
 This error indicates the openshift command was given the --images flag
 with an invalid format variable. Valid formats can include (literally)
@@ -61,7 +62,7 @@ var tlsClientErrorSeen map[string]bool
 var unitLogSpecs = []*unitSpec{
 	{
 		Name:       "openshift-master",
-		StartMatch: regexp.MustCompile("Starting \\w+ Master"),
+		StartMatch: regexp.MustCompile("Starting master on "),
 		LogMatchers: []logMatcher{
 			badImageTemplate,
 			{
@@ -130,7 +131,7 @@ log message:
 	},
 	{
 		Name:       "openshift-node",
-		StartMatch: regexp.MustCompile("Starting \\w+ Node"), //systemd puts this out; could change
+		StartMatch: regexp.MustCompile("Starting a node "),
 		LogMatchers: []logMatcher{
 			badImageTemplate,
 			{
