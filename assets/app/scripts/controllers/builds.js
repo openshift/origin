@@ -136,6 +136,30 @@ angular.module('openshiftConsole')
       );
     };
 
+    $scope.cancelBuild = function(build, buildConfigName) {
+      var canceledBuild = angular.copy(build);
+      canceledBuild.status.cancelled = true;
+      DataService.update("builds", canceledBuild.metadata.name, canceledBuild, $scope).then(
+        function() {
+            $scope.alerts = [
+            {
+              type: "success",
+              message: "Cancelling build " + build.metadata.name + " of " + buildConfigName + ".",
+            }
+          ];
+        },
+        function(result) {
+          $scope.alerts = [
+            {
+              type: "error",
+              message: "An error occurred cancelling the build.",
+              details: $filter('getErrorDetails')(result)
+            }
+          ];
+        }
+      );
+    };
+
     // Function which will 'clone' build from given buildName
     $scope.cloneBuild = function(buildName) {
       var req = {
