@@ -20,7 +20,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
-	deploy "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
@@ -820,7 +820,7 @@ func TestRunAll(t *testing.T) {
 			case *imageapi.ImageStream:
 				got["imageStream"] = append(got["imageStream"], tp.Name)
 				imageStreams = append(imageStreams, tp)
-			case *deploy.DeploymentConfig:
+			case *deployapi.DeploymentConfig:
 				got["deploymentConfig"] = append(got["deploymentConfig"], tp.Name)
 				if podTemplate := tp.Template.ControllerTemplate.Template; podTemplate != nil {
 					for _, volume := range podTemplate.Spec.Volumes {
@@ -985,6 +985,120 @@ func TestRunBuild(t *testing.T) {
 				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
 				continue
 			}
+		}
+	}
+}
+
+func TestNewBuildEnvVars(t *testing.T) {
+	dockerSearcher := app.DockerRegistrySearcher{
+		Client: dockerregistry.NewClient(),
+	}
+
+	tests := []struct {
+		name        string
+		config      *AppConfig
+		expected    []kapi.EnvVar
+		expectedErr error
+	}{
+		{
+			name: "explicit environment variables for buildConfig and deploymentConfig",
+			config: &AppConfig{
+				AddEnvironmentToBuild: true,
+				SourceRepositories:    util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+				DockerImages:          util.StringList([]string{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"}),
+				OutputDocker:          true,
+				Environment:           util.StringList([]string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"}),
+				dockerSearcher:        dockerSearcher,
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: []kapi.EnvVar{
+				{Name: "BUILD_ENV_1", Value: "env_value_1"},
+				{Name: "BUILD_ENV_2", Value: "env_value_2"},
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		test.config.refBuilder = &app.ReferenceBuilder{}
+		res, err := test.config.RunBuilds(os.Stdout, os.Stderr)
+		if err != test.expectedErr {
+			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+			continue
+		}
+		got := []kapi.EnvVar{}
+		for _, obj := range res.List.Items {
+			switch tp := obj.(type) {
+			case *buildapi.BuildConfig:
+				got = tp.Spec.Strategy.SourceStrategy.Env
+				break
+			}
+		}
+
+		if !reflect.DeepEqual(test.expected, got) {
+			t.Errorf("%s: unexpected output. Expected: %#v, Got: %#v", test.name, test.expected, got)
+			continue
+		}
+	}
+}
+
+func TestNewAppBuildConfigEnvVars(t *testing.T) {
+	dockerSearcher := app.DockerRegistrySearcher{
+		Client: dockerregistry.NewClient(),
+	}
+
+	tests := []struct {
+		name        string
+		config      *AppConfig
+		expected    []kapi.EnvVar
+		expectedErr error
+	}{
+		{
+			name: "explicit environment variables for buildConfig and deploymentConfig",
+			config: &AppConfig{
+				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+				DockerImages:       util.StringList([]string{"openshift/ruby-20-centos7", "openshift/mongodb-24-centos7"}),
+				OutputDocker:       true,
+				Environment:        util.StringList([]string{"BUILD_ENV_1=env_value_1", "BUILD_ENV_2=env_value_2"}),
+				dockerSearcher:     dockerSearcher,
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected:    []kapi.EnvVar{},
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		test.config.refBuilder = &app.ReferenceBuilder{}
+		res, err := test.config.RunAll(os.Stdout, os.Stderr)
+		if err != test.expectedErr {
+			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+			continue
+		}
+		got := []kapi.EnvVar{}
+		for _, obj := range res.List.Items {
+			switch tp := obj.(type) {
+			case *buildapi.BuildConfig:
+				got = tp.Spec.Strategy.SourceStrategy.Env
+				break
+			}
+		}
+
+		if !reflect.DeepEqual(test.expected, got) {
+			t.Errorf("%s: unexpected output. Expected: %#v, Got: %#v", test.name, test.expected, got)
+			continue
 		}
 	}
 }
