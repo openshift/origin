@@ -8,8 +8,8 @@ source $(dirname "${BASH_SOURCE}")/../../vagrant/provision-config.sh
 
 NUM_NODES=${NUM_MINIONS:-2}
 NODE_IPS=(${MINION_IPS//,/ })
-HOST_NAME=${4:-""}
-NETWORK_PLUGIN=${5:-${OPENSHIFT_SDN:-""}}
+HOST_NAME=${5:-""}
+NETWORK_PLUGIN=${6:-${OPENSHIFT_SDN:-""}}
 
 NODE_PREFIX="${INSTANCE_PREFIX}-node-"
 NODE_NAMES=( $(eval echo ${NODE_PREFIX}{1..${NUM_NODES}}) )
@@ -19,7 +19,7 @@ DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
 DEPLOYED_ROOT="/data"
 SCRIPT_ROOT="${DEPLOYED_ROOT}/hack/dind"
 
-CONFIG_ROOT=${OS_DIND_CONFIG_ROOT:-/tmp/openshift-dind-cluster}
+CONFIG_ROOT=${OS_DIND_CONFIG_ROOT:-/tmp/openshift-dind-cluster/${INSTANCE_PREFIX}}
 DEPLOYED_CONFIG_ROOT="/config"
 
 os::dind::set-dind-env() {

@@ -2,8 +2,8 @@
 set -ex
 source $(dirname $0)/provision-config.sh
 
-MINION_IP=$4
-MINION_INDEX=$5
+MINION_IP=$5
+MINION_INDEX=$6
 
 NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
 sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1

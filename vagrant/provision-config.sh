@@ -16,8 +16,8 @@ source ${ORIGIN_ROOT}/vagrant/provision-util.sh
 MASTER_IP=${1:-""}
 NUM_MINIONS=${2:-""}
 MINION_IPS=${3:-""}
+INSTANCE_PREFIX=${4:-${OS_INSTANCE_PREFIX:-openshift}}
 
-INSTANCE_PREFIX=openshift
 MASTER_NAME="${INSTANCE_PREFIX}-master"
 MASTER_TAG="${INSTANCE_PREFIX}-master"
 MINION_TAG="${INSTANCE_PREFIX}-minion"

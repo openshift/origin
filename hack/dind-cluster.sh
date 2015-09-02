@@ -204,18 +204,17 @@ function start() {
   node_ips=$(os::util::join , ${node_ips[@]})
 
   ## Provision containers
+  local args="${master_ip} ${NUM_NODES} ${node_ips} ${INSTANCE_PREFIX}"
   echo "Provisioning ${MASTER_NAME}"
-  ${DOCKER_CMD} exec -t "${master_cid}" bash -c "\
-    ${SCRIPT_ROOT}/provision-master.sh \
-    ${master_ip} ${NUM_NODES} ${node_ips} ${MASTER_NAME} ${NETWORK_PLUGIN}"
+  ${DOCKER_CMD} exec -t "${master_cid}" bash -c \
+    "${SCRIPT_ROOT}/provision-master.sh ${args} ${MASTER_NAME} ${NETWORK_PLUGIN}"
 
   for (( i=0; i < ${#node_cids[@]}; i++ )); do
     local cid="${node_cids[$i]}"
     local name="${NODE_NAMES[$i]}"
     echo "Provisioning ${name}"
-    ${DOCKER_CMD} exec "${cid}" bash -c "\
-      ${SCRIPT_ROOT}/provision-node.sh \
-      ${master_ip} ${NUM_NODES} ${node_ips} ${name}"
+    ${DOCKER_CMD} exec "${cid}" bash -c \
+      "${SCRIPT_ROOT}/provision-node.sh ${args} ${name}"
   done
 }
 
