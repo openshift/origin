@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -108,7 +109,10 @@ func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *Mas
 	options.MasterArgs.StartControllers = true
 	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
 		if config.KubernetesMasterConfig != nil && options.MasterArgs.MasterAddr.Provided {
-			config.KubernetesMasterConfig.MasterIP = options.MasterArgs.MasterAddr.Host
+			if ip := net.ParseIP(options.MasterArgs.MasterAddr.Host); ip != nil {
+				glog.V(2).Infof("Using a masterIP override %q", ip)
+				config.KubernetesMasterConfig.MasterIP = ip.String()
+			}
 		}
 		return nil
 	}
@@ -223,12 +227,6 @@ func (o MasterOptions) RunMaster() error {
 		return err
 	}
 
-	if o.MasterArgs.OverrideConfig != nil {
-		if err := o.MasterArgs.OverrideConfig(masterConfig); err != nil {
-			return err
-		}
-	}
-
 	if o.IsWriteConfigOnly() {
 		// Resolve relative to CWD
 		cwd, err := os.Getwd()
@@ -263,6 +261,12 @@ func (o MasterOptions) RunMaster() error {
 		fmt.Fprintf(o.Output, "Wrote master config to: %s\n", o.MasterArgs.GetConfigFileToWrite())
 
 		return nil
+	}
+
+	if o.MasterArgs.OverrideConfig != nil {
+		if err := o.MasterArgs.OverrideConfig(masterConfig); err != nil {
+			return err
+		}
 	}
 
 	// Inject disabled feature flags based on distribution being used and
