@@ -20,6 +20,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
@@ -40,10 +41,12 @@ type AppConfig struct {
 	Templates     util.StringList
 	TemplateFiles util.StringList
 
-	TemplateParameters util.StringList
-	Groups             util.StringList
-	Environment        util.StringList
-	Labels             map[string]string
+	TemplateParameters  util.StringList
+	Groups              util.StringList
+	Environment         util.StringList
+	BuildConfigEnv      util.StringList
+	DeploymentConfigEnv util.StringList
+	Labels              map[string]string
 
 	Name             string
 	Strategy         string
@@ -823,6 +826,25 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		switch t := obj.(type) {
 		case *buildapi.BuildConfig:
 			buildNames = append(buildNames, t.Name)
+			if len(c.BuildConfigEnv) > 0 {
+				explicitEnvVars := getExplicitEnvVars(c.BuildConfigEnv)
+
+				switch t.Spec.Strategy.Type {
+				case buildapi.SourceBuildStrategyType:
+					t.Spec.Strategy.SourceStrategy.Env = append(t.Spec.Strategy.SourceStrategy.Env, explicitEnvVars...)
+				case buildapi.DockerBuildStrategyType:
+					t.Spec.Strategy.DockerStrategy.Env = append(t.Spec.Strategy.DockerStrategy.Env, explicitEnvVars...)
+				case buildapi.CustomBuildStrategyType:
+					t.Spec.Strategy.CustomStrategy.Env = append(t.Spec.Strategy.SourceStrategy.Env, explicitEnvVars...)
+				}
+			}
+		case *deployapi.DeploymentConfig:
+			if len(c.DeploymentConfigEnv) > 0 {
+				explicitEnvVars := getExplicitEnvVars(c.DeploymentConfigEnv)
+				for i := range t.Template.ControllerTemplate.Template.Spec.Containers {
+					t.Template.ControllerTemplate.Template.Spec.Containers[i].Env = append(t.Template.ControllerTemplate.Template.Spec.Containers[i].Env, explicitEnvVars...)
+				}
+			}
 		}
 	}
 
@@ -843,6 +865,18 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		HasSource:  len(repositories) != 0,
 		Namespace:  c.originNamespace,
 	}, nil
+}
+
+func getExplicitEnvVars(envs util.StringList) []kapi.EnvVar {
+	envVars := []kapi.EnvVar{}
+	for _, env := range envs {
+		s := strings.Split(env, "=")
+		envVars = append(envVars, kapi.EnvVar{
+			Name:  s[0],
+			Value: s[1],
+		})
+	}
+	return envVars
 }
 
 func (c *AppConfig) Querying() bool {
