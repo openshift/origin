@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/password/denypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/htpasswd"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/ldappassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
@@ -323,6 +324,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 	for _, identityProvider := range c.Options.IdentityProviders {
 		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
 
+		// TODO: refactor handler building per type
 		if configapi.IsPasswordAuthenticator(identityProvider) {
 			passwordAuth, err := c.getPasswordAuthenticator(identityProvider)
 			if err != nil {
@@ -338,14 +340,15 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				}
 				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
 
-				redirectors["login"] = &redirector{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
+				// Since we're redirecting to a local login page, we don't need to force absolute URL resolution
+				redirectors["login-"+identityProvider.Name+"-redirect"] = redirector.NewRedirector(nil, OpenShiftLoginPrefix+"?then=${url}")
 				login := login.NewLogin(c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, login.DefaultLoginFormRenderer)
 				login.Install(mux, OpenShiftLoginPrefix)
 			}
 			if identityProvider.UseAsChallenger {
-				challengers["login"] = passwordchallenger.NewBasicAuthChallenger("openshift")
+				// For now, all password challenges share a single basic challenger, since they'll all respond to any basic credentials
+				challengers["basic-challenge"] = passwordchallenger.NewBasicAuthChallenger("openshift")
 			}
-
 		} else if configapi.IsOAuthIdentityProvider(identityProvider) {
 			oauthProvider, err := c.getOAuthProvider(identityProvider)
 			if err != nil {
@@ -374,10 +377,22 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 
 			mux.Handle(callbackPath, oauthHandler)
 			if identityProvider.UseAsLogin {
-				redirectors[identityProvider.Name] = oauthHandler
+				redirectors["oauth-"+identityProvider.Name+"-redirect"] = oauthHandler
 			}
 			if identityProvider.UseAsChallenger {
 				return nil, errors.New("oauth identity providers cannot issue challenges")
+			}
+		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.Object.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
+			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
+			baseRequestURL, err := url.Parse(c.Options.MasterPublicURL + OpenShiftOAuthAPIPrefix + osinserver.AuthorizePath)
+			if err != nil {
+				return nil, err
+			}
+			if identityProvider.UseAsChallenger {
+				challengers["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewChallenger(baseRequestURL, requestHeaderProvider.ChallengeURL)
+			}
+			if identityProvider.UseAsLogin {
+				redirectors["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewRedirector(baseRequestURL, requestHeaderProvider.LoginURL)
 			}
 		}
 	}
@@ -552,27 +567,6 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 
 	authRequestHandler := unionrequest.NewUnionAuthentication(authRequestHandlers...)
 	return authRequestHandler, nil
-}
-
-// redirector captures the original request url as a "then" param in a redirect to a login flow
-type redirector struct {
-	RedirectURL string
-	ThenParam   string
-}
-
-// AuthenticationRedirect redirects HTTP request to authorization URL
-func (auth *redirector) AuthenticationRedirect(w http.ResponseWriter, req *http.Request) error {
-	redirectURL, err := url.Parse(auth.RedirectURL)
-	if err != nil {
-		return err
-	}
-	if len(auth.ThenParam) != 0 {
-		redirectURL.RawQuery = url.Values{
-			auth.ThenParam: {req.URL.String()},
-		}.Encode()
-	}
-	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
-	return nil
 }
 
 // callbackPasswordAuthenticator combines password auth, successful login callback,

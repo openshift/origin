@@ -161,6 +161,64 @@ func TestWithChallengeErrorsAndMergedSuccess(t *testing.T) {
 	if !(reflect.DeepEqual(map[string][]string(responseRecorder.HeaderMap), expectedHeader1) || reflect.DeepEqual(map[string][]string(responseRecorder.HeaderMap), expectedHeader2)) {
 		t.Errorf("Expected %#v or %#v, got %#v.", expectedHeader1, expectedHeader2, responseRecorder.HeaderMap)
 	}
+	if responseRecorder.Code != 401 {
+		t.Errorf("Expected 401, got %d", responseRecorder.Code)
+	}
+}
+
+func TestWithChallengeAndRedirect(t *testing.T) {
+	expectedError := "Location"
+	workingChallengeHandler1 := &mockChallenger{headerName: "Location", headerValue: "https://example.com"}
+	workingChallengeHandler2 := &mockChallenger{headerName: "WWW-Authenticate", headerValue: "Basic"}
+
+	authHandler := NewUnionAuthenticationHandler(
+		map[string]AuthenticationChallenger{
+			"first":  workingChallengeHandler1,
+			"second": workingChallengeHandler2,
+		}, nil, nil)
+	client := &testClient{&oauthapi.OAuthClient{RespondWithChallenges: true}}
+	req, _ := http.NewRequest("GET", "http://example.org", nil)
+	responseRecorder := httptest.NewRecorder()
+	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
+
+	if err == nil {
+		t.Errorf("Expected error, got none")
+	} else if !strings.Contains(err.Error(), expectedError) {
+		t.Errorf("Expected error containing %q, got %v", expectedError, err)
+	}
+	if handled {
+		t.Error("Unexpected handling.")
+	}
+}
+
+func TestWithRedirect(t *testing.T) {
+	workingChallengeHandler1 := &mockChallenger{headerName: "Location", headerValue: "https://example.com"}
+
+	// order of the array is not guaranteed
+	expectedHeader1 := map[string][]string{"Location": {"https://example.com"}}
+
+	authHandler := NewUnionAuthenticationHandler(
+		map[string]AuthenticationChallenger{
+			"first": workingChallengeHandler1,
+		},
+		nil, nil)
+	client := &testClient{&oauthapi.OAuthClient{RespondWithChallenges: true}}
+	req, _ := http.NewRequest("GET", "http://example.org", nil)
+	responseRecorder := httptest.NewRecorder()
+	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if !handled {
+		t.Error("Expected handling.")
+	}
+	if !reflect.DeepEqual(map[string][]string(responseRecorder.HeaderMap), expectedHeader1) {
+		t.Errorf("Expected %#v, got %#v.", expectedHeader1, responseRecorder.HeaderMap)
+	}
+	if responseRecorder.Code != 302 {
+		t.Errorf("Expected 302, got %d", responseRecorder.Code)
+	}
 }
 
 type badTestClient struct {

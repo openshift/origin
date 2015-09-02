@@ -182,9 +182,11 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
+      challengeURL: ""
       clientCA: ""
       headers: null
       kind: RequestHeaderIdentityProvider
+      loginURL: ""
   - challenge: false
     login: false
     name: ""

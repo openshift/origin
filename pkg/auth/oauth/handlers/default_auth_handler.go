@@ -95,7 +95,22 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 
 		if len(headers) > 0 {
 			mergeHeaders(w.Header(), headers)
-			w.WriteHeader(http.StatusUnauthorized)
+
+			redirectHeader := w.Header().Get("Location")
+			redirectHeaders := w.Header()[http.CanonicalHeaderKey("Location")]
+			challengeHeader := w.Header().Get("WWW-Authenticate")
+			switch {
+			case len(redirectHeader) > 0 && len(challengeHeader) > 0:
+				errors = append(errors, fmt.Errorf("redirect header (Location: %s) and challenge header (WWW-Authenticate: %s) cannot both be set", redirectHeader, challengeHeader))
+				return false, kerrors.NewAggregate(errors)
+			case len(redirectHeaders) > 1:
+				errors = append(errors, fmt.Errorf("cannot set multiple redirect headers: %s", strings.Join(redirectHeaders, ", ")))
+				return false, kerrors.NewAggregate(errors)
+			case len(redirectHeader) > 0:
+				w.WriteHeader(http.StatusFound)
+			default:
+				w.WriteHeader(http.StatusUnauthorized)
+			}
 
 			// Print Misc Warning headers (code 199) to the body
 			if warnings, hasWarnings := w.Header()[http.CanonicalHeaderKey("Warning")]; hasWarnings {
