@@ -254,14 +254,14 @@ func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *c
 	return adminKubeConfigFile, nil
 }
 
-func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
+func StartTestAllInOne() (*configapi.MasterConfig, *configapi.NodeConfig, string, error) {
 	master, node, err := DefaultAllInOneOptions()
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 
 	adminKubeConfigFile, err := StartConfiguredAllInOne(master, node)
-	return master, adminKubeConfigFile, err
+	return master, node, adminKubeConfigFile, err
 }
 
 type TestOptions struct {
