@@ -117,8 +117,8 @@ func TestPasswordHashes(t *testing.T) {
 			Name:     "bcrypt strength 5 empty",
 			Password: "",
 			Hash:     "$2y$05$Edf.Eeznh19sIYYcTc7YOeltcWjzFuvrcYp57lq78diiJr512GILm",
-			Match:    false, // TODO: change to true if/when we add bcrypt support
-			Error:    true,  // TODO: change to false if/when we add bcrypt support
+			Match:    true,
+			Error:    false,
 		},
 		// htpasswd -B -n -b "username" "password"
 		// username:$2y$05$Vfd6hjeQXB6nTFTVMkoFE.CAItk2W8akuomafFBakd0n/mHqIzoUO
@@ -126,15 +126,15 @@ func TestPasswordHashes(t *testing.T) {
 			Name:     "bcrypt strength 5 match",
 			Password: "password",
 			Hash:     "$2y$05$Vfd6hjeQXB6nTFTVMkoFE.CAItk2W8akuomafFBakd0n/mHqIzoUO",
-			Match:    false, // TODO: change to true if/when we add bcrypt support
-			Error:    true,  // TODO: change to false if/when we add bcrypt support
+			Match:    true,
+			Error:    false,
 		},
 		{
 			Name:     "bcrypt strength 5 mismatch",
 			Password: "mypassword",
 			Hash:     "$2y$05$Vfd6hjeQXB6nTFTVMkoFE.CAItk2W8akuomafFBakd0n/mHqIzoUO",
 			Match:    false,
-			Error:    true, // TODO: change to false if/when we add bcrypt support
+			Error:    false,
 		},
 
 		// htpasswd -C 10 -B -n -b "" ""
@@ -143,8 +143,8 @@ func TestPasswordHashes(t *testing.T) {
 			Name:     "bcrypt strength 10 empty",
 			Password: "",
 			Hash:     "$2y$10$v0c.7wrYEv2AZnLsPXO57.48Qc5widamyKkmwrUolKwYW0Zw8zhJ.",
-			Match:    false, // TODO: change to true if/when we add bcrypt support
-			Error:    true,  // TODO: change to false if/when we add bcrypt support
+			Match:    true,
+			Error:    false,
 		},
 		// htpasswd -C 10 -B -n -b "username" "password"
 		// username:$2y$10$Fk32bQky/.91nbecGjFfPO1m97V12d.ickjAzpNF22NgMKs4qWDOK
@@ -152,15 +152,15 @@ func TestPasswordHashes(t *testing.T) {
 			Name:     "bcrypt strength 10 match",
 			Password: "password",
 			Hash:     "$2y$10$Fk32bQky/.91nbecGjFfPO1m97V12d.ickjAzpNF22NgMKs4qWDOK",
-			Match:    false, // TODO: change to true if/when we add bcrypt support
-			Error:    true,  // TODO: change to false if/when we add bcrypt support
+			Match:    true,
+			Error:    false,
 		},
 		{
 			Name:     "bcrypt strength 10 mismatch",
 			Password: "mypassword",
 			Hash:     "$2y$10$Fk32bQky/.91nbecGjFfPO1m97V12d.ickjAzpNF22NgMKs4qWDOK",
 			Match:    false,
-			Error:    true, // TODO: change to false if/when we add bcrypt support
+			Error:    false,
 		},
 
 		{
