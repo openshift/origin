@@ -55,7 +55,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Name:  "docker-build",
 					Image: bs.Image,
 					Env:   containerEnv,
-					Args:  []string{"--loglevel=" + fmt.Sprintf("%d", cmdutil.GetLogLevel())},
+					Args:  []string{"--loglevel=" + getContainerVerbosity(containerEnv)},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					SecurityContext: &kapi.SecurityContext{
 						Privileged: &privileged,
