@@ -1,6 +1,8 @@
+<!--GITHUB
 page_title: Docker Registry 2.0
 page_description: Introduces the Docker Registry
 page_keywords: registry, images, repository
+IGNORES-->
 
 # Docker Registry 2.0
 
@@ -22,7 +24,7 @@ is collection of images. Users interact with the registry by pushing images to
 or pulling images from the registry. The Docker Registry includes several
 optional features that you can configure according to your needs.
 
-![](../images/registry.png)
+![](images/registry.png)
 
 The architecture supports a configurable storage backend. You can store images
 on  a file system or on a service such as Amazon S3 or Microsoft Azure. The

@@ -53,11 +53,6 @@ func (rlic *redisLayerInfoCache) Add(ctx context.Context, repo string, dgst dige
 	return err
 }
 
-func (rlic *redisLayerInfoCache) Delete(ctx context.Context, repo string, dgst digest.Digest) error {
-	//TODO
-	return nil
-}
-
 // Meta retrieves the layer meta data from the redis hash, returning
 // ErrUnknownLayer if not found.
 func (rlic *redisLayerInfoCache) Meta(ctx context.Context, dgst digest.Digest) (LayerMeta, error) {

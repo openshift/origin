@@ -128,14 +128,6 @@ fallback:
 	return layer, err
 }
 
-func (lc *cachedLayerService) Delete(dgst digest.Digest) error {
-	ctxu.GetLogger(lc.ctx).Debugf("(*layerInfoCache).Delete(%q)", dgst)
-	if err := lc.cache.Delete(lc.ctx, lc.repository.Name(), dgst); err != nil {
-		ctxu.GetLogger(lc.ctx).Errorf("error deleting layer link from cache; repo=%s, layer=%s: %v", lc.repository.Name(), dgst, err)
-	}
-	return lc.LayerService.Delete(dgst)
-}
-
 // extractLayerInfo pulls the layerInfo from the layer, attempting to get the
 // path information from either the concrete object or by resolving the
 // primary blob store path.

@@ -81,7 +81,18 @@ func NewApp(ctx context.Context, configuration configuration.Configuration) *App
 		panic(err)
 	}
 
-	startUploadPurger(app.driver, ctxu.GetLogger(app))
+	purgeConfig := uploadPurgeDefaultConfig()
+	if mc, ok := configuration.Storage["maintenance"]; ok {
+		for k, v := range mc {
+			switch k {
+			case "uploadpurging":
+				purgeConfig = v.(map[interface{}]interface{})
+			}
+		}
+
+	}
+
+	startUploadPurger(app.driver, ctxu.GetLogger(app), purgeConfig)
 
 	app.driver, err = applyStorageMiddleware(app.driver, configuration.Middleware["storage"])
 	if err != nil {
@@ -133,42 +144,18 @@ func NewApp(ctx context.Context, configuration configuration.Configuration) *App
 	return app
 }
 
-func (app *App) Registry() distribution.Namespace {
-	return app.registry
-}
-
-type customAccessRecordsFunc func(*http.Request) []auth.Access
-
-func NoCustomAccessRecords(*http.Request) []auth.Access {
-	return []auth.Access{}
-}
-
-func NameNotRequired(*http.Request) bool {
-	return false
-}
-
-func NameRequired(*http.Request) bool {
-	return true
-}
-
 // register a handler with the application, by route name. The handler will be
 // passed through the application filters and context will be constructed at
 // request time.
 func (app *App) register(routeName string, dispatch dispatchFunc) {
-	app.RegisterRoute(app.router.GetRoute(routeName), dispatch, app.nameRequired, NoCustomAccessRecords)
-}
 
-func (app *App) RegisterRoute(route *mux.Route, dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) {
 	// TODO(stevvooe): This odd dispatcher/route registration is by-product of
 	// some limitations in the gorilla/mux router. We are using it to keep
 	// routing consistent between the client and server, but we may want to
 	// replace it with manual routing and structure-based dispatch for better
 	// control over the request execution.
-	route.Handler(app.dispatcher(dispatch, nameRequired, accessRecords))
-}
 
-func (app *App) NewRoute() *mux.Route {
-	return app.router.NewRoute()
+	app.router.GetRoute(routeName).Handler(app.dispatcher(dispatch))
 }
 
 // configureEvents prepares the event sink for action.
@@ -332,11 +319,11 @@ type dispatchFunc func(ctx *Context, r *http.Request) http.Handler
 
 // dispatcher returns a handler that constructs a request specific context and
 // handler, using the dispatch factory function.
-func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) http.Handler {
+func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		context := app.context(w, r)
 
-		if err := app.authorized(w, r, context, nameRequired, accessRecords(r)); err != nil {
+		if err := app.authorized(w, r, context); err != nil {
 			ctxu.GetLogger(context).Errorf("error authorizing context: %v", err)
 			return
 		}
@@ -344,7 +331,7 @@ func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc,
 		// Add username to request logging
 		context.Context = ctxu.WithLogger(context.Context, ctxu.GetLogger(context.Context, "auth.user.name"))
 
-		if nameRequired(r) {
+		if app.nameRequired(r) {
 			repository, err := app.registry.Repository(context, getName(context))
 
 			if err != nil {
@@ -389,9 +376,23 @@ func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc,
 				// future refactoring.
 				w.WriteHeader(http.StatusBadRequest)
 			}
+			app.logError(context, context.Errors)
 			serveJSON(w, context.Errors)
 		}
 	})
+}
+
+func (app *App) logError(context context.Context, errors v2.Errors) {
+	for _, e := range errors.Errors {
+		c := ctxu.WithValue(context, "err.code", e.Code)
+		c = ctxu.WithValue(c, "err.message", e.Message)
+		c = ctxu.WithValue(c, "err.detail", e.Detail)
+		c = ctxu.WithLogger(c, ctxu.GetLogger(c,
+			"err.code",
+			"err.message",
+			"err.detail"))
+		ctxu.GetLogger(c).Errorf("An error occured")
+	}
 }
 
 // context constructs the context object for the application. This only be
@@ -417,7 +418,7 @@ func (app *App) context(w http.ResponseWriter, r *http.Request) *Context {
 // authorized checks if the request can proceed with access to the requested
 // repository. If it succeeds, the context may access the requested
 // repository. An error will be returned if access is not available.
-func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Context, nameRequired nameRequiredFunc, customAccessRecords []auth.Access) error {
+func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Context) error {
 	ctxu.GetLogger(context).Debug("authorizing request")
 	repo := getName(context)
 
@@ -426,15 +427,12 @@ func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Cont
 	}
 
 	var accessRecords []auth.Access
-	accessRecords = append(accessRecords, customAccessRecords...)
 
 	if repo != "" {
 		accessRecords = appendAccessRecords(accessRecords, r.Method, repo)
-	}
-
-	if len(accessRecords) == 0 {
+	} else {
 		// Only allow the name not to be set on the base route.
-		if nameRequired(r) {
+		if app.nameRequired(r) {
 			// For this to be properly secured, repo must always be set for a
 			// resource that may make a modification. The only condition under
 			// which name is not set and we still allow access is when the
@@ -490,8 +488,6 @@ func (app *App) eventBridge(ctx *Context, r *http.Request) notifications.Listene
 
 	return notifications.NewBridge(ctx.urlBuilder, app.events.source, actor, request, app.events.sink)
 }
-
-type nameRequiredFunc func(*http.Request) bool
 
 // nameRequired returns true if the route requires a name.
 func (app *App) nameRequired(r *http.Request) bool {
@@ -583,26 +579,82 @@ func applyStorageMiddleware(driver storagedriver.StorageDriver, middlewares []co
 	return driver, nil
 }
 
+// uploadPurgeDefaultConfig provides a default configuration for upload
+// purging to be used in the absence of configuration in the
+// confifuration file
+func uploadPurgeDefaultConfig() map[interface{}]interface{} {
+	config := map[interface{}]interface{}{}
+	config["enabled"] = true
+	config["age"] = "168h"
+	config["interval"] = "24h"
+	config["dryrun"] = false
+	return config
+}
+
+func badPurgeUploadConfig(reason string) {
+	panic(fmt.Sprintf("Unable to parse upload purge configuration: %s", reason))
+}
+
 // startUploadPurger schedules a goroutine which will periodically
 // check upload directories for old files and delete them
-func startUploadPurger(storageDriver storagedriver.StorageDriver, log ctxu.Logger) {
-	rand.Seed(time.Now().Unix())
-	jitter := time.Duration(rand.Int()%60) * time.Minute
+func startUploadPurger(storageDriver storagedriver.StorageDriver, log ctxu.Logger, config map[interface{}]interface{}) {
+	if config["enabled"] == false {
+		return
+	}
 
-	// Start with reasonable defaults
-	// TODO:(richardscothern) make configurable
-	purgeAge := time.Duration(7 * 24 * time.Hour)
-	timeBetweenPurges := time.Duration(1 * 24 * time.Hour)
+	var purgeAgeDuration time.Duration
+	var err error
+	purgeAge, ok := config["age"]
+	if ok {
+		ageStr, ok := purgeAge.(string)
+		if !ok {
+			badPurgeUploadConfig("age is not a string")
+		}
+		purgeAgeDuration, err = time.ParseDuration(ageStr)
+		if err != nil {
+			badPurgeUploadConfig(fmt.Sprintf("Cannot parse duration: %s", err.Error()))
+		}
+	} else {
+		badPurgeUploadConfig("age missing")
+	}
+
+	var intervalDuration time.Duration
+	interval, ok := config["interval"]
+	if ok {
+		intervalStr, ok := interval.(string)
+		if !ok {
+			badPurgeUploadConfig("interval is not a string")
+		}
+
+		intervalDuration, err = time.ParseDuration(intervalStr)
+		if err != nil {
+			badPurgeUploadConfig(fmt.Sprintf("Cannot parse interval: %s", err.Error()))
+		}
+	} else {
+		badPurgeUploadConfig("interval missing")
+	}
+
+	var dryRunBool bool
+	dryRun, ok := config["dryrun"]
+	if ok {
+		dryRunBool, ok = dryRun.(bool)
+		if !ok {
+			badPurgeUploadConfig("cannot parse dryrun")
+		}
+	} else {
+		badPurgeUploadConfig("dryrun missing")
+	}
 
 	go func() {
+		rand.Seed(time.Now().Unix())
+		jitter := time.Duration(rand.Int()%60) * time.Minute
 		log.Infof("Starting upload purge in %s", jitter)
 		time.Sleep(jitter)
 
 		for {
-			storage.PurgeUploads(storageDriver, time.Now().Add(-purgeAge), true)
-			log.Infof("Starting upload purge in %s", timeBetweenPurges)
-			time.Sleep(timeBetweenPurges)
+			storage.PurgeUploads(storageDriver, time.Now().Add(-purgeAgeDuration), !dryRunBool)
+			log.Infof("Starting upload purge in %s", intervalDuration)
+			time.Sleep(intervalDuration)
 		}
 	}()
-
 }

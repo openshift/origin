@@ -38,8 +38,6 @@ type LayerInfoCache interface {
 	// Add includes the layer in the given repository cache.
 	Add(ctx context.Context, repo string, dgst digest.Digest) error
 
-	Delete(ctx context.Context, repo string, dgst digest.Digest) error
-
 	// Meta provides the location of the layer on the backend and its size. Membership of a
 	// repository should be tested before using the result, if required.
 	Meta(ctx context.Context, dgst digest.Digest) (LayerMeta, error)
@@ -77,18 +75,6 @@ func (b *base) Add(ctx context.Context, repo string, dgst digest.Digest) error {
 	}
 
 	return b.LayerInfoCache.Add(ctx, repo, dgst)
-}
-
-func (b *base) Delete(ctx context.Context, repo string, dgst digest.Digest) error {
-	if repo == "" {
-		return fmt.Errorf("cache: cannot delete empty repository name")
-	}
-
-	if dgst == "" {
-		return fmt.Errorf("cache: cannot delete empty digest")
-	}
-
-	return b.LayerInfoCache.Delete(ctx, repo, dgst)
 }
 
 func (b *base) Meta(ctx context.Context, dgst digest.Digest) (LayerMeta, error) {

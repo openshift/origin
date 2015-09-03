@@ -57,9 +57,9 @@ func (imh *imageManifestHandler) GetImageManifest(w http.ResponseWriter, r *http
 	)
 
 	if imh.Tag != "" {
-		sm, err = manifests.GetByTag(imh.Context, imh.Tag)
+		sm, err = manifests.GetByTag(imh.Tag)
 	} else {
-		sm, err = manifests.Get(imh.Context, imh.Digest)
+		sm, err = manifests.Get(imh.Digest)
 	}
 
 	if err != nil {
@@ -129,7 +129,7 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 		return
 	}
 
-	if err := manifests.Put(imh.Context, &manifest); err != nil {
+	if err := manifests.Put(&manifest); err != nil {
 		// TODO(stevvooe): These error handling switches really need to be
 		// handled by an app global mapper.
 		switch err := err.(type) {

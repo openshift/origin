@@ -121,7 +121,3 @@ func (repo *repository) Signatures() distribution.SignatureService {
 		repository: repo,
 	}
 }
-
-func (reg *registry) Blobs() distribution.BlobService {
-	return reg.blobStore
-}
