@@ -43,8 +43,6 @@ install_router_extended
 
 install_registry_extended
 
-wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=/tmp/openshift-extended-tests/openshift.local.config/master/admin.kubeconfig || echo "0")" != "0" ]]' $((5*TIME_MIN))
-
 create_image_streams_extended
 
 echo "[INFO] MASTER IP - ${MASTER_ADDR}"
