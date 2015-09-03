@@ -12,6 +12,7 @@ import (
 	"github.com/golang/glog"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"golang.org/x/crypto/bcrypt"
 	"k8s.io/kubernetes/pkg/auth/user"
 )
 
@@ -150,16 +151,14 @@ func testSHAPassword(password, hash string) (bool, error) {
 }
 
 func testBCryptPassword(password, hash string) (bool, error) {
-	// TODO: import bcrypt
-	// err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	// if err == bcrypt.ErrMismatchedHashAndPassword {
-	// 	return false, nil
-	// }
-	// if err != nil {
-	// 	return false, err
-	// }
-	// return true, nil
-	return false, errors.New("bcrypt password hashes are not supported")
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func testMD5Password(password, hash string) (bool, error) {
