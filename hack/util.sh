@@ -8,7 +8,7 @@ TIME_MIN=$((60 * $TIME_SEC))
 # setup_env_vars exports all the necessary environment variables for configuring and
 # starting OS server.
 function setup_env_vars {
-	# determine API_HOST.  This is used to derive other values.  By default, it is first ipv4 address that isn't loopback or docker bridge
+	# determine API_HOST. This is used to derive other values. By default, it is first ipv4 address that isn't loopback or docker bridge
 	DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}'`
 	export API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
 
@@ -149,6 +149,44 @@ function start_os_server {
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 	
 	echo "[INFO] OpenShift server health checks done at: "
+	echo `date`
+}
+
+# start_os_api_server starts standalone OS's API. Node and Controllers need to be started
+# separately. Useful for testing controllers election.
+function start_os_api_server {
+	echo "[INFO] `openshift version`"
+	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
+	echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
+	echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
+	echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
+	echo "[INFO] Using images:              ${USE_IMAGES}"
+	echo "[INFO] MasterIP is:               ${MASTER_ADDR}"
+
+	echo "[INFO] Scan of OpenShift related processes already up via ps -ef | grep openshift : "
+	ps -ef | grep openshift
+	echo "[INFO] Starting OpenShift API server"
+	sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash \
+	 openshift start master api \
+	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
+	 --loglevel=4 \
+	&> "${LOG_DIR}/openshift-api.log" &
+	export OS_API_PID=$!
+
+	echo "[INFO] OpenShift API server start at: "
+	echo `date`
+}
+
+function start_os_node {
+	echo "[INFO] Starting OpenShift node"
+	sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash \
+	 openshift start node \
+	 --config=${NODE_CONFIG_DIR}/node-config.yaml \
+	 --loglevel=4 \
+	&> "${LOG_DIR}/openshift-node.log" &
+	export OS_NODE_PID=$!
+
+	echo "[INFO] OpenShift node start at:"
 	echo `date`
 }
 
@@ -368,6 +406,64 @@ function validate_response {
 	return 1
 }
 
+# start_etcd starts an etcd server
+# $1 - Optional host (Default: 127.0.0.1)
+# $2 - Optional port (Default: 4001)
+function start_etcd_extended() {
+	[ ! -z "${ETCD_STARTED-}" ] && return
+
+	local host=${1:-${ETCD_HOST:-127.0.0.1}}
+	local port=${2:-${ETCD_PORT:-4001}}
+	local scheme=http
+	if [[ -n "${ETCD_CERT_FILE:-}" && -n "${ETCD_KEY_FILE:-}" && -n "${ETCD_TRUSTED_CA_FILE:-}" ]]; then
+		scheme=https
+	fi
+	local client_url="$scheme://$host:$port"
+
+	set +e
+
+	if [ "$(which etcd 2>/dev/null)" == "" ]; then
+		if [[ ! -f ${OS_ROOT}/_tools/etcd/bin/etcd ]]; then
+			echo "etcd must be in your PATH or installed in _tools/etcd/bin/ with hack/install-etcd.sh"
+			exit 1
+		fi
+		export PATH="${OS_ROOT}/_tools/etcd/bin:$PATH"
+	fi
+
+	local running_etcd=$(ps -ef | grep etcd | grep -c name)
+	if [ "$running_etcd" != "0" ]; then
+		echo "etcd appears to already be running on this machine, please kill and restart the test."
+		exit 1
+	fi
+
+	# Stop on any failures
+	set -e
+
+	# get etcd version
+	local etcd_version=$(etcd --version | awk '{print $3}')
+	local etcd_args=""
+	if [[ "${etcd_version}" =~ ^2 ]]; then
+		etcd_args="--initial-cluster test=http://$host:2380,test=http://$host:7001"
+		etcd_args+=" --initial-advertise-peer-urls http://$host:2380,http://$host:7001"
+		etcd_args+=" --listen-client-urls $client_url"
+		etcd_args+=" --advertise-client-urls $client_url"
+	else
+		etcd_args="-bind-addr ${host}:${port}"
+	fi
+
+	# Start etcd
+	export ETCD_DIR=$(mktemp -d -t test-etcd.XXXXXX)
+	local log_file="${LOG_DIR:-$ETCD_DIR}/etcd.log"
+	echo "[INFO] Starting etcd server listening on ${client_url}"
+	etcd -name test -debug -data-dir $ETCD_DIR $etcd_args >$log_file 2>&1 &
+	export ETCD_PID=$!
+
+	CURL_CERT="${ETCD_CERT_FILE:-}" CURL_KEY="${ETCD_KEY_FILE:-}" \
+		wait_for_url "$scheme://$host:$port/version" "etcd: " 0.25 80
+	curl -X PUT "$scheme://$host:$port/v2/keys/_test"
+	echo
+}
+
 
 # reset_tmp_dir will try to delete the testing directory.
 # If it fails will unmount all the mounts associated with 
@@ -525,7 +621,7 @@ function wait_for_registry {
 function os::build:wait_for_start() {
 	echo "[INFO] Waiting for $1 namespace build to start"
 	wait_for_command "oc get -n $1 builds | grep -i running" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`oc get -n $1 builds  --output-version=v1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	BUILD_ID=`oc get -n $1 builds --output-version=v1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} started"
 }
 
@@ -544,25 +640,25 @@ function os::build:wait_for_end() {
 
 # enable-selinux/disable-selinux use the shared control variable
 # SELINUX_DISABLED to determine whether to re-enable selinux after it
-# has been disabled.  The goal is to allow temporary disablement of
+# has been disabled. The goal is to allow temporary disablement of
 # selinux enforcement while avoiding enabling enforcement in an
 # environment where it is not already enabled.
 SELINUX_DISABLED=0
 
 function enable-selinux {
-  if [ "${SELINUX_DISABLED}" = "1" ]; then
-    os::log::info "Re-enabling selinux enforcement"
-    setenforce 1
-    SELINUX_DISABLED=0
-  fi
+	if [ "${SELINUX_DISABLED}" = "1" ]; then
+		os::log::info "Re-enabling selinux enforcement"
+		setenforce 1
+		SELINUX_DISABLED=0
+	fi
 }
 
 function disable-selinux {
-  if selinuxenabled; then
-    os::log::info "Temporarily disabling selinux enforcement"
-    setenforce 0
-    SELINUX_DISABLED=1
-  fi
+	if selinuxenabled; then
+		os::log::info "Temporarily disabling selinux enforcement"
+		setenforce 0
+		SELINUX_DISABLED=1
+	fi
 }
 
 ######
@@ -639,18 +735,18 @@ os::log::error_exit() {
 }
 
 os::log::with-severity() {
-  local msg=$1
-  local severity=$2
+	local msg=$1
+	local severity=$2
 
-  echo "[$2] ${1}"
+	echo "[$2] ${1}"
 }
 
 os::log::info() {
-  os::log::with-severity "${1}" "INFO"
+	os::log::with-severity "${1}" "INFO"
 }
 
 os::log::warn() {
-  os::log::with-severity "${1}" "WARNING"
+	os::log::with-severity "${1}" "WARNING"
 }
 
 find_files() {
@@ -668,43 +764,43 @@ find_files() {
 }
 
 os::util::run-extended-tests() {
-  local config_root=$1
-  local focus_regex=$2
-  local skip_regex=${3:-}
-  local log_path=${4:-}
+	local config_root=$1
+	local focus_regex=$2
+	local skip_regex=${3:-}
+	local log_path=${4:-}
 
-  export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
-  export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
+	export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
+	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
-  local test_cmd="ginkgo -progress -stream -v -focus=\"${focus_regex}\" \
+	local test_cmd="ginkgo -progress -stream -v -focus=\"${focus_regex}\" \
 -skip=\"${skip_regex}\" ${OS_OUTPUT_BINPATH}/extended.test"
-  if [ "${log_path}" != "" ]; then
-    test_cmd="${test_cmd} | tee ${log_path}"
-  fi
+	if [ "${log_path}" != "" ]; then
+		test_cmd="${test_cmd} | tee ${log_path}"
+	fi
 
-  pushd "${EXTENDED_TEST_PATH}" > /dev/null
-    eval "${test_cmd}; "'exit_status=${PIPESTATUS[0]}'
-  popd > /dev/null
+	pushd "${EXTENDED_TEST_PATH}" > /dev/null
+		eval "${test_cmd}; "'exit_status=${PIPESTATUS[0]}'
+	popd > /dev/null
 
-  return ${exit_status}
+	return ${exit_status}
 }
 
 os::util::run-net-extended-tests() {
-  local config_root=$1
-  local focus_regex=${2:-.etworking[:]*}
-  local skip_regex=${3:-}
-  local log_path=${4:-}
+	local config_root=$1
+	local focus_regex=${2:-.etworking[:]*}
+	local skip_regex=${3:-}
+	local log_path=${4:-}
 
-  if [ -z "${skip_regex}" ]; then
-      # The intra-pod test is currently broken for origin.
-      skip_regex='Networking.*intra-pod'
-      # Only the multitenant plugin can pass the isolation test
-      if ! grep -q 'redhat/openshift-ovs-multitenant' \
-           $(find "${config_root}" -name 'node-config.yaml' | head -n 1); then
-        skip_regex="(${skip_regex}|networking: isolation)"
-      fi
-  fi
+	if [ -z "${skip_regex}" ]; then
+			# The intra-pod test is currently broken for origin.
+			skip_regex='Networking.*intra-pod'
+			# Only the multitenant plugin can pass the isolation test
+			if ! grep -q 'redhat/openshift-ovs-multitenant' \
+					 $(find "${config_root}" -name 'node-config.yaml' | head -n 1); then
+				skip_regex="(${skip_regex}|networking: isolation)"
+			fi
+	fi
 
-  os::util::run-extended-tests "${config_root}" "${focus_regex}" \
-    "${skip_regex}" "${log_path}"
+	os::util::run-extended-tests "${config_root}" "${focus_regex}" \
+		"${skip_regex}" "${log_path}"
 }

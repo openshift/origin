@@ -1,0 +1,21 @@
+{
+  "kind":"Pod",
+  "apiVersion":"v1",
+  "metadata":{
+    "name":"helloworld-pod",
+    "labels":{
+      "name":"helloworld-pod"
+    }
+  },
+  "spec":{
+    "containers":[
+      {
+        "name":"helloworld",
+        "image":"docker.io/hello-world",
+        "imagePullPolicy":"IfNotPresent"
+      }
+    ],
+    "restartPolicy":"Never",
+    "dnsPolicy":"ClusterFirst"
+  }
+}

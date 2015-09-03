@@ -106,6 +106,24 @@ func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
 	return wait.Poll(60, time.Duration(1*time.Second), waitFunc)
 }
 
+// WaitForDeployerAccount waits until the deployer service account gets fully
+// provisioned
+func WaitForDeployerAccount(c kclient.ServiceAccountsInterface) error {
+	waitFunc := func() (bool, error) {
+		sc, err := c.Get("deployer")
+		if err != nil {
+			return false, err
+		}
+		for _, s := range sc.Secrets {
+			if strings.Contains(s.Name, "dockercfg") {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+	return wait.Poll(60, time.Duration(1*time.Second), waitFunc)
+}
+
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
 func WaitForAnImageStream(client client.ImageStreamInterface,
 	name string,
@@ -273,6 +291,11 @@ func KubeConfigPath() string {
 // ExtendedTestPath returns absolute path to extended tests directory
 func ExtendedTestPath() string {
 	return os.Getenv("EXTENDED_TEST_PATH")
+}
+
+// MasterConfigPath returns absolute path to openshift master config
+func MasterConfigPath() string {
+	return os.Getenv("MASTER_CONFIG_PATH")
 }
 
 // FixturePath returns absolute path to given fixture file
