@@ -93,25 +93,30 @@ type tokenData struct {
 // TODO: allow template to be read from an external file
 var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 <style>
-	body    { font-family: sans-serif; font-size: 12pt; margin: 2em 5%; background-color: #F9F9F9; }
-	pre     { padding-left: 1em; border-left: .25em solid #eee; }
-	a       { color: #00f; text-decoration: none; }
-	a:hover { text-decoration: underline; }
+	body     { font-family: sans-serif; font-size: 14px; margin: 2em 2%; background-color: #F9F9F9; }
+	h2       { font-size: 1.4em;}
+	h3       { font-size: 1em; margin: 1.5em 0 0; }
+	code,pre { font-family: Menlo, Monaco, Consolas, monospace; }
+	code     { font-weight: 300; font-size: 1.5em; margin-bottom: 1em; display: inline-block;  color: #646464;  }
+	pre      { padding-left: 1em; border-radius: 5px; color: #003d6e; background-color: #EAEDF0; padding: 1.5em 0 1.5em 4.5em; white-space: normal; text-indent: -2em; }
+	a        { color: #00f; text-decoration: none; }
+	a:hover  { text-decoration: underline; }
+	@media (min-width: 768px) {
+		.nowrap { white-space: nowrap; }
+	}
 </style>
 
 {{ if .Error }}
   {{ .Error }}
 {{ else }}
-  <h3>Here is your brand new OAuth access token:</h3>
-  <pre>{{.AccessToken}}</pre>
+  <h2>Your API token is</h2>
+  <code>{{.AccessToken}}</code>
 
-  <h3>How do I use this token?</h3>
-  <pre>oc login --token={{.AccessToken}} --server={{.PublicMasterURL}}</pre>
-  <pre>curl -H "Authorization: Bearer {{.AccessToken}}" {{.PublicMasterURL}}/oapi/v1/users/~</pre>
+  <h2>Log in with this token</h2>
+  <pre>oc login <span class="nowrap">--token={{.AccessToken}}</span> <span class="nowrap">--server={{.PublicMasterURL}}</span></pre>
 
-  <h3>How do I delete this token when I'm done?</h3>
-  <pre>oc delete oauthaccesstoken {{.AccessToken}}</pre>
-  <pre>curl -X DELETE {{.PublicMasterURL}}/oapi/v1/oauthaccesstokens/{{.AccessToken}}</pre>
+  <h3>Use this token directly against the API</h3>
+  <pre>curl <span class="nowrap">-H "Authorization: Bearer {{.AccessToken}}"</span> <span class="nowrap">"{{.PublicMasterURL}}/oapi/v1/users/~"</span></pre>
 {{ end }}
 
 <br><br>
