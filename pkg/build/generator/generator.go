@@ -215,7 +215,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx kapi.Context, bc *buildapi.Buil
 	if from != nil {
 		requestTrigger = findImageChangeTrigger(bc, from)
 	}
-	if requestTrigger != nil && requestTrigger.LastTriggeredImageID == triggeredBy.Name {
+	if requestTrigger != nil && triggeredBy != nil && requestTrigger.LastTriggeredImageID == triggeredBy.Name {
 		glog.V(2).Infof("Aborting imageid triggered build for BuildConfig %s/%s with imageid %s because the BuildConfig already matches this imageid", bc.Namespace, bc.Name, triggeredBy.Name)
 		return fmt.Errorf("build config %s/%s has already instantiated a build for imageid %s", bc.Namespace, bc.Name, triggeredBy.Name)
 	}
@@ -225,7 +225,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx kapi.Context, bc *buildapi.Buil
 			continue
 		}
 		// Use the requested image id for the trigger that caused the build, otherwise resolve to the latest
-		if trigger.ImageChange == requestTrigger {
+		if triggeredBy != nil && trigger.ImageChange == requestTrigger {
 			trigger.ImageChange.LastTriggeredImageID = triggeredBy.Name
 			continue
 		}
@@ -233,6 +233,10 @@ func (g *BuildGenerator) updateImageTriggers(ctx kapi.Context, bc *buildapi.Buil
 		triggerImageRef := trigger.ImageChange.From
 		if triggerImageRef == nil {
 			triggerImageRef = buildutil.GetImageStreamForStrategy(bc.Spec.Strategy)
+		}
+		if triggerImageRef == nil {
+			glog.Warningf("Could not get ImageStream reference for default ImageChangeTrigger on BuildConfig %s/%s", bc.Namespace, bc.Name)
+			continue
 		}
 		image, err := g.resolveImageStreamReference(ctx, *triggerImageRef, bc.Namespace)
 		if err != nil {
