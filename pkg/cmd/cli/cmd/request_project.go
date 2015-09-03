@@ -45,14 +45,14 @@ After your project is created it will be made your default project in your confi
   $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
 )
 
-func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRequestProject(name, fullName, ocLoginName, ocProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 	options.Out = out
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
 		Short:   "Request a new project",
-		Long:    fmt.Sprintf(requestProjectLong, oscLoginName, oscProjectName),
+		Long:    fmt.Sprintf(requestProjectLong, ocLoginName, ocProjectName),
 		Example: fmt.Sprintf(requestProjectExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(cmd, f); err != nil {
