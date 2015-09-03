@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/golang/glog"
@@ -32,7 +33,7 @@ func (c *RouterController) Run() {
 func (c *RouterController) HandleRoute() {
 	eventType, route, err := c.NextRoute()
 	if err != nil {
-		glog.Errorf("Unable to read routes: %v", err)
+		util.HandleError(fmt.Errorf("unable to read routes: %v", err))
 		return
 	}
 
@@ -43,19 +44,23 @@ func (c *RouterController) HandleRoute() {
 	glog.V(4).Infof("           Alias: %s", route.Host)
 	glog.V(4).Infof("           Event: %s", eventType)
 
-	c.Plugin.HandleRoute(eventType, route)
+	if err := c.Plugin.HandleRoute(eventType, route); err != nil {
+		util.HandleError(err)
+	}
 }
 
 // HandleEndpoints handles a single Endpoints event and refreshes the router backend.
 func (c *RouterController) HandleEndpoints() {
 	eventType, endpoints, err := c.NextEndpoints()
 	if err != nil {
-		glog.Errorf("Unable to read endpoints: %v", err)
+		util.HandleError(fmt.Errorf("unable to read endpoints: %v", err))
 		return
 	}
 
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	c.Plugin.HandleEndpoints(eventType, endpoints)
+	if err := c.Plugin.HandleEndpoints(eventType, endpoints); err != nil {
+		util.HandleError(err)
+	}
 }

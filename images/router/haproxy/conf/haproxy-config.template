@@ -4,6 +4,7 @@
     					backend for a route and contains all the endpoints for the service
 */}}
 {{ define "/var/lib/haproxy/conf/haproxy.config" }}
+{{ $workingDir := .WorkingDir }}
 global
   # maxconn 4096
   daemon
@@ -81,7 +82,7 @@ backend be_sni
 
 frontend fe_sni
   # terminate ssl on edge
-  bind 127.0.0.1:10444 ssl {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt /var/lib/containers/router/certs accept-proxy
+  bind 127.0.0.1:10444 ssl {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt {{ $workingDir }}/certs accept-proxy
   mode http
 
   # check re-encrypt backends first - from most specific to general path.
@@ -196,7 +197,7 @@ backend be_secure_{{$cfgIdx}}
   timeout check 5000ms
   cookie OPENSHIFT_REENCRYPT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
                 {{ range $idx, $endpoint := $serviceUnit.EndpointTable }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file /var/lib/containers/router/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.ID}}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.ID}}
                 {{ end }}
             {{ end  }}
         {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}

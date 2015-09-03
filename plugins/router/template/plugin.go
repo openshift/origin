@@ -21,13 +21,14 @@ type TemplatePlugin struct {
 }
 
 type TemplatePluginConfig struct {
+	WorkingDir         string
 	TemplatePath       string
 	ReloadScriptPath   string
 	DefaultCertificate string
 	StatsPort          int
 	StatsUsername      string
 	StatsPassword      string
-	PeerService        ktypes.NamespacedName
+	PeerService        *ktypes.NamespacedName
 }
 
 // router controls the interaction of the plugin with the underlying router implementation
@@ -61,7 +62,10 @@ type router interface {
 // NewTemplatePlugin creates a new TemplatePlugin.
 func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
-	masterTemplate := template.Must(template.New("config").ParseFiles(cfg.TemplatePath))
+	masterTemplate, err := template.New("config").ParseFiles(cfg.TemplatePath)
+	if err != nil {
+		return nil, err
+	}
 	templates := map[string]*template.Template{}
 
 	for _, template := range masterTemplate.Templates() {
@@ -72,14 +76,20 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 		templates[template.Name()] = template
 	}
 
+	peerKey := ""
+	if cfg.PeerService != nil {
+		peerKey = peerEndpointsKey(*cfg.PeerService)
+	}
+
 	templateRouterCfg := templateRouterCfg{
+		dir:                cfg.WorkingDir,
 		templates:          templates,
 		reloadScriptPath:   cfg.ReloadScriptPath,
 		defaultCertificate: cfg.DefaultCertificate,
 		statsUser:          cfg.StatsUsername,
 		statsPassword:      cfg.StatsPassword,
 		statsPort:          cfg.StatsPort,
-		peerEndpointsKey:   peerEndpointsKey(cfg.PeerService),
+		peerEndpointsKey:   peerKey,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
 	return &TemplatePlugin{router}, err

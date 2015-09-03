@@ -40,7 +40,6 @@ tar xzpf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
 cp -pf "${imagedir}/openshift" images/origin/bin
 cp -pf "${imagedir}/openshift" images/router/haproxy/bin
 cp -pf "${imagedir}/openshift" images/ipfailover/keepalived/bin
-cp -pf "${imagedir}/openshift" images/router/f5/bin
 
 # Copy image binaries to the appropriate locations.
 cp -pf "${imagedir}/pod" images/pod/bin
@@ -61,7 +60,6 @@ image openshift/origin-pod                   images/pod
 # images that depend on openshift/origin-base
 image openshift/origin                       images/origin
 image openshift/origin-haproxy-router        images/router/haproxy
-image openshift/origin-f5-router             images/router/f5
 image openshift/origin-keepalived-ipfailover images/ipfailover/keepalived
 image openshift/origin-docker-registry       images/dockerregistry
 # images that depend on openshift/origin
@@ -69,6 +67,7 @@ image openshift/origin-deployer              images/deployer
 image openshift/origin-docker-builder        images/builder/docker/docker-builder
 image openshift/origin-gitserver             examples/gitserver
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
+image openshift/origin-f5-router             images/router/f5
 # unpublished images
 image openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
 

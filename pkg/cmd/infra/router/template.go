@@ -2,87 +2,163 @@ package router
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/openshift/origin/pkg/cmd/util"
-	templateplugin "github.com/openshift/origin/plugins/router/template"
-
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktypes "k8s.io/kubernetes/pkg/types"
+
+	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/util/proc"
+	"github.com/openshift/origin/pkg/version"
+	templateplugin "github.com/openshift/origin/plugins/router/template"
 )
 
-// templateRouterConfig is the config necessary to start a template router plugin.
-type templateRouterConfig struct {
-	// TemplateFile is the path to the file containing the templates for any files
-	// the template plugin should generate.
-	TemplateFile string
+const (
+	routerLong = `
+Start a router
 
-	// ReloadScript is the path to the command that should be executed to reload
-	// the configuration when the plugin updates it.
-	ReloadScript string
+This command launches a router connected to your cluster master. The router listens for routes and endpoints
+created by users and keeps a local router configuration up to date with those changes.
 
-	// RouterService can be used to specify a namespace/name that identifies
-	// peer routers.
-	RouterService ktypes.NamespacedName
+You may customize the router by providing your own --template and --reload scripts.
 
-	// StatsPort specifies a port at which the router can provide statistics.
-	StatsPort string
+You may restrict the set of routes exposed by using the --labels, --fields, or --namespace arguments.`
+)
 
-	// StatsPassword specifies a password required to authenticate connections to
-	// the statistics port.
-	StatsPassword string
+type TemplateRouterOptions struct {
+	Config *clientcmd.Config
 
-	// StatsUsername specifies a username required to authenticate connections to
-	// the statistics port.
-	StatsUsername string
+	TemplateRouter
+	RouterStats
+	RouterSelection
 }
 
-// bindFlagsForTemplateRouterConfig binds flags for template router
-// configuration.
-func bindFlagsForTemplateRouterConfig(flag *pflag.FlagSet,
-	cfg *routerConfig) {
-	flag.StringVar(&cfg.TemplateRouterConfig.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
-	flag.StringVar(&cfg.TemplateRouterConfig.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
-	flag.StringVar(&cfg.TemplateRouterConfig.StatsPort, "stats-port", util.Env("STATS_PORT", ""), "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
-	flag.StringVar(&cfg.TemplateRouterConfig.StatsPassword, "stats-password", util.Env("STATS_PASSWORD", ""), "If the underlying router implementation can provide statistics this is the requested password for auth.")
-	flag.StringVar(&cfg.TemplateRouterConfig.StatsUsername, "stats-user", util.Env("STATS_USERNAME", ""), "If the underlying router implementation can provide statistics this is the requested username for auth.")
+type TemplateRouter struct {
+	WorkingDir         string
+	TemplateFile       string
+	ReloadScript       string
+	DefaultCertificate string
+	RouterService      *ktypes.NamespacedName
 }
 
-// makeTemplatePlugin creates a template router plugin.
-func makeTemplatePlugin(cfg *routerConfig) (*templateplugin.TemplatePlugin, error) {
-	if cfg.TemplateRouterConfig.TemplateFile == "" {
-		return nil, errors.New("Template file must be specified")
+func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
+	flag.StringVar(&o.WorkingDir, "working-dir", "/var/lib/containers/router", "The working directory for the router plugin")
+	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
+	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
+	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
+}
+
+type RouterStats struct {
+	StatsPortString string
+	StatsPassword   string
+	StatsUsername   string
+
+	StatsPort int
+}
+
+func (o *RouterStats) Bind(flag *pflag.FlagSet) {
+	flag.StringVar(&o.StatsPortString, "stats-port", util.Env("STATS_PORT", ""), "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
+	flag.StringVar(&o.StatsPassword, "stats-password", util.Env("STATS_PASSWORD", ""), "If the underlying router implementation can provide statistics this is the requested password for auth.")
+	flag.StringVar(&o.StatsUsername, "stats-user", util.Env("STATS_USERNAME", ""), "If the underlying router implementation can provide statistics this is the requested username for auth.")
+}
+
+// NewCommndTemplateRouter provides CLI handler for the template router backend
+func NewCommandTemplateRouter(name string) *cobra.Command {
+	options := &TemplateRouterOptions{
+		Config: clientcmd.NewConfig(),
+	}
+	options.Config.FromFile = true
+
+	cmd := &cobra.Command{
+		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
+		Short: "Start a router",
+		Long:  routerLong,
+		Run: func(c *cobra.Command, args []string) {
+			options.RouterSelection.Namespace = cmdutil.GetFlagString(c, "namespace")
+			cmdutil.CheckErr(options.Complete())
+			cmdutil.CheckErr(options.Validate())
+			cmdutil.CheckErr(options.Run())
+		},
 	}
 
-	if cfg.TemplateRouterConfig.ReloadScript == "" {
-		return nil, errors.New("Reload script must be specified")
-	}
+	cmd.AddCommand(version.NewVersionCommand(name))
 
-	statsPort := 0
-	var err error = nil
-	if cfg.TemplateRouterConfig.StatsPort != "" {
-		statsPort, err = strconv.Atoi(cfg.TemplateRouterConfig.StatsPort)
-		if err != nil {
-			return nil, errors.New("Invalid stats port")
+	flag := cmd.Flags()
+	options.Config.Bind(flag)
+	options.TemplateRouter.Bind(flag)
+	options.RouterSelection.Bind(flag)
+
+	return cmd
+}
+
+func (o *TemplateRouterOptions) Complete() error {
+	routerSvcName := util.Env("ROUTER_SERVICE_NAME", "")
+	routerSvcNamespace := util.Env("ROUTER_SERVICE_NAMESPACE", "")
+	if len(routerSvcName) > 0 {
+		if len(routerSvcNamespace) == 0 {
+			return fmt.Errorf("ROUTER_SERVICE_NAMESPACE is required when ROUTER_SERVICE_NAME is specified")
+		}
+		o.RouterService = &ktypes.NamespacedName{
+			Namespace: routerSvcNamespace,
+			Name:      routerSvcName,
 		}
 	}
 
-	routerSvcNamespace := util.Env("ROUTER_SERVICE_NAMESPACE", "")
-	routerSvcName := util.Env("ROUTER_SERVICE_NAME", "")
-	cfg.TemplateRouterConfig.RouterService = ktypes.NamespacedName{
-		Namespace: routerSvcNamespace,
-		Name:      routerSvcName,
+	if len(o.StatsPortString) > 0 {
+		statsPort, err := strconv.Atoi(o.StatsPortString)
+		if err != nil {
+			return fmt.Errorf("stat port is not valid: %v", err)
+		}
+		o.StatsPort = statsPort
 	}
 
-	templatePluginCfg := templateplugin.TemplatePluginConfig{
-		TemplatePath:       cfg.TemplateRouterConfig.TemplateFile,
-		ReloadScriptPath:   cfg.TemplateRouterConfig.ReloadScript,
-		DefaultCertificate: cfg.DefaultCertificate,
-		StatsPort:          statsPort,
-		StatsUsername:      cfg.TemplateRouterConfig.StatsUsername,
-		StatsPassword:      cfg.TemplateRouterConfig.StatsPassword,
-		PeerService:        cfg.TemplateRouterConfig.RouterService,
+	return o.RouterSelection.Complete()
+}
+
+func (o *TemplateRouterOptions) Validate() error {
+	if len(o.TemplateFile) == 0 {
+		return errors.New("template file must be specified")
 	}
-	return templateplugin.NewTemplatePlugin(templatePluginCfg)
+
+	if len(o.ReloadScript) == 0 {
+		return errors.New("reload script must be specified")
+	}
+	return nil
+}
+
+// Run launches a template router using the provided options. It never exits.
+func (o *TemplateRouterOptions) Run() error {
+	pluginCfg := templateplugin.TemplatePluginConfig{
+		WorkingDir:         o.WorkingDir,
+		TemplatePath:       o.TemplateFile,
+		ReloadScriptPath:   o.ReloadScript,
+		DefaultCertificate: o.DefaultCertificate,
+		StatsPort:          o.StatsPort,
+		StatsUsername:      o.StatsUsername,
+		StatsPassword:      o.StatsPassword,
+		PeerService:        o.RouterService,
+	}
+
+	plugin, err := templateplugin.NewTemplatePlugin(pluginCfg)
+	if err != nil {
+		return err
+	}
+
+	oc, kc, err := o.Config.Clients()
+	if err != nil {
+		return err
+	}
+
+	factory := o.RouterSelection.NewFactory(oc, kc)
+	controller := factory.Create(plugin)
+	controller.Run()
+
+	proc.StartReaper()
+
+	select {}
 }

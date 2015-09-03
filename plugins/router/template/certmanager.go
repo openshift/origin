@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -143,7 +144,7 @@ func newSimpleCertificateWriter() certificateWriter {
 // WriteCertificate creates and writes the file identified by <id> in <directory>.  The file extension
 // .pem will be added to id.
 func (cm *simpleCertificateWriter) WriteCertificate(directory string, id string, cert []byte) error {
-	fileName := directory + id + ".pem"
+	fileName := filepath.Join(directory, id+".pem")
 	err := ioutil.WriteFile(fileName, cert, 0644)
 
 	if err != nil {
@@ -156,7 +157,7 @@ func (cm *simpleCertificateWriter) WriteCertificate(directory string, id string,
 // DeleteCertificate deletes certificates identified by <id> in <directory> with the .pem extension added.
 // this will not return an error if the file does not exist
 func (cm *simpleCertificateWriter) DeleteCertificate(directory, id string) error {
-	fileName := directory + id + ".pem"
+	fileName := filepath.Join(directory, id+".pem")
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
 		glog.V(4).Infof("attempted to delete file %s but it does not exist", fileName)
 		return nil

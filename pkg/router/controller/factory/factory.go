@@ -18,17 +18,48 @@ import (
 	"github.com/openshift/origin/pkg/router/controller"
 )
 
+// RouterControllerFactory initializes and manages the watches that drive a router
+// controller. It supports optional scoping on Namespace, Labels, and Fields of routes.
+// If Namespace is empty, it means "all namespaces".
 type RouterControllerFactory struct {
-	KClient  kclient.Interface
-	OSClient osclient.Interface
+	KClient        kclient.EndpointsNamespacer
+	OSClient       osclient.RoutesNamespacer
+	ResyncInterval time.Duration
+	Namespace      string
+	Labels         labels.Selector
+	Fields         fields.Selector
 }
 
+// NewDefaultRouterControllerFactory initializes a default router controller factory.
+func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclient.EndpointsNamespacer) *RouterControllerFactory {
+	return &RouterControllerFactory{
+		KClient:        kc,
+		OSClient:       oc,
+		ResyncInterval: 10 * time.Minute,
+
+		Namespace: kapi.NamespaceAll,
+		Labels:    labels.Everything(),
+		Fields:    fields.Everything(),
+	}
+}
+
+// Create begins listing and watching against the API server for the desired route and endpoint
+// resources. It spawns child goroutines that cannot be terminated.
 func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller.RouterController {
 	routeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&routeLW{factory.OSClient}, &routeapi.Route{}, routeEventQueue, 2*time.Minute).Run()
+	cache.NewReflector(&routeLW{
+		client:    factory.OSClient,
+		namespace: factory.Namespace,
+		field:     factory.Fields,
+		label:     factory.Labels,
+	}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
 	endpointsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&endpointsLW{factory.KClient}, &kapi.Endpoints{}, endpointsEventQueue, 2*time.Minute).Run()
+	cache.NewReflector(&endpointsLW{
+		client:    factory.KClient,
+		namespace: factory.Namespace,
+		// we do not scope endpoints by labels or fields because the route labels != endpoints labels
+	}, &kapi.Endpoints{}, endpointsEventQueue, factory.ResyncInterval).Run()
 
 	return &controller.RouterController{
 		Plugin: plugin,
@@ -49,26 +80,35 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller
 	}
 }
 
+// routeLW is a ListWatcher for routes that can be filtered to a label, field, or
+// namespace.
 type routeLW struct {
-	client osclient.Interface
+	client    osclient.RoutesNamespacer
+	label     labels.Selector
+	field     fields.Selector
+	namespace string
 }
 
 func (lw *routeLW) List() (runtime.Object, error) {
-	return lw.client.Routes(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	return lw.client.Routes(lw.namespace).List(lw.label, lw.field)
 }
 
 func (lw *routeLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Routes(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+	return lw.client.Routes(lw.namespace).Watch(lw.label, lw.field, resourceVersion)
 }
 
+// endpointsLW is a list watcher for routes.
 type endpointsLW struct {
-	client kclient.Interface
+	client    kclient.EndpointsNamespacer
+	label     labels.Selector
+	field     fields.Selector
+	namespace string
 }
 
 func (lw *endpointsLW) List() (runtime.Object, error) {
-	return lw.client.Endpoints(kapi.NamespaceAll).List(labels.Everything())
+	return lw.client.Endpoints(lw.namespace).List(labels.Everything())
 }
 
 func (lw *endpointsLW) Watch(resourceVersion string) (watch.Interface, error) {
-	return lw.client.Endpoints(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+	return lw.client.Endpoints(lw.namespace).Watch(lw.label, lw.field, resourceVersion)
 }

@@ -17,7 +17,7 @@ RUN ln -s /usr/bin/openshift /usr/bin/oc && \
     ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
     ln -s /usr/bin/openshift /usr/bin/openshift-docker-build && \
     ln -s /usr/bin/openshift /usr/bin/openshift-sti-build && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-router && \
+    ln -s /usr/bin/openshift /usr/bin/openshift-f5-router && \
     setcap 'cap_net_bind_service=ep' /usr/bin/openshift
 
 ADD scripts/recycler.sh /usr/share/openshift/scripts/volumes/recycler.sh
