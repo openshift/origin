@@ -5,8 +5,8 @@
     <a ng-if="canCreate" href="createProject" style="margin-top: 10px;" class="btn btn-lg btn-primary pull-right">New Project</a>
     <alerts alerts="alerts"></alerts>
     <div ng-repeat="project in projects | orderByDisplayName">
-      <div class="tile tile-project tile-click" style="margin: 10px 0;">
-        <div class="pull-left" style="max-width:80%">
+      <div row flex cross-axis="center" class="tile tile-project tile-click">
+        <div flex>
           <h2 class="project">
             <a class="tile-target" href="project/{{project.metadata.name}}">{{(project | displayName) || project.metadata.name}}</a>
             <span ng-if="project.status.phase != 'Active'" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This project has been marked for deletion." style="cursor: help; vertical-align: top; margin-left: 5px;">
@@ -18,30 +18,12 @@
             <truncate-long-text content="project | description" limit="512" use-word-boundary="true"></truncate-long-text>
           </div>
         </div>    
-        <div ng-if="project.status.phase == 'Active'"
-             class="pull-right action-button" 
-             style="margin:20px; max-width:20%;">
-          <i class="fa fa-trash-o fa-2x" 
-            ng-click="$event.stopPropagation(); toggleConfirm(project)"
-            ng-if="!deletingMap[project.metadata.name] && !confirmingMap[project.metadata.name]" 
+        <div row flex main-axis="end" ng-if="project.status.phase == 'Active'">
+          <i class="fa fa-trash-o fa-2x action-button" 
+            ng-click="$event.stopPropagation(); openDeleteModal(project);"
             data-toggle="tooltip" 
             data-placement="left" 
             title="Delete Project"></i>
-          <i class="fa fa-strong fa-spinner fa-spin fa-2x" style="color: #000" ng-if="deletingMap[project.metadata.name]"></i>
-        </div>
-        <div class="pull-right" style="padding-top: 20px; margin-right:-20px;" ng-if="confirmingMap[project.metadata.name]">
-          <button class="btn btn-danger" 
-                  type="button" 
-                  ng-click="$event.stopPropagation(); deleteProject(project);"
-                  style="margin-right:10px; color: #fff !important;">
-            Delete
-          </button>
-          <button class="btn" 
-                  type="button" 
-                  ng-click="$event.stopPropagation(); toggleConfirm(project);"
-                  style="color: #fff !important;">
-            Cancel
-          </button>
         </div>
       </div>
     </div>

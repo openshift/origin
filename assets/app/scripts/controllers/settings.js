@@ -9,7 +9,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('SettingsController', function ($scope, DataService, $filter, LabelFilter, $timeout, Logger) {
+  .controller('SettingsController', function ($scope, DataService, AlertMessageService, $filter, $modal, $location, LabelFilter, $timeout, Logger) {
     $scope.quotas = {};
     $scope.limitRanges = {};
     $scope.labelSuggestions = {};
@@ -18,7 +18,46 @@ angular.module('openshiftConsole')
     $scope.emptyMessageLimitRanges = "Loading...";
     $scope.renderOptions = $scope.renderOptions || {};
     $scope.renderOptions.hideFilterWidget = true;
+
     var watches = [];
+
+    $scope.openDeleteModal = function() {
+      // opening the modal with settings scope as parent
+      var modalInstance = $modal.open({
+        animation: true,
+        templateUrl: 'views/modals/delete-project.html',
+        controller: 'DeleteModalController',
+        scope: $scope
+      });
+
+      modalInstance.result.then(function(result) {
+      /* upon clicking delete button, redirect to the home page,
+         and keep alert in AlertMessageService to show alert
+         that project has been marked for deletion */
+        var projectName = $scope.project.metadata.name;
+        DataService.delete('projects', projectName, $scope)
+        .then(function() {
+          var redirect = URI('/');
+          AlertMessageService.addAlert({
+            name: $scope.project.metadata.name,
+            data: {
+              type: "success",
+              message: "Project " + $filter('displayName')($scope.project) + " was marked for deletion."
+            }
+          });
+          $location.url(redirect);
+        })
+        .catch(function(err) {
+          // called if failure to delete
+          $scope.alerts[projectName] = {
+            type: "error",
+            message: "Project " + $filter('displayName')($scope.project) + " could not be deleted.",
+            details: getErrorDetails(err)
+          };
+          Logger.error("Project " + $filter('displayName')($scope.project) + " could not be deleted.", err);
+        });
+      });
+    };
 
     DataService.list("resourcequotas", $scope, function(quotas) {
       $scope.quotas = quotas.by("metadata.name");
@@ -56,4 +95,18 @@ angular.module('openshiftConsole')
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
     });
+
+    var getErrorDetails = function(result) {
+      var error = result.data || {};
+      if (error.message) {
+        return error.message;
+      }
+
+      var status = result.status || error.status;
+      if (status) {
+        return "Status: " + status;
+      }
+
+      return "";
+    };
   });
