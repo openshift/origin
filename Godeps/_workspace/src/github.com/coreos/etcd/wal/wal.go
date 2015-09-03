@@ -19,16 +19,19 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
-	"log"
 	"os"
 	"path"
 	"reflect"
+	"sync"
+	"time"
 
 	"github.com/coreos/etcd/pkg/fileutil"
 	"github.com/coreos/etcd/pkg/pbutil"
 	"github.com/coreos/etcd/raft"
 	"github.com/coreos/etcd/raft/raftpb"
 	"github.com/coreos/etcd/wal/walpb"
+
+	"github.com/coreos/pkg/capnslog"
 )
 
 const (
@@ -40,9 +43,15 @@ const (
 
 	// the owner can make/remove files inside the directory
 	privateDirMode = 0700
+
+	// the expected size of each wal segment file.
+	// the actual size might be bigger than it.
+	segmentSizeBytes = 64 * 1000 * 1000 // 64MB
 )
 
 var (
+	plog = capnslog.NewPackageLogger("github.com/coreos/etcd", "wal")
+
 	ErrMetadataConflict = errors.New("wal: conflicting metadata found")
 	ErrFileNotFound     = errors.New("wal: file not found")
 	ErrCRCMismatch      = errors.New("wal: crc mismatch")
@@ -64,6 +73,7 @@ type WAL struct {
 	start   walpb.Snapshot // snapshot to start reading
 	decoder *decoder       // decoder to decode records
 
+	mu      sync.Mutex
 	f       *os.File // underlay file opened for appending, sync
 	seq     uint64   // sequence of the wal file currently used for writes
 	enti    uint64   // index of the last entry saved to the wal
@@ -127,13 +137,13 @@ func Open(dirpath string, snap walpb.Snapshot) (*WAL, error) {
 	return openAtIndex(dirpath, snap, true)
 }
 
-// OpenNotInUse only opens the wal files that are not in use.
-// Other than that, it is similar to Open.
-func OpenNotInUse(dirpath string, snap walpb.Snapshot) (*WAL, error) {
+// OpenForRead only opens the wal files for read.
+// Write on a read only wal panics.
+func OpenForRead(dirpath string, snap walpb.Snapshot) (*WAL, error) {
 	return openAtIndex(dirpath, snap, false)
 }
 
-func openAtIndex(dirpath string, snap walpb.Snapshot, all bool) (*WAL, error) {
+func openAtIndex(dirpath string, snap walpb.Snapshot, write bool) (*WAL, error) {
 	names, err := fileutil.ReadDir(dirpath)
 	if err != nil {
 		return nil, err
@@ -162,11 +172,8 @@ func openAtIndex(dirpath string, snap walpb.Snapshot, all bool) (*WAL, error) {
 		}
 		err = l.TryLock()
 		if err != nil {
-			if all {
+			if write {
 				return nil, err
-			} else {
-				log.Printf("wal: opened all the files until %s, since it is still in use by an etcd server", name)
-				break
 			}
 		}
 		rcs = append(rcs, f)
@@ -174,33 +181,40 @@ func openAtIndex(dirpath string, snap walpb.Snapshot, all bool) (*WAL, error) {
 	}
 	rc := MultiReadCloser(rcs...)
 
-	// open the lastest wal file for appending
-	seq, _, err := parseWalName(names[len(names)-1])
-	if err != nil {
-		rc.Close()
-		return nil, err
-	}
-	last := path.Join(dirpath, names[len(names)-1])
-	f, err := os.OpenFile(last, os.O_WRONLY|os.O_APPEND, 0)
-	if err != nil {
-		rc.Close()
-		return nil, err
-	}
-
 	// create a WAL ready for reading
 	w := &WAL{
 		dir:     dirpath,
 		start:   snap,
 		decoder: newDecoder(rc),
-
-		f:     f,
-		seq:   seq,
-		locks: ls,
+		locks:   ls,
 	}
+
+	if write {
+		// open the lastest wal file for appending
+		seq, _, err := parseWalName(names[len(names)-1])
+		if err != nil {
+			rc.Close()
+			return nil, err
+		}
+		last := path.Join(dirpath, names[len(names)-1])
+
+		f, err := os.OpenFile(last, os.O_WRONLY|os.O_APPEND, 0)
+		if err != nil {
+			rc.Close()
+			return nil, err
+		}
+
+		w.f = f
+		w.seq = seq
+	}
+
 	return w, nil
 }
 
-// ReadAll reads out all records of the current WAL.
+// ReadAll reads out records of the current WAL.
+// If opened in write mode, it must read out all records until EOF. Or an error
+// will be returned.
+// If opened in read mode, it will try to read all records if possible.
 // If it cannot read out the expected snap, it will return ErrSnapshotNotFound.
 // If loaded snap doesn't match with the expected one, it will return
 // all the records and error ErrSnapshotMismatch.
@@ -208,6 +222,9 @@ func openAtIndex(dirpath string, snap walpb.Snapshot, all bool) (*WAL, error) {
 // TODO: maybe loose the checking of match.
 // After ReadAll, the WAL will be ready for appending new records.
 func (w *WAL) ReadAll() (metadata []byte, state raftpb.HardState, ents []raftpb.Entry, err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	rec := &walpb.Record{}
 	decoder := w.decoder
 
@@ -252,10 +269,24 @@ func (w *WAL) ReadAll() (metadata []byte, state raftpb.HardState, ents []raftpb.
 			return nil, state, nil, fmt.Errorf("unexpected block type %d", rec.Type)
 		}
 	}
-	if err != io.EOF {
-		state.Reset()
-		return nil, state, nil, err
+
+	switch w.f {
+	case nil:
+		// We do not have to read out all entries in read mode.
+		// The last record maybe a partial written one, so
+		// ErrunexpectedEOF might be returned.
+		if err != io.EOF && err != io.ErrUnexpectedEOF {
+			state.Reset()
+			return nil, state, nil, err
+		}
+	default:
+		// We must read all of the entries if WAL is opened in write mode.
+		if err != io.EOF {
+			state.Reset()
+			return nil, state, nil, err
+		}
 	}
+
 	err = nil
 	if !match {
 		err = ErrSnapshotNotFound
@@ -266,16 +297,21 @@ func (w *WAL) ReadAll() (metadata []byte, state raftpb.HardState, ents []raftpb.
 	w.start = walpb.Snapshot{}
 
 	w.metadata = metadata
-	// create encoder (chain crc with the decoder), enable appending
-	w.encoder = newEncoder(w.f, w.decoder.lastCRC())
-	w.decoder = nil
+
+	if w.f != nil {
+		// create encoder (chain crc with the decoder), enable appending
+		w.encoder = newEncoder(w.f, w.decoder.lastCRC())
+		w.decoder = nil
+		lastIndexSaved.Set(float64(w.enti))
+	}
+
 	return metadata, state, ents, err
 }
 
-// Cut closes current file written and creates a new one ready to append.
+// cut closes current file written and creates a new one ready to append.
 // cut first creates a temp wal file and writes necessary headers into it.
 // Then cut atomtically rename temp wal file to a wal file.
-func (w *WAL) Cut() error {
+func (w *WAL) cut() error {
 	// close old wal file
 	if err := w.sync(); err != nil {
 		return err
@@ -342,8 +378,7 @@ func (w *WAL) Cut() error {
 	// increase the wal seq
 	w.seq++
 
-	log.Printf("wal: segmented wal file %v is created", fpath)
-
+	plog.Infof("segmented wal file %v is created", fpath)
 	return nil
 }
 
@@ -353,7 +388,10 @@ func (w *WAL) sync() error {
 			return err
 		}
 	}
-	return w.f.Sync()
+	start := time.Now()
+	err := w.f.Sync()
+	syncDurations.Observe(float64(time.Since(start).Nanoseconds() / int64(time.Microsecond)))
+	return err
 }
 
 // ReleaseLockTo releases the locks, which has smaller index than the given index
@@ -361,6 +399,9 @@ func (w *WAL) sync() error {
 // For example, if WAL is holding lock 1,2,3,4,5,6, ReleaseLockTo(4) will release
 // lock 1,2 but keep 3. ReleaseLockTo(5) will release 1,2,3 but keep 4.
 func (w *WAL) ReleaseLockTo(index uint64) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	var smaller int
 	found := false
 
@@ -396,6 +437,9 @@ func (w *WAL) ReleaseLockTo(index uint64) error {
 }
 
 func (w *WAL) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	if w.f != nil {
 		if err := w.sync(); err != nil {
 			return err
@@ -413,12 +457,14 @@ func (w *WAL) Close() error {
 }
 
 func (w *WAL) saveEntry(e *raftpb.Entry) error {
+	// TODO: add MustMarshalTo to reduce one allocation.
 	b := pbutil.MustMarshal(e)
 	rec := &walpb.Record{Type: entryType, Data: b}
 	if err := w.encoder.encode(rec); err != nil {
 		return err
 	}
 	w.enti = e.Index
+	lastIndexSaved.Set(float64(w.enti))
 	return nil
 }
 
@@ -433,19 +479,39 @@ func (w *WAL) saveState(s *raftpb.HardState) error {
 }
 
 func (w *WAL) Save(st raftpb.HardState, ents []raftpb.Entry) error {
-	// TODO(xiangli): no more reference operator
-	if err := w.saveState(&st); err != nil {
-		return err
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	// short cut, do not call sync
+	if raft.IsEmptyHardState(st) && len(ents) == 0 {
+		return nil
 	}
+
+	// TODO(xiangli): no more reference operator
 	for i := range ents {
 		if err := w.saveEntry(&ents[i]); err != nil {
 			return err
 		}
 	}
-	return w.sync()
+	if err := w.saveState(&st); err != nil {
+		return err
+	}
+
+	fstat, err := w.f.Stat()
+	if err != nil {
+		return err
+	}
+	if fstat.Size() < segmentSizeBytes {
+		return w.sync()
+	}
+	// TODO: add a test for this code path when refactoring the tests
+	return w.cut()
 }
 
 func (w *WAL) SaveSnapshot(e walpb.Snapshot) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	b := pbutil.MustMarshal(&e)
 	rec := &walpb.Record{Type: snapshotType, Data: b}
 	if err := w.encoder.encode(rec); err != nil {
@@ -455,6 +521,7 @@ func (w *WAL) SaveSnapshot(e walpb.Snapshot) error {
 	if w.enti < e.Index {
 		w.enti = e.Index
 	}
+	lastIndexSaved.Set(float64(w.enti))
 	return w.sync()
 }
 

@@ -53,13 +53,15 @@ func TestWaitTestStress(t *testing.T) {
 	wt := NewTimeList()
 	for i := 0; i < 10000; i++ {
 		chs = append(chs, wt.Wait(time.Now()))
+		// sleep one nanosecond before waiting on the next event
+		time.Sleep(time.Nanosecond)
 	}
 	wt.Trigger(time.Now())
 
 	for _, ch := range chs {
 		select {
 		case <-ch:
-		case <-time.After(10 * time.Millisecond):
+		case <-time.After(time.Second):
 			t.Fatalf("cannot receive from ch as expected")
 		}
 	}

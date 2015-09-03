@@ -17,8 +17,8 @@ package discovery
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -29,11 +29,14 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/pkg/types"
+	"github.com/coreos/pkg/capnslog"
 	"github.com/jonboulle/clockwork"
 	"golang.org/x/net/context"
 )
 
 var (
+	plog = capnslog.NewPackageLogger("github.com/coreos/etcd", "discovery")
+
 	ErrInvalidURL     = errors.New("discovery: invalid URL")
 	ErrBadSizeKey     = errors.New("discovery: size key is bad")
 	ErrSizeNotFound   = errors.New("discovery: size key not found")
@@ -102,7 +105,7 @@ func newProxyFunc(proxy string) (func(*http.Request) (*url.URL, error), error) {
 		return nil, fmt.Errorf("invalid proxy address %q: %v", proxy, err)
 	}
 
-	log.Printf("discovery: using proxy %q", proxyURL.String())
+	plog.Infof("using proxy %q", proxyURL.String())
 	return http.ProxyURL(proxyURL), nil
 }
 
@@ -117,11 +120,23 @@ func newDiscovery(durl, dproxyurl string, id types.ID) (*discovery, error) {
 	if err != nil {
 		return nil, err
 	}
-	c, err := client.NewHTTPClient(&http.Transport{Proxy: pf}, []string{u.String()})
+	cfg := client.Config{
+		Transport: &http.Transport{
+			Proxy: pf,
+			Dial: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+			// TODO: add ResponseHeaderTimeout back when watch on discovery service writes header early
+		},
+		Endpoints: []string{u.String()},
+	}
+	c, err := client.New(cfg)
 	if err != nil {
 		return nil, err
 	}
-	dc := client.NewDiscoveryKeysAPI(c)
+	dc := client.NewKeysAPIWithPrefix(c, "")
 	return &discovery{
 		cluster: token,
 		c:       dc,
@@ -176,32 +191,33 @@ func (d *discovery) getCluster() (string, error) {
 
 func (d *discovery) createSelf(contents string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), client.DefaultRequestTimeout)
-	resp, err := d.c.Create(ctx, d.selfKey(), contents, -1)
+	resp, err := d.c.Create(ctx, d.selfKey(), contents)
 	cancel()
 	if err != nil {
-		if err == client.ErrKeyExists {
+		if eerr, ok := err.(client.Error); ok && eerr.Code == client.ErrorCodeNodeExist {
 			return ErrDuplicateID
 		}
 		return err
 	}
 
 	// ensure self appears on the server we connected to
-	w := d.c.Watch(d.selfKey(), resp.Node.CreatedIndex)
+	w := d.c.Watcher(d.selfKey(), &client.WatcherOptions{AfterIndex: resp.Node.CreatedIndex - 1})
 	_, err = w.Next(context.Background())
 	return err
 }
 
-func (d *discovery) checkCluster() (client.Nodes, int, uint64, error) {
+func (d *discovery) checkCluster() ([]*client.Node, int, uint64, error) {
 	configKey := path.Join("/", d.cluster, "_config")
 	ctx, cancel := context.WithTimeout(context.Background(), client.DefaultRequestTimeout)
 	// find cluster size
-	resp, err := d.c.Get(ctx, path.Join(configKey, "size"))
+	resp, err := d.c.Get(ctx, path.Join(configKey, "size"), nil)
 	cancel()
 	if err != nil {
-		if err == client.ErrKeyNoExist {
+		if eerr, ok := err.(*client.Error); ok && eerr.Code == client.ErrorCodeKeyNotFound {
 			return nil, 0, 0, ErrSizeNotFound
 		}
-		if err == client.ErrTimeout {
+		if ce, ok := err.(*client.ClusterError); ok {
+			plog.Error(ce.Detail())
 			return d.checkClusterRetry()
 		}
 		return nil, 0, 0, err
@@ -212,15 +228,16 @@ func (d *discovery) checkCluster() (client.Nodes, int, uint64, error) {
 	}
 
 	ctx, cancel = context.WithTimeout(context.Background(), client.DefaultRequestTimeout)
-	resp, err = d.c.Get(ctx, d.cluster)
+	resp, err = d.c.Get(ctx, d.cluster, nil)
 	cancel()
 	if err != nil {
-		if err == client.ErrTimeout {
+		if ce, ok := err.(*client.ClusterError); ok {
+			plog.Error(ce.Detail())
 			return d.checkClusterRetry()
 		}
 		return nil, 0, 0, err
 	}
-	nodes := make(client.Nodes, 0)
+	nodes := make([]*client.Node, 0)
 	// append non-config keys to nodes
 	for _, n := range resp.Node.Nodes {
 		if !(path.Base(n.Key) == path.Base(configKey)) {
@@ -246,11 +263,11 @@ func (d *discovery) checkCluster() (client.Nodes, int, uint64, error) {
 func (d *discovery) logAndBackoffForRetry(step string) {
 	d.retries++
 	retryTime := time.Second * (0x1 << d.retries)
-	log.Println("discovery: during", step, "connection to", d.url, "timed out, retrying in", retryTime)
+	plog.Infof("%s: error connecting to %s, retrying in %s", step, d.url, retryTime)
 	d.clock.Sleep(retryTime)
 }
 
-func (d *discovery) checkClusterRetry() (client.Nodes, int, uint64, error) {
+func (d *discovery) checkClusterRetry() ([]*client.Node, int, uint64, error) {
 	if d.retries < nRetries {
 		d.logAndBackoffForRetry("cluster status check")
 		return d.checkCluster()
@@ -258,7 +275,7 @@ func (d *discovery) checkClusterRetry() (client.Nodes, int, uint64, error) {
 	return nil, 0, 0, ErrTooManyRetries
 }
 
-func (d *discovery) waitNodesRetry() (client.Nodes, error) {
+func (d *discovery) waitNodesRetry() ([]*client.Node, error) {
 	if d.retries < nRetries {
 		d.logAndBackoffForRetry("waiting for other nodes")
 		nodes, n, index, err := d.checkCluster()
@@ -270,36 +287,37 @@ func (d *discovery) waitNodesRetry() (client.Nodes, error) {
 	return nil, ErrTooManyRetries
 }
 
-func (d *discovery) waitNodes(nodes client.Nodes, size int, index uint64) (client.Nodes, error) {
+func (d *discovery) waitNodes(nodes []*client.Node, size int, index uint64) ([]*client.Node, error) {
 	if len(nodes) > size {
 		nodes = nodes[:size]
 	}
 	// watch from the next index
-	w := d.c.RecursiveWatch(d.cluster, index+1)
-	all := make(client.Nodes, len(nodes))
+	w := d.c.Watcher(d.cluster, &client.WatcherOptions{AfterIndex: index, Recursive: true})
+	all := make([]*client.Node, len(nodes))
 	copy(all, nodes)
 	for _, n := range all {
 		if path.Base(n.Key) == path.Base(d.selfKey()) {
-			log.Printf("discovery: found self %s in the cluster", path.Base(d.selfKey()))
+			plog.Noticef("found self %s in the cluster", path.Base(d.selfKey()))
 		} else {
-			log.Printf("discovery: found peer %s in the cluster", path.Base(n.Key))
+			plog.Noticef("found peer %s in the cluster", path.Base(n.Key))
 		}
 	}
 
 	// wait for others
 	for len(all) < size {
-		log.Printf("discovery: found %d peer(s), waiting for %d more", len(all), size-len(all))
+		plog.Noticef("found %d peer(s), waiting for %d more", len(all), size-len(all))
 		resp, err := w.Next(context.Background())
 		if err != nil {
-			if err == client.ErrTimeout {
+			if ce, ok := err.(*client.ClusterError); ok {
+				plog.Error(ce.Detail())
 				return d.waitNodesRetry()
 			}
 			return nil, err
 		}
-		log.Printf("discovery: found peer %s in the cluster", path.Base(resp.Node.Key))
+		plog.Noticef("found peer %s in the cluster", path.Base(resp.Node.Key))
 		all = append(all, resp.Node)
 	}
-	log.Printf("discovery: found %d needed peer(s)", len(all))
+	plog.Noticef("found %d needed peer(s)", len(all))
 	return all, nil
 }
 
@@ -307,7 +325,7 @@ func (d *discovery) selfKey() string {
 	return path.Join("/", d.cluster, d.id.String())
 }
 
-func nodesToCluster(ns client.Nodes) string {
+func nodesToCluster(ns []*client.Node) string {
 	s := make([]string, len(ns))
 	for i, n := range ns {
 		s[i] = n.Value
@@ -315,7 +333,7 @@ func nodesToCluster(ns client.Nodes) string {
 	return strings.Join(s, ",")
 }
 
-type sortableNodes struct{ client.Nodes }
+type sortableNodes struct{ Nodes []*client.Node }
 
 func (ns sortableNodes) Len() int { return len(ns.Nodes) }
 func (ns sortableNodes) Less(i, j int) bool {

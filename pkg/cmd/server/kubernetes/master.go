@@ -59,14 +59,12 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 func (c *MasterConfig) RunNamespaceController() {
 	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, c.ControllerManager.NamespaceSyncPeriod)
 	namespaceController.Run()
-	glog.Infof("Started Kubernetes Namespace Manager")
 }
 
 // RunPersistentVolumeClaimBinder starts the Kubernetes Persistent Volume Claim Binder
 func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 	binder := volumeclaimbinder.NewPersistentVolumeClaimBinder(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod)
 	binder.Run()
-	glog.Infof("Started Kubernetes Persistent Volume Claim Binder")
 }
 
 func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string) {
@@ -90,17 +88,15 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 
 	recycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(c.KubeClient, c.ControllerManager.PVClaimBinderSyncPeriod, allPlugins)
 	if err != nil {
-		glog.Fatalf("Could not start PersistentVolumeRecycler: %+v", err)
+		glog.Fatalf("Could not start Persistent Volume Recycler: %+v", err)
 	}
 	recycler.Run()
-	glog.Infof("Started Kubernetes PersistentVolumeRecycler")
 }
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
 	controllerManager := replicationcontroller.NewReplicationManager(client, replicationcontroller.BurstReplicas)
 	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
-	glog.Infof("Started Kubernetes Replication Manager")
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
@@ -108,7 +104,6 @@ func (c *MasterConfig) RunEndpointController() {
 	endpoints := endpointcontroller.NewEndpointController(c.KubeClient)
 	go endpoints.Run(c.ControllerManager.ConcurrentEndpointSyncs, util.NeverStop)
 
-	glog.Infof("Started Kubernetes Endpoint Controller")
 }
 
 // RunScheduler starts the Kubernetes scheduler
@@ -123,7 +118,6 @@ func (c *MasterConfig) RunScheduler() {
 
 	s := scheduler.New(config)
 	s.Run()
-	glog.Infof("Started Kubernetes Scheduler")
 }
 
 // RunResourceQuotaManager starts the resource quota manager
@@ -151,8 +145,6 @@ func (c *MasterConfig) RunNodeController() {
 	)
 
 	controller.Run(s.NodeSyncPeriod)
-
-	glog.Infof("Started Kubernetes Node Controller")
 }
 
 func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {

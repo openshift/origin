@@ -51,12 +51,12 @@ const (
 
 // startEtcd launches the etcd server and HTTP handlers for client/server communication.
 func startEtcd(cfg *config) (<-chan struct{}, error) {
-	cls, err := setupCluster(cfg)
+	initialPeers, token, err := setupCluster(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up initial cluster: %v", err)
 	}
 
-	pt, err := transport.NewTimeoutTransport(cfg.peerTLSInfo, rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
+	pt, err := transport.NewTimeoutTransport(cfg.peerTLSInfo, rafthttp.DialTimeout, rafthttp.ConnReadTimeout, rafthttp.ConnWriteTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -106,19 +106,20 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 	}
 
 	srvcfg := &etcdserver.ServerConfig{
-		Name:            cfg.name,
-		ClientURLs:      cfg.acurls,
-		PeerURLs:        cfg.apurls,
-		DataDir:         cfg.dir,
-		SnapCount:       cfg.snapCount,
-		MaxSnapFiles:    cfg.maxSnapFiles,
-		MaxWALFiles:     cfg.maxWalFiles,
-		Cluster:         cls,
-		NewCluster:      true,
-		ForceNewCluster: false,
-		Transport:       pt,
-		TickMs:          cfg.TickMs,
-		ElectionTicks:   cfg.electionTicks(),
+		Name:                cfg.name,
+		ClientURLs:          cfg.acurls,
+		PeerURLs:            cfg.apurls,
+		DataDir:             cfg.dir,
+		SnapCount:           cfg.snapCount,
+		MaxSnapFiles:        cfg.maxSnapFiles,
+		InitialPeerURLsMap:  initialPeers,
+		InitialClusterToken: token,
+		MaxWALFiles:         cfg.maxWalFiles,
+		NewCluster:          true,
+		ForceNewCluster:     false,
+		Transport:           pt,
+		TickMs:              cfg.TickMs,
+		ElectionTicks:       cfg.electionTicks(),
 	}
 	var s *etcdserver.EtcdServer
 	s, err = etcdserver.NewServer(srvcfg)
@@ -130,7 +131,7 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 	osutil.RegisterInterruptHandler(s.Stop)
 
 	ch := etcdhttp.NewClientHandler(s)
-	ph := etcdhttp.NewPeerHandler(s.Cluster, s.RaftHandler())
+	ph := etcdhttp.NewPeerHandler(s.Cluster(), s.RaftHandler())
 	// Start the peer server in a goroutine
 	for _, l := range plns {
 		go func(l net.Listener) {
@@ -149,15 +150,10 @@ func startEtcd(cfg *config) (<-chan struct{}, error) {
 }
 
 // setupCluster sets up an initial cluster definition for bootstrap or discovery.
-func setupCluster(cfg *config) (*etcdserver.Cluster, error) {
-	var cls *etcdserver.Cluster
-	var err error
-	switch {
-	default:
-		// We're statically configured, and cluster has appropriately been set.
-		cls, err = etcdserver.NewClusterFromString(cfg.initialClusterToken, cfg.initialCluster)
-	}
-	return cls, err
+func setupCluster(cfg *config) (types.URLsMap, string, error) {
+	// We're statically configured, and cluster has appropriately been set.
+	m, err := types.NewURLsMap(cfg.initialCluster)
+	return m, cfg.initialClusterToken, err
 }
 
 func genClusterString(name string, urls types.URLs) string {
@@ -203,7 +199,12 @@ func serveHTTP(l net.Listener, handler http.Handler, readTimeout time.Duration) 
 }
 
 func (cfg *config) resolveUrls() error {
-	return netutil.ResolveTCPAddrs(cfg.lpurls, cfg.apurls, cfg.lcurls, cfg.acurls)
+	out, err := netutil.ResolveTCPAddrs([][]url.URL{cfg.lpurls, cfg.apurls, cfg.lcurls, cfg.acurls})
+	if err != nil {
+		return err
+	}
+	cfg.lpurls, cfg.apurls, cfg.lcurls, cfg.acurls = out[0], out[1], out[2], out[3]
+	return nil
 }
 
 func (cfg config) electionTicks() int { return int(cfg.ElectionMs / cfg.TickMs) }
