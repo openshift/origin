@@ -1477,6 +1477,23 @@ _openshift_admin_create-bootstrap-policy-file()
     must_have_one_noun=()
 }
 
+_openshift_admin_create-login-template()
+{
+    last_command="openshift_admin_create-login-template"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_admin_overwrite-policy()
 {
     last_command="openshift_admin_overwrite-policy"
@@ -1729,6 +1746,7 @@ _openshift_admin()
     commands+=("create-api-client-config")
     commands+=("create-bootstrap-project-template")
     commands+=("create-bootstrap-policy-file")
+    commands+=("create-login-template")
     commands+=("overwrite-policy")
     commands+=("create-node-config")
     commands+=("ca")

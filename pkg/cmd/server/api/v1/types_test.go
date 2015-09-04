@@ -230,6 +230,7 @@ oauthConfig:
     sessionMaxAgeSeconds: 0
     sessionName: ""
     sessionSecretsFile: ""
+  templates: null
   tokenConfig:
     accessTokenMaxAgeSeconds: 0
     authorizeTokenMaxAgeSeconds: 0

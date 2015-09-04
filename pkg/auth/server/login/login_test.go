@@ -140,7 +140,12 @@ func TestLogin(t *testing.T) {
 	}
 
 	for k, testCase := range testCases {
-		server := httptest.NewServer(NewLogin(testCase.CSRF, testCase.Auth, DefaultLoginFormRenderer))
+		loginFormRenderer, err := NewLoginFormRenderer("")
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", k, err)
+			continue
+		}
+		server := httptest.NewServer(NewLogin(testCase.CSRF, testCase.Auth, loginFormRenderer))
 
 		var resp *http.Response
 		if testCase.PostValues != nil {
@@ -192,3 +197,169 @@ func TestLogin(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateLoginTemplate(t *testing.T) {
+	testCases := map[string]struct {
+		Template      string
+		TemplateValid bool
+	}{
+		"default login template": {
+			Template:      defaultLoginTemplateString,
+			TemplateValid: true,
+		},
+		"login template example": {
+			Template:      LoginTemplateExample,
+			TemplateValid: true,
+		},
+		"original login template example": {
+			Template:      originalLoginTemplateExample,
+			TemplateValid: true,
+		},
+		"template with missing parameter": {
+			Template:      invalidLoginTemplate,
+			TemplateValid: false,
+		},
+	}
+
+	for k, testCase := range testCases {
+		allErrs := ValidateLoginTemplate([]byte(testCase.Template))
+		if testCase.TemplateValid {
+			for _, err := range allErrs {
+				t.Errorf("%s: template validation failed when it should have succeeded: %v", k, err)
+			}
+		} else if len(allErrs) == 0 {
+			t.Errorf("%s: template validation succeeded when it should have failed", k)
+		}
+	}
+}
+
+// Make sure the original template for login customizations always validates.
+const originalLoginTemplateExample = `<!DOCTYPE html>
+<!--
+
+This template can be modified and used to customize the login page. To replace
+the login page, set master configuration option oauthConfig.templates.login to
+the path of the template file. Don't remove parameters in curly braces below.
+
+oauthConfig:
+  templates:
+    login: templates/login-template.html
+
+-->
+<html>
+  <head>
+    <title>Login</title>
+    <style type="text/css">
+      body {
+        font-family: "Open Sans", Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        margin: 15px;
+      }
+
+      input {
+        margin-bottom: 10px;
+        width: 300px;
+      }
+
+      .error {
+        color: red;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+
+    {{ if .Error }}
+      <div class="error">{{ .Error }}</div>
+    {{ end }}
+
+    <form action="{{ .Action }}" method="POST">
+      <input type="hidden" name="{{ .Names.Then }}" value="{{ .Values.Then }}">
+      <input type="hidden" name="{{ .Names.CSRF }}" value="{{ .Values.CSRF }}">
+
+      <div>
+        <label for="inputUsername">Username</label>
+      </div>
+      <div>
+        <input type="text" id="inputUsername" autofocus="autofocus" type="text" name="{{ .Names.Username }}" value="{{ .Values.Username }}">
+      </div>
+
+      <div>
+        <label for="inputPassword">Password</label>
+      </div>
+      <div>
+        <input type="password" id="inputPassword" type="password" name="{{ .Names.Password }}" value="">
+      </div>
+
+      <button type="submit">Log In</button>
+
+    </form>
+
+  </body>
+</html>
+`
+
+// This template is missing the CSRF hidden input and should fail validation.
+const invalidLoginTemplate = `<!DOCTYPE html>
+<!--
+
+This template can be modified and used to customize the login page. To replace
+the login page, set master configuration option oauthConfig.templates.login to
+the path of the template file. Don't remove parameters in curly braces below.
+
+oauthConfig:
+  templates:
+    login: templates/login-template.html
+
+-->
+<html>
+  <head>
+    <title>Login</title>
+    <style type="text/css">
+      body {
+        font-family: "Open Sans", Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        margin: 15px;
+      }
+
+      input {
+        margin-bottom: 10px;
+        width: 300px;
+      }
+
+      .error {
+        color: red;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+
+    {{ if .Error }}
+      <div class="error">{{ .Error }}</div>
+    {{ end }}
+
+    <form action="{{ .Action }}" method="POST">
+      <input type="hidden" name="{{ .Names.Then }}" value="{{ .Values.Then }}">
+
+      <div>
+        <label for="inputUsername">Username</label>
+      </div>
+      <div>
+        <input type="text" id="inputUsername" autofocus="autofocus" type="text" name="{{ .Names.Username }}" value="{{ .Values.Username }}">
+      </div>
+
+      <div>
+        <label for="inputPassword">Password</label>
+      </div>
+      <div>
+        <input type="password" id="inputPassword" type="password" name="{{ .Names.Password }}" value="">
+      </div>
+
+      <button type="submit">Log In</button>
+
+    </form>
+
+  </body>
+</html>
+`

@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/util"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -85,6 +87,17 @@ func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 				strings.Join(challengeRedirectingIdentityProviders, ", "),
 				strings.Join(challengeIssuingIdentityProviders, ", "),
 			)))
+	}
+
+	if config.Templates != nil && len(config.Templates.Login) > 0 {
+		content, err := ioutil.ReadFile(config.Templates.Login)
+		if err != nil {
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("templates.login", config.Templates.Login, "could not read file"))
+		} else {
+			for _, err = range login.ValidateLoginTemplate(content) {
+				validationResults.AddErrors(fielderrors.NewFieldInvalid("templates.login", config.Templates.Login, err.Error()))
+			}
+		}
 	}
 
 	return validationResults
