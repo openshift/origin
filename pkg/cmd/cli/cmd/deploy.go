@@ -207,16 +207,16 @@ func (o *DeployOptions) RunDeploy() error {
 func (o *DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer) error {
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			return fmt.Errorf("couldn't find deployment %q", deploymentName)
+	if err == nil {
+		// Reject attempts to start a concurrent deployment.
+		status := deployutil.DeploymentStatusFor(deployment)
+		if status != deployapi.DeploymentStatusComplete && status != deployapi.DeploymentStatusFailed {
+			return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.", config.LatestVersion, status)
 		}
-		return err
-	}
-	// Reject attempts to start a concurrent deployment.
-	status := deployutil.DeploymentStatusFor(deployment)
-	if status != deployapi.DeploymentStatusComplete && status != deployapi.DeploymentStatusFailed {
-		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using the --cancel option.", config.LatestVersion, status)
+	} else {
+		if !kerrors.IsNotFound(err) {
+			return err
+		}
 	}
 
 	config.LatestVersion++

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"reflect"
 	"sort"
@@ -99,7 +100,7 @@ func TestCmdDeploy_latestLookupError(t *testing.T) {
 	kubeClient.ReactFn = func(action ktc.Action) (runtime.Object, error) {
 		switch action.(type) {
 		case ktc.GetAction:
-			return nil, kerrors.NewNotFound("name", "not found")
+			return nil, kerrors.NewInternalError(fmt.Errorf("internal error"))
 		}
 		t.Fatalf("unexpected action: %+v", action)
 		return nil, nil
