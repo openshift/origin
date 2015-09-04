@@ -313,7 +313,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 		if newBuild.Spec.Strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
 			i, _ := projectAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := projectAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
 	case buildapi.DockerBuildStrategyType:
 		if newBuild.Spec.Strategy.DockerStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
@@ -325,7 +325,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 		if newBuild.Spec.Strategy.CustomStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
 			i, _ := projectAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
 			bc, _ := projectAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
-			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.DockerStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
+			t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", newBuild.Spec.Strategy.CustomStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 		}
 	}
 
