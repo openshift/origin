@@ -337,9 +337,9 @@ function kill_all_processes()
   fi
 
   pids=($(jobs -pr))
-  for i in ${pids[@]}; do
+  for i in ${pids[@]-}; do
     ps --ppid=${i} | xargs $sudo kill &> /dev/null
-    $sudo kill ${i} &> /dev/null &> /dev/null
+    $sudo kill ${i} &> /dev/null
   done
 }
 

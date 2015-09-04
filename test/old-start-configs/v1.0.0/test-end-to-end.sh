@@ -124,17 +124,13 @@ function cleanup()
 	echo
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-		echo "[INFO] Deleting test constructs"
-		oc delete -n test all --all
-		oc delete -n docker all --all
-		oc delete -n custom all --all
-		oc delete -n cache all --all
-		oc delete -n default all --all
-
 		echo "[INFO] Tearing down test"
 		pids="$(jobs -pr)"
 		echo "[INFO] Children: ${pids}"
-		sudo kill ${pids}
+		for i in ${pids[@]-}; do
+			ps --ppid=${i} | xargs sudo kill &> /dev/null
+			sudo kill ${i} &> /dev/null
+		done
 		sudo ps f
 		set +u
 		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
