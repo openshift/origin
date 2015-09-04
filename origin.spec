@@ -60,7 +60,7 @@ Requires(postun): systemd
 Summary:        %{product_name} Node
 Requires:       %{name} = %{version}-%{release}
 Requires:       docker-io >= %{docker_version}
-Requires:       tuned-profiles-%{name}-node
+Requires:       tuned-profiles-%{name}-node = %{version}-%{release}
 Requires:       util-linux
 Requires:       socat
 Requires:       nfs-utils
@@ -74,7 +74,6 @@ Requires(postun): systemd
 %package -n tuned-profiles-%{name}-node
 Summary:        Tuned profiles for %{product_name} Node hosts
 Requires:       tuned >= %{tuned_version}
-Requires:       %{name} = %{version}-%{release}
 
 %description -n tuned-profiles-%{name}-node
 %{summary}
