@@ -62,6 +62,7 @@ type Region struct {
 	SESEndpoint            string
 	IAMEndpoint            string
 	ELBEndpoint            string
+	KMSEndpoint            string
 	DynamoDBEndpoint       string
 	CloudWatchServicepoint ServiceInfo
 	AutoScalingEndpoint    string
@@ -83,6 +84,7 @@ var Regions = map[string]Region{
 	USWest2.Name:      USWest2,
 	USGovWest.Name:    USGovWest,
 	SAEast.Name:       SAEast,
+	CNNorth1.Name:     CNNorth1,
 }
 
 // Designates a signer interface suitable for signing AWS requests, params

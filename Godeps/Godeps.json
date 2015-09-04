@@ -29,11 +29,11 @@
 		},
 		{
 			"ImportPath": "github.com/AdRoll/goamz/aws",
-			"Rev": "c73835dc8fc6958baf8df8656864ee4d6d04b130"
+			"Rev": "cc210f45dcb9889c2769a274522be2bf70edfb99"
 		},
 		{
 			"ImportPath": "github.com/AdRoll/goamz/s3",
-			"Rev": "c73835dc8fc6958baf8df8656864ee4d6d04b130"
+			"Rev": "cc210f45dcb9889c2769a274522be2bf70edfb99"
 		},
 		{
 			"ImportPath": "github.com/GoogleCloudPlatform/gcloud-golang/compute/metadata",
