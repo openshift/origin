@@ -98,7 +98,7 @@ func (plugin *iscsiPlugin) newBuilderInternal(spec *volume.Spec, podUID types.UI
 	return &iscsiDiskBuilder{
 		iscsiDisk: &iscsiDisk{
 			podUID:  podUID,
-			volName: spec.Name,
+			volName: spec.Name(),
 			portal:  iscsi.TargetPortal,
 			iqn:     iscsi.IQN,
 			lun:     lun,

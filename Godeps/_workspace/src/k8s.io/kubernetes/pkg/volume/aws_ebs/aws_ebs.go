@@ -98,7 +98,7 @@ func (plugin *awsElasticBlockStorePlugin) newBuilderInternal(spec *volume.Spec, 
 	return &awsElasticBlockStoreBuilder{
 		awsElasticBlockStore: &awsElasticBlockStore{
 			podUID:   podUID,
-			volName:  spec.Name,
+			volName:  spec.Name(),
 			volumeID: volumeID,
 			manager:  manager,
 			mounter:  mounter,

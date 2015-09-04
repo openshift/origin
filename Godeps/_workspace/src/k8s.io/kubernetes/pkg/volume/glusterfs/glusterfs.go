@@ -93,7 +93,7 @@ func (plugin *glusterfsPlugin) newBuilderInternal(spec *volume.Spec, ep *api.End
 	source, readOnly := plugin.getGlusterVolumeSource(spec)
 	return &glusterfsBuilder{
 		glusterfs: &glusterfs{
-			volName: spec.Name,
+			volName: spec.Name(),
 			mounter: mounter,
 			pod:     pod,
 			plugin:  plugin,

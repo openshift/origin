@@ -81,7 +81,7 @@ func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod
 	}
 	return &emptyDir{
 		pod:           pod,
-		volName:       spec.Name,
+		volName:       spec.Name(),
 		medium:        medium,
 		mounter:       mounter,
 		mountDetector: mountDetector,

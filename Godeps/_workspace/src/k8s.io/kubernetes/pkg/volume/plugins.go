@@ -18,13 +18,11 @@ package volume
 
 import (
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"sync"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -133,41 +131,62 @@ type VolumePluginMgr struct {
 
 // Spec is an internal representation of a volume.  All API volume types translate to Spec.
 type Spec struct {
-	Name             string
 	Volume           *api.Volume
 	PersistentVolume *api.PersistentVolume
 	ReadOnly         bool
 }
 
-// VolumeConfig contains any configuration item required by a plugin.  Config is passed to the volume plugin
-// in the ProbeVolumePlugins func, which allows configuration by the binary hosting the volume plugins.
-// Usage of this struct directly is possible but NewVolumeConfig is recommended because it will contain default values.
-type VolumeConfig struct {
-	// the default scrub pod is a template pod used by plugins when creating new Recyclers.
-	// The plugin is required to change the pod's VolumeSource to match the volume of the plugin and set any
-	// necessary information on the scrubber, such as path, server, or timeout.
-	PersistentVolumeRecyclerDefaultScrubPod *api.Pod
-	// the minimum ActiveDeadlineSeconds for an NFS scrubber pod
-	PersistentVolumeRecyclerMinTimeoutNfs int64
-	// the increment of time added per Gi to ActiveDeadlineSeconds for an NFS scrubber pod
-	PersistentVolumeRecyclerTimeoutIncrementNfs int64
-	// the minimum ActiveDeadlineSeconds for an HostPath scrubber pod
-	PersistentVolumeRecyclerMinTimeoutHostPath int64
-	// the increment of time added per Gi to ActiveDeadlineSeconds for an HostPath scrubber pod
-	PersistentVolumeRecyclerTimeoutIncrementHostPath int64
+// Name returns the name of either Volume or PersistentVolume, one of which must not be nil.
+func (spec *Spec) Name() string {
+	switch {
+	case spec.Volume != nil:
+		return spec.Volume.Name
+	case spec.PersistentVolume != nil:
+		return spec.PersistentVolume.Name
+	default:
+		return ""
+	}
 }
 
-// NewVolumeConfig creates a VolumeConfig with default values.
-func NewVolumeConfig() *VolumeConfig {
-	return &VolumeConfig{
-		PersistentVolumeRecyclerDefaultScrubPod: createDefaultScrubberPodTemplate(),
-	}
+// VolumeConfig is how volume plugins receive configuration.  An instance specific to the plugin will be passed to
+// the plugin's ProbeVolumePlugins(config) func.  Reasonable defaults will be provided by the binary hosting
+// the plugins while allowing override of those default values.  Those config values are then set to an instance of
+// VolumeConfig and passed to the plugin.
+//
+// Values in VolumeConfig are intended to be relevant to several plugins, but not necessarily all plugins.  The
+// preference is to leverage strong typing in this struct.  All config items must have a descriptive but non-specific
+// name (i.e, RecyclerMinimumTimeout is OK but RecyclerMinimumTimeoutForNFS is !OK).  An instance of config will be
+// given directly to the plugin, so config names specific to plugins are unneeded and wrongly expose plugins
+// in this VolumeConfig struct.
+//
+// OtherAttributes is a map of string values intended for one-off configuration of a plugin or config that is only
+// relevant to a single plugin.  All values are passed by string and require interpretation by the plugin.
+// Passing config as strings is the least desirable option but can be used for truly one-off configuration.
+// The binary should still use strong typing for this value when binding CLI values before they are passed as strings
+// in OtherAttributes.
+type VolumeConfig struct {
+
+	// RecyclerDefaultPod is the default pod used to scrub a persistent volume clean after its release.
+	// The default scrubber supplied by the system is a simple "rm -rf /* /.*" of a volume.
+	RecyclerDefaultPod *api.Pod
+
+	// RecyclerMinimumTimeout is the minimum amount of time in seconds for the scrub pod's ActiveDeadlineSeconds attribute.
+	// Added to the minimum timeout is the increment per Gi of capacity.
+	RecyclerMinimumTimeout int
+
+	// RecyclerTimeoutIncrement is the number of seconds added to the scrub pod's ActiveDeadlineSeconds for each
+	// Gi of capacity in the persistent volume.
+	// Example: 5Gi volume x 30s increment = 150s + 30s minimum = 180s ActiveDeadlineSeconds for scrub pod
+	RecyclerTimeoutIncrement int
+
+	// thockin: do we want to wait on this until we have an actual use case?  I can change the comments above to
+	// reflect our intention for one-off config.
+	OtherAttributes map[string]string
 }
 
 // NewSpecFromVolume creates an Spec from an api.Volume
 func NewSpecFromVolume(vs *api.Volume) *Spec {
 	return &Spec{
-		Name:   vs.Name,
 		Volume: vs,
 	}
 }
@@ -175,7 +194,6 @@ func NewSpecFromVolume(vs *api.Volume) *Spec {
 // NewSpecFromPersistentVolume creates an Spec from an api.PersistentVolume
 func NewSpecFromPersistentVolume(pv *api.PersistentVolume, readOnly bool) *Spec {
 	return &Spec{
-		Name:             pv.Name,
 		PersistentVolume: pv,
 		ReadOnly:         readOnly,
 	}
@@ -294,10 +312,10 @@ func (pm *VolumePluginMgr) FindRecyclablePluginBySpec(spec *Spec) (RecyclableVol
 	return nil, fmt.Errorf("no recyclable volume plugin matched")
 }
 
-// createDefaultScrubberPodTemplate creates a template for a scrubber pod.  Most attributes are correct for scrubbers,
+// GetDefaultPersistentVolumeRecyclerPod creates a template for a scrubber pod.  Most attributes are correct for scrubbers,
 // but other plugins are required to change the VolumeSource.  Plugins should also consider changing the pod's
 // ActiveDeadlineSeconds timeout and GenerateName. See the NFS plugin and its overrides.
-func createDefaultScrubberPodTemplate() *api.Pod {
+func GetDefaultPersistentVolumeRecyclerPod() *api.Pod {
 	timeout := int64(60)
 	pod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
@@ -323,7 +341,7 @@ func createDefaultScrubberPodTemplate() *api.Pod {
 					Name:    "scrubber",
 					Image:   "gcr.io/google_containers/busybox",
 					Command: []string{"/bin/sh"},
-					Args:    []string{"-c", "test -e /scrub && echo $(date) > /scrub/trash.txt && rm -rf /scrub/* && test -z \"$(ls -A /scrub)\" || exit 1"},
+					Args:    []string{"-c", "test -e /scrub && echo $(date) > /scrub/trash.txt && rm -rf /scrub/* /scrub/.* && test -z \"$(ls -A /scrub)\" || exit 1"},
 					VolumeMounts: []api.VolumeMount{
 						{
 							Name:      "vol",
@@ -335,22 +353,4 @@ func createDefaultScrubberPodTemplate() *api.Pod {
 		},
 	}
 	return pod
-}
-
-func InitScrubPod(filePath string) (*api.Pod, error) {
-	if filePath == "" {
-		return nil, fmt.Errorf("PersistentVolume scrub file path not specified")
-	}
-	podDef, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading PersistentVolume scrub file path %s: %+v", filePath, err)
-	}
-	if len(podDef) == 0 {
-		return nil, fmt.Errorf("PersistentVolume scrub file was empty: %s", filePath)
-	}
-	pod := &api.Pod{}
-	if err := latest.Codec.DecodeInto(podDef, pod); err != nil {
-		return nil, fmt.Errorf("Error decoding PersistentVolume scrub file: %v", err)
-	}
-	return pod, nil
 }

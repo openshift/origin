@@ -37,13 +37,28 @@ import (
 )
 
 // ProbeRecyclableVolumePlugins collects all persistent volume plugins into an easy to use list.
-func ProbeRecyclableVolumePlugins(volumeConfig *volume.VolumeConfig) []volume.VolumePlugin {
+func ProbeRecyclableVolumePlugins(flags VolumeConfigFlags) []volume.VolumePlugin {
 	allPlugins := []volume.VolumePlugin{}
 
-	// The list of plugins to probe is decided by the kubelet binary, not
+	// The list of plugins to probe is decided by this binary, not
 	// by dynamic linking or other "magic".  Plugins will be analyzed and
 	// initialized later.
-	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(volumeConfig)...)
-	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(volumeConfig)...)
+
+	// Each plugin can make use of VolumeConfig.  The single arg to this func contains *all* enumerated
+	// CLI flags meant to configure volume plugins.  From that single config, create an instance of volume.VolumeConfig
+	// for a specific plugin and pass that instance to the plugin's ProbeVolumePlugins(config) func.
+	hostPathConfig := volume.VolumeConfig{
+		RecyclerMinimumTimeout:   flags.PersistentVolumeRecyclerMinimumTimeoutHostPath,
+		RecyclerTimeoutIncrement: flags.PersistentVolumeRecyclerIncrementTimeoutHostPath,
+		RecyclerDefaultPod:       flags.PersistentVolumeRecyclerDefaultPod,
+	}
+	nfsConfig := volume.VolumeConfig{
+		RecyclerMinimumTimeout:   flags.PersistentVolumeRecyclerMinimumTimeoutNFS,
+		RecyclerTimeoutIncrement: flags.PersistentVolumeRecyclerIncrementTimeoutNFS,
+		RecyclerDefaultPod:       flags.PersistentVolumeRecyclerDefaultPod,
+	}
+
+	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(hostPathConfig)...)
+	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(nfsConfig)...)
 	return allPlugins
 }

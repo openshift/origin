@@ -98,7 +98,7 @@ func (plugin *cephfsPlugin) newBuilderInternal(spec *volume.Spec, podUID types.U
 
 	return &cephfs{
 		podUID:      podUID,
-		volName:     spec.Name,
+		volName:     spec.Name(),
 		mon:         cephvs.Monitors,
 		secret:      secret,
 		readonly:    cephvs.ReadOnly,

@@ -95,7 +95,7 @@ func (plugin *gcePersistentDiskPlugin) newBuilderInternal(spec *volume.Spec, pod
 	return &gcePersistentDiskBuilder{
 		gcePersistentDisk: &gcePersistentDisk{
 			podUID:    podUID,
-			volName:   spec.Name,
+			volName:   spec.Name(),
 			pdName:    pdName,
 			partition: partition,
 			mounter:   mounter,

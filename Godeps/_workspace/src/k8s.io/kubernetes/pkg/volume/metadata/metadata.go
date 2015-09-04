@@ -66,7 +66,7 @@ func (plugin *metadataPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts v
 }
 
 func (plugin *metadataPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions, mounter mount.Interface) (volume.Builder, error) {
-	v := &metadataVolume{volName: spec.Name,
+	v := &metadataVolume{volName: spec.Name(),
 		pod:     pod,
 		plugin:  plugin,
 		opts:    &opts,
@@ -102,7 +102,6 @@ type metadataVolume struct {
 
 // This is the spec for the volume that this plugin wraps.
 var wrappedVolumeSpec = &volume.Spec{
-	Name:   "not-used",
 	Volume: &api.Volume{VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{Medium: api.StorageMediumMemory}}},
 }
 

@@ -60,7 +60,7 @@ func (plugin *gitRepoPlugin) CanSupport(spec *volume.Spec) bool {
 func (plugin *gitRepoPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions, mounter mount.Interface) (volume.Builder, error) {
 	return &gitRepoVolumeBuilder{
 		gitRepoVolume: &gitRepoVolume{
-			volName: spec.Name,
+			volName: spec.Name(),
 			podUID:  pod.UID,
 			mounter: mounter,
 			plugin:  plugin,
@@ -124,7 +124,6 @@ func (b *gitRepoVolumeBuilder) IsReadOnly() bool {
 
 // This is the spec for the volume that this plugin wraps.
 var wrappedVolumeSpec = &volume.Spec{
-	Name:   "not-used",
 	Volume: &api.Volume{VolumeSource: api.VolumeSource{EmptyDir: &api.EmptyDirVolumeSource{}}},
 }
 

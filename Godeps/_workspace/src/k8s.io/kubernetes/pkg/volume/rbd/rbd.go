@@ -126,7 +126,7 @@ func (plugin *rbdPlugin) newBuilderInternal(spec *volume.Spec, podUID types.UID,
 	return &rbdBuilder{
 		rbd: &rbd{
 			podUID:   podUID,
-			volName:  spec.Name,
+			volName:  spec.Name(),
 			Image:    source.RBDImage,
 			Pool:     pool,
 			ReadOnly: readOnly,

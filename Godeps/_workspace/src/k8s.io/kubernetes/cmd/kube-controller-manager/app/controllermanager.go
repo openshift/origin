@@ -31,6 +31,8 @@ import (
 	"strconv"
 	"time"
 
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
@@ -67,6 +69,7 @@ type CMServer struct {
 	ResourceQuotaSyncPeriod time.Duration
 	NamespaceSyncPeriod     time.Duration
 	PVClaimBinderSyncPeriod time.Duration
+	VolumeConfigFlags       VolumeConfigFlags
 	RegisterRetryCount      int
 	NodeMonitorGracePeriod  time.Duration
 	NodeStartupGracePeriod  time.Duration
@@ -77,13 +80,6 @@ type CMServer struct {
 	DeletingPodsBurst       int
 	ServiceAccountKeyFile   string
 	RootCAFile              string
-
-	// volumeConfig
-	PersistentVolumeRecyclerDefaultScrubPod          string
-	PersistentVolumeRecyclerMinTimeoutNfs            int
-	PersistentVolumeRecyclerTimeoutIncrementNfs      int
-	PersistentVolumeRecyclerMinTimeoutHostPath       int
-	PersistentVolumeRecyclerTimeoutIncrementHostPath int
 
 	ClusterName       string
 	ClusterCIDR       net.IPNet
@@ -97,24 +93,42 @@ type CMServer struct {
 // NewCMServer creates a new CMServer with a default config.
 func NewCMServer() *CMServer {
 	s := CMServer{
-		Port:                             ports.ControllerManagerPort,
-		Address:                          net.ParseIP("127.0.0.1"),
-		ConcurrentEndpointSyncs:          5,
-		ConcurrentRCSyncs:                5,
-		ServiceSyncPeriod:                5 * time.Minute,
-		NodeSyncPeriod:                   10 * time.Second,
-		ResourceQuotaSyncPeriod:          10 * time.Second,
-		NamespaceSyncPeriod:              5 * time.Minute,
-		PVClaimBinderSyncPeriod:          10 * time.Second,
-		PersistentVolumeRecyclerMinTimeoutNfs:            300,
-		PersistentVolumeRecyclerTimeoutIncrementNfs:      30,
-		PersistentVolumeRecyclerMinTimeoutHostPath:       60,
-		PersistentVolumeRecyclerTimeoutIncrementHostPath: 30,
-		RegisterRetryCount:               10,
-		PodEvictionTimeout:               5 * time.Minute,
-		ClusterName:                      "kubernetes",
+		Port:                    ports.ControllerManagerPort,
+		Address:                 net.ParseIP("127.0.0.1"),
+		ConcurrentEndpointSyncs: 5,
+		ConcurrentRCSyncs:       5,
+		ServiceSyncPeriod:       5 * time.Minute,
+		NodeSyncPeriod:          10 * time.Second,
+		ResourceQuotaSyncPeriod: 10 * time.Second,
+		NamespaceSyncPeriod:     5 * time.Minute,
+		PVClaimBinderSyncPeriod: 10 * time.Second,
+		RegisterRetryCount:      10,
+		PodEvictionTimeout:      5 * time.Minute,
+		ClusterName:             "kubernetes",
+		VolumeConfigFlags: VolumeConfigFlags{
+			// default values here
+			PersistentVolumeRecyclerMinimumTimeoutNFS:        300,
+			PersistentVolumeRecyclerIncrementTimeoutNFS:      30,
+			PersistentVolumeRecyclerMinimumTimeoutHostPath:   60,
+			PersistentVolumeRecyclerIncrementTimeoutHostPath: 30,
+		},
 	}
 	return &s
+}
+
+// VolumeConfigFlags is used to bind CLI flags to variables.  This top-level struct contains *all* enumerated
+// CLI flags meant to configure all volume plugins.  From this config, the binary will create many instances
+// of volume.VolumeConfig which are then passed to the appropriate plugin. The ControllerManager binary is the only
+// part of the code which knows what plugins are supported and which CLI flags correspond to each plugin.
+type VolumeConfigFlags struct {
+	// the pod to use as the default recycler.  default provided by the binary and the filepath flag can override.
+	PersistentVolumeRecyclerDefaultPod *api.Pod
+	// See CLI flag comments in the AddFlags func.
+	PersistentVolumeRecyclerDefaultPodFilePath       string
+	PersistentVolumeRecyclerMinimumTimeoutNFS        int
+	PersistentVolumeRecyclerIncrementTimeoutNFS      int
+	PersistentVolumeRecyclerMinimumTimeoutHostPath   int
+	PersistentVolumeRecyclerIncrementTimeoutHostPath int
 }
 
 // AddFlags adds flags for a specific CMServer to the specified FlagSet
@@ -132,11 +146,11 @@ func (s *CMServer) AddFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&s.ResourceQuotaSyncPeriod, "resource-quota-sync-period", s.ResourceQuotaSyncPeriod, "The period for syncing quota usage status in the system")
 	fs.DurationVar(&s.NamespaceSyncPeriod, "namespace-sync-period", s.NamespaceSyncPeriod, "The period for syncing namespace life-cycle updates")
 	fs.DurationVar(&s.PVClaimBinderSyncPeriod, "pvclaimbinder-sync-period", s.PVClaimBinderSyncPeriod, "The period for syncing persistent volumes and persistent volume claims")
-	fs.StringVar(&s.PersistentVolumeRecyclerDefaultScrubPod, "pv-recycler-default-scrub-pod", s.PersistentVolumeRecyclerDefaultScrubPod, "The file path to a pod definition used as a template for persistent volume recycling")
-	fs.IntVar(&s.PersistentVolumeRecyclerMinTimeoutNfs, "pv-recycler-min-timeout-nfs", s.PersistentVolumeRecyclerMinTimeoutNfs, "The minimum ActiveDeadlineSeconds to use for an NFS Recycler pod")
-	fs.IntVar(&s.PersistentVolumeRecyclerTimeoutIncrementNfs, "pv-recycler-timeout-increment-nfs", s.PersistentVolumeRecyclerTimeoutIncrementNfs, "the increment of time added per Gi to ActiveDeadlineSeconds for an NFS scrubber pod")
-	fs.IntVar(&s.PersistentVolumeRecyclerMinTimeoutHostPath, "pv-recycler-min-timeout-hostpath", s.PersistentVolumeRecyclerMinTimeoutHostPath, "The minimum ActiveDeadlineSeconds to use for a HostPath Recycler pod")
-	fs.IntVar(&s.PersistentVolumeRecyclerTimeoutIncrementHostPath, "pv-recycler-timeout-increment-hostpath", s.PersistentVolumeRecyclerTimeoutIncrementHostPath, "the increment of time added per Gi to ActiveDeadlineSeconds for a HostPath scrubber pod")
+	fs.StringVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPodFilePath, "pv-recycler-default-pod-filepath", s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPodFilePath, "The file path to a pod definition used as a template for persistent volume recycling")
+	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutNFS, "pv-recycler-minimum-timeout-nfs", s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutNFS, "The minimum ActiveDeadlineSeconds to use for an NFS Recycler pod")
+	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerIncrementTimeoutNFS, "pv-recycler-increment-timeout-nfs", s.VolumeConfigFlags.PersistentVolumeRecyclerIncrementTimeoutNFS, "the increment of time added per Gi to ActiveDeadlineSeconds for an NFS scrubber pod")
+	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "pv-recycler-minimum-timeout-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "The minimum ActiveDeadlineSeconds to use for a HostPath Recycler pod")
+	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "pv-recycler-timeout-increment-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "the increment of time added per Gi to ActiveDeadlineSeconds for a HostPath scrubber pod")
 	fs.DurationVar(&s.PodEvictionTimeout, "pod-eviction-timeout", s.PodEvictionTimeout, "The grace period for deleting pods on failed nodes.")
 	fs.Float32Var(&s.DeletingPodsQps, "deleting-pods-qps", 0.1, "Number of nodes per second on which pods are deleted in case of node failure.")
 	fs.IntVar(&s.DeletingPodsBurst, "deleting-pods-burst", 10, "Number of nodes on which pods are bursty deleted in case of node failure. For more details look into RateLimiter.")
@@ -242,20 +256,15 @@ func (s *CMServer) Run(_ []string) error {
 	pvclaimBinder := volumeclaimbinder.NewPersistentVolumeClaimBinder(kubeClient, s.PVClaimBinderSyncPeriod)
 	pvclaimBinder.Run()
 
-	volumeConfig := volume.NewVolumeConfig()
-	volumeConfig.PersistentVolumeRecyclerMinTimeoutHostPath = int64(s.PersistentVolumeRecyclerMinTimeoutHostPath)
-	volumeConfig.PersistentVolumeRecyclerTimeoutIncrementHostPath = int64(s.PersistentVolumeRecyclerTimeoutIncrementHostPath)
-	volumeConfig.PersistentVolumeRecyclerMinTimeoutNfs = int64(s.PersistentVolumeRecyclerMinTimeoutNfs)
-	volumeConfig.PersistentVolumeRecyclerTimeoutIncrementNfs = int64(s.PersistentVolumeRecyclerTimeoutIncrementNfs)
-	if s.PersistentVolumeRecyclerDefaultScrubPod != "" {
-		scrubPod, err := volume.InitScrubPod(s.PersistentVolumeRecyclerDefaultScrubPod)
+	s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPod = volume.GetDefaultPersistentVolumeRecyclerPod()
+	if s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPodFilePath != "" {
+		recyclerPod, err := InitDefaultRecyclerPod(s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPodFilePath)
 		if err != nil {
-			glog.Fatalf("Override of default PersistentVolume scrub pod failed: %+v", err)
+			glog.Fatalf("Override of default PersistentVolume Recycler pod failed: %+v", err)
 		}
-		volumeConfig.PersistentVolumeRecyclerDefaultScrubPod = scrubPod
+		s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPod = recyclerPod
 	}
-
-	pvRecycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, ProbeRecyclableVolumePlugins(volumeConfig))
+	pvRecycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, ProbeRecyclableVolumePlugins(s.VolumeConfigFlags))
 	if err != nil {
 		glog.Fatalf("Failed to start persistent volume recycler: %+v", err)
 	}
@@ -297,4 +306,26 @@ func (s *CMServer) Run(_ []string) error {
 
 	select {}
 	return nil
+}
+
+// InitDefaultRecyclerPod will read, load, and return a Pod from a file.
+// the pod will be used as the default persistent volume recycler pod.
+// it is intended to be "good enough" for recycling while allowing override of its properties
+// so that admins can implement whatever recycling operation they prefer for their persistent volumes.
+func InitDefaultRecyclerPod(filePath string) (*api.Pod, error) {
+	if filePath == "" {
+		return nil, fmt.Errorf("PersistentVolume Recycler file path not specified")
+	}
+	podDef, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading PersistentVolume Recycler file path %s: %+v", filePath, err)
+	}
+	if len(podDef) == 0 {
+		return nil, fmt.Errorf("PersistentVolume Recycler file was empty: %s", filePath)
+	}
+	pod := &api.Pod{}
+	if err := latest.Codec.DecodeInto(podDef, pod); err != nil {
+		return nil, fmt.Errorf("Error decoding PersistentVolume Recycler file: %v", err)
+	}
+	return pod, nil
 }
