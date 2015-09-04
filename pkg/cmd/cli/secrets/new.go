@@ -37,7 +37,10 @@ using with all valid keys in that directory.
   $ %[1]s my-secret ssh-privatekey=~/.ssh/id_rsa ssh-publickey=~/.ssh/id_rsa.pub
 
   // Create a new secret named my-secret with keys for each file in the folder "bar"
-  $ %[1]s my-secret path/to/bar`
+  $ %[1]s my-secret path/to/bar
+
+  // Create a new .dockercfg secret named my-secret
+  $ %[1]s my-secret path/to/.dockercfg`
 )
 
 type CreateSecretOptions struct {
