@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
@@ -26,14 +27,14 @@ type SubjectAccessReviewInterface interface {
 // subjectAccessReviews implements SubjectAccessReviews interface
 type subjectAccessReviews struct {
 	r     *Client
-	token string
+	token *string
 }
 
 // newImpersonatingSubjectAccessReviews returns a subjectAccessReviews
 func newImpersonatingSubjectAccessReviews(c *Client, token string) *subjectAccessReviews {
 	return &subjectAccessReviews{
 		r:     c,
-		token: token,
+		token: &token,
 	}
 }
 
@@ -44,22 +45,32 @@ func newSubjectAccessReviews(c *Client) *subjectAccessReviews {
 	}
 }
 
-func (c *subjectAccessReviews) Create(sar *authorizationapi.SubjectAccessReview) (result *authorizationapi.SubjectAccessReviewResponse, err error) {
-	result = &authorizationapi.SubjectAccessReviewResponse{}
+func (c *subjectAccessReviews) Create(sar *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+	result := &authorizationapi.SubjectAccessReviewResponse{}
 
 	// if this a cluster SAR, then no special handling
 	if len(sar.Action.Namespace) == 0 {
-		err = overrideAuth(c.token, c.r.Post().Resource("subjectAccessReviews")).Body(sar).Do().Into(result)
-		return
+		req, err := overrideAuth(c.token, c.r.Post().Resource("subjectAccessReviews"))
+		if err != nil {
+			return &authorizationapi.SubjectAccessReviewResponse{}, err
+		}
+
+		err = req.Body(sar).Do().Into(result)
+		return result, err
 	}
 
-	err = c.r.Post().Resource("subjectAccessReviews").Body(sar).Do().Into(result)
+	err := c.r.Post().Resource("subjectAccessReviews").Body(sar).Do().Into(result)
 
 	// if the namespace values don't match then we definitely hit an old server.  If we got a forbidden, then we might have hit an old server
 	// and should try the old endpoint
 	if (sar.Action.Namespace != result.Namespace) || kapierrors.IsForbidden(err) {
+		req, err := overrideAuth(c.token, c.r.Post().Namespace(sar.Action.Namespace).Resource("subjectAccessReviews"))
+		if err != nil {
+			return &authorizationapi.SubjectAccessReviewResponse{}, err
+		}
+
 		deprecatedResponse := &authorizationapi.SubjectAccessReviewResponse{}
-		deprecatedAttemptErr := overrideAuth(c.token, c.r.Post().Namespace(sar.Action.Namespace).Resource("subjectAccessReviews")).Body(sar).Do().Into(deprecatedResponse)
+		deprecatedAttemptErr := req.Body(sar).Do().Into(deprecatedResponse)
 
 		// if we definitely hit an old server, then return the error and result you get from the older server.
 		if sar.Action.Namespace != result.Namespace {
@@ -73,12 +84,17 @@ func (c *subjectAccessReviews) Create(sar *authorizationapi.SubjectAccessReview)
 		}
 	}
 
-	return
+	return result, err
 }
 
-func overrideAuth(token string, req *client.Request) *client.Request {
-	if len(token) > 0 {
-		req.SetHeader("Authorization", fmt.Sprintf("Bearer %s", token))
+// overrideAuth specifies the token to authenticate the request with.  token == "" is not allowed
+func overrideAuth(token *string, req *client.Request) (*client.Request, error) {
+	if token != nil {
+		if len(*token) == 0 {
+			return nil, errors.New("impersonating token may not be empty")
+		}
+
+		req.SetHeader("Authorization", fmt.Sprintf("Bearer %s", *token))
 	}
-	return req
+	return req, nil
 }

@@ -385,7 +385,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	dannyClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "danny")
+	dannyClient, _, dannyConfig, err := testutil.GetClientForUser(*clusterAdminClientConfig, "danny")
 	if err != nil {
 		t.Fatalf("error requesting token: %v", err)
 	}
@@ -559,6 +559,83 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 			Allowed:   false,
 			Reason:    `User "harold" cannot create policybindings in project "hammer-project"`,
 			Namespace: "hammer-project",
+		},
+	}.run(t)
+
+	// impersonate SAR tests
+	// impersonated empty token SAR shouldn't be allowed at all
+	// impersonated danny token SAR shouldn't be allowed to see pods in hammer or in cluster
+	// impersonated danny token SAR should be allowed to see pods in default
+	// we need a token client for overriding
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	otherAdminClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "other-admin")
+	if err != nil {
+		t.Fatalf("error requesting token: %v", err)
+	}
+
+	addOtherAdmin := &policy.RoleModificationOptions{
+		RoleNamespace:       "",
+		RoleName:            bootstrappolicy.ClusterAdminRoleName,
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		Users:               []string{"other-admin"},
+	}
+	if err := addOtherAdmin.AddRole(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	subjectAccessReviewTest{
+		description:    "empty token impersonate can't see pods in namespace",
+		localInterface: otherAdminClient.ImpersonateLocalSubjectAccessReviews("hammer-project", ""),
+		localReview: &authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+		},
+		err: `impersonating token may not be empty`,
+	}.run(t)
+	subjectAccessReviewTest{
+		description:      "empty token impersonate can't see pods in cluster",
+		clusterInterface: otherAdminClient.ImpersonateSubjectAccessReviews(""),
+		clusterReview: &authorizationapi.SubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+		},
+		err: `impersonating token may not be empty`,
+	}.run(t)
+
+	subjectAccessReviewTest{
+		description:    "danny impersonate can't see pods in hammer namespace",
+		localInterface: otherAdminClient.ImpersonateLocalSubjectAccessReviews("hammer-project", dannyConfig.BearerToken),
+		localReview: &authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+		},
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "danny" cannot list pods in project "hammer-project"`,
+			Namespace: "hammer-project",
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		description:      "danny impersonate can't see pods in cluster",
+		clusterInterface: otherAdminClient.ImpersonateSubjectAccessReviews(dannyConfig.BearerToken),
+		clusterReview: &authorizationapi.SubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+		},
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed: false,
+			Reason:  `User "danny" cannot list all pods in the cluster`,
+		},
+	}.run(t)
+	subjectAccessReviewTest{
+		description:    "danny impersonate can see pods in default",
+		localInterface: otherAdminClient.ImpersonateLocalSubjectAccessReviews("default", dannyConfig.BearerToken),
+		localReview: &authorizationapi.LocalSubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{Verb: "list", Resource: "pods"},
+		},
+		response: authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   true,
+			Reason:    `allowed by rule in default`,
+			Namespace: "default",
 		},
 	}.run(t)
 
