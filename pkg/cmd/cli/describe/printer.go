@@ -285,10 +285,10 @@ func printImageList(images *imageapi.ImageList, w io.Writer, withNamespace, wide
 
 func printImageStream(stream *imageapi.ImageStream, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
 	tags := ""
-	set := util.NewStringSet()
+	const numOfTagsShown = 3
+
 	var latest util.Time
-	for tag, list := range stream.Status.Tags {
-		set.Insert(tag)
+	for _, list := range stream.Status.Tags {
 		if len(list.Items) > 0 {
 			if list.Items[0].Created.After(latest.Time) {
 				latest = list.Items[0].Created
@@ -299,7 +299,16 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, withNamespace, 
 	if !latest.IsZero() {
 		latestTime = fmt.Sprintf("%s ago", formatRelativeTime(latest.Time))
 	}
-	tags = strings.Join(set.List(), ",")
+	list := imageapi.SortStatusTags(stream.Status.Tags)
+	more := false
+	if len(list) > numOfTagsShown {
+		list = list[:numOfTagsShown]
+		more = true
+	}
+	tags = strings.Join(list, ",")
+	if more {
+		tags = fmt.Sprintf("%s + %d more...", tags, len(stream.Status.Tags)-numOfTagsShown)
+	}
 	if withNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", stream.Namespace); err != nil {
 			return err
