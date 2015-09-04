@@ -117,7 +117,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		dir:                    dir,
 		templates:              cfg.templates,
 		reloadScriptPath:       cfg.reloadScriptPath,
-		state:                  map[string]ServiceUnit{},
+		state:                  make(map[string]ServiceUnit),
 		certManager:            certManager,
 		defaultCertificate:     cfg.defaultCertificate,
 		defaultCertificatePath: "",
@@ -299,7 +299,7 @@ func (r *templateRouter) DeleteEndpoints(id string) {
 	}
 }
 
-// routeKey generates route key in form of Namespace-Name.  This is NOT the normal key structure of ns/name because
+// routeKey generates route key in form of Namespace_Name.  This is NOT the normal key structure of ns/name because
 // it is not safe to use / in names of router config files.  This allows templates to use this key without having
 // to create (or provide) a separate method
 func (r *templateRouter) routeKey(route *routeapi.Route) string {
@@ -315,13 +315,13 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 }
 
 // AddRoute adds a route for the given id
-func (r *templateRouter) AddRoute(id string, route *routeapi.Route) bool {
+func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string) bool {
 	frontend, _ := r.FindServiceUnit(id)
 
 	backendKey := r.routeKey(route)
 
 	config := ServiceAliasConfig{
-		Host: route.Host,
+		Host: host,
 		Path: route.Path,
 	}
 

@@ -37,19 +37,21 @@ func NewTestHttpService() *TestHttpService {
 
 	masterHttpAddr := fmt.Sprintf("%s:8080", addr)
 	podHttpAddr := fmt.Sprintf("%s:8888", addr)
+	alternatePodHttpAddr := fmt.Sprintf("%s:8889", addr)
 	podHttpsAddr := fmt.Sprintf("%s:8443", addr)
 
 	return &TestHttpService{
-		MasterHttpAddr:   masterHttpAddr,
-		PodHttpAddr:      podHttpAddr,
-		PodHttpsAddr:     podHttpsAddr,
-		PodWebSocketPath: "echo",
-		PodTestPath:      "test",
-		PodHttpsCert:     []byte(Example2Cert),
-		PodHttpsKey:      []byte(Example2Key),
-		PodHttpsCaCert:   []byte(ExampleCACert),
-		EndpointChannel:  endpointChannel,
-		RouteChannel:     routeChannel,
+		MasterHttpAddr:       masterHttpAddr,
+		PodHttpAddr:          podHttpAddr,
+		AlternatePodHttpAddr: alternatePodHttpAddr,
+		PodHttpsAddr:         podHttpsAddr,
+		PodWebSocketPath:     "echo",
+		PodTestPath:          "test",
+		PodHttpsCert:         []byte(Example2Cert),
+		PodHttpsKey:          []byte(Example2Key),
+		PodHttpsCaCert:       []byte(ExampleCACert),
+		EndpointChannel:      endpointChannel,
+		RouteChannel:         routeChannel,
 	}
 }
 
@@ -62,23 +64,25 @@ func NewTestHttpService() *TestHttpService {
 //
 // List events will return empty data for all calls.
 type TestHttpService struct {
-	MasterHttpAddr   string
-	PodHttpAddr      string
-	PodHttpsAddr     string
-	PodHttpsCert     []byte
-	PodHttpsKey      []byte
-	PodHttpsCaCert   []byte
-	PodWebSocketPath string
-	PodTestPath      string
-	EndpointChannel  chan string
-	RouteChannel     chan string
+	MasterHttpAddr       string
+	PodHttpAddr          string
+	AlternatePodHttpAddr string
+	PodHttpsAddr         string
+	PodHttpsCert         []byte
+	PodHttpsKey          []byte
+	PodHttpsCaCert       []byte
+	PodWebSocketPath     string
+	PodTestPath          string
+	EndpointChannel      chan string
+	RouteChannel         chan string
 
 	listeners []net.Listener
 }
 
 const (
 	// HelloPod is the expected response to a call to PodHttpAddr (usually called through a route)
-	HelloPod = "Hello Pod!"
+	HelloPod          = "Hello Pod!"
+	HelloPodAlternate = "Alternate Hello Pod!"
 	// HelloPod is the expected response to a call to PodHttpAddr (usually called through a route)
 	HelloPodPath = "Hello Pod Path!"
 	// HelloPodSecure is the expected response to a call to PodHttpsAddr (usually called through a route)
@@ -89,22 +93,27 @@ const (
 
 // handleHelloPod handles calls to PodHttpAddr (usually called through a route)
 func (s *TestHttpService) handleHelloPod(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, HelloPod)
+	fmt.Fprint(w, HelloPod)
+}
+
+// handleHelloPod handles calls to PodHttpAddr (usually called through a route)
+func (s *TestHttpService) handleHelloPod2(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, HelloPodAlternate)
 }
 
 // handleHelloPodTest handles calls to PodHttpAddr (usually called through a route) with the /test/ path
 func (s *TestHttpService) handleHelloPodTest(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, HelloPodPath)
+	fmt.Fprint(w, HelloPodPath)
 }
 
 // handleHelloPodSecure handles calls to PodHttpsAddr (usually called through a route)
 func (s *TestHttpService) handleHelloPodSecure(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, HelloPodSecure)
+	fmt.Fprint(w, HelloPodSecure)
 }
 
 // handleHelloPodTestSecure handles calls to PodHttpsAddr (usually called through a route) with the /test/ path
 func (s *TestHttpService) handleHelloPodTestSecure(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, HelloPodPathSecure)
+	fmt.Fprint(w, HelloPodPathSecure)
 }
 
 // handleRouteWatch handles calls to /osapi/v1beta1/watch/routes and uses the route channel to simulate watch events
@@ -114,7 +123,7 @@ func (s *TestHttpService) handleRouteWatch(w http.ResponseWriter, r *http.Reques
 
 // handleRouteList handles calls to /osapi/v1beta1/routes and always returns empty data
 func (s *TestHttpService) handleRouteList(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "{}")
+	fmt.Fprint(w, "{}")
 }
 
 // handleEndpointWatch handles calls to /api/v1beta1/watch/endpoints and uses the endpoint channel to simulate watch events
@@ -124,7 +133,7 @@ func (s *TestHttpService) handleEndpointWatch(w http.ResponseWriter, r *http.Req
 
 // handleEndpointList handles calls to /api/v1beta1/endpoints and always returns empty data
 func (s *TestHttpService) handleEndpointList(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "{}")
+	fmt.Fprint(w, "{}")
 }
 
 // handleWebSocket copies whatever is written to the web socket back to the socket
@@ -192,6 +201,14 @@ func (s *TestHttpService) startPod() error {
 	unsecurePodServer.Handle("/"+s.PodWebSocketPath, websocket.Handler(s.handleWebSocket))
 
 	if err := s.startServing(s.PodHttpAddr, unsecurePodServer); err != nil {
+		return err
+	}
+
+	alternatePodServer := http.NewServeMux()
+	alternatePodServer.HandleFunc("/", s.handleHelloPod2)
+	alternatePodServer.HandleFunc("/"+s.PodTestPath, s.handleHelloPod2)
+
+	if err := s.startServing(s.AlternatePodHttpAddr, alternatePodServer); err != nil {
 		return err
 	}
 

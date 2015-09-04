@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -9,6 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -78,6 +80,104 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller
 			return eventType, obj.(*routeapi.Route), nil
 		},
 	}
+}
+
+// CreateNotifier begins listing and watching against the API server for the desired route and endpoint
+// resources. It spawns child goroutines that cannot be terminated. It is a more efficient store of a
+// route system.
+func (factory *RouterControllerFactory) CreateNotifier(changed func()) RoutesByHost {
+	keyFn := cache.MetaNamespaceKeyFunc
+	routeStore := cache.NewIndexer(keyFn, cache.Indexers{"host": hostIndexFunc})
+	routeEventQueue := oscache.NewEventQueueForStore(keyFn, routeStore)
+	cache.NewReflector(&routeLW{
+		client:    factory.OSClient,
+		namespace: factory.Namespace,
+		field:     factory.Fields,
+		label:     factory.Labels,
+	}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
+
+	endpointStore := cache.NewStore(keyFn)
+	endpointsEventQueue := oscache.NewEventQueueForStore(keyFn, endpointStore)
+	cache.NewReflector(&endpointsLW{
+		client:    factory.KClient,
+		namespace: factory.Namespace,
+		// we do not scope endpoints by labels or fields because the route labels != endpoints labels
+	}, &kapi.Endpoints{}, endpointsEventQueue, factory.ResyncInterval).Run()
+
+	go util.Until(func() {
+		for {
+			if _, _, err := routeEventQueue.Pop(); err != nil {
+				return
+			}
+			changed()
+		}
+	}, time.Second, util.NeverStop)
+	go util.Until(func() {
+		for {
+			if _, _, err := endpointsEventQueue.Pop(); err != nil {
+				return
+			}
+			changed()
+		}
+	}, time.Second, util.NeverStop)
+
+	return &routesByHost{
+		routes:    routeStore,
+		endpoints: endpointStore,
+	}
+}
+
+type RoutesByHost interface {
+	Hosts() []string
+	Route(host string) (*routeapi.Route, bool)
+	Endpoints(namespace, name string) *kapi.Endpoints
+}
+
+type routesByHost struct {
+	routes    cache.Indexer
+	endpoints cache.Store
+}
+
+func (r *routesByHost) Hosts() []string {
+	return r.routes.ListIndexFuncValues("host")
+}
+
+func (r *routesByHost) Route(host string) (*routeapi.Route, bool) {
+	arr, err := r.routes.ByIndex("host", host)
+	if err != nil || len(arr) == 0 {
+		return nil, false
+	}
+	return oldestRoute(arr), true
+}
+
+func (r *routesByHost) Endpoints(namespace, name string) *kapi.Endpoints {
+	obj, ok, err := r.endpoints.GetByKey(fmt.Sprintf("%s/%s", namespace, name))
+	if !ok || err != nil {
+		return &kapi.Endpoints{}
+	}
+	return obj.(*kapi.Endpoints)
+}
+
+func oldestRoute(routes []interface{}) *routeapi.Route {
+	var oldest *routeapi.Route
+	for i := range routes {
+		route := routes[i].(*routeapi.Route)
+		if oldest == nil || route.CreationTimestamp.Before(oldest.CreationTimestamp) {
+			oldest = route
+		}
+	}
+	return oldest
+}
+
+func hostIndexFunc(obj interface{}) ([]string, error) {
+	route := obj.(*routeapi.Route)
+	hosts := []string{
+		fmt.Sprintf("%s-%s%s", route.Name, route.Namespace, ".generated.local"),
+	}
+	if len(route.Host) > 0 {
+		hosts = append(hosts, route.Host)
+	}
+	return hosts, nil
 }
 
 // routeLW is a ListWatcher for routes that can be filtered to a label, field, or
