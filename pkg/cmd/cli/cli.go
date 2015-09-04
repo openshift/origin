@@ -36,9 +36,8 @@ run new-app:
   $ %[1]s new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
 
 This will create an application based on the Docker image 'openshift/ruby-20-centos7' that builds
-the source code at 'github.com/openshift/ruby-hello-world.git'. To start the build, run
-
-  $ %[1]s start-build ruby-hello-world --follow
+the source code at 'github.com/openshift/ruby-hello-world.git'. A build will start automatically and
+a deployment will start as soon as the build finishes.
 
 Once your application is deployed, use the status, get, and describe commands to see more about
 the created components:
