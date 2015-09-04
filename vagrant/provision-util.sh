@@ -139,6 +139,16 @@ os::util::install-sdn() {
       # origin multitenant plugin knows how to discover it.
       cp -f multitenant/bin/openshift-ovs-multitenant /usr/bin/
       cp -f multitenant/bin/openshift-sdn-multitenant-setup.sh /usr/bin/
+
+      # subnet and multitenant plugin setup writes docker network options
+      # to /run/openshift-sdn/docker-network, make this file to be exported
+      # as part of docker service start.
+      local system_docker_path="/usr/lib/systemd/system/docker.service.d/"
+      mkdir -p "${system_docker_path}"
+      cat <<EOF > "${system_docker_path}/docker-sdn-ovs.conf"
+[Service]
+EnvironmentFile=-/run/openshift-sdn/docker-network
+EOF
     popd
   fi
 
