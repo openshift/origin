@@ -311,51 +311,6 @@ function validate_response {
 }
 
 
-# start_etcd starts an etcd server
-# $1 - Optional host (Default: 127.0.0.1)
-# $2 - Optional port (Default: 4001)
-function start_etcd {
-  [ ! -z "${ETCD_STARTED-}" ] && return
-
-  host=${ETCD_HOST:-127.0.0.1}
-  port=${ETCD_PORT:-4001}
-
-  set +e
-
-  if [ "$(which etcd 2>/dev/null)" == "" ]; then
-    if [[ ! -f ${OS_ROOT}/_tools/etcd/bin/etcd ]]; then
-      echo "etcd must be in your PATH or installed in _tools/etcd/bin/ with hack/install-etcd.sh"
-      exit 1
-    fi
-    export PATH="${OS_ROOT}/_tools/etcd/bin:$PATH"
-  fi
-
-  running_etcd=$(ps -ef | grep etcd | grep -c name)
-  if [ "$running_etcd" != "0" ]; then
-    echo "etcd appears to already be running on this machine, please kill and restart the test."
-    exit 1
-  fi
-
-  # Stop on any failures
-  set -e
-
-  # get etcd version
-  etcd_version=$(etcd --version | awk '{print $3}')
-  initial_cluster=""
-  if [[ "${etcd_version}" =~ ^2 ]]; then
-    initial_cluster="--initial-cluster test=http://localhost:2380,test=http://localhost:7001"
-  fi
-
-  # Start etcd
-  export ETCD_DIR=$(mktemp -d -t test-etcd.XXXXXX)
-  etcd -name test -data-dir ${ETCD_DIR} -bind-addr ${host}:${port} ${initial_cluster} >/dev/null 2>/dev/null &
-  export ETCD_PID=$!
-
-  wait_for_url "http://${host}:${port}/version" "etcd: " 0.25 80
-  curl -X PUT  "http://${host}:${port}/v2/keys/_test"
-  echo
-}
-
 # remove_tmp_dir will try to delete the testing directory.
 # If it fails will unmount all the mounts associated with 
 # the test.
