@@ -89,7 +89,14 @@ angular.module("openshiftConsole")
       }
 
       resources.forEach(function(resource) {
-        DataService.get(resource.kind, resource.metadata.name, scope, {namespace: namespace, errorNotification: false}).then(
+        var resourceName = DataService.kindToResource(resource.kind);
+        if (!resourceName) {
+          failureResults.push({data: {message: "Unrecognized kind: " + resource.kind + "."}});
+          remaining--;
+          _checkDone();
+          return;
+        }
+        DataService.get(resourceName, resource.metadata.name, scope, {namespace: namespace, errorNotification: false}).then(
           function (data) {
             successResults.push(data);
             remaining--;

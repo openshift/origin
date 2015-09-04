@@ -217,11 +217,12 @@ angular.module('openshiftConsole')
   .filter('webhookURL', function(DataService) {
     return function(buildConfig, type, secret, project) {
       return DataService.url({
-        type: "buildconfigs/webhooks",
-        id: buildConfig,
-        namespace: project,
-        secret: secret,
-        hookType: type.toLowerCase()
+      	// arbitrarily many subresources can be included
+      	// url encoding of the segments is handled by the url() function
+      	// subresource segments cannot contain '/'
+        resource: "buildconfigs/webhooks/" + secret + "/" + type.toLowerCase(),
+        name: buildConfig,
+        namespace: project
       });
     };
   })
