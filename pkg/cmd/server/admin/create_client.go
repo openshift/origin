@@ -40,7 +40,7 @@ master as the provided user.
 `
 
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateClientOptions{SignerCertOptions: &SignerCertOptions{}, Output: out}
+	options := &CreateClientOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
