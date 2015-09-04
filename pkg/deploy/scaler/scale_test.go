@@ -1,7 +1,6 @@
 package scaler
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -77,24 +76,47 @@ func TestScale(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			testName:  "no deployment - dc scale",
+			namespace: "default",
+			name:      "foo",
+			count:     uint(3),
+			oc:        testclient.NewSimpleFake(deploytest.OkDeploymentConfig(1)),
+			kc:        ktestclient.NewSimpleFake(),
+			expected: []ktestclient.Action{
+				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
+				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
+				ktestclient.NewUpdateAction("deploymentconfigs", "default", nil),
+			},
+			kexpected: []ktestclient.Action{
+				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
+			},
+			expectedErr: nil,
+		},
 	}
 
 	for _, test := range tests {
 		scaler := DeploymentConfigScaler{NewScalerClient(test.oc, test.kc)}
-		got := scaler.Scale("default", test.name, test.count, test.preconditions, test.retry, test.waitForReplicas)
+		got := scaler.Scale(test.namespace, test.name, test.count, test.preconditions, test.retry, test.waitForReplicas)
 		if got != test.expectedErr {
 			t.Errorf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, got)
 		}
+
 		if len(test.oc.Actions()) != len(test.expected) {
-			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.oc.Actions(), test.expected)
+			t.Fatalf("%s: unexpected OpenShift actions amount: %d, expected %d", test.testName, len(test.oc.Actions()), len(test.expected))
 		}
 		for j, actualAction := range test.oc.Actions() {
-			if actualAction != test.expected[j] {
-				t.Errorf("%s: unexpected action: %s, expected %s", test.testName, actualAction, test.expected[j])
+			e, a := test.expected[j], actualAction
+			if e.GetVerb() != a.GetVerb() ||
+				e.GetNamespace() != a.GetNamespace() ||
+				e.GetResource() != a.GetResource() ||
+				e.GetSubresource() != a.GetSubresource() {
+				t.Errorf("%s: unexpected OpenShift action[%d]: %s, expected %s", test.testName, j, a, e)
 			}
 		}
+
 		if len(test.kc.Actions()) != len(test.kexpected) {
-			t.Fatalf("%s: unexpected actions: %v, expected %v", test.testName, test.kc.Actions(), test.kexpected)
+			t.Fatalf("%s: unexpected Kubernetes actions amount: %d, expected %d", test.testName, len(test.kc.Actions()), len(test.kexpected))
 		}
 		for j, actualAction := range test.kc.Actions() {
 			e, a := test.kexpected[j], actualAction
@@ -102,14 +124,7 @@ func TestScale(t *testing.T) {
 				e.GetNamespace() != a.GetNamespace() ||
 				e.GetResource() != a.GetResource() ||
 				e.GetSubresource() != a.GetSubresource() {
-				t.Errorf("%s: unexpected action[%d]: %s, expected %s", test.testName, j, a, e)
-			}
-
-			switch a.(type) {
-			case ktestclient.GetAction, ktestclient.DeleteAction:
-				if !reflect.DeepEqual(e, a) {
-					t.Errorf("%s: unexpected action[%d]: %s, expected %s", test.testName, j, a, e)
-				}
+				t.Errorf("%s: unexpected Kubernetes action[%d]: %s, expected %s", test.testName, j, a, e)
 			}
 		}
 	}
