@@ -20,6 +20,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1beta3"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
@@ -84,7 +85,7 @@ func TestRouter(t *testing.T) {
 	}
 
 	routeAddress := getRouteAddress()
-	routerTestAddress := fmt.Sprintf("%s/test", routeAddress)
+	routeTestAddress := fmt.Sprintf("%s/test", routeAddress)
 	routerEchoHttpAddress := fmt.Sprintf("%s:80/echo", routeAddress)
 	routerEchoHttpsAddress := fmt.Sprintf("%s:443/echo", routeAddress)
 
@@ -125,7 +126,7 @@ func TestRouter(t *testing.T) {
 			protocol:          "http",
 			expectedResponse:  tr.HelloPodPath,
 			routeTLS:          nil,
-			routerUrl:         routerTestAddress,
+			routerUrl:         routeTestAddress,
 		},
 		{
 			name:              "edge termination",
@@ -160,7 +161,7 @@ func TestRouter(t *testing.T) {
 				Key:           tr.ExampleKey,
 				CACertificate: tr.ExampleCACert,
 			},
-			routerUrl: routerTestAddress,
+			routerUrl: routeTestAddress,
 		},
 		{
 			name:              "reencrypt",
@@ -395,13 +396,21 @@ func TestRouterPathSpecificity(t *testing.T) {
 		t.Fatalf("Couldn't get http endpoint: %v", err)
 	}
 
+	alternateHttpEndpoint, err := getEndpoint(fakeMasterAndPod.AlternatePodHttpAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get http endpoint: %v", err)
+	}
+
+	now := util.Now()
+
 	//create path based route
 	endpointEvent := &watch.Event{
 		Type: watch.Added,
 		Object: &kapi.Endpoints{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "myService",
-				Namespace: "default",
+				CreationTimestamp: now,
+				Name:              "myService",
+				Namespace:         "default",
 			},
 			Subsets: []kapi.EndpointSubset{httpEndpoint},
 		},
@@ -420,21 +429,55 @@ func TestRouterPathSpecificity(t *testing.T) {
 	}
 
 	routeAddress := getRouteAddress()
-	routerTestAddress := fmt.Sprintf("%s/test", routeAddress)
+	routeTestAddress := fmt.Sprintf("%s/test", routeAddress)
 
 	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 	time.Sleep(time.Second * tcWaitSeconds)
 	//ensure you can curl path but not main host
-	validateRoute(routerTestAddress, "www.example.com", "http", tr.HelloPodPath, t)
+	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
+
+	//create newer, conflicting path based route
+	endpointEvent = &watch.Event{
+		Type: watch.Added,
+		Object: &kapi.Endpoints{
+			ObjectMeta: kapi.ObjectMeta{
+				Name:      "altService",
+				Namespace: "alt",
+			},
+			Subsets: []kapi.EndpointSubset{alternateHttpEndpoint},
+		},
+	}
+	routeEvent = &watch.Event{
+		Type: watch.Added,
+		Object: &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				CreationTimestamp: util.Time{Time: now.Add(time.Hour)},
+				Name:              "path",
+				Namespace:         "alt",
+			},
+			Host:        "www.example.com",
+			Path:        "/test",
+			ServiceName: "altService",
+		},
+	}
+	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
+	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	time.Sleep(time.Second * tcWaitSeconds)
+	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
 
 	//create host based route
 	routeEvent = &watch.Event{
 		Type: watch.Added,
 		Object: &routeapi.Route{
 			ObjectMeta: kapi.ObjectMeta{
-				Name:      "host",
-				Namespace: "default",
+				CreationTimestamp: now,
+				Name:              "host",
+				Namespace:         "default",
 			},
 			Host:        "www.example.com",
 			ServiceName: "myService",
@@ -443,8 +486,12 @@ func TestRouterPathSpecificity(t *testing.T) {
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
 	time.Sleep(time.Second * tcWaitSeconds)
 	//ensure you can curl path and host
-	validateRoute(routerTestAddress, "www.example.com", "http", tr.HelloPodPath, t)
-	validateRoute(routeAddress, "www.example.com", "http", tr.HelloPod, t)
+	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
+	if valid, response := isValidRoute(routeAddress, "www.example.com", "http", tr.HelloPod); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
 
 	//delete path based route
 	routeEvent = &watch.Event{
@@ -467,8 +514,56 @@ func TestRouterPathSpecificity(t *testing.T) {
 	// same service, and that that service varies its response in accordance with
 	// the path, so we still get the tr.HelloPodPath response when we request
 	// /test even though we request using routeAddress.
-	validateRoute(routerTestAddress, "www.example.com", "http", tr.HelloPodPath, t)
-	validateRoute(routeAddress, "www.example.com", "http", tr.HelloPod, t)
+	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
+	if valid, response := isValidRoute(routeAddress, "www.example.com", "http", tr.HelloPod); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
+
+	// create newer, conflicting host based route that is ignored
+	routeEvent = &watch.Event{
+		Type: watch.Added,
+		Object: &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				CreationTimestamp: util.Time{Time: now.Add(time.Hour)},
+				Name:              "host",
+				Namespace:         "alt",
+			},
+			Host:        "www.example.com",
+			ServiceName: "altService",
+		},
+	}
+	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	time.Sleep(time.Second * tcWaitSeconds)
+	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodPath); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
+	if valid, response := isValidRoute(routeAddress, "www.example.com", "http", tr.HelloPod); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
+
+	//create old, conflicting host based route which should take over the route
+	routeEvent = &watch.Event{
+		Type: watch.Added,
+		Object: &routeapi.Route{
+			ObjectMeta: kapi.ObjectMeta{
+				CreationTimestamp: util.Time{Time: now.Add(-time.Hour)},
+				Name:              "host",
+				Namespace:         "alt",
+			},
+			Host:        "www.example.com",
+			ServiceName: "altService",
+		},
+	}
+	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
+	time.Sleep(time.Second * tcWaitSeconds)
+	if valid, response := isValidRoute(routeTestAddress, "www.example.com", "http", tr.HelloPodAlternate); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
+	if valid, response := isValidRoute(routeAddress, "www.example.com", "http", tr.HelloPodAlternate); !valid {
+		t.Errorf("unexpected response: %q", response)
+	}
 
 	// Clean up the host-based route and endpoint.
 	routeEvent = &watch.Event{

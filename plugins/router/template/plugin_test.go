@@ -267,7 +267,7 @@ func TestHandleRoute(t *testing.T) {
 	if _, ok := router.FindServiceUnit("foo/TestService2"); ok {
 		t.Fatalf("unexpected second unit: %#v", router)
 	}
-	if r, ok := plugin.hostToRoute["www.example.com"]; !ok || r.Name != "test" {
+	if r, ok := plugin.hostToRoute["www.example.com"]; !ok || r[0].Name != "test" {
 		t.Fatalf("unexpected claimed routes: %#v", r)
 	}
 
@@ -281,7 +281,7 @@ func TestHandleRoute(t *testing.T) {
 	if _, ok := router.FindServiceUnit("foo/TestService"); !ok {
 		t.Fatalf("unexpected first unit: %#v", router)
 	}
-	if r, ok := plugin.hostToRoute["www.example.com"]; !ok || r.Name != "test" {
+	if r, ok := plugin.hostToRoute["www.example.com"]; !ok || r[0].Name != "test" {
 		t.Fatalf("unexpected claimed routes: %#v", r)
 	}
 

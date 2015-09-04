@@ -32,7 +32,7 @@ func newDefaultTemplatePlugin(router router) *TemplatePlugin {
 	}
 }
 
-type HostToRouteMap map[string]*routeapi.Route
+type HostToRouteMap map[string][]*routeapi.Route
 type RouteToHostMap map[string]string
 
 type TemplatePluginConfig struct {
@@ -145,22 +145,52 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 
 	host := p.HostForRoute(route)
 	if len(host) == 0 {
+		glog.V(4).Infof("Route %s has no host value", routeName)
 		return nil
 	}
 
-	// ensure hosts can only be claimed by one route at a time
+	// ensure hosts can only be claimed by one namespace at a time
 	// TODO: this could be abstracted above this layer?
 	if old, ok := p.hostToRoute[host]; ok {
-		if old.CreationTimestamp.Before(route.CreationTimestamp) {
-			glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(old))
-			return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(old), host, key)
+		oldest := old[0]
+
+		// multiple paths can be added from the namespace of the oldest route
+		if oldest.Namespace == route.Namespace {
+			added := false
+			for i := range old {
+				if old[i].Path == route.Path {
+					if old[i].CreationTimestamp.Before(route.CreationTimestamp) {
+						glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
+						return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
+					}
+					glog.V(4).Infof("Route %s will replace path %s from %s because it is older", routeName, route.Path, routeNameKey(old[i]))
+					p.Router.RemoveRoute(routeKey(old[i]), old[i])
+					old[i] = route
+					added = true
+				}
+			}
+			if !added {
+				if route.CreationTimestamp.Before(oldest.CreationTimestamp) {
+					p.hostToRoute[host] = append([]*routeapi.Route{route}, old...)
+				} else {
+					p.hostToRoute[host] = append(old, route)
+				}
+			}
+		} else {
+			if oldest.CreationTimestamp.Before(route.CreationTimestamp) {
+				glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
+				return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
+			}
+
+			glog.V(4).Infof("Route %s is reclaiming %s from namespace %s", routeName, host, oldest.Namespace)
+			for i := range old {
+				p.Router.RemoveRoute(routeKey(old[i]), old[i])
+			}
+			p.hostToRoute[host] = []*routeapi.Route{route}
 		}
-		glog.V(4).Infof("Route %s is reclaiming %s from %s", routeName, host, routeNameKey(old))
-		p.Router.RemoveRoute(routeKey(old), old)
-		p.hostToRoute[host] = route
 	} else {
 		glog.V(4).Infof("Route %s claims %s", key, host)
-		p.hostToRoute[host] = route
+		p.hostToRoute[host] = []*routeapi.Route{route}
 	}
 
 	switch eventType {
@@ -186,7 +216,20 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 		}
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)
-		delete(p.hostToRoute, host)
+		if old, ok := p.hostToRoute[host]; ok {
+			switch len(old) {
+			case 1, 0:
+				delete(p.hostToRoute, host)
+			default:
+				next := []*routeapi.Route{}
+				for i := range old {
+					if old[i].Name != route.Name {
+						next = append(next, old[i])
+					}
+				}
+				p.hostToRoute[host] = next
+			}
+		}
 		delete(p.routeToHost, routeName)
 		p.Router.RemoveRoute(key, route)
 		return p.Router.Commit()
