@@ -381,11 +381,16 @@ angular.module('openshiftConsole')
         callback(this._data(type, context));
       }
     }
-    else if (this._listInFlight(type, context)) {
-      // no-op, our callback will get called when listOperation completes
-    }
     else {
-      this._startListOp(type, context);
+      if (callback) {
+        var existingData = this._data(type, context);
+        if (existingData) {
+          callback(existingData);
+        }
+      }
+      if (!this._listInFlight(type, context)) {
+        this._startListOp(type, context);
+      }      
     }
 
     // returned handle needs type, context, and callback in order to unwatch
