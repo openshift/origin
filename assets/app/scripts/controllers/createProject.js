@@ -8,7 +8,10 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateProjectController', function ($scope, DataService, Notification, Navigate) {
+  .controller('CreateProjectController', function ($scope, AuthService, DataService, Notification, Navigate) {
+
+    AuthService.withUser();
+
     $scope.createProject = function() {
       if ($scope.createProjectForm.$valid) {
         DataService.create('projectrequests', null, {
