@@ -45,7 +45,7 @@ Example: Creating a secure router certificate.
 `
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateServerCertOptions{SignerCertOptions: &SignerCertOptions{}, Output: out}
+	options := &CreateServerCertOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
