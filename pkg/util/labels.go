@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+
 	kmeta "k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -43,8 +45,15 @@ func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
 			metaLabels = make(map[string]string)
 		}
 
+		switch objType := obj.(type) {
+		case *deployapi.DeploymentConfig:
+			if err := addDeploymentConfigNestedLabels(objType, labels); err != nil {
+				return fmt.Errorf("unable to add nested labels to %s/%s: %v", accessor.Kind(), accessor.Name(), err)
+			}
+		}
+
 		if err := MergeInto(metaLabels, labels, ErrorOnDifferentDstKeyValue); err != nil {
-			return fmt.Errorf("unable to add labels to Template.%s: %v", accessor.Kind(), err)
+			return fmt.Errorf("unable to add labels to %s/%s: %v", accessor.Kind(), accessor.Name(), err)
 		}
 		accessor.SetLabels(metaLabels)
 
@@ -89,6 +98,17 @@ func AddObjectLabels(obj runtime.Object, labels labels.Set) error {
 		}
 	}
 
+	return nil
+}
+
+// addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
+func addDeploymentConfigNestedLabels(obj *deployapi.DeploymentConfig, labels labels.Set) error {
+	if obj.Template.ControllerTemplate.Template.Labels == nil {
+		obj.Template.ControllerTemplate.Template.Labels = make(map[string]string)
+	}
+	if err := MergeInto(obj.Template.ControllerTemplate.Template.Labels, labels, OverwriteExistingDstKey); err != nil {
+		return fmt.Errorf("unable to add labels to Template.DeploymentConfig.Template.ControllerTemplate.Template: %v", err)
+	}
 	return nil
 }
 
