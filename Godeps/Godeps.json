@@ -29,11 +29,11 @@
 		},
 		{
 			"ImportPath": "github.com/AdRoll/goamz/aws",
-			"Rev": "c73835dc8fc6958baf8df8656864ee4d6d04b130"
+			"Rev": "cc210f45dcb9889c2769a274522be2bf70edfb99"
 		},
 		{
 			"ImportPath": "github.com/AdRoll/goamz/s3",
-			"Rev": "c73835dc8fc6958baf8df8656864ee4d6d04b130"
+			"Rev": "cc210f45dcb9889c2769a274522be2bf70edfb99"
 		},
 		{
 			"ImportPath": "github.com/GoogleCloudPlatform/gcloud-golang/compute/metadata",
@@ -310,8 +310,8 @@
 		},
 		{
 			"ImportPath": "github.com/docker/distribution",
-			"Comment": "v2.0.0",
-			"Rev": "62b70f951f30a711a8a81df1865d0afeeaaa0169"
+			"Comment": "v2.0.1",
+			"Rev": "1341222284b3a6b4e77fb64571ad423ed58b0d34"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/builder/command",
