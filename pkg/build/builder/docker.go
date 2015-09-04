@@ -196,6 +196,7 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 		}
 	}()
 
+	glog.V(2).Infof("Cloning source from %s", d.build.Spec.Source.Git.URI)
 	if err := d.git.Clone(d.build.Spec.Source.Git.URI, dir); err != nil {
 		return err
 	}
