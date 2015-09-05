@@ -9,17 +9,31 @@ type Route struct {
 	kapi.TypeMeta
 	kapi.ObjectMeta
 
+	// Spec is the desired behavior of the route
+	Spec RouteSpec
+	// Status describes the current observed state of the route
+	Status RouteStatus
+}
+
+// RouteSpec describes the desired behavior of a route.
+type RouteSpec struct {
 	// Host is an alias/DNS that points to the service. Optional
 	// Must follow DNS952 subdomain conventions.
 	Host string
 	// Path that the router watches for, to route traffic for to the service. Optional
 	Path string
 
-	// ServiceName is the name of the service that this route points to
-	ServiceName string
+	// An object the route points to. Only the Service kind is allowed, and it will
+	// be defaulted to Service.
+	To kapi.ObjectReference
 
 	//TLS provides the ability to configure certificates and termination for the route
 	TLS *TLSConfig
+}
+
+// RouteStatus provides relevant info about the status of a route, including which routers
+// acknowledge it.
+type RouteStatus struct {
 }
 
 // RouteList is a collection of Routes.

@@ -72,7 +72,11 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "namespace",
 				},
-				ServiceName: "service",
+				Spec: api.RouteSpec{
+					To: kapi.ObjectReference{
+						Name: "service",
+					},
+				},
 			},
 			empty: true,
 		},
@@ -82,7 +86,11 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "name",
 				},
-				ServiceName: "nonamespace",
+				Spec: api.RouteSpec{
+					To: kapi.ObjectReference{
+						Name: "nonamespace",
+					},
+				},
 			},
 			empty: true,
 		},
@@ -102,8 +110,12 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Host:        "www.example.com",
-				ServiceName: "myservice",
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "myservice",
+					},
+				},
 			},
 		},
 		{
@@ -113,7 +125,12 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				ServiceName: "myservice",
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "myservice",
+					},
+				},
 			},
 		},
 	}
@@ -151,7 +168,11 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "namespace",
 				},
-				ServiceName: "service",
+				Spec: api.RouteSpec{
+					To: kapi.ObjectReference{
+						Name: "service",
+					},
+				},
 			},
 			empty: true,
 		},
@@ -161,7 +182,9 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "namespace",
 				},
-				Host: "foo.com",
+				Spec: api.RouteSpec{
+					Host: "foo.com",
+				},
 			},
 			empty: true,
 		},
@@ -171,7 +194,11 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "name",
 				},
-				ServiceName: "nonamespace",
+				Spec: api.RouteSpec{
+					To: kapi.ObjectReference{
+						Name: "nonamespace",
+					},
+				},
 			},
 			empty: true,
 		},
@@ -191,8 +218,12 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Host:        "www.example.com",
-				ServiceName: "s3",
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "s3",
+					},
+				},
 			},
 		},
 	}

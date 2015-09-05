@@ -524,13 +524,13 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, route.ObjectMeta)
-		formatString(out, "Host", route.Host)
-		formatString(out, "Path", route.Path)
-		formatString(out, "Service", route.ServiceName)
+		formatString(out, "Host", route.Spec.Host)
+		formatString(out, "Path", route.Spec.Path)
+		formatString(out, "Service", route.Spec.To.Name)
 
 		tlsTerm := ""
-		if route.TLS != nil {
-			tlsTerm = string(route.TLS.Termination)
+		if route.Spec.TLS != nil {
+			tlsTerm = string(route.Spec.TLS.Termination)
 		}
 		formatString(out, "TLS Termination", tlsTerm)
 		return nil

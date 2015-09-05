@@ -58,8 +58,10 @@ type RoutePort struct {
 }
 */
 
-// RouteStatus describes the current state of this route.
-type RouteStatus struct{}
+// RouteStatus provides relevant info about the status of a route, including which routers
+// acknowledge it.
+type RouteStatus struct {
+}
 
 // RouterShard has information of a routing shard and is used to
 // generate host names and routing table entries when a routing shard is

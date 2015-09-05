@@ -47,13 +47,17 @@ func validNewRoute(name string) *api.Route {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: name,
 		},
-		ServiceName: "test",
+		Spec: api.RouteSpec{
+			To: kapi.ObjectReference{
+				Name: "test",
+			},
+		},
 	}
 }
 
 func TestCreate(t *testing.T) {
 	fakeClient, helper := newHelper(t)
-	storage := NewREST(helper, nil)
+	storage := NewREST(helper, nil).Route
 	test := resttest.New(t, storage, fakeClient.SetError)
 	validRoute := validNewRoute("foo")
 	test.TestCreate(
@@ -89,7 +93,7 @@ func (a *testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
 func TestCreateWithAllocation(t *testing.T) {
 	_, helper := newHelper(t)
 	allocator := &testAllocator{Hostname: "bar"}
-	storage := NewREST(helper, allocator)
+	storage := NewREST(helper, allocator).Route
 
 	validRoute := validNewRoute("foo")
 	obj, err := storage.Create(kapi.NewDefaultContext(), validRoute)
@@ -97,7 +101,7 @@ func TestCreateWithAllocation(t *testing.T) {
 		t.Fatalf("unable to create object: %v", err)
 	}
 	result := obj.(*api.Route)
-	if result.Host != "bar" {
+	if result.Spec.Host != "bar" {
 		t.Fatalf("unexpected route: %#v", result)
 	}
 	if v, ok := result.Annotations[route.HostGeneratedAnnotationKey]; !ok || v != "true" {
@@ -110,7 +114,7 @@ func TestCreateWithAllocation(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	fakeClient, helper := newHelper(t)
-	storage := NewREST(helper, nil)
+	storage := NewREST(helper, nil).Route
 	test := resttest.New(t, storage, fakeClient.SetError)
 	key, err := storage.KeyFunc(test.TestContext(), "foo")
 	if err != nil {
@@ -140,7 +144,7 @@ func TestUpdate(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	fakeClient, helper := newHelper(t)
-	storage := NewREST(helper, nil)
+	storage := NewREST(helper, nil).Route
 	test := resttest.New(t, storage, fakeClient.SetError)
 
 	ctx := kapi.NewDefaultContext()

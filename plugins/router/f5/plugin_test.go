@@ -1493,10 +1493,12 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "unsecuretest",
 				},
-				Host:        "www.example.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS:         nil,
+				Spec: routeapi.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+				},
 			},
 			validate: func(tc testCase) error {
 				rulename := routeName(*tc.route)
@@ -1528,10 +1530,10 @@ func TestHandleRoute(t *testing.T) {
 						" but has %d values: %v", len(condition.Values), condition)
 				}
 
-				if condition.Values[0] != tc.route.Host {
+				if condition.Values[0] != tc.route.Spec.Host {
 					return fmt.Errorf("Insecure route rule condition should match on"+
 						" hostname %s, but it has a different value: %v",
-						tc.route.Host, condition)
+						tc.route.Spec.Host, condition)
 				}
 
 				return nil
@@ -1545,10 +1547,13 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "unsecuretest",
 				},
-				Host:        "www.example2.com",
-				Path:        "/foo/bar",
-				ServiceName: "TestService",
-				TLS:         nil,
+				Spec: routeapi.RouteSpec{
+					Host: "www.example2.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+					Path: "/foo/bar",
+				},
 			},
 			validate: func(tc testCase) error {
 				rulename := routeName(*tc.route)
@@ -1566,7 +1571,7 @@ func TestHandleRoute(t *testing.T) {
 						len(rule.conditions), rule.conditions)
 				}
 
-				pathSegments := strings.Split(tc.route.Path, "/")
+				pathSegments := strings.Split(tc.route.Spec.Path, "/")
 
 				for _, condition := range rule.conditions {
 					if !(condition.PathSegment && condition.HttpUri) {
@@ -1580,7 +1585,7 @@ func TestHandleRoute(t *testing.T) {
 						return fmt.Errorf("Rule condition with index %d for insecure route"+
 							" with pathname %s should have value \"%s\" but has value"+
 							" \"%s\": %v",
-							condition.Index, tc.route.Path, expectedValue, foundValue, rule)
+							condition.Index, tc.route.Spec.Path, expectedValue, foundValue, rule)
 					}
 				}
 
@@ -1595,10 +1600,12 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "unsecuretest",
 				},
-				Host:        "www.example2.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS:         nil,
+				Spec: routeapi.RouteSpec{
+					Host: "www.example2.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+				},
 			},
 			validate: func(tc testCase) error {
 				rulename := routeName(*tc.route)
@@ -1622,13 +1629,16 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "edgetest",
 				},
-				Host:        "www.example.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS: &routeapi.TLSConfig{
-					Termination: routeapi.TLSTerminationEdge,
-					Certificate: "abc",
-					Key:         "def",
+				Spec: routeapi.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
+						Certificate: "abc",
+						Key:         "def",
+					},
 				},
 			},
 			validate: func(tc testCase) error {
@@ -1685,13 +1695,16 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "edgetest",
 				},
-				Host:        "www.example.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS: &routeapi.TLSConfig{
-					Termination: routeapi.TLSTerminationEdge,
-					Certificate: "abc",
-					Key:         "def",
+				Spec: routeapi.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
+						Certificate: "abc",
+						Key:         "def",
+					},
 				},
 			},
 			validate: func(tc testCase) error {
@@ -1748,20 +1761,23 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "passthroughtest",
 				},
-				Host:        "www.example3.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS: &routeapi.TLSConfig{
-					Termination: routeapi.TLSTerminationPassthrough,
+				Spec: routeapi.RouteSpec{
+					Host: "www.example3.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationPassthrough,
+					},
 				},
 			},
 			validate: func(tc testCase) error {
-				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Host]
+				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if !found {
 					return fmt.Errorf("Datagroup entry for %s should have been created"+
 						" in the %s datagroup for the passthrough route but cannot be"+
 						" found: %v",
-						tc.route.Host, passthroughIRuleDatagroupName,
+						tc.route.Spec.Host, passthroughIRuleDatagroupName,
 						mockF5.state.datagroups[passthroughIRuleDatagroupName])
 				}
 
@@ -1776,22 +1792,25 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "conflictingroutetest",
 				},
-				Host:        "www.example3.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS: &routeapi.TLSConfig{
-					Termination: routeapi.TLSTerminationEdge,
-					Certificate: "abc",
-					Key:         "def",
+				Spec: routeapi.RouteSpec{
+					Host: "www.example3.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
+						Certificate: "abc",
+						Key:         "def",
+					},
 				},
 			},
 			validate: func(tc testCase) error {
-				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Host]
+				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if !found {
 					return fmt.Errorf("Datagroup entry for %s should still exist"+
 						" in the %s datagroup after a secure route with the same hostname"+
 						" was created, but the datagroup entry cannot be found: %v",
-						tc.route.Host, passthroughIRuleDatagroupName,
+						tc.route.Spec.Host, passthroughIRuleDatagroupName,
 						mockF5.state.datagroups[passthroughIRuleDatagroupName])
 				}
 
@@ -1806,18 +1825,20 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "conflictingroutetest",
 				},
-				Host:        "www.example3.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS:         nil,
+				Spec: routeapi.RouteSpec{
+					Host: "www.example3.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+				},
 			},
 			validate: func(tc testCase) error {
-				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Host]
+				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if !found {
 					return fmt.Errorf("Datagroup entry for %s should still exist"+
 						" in the %s datagroup after a secure route with the same hostname"+
 						" was updated, but the datagroup entry cannot be found: %v",
-						tc.route.Host, passthroughIRuleDatagroupName,
+						tc.route.Spec.Host, passthroughIRuleDatagroupName,
 						mockF5.state.datagroups[passthroughIRuleDatagroupName])
 				}
 
@@ -1832,18 +1853,20 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "conflictingroutetest",
 				},
-				Host:        "www.example3.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS:         nil,
+				Spec: routeapi.RouteSpec{
+					Host: "www.example3.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+				},
 			},
 			validate: func(tc testCase) error {
-				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Host]
+				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if !found {
 					return fmt.Errorf("Datagroup entry for %s should still exist"+
 						" in the %s datagroup after a secure route with the same hostname"+
 						" was deleted, but the datagroup entry cannot be found: %v",
-						tc.route.Host, passthroughIRuleDatagroupName,
+						tc.route.Spec.Host, passthroughIRuleDatagroupName,
 						mockF5.state.datagroups[passthroughIRuleDatagroupName])
 				}
 
@@ -1858,20 +1881,23 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "passthroughtest",
 				},
-				Host:        "www.example3.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS: &routeapi.TLSConfig{
-					Termination: routeapi.TLSTerminationPassthrough,
+				Spec: routeapi.RouteSpec{
+					Host: "www.example3.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationPassthrough,
+					},
 				},
 			},
 			validate: func(tc testCase) error {
-				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Host]
+				_, found := mockF5.state.datagroups[passthroughIRuleDatagroupName][tc.route.Spec.Host]
 				if found {
 					return fmt.Errorf("Datagroup entry for %s should have been deleted"+
 						" from the %s datagroup for the passthrough route but remains"+
 						" yet: %v",
-						tc.route.Host, passthroughIRuleDatagroupName,
+						tc.route.Spec.Host, passthroughIRuleDatagroupName,
 						mockF5.state.datagroups[passthroughIRuleDatagroupName])
 				}
 
@@ -1886,15 +1912,18 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "reencryptedtest",
 				},
-				Host:        "www.example4.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS: &routeapi.TLSConfig{
-					Termination:              routeapi.TLSTerminationReencrypt,
-					Certificate:              "abc",
-					Key:                      "def",
-					CACertificate:            "ghi",
-					DestinationCACertificate: "jkl",
+				Spec: routeapi.RouteSpec{
+					Host: "www.example4.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
+						Certificate:              "abc",
+						Key:                      "def",
+						CACertificate:            "ghi",
+						DestinationCACertificate: "jkl",
+					},
 				},
 			},
 			validate: func(tc testCase) error {
@@ -1967,15 +1996,18 @@ func TestHandleRoute(t *testing.T) {
 					Namespace: "foo",
 					Name:      "reencryptedtest",
 				},
-				Host:        "www.example4.com",
-				Path:        "",
-				ServiceName: "TestService",
-				TLS: &routeapi.TLSConfig{
-					Termination:              routeapi.TLSTerminationReencrypt,
-					Certificate:              "abc",
-					Key:                      "def",
-					CACertificate:            "ghi",
-					DestinationCACertificate: "jkl",
+				Spec: routeapi.RouteSpec{
+					Host: "www.example4.com",
+					To: kapi.ObjectReference{
+						Name: "TestService",
+					},
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
+						Certificate:              "abc",
+						Key:                      "def",
+						CACertificate:            "ghi",
+						DestinationCACertificate: "jkl",
+					},
 				},
 			},
 			validate: func(tc testCase) error {
@@ -2060,10 +2092,12 @@ func TestHandleRouteModifications(t *testing.T) {
 			Namespace: "foo",
 			Name:      "mutatingroute",
 		},
-		Host:        "www.example.com",
-		Path:        "",
-		ServiceName: "testendpoint",
-		TLS:         nil,
+		Spec: routeapi.RouteSpec{
+			Host: "www.example.com",
+			To: kapi.ObjectReference{
+				Name: "testendpoint",
+			},
+		},
 	}
 
 	err = router.HandleRoute(watch.Added, testRoute)
@@ -2072,7 +2106,7 @@ func TestHandleRouteModifications(t *testing.T) {
 	}
 
 	// Verify that modifying the route into a secure route works.
-	testRoute.TLS = &routeapi.TLSConfig{
+	testRoute.Spec.TLS = &routeapi.TLSConfig{
 		Termination:              routeapi.TLSTerminationReencrypt,
 		Certificate:              "abc",
 		Key:                      "def",
@@ -2086,7 +2120,7 @@ func TestHandleRouteModifications(t *testing.T) {
 	}
 
 	// Verify that updating the hostname of the route succeeds.
-	testRoute.Host = "www.example2.com"
+	testRoute.Spec.Host = "www.example2.com"
 
 	err = router.HandleRoute(watch.Modified, testRoute)
 	if err != nil {
@@ -2094,7 +2128,7 @@ func TestHandleRouteModifications(t *testing.T) {
 	}
 
 	// Verify that modifying the route into a passthrough route works.
-	testRoute.TLS = &routeapi.TLSConfig{
+	testRoute.Spec.TLS = &routeapi.TLSConfig{
 		Termination: routeapi.TLSTerminationPassthrough,
 	}
 
@@ -2104,7 +2138,7 @@ func TestHandleRouteModifications(t *testing.T) {
 	}
 
 	// Verify that updating the hostname of the passthrough route succeeds.
-	testRoute.Host = "www.example3.com"
+	testRoute.Spec.Host = "www.example3.com"
 
 	err = router.HandleRoute(watch.Modified, testRoute)
 	if err != nil {
@@ -2127,15 +2161,18 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 			Namespace: "xyzzy",
 			Name:      "testroute",
 		},
-		Host:        "www.example.com",
-		Path:        "",
-		ServiceName: "testendpoint",
-		TLS: &routeapi.TLSConfig{
-			Termination:              routeapi.TLSTerminationReencrypt,
-			Certificate:              "abc",
-			Key:                      "def",
-			CACertificate:            "ghi",
-			DestinationCACertificate: "jkl",
+		Spec: routeapi.RouteSpec{
+			Host: "www.example.com",
+			To: kapi.ObjectReference{
+				Name: "testendpoint",
+			},
+			TLS: &routeapi.TLSConfig{
+				Termination:              routeapi.TLSTerminationReencrypt,
+				Certificate:              "abc",
+				Key:                      "def",
+				CACertificate:            "ghi",
+				DestinationCACertificate: "jkl",
+			},
 		},
 	}
 
@@ -2144,11 +2181,14 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 			Namespace: "quux",
 			Name:      "testpassthroughroute",
 		},
-		Host:        "www.example2.com",
-		Path:        "",
-		ServiceName: "testhttpsendpoint",
-		TLS: &routeapi.TLSConfig{
-			Termination: routeapi.TLSTerminationPassthrough,
+		Spec: routeapi.RouteSpec{
+			Host: "www.example2.com",
+			To: kapi.ObjectReference{
+				Name: "testhttpsendpoint",
+			},
+			TLS: &routeapi.TLSConfig{
+				Termination: routeapi.TLSTerminationPassthrough,
+			},
 		},
 	}
 

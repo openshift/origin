@@ -21,8 +21,12 @@ func TestValidateRoute(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Namespace: "foo",
 				},
-				Host:        "host",
-				ServiceName: "serviceName",
+				Spec: api.RouteSpec{
+					Host: "host",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+				},
 			},
 			expectedErrors: 1,
 		},
@@ -32,8 +36,12 @@ func TestValidateRoute(t *testing.T) {
 				ObjectMeta: kapi.ObjectMeta{
 					Name: "name",
 				},
-				Host:        "host",
-				ServiceName: "serviceName",
+				Spec: api.RouteSpec{
+					Host: "host",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+				},
 			},
 			expectedErrors: 1,
 		},
@@ -44,7 +52,11 @@ func TestValidateRoute(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				ServiceName: "serviceName",
+				Spec: api.RouteSpec{
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+				},
 			},
 			expectedErrors: 0,
 		},
@@ -55,8 +67,12 @@ func TestValidateRoute(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Host:        "**",
-				ServiceName: "serviceName",
+				Spec: api.RouteSpec{
+					Host: "**",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+				},
 			},
 			expectedErrors: 1,
 		},
@@ -67,7 +83,9 @@ func TestValidateRoute(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Host: "host",
+				Spec: api.RouteSpec{
+					Host: "host",
+				},
 			},
 			expectedErrors: 1,
 		},
@@ -78,8 +96,12 @@ func TestValidateRoute(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Host:        "www.example.com",
-				ServiceName: "serviceName",
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+				},
 			},
 			expectedErrors: 0,
 		},
@@ -90,9 +112,13 @@ func TestValidateRoute(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Host:        "www.example.com",
-				Path:        "/test",
-				ServiceName: "serviceName",
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+					Path: "/test",
+				},
 			},
 			expectedErrors: 0,
 		},
@@ -103,9 +129,13 @@ func TestValidateRoute(t *testing.T) {
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Host:        "www.example.com",
-				Path:        "test",
-				ServiceName: "serviceName",
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+					Path: "test",
+				},
 			},
 			expectedErrors: 1,
 		},
@@ -129,8 +159,10 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "No TLS Termination",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination: "",
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination: "",
+					},
 				},
 			},
 			expectedErrors: 0,
@@ -138,8 +170,10 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "Passthrough termination OK",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination: api.TLSTerminationPassthrough,
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination: api.TLSTerminationPassthrough,
+					},
 				},
 			},
 			expectedErrors: 0,
@@ -147,12 +181,14 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "Reencrypt termination OK with certs",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination:              api.TLSTerminationReencrypt,
-					Certificate:              "def",
-					Key:                      "ghi",
-					CACertificate:            "jkl",
-					DestinationCACertificate: "abc",
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						Certificate:              "def",
+						Key:                      "ghi",
+						CACertificate:            "jkl",
+						DestinationCACertificate: "abc",
+					},
 				},
 			},
 			expectedErrors: 0,
@@ -160,9 +196,11 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "Reencrypt termination OK without certs",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination:              api.TLSTerminationReencrypt,
-					DestinationCACertificate: "abc",
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						DestinationCACertificate: "abc",
+					},
 				},
 			},
 			expectedErrors: 0,
@@ -170,11 +208,13 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "Reencrypt termination no dest cert",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination:   api.TLSTerminationReencrypt,
-					Certificate:   "def",
-					Key:           "ghi",
-					CACertificate: "jkl",
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:   api.TLSTerminationReencrypt,
+						Certificate:   "def",
+						Key:           "ghi",
+						CACertificate: "jkl",
+					},
 				},
 			},
 			expectedErrors: 1,
@@ -182,11 +222,13 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "Edge termination OK with certs",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination:   api.TLSTerminationEdge,
-					Certificate:   "abc",
-					Key:           "abc",
-					CACertificate: "abc",
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:   api.TLSTerminationEdge,
+						Certificate:   "abc",
+						Key:           "abc",
+						CACertificate: "abc",
+					},
 				},
 			},
 			expectedErrors: 0,
@@ -194,8 +236,10 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "Edge termination OK without certs",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination: api.TLSTerminationEdge,
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination: api.TLSTerminationEdge,
+					},
 				},
 			},
 			expectedErrors: 0,
@@ -203,9 +247,11 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "Edge termination, dest cert",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination:              api.TLSTerminationEdge,
-					DestinationCACertificate: "abc",
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationEdge,
+						DestinationCACertificate: "abc",
+					},
 				},
 			},
 			expectedErrors: 1,
@@ -213,36 +259,46 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "Passthrough termination, cert",
 			route: &api.Route{
-				TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Certificate: "test"},
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Certificate: "test"},
+				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Passthrough termination, key",
 			route: &api.Route{
-				TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Key: "test"},
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Key: "test"},
+				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Passthrough termination, ca cert",
 			route: &api.Route{
-				TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificate: "test"},
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificate: "test"},
+				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Passthrough termination, dest ca cert",
 			route: &api.Route{
-				TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificate: "test"},
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificate: "test"},
+				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Invalid termination type",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination: "invalid",
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination: "invalid",
+					},
 				},
 			},
 			expectedErrors: 1,
@@ -250,12 +306,14 @@ func TestValidateTLS(t *testing.T) {
 		{
 			name: "Double escaped newlines",
 			route: &api.Route{
-				TLS: &api.TLSConfig{
-					Termination:              api.TLSTerminationReencrypt,
-					Certificate:              "d\\nef",
-					Key:                      "g\\nhi",
-					CACertificate:            "j\\nkl",
-					DestinationCACertificate: "j\\nkl",
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						Certificate:              "d\\nef",
+						Key:                      "g\\nhi",
+						CACertificate:            "j\\nkl",
+						DestinationCACertificate: "j\\nkl",
+					},
 				},
 			},
 			expectedErrors: 4,

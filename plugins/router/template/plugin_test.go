@@ -80,7 +80,7 @@ func (r *TestRouter) AddRoute(id string, route *routeapi.Route, host string) boo
 
 	config := ServiceAliasConfig{
 		Host: host,
-		Path: route.Path,
+		Path: route.Spec.Path,
 	}
 
 	su.ServiceAliasConfigs[routeKey] = config
@@ -115,7 +115,7 @@ func (r *TestRouter) FilterNamespaces(namespaces util.StringSet) {
 
 // routeKey create an identifier for the route consisting of host-path
 func (r *TestRouter) routeKey(route *routeapi.Route) string {
-	return route.Host + "-" + route.Path
+	return route.Spec.Host + "-" + route.Spec.Path
 }
 
 // Commit saves router state
@@ -240,10 +240,14 @@ func TestHandleRoute(t *testing.T) {
 			Namespace:         "foo",
 			Name:              "test",
 		},
-		Host:        "www.example.com",
-		ServiceName: "TestService",
+		Spec: routeapi.RouteSpec{
+			Host: "www.example.com",
+			To: kapi.ObjectReference{
+				Name: "TestService",
+			},
+		},
 	}
-	serviceUnitKey := fmt.Sprintf("%s/%s", route.Namespace, route.ServiceName)
+	serviceUnitKey := fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
 
 	plugin.HandleRoute(watch.Added, route)
 
@@ -254,14 +258,14 @@ func TestHandleRoute(t *testing.T) {
 	actualSU, ok := router.FindServiceUnit(serviceUnitKey)
 
 	if !ok {
-		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.ServiceName)
+		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
 		serviceAliasCfg, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
 
 		if !ok {
 			t.Errorf("TestHandleRoute expected route key %s", router.routeKey(route))
 		} else {
-			if serviceAliasCfg.Host != route.Host || serviceAliasCfg.Path != route.Path {
+			if serviceAliasCfg.Host != route.Spec.Host || serviceAliasCfg.Path != route.Spec.Path {
 				t.Errorf("Expected route did not match service alias config %v : %v", route, serviceAliasCfg)
 			}
 		}
@@ -274,8 +278,12 @@ func TestHandleRoute(t *testing.T) {
 			Namespace:         "foo",
 			Name:              "dupe",
 		},
-		Host:        "www.example.com",
-		ServiceName: "TestService2",
+		Spec: routeapi.RouteSpec{
+			Host: "www.example.com",
+			To: kapi.ObjectReference{
+				Name: "TestService2",
+			},
+		},
 	}
 	if err := plugin.HandleRoute(watch.Added, duplicateRoute); err == nil {
 		t.Fatal("unexpected non-error")
@@ -318,7 +326,7 @@ func TestHandleRoute(t *testing.T) {
 	}
 
 	//mod
-	route.Host = "www.example2.com"
+	route.Spec.Host = "www.example2.com"
 	if err := plugin.HandleRoute(watch.Modified, route); err != nil {
 		t.Fatal("unexpected error")
 	}
@@ -327,14 +335,14 @@ func TestHandleRoute(t *testing.T) {
 	}
 	actualSU, ok = router.FindServiceUnit(serviceUnitKey)
 	if !ok {
-		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.ServiceName)
+		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
 		serviceAliasCfg, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
 
 		if !ok {
 			t.Errorf("TestHandleRoute expected route key %s", router.routeKey(route))
 		} else {
-			if serviceAliasCfg.Host != route.Host || serviceAliasCfg.Path != route.Path {
+			if serviceAliasCfg.Host != route.Spec.Host || serviceAliasCfg.Path != route.Spec.Path {
 				t.Errorf("Expected route did not match service alias config %v : %v", route, serviceAliasCfg)
 			}
 		}
@@ -352,7 +360,7 @@ func TestHandleRoute(t *testing.T) {
 	}
 	actualSU, ok = router.FindServiceUnit(serviceUnitKey)
 	if !ok {
-		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.ServiceName)
+		t.Errorf("TestHandleRoute was unable to find the service unit %s after HandleRoute was called", route.Spec.To.Name)
 	} else {
 		_, ok := actualSU.ServiceAliasConfigs[router.routeKey(route)]
 
@@ -374,9 +382,13 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 
 	//add
 	route := &routeapi.Route{
-		ObjectMeta:  kapi.ObjectMeta{Namespace: "foo", Name: "test"},
-		Host:        "www.example.com",
-		ServiceName: "TestService",
+		ObjectMeta: kapi.ObjectMeta{Namespace: "foo", Name: "test"},
+		Spec: routeapi.RouteSpec{
+			Host: "www.example.com",
+			To: kapi.ObjectReference{
+				Name: "TestService",
+			},
+		},
 	}
 
 	// ignores all events for namespace that doesn't match

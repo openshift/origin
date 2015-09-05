@@ -176,12 +176,12 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 		if oldest.Namespace == route.Namespace {
 			added := false
 			for i := range old {
-				if old[i].Path == route.Path {
+				if old[i].Spec.Path == route.Spec.Path {
 					if old[i].CreationTimestamp.Before(route.CreationTimestamp) {
 						glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
 						return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
 					}
-					glog.V(4).Infof("Route %s will replace path %s from %s because it is older", routeName, route.Path, routeNameKey(old[i]))
+					glog.V(4).Infof("Route %s will replace path %s from %s because it is older", routeName, route.Spec.Path, routeNameKey(old[i]))
 					p.Router.RemoveRoute(routeKey(old[i]), old[i])
 					old[i] = route
 					added = true
@@ -279,12 +279,12 @@ func (p *TemplatePlugin) HandleNamespaces(namespaces util.StringSet) error {
 
 // defaultHostForRoute return the host based on the string value on a route.
 func defaultHostForRoute(route *routeapi.Route) string {
-	return route.Host
+	return route.Spec.Host
 }
 
 // routeKey returns the internal router key to use for the given Route.
 func routeKey(route *routeapi.Route) string {
-	return fmt.Sprintf("%s/%s", route.Namespace, route.ServiceName)
+	return fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
 }
 
 // routeNameKey returns a unique name for a given route

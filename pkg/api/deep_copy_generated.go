@@ -2159,16 +2159,11 @@ func deepCopy_api_Route(in routeapi.Route, out *routeapi.Route, c *conversion.Cl
 	} else {
 		out.ObjectMeta = newVal.(pkgapi.ObjectMeta)
 	}
-	out.Host = in.Host
-	out.Path = in.Path
-	out.ServiceName = in.ServiceName
-	if in.TLS != nil {
-		out.TLS = new(routeapi.TLSConfig)
-		if err := deepCopy_api_TLSConfig(*in.TLS, out.TLS, c); err != nil {
-			return err
-		}
-	} else {
-		out.TLS = nil
+	if err := deepCopy_api_RouteSpec(in.Spec, &out.Spec, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_RouteStatus(in.Status, &out.Status, c); err != nil {
+		return err
 	}
 	return nil
 }
@@ -2194,6 +2189,29 @@ func deepCopy_api_RouteList(in routeapi.RouteList, out *routeapi.RouteList, c *c
 	} else {
 		out.Items = nil
 	}
+	return nil
+}
+
+func deepCopy_api_RouteSpec(in routeapi.RouteSpec, out *routeapi.RouteSpec, c *conversion.Cloner) error {
+	out.Host = in.Host
+	out.Path = in.Path
+	if newVal, err := c.DeepCopy(in.To); err != nil {
+		return err
+	} else {
+		out.To = newVal.(pkgapi.ObjectReference)
+	}
+	if in.TLS != nil {
+		out.TLS = new(routeapi.TLSConfig)
+		if err := deepCopy_api_TLSConfig(*in.TLS, out.TLS, c); err != nil {
+			return err
+		}
+	} else {
+		out.TLS = nil
+	}
+	return nil
+}
+
+func deepCopy_api_RouteStatus(in routeapi.RouteStatus, out *routeapi.RouteStatus, c *conversion.Cloner) error {
 	return nil
 }
 
@@ -2682,6 +2700,8 @@ func init() {
 		deepCopy_api_ProjectStatus,
 		deepCopy_api_Route,
 		deepCopy_api_RouteList,
+		deepCopy_api_RouteSpec,
+		deepCopy_api_RouteStatus,
 		deepCopy_api_TLSConfig,
 		deepCopy_api_ClusterNetwork,
 		deepCopy_api_ClusterNetworkList,
