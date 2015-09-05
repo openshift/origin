@@ -95,6 +95,84 @@ GO_OUT="${OS_ROOT}/_output/local/go/bin"
 export PATH="${GO_OUT}:${PATH}"
 
 
+##### COPIED FROM NEW VERSIONS OF OUR SCRIPTS
+function cleanup_openshift {
+	ADMIN_KUBECONFIG="${KUBECONFIG}"
+	ETCD_PORT="${ETCD_PORT:-4001}"
+
+	set +e
+	dump_container_logs
+	
+	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
+	oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
+
+	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
+	set_curl_args 0 1
+	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
+	echo
+
+	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
+		echo "[INFO] Tearing down test"
+		kill_all_processes
+
+		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
+			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
+		fi
+		set -u
+	fi
+
+	delete_large_and_empty_logs
+
+	echo "[INFO] Cleanup complete"
+	set -e
+}	
+
+# dump_container_logs writes container logs to $LOG_DIR
+function dump_container_logs()
+{
+	mkdir -p ${LOG_DIR}
+
+	echo "[INFO] Dumping container logs to ${LOG_DIR}"
+	for container in $(docker ps -aq); do
+		container_name=$(docker inspect -f "{{.Name}}" $container)
+		# strip off leading /
+		container_name=${container_name:1}
+		if [[ "$container_name" =~ ^k8s_ ]]; then
+			pod_name=$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $4 }')
+			container_name=${pod_name}-$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $2 }')
+		fi
+		docker logs "$container" >&"${LOG_DIR}/container-${container_name}.log"
+	done
+}
+
+# kill_all_processes function will kill all 
+# all processes created by the test script.
+function kill_all_processes()
+{
+	sudo=
+	if type sudo &> /dev/null; then
+	sudo=sudo
+	fi
+
+	pids=($(jobs -pr))
+	for i in ${pids[@]}; do
+	ps --ppid=${i} | xargs $sudo kill &> /dev/null
+	$sudo kill ${i} &> /dev/null &> /dev/null
+	done
+}
+
+# delete_large_and_empty_logs deletes empty logs and logs over 20MB
+function delete_large_and_empty_logs()
+{
+	# clean up zero byte log files
+	# Clean up large log files so they don't end up on jenkins
+	find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
+}
+##### END CLEANUP COPY
+
 function cleanup()
 {
 	out=$?
@@ -106,46 +184,7 @@ function cleanup()
 	fi
 	echo
 
-	set +e
-	echo "[INFO] Dumping container logs to ${LOG_DIR}"
-	for container in $(docker ps -aq); do
-		docker logs "$container" >&"${LOG_DIR}/container-$container.log"
-	done
-
-	echo "[INFO] Dumping build log to ${LOG_DIR}"
-
-	oc get -n test builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n test >"${LOG_DIR}/stibuild.log"
-	oc get -n docker builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
-	oc get -n custom builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n custom >"${LOG_DIR}/custombuild.log"
-
-	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
-	set_curl_args 0 1
-	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:4001/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-	echo
-
-	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-		echo "[INFO] Tearing down test"
-		pids="$(jobs -pr)"
-		echo "[INFO] Children: ${pids}"
-		for i in ${pids[@]-}; do
-			ps --ppid=${i} | xargs sudo kill &> /dev/null
-			sudo kill ${i} &> /dev/null
-		done
-		sudo ps f
-		set +u
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-		fi
-		set -u
-	fi
-	set -e
-
-	# clean up zero byte log files
-	# Clean up large log files so they don't end up on jenkins
-	find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
+	cleanup_openshift
 
 	echo "[INFO] Exiting"
 	exit $out

@@ -13,7 +13,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("default: STI build with .sti/environment file", func() {
+var _ = g.Describe("builds: parallel: STI build with .sti/environment file", func() {
 	defer g.GinkgoRecover()
 	var (
 		imageStreamFixture = exutil.FixturePath("..", "integration", "fixtures", "test-image-stream.json")

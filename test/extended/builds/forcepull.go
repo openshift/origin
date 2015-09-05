@@ -54,7 +54,9 @@ var _ = g.BeforeSuite(func() {
 	g.By(fmt.Sprintf("\n%s FORCE PULL TEST:  hex id for s2i/docker %s and for custom %s ", time.Now().Format(time.RFC850), hexIDs[0], hexIDs[1]))
 })
 
-var _ = g.Describe("forcepull: ForcePull from OpenShift induced builds (vs. sti)", func() {
+// TODO this seems like a weird restriction with segregated namespaces.  provide a better explanation of why this doesn't work
+// we don't run in parallel with this suite - do not want different tests tagging the same image in different ways at the same time
+var _ = g.Describe("builds: serial: ForcePull from OpenShift induced builds (vs. sti)", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("force-pull-s2i", exutil.KubeConfigPath())
 
