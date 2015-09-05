@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktypes "k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -19,16 +20,20 @@ import (
 type TemplatePlugin struct {
 	Router       router
 	HostForRoute func(*routeapi.Route) string
-	hostToRoute  HostToRouteMap
-	routeToHost  RouteToHostMap
+
+	hostToRoute HostToRouteMap
+	routeToHost RouteToHostMap
+	// nil means different than empty
+	allowedNamespaces util.StringSet
 }
 
 func newDefaultTemplatePlugin(router router) *TemplatePlugin {
 	return &TemplatePlugin{
 		Router:       router,
 		HostForRoute: defaultHostForRoute,
-		hostToRoute:  make(HostToRouteMap),
-		routeToHost:  make(RouteToHostMap),
+
+		hostToRoute: make(HostToRouteMap),
+		routeToHost: make(RouteToHostMap),
 	}
 }
 
@@ -69,7 +74,8 @@ type router interface {
 	AddRoute(id string, route *routeapi.Route, host string) bool
 	// RemoveRoute removes the given route for the given id.
 	RemoveRoute(id string, route *routeapi.Route)
-
+	// Reduce the list of routes to only these namespaces
+	FilterNamespaces(namespaces util.StringSet)
 	// Commit refreshes the backend and persists the router state.
 	Commit() error
 }
@@ -112,6 +118,10 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 
 // HandleEndpoints processes watch events on the Endpoints resource.
 func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
+	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(endpoints.Namespace) {
+		return nil
+	}
+
 	key := endpointsKey(endpoints)
 
 	glog.V(4).Infof("Processing %d Endpoints for Name: %v (%v)", len(endpoints.Subsets), endpoints.Name, eventType)
@@ -139,7 +149,15 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 }
 
 // HandleRoute processes watch events on the Route resource.
+// TODO: this function can probably be collapsed with the router itself, as a function that
+//   determines which component needs to be recalculated (which template) and then does so
+//   on demand.
 func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
+	// TODO: refactor so this is handled at the cache reflector level
+	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(route.Namespace) {
+		return nil
+	}
+
 	key := routeKey(route)
 	routeName := routeNameKey(route)
 
@@ -195,7 +213,7 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 
 	switch eventType {
 	case watch.Added, watch.Modified:
-		// TODO: this could be abstracted above this layer?
+		// TODO: this could be abstracted above this layer
 		if old, ok := p.routeToHost[routeName]; ok {
 			if old != host {
 				glog.V(4).Infof("Route %s changed from serving host %s to host %s", key, old, host)
@@ -235,6 +253,28 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 		return p.Router.Commit()
 	}
 	return nil
+}
+
+// HandleAllowedNamespaces limits the scope of valid routes to only those that match
+// the provided namespace list.
+func (p *TemplatePlugin) HandleNamespaces(namespaces util.StringSet) error {
+	p.allowedNamespaces = namespaces
+	changed := false
+	for k, v := range p.hostToRoute {
+		if namespaces.Has(v[0].Namespace) {
+			continue
+		}
+		delete(p.hostToRoute, k)
+		for i := range v {
+			delete(p.routeToHost, routeNameKey(v[i]))
+		}
+		changed = true
+	}
+	if !changed && len(namespaces) > 0 {
+		return nil
+	}
+	p.Router.FilterNamespaces(namespaces)
+	return p.Router.Commit()
 }
 
 // defaultHostForRoute return the host based on the string value on a route.

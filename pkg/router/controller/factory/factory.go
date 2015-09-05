@@ -26,6 +26,7 @@ import (
 type RouterControllerFactory struct {
 	KClient        kclient.EndpointsNamespacer
 	OSClient       osclient.RoutesNamespacer
+	Namespaces     controller.NamespaceLister
 	ResyncInterval time.Duration
 	Namespace      string
 	Labels         labels.Selector
@@ -79,6 +80,13 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin) *controller
 			}
 			return eventType, obj.(*routeapi.Route), nil
 		},
+		Namespaces: factory.Namespaces,
+		// check namespaces a bit more often than we resync events, so that we aren't always waiting
+		// the maximum interval for new items to come into the list
+		// TODO: trigger a reflector resync after every namespace sync?
+		NamespaceSyncInterval: factory.ResyncInterval - 10*time.Second,
+		NamespaceWaitInterval: 10 * time.Second,
+		NamespaceRetries:      5,
 	}
 }
 
