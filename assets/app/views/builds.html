@@ -78,41 +78,40 @@
                   </div>
                   <div ng-switch-when="ImageChange">
                     <div ng-switch="buildConfig.spec.strategy.type">
-                      <div ng-switch-when="Source">
-                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.sourceStrategy.from && buildConfig.spec.strategy.sourceStrategy.from.kind!='ImageStreamImage'">
-                          <dt>
-                            New image for:
-                          </dt>
-                          <dd>
-                            Image stream {{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                          </dd>
-                        </dl>
+                      <div ng-switch-when="Source" ng-if="buildConfig.spec.strategy.sourceStrategy.from && buildConfig.spec.strategy.sourceStrategy.from.kind!='ImageStreamImage'">
+                        <dt>
+                          New image for:
+                        </dt>
+                        <dd>
+                          Image stream {{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                        </dd>
                       </div>
-                      <div ng-switch-when="Docker">
-                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.dockerStrategy.from && buildConfig.spec.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
-                          <dt>
-                            New image for:
-                          </dt>
-                          <dd>
-                            Image stream {{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                          </dd>
-                          <br>
-                        </dl>
+                      <div ng-switch-when="Docker" ng-if="buildConfig.spec.strategy.dockerStrategy.from && buildConfig.spec.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
+                        <dt>
+                          New image for:
+                        </dt>
+                        <dd>
+                          Image stream {{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                        </dd>
                       </div>
-                      <div ng-switch-when="Custom">
-                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.customStrategy.from && buildConfig.spec.strategy.customStrategy.from.kind!='ImageStreamImage'">
-                          <dt>
-                            New image for:
-                          </dt>
-                          <dd>
-                            Image stream {{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                          </dd>
-                           <br>
-                        </dl>
+                      <div ng-switch-when="Custom" ng-if="buildConfig.spec.strategy.customStrategy.from && buildConfig.spec.strategy.customStrategy.from.kind!='ImageStreamImage'">
+                        <dt>
+                          New image for:
+                        </dt>
+                        <dd>
+                          Image stream {{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                        </dd>
                       </div>
                     </div>
                   </div>
-                  <div ng-switch-default>{{trigger.type}}</div>
+                  <div ng-switch-when="ConfigChange">
+                    <dt>Config change for:</dt>
+                    <dd>Build config {{buildConfig.metadata.name}}</dd>
+                  </div>
+                  <div ng-switch-default>
+                    <dt>Other trigger:</dt>
+                    <dd>{{trigger.type}}</dd>
+                  </div>
                 </div>
               </div>
             </dl>

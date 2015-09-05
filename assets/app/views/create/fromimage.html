@@ -162,12 +162,16 @@
                       <span>{{buildConfig.sourceUrl | defaultIfBlank: "Not Specified"}}</span>
                     </div>
                     <div>
-                      <label>Automatically build new image when code changes: </label>
+                      <label>Configure a webhook build trigger: </label>
                       <span>{{buildConfig.buildOnSourceChange | yesNo}}</span>
                     </div>
                     <div>
-                      <label>Automatically build new image when builder image changes: </label>
+                      <label>Automatically build a new image when builder image changes: </label>
                       <span>{{buildConfig.buildOnImageChange | yesNo}}</span>
+                    </div>
+                    <div>
+                      <label>Automatically build a new image when build configuration changes: </label>
+                      <span>{{buildConfig.buildOnConfigChange | yesNo}}</span>
                     </div>
                   </div>
                   <div class="animate-drawer" ng-show="$parent.expand">
@@ -178,7 +182,7 @@
                     <div>
                       <label class="checkbox">
                         <input type="checkbox" ng-model="buildConfig.buildOnSourceChange"/>
-                        Configure webhook build trigger 
+                        Configure a webhook build trigger 
                         <span class="help action-inline">
                           <a href data-toggle="tooltip" data-placement="right" 
                              data-original-title="The source repository must be configured to use the webhook to trigger a build when source is committed.">
@@ -190,12 +194,18 @@
                     <div>
                       <label class="checkbox">
                         <input type="checkbox" ng-model="buildConfig.buildOnImageChange"/>
-                        Automatically build new image when the builder image changes
+                        Automatically build a new image when the builder image changes
                         <span class="help action-inline">
                           <a href data-toggle="tooltip" data-placement="right" data-original-title="Automatically building a new image when the builder image changes allows your code to always run on the latest updates.">
                           <i class="pficon pficon-help"></i> 
                           </a>
                         </span>
+                      </label>
+                    </div>
+                    <div>
+                      <label class="checkbox">
+                        <input type="checkbox" ng-model="buildConfig.buildOnConfigChange"/>
+                        Automatically build a new image when the build configuration changes
                       </label>
                     </div>
                   </div>

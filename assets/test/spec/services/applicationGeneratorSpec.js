@@ -27,7 +27,8 @@ describe("ApplicationGenerator", function(){
       buildConfig: {
         sourceUrl: "https://github.com/openshift/ruby-hello-world.git",
         buildOnSourceChange: true,
-        buildOnImageChange: true
+        buildOnImageChange: true,
+        buildOnConfigChange: true
       },
       deploymentConfig: {
         deployOnConfigChange: true,
@@ -227,9 +228,6 @@ describe("ApplicationGenerator", function(){
                         "type": "Generic"
                     },
                     {
-                        "type": "ConfigChange"
-                    },
-                    {
                         "github": {
                             "secret": "secret101"
                         },
@@ -238,6 +236,9 @@ describe("ApplicationGenerator", function(){
                     {
                       "imageChange" : {},
                       "type" : "ImageChange"
+                    },
+                    {
+                        "type": "ConfigChange"
                     }
                 ]
             }
