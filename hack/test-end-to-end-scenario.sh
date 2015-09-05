@@ -149,7 +149,9 @@ echo "[INFO] Validating exec"
 frontend_pod=$(oc get pod -l deploymentconfig=frontend -t '{{(index .items 0).metadata.name}}')
 # when running as a restricted pod the registry will run with a pre-allocated
 # user in the neighborhood of 1000000+.  Look for a substring of the pre-allocated uid range
-oc exec -p ${frontend_pod} id | grep 10
+[ "$(oc exec -p ${frontend_pod} id | grep 1000)" ]
+[ "$(oc rsh ${frontend_pod} id -u | grep 1000)" ]
+[ "$(oc rsh -T ${frontend_pod} id -u | grep 1000)" ]
 
 # Port forwarding
 echo "[INFO] Validating port-forward"

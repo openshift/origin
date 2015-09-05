@@ -45,6 +45,4 @@ start_os_server
 # set our default KUBECONFIG location
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
-
 ${OS_ROOT}/hack/test-end-to-end-scenario.sh
-
