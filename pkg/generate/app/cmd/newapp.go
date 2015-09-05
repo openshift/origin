@@ -45,6 +45,8 @@ type AppConfig struct {
 	Environment        util.StringList
 	Labels             map[string]string
 
+	AddEnvironmentToBuild bool
+
 	Name             string
 	Strategy         string
 	InsecureRegistry bool
@@ -511,7 +513,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 						}
 					}
 				}
-				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, source); err != nil {
+				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, c.GetBuildEnvironment(environment), source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 			} else {
@@ -855,4 +857,11 @@ func (c *AppConfig) HasArguments() bool {
 		len(c.DockerImages) > 0 ||
 		len(c.Templates) > 0 ||
 		len(c.TemplateFiles) > 0
+}
+
+func (c *AppConfig) GetBuildEnvironment(environment app.Environment) app.Environment {
+	if c.AddEnvironmentToBuild {
+		return environment
+	}
+	return app.Environment{}
 }

@@ -541,6 +541,9 @@ Create a new build configuration
 
   // Create a build config from a remote repository using its beta2 branch
   $ openshift cli new-build https://github.com/openshift/ruby-hello-world#beta2
+
+  // Create a build config from a remote repository and add custom environment variables into resulting image
+  $ openshift cli new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development
 ----
 ====
 
