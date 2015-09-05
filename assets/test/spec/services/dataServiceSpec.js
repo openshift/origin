@@ -57,6 +57,15 @@ describe("DataService", function(){
 
       // Namespaced subresource with params
       [{resource:'pods/proxy', name:"mypod", namespace:"myns", myparam1:"myvalue"}, "http://localhost:8443/api/v1/namespaces/myns/pods/mypod/proxy?myparam1=myvalue"],
+
+      // Different API versions
+      [{resource:'builds',apiVersion:'v1beta3'}, "http://localhost:8443/osapi/v1beta3/builds"],
+      [{resource:'builds',apiVersion:'v1'     }, "http://localhost:8443/oapi/v1/builds"],
+      [{resource:'builds',apiVersion:'unknown'}, "http://localhost:8443/oapi/unknown/builds"],
+
+      [{resource:'pods',  apiVersion:'v1beta3'}, "http://localhost:8443/api/v1beta3/pods"],
+      [{resource:'pods',  apiVersion:'v1'     }, "http://localhost:8443/api/v1/pods"],
+      [{resource:'pods',  apiVersion:'unknown'}, "http://localhost:8443/api/unknown/pods"]
     ];
 
     angular.forEach(tc, function(item) {

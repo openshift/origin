@@ -149,7 +149,7 @@ angular.module('openshiftConsole')
     this._getNamespace(resource, context, opts).then(function(ns){
       $http(angular.extend({
         method: 'DELETE',
-        url: self._urlForResource(resource, name, context, false, ns)
+        url: self._urlForResource(resource, name, null, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
         deferred.resolve(data);
@@ -182,7 +182,7 @@ angular.module('openshiftConsole')
       $http(angular.extend({
         method: 'POST',
         data: object,
-        url: self._urlForResource(resource, name, context, false, ns)
+        url: self._urlForResource(resource, name, object.apiVersion, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
         deferred.resolve(data);
@@ -292,7 +292,7 @@ angular.module('openshiftConsole')
       this._getNamespace(resource, context, opts).then(function(ns){
         $http(angular.extend({
           method: 'GET',
-          url: self._urlForResource(resource, name, context, false, ns)
+          url: self._urlForResource(resource, name, null, context, false, ns)
         }, opts.http || {}))
         .success(function(data, status, headerFunc, config, statusText) {
           if (self._isResourceCached(resource)) {
@@ -600,7 +600,7 @@ angular.module('openshiftConsole')
       context.projectPromise.done(function(project) {
         $http({
           method: 'GET',
-          url: self._urlForResource(resource, null, context, false, {namespace: project.metadata.name})
+          url: self._urlForResource(resource, null, null, context, false, {namespace: project.metadata.name})
         }).success(function(data, status, headerFunc, config, statusText) {
           self._listOpComplete(resource, context, data);
         }).error(function(data, status, headers, config) {
@@ -616,7 +616,7 @@ angular.module('openshiftConsole')
     else {
       $http({
         method: 'GET',
-        url: this._urlForResource(resource, null, context),
+        url: this._urlForResource(resource, null, null, context),
       }).success(function(data, status, headerFunc, config, statusText) {
         self._listOpComplete(resource, context, data);
       }).error(function(data, status, headers, config) {
@@ -670,7 +670,7 @@ angular.module('openshiftConsole')
           params.namespace = project.metadata.name;
           $ws({
             method: "WATCH",
-            url: self._urlForResource(resource, null, context, true, params),
+            url: self._urlForResource(resource, null, null, context, true, params),
             onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
             onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
             onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context)
@@ -683,7 +683,7 @@ angular.module('openshiftConsole')
       else {
         $ws({
           method: "WATCH",
-          url: self._urlForResource(resource, null, context, true, params),
+          url: self._urlForResource(resource, null, null, context, true, params),
           onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
           onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
           onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context)
@@ -817,66 +817,11 @@ angular.module('openshiftConsole')
   var URL_NAMESPACED_GET_LIST   = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}{?q*}";
   var URL_NAMESPACED_OBJECT     = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}/{name}{/subresource*}{?q*}";
 
-  // Set the api version the console is currently able to talk to
-  API_CFG.openshift.version = "v1";
-  API_CFG.k8s.version = "v1";
+  // Set the default api versions the console will use if otherwise unspecified
+  API_CFG.openshift.defaultVersion = "v1";
+  API_CFG.k8s.defaultVersion = "v1";
 
-  // TODO this is not the ideal, issue open to discuss adding
-  // an introspection endpoint that would give us this mapping
-  // https://github.com/openshift/origin/issues/230
-  var SERVER_RESOURCE_MAP = {
-    buildconfigs:              API_CFG.openshift,
-    builds:                    API_CFG.openshift,
-    clusternetworks:           API_CFG.openshift,
-    clusterpolicies:           API_CFG.openshift,
-    clusterpolicybindings:     API_CFG.openshift,
-    clusterrolebindings:       API_CFG.openshift,
-    clusterroles:              API_CFG.openshift,
-    deploymentconfigrollbacks: API_CFG.openshift,
-    deploymentconfigs:         API_CFG.openshift,
-    hostsubnets:               API_CFG.openshift,
-    identities:                API_CFG.openshift,
-    images:                    API_CFG.openshift,
-    imagestreamimages:         API_CFG.openshift,
-    imagestreammappings:       API_CFG.openshift,
-    imagestreams:              API_CFG.openshift,
-    imagestreamtags:           API_CFG.openshift,
-    oauthaccesstokens:         API_CFG.openshift,
-    oauthauthorizetokens:      API_CFG.openshift,
-    oauthclientauthorizations: API_CFG.openshift,
-    oauthclients:              API_CFG.openshift,
-    policies:                  API_CFG.openshift,
-    policybindings:            API_CFG.openshift,
-    processedtemplates:        API_CFG.openshift,
-    projectrequests:           API_CFG.openshift,
-    projects:                  API_CFG.openshift,
-    resourceaccessreviews:     API_CFG.openshift,
-    rolebindings:              API_CFG.openshift,
-    roles:                     API_CFG.openshift,
-    routes:                    API_CFG.openshift,
-    subjectaccessreviews:      API_CFG.openshift,
-    templates:                 API_CFG.openshift,
-    useridentitymappings:      API_CFG.openshift,
-    users:                     API_CFG.openshift,
-
-    bindings:                  API_CFG.k8s,
-    componentstatuses:         API_CFG.k8s,
-    endpoints:                 API_CFG.k8s,
-    events:                    API_CFG.k8s,
-    limitranges:               API_CFG.k8s,
-    nodes:                     API_CFG.k8s,
-    persistentvolumeclaims:    API_CFG.k8s,
-    persistentvolumes:         API_CFG.k8s,
-    pods:                      API_CFG.k8s,
-    podtemplates:              API_CFG.k8s,
-    replicationcontrollers:    API_CFG.k8s,
-    resourcequotas:            API_CFG.k8s,
-    secrets:                   API_CFG.k8s,
-    serviceaccounts:           API_CFG.k8s,
-    services:                  API_CFG.k8s
-  };
-
-  DataService.prototype._urlForResource = function(resource, name, context, isWebsocket, params) {
+  DataService.prototype._urlForResource = function(resource, name, apiVersion, context, isWebsocket, params) {
 
     var resourceWithSubresource;
     var subresource;
@@ -891,10 +836,10 @@ angular.module('openshiftConsole')
       subresource = resourceWithSubresource;
     }
 
-    var resourceInfo = SERVER_RESOURCE_MAP[resource];
+    var resourceInfo = this.resourceInfo(resource, apiVersion);
     if (!resourceInfo) {
-    	Logger.error("_urlForResource called with unknown resource", resource, arguments);
-    	return null;
+      Logger.error("_urlForResource called with unknown resource", resource, arguments);
+      return null;
     }
 
     var protocol;
@@ -922,7 +867,7 @@ angular.module('openshiftConsole')
       protocol: protocol,
       serverUrl: resourceInfo.hostPort,
       apiPrefix: resourceInfo.prefix,
-      apiVersion: resourceInfo.version,
+      apiVersion: resourceInfo.apiVersion,
       resource: resource,
       subresource: subresource,
       name: name,
@@ -946,14 +891,36 @@ angular.module('openshiftConsole')
       var opts = angular.copy(options);
       delete opts.resource;
       delete opts.name;
+      delete opts.apiVersion;
       delete opts.isWebsocket;
       var resource = normalizeResource(options.resource);
-      var u = this._urlForResource(resource, options.name, null, !!options.isWebsocket, opts);
+      var u = this._urlForResource(resource, options.name, options.apiVersion, null, !!options.isWebsocket, opts);
       if (u) {
-      	return u.toString();
+        return u.toString();
       }
     }
     return null;
+  };
+
+  DataService.prototype.resourceInfo = function(resource, preferredAPIVersion) {
+    var api, apiVersion, prefix;
+    for (var apiName in API_CFG) {
+      api = API_CFG[apiName];
+      if (!api.resources[resource] && !api.resources['*']) {
+        continue;
+      }
+      apiVersion = preferredAPIVersion || api.defaultVersion;
+      prefix = api.prefixes[apiVersion] || api.prefixes['*'];
+      if (!prefix) {
+        continue;
+      }
+      return {
+      	hostPort:   api.hostPort,
+      	prefix:     prefix,
+      	apiVersion: apiVersion
+      };
+    }
+    return undefined;
   };
 
   // port of restmapper.go#kindToResource
@@ -976,7 +943,7 @@ angular.module('openshiftConsole')
     }
 
     // make sure it is a known resource
-    if (!SERVER_RESOURCE_MAP[resource]) {
+    if (!this.resourceInfo(resource)) {
       Logger.warn('Unknown resource "' + resource + '"');
       return undefined;
     }

@@ -6,16 +6,23 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
+
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/assets/java"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/version"
+
+	"k8s.io/kubernetes/pkg/api"
+	klatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/util"
 )
 
@@ -144,16 +151,52 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 	// Web console assets
 	mux.Handle(publicURL.Path, http.StripPrefix(publicURL.Path, assetHandler))
 
+	originResources := util.NewStringSet()
+	k8sResources := util.NewStringSet()
+
+	versions := util.NewStringSet()
+	versions.Insert(latest.Versions...)
+	versions.Insert(klatest.Versions...)
+	for _, version := range versions.List() {
+		for kind, t := range api.Scheme.KnownTypes(version) {
+			if strings.Contains(t.PkgPath(), "kubernetes/pkg/expapi") {
+				continue
+			}
+			if strings.HasSuffix(kind, "List") {
+				continue
+			}
+			resource, _ := meta.KindToResource(kind, false)
+			if latest.OriginKind(kind, version) {
+				originResources.Insert(resource)
+			} else {
+				k8sResources.Insert(resource)
+			}
+		}
+	}
+
+	commonResources := util.NewStringSet()
+	for _, r := range originResources.List() {
+		if k8sResources.Has(r) {
+			commonResources.Insert(r)
+		}
+	}
+	if commonResources.Len() > 0 {
+		return fmt.Errorf("Resources for kubernetes and origin types intersect: %v", commonResources.List())
+	}
+
 	// Generated web console config
 	config := assets.WebConsoleConfig{
-		MasterAddr:        masterURL.Host,
-		MasterPrefix:      OpenShiftAPIPrefix,
-		KubernetesAddr:    masterURL.Host,
-		KubernetesPrefix:  KubernetesAPIPrefix,
-		OAuthAuthorizeURI: OpenShiftOAuthAuthorizeURL(masterURL.String()),
-		OAuthRedirectBase: c.Options.PublicURL,
-		OAuthClientID:     OpenShiftWebConsoleClientID,
-		LogoutURI:         c.Options.LogoutURL,
+		MasterAddr:          masterURL.Host,
+		MasterPrefix:        OpenShiftAPIPrefix,
+		MasterLegacyPrefix:  LegacyOpenShiftAPIPrefix,
+		MasterResources:     originResources.List(),
+		KubernetesAddr:      masterURL.Host,
+		KubernetesPrefix:    KubernetesAPIPrefix,
+		KubernetesResources: k8sResources.List(),
+		OAuthAuthorizeURI:   OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthRedirectBase:   c.Options.PublicURL,
+		OAuthClientID:       OpenShiftWebConsoleClientID,
+		LogoutURI:           c.Options.LogoutURL,
 	}
 	configPath := path.Join(publicURL.Path, "config.js")
 	configHandler, err := assets.GeneratedConfigHandler(config)
