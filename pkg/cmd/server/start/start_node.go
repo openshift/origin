@@ -249,13 +249,13 @@ func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeCo
 	case flatsdn.NetworkPluginName():
 		ch := make(chan struct{})
 		config.KubeletConfig.StartUpdates = ch
-		go flatsdn.Node(oclient, config.Client, nodeConfig.NodeName, "", ch, nodeConfig.NetworkConfig.MTU)
+		go flatsdn.Node(oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch, nodeConfig.NetworkConfig.MTU)
 	case multitenant.NetworkPluginName():
 		ch := make(chan struct{})
 		config.KubeletConfig.StartUpdates = ch
 		plugin := multitenant.GetKubeNetworkPlugin()
 		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, plugin)
-		go multitenant.Node(oclient, config.Client, nodeConfig.NodeName, "", ch, plugin, nodeConfig.NetworkConfig.MTU)
+		go multitenant.Node(oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch, plugin, nodeConfig.NetworkConfig.MTU)
 	}
 }
 

@@ -16,6 +16,9 @@ func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList 
 	if len(config.NodeName) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("nodeName"))
 	}
+	if len(config.NodeIP) > 0 {
+		allErrs = append(allErrs, ValidateSpecifiedIP(config.NodeIP, "nodeIP")...)
+	}
 
 	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
 	if config.ServingInfo.BindNetwork == "tcp6" {
