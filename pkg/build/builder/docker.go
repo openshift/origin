@@ -120,21 +120,22 @@ func (d *DockerBuilder) Build() error {
 }
 
 // checkSourceURI performs a check on the URI associated with the build
-// to make sure that it is live before proceeding with the build.
-func (d *DockerBuilder) checkSourceURI() error {
+// to make sure that it is valid.  It also optionally tests the connection
+// to the source uri.
+func (d *DockerBuilder) checkSourceURI(testConnection bool) error {
 	rawurl := d.build.Spec.Source.Git.URI
 	if !d.git.ValidCloneSpec(rawurl) {
 		return fmt.Errorf("Invalid git source url: %s", rawurl)
 	}
-	if strings.HasPrefix(rawurl, "git://") || strings.HasPrefix(rawurl, "git@") {
+	if strings.HasPrefix(rawurl, "git@") {
 		return nil
-	}
-	if !strings.HasPrefix(rawurl, "http://") && !strings.HasPrefix(rawurl, "https://") {
-		rawurl = fmt.Sprintf("https://%s", rawurl)
 	}
 	srcURL, err := url.Parse(rawurl)
 	if err != nil {
 		return err
+	}
+	if !testConnection {
+		return nil
 	}
 	host := srcURL.Host
 	if strings.Index(host, ":") == -1 {
@@ -151,16 +152,12 @@ func (d *DockerBuilder) checkSourceURI() error {
 		return err
 	}
 	return conn.Close()
-
 }
 
 // fetchSource retrieves the git source from the repository. If a commit ID
 // is included in the build revision, that commit ID is checked out. Otherwise
 // if a ref is included in the source definition, that ref is checked out.
 func (d *DockerBuilder) fetchSource(dir string) error {
-	if err := d.checkSourceURI(); err != nil {
-		return err
-	}
 	origProxy := make(map[string]string)
 	var setHttp, setHttps bool
 	// set the http proxy to be used by the git clone performed by S2I
@@ -180,6 +177,12 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 		os.Setenv("http_proxy", d.build.Spec.Source.Git.HTTPProxy)
 		setHttp = true
 	}
+
+	// can't test access to the git uri if a proxy is required.
+	if err := d.checkSourceURI(!setHttp && !setHttps); err != nil {
+		return err
+	}
+
 	defer func() {
 		// reset http proxy env variables to original value
 		if setHttps {
