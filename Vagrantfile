@@ -325,7 +325,7 @@ runcmd:
         aws.block_device_mapping = [
           {
              "DeviceName" => "/dev/sda1",
-             "Ebs.VolumeSize" => 25,
+             "Ebs.VolumeSize" => vagrant_openshift_config['volume_size'] || 25,
              "Ebs.VolumeType" => "gp2"
           }
         ]
