@@ -2,6 +2,7 @@ package v1beta3
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
@@ -57,6 +58,49 @@ type RoutePort struct {
 // RouteStatus provides relevant info about the status of a route, including which routers
 // acknowledge it.
 type RouteStatus struct {
+	// Ingress describes the places where the route may be exposed. The list of
+	// ingress points may contain duplicate Host or RouterName values. Routes
+	// are considered live once they are `Ready`
+	Ingress []RouteIngress `json:"ingress,omitempty"`
+}
+
+// RouteIngress holds information about the places where a route is exposed
+type RouteIngress struct {
+	// Host is the host string under which the route is exposed; this value is required
+	Host string `json:"host,omitempty"`
+	// Name is a name chosen by the router to identify itself; this value is required
+	RouterName string `json:"routerName,omitempty"`
+	// Conditions is the state of the route, may be empty.
+	Conditions []RouteIngressCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+}
+
+// RouteIngressConditionType is a valid value for RouteCondition
+type RouteIngressConditionType string
+
+// These are valid conditions of pod.
+const (
+	// RouteReady means the route is able to service requests for the provided Host
+	RouteReady RouteIngressConditionType = "Ready"
+	// TODO: add other route condition types
+)
+
+// RouteIngressCondition contains details for the current condition of this pod.
+// TODO: add LastTransitionTime, Reason, Message to match NodeCondition api.
+type RouteIngressCondition struct {
+	// Type is the type of the condition.
+	// Currently only Ready.
+	Type RouteIngressConditionType `json:"type"`
+	// Status is the status of the condition.
+	// Can be True, False, Unknown.
+	Status kapi.ConditionStatus `json:"status"`
+	// (brief) reason for the condition's last transition, and is usually a machine and human
+	// readable constant
+	Reason string `json:"reason,omitempty"`
+	// Human readable message indicating details about last transition.
+	Message string `json:"message,omitempty"`
+	// RFC 3339 date and time at which the object was acknowledged by the router.
+	// This may be before the router exposes the route
+	LastTransitionTime *util.Time `json:"lastTransitionTime,omitempty"`
 }
 
 // RouterShard has information of a routing shard and is used to

@@ -2,6 +2,7 @@ package v1
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
@@ -61,6 +62,48 @@ type RoutePort struct {
 // RouteStatus provides relevant info about the status of a route, including which routers
 // acknowledge it.
 type RouteStatus struct {
+	// Ingress describes the places where the route may be exposed. The list of
+	// ingress points may contain duplicate Host or RouterName values. Routes
+	// are considered live once they are `Ready`
+	Ingress []RouteIngress `json:"ingress,omitempty" description:"traffic reaches this route via these ingress paths"`
+}
+
+// RouteIngress holds information about the places where a route is exposed
+type RouteIngress struct {
+	// Host is the host string under which the route is exposed; this value is required
+	Host string `json:"host,omitempty" description:"the host name this route is exposed to by the specified router"`
+	// Name is a name chosen by the router to identify itself; this value is required
+	RouterName string `json:"routerName,omitempty" description:"the name of the router exposing this route"`
+	// Conditions is the state of the route, may be empty.
+	Conditions []RouteIngressCondition `json:"conditions,omitempty" description:"the conditions that apply to this router" patchStrategy:"merge" patchMergeKey:"type"`
+}
+
+// RouteIngressConditionType is a valid value for RouteCondition
+type RouteIngressConditionType string
+
+// These are valid conditions of pod.
+const (
+	// RouteReady means the route is able to service requests for the provided Host
+	RouteReady RouteIngressConditionType = "Ready"
+	// TODO: add other route condition types
+)
+
+// RouteIngressCondition contains details for the current condition of this pod.
+// TODO: add LastTransitionTime, Reason, Message to match NodeCondition api.
+type RouteIngressCondition struct {
+	// Type is the type of the condition.
+	// Currently only Ready.
+	Type RouteIngressConditionType `json:"type" description:"the type of the condition"`
+	// Status is the status of the condition.
+	// Can be True, False, Unknown.
+	Status kapi.ConditionStatus `json:"status" description:"status is the status of the condition; True, False, or Unknown"`
+	// (brief) reason for the condition's last transition, and is usually a machine and human
+	// readable constant
+	Reason string `json:"reason,omitempty" description:"brief reason for the condition's last transition, machine readable constant"`
+	// Human readable message indicating details about last transition.
+	Message string `json:"message,omitempty" description:"human readable message indicating details about this condition"`
+	// RFC 3339 date and time when this condition last transitioned
+	LastTransitionTime *util.Time `json:"lastTransitionTime,omitempty" description:"the last time at which this condition transitioned to the current status"`
 }
 
 // RouterShard has information of a routing shard and is used to

@@ -17426,7 +17426,65 @@
    },
    "v1.RouteStatus": {
     "id": "v1.RouteStatus",
-    "properties": {}
+    "properties": {
+     "ingress": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.RouteIngress"
+      },
+      "description": "traffic reaches this route via these ingress paths"
+     }
+    }
+   },
+   "v1.RouteIngress": {
+    "id": "v1.RouteIngress",
+    "properties": {
+     "host": {
+      "type": "string",
+      "description": "the host name this route is exposed to by the specified router"
+     },
+     "routerName": {
+      "type": "string",
+      "description": "the name of the router exposing this route"
+     },
+     "conditions": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.RouteIngressCondition"
+      },
+      "description": "the conditions that apply to this router"
+     }
+    }
+   },
+   "v1.RouteIngressCondition": {
+    "id": "v1.RouteIngressCondition",
+    "required": [
+     "type",
+     "status"
+    ],
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "the type of the condition"
+     },
+     "status": {
+      "type": "string",
+      "description": "status is the status of the condition; True, False, or Unknown"
+     },
+     "reason": {
+      "type": "string",
+      "description": "brief reason for the condition's last transition, machine readable constant"
+     },
+     "message": {
+      "type": "string",
+      "description": "human readable message indicating details about this condition"
+     },
+     "lastTransitionTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "the last time at which this condition transitioned to the current status"
+     }
+    }
    },
    "v1.SubjectAccessReview": {
     "id": "v1.SubjectAccessReview",

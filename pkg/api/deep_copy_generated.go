@@ -2168,6 +2168,39 @@ func deepCopy_api_Route(in routeapi.Route, out *routeapi.Route, c *conversion.Cl
 	return nil
 }
 
+func deepCopy_api_RouteIngress(in routeapi.RouteIngress, out *routeapi.RouteIngress, c *conversion.Cloner) error {
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapi.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := deepCopy_api_RouteIngressCondition(in.Conditions[i], &out.Conditions[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func deepCopy_api_RouteIngressCondition(in routeapi.RouteIngressCondition, out *routeapi.RouteIngressCondition, c *conversion.Cloner) error {
+	out.Type = in.Type
+	out.Status = in.Status
+	out.Reason = in.Reason
+	out.Message = in.Message
+	if in.LastTransitionTime != nil {
+		if newVal, err := c.DeepCopy(in.LastTransitionTime); err != nil {
+			return err
+		} else {
+			out.LastTransitionTime = newVal.(*util.Time)
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
 func deepCopy_api_RouteList(in routeapi.RouteList, out *routeapi.RouteList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -2212,6 +2245,16 @@ func deepCopy_api_RouteSpec(in routeapi.RouteSpec, out *routeapi.RouteSpec, c *c
 }
 
 func deepCopy_api_RouteStatus(in routeapi.RouteStatus, out *routeapi.RouteStatus, c *conversion.Cloner) error {
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapi.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := deepCopy_api_RouteIngress(in.Ingress[i], &out.Ingress[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
 	return nil
 }
 
@@ -2699,6 +2742,8 @@ func init() {
 		deepCopy_api_ProjectSpec,
 		deepCopy_api_ProjectStatus,
 		deepCopy_api_Route,
+		deepCopy_api_RouteIngress,
+		deepCopy_api_RouteIngressCondition,
 		deepCopy_api_RouteList,
 		deepCopy_api_RouteSpec,
 		deepCopy_api_RouteStatus,
