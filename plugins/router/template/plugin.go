@@ -18,27 +18,14 @@ import (
 // TemplatePlugin implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type TemplatePlugin struct {
-	Router       router
-	HostForRoute func(*routeapi.Route) string
-
-	hostToRoute HostToRouteMap
-	routeToHost RouteToHostMap
-	// nil means different than empty
-	allowedNamespaces util.StringSet
+	Router routerInterface
 }
 
-func newDefaultTemplatePlugin(router router) *TemplatePlugin {
+func newDefaultTemplatePlugin(router routerInterface) *TemplatePlugin {
 	return &TemplatePlugin{
-		Router:       router,
-		HostForRoute: defaultHostForRoute,
-
-		hostToRoute: make(HostToRouteMap),
-		routeToHost: make(RouteToHostMap),
+		Router: router,
 	}
 }
-
-type HostToRouteMap map[string][]*routeapi.Route
-type RouteToHostMap map[string]string
 
 type TemplatePluginConfig struct {
 	WorkingDir         string
@@ -51,8 +38,8 @@ type TemplatePluginConfig struct {
 	PeerService        *ktypes.NamespacedName
 }
 
-// router controls the interaction of the plugin with the underlying router implementation
-type router interface {
+// routerInterface controls the interaction of the plugin with the underlying router implementation
+type routerInterface interface {
 	// Mutative operations in this interface do not return errors.
 	// The only error state for these methods is when an unknown
 	// frontend key is used; all call sites make certain the frontend
@@ -118,10 +105,6 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 
 // HandleEndpoints processes watch events on the Endpoints resource.
 func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
-	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(endpoints.Namespace) {
-		return nil
-	}
-
 	key := endpointsKey(endpoints)
 
 	glog.V(4).Infof("Processing %d Endpoints for Name: %v (%v)", len(endpoints.Subsets), endpoints.Name, eventType)
@@ -153,75 +136,12 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 //   determines which component needs to be recalculated (which template) and then does so
 //   on demand.
 func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.Route) error {
-	// TODO: refactor so this is handled at the cache reflector level
-	if p.allowedNamespaces != nil && !p.allowedNamespaces.Has(route.Namespace) {
-		return nil
-	}
-
 	key := routeKey(route)
-	routeName := routeNameKey(route)
 
-	host := p.HostForRoute(route)
-	if len(host) == 0 {
-		glog.V(4).Infof("Route %s has no host value", routeName)
-		return nil
-	}
-
-	// ensure hosts can only be claimed by one namespace at a time
-	// TODO: this could be abstracted above this layer?
-	if old, ok := p.hostToRoute[host]; ok {
-		oldest := old[0]
-
-		// multiple paths can be added from the namespace of the oldest route
-		if oldest.Namespace == route.Namespace {
-			added := false
-			for i := range old {
-				if old[i].Spec.Path == route.Spec.Path {
-					if old[i].CreationTimestamp.Before(route.CreationTimestamp) {
-						glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
-						return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
-					}
-					glog.V(4).Infof("Route %s will replace path %s from %s because it is older", routeName, route.Spec.Path, routeNameKey(old[i]))
-					p.Router.RemoveRoute(routeKey(old[i]), old[i])
-					old[i] = route
-					added = true
-				}
-			}
-			if !added {
-				if route.CreationTimestamp.Before(oldest.CreationTimestamp) {
-					p.hostToRoute[host] = append([]*routeapi.Route{route}, old...)
-				} else {
-					p.hostToRoute[host] = append(old, route)
-				}
-			}
-		} else {
-			if oldest.CreationTimestamp.Before(route.CreationTimestamp) {
-				glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
-				return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
-			}
-
-			glog.V(4).Infof("Route %s is reclaiming %s from namespace %s", routeName, host, oldest.Namespace)
-			for i := range old {
-				p.Router.RemoveRoute(routeKey(old[i]), old[i])
-			}
-			p.hostToRoute[host] = []*routeapi.Route{route}
-		}
-	} else {
-		glog.V(4).Infof("Route %s claims %s", key, host)
-		p.hostToRoute[host] = []*routeapi.Route{route}
-	}
+	host := route.Spec.Host
 
 	switch eventType {
 	case watch.Added, watch.Modified:
-		// TODO: this could be abstracted above this layer
-		if old, ok := p.routeToHost[routeName]; ok {
-			if old != host {
-				glog.V(4).Infof("Route %s changed from serving host %s to host %s", key, old, host)
-				delete(p.hostToRoute, old)
-			}
-		}
-		p.routeToHost[routeName] = host
-
 		if _, ok := p.Router.FindServiceUnit(key); !ok {
 			glog.V(4).Infof("Creating new frontend for key: %v", key)
 			p.Router.CreateServiceUnit(key)
@@ -234,21 +154,6 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 		}
 	case watch.Deleted:
 		glog.V(4).Infof("Deleting routes for %s", key)
-		if old, ok := p.hostToRoute[host]; ok {
-			switch len(old) {
-			case 1, 0:
-				delete(p.hostToRoute, host)
-			default:
-				next := []*routeapi.Route{}
-				for i := range old {
-					if old[i].Name != route.Name {
-						next = append(next, old[i])
-					}
-				}
-				p.hostToRoute[host] = next
-			}
-		}
-		delete(p.routeToHost, routeName)
 		p.Router.RemoveRoute(key, route)
 		return p.Router.Commit()
 	}
@@ -258,38 +163,13 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 // HandleAllowedNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
 func (p *TemplatePlugin) HandleNamespaces(namespaces util.StringSet) error {
-	p.allowedNamespaces = namespaces
-	changed := false
-	for k, v := range p.hostToRoute {
-		if namespaces.Has(v[0].Namespace) {
-			continue
-		}
-		delete(p.hostToRoute, k)
-		for i := range v {
-			delete(p.routeToHost, routeNameKey(v[i]))
-		}
-		changed = true
-	}
-	if !changed && len(namespaces) > 0 {
-		return nil
-	}
 	p.Router.FilterNamespaces(namespaces)
 	return p.Router.Commit()
-}
-
-// defaultHostForRoute return the host based on the string value on a route.
-func defaultHostForRoute(route *routeapi.Route) string {
-	return route.Spec.Host
 }
 
 // routeKey returns the internal router key to use for the given Route.
 func routeKey(route *routeapi.Route) string {
 	return fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
-}
-
-// routeNameKey returns a unique name for a given route
-func routeNameKey(route *routeapi.Route) string {
-	return fmt.Sprintf("%s/%s", route.Namespace, route.Name)
 }
 
 // endpointsKey returns the internal router key to use for the given Endpoints.
