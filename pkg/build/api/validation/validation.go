@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
+	"github.com/golang/glog"
 	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -348,9 +349,9 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy) fielderrors.Validatio
 		}
 		allErrs = append(allErrs, validateFromImageReference(trigger.ImageChange.From).Prefix("from")...)
 	case buildapi.ConfigChangeBuildTriggerType:
-		// doesn't reuqire additional validation
+		// doesn't require additional validation
 	default:
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("type", trigger.Type, "invalid trigger type"))
+		glog.Warningf("Unknown trigger type: '%s'", trigger.Type)
 	}
 	return allErrs
 }
