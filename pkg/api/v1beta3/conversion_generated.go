@@ -3891,6 +3891,53 @@ func Convert_api_Route_To_v1beta3_Route(in *routeapi.Route, out *routeapiv1beta3
 	return autoConvert_api_Route_To_v1beta3_Route(in, out, s)
 }
 
+func autoConvert_api_RouteIngress_To_v1beta3_RouteIngress(in *routeapi.RouteIngress, out *routeapiv1beta3.RouteIngress, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RouteIngress))(in)
+	}
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapiv1beta3.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func Convert_api_RouteIngress_To_v1beta3_RouteIngress(in *routeapi.RouteIngress, out *routeapiv1beta3.RouteIngress, s conversion.Scope) error {
+	return autoConvert_api_RouteIngress_To_v1beta3_RouteIngress(in, out, s)
+}
+
+func autoConvert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition(in *routeapi.RouteIngressCondition, out *routeapiv1beta3.RouteIngressCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RouteIngressCondition))(in)
+	}
+	out.Type = routeapiv1beta3.RouteIngressConditionType(in.Type)
+	out.Status = apiv1beta3.ConditionStatus(in.Status)
+	out.Reason = in.Reason
+	out.Message = in.Message
+	// unable to generate simple pointer conversion for unversioned.Time -> unversioned.Time
+	if in.LastTransitionTime != nil {
+		out.LastTransitionTime = new(unversioned.Time)
+		if err := api.Convert_unversioned_Time_To_unversioned_Time(in.LastTransitionTime, out.LastTransitionTime, s); err != nil {
+			return err
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
+func Convert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition(in *routeapi.RouteIngressCondition, out *routeapiv1beta3.RouteIngressCondition, s conversion.Scope) error {
+	return autoConvert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition(in, out, s)
+}
+
 func autoConvert_api_RouteList_To_v1beta3_RouteList(in *routeapi.RouteList, out *routeapiv1beta3.RouteList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapi.RouteList))(in)
@@ -3967,6 +4014,16 @@ func autoConvert_api_RouteStatus_To_v1beta3_RouteStatus(in *routeapi.RouteStatus
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapi.RouteStatus))(in)
 	}
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapiv1beta3.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := Convert_api_RouteIngress_To_v1beta3_RouteIngress(&in.Ingress[i], &out.Ingress[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
 	return nil
 }
 
@@ -4009,6 +4066,53 @@ func autoConvert_v1beta3_Route_To_api_Route(in *routeapiv1beta3.Route, out *rout
 
 func Convert_v1beta3_Route_To_api_Route(in *routeapiv1beta3.Route, out *routeapi.Route, s conversion.Scope) error {
 	return autoConvert_v1beta3_Route_To_api_Route(in, out, s)
+}
+
+func autoConvert_v1beta3_RouteIngress_To_api_RouteIngress(in *routeapiv1beta3.RouteIngress, out *routeapi.RouteIngress, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1beta3.RouteIngress))(in)
+	}
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapi.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := Convert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition(&in.Conditions[i], &out.Conditions[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_RouteIngress_To_api_RouteIngress(in *routeapiv1beta3.RouteIngress, out *routeapi.RouteIngress, s conversion.Scope) error {
+	return autoConvert_v1beta3_RouteIngress_To_api_RouteIngress(in, out, s)
+}
+
+func autoConvert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition(in *routeapiv1beta3.RouteIngressCondition, out *routeapi.RouteIngressCondition, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1beta3.RouteIngressCondition))(in)
+	}
+	out.Type = routeapi.RouteIngressConditionType(in.Type)
+	out.Status = api.ConditionStatus(in.Status)
+	out.Reason = in.Reason
+	out.Message = in.Message
+	// unable to generate simple pointer conversion for unversioned.Time -> unversioned.Time
+	if in.LastTransitionTime != nil {
+		out.LastTransitionTime = new(unversioned.Time)
+		if err := api.Convert_unversioned_Time_To_unversioned_Time(in.LastTransitionTime, out.LastTransitionTime, s); err != nil {
+			return err
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
+func Convert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition(in *routeapiv1beta3.RouteIngressCondition, out *routeapi.RouteIngressCondition, s conversion.Scope) error {
+	return autoConvert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition(in, out, s)
 }
 
 func autoConvert_v1beta3_RouteList_To_api_RouteList(in *routeapiv1beta3.RouteList, out *routeapi.RouteList, s conversion.Scope) error {
@@ -4086,6 +4190,16 @@ func Convert_v1beta3_RouteSpec_To_api_RouteSpec(in *routeapiv1beta3.RouteSpec, o
 func autoConvert_v1beta3_RouteStatus_To_api_RouteStatus(in *routeapiv1beta3.RouteStatus, out *routeapi.RouteStatus, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapiv1beta3.RouteStatus))(in)
+	}
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapi.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := Convert_v1beta3_RouteIngress_To_api_RouteIngress(&in.Ingress[i], &out.Ingress[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
 	}
 	return nil
 }
@@ -6747,6 +6861,8 @@ func init() {
 		autoConvert_api_RoleList_To_v1beta3_RoleList,
 		autoConvert_api_Role_To_v1beta3_Role,
 		autoConvert_api_RollingDeploymentStrategyParams_To_v1beta3_RollingDeploymentStrategyParams,
+		autoConvert_api_RouteIngressCondition_To_v1beta3_RouteIngressCondition,
+		autoConvert_api_RouteIngress_To_v1beta3_RouteIngress,
 		autoConvert_api_RouteList_To_v1beta3_RouteList,
 		autoConvert_api_RoutePort_To_v1beta3_RoutePort,
 		autoConvert_api_RouteSpec_To_v1beta3_RouteSpec,
@@ -6888,6 +7004,8 @@ func init() {
 		autoConvert_v1beta3_RoleList_To_api_RoleList,
 		autoConvert_v1beta3_Role_To_api_Role,
 		autoConvert_v1beta3_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategyParams,
+		autoConvert_v1beta3_RouteIngressCondition_To_api_RouteIngressCondition,
+		autoConvert_v1beta3_RouteIngress_To_api_RouteIngress,
 		autoConvert_v1beta3_RouteList_To_api_RouteList,
 		autoConvert_v1beta3_RoutePort_To_api_RoutePort,
 		autoConvert_v1beta3_RouteSpec_To_api_RouteSpec,

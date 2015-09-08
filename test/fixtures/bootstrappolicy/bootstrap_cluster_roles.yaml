@@ -256,6 +256,12 @@ items:
     verbs:
     - get
     - update
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - routes/status
+    verbs:
+    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -671,6 +677,12 @@ items:
     verbs:
     - list
     - watch
+  - apiGroups: null
+    attributeRestrictions: null
+    resources:
+    - routes/status
+    verbs:
+    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:

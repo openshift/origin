@@ -23,11 +23,26 @@ func HostForRoute(route *routeapi.Route) string {
 type HostToRouteMap map[string][]*routeapi.Route
 type RouteToHostMap map[string]string
 
+// RejectionRecorder is an object capable of recording why a route was rejected
+type RejectionRecorder interface {
+	RecordRouteRejection(route *routeapi.Route, reason, message string)
+}
+
+var LogRejections = logRecorder{}
+
+type logRecorder struct{}
+
+func (_ logRecorder) RecordRouteRejection(route *routeapi.Route, reason, message string) {
+	glog.V(4).Infof("Rejected route %s: %s: %s", route.Name, reason, message)
+}
+
 // UniqueHost implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type UniqueHost struct {
 	plugin       router.Plugin
 	hostForRoute RouteHostFunc
+
+	recorder RejectionRecorder
 
 	hostToRoute HostToRouteMap
 	routeToHost RouteToHostMap
@@ -36,11 +51,14 @@ type UniqueHost struct {
 }
 
 // NewUniqueHost creates a plugin wrapper that ensures only unique routes are passed into
-// the underlying plugin.
-func NewUniqueHost(plugin router.Plugin, fn RouteHostFunc) *UniqueHost {
+// the underlying plugin. Recorder is an interface for indicating why a route was
+// rejected.
+func NewUniqueHost(plugin router.Plugin, fn RouteHostFunc, recorder RejectionRecorder) *UniqueHost {
 	return &UniqueHost{
 		plugin:       plugin,
 		hostForRoute: fn,
+
+		recorder: recorder,
 
 		hostToRoute: make(HostToRouteMap),
 		routeToHost: make(RouteToHostMap),
@@ -81,6 +99,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 	host := p.hostForRoute(route)
 	if len(host) == 0 {
 		glog.V(4).Infof("Route %s has no host value", routeName)
+		p.recorder.RecordRouteRejection(route, "NoHostValue", "no host value was defined for the route")
 		return nil
 	}
 	route.Spec.Host = host
@@ -97,14 +116,17 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 				if old[i].Spec.Path == route.Spec.Path {
 					if old[i].CreationTimestamp.Before(route.CreationTimestamp) {
 						glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
-						return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
+						err := fmt.Errorf("route %s already exposes %s and is older", oldest.Name, host)
+						p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", err.Error())
+						return err
 					}
 					added = true
 					if old[i].Namespace == route.Namespace && old[i].Name == route.Name {
 						old[i] = route
 						break
 					}
-					glog.V(4).Infof("Route %s will replace path %s from %s because it is older", routeName, route.Spec.Path, routeNameKey(old[i]))
+					glog.V(4).Infof("route %s will replace path %s from %s because it is older", routeName, route.Spec.Path, old[i].Name)
+					p.recorder.RecordRouteRejection(old[i], "HostAlreadyClaimed", fmt.Sprintf("replaced by older route %s", route.Name))
 					p.plugin.HandleRoute(watch.Deleted, old[i])
 					old[i] = route
 				}
@@ -119,11 +141,14 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 		} else {
 			if oldest.CreationTimestamp.Before(route.CreationTimestamp) {
 				glog.V(4).Infof("Route %s cannot take %s from %s", routeName, host, routeNameKey(oldest))
-				return fmt.Errorf("route %s holds %s and is older than %s", routeNameKey(oldest), host, key)
+				err := fmt.Errorf("another route holds %s and is older than %s", host, route.Name)
+				p.recorder.RecordRouteRejection(route, "HostAlreadyClaimed", err.Error())
+				return err
 			}
 
 			glog.V(4).Infof("Route %s is reclaiming %s from namespace %s", routeName, host, oldest.Namespace)
 			for i := range old {
+				p.recorder.RecordRouteRejection(old[i], "HostAlreadyClaimed", fmt.Sprintf("namespace %s owns hostname %s", oldest.Namespace, host))
 				p.plugin.HandleRoute(watch.Deleted, old[i])
 			}
 			p.hostToRoute[host] = []*routeapi.Route{route}

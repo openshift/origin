@@ -46,7 +46,10 @@ func NewREST(s storage.Interface, allocator route.RouteAllocator) (*REST, *Statu
 		Storage: s,
 	}
 
-	return &REST{store}, &StatusREST{store}
+	statusStore := *store
+	statusStore.UpdateStrategy = rest.StatusStrategy
+
+	return &REST{store}, &StatusREST{&statusStore}
 }
 
 // StatusREST implements the REST endpoint for changing the status of a route.
