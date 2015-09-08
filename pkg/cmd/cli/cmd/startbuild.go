@@ -59,6 +59,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 		},
 	}
 	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
+	cmd.Flags().String("commit", "", "Specify the commit hash the build should be run from")
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
 	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified BuildConfig or build; accepts 'all', 'generic', or 'github'")
 	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing BuildConfig to trigger")
@@ -72,6 +73,7 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 	webhook := cmdutil.GetFlagString(cmd, "from-webhook")
 	buildName := cmdutil.GetFlagString(cmd, "from-build")
 	follow := cmdutil.GetFlagBool(cmd, "follow")
+	commit := cmdutil.GetFlagString(cmd, "commit")
 
 	switch {
 	case len(webhook) > 0:
@@ -109,6 +111,14 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
+	}
+	if len(commit) > 0 {
+		request.Revision = &buildapi.SourceRevision{
+			Type: buildapi.BuildSourceGit,
+			Git: &buildapi.GitSourceRevision{
+				Commit: commit,
+			},
+		}
 	}
 	var newBuild *buildapi.Build
 	if isBuild {
