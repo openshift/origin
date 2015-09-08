@@ -1961,6 +1961,7 @@ _openshift_cli_start-build()
     flags+=("--help")
     flags+=("-h")
     flags+=("--list-webhooks=")
+    flags+=("--wait")
 
     must_have_one_flag=()
     must_have_one_noun=()

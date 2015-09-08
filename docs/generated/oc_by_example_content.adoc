@@ -784,14 +784,19 @@ Starts a new build
 [options="nowrap"]
 ----
   // Starts build from BuildConfig matching the name "3bd2ug53b"
-  $ openshift cli start-build 3bd2ug53b
+  $ openshift cli start-build sample-build
 
-  // Starts build from build matching the name "3bd2ug53b"
-  $ openshift cli start-build --from-build=3bd2ug53b
+  // Starts build from build matching the name "sample-build-1"
+  $ openshift cli start-build --from-build=sample-build-1
 
-  // Starts build from BuildConfig matching the name "3bd2ug53b" and watches the logs until the build
-  // completes or fails
-  $ openshift cli start-build 3bd2ug53b --follow
+  // Starts build from BuildConfig matching the name "sample-build" and watches
+	// the logs until the build completes or fails
+  $ openshift cli start-build sample-build --follow
+
+  // Starts build from BuildConfig matching the name "sample-build" and wait until
+	// the build completes. It exits with a non-zero return code if the build
+	// fails. 
+  $ openshift cli start-build sample-build --wait
 ----
 ====
 
