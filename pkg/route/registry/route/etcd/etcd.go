@@ -49,9 +49,13 @@ func NewREST(s storage.Interface, allocator route.RouteAllocator) RouteStorage {
 
 		Storage: s,
 	}
+
+	statusStore := *store
+	statusStore.UpdateStrategy = rest.StatusStrategy
+
 	return RouteStorage{
 		Route:  &REST{store},
-		Status: &StatusREST{store},
+		Status: &StatusREST{&statusStore},
 	}
 }
 

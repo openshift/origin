@@ -56,8 +56,8 @@ type RouteIngressConditionType string
 
 // These are valid conditions of pod.
 const (
-	// RouteReady means the route is able to service requests for the provided Host
-	RouteReady RouteIngressConditionType = "Ready"
+	// RouteAdmitted means the route is able to service requests for the provided Host
+	RouteAdmitted RouteIngressConditionType = "Admitted"
 	// TODO: add other route condition types
 )
 
