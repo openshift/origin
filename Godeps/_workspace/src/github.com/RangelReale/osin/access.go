@@ -3,6 +3,7 @@ package osin
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -11,11 +12,11 @@ type AccessRequestType string
 
 const (
 	AUTHORIZATION_CODE AccessRequestType = "authorization_code"
-	REFRESH_TOKEN                        = "refresh_token"
-	PASSWORD                             = "password"
-	CLIENT_CREDENTIALS                   = "client_credentials"
-	ASSERTION                            = "assertion"
-	IMPLICIT                             = "__implicit"
+	REFRESH_TOKEN      AccessRequestType = "refresh_token"
+	PASSWORD           AccessRequestType = "password"
+	CLIENT_CREDENTIALS AccessRequestType = "client_credentials"
+	ASSERTION          AccessRequestType = "assertion"
+	IMPLICIT           AccessRequestType = "__implicit"
 )
 
 // AccessRequest is a request for access tokens
@@ -227,6 +228,30 @@ func (s *Server) handleAuthorizationCodeRequest(w *Response, r *http.Request) *A
 	return ret
 }
 
+func extraScopes(access_scopes, refresh_scopes string) bool {
+	access_scopes_list := strings.Split(access_scopes, ",")
+	refresh_scopes_list := strings.Split(refresh_scopes, ",")
+
+	access_map := make(map[string]int)
+
+	for _, scope := range access_scopes_list {
+		if scope == "" {
+			continue
+		}
+		access_map[scope] = 1
+	}
+
+	for _, scope := range refresh_scopes_list {
+		if scope == "" {
+			continue
+		}
+		if _, ok := access_map[scope]; !ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) handleRefreshTokenRequest(w *Response, r *http.Request) *AccessRequest {
 	// get client authentication
 	auth := getClientAuth(w, r, s.Config.AllowClientSecretInParams)
@@ -289,6 +314,12 @@ func (s *Server) handleRefreshTokenRequest(w *Response, r *http.Request) *Access
 	ret.UserData = ret.AccessData.UserData
 	if ret.Scope == "" {
 		ret.Scope = ret.AccessData.Scope
+	}
+
+	if extraScopes(ret.AccessData.Scope, ret.Scope) {
+		w.SetError(E_ACCESS_DENIED, "")
+		w.InternalError = errors.New("the requested scope must not include any scope not originally granted by the resource owner")
+		return nil
 	}
 
 	return ret

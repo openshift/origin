@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -o errexit
 set -o nounset
 set -o pipefail
 
@@ -34,7 +34,7 @@ fi
 
 APIROOT_REL="pkg/api"
 APIROOT="${OS_ROOT}/${APIROOT_REL}"
-TMP_APIROOT_REL="_tmp/verify-generated-conversions"
+TMP_APIROOT_REL="_output/verify-generated-conversions"
 TMP_APIROOT="${OS_ROOT}/${TMP_APIROOT_REL}/${APIROOT_REL}"
 
 echo "Generating fresh conversions..."
@@ -45,7 +45,7 @@ then
   exit 1
 fi
 
-cp -au "${APIROOT}" "${TMP_APIROOT}/.."
+rsync -au "${APIROOT}" "${TMP_APIROOT}/.."
 
 echo "Diffing current conversions against freshly generated conversions..."
 ret=0

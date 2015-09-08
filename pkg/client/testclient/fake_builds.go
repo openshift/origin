@@ -1,9 +1,10 @@
 package testclient
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -15,46 +16,59 @@ type FakeBuilds struct {
 	Namespace string
 }
 
+func (c *FakeBuilds) Get(name string) (*buildapi.Build, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("builds", c.Namespace, name), &buildapi.Build{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*buildapi.Build), err
+}
+
 func (c *FakeBuilds) List(label labels.Selector, field fields.Selector) (*buildapi.BuildList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-builds"}, &buildapi.BuildList{})
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("builds", c.Namespace, label, field), &buildapi.BuildList{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*buildapi.BuildList), err
 }
 
-func (c *FakeBuilds) Get(name string) (*buildapi.Build, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-build"}, &buildapi.Build{})
+func (c *FakeBuilds) Create(inObj *buildapi.Build) (*buildapi.Build, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("builds", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*buildapi.Build), err
 }
 
-func (c *FakeBuilds) Create(build *buildapi.Build) (*buildapi.Build, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-build", Value: build}, &buildapi.Build{})
-	return obj.(*buildapi.Build), err
-}
+func (c *FakeBuilds) Update(inObj *buildapi.Build) (*buildapi.Build, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("builds", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
 
-func (c *FakeBuilds) Update(build *buildapi.Build) (*buildapi.Build, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-build"}, &buildapi.Build{})
 	return obj.(*buildapi.Build), err
 }
 
 func (c *FakeBuilds) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-build", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("builds", c.Namespace, name), &buildapi.Build{})
+	return err
 }
 
 func (c *FakeBuilds) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-builds"})
-	return nil, nil
+	c.Fake.Invokes(ktestclient.NewWatchAction("builds", c.Namespace, label, field, resourceVersion), nil)
+	return c.Fake.Watch, nil
 }
 
 func (c *FakeBuilds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
+	action := ktestclient.NewCreateAction("buildconfigs", c.Namespace, request)
+	action.Subresource = "clone"
+	obj, err := c.Fake.Invokes(action, &buildapi.Build{})
+	if obj == nil {
+		return nil, err
+	}
 
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "clone-build"})
-	return nil, nil
+	return obj.(*buildapi.Build), err
 }

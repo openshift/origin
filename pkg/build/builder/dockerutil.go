@@ -3,9 +3,10 @@ package builder
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -15,9 +16,16 @@ import (
 var (
 	// DefaultPushRetryCount is the number of retries of pushing the built Docker image
 	// into a configured repository
-	DefaultPushRetryCount = 2
+	DefaultPushRetryCount = 6
 	// DefaultPushRetryDelay is the time to wait before triggering a push retry
-	DefaultPushRetryDelay = 10 * time.Second
+	DefaultPushRetryDelay = 5 * time.Second
+	// RetriableErrors is a set of strings that indicate that an retriable error occurred.
+	RetriableErrors = []string{
+		"ping attempt failed with error",
+		"is already in progress",
+		"connection reset by peer",
+		"transport closed before response was received",
+	}
 )
 
 // DockerClient is an interface to the Docker client that contains
@@ -28,7 +36,11 @@ type DockerClient interface {
 	RemoveImage(name string) error
 }
 
-// pushImage pushes a docker image to the registry specified in its tag
+// pushImage pushes a docker image to the registry specified in its tag.
+// The method will retry to push the image when following scenarios occur:
+// - Docker registry is down temporarily or permanently
+// - other image is being pushed to the registry
+// If any other scenario the push will fail, without retries.
 func pushImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
 	repository, tag := docker.ParseRepositoryTag(name)
 	opts := docker.PushImageOptions{
@@ -39,15 +51,26 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		opts.OutputStream = os.Stderr
 	}
 	var err error
+	var retriableError = false
+
 	for retries := 0; retries <= DefaultPushRetryCount; retries++ {
 		err = client.PushImage(opts, authConfig)
 		if err == nil {
 			return nil
 		}
-		if retries == DefaultPushRetryCount {
+
+		errMsg := fmt.Sprintf("%s", err)
+		for _, errorString := range RetriableErrors {
+			if strings.Contains(errMsg, errorString) {
+				retriableError = true
+				break
+			}
+		}
+		if !retriableError {
 			return err
 		}
-		util.HandleError(fmt.Errorf("push for image %s failed, will retry in %s ...", name, DefaultPushRetryDelay))
+
+		util.HandleError(fmt.Errorf("push for image %s failed, will retry in %s seconds ...", name, DefaultPushRetryDelay))
 		glog.Flush()
 		time.Sleep(DefaultPushRetryDelay)
 	}

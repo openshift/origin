@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	kclient "k8s.io/kubernetes/pkg/client"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -23,7 +24,7 @@ func NewCmdValidateToken(f *clientcmd.Factory) *cobra.Command {
 
 			clientCfg, err := f.OpenShiftClientConfig.ClientConfig()
 			if err != nil {
-				fmt.Errorf("%v\n", err)
+				cmdutil.CheckErr(fmt.Errorf("%v", err))
 			}
 
 			validateToken(tokenValue, clientCfg)
@@ -76,9 +77,9 @@ func getTokenInfo(token string, osClient *osclient.Client) (string, *osintypes.I
 	}
 	body, err := osResult.Raw()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error reading info response: %v\n", err)
+		return "", nil, fmt.Errorf("Error reading info response: %v", err)
 	}
-	glog.V(1).Infof("Raw JSON: %v\n", string(body))
+	glog.V(1).Infof("Raw JSON: %s", string(body))
 
 	var accessData osintypes.InfoResponseData
 	err = json.Unmarshal(body, &accessData)
@@ -86,10 +87,10 @@ func getTokenInfo(token string, osClient *osclient.Client) (string, *osintypes.I
 		return "", nil, fmt.Errorf("Error while unmarshalling info response: %v %v", err, string(body))
 	}
 	if accessData.Error == "invalid_request" {
-		return "", nil, fmt.Errorf("\"%v\" is not a valid token.\n", token)
+		return "", nil, fmt.Errorf("%q is not a valid token.", token)
 	}
 	if len(accessData.ErrorDescription) != 0 {
-		return "", nil, fmt.Errorf("%v\n", accessData.ErrorDescription)
+		return "", nil, fmt.Errorf("%s", accessData.ErrorDescription)
 	}
 
 	return string(body), &accessData, nil

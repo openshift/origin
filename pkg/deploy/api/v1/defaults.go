@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -12,6 +12,13 @@ func init() {
 	}
 
 	err := api.Scheme.AddDefaultingFuncs(
+		func(obj *DeploymentConfigSpec) {
+			if obj.Triggers == nil {
+				obj.Triggers = []DeploymentTriggerPolicy{
+					{Type: DeploymentTriggerOnConfigChange},
+				}
+			}
+		},
 		func(obj *DeploymentStrategy) {
 			if len(obj.Type) == 0 {
 				obj.Type = DeploymentStrategyTypeRolling

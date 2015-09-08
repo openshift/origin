@@ -3,9 +3,9 @@ package validation
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/docker/distribution/registry/api/v2"
+	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/image/api"

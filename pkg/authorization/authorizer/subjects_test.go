@@ -3,8 +3,8 @@ package authorizer
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
@@ -34,7 +34,7 @@ func TestSubjects(t *testing.T) {
 			Verb:     "get",
 			Resource: "pods",
 		},
-		expectedUsers:  util.NewStringSet("Anna", "ClusterAdmin", "Ellen", "Valerie"),
+		expectedUsers:  util.NewStringSet("Anna", "ClusterAdmin", "Ellen", "Valerie", "system:serviceaccount:adze:second", "system:serviceaccount:foo:default", "system:serviceaccount:other:first"),
 		expectedGroups: util.NewStringSet("RootUsers", "system:cluster-admins", "system:cluster-readers", "system:masters", "system:nodes"),
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()

@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"reflect"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"

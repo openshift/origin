@@ -26,7 +26,7 @@
                 {{pod.status.phase}}
               </div>
             <div class="pod-detail">
-              <span class="pod-detail-label">Node:</span>{{pod.spec.host || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.host != pod.status.hostIP">({{pod.status.hostIP}})</span>
+              <span class="pod-detail-label">Node:</span>{{pod.spec.nodeName || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.nodeName != pod.status.hostIP">({{pod.status.hostIP}})</span>
             </div>
             <div class="pod-detail">
               <span class="pod-detail-label">IP on node:</span>{{pod.status.podIP || 'unknown'}}

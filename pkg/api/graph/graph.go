@@ -10,7 +10,7 @@ import (
 	"github.com/gonum/graph/concrete"
 	"github.com/gonum/graph/encoding/dot"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 type Node struct {

@@ -19,18 +19,16 @@
 */
 package raftpb
 
-import proto "code.google.com/p/gogoprotobuf/proto"
-import json "encoding/json"
+import proto "github.com/gogo/protobuf/proto"
 import math "math"
 
-// discarding unused import gogoproto "code.google.com/p/gogoprotobuf/gogoproto/gogo.pb"
+// discarding unused import gogoproto "github.com/gogo/protobuf/gogoproto/gogo.pb"
 
 import io "io"
-import code_google_com_p_gogoprotobuf_proto "code.google.com/p/gogoprotobuf/proto"
+import fmt "fmt"
 
-// Reference proto, json, and math imports to suppress error if they are not otherwise used.
+// Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
-var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type EntryType int32
@@ -79,19 +77,23 @@ const (
 	MsgSnap          MessageType = 7
 	MsgHeartbeat     MessageType = 8
 	MsgHeartbeatResp MessageType = 9
+	MsgUnreachable   MessageType = 10
+	MsgSnapStatus    MessageType = 11
 )
 
 var MessageType_name = map[int32]string{
-	0: "MsgHup",
-	1: "MsgBeat",
-	2: "MsgProp",
-	3: "MsgApp",
-	4: "MsgAppResp",
-	5: "MsgVote",
-	6: "MsgVoteResp",
-	7: "MsgSnap",
-	8: "MsgHeartbeat",
-	9: "MsgHeartbeatResp",
+	0:  "MsgHup",
+	1:  "MsgBeat",
+	2:  "MsgProp",
+	3:  "MsgApp",
+	4:  "MsgAppResp",
+	5:  "MsgVote",
+	6:  "MsgVoteResp",
+	7:  "MsgSnap",
+	8:  "MsgHeartbeat",
+	9:  "MsgHeartbeatResp",
+	10: "MsgUnreachable",
+	11: "MsgSnapStatus",
 }
 var MessageType_value = map[string]int32{
 	"MsgHup":           0,
@@ -104,6 +106,8 @@ var MessageType_value = map[string]int32{
 	"MsgSnap":          7,
 	"MsgHeartbeat":     8,
 	"MsgHeartbeatResp": 9,
+	"MsgUnreachable":   10,
+	"MsgSnapStatus":    11,
 }
 
 func (x MessageType) Enum() *MessageType {
@@ -160,10 +164,10 @@ func (x *ConfChangeType) UnmarshalJSON(data []byte) error {
 }
 
 type Entry struct {
-	Type             EntryType `protobuf:"varint,1,req,enum=raftpb.EntryType" json:"Type"`
-	Term             uint64    `protobuf:"varint,2,req" json:"Term"`
-	Index            uint64    `protobuf:"varint,3,req" json:"Index"`
-	Data             []byte    `protobuf:"bytes,4,opt" json:"Data"`
+	Type             EntryType `protobuf:"varint,1,opt,enum=raftpb.EntryType" json:"Type"`
+	Term             uint64    `protobuf:"varint,2,opt" json:"Term"`
+	Index            uint64    `protobuf:"varint,3,opt" json:"Index"`
+	Data             []byte    `protobuf:"bytes,4,opt" json:"Data,omitempty"`
 	XXX_unrecognized []byte    `json:"-"`
 }
 
@@ -172,9 +176,9 @@ func (m *Entry) String() string { return proto.CompactTextString(m) }
 func (*Entry) ProtoMessage()    {}
 
 type SnapshotMetadata struct {
-	ConfState        ConfState `protobuf:"bytes,1,req,name=conf_state" json:"conf_state"`
-	Index            uint64    `protobuf:"varint,2,req,name=index" json:"index"`
-	Term             uint64    `protobuf:"varint,3,req,name=term" json:"term"`
+	ConfState        ConfState `protobuf:"bytes,1,opt,name=conf_state" json:"conf_state"`
+	Index            uint64    `protobuf:"varint,2,opt,name=index" json:"index"`
+	Term             uint64    `protobuf:"varint,3,opt,name=term" json:"term"`
 	XXX_unrecognized []byte    `json:"-"`
 }
 
@@ -183,8 +187,8 @@ func (m *SnapshotMetadata) String() string { return proto.CompactTextString(m) }
 func (*SnapshotMetadata) ProtoMessage()    {}
 
 type Snapshot struct {
-	Data             []byte           `protobuf:"bytes,1,opt,name=data" json:"data"`
-	Metadata         SnapshotMetadata `protobuf:"bytes,2,req,name=metadata" json:"metadata"`
+	Data             []byte           `protobuf:"bytes,1,opt,name=data" json:"data,omitempty"`
+	Metadata         SnapshotMetadata `protobuf:"bytes,2,opt,name=metadata" json:"metadata"`
 	XXX_unrecognized []byte           `json:"-"`
 }
 
@@ -193,17 +197,17 @@ func (m *Snapshot) String() string { return proto.CompactTextString(m) }
 func (*Snapshot) ProtoMessage()    {}
 
 type Message struct {
-	Type             MessageType `protobuf:"varint,1,req,name=type,enum=raftpb.MessageType" json:"type"`
-	To               uint64      `protobuf:"varint,2,req,name=to" json:"to"`
-	From             uint64      `protobuf:"varint,3,req,name=from" json:"from"`
-	Term             uint64      `protobuf:"varint,4,req,name=term" json:"term"`
-	LogTerm          uint64      `protobuf:"varint,5,req,name=logTerm" json:"logTerm"`
-	Index            uint64      `protobuf:"varint,6,req,name=index" json:"index"`
+	Type             MessageType `protobuf:"varint,1,opt,name=type,enum=raftpb.MessageType" json:"type"`
+	To               uint64      `protobuf:"varint,2,opt,name=to" json:"to"`
+	From             uint64      `protobuf:"varint,3,opt,name=from" json:"from"`
+	Term             uint64      `protobuf:"varint,4,opt,name=term" json:"term"`
+	LogTerm          uint64      `protobuf:"varint,5,opt,name=logTerm" json:"logTerm"`
+	Index            uint64      `protobuf:"varint,6,opt,name=index" json:"index"`
 	Entries          []Entry     `protobuf:"bytes,7,rep,name=entries" json:"entries"`
-	Commit           uint64      `protobuf:"varint,8,req,name=commit" json:"commit"`
-	Snapshot         Snapshot    `protobuf:"bytes,9,req,name=snapshot" json:"snapshot"`
-	Reject           bool        `protobuf:"varint,10,req,name=reject" json:"reject"`
-	RejectHint       uint64      `protobuf:"varint,11,req,name=rejectHint" json:"rejectHint"`
+	Commit           uint64      `protobuf:"varint,8,opt,name=commit" json:"commit"`
+	Snapshot         Snapshot    `protobuf:"bytes,9,opt,name=snapshot" json:"snapshot"`
+	Reject           bool        `protobuf:"varint,10,opt,name=reject" json:"reject"`
+	RejectHint       uint64      `protobuf:"varint,11,opt,name=rejectHint" json:"rejectHint"`
 	XXX_unrecognized []byte      `json:"-"`
 }
 
@@ -212,9 +216,9 @@ func (m *Message) String() string { return proto.CompactTextString(m) }
 func (*Message) ProtoMessage()    {}
 
 type HardState struct {
-	Term             uint64 `protobuf:"varint,1,req,name=term" json:"term"`
-	Vote             uint64 `protobuf:"varint,2,req,name=vote" json:"vote"`
-	Commit           uint64 `protobuf:"varint,3,req,name=commit" json:"commit"`
+	Term             uint64 `protobuf:"varint,1,opt,name=term" json:"term"`
+	Vote             uint64 `protobuf:"varint,2,opt,name=vote" json:"vote"`
+	Commit           uint64 `protobuf:"varint,3,opt,name=commit" json:"commit"`
 	XXX_unrecognized []byte `json:"-"`
 }
 
@@ -223,7 +227,7 @@ func (m *HardState) String() string { return proto.CompactTextString(m) }
 func (*HardState) ProtoMessage()    {}
 
 type ConfState struct {
-	Nodes            []uint64 `protobuf:"varint,1,rep,name=nodes" json:"nodes"`
+	Nodes            []uint64 `protobuf:"varint,1,rep,name=nodes" json:"nodes,omitempty"`
 	XXX_unrecognized []byte   `json:"-"`
 }
 
@@ -232,10 +236,10 @@ func (m *ConfState) String() string { return proto.CompactTextString(m) }
 func (*ConfState) ProtoMessage()    {}
 
 type ConfChange struct {
-	ID               uint64         `protobuf:"varint,1,req" json:"ID"`
-	Type             ConfChangeType `protobuf:"varint,2,req,enum=raftpb.ConfChangeType" json:"Type"`
-	NodeID           uint64         `protobuf:"varint,3,req" json:"NodeID"`
-	Context          []byte         `protobuf:"bytes,4,opt" json:"Context"`
+	ID               uint64         `protobuf:"varint,1,opt" json:"ID"`
+	Type             ConfChangeType `protobuf:"varint,2,opt,enum=raftpb.ConfChangeType" json:"Type"`
+	NodeID           uint64         `protobuf:"varint,3,opt" json:"NodeID"`
+	Context          []byte         `protobuf:"bytes,4,opt" json:"Context,omitempty"`
 	XXX_unrecognized []byte         `json:"-"`
 }
 
@@ -250,15 +254,15 @@ func init() {
 }
 func (m *Entry) Unmarshal(data []byte) error {
 	l := len(data)
-	index := 0
-	for index < l {
+	iNdEx := 0
+	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
-			if index >= l {
+			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[index]
-			index++
+			b := data[iNdEx]
+			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
 				break
@@ -269,14 +273,14 @@ func (m *Entry) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Type |= (EntryType(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -284,14 +288,14 @@ func (m *Entry) Unmarshal(data []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Term", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Term |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -299,14 +303,14 @@ func (m *Entry) Unmarshal(data []byte) error {
 			}
 		case 3:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Index |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -314,26 +318,26 @@ func (m *Entry) Unmarshal(data []byte) error {
 			}
 		case 4:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + byteLen
+			postIndex := iNdEx + byteLen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Data = append(m.Data, data[index:postIndex]...)
-			index = postIndex
+			m.Data = append([]byte{}, data[iNdEx:postIndex]...)
+			iNdEx = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -343,31 +347,32 @@ func (m *Entry) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			iNdEx -= sizeOfWire
+			skippy, err := skipRaft(data[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if (index + skippy) > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
-			index += skippy
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
 		}
 	}
+
 	return nil
 }
 func (m *SnapshotMetadata) Unmarshal(data []byte) error {
 	l := len(data)
-	index := 0
-	for index < l {
+	iNdEx := 0
+	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
-			if index >= l {
+			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[index]
-			index++
+			b := data[iNdEx]
+			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
 				break
@@ -378,38 +383,38 @@ func (m *SnapshotMetadata) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfState", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + msglen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ConfState.Unmarshal(data[index:postIndex]); err != nil {
+			if err := m.ConfState.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			index = postIndex
+			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Index |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -417,14 +422,14 @@ func (m *SnapshotMetadata) Unmarshal(data []byte) error {
 			}
 		case 3:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Term", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Term |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -439,31 +444,32 @@ func (m *SnapshotMetadata) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			iNdEx -= sizeOfWire
+			skippy, err := skipRaft(data[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if (index + skippy) > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
-			index += skippy
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
 		}
 	}
+
 	return nil
 }
 func (m *Snapshot) Unmarshal(data []byte) error {
 	l := len(data)
-	index := 0
-	for index < l {
+	iNdEx := 0
+	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
-			if index >= l {
+			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[index]
-			index++
+			b := data[iNdEx]
+			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
 				break
@@ -474,50 +480,50 @@ func (m *Snapshot) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + byteLen
+			postIndex := iNdEx + byteLen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Data = append(m.Data, data[index:postIndex]...)
-			index = postIndex
+			m.Data = append([]byte{}, data[iNdEx:postIndex]...)
+			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Metadata", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + msglen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Metadata.Unmarshal(data[index:postIndex]); err != nil {
+			if err := m.Metadata.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			index = postIndex
+			iNdEx = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -527,31 +533,32 @@ func (m *Snapshot) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			iNdEx -= sizeOfWire
+			skippy, err := skipRaft(data[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if (index + skippy) > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
-			index += skippy
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
 		}
 	}
+
 	return nil
 }
 func (m *Message) Unmarshal(data []byte) error {
 	l := len(data)
-	index := 0
-	for index < l {
+	iNdEx := 0
+	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
-			if index >= l {
+			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[index]
-			index++
+			b := data[iNdEx]
+			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
 				break
@@ -562,14 +569,14 @@ func (m *Message) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Type |= (MessageType(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -577,14 +584,14 @@ func (m *Message) Unmarshal(data []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field To", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.To |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -592,14 +599,14 @@ func (m *Message) Unmarshal(data []byte) error {
 			}
 		case 3:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field From", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.From |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -607,14 +614,14 @@ func (m *Message) Unmarshal(data []byte) error {
 			}
 		case 4:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Term", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Term |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -622,14 +629,14 @@ func (m *Message) Unmarshal(data []byte) error {
 			}
 		case 5:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field LogTerm", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.LogTerm |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -637,14 +644,14 @@ func (m *Message) Unmarshal(data []byte) error {
 			}
 		case 6:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Index |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -652,37 +659,39 @@ func (m *Message) Unmarshal(data []byte) error {
 			}
 		case 7:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Entries", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + msglen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Entries = append(m.Entries, Entry{})
-			m.Entries[len(m.Entries)-1].Unmarshal(data[index:postIndex])
-			index = postIndex
+			if err := m.Entries[len(m.Entries)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		case 8:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Commit", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Commit |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -690,39 +699,39 @@ func (m *Message) Unmarshal(data []byte) error {
 			}
 		case 9:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Snapshot", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + msglen
+			postIndex := iNdEx + msglen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Snapshot.Unmarshal(data[index:postIndex]); err != nil {
+			if err := m.Snapshot.Unmarshal(data[iNdEx:postIndex]); err != nil {
 				return err
 			}
-			index = postIndex
+			iNdEx = postIndex
 		case 10:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Reject", wireType)
 			}
 			var v int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -731,14 +740,14 @@ func (m *Message) Unmarshal(data []byte) error {
 			m.Reject = bool(v != 0)
 		case 11:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field RejectHint", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.RejectHint |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -753,31 +762,32 @@ func (m *Message) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			iNdEx -= sizeOfWire
+			skippy, err := skipRaft(data[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if (index + skippy) > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
-			index += skippy
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
 		}
 	}
+
 	return nil
 }
 func (m *HardState) Unmarshal(data []byte) error {
 	l := len(data)
-	index := 0
-	for index < l {
+	iNdEx := 0
+	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
-			if index >= l {
+			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[index]
-			index++
+			b := data[iNdEx]
+			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
 				break
@@ -788,14 +798,14 @@ func (m *HardState) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Term", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Term |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -803,14 +813,14 @@ func (m *HardState) Unmarshal(data []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Vote", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Vote |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -818,14 +828,14 @@ func (m *HardState) Unmarshal(data []byte) error {
 			}
 		case 3:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Commit", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Commit |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -840,31 +850,32 @@ func (m *HardState) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			iNdEx -= sizeOfWire
+			skippy, err := skipRaft(data[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if (index + skippy) > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
-			index += skippy
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
 		}
 	}
+
 	return nil
 }
 func (m *ConfState) Unmarshal(data []byte) error {
 	l := len(data)
-	index := 0
-	for index < l {
+	iNdEx := 0
+	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
-			if index >= l {
+			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[index]
-			index++
+			b := data[iNdEx]
+			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
 				break
@@ -875,15 +886,15 @@ func (m *ConfState) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Nodes", wireType)
 			}
 			var v uint64
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				v |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -899,31 +910,32 @@ func (m *ConfState) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			iNdEx -= sizeOfWire
+			skippy, err := skipRaft(data[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if (index + skippy) > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
-			index += skippy
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
 		}
 	}
+
 	return nil
 }
 func (m *ConfChange) Unmarshal(data []byte) error {
 	l := len(data)
-	index := 0
-	for index < l {
+	iNdEx := 0
+	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
-			if index >= l {
+			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[index]
-			index++
+			b := data[iNdEx]
+			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
 				break
@@ -934,14 +946,14 @@ func (m *ConfChange) Unmarshal(data []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.ID |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -949,14 +961,14 @@ func (m *ConfChange) Unmarshal(data []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.Type |= (ConfChangeType(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -964,14 +976,14 @@ func (m *ConfChange) Unmarshal(data []byte) error {
 			}
 		case 3:
 			if wireType != 0 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeID", wireType)
 			}
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				m.NodeID |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
@@ -979,26 +991,26 @@ func (m *ConfChange) Unmarshal(data []byte) error {
 			}
 		case 4:
 			if wireType != 2 {
-				return code_google_com_p_gogoprotobuf_proto.ErrWrongType
+				return fmt.Errorf("proto: wrong wireType = %d for field Context", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
-				if index >= l {
+				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[index]
-				index++
+				b := data[iNdEx]
+				iNdEx++
 				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			postIndex := index + byteLen
+			postIndex := iNdEx + byteLen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Context = append(m.Context, data[index:postIndex]...)
-			index = postIndex
+			m.Context = append([]byte{}, data[iNdEx:postIndex]...)
+			iNdEx = postIndex
 		default:
 			var sizeOfWire int
 			for {
@@ -1008,19 +1020,104 @@ func (m *ConfChange) Unmarshal(data []byte) error {
 					break
 				}
 			}
-			index -= sizeOfWire
-			skippy, err := code_google_com_p_gogoprotobuf_proto.Skip(data[index:])
+			iNdEx -= sizeOfWire
+			skippy, err := skipRaft(data[iNdEx:])
 			if err != nil {
 				return err
 			}
-			if (index + skippy) > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, data[index:index+skippy]...)
-			index += skippy
+			m.XXX_unrecognized = append(m.XXX_unrecognized, data[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
 		}
 	}
+
 	return nil
+}
+func skipRaft(data []byte) (n int, err error) {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if iNdEx >= l {
+				return 0, io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		wireType := int(wire & 0x7)
+		switch wireType {
+		case 0:
+			for {
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				iNdEx++
+				if data[iNdEx-1] < 0x80 {
+					break
+				}
+			}
+			return iNdEx, nil
+		case 1:
+			iNdEx += 8
+			return iNdEx, nil
+		case 2:
+			var length int
+			for shift := uint(0); ; shift += 7 {
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				length |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			iNdEx += length
+			return iNdEx, nil
+		case 3:
+			for {
+				var innerWire uint64
+				var start int = iNdEx
+				for shift := uint(0); ; shift += 7 {
+					if iNdEx >= l {
+						return 0, io.ErrUnexpectedEOF
+					}
+					b := data[iNdEx]
+					iNdEx++
+					innerWire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				innerWireType := int(innerWire & 0x7)
+				if innerWireType == 4 {
+					break
+				}
+				next, err := skipRaft(data[start:])
+				if err != nil {
+					return 0, err
+				}
+				iNdEx = start + next
+			}
+			return iNdEx, nil
+		case 4:
+			return iNdEx, nil
+		case 5:
+			iNdEx += 4
+			return iNdEx, nil
+		default:
+			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
+		}
+	}
+	panic("unreachable")
 }
 func (m *Entry) Size() (n int) {
 	var l int
@@ -1028,13 +1125,16 @@ func (m *Entry) Size() (n int) {
 	n += 1 + sovRaft(uint64(m.Type))
 	n += 1 + sovRaft(uint64(m.Term))
 	n += 1 + sovRaft(uint64(m.Index))
-	l = len(m.Data)
-	n += 1 + l + sovRaft(uint64(l))
+	if m.Data != nil {
+		l = len(m.Data)
+		n += 1 + l + sovRaft(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
 	return n
 }
+
 func (m *SnapshotMetadata) Size() (n int) {
 	var l int
 	_ = l
@@ -1047,11 +1147,14 @@ func (m *SnapshotMetadata) Size() (n int) {
 	}
 	return n
 }
+
 func (m *Snapshot) Size() (n int) {
 	var l int
 	_ = l
-	l = len(m.Data)
-	n += 1 + l + sovRaft(uint64(l))
+	if m.Data != nil {
+		l = len(m.Data)
+		n += 1 + l + sovRaft(uint64(l))
+	}
 	l = m.Metadata.Size()
 	n += 1 + l + sovRaft(uint64(l))
 	if m.XXX_unrecognized != nil {
@@ -1059,6 +1162,7 @@ func (m *Snapshot) Size() (n int) {
 	}
 	return n
 }
+
 func (m *Message) Size() (n int) {
 	var l int
 	_ = l
@@ -1084,6 +1188,7 @@ func (m *Message) Size() (n int) {
 	}
 	return n
 }
+
 func (m *HardState) Size() (n int) {
 	var l int
 	_ = l
@@ -1095,6 +1200,7 @@ func (m *HardState) Size() (n int) {
 	}
 	return n
 }
+
 func (m *ConfState) Size() (n int) {
 	var l int
 	_ = l
@@ -1108,14 +1214,17 @@ func (m *ConfState) Size() (n int) {
 	}
 	return n
 }
+
 func (m *ConfChange) Size() (n int) {
 	var l int
 	_ = l
 	n += 1 + sovRaft(uint64(m.ID))
 	n += 1 + sovRaft(uint64(m.Type))
 	n += 1 + sovRaft(uint64(m.NodeID))
-	l = len(m.Context)
-	n += 1 + l + sovRaft(uint64(l))
+	if m.Context != nil {
+		l = len(m.Context)
+		n += 1 + l + sovRaft(uint64(l))
+	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
 	}
@@ -1159,15 +1268,18 @@ func (m *Entry) MarshalTo(data []byte) (n int, err error) {
 	data[i] = 0x18
 	i++
 	i = encodeVarintRaft(data, i, uint64(m.Index))
-	data[i] = 0x22
-	i++
-	i = encodeVarintRaft(data, i, uint64(len(m.Data)))
-	i += copy(data[i:], m.Data)
+	if m.Data != nil {
+		data[i] = 0x22
+		i++
+		i = encodeVarintRaft(data, i, uint64(len(m.Data)))
+		i += copy(data[i:], m.Data)
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}
 	return i, nil
 }
+
 func (m *SnapshotMetadata) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -1202,6 +1314,7 @@ func (m *SnapshotMetadata) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *Snapshot) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -1217,10 +1330,12 @@ func (m *Snapshot) MarshalTo(data []byte) (n int, err error) {
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
-	i++
-	i = encodeVarintRaft(data, i, uint64(len(m.Data)))
-	i += copy(data[i:], m.Data)
+	if m.Data != nil {
+		data[i] = 0xa
+		i++
+		i = encodeVarintRaft(data, i, uint64(len(m.Data)))
+		i += copy(data[i:], m.Data)
+	}
 	data[i] = 0x12
 	i++
 	i = encodeVarintRaft(data, i, uint64(m.Metadata.Size()))
@@ -1234,6 +1349,7 @@ func (m *Snapshot) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *Message) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -1306,6 +1422,7 @@ func (m *Message) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *HardState) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -1335,6 +1452,7 @@ func (m *HardState) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *ConfState) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -1354,13 +1472,7 @@ func (m *ConfState) MarshalTo(data []byte) (n int, err error) {
 		for _, num := range m.Nodes {
 			data[i] = 0x8
 			i++
-			for num >= 1<<7 {
-				data[i] = uint8(uint64(num)&0x7f | 0x80)
-				num >>= 7
-				i++
-			}
-			data[i] = uint8(num)
-			i++
+			i = encodeVarintRaft(data, i, uint64(num))
 		}
 	}
 	if m.XXX_unrecognized != nil {
@@ -1368,6 +1480,7 @@ func (m *ConfState) MarshalTo(data []byte) (n int, err error) {
 	}
 	return i, nil
 }
+
 func (m *ConfChange) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -1392,15 +1505,18 @@ func (m *ConfChange) MarshalTo(data []byte) (n int, err error) {
 	data[i] = 0x18
 	i++
 	i = encodeVarintRaft(data, i, uint64(m.NodeID))
-	data[i] = 0x22
-	i++
-	i = encodeVarintRaft(data, i, uint64(len(m.Context)))
-	i += copy(data[i:], m.Context)
+	if m.Context != nil {
+		data[i] = 0x22
+		i++
+		i = encodeVarintRaft(data, i, uint64(len(m.Context)))
+		i += copy(data[i:], m.Context)
+	}
 	if m.XXX_unrecognized != nil {
 		i += copy(data[i:], m.XXX_unrecognized)
 	}
 	return i, nil
 }
+
 func encodeFixed64Raft(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	data[offset+1] = uint8(v >> 8)

@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -11,9 +11,9 @@ import (
 
 	"github.com/spf13/pflag"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
 
 	// for osinserver setup.
 	"github.com/openshift/origin/pkg/api/latest"
@@ -53,7 +53,7 @@ func TestCLIGetToken(t *testing.T) {
 
 	// setup
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, _ := master.NewEtcdHelper(etcdClient, latest.Version, etcdtest.PathPrefix())
+	etcdHelper, _ := master.NewEtcdStorage(etcdClient, latest.InterfacesFor, latest.Version, etcdtest.PathPrefix())
 
 	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)

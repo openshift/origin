@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -41,12 +41,12 @@ func BindCreateSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.
 const createSignerLong = `
 Create a self-signed CA key/cert
 
-Create a self-signed CA key/cert for signing certificates used by
-OpenShift components.
+Create a self-signed CA key/cert for signing certificates used by server
+components.
 
 This is mainly intended for development/trial deployments as production
-deployments of OpenShift should utilize properly signed certificates
-(generated separately) or start with a properly signed CA.
+deployments should utilize properly signed certificates (generated
+separately) or start with a properly signed CA.
 `
 
 func NewCommandCreateSignerCert(commandName string, fullName string, out io.Writer) *cobra.Command {

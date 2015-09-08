@@ -3,16 +3,16 @@ package etcd
 import (
 	"errors"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
-	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
+	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
+	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
@@ -29,7 +29,7 @@ type REST struct {
 const EtcdPrefix = "/users"
 
 // NewREST returns a RESTStorage object that will work against users
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.User{} },
 		NewListFunc: func() runtime.Object { return &api.UserList{} },
@@ -47,7 +47,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 		},
 		EndpointName: "users",
 
-		Helper: h,
+		Storage: s,
 	}
 
 	store.CreateStrategy = user.Strategy

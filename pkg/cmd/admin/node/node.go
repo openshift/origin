@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )

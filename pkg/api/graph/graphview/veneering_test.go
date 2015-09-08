@@ -7,8 +7,8 @@ import (
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
@@ -397,10 +397,10 @@ func TestGraph(t *testing.T) {
 					if image.LastSuccessfulBuild != nil {
 						t.Logf("%s    built at %s", indent, image.LastSuccessfulBuild.Build.CreationTimestamp)
 					} else if image.LastUnsuccessfulBuild != nil {
-						t.Logf("%s    build %s at %s", indent, image.LastUnsuccessfulBuild.Build.Status, image.LastUnsuccessfulBuild.Build.CreationTimestamp)
+						t.Logf("%s    build %v at %s", indent, image.LastUnsuccessfulBuild.Build.Status, image.LastUnsuccessfulBuild.Build.CreationTimestamp)
 					}
 					for _, b := range image.ActiveBuilds {
-						t.Logf("%s    build %s %s", indent, b.Build.Name, b.Build.Status)
+						t.Logf("%s    build %s %v", indent, b.Build.Name, b.Build.Status)
 					}
 				}
 			}

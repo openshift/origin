@@ -3,7 +3,7 @@ package latest
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/meta"
 )
 
 func TestRESTRootScope(t *testing.T) {

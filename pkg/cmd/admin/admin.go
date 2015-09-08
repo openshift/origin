@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
+	"github.com/openshift/origin/pkg/cmd/admin/groups"
 	"github.com/openshift/origin/pkg/cmd/admin/node"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/admin/project"
@@ -24,16 +25,16 @@ import (
 )
 
 const adminLong = `
-OpenShift Administrative Commands
+Administrative Commands
 
-Commands for managing an OpenShift cluster are exposed here. Many administrative
-actions involve interaction with the OpenShift client as well.`
+Commands for managing a cluster are exposed here. Many administrative
+actions involve interaction with the command-line client as well.`
 
 func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
-		Short: "Tools for managing an OpenShift cluster",
+		Short: "Tools for managing a cluster",
 		Long:  fmt.Sprintf(adminLong),
 		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
@@ -46,6 +47,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 			Commands: []*cobra.Command{
 				project.NewCmdNewProject(project.NewProjectRecommendedName, fullName+" "+project.NewProjectRecommendedName, f, out),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
+				groups.NewCmdGroups(groups.GroupsRecommendedName, fullName+" "+groups.GroupsRecommendedName, f, out),
 			},
 		},
 		{
@@ -79,6 +81,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 			Commands: []*cobra.Command{
 				admin.NewCommandCreateBootstrapProjectTemplate(f, admin.CreateBootstrapProjectTemplateCommand, fullName+" "+admin.CreateBootstrapProjectTemplateCommand, out),
 				admin.NewCommandCreateBootstrapPolicyFile(admin.CreateBootstrapPolicyFileCommand, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out),
+				admin.NewCommandCreateLoginTemplate(f, admin.CreateLoginTemplateCommand, fullName+" "+admin.CreateLoginTemplateCommand, out),
 				admin.NewCommandOverwriteBootstrapPolicy(admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.OverwriteBootstrapPolicyCommandName, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out),
 				admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out),
 				cert.NewCmdCert(cert.CertRecommendedName, fullName+" "+cert.CertRecommendedName, out),

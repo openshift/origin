@@ -21,4 +21,6 @@ RUN ln -s /usr/bin/openshift /usr/bin/openshift-router && \
 WORKDIR /var/lib/haproxy/conf
 
 EXPOSE 80
-ENTRYPOINT ["/usr/bin/openshift-router", "--template=/var/lib/haproxy/conf/haproxy-config.template", "--reload=/var/lib/haproxy/reload-haproxy"]
+ENV TEMPLATE_FILE=/var/lib/haproxy/conf/haproxy-config.template \
+    RELOAD_SCRIPT=/var/lib/haproxy/reload-haproxy
+ENTRYPOINT ["/usr/bin/openshift-router"]

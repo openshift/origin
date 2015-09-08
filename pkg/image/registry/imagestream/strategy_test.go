@@ -5,14 +5,14 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 )
 
 type fakeUser struct {
@@ -282,11 +282,13 @@ func TestTagVerifier(t *testing.T) {
 				t.Errorf("%s: sar namespace: expected %v, got %v", name, e, a)
 			}
 			expectedSar := &authorizationapi.SubjectAccessReview{
-				Verb:         "get",
-				Resource:     "imagestreams",
-				User:         "user",
-				Groups:       util.NewStringSet("group1"),
-				ResourceName: "otherstream",
+				Action: authorizationapi.AuthorizationAttributes{
+					Verb:         "get",
+					Resource:     "imagestreams",
+					ResourceName: "otherstream",
+				},
+				User:   "user",
+				Groups: util.NewStringSet("group1"),
 			}
 			if e, a := expectedSar, sar.request; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s: unexpected SAR request: %s", name, util.ObjectDiff(e, a))

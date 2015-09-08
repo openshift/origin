@@ -8,20 +8,20 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 
 	cmdconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 )
 
 const (
 	configLong = `
-Manage the OpenShift client config files
+Manage the client config files
 
-The OpenShift client stores configuration in the current user's home directory (under the .kube directory as
+The client stores configuration in the current user's home directory (under the .kube directory as
 config). When you login the first time, a new config file is created, and subsequent project changes with the
 'project' command will set the current context. These subcommands allow you to manage the config directly.
 
-Reference: https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/kubeconfig-file.md`
+Reference: https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md`
 
 	configExample = `  // Change the config context to use
   %[1]s %[2]s use-context my-context

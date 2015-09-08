@@ -117,10 +117,22 @@ type Config struct {
 	// in the code. The default behaviour is Release mode.
 	Debug bool
 
-	// Recursively process all assets in the input directory and its
-	// sub directories. This defaults to false, so only files in the
-	// input directory itself are read.
-	Recursive bool
+	// Perform a dev build, which is nearly identical to the debug option. The
+	// only difference is that instead of absolute file paths in generated code,
+	// it expects a variable, `rootDir`, to be set in the generated code's
+	// package (the author needs to do this manually), which it then prepends to
+	// an asset's name to construct the file path on disk.
+	//
+	// This is mainly so you can push the generated code file to a shared
+	// repository.
+	Dev bool
+
+	// When true, size, mode and modtime are not preserved from files
+	NoMetadata bool
+	// When nonzero, use this as mode for all files.
+	Mode uint
+	// When nonzero, use this as unix timestamp for all files.
+	ModTime int64
 
 	// Ignores any filenames matching the regex pattern specified, e.g.
 	// path/to/file.ext will ignore only that file, or \\.gitignore
@@ -137,7 +149,6 @@ func NewConfig() *Config {
 	c.NoMemCopy = false
 	c.NoCompress = false
 	c.Debug = false
-	c.Recursive = false
 	c.Output = "./bindata.go"
 	c.Ignore = make([]*regexp.Regexp, 0)
 	return c

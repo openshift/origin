@@ -11,16 +11,16 @@ import (
 
 	"github.com/docker/docker/pkg/units"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/docker/docker/pkg/parsers"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/meta"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	kctl "k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -54,6 +54,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		"ClusterRoleBinding":   &ClusterRoleBindingDescriber{c},
 		"ClusterRole":          &ClusterRoleDescriber{c},
 		"User":                 &UserDescriber{c},
+		"Group":                &GroupDescriber{c.Groups()},
 		"UserIdentityMapping":  &UserIdentityMappingDescriber{c},
 	}
 	return m
@@ -288,6 +289,9 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 	if s.ExposeDockerSocket {
 		formatString(out, "Expose Docker Socket", "yes")
 	}
+	if s.ForcePull {
+		formatString(out, "Force Pull", "yes")
+	}
 	if s.PullSecret != nil {
 		formatString(out, "Pull Secret Name", s.PullSecret.Name)
 	}
@@ -316,22 +320,6 @@ func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, out *t
 	}
 }
 
-type sortableBuilds []buildapi.Build
-
-func (s sortableBuilds) Len() int {
-	return len(s)
-}
-
-func (s sortableBuilds) Less(i, j int) bool {
-	return s[i].CreationTimestamp.Before(s[j].CreationTimestamp)
-}
-
-func (s sortableBuilds) Swap(i, j int) {
-	t := s[i]
-	s[i] = s[j]
-	s[j] = t
-}
-
 // Describe returns the description of a buildConfig
 func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) {
 	c := d.BuildConfigs(namespace)
@@ -339,7 +327,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	builds, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.BuildConfigLabel: name}), fields.Everything())
+	buildList, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.BuildConfigLabel: name}), fields.Everything())
 	if err != nil {
 		return "", err
 	}
@@ -353,15 +341,15 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		}
 		describeBuildSpec(buildConfig.Spec.BuildSpec, out)
 		d.DescribeTriggers(buildConfig, out)
-		if len(builds.Items) == 0 {
+		if len(buildList.Items) == 0 {
 			return nil
 		}
 		fmt.Fprintf(out, "Builds:\n  Name\tStatus\tDuration\tCreation Time\n")
-		sortedBuilds := sortableBuilds(builds.Items)
-		sort.Sort(sortedBuilds)
-		for i := range sortedBuilds {
-			// iterate backwards so we're printing the newest items first
-			build := sortedBuilds[len(sortedBuilds)-1-i]
+
+		builds := buildList.Items
+		sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds)))
+
+		for i, build := range builds {
 			fmt.Fprintf(out, "  %s \t%s \t%v \t%v\n",
 				build.Name,
 				strings.ToLower(string(build.Status.Phase)),
@@ -684,7 +672,13 @@ func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, o
 	indent := "    "
 	for _, p := range params {
 		formatString(out, indent+"Name", p.Name)
-		formatString(out, indent+"Description", p.Description)
+		if len(p.DisplayName) > 0 {
+			formatString(out, indent+"Display Name", p.DisplayName)
+		}
+		if len(p.Description) > 0 {
+			formatString(out, indent+"Description", p.Description)
+		}
+		formatString(out, indent+"Required", p.Required)
 		if len(p.Generate) == 0 {
 			formatString(out, indent+"Value", p.Value)
 			continue
@@ -878,6 +872,36 @@ func (d *UserDescriber) Describe(namespace, name string) (string, error) {
 	})
 }
 
+// GroupDescriber generates information about a group
+type GroupDescriber struct {
+	c client.GroupInterface
+}
+
+// Describe returns the description of a group
+func (d *GroupDescriber) Describe(namespace, name string) (string, error) {
+	group, err := d.c.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	return tabbedString(func(out *tabwriter.Writer) error {
+		formatMeta(out, group.ObjectMeta)
+
+		if len(group.Users) == 0 {
+			formatString(out, "Users", "<none>")
+		} else {
+			for i, user := range group.Users {
+				if i == 0 {
+					formatString(out, "Users", user)
+				} else {
+					fmt.Fprintf(out, "           \t%s\n", user)
+				}
+			}
+		}
+		return nil
+	})
+}
+
 // policy describers
 
 // PolicyDescriber generates information about a Project
@@ -984,6 +1008,7 @@ func (d *PolicyBindingDescriber) Describe(namespace, name string) (string, error
 }
 
 func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (string, error) {
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, policyBinding.ObjectMeta)
 		formatString(out, "Last Modified", policyBinding.LastModified)
@@ -992,10 +1017,14 @@ func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (strin
 		// using .List() here because I always want the sorted order that it provides
 		for _, key := range util.KeySet(reflect.ValueOf(policyBinding.RoleBindings)).List() {
 			roleBinding := policyBinding.RoleBindings[key]
+			users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
+
 			formatString(out, "RoleBinding["+key+"]", " ")
 			formatString(out, "\tRole", roleBinding.RoleRef.Name)
-			formatString(out, "\tUsers", roleBinding.Users.List())
-			formatString(out, "\tGroups", roleBinding.Groups.List())
+			formatString(out, "\tUsers", strings.Join(users, ", "))
+			formatString(out, "\tGroups", strings.Join(groups, ", "))
+			formatString(out, "\tServiceAccounts", strings.Join(sas, ", "))
+			formatString(out, "\tSubjects", strings.Join(others, ", "))
 		}
 
 		return nil
@@ -1029,12 +1058,16 @@ func (d *RoleBindingDescriber) Describe(namespace, name string) (string, error) 
 
 // DescribeRoleBinding prints out information about a role binding and its associated role
 func DescribeRoleBinding(roleBinding *authorizationapi.RoleBinding, role *authorizationapi.Role, err error) (string, error) {
+	users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
+
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, roleBinding.ObjectMeta)
 
 		formatString(out, "Role", roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name)
-		formatString(out, "Users", roleBinding.Users.List())
-		formatString(out, "Groups", roleBinding.Groups.List())
+		formatString(out, "Users", strings.Join(users, ", "))
+		formatString(out, "Groups", strings.Join(groups, ", "))
+		formatString(out, "ServiceAccounts", strings.Join(sas, ", "))
+		formatString(out, "Subjects", strings.Join(others, ", "))
 
 		switch {
 		case err != nil:

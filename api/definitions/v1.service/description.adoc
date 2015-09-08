@@ -4,4 +4,4 @@ Services may be exposed only inside the cluster (type ClusterIP), inside the clu
 
 If the selector for pods is not specified, the service endpoints may be managed by the client directly. Update the endpoint resource to program the service - this can be used to inject external network services into a namsepace.
 
-See link:https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md[the Kubernetes service documentation] for more information.
+See link:https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/services.md[the Kubernetes service documentation] for more information.

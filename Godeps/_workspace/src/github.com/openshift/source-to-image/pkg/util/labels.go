@@ -1,49 +1,63 @@
 package util
 
 import (
-	"strings"
-
 	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
 )
 
-// GenerateOutputImageLabels generate the labels based on the source repository
-// informations.
+// GenerateOutputImageLabels generate the labels based on the s2i Config
+// and source repository informations.
 func GenerateOutputImageLabels(info *api.SourceInfo, config *api.Config) map[string]string {
-	result := map[string]string{}
+	labels := map[string]string{}
+	namespace := api.DefaultNamespace
+	if len(config.LabelNamespace) > 0 {
+		namespace = config.LabelNamespace
+	}
 
+	labels = GenerateLabelsFromConfig(labels, config, namespace)
+	labels = GenerateLabelsFromSourceInfo(labels, info, namespace)
+	return labels
+}
+
+// GenerateLabelsFromConfig generate the labels based on build s2i Config
+func GenerateLabelsFromConfig(labels map[string]string, config *api.Config, namespace string) map[string]string {
 	if len(config.Description) > 0 {
-		result[api.KubernetesNamespace+"description"] = config.Description
+		labels[api.KubernetesNamespace+"description"] = config.Description
 	}
 
 	if len(config.DisplayName) > 0 {
-		result[api.KubernetesNamespace+"display-name"] = config.DisplayName
+		labels[api.KubernetesNamespace+"display-name"] = config.DisplayName
 	} else {
-		result[api.KubernetesNamespace+"display-name"] = config.Tag
+		labels[api.KubernetesNamespace+"display-name"] = config.Tag
 	}
 
-	if info == nil {
-		glog.V(3).Infof("Unable to fetch source informations, the output image labels will not be set")
-		return result
-	}
-
-	addBuildLabel(result, "image", config.BuilderImage)
-	addBuildLabel(result, "commit.author", info.Author)
-	addBuildLabel(result, "commit.date", info.Date)
-	addBuildLabel(result, "commit.id", info.CommitID)
-	addBuildLabel(result, "commit.ref", info.Ref)
-	addBuildLabel(result, "commit.message", info.Message)
-	addBuildLabel(result, "source-location", info.Location)
-	addBuildLabel(result, "source-context-dir", config.ContextDir)
-
-	return result
+	addBuildLabel(labels, "image", config.BuilderImage, namespace)
+	return labels
 }
 
-// addBuildLabel adds a new "io.openshift.s2i.build.*" label into map when the
+// GenerateLabelsFromSourceInfo generate the labels based on the source repository
+// informations.
+func GenerateLabelsFromSourceInfo(labels map[string]string, info *api.SourceInfo, namespace string) map[string]string {
+	if info == nil {
+		glog.V(3).Infof("Unable to fetch source informations, the output image labels will not be set")
+		return labels
+	}
+
+	addBuildLabel(labels, "commit.author", info.Author, namespace)
+	addBuildLabel(labels, "commit.date", info.Date, namespace)
+	addBuildLabel(labels, "commit.id", info.CommitID, namespace)
+	addBuildLabel(labels, "commit.ref", info.Ref, namespace)
+	addBuildLabel(labels, "commit.message", info.Message, namespace)
+	addBuildLabel(labels, "source-location", info.Location, namespace)
+	addBuildLabel(labels, "source-context-dir", info.ContextDir, namespace)
+	return labels
+}
+
+// addBuildLabel adds a new "*.build.*" label into map when the
 // value of this label is not empty
-func addBuildLabel(to map[string]string, key, value string) {
+func addBuildLabel(to map[string]string, key, value, namespace string) {
 	if len(value) == 0 {
 		return
 	}
-	to[strings.Join([]string{api.DefaultNamespace, "build.", key}, "")] = value
+	to[namespace+"build."+key] = value
 }

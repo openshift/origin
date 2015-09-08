@@ -179,7 +179,7 @@ func (p *textParser) advance() {
 		}
 		unq, err := unquoteC(p.s[1:i], rune(p.s[0]))
 		if err != nil {
-			p.errorf("invalid quoted string %v", p.s[0:i+1])
+			p.errorf("invalid quoted string %s: %v", p.s[0:i+1], err)
 			return
 		}
 		p.cur.value, p.s = p.s[0:i+1], p.s[i+1:len(p.s)]
@@ -360,6 +360,18 @@ func (p *textParser) next() *token {
 	return &p.cur
 }
 
+func (p *textParser) consumeToken(s string) error {
+	tok := p.next()
+	if tok.err != nil {
+		return tok.err
+	}
+	if tok.value != s {
+		p.back()
+		return p.errorf("expected %q, found %q", s, tok.value)
+	}
+	return nil
+}
+
 // Return a RequiredNotSetError indicating which required field was not set.
 func (p *textParser) missingRequiredFieldError(sv reflect.Value) *RequiredNotSetError {
 	st := sv.Type()
@@ -414,6 +426,10 @@ func (p *textParser) checkForColon(props *Properties, typ reflect.Type) *ParseEr
 				if typ.Elem().Kind() != reflect.Ptr {
 					break
 				}
+			} else if typ.Kind() == reflect.String {
+				// The proto3 exception is for a string field,
+				// which requires a colon.
+				break
 			}
 			needColon = false
 		}
@@ -519,6 +535,66 @@ func (p *textParser) readStruct(sv reflect.Value, terminator string) error {
 
 			dst := sv.Field(fi)
 
+			if dst.Kind() == reflect.Map {
+				// Consume any colon.
+				if err := p.checkForColon(props, dst.Type()); err != nil {
+					return err
+				}
+
+				// Construct the map if it doesn't already exist.
+				if dst.IsNil() {
+					dst.Set(reflect.MakeMap(dst.Type()))
+				}
+				key := reflect.New(dst.Type().Key()).Elem()
+				val := reflect.New(dst.Type().Elem()).Elem()
+
+				// The map entry should be this sequence of tokens:
+				//	< key : KEY value : VALUE >
+				// Technically the "key" and "value" could come in any order,
+				// but in practice they won't.
+
+				tok := p.next()
+				var terminator string
+				switch tok.value {
+				case "<":
+					terminator = ">"
+				case "{":
+					terminator = "}"
+				default:
+					return p.errorf("expected '{' or '<', found %q", tok.value)
+				}
+				if err := p.consumeToken("key"); err != nil {
+					return err
+				}
+				if err := p.consumeToken(":"); err != nil {
+					return err
+				}
+				if err := p.readAny(key, props.mkeyprop); err != nil {
+					return err
+				}
+				if err := p.consumeOptionalSeparator(); err != nil {
+					return err
+				}
+				if err := p.consumeToken("value"); err != nil {
+					return err
+				}
+				if err := p.checkForColon(props.mvalprop, dst.Type().Elem()); err != nil {
+					return err
+				}
+				if err := p.readAny(val, props.mvalprop); err != nil {
+					return err
+				}
+				if err := p.consumeOptionalSeparator(); err != nil {
+					return err
+				}
+				if err := p.consumeToken(terminator); err != nil {
+					return err
+				}
+
+				dst.SetMapIndex(key, val)
+				continue
+			}
+
 			// Check that it's not already set if it's not a repeated field.
 			if !props.Repeated && fieldSet[name] {
 				return p.errorf("non-repeated field %q was repeated", name)
@@ -540,20 +616,29 @@ func (p *textParser) readStruct(sv reflect.Value, terminator string) error {
 			}
 		}
 
-		// For backward compatibility, permit a semicolon or comma after a field.
-		tok = p.next()
-		if tok.err != nil {
-			return tok.err
+		if err := p.consumeOptionalSeparator(); err != nil {
+			return err
 		}
-		if tok.value != ";" && tok.value != "," {
-			p.back()
-		}
+
 	}
 
 	if reqCount > 0 {
 		return p.missingRequiredFieldError(sv)
 	}
 	return reqFieldErr
+}
+
+// consumeOptionalSeparator consumes an optional semicolon or comma.
+// It is used in readStruct to provide backward compatibility.
+func (p *textParser) consumeOptionalSeparator() error {
+	tok := p.next()
+	if tok.err != nil {
+		return tok.err
+	}
+	if tok.value != ";" && tok.value != "," {
+		p.back()
+	}
+	return nil
 }
 
 func (p *textParser) readAny(v reflect.Value, props *Properties) error {

@@ -5,14 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	kadmission "github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
-	kscc "github.com/GoogleCloudPlatform/kubernetes/pkg/securitycontextconstraints"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kadmission "k8s.io/kubernetes/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/testclient"
+	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
+	"k8s.io/kubernetes/pkg/util"
 
 	allocator "github.com/openshift/origin/pkg/security"
 )
@@ -308,7 +308,7 @@ func TestAssignSecurityContext(t *testing.T) {
 			continue
 		}
 		if !v.shouldValidate && len(errs) == 0 {
-			t.Errorf("%s expected validation errors but received none")
+			t.Errorf("%s expected validation errors but received none", k)
 			continue
 		}
 
@@ -473,7 +473,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			t.Errorf("%s createProvidersFromConstraints mutated constraints. diff:\n%s", k, diff)
 		}
 		if len(v.expectedErr) > 0 && len(errs) != 1 {
-			t.Errorf("%s expected a single error '%s' but received %v", k, errs)
+			t.Errorf("%s expected a single error '%s' but received %v", k, v.expectedErr, errs)
 			continue
 		}
 		if len(v.expectedErr) == 0 && len(errs) != 0 {

@@ -11,9 +11,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
-	"github.com/openshift/origin/plugins/osdn"
+	"github.com/openshift/origin/plugins/osdn/flatsdn"
+	"github.com/openshift/origin/plugins/osdn/multitenant"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -31,32 +33,30 @@ type NodeOptions struct {
 }
 
 const nodeLong = `
-Start an OpenShift node
+Start a node
 
-This command helps you launch an OpenShift node.  Running
+This command helps you launch a node.  Running
 
-  $ openshift start node --master=<masterIP>
+  $ %[1]s start node --master=<masterIP>
 
-will start an OpenShift node that attempts to connect to the master on the provided IP. The
+will start a node that attempts to connect to the master on the provided IP. The
 node will run in the foreground until you terminate the process.`
 
 // NewCommandStartNode provides a CLI handler for 'start node' command
-func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
+func NewCommandStartNode(basename string, out io.Writer) (*cobra.Command, *NodeOptions) {
 	options := &NodeOptions{Output: out}
 
 	cmd := &cobra.Command{
 		Use:   "node",
-		Short: "Launch OpenShift node",
-		Long:  nodeLong,
+		Short: "Launch a node",
+		Long:  fmt.Sprintf(nodeLong, basename),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
+				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
+				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
@@ -65,9 +65,9 @@ func NewCommandStartNode(out io.Writer) (*cobra.Command, *NodeOptions) {
 			if err := options.StartNode(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(out, "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(out, "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(c.Out(), "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -133,8 +133,6 @@ func (o NodeOptions) StartNode() error {
 
 	go daemon.SdNotify("READY=1")
 	select {}
-
-	return nil
 }
 
 // RunNode takes the options and:
@@ -174,7 +172,7 @@ func (o NodeOptions) RunNode() error {
 	if err != nil {
 		return err
 	}
-	glog.Infof("Starting an OpenShift node, connecting to %s", kubeClientConfig.Host)
+	glog.Infof("Starting a node connected to %s", kubeClientConfig.Host)
 
 	if err := StartNode(*nodeConfig); err != nil {
 		return err
@@ -242,17 +240,23 @@ func (o NodeOptions) IsRunFromConfig() bool {
 }
 
 func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeConfig) {
-	if nodeConfig.NetworkPluginName != osdn.NetworkPluginName() {
-		return
-	}
-
 	oclient, _, err := configapi.GetOpenShiftClient(nodeConfig.MasterKubeConfig)
 	if err != nil {
 		glog.Fatal("Failed to get kube client for SDN")
 	}
-	ch := make(chan struct{})
-	config.KubeletConfig.StartUpdates = ch
-	go osdn.Node(oclient, config.Client, nodeConfig.NodeName, "", ch)
+
+	switch nodeConfig.NetworkConfig.NetworkPluginName {
+	case flatsdn.NetworkPluginName():
+		ch := make(chan struct{})
+		config.KubeletConfig.StartUpdates = ch
+		go flatsdn.Node(oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch, nodeConfig.NetworkConfig.MTU)
+	case multitenant.NetworkPluginName():
+		ch := make(chan struct{})
+		config.KubeletConfig.StartUpdates = ch
+		plugin := multitenant.GetKubeNetworkPlugin()
+		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, plugin)
+		go multitenant.Node(oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch, plugin, nodeConfig.NetworkConfig.MTU)
+	}
 }
 
 func StartNode(nodeConfig configapi.NodeConfig) error {
@@ -260,7 +264,7 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 	if err != nil {
 		return err
 	}
-	glog.Infof("Starting OpenShift node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
+	glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 
 	RunSDNController(config, nodeConfig)
 	config.EnsureVolumeDir()

@@ -10,9 +10,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/master/ports"
+	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -36,14 +37,16 @@ type MasterArgs struct {
 	// etcd will be started.
 	EtcdAddr flagtypes.Addr
 
-	// PortalNet is a CIDR notation IP range from which to assign portal IPs. This must not overlap
-	// with any IP ranges assigned to nodes for pods.
-	PortalNet flagtypes.IPNet
-
 	// MasterPublicAddr is the master address for use by public clients, if different (host, host:port,
 	// or URL). Defaults to same as --master.
 	MasterPublicAddr flagtypes.Addr
 
+	// StartAPI controls whether the API component of the master is started (to support the API role)
+	// TODO: once we implement bastion role and kube/os controller role, revisit
+	StartAPI bool
+	// StartControllers controls whether the controller component of the master is started (to support
+	// the controller role)
+	StartControllers bool
 	PauseControllers bool
 
 	// DNSBindAddr exposed for integration tests to set
@@ -69,6 +72,8 @@ type MasterArgs struct {
 	SchedulerConfigFile string
 
 	NetworkArgs *NetworkArgs
+
+	OverrideConfig func(config *configapi.MasterConfig) error
 }
 
 // BindMasterArgs binds the options to the flags with prefix + default flag names
@@ -76,7 +81,6 @@ func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
 	flags.Var(&args.MasterAddr, prefix+"master", "The master address for use by OpenShift components (host, host:port, or URL). Scheme and port default to the --listen scheme and port. When unset, attempt to use the first public IPv4 non-loopback address registered on this host.")
 	flags.Var(&args.MasterPublicAddr, prefix+"public-master", "The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as --master.")
 	flags.Var(&args.EtcdAddr, prefix+"etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
-	flags.Var(&args.PortalNet, prefix+"portal-net", "A CIDR notation IP range from which to assign portal IPs. This must not overlap with any IP ranges assigned to nodes for pods.")
 	flags.Var(&args.DNSBindAddr, prefix+"dns", "The address to listen for DNS requests on.")
 	flags.BoolVar(&args.PauseControllers, prefix+"pause", false, "If true, wait for a signal before starting the controllers.")
 
@@ -94,7 +98,6 @@ func NewDefaultMasterArgs() *MasterArgs {
 	config := &MasterArgs{
 		MasterAddr:       flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		EtcdAddr:         flagtypes.Addr{Value: "0.0.0.0:4001", DefaultScheme: "https", DefaultPort: 4001}.Default(),
-		PortalNet:        flagtypes.DefaultIPNet("172.30.0.0/16"),
 		MasterPublicAddr: flagtypes.Addr{Value: "localhost:8443", DefaultScheme: "https", DefaultPort: 8443, AllowPrefix: true}.Default(),
 		DNSBindAddr:      flagtypes.Addr{Value: "0.0.0.0:53", DefaultScheme: "tcp", DefaultPort: 53, AllowPrefix: true}.Default(),
 
@@ -135,6 +138,8 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		return nil, err
 	}
 
+	listenServingInfo := servingInfoForAddr(&args.ListenArg.ListenAddr)
+
 	// always include the all-in-one server's web console as an allowed CORS origin
 	// always include localhost as an allowed CORS origin
 	// always include master public address as an allowed CORS origin
@@ -173,11 +178,11 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 	etcdClientInfo := admin.DefaultMasterEtcdClientCertInfo(args.ConfigDir.Value())
 
+	dnsServingInfo := servingInfoForAddr(&dnsBindAddr)
+
 	config := &configapi.MasterConfig{
 		ServingInfo: configapi.HTTPServingInfo{
-			ServingInfo: configapi.ServingInfo{
-				BindAddress: args.ListenArg.ListenAddr.URL.Host,
-			},
+			ServingInfo: listenServingInfo,
 		},
 		CORSAllowedOrigins: corsAllowedOrigins.List(),
 		MasterPublicURL:    masterPublicAddr.String(),
@@ -191,9 +196,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 		AssetConfig: &configapi.AssetConfig{
 			ServingInfo: configapi.HTTPServingInfo{
-				ServingInfo: configapi.ServingInfo{
-					BindAddress: args.GetAssetBindAddress(),
-				},
+				ServingInfo: listenServingInfo,
 			},
 
 			LogoutURL:       "",
@@ -202,7 +205,8 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		DNSConfig: &configapi.DNSConfig{
-			BindAddress: dnsBindAddr.URL.Host,
+			BindAddress: dnsServingInfo.BindAddress,
+			BindNetwork: dnsServingInfo.BindNetwork,
 		},
 
 		MasterClients: configapi.MasterClients{
@@ -237,10 +241,11 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			SecurityAllocator: &configapi.SecurityAllocator{},
 		},
 
-		NetworkConfig: configapi.NetworkConfig{
+		NetworkConfig: configapi.MasterNetworkConfig{
 			NetworkPluginName:  args.NetworkArgs.NetworkPluginName,
 			ClusterNetworkCIDR: args.NetworkArgs.ClusterNetworkCIDR,
 			HostSubnetLength:   args.NetworkArgs.HostSubnetLength,
+			ServiceNetworkCIDR: args.NetworkArgs.ServiceNetworkCIDR,
 		},
 	}
 
@@ -288,12 +293,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		config.ServiceAccountConfig.PublicKeyFiles = []string{}
 	}
 
-	// Roundtrip the config to v1 and back to ensure proper defaults are set.
-	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
-	if err != nil {
-		return nil, err
-	}
-	internal, err := configapi.Scheme.ConvertToVersion(ext, "")
+	internal, err := applyDefaults(config, "v1")
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +370,7 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 			UseAsChallenger: true,
 			UseAsLogin:      true,
 			Provider: runtime.EmbeddedObject{
-				&configapi.AllowAllPasswordIdentityProvider{},
+				Object: &configapi.AllowAllPasswordIdentityProvider{},
 			},
 		},
 	)
@@ -416,8 +416,6 @@ func (args MasterArgs) BuildSerializeableEtcdConfig() (*configapi.EtcdConfig, er
 
 // BuildSerializeableKubeMasterConfig creates a fully specified kubernetes master startup configuration based on MasterArgs
 func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.KubernetesMasterConfig, error) {
-	servicesSubnet := net.IPNet(args.PortalNet)
-
 	masterAddr, err := args.GetMasterAddress()
 	if err != nil {
 		return nil, err
@@ -436,7 +434,7 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 
 	config := &configapi.KubernetesMasterConfig{
 		MasterIP:            masterIP,
-		ServicesSubnet:      servicesSubnet.String(),
+		ServicesSubnet:      args.NetworkArgs.ServiceNetworkCIDR,
 		StaticNodeNames:     staticNodeList.List(),
 		SchedulerConfigFile: args.SchedulerConfigFile,
 	}
@@ -486,7 +484,24 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		return nil, err
 	}
 
-	allHostnames := util.NewStringSet("localhost", "127.0.0.1", "openshift.default.svc.cluster.local", "kubernetes.default.svc.cluster.local", masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
+	allHostnames := util.NewStringSet(
+		"localhost", "127.0.0.1",
+		"openshift.default.svc.cluster.local",
+		"openshift.default.svc",
+		"openshift.default",
+		"openshift",
+		"kubernetes.default.svc.cluster.local",
+		"kubernetes.default.svc",
+		"kubernetes.default",
+		"kubernetes",
+		masterAddr.Host, masterPublicAddr.Host, assetPublicAddr.Host)
+
+	if _, ipnet, err := net.ParseCIDR(args.NetworkArgs.ServiceNetworkCIDR); err == nil {
+		// CIDR is ignored if it is invalid, other code handles validation.
+		if firstServiceIP, err := ipallocator.GetIndexedIP(ipnet, 1); err == nil {
+			allHostnames.Insert(firstServiceIP.String())
+		}
+	}
 
 	listenIP := net.ParseIP(args.ListenArg.ListenAddr.Host)
 	// add the IPs that might be used based on the ListenAddr.
@@ -616,10 +631,6 @@ func (args MasterArgs) GetAssetPublicAddress() (*url.URL, error) {
 	return &assetPublicAddr, nil
 }
 
-func (args MasterArgs) GetAssetBindAddress() string {
-	return args.ListenArg.ListenAddr.URL.Host
-}
-
 func getHost(theURL url.URL) string {
 	host, _, err := net.SplitHostPort(theURL.Host)
 	if err != nil {
@@ -637,4 +648,23 @@ func getPort(theURL url.URL) int {
 
 	intport, _ := strconv.Atoi(port)
 	return intport
+}
+
+// applyDefaults roundtrips the config to v1 and back to ensure proper defaults are set.
+func applyDefaults(config runtime.Object, version string) (runtime.Object, error) {
+	ext, err := configapi.Scheme.ConvertToVersion(config, version)
+	if err != nil {
+		return nil, err
+	}
+	return configapi.Scheme.ConvertToVersion(ext, "")
+}
+
+func servingInfoForAddr(addr *flagtypes.Addr) configapi.ServingInfo {
+	info := configapi.ServingInfo{
+		BindAddress: addr.URL.Host,
+	}
+	if addr.IPv6Host {
+		info.BindNetwork = "tcp6"
+	}
+	return info
 }

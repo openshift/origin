@@ -213,7 +213,36 @@ func TestAppendEnvVars(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := appendEnvVars(test.dockerFile, test.envVars)
+		result := appendMetadata(Env, test.dockerFile, test.envVars)
+		if result != test.expected {
+			t.Errorf("%s: unexpected result.\n\tExpected: %s\n\tGot: %s\n", test.name, test.expected, result)
+		}
+	}
+}
+
+func TestAppendLabels(t *testing.T) {
+	tests := []struct {
+		name       string
+		dockerFile string
+		labels     map[string]string
+		expected   string
+	}{
+		{
+			name:       "regular dockerFile",
+			dockerFile: dockerFile,
+			labels:     map[string]string{"LABEL1": "value1"},
+			expected:   dockerFile + "LABEL LABEL1=\"value1\"\n",
+		},
+		{
+			name:       "dockerFile with no newline",
+			dockerFile: dockerFileNoNewline,
+			labels:     map[string]string{"LABEL1": "value1"},
+			expected:   dockerFileNoNewline + "\nLABEL LABEL1=\"value1\"\n",
+		},
+	}
+
+	for _, test := range tests {
+		result := appendMetadata(Label, test.dockerFile, test.labels)
 		if result != test.expected {
 			t.Errorf("%s: unexpected result.\n\tExpected: %s\n\tGot: %s\n", test.name, test.expected, result)
 		}

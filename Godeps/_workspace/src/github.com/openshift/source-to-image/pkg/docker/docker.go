@@ -12,6 +12,8 @@ import (
 
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/errors"
+	"os"
+	"os/signal"
 )
 
 const (
@@ -47,6 +49,7 @@ const (
 type Docker interface {
 	IsImageInLocalRegistry(name string) (bool, error)
 	IsImageOnBuild(string) bool
+	GetOnBuild(string) ([]string, error)
 	RemoveContainer(id string) error
 	GetScriptsURL(name string) (string, error)
 	RunContainer(opts RunContainerOptions) error
@@ -74,6 +77,7 @@ type Client interface {
 	CommitContainer(opts docker.CommitContainerOptions) (*docker.Image, error)
 	CopyFromContainer(opts docker.CopyFromContainerOptions) error
 	BuildImage(opts docker.BuildImageOptions) error
+	InspectContainer(id string) (*docker.Container, error)
 }
 
 type stiDocker struct {
@@ -105,6 +109,7 @@ type RunContainerOptions struct {
 	Stderr          io.Writer
 	OnStart         func() error
 	PostExec        PostExecutor
+	TargetImage     bool
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
@@ -176,12 +181,19 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 // IsImageOnBuild provides information about whether the Docker image has
 // OnBuild instruction recorded in the Image Config.
 func (d *stiDocker) IsImageOnBuild(name string) bool {
+	onbuild, err := d.GetOnBuild(name)
+	return err == nil && len(onbuild) > 0
+}
+
+// GetOnBuild returns the set of ONBUILD Dockerfile commands to execute
+// for the given image
+func (d *stiDocker) GetOnBuild(name string) ([]string, error) {
 	name = getImageName(name)
 	image, err := d.client.InspectImage(name)
 	if err != nil {
-		return false
+		return nil, err
 	}
-	return len(image.Config.OnBuild) > 0
+	return image.Config.OnBuild, nil
 }
 
 // CheckAndPullImage pulls an image into the local registry if not present
@@ -328,26 +340,17 @@ func getDestination(image *docker.Image) string {
 	return DefaultDestination
 }
 
-// RunContainer creates and starts a container using the image specified in the options with the ability
-// to stream input or output
-func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
-	// get info about the specified image
-	image := getImageName(opts.Image)
-	var imageMetadata *docker.Image
-	if opts.PullImage {
-		imageMetadata, err = d.CheckAndPullImage(image)
-	} else {
-		imageMetadata, err = d.client.InspectImage(image)
-	}
-	if err != nil {
-		glog.Errorf("Unable to get image metadata for %s: %v", image, err)
-		return err
+// this funtion simply abstracts out the tar related processing that was originally inline in RunContainer()
+func runContainerTar(opts RunContainerOptions, config docker.Config, imageMetadata *docker.Image) (docker.Config, string) {
+	tarDestination := ""
+	if opts.TargetImage {
+		return config, tarDestination
 	}
 
 	// base directory for all STI commands
 	var commandBaseDir string
 	// untar operation destination directory
-	tarDestination := opts.Destination
+	tarDestination = opts.Destination
 	if len(tarDestination) == 0 {
 		tarDestination = getDestination(imageMetadata)
 	}
@@ -374,31 +377,43 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		cmd = []string{"/bin/sh", "-c", fmt.Sprintf("tar -C %s -xf - && %s",
 			tarDestination, filepath.Join(commandBaseDir, string(opts.Command)))}
 	}
-	config := docker.Config{
-		Image: image,
-		Cmd:   cmd,
+	config.Cmd = cmd
+	return config, tarDestination
+}
+
+// this funtion simply abstracts out the running of the newly produced image when the --run=true option is provided
+func runContainerDockerRun(container *docker.Container, d *stiDocker, image string) {
+	cont, icerr := d.client.InspectContainer(container.ID)
+	liveports := "\n\nPort Bindings:  "
+	if icerr == nil {
+		//Ports is of the follwing type:  map[docker.Port][]docker.PortBinding
+		for port, bindings := range cont.NetworkSettings.Ports {
+			liveports = liveports + "\n  Container Port:  " + port.Port()
+			liveports = liveports + "\n        Protocol:  " + port.Proto()
+			liveports = liveports + "\n        Public Host / Port Mappings:"
+			for _, binding := range bindings {
+				liveports = liveports + "\n            IP: " + binding.HostIP + " Port: " + binding.HostPort
+			}
+		}
+		liveports = liveports + "\n"
 	}
 
-	if opts.Env != nil {
-		config.Env = opts.Env
-	}
-	if opts.Stdin != nil {
-		config.OpenStdin = true
-		config.StdinOnce = true
-	}
-	if opts.Stdout != nil {
-		config.AttachStdout = true
-	}
+	glog.Infof("\n\n\n\n\nThe image %s has been started in container %s as a result of the --run=true option.  The container's stdout/stderr will be redirected to this command's glog output to help you validate its behavior.  You can also inspect the container with docker commands if you like.  If the container is set up to stay running, you will have to Ctrl-C to exit this command, which should also stop the container %s.  This particular invocation attempts to run with the port mappings %+v \n\n\n\n\n", image, container.ID, container.ID, liveports)
 
-	glog.V(2).Infof("Creating container using config: %+v", config)
-	container, err := d.client.CreateContainer(docker.CreateContainerOptions{Name: "", Config: &config})
-	if err != nil {
-		return err
-	}
-	defer d.RemoveContainer(container.ID)
+	signalChan := make(chan os.Signal, 1)
+	cleanupDone := make(chan bool)
+	signal.Notify(signalChan, os.Interrupt)
+	go func() {
+		for signal := range signalChan {
+			glog.V(2).Infof("\nReceived signal '%s', stopping services...\n", signal)
+			cleanupDone <- true
+		}
+	}()
+	<-cleanupDone
+}
 
-	glog.V(2).Infof("Attaching to container")
-	attached := make(chan struct{})
+// this funtion simply abstracts out the first phase of attaching to the container that was originally in line with the RunContainer() method
+func runContainerAttach(attached chan struct{}, container *docker.Container, opts RunContainerOptions, d *stiDocker) *sync.WaitGroup {
 	attachOpts := docker.AttachToContainerOptions{
 		Container: container.ID,
 		Success:   attached,
@@ -407,11 +422,11 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	if opts.Stdin != nil {
 		attachOpts.InputStream = opts.Stdin
 		attachOpts.Stdin = true
-	} else if opts.Stdout != nil {
+	}
+	if opts.Stdout != nil {
 		attachOpts.OutputStream = opts.Stdout
 		attachOpts.Stdout = true
 	}
-
 	if opts.Stderr != nil {
 		attachOpts.ErrorStream = opts.Stderr
 		attachOpts.Stderr = true
@@ -425,34 +440,76 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 			glog.Errorf("Unable to attach container with %v", attachOpts)
 		}
 	}()
-	attached <- <-attached
+	return &wg
+}
 
-	// If attaching both stdin and stdout or stderr, attach stdout and stderr in
-	// a second goroutine
-	// TODO remove this goroutine when docker 1.4 will be in broad usage,
-	// see: https://github.com/docker/docker/commit/f936a10d8048f471d115978472006e1b58a7c67d
-	if opts.Stdin != nil && opts.Stdout != nil {
-		attached2 := make(chan struct{})
-		attachOpts2 := docker.AttachToContainerOptions{
-			Container:    container.ID,
-			Success:      attached2,
-			Stream:       true,
-			OutputStream: opts.Stdout,
-			Stdout:       true,
-		}
-		if opts.Stderr != nil {
-			attachOpts2.Stderr = true
-			attachOpts2.ErrorStream = opts.Stderr
-		}
-		go func() {
-			wg.Add(1)
-			defer wg.Done()
-			if err := d.client.AttachToContainer(attachOpts2); err != nil {
-				glog.Errorf("Unable to attach container with %v", attachOpts2)
-			}
-		}()
-		attached2 <- <-attached2
+// this funtion simply abstracts out the waiting on the container hosting the builder function that was originally in line with the RunContainer() method
+func runContainerWait(wg *sync.WaitGroup, d *stiDocker, container *docker.Container) error {
+	glog.V(2).Infof("Waiting for container")
+	exitCode, err := d.client.WaitContainer(container.ID)
+	glog.V(2).Infof("Container wait returns with %d and %v\n", exitCode, err)
+
+	wg.Wait()
+	if err != nil {
+		return err
 	}
+
+	glog.V(2).Infof("Container exited")
+	if exitCode != 0 {
+		return errors.NewContainerError(container.Name, exitCode, "")
+	}
+	return nil
+}
+
+// RunContainer creates and starts a container using the image specified in the options with the ability
+// to stream input or output
+func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
+	// get info about the specified image
+	image := getImageName(opts.Image)
+	var imageMetadata *docker.Image
+	if opts.PullImage {
+		imageMetadata, err = d.CheckAndPullImage(image)
+	} else {
+		imageMetadata, err = d.client.InspectImage(image)
+	}
+	if err != nil {
+		glog.Errorf("Unable to get image metadata for %s: %v", image, err)
+		return err
+	}
+
+	config := docker.Config{
+		Image: image,
+	}
+
+	config, tarDestination := runContainerTar(opts, config, imageMetadata)
+
+	if opts.Env != nil {
+		config.Env = opts.Env
+	}
+	if opts.Stdin != nil {
+		config.OpenStdin = true
+		config.StdinOnce = true
+	}
+	if opts.Stdout != nil {
+		config.AttachStdout = true
+	}
+
+	glog.V(2).Infof("Creating container using config: %+v", config)
+	ccopts := docker.CreateContainerOptions{Name: "", Config: &config}
+	if opts.TargetImage {
+		ccopts.HostConfig = &docker.HostConfig{PublishAllPorts: true}
+	}
+	container, err := d.client.CreateContainer(ccopts)
+	if err != nil {
+		return err
+	}
+	defer d.RemoveContainer(container.ID)
+
+	glog.V(2).Infof("Attaching to container")
+	// creating / piping the channels in runContainerAttach lead to unintended hangs
+	attached := make(chan struct{})
+	wg := runContainerAttach(attached, container, opts, d)
+	attached <- <-attached
 
 	glog.V(2).Infof("Starting container")
 	if err = d.client.StartContainer(container.ID, nil); err != nil {
@@ -464,17 +521,17 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 		}
 	}
 
-	glog.V(2).Infof("Waiting for container")
-	exitCode, err := d.client.WaitContainer(container.ID)
-	wg.Wait()
-	if err != nil {
-		return err
-	}
-	glog.V(2).Infof("Container exited")
+	if opts.TargetImage {
 
-	if exitCode != 0 {
-		return errors.NewContainerError(container.Name, exitCode, "")
+		runContainerDockerRun(container, d, image)
+
+	} else {
+		werr := runContainerWait(wg, d, container)
+		if werr != nil {
+			return werr
+		}
 	}
+
 	if opts.PostExec != nil {
 		glog.V(2).Infof("Invoking postExecution function")
 		if err = opts.PostExec.PostExecute(container.ID, tarDestination); err != nil {

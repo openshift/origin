@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 var mockBuildStrategy = api.BuildStrategy{

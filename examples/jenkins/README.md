@@ -59,7 +59,7 @@ Steps
     
     Note the ip and port of the Jenkins service reported by this command, you will need it later.
 
-    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you will want to use a [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) instead.
+    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) setup.  
     
 5. Create the sample application configuration
 
@@ -84,3 +84,9 @@ Steps
 12. Confirm both the test and production services are available by browsing to both services:
 
         $ oc get services -n test | grep frontend
+
+Troubleshooting
+-----
+
+If you run into difficulties running OpenShift or getting the `OpenShift Sample` job to complete successfully, start by reading through the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
+

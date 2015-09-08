@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -20,7 +20,7 @@ func init() {
 	admission.RegisterPlugin("BuildByStrategy", func(c kclient.Interface, config io.Reader) (admission.Interface, error) {
 		osClient, ok := c.(client.Interface)
 		if !ok {
-			return nil, errors.New("client is not an OpenShift client")
+			return nil, errors.New("client is not an Origin client")
 		}
 		return NewBuildByStrategy(osClient), nil
 	})
@@ -49,15 +49,16 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	if resource := attr.GetResource(); resource != buildsResource && resource != buildConfigsResource {
 		return nil
 	}
-	var err error
 	switch obj := attr.GetObject().(type) {
 	case *buildapi.Build:
-		err = a.checkBuildAuthorization(obj, attr)
+		return a.checkBuildAuthorization(obj, attr)
 	case *buildapi.BuildConfig:
-		err = a.checkBuildConfigAuthorization(obj, attr)
+		return a.checkBuildConfigAuthorization(obj, attr)
+	case *buildapi.BuildRequest:
+		return a.checkBuildRequestAuthorization(obj, attr)
+	default:
+		return admission.NewForbidden(attr, fmt.Errorf("Unrecognized request object %#v", obj))
 	}
-
-	return err
 }
 
 func resourceForStrategyType(strategyType buildapi.BuildStrategyType) string {
@@ -83,32 +84,55 @@ func resourceName(objectMeta kapi.ObjectMeta) string {
 
 func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr admission.Attributes) error {
 	strategyType := build.Spec.Strategy.Type
-	subjectAccessReview := &authorizationapi.SubjectAccessReview{
-		Verb:         "create",
-		Resource:     resourceForStrategyType(strategyType),
-		User:         attr.GetUserInfo().GetName(),
-		Groups:       util.NewStringSet(attr.GetUserInfo().GetGroups()...),
-		Content:      runtime.EmbeddedObject{Object: build},
-		ResourceName: resourceName(build.ObjectMeta),
+	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
+		Action: authorizationapi.AuthorizationAttributes{
+			Verb:         "create",
+			Resource:     resourceForStrategyType(strategyType),
+			Content:      runtime.EmbeddedObject{Object: build},
+			ResourceName: resourceName(build.ObjectMeta),
+		},
+		User:   attr.GetUserInfo().GetName(),
+		Groups: util.NewStringSet(attr.GetUserInfo().GetGroups()...),
 	}
 	return a.checkAccess(strategyType, subjectAccessReview, attr)
 }
 
 func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.BuildConfig, attr admission.Attributes) error {
 	strategyType := buildConfig.Spec.Strategy.Type
-	subjectAccessReview := &authorizationapi.SubjectAccessReview{
-		Verb:         "create",
-		Resource:     resourceForStrategyType(strategyType),
-		User:         attr.GetUserInfo().GetName(),
-		Groups:       util.NewStringSet(attr.GetUserInfo().GetGroups()...),
-		Content:      runtime.EmbeddedObject{Object: buildConfig},
-		ResourceName: resourceName(buildConfig.ObjectMeta),
+	subjectAccessReview := &authorizationapi.LocalSubjectAccessReview{
+		Action: authorizationapi.AuthorizationAttributes{
+			Verb:         "create",
+			Resource:     resourceForStrategyType(strategyType),
+			Content:      runtime.EmbeddedObject{Object: buildConfig},
+			ResourceName: resourceName(buildConfig.ObjectMeta),
+		},
+		User:   attr.GetUserInfo().GetName(),
+		Groups: util.NewStringSet(attr.GetUserInfo().GetGroups()...),
 	}
 	return a.checkAccess(strategyType, subjectAccessReview, attr)
 }
 
-func (a *buildByStrategy) checkAccess(strategyType buildapi.BuildStrategyType, subjectAccessReview *authorizationapi.SubjectAccessReview, attr admission.Attributes) error {
-	resp, err := a.client.SubjectAccessReviews(attr.GetNamespace()).Create(subjectAccessReview)
+func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
+	switch attr.GetResource() {
+	case buildsResource:
+		build, err := a.client.Builds(attr.GetNamespace()).Get(req.Name)
+		if err != nil {
+			return err
+		}
+		return a.checkBuildAuthorization(build, attr)
+	case buildConfigsResource:
+		build, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name)
+		if err != nil {
+			return err
+		}
+		return a.checkBuildConfigAuthorization(build, attr)
+	default:
+		return admission.NewForbidden(attr, fmt.Errorf("Unknown resource type %s for BuildRequest", attr.GetResource()))
+	}
+}
+
+func (a *buildByStrategy) checkAccess(strategyType buildapi.BuildStrategyType, subjectAccessReview *authorizationapi.LocalSubjectAccessReview, attr admission.Attributes) error {
+	resp, err := a.client.LocalSubjectAccessReviews(attr.GetNamespace()).Create(subjectAccessReview)
 	if err != nil {
 		return err
 	}

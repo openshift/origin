@@ -11,29 +11,50 @@
         </div>
       </div>
       <div ng-repeat="service in services" class="tile">
-        <h3 id="service-{{service.metadata.name}}">{{service.metadata.name}}</h3>
-        <div>Created: <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></div>
-        <div>IP:
-          <span ng-if="service.spec.portalIP == 'None'"><em>none</em></span>
-          <span ng-if="service.spec.portalIP != 'None'">{{service.spec.portalIP}}</span>
-        </div>
-        <div>Ports:
-          <span ng-if="!service.spec.ports.length"><em>none</em></span>
-          <ul ng-if="service.spec.ports.length">
-            <li ng-repeat="portMapping in service.spec.ports | orderBy:'port'">
-              {{portMapping.port}} &#8594; {{portMapping.targetPort}} ({{portMapping.protocol}})
-            </li>
-          </ul>
-        </div>
+        <h3 id="service-{{service.metadata.name}}">
+          {{service.metadata.name}}
+          <span class="tile-timestamp">Created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></span>
+        </h3>
         <div>Selectors: <span ng-if="!service.spec.selector"><em>none</em></span>
             <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector"> {{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>
         </div>
+        <div>Type: {{service.spec.type}}</div>
         <div>Routes: <span ng-if="(routesByService[service.metadata.name] | hashSize) == 0"><em>none</em></span>
             <span ng-repeat="(routeName, route) in routesByService[service.metadata.name]">
-                <span ng-if="route | isWebRoute"><a href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
+                <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
                 <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
                 <span ng-show="!$last">, </span>
             </span>
+        </div>
+        <div class="table-responsive">
+          <table ng-if="service.spec.ports.length" style="max-width: 650px;">
+            <thead>
+              <tr>
+                <th>Node Port</th>
+                <th role="presentation"></th>
+                <th>
+                  Service Port
+                  <!-- Show cluster IP in column header instead of table body at small screen widths to save space. -->
+                  <span class="visible-xs">({{service.spec.clusterIP}})</span>
+                </th>
+                <th role="presentation"></th>
+                <th>Target Port</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="portMapping in service.spec.ports | orderBy:'port'">
+                <td>
+                  <span ng-if="portMapping.nodePort">{{portMapping.nodePort}}</span>
+                  <span ng-if="!portMapping.nodePort" class="text-muted">none</span>
+                </td>
+                <td role="presentation" class="text-muted">&#8594;</td>
+                <td><span ng-if="service.spec.clusterIP && service.spec.clusterIP !== 'None'">
+                    <span class="hidden-xs">{{service.spec.clusterIP}}:</span></span>{{portMapping.port}}</td>
+                <td role="presentation" class="text-muted">&#8594;</td>
+                <td>{{portMapping.targetPort}}&nbsp;({{portMapping.protocol}})</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

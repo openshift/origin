@@ -1,9 +1,9 @@
 package subjectaccessreview
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	api "github.com/openshift/origin/pkg/authorization/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 type Registry interface {

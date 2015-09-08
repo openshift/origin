@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func podTemplateA() *kapi.PodTemplateSpec {

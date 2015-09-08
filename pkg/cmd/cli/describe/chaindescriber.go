@@ -2,16 +2,17 @@ package describe
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/encoding/dot"
+	"github.com/gonum/graph/internal"
 	"github.com/gonum/graph/path"
-	"github.com/gonum/graph/traverse"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kutil "k8s.io/kubernetes/pkg/util"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
@@ -78,7 +79,7 @@ func (d *ChainDescriber) MakeGraph() (osgraph.Graph, error) {
 // image stream tag (name:tag) in namespace. Namespace is needed here
 // because image stream tags with the same name can be found across
 // different namespaces.
-func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag) (string, error) {
+func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag, includeInputImages bool) (string, error) {
 	g, err := d.MakeGraph()
 	if err != nil {
 		return "", err
@@ -90,8 +91,13 @@ func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag) (string, error) 
 		return "", NotFoundErr(fmt.Sprintf("%q", ist.Name))
 	}
 
+	buildInputEdgeKinds := []string{buildedges.BuildTriggerImageEdgeKind}
+	if includeInputImages {
+		buildInputEdgeKinds = append(buildInputEdgeKinds, buildedges.BuildInputImageEdgeKind)
+	}
+
 	// Partition down to the subgraph containing the ist of interest
-	partitioned := partition(g, istNode)
+	partitioned := partition(g, istNode, buildInputEdgeKinds)
 
 	switch strings.ToLower(d.outputFormat) {
 	case "dot":
@@ -108,11 +114,14 @@ func (d *ChainDescriber) Describe(ist *imageapi.ImageStreamTag) (string, error) 
 }
 
 // partition the graph down to a subgraph starting from the given root
-func partition(g osgraph.Graph, root graph.Node) osgraph.Graph {
+func partition(g osgraph.Graph, root graph.Node, buildInputEdgeKinds []string) osgraph.Graph {
 	// Filter out all but BuildConfig and ImageStreamTag nodes
 	nodeFn := osgraph.NodesOfKind(buildgraph.BuildConfigNodeKind, imagegraph.ImageStreamTagNodeKind)
 	// Filter out all but BuildInputImage and BuildOutput edges
-	edgeFn := osgraph.EdgesOfKind(buildedges.BuildInputImageEdgeKind, buildedges.BuildOutputEdgeKind)
+	edgeKinds := []string{}
+	edgeKinds = append(edgeKinds, buildInputEdgeKinds...)
+	edgeKinds = append(edgeKinds, buildedges.BuildOutputEdgeKind)
+	edgeFn := osgraph.EdgesOfKind(edgeKinds...)
 	sub := g.Subgraph(nodeFn, edgeFn)
 
 	// Filter out inbound edges to the ist of interest
@@ -149,7 +158,7 @@ func (d *ChainDescriber) humanReadableOutput(g osgraph.Graph, root graph.Node) s
 	}
 	out := ""
 
-	dfs := &traverse.DepthFirst{
+	dfs := &DepthFirst{
 		Visit: func(u, v graph.Node) {
 			depth[v] = depth[u] + 1
 		},
@@ -188,4 +197,53 @@ func outputHelper(info, namespace string, singleNamespace bool) string {
 		return info
 	}
 	return fmt.Sprintf("<%s %s>", namespace, info)
+}
+
+// DepthFirst implements stateful depth-first graph traversal.
+// Modifies behavior of visitor.DepthFirst to allow nodes to be visited multiple
+// times as long as they're not in the current stack
+type DepthFirst struct {
+	EdgeFilter func(graph.Edge) bool
+	Visit      func(u, v graph.Node)
+	stack      internal.NodeStack
+}
+
+// Walk performs a depth-first traversal of the graph g starting from the given node
+func (d *DepthFirst) Walk(g graph.Graph, from graph.Node, until func(graph.Node) bool) graph.Node {
+	return d.visit(g, from, until)
+}
+
+func (d *DepthFirst) visit(g graph.Graph, t graph.Node, until func(graph.Node) bool) graph.Node {
+	if until != nil && until(t) {
+		return t
+	}
+	d.stack.Push(t)
+	children := osgraph.ByID(g.From(t))
+	sort.Sort(children)
+	for _, n := range children {
+		if d.EdgeFilter != nil && !d.EdgeFilter(g.Edge(t, n)) {
+			continue
+		}
+		if d.visited(n.ID()) {
+			continue
+		}
+		if d.Visit != nil {
+			d.Visit(t, n)
+		}
+		result := d.visit(g, n, until)
+		if result != nil {
+			return result
+		}
+	}
+	d.stack.Pop()
+	return nil
+}
+
+func (d *DepthFirst) visited(id int) bool {
+	for _, n := range d.stack {
+		if n.ID() == id {
+			return true
+		}
+	}
+	return false
 }

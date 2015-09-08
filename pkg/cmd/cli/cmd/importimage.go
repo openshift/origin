@@ -1,14 +1,17 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
+	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/fields"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
+
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -39,6 +42,8 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 			cmdutil.CheckErr(err)
 		},
 	}
+	cmd.Flags().String("from", "", "A Docker image repository to import images from")
+	cmd.Flags().Bool("confirm", false, "If true, allow the image stream import location to be set or changed")
 
 	return cmd
 }
@@ -46,7 +51,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *co
 // RunImportImage contains all the necessary functionality for the OpenShift cli import-image command.
 func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
 	if len(args) == 0 || len(args[0]) == 0 {
-		return cmdutil.UsageError(cmd, "you must specify the name of an image stream.")
+		return cmdutil.UsageError(cmd, "you must specify the name of an image stream")
 	}
 
 	streamName := args[0]
@@ -60,38 +65,71 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 		return err
 	}
 
+	from := cmdutil.GetFlagString(cmd, "from")
+	confirm := cmdutil.GetFlagBool(cmd, "confirm")
+
 	imageStreamClient := osClient.ImageStreams(namespace)
 	stream, err := imageStreamClient.Get(streamName)
 	if err != nil {
-		return err
+		if len(from) == 0 || !errors.IsNotFound(err) {
+			return err
+		}
+		if !confirm {
+			return fmt.Errorf("the image stream does not exist, pass --confirm to create")
+		}
+		stream = &imageapi.ImageStream{
+			ObjectMeta: kapi.ObjectMeta{Name: streamName},
+			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
+		}
+	} else {
+		if len(stream.Spec.DockerImageRepository) == 0 {
+			if len(from) == 0 {
+				return fmt.Errorf("only image streams with spec.dockerImageRepository set may have images imported")
+			}
+			if !confirm {
+				return fmt.Errorf("the image stream already has an import repository set, pass --confirm to update")
+			}
+			stream.Spec.DockerImageRepository = from
+		} else {
+			if len(from) != 0 {
+				if from != stream.Spec.DockerImageRepository {
+					if !confirm {
+						return fmt.Errorf("the image stream has a different import spec %q, pass --confirm to update", stream.Spec.DockerImageRepository)
+					}
+					stream.Spec.DockerImageRepository = from
+				}
+			}
+		}
 	}
 
-	if len(stream.Spec.DockerImageRepository) == 0 {
-		return errors.New("only image streams with spec.dockerImageRepository set may have images imported")
+	if stream.Annotations != nil {
+		delete(stream.Annotations, imageapi.DockerImageRepositoryCheckAnnotation)
 	}
 
-	if stream.Annotations == nil {
-		stream.Annotations = make(map[string]string)
+	if stream.CreationTimestamp.IsZero() {
+		stream, err = imageStreamClient.Create(stream)
+	} else {
+		stream, err = imageStreamClient.Update(stream)
 	}
-	stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation] = ""
-
-	updatedStream, err := imageStreamClient.Update(stream)
 	if err != nil {
 		return err
 	}
 
-	resourceVersion := updatedStream.ResourceVersion
+	resourceVersion := stream.ResourceVersion
 
 	fmt.Fprintln(cmd.Out(), "Waiting for the import to complete, CTRL+C to stop waiting.")
 
-	updatedStream, err = waitForImport(imageStreamClient, stream.Name, resourceVersion)
+	updatedStream, err := waitForImport(imageStreamClient, stream.Name, resourceVersion)
 	if err != nil {
+		if _, ok := err.(importError); ok {
+			return err
+		}
 		return fmt.Errorf("unable to determine if the import completed successfully - please run 'oc describe -n %s imagestream/%s' to see if the tags were updated as expected: %v", stream.Namespace, stream.Name, err)
 	}
 
-	fmt.Fprintln(cmd.Out(), "The import completed successfully.\n")
+	fmt.Fprint(cmd.Out(), "The import completed successfully.", "\n\n")
 
-	d := describe.ImageStreamDescriber{osClient}
+	d := describe.ImageStreamDescriber{Interface: osClient}
 	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name)
 	if err != nil {
 		return err
@@ -101,8 +139,13 @@ func RunImportImage(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 	return nil
 }
 
-func hasImportAnnotation(stream *imageapi.ImageStream) bool {
-	return stream.Annotations != nil && len(stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]) != 0
+// TODO: move to image/api as a helper
+type importError struct {
+	annotation string
+}
+
+func (e importError) Error() string {
+	return fmt.Sprintf("unable to import image: %s", e.annotation)
 }
 
 func waitForImport(imageStreamClient client.ImageStreamInterface, name, resourceVersion string) (*imageapi.ImageStream, error) {
@@ -116,7 +159,7 @@ func waitForImport(imageStreamClient client.ImageStreamInterface, name, resource
 		select {
 		case event, ok := <-streamWatch.ResultChan():
 			if !ok {
-				return nil, errors.New("image stream watch ended prematurely")
+				return nil, fmt.Errorf("image stream watch ended prematurely")
 			}
 
 			switch event.Type {
@@ -125,14 +168,20 @@ func waitForImport(imageStreamClient client.ImageStreamInterface, name, resource
 				if !ok {
 					continue
 				}
+				annotation, ok := s.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]
+				if !ok {
+					continue
+				}
 
-				if hasImportAnnotation(s) {
+				if _, err := time.Parse(time.RFC3339, annotation); err == nil {
 					return s, nil
 				}
+				return nil, importError{annotation}
+
 			case watch.Deleted:
-				return nil, errors.New("the image stream was deleted")
+				return nil, fmt.Errorf("the image stream was deleted")
 			case watch.Error:
-				return nil, errors.New("error watching image stream")
+				return nil, fmt.Errorf("error watching image stream")
 			}
 		}
 	}

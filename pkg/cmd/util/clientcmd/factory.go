@@ -4,20 +4,21 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
+	kclient "k8s.io/kubernetes/pkg/client"
+	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	"k8s.io/kubernetes/pkg/kubectl"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deploygen "github.com/openshift/origin/pkg/deploy/generator"
 	deployreaper "github.com/openshift/origin/pkg/deploy/reaper"
 	deployscaler "github.com/openshift/origin/pkg/deploy/scaler"
 	routegen "github.com/openshift/origin/pkg/route/generator"
@@ -58,7 +59,9 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	}
 
 	generators := map[string]kubectl.Generator{
-		"route/v1": routegen.RouteGenerator{},
+		"route/v1":          routegen.RouteGenerator{},
+		"run/v1":            deploygen.BasicDeploymentConfigController{},
+		"run-controller/v1": kubectl.BasicReplicationController{},
 	}
 
 	w := &Factory{

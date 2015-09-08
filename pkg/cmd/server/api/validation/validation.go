@@ -1,14 +1,17 @@
 package validation
 
 import (
+	"fmt"
 	"net"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/spf13/pflag"
 
-	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -55,6 +58,12 @@ func ValidateServingInfo(info api.ServingInfo) fielderrors.ValidationErrorList {
 	allErrs = append(allErrs, ValidateHostPort(info.BindAddress, "bindAddress")...)
 	allErrs = append(allErrs, ValidateCertInfo(info.ServerCert, false)...)
 
+	switch info.BindNetwork {
+	case "tcp", "tcp4", "tcp6":
+	default:
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("bindNetwork", info.BindNetwork, "must be 'tcp', 'tcp4', or 'tcp6'"))
+	}
+
 	if len(info.ServerCert.CertFile) > 0 {
 		if len(info.ClientCA) > 0 {
 			allErrs = append(allErrs, ValidateFile(info.ClientCA, "clientCA")...)
@@ -77,6 +86,22 @@ func ValidateHTTPServingInfo(info api.HTTPServingInfo) fielderrors.ValidationErr
 
 	if info.RequestTimeoutSeconds < -1 {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("requestTimeoutSeconds", info.RequestTimeoutSeconds, "must be -1 (no timeout), 0 (default timeout), or greater"))
+	}
+
+	return allErrs
+}
+
+func ValidateDisabledFeatures(disabledFeatures []string, field string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	known := util.NewStringSet()
+	for _, feature := range api.KnownOpenShiftFeatures {
+		known.Insert(strings.ToLower(feature))
+	}
+	for i, feature := range disabledFeatures {
+		if !known.Has(strings.ToLower(feature)) {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("%s[%d]", field, i), disabledFeatures[i], fmt.Sprintf("not one of valid features: %s", strings.Join(api.KnownOpenShiftFeatures, ", "))))
+		}
 	}
 
 	return allErrs
@@ -179,6 +204,22 @@ func ValidateFile(path string, field string) fielderrors.ValidationErrorList {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired(field))
 	} else if _, err := os.Stat(path); err != nil {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, path, "could not read file"))
+	}
+
+	return allErrs
+}
+
+func ValidateDir(path string, field string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if len(path) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired(field))
+	} else {
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, path, "could not read info"))
+		} else if !fileInfo.IsDir() {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(field, path, "not a directory"))
+		}
 	}
 
 	return allErrs

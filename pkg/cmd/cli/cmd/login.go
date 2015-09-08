@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -20,9 +20,9 @@ import (
 
 const (
 	loginLong = `
-Log in to an OpenShift server and save login for subsequent use
+Log in to your server and save login for subsequent use
 
-First-time users of the OpenShift client should run this command to connect to a server,
+First-time users of the client should run this command to connect to a server,
 establish an authenticated session, and save connection to the configuration file. The
 default configuration will be saved to your home directory under
 ".kube/config".
@@ -50,7 +50,7 @@ func NewCmdLogin(fullName string, f *osclientcmd.Factory, reader io.Reader, out 
 
 	cmds := &cobra.Command{
 		Use:     "login [URL]",
-		Short:   "Log in to an OpenShift server",
+		Short:   "Log in to a server",
 		Long:    loginLong,
 		Example: fmt.Sprintf(loginExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -184,7 +184,7 @@ func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
 	}
 
 	if newFileCreated {
-		fmt.Fprintln(options.Out, "Welcome to OpenShift! See 'oc help' to get started.")
+		fmt.Fprintln(options.Out, "Welcome! See 'oc help' to get started.")
 	}
 	return nil
 }

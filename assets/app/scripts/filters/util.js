@@ -227,4 +227,26 @@ angular.module('openshiftConsole')
 
       return itemsArray;
     };
+  })
+  // Remove "sha256:" from the start of an identifier if present.
+  .filter("stripSHAPrefix", function() {
+    return function(id) {
+      if (!id) {
+        return id;
+      }
+
+      return id.replace(/^sha256:/, "");
+    };
+  })
+  // Like limitTo, except if the limit is undefined, return all items instead of none.
+  // TODO: Remove when we upgrade Angular since you can pass undefined to limitTo in newer versions.
+  //       See https://github.com/angular/angular.js/pull/10510
+  .filter("limitToOrAll", function(limitToFilter) {
+    return function(input, limit) {
+      if (isNaN(limit)) {
+        return input;
+      }
+
+      return limitToFilter(input, limit);
+    };
   });

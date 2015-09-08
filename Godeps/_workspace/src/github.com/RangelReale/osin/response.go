@@ -28,6 +28,7 @@ type Response struct {
 	Output             ResponseData
 	Headers            http.Header
 	IsError            bool
+	ErrorId            string
 	InternalError      error
 	RedirectInFragment bool
 
@@ -75,6 +76,7 @@ func (r *Response) SetErrorUri(id string, description string, uri string, state 
 
 	// set error parameters
 	r.IsError = true
+	r.ErrorId = id
 	r.StatusCode = r.ErrorStatusCode
 	if r.StatusCode != 200 {
 		r.StatusText = description

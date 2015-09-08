@@ -1,6 +1,12 @@
 package builder
 
 import (
+	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
+
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/build/builder/cmd"
@@ -25,9 +31,21 @@ It expects to be run inside of a container.`
 func NewCommandSTIBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "Run an OpenShift Source-to-Images build",
+		Short: "Run a Source-to-Images build",
 		Long:  stiBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
+			go func() {
+				for {
+					sigs := make(chan os.Signal, 1)
+					signal.Notify(sigs, syscall.SIGQUIT)
+					buf := make([]byte, 1<<20)
+					for {
+						<-sigs
+						runtime.Stack(buf, true)
+						glog.Infof("=== received SIGQUIT ===\n*** goroutine dump...\n%s\n*** end\n", buf)
+					}
+				}
+			}()
 			cmd.RunSTIBuild()
 		},
 	}
@@ -40,7 +58,7 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 func NewCommandDockerBuilder(name string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
-		Short: "Run an OpenShift Docker build",
+		Short: "Run a Docker build",
 		Long:  dockerBuilderLong,
 		Run: func(c *cobra.Command, args []string) {
 			cmd.RunDockerBuild()

@@ -2,7 +2,7 @@
 
 angular.module("openshiftConsole")
   /**
-   * Provides a wigit for entering route information
+   * Provides a widget for entering route information
    * 
    * model:     The model for the input.  The model will either use or add the
    *            following keys:

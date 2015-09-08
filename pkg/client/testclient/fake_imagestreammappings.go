@@ -1,6 +1,8 @@
 package testclient
 
 import (
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -15,10 +17,7 @@ type FakeImageStreamMappings struct {
 
 var _ client.ImageStreamMappingInterface = &FakeImageStreamMappings{}
 
-func (c *FakeImageStreamMappings) Create(mapping *imageapi.ImageStreamMapping) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "create-imagestream-mapping"})
-	return nil
+func (c *FakeImageStreamMappings) Create(inObj *imageapi.ImageStreamMapping) error {
+	_, err := c.Fake.Invokes(ktestclient.NewCreateAction("imagestreammappings", c.Namespace, inObj), inObj)
+	return err
 }

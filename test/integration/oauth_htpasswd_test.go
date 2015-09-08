@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -33,7 +33,7 @@ func TestHTPasswd(t *testing.T) {
 		UseAsChallenger: true,
 		UseAsLogin:      true,
 		Provider: runtime.EmbeddedObject{
-			&configapi.HTPasswdPasswordIdentityProvider{
+			Object: &configapi.HTPasswdPasswordIdentityProvider{
 				File: htpasswdFile.Name(),
 			},
 		},

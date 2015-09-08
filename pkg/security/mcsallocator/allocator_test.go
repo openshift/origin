@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/registry/service/allocator"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/security/mcs"
 )

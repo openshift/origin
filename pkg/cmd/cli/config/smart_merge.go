@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	"github.com/GoogleCloudPlatform/kubernetes/third_party/golang/netutil"
+	"k8s.io/kubernetes/pkg/client"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	"k8s.io/kubernetes/third_party/golang/netutil"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -115,7 +115,7 @@ func CreateConfig(namespace string, clientCfg *client.Config) (*clientcmdapi.Con
 	if len(credentials.ClientKey) == 0 {
 		credentials.ClientKeyData = clientCfg.TLSClientConfig.KeyData
 	}
-	config.AuthInfos[userNick] = *credentials
+	config.AuthInfos[userNick] = credentials
 
 	cluster := clientcmdapi.NewCluster()
 	cluster.Server = clientCfg.Host
@@ -125,13 +125,13 @@ func CreateConfig(namespace string, clientCfg *client.Config) (*clientcmdapi.Con
 	}
 	cluster.InsecureSkipTLSVerify = clientCfg.Insecure
 	cluster.APIVersion = clientCfg.Version
-	config.Clusters[clusterNick] = *cluster
+	config.Clusters[clusterNick] = cluster
 
 	context := clientcmdapi.NewContext()
 	context.Cluster = clusterNick
 	context.AuthInfo = userNick
 	context.Namespace = namespace
-	config.Contexts[contextNick] = *context
+	config.Contexts[contextNick] = context
 	config.CurrentContext = contextNick
 
 	return config, nil
@@ -165,7 +165,7 @@ func MergeConfig(startingConfig, addition clientcmdapi.Config) (*clientcmdapi.Co
 		}
 
 		requestedContextNamesToActualContextNames[requestedKey] = requestedKey
-		ret.Contexts[requestedKey] = *actualContext
+		ret.Contexts[requestedKey] = actualContext
 	}
 
 	if len(addition.CurrentContext) > 0 {

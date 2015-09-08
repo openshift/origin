@@ -110,6 +110,9 @@
             "generic": {
               "secret": "secret101"
             }
+          },
+          {
+            "type": "ConfigChange"
           }
         ],
         "source": {

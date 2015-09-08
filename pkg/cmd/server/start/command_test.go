@@ -122,11 +122,8 @@ func TestCommandBindingPortalNet(t *testing.T) {
 	valueToSet := "192.168.0.0/16"
 	actualCfg := executeMasterCommand([]string{"--portal-net=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
-	expectedArgs.PortalNet.Set(valueToSet)
-
-	if expectedArgs.PortalNet.String() != actualCfg.PortalNet.String() {
-		t.Errorf("expected %v, got %v", expectedArgs.PortalNet.String(), actualCfg.PortalNet.String())
+	if valueToSet != actualCfg.NetworkArgs.ServiceNetworkCIDR {
+		t.Errorf("expected %v, got %v", valueToSet, actualCfg.NetworkArgs.ServiceNetworkCIDR)
 	}
 }
 
@@ -220,7 +217,7 @@ func executeMasterCommand(args []string) *MasterArgs {
 		},
 	}
 
-	openshiftStartCommand, cfg := NewCommandStartMaster(os.Stdout)
+	openshiftStartCommand, cfg := NewCommandStartMaster("openshift", os.Stdout)
 	root.AddCommand(openshiftStartCommand)
 	root.SetArgs(argsToUse)
 	root.Execute()
@@ -271,5 +268,5 @@ func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.M
 	if nodeCfg == nil && nodeErr == nil {
 		nodeErr = errors.New("did not find node config")
 	}
-	return cfg.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
+	return cfg.MasterOptions.MasterArgs, masterCfg, masterErr, cfg.NodeArgs, nodeCfg, nodeErr
 }

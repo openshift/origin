@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/GoogleCloudPlatform/kubernetes/cmd/kube-proxy/app"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/cmd/kube-proxy/app"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 const proxyLong = `

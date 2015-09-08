@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/latest"
 )
 
 // CreateSampleImageStream creates an ImageStream in given namespace

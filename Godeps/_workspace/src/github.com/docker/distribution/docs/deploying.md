@@ -1,10 +1,13 @@
-page_title: Deploying a registry service
-page_description: Explains how to deploy a registry service
+<!--GITHUB
+page_title: Deploying a registry server
+page_description: Explains how to deploy a registry server
 page_keywords: registry, service, images, repository
+IGNORES-->
 
-# Deploying a registry service
 
-This section explains how to deploy a Docker Registry Service either privately
+# Deploying a registry server
+
+This section explains how to deploy a Docker Registry either privately
 for your own company or publicly for other users. For example, your company may
 require a private registry to support your continuous integration (CI) system as
 it builds new releases or test servers. Alternatively, your company may have a
@@ -37,7 +40,7 @@ a local registry.
 	The `run` command automatically pulls a `hello-world` image from Docker's
 	official images.
 
-3. Start a registry service on your localhost.
+3. Start a registry on your localhost.
 
 		$ docker run -p 5000:5000 registry:2.0
 		
@@ -82,7 +85,7 @@ a local registry.
 		511136ea3c5a: Image already exists 
 		Digest: sha256:a1b13bc01783882434593119198938b9b9ef2bd32a0a246f16ac99b01383ef7a
 		
-7. Use the `curl` command and the Docker Registry Service API v2 to list your
+7. Use the `curl` command and the Docker Registry API v2 to list your
    image in the registry:
    
 		$ curl -v -X GET http://localhost:5000/v2/hello-mine/tags/list
@@ -104,7 +107,7 @@ a local registry.
 		* Connection #0 to host localhost left intact
 		
 	You can also get this information by entering the
-	`http://52.10.125.146:5000/v2/hello-mine/tags/list` address in your browser.
+	`http://localhost:5000/v2/hello-mine/tags/list` address in your browser.
 			
 8. Remove all the unused images from your local environment:
 
@@ -205,6 +208,9 @@ storage:
       layerinfo: inmemory
   filesystem:
       rootdirectory: /tmp/registry-dev
+  maintenance:
+		uploadpurging:
+			enabled: false
 http:
   addr: :5000
   secret: asecretforlocaldevelopment
@@ -328,7 +334,7 @@ support.
 	
 2. Run your new image.
 
-		$ docker run -p 5000:5000 registry_local:latest
+		$ docker run -p 5000:5000 secure_registry:latest
 		time="2015-04-12T03:06:18.616502588Z" level=info msg="endpoint local-8082 disabled, skipping" environment=development instance.id=bf33c9dc-2564-406b-97c3-6ee69dc20ec6 service=registry 
 		time="2015-04-12T03:06:18.617012948Z" level=info msg="endpoint local-8083 disabled, skipping" environment=development instance.id=bf33c9dc-2564-406b-97c3-6ee69dc20ec6 service=registry 
 		time="2015-04-12T03:06:18.617190113Z" level=info msg="using inmemory layerinfo cache" environment=development instance.id=bf33c9dc-2564-406b-97c3-6ee69dc20ec6 service=registry 
@@ -542,11 +548,11 @@ procedure. The directory includes an example `compose` configuration.
 
 4. Use `curl` to list the image in the registry.
 
-			$ curl -v -X GET http://localhost:32777/v2/registry1/tags/list
+			$ curl -v -X GET http://localhost:32777/v2/registry_one/tags/list
 			* Hostname was NOT found in DNS cache
 			*   Trying 127.0.0.1...
 			* Connected to localhost (127.0.0.1) port 32777 (#0)
-			> GET /v2/registry1/tags/list HTTP/1.1
+			> GET /v2/registry_one/tags/list HTTP/1.1
 			> User-Agent: curl/7.36.0
 			> Host: localhost:32777
 			> Accept: */*

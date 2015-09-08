@@ -1,11 +1,12 @@
 ## Description
 
 The `openshift/origin-haproxy-router` is an [HAProxy](http://www.haproxy.org/) router that is used as an external to internal
-interface to OpenShift [services](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/services.md).
+interface to OpenShift [services](https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/services.md).
 
-The router is meant to run as a pod.  When running the router you must ensure that the router can expose port 80 on the host (minion)
-in order to forward traffic.  In a deployed environment the router minion should also have external ip addresses
-that can be exposed for DNS based routing.  
+The router is meant to run as a pod.  When running the router you must
+ensure that the router can use ports 80 and 443 on the host (minion) in
+order to forward traffic.  In a deployed environment the router minion should
+also have external ip addresses that can be exposed for DNS based routing.
 
 ## Creating Routes
 
@@ -24,6 +25,19 @@ DNS resolution of host names is external to the OpenShift system.
 Please note, that starting the router in the vagrant environment requires it to be pulled into docker.  This may take some time.
 Once it is pulled it will start and be visible in the `docker ps` list of containers and your pod will be marked as running.
 
+A router requires a service account that has access to a security context constraint which allows host ports.
+To create this service account:
+
+    $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
+
+    # You may either create a new SCC or use an existing SCC.  The following command will
+    # display existing SCCs and if they support host network and host ports.
+    $ oc get scc -t "{{range .items}}{{.metadata.name}}: n={{.allowHostNetwork}},p={{.allowHostPorts}}; {{end}}"
+    privileged: n=true,p=true; restricted: n=false,p=false;
+
+    $ oc edit scc <name>
+    ... add the service account in the form of system:serviceaccount:<namespace>:<name> ...
+
 
 #### Single machine vagrant environment
 
@@ -38,7 +52,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     [vagrant@openshiftdev origin]$ export KUBECONFIG=/data/src/github.com/openshift/origin/openshift.local.config/master/admin.kubeconfig
     [vagrant@openshiftdev origin]$ sudo chmod a+r "$KUBECONFIG"
     [vagrant@openshiftdev origin]$ sudo chmod a+r openshift.local.config/master/openshift-router.kubeconfig
-    [vagrant@openshiftdev origin]$ oadm router --create --credentials="openshift.local.config/master/openshift-router.kubeconfig"
+    [vagrant@openshiftdev origin]$ oadm router --credentials="openshift.local.config/master/openshift-router.kubeconfig" --service-account=router
     [vagrant@openshiftdev origin]$ oc get pods
 
 #### Clustered vagrant environment
@@ -47,7 +61,7 @@ Once it is pulled it will start and be visible in the `docker ps` list of contai
     $ export OPENSHIFT_DEV_CLUSTER=true
     $ vagrant up
     $ vagrant ssh master
-    [vagrant@openshift-master ~]$ oadm router --create --credentials="${KUBECONFIG}"
+    [vagrant@openshift-master ~]$ oadm router --credentials="${KUBECONFIG}" --service-account=router
 
 
 
@@ -57,7 +71,7 @@ In order to run the router in a deployed environment the following conditions mu
 
 * The machine the router will run on must be provisioned as a minion in the cluster (for networking configuration)
 * The machine may or may not be registered with the master.  Optimally it will not serve pods while also serving as the router
-* The machine must not have services running on it that bind to host port 80 since this is what the router uses for traffic
+* The machine must not have services running on it that bind to host ports 80 and 443 since this is what the router uses for traffic
 
 To install the router pod you use the `oadm router` command line, passing the flag `--credentials=<kubeconfig_file>`.
 The credentials flag controls the identity that the router will use to talk to the master (and the address of the master) so in most
@@ -69,14 +83,22 @@ of the router by running `oc get dc router` to check the deployment status.
 ### Manually
 
 To run the router manually (outside of a pod) you should first build the images with instructions found below.  Then you
-can run the router anywhere that it can access both the pods and the master.  The router exposes port 80 so the host 
-that the router is run on must not have any other services that are bound to that port.  This allows the router to be 
-used by a DNS server for incoming traffic.
+can run the router anywhere that it can access both the pods and the master.
+The router can use either the host or the container network stack and
+binds/exposes ports 80 and 443, which allows the router to be used by a DNS
+server for incoming traffic.
+This means that the host where the router is run, must not have any other
+services that are bound to those ports (80 and 443).
 
 
-	$ docker run --rm -it -p 80:80 openshift/origin-haproxy-router --master $kube-master-url
+#### Example using the host network
+	$ docker run --rm -it --net=host openshift/origin-haproxy-router --master $kube-master-url
+
+#### Example using the container network and exposing ports 80 and 443.
+	$ docker run --rm -it -p 80:80 -p 443:443 openshift/origin-haproxy-router --master $kube-master-url
 
 example of kube-master-url : https://10.0.2.15:8443
+
 
 ## Monitoring the router
 
@@ -159,7 +181,7 @@ service.json
           {
             "protocol": "TCP",
             "port": 27017,
-            "targetPort": 0,
+            "targetPort": 8080,
             "nodePort": 0
           }
         ],
@@ -171,7 +193,7 @@ service.json
         "sessionAffinity": "None"
       }
     }
-    
+
 route.json
 
     {
@@ -206,24 +228,24 @@ and `KeyFile` (at a minimum).  You may also specify your `CACertificateFile` to 
 
 #### Passthrough Termination
 Passthrough termination is a mechanism to send encrypted traffic straight to the destination without the router providing
-TLS termination.    
+TLS termination.
 
 Passthrough termination is configured by setting `TLS.Termination` to `passthrough` on your `route`.  No other information is required.
-The destination (such as an Nginx, Apache, or another HAProxy instance) will be responsible for serving certificates for 
+The destination (such as an Nginx, Apache, or another HAProxy instance) will be responsible for serving certificates for
 the traffic.
 
 #### Re-encryption Termination
-Re-encryption is a special case of edge termination where the traffic is first decrypted with certificate A and then 
+Re-encryption is a special case of edge termination where the traffic is first decrypted with certificate A and then
 re-encrypted with certificate B when sending the traffic to the destination.
- 
+
 Re-encryption termination is configured by setting `TLS.Termination` to `reencrypt` and providing the `CertificateFile`,
 `KeyFile`, the `CACertificateFile`, and a `DestinationCACertificateFile`.  The edge certificates remain the same as in the edge
-termination use case.  The `DestinationCACertificateFile` is used in order to validate the secure connection from the 
+termination use case.  The `DestinationCACertificateFile` is used in order to validate the secure connection from the
 router to the destination.
 
 ### Special Notes About Secure Routes
-At this point, password protected key files are not supported.  HAProxy prompts you for a password when starting up and 
-does not have a way to automate this process.  We will need a follow up for `KeyPassPhrase`.  To remove a passphrase from 
+At this point, password protected key files are not supported.  HAProxy prompts you for a password when starting up and
+does not have a way to automate this process.  We will need a follow up for `KeyPassPhrase`.  To remove a passphrase from
 a keyfile you may run `openssl rsa -in passwordProtectedKey.key -out new.key`
 
 ## Running HA Routers
@@ -237,7 +259,7 @@ As a simple example, you may create a zone file for a DNS server like [BIND](htt
 multiple A records for a single domain name.  When clients do a lookup they will be given one of the many records, in order
 as a round robin scheme.  The files below illustrate an example of using wild card DNS with multiple A records to achieve
 the desired round robin.  The wild card could be further distributed into shards with `*.<shard>`.  Finally, a test using
-`dig` (available in the `bind-utils` package) is shown from the vagrant environment that shows multiple answers for the 
+`dig` (available in the `bind-utils` package) is shown from the vagrant environment that shows multiple answers for the
 same lookup.  Doing multiple pings show the resolution swapping between IP addresses.
 
 #### named.conf - add a new zone that points to your file
@@ -317,17 +339,19 @@ in `docker images` that is ready to use.
 
 ## Dev - router internals
 
-The router is an [HAProxy](http://www.haproxy.org/) container that is run via a go wrapper (`openshift-router.go`) that 
-provides a watch on `routes` and `endpoints`.  The watch funnels down to the configuration files for the [HAProxy](http://www.haproxy.org/) 
+The router is an [HAProxy](http://www.haproxy.org/) container that is run via a go wrapper (`openshift-router.go`) that
+provides a watch on `routes` and `endpoints`.  The watch funnels down to the configuration files for the [HAProxy](http://www.haproxy.org/)
 plugin which can be found in `plugins/router/haproxy/haproxy.go`.  The router is then issued a reload command.
 
-When debugging the router it is sometimes useful to inspect these files.  To do this you must enter the namespace of the 
-running container by getting the pid via `docker inspect <container id> | grep Pid` and then `nsenter -m -u -n -i -p -t <pid>`.
+When debugging the router it is sometimes useful to inspect these files.  To do this you must enter the namespace of the
+running container by getting the pid and using nsenter
+`nsenter -m -u -n -i -p -t $(docker inspect --format "{{.State.Pid }}" <container-id>)`
 Listed below are the files used for configuration.
 
-    ConfigTemplate   = "/var/lib/haproxy/conf/haproxy_template.conf"
-    ConfigFile       = "/var/lib/haproxy/conf/haproxy.config"
-    HostMapFile      = "/var/lib/haproxy/conf/host_be.map"
-    HostMapSniFile   = "/var/lib/haproxy/conf/host_be_sni.map"
-    HostMapResslFile = "/var/lib/haproxy/conf/host_be_ressl.map"
-    HostMapWsFile    = "/var/lib/haproxy/conf/host_be_ws.map"
+    ConfigTemplate         = "/var/lib/haproxy/conf/haproxy_template.conf"
+    ConfigFile             = "/var/lib/haproxy/conf/haproxy.config"
+    HostMapFile            = "/var/lib/haproxy/conf/os_http_be.map"
+    EdgeHostMapFile        = "/var/lib/haproxy/conf/os_edge_http_be.map"
+    SniPassThruHostMapFile = "/var/lib/haproxy/conf/os_sni_passthrough.map"
+    ReencryptHostMapFile   = "/var/lib/haproxy/conf/os_reencrypt.map"
+    TcpHostMapFile         = "/var/lib/haproxy/conf/os_tcp_be.map"

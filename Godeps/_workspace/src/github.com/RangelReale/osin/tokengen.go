@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/pborman/uuid"
 )
 
 // AuthorizeTokenGenDefault is the default authorization token generator

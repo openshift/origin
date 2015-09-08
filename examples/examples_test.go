@@ -7,11 +7,11 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/capabilities"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/validation"
@@ -58,7 +58,7 @@ func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error 
 func TestExampleObjectSchemas(t *testing.T) {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
-	capabilities.Setup(true, nil)
+	capabilities.Setup(true, nil, 0)
 	cases := map[string]map[string]runtime.Object{
 		"../examples/hello-openshift": {
 			"hello-pod":     &kapi.Pod{},
@@ -72,8 +72,9 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"application-template-pullspecbuild": &templateapi.Template{},
 		},
 		"../examples/jenkins": {
-			"jenkins-ephemeral-template": &templateapi.Template{},
-			"application-template":       &templateapi.Template{},
+			"jenkins-ephemeral-template":  &templateapi.Template{},
+			"jenkins-persistent-template": &templateapi.Template{},
+			"application-template":        &templateapi.Template{},
 		},
 		"../examples/image-streams": {
 			"image-streams-centos7": &imageapi.ImageStreamList{},

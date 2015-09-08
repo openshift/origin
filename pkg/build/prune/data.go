@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 // BuildByBuildConfigIndexFunc indexes Build items by their associated BuildConfig, if none, index with key "orphan"
-func BuildByBuildConfigIndexFunc(obj interface{}) (string, error) {
+func BuildByBuildConfigIndexFunc(obj interface{}) ([]string, error) {
 	build, ok := obj.(*buildapi.Build)
 	if !ok {
-		return "", fmt.Errorf("not a build: %v", build)
+		return nil, fmt.Errorf("not a build: %v", build)
 	}
 	config := build.Status.Config
 	if config == nil {
-		return "orphan", nil
+		return []string{"orphan"}, nil
 	}
-	return config.Namespace + "/" + config.Name, nil
+	return []string{config.Namespace + "/" + config.Name}, nil
 }
 
 // Filter filters the set of objects

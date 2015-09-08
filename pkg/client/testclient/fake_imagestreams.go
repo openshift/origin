@@ -1,9 +1,10 @@
 package testclient
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -19,43 +20,63 @@ type FakeImageStreams struct {
 
 var _ client.ImageStreamInterface = &FakeImageStreams{}
 
+func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("imagestreams", c.Namespace, name), &imageapi.ImageStream{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*imageapi.ImageStream), err
+}
+
 func (c *FakeImageStreams) List(label labels.Selector, field fields.Selector) (*imageapi.ImageStreamList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-imagestreams"}, &imageapi.ImageStreamList{})
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("imagestreams", c.Namespace, label, field), &imageapi.ImageStreamList{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*imageapi.ImageStreamList), err
 }
 
-func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-imagestream", Value: name}, &imageapi.ImageStream{})
+func (c *FakeImageStreams) Create(inObj *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("imagestreams", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*imageapi.ImageStream), err
 }
 
-func (c *FakeImageStreams) Create(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-imagestream"}, &imageapi.ImageStream{})
-	return obj.(*imageapi.ImageStream), err
-}
+func (c *FakeImageStreams) Update(inObj *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("imagestreams", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
 
-func (c *FakeImageStreams) Update(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-imagestream", Value: stream}, stream)
 	return obj.(*imageapi.ImageStream), err
 }
 
 func (c *FakeImageStreams) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-imagestream", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("imagestreams", c.Namespace, name), &imageapi.ImageStream{})
+	return err
 }
 
 func (c *FakeImageStreams) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-imagestreams"})
-	return nil, nil
+	c.Fake.Invokes(ktestclient.NewWatchAction("imagestreams", c.Namespace, label, field, resourceVersion), nil)
+	return c.Fake.Watch, nil
 }
 
-func (c *FakeImageStreams) UpdateStatus(stream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-status-imagestream", Value: stream}, stream)
+func (c *FakeImageStreams) UpdateStatus(inObj *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
+	action := ktestclient.CreateActionImpl{}
+	action.Verb = "update"
+	action.Resource = "imagestreams"
+	action.Subresource = "status"
+	action.Object = inObj
+
+	obj, err := c.Fake.Invokes(action, inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*imageapi.ImageStream), err
 }

@@ -1,21 +1,25 @@
 package validation
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	"fmt"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
 func ValidateSubjectAccessReview(review *authorizationapi.SubjectAccessReview) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(review.Verb) == 0 {
+	if len(review.Action.Verb) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
 	}
-	if len(review.Resource) == 0 {
+	if len(review.Action.Resource) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
 	}
 
@@ -25,10 +29,36 @@ func ValidateSubjectAccessReview(review *authorizationapi.SubjectAccessReview) f
 func ValidateResourceAccessReview(review *authorizationapi.ResourceAccessReview) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(review.Verb) == 0 {
+	if len(review.Action.Verb) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
 	}
-	if len(review.Resource) == 0 {
+	if len(review.Action.Resource) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
+	}
+
+	return allErrs
+}
+
+func ValidateLocalSubjectAccessReview(review *authorizationapi.LocalSubjectAccessReview) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(review.Action.Verb) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
+	}
+	if len(review.Action.Resource) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
+	}
+
+	return allErrs
+}
+
+func ValidateLocalResourceAccessReview(review *authorizationapi.LocalResourceAccessReview) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(review.Action.Verb) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("verb"))
+	}
+	if len(review.Action.Resource) == 0 {
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("resource"))
 	}
 
@@ -220,6 +250,67 @@ func ValidateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 		if valid, err := oapi.MinimalNameRequirements(roleBinding.RoleRef.Name, false); !valid {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("roleRef.name", roleBinding.RoleRef.Name, err))
 		}
+	}
+
+	for i, subject := range roleBinding.Subjects {
+		allErrs = append(allErrs, ValidateRoleBindingSubject(subject, isNamespaced).Prefix(fmt.Sprintf("subjects[%d]", i))...)
+	}
+
+	return allErrs
+}
+
+func ValidateRoleBindingSubject(subject kapi.ObjectReference, isNamespaced bool) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(subject.Name) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
+	}
+	if len(subject.UID) != 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldForbidden("uid", subject.UID))
+	}
+	if len(subject.APIVersion) != 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldForbidden("apiVersion", subject.APIVersion))
+	}
+	if len(subject.ResourceVersion) != 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldForbidden("resourceVersion", subject.ResourceVersion))
+	}
+	if len(subject.FieldPath) != 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldForbidden("fieldPath", subject.FieldPath))
+	}
+
+	switch subject.Kind {
+	case authorizationapi.ServiceAccountKind:
+		if valid, reason := validation.ValidateServiceAccountName(subject.Name, false); len(subject.Name) > 0 && !valid {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", subject.Name, reason))
+		}
+		if !isNamespaced && len(subject.Namespace) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("namespace"))
+		}
+
+	case authorizationapi.UserKind:
+		if valid, reason := uservalidation.ValidateUserName(subject.Name, false); len(subject.Name) > 0 && !valid {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", subject.Name, reason))
+		}
+
+	case authorizationapi.GroupKind:
+		if valid, reason := uservalidation.ValidateGroupName(subject.Name, false); len(subject.Name) > 0 && !valid {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", subject.Name, reason))
+		}
+
+	case authorizationapi.SystemUserKind:
+		isValidSAName, _ := validation.ValidateServiceAccountName(subject.Name, false)
+		isValidUserName, _ := uservalidation.ValidateUserName(subject.Name, false)
+		if isValidSAName || isValidUserName {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", subject.Name, "conforms to User.name or ServiceAccount.name restrictions"))
+		}
+
+	case authorizationapi.SystemGroupKind:
+		if valid, _ := uservalidation.ValidateGroupName(subject.Name, false); len(subject.Name) > 0 && valid {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", subject.Name, "conforms to Group.name restrictions"))
+		}
+
+	default:
+		allErrs = append(allErrs, fielderrors.NewFieldValueNotSupported("kind", subject.Kind, []string{authorizationapi.ServiceAccountKind, authorizationapi.UserKind, authorizationapi.GroupKind, authorizationapi.SystemGroupKind, authorizationapi.SystemUserKind}))
 	}
 
 	return allErrs

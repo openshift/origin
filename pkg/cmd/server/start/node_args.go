@@ -11,8 +11,8 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/master/ports"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -120,7 +120,9 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
 
-		NetworkPluginName: args.NetworkPluginName,
+		NetworkConfig: configapi.NodeNetworkConfig{
+			NetworkPluginName: args.NetworkPluginName,
+		},
 
 		VolumeDirectory:     args.VolumeDir,
 		AllowDisabledDocker: args.AllowDisabledDocker,
@@ -138,12 +140,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		config.ServingInfo.ClientCA = admin.DefaultKubeletClientCAFile(args.MasterCertDir)
 	}
 
-	// Roundtrip the config to v1 and back to ensure proper defaults are set.
-	ext, err := configapi.Scheme.ConvertToVersion(config, "v1")
-	if err != nil {
-		return nil, err
-	}
-	internal, err := configapi.Scheme.ConvertToVersion(ext, "")
+	internal, err := applyDefaults(config, "v1")
 	if err != nil {
 		return nil, err
 	}

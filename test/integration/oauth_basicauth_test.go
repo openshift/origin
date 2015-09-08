@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -237,7 +237,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		UseAsChallenger: true,
 		UseAsLogin:      true,
 		Provider: runtime.EmbeddedObject{
-			&configapi.BasicAuthPasswordIdentityProvider{
+			Object: &configapi.BasicAuthPasswordIdentityProvider{
 				RemoteConnectionInfo: configapi.RemoteConnectionInfo{
 					URL: fmt.Sprintf("https://%s", remoteAddr),
 					CA:  certNames[basicAuthRemoteCACert],

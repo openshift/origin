@@ -3,7 +3,7 @@ package cache
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 type cacheable struct {

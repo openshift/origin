@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -215,6 +215,10 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	valerieClientConfig.BearerToken = accessToken
 	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
 	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := testutil.WaitForClusterPolicyUpdate(valerieOpenshiftClient, "create", "projectrequests", false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

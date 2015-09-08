@@ -11,14 +11,14 @@ import (
 	"path"
 
 	"code.google.com/p/go-uuid/uuid"
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrs "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kuser "k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
@@ -28,10 +28,12 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/password/denypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/htpasswd"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/ldappassword"
+	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
+	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/oauth/external"
 	"github.com/openshift/origin/pkg/auth/oauth/external/github"
 	"github.com/openshift/origin/pkg/auth/oauth/external/google"
@@ -221,7 +223,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			},
 			Secret:                OSCliClientBase.Secret,
 			RespondWithChallenges: OSCliClientBase.RespondWithChallenges,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
+			RedirectURIs:          []string{masterPublicAddr + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
 		},
 	}
 
@@ -232,13 +234,17 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			// Update the existing resource version
 			currClient.ResourceVersion = existing.ResourceVersion
 
-			// Add in any redirects from the existing one
-			// This preserves any additional customized redirects in the default clients
-			redirects := util.NewStringSet(currClient.RedirectURIs...)
-			for _, redirect := range existing.RedirectURIs {
-				if !redirects.Has(redirect) {
-					currClient.RedirectURIs = append(currClient.RedirectURIs, redirect)
-					redirects.Insert(redirect)
+			// Preserve redirects for clients other than the CLI client
+			// The CLI client doesn't care about the redirect URL, just the token or error fragment
+			if currClient.Name != OSCliClientBase.Name {
+				// Add in any redirects from the existing one
+				// This preserves any additional customized redirects in the default clients
+				redirects := util.NewStringSet(currClient.RedirectURIs...)
+				for _, redirect := range existing.RedirectURIs {
+					if !redirects.Has(redirect) {
+						currClient.RedirectURIs = append(currClient.RedirectURIs, redirect)
+						redirects.Insert(redirect)
+					}
 				}
 			}
 
@@ -319,6 +325,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 	for _, identityProvider := range c.Options.IdentityProviders {
 		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
 
+		// TODO: refactor handler building per type
 		if configapi.IsPasswordAuthenticator(identityProvider) {
 			passwordAuth, err := c.getPasswordAuthenticator(identityProvider)
 			if err != nil {
@@ -334,14 +341,25 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				}
 				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
 
-				redirectors["login"] = &redirector{RedirectURL: OpenShiftLoginPrefix, ThenParam: "then"}
-				login := login.NewLogin(c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, login.DefaultLoginFormRenderer)
+				// Since we're redirecting to a local login page, we don't need to force absolute URL resolution
+				redirectors["login-"+identityProvider.Name+"-redirect"] = redirector.NewRedirector(nil, OpenShiftLoginPrefix+"?then=${url}")
+
+				var loginTemplateFile string
+				if c.Options.Templates != nil {
+					loginTemplateFile = c.Options.Templates.Login
+				}
+				loginFormRenderer, err := login.NewLoginFormRenderer(loginTemplateFile)
+				if err != nil {
+					return nil, err
+				}
+
+				login := login.NewLogin(c.getCSRF(), &callbackPasswordAuthenticator{passwordAuth, passwordSuccessHandler}, loginFormRenderer)
 				login.Install(mux, OpenShiftLoginPrefix)
 			}
 			if identityProvider.UseAsChallenger {
-				challengers["login"] = passwordchallenger.NewBasicAuthChallenger("openshift")
+				// For now, all password challenges share a single basic challenger, since they'll all respond to any basic credentials
+				challengers["basic-challenge"] = passwordchallenger.NewBasicAuthChallenger("openshift")
 			}
-
 		} else if configapi.IsOAuthIdentityProvider(identityProvider) {
 			oauthProvider, err := c.getOAuthProvider(identityProvider)
 			if err != nil {
@@ -370,10 +388,22 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 
 			mux.Handle(callbackPath, oauthHandler)
 			if identityProvider.UseAsLogin {
-				redirectors[identityProvider.Name] = oauthHandler
+				redirectors["oauth-"+identityProvider.Name+"-redirect"] = oauthHandler
 			}
 			if identityProvider.UseAsChallenger {
 				return nil, errors.New("oauth identity providers cannot issue challenges")
+			}
+		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.Object.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
+			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
+			baseRequestURL, err := url.Parse(c.Options.MasterPublicURL + OpenShiftOAuthAPIPrefix + osinserver.AuthorizePath)
+			if err != nil {
+				return nil, err
+			}
+			if identityProvider.UseAsChallenger {
+				challengers["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewChallenger(baseRequestURL, requestHeaderProvider.ChallengeURL)
+			}
+			if identityProvider.UseAsLogin {
+				redirectors["requestheader-"+identityProvider.Name+"-redirect"] = redirector.NewRedirector(baseRequestURL, requestHeaderProvider.LoginURL)
 			}
 		}
 	}
@@ -443,7 +473,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 		return denypassword.New(), nil
 
 	case (*configapi.LDAPPasswordIdentityProvider):
-		url, err := ldappassword.ParseURL(provider.URL)
+		url, err := ldaputil.ParseURL(provider.URL)
 		if err != nil {
 			return nil, fmt.Errorf("Error parsing LDAPPasswordIdentityProvider URL: %v", err)
 		}
@@ -459,15 +489,11 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 
 		opts := ldappassword.Options{
 			URL:          url,
-			Insecure:     provider.Insecure,
-			TLSConfig:    tlsConfig,
+			ClientConfig: ldaputil.NewLDAPClientConfig(url, provider.Insecure, tlsConfig),
 			BindDN:       provider.BindDN,
 			BindPassword: provider.BindPassword,
 
-			AttributeEmail:             provider.Attributes.Email,
-			AttributeName:              provider.Attributes.Name,
-			AttributeID:                provider.Attributes.ID,
-			AttributePreferredUsername: provider.Attributes.PreferredUsername,
+			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.LDAPEntryAttributeMapping),
 		}
 		return ldappassword.New(identityProvider.Name, opts, identityMapper)
 
@@ -548,27 +574,6 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 
 	authRequestHandler := unionrequest.NewUnionAuthentication(authRequestHandlers...)
 	return authRequestHandler, nil
-}
-
-// redirector captures the original request url as a "then" param in a redirect to a login flow
-type redirector struct {
-	RedirectURL string
-	ThenParam   string
-}
-
-// AuthenticationRedirect redirects HTTP request to authorization URL
-func (auth *redirector) AuthenticationRedirect(w http.ResponseWriter, req *http.Request) error {
-	redirectURL, err := url.Parse(auth.RedirectURL)
-	if err != nil {
-		return err
-	}
-	if len(auth.ThenParam) != 0 {
-		redirectURL.RawQuery = url.Values{
-			auth.ThenParam: {req.URL.String()},
-		}.Encode()
-	}
-	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
-	return nil
 }
 
 // callbackPasswordAuthenticator combines password auth, successful login callback,

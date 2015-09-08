@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api"
 )
 
 // ServiceRetriever is an interface for retrieving services

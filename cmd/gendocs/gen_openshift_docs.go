@@ -45,7 +45,8 @@ func main() {
 	}
 
 	outFile := outDir + "oc_by_example_content.adoc"
-	cmd := cli.NewCommandCLI("oc", "openshift cli")
+	out := os.Stdout
+	cmd := cli.NewCommandCLI("oc", "openshift cli", out)
 	gendocs.GenDocs(cmd, outFile)
 
 	outFile = outDir + "oadm_by_example_content.adoc"

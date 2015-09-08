@@ -6,19 +6,26 @@
  -->
 <div class="component-block pod-template-container">
   <div class="component pod-template-block" ng-repeat="container in podTemplate.spec.containers">
-    <div class="pod-template">                              
+    <div class="pod-template">
       <h4>{{container.name}}</h4>
-      <div class="pod-template-image">
+      <div ng-if="container.image" class="pod-template-image">
         <span class="fa fa-cube" aria-hidden="true"></span>
-        <span>Image: {{container.image | imageStreamName}}
-          <span ng-if="imagesByDockerReference[container.image]"> (<span class="small" title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name.substr(0, 10)}}</span>)</span>
+        Image: {{container.image | imageStreamName}}
+        <span ng-if="imagesByDockerReference[container.image]">
+          (<span class="small" title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name | stripSHAPrefix | limitTo: 7}}</span>)
         </span>
       </div>
-      <div ng-if="imagesByDockerReference && (image = imagesByDockerReference[container.image])" class="pod-template-build">
+      <div ng-if="imagesByDockerReference && container.image && (image = imagesByDockerReference[container.image])" class="pod-template-build">
         <div ng-if="build = (image | buildForImage : builds)">
           <div>
             <span class="fa fa-refresh" aria-hidden="true"></span>
-            <span>Build: {{build.metadata.labels.buildconfig}} (<span class="small" title="{{build.metadata.name}}">{{build.metadata.name}}</span>)</span>
+            Build:
+            <span ng-if="build | annotation : 'buildNumber'">
+              <a ng-href="project/{{build.metadata.namespace}}/browse/builds#build-{{build.metadata.name}}">{{build.metadata.labels.buildconfig}} #{{build | annotation : 'buildNumber'}}</a>
+            </span>
+            <span ng-if="!(build | annotation : 'buildNumber')">
+              <a ng-href="project/{{build.metadata.namespace}}/browse/builds#build-{{build.metadata.name}}">{{build.metadata.name}}</a>
+            </span>
           </div>
           <div ng-if="build.spec.source">
             <span class="fa fa-code" aria-hidden="true"></span>
@@ -27,7 +34,7 @@
                 <span ng-switch-when="Git">
                   <span ng-if="build.spec.revision.git.commit">
                     {{build.spec.revision.git.message}}
-                    (<osc-git-link 
+                    (<osc-git-link
                       uri="build.spec.source.git.uri"
                       commit="build.spec.revision.git.commit">{{build.spec.revision.git.commit | limitTo:7}}</osc-git-link>)
                     <span ng-if="build.spec.revision.git.author">
@@ -46,7 +53,7 @@
           </div>
         </div>
       </div>
-      
+
       <div ng-if="container.ports.length > 0" class="pod-template-ports">
         <div class="font-icon-block">
           <!-- TODO figure out why the font-icon-block does not align correctly when the class names are used instead
@@ -55,9 +62,9 @@
           <span data-icon="" aria-hidden="true" class="font-icon"></span>
           <span data-icon="" aria-hidden="true" class="font-icon"></span>
         </div>Ports:
-        <div ng-repeat="port in container.ports" class="port-number">
-          <span>{{port.containerPort}} ({{port.protocol}})<span ng-if="port.hostPort"> <span class="port-icon">&#10230;</span> {{port.hostPort}}</span></span>
-        </div>
+        <span ng-repeat="port in container.ports | orderBy: 'containerPort'">
+          <span class="nowrap">{{port.containerPort}}&thinsp;({{port.protocol}})<span ng-if="port.hostPort">&thinsp;<span class="port-icon">&#8594;</span>&thinsp;{{port.hostPort}}</span></span><span ng-if="!$last">, </span>
+        </span>
       </div> 
 
       <div hawtio-extension name="container-links"></div>

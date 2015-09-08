@@ -1,6 +1,6 @@
 package v1beta3
 
-import kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
+import kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
@@ -53,6 +53,23 @@ type UserIdentityMapping struct {
 	User     kapi.ObjectReference `json:"user,omitempty"`
 }
 
+// Group represents a referenceable set of Users
+type Group struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	// Users is the list of users in this group.
+	Users []string `json:"users" description:"list of users in this group"`
+}
+
+type GroupList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []Group `json:"items" description:"list of groups"`
+}
+
+func (*GroupList) IsAnAPIObject()           {}
+func (*Group) IsAnAPIObject()               {}
 func (*User) IsAnAPIObject()                {}
 func (*UserList) IsAnAPIObject()            {}
 func (*Identity) IsAnAPIObject()            {}

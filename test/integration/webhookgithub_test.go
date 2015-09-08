@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -292,10 +292,6 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 						Secret: "secret101",
 					},
 				},
-				{
-					Type:        buildapi.ImageChangeBuildTriggerType,
-					ImageChange: &buildapi.ImageChangeTrigger{},
-				},
 			},
 			BuildSpec: buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
@@ -337,10 +333,6 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 					GitHubWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret101",
 					},
-				},
-				{
-					Type:        buildapi.ImageChangeBuildTriggerType,
-					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
 			BuildSpec: buildapi.BuildSpec{

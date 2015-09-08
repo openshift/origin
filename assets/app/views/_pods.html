@@ -8,9 +8,9 @@ pods - a hash of pod objects by id
     <div class="pod-text" ng-switch="pod.status.phase">
       <strong class="pod-status-label">{{pod.status.phase}}</strong>
       <div ng-switch-when="Pending">
-        <span ng-if="!pod.spec.host">scheduling...</span>
-        <span ng-if="pod.spec.host && !pod.status.startTime">scheduled</span>
-        <span ng-if="pod.spec.host && pod.status.startTime">pulling...</span>
+        <span ng-if="!pod.spec.nodeName">scheduling...</span>
+        <span ng-if="pod.spec.nodeName && !pod.status.startTime">scheduled</span>
+        <span ng-if="pod.spec.nodeName && pod.status.startTime">pulling...</span>
       </div>
       <div ng-switch-default>
         &nbsp;

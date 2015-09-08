@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	_ "github.com/openshift/origin/pkg/authorization/api/v1"
 	_ "github.com/openshift/origin/pkg/build/api/v1"

@@ -5,7 +5,7 @@ window.OPENSHIFT_CONFIG = {
   api: {
     openshift: {
       hostPort: "localhost:8443",
-      prefix: "/osapi"
+      prefix: "/oapi"
     },
     k8s: {
       hostPort: "localhost:8443",

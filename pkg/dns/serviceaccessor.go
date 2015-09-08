@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 // ServiceAccessor is the interface used by the ServiceResolver to access
@@ -65,8 +65,8 @@ func (a *cachedServiceAccessor) ServiceByPortalIP(ip string) (*api.Service, erro
 
 // indexServiceByPortalIP creates an index between a portalIP and the service that
 // uses it.
-func indexServiceByPortalIP(obj interface{}) (string, error) {
-	return obj.(*api.Service).Spec.ClusterIP, nil
+func indexServiceByPortalIP(obj interface{}) ([]string, error) {
+	return []string{obj.(*api.Service).Spec.ClusterIP}, nil
 }
 
 func (a *cachedServiceAccessor) Services(namespace string) client.ServiceInterface {

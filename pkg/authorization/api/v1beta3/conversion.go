@@ -3,15 +3,63 @@ package v1beta3
 import (
 	"sort"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/util"
 
 	newer "github.com/openshift/origin/pkg/authorization/api"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
+
+func convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview(in *ResourceAccessReview, out *newer.ResourceAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview(in *newer.ResourceAccessReview, out *ResourceAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func convert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview(in *LocalResourceAccessReview, out *newer.LocalResourceAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func convert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview(in *newer.LocalResourceAccessReview, out *LocalResourceAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 
@@ -22,6 +70,35 @@ func convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectA
 
 func convert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview(in *newer.SubjectAccessReview, out *SubjectAccessReview, s conversion.Scope) error {
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.GroupsSlice = in.Groups.List()
+
+	return nil
+}
+
+func convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *LocalSubjectAccessReview, out *newer.LocalSubjectAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.AuthorizationAttributes, &out.Action, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	out.Groups = util.NewStringSet(in.GroupsSlice...)
+
+	return nil
+}
+
+func convert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview(in *newer.LocalSubjectAccessReview, out *LocalSubjectAccessReview, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.DefaultConvert(&in.Action, &out.AuthorizationAttributes, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
 
@@ -106,8 +183,12 @@ func convert_v1beta3_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *newer.
 		return err
 	}
 
-	out.Users = util.NewStringSet(in.UserNames...)
-	out.Groups = util.NewStringSet(in.GroupNames...)
+	// if the users and groups fields are cleared, then respect only subjects.  The field was set in the DefaultConvert above
+	if in.UserNames == nil && in.GroupNames == nil {
+		return nil
+	}
+
+	out.Subjects = newer.BuildSubjects(in.UserNames, in.GroupNames, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
 	return nil
 }
@@ -117,8 +198,7 @@ func convert_api_RoleBinding_To_v1beta3_RoleBinding(in *newer.RoleBinding, out *
 		return err
 	}
 
-	out.UserNames = in.Users.List()
-	out.GroupNames = in.Groups.List()
+	out.UserNames, out.GroupNames = newer.StringSubjectsFor(in.Namespace, in.Subjects)
 
 	return nil
 }
@@ -153,8 +233,12 @@ func convert_v1beta3_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRol
 		return err
 	}
 
-	out.Users = util.NewStringSet(in.UserNames...)
-	out.Groups = util.NewStringSet(in.GroupNames...)
+	// if the users and groups fields are cleared, then respect only subjects.  The field was set in the DefaultConvert above
+	if in.UserNames == nil && in.GroupNames == nil {
+		return nil
+	}
+
+	out.Subjects = newer.BuildSubjects(in.UserNames, in.GroupNames, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
 	return nil
 }
@@ -164,8 +248,7 @@ func convert_api_ClusterRoleBinding_To_v1beta3_ClusterRoleBinding(in *newer.Clus
 		return err
 	}
 
-	out.UserNames = in.Users.List()
-	out.GroupNames = in.Groups.List()
+	out.UserNames, out.GroupNames = newer.StringSubjectsFor(in.Namespace, in.Subjects)
 
 	return nil
 }
@@ -186,6 +269,12 @@ func init() {
 	err := api.Scheme.AddConversionFuncs(
 		convert_v1beta3_SubjectAccessReview_To_api_SubjectAccessReview,
 		convert_api_SubjectAccessReview_To_v1beta3_SubjectAccessReview,
+		convert_v1beta3_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview,
+		convert_api_LocalSubjectAccessReview_To_v1beta3_LocalSubjectAccessReview,
+		convert_v1beta3_ResourceAccessReview_To_api_ResourceAccessReview,
+		convert_api_ResourceAccessReview_To_v1beta3_ResourceAccessReview,
+		convert_v1beta3_LocalResourceAccessReview_To_api_LocalResourceAccessReview,
+		convert_api_LocalResourceAccessReview_To_v1beta3_LocalResourceAccessReview,
 		convert_v1beta3_ResourceAccessReviewResponse_To_api_ResourceAccessReviewResponse,
 		convert_api_ResourceAccessReviewResponse_To_v1beta3_ResourceAccessReviewResponse,
 		convert_v1beta3_PolicyRule_To_api_PolicyRule,

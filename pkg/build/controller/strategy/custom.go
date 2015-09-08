@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -31,9 +31,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	containerEnv := []kapi.EnvVar{{Name: "BUILD", Value: string(data)}}
 
 	if build.Spec.Source.Git != nil {
-		containerEnv = append(containerEnv, kapi.EnvVar{
-			Name: "SOURCE_REPOSITORY", Value: build.Spec.Source.Git.URI,
-		})
+		addSourceEnvVars(build.Spec.Source, &containerEnv)
 	}
 
 	if strategy == nil || len(strategy.From.Name) == 0 {
@@ -77,7 +75,12 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		return nil, err
 	}
 
-	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	if !strategy.ForcePull {
+		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+	} else {
+		glog.V(2).Infof("ForcePull is enabled for %s build", build.Name)
+		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullAlways
+	}
 	pod.Spec.Containers[0].Resources = build.Spec.Resources
 
 	if strategy.ExposeDockerSocket {
@@ -85,5 +88,6 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret)
 	}
 	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
+	setupAdditionalSecrets(pod, build.Spec.Strategy.CustomStrategy.Secrets)
 	return pod, nil
 }

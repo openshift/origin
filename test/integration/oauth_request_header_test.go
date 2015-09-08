@@ -1,18 +1,24 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
 import (
+	"bytes"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"regexp"
 	"testing"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kclient "k8s.io/kubernetes/pkg/client"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -88,7 +94,17 @@ qLwYJxjzwYTLvLYPU5vHmdg8v5wIXh0TaRTDTdKViISGD09aiXSYzw==
 `)
 )
 
+// TestOAuthRequestHeader checks the following scenarios:
+//  * request containing remote user header is ignored if it doesn't have client cert auth
+//  * request containing remote user header is honored if it has client cert auth
+//  * unauthenticated requests are redirected to an auth proxy
+//  * login command succeeds against a request-header identity provider via redirection to an auth proxy
 func TestOAuthRequestHeader(t *testing.T) {
+	// Test data used by auth proxy
+	users := map[string]string{
+		"myusername": "mypassword",
+	}
+
 	// Write cert we're going to use to verify OAuth requestheader requests
 	caFile, err := ioutil.TempFile("", "test.crt")
 	if err != nil {
@@ -99,19 +115,63 @@ func TestOAuthRequestHeader(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Get master config
 	masterOptions, err := testutil.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	masterURL, _ := url.Parse(masterOptions.OAuthConfig.MasterPublicURL)
+
+	// Set up an auth proxy
+	var proxyTransport http.RoundTripper
+	proxyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Decide whether to challenge
+		username, password, hasBasicAuth := r.BasicAuth()
+		if correctPassword, hasUser := users[username]; !hasBasicAuth || !hasUser || password != correctPassword {
+			w.Header().Set("WWW-Authenticate", "Basic realm=Protected Area")
+			w.WriteHeader(401)
+			return
+		}
+
+		// Swap the scheme and host to the master, keeping path and params the same
+		proxyURL := r.URL
+		proxyURL.Scheme = masterURL.Scheme
+		proxyURL.Host = masterURL.Host
+
+		// Build a request, copying the original method, body, and headers, overriding the remote user headers
+		proxyRequest, _ := http.NewRequest(r.Method, proxyURL.String(), r.Body)
+		proxyRequest.Header = r.Header
+		proxyRequest.Header.Set("My-Remote-User", username)
+		proxyRequest.Header.Set("SSO-User", "")
+
+		// Round trip to the back end
+		response, err := proxyTransport.RoundTrip(r)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		defer response.Body.Close()
+
+		// Copy response back to originator
+		for k, v := range response.Header {
+			w.Header()[k] = v
+		}
+		w.WriteHeader(response.StatusCode)
+		if _, err := io.Copy(w, response.Body); err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+	}))
+	defer proxyServer.Close()
 
 	masterOptions.OAuthConfig.IdentityProviders[0] = configapi.IdentityProvider{
 		Name:            "requestheader",
-		UseAsChallenger: false,
-		UseAsLogin:      false,
+		UseAsChallenger: true,
+		UseAsLogin:      true,
 		Provider: runtime.EmbeddedObject{
-			&configapi.RequestHeaderIdentityProvider{
-				ClientCA: caFile.Name(),
-				Headers:  []string{"My-Remote-User", "SSO-User"},
+			Object: &configapi.RequestHeaderIdentityProvider{
+				ChallengeURL: proxyServer.URL + "/oauth/authorize?${query}",
+				LoginURL:     "http://www.example.com/login?then=${url}",
+				ClientCA:     caFile.Name(),
+				Headers:      []string{"My-Remote-User", "SSO-User"},
 			},
 		},
 	}
@@ -132,49 +192,53 @@ func TestOAuthRequestHeader(t *testing.T) {
 	anonConfig.Host = clientConfig.Host
 	anonConfig.CAFile = clientConfig.CAFile
 	anonConfig.CAData = clientConfig.CAData
+	anonTransport, err := kclient.TransportFor(&anonConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	// Build the authorize request with the My-Remote-User header
+	// Use the server and CA info, with cert info
+	proxyConfig := anonConfig
+	proxyConfig.CertData = clientCert
+	proxyConfig.KeyData = clientKey
+	proxyTransport, err = kclient.TransportFor(&proxyConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Build the authorize request, spoofing a remote user header
 	authorizeURL := clientConfig.Host + "/oauth/authorize?client_id=openshift-challenging-client&response_type=token"
 	req, err := http.NewRequest("GET", authorizeURL, nil)
 	req.Header.Set("My-Remote-User", "myuser")
 
 	// Make the request without cert auth
-	transport, err := kclient.TransportFor(&anonConfig)
+	resp, err := anonTransport.RoundTrip(req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	resp, err := transport.RoundTrip(req)
+	proxyRedirect, err := resp.Location()
+	if err != nil {
+		t.Fatalf("expected spoofed remote user header to get 302 redirect, got error: %v", err)
+	}
+	if proxyRedirect.String() != proxyServer.URL+"/oauth/authorize?client_id=openshift-challenging-client&response_type=token" {
+		t.Fatalf("expected redirect to proxy endpoint, got redirected to %v", proxyRedirect.String())
+	}
+
+	// Request the redirected URL, which should cause the proxy to make the same request with cert auth
+	req, err = http.NewRequest("GET", proxyRedirect.String(), nil)
+	req.Header.Set("My-Remote-User", "myuser")
+	req.SetBasicAuth("myusername", "mypassword")
+
+	resp, err = proxyTransport.RoundTrip(req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	redirect, err := resp.Location()
+	tokenRedirect, err := resp.Location()
 	if err != nil {
 		t.Fatalf("expected 302 redirect, got error: %v", err)
 	}
-	if redirect.Query().Get("error") == "" {
-		t.Fatalf("expected unsuccessful token request, got redirected to %v", redirect.String())
-	}
-
-	// Use the server and CA info, with cert info
-	authProxyConfig := anonConfig
-	authProxyConfig.CertData = clientCert
-	authProxyConfig.KeyData = clientKey
-
-	// Make the request with cert info
-	transport, err = kclient.TransportFor(&authProxyConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	resp, err = transport.RoundTrip(req)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	redirect, err = resp.Location()
-	if err != nil {
-		t.Fatalf("expected 302 redirect, got error: %v", err)
-	}
-	if redirect.Query().Get("error") != "" {
-		t.Fatalf("expected successful token request, got error %v", redirect.String())
+	if tokenRedirect.Query().Get("error") != "" {
+		t.Fatalf("expected successful token request, got error %v", tokenRedirect.String())
 	}
 
 	// Extract the access_token
@@ -182,11 +246,11 @@ func TestOAuthRequestHeader(t *testing.T) {
 	// group #0 is everything.                      #1                #2     #3
 	accessTokenRedirectRegex := regexp.MustCompile(`(^|&)access_token=([^&]+)($|&)`)
 	accessToken := ""
-	if matches := accessTokenRedirectRegex.FindStringSubmatch(redirect.Fragment); matches != nil {
+	if matches := accessTokenRedirectRegex.FindStringSubmatch(tokenRedirect.Fragment); matches != nil {
 		accessToken = matches[2]
 	}
 	if accessToken == "" {
-		t.Fatalf("Expected access token, got %s", redirect.String())
+		t.Fatalf("Expected access token, got %s", tokenRedirect.String())
 	}
 
 	// Make sure we can use the token, and it represents who we expect
@@ -200,7 +264,41 @@ func TestOAuthRequestHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if user.Name != "myuser" {
-		t.Fatalf("Expected myuser as the user, got %v", user)
+	if user.Name != "myusername" {
+		t.Fatalf("Expected myusername as the user, got %v", user)
+	}
+
+	// Get the master CA data for the login command
+	masterCAFile := userConfig.CAFile
+	if masterCAFile == "" {
+		// Write master ca data
+		tmpFile, err := ioutil.TempFile("", "ca.crt")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		defer os.Remove(tmpFile.Name())
+		if err := ioutil.WriteFile(tmpFile.Name(), userConfig.CAData, os.FileMode(0600)); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		masterCAFile = tmpFile.Name()
+	}
+
+	// Attempt a login using a redirecting auth proxy
+	loginOutput := &bytes.Buffer{}
+	loginOptions := &cmd.LoginOptions{
+		Server:             anonConfig.Host,
+		CAFile:             masterCAFile,
+		StartingKubeConfig: &clientcmdapi.Config{},
+		Reader:             bytes.NewBufferString("myusername\nmypassword\n"),
+		Out:                loginOutput,
+	}
+	if err := loginOptions.GatherInfo(); err != nil {
+		t.Fatalf("Error trying to determine server info: %v\n%v", err, loginOutput.String())
+	}
+	if loginOptions.Username != "myusername" {
+		t.Fatalf("Unexpected user after authentication: %#v", loginOptions)
+	}
+	if len(loginOptions.Config.BearerToken) == 0 {
+		t.Fatalf("Expected token after authentication: %#v", loginOptions.Config)
 	}
 }

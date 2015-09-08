@@ -1,9 +1,9 @@
 package v1
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
-	kruntime "github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api/v1"
+	kruntime "k8s.io/kubernetes/pkg/runtime"
+	kutil "k8s.io/kubernetes/pkg/util"
 )
 
 // Authorization is calculated against
@@ -55,6 +55,8 @@ type RoleBinding struct {
 	UserNames []string `json:"userNames" description:"all the usernames directly bound to the role"`
 	// GroupNames holds all the groups directly bound to the role
 	GroupNames []string `json:"groupNames" description:"all the groups directly bound to the role"`
+	// Subjects hold object references to authorize with this rule
+	Subjects []kapi.ObjectReference `json:"subjects" description:"references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."`
 
 	// RoleRef can only reference the current namespace and the global namespace
 	// If the RoleRef cannot be resolved, the Authorizer must return an error.
@@ -90,6 +92,16 @@ type PolicyBinding struct {
 	RoleBindings []NamedRoleBinding `json:"roleBindings" description:"all roleBindings held by this policyBinding"`
 }
 
+type NamedRole struct {
+	Name string `json:"name" description:"name of the role"`
+	Role Role   `json:"role" description:"the role"`
+}
+
+type NamedRoleBinding struct {
+	Name        string      `json:"name" description:"name of the roleBinding"`
+	RoleBinding RoleBinding `json:"roleBinding" description:"the roleBinding"`
+}
+
 // ResourceAccessReviewResponse describes who can perform the action
 type ResourceAccessReviewResponse struct {
 	kapi.TypeMeta `json:",inline"`
@@ -107,24 +119,8 @@ type ResourceAccessReviewResponse struct {
 type ResourceAccessReview struct {
 	kapi.TypeMeta `json:",inline"`
 
-	// Verb is one of: get, list, watch, create, update, delete
-	Verb string `json:"verb" description:"one of get, list, watch, create, update, delete"`
-	// Resource is one of the existing resource types
-	Resource string `json:"resource" description:"one of the existing resource types"`
-	// Content is the actual content of the request for create and update
-	Content kruntime.RawExtension `json:"content,omitempty" description:"actual content of the request for a create or update"`
-	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
-	ResourceName string `json:"resourceName,omitempty" description:"name of the resource being requested for a get or delete operation"`
-}
-
-type NamedRole struct {
-	Name string `json:"name" description:"name of the role"`
-	Role Role   `json:"role" description:"the role"`
-}
-
-type NamedRoleBinding struct {
-	Name        string      `json:"name" description:"name of the roleBinding"`
-	RoleBinding RoleBinding `json:"roleBinding" description:"the roleBinding"`
+	// AuthorizationAttributes describes the action being tested.
+	AuthorizationAttributes `json:",inline" description:"the action being tested"`
 }
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action
@@ -143,18 +139,45 @@ type SubjectAccessReviewResponse struct {
 type SubjectAccessReview struct {
 	kapi.TypeMeta `json:",inline"`
 
-	// Verb is one of: get, list, watch, create, update, delete
-	Verb string `json:"verb" description:"one of get, list, watch, create, update, delete"`
-	// Resource is one of the existing resource types
-	Resource string `json:"resource" description:"one of the existing resource types"`
+	// AuthorizationAttributes describes the action being tested.
+	AuthorizationAttributes `json:",inline" description:"the action being tested"`
 	// User is optional. If both User and Groups are empty, the current authenticated user is used.
 	User string `json:"user" description:"optional, if both user and groups are empty, the current authenticated user is used"`
 	// GroupsSlice is optional. Groups is the list of groups to which the User belongs.
 	GroupsSlice []string `json:"groups" description:"optional, list of groups to which the user belongs"`
-	// Content is the actual content of the request for create and update
-	Content kruntime.RawExtension `json:"content,omitempty" description:"actual content of the request for create and update"`
+}
+
+// LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
+type LocalResourceAccessReview struct {
+	kapi.TypeMeta `json:",inline"`
+
+	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
+	AuthorizationAttributes `json:",inline" description:"the action being tested"`
+}
+
+// LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
+type LocalSubjectAccessReview struct {
+	kapi.TypeMeta
+
+	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
+	AuthorizationAttributes `json:",inline" description:"the action being tested"`
+	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
+	User string `json:"user" description:"optional, if both user and groups are empty, the current authenticated user is used"`
+	// Groups is optional.  Groups is the list of groups to which the User belongs.
+	GroupsSlice []string `json:"groups" description:"optional, list of groups to which the user belongs"`
+}
+
+type AuthorizationAttributes struct {
+	// Namespace is the namespace of the action being requested.  Currently, there is no distinction between no namespace and all namespaces
+	Namespace string `json:"namespace" description:"namespace of the action being requested"`
+	// Verb is one of: get, list, watch, create, update, delete
+	Verb string `json:"verb" description:"one of get, list, watch, create, update, delete"`
+	// Resource is one of the existing resource types
+	Resource string `json:"resource" description:"one of the existing resource types"`
 	// ResourceName is the name of the resource being requested for a "get" or deleted for a "delete"
 	ResourceName string `json:"resourceName" description:"name of the resource being requested for a get or delete"`
+	// Content is the actual content of the request for create and update
+	Content kruntime.RawExtension `json:"content,omitempty" description:"actual content of the request for create and update"`
 }
 
 // PolicyList is a collection of Policies
@@ -213,6 +236,8 @@ type ClusterRoleBinding struct {
 	UserNames []string `json:"userNames" description:"all user names directly bound to the role"`
 	// GroupNames holds all the groups directly bound to the role
 	GroupNames []string `json:"groupNames" description:"all the groups directly bound to the role"`
+	// Subjects hold object references to authorize with this rule
+	Subjects []kapi.ObjectReference `json:"subjects" description:"references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."`
 
 	// RoleRef can only reference the current namespace and the global namespace
 	// If the ClusterRoleRef cannot be resolved, the Authorizer must return an error.

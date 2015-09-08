@@ -6,14 +6,14 @@ import (
 	"sort"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kubectl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/spf13/cobra"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client"
+	kubectl "k8s.io/kubernetes/pkg/kubectl"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	latest "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
@@ -255,7 +255,7 @@ func (o *RollbackOptions) Run() error {
 			disabled = append(disabled, trigger.ImageChangeParams.From.Name)
 		}
 		if len(disabled) > 0 {
-			reenable := fmt.Sprintf("oc deploy %s --enable-triggers", rolledback.Name)
+			reenable := fmt.Sprintf("oc deploy %s --enable-triggers -n %s", rolledback.Name, o.Namespace)
 			fmt.Fprintf(o.out, "Warning: the following images triggers were disabled: %s\n  You can re-enable them with: %s\n", strings.Join(disabled, ","), reenable)
 		}
 	}

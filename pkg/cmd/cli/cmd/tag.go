@@ -5,15 +5,15 @@ import (
 	"io"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 const (
@@ -116,9 +116,37 @@ func RunTag(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		return err
 	}
 
-	sourceNamespace, sourceNameAndRef, err := parseStreamName(args[0], namespace)
+	ref, err := imageapi.ParseDockerImageReference(args[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid SOURCE: %v", err)
+	}
+	switch sourceKind {
+	case "ImageStreamTag", "ImageStreamImage":
+		if len(ref.Registry) > 0 {
+			return fmt.Errorf("server in SOURCE is only allowed when providing a Docker image")
+		}
+		if ref.Namespace == imageapi.DockerDefaultNamespace {
+			ref.Namespace = namespace
+		}
+		if sourceKind == "ImageStreamTag" {
+			if len(ref.Tag) == 0 {
+				return fmt.Errorf("--source=ImageStreamTag requires a valid <name>:<tag> in SOURCE")
+			}
+		} else {
+			if len(ref.ID) == 0 {
+				return fmt.Errorf("--source=ImageStreamImage requires a valid <name>@<id> in SOURCE")
+			}
+		}
+	case "":
+		if len(ref.ID) > 0 {
+			sourceKind = "ImageStreamImage"
+			break
+		}
+		if len(ref.Tag) > 0 {
+			sourceKind = "ImageStreamTag"
+			break
+		}
+		sourceKind = "DockerImage"
 	}
 
 	osClient, _, err := f.Clients()
@@ -126,25 +154,7 @@ func RunTag(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		return err
 	}
 
-	if len(sourceKind) == 0 {
-		if sourceName, sourceTag, ok := imageapi.SplitImageStreamTag(sourceNameAndRef); ok {
-			if _, err := osClient.ImageStreamTags(sourceNamespace).Get(sourceName, sourceTag); err == nil {
-				sourceKind = "ImageStreamTag"
-			}
-		}
-	}
-
-	if len(sourceKind) == 0 {
-		if sourceName, sourceID, err := imagestreamimage.ParseNameAndID(sourceNameAndRef); err == nil {
-			if _, err := osClient.ImageStreamImages(sourceNamespace).Get(sourceName, sourceID); err == nil {
-				sourceKind = "ImageStreamImage"
-			}
-		}
-	}
-
-	if len(sourceKind) == 0 {
-		sourceKind = "DockerImage"
-	}
+	glog.V(4).Infof("Source tag %s %#v", sourceKind, ref)
 
 	for _, arg := range args[1:] {
 		destNamespace, destNameAndTag, err := parseStreamName(arg, namespace)
@@ -154,7 +164,7 @@ func RunTag(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []stri
 
 		destName, destTag, ok := imageapi.SplitImageStreamTag(destNameAndTag)
 		if !ok {
-			return fmt.Errorf("%q must be of the form <namespace>/<stream name>:<tag>", arg)
+			return fmt.Errorf("%q must be of the form <namespace>/<stream_name>:<tag>", arg)
 		}
 
 		isc := osClient.ImageStreams(destNamespace)
@@ -171,10 +181,6 @@ func RunTag(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []stri
 					Name: destName,
 				},
 			}
-			target, err = isc.Create(target)
-			if err != nil {
-				return nil
-			}
 		}
 
 		if target.Spec.Tags == nil {
@@ -189,17 +195,23 @@ func RunTag(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		targetRef.From = &kapi.ObjectReference{
 			Kind: sourceKind,
 		}
+		localRef := ref
 		switch sourceKind {
 		case "DockerImage":
-			targetRef.From.Name = args[0]
+			targetRef.From.Name = localRef.String()
 		default:
-			targetRef.From.Namespace = sourceNamespace
-			targetRef.From.Name = sourceNameAndRef
+			targetRef.From.Name = localRef.NameString()
+			targetRef.From.Namespace = ref.Namespace
 		}
 
 		target.Spec.Tags[destTag] = targetRef
 
-		if _, err = isc.Update(target); err != nil {
+		if target.CreationTimestamp.IsZero() {
+			_, err = isc.Create(target)
+		} else {
+			_, err = isc.Update(target)
+		}
+		if err != nil {
 			return err
 		}
 	}

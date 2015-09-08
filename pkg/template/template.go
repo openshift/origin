@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
@@ -53,6 +53,10 @@ func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorL
 		if err != nil {
 			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("parameters", template.Parameters, err.Error()))
 		}
+		// If an object definition's metadata includes a namespace field, the field will be stripped out of
+		// the definition during template instantiation.  This is necessary because all objects created during
+		// instantiation are placed into the target namespace, so it would be invalid for the object to declare
+		//a different namespace.
 		stripNamespace(newItem)
 		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
 			util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("labels", err, "label could not be applied"))
@@ -168,6 +172,11 @@ func (p *Processor) GenerateParameterValues(t *api.Template) error {
 			if !ok {
 				return fmt.Errorf("template.parameters[%v]: Unable to convert the generated value '%#v' to string", i, value)
 			}
+		}
+		if len(param.Value) == 0 && param.Required {
+			err := fielderrors.NewFieldRequired(fmt.Sprintf("parameters[%d].value", i))
+			err.Detail = fmt.Sprintf("parameter %s is required and must be specified", param.Name)
+			return err
 		}
 	}
 	return nil

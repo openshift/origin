@@ -152,6 +152,7 @@
   border-radius: 3px;
   margin-bottom: 10px;
   margin-right: 10px;
+  overflow: hidden;
   .pod-template {
     border: 1px dotted #ddd;
     border-radius: @border-radius-md;
@@ -161,14 +162,13 @@
     }
     .fa {
       margin-right: 5px;
+      // Make sure the icons are exactly the same width so the labels align.
+      width: 13px;
     }
   }
   .pod-template-ports {
     .font-icon-block {
       margin-right: 8px;
-    }
-    .port-number {
-      display: inline-block;
     }
   }
 }

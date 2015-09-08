@@ -5,7 +5,7 @@ OpenShift Developers <dev@lists.openshift.redhat.com>
 :toc2:
 :sectanchors:
 
-The OpenShift architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/GoogleCloudPlatform/kubernetes[Kubernetes] to deliver a powerful new https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service] system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.  Kubernetes is included in this repo for ease of development, and the version we include is periodically updated.
+The OpenShift architecture builds upon the flexibility and scalability of https://docker.com/[Docker] and https://github.com/kubernetes/kubernetes[Kubernetes] to deliver a powerful new https://www.youtube.com/watch?v=aZ40GobvA1c[Platform-as-a-Service] system. This article explains how to set up a development environment and get involved with this latest version of OpenShift.  Kubernetes is included in this repo for ease of development, and the version we include is periodically updated.
 
 To get started you can either:
 
@@ -24,7 +24,7 @@ The OpenShift team periodically publishes binaries to GitHub on https://github.c
 
 The tar file for each platform contains a single binary `openshift` which is the all-in-one OpenShift installation.
 
-* Use `sudo openshift start` to launch the server.  Root access is required to create services due to the need to modify IPTables.  See issue: https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.
+* Use `sudo openshift start` to launch the server.  Root access is required to create services due to the need to modify IPTables.  See issue: https://github.com/kubernetes/kubernetes/issues/1859.
 * Use `oc login <server> ...` to connect to an OpenShift server
 * Use `openshift help` to see more about the commands in the binary
 
@@ -121,8 +121,9 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
         $ git remote add upstream git://github.com/openshift/origin
 
 
-4.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.):
+4.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.).  Also note, for the `make clean build` in step 6 to work, a sufficient amount of memory needs to be allocated for the VM, where that amount of memory is not necessarily needed if you are not doing a compile, but simply running openshift (and hence is not set as the default):
 
+        $ export OPENSHIFT_MEMORY=2096
         $ vagrant up
 
 5.  SSH in:
@@ -137,10 +138,10 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 7.  Now change into the directory with the OpenShift binaries, and start the OpenShift server:
 
         $ cd _output/local/go/bin
-        $ sudo ./openshift start --public-master=localhost &> logs/openshift.log &
+        $ sudo ./openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
 
 +
-NOTE: when using vagrant synced folder (by default your origin directory is mounted using synced folder into `/data/src/github.com/openshift/origin`) it is advised to use a different directory for volume storage than the one in the synced folder. This can be achieved by passing `--volume-dir=/absolute/path` to `openshift start` command.
+NOTE: By default your origin directory will be mounted as a vagrant synced folder into `/data/src/github.com/openshift/origin`, but it is advised to use a different directory for volume storage than the one for the origin directory vagrant synced folder. Hence in the above example of the `openshift start` command invocation the `--volume-dir=</absolute/path>` option is supplied.
 
 8.  On your host system, try browsing to: https://localhost:8443/console
 
@@ -154,12 +155,14 @@ NOTE: when using vagrant synced folder (by default your origin directory is moun
 
 11.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
 
-        $ sudo killall openshift
+        $ sudo pkill openshift
         $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
         $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
         $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
+        $ mount | grep < "\/absolute\/path", where that is the value passed to the `--volume-dir` argument on openshift start >  | awk '{ print $3}' | xargs -l -r sudo umount
+        $ sudo rm -rf < "\/absolute\/path", where again that is the  value passed to the `--volume-dir`argument >
 
-TIP: To ensure you get the latest image.  First run `vagrant box remove fedora_inst` and `vagrant box remove fedora_deps`.
+TIP: To ensure you get the latest image.  First run `vagrant box remove fedora_inst`.  And if later on you employ a dev cluster, additionally run  `vagrant box remove fedora_deps`.
 
 TIP: See https://github.com/openshift/vagrant-openshift for more advanced options
 
@@ -199,7 +202,7 @@ https://github.com/openshift/origin[github.com/openshift/origin]
 Ready to play with some code? Hop down and read up on our link:#_the_roadmap[roadmap] for ideas on where you can contribute.
 
 *If you are interested in contributing to Kubernetes directly:* +
-https://github.com/GoogleCloudPlatform/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/GoogleCloudPlatform/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
+https://github.com/kubernetes/kubernetes#community-discussion-and-support[Join the Kubernetes community] and check out the https://github.com/kubernetes/kubernetes/blob/master/CONTRIBUTING.md[contributing guide].
 
 == Troubleshooting
 

@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/runtime"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
@@ -40,7 +40,7 @@ func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 
 // NewBuildPipeline creates a new pipeline with components that are
 // expected to be built
-func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy *BuildStrategyRef, source *SourceRef) (*Pipeline, error) {
+func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy *BuildStrategyRef, env Environment, source *SourceRef) (*Pipeline, error) {
 	name, ok := NameSuggestions{source, input}.SuggestName()
 	if !ok {
 		name = fmt.Sprintf("app%d", rand.Intn(10000))
@@ -66,6 +66,7 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 		Input:    input,
 		Strategy: strategy,
 		Output:   output,
+		Env:      env,
 	}
 
 	return &Pipeline{
@@ -242,7 +243,7 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 				}
 			}
 			if len(svc.Spec.Ports) == 0 {
-				glog.Warningf("A service will not be generated for DeploymentConfig %q because no exposed ports were detected. Use 'oc expose dc %q --port=[port] --generator=service/v1' to create a service.", t.Name, t.Name)
+				glog.Warningf("A service will not be generated for DeploymentConfig %q because no exposed ports were detected. Use 'oc expose dc %q --port=[port]' to create a service.", t.Name, t.Name)
 				continue
 			}
 			svcs = append(svcs, svc)
@@ -301,7 +302,7 @@ func (a *acceptUnique) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	key := fmt.Sprintf("%s/%s", kind, meta.Name)
+	key := fmt.Sprintf("%s/%s/%s", kind, meta.Namespace, meta.Name)
 	_, exists := a.objects[key]
 	if exists {
 		return false

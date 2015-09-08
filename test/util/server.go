@@ -9,12 +9,12 @@ import (
 	"path"
 	"time"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
@@ -28,10 +28,6 @@ import (
 // ServiceAccountWaitTimeout is used to determine how long to wait for the service account
 // controllers to start up, and populate the service accounts in the test namespace
 const ServiceAccountWaitTimeout = 30 * time.Second
-
-func init() {
-	RequireEtcd()
-}
 
 // RequireServer verifies if the etcd, docker and the OpenShift server are
 // available and you can successfully connected to them.
@@ -123,7 +119,14 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 		return nil, err
 	}
 
-	return startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	masterConfig, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
+	masterConfig.ServiceAccountConfig.LimitSecretReferences = true
+	return masterConfig, nil
 }
 
 func CreateBootstrapPolicy(masterArgs *start.MasterArgs) error {
@@ -185,6 +188,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
 	}
 
 	createNodeConfig := admin.NewDefaultCreateNodeConfigOptions()
+	createNodeConfig.Output = os.Stdout
 	createNodeConfig.SignerCertOptions = getSignerOptions
 	createNodeConfig.NodeConfigDir = nodeArgs.ConfigDir.Value()
 	createNodeConfig.NodeName = nodeArgs.NodeName
@@ -204,19 +208,19 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
 }
 
 func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, error) {
-	startOptions := start.AllInOneOptions{}
-	startOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions()
-	startOptions.MasterArgs.NodeList = nil
+	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
+	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions()
+	startOptions.MasterOptions.MasterArgs.NodeList = nil
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.Complete()
-	startOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", "master"))
+	startOptions.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", "master"))
 	startOptions.NodeArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
-	startOptions.NodeArgs.MasterCertDir = startOptions.MasterArgs.ConfigDir.Value()
+	startOptions.NodeArgs.MasterCertDir = startOptions.MasterOptions.MasterArgs.ConfigDir.Value()
 
-	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
+	if err := CreateMasterCerts(startOptions.MasterOptions.MasterArgs); err != nil {
 		return nil, nil, err
 	}
-	if err := CreateBootstrapPolicy(startOptions.MasterArgs); err != nil {
+	if err := CreateBootstrapPolicy(startOptions.MasterOptions.MasterArgs); err != nil {
 		return nil, nil, err
 	}
 
@@ -224,7 +228,7 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, e
 		return nil, nil, err
 	}
 
-	masterOptions, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	masterOptions, err := startOptions.MasterOptions.MasterArgs.BuildSerializeableMasterConfig()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -250,14 +254,14 @@ func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *c
 	return adminKubeConfigFile, nil
 }
 
-func StartTestAllInOne() (*configapi.MasterConfig, string, error) {
+func StartTestAllInOne() (*configapi.MasterConfig, *configapi.NodeConfig, string, error) {
 	master, node, err := DefaultAllInOneOptions()
 	if err != nil {
-		return nil, "", err
+		return nil, nil, "", err
 	}
 
 	adminKubeConfigFile, err := StartConfiguredAllInOne(master, node)
-	return master, adminKubeConfigFile, err
+	return master, node, adminKubeConfigFile, err
 }
 
 type TestOptions struct {
@@ -277,7 +281,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 		DeleteAllEtcdKeys()
 	}
 
-	if err := start.StartMaster(masterConfig); err != nil {
+	if err := start.NewMaster(masterConfig, true, true).Start(); err != nil {
 		return "", err
 	}
 	adminKubeConfigFile := KubeConfigPath()
@@ -347,13 +351,14 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Co
 		return nil, err
 	}
 
-	return GetClientForUser(clientConfig, adminUser)
+	client, _, _, err := GetClientForUser(clientConfig, adminUser)
+	return client, err
 }
 
-func GetClientForUser(clientConfig kclient.Config, username string) (*client.Client, error) {
+func GetClientForUser(clientConfig kclient.Config, username string) (*client.Client, *kclient.Client, *kclient.Config, error) {
 	token, err := tokencmd.RequestToken(&clientConfig, nil, username, "password")
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	userClientConfig := clientConfig
@@ -365,5 +370,15 @@ func GetClientForUser(clientConfig kclient.Config, username string) (*client.Cli
 	userClientConfig.TLSClientConfig.CertData = nil
 	userClientConfig.TLSClientConfig.KeyData = nil
 
-	return client.New(&userClientConfig)
+	kubeClient, err := kclient.New(&userClientConfig)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	osClient, err := client.New(&userClientConfig)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return osClient, kubeClient, &userClientConfig, nil
 }

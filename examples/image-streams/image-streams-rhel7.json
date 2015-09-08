@@ -1,11 +1,11 @@
 {
   "kind": "ImageStreamList",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {},
   "items": [
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "ruby",
         "creationTimestamp": null
@@ -35,7 +35,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "nodejs",
         "creationTimestamp": null
@@ -65,7 +65,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "perl",
         "creationTimestamp": null
@@ -95,7 +95,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "php",
         "creationTimestamp": null
@@ -125,7 +125,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "python",
         "creationTimestamp": null
@@ -155,7 +155,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "mysql",
         "creationTimestamp": null
@@ -178,7 +178,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "postgresql",
         "creationTimestamp": null
@@ -201,7 +201,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "mongodb",
         "creationTimestamp": null
@@ -214,6 +214,29 @@
           },
           {
             "name": "2.4",
+            "from": {
+              "Kind": "ImageStreamTag",
+              "Name": "latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "jenkins",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "dockerImageRepository": "registry.access.redhat.com/openshift3/jenkins-1-rhel7",
+        "tags": [
+          {
+            "name": "latest"
+          },
+          {
+            "name": "1",
             "from": {
               "Kind": "ImageStreamTag",
               "Name": "latest"

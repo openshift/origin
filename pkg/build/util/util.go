@@ -3,7 +3,7 @@ package util
 import (
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/util/namer"
@@ -34,10 +34,19 @@ func GetBuildName(pod *kapi.Pod) string {
 func GetImageStreamForStrategy(strategy buildapi.BuildStrategy) *kapi.ObjectReference {
 	switch strategy.Type {
 	case buildapi.SourceBuildStrategyType:
+		if strategy.SourceStrategy == nil {
+			return nil
+		}
 		return &strategy.SourceStrategy.From
 	case buildapi.DockerBuildStrategyType:
+		if strategy.DockerStrategy == nil {
+			return nil
+		}
 		return strategy.DockerStrategy.From
 	case buildapi.CustomBuildStrategyType:
+		if strategy.CustomStrategy == nil {
+			return nil
+		}
 		return &strategy.CustomStrategy.From
 	default:
 		return nil

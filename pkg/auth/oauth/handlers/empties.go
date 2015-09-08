@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	authapi "github.com/openshift/origin/pkg/auth/api"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type EmptyAuth struct{}

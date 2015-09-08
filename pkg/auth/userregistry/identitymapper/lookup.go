@@ -1,8 +1,8 @@
 package identitymapper
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kuser "github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kuser "k8s.io/kubernetes/pkg/auth/user"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/user/registry/user"

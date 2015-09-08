@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -7,12 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"golang.org/x/oauth2"
+	kapi "k8s.io/kubernetes/pkg/api"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -61,7 +61,7 @@ func TestOAuthStorage(t *testing.T) {
 	testutil.DeleteAllEtcdKeys()
 	interfaces, _ := latest.InterfacesFor(latest.Version)
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper := tools.NewEtcdHelper(etcdClient, interfaces.Codec, etcdtest.PathPrefix())
+	etcdHelper := etcdstorage.NewEtcdStorage(etcdClient, interfaces.Codec, etcdtest.PathPrefix())
 
 	accessTokenStorage := accesstokenetcd.NewREST(etcdHelper)
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)

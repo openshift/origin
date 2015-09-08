@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kubecmd "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -46,7 +46,7 @@ func NewCmdRsh(fullName string, f *clientcmd.Factory, in io.Reader, out, err io.
 		Long:    fmt.Sprintf(rshLong, fullName),
 		Example: fmt.Sprintf(rshExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			options.Args = []string{executable}
+			options.Command = []string{executable}
 			cmdutil.CheckErr(RunRsh(options, f, cmd, args))
 		},
 	}

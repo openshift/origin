@@ -1,8 +1,8 @@
 package generator
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )

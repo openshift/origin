@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kapiserver "github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapiserver "k8s.io/kubernetes/pkg/apiserver"
 )
 
 type openshiftAuthorizationAttributeBuilder struct {

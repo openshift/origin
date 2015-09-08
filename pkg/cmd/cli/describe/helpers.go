@@ -9,9 +9,9 @@ import (
 
 	"github.com/docker/docker/pkg/units"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -37,7 +37,7 @@ func tabbedString(f func(*tabwriter.Writer) error) (string, error) {
 }
 
 func toString(v interface{}) string {
-	value := fmt.Sprintf("%s", v)
+	value := fmt.Sprintf("%v", v)
 	if len(value) == 0 {
 		value = emptyString
 	}

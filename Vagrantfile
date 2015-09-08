@@ -67,12 +67,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "instance_name"     => "origin-dev",
     "os"                => "fedora",
     "dev_cluster"       => false,
+    "dind_dev_cluster"  => ENV['OPENSHIFT_DIND_DEV_CLUSTER'] || false,
     "insert_key"        => true,
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
-    "memory"            => ENV['OPENSHIFT_MEMORY'] || 1024,
+    "memory"            => ENV['OPENSHIFT_MEMORY'] || 2048,
     "sync_folders_type" => nil,
+    "master_ip"         => ENV['OPENSHIFT_MASTER_IP'] || "10.245.2.2",
+    "minion_ip_base"    => ENV['OPENSHIFT_MINION_IP_BASE'] || "10.245.2.",
     "virtualbox"        => {
       "box_name" => "fedora_inst",
       "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
@@ -91,15 +94,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       "box_url"      => AWS_BOX_URL,
       "ami"          => "<AMI>",
       "ami_region"   => "<AMI_REGION>",
-      "ssh_user"     => "<SSH_USER>",
+      "ssh_user"     => "<SSH_USER>"
     },
     "openstack" => {
       '_see_also_'  => OPENSTACK_CRED_FILE,
       'box_name'    => "openstack-dummy-box",
       'box_url'     => OPENSTACK_BOX_URL,
-      'flavor'      => "m1.tiny",
       'image'       => "Fedora",
-      'ssh_user'    => "root",
+      'ssh_user'    => "root"
     },
   }
 
@@ -113,8 +115,29 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
+  # Determine the OS platform to use
+  kube_os = vagrant_openshift_config['os'] || "fedora"
+
+  # OS platform to box information
+  kube_box = {
+    "fedora" => {
+      "name" => "fedora_deps",
+      "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_deps.box"
+    }
+  }
+
+  dind_dev_cluster = vagrant_openshift_config['dind_dev_cluster']
   dev_cluster = vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
-  if dev_cluster
+  if dind_dev_cluster
+    config.vm.define "#{VM_NAME_PREFIX}dind-host" do |config|
+      config.vm.box = kube_box[kube_os]["name"]
+      config.vm.box_url = kube_box[kube_os]["box_url"]
+      config.vm.provision "shell", inline: "/vagrant/vagrant/provision-full.sh"
+      config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh start"
+      config.vm.hostname = "openshift-dind-host"
+      config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
+    end
+  elsif dev_cluster
     # Start an OpenShift cluster
     # Currently this only works with the (default) VirtualBox provider.
 
@@ -122,21 +145,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     num_minion = (vagrant_openshift_config['num_minions'] || ENV['OPENSHIFT_NUM_MINIONS'] || 2).to_i
 
     # IP configuration
-    master_ip = "10.245.2.2"
-    minion_ip_base = "10.245.2."
+    master_ip = vagrant_openshift_config['master_ip']
+    minion_ip_base = vagrant_openshift_config['minion_ip_base']
     minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+3}" }
     minion_ips_str = minion_ips.join(",")
-
-    # Determine the OS platform to use
-    kube_os = vagrant_openshift_config['os'] || "fedora"
-
-    # OS platform to box information
-    kube_box = {
-      "fedora" => {
-        "name" => "fedora_deps",
-        "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_deps.box"
-      }
-    }
 
     # OpenShift master
     config.vm.define "#{VM_NAME_PREFIX}master" do |config|
@@ -154,7 +166,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion_ip = minion_ips[n]
         minion.vm.box = kube_box[kube_os]["name"]
         minion.vm.box_url = kube_box[kube_os]["box_url"]
-        minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{minion_ip} #{minion_index} #{ENV['OPENSHIFT_SDN']}"
+        minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{minion_ip} #{minion_index}"
         minion.vm.network "private_network", ip: "#{minion_ip}"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
       end
@@ -166,8 +178,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ##########################
     # define settings for the single VM being created.
     config.vm.define "#{VM_NAME_PREFIX}openshiftdev", primary: true do |config|
-      config.vm.hostname = "openshiftdev.local"
-
       if vagrant_openshift_config['rebuild_yum_cache']
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
@@ -263,7 +273,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       os.username     = ENV['OS_USERNAME']    || creds['OSUsername']
       os.api_key      = ENV['OS_PASSWORD']    || creds['OSAPIKey']
       os.keypair_name = voc['key_pair']       || creds['OSKeyPairName'] || "<OSKeypair>" # as stored in Nova
-      os.flavor       = voc['flavor']         || creds['OSFlavor']   || /m1.small/       # Regex or String
+      os.flavor       = vagrant_openshift_config['instance_type']  || creds['OSFlavor']   || /m1.small/       # Regex or String
       os.image        = voc['image']          || creds['OSImage']    || /Fedora/         # Regex or String
       os.ssh_username = user = voc['ssh_user']|| creds['OSSshUser']  || "root"           # login for the VM instance
       os.server_name  = ENV['OS_HOSTNAME']    || vagrant_openshift_config['instance_name'] # name for the instance created
@@ -299,7 +309,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         aws.keypair_name      = aws_creds["AWSKeyPairName"] || "AWS KEYPAIR NAME"
         aws.ami               = voc['ami']
         aws.region            = voc['ami_region']
-        aws.instance_type     = voc['instance_type'] || "c3.large"
+        aws.subnet_id         = ENV['AWS_SUBNET_ID'] || vagrant_openshift_config['aws']['subnet_id'] || "subnet-cf57c596"
+        aws.instance_type     = ENV['AWS_INSTANCE_TYPE'] || vagrant_openshift_config['instance_type'] || "t2.medium"
         aws.instance_ready_timeout = 240
         aws.tags              = { "Name" => ENV['AWS_HOSTNAME'] || vagrant_openshift_config['instance_name'] }
         aws.user_data         = %{
@@ -314,7 +325,7 @@ runcmd:
         aws.block_device_mapping = [
           {
              "DeviceName" => "/dev/sda1",
-             "Ebs.VolumeSize" => 25,
+             "Ebs.VolumeSize" => vagrant_openshift_config['volume_size'] || 25,
              "Ebs.VolumeType" => "gp2"
           }
         ]

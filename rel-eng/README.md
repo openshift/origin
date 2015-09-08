@@ -1,9 +1,9 @@
 origin-packaging
 ================
 
-OpenShift Origin "Next" (v3) Packaging
+Origin "Next" Packaging
 
-Workspace for collaborating on Next-Gen OpenShift Origin Packaging needs.
+Workspace for collaborating on Next-Gen Origin Packaging needs.
 
 Builds
 ------

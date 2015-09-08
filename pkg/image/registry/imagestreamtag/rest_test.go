@@ -3,14 +3,18 @@ package imagestreamtag
 import (
 	"reflect"
 	"testing"
+	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/coreos/go-etcd/etcd"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/runtime"
+	kstorage "k8s.io/kubernetes/pkg/storage"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/tools"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -50,10 +54,10 @@ func (u *fakeUser) GetGroups() []string {
 	return []string{"group1"}
 }
 
-func setup(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper, *REST) {
+func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
+	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
@@ -146,7 +150,15 @@ func TestGetImageStreamTag(t *testing.T) {
 				},
 				Status: api.ImageStreamStatus{
 					Tags: map[string]api.TagEventList{
-						"latest": {Items: []api.TagEvent{{DockerImageReference: "test", Image: "10"}}},
+						"latest": {
+							Items: []api.TagEvent{
+								{
+									Created:              util.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+									DockerImageReference: "test",
+									Image:                "10",
+								},
+							},
+						},
 					},
 				},
 			},
@@ -251,6 +263,9 @@ func TestGetImageStreamTag(t *testing.T) {
 			}
 			if e, a := map[string]string{"size": "large", "color": "blue"}, actual.Image.Annotations; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s: annotations: expected %v, got %v", name, e, a)
+			}
+			if e, a := util.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC), actual.CreationTimestamp; !a.Equal(e) {
+				t.Errorf("%s: timestamp: expected %v, got %v", name, e, a)
 			}
 		}
 	}
@@ -394,7 +409,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		}
 
 		updatedRepo := &api.ImageStream{}
-		if err := helper.ExtractObj("/imagestreams/default/test", updatedRepo, false); err != nil {
+		if err := helper.Get("/imagestreams/default/test", updatedRepo, false); err != nil {
 			t.Fatalf("%s: error retrieving updated repo: %s", name, err)
 		}
 		expected := map[string]api.TagReference{

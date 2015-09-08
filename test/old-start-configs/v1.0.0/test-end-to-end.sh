@@ -13,7 +13,7 @@ iptables --list > /dev/null 2>&1
 if [ $? -ne 0 ]; then
 	sudo iptables --list > /dev/null 2>&1
 	if [ $? -ne 0 ]; then
-		echo "You do not have iptables or sudo privileges.	Kubernetes services will not work without iptables access.	See https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.	Try 'sudo hack/test-end-to-end.sh'."
+		echo "You do not have iptables or sudo privileges.	Kubernetes services will not work without iptables access.	See https://github.com/kubernetes/kubernetes/issues/1859.	Try 'sudo hack/test-end-to-end.sh'."
 		exit 1
 	fi
 fi
@@ -24,7 +24,7 @@ set -o pipefail
 
 CONFIG_ROOT_DIR=$(dirname "${BASH_SOURCE}")/config
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../../..
-source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/test/old-start-configs/v1.0.0/util.sh"
 
 if [[ -z "${BASETMPDIR-}" ]]; then
 	TMPDIR="${TMPDIR:-"/tmp"}"
@@ -95,6 +95,84 @@ GO_OUT="${OS_ROOT}/_output/local/go/bin"
 export PATH="${GO_OUT}:${PATH}"
 
 
+##### COPIED FROM NEW VERSIONS OF OUR SCRIPTS
+function cleanup_openshift {
+	ADMIN_KUBECONFIG="${KUBECONFIG}"
+	ETCD_PORT="${ETCD_PORT:-4001}"
+
+	set +e
+	dump_container_logs
+	
+	echo "[INFO] Dumping all resources to ${LOG_DIR}/export_all.json"
+	oc export all --all-namespaces --raw -o json --config=${ADMIN_KUBECONFIG} > ${LOG_DIR}/export_all.json
+
+	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
+	set_curl_args 0 1
+	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
+	echo
+
+	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
+		echo "[INFO] Tearing down test"
+		kill_all_processes
+
+		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
+			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
+		fi
+		set -u
+	fi
+
+	delete_large_and_empty_logs
+
+	echo "[INFO] Cleanup complete"
+	set -e
+}	
+
+# dump_container_logs writes container logs to $LOG_DIR
+function dump_container_logs()
+{
+	mkdir -p ${LOG_DIR}
+
+	echo "[INFO] Dumping container logs to ${LOG_DIR}"
+	for container in $(docker ps -aq); do
+		container_name=$(docker inspect -f "{{.Name}}" $container)
+		# strip off leading /
+		container_name=${container_name:1}
+		if [[ "$container_name" =~ ^k8s_ ]]; then
+			pod_name=$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $4 }')
+			container_name=${pod_name}-$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $2 }')
+		fi
+		docker logs "$container" >&"${LOG_DIR}/container-${container_name}.log"
+	done
+}
+
+# kill_all_processes function will kill all 
+# all processes created by the test script.
+function kill_all_processes()
+{
+	sudo=
+	if type sudo &> /dev/null; then
+	sudo=sudo
+	fi
+
+	pids=($(jobs -pr))
+	for i in ${pids[@]}; do
+	ps --ppid=${i} | xargs $sudo kill &> /dev/null
+	$sudo kill ${i} &> /dev/null &> /dev/null
+	done
+}
+
+# delete_large_and_empty_logs deletes empty logs and logs over 20MB
+function delete_large_and_empty_logs()
+{
+	# clean up zero byte log files
+	# Clean up large log files so they don't end up on jenkins
+	find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
+}
+##### END CLEANUP COPY
+
 function cleanup()
 {
 	out=$?
@@ -106,50 +184,7 @@ function cleanup()
 	fi
 	echo
 
-	set +e
-	echo "[INFO] Dumping container logs to ${LOG_DIR}"
-	for container in $(docker ps -aq); do
-		docker logs "$container" >&"${LOG_DIR}/container-$container.log"
-	done
-
-	echo "[INFO] Dumping build log to ${LOG_DIR}"
-
-	oc get -n test builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n test >"${LOG_DIR}/stibuild.log"
-	oc get -n docker builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
-	oc get -n custom builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n custom >"${LOG_DIR}/custombuild.log"
-
-	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
-	set_curl_args 0 1
-	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:4001/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-	echo
-
-	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-		echo "[INFO] Deleting test constructs"
-		oc delete -n test all --all
-		oc delete -n docker all --all
-		oc delete -n custom all --all
-		oc delete -n cache all --all
-		oc delete -n default all --all
-
-		echo "[INFO] Tearing down test"
-		pids="$(jobs -pr)"
-		echo "[INFO] Children: ${pids}"
-		sudo kill ${pids}
-		sudo ps f
-		set +u
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-		fi
-		set -u
-	fi
-	set -e
-
-	# clean up zero byte log files
-	# Clean up large log files so they don't end up on jenkins
-	find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
+	cleanup_openshift
 
 	echo "[INFO] Exiting"
 	exit $out
@@ -242,6 +277,13 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.2
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 
+# COMPATIBILITY update the cluster roles so that new images can be used.
+oadm policy reconcile-cluster-roles --confirm
+# COMPATIBILITY create a service account for the router
+echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
+# COMPATIBILITY add the router SA to the privileged SCC so that it can be use to create the router
+oc get scc privileged -o json | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f -
+
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default
 
@@ -256,7 +298,8 @@ echo "Log in as 'e2e-user' to see the 'test' project."
 
 # install the router
 echo "[INFO] Installing the router"
-openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}"
+# COMPATIBILITY add --service-account parameter
+openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}" --service-account=router
 
 # install the registry. The --mount-host option is provided to reuse local storage.
 echo "[INFO] Installing the registry"

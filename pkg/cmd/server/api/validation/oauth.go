@@ -2,11 +2,15 @@ package validation
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
-	"github.com/openshift/origin/pkg/auth/authenticator/password/ldappassword"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
+
+	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
+	"github.com/openshift/origin/pkg/auth/ldaputil"
+	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -35,6 +39,10 @@ func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 
 	providerNames := util.NewStringSet()
 	redirectingIdentityProviders := []string{}
+
+	challengeIssuingIdentityProviders := []string{}
+	challengeRedirectingIdentityProviders := []string{}
+
 	for i, identityProvider := range config.IdentityProviders {
 		if identityProvider.UseAsLogin {
 			redirectingIdentityProviders = append(redirectingIdentityProviders, identityProvider.Name)
@@ -43,6 +51,16 @@ func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 				if config.SessionConfig == nil {
 					validationResults.AddErrors(fielderrors.NewFieldInvalid("sessionConfig", config, "sessionConfig is required if a password identity provider is used for browser based login"))
 				}
+			}
+		}
+
+		if identityProvider.UseAsChallenger {
+			// RequestHeaderIdentityProvider is special, it can only react to challenge clients by redirecting them
+			// Make sure we don't have more than a single redirector, and don't have a mix of challenge issuers and redirectors
+			if _, isRequestHeader := identityProvider.Provider.Object.(*api.RequestHeaderIdentityProvider); isRequestHeader {
+				challengeRedirectingIdentityProviders = append(challengeRedirectingIdentityProviders, identityProvider.Name)
+			} else {
+				challengeIssuingIdentityProviders = append(challengeIssuingIdentityProviders, identityProvider.Name)
 			}
 		}
 
@@ -57,7 +75,29 @@ func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 	}
 
 	if len(redirectingIdentityProviders) > 1 {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("identityProviders", config.IdentityProviders, fmt.Sprintf("only one identity provider can support login for a browser, found: %v", redirectingIdentityProviders)))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("identityProviders", "login", fmt.Sprintf("only one identity provider can support login for a browser, found: %v", strings.Join(redirectingIdentityProviders, ", "))))
+	}
+	if len(challengeRedirectingIdentityProviders) > 1 {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("identityProviders", "challenge", fmt.Sprintf("only one identity provider can redirect clients requesting an authentication challenge, found: %v", strings.Join(challengeRedirectingIdentityProviders, ", "))))
+	}
+	if len(challengeRedirectingIdentityProviders) > 0 && len(challengeIssuingIdentityProviders) > 0 {
+		validationResults.AddErrors(
+			fielderrors.NewFieldInvalid("identityProviders", "challenge", fmt.Sprintf(
+				"cannot mix providers that redirect clients requesting auth challenges (%s) with providers issuing challenges to those clients (%s)",
+				strings.Join(challengeRedirectingIdentityProviders, ", "),
+				strings.Join(challengeIssuingIdentityProviders, ", "),
+			)))
+	}
+
+	if config.Templates != nil && len(config.Templates.Login) > 0 {
+		content, err := ioutil.ReadFile(config.Templates.Login)
+		if err != nil {
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("templates.login", config.Templates.Login, "could not read file"))
+		} else {
+			for _, err = range login.ValidateLoginTemplate(content) {
+				validationResults.AddErrors(fielderrors.NewFieldInvalid("templates.login", config.Templates.Login, err.Error()))
+			}
+		}
 	}
 
 	return validationResults
@@ -78,7 +118,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 	} else {
 		switch provider := identityProvider.Provider.Object.(type) {
 		case (*api.RequestHeaderIdentityProvider):
-			validationResults.AddErrors(ValidateRequestHeaderIdentityProvider(provider, identityProvider)...)
+			validationResults.Append(ValidateRequestHeaderIdentityProvider(provider, identityProvider))
 
 		case (*api.BasicAuthPasswordIdentityProvider):
 			validationResults.AddErrors(ValidateRemoteConnectionInfo(provider.RemoteConnectionInfo).Prefix("provider")...)
@@ -87,7 +127,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 			validationResults.AddErrors(ValidateFile(provider.File, "provider.file")...)
 
 		case (*api.LDAPPasswordIdentityProvider):
-			validationResults.Append(ValidateLDAPIdentityProvider(provider, identityProvider))
+			validationResults.Append(ValidateLDAPIdentityProvider(provider))
 
 		case (*api.GitHubIdentityProvider):
 			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
@@ -104,7 +144,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 	return validationResults
 }
 
-func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, identityProvider api.IdentityProvider) ValidationResults {
+func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if len(provider.URL) == 0 {
@@ -112,7 +152,7 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, id
 		return validationResults
 	}
 
-	u, err := ldappassword.ParseURL(provider.URL)
+	u, err := ldaputil.ParseURL(provider.URL)
 	if err != nil {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.url", provider.URL, err.Error()))
 		return validationResults
@@ -127,7 +167,7 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, id
 	}
 
 	if provider.Insecure {
-		if u.Scheme == ldappassword.SchemeLDAPS {
+		if u.Scheme == ldaputil.SchemeLDAPS {
 			validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.url", provider.URL, fmt.Sprintf("Cannot use %s scheme with insecure=true", u.Scheme)))
 		}
 		if len(provider.CA) > 0 {
@@ -140,7 +180,7 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, id
 	}
 
 	// At least one attribute to use as the user id is required
-	if len(provider.Attributes.ID) == 0 {
+	if len(provider.LDAPEntryAttributeMapping.ID) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.attributes.id", "[]", "at least one id attribute is required (LDAP standard identity attribute is 'dn')"))
 	}
 
@@ -152,23 +192,59 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider, id
 	return validationResults
 }
 
-func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityProvider, identityProvider api.IdentityProvider) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityProvider, identityProvider api.IdentityProvider) ValidationResults {
+	validationResults := ValidationResults{}
 
 	if len(provider.ClientCA) > 0 {
-		allErrs = append(allErrs, ValidateFile(provider.ClientCA, "provider.clientCA")...)
+		validationResults.AddErrors(ValidateFile(provider.ClientCA, "provider.clientCA")...)
 	}
 	if len(provider.Headers) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("provider.headers"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("provider.headers"))
 	}
-	if identityProvider.UseAsChallenger {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("challenge", identityProvider.UseAsChallenger, "request header providers cannot be used for challenges"))
+	if identityProvider.UseAsChallenger && len(provider.ChallengeURL) == 0 {
+		err := fielderrors.NewFieldRequired("provider.challengeURL")
+		err.Detail = "challengeURL is required if challenge=true"
+		validationResults.AddErrors(err)
 	}
-	if identityProvider.UseAsLogin {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("login", identityProvider.UseAsChallenger, "request header providers cannot be used for browser login"))
+	if identityProvider.UseAsLogin && len(provider.LoginURL) == 0 {
+		err := fielderrors.NewFieldRequired("provider.loginURL")
+		err.Detail = "loginURL is required if login=true"
+		validationResults.AddErrors(err)
 	}
 
-	return allErrs
+	if len(provider.ChallengeURL) > 0 {
+		url, urlErrs := ValidateURL(provider.ChallengeURL, "provider.challengeURL")
+		validationResults.AddErrors(urlErrs...)
+		if len(urlErrs) == 0 && !strings.Contains(url.RawQuery, redirector.URLToken) && !strings.Contains(url.RawQuery, redirector.QueryToken) {
+			validationResults.AddWarnings(
+				fielderrors.NewFieldInvalid(
+					"provider.challengeURL",
+					provider.ChallengeURL,
+					fmt.Sprintf("query does not include %q or %q, redirect will not preserve original authorize parameters", redirector.URLToken, redirector.QueryToken),
+				),
+			)
+		}
+	}
+	if len(provider.LoginURL) > 0 {
+		url, urlErrs := ValidateURL(provider.LoginURL, "provider.loginURL")
+		validationResults.AddErrors(urlErrs...)
+		if len(urlErrs) == 0 && !strings.Contains(url.RawQuery, redirector.URLToken) && !strings.Contains(url.RawQuery, redirector.QueryToken) {
+			validationResults.AddWarnings(
+				fielderrors.NewFieldInvalid(
+					"provider.loginURL",
+					provider.LoginURL,
+					fmt.Sprintf("query does not include %q or %q, redirect will not preserve original authorize parameters", redirector.URLToken, redirector.QueryToken),
+				),
+			)
+		}
+	}
+
+	// Warn if it looks like they expect direct requests to the OAuth endpoints, and have not secured the header checking with a client certificate check
+	if len(provider.ClientCA) == 0 && (len(provider.ChallengeURL) > 0 || len(provider.LoginURL) > 0) {
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("provider.clientCA", "", "if no clientCA is set, no request verification is done, and any request directly against the OAuth server can impersonate any identity from this provider"))
+	}
+
+	return validationResults
 }
 
 func ValidateOAuthIdentityProvider(clientID, clientSecret string, challenge bool) fielderrors.ValidationErrorList {

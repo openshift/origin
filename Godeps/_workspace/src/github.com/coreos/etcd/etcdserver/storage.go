@@ -15,7 +15,7 @@
 package etcdserver
 
 import (
-	"log"
+	"io"
 	"os"
 	"path"
 
@@ -36,11 +36,6 @@ type Storage interface {
 	Save(st raftpb.HardState, ents []raftpb.Entry) error
 	// SaveSnap function saves snapshot to the underlying stable storage.
 	SaveSnap(snap raftpb.Snapshot) error
-
-	// TODO: WAL should be able to control cut itself. After implement self-controlled cut,
-	// remove it in this interface.
-	// Cut cuts out a new wal file for saving new state and entries.
-	Cut() error
 	// Close closes the Storage and performs finalization.
 	Close() error
 }
@@ -57,15 +52,15 @@ func NewStorage(w *wal.WAL, s *snap.Snapshotter) Storage {
 // SaveSnap saves the snapshot to disk and release the locked
 // wal files since they will not be used.
 func (st *storage) SaveSnap(snap raftpb.Snapshot) error {
-	err := st.Snapshotter.SaveSnap(snap)
-	if err != nil {
-		return err
-	}
 	walsnap := walpb.Snapshot{
 		Index: snap.Metadata.Index,
 		Term:  snap.Metadata.Term,
 	}
-	err = st.WAL.SaveSnapshot(walsnap)
+	err := st.WAL.SaveSnapshot(walsnap)
+	if err != nil {
+		return err
+	}
+	err = st.Snapshotter.SaveSnap(snap)
 	if err != nil {
 		return err
 	}
@@ -77,13 +72,31 @@ func (st *storage) SaveSnap(snap raftpb.Snapshot) error {
 }
 
 func readWAL(waldir string, snap walpb.Snapshot) (w *wal.WAL, id, cid types.ID, st raftpb.HardState, ents []raftpb.Entry) {
-	var err error
-	if w, err = wal.Open(waldir, snap); err != nil {
-		log.Fatalf("etcdserver: open wal error: %v", err)
-	}
-	var wmetadata []byte
-	if wmetadata, st, ents, err = w.ReadAll(); err != nil {
-		log.Fatalf("etcdserver: read wal error: %v", err)
+	var (
+		err       error
+		wmetadata []byte
+	)
+
+	repaired := false
+	for {
+		if w, err = wal.Open(waldir, snap); err != nil {
+			plog.Fatalf("open wal error: %v", err)
+		}
+		if wmetadata, st, ents, err = w.ReadAll(); err != nil {
+			w.Close()
+			// we can only repair ErrUnexpectedEOF and we never repair twice.
+			if repaired || err != io.ErrUnexpectedEOF {
+				plog.Fatalf("read wal error (%v) and cannot be repaired", err)
+			}
+			if !wal.Repair(waldir) {
+				plog.Fatalf("WAL error (%v) cannot be repaired", err)
+			} else {
+				plog.Infof("repaired WAL error (%v)", err)
+				repaired = true
+			}
+			continue
+		}
+		break
 	}
 	var metadata pb.Metadata
 	pbutil.MustUnmarshal(&metadata, wmetadata)
@@ -97,10 +110,10 @@ func readWAL(waldir string, snap walpb.Snapshot) (w *wal.WAL, id, cid types.ID, 
 func upgradeDataDir(baseDataDir string, name string, ver version.DataDirVersion) error {
 	switch ver {
 	case version.DataDir0_4:
-		log.Print("etcdserver: converting v0.4 log to v2.0")
+		plog.Infof("converting v0.4 log to v2.0")
 		err := migrate.Migrate4To2(baseDataDir, name)
 		if err != nil {
-			log.Fatalf("etcdserver: failed migrating data-dir: %v", err)
+			plog.Fatalf("failed to migrate data-dir (%v)", err)
 			return err
 		}
 		fallthrough
@@ -113,7 +126,6 @@ func upgradeDataDir(baseDataDir string, name string, ver version.DataDirVersion)
 	case version.DataDir2_0_1:
 		fallthrough
 	default:
-		log.Printf("etcdserver: datadir is valid for the 2.0.1 format")
 	}
 	return nil
 }

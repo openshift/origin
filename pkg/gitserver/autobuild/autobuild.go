@@ -2,16 +2,17 @@ package autobuild
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"path/filepath"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -36,7 +37,7 @@ var ErrNotEnabled = fmt.Errorf("not enabled")
 func NewAutoLinkBuildsFromEnvironment() (*AutoLinkBuilds, error) {
 	config := &AutoLinkBuilds{}
 
-	file := os.Getenv("AUTOLINK_CONFIG")
+	file := os.Getenv("AUTOLINK_KUBECONFIG")
 	if len(file) == 0 {
 		return nil, ErrNotEnabled
 	}
@@ -74,6 +75,13 @@ func NewAutoLinkBuildsFromEnvironment() (*AutoLinkBuilds, error) {
 }
 
 func clientFromConfig(path string) (*kclient.Config, string, error) {
+	if path == "-" {
+		cfg, err := kclient.InClusterConfig()
+		if err != nil {
+			return nil, "", fmt.Errorf("cluster config not available: %v", err)
+		}
+		return cfg, "", nil
+	}
 	rules := &kclientcmd.ClientConfigLoadingRules{ExplicitPath: path}
 	credentials, err := rules.Load()
 	if err != nil {
@@ -89,6 +97,7 @@ func clientFromConfig(path string) (*kclient.Config, string, error) {
 }
 
 func (a *AutoLinkBuilds) Link() (map[string]gitserver.Clone, error) {
+	log.Printf("Linking build configs in namespace(s) %v to the gitserver", a.Namespaces)
 	errs := []error{}
 	builders := []*buildapi.BuildConfig{}
 	for _, namespace := range a.Namespaces {
@@ -174,12 +183,18 @@ func (a *AutoLinkBuilds) Link() (map[string]gitserver.Clone, error) {
 				errs = append(errs, err)
 				continue
 			}
+			log.Printf("Linked %s for repo %s as %s", builder.Name, origin.String(), self.String())
+		} else {
+			log.Printf("Already linked %s for repo %s as %s", builder.Name, origin.String(), self.String())
 		}
 
 		clones[name] = gitserver.Clone{
 			URL:   *origin,
 			Hooks: hooks,
 		}
+	}
+	if len(clones) == 0 {
+		log.Printf("No build configs found to link to the gitserver")
 	}
 	return clones, errors.NewAggregate(errs)
 }

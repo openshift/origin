@@ -24,6 +24,8 @@ const (
 type Config struct {
 	// The ip:port SkyDNS should be listening on for incoming DNS requests.
 	DnsAddr string `json:"dns_addr,omitempty"`
+	// The network used to bind DNS - can be 'ip' (both ipv4 and ipv6), 'ipv4', or 'ipv6', defaults to 'ip'
+	BindNetwork string `json:"bind_network,omitempty"`
 	// bind to port(s) activated by systemd. If set to true, this overrides DnsAddr.
 	Systemd bool `json:"systemd,omitempty"`
 	// The domain SkyDNS is authoritative for, defaults to skydns.local.
@@ -79,6 +81,9 @@ func SetDefaults(config *Config) error {
 	if config.DnsAddr == "" {
 		config.DnsAddr = "127.0.0.1:53"
 	}
+	if config.BindNetwork == "" {
+		config.BindNetwork = "ip"
+	}
 	if config.Domain == "" {
 		config.Domain = "skydns.local."
 	}
@@ -108,6 +113,12 @@ func SetDefaults(config *Config) error {
 	}
 	if config.Ndots <= 0 {
 		config.Ndots = 2
+	}
+
+	switch config.BindNetwork {
+	case "ip", "ipv4", "ipv6":
+	default:
+		return fmt.Errorf("%s is not an accepted value for BindNetwork", config.BindNetwork)
 	}
 
 	if len(config.Nameservers) == 0 {

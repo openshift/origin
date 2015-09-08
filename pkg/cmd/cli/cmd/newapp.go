@@ -7,13 +7,13 @@ import (
 	"sort"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	ctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	kapi "k8s.io/kubernetes/pkg/api"
+	ctl "k8s.io/kubernetes/pkg/kubectl"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -33,14 +33,15 @@ var errExit = fmt.Errorf("exit directly")
 
 const (
 	newAppLong = `
-Create a new application in OpenShift by specifying source code, templates, and/or images
+Create a new application by specifying source code, templates, and/or images
 
 This command will try to build up the components of an application using images, templates,
 or code that has a public repository. It will lookup the images on the local Docker installation
-(if available), a Docker registry, or an OpenShift image stream.
+(if available), a Docker registry, an integrated image stream, or stored templates.
+
 If you specify a source code URL, it will set up a build that takes your source code and converts
 it into an image that can run inside of a pod. Local source must be in a git repository that has a
-remote repository that the OpenShift instance can see. The images will be deployed via a deployment
+remote repository that the server can see. The images will be deployed via a deployment
 configuration, and a service will be connected to the first public port of the app. You may either specify
 components using the various existing flags or let new-app autodetect what kind of components
 you have provided.
@@ -48,7 +49,15 @@ you have provided.
 If you provide source code, you may need to run a build with 'start-build' after the
 application is created.`
 
-	newAppExample = `  // Create an application based on the source code in the current git repository (with a public remote) and a Docker image
+	newAppExample = `
+  // List all local templates and image streams that can be used to create an app
+  $ %[1]s new-app --list
+
+  // Search all templates, image streams, and Docker images for the ones that match "ruby"
+  $ %[1]s new-app --search ruby
+
+  // Create an application based on the source code in the current git repository (with a public remote) 
+  // and a Docker image
   $ %[1]s new-app . --docker-image=repo/langimage
 
   // Create a Ruby application based on the provided [image]~[source code] combination
@@ -81,6 +90,19 @@ application is created.`
 
   // Search for "ruby" in stored templates and print the output as an YAML
   $ %[1]s new-app --search --template=ruby --output=yaml`
+
+	newAppNoInput = `You must specify one or more images, image streams, templates, or source code locations to create an application.
+
+To list all local templates and image streams, use:
+
+  $ oc new-app -L
+
+To search templates, image streams, and Docker images that match the arguments provided, use:
+
+  $ oc new-app -S php
+  $ oc new-app -S --template=ruby
+  $ oc new-app -S --image=mysql
+`
 )
 
 // NewCmdNewApplication implements the OpenShift cli new-app command
@@ -105,10 +127,10 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 	cmd.Flags().Var(&config.SourceRepositories, "code", "Source code to use to build this application.")
 	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
-	cmd.Flags().VarP(&config.ImageStreams, "image", "", "Name of an OpenShift image stream to use in the app. (deprecated)")
-	cmd.Flags().VarP(&config.ImageStreams, "image-stream", "i", "Name of an OpenShift image stream to use in the app.")
+	cmd.Flags().VarP(&config.ImageStreams, "image", "", "Name of an image stream to use in the app. (deprecated)")
+	cmd.Flags().VarP(&config.ImageStreams, "image-stream", "i", "Name of an image stream to use in the app.")
 	cmd.Flags().Var(&config.DockerImages, "docker-image", "Name of a Docker image to include in the app.")
-	cmd.Flags().Var(&config.Templates, "template", "Name of an OpenShift stored template to use in the app.")
+	cmd.Flags().Var(&config.Templates, "template", "Name of a stored template to use in the app.")
 	cmd.Flags().VarP(&config.TemplateFiles, "file", "f", "Path to a template file to use for the app.")
 	cmd.Flags().VarP(&config.TemplateParameters, "param", "p", "Specify a list of key value pairs (eg. -p FOO=BAR,BAR=FOO) to set/override parameter values in the template.")
 	cmd.Flags().Var(&config.Groups, "group", "Indicate components that should be grouped together as <comp1>+<comp2>.")
@@ -117,7 +139,8 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this application.")
 	cmd.Flags().BoolVar(&config.InsecureRegistry, "insecure-registry", false, "If true, indicates that the referenced Docker images are on insecure registries and should bypass certificate checking")
-	cmd.Flags().BoolVarP(&config.AsSearch, "search", "S", false, "Search for components that match the arguments provided and print the results.")
+	cmd.Flags().BoolVarP(&config.AsList, "list", "L", false, "List all local templates and image streams that can be used to create.")
+	cmd.Flags().BoolVarP(&config.AsSearch, "search", "S", false, "Search all templates, image streams, and Docker images that match the arguments provided.")
 
 	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
 	// Need a better solution.
@@ -136,8 +159,8 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		return err
 	}
 
-	if config.AsSearch {
-		result, err := config.RunSearch(out, c.Out())
+	if config.Querying() {
+		result, err := config.RunQuery(out, c.Out())
 		if err != nil {
 			return handleRunError(c, err)
 		}
@@ -146,7 +169,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			return f.Factory.PrintObject(c, result.List, out)
 		}
 
-		return printHumanReadableSearchResult(result, out, fullName)
+		return printHumanReadableQueryResult(result, out, fullName)
 	}
 	if err := setAppConfigLabels(c, config); err != nil {
 		return err
@@ -175,14 +198,14 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			}
 			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.ClusterIP, portMappings)
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "A build was created - you can run `%s start-build %s` to start it.\n", fullName, t.Name)
+			fmt.Fprintf(c.Out(), "Build %q created and started - you can run `%s status` to check the progress.\n", t.Name, fullName)
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
 				if hasMissingRepo {
 					continue
 				}
 				hasMissingRepo = true
-				fmt.Fprintf(c.Out(), "WARNING: We created an ImageStream %q, but it does not look like a Docker registry has been integrated with the OpenShift server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
+				fmt.Fprintf(c.Out(), "WARNING: We created an image stream %q, but it does not look like a Docker registry has been integrated with the server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
 			}
 		}
 	}
@@ -296,12 +319,12 @@ func handleRunError(c *cobra.Command, err error) error {
 	}
 	if err == newcmd.ErrNoInputs {
 		// TODO: suggest things to the user
-		return cmdutil.UsageError(c, "You must specify one or more images, image streams, templates or source code locations to create an application.")
+		return cmdutil.UsageError(c, newAppNoInput)
 	}
 	return err
 }
 
-func printHumanReadableSearchResult(r *newcmd.SearchResult, out io.Writer, fullName string) error {
+func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullName string) error {
 	if len(r.Matches) == 0 {
 		return fmt.Errorf("no matches found")
 	}

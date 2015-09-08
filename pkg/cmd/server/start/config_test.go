@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
 	"github.com/openshift/origin/pkg/cmd/util"
+	"k8s.io/kubernetes/pkg/client/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
 )
 
 func TestMasterURLNoPathAllowed(t *testing.T) {
@@ -72,19 +72,6 @@ func TestAssetPublicAddressDefaulting(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	if expected != actual.String() {
-		t.Errorf("expected %v, got %v", expected, actual)
-	}
-}
-
-func TestAssetBindAddressDefaulting(t *testing.T) {
-	bind := "1.2.3.4:9011"
-	expected := "1.2.3.4:9011"
-
-	masterArgs := NewDefaultMasterArgs()
-	masterArgs.ListenArg.ListenAddr.Set(bind)
-
-	actual := masterArgs.GetAssetBindAddress()
-	if expected != actual {
 		t.Errorf("expected %v, got %v", expected, actual)
 	}
 }

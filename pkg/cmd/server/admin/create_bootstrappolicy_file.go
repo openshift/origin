@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubectl"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -36,7 +36,7 @@ func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, ou
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create bootstrap policy for OpenShift",
+		Short: "Create the default bootstrap policy",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -51,7 +51,7 @@ func NewCommandCreateBootstrapPolicyFile(commandName string, fullName string, ou
 	flags := cmd.Flags()
 
 	flags.StringVar(&options.File, "filename", DefaultPolicyFile, "The policy template file that will be written with roles and bindings.")
-	flags.StringVar(&options.OpenShiftSharedResourcesNamespace, "openshift-namespace", "openshift", "Namespace for shared openshift resources.")
+	flags.StringVar(&options.OpenShiftSharedResourcesNamespace, "openshift-namespace", "openshift", "Namespace for shared resources.")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("filename")

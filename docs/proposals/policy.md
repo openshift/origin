@@ -1,7 +1,7 @@
 # Policy
 
 ## Problem
-Policy extends the existing authorization rules in Kubernetes (https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/authorization.md) to fulfill requirements around extended verb sets, verb specific attributes, role based management of attribute based access control, and more efficient evaluation of authorization status at larger scales.  For discussion about verbs, see: https://github.com/GoogleCloudPlatform/kubernetes/issues/2877.  For discussion about allowing mutation of some fields in a resource and not others, see: https://github.com/GoogleCloudPlatform/kubernetes/issues/2726.
+Policy extends the existing authorization rules in Kubernetes (https://github.com/kubernetes/kubernetes/blob/master/docs/admin/authorization.md) to fulfill requirements around extended verb sets, verb specific attributes, role based management of attribute based access control, and more efficient evaluation of authorization status at larger scales.  For discussion about verbs, see: https://github.com/kubernetes/kubernetes/issues/2877.  For discussion about allowing mutation of some fields in a resource and not others, see: https://github.com/kubernetes/kubernetes/issues/2726.
 
 ## Use Cases
  1.  I want to apply the same set of policy rules to large numbers of projects.
@@ -14,7 +14,7 @@ Policy extends the existing authorization rules in Kubernetes (https://github.co
  1. UI (cli or graphical).  This document describes what policy can do, the data required to make policy work, and runtime interactions to fulfill the policy.  It does **not** attempt to describe a UI (cli or graphical) on top of basic resource CRUD.
  1. Groups.  This document assumes that a UserInfo object exists and that it has `UserInfo.getUserName() string` and `UserInfo.getGroupNames() []string`.  How that group information is populated and stored is beyond the scope of making effective policy.
 
-  
+
 ## Policy Example
 There are four fundamental roles: view, edit, admin, and cluster-admin.  Viewers are able to see all resources.  Editors are able to view and edit all resources, except ones related to policy and membership.  Admins are able to modify anything everything except policy rules.  Cluster-admins can modify aything.  The roles are expressed like this:
 ```
@@ -80,7 +80,7 @@ There are four fundamental roles: view, edit, admin, and cluster-admin.  Viewers
 }
 ```
 
-That covers most cases where cluster admins want to create projects and delegate the administration of a project to a project admin.  Then the project admin wants to delegate project level permissions to other users.  
+That covers most cases where cluster admins want to create projects and delegate the administration of a project to a project admin.  Then the project admin wants to delegate project level permissions to other users.
 
 
 ## Basic Concepts
@@ -92,7 +92,7 @@ That covers most cases where cluster admins want to create projects and delegate
  1.  A master namespace exists.  This namespace is configurable from the command line and it is special.  Roles defined in the master namespace can be referenced from any other namespace.  Bindings defined in the master namespace apply to **all** namespaces (an admin in the master namespace can edit any resource in any namespace).
  1.  Roles versus Groups.  A Role is a grouping of PolicyRules.  A group is a grouping of users.  A RoleBinding associates a Role with a set of users and/or groups.  This distinction makes Groups easier to share across projects.
  1.  There are some predefined resourcegroups.  When included as a Resource element in a PolicyRule, they grant permissions to multiple Resources.  For instance, `resourcegroup:deployments` contains `deployments`, `deploymentconfigs`, `generatedeploymentconfigs`, `deploymentconfigrollbacks`.
- 1.  ResourceNames is an optional white list of names that the rule applies to.  This restriction only makes sense for verbs that will provide a name in addition to other information, so operations like `get`, `update`, and `delete`.  An empty set (the default) means that any name is allowed.  
+ 1.  ResourceNames is an optional white list of names that the rule applies to.  This restriction only makes sense for verbs that will provide a name in addition to other information, so operations like `get`, `update`, and `delete`.  An empty set (the default) means that any name is allowed.
 
 Policy Evaluation
 In order to determine whether a request is authorized, the AuthorizationAttributes are tested in the following order:
@@ -188,14 +188,14 @@ Currently, we only have "readonly" and everything else.  This does not give suff
 ### Verb Specific Attributes
 Different verbs will require different attributes.  For instance, a list would have a kind, a get would have an kind and an id, and an update may have a kind, an id, and a list of the fields being modified.  Although exec isn't well defined, it could very well have an entirely distinct set of attributes.  The exact contract rules will be chosen by the Authorizer/AuthorizationAttributeBuilder pair, but basic resource access for openshift should include kind in order to be compatible with existing kubernetes authorization.
 
-#### Why allow Groups instead of simply saying that RoleBindings only have a list of Users?  
+#### Why allow Groups instead of simply saying that RoleBindings only have a list of Users?
 Ease of maintenance and separation of powers.  Groups span namespaces, but RoleBindings do not.  If you specify the full set of users on every RoleBinding, then you have to repeat it for every namespace.  If that membership changes, you now have to update it in multiple locations.  As for the separation of powers, if you have rights to modify a RoleBinding, you have the power to change its permissions (RoleTemplateName) instead of only having the power to change its membership.  It seems reasonable to allow someone to modify group membership ("chubba is mechanic") without also having the ability to modify permissions associated with the group itself ("mechanics are super-admins").  Having Groups distinct from Roles and RoleBindings makes it easy to express this in policy.
 
 ## API
 ### Basic CRUD
-The basic CRUD for Roles and RoleBindings, and Policy is not as straightforward as usual.  
+The basic CRUD for Roles and RoleBindings, and Policy is not as straightforward as usual.
 
-The REST API will respond to gets, lists, creates, updates, and deletes (not watches) at the expected locations for Roles and RoleBindings.  The REST API will respond to gets, lists, and watches (not creates, updates, and deletes) at the expected location for Policy.  
+The REST API will respond to gets, lists, creates, updates, and deletes (not watches) at the expected locations for Roles and RoleBindings.  The REST API will respond to gets, lists, and watches (not creates, updates, and deletes) at the expected location for Policy.
 
 Only one Policy document is allowed per namespace.  Roles and RoleBindings are not stored in etcd.  Instead, requests against their REST endpoints will result in inspection and modification of the Policy document.  This makes it easier to express restrictions on how policy can be manipulated, while making it possible to guarantee of referential integrity for references inside the local namespace.
 
@@ -212,7 +212,7 @@ This API answers the question: which users and groups can perform the specified 
 
 // POSTed like this
 curl -X POST /api/{version}/ns/{namespace}/resourceAccessReviews -d @resource-access-review.json
-// or 
+// or
 accessReviewResult, err := Client.ResourceAccessReviews(namespace).Create(resourceAccessReviewObject)
 
 // output
@@ -275,7 +275,7 @@ This API answers the question: can a user or group (use authenticated user if no
 
 // POSTed like this
 curl -X POST /api/{version}/ns/{namespace}/subjectAccessReviews -d @subject-access-review.json
-// or 
+// or
 accessReviewResult, err := Client.SubjectAccessReviews(namespace).Create(subjectAccessReviewObject)
 
 // output
@@ -329,13 +329,13 @@ type Authorizer interface{
 	Authorize(a AuthorizationAttributes) (allowed bool, reason string, err error)
 
 	// GetAllowedSubjects takes a set of attributes, ignores the UserInfo() and returns back
-	// the users and groups who are allowed to make a request that has those attributes.  This 
+	// the users and groups who are allowed to make a request that has those attributes.  This
 	// API enables the ResourceBasedReview requests below
 	GetAllowedSubjects(attributes AuthorizationAttributes) (users util.StringSet, groups util.StringSet, error)
 }
 
-// AuthorizationAttributeBuilder takes a request and creates AuthorizationAttributes.  
-// Since the attributes returned can vary based on verb type, AuthorizationAttributeBuilders 
+// AuthorizationAttributeBuilder takes a request and creates AuthorizationAttributes.
+// Since the attributes returned can vary based on verb type, AuthorizationAttributeBuilders
 // are paired with Authorizers during registration.
 type AuthorizationAttributeBuilder interface{
 	GetAttributes(request http.Request) (AuthorizationAttributes, error)
@@ -347,7 +347,7 @@ type AuthorizationAttributes interface{
 	GetNamespace() string
 	GetResourceKind() string
 	GetResourceName() string
-	// GetRequestAttributes is of type interface{} because different verbs and different 
+	// GetRequestAttributes is of type interface{} because different verbs and different
 	// Authorizer/AuthorizationAttributeBuilder pairs may have different contract requirements
 	GetRequestAttributes() interface{}
 }
@@ -409,8 +409,8 @@ In addition to constraining basic resources, there are some rules that are more 
 	"namespace": "master",
 	"rules": [
 		{
-			"verbs": ["*"], 
-			"resources": ["pods"],  
+			"verbs": ["*"],
+			"resources": ["pods"],
 			"attributeRestrictions": {
 				"kind": "sameMinionRestriction"
 			}
@@ -429,7 +429,7 @@ In addition to constraining basic resources, there are some rules that are more 
 }
 ```
 
-When Authorizer.Authorize() is called, it will see a 
+When Authorizer.Authorize() is called, it will see a
 ```
 // pretend authorizationAttributes
 {
@@ -441,8 +441,8 @@ When Authorizer.Authorize() is called, it will see a
 
 // kubelet policy rule it extracted based on the role
 {
-	"verbs": ["*"], 
-	"resources": ["Pod"],  
+	"verbs": ["*"],
+	"resources": ["Pod"],
 	"attributeRestrictions": {
 		"kind": "sameMinionRestriction"
 	}
@@ -461,7 +461,7 @@ case "sameMinionRestriction":
 	// if so, return authorized.  if not, return denied
 }
 
-// do normal resource kind restrictions	
+// do normal resource kind restrictions
 
 ```
 

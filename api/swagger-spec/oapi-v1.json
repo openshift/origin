@@ -5,7 +5,7 @@
   "resourcePath": "/oapi/v1",
   "info": {
    "title": "OpenShift v1 REST API",
-   "description": "The OpenShift API exposes operations for managing an OpenShift cluster, including security and user management, application deployments, image and source builds, HTTP(s) routing, and project management."
+   "description": "The OpenShift API exposes operations for managing an enterprise Kubernetes cluster, including security and user management, application deployments, image and source builds, HTTP(s) routing, and project management."
   },
   "apis": [
    {
@@ -16,7 +16,7 @@
       "type": "v1.BuildConfigList",
       "method": "GET",
       "summary": "list or watch objects of kind BuildConfig",
-      "nickname": "listBuildConfig",
+      "nickname": "listNamespacedBuildConfig",
       "parameters": [
        {
         "type": "string",
@@ -85,7 +85,7 @@
       "type": "v1.BuildConfig",
       "method": "POST",
       "summary": "create a BuildConfig",
-      "nickname": "createBuildConfig",
+      "nickname": "createNamespacedBuildConfig",
       "parameters": [
        {
         "type": "string",
@@ -136,7 +136,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of BuildConfig",
-      "nickname": "watchBuildConfigList",
+      "nickname": "watchNamespacedBuildConfigList",
       "parameters": [
        {
         "type": "string",
@@ -211,7 +211,7 @@
       "type": "v1.BuildConfig",
       "method": "GET",
       "summary": "read the specified BuildConfig",
-      "nickname": "readBuildConfig",
+      "nickname": "readNamespacedBuildConfig",
       "parameters": [
        {
         "type": "string",
@@ -256,7 +256,7 @@
       "type": "v1.BuildConfig",
       "method": "PUT",
       "summary": "replace the specified BuildConfig",
-      "nickname": "replaceBuildConfig",
+      "nickname": "replaceNamespacedBuildConfig",
       "parameters": [
        {
         "type": "string",
@@ -309,7 +309,7 @@
       "type": "v1.BuildConfig",
       "method": "PATCH",
       "summary": "partially update the specified BuildConfig",
-      "nickname": "patchBuildConfig",
+      "nickname": "patchNamespacedBuildConfig",
       "parameters": [
        {
         "type": "string",
@@ -364,7 +364,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a BuildConfig",
-      "nickname": "deleteBuildConfig",
+      "nickname": "deleteNamespacedBuildConfig",
       "parameters": [
        {
         "type": "string",
@@ -423,7 +423,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind BuildConfig",
-      "nickname": "watchBuildConfig",
+      "nickname": "watchNamespacedBuildConfig",
       "parameters": [
        {
         "type": "string",
@@ -677,7 +677,7 @@
       "type": "v1.BuildRequest",
       "method": "POST",
       "summary": "create instantiate of a BuildRequest",
-      "nickname": "createBuildRequestInstantiate",
+      "nickname": "createNamespacedBuildRequestInstantiate",
       "parameters": [
        {
         "type": "string",
@@ -736,8 +736,16 @@
       "type": "string",
       "method": "POST",
       "summary": "connect POST requests to webhooks of Status",
-      "nickname": "connectPostStatusWebhooks",
+      "nickname": "connectPostNamespacedStatusWebhooks",
       "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "path",
+        "description": "URL path to use in proxy request to pod",
+        "required": false,
+        "allowMultiple": false
+       },
        {
         "type": "string",
         "paramType": "path",
@@ -772,8 +780,16 @@
       "type": "string",
       "method": "POST",
       "summary": "connect POST requests to webhooks of Status",
-      "nickname": "connectPostStatusWebhooks",
+      "nickname": "connectPostNamespacedStatusWebhooks",
       "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "path",
+        "description": "URL path to use in proxy request to pod",
+        "required": false,
+        "allowMultiple": false
+       },
        {
         "type": "string",
         "paramType": "path",
@@ -816,7 +832,7 @@
       "type": "v1.BuildList",
       "method": "GET",
       "summary": "list or watch objects of kind Build",
-      "nickname": "listBuild",
+      "nickname": "listNamespacedBuild",
       "parameters": [
        {
         "type": "string",
@@ -885,7 +901,7 @@
       "type": "v1.Build",
       "method": "POST",
       "summary": "create a Build",
-      "nickname": "createBuild",
+      "nickname": "createNamespacedBuild",
       "parameters": [
        {
         "type": "string",
@@ -936,7 +952,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of Build",
-      "nickname": "watchBuildList",
+      "nickname": "watchNamespacedBuildList",
       "parameters": [
        {
         "type": "string",
@@ -1011,7 +1027,7 @@
       "type": "v1.Build",
       "method": "GET",
       "summary": "read the specified Build",
-      "nickname": "readBuild",
+      "nickname": "readNamespacedBuild",
       "parameters": [
        {
         "type": "string",
@@ -1056,7 +1072,7 @@
       "type": "v1.Build",
       "method": "PUT",
       "summary": "replace the specified Build",
-      "nickname": "replaceBuild",
+      "nickname": "replaceNamespacedBuild",
       "parameters": [
        {
         "type": "string",
@@ -1109,7 +1125,7 @@
       "type": "v1.Build",
       "method": "PATCH",
       "summary": "partially update the specified Build",
-      "nickname": "patchBuild",
+      "nickname": "patchNamespacedBuild",
       "parameters": [
        {
         "type": "string",
@@ -1164,7 +1180,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a Build",
-      "nickname": "deleteBuild",
+      "nickname": "deleteNamespacedBuild",
       "parameters": [
        {
         "type": "string",
@@ -1223,7 +1239,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind Build",
-      "nickname": "watchBuild",
+      "nickname": "watchNamespacedBuild",
       "parameters": [
        {
         "type": "string",
@@ -1477,7 +1493,7 @@
       "type": "v1.BuildRequest",
       "method": "POST",
       "summary": "create clone of a BuildRequest",
-      "nickname": "createBuildRequestClone",
+      "nickname": "createNamespacedBuildRequestClone",
       "parameters": [
        {
         "type": "string",
@@ -1536,13 +1552,29 @@
       "type": "v1.BuildLog",
       "method": "GET",
       "summary": "read log of the specified BuildLog",
-      "nickname": "readBuildLogLog",
+      "nickname": "readNamespacedBuildLogLog",
       "parameters": [
        {
         "type": "string",
         "paramType": "query",
         "name": "pretty",
         "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "follow",
+        "description": "if true indicates that the log should be streamed; defaults to false",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "nowait",
+        "description": "if true indicates that the server should not wait for a log to be available before returning; defaults to false",
         "required": false,
         "allowMultiple": false
        },
@@ -1587,7 +1619,7 @@
       "type": "v1.ClusterNetworkList",
       "method": "GET",
       "summary": "list or watch objects of kind ClusterNetwork",
-      "nickname": "listClusterNetwork",
+      "nickname": "listNamespacedClusterNetwork",
       "parameters": [
        {
         "type": "string",
@@ -1648,7 +1680,7 @@
       "type": "v1.ClusterNetwork",
       "method": "POST",
       "summary": "create a ClusterNetwork",
-      "nickname": "createClusterNetwork",
+      "nickname": "createNamespacedClusterNetwork",
       "parameters": [
        {
         "type": "string",
@@ -1691,7 +1723,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterNetwork",
-      "nickname": "watchClusterNetworkList",
+      "nickname": "watchNamespacedClusterNetworkList",
       "parameters": [
        {
         "type": "string",
@@ -1758,7 +1790,7 @@
       "type": "v1.ClusterNetwork",
       "method": "GET",
       "summary": "read the specified ClusterNetwork",
-      "nickname": "readClusterNetwork",
+      "nickname": "readNamespacedClusterNetwork",
       "parameters": [
        {
         "type": "string",
@@ -1795,7 +1827,7 @@
       "type": "v1.ClusterNetwork",
       "method": "PUT",
       "summary": "replace the specified ClusterNetwork",
-      "nickname": "replaceClusterNetwork",
+      "nickname": "replaceNamespacedClusterNetwork",
       "parameters": [
        {
         "type": "string",
@@ -1840,7 +1872,7 @@
       "type": "v1.ClusterNetwork",
       "method": "PATCH",
       "summary": "partially update the specified ClusterNetwork",
-      "nickname": "patchClusterNetwork",
+      "nickname": "patchNamespacedClusterNetwork",
       "parameters": [
        {
         "type": "string",
@@ -1887,7 +1919,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a ClusterNetwork",
-      "nickname": "deleteClusterNetwork",
+      "nickname": "deleteNamespacedClusterNetwork",
       "parameters": [
        {
         "type": "string",
@@ -1938,7 +1970,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterNetwork",
-      "nickname": "watchClusterNetwork",
+      "nickname": "watchNamespacedClusterNetwork",
       "parameters": [
        {
         "type": "string",
@@ -2013,7 +2045,7 @@
       "type": "v1.ClusterPolicyList",
       "method": "GET",
       "summary": "list or watch objects of kind ClusterPolicy",
-      "nickname": "listClusterPolicy",
+      "nickname": "listNamespacedClusterPolicy",
       "parameters": [
        {
         "type": "string",
@@ -2074,7 +2106,7 @@
       "type": "v1.ClusterPolicy",
       "method": "POST",
       "summary": "create a ClusterPolicy",
-      "nickname": "createClusterPolicy",
+      "nickname": "createNamespacedClusterPolicy",
       "parameters": [
        {
         "type": "string",
@@ -2117,7 +2149,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterPolicy",
-      "nickname": "watchClusterPolicyList",
+      "nickname": "watchNamespacedClusterPolicyList",
       "parameters": [
        {
         "type": "string",
@@ -2184,7 +2216,7 @@
       "type": "v1.ClusterPolicy",
       "method": "GET",
       "summary": "read the specified ClusterPolicy",
-      "nickname": "readClusterPolicy",
+      "nickname": "readNamespacedClusterPolicy",
       "parameters": [
        {
         "type": "string",
@@ -2221,7 +2253,7 @@
       "type": "v1.ClusterPolicy",
       "method": "PUT",
       "summary": "replace the specified ClusterPolicy",
-      "nickname": "replaceClusterPolicy",
+      "nickname": "replaceNamespacedClusterPolicy",
       "parameters": [
        {
         "type": "string",
@@ -2266,7 +2298,7 @@
       "type": "v1.ClusterPolicy",
       "method": "PATCH",
       "summary": "partially update the specified ClusterPolicy",
-      "nickname": "patchClusterPolicy",
+      "nickname": "patchNamespacedClusterPolicy",
       "parameters": [
        {
         "type": "string",
@@ -2313,7 +2345,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a ClusterPolicy",
-      "nickname": "deleteClusterPolicy",
+      "nickname": "deleteNamespacedClusterPolicy",
       "parameters": [
        {
         "type": "string",
@@ -2364,7 +2396,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterPolicy",
-      "nickname": "watchClusterPolicy",
+      "nickname": "watchNamespacedClusterPolicy",
       "parameters": [
        {
         "type": "string",
@@ -2439,7 +2471,7 @@
       "type": "v1.ClusterPolicyBindingList",
       "method": "GET",
       "summary": "list or watch objects of kind ClusterPolicyBinding",
-      "nickname": "listClusterPolicyBinding",
+      "nickname": "listNamespacedClusterPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -2500,7 +2532,7 @@
       "type": "v1.ClusterPolicyBinding",
       "method": "POST",
       "summary": "create a ClusterPolicyBinding",
-      "nickname": "createClusterPolicyBinding",
+      "nickname": "createNamespacedClusterPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -2543,7 +2575,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of ClusterPolicyBinding",
-      "nickname": "watchClusterPolicyBindingList",
+      "nickname": "watchNamespacedClusterPolicyBindingList",
       "parameters": [
        {
         "type": "string",
@@ -2610,7 +2642,7 @@
       "type": "v1.ClusterPolicyBinding",
       "method": "GET",
       "summary": "read the specified ClusterPolicyBinding",
-      "nickname": "readClusterPolicyBinding",
+      "nickname": "readNamespacedClusterPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -2647,7 +2679,7 @@
       "type": "v1.ClusterPolicyBinding",
       "method": "PUT",
       "summary": "replace the specified ClusterPolicyBinding",
-      "nickname": "replaceClusterPolicyBinding",
+      "nickname": "replaceNamespacedClusterPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -2692,7 +2724,7 @@
       "type": "v1.ClusterPolicyBinding",
       "method": "PATCH",
       "summary": "partially update the specified ClusterPolicyBinding",
-      "nickname": "patchClusterPolicyBinding",
+      "nickname": "patchNamespacedClusterPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -2739,7 +2771,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a ClusterPolicyBinding",
-      "nickname": "deleteClusterPolicyBinding",
+      "nickname": "deleteNamespacedClusterPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -2790,7 +2822,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind ClusterPolicyBinding",
-      "nickname": "watchClusterPolicyBinding",
+      "nickname": "watchNamespacedClusterPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -2865,7 +2897,7 @@
       "type": "v1.ClusterRoleBindingList",
       "method": "GET",
       "summary": "list objects of kind ClusterRoleBinding",
-      "nickname": "listClusterRoleBinding",
+      "nickname": "listNamespacedClusterRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -2926,7 +2958,7 @@
       "type": "v1.ClusterRoleBinding",
       "method": "POST",
       "summary": "create a ClusterRoleBinding",
-      "nickname": "createClusterRoleBinding",
+      "nickname": "createNamespacedClusterRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -2969,7 +3001,7 @@
       "type": "v1.ClusterRoleBinding",
       "method": "GET",
       "summary": "read the specified ClusterRoleBinding",
-      "nickname": "readClusterRoleBinding",
+      "nickname": "readNamespacedClusterRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -3006,7 +3038,7 @@
       "type": "v1.ClusterRoleBinding",
       "method": "PUT",
       "summary": "replace the specified ClusterRoleBinding",
-      "nickname": "replaceClusterRoleBinding",
+      "nickname": "replaceNamespacedClusterRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -3051,7 +3083,7 @@
       "type": "v1.ClusterRoleBinding",
       "method": "PATCH",
       "summary": "partially update the specified ClusterRoleBinding",
-      "nickname": "patchClusterRoleBinding",
+      "nickname": "patchNamespacedClusterRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -3098,7 +3130,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a ClusterRoleBinding",
-      "nickname": "deleteClusterRoleBinding",
+      "nickname": "deleteNamespacedClusterRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -3149,7 +3181,7 @@
       "type": "v1.ClusterRoleList",
       "method": "GET",
       "summary": "list objects of kind ClusterRole",
-      "nickname": "listClusterRole",
+      "nickname": "listNamespacedClusterRole",
       "parameters": [
        {
         "type": "string",
@@ -3210,7 +3242,7 @@
       "type": "v1.ClusterRole",
       "method": "POST",
       "summary": "create a ClusterRole",
-      "nickname": "createClusterRole",
+      "nickname": "createNamespacedClusterRole",
       "parameters": [
        {
         "type": "string",
@@ -3253,7 +3285,7 @@
       "type": "v1.ClusterRole",
       "method": "GET",
       "summary": "read the specified ClusterRole",
-      "nickname": "readClusterRole",
+      "nickname": "readNamespacedClusterRole",
       "parameters": [
        {
         "type": "string",
@@ -3290,7 +3322,7 @@
       "type": "v1.ClusterRole",
       "method": "PUT",
       "summary": "replace the specified ClusterRole",
-      "nickname": "replaceClusterRole",
+      "nickname": "replaceNamespacedClusterRole",
       "parameters": [
        {
         "type": "string",
@@ -3335,7 +3367,7 @@
       "type": "v1.ClusterRole",
       "method": "PATCH",
       "summary": "partially update the specified ClusterRole",
-      "nickname": "patchClusterRole",
+      "nickname": "patchNamespacedClusterRole",
       "parameters": [
        {
         "type": "string",
@@ -3382,7 +3414,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a ClusterRole",
-      "nickname": "deleteClusterRole",
+      "nickname": "deleteNamespacedClusterRole",
       "parameters": [
        {
         "type": "string",
@@ -3433,7 +3465,7 @@
       "type": "v1.DeploymentConfigRollback",
       "method": "POST",
       "summary": "create a DeploymentConfigRollback",
-      "nickname": "createDeploymentConfigRollback",
+      "nickname": "createNamespacedDeploymentConfigRollback",
       "parameters": [
        {
         "type": "string",
@@ -3527,7 +3559,7 @@
       "type": "v1.DeploymentConfigList",
       "method": "GET",
       "summary": "list or watch objects of kind DeploymentConfig",
-      "nickname": "listDeploymentConfig",
+      "nickname": "listNamespacedDeploymentConfig",
       "parameters": [
        {
         "type": "string",
@@ -3596,7 +3628,7 @@
       "type": "v1.DeploymentConfig",
       "method": "POST",
       "summary": "create a DeploymentConfig",
-      "nickname": "createDeploymentConfig",
+      "nickname": "createNamespacedDeploymentConfig",
       "parameters": [
        {
         "type": "string",
@@ -3647,7 +3679,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of DeploymentConfig",
-      "nickname": "watchDeploymentConfigList",
+      "nickname": "watchNamespacedDeploymentConfigList",
       "parameters": [
        {
         "type": "string",
@@ -3722,7 +3754,7 @@
       "type": "v1.DeploymentConfig",
       "method": "GET",
       "summary": "read the specified DeploymentConfig",
-      "nickname": "readDeploymentConfig",
+      "nickname": "readNamespacedDeploymentConfig",
       "parameters": [
        {
         "type": "string",
@@ -3767,7 +3799,7 @@
       "type": "v1.DeploymentConfig",
       "method": "PUT",
       "summary": "replace the specified DeploymentConfig",
-      "nickname": "replaceDeploymentConfig",
+      "nickname": "replaceNamespacedDeploymentConfig",
       "parameters": [
        {
         "type": "string",
@@ -3820,7 +3852,7 @@
       "type": "v1.DeploymentConfig",
       "method": "PATCH",
       "summary": "partially update the specified DeploymentConfig",
-      "nickname": "patchDeploymentConfig",
+      "nickname": "patchNamespacedDeploymentConfig",
       "parameters": [
        {
         "type": "string",
@@ -3875,7 +3907,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a DeploymentConfig",
-      "nickname": "deleteDeploymentConfig",
+      "nickname": "deleteNamespacedDeploymentConfig",
       "parameters": [
        {
         "type": "string",
@@ -3934,7 +3966,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind DeploymentConfig",
-      "nickname": "watchDeploymentConfig",
+      "nickname": "watchNamespacedDeploymentConfig",
       "parameters": [
        {
         "type": "string",
@@ -4188,7 +4220,7 @@
       "type": "v1.DeploymentConfig",
       "method": "GET",
       "summary": "read the specified DeploymentConfig",
-      "nickname": "readDeploymentConfig",
+      "nickname": "readNamespacedDeploymentConfig",
       "parameters": [
        {
         "type": "string",
@@ -4232,6 +4264,432 @@
     ]
    },
    {
+    "path": "/oapi/v1/groups",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.GroupList",
+      "method": "GET",
+      "summary": "list or watch objects of kind Group",
+      "nickname": "listNamespacedGroup",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "a selector to restrict the list of returned objects by their labels; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "a selector to restrict the list of returned objects by their fields; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "watch for changes to the described resources and return them as a stream of add, update, and remove notifications; specify resourceVersion",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "when specified with a watch call, shows changes that occur after that particular version of a resource; defaults to changes from the beginning of history",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.GroupList"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.Group",
+      "method": "POST",
+      "summary": "create a Group",
+      "nickname": "createNamespacedGroup",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.Group",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Group"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/groups",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "json.WatchEvent",
+      "method": "GET",
+      "summary": "watch individual changes to a list of Group",
+      "nickname": "watchNamespacedGroupList",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "a selector to restrict the list of returned objects by their labels; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "a selector to restrict the list of returned objects by their fields; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "watch for changes to the described resources and return them as a stream of add, update, and remove notifications; specify resourceVersion",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "when specified with a watch call, shows changes that occur after that particular version of a resource; defaults to changes from the beginning of history",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "json.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/groups/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.Group",
+      "method": "GET",
+      "summary": "read the specified Group",
+      "nickname": "readNamespacedGroup",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Group",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Group"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.Group",
+      "method": "PUT",
+      "summary": "replace the specified Group",
+      "nickname": "replaceNamespacedGroup",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.Group",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Group",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Group"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.Group",
+      "method": "PATCH",
+      "summary": "partially update the specified Group",
+      "nickname": "patchNamespacedGroup",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "api.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Group",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Group"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     },
+     {
+      "type": "v1.Status",
+      "method": "DELETE",
+      "summary": "delete a Group",
+      "nickname": "deleteNamespacedGroup",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeleteOptions",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Group",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Status"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/groups/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "json.WatchEvent",
+      "method": "GET",
+      "summary": "watch changes to an object of kind Group",
+      "nickname": "watchNamespacedGroup",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "a selector to restrict the list of returned objects by their labels; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "a selector to restrict the list of returned objects by their fields; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "watch for changes to the described resources and return them as a stream of add, update, and remove notifications; specify resourceVersion",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "when specified with a watch call, shows changes that occur after that particular version of a resource; defaults to changes from the beginning of history",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Group",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "json.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/hostsubnets",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -4239,7 +4697,7 @@
       "type": "v1.HostSubnetList",
       "method": "GET",
       "summary": "list or watch objects of kind HostSubnet",
-      "nickname": "listHostSubnet",
+      "nickname": "listNamespacedHostSubnet",
       "parameters": [
        {
         "type": "string",
@@ -4300,7 +4758,7 @@
       "type": "v1.HostSubnet",
       "method": "POST",
       "summary": "create a HostSubnet",
-      "nickname": "createHostSubnet",
+      "nickname": "createNamespacedHostSubnet",
       "parameters": [
        {
         "type": "string",
@@ -4343,7 +4801,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of HostSubnet",
-      "nickname": "watchHostSubnetList",
+      "nickname": "watchNamespacedHostSubnetList",
       "parameters": [
        {
         "type": "string",
@@ -4410,7 +4868,7 @@
       "type": "v1.HostSubnet",
       "method": "GET",
       "summary": "read the specified HostSubnet",
-      "nickname": "readHostSubnet",
+      "nickname": "readNamespacedHostSubnet",
       "parameters": [
        {
         "type": "string",
@@ -4447,7 +4905,7 @@
       "type": "v1.HostSubnet",
       "method": "PUT",
       "summary": "replace the specified HostSubnet",
-      "nickname": "replaceHostSubnet",
+      "nickname": "replaceNamespacedHostSubnet",
       "parameters": [
        {
         "type": "string",
@@ -4492,7 +4950,7 @@
       "type": "v1.HostSubnet",
       "method": "PATCH",
       "summary": "partially update the specified HostSubnet",
-      "nickname": "patchHostSubnet",
+      "nickname": "patchNamespacedHostSubnet",
       "parameters": [
        {
         "type": "string",
@@ -4539,7 +4997,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a HostSubnet",
-      "nickname": "deleteHostSubnet",
+      "nickname": "deleteNamespacedHostSubnet",
       "parameters": [
        {
         "type": "string",
@@ -4590,7 +5048,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind HostSubnet",
-      "nickname": "watchHostSubnet",
+      "nickname": "watchNamespacedHostSubnet",
       "parameters": [
        {
         "type": "string",
@@ -4665,7 +5123,7 @@
       "type": "v1.IdentityList",
       "method": "GET",
       "summary": "list or watch objects of kind Identity",
-      "nickname": "listIdentity",
+      "nickname": "listNamespacedIdentity",
       "parameters": [
        {
         "type": "string",
@@ -4726,7 +5184,7 @@
       "type": "v1.Identity",
       "method": "POST",
       "summary": "create a Identity",
-      "nickname": "createIdentity",
+      "nickname": "createNamespacedIdentity",
       "parameters": [
        {
         "type": "string",
@@ -4769,7 +5227,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of Identity",
-      "nickname": "watchIdentityList",
+      "nickname": "watchNamespacedIdentityList",
       "parameters": [
        {
         "type": "string",
@@ -4836,7 +5294,7 @@
       "type": "v1.Identity",
       "method": "GET",
       "summary": "read the specified Identity",
-      "nickname": "readIdentity",
+      "nickname": "readNamespacedIdentity",
       "parameters": [
        {
         "type": "string",
@@ -4873,7 +5331,7 @@
       "type": "v1.Identity",
       "method": "PUT",
       "summary": "replace the specified Identity",
-      "nickname": "replaceIdentity",
+      "nickname": "replaceNamespacedIdentity",
       "parameters": [
        {
         "type": "string",
@@ -4918,7 +5376,7 @@
       "type": "v1.Identity",
       "method": "PATCH",
       "summary": "partially update the specified Identity",
-      "nickname": "patchIdentity",
+      "nickname": "patchNamespacedIdentity",
       "parameters": [
        {
         "type": "string",
@@ -4965,7 +5423,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a Identity",
-      "nickname": "deleteIdentity",
+      "nickname": "deleteNamespacedIdentity",
       "parameters": [
        {
         "type": "string",
@@ -5016,7 +5474,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind Identity",
-      "nickname": "watchIdentity",
+      "nickname": "watchNamespacedIdentity",
       "parameters": [
        {
         "type": "string",
@@ -5091,7 +5549,7 @@
       "type": "v1.ImageList",
       "method": "GET",
       "summary": "list or watch objects of kind Image",
-      "nickname": "listImage",
+      "nickname": "listNamespacedImage",
       "parameters": [
        {
         "type": "string",
@@ -5152,7 +5610,7 @@
       "type": "v1.Image",
       "method": "POST",
       "summary": "create a Image",
-      "nickname": "createImage",
+      "nickname": "createNamespacedImage",
       "parameters": [
        {
         "type": "string",
@@ -5195,7 +5653,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of Image",
-      "nickname": "watchImageList",
+      "nickname": "watchNamespacedImageList",
       "parameters": [
        {
         "type": "string",
@@ -5262,7 +5720,7 @@
       "type": "v1.Image",
       "method": "GET",
       "summary": "read the specified Image",
-      "nickname": "readImage",
+      "nickname": "readNamespacedImage",
       "parameters": [
        {
         "type": "string",
@@ -5299,7 +5757,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a Image",
-      "nickname": "deleteImage",
+      "nickname": "deleteNamespacedImage",
       "parameters": [
        {
         "type": "string",
@@ -5350,7 +5808,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind Image",
-      "nickname": "watchImage",
+      "nickname": "watchNamespacedImage",
       "parameters": [
        {
         "type": "string",
@@ -5425,7 +5883,7 @@
       "type": "v1.ImageStreamImage",
       "method": "GET",
       "summary": "read the specified ImageStreamImage",
-      "nickname": "readImageStreamImage",
+      "nickname": "readNamespacedImageStreamImage",
       "parameters": [
        {
         "type": "string",
@@ -5476,7 +5934,7 @@
       "type": "v1.ImageStreamMapping",
       "method": "POST",
       "summary": "create a ImageStreamMapping",
-      "nickname": "createImageStreamMapping",
+      "nickname": "createNamespacedImageStreamMapping",
       "parameters": [
        {
         "type": "string",
@@ -5570,7 +6028,7 @@
       "type": "v1.ImageStreamList",
       "method": "GET",
       "summary": "list or watch objects of kind ImageStream",
-      "nickname": "listImageStream",
+      "nickname": "listNamespacedImageStream",
       "parameters": [
        {
         "type": "string",
@@ -5639,7 +6097,7 @@
       "type": "v1.ImageStream",
       "method": "POST",
       "summary": "create a ImageStream",
-      "nickname": "createImageStream",
+      "nickname": "createNamespacedImageStream",
       "parameters": [
        {
         "type": "string",
@@ -5690,7 +6148,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of ImageStream",
-      "nickname": "watchImageStreamList",
+      "nickname": "watchNamespacedImageStreamList",
       "parameters": [
        {
         "type": "string",
@@ -5765,7 +6223,7 @@
       "type": "v1.ImageStream",
       "method": "GET",
       "summary": "read the specified ImageStream",
-      "nickname": "readImageStream",
+      "nickname": "readNamespacedImageStream",
       "parameters": [
        {
         "type": "string",
@@ -5810,7 +6268,7 @@
       "type": "v1.ImageStream",
       "method": "PUT",
       "summary": "replace the specified ImageStream",
-      "nickname": "replaceImageStream",
+      "nickname": "replaceNamespacedImageStream",
       "parameters": [
        {
         "type": "string",
@@ -5863,7 +6321,7 @@
       "type": "v1.ImageStream",
       "method": "PATCH",
       "summary": "partially update the specified ImageStream",
-      "nickname": "patchImageStream",
+      "nickname": "patchNamespacedImageStream",
       "parameters": [
        {
         "type": "string",
@@ -5918,7 +6376,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a ImageStream",
-      "nickname": "deleteImageStream",
+      "nickname": "deleteNamespacedImageStream",
       "parameters": [
        {
         "type": "string",
@@ -5977,7 +6435,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind ImageStream",
-      "nickname": "watchImageStream",
+      "nickname": "watchNamespacedImageStream",
       "parameters": [
        {
         "type": "string",
@@ -6231,7 +6689,7 @@
       "type": "v1.ImageStream",
       "method": "PUT",
       "summary": "replace status of the specified ImageStream",
-      "nickname": "replaceImageStreamStatus",
+      "nickname": "replaceNamespacedImageStreamStatus",
       "parameters": [
        {
         "type": "string",
@@ -6290,7 +6748,7 @@
       "type": "v1.ImageStreamTag",
       "method": "GET",
       "summary": "read the specified ImageStreamTag",
-      "nickname": "readImageStreamTag",
+      "nickname": "readNamespacedImageStreamTag",
       "parameters": [
        {
         "type": "string",
@@ -6335,7 +6793,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a ImageStreamTag",
-      "nickname": "deleteImageStreamTag",
+      "nickname": "deleteNamespacedImageStreamTag",
       "parameters": [
        {
         "type": "string",
@@ -6379,6 +6837,620 @@
     ]
    },
    {
+    "path": "/oapi/v1/namespaces/{namespace}/localresourceaccessreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.LocalResourceAccessReview",
+      "method": "POST",
+      "summary": "create a LocalResourceAccessReview",
+      "nickname": "createNamespacedLocalResourceAccessReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.LocalResourceAccessReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.LocalResourceAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/localresourceaccessreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.LocalResourceAccessReview",
+      "method": "POST",
+      "summary": "create a LocalResourceAccessReview",
+      "nickname": "createLocalResourceAccessReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.LocalResourceAccessReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.LocalResourceAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/namespaces/{namespace}/localsubjectaccessreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.LocalSubjectAccessReview",
+      "method": "POST",
+      "summary": "create a LocalSubjectAccessReview",
+      "nickname": "createNamespacedLocalSubjectAccessReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.LocalSubjectAccessReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.LocalSubjectAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/localsubjectaccessreviews",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.LocalSubjectAccessReview",
+      "method": "POST",
+      "summary": "create a LocalSubjectAccessReview",
+      "nickname": "createLocalSubjectAccessReview",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.LocalSubjectAccessReview",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.LocalSubjectAccessReview"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/netnamespaces",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.NetNamespaceList",
+      "method": "GET",
+      "summary": "list or watch objects of kind NetNamespace",
+      "nickname": "listNamespacedNetNamespace",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "a selector to restrict the list of returned objects by their labels; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "a selector to restrict the list of returned objects by their fields; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "watch for changes to the described resources and return them as a stream of add, update, and remove notifications; specify resourceVersion",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "when specified with a watch call, shows changes that occur after that particular version of a resource; defaults to changes from the beginning of history",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.NetNamespaceList"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.NetNamespace",
+      "method": "POST",
+      "summary": "create a NetNamespace",
+      "nickname": "createNamespacedNetNamespace",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.NetNamespace",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.NetNamespace"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/netnamespaces",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "json.WatchEvent",
+      "method": "GET",
+      "summary": "watch individual changes to a list of NetNamespace",
+      "nickname": "watchNamespacedNetNamespaceList",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "a selector to restrict the list of returned objects by their labels; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "a selector to restrict the list of returned objects by their fields; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "watch for changes to the described resources and return them as a stream of add, update, and remove notifications; specify resourceVersion",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "when specified with a watch call, shows changes that occur after that particular version of a resource; defaults to changes from the beginning of history",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "json.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/netnamespaces/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.NetNamespace",
+      "method": "GET",
+      "summary": "read the specified NetNamespace",
+      "nickname": "readNamespacedNetNamespace",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the NetNamespace",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.NetNamespace"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.NetNamespace",
+      "method": "PUT",
+      "summary": "replace the specified NetNamespace",
+      "nickname": "replaceNamespacedNetNamespace",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.NetNamespace",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the NetNamespace",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.NetNamespace"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.NetNamespace",
+      "method": "PATCH",
+      "summary": "partially update the specified NetNamespace",
+      "nickname": "patchNamespacedNetNamespace",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "api.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the NetNamespace",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.NetNamespace"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     },
+     {
+      "type": "v1.Status",
+      "method": "DELETE",
+      "summary": "delete a NetNamespace",
+      "nickname": "deleteNamespacedNetNamespace",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeleteOptions",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the NetNamespace",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Status"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/netnamespaces/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "json.WatchEvent",
+      "method": "GET",
+      "summary": "watch changes to an object of kind NetNamespace",
+      "nickname": "watchNamespacedNetNamespace",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "a selector to restrict the list of returned objects by their labels; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "a selector to restrict the list of returned objects by their fields; defaults to everything",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "watch for changes to the described resources and return them as a stream of add, update, and remove notifications; specify resourceVersion",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "when specified with a watch call, shows changes that occur after that particular version of a resource; defaults to changes from the beginning of history",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the NetNamespace",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "json.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/oauthaccesstokens",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -6386,7 +7458,7 @@
       "type": "v1.OAuthAccessTokenList",
       "method": "GET",
       "summary": "list objects of kind OAuthAccessToken",
-      "nickname": "listOAuthAccessToken",
+      "nickname": "listNamespacedOAuthAccessToken",
       "parameters": [
        {
         "type": "string",
@@ -6447,7 +7519,7 @@
       "type": "v1.OAuthAccessToken",
       "method": "POST",
       "summary": "create a OAuthAccessToken",
-      "nickname": "createOAuthAccessToken",
+      "nickname": "createNamespacedOAuthAccessToken",
       "parameters": [
        {
         "type": "string",
@@ -6490,7 +7562,7 @@
       "type": "v1.OAuthAccessToken",
       "method": "GET",
       "summary": "read the specified OAuthAccessToken",
-      "nickname": "readOAuthAccessToken",
+      "nickname": "readNamespacedOAuthAccessToken",
       "parameters": [
        {
         "type": "string",
@@ -6527,7 +7599,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a OAuthAccessToken",
-      "nickname": "deleteOAuthAccessToken",
+      "nickname": "deleteNamespacedOAuthAccessToken",
       "parameters": [
        {
         "type": "string",
@@ -6578,7 +7650,7 @@
       "type": "v1.OAuthAuthorizeTokenList",
       "method": "GET",
       "summary": "list objects of kind OAuthAuthorizeToken",
-      "nickname": "listOAuthAuthorizeToken",
+      "nickname": "listNamespacedOAuthAuthorizeToken",
       "parameters": [
        {
         "type": "string",
@@ -6639,7 +7711,7 @@
       "type": "v1.OAuthAuthorizeToken",
       "method": "POST",
       "summary": "create a OAuthAuthorizeToken",
-      "nickname": "createOAuthAuthorizeToken",
+      "nickname": "createNamespacedOAuthAuthorizeToken",
       "parameters": [
        {
         "type": "string",
@@ -6682,7 +7754,7 @@
       "type": "v1.OAuthAuthorizeToken",
       "method": "GET",
       "summary": "read the specified OAuthAuthorizeToken",
-      "nickname": "readOAuthAuthorizeToken",
+      "nickname": "readNamespacedOAuthAuthorizeToken",
       "parameters": [
        {
         "type": "string",
@@ -6719,7 +7791,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a OAuthAuthorizeToken",
-      "nickname": "deleteOAuthAuthorizeToken",
+      "nickname": "deleteNamespacedOAuthAuthorizeToken",
       "parameters": [
        {
         "type": "string",
@@ -6770,7 +7842,7 @@
       "type": "v1.OAuthClientAuthorizationList",
       "method": "GET",
       "summary": "list or watch objects of kind OAuthClientAuthorization",
-      "nickname": "listOAuthClientAuthorization",
+      "nickname": "listNamespacedOAuthClientAuthorization",
       "parameters": [
        {
         "type": "string",
@@ -6831,7 +7903,7 @@
       "type": "v1.OAuthClientAuthorization",
       "method": "POST",
       "summary": "create a OAuthClientAuthorization",
-      "nickname": "createOAuthClientAuthorization",
+      "nickname": "createNamespacedOAuthClientAuthorization",
       "parameters": [
        {
         "type": "string",
@@ -6874,7 +7946,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of OAuthClientAuthorization",
-      "nickname": "watchOAuthClientAuthorizationList",
+      "nickname": "watchNamespacedOAuthClientAuthorizationList",
       "parameters": [
        {
         "type": "string",
@@ -6941,7 +8013,7 @@
       "type": "v1.OAuthClientAuthorization",
       "method": "GET",
       "summary": "read the specified OAuthClientAuthorization",
-      "nickname": "readOAuthClientAuthorization",
+      "nickname": "readNamespacedOAuthClientAuthorization",
       "parameters": [
        {
         "type": "string",
@@ -6978,7 +8050,7 @@
       "type": "v1.OAuthClientAuthorization",
       "method": "PUT",
       "summary": "replace the specified OAuthClientAuthorization",
-      "nickname": "replaceOAuthClientAuthorization",
+      "nickname": "replaceNamespacedOAuthClientAuthorization",
       "parameters": [
        {
         "type": "string",
@@ -7023,7 +8095,7 @@
       "type": "v1.OAuthClientAuthorization",
       "method": "PATCH",
       "summary": "partially update the specified OAuthClientAuthorization",
-      "nickname": "patchOAuthClientAuthorization",
+      "nickname": "patchNamespacedOAuthClientAuthorization",
       "parameters": [
        {
         "type": "string",
@@ -7070,7 +8142,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a OAuthClientAuthorization",
-      "nickname": "deleteOAuthClientAuthorization",
+      "nickname": "deleteNamespacedOAuthClientAuthorization",
       "parameters": [
        {
         "type": "string",
@@ -7121,7 +8193,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind OAuthClientAuthorization",
-      "nickname": "watchOAuthClientAuthorization",
+      "nickname": "watchNamespacedOAuthClientAuthorization",
       "parameters": [
        {
         "type": "string",
@@ -7196,7 +8268,7 @@
       "type": "v1.OAuthClientList",
       "method": "GET",
       "summary": "list or watch objects of kind OAuthClient",
-      "nickname": "listOAuthClient",
+      "nickname": "listNamespacedOAuthClient",
       "parameters": [
        {
         "type": "string",
@@ -7257,7 +8329,7 @@
       "type": "v1.OAuthClient",
       "method": "POST",
       "summary": "create a OAuthClient",
-      "nickname": "createOAuthClient",
+      "nickname": "createNamespacedOAuthClient",
       "parameters": [
        {
         "type": "string",
@@ -7300,7 +8372,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of OAuthClient",
-      "nickname": "watchOAuthClientList",
+      "nickname": "watchNamespacedOAuthClientList",
       "parameters": [
        {
         "type": "string",
@@ -7367,7 +8439,7 @@
       "type": "v1.OAuthClient",
       "method": "GET",
       "summary": "read the specified OAuthClient",
-      "nickname": "readOAuthClient",
+      "nickname": "readNamespacedOAuthClient",
       "parameters": [
        {
         "type": "string",
@@ -7404,7 +8476,7 @@
       "type": "v1.OAuthClient",
       "method": "PUT",
       "summary": "replace the specified OAuthClient",
-      "nickname": "replaceOAuthClient",
+      "nickname": "replaceNamespacedOAuthClient",
       "parameters": [
        {
         "type": "string",
@@ -7449,7 +8521,7 @@
       "type": "v1.OAuthClient",
       "method": "PATCH",
       "summary": "partially update the specified OAuthClient",
-      "nickname": "patchOAuthClient",
+      "nickname": "patchNamespacedOAuthClient",
       "parameters": [
        {
         "type": "string",
@@ -7496,7 +8568,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a OAuthClient",
-      "nickname": "deleteOAuthClient",
+      "nickname": "deleteNamespacedOAuthClient",
       "parameters": [
        {
         "type": "string",
@@ -7547,7 +8619,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind OAuthClient",
-      "nickname": "watchOAuthClient",
+      "nickname": "watchNamespacedOAuthClient",
       "parameters": [
        {
         "type": "string",
@@ -7622,7 +8694,7 @@
       "type": "v1.PolicyList",
       "method": "GET",
       "summary": "list or watch objects of kind Policy",
-      "nickname": "listPolicy",
+      "nickname": "listNamespacedPolicy",
       "parameters": [
        {
         "type": "string",
@@ -7691,7 +8763,7 @@
       "type": "v1.Policy",
       "method": "POST",
       "summary": "create a Policy",
-      "nickname": "createPolicy",
+      "nickname": "createNamespacedPolicy",
       "parameters": [
        {
         "type": "string",
@@ -7742,7 +8814,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of Policy",
-      "nickname": "watchPolicyList",
+      "nickname": "watchNamespacedPolicyList",
       "parameters": [
        {
         "type": "string",
@@ -7817,7 +8889,7 @@
       "type": "v1.Policy",
       "method": "GET",
       "summary": "read the specified Policy",
-      "nickname": "readPolicy",
+      "nickname": "readNamespacedPolicy",
       "parameters": [
        {
         "type": "string",
@@ -7862,7 +8934,7 @@
       "type": "v1.Policy",
       "method": "PUT",
       "summary": "replace the specified Policy",
-      "nickname": "replacePolicy",
+      "nickname": "replaceNamespacedPolicy",
       "parameters": [
        {
         "type": "string",
@@ -7915,7 +8987,7 @@
       "type": "v1.Policy",
       "method": "PATCH",
       "summary": "partially update the specified Policy",
-      "nickname": "patchPolicy",
+      "nickname": "patchNamespacedPolicy",
       "parameters": [
        {
         "type": "string",
@@ -7970,7 +9042,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a Policy",
-      "nickname": "deletePolicy",
+      "nickname": "deleteNamespacedPolicy",
       "parameters": [
        {
         "type": "string",
@@ -8029,7 +9101,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind Policy",
-      "nickname": "watchPolicy",
+      "nickname": "watchNamespacedPolicy",
       "parameters": [
        {
         "type": "string",
@@ -8283,7 +9355,7 @@
       "type": "v1.PolicyBindingList",
       "method": "GET",
       "summary": "list or watch objects of kind PolicyBinding",
-      "nickname": "listPolicyBinding",
+      "nickname": "listNamespacedPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -8352,7 +9424,7 @@
       "type": "v1.PolicyBinding",
       "method": "POST",
       "summary": "create a PolicyBinding",
-      "nickname": "createPolicyBinding",
+      "nickname": "createNamespacedPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -8403,7 +9475,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of PolicyBinding",
-      "nickname": "watchPolicyBindingList",
+      "nickname": "watchNamespacedPolicyBindingList",
       "parameters": [
        {
         "type": "string",
@@ -8478,7 +9550,7 @@
       "type": "v1.PolicyBinding",
       "method": "GET",
       "summary": "read the specified PolicyBinding",
-      "nickname": "readPolicyBinding",
+      "nickname": "readNamespacedPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -8523,7 +9595,7 @@
       "type": "v1.PolicyBinding",
       "method": "PUT",
       "summary": "replace the specified PolicyBinding",
-      "nickname": "replacePolicyBinding",
+      "nickname": "replaceNamespacedPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -8576,7 +9648,7 @@
       "type": "v1.PolicyBinding",
       "method": "PATCH",
       "summary": "partially update the specified PolicyBinding",
-      "nickname": "patchPolicyBinding",
+      "nickname": "patchNamespacedPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -8631,7 +9703,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a PolicyBinding",
-      "nickname": "deletePolicyBinding",
+      "nickname": "deleteNamespacedPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -8690,7 +9762,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind PolicyBinding",
-      "nickname": "watchPolicyBinding",
+      "nickname": "watchNamespacedPolicyBinding",
       "parameters": [
        {
         "type": "string",
@@ -8944,7 +10016,7 @@
       "type": "v1.Template",
       "method": "POST",
       "summary": "create a Template",
-      "nickname": "createTemplate",
+      "nickname": "createNamespacedTemplate",
       "parameters": [
        {
         "type": "string",
@@ -9038,7 +10110,7 @@
       "type": "v1.Status",
       "method": "GET",
       "summary": "list objects of kind ProjectRequest",
-      "nickname": "listProjectRequest",
+      "nickname": "listNamespacedProjectRequest",
       "parameters": [
        {
         "type": "string",
@@ -9099,7 +10171,7 @@
       "type": "v1.ProjectRequest",
       "method": "POST",
       "summary": "create a ProjectRequest",
-      "nickname": "createProjectRequest",
+      "nickname": "createNamespacedProjectRequest",
       "parameters": [
        {
         "type": "string",
@@ -9142,7 +10214,7 @@
       "type": "v1.ProjectList",
       "method": "GET",
       "summary": "list objects of kind Project",
-      "nickname": "listProject",
+      "nickname": "listNamespacedProject",
       "parameters": [
        {
         "type": "string",
@@ -9203,7 +10275,7 @@
       "type": "v1.Project",
       "method": "POST",
       "summary": "create a Project",
-      "nickname": "createProject",
+      "nickname": "createNamespacedProject",
       "parameters": [
        {
         "type": "string",
@@ -9246,7 +10318,7 @@
       "type": "v1.Project",
       "method": "GET",
       "summary": "read the specified Project",
-      "nickname": "readProject",
+      "nickname": "readNamespacedProject",
       "parameters": [
        {
         "type": "string",
@@ -9280,10 +10352,102 @@
       ]
      },
      {
+      "type": "v1.Project",
+      "method": "PUT",
+      "summary": "replace the specified Project",
+      "nickname": "replaceNamespacedProject",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.Project",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Project",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Project"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.Project",
+      "method": "PATCH",
+      "summary": "partially update the specified Project",
+      "nickname": "patchNamespacedProject",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "api.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Project",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Project"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     },
+     {
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a Project",
-      "nickname": "deleteProject",
+      "nickname": "deleteNamespacedProject",
       "parameters": [
        {
         "type": "string",
@@ -9326,7 +10490,7 @@
       "type": "v1.ResourceAccessReview",
       "method": "POST",
       "summary": "create a ResourceAccessReview",
-      "nickname": "createResourceAccessReview",
+      "nickname": "createNamespacedResourceAccessReview",
       "parameters": [
        {
         "type": "string",
@@ -9420,7 +10584,7 @@
       "type": "v1.RoleBindingList",
       "method": "GET",
       "summary": "list objects of kind RoleBinding",
-      "nickname": "listRoleBinding",
+      "nickname": "listNamespacedRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -9489,7 +10653,7 @@
       "type": "v1.RoleBinding",
       "method": "POST",
       "summary": "create a RoleBinding",
-      "nickname": "createRoleBinding",
+      "nickname": "createNamespacedRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -9540,7 +10704,7 @@
       "type": "v1.RoleBinding",
       "method": "GET",
       "summary": "read the specified RoleBinding",
-      "nickname": "readRoleBinding",
+      "nickname": "readNamespacedRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -9585,7 +10749,7 @@
       "type": "v1.RoleBinding",
       "method": "PUT",
       "summary": "replace the specified RoleBinding",
-      "nickname": "replaceRoleBinding",
+      "nickname": "replaceNamespacedRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -9638,7 +10802,7 @@
       "type": "v1.RoleBinding",
       "method": "PATCH",
       "summary": "partially update the specified RoleBinding",
-      "nickname": "patchRoleBinding",
+      "nickname": "patchNamespacedRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -9693,7 +10857,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a RoleBinding",
-      "nickname": "deleteRoleBinding",
+      "nickname": "deleteNamespacedRoleBinding",
       "parameters": [
        {
         "type": "string",
@@ -9856,7 +11020,7 @@
       "type": "v1.RoleList",
       "method": "GET",
       "summary": "list objects of kind Role",
-      "nickname": "listRole",
+      "nickname": "listNamespacedRole",
       "parameters": [
        {
         "type": "string",
@@ -9925,7 +11089,7 @@
       "type": "v1.Role",
       "method": "POST",
       "summary": "create a Role",
-      "nickname": "createRole",
+      "nickname": "createNamespacedRole",
       "parameters": [
        {
         "type": "string",
@@ -9976,7 +11140,7 @@
       "type": "v1.Role",
       "method": "GET",
       "summary": "read the specified Role",
-      "nickname": "readRole",
+      "nickname": "readNamespacedRole",
       "parameters": [
        {
         "type": "string",
@@ -10021,7 +11185,7 @@
       "type": "v1.Role",
       "method": "PUT",
       "summary": "replace the specified Role",
-      "nickname": "replaceRole",
+      "nickname": "replaceNamespacedRole",
       "parameters": [
        {
         "type": "string",
@@ -10074,7 +11238,7 @@
       "type": "v1.Role",
       "method": "PATCH",
       "summary": "partially update the specified Role",
-      "nickname": "patchRole",
+      "nickname": "patchNamespacedRole",
       "parameters": [
        {
         "type": "string",
@@ -10129,7 +11293,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a Role",
-      "nickname": "deleteRole",
+      "nickname": "deleteNamespacedRole",
       "parameters": [
        {
         "type": "string",
@@ -10289,10 +11453,10 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "v1.Route",
+      "type": "v1.RouteList",
       "method": "GET",
       "summary": "list or watch objects of kind Route",
-      "nickname": "listRoute",
+      "nickname": "listNamespacedRoute",
       "parameters": [
        {
         "type": "string",
@@ -10347,7 +11511,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Route"
+        "responseModel": "v1.RouteList"
        }
       ],
       "produces": [
@@ -10361,7 +11525,7 @@
       "type": "v1.Route",
       "method": "POST",
       "summary": "create a Route",
-      "nickname": "createRoute",
+      "nickname": "createNamespacedRoute",
       "parameters": [
        {
         "type": "string",
@@ -10412,7 +11576,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of Route",
-      "nickname": "watchRouteList",
+      "nickname": "watchNamespacedRouteList",
       "parameters": [
        {
         "type": "string",
@@ -10487,7 +11651,7 @@
       "type": "v1.Route",
       "method": "GET",
       "summary": "read the specified Route",
-      "nickname": "readRoute",
+      "nickname": "readNamespacedRoute",
       "parameters": [
        {
         "type": "string",
@@ -10532,7 +11696,7 @@
       "type": "v1.Route",
       "method": "PUT",
       "summary": "replace the specified Route",
-      "nickname": "replaceRoute",
+      "nickname": "replaceNamespacedRoute",
       "parameters": [
        {
         "type": "string",
@@ -10585,7 +11749,7 @@
       "type": "v1.Route",
       "method": "PATCH",
       "summary": "partially update the specified Route",
-      "nickname": "patchRoute",
+      "nickname": "patchNamespacedRoute",
       "parameters": [
        {
         "type": "string",
@@ -10640,7 +11804,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a Route",
-      "nickname": "deleteRoute",
+      "nickname": "deleteNamespacedRoute",
       "parameters": [
        {
         "type": "string",
@@ -10648,6 +11812,14 @@
         "name": "pretty",
         "description": "If 'true', then the output is pretty printed.",
         "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeleteOptions",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
         "allowMultiple": false
        },
        {
@@ -10691,7 +11863,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind Route",
-      "nickname": "watchRoute",
+      "nickname": "watchNamespacedRoute",
       "parameters": [
        {
         "type": "string",
@@ -10771,7 +11943,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "v1.Route",
+      "type": "v1.RouteList",
       "method": "GET",
       "summary": "list or watch objects of kind Route",
       "nickname": "listRoute",
@@ -10821,7 +11993,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Route"
+        "responseModel": "v1.RouteList"
        }
       ],
       "produces": [
@@ -10945,7 +12117,7 @@
       "type": "v1.SubjectAccessReview",
       "method": "POST",
       "summary": "create a SubjectAccessReview",
-      "nickname": "createSubjectAccessReview",
+      "nickname": "createNamespacedSubjectAccessReview",
       "parameters": [
        {
         "type": "string",
@@ -11039,7 +12211,7 @@
       "type": "v1.TemplateList",
       "method": "GET",
       "summary": "list or watch objects of kind Template",
-      "nickname": "listTemplate",
+      "nickname": "listNamespacedTemplate",
       "parameters": [
        {
         "type": "string",
@@ -11108,7 +12280,7 @@
       "type": "v1.Template",
       "method": "POST",
       "summary": "create a Template",
-      "nickname": "createTemplate",
+      "nickname": "createNamespacedTemplate",
       "parameters": [
        {
         "type": "string",
@@ -11159,7 +12331,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of Template",
-      "nickname": "watchTemplateList",
+      "nickname": "watchNamespacedTemplateList",
       "parameters": [
        {
         "type": "string",
@@ -11234,7 +12406,7 @@
       "type": "v1.Template",
       "method": "GET",
       "summary": "read the specified Template",
-      "nickname": "readTemplate",
+      "nickname": "readNamespacedTemplate",
       "parameters": [
        {
         "type": "string",
@@ -11279,7 +12451,7 @@
       "type": "v1.Template",
       "method": "PUT",
       "summary": "replace the specified Template",
-      "nickname": "replaceTemplate",
+      "nickname": "replaceNamespacedTemplate",
       "parameters": [
        {
         "type": "string",
@@ -11332,7 +12504,7 @@
       "type": "v1.Template",
       "method": "PATCH",
       "summary": "partially update the specified Template",
-      "nickname": "patchTemplate",
+      "nickname": "patchNamespacedTemplate",
       "parameters": [
        {
         "type": "string",
@@ -11387,7 +12559,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a Template",
-      "nickname": "deleteTemplate",
+      "nickname": "deleteNamespacedTemplate",
       "parameters": [
        {
         "type": "string",
@@ -11446,7 +12618,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind Template",
-      "nickname": "watchTemplate",
+      "nickname": "watchNamespacedTemplate",
       "parameters": [
        {
         "type": "string",
@@ -11700,7 +12872,7 @@
       "type": "v1.UserIdentityMapping",
       "method": "POST",
       "summary": "create a UserIdentityMapping",
-      "nickname": "createUserIdentityMapping",
+      "nickname": "createNamespacedUserIdentityMapping",
       "parameters": [
        {
         "type": "string",
@@ -11743,7 +12915,7 @@
       "type": "v1.UserIdentityMapping",
       "method": "GET",
       "summary": "read the specified UserIdentityMapping",
-      "nickname": "readUserIdentityMapping",
+      "nickname": "readNamespacedUserIdentityMapping",
       "parameters": [
        {
         "type": "string",
@@ -11780,7 +12952,7 @@
       "type": "v1.UserIdentityMapping",
       "method": "PUT",
       "summary": "replace the specified UserIdentityMapping",
-      "nickname": "replaceUserIdentityMapping",
+      "nickname": "replaceNamespacedUserIdentityMapping",
       "parameters": [
        {
         "type": "string",
@@ -11825,7 +12997,7 @@
       "type": "v1.UserIdentityMapping",
       "method": "PATCH",
       "summary": "partially update the specified UserIdentityMapping",
-      "nickname": "patchUserIdentityMapping",
+      "nickname": "patchNamespacedUserIdentityMapping",
       "parameters": [
        {
         "type": "string",
@@ -11872,7 +13044,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a UserIdentityMapping",
-      "nickname": "deleteUserIdentityMapping",
+      "nickname": "deleteNamespacedUserIdentityMapping",
       "parameters": [
        {
         "type": "string",
@@ -11915,7 +13087,7 @@
       "type": "v1.UserList",
       "method": "GET",
       "summary": "list or watch objects of kind User",
-      "nickname": "listUser",
+      "nickname": "listNamespacedUser",
       "parameters": [
        {
         "type": "string",
@@ -11976,7 +13148,7 @@
       "type": "v1.User",
       "method": "POST",
       "summary": "create a User",
-      "nickname": "createUser",
+      "nickname": "createNamespacedUser",
       "parameters": [
        {
         "type": "string",
@@ -12019,7 +13191,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of User",
-      "nickname": "watchUserList",
+      "nickname": "watchNamespacedUserList",
       "parameters": [
        {
         "type": "string",
@@ -12086,7 +13258,7 @@
       "type": "v1.User",
       "method": "GET",
       "summary": "read the specified User",
-      "nickname": "readUser",
+      "nickname": "readNamespacedUser",
       "parameters": [
        {
         "type": "string",
@@ -12123,7 +13295,7 @@
       "type": "v1.User",
       "method": "PUT",
       "summary": "replace the specified User",
-      "nickname": "replaceUser",
+      "nickname": "replaceNamespacedUser",
       "parameters": [
        {
         "type": "string",
@@ -12168,7 +13340,7 @@
       "type": "v1.User",
       "method": "PATCH",
       "summary": "partially update the specified User",
-      "nickname": "patchUser",
+      "nickname": "patchNamespacedUser",
       "parameters": [
        {
         "type": "string",
@@ -12215,7 +13387,7 @@
       "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a User",
-      "nickname": "deleteUser",
+      "nickname": "deleteNamespacedUser",
       "parameters": [
        {
         "type": "string",
@@ -12266,7 +13438,7 @@
       "type": "json.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind User",
-      "nickname": "watchUser",
+      "nickname": "watchNamespacedUser",
       "parameters": [
        {
         "type": "string",
@@ -12343,11 +13515,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -12370,7 +13542,7 @@
      },
      "resourceVersion": {
       "type": "string",
-      "description": "string that identifies the internal version of this object that can be used by clients to determine when objects have changed; populated by the system, read-only; value must be treated as opaque by clients and passed unmodified back to the server: http://releases.k8s.io/v1.0.0/docs/api-conventions.md#concurrency-control-and-consistency"
+      "description": "string that identifies the internal version of this object that can be used by clients to determine when objects have changed; populated by the system, read-only; value must be treated as opaque by clients and passed unmodified back to the server: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#concurrency-control-and-consistency"
      }
     }
    },
@@ -12383,11 +13555,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -12407,15 +13579,15 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "string that identifies an object. Must be unique within a namespace; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#names"
+      "description": "string that identifies an object. Must be unique within a namespace; cannot be updated; see http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
      },
      "generateName": {
       "type": "string",
-      "description": "an optional prefix to use to generate a unique name; has the same validation rules as name; optional, and is applied only name if is not specified; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#idempotency"
+      "description": "an optional prefix to use to generate a unique name; has the same validation rules as name; optional, and is applied only name if is not specified; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#idempotency"
      },
      "namespace": {
       "type": "string",
-      "description": "namespace of the object; must be a DNS_LABEL; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/namespaces.md"
+      "description": "namespace of the object; must be a DNS_LABEL; cannot be updated; see http://releases.k8s.io/HEAD/docs/user-guide/namespaces.md"
      },
      "selfLink": {
       "type": "string",
@@ -12423,11 +13595,11 @@
      },
      "uid": {
       "type": "string",
-      "description": "unique UUID across space and time; populated by the system; read-only; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#uids"
+      "description": "unique UUID across space and time; populated by the system; read-only; see http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#uids"
      },
      "resourceVersion": {
       "type": "string",
-      "description": "string that identifies the internal version of this object that can be used by clients to determine when objects have changed; populated by the system, read-only; value must be treated as opaque by clients and passed unmodified back to the server: http://releases.k8s.io/v1.0.0/docs/api-conventions.md#concurrency-control-and-consistency"
+      "description": "string that identifies the internal version of this object that can be used by clients to determine when objects have changed; populated by the system, read-only; value must be treated as opaque by clients and passed unmodified back to the server: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#concurrency-control-and-consistency"
      },
      "generation": {
       "type": "integer",
@@ -12437,20 +13609,20 @@
      "creationTimestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "RFC 3339 date and time at which the object was created; populated by the system, read-only; null for lists; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#metadata"
+      "description": "RFC 3339 date and time at which the object was created; populated by the system, read-only; null for lists; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"
      },
      "deletionTimestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "RFC 3339 date and time at which the object will be deleted; populated by the system when a graceful deletion is requested, read-only; if not set, graceful deletion of the object has not been requested; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#metadata"
+      "description": "RFC 3339 date and time at which the object will be deleted; populated by the system when a graceful deletion is requested, read-only; if not set, graceful deletion of the object has not been requested; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"
      },
      "labels": {
       "type": "any",
-      "description": "map of string keys and values that can be used to organize and categorize objects; may match selectors of replication controllers and services; see http://releases.k8s.io/v1.0.0/docs/labels.md"
+      "description": "map of string keys and values that can be used to organize and categorize objects; may match selectors of replication controllers and services; see http://releases.k8s.io/HEAD/docs/user-guide/labels.md"
      },
      "annotations": {
       "type": "any",
-      "description": "map of string keys and values that can be used by external tooling to store and retrieve arbitrary metadata about objects; see http://releases.k8s.io/v1.0.0/docs/annotations.md"
+      "description": "map of string keys and values that can be used by external tooling to store and retrieve arbitrary metadata about objects; see http://releases.k8s.io/HEAD/docs/user-guide/annotations.md"
      }
     }
    },
@@ -12533,6 +13705,43 @@
      "lastTriggeredImageID": {
       "type": "string",
       "description": "used internally to save last used image ID for build"
+     },
+     "from": {
+      "$ref": "v1.ObjectReference",
+      "description": "reference to an ImageStreamTag that will trigger the build"
+     }
+    }
+   },
+   "v1.ObjectReference": {
+    "id": "v1.ObjectReference",
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of the referent; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the referent; see http://releases.k8s.io/HEAD/docs/user-guide/namespaces.md"
+     },
+     "name": {
+      "type": "string",
+      "description": "name of the referent; see http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
+     },
+     "uid": {
+      "type": "string",
+      "description": "uid of the referent; see http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#uids"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "API version of the referent"
+     },
+     "resourceVersion": {
+      "type": "string",
+      "description": "specific resourceVersion to which this reference is made, if any: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#concurrency-control-and-consistency"
+     },
+     "fieldPath": {
+      "type": "string",
+      "description": "if referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]"
      }
     }
    },
@@ -12589,7 +13798,7 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "name of the referent; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#names"
+      "description": "name of the referent; see http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
      }
     }
    },
@@ -12692,39 +13901,6 @@
      "forcePull": {
       "type": "boolean",
       "description": "forces the source build to pull the image if true"
-     }
-    }
-   },
-   "v1.ObjectReference": {
-    "id": "v1.ObjectReference",
-    "properties": {
-     "kind": {
-      "type": "string",
-      "description": "kind of the referent; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
-     },
-     "namespace": {
-      "type": "string",
-      "description": "namespace of the referent; see http://releases.k8s.io/v1.0.0/docs/namespaces.md"
-     },
-     "name": {
-      "type": "string",
-      "description": "name of the referent; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#names"
-     },
-     "uid": {
-      "type": "string",
-      "description": "uid of the referent; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#uids"
-     },
-     "apiVersion": {
-      "type": "string",
-      "description": "API version of the referent"
-     },
-     "resourceVersion": {
-      "type": "string",
-      "description": "specific resourceVersion to which this reference is made, if any: http://releases.k8s.io/v1.0.0/docs/api-conventions.md#concurrency-control-and-consistency"
-     },
-     "fieldPath": {
-      "type": "string",
-      "description": "if referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]"
      }
     }
    },
@@ -12835,6 +14011,34 @@
      "exposeDockerSocket": {
       "type": "boolean",
       "description": "allow running Docker commands (and build Docker images) from inside the container"
+     },
+     "forcePull": {
+      "type": "boolean",
+      "description": "forces pulling of builder image from remote registry if true"
+     },
+     "secrets": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.SecretSpec"
+      },
+      "description": "a list of secrets to include in the build pod in addition to pull, push and source secrets"
+     }
+    }
+   },
+   "v1.SecretSpec": {
+    "id": "v1.SecretSpec",
+    "required": [
+     "secretSource",
+     "mountPath"
+    ],
+    "properties": {
+     "secretSource": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "a reference to a secret"
+     },
+     "mountPath": {
+      "type": "string",
+      "description": "path within the container at which the secret should be mounted"
      }
     }
    },
@@ -12856,11 +14060,11 @@
     "properties": {
      "limits": {
       "type": "any",
-      "description": "Maximum amount of compute resources allowed; see http://releases.k8s.io/v1.0.0/docs/design/resources.md#resource-specifications"
+      "description": "Maximum amount of compute resources allowed; see http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
      },
      "requests": {
       "type": "any",
-      "description": "Minimum amount of resources requested; requests are honored only for persistent volumes as of now; see http://releases.k8s.io/v1.0.0/docs/design/resources.md#resource-specifications"
+      "description": "Minimum amount of resources requested; if Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value; see http://releases.k8s.io/HEAD/docs/design/resources.md#resource-specifications"
      }
     }
    },
@@ -12899,19 +14103,19 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta",
-      "description": "standard list metadata; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#metadata"
+      "description": "standard list metadata; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"
      },
      "status": {
       "type": "string",
-      "description": "status of the operation; either Success, or Failure; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#spec-and-status"
+      "description": "status of the operation; either Success, or Failure; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status"
      },
      "message": {
       "type": "string",
@@ -12941,7 +14145,7 @@
      },
      "kind": {
       "type": "string",
-      "description": "the kind attribute of the resource associated with the status StatusReason; on some operations may differ from the requested resource Kind; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "the kind attribute of the resource associated with the status StatusReason; on some operations may differ from the requested resource Kind; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "causes": {
       "type": "array",
@@ -12982,11 +14186,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "gracePeriodSeconds": {
       "type": "integer",
@@ -13000,11 +14204,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -13016,6 +14220,15 @@
      "triggeredByImage": {
       "$ref": "v1.ObjectReference",
       "description": "image that triggered this build"
+     },
+     "from": {
+      "$ref": "v1.ObjectReference",
+      "description": "ImageStreamTag that triggered this build"
+     },
+     "lastVersion": {
+      "type": "integer",
+      "format": "int32",
+      "description": "LastVersion of the BuildConfig that triggered this build"
      }
     }
    },
@@ -13027,11 +14240,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -13050,11 +14263,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -13144,11 +14357,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -13163,11 +14376,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -13185,16 +14398,17 @@
     "id": "v1.ClusterNetwork",
     "required": [
      "network",
-     "hostsubnetlength"
+     "hostsubnetlength",
+     "serviceNetwork"
     ],
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -13207,6 +14421,10 @@
       "type": "integer",
       "format": "int32",
       "description": "number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host"
+     },
+     "serviceNetwork": {
+      "type": "string",
+      "description": "CIDR string to specify the service network"
      }
     }
    },
@@ -13218,11 +14436,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -13245,11 +14463,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -13293,11 +14511,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -13360,11 +14578,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -13388,11 +14606,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -13437,16 +14655,17 @@
     "required": [
      "userNames",
      "groupNames",
+     "subjects",
      "roleRef"
     ],
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -13465,6 +14684,13 @@
       },
       "description": "all the groups directly bound to the role"
      },
+     "subjects": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ObjectReference"
+      },
+      "description": "references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."
+     },
      "roleRef": {
       "$ref": "v1.ObjectReference",
       "description": "reference to the policy role"
@@ -13479,11 +14705,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -13505,11 +14731,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -13531,11 +14757,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "spec": {
       "$ref": "v1.DeploymentConfigRollbackSpec",
@@ -13583,11 +14809,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -13610,11 +14836,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -13632,6 +14858,8 @@
    "v1.DeploymentConfigSpec": {
     "id": "v1.DeploymentConfigSpec",
     "required": [
+     "strategy",
+     "triggers",
      "replicas",
      "selector"
     ],
@@ -13830,7 +15058,8 @@
       "description": "restricts tag updates to a set of container names in the pod"
      },
      "from": {
-      "$ref": "v1.ObjectReference"
+      "$ref": "v1.ObjectReference",
+      "description": "a reference to an ImageRepository, ImageStream, or ImageStreamTag to watch for changes"
      },
      "lastTriggeredImage": {
       "type": "string",
@@ -13843,11 +15072,11 @@
     "properties": {
      "metadata": {
       "$ref": "v1.ObjectMeta",
-      "description": "standard object metadata; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#metadata"
+      "description": "standard object metadata; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"
      },
      "spec": {
       "$ref": "v1.PodSpec",
-      "description": "specification of the desired behavior of the pod; http://releases.k8s.io/v1.0.0/docs/api-conventions.md#spec-and-status"
+      "description": "specification of the desired behavior of the pod; http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status"
      }
     }
    },
@@ -13862,18 +15091,18 @@
       "items": {
        "$ref": "v1.Volume"
       },
-      "description": "list of volumes that can be mounted by containers belonging to the pod; see http://releases.k8s.io/v1.0.0/docs/volumes.md"
+      "description": "list of volumes that can be mounted by containers belonging to the pod; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md"
      },
      "containers": {
       "type": "array",
       "items": {
        "$ref": "v1.Container"
       },
-      "description": "list of containers belonging to the pod; cannot be updated; containers cannot currently be added or removed; there must be at least one container in a Pod; see http://releases.k8s.io/v1.0.0/docs/containers.md"
+      "description": "list of containers belonging to the pod; cannot be updated; containers cannot currently be added or removed; there must be at least one container in a Pod; see http://releases.k8s.io/HEAD/docs/user-guide/containers.md"
      },
      "restartPolicy": {
       "type": "string",
-      "description": "restart policy for all containers within the pod; one of Always, OnFailure, Never; defaults to Always; see http://releases.k8s.io/v1.0.0/docs/pod-states.md#restartpolicy"
+      "description": "restart policy for all containers within the pod; one of Always, OnFailure, Never; defaults to Always; see http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#restartpolicy"
      },
      "terminationGracePeriodSeconds": {
       "type": "integer",
@@ -13890,11 +15119,7 @@
      },
      "nodeSelector": {
       "type": "any",
-      "description": "selector which must match a node's labels for the pod to be scheduled on that node; see http://releases.k8s.io/v1.0.0/examples/node-selection/README.md"
-     },
-     "serviceAccount": {
-      "type": "string",
-      "description": "deprecated, use serviceAccountName instead."
+      "description": "selector which must match a node's labels for the pod to be scheduled on that node; see http://releases.k8s.io/HEAD/docs/user-guide/node-selection/README.md"
      },
      "host": {
       "type": "string",
@@ -13902,7 +15127,11 @@
      },
      "serviceAccountName": {
       "type": "string",
-      "description": "name of the ServiceAccount to use to run this pod; see http://releases.k8s.io/v1.0.0/docs/service_accounts.md"
+      "description": "name of the ServiceAccount to use to run this pod; see http://releases.k8s.io/HEAD/docs/design/service_accounts.md"
+     },
+     "serviceAccount": {
+      "type": "string",
+      "description": "deprecated; use serviceAccountName instead"
      },
      "nodeName": {
       "type": "string",
@@ -13917,7 +15146,7 @@
       "items": {
        "$ref": "v1.LocalObjectReference"
       },
-      "description": "list of references to secrets in the same namespace available for pulling the container images; see http://releases.k8s.io/v1.0.0/docs/images.md#specifying-imagepullsecrets-on-a-pod"
+      "description": "list of references to secrets in the same namespace available for pulling the container images; see http://releases.k8s.io/HEAD/docs/user-guide/images.md#specifying-imagepullsecrets-on-a-pod"
      }
     }
    },
@@ -13929,23 +15158,23 @@
     "properties": {
      "name": {
       "type": "string",
-      "description": "volume name; must be a DNS_LABEL and unique within the pod; see http://releases.k8s.io/v1.0.0/docs/identifiers.md#names"
+      "description": "volume name; must be a DNS_LABEL and unique within the pod; see http://releases.k8s.io/HEAD/docs/user-guide/identifiers.md#names"
      },
      "hostPath": {
       "$ref": "v1.HostPathVolumeSource",
-      "description": "pre-existing host file or directory; generally for privileged system daemons or other agents tied to the host; see http://releases.k8s.io/v1.0.0/docs/volumes.md#hostpath"
+      "description": "pre-existing host file or directory; generally for privileged system daemons or other agents tied to the host; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#hostpath"
      },
      "emptyDir": {
       "$ref": "v1.EmptyDirVolumeSource",
-      "description": "temporary directory that shares a pod's lifetime; see http://releases.k8s.io/v1.0.0/docs/volumes.md#emptydir"
+      "description": "temporary directory that shares a pod's lifetime; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#emptydir"
      },
      "gcePersistentDisk": {
       "$ref": "v1.GCEPersistentDiskVolumeSource",
-      "description": "GCE disk resource attached to the host machine on demand; see http://releases.k8s.io/v1.0.0/docs/volumes.md#gcepersistentdisk"
+      "description": "GCE disk resource attached to the host machine on demand; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk"
      },
      "awsElasticBlockStore": {
       "$ref": "v1.AWSElasticBlockStoreVolumeSource",
-      "description": "AWS disk resource attached to the host machine on demand; see http://releases.k8s.io/v1.0.0/docs/volumes.md#awselasticblockstore"
+      "description": "AWS disk resource attached to the host machine on demand; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#awselasticblockstore"
      },
      "gitRepo": {
       "$ref": "v1.GitRepoVolumeSource",
@@ -13953,27 +15182,27 @@
      },
      "secret": {
       "$ref": "v1.SecretVolumeSource",
-      "description": "secret to populate volume; see http://releases.k8s.io/v1.0.0/docs/volumes.md#secrets"
+      "description": "secret to populate volume; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#secrets"
      },
      "nfs": {
       "$ref": "v1.NFSVolumeSource",
-      "description": "NFS volume that will be mounted in the host machine; see http://releases.k8s.io/v1.0.0/docs/volumes.md#nfs"
+      "description": "NFS volume that will be mounted in the host machine; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#nfs"
      },
      "iscsi": {
       "$ref": "v1.ISCSIVolumeSource",
-      "description": "iSCSI disk attached to host machine on demand; see http://releases.k8s.io/v1.0.0/examples/iscsi/README.md"
+      "description": "iSCSI disk attached to host machine on demand; see http://releases.k8s.io/HEAD/examples/iscsi/README.md"
      },
      "glusterfs": {
       "$ref": "v1.GlusterfsVolumeSource",
-      "description": "Glusterfs volume that will be mounted on the host machine; see http://releases.k8s.io/v1.0.0/examples/glusterfs/README.md"
+      "description": "Glusterfs volume that will be mounted on the host machine; see http://releases.k8s.io/HEAD/examples/glusterfs/README.md"
      },
      "persistentVolumeClaim": {
       "$ref": "v1.PersistentVolumeClaimVolumeSource",
-      "description": "a reference to a PersistentVolumeClaim in the same namespace; see http://releases.k8s.io/v1.0.0/docs/persistent-volumes.md#persistentvolumeclaims"
+      "description": "a reference to a PersistentVolumeClaim in the same namespace; see http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#persistentvolumeclaims"
      },
      "rbd": {
       "$ref": "v1.RBDVolumeSource",
-      "description": "rados block volume that will be mounted on the host machine; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md"
+      "description": "rados block volume that will be mounted on the host machine; see http://releases.k8s.io/HEAD/examples/rbd/README.md"
      },
      "cephfs": {
       "$ref": "v1.CephFSVolumeSource",
@@ -13993,7 +15222,7 @@
     "properties": {
      "path": {
       "type": "string",
-      "description": "path of the directory on the host; see http://releases.k8s.io/v1.0.0/docs/volumes.md#hostpath"
+      "description": "path of the directory on the host; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#hostpath"
      }
     }
    },
@@ -14002,7 +15231,7 @@
     "properties": {
      "medium": {
       "type": "string",
-      "description": "type of storage used to back the volume; must be an empty string (default) or Memory; see http://releases.k8s.io/v1.0.0/docs/volumes.md#emptydir"
+      "description": "type of storage used to back the volume; must be an empty string (default) or Memory; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#emptydir"
      }
     }
    },
@@ -14015,20 +15244,20 @@
     "properties": {
      "pdName": {
       "type": "string",
-      "description": "unique name of the PD resource in GCE; see http://releases.k8s.io/v1.0.0/docs/volumes.md#gcepersistentdisk"
+      "description": "unique name of the PD resource in GCE; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk"
      },
      "fsType": {
       "type": "string",
-      "description": "file system type to mount, such as ext4, xfs, ntfs; see http://releases.k8s.io/v1.0.0/docs/volumes.md#gcepersistentdisk"
+      "description": "file system type to mount, such as ext4, xfs, ntfs; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk"
      },
      "partition": {
       "type": "integer",
       "format": "int32",
-      "description": "partition on the disk to mount (e.g., '1' for /dev/sda1); if omitted the plain device name (e.g., /dev/sda) will be mounted; see http://releases.k8s.io/v1.0.0/docs/volumes.md#gcepersistentdisk"
+      "description": "partition on the disk to mount (e.g., '1' for /dev/sda1); if omitted the plain device name (e.g., /dev/sda) will be mounted; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk"
      },
      "readOnly": {
       "type": "boolean",
-      "description": "read-only if true, read-write otherwise (false or unspecified); see http://releases.k8s.io/v1.0.0/docs/volumes.md#gcepersistentdisk"
+      "description": "read-only if true, read-write otherwise (false or unspecified); see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#gcepersistentdisk"
      }
     }
    },
@@ -14041,20 +15270,20 @@
     "properties": {
      "volumeID": {
       "type": "string",
-      "description": "unique id of the PD resource in AWS; see http://releases.k8s.io/v1.0.0/docs/volumes.md#awselasticblockstore"
+      "description": "unique id of the PD resource in AWS; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#awselasticblockstore"
      },
      "fsType": {
       "type": "string",
-      "description": "file system type to mount, such as ext4, xfs, ntfs; see http://releases.k8s.io/v1.0.0/docs/volumes.md#awselasticblockstore"
+      "description": "file system type to mount, such as ext4, xfs, ntfs; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#awselasticblockstore"
      },
      "partition": {
       "type": "integer",
       "format": "int32",
-      "description": "partition on the disk to mount (e.g., '1' for /dev/sda1); if omitted the plain device name (e.g., /dev/sda) will be mounted; see http://releases.k8s.io/v1.0.0/docs/volumes.md#awselasticblockstore"
+      "description": "partition on the disk to mount (e.g., '1' for /dev/sda1); if omitted the plain device name (e.g., /dev/sda) will be mounted; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#awselasticblockstore"
      },
      "readOnly": {
       "type": "boolean",
-      "description": "read-only if true, read-write otherwise (false or unspecified); see http://releases.k8s.io/v1.0.0/docs/volumes.md#awselasticblockstore"
+      "description": "read-only if true, read-write otherwise (false or unspecified); see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#awselasticblockstore"
      }
     }
    },
@@ -14083,7 +15312,7 @@
     "properties": {
      "secretName": {
       "type": "string",
-      "description": "secretName is the name of a secret in the pod's namespace; see http://releases.k8s.io/v1.0.0/docs/volumes.md#secrets"
+      "description": "secretName is the name of a secret in the pod's namespace; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#secrets"
      }
     }
    },
@@ -14096,15 +15325,15 @@
     "properties": {
      "server": {
       "type": "string",
-      "description": "the hostname or IP address of the NFS server; see http://releases.k8s.io/v1.0.0/docs/volumes.md#nfs"
+      "description": "the hostname or IP address of the NFS server; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#nfs"
      },
      "path": {
       "type": "string",
-      "description": "the path that is exported by the NFS server; see http://releases.k8s.io/v1.0.0/docs/volumes.md#nfs"
+      "description": "the path that is exported by the NFS server; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#nfs"
      },
      "readOnly": {
       "type": "boolean",
-      "description": "forces the NFS export to be mounted with read-only permissions; see http://releases.k8s.io/v1.0.0/docs/volumes.md#nfs"
+      "description": "forces the NFS export to be mounted with read-only permissions; see http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#nfs"
      }
     }
    },
@@ -14149,15 +15378,15 @@
     "properties": {
      "endpoints": {
       "type": "string",
-      "description": "gluster hosts endpoints name; see http://releases.k8s.io/v1.0.0/examples/glusterfs/README.md#create-a-pod"
+      "description": "gluster hosts endpoints name; see http://releases.k8s.io/HEAD/examples/glusterfs/README.md#create-a-pod"
      },
      "path": {
       "type": "string",
-      "description": "path to gluster volume; see http://releases.k8s.io/v1.0.0/examples/glusterfs/README.md#create-a-pod"
+      "description": "path to gluster volume; see http://releases.k8s.io/HEAD/examples/glusterfs/README.md#create-a-pod"
      },
      "readOnly": {
       "type": "boolean",
-      "description": "glusterfs volume to be mounted with read-only permissions; see http://releases.k8s.io/v1.0.0/examples/glusterfs/README.md#create-a-pod"
+      "description": "glusterfs volume to be mounted with read-only permissions; see http://releases.k8s.io/HEAD/examples/glusterfs/README.md#create-a-pod"
      }
     }
    },
@@ -14169,7 +15398,7 @@
     "properties": {
      "claimName": {
       "type": "string",
-      "description": "the name of the claim in the same namespace to be mounted as a volume; see http://releases.k8s.io/v1.0.0/docs/persistent-volumes.md#persistentvolumeclaims"
+      "description": "the name of the claim in the same namespace to be mounted as a volume; see http://releases.k8s.io/HEAD/docs/user-guide/persistent-volumes.md#persistentvolumeclaims"
      },
      "readOnly": {
       "type": "boolean",
@@ -14193,35 +15422,35 @@
       "items": {
        "type": "string"
       },
-      "description": "a collection of Ceph monitors; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md#how-to-use-it"
+      "description": "a collection of Ceph monitors; see http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it"
      },
      "image": {
       "type": "string",
-      "description": "rados image name; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md#how-to-use-it"
+      "description": "rados image name; see http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it"
      },
      "fsType": {
       "type": "string",
-      "description": "file system type to mount, such as ext4, xfs, ntfs; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md#how-to-use-it"
+      "description": "file system type to mount, such as ext4, xfs, ntfs; see http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it"
      },
      "pool": {
       "type": "string",
-      "description": "rados pool name; default is rbd; optional; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md#how-to-use-it"
+      "description": "rados pool name; default is rbd; optional; see http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it"
      },
      "user": {
       "type": "string",
-      "description": "rados user name; default is admin; optional; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md#how-to-use-it"
+      "description": "rados user name; default is admin; optional; see http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it"
      },
      "keyring": {
       "type": "string",
-      "description": "keyring is the path to key ring for rados user; default is /etc/ceph/keyring; optional; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md#how-to-use-it"
+      "description": "keyring is the path to key ring for rados user; default is /etc/ceph/keyring; optional; see http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it"
      },
      "secretRef": {
       "$ref": "v1.LocalObjectReference",
-      "description": "name of a secret to authenticate the RBD user; if provided overrides keyring; optional; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md#how-to-use-it"
+      "description": "name of a secret to authenticate the RBD user; if provided overrides keyring; optional; see http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it"
      },
      "readOnly": {
       "type": "boolean",
-      "description": "rbd volume to be mounted with read-only permissions; see http://releases.k8s.io/v1.0.0/examples/rbd/README.md#how-to-use-it"
+      "description": "rbd volume to be mounted with read-only permissions; see http://releases.k8s.io/HEAD/examples/rbd/README.md#how-to-use-it"
      }
     }
    },
@@ -14297,21 +15526,21 @@
      },
      "image": {
       "type": "string",
-      "description": "Docker image name; see http://releases.k8s.io/v1.0.0/docs/images.md"
+      "description": "Docker image name; see http://releases.k8s.io/HEAD/docs/user-guide/images.md"
      },
      "command": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "entrypoint array; not executed within a shell; the docker image's entrypoint is used if this is not provided; cannot be updated; variable references $(VAR_NAME) are expanded using the container's environment variables; if a variable cannot be resolved, the reference in the input string will be unchanged; the $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME) ; escaped references will never be expanded, regardless of whether the variable exists or not; see http://releases.k8s.io/v1.0.0/docs/containers.md#containers-and-commands"
+      "description": "entrypoint array; not executed within a shell; the docker image's entrypoint is used if this is not provided; cannot be updated; variable references $(VAR_NAME) are expanded using the container's environment variables; if a variable cannot be resolved, the reference in the input string will be unchanged; the $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME) ; escaped references will never be expanded, regardless of whether the variable exists or not; see http://releases.k8s.io/HEAD/docs/user-guide/containers.md#containers-and-commands"
      },
      "args": {
       "type": "array",
       "items": {
        "type": "string"
       },
-      "description": "command array; the docker image's cmd is used if this is not provided; arguments to the entrypoint; cannot be updated; variable references $(VAR_NAME) are expanded using the container's environment variables; if a variable cannot be resolved, the reference in the input string will be unchanged; the $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME) ; escaped references will never be expanded, regardless of whether the variable exists or not; see http://releases.k8s.io/v1.0.0/docs/containers.md#containers-and-commands"
+      "description": "command array; the docker image's cmd is used if this is not provided; arguments to the entrypoint; cannot be updated; variable references $(VAR_NAME) are expanded using the container's environment variables; if a variable cannot be resolved, the reference in the input string will be unchanged; the $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME) ; escaped references will never be expanded, regardless of whether the variable exists or not; see http://releases.k8s.io/HEAD/docs/user-guide/containers.md#containers-and-commands"
      },
      "workingDir": {
       "type": "string",
@@ -14333,7 +15562,7 @@
      },
      "resources": {
       "$ref": "v1.ResourceRequirements",
-      "description": "Compute Resources required by this container; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/compute_resources.md"
+      "description": "Compute Resources required by this container; cannot be updated; see http://releases.k8s.io/HEAD/docs/user-guide/compute-resources.md"
      },
      "volumeMounts": {
       "type": "array",
@@ -14344,11 +15573,11 @@
      },
      "livenessProbe": {
       "$ref": "v1.Probe",
-      "description": "periodic probe of container liveness; container will be restarted if the probe fails; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/pod-states.md#container-probes"
+      "description": "periodic probe of container liveness; container will be restarted if the probe fails; cannot be updated; see http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#container-probes"
      },
      "readinessProbe": {
       "$ref": "v1.Probe",
-      "description": "periodic probe of container service readiness; container will be removed from service endpoints if the probe fails; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/pod-states.md#container-probes"
+      "description": "periodic probe of container service readiness; container will be removed from service endpoints if the probe fails; cannot be updated; see http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#container-probes"
      },
      "lifecycle": {
       "$ref": "v1.Lifecycle",
@@ -14360,11 +15589,19 @@
      },
      "imagePullPolicy": {
       "type": "string",
-      "description": "image pull policy; one of Always, Never, IfNotPresent; defaults to Always if :latest tag is specified, or IfNotPresent otherwise; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/images.md#updating-images"
+      "description": "image pull policy; one of Always, Never, IfNotPresent; defaults to Always if :latest tag is specified, or IfNotPresent otherwise; cannot be updated; see http://releases.k8s.io/HEAD/docs/user-guide/images.md#updating-images"
      },
      "securityContext": {
       "$ref": "v1.SecurityContext",
-      "description": "security options the pod should run with; see http://releases.k8s.io/v1.0.0/docs/security_context.md"
+      "description": "security options the pod should run with; see http://releases.k8s.io/HEAD/docs/design/security_context.md"
+     },
+     "stdin": {
+      "type": "boolean",
+      "description": "Whether this container should allocate a buffer for stdin in the container runtime; default is false"
+     },
+     "tty": {
+      "type": "boolean",
+      "description": "Whether this container should allocate a TTY for itself, also requires 'stdin' to be true; default is false"
      }
     }
    },
@@ -14437,12 +15674,12 @@
      "initialDelaySeconds": {
       "type": "integer",
       "format": "int64",
-      "description": "number of seconds after the container has started before liveness probes are initiated; see http://releases.k8s.io/v1.0.0/docs/pod-states.md#container-probes"
+      "description": "number of seconds after the container has started before liveness probes are initiated; see http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#container-probes"
      },
      "timeoutSeconds": {
       "type": "integer",
       "format": "int64",
-      "description": "number of seconds after which liveness probes timeout; defaults to 1 second; see http://releases.k8s.io/v1.0.0/docs/pod-states.md#container-probes"
+      "description": "number of seconds after which liveness probes timeout; defaults to 1 second; see http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#container-probes"
      }
     }
    },
@@ -14490,7 +15727,7 @@
     "properties": {
      "port": {
       "type": "string",
-      "description": "number of name of the port to access on the container; number must be in the range 1 to 65535; name must be an IANA_SVC_NAME"
+      "description": "number or name of the port to access on the container; number must be in the range 1 to 65535; name must be an IANA_SVC_NAME"
      }
     }
    },
@@ -14499,11 +15736,11 @@
     "properties": {
      "postStart": {
       "$ref": "v1.Handler",
-      "description": "called immediately after a container is started; if the handler fails, the container is terminated and restarted according to its restart policy; other management of the container blocks until the hook completes; see http://releases.k8s.io/v1.0.0/docs/container-environment.md#hook-details"
+      "description": "called immediately after a container is started; if the handler fails, the container is terminated and restarted according to its restart policy; other management of the container blocks until the hook completes; see http://releases.k8s.io/HEAD/docs/user-guide/container-environment.md#hook-details"
      },
      "preStop": {
       "$ref": "v1.Handler",
-      "description": "called before a container is terminated; the container is terminated after the handler completes; other management of the container blocks until the hook completes; see http://releases.k8s.io/v1.0.0/docs/container-environment.md#hook-details"
+      "description": "called before a container is terminated; the container is terminated after the handler completes; other management of the container blocks until the hook completes; see http://releases.k8s.io/HEAD/docs/user-guide/container-environment.md#hook-details"
      }
     }
    },
@@ -14529,20 +15766,20 @@
     "properties": {
      "capabilities": {
       "$ref": "v1.Capabilities",
-      "description": "the linux capabilites that should be added or removed; see http://releases.k8s.io/v1.0.0/docs/design/security_context.md#security-context"
+      "description": "the linux capabilites that should be added or removed; see http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context"
      },
      "privileged": {
       "type": "boolean",
-      "description": "run the container in privileged mode; see http://releases.k8s.io/v1.0.0/docs/design/security_context.md#security-context"
+      "description": "run the container in privileged mode; see http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context"
      },
      "seLinuxOptions": {
       "$ref": "v1.SELinuxOptions",
-      "description": "options that control the SELinux labels applied; see http://releases.k8s.io/v1.0.0/docs/design/security_context.md#security-context"
+      "description": "options that control the SELinux labels applied; see http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context"
      },
      "runAsUser": {
       "type": "integer",
       "format": "int64",
-      "description": "the user id that runs the first process in the container; see http://releases.k8s.io/v1.0.0/docs/design/security_context.md#security-context"
+      "description": "the user id that runs the first process in the container; see http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context"
      },
      "runAsNonRoot": {
       "type": "boolean",
@@ -14578,19 +15815,19 @@
     "properties": {
      "user": {
       "type": "string",
-      "description": "the user label to apply to the container; see http://releases.k8s.io/v1.0.0/docs/labels.md"
+      "description": "the user label to apply to the container; see http://releases.k8s.io/HEAD/docs/user-guide/labels.md"
      },
      "role": {
       "type": "string",
-      "description": "the role label to apply to the container; see http://releases.k8s.io/v1.0.0/docs/labels.md"
+      "description": "the role label to apply to the container; see http://releases.k8s.io/HEAD/docs/user-guide/labels.md"
      },
      "type": {
       "type": "string",
-      "description": "the type label to apply to the container; see http://releases.k8s.io/v1.0.0/docs/labels.md"
+      "description": "the type label to apply to the container; see http://releases.k8s.io/HEAD/docs/user-guide/labels.md"
      },
      "level": {
       "type": "string",
-      "description": "the level label to apply to the container; see http://releases.k8s.io/v1.0.0/docs/labels.md"
+      "description": "the level label to apply to the container; see http://releases.k8s.io/HEAD/docs/user-guide/labels.md"
      }
     }
    },
@@ -14652,6 +15889,58 @@
      }
     }
    },
+   "v1.GroupList": {
+    "id": "v1.GroupList",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ListMeta"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Group"
+      },
+      "description": "list of groups"
+     }
+    }
+   },
+   "v1.Group": {
+    "id": "v1.Group",
+    "required": [
+     "users"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta"
+     },
+     "users": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "list of users in this group"
+     }
+    }
+   },
    "v1.HostSubnetList": {
     "id": "v1.HostSubnetList",
     "required": [
@@ -14660,11 +15949,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -14688,11 +15977,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -14719,11 +16008,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -14747,11 +16036,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -14782,11 +16071,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -14805,11 +16094,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -14840,11 +16129,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -14864,11 +16153,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -14891,11 +16180,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -14917,11 +16206,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15042,11 +16331,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15054,6 +16343,151 @@
      "image": {
       "$ref": "v1.Image",
       "description": "the image associated with the ImageStream and tag"
+     }
+    }
+   },
+   "v1.LocalResourceAccessReview": {
+    "id": "v1.LocalResourceAccessReview",
+    "required": [
+     "namespace",
+     "verb",
+     "resource",
+     "resourceName"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the action being requested"
+     },
+     "verb": {
+      "type": "string",
+      "description": "one of get, list, watch, create, update, delete"
+     },
+     "resource": {
+      "type": "string",
+      "description": "one of the existing resource types"
+     },
+     "resourceName": {
+      "type": "string",
+      "description": "name of the resource being requested for a get or delete"
+     },
+     "content": {
+      "type": "string",
+      "description": "actual content of the request for create and update"
+     }
+    }
+   },
+   "v1.LocalSubjectAccessReview": {
+    "id": "v1.LocalSubjectAccessReview",
+    "required": [
+     "namespace",
+     "verb",
+     "resource",
+     "resourceName",
+     "user",
+     "groups"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the action being requested"
+     },
+     "verb": {
+      "type": "string",
+      "description": "one of get, list, watch, create, update, delete"
+     },
+     "resource": {
+      "type": "string",
+      "description": "one of the existing resource types"
+     },
+     "resourceName": {
+      "type": "string",
+      "description": "name of the resource being requested for a get or delete"
+     },
+     "content": {
+      "type": "string",
+      "description": "actual content of the request for create and update"
+     },
+     "user": {
+      "type": "string",
+      "description": "optional, if both user and groups are empty, the current authenticated user is used"
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "optional, list of groups to which the user belongs"
+     }
+    }
+   },
+   "v1.NetNamespaceList": {
+    "id": "v1.NetNamespaceList",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ListMeta"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.NetNamespace"
+      },
+      "description": "list of net namespaces"
+     }
+    }
+   },
+   "v1.NetNamespace": {
+    "id": "v1.NetNamespace",
+    "required": [
+     "netname",
+     "netid"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta"
+     },
+     "netname": {
+      "type": "string",
+      "description": "Name of the network namespace."
+     },
+     "netid": {
+      "type": "uint",
+      "description": "NetID of the network namespace assigned to each overlay network packet."
      }
     }
    },
@@ -15065,11 +16499,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15088,11 +16522,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15143,11 +16577,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15166,11 +16600,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15217,11 +16651,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15240,11 +16674,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15278,11 +16712,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15301,11 +16735,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15335,11 +16769,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15362,11 +16796,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15410,11 +16844,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15436,11 +16870,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15464,11 +16898,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15513,16 +16947,17 @@
     "required": [
      "userNames",
      "groupNames",
+     "subjects",
      "roleRef"
     ],
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15541,6 +16976,13 @@
       },
       "description": "all the groups directly bound to the role"
      },
+     "subjects": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.ObjectReference"
+      },
+      "description": "references to subjects bound to the role.  Only User, Group, SystemUser, SystemGroup, and ServiceAccount are allowed."
+     },
      "roleRef": {
       "$ref": "v1.ObjectReference",
       "description": "a reference to a role"
@@ -15555,11 +16997,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15603,6 +17045,10 @@
       "type": "string",
       "description": "name of the parameter"
      },
+     "displayName": {
+      "type": "string",
+      "description": "optional: provides human readable name for the parameter"
+     },
      "description": {
       "type": "string",
       "description": "optional: describes the parameter"
@@ -15618,6 +17064,10 @@
      "from": {
       "type": "string",
       "description": "input value for the generator"
+     },
+     "required": {
+      "type": "boolean",
+      "description": "indicates the parameter must have a non-empty value or be generated"
      }
     }
    },
@@ -15626,11 +17076,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15653,11 +17103,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15676,11 +17126,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15723,17 +17173,23 @@
    "v1.ResourceAccessReview": {
     "id": "v1.ResourceAccessReview",
     "required": [
+     "namespace",
      "verb",
-     "resource"
+     "resource",
+     "resourceName"
     ],
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the action being requested"
      },
      "verb": {
       "type": "string",
@@ -15743,13 +17199,13 @@
       "type": "string",
       "description": "one of the existing resource types"
      },
-     "content": {
-      "type": "string",
-      "description": "actual content of the request for a create or update"
-     },
      "resourceName": {
       "type": "string",
-      "description": "name of the resource being requested for a get or delete operation"
+      "description": "name of the resource being requested for a get or delete"
+     },
+     "content": {
+      "type": "string",
+      "description": "actual content of the request for create and update"
      }
     }
    },
@@ -15761,11 +17217,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15787,11 +17243,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15805,6 +17261,32 @@
      }
     }
    },
+   "v1.RouteList": {
+    "id": "v1.RouteList",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ListMeta"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Route"
+      },
+      "description": "list of routes"
+     }
+    }
+   },
    "v1.Route": {
     "id": "v1.Route",
     "required": [
@@ -15814,11 +17296,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15842,7 +17324,7 @@
     "properties": {
      "host": {
       "type": "string",
-      "description": "optional: alias/dns that points to the service, can be host or host:port"
+      "description": "optional: alias/dns that points to the service, must follow DNS 952 subdomain conventions"
      },
      "path": {
       "type": "string",
@@ -15890,20 +17372,25 @@
    "v1.SubjectAccessReview": {
     "id": "v1.SubjectAccessReview",
     "required": [
+     "namespace",
      "verb",
      "resource",
+     "resourceName",
      "user",
-     "groups",
-     "resourceName"
+     "groups"
     ],
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "namespace": {
+      "type": "string",
+      "description": "namespace of the action being requested"
      },
      "verb": {
       "type": "string",
@@ -15912,6 +17399,14 @@
      "resource": {
       "type": "string",
       "description": "one of the existing resource types"
+     },
+     "resourceName": {
+      "type": "string",
+      "description": "name of the resource being requested for a get or delete"
+     },
+     "content": {
+      "type": "string",
+      "description": "actual content of the request for create and update"
      },
      "user": {
       "type": "string",
@@ -15923,14 +17418,6 @@
        "type": "string"
       },
       "description": "optional, list of groups to which the user belongs"
-     },
-     "content": {
-      "type": "string",
-      "description": "actual content of the request for create and update"
-     },
-     "resourceName": {
-      "type": "string",
-      "description": "name of the resource being requested for a get or delete"
      }
     }
    },
@@ -15942,11 +17429,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -15965,11 +17452,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -15992,11 +17479,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ListMeta"
@@ -16019,11 +17506,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#types-kinds"
+      "description": "kind of object, in CamelCase; cannot be updated; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "version of the schema the object should have; see http://releases.k8s.io/v1.0.0/docs/api-conventions.md#resources"
+      "description": "version of the schema the object should have; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"

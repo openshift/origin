@@ -3,19 +3,6 @@
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
 
-if [[ -z "$(which iptables)" ]]; then
-	echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
-	exit 1
-fi
-iptables --list > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-	sudo iptables --list > /dev/null 2>&1
-	if [ $? -ne 0 ]; then
-		echo "You do not have iptables or sudo privileges.	Kubernetes services will not work without iptables access.	See https://github.com/GoogleCloudPlatform/kubernetes/issues/1859.	Try 'sudo hack/test-end-to-end.sh'."
-		exit 1
-	fi
-fi
-
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -23,61 +10,12 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 
-echo "[INFO] Starting end-to-end test"
+ensure_iptables_or_die
 
-# Use either the latest release built images, or latest.
-if [[ -z "${USE_IMAGES-}" ]]; then
-	USE_IMAGES='openshift/origin-${component}:latest'
-	if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
-		COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
-		USE_IMAGES="openshift/origin-\${component}:${COMMIT}"
-	fi
-fi
+echo "[INFO] Starting end-to-end test"
 
 ROUTER_TESTS_ENABLED="${ROUTER_TESTS_ENABLED:-true}"
 TEST_ASSETS="${TEST_ASSETS:-false}"
-
-if [[ -z "${BASETMPDIR-}" ]]; then
-	TMPDIR="${TMPDIR:-"/tmp"}"
-	BASETMPDIR="${TMPDIR}/openshift-e2e"
-	sudo rm -rf "${BASETMPDIR}"
-	mkdir -p "${BASETMPDIR}"
-fi
-ETCD_DATA_DIR="${BASETMPDIR}/etcd"
-VOLUME_DIR="${BASETMPDIR}/volumes"
-FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
-LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
-ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
-mkdir -p $LOG_DIR
-mkdir -p $ARTIFACT_DIR
-
-DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}'`
-API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
-API_PORT="${API_PORT:-8443}"
-API_SCHEME="${API_SCHEME:-https}"
-MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
-PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
-KUBELET_SCHEME="${KUBELET_SCHEME:-https}"
-KUBELET_HOST="${KUBELET_HOST:-127.0.0.1}"
-KUBELET_PORT="${KUBELET_PORT:-10250}"
-
-SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
-MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
-NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
-
-# use the docker bridge ip address until there is a good way to get the auto-selected address from master
-# this address is considered stable
-# used as a resolve IP to test routing
-CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
-
-STI_CONFIG_FILE="${LOG_DIR}/stiAppConfig.json"
-DOCKER_CONFIG_FILE="${LOG_DIR}/dockerAppConfig.json"
-CUSTOM_CONFIG_FILE="${LOG_DIR}/customAppConfig.json"
-GO_OUT="${OS_ROOT}/_output/local/go/bin"
-
-# set path so OpenShift is available
-export PATH="${GO_OUT}:${PATH}"
-
 
 function cleanup()
 {
@@ -90,47 +28,7 @@ function cleanup()
 	fi
 	echo
 
-	set +e
-	dump_container_logs
-
-	echo "[INFO] Dumping build log to ${LOG_DIR}"
-
-	oc get -n test builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n test >"${LOG_DIR}/stibuild.log"
-	oc get -n docker builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n docker >"${LOG_DIR}/dockerbuild.log"
-	oc get -n custom builds --output-version=v1beta3 -t '{{ range .items }}{{.metadata.name}}{{ "\n" }}{{end}}' | xargs -r -l oc build-logs -n custom >"${LOG_DIR}/custombuild.log"
-
-	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
-	set_curl_args 0 1
-	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:4001/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
-	echo
-
-	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-		echo "[INFO] Switch back to 'default' project with 'admin' user for cleanup"
-		oc project ${CLUSTER_ADMIN_CONTEXT}
-
-		echo "[INFO] Deleting test constructs"
-		oc delete -n test all --all
-		oc delete -n docker all --all
-		oc delete -n custom all --all
-		oc delete -n cache all --all
-		oc delete -n default all --all
-
-		echo "[INFO] Tearing down test"
-		pids="$(jobs -pr)"
-		echo "[INFO] Children: ${pids}"
-		sudo kill ${pids}
-		sudo ps f
-		set +u
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
-		fi
-		set -u
-	fi
-	set -e
-
-	delete_large_and_empty_logs
-
+	cleanup_openshift
 	echo "[INFO] Exiting"
 	exit $out
 }
@@ -165,6 +63,15 @@ function wait_for_app() {
 	wait_for_command '[[ "$(curl -s http://${FRONTEND_IP}:5432/keys/foo)" = "1337" ]]'
 }
 
+# Wait for builds to start
+# $1 namespace
+function wait_for_build_start() {
+        echo "[INFO] Waiting for $1 namespace build to start"
+        wait_for_command "oc get -n $1 builds | grep -i running" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
+        BUILD_ID=`oc get -n $1 builds  --output-version=v1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+        echo "[INFO] Build ${BUILD_ID} started"
+}
+
 # Wait for builds to complete
 # $1 namespace
 function wait_for_build() {
@@ -178,92 +85,29 @@ function wait_for_build() {
   set -e
 }
 
-# Setup
-stop_openshift_server
-echo "[INFO] `openshift version`"
-echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
-echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
-echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
-echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
-echo "[INFO] Using images:              ${USE_IMAGES}"
 
 # Start All-in-one server and wait for health
-echo "[INFO] Create certificates for the OpenShift server"
-# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
-SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},localhost"
-while read -r IP_ADDRESS
-do
-	SERVER_HOSTNAME_LIST="${SERVER_HOSTNAME_LIST},${IP_ADDRESS}"
-done <<< "${ALL_IP_ADDRESSES}"
+TMPDIR="${TMPDIR:-"/tmp"}"
+BASETMPDIR="${TMPDIR}/openshift-e2e"
+setup_env_vars
+reset_tmp_dir 
+configure_os_server
+start_os_server
 
-openshift admin ca create-master-certs \
-	--overwrite=false \
-	--cert-dir="${MASTER_CONFIG_DIR}" \
-	--hostnames="${SERVER_HOSTNAME_LIST}" \
-	--master="${MASTER_ADDR}" \
-	--public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
+# set our default KUBECONFIG location
+export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
-openshift admin create-node-config \
-	--listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-	--node-dir="${NODE_CONFIG_DIR}" \
-	--node="${KUBELET_HOST}" \
-	--hostnames="${KUBELET_HOST}" \
-	--master="${MASTER_ADDR}" \
-	--node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-	--certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-	--signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-	--signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-	--signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-# create openshift config
-openshift start \
-	--write-config=${SERVER_CONFIG_DIR} \
-	--create-certs=false \
-    --listen="${API_SCHEME}://0.0.0.0:${API_PORT}" \
-    --master="${MASTER_ADDR}" \
-    --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}" \
-    --hostname="${KUBELET_HOST}" \
-    --volume-dir="${VOLUME_DIR}" \
-    --etcd-dir="${ETCD_DATA_DIR}" \
-    --images="${USE_IMAGES}"
-
-
-echo "[INFO] Starting OpenShift server"
-sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
-	--master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
-	--node-config=${NODE_CONFIG_DIR}/node-config.yaml \
-    --loglevel=4 \
-    &> "${LOG_DIR}/openshift.log" &
-OS_PID=$!
-
-export HOME="${FAKE_HOME_DIR}"
-# This directory must exist so Docker can store credentials in $HOME/.dockercfg
-mkdir -p ${FAKE_HOME_DIR}
-
-export KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
-
-if [[ "${API_SCHEME}" == "https" ]]; then
-	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
-	export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
-	export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
-
-	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
-	sudo chmod -R a+rwX "${KUBECONFIG}"
-	echo "[INFO] To debug: export KUBECONFIG=$KUBECONFIG"
-fi
-
-
-wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
 openshift admin policy add-role-to-user view e2e-user --namespace=default
+
+# pre-load some image streams and templates
+oc create -f examples/image-streams/image-streams-centos7.json --namespace=openshift
+oc create -f examples/sample-app/application-template-stibuild.json --namespace=openshift
+oc create -f examples/jenkins/application-template.json --namespace=openshift
+oc create -f examples/db-templates/mongodb-ephemeral-template.json --namespace=openshift
+oc create -f examples/db-templates/mysql-ephemeral-template.json --namespace=openshift
+oc create -f examples/db-templates/postgresql-ephemeral-template.json --namespace=openshift
 
 # create test project so that this shows up in the console
 openshift admin new-project test --description="This is an example project to demonstrate OpenShift v3" --admin="e2e-user"
@@ -274,23 +118,15 @@ openshift admin new-project cache --description="This is an example project to d
 echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}/console."
 echo "Log in as 'e2e-user' to see the 'test' project."
 
-# install the router
-echo "[INFO] Installing the router"
-echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
-oc get scc privileged -o json | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f -
-openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --images="${USE_IMAGES}" --service-account=router
-
-# install the registry. The --mount-host option is provided to reuse local storage.
-echo "[INFO] Installing the registry"
-openshift admin registry --create --credentials="${MASTER_CONFIG_DIR}/openshift-registry.kubeconfig" --images="${USE_IMAGES}"
+install_router
+install_registry
 
 echo "[INFO] Pre-pulling and pushing ruby-20-centos7"
 docker pull openshift/ruby-20-centos7:latest
 echo "[INFO] Pulled ruby-20-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
-# TODO: simplify when #4702 is fixed upstream
-wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_registry
 
 # services can end up on any IP.	Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
@@ -336,6 +172,9 @@ wait_for_command "oc get -n test serviceaccount/builder -o yaml | grep dockercfg
 
 # Process template and create
 echo "[INFO] Submitting application template json for processing..."
+STI_CONFIG_FILE="${ARTIFACT_DIR}/stiAppConfig.json"
+DOCKER_CONFIG_FILE="${ARTIFACT_DIR}/dockerAppConfig.json"
+CUSTOM_CONFIG_FILE="${ARTIFACT_DIR}/customAppConfig.json"
 oc process -n test -f examples/sample-app/application-template-stibuild.json > "${STI_CONFIG_FILE}"
 oc process -n docker -f examples/sample-app/application-template-dockerbuild.json > "${DOCKER_CONFIG_FILE}"
 oc process -n custom -f examples/sample-app/application-template-custombuild.json > "${CUSTOM_CONFIG_FILE}"
@@ -351,6 +190,9 @@ oc create -f "${STI_CONFIG_FILE}"
 # Wait for build which should have triggered automatically
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} and streaming its logs..."
 #oc start-build -n test ruby-sample-build --follow
+wait_for_build_start "test"
+# Ensure that the build pod doesn't allow exec
+[ "$(oc rsh ${BUILD_ID}-build 2>&1 | grep 'forbidden')" ]
 wait_for_build "test"
 wait_for_app "test"
 
@@ -390,6 +232,10 @@ oc project ${CLUSTER_ADMIN_CONTEXT}
 wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 echo "[INFO] Validating routed app response..."
+# use the docker bridge ip address until there is a good way to get the auto-selected address from master
+# this address is considered stable
+# used as a resolve IP to test routing
+CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
 
@@ -441,10 +287,23 @@ oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.after.txt
 # make sure there were changes to the registry's storage
 [ -n "$(diff ${LOG_DIR}/prune-images.before.txt ${LOG_DIR}/prune-images.after.txt)" ]
 
+
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then
-	echo "[INFO] Running UI e2e tests..."
+
+	if [[ "$TEST_ASSETS_HEADLESS" == "true" ]]; then
+		echo "[INFO] Starting virtual framebuffer for headless tests..."
+		export DISPLAY=:10
+		Xvfb :10 -screen 0 1024x768x24 -ac &
+	fi
+
+	echo "[INFO] Running UI e2e tests at time..."
+	echo `date`
 	pushd ${OS_ROOT}/assets > /dev/null
 		grunt test-e2e
+	echo "UI  e2e done at time "
+	echo `date`
+
 	popd > /dev/null
+
 fi

@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	kyaml "github.com/GoogleCloudPlatform/kubernetes/pkg/util/yaml"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"k8s.io/kubernetes/pkg/runtime"
+	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/ghodss/yaml"
 )

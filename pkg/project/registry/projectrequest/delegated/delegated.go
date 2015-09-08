@@ -4,17 +4,17 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapierror "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/rest"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -154,12 +154,14 @@ func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Select
 	// the caller might not have permission to run a subject access review (he has it by default, but it could have been removed).
 	// So we'll escalate for the subject access review to determine rights
 	accessReview := &authorizationapi.SubjectAccessReview{
-		Verb:     "create",
-		Resource: "projectrequests",
-		User:     userInfo.GetName(),
-		Groups:   util.NewStringSet(userInfo.GetGroups()...),
+		Action: authorizationapi.AuthorizationAttributes{
+			Verb:     "create",
+			Resource: "projectrequests",
+		},
+		User:   userInfo.GetName(),
+		Groups: util.NewStringSet(userInfo.GetGroups()...),
 	}
-	accessReviewResponse, err := r.openshiftClient.ClusterSubjectAccessReviews().Create(accessReview)
+	accessReviewResponse, err := r.openshiftClient.SubjectAccessReviews().Create(accessReview)
 	if err != nil {
 		return nil, err
 	}

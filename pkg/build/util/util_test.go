@@ -3,8 +3,8 @@ package util
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestGetBuildPodName(t *testing.T) {

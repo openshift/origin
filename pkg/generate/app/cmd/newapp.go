@@ -6,15 +6,16 @@ import (
 	"strconv"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/types"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -33,15 +34,18 @@ type AppConfig struct {
 	SourceRepositories util.StringList
 	ContextDir         string
 
-	Components         util.StringList
-	ImageStreams       util.StringList
-	DockerImages       util.StringList
-	Templates          util.StringList
-	TemplateFiles      util.StringList
+	Components    util.StringList
+	ImageStreams  util.StringList
+	DockerImages  util.StringList
+	Templates     util.StringList
+	TemplateFiles util.StringList
+
 	TemplateParameters util.StringList
 	Groups             util.StringList
 	Environment        util.StringList
 	Labels             map[string]string
+
+	AddEnvironmentToBuild bool
 
 	Name             string
 	Strategy         string
@@ -49,6 +53,7 @@ type AppConfig struct {
 	OutputDocker     bool
 
 	AsSearch bool
+	AsList   bool
 
 	refBuilder *app.ReferenceBuilder
 
@@ -424,6 +429,13 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 	return errors.NewAggregate(errs)
 }
 
+func (c *AppConfig) validateEnforcedName() error {
+	if ok, _ := validation.ValidateServiceName(c.Name, false); !ok {
+		return fmt.Errorf("invalid name: %s. Must be an a lower case alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.", c.Name)
+	}
+	return nil
+}
+
 func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 	// Ensure that name meets length requirements
 	if len(name) < 2 {
@@ -465,7 +477,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 				if !input.AsImageStream {
-					glog.Warningf("Could not find an image match for %q. Make sure that a Docker image with that tag is available on the OpenShift node for the build to succeed.", ref.Input().ResolvedMatch.Value)
+					glog.Warningf("Could not find an image match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", ref.Input().ResolvedMatch.Value)
 				}
 				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses, input)
 				if err != nil {
@@ -501,7 +513,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 						}
 					}
 				}
-				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, source); err != nil {
+				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, c.GetBuildEnvironment(environment), source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 			} else {
@@ -587,8 +599,8 @@ type AppResult struct {
 	Namespace  string
 }
 
-// SearchResult contains the results of a search
-type SearchResult struct {
+// QueryResult contains the results of a query (search or list)
+type QueryResult struct {
 	Matches app.ComponentMatches
 	List    *kapi.List
 }
@@ -656,19 +668,30 @@ func makeImageStreamKey(ref kapi.ObjectReference) string {
 	return types.NamespacedName{ref.Namespace, name}.String()
 }
 
-// RunSearch executes the provided config and returns the result of the resolution.
-func (c *AppConfig) RunSearch(out, errOut io.Writer) (*SearchResult, error) {
+// RunQuery executes the provided config and returns the result of the resolution.
+func (c *AppConfig) RunQuery(out, errOut io.Writer) (*QueryResult, error) {
 	c.ensureDockerSearcher()
 	repositories, err := c.individualSourceRepositories()
 	if err != nil {
 		return nil, err
 	}
+
+	if c.AsList {
+		if c.AsSearch {
+			return nil, fmt.Errorf("--list and --search can't be used together")
+		}
+		if c.HasArguments() {
+			return nil, fmt.Errorf("--list can't be used with arguments")
+		}
+		c.Components.Set("*")
+	}
+
 	components, repositories, environment, parameters, err := c.validate()
 	if err != nil {
 		return nil, err
 	}
 
-	if len(repositories) == 0 && len(components) == 0 {
+	if len(components) == 0 && !c.AsList {
 		return nil, ErrNoInputs
 	}
 
@@ -710,7 +733,7 @@ func (c *AppConfig) RunSearch(out, errOut io.Writer) (*SearchResult, error) {
 			}
 		}
 	}
-	return &SearchResult{
+	return &QueryResult{
 		Matches: matches,
 		List:    &kapi.List{Items: objects},
 	}, nil
@@ -755,6 +778,12 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 
 	if len(repositories) == 0 && len(components) == 0 {
 		return nil, ErrNoInputs
+	}
+
+	if len(c.Name) > 0 {
+		if err := c.validateEnforcedName(); err != nil {
+			return nil, err
+		}
 	}
 
 	if len(components.ImageComponentRefs()) > 1 && len(c.Name) > 0 {
@@ -816,4 +845,23 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		HasSource:  len(repositories) != 0,
 		Namespace:  c.originNamespace,
 	}, nil
+}
+
+func (c *AppConfig) Querying() bool {
+	return c.AsList || c.AsSearch
+}
+
+func (c *AppConfig) HasArguments() bool {
+	return len(c.Components) > 0 ||
+		len(c.ImageStreams) > 0 ||
+		len(c.DockerImages) > 0 ||
+		len(c.Templates) > 0 ||
+		len(c.TemplateFiles) > 0
+}
+
+func (c *AppConfig) GetBuildEnvironment(environment app.Environment) app.Environment {
+	if c.AddEnvironmentToBuild {
+		return environment
+	}
+	return app.Environment{}
 }

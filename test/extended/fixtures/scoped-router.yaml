@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: router
+    labels:
+      test: router
+  spec:
+    containers:
+    - name: router
+      image: openshift/origin-haproxy-router
+      env:
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      args: ["--namespace=$(POD_NAMESPACE)", "--loglevel=4", "--labels=select=first"]
+      ports:
+      - containerPort: 80
+      - containerPort: 443
+      - containerPort: 1936
+        name: stats
+        protocol: TCP
+    serviceAccountName: default
+
+# ensure the router can access routes and endpoints
+- apiVersion: v1
+  kind: RoleBinding
+  metadata:
+    name: view
+  subjects:
+  - kind: ServiceAccount
+    name: default
+  roleRef:
+    name: view
+
+# two routes that differ only by their labels and names
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-1
+    labels:
+      test: router
+      select: first
+  spec:
+    host: first.example.com
+    to:
+      name: endpoints
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: route-2
+    labels:
+      test: router
+      select: second
+  spec:
+    host: second.example.com
+    to:
+      name: endpoints
+
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: endpoints
+    labels:
+      test: router
+  spec:
+    selector:
+      test: router
+      endpoints: router
+    ports:
+    - port: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-1
+    labels:
+      test: router
+      endpoints: router
+  spec:
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080

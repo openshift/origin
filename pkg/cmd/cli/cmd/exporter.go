@@ -7,20 +7,20 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/controller"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/endpoint"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/minion"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/namespace"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolume"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/persistentvolumeclaim"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/resourcequota"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/secret"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/serviceaccount"
+	"k8s.io/kubernetes/pkg/registry/controller"
+	"k8s.io/kubernetes/pkg/registry/endpoint"
+	"k8s.io/kubernetes/pkg/registry/minion"
+	"k8s.io/kubernetes/pkg/registry/namespace"
+	"k8s.io/kubernetes/pkg/registry/persistentvolume"
+	"k8s.io/kubernetes/pkg/registry/persistentvolumeclaim"
+	"k8s.io/kubernetes/pkg/registry/pod"
+	"k8s.io/kubernetes/pkg/registry/resourcequota"
+	"k8s.io/kubernetes/pkg/registry/secret"
+	"k8s.io/kubernetes/pkg/registry/serviceaccount"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildrest "github.com/openshift/origin/pkg/build/registry/build"
@@ -163,7 +163,9 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 			if err != nil {
 				return err
 			}
-			newSpec := imageapi.ImageStreamSpec{}
+			newSpec := imageapi.ImageStreamSpec{
+				Tags: map[string]imageapi.TagReference{},
+			}
 			for name, tag := range t.Status.Tags {
 				if len(tag.Items) > 0 {
 					// copy annotations
@@ -185,12 +187,16 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 				newSpec.Tags[name] = ref
 			}
 			t.Spec = newSpec
-			t.Status = imageapi.ImageStreamStatus{}
+			t.Status = imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{},
+			}
 			break
 		}
 
 		// otherwise, try to snapshot the most recent image as spec items
-		newSpec := imageapi.ImageStreamSpec{}
+		newSpec := imageapi.ImageStreamSpec{
+			Tags: map[string]imageapi.TagReference{},
+		}
 		for name, tag := range t.Status.Tags {
 			if len(tag.Items) > 0 {
 				// copy annotations
@@ -203,7 +209,9 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 			}
 		}
 		t.Spec = newSpec
-		t.Status = imageapi.ImageStreamStatus{}
+		t.Status = imageapi.ImageStreamStatus{
+			Tags: map[string]imageapi.TagEventList{},
+		}
 
 	case *imageapi.ImageStreamTag:
 		exportObjectMeta(&t.Image.ObjectMeta, exact)

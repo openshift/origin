@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io"
 
-	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	"k8s.io/kubernetes/pkg/fields"
+	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
@@ -29,8 +29,9 @@ type ProjectOptions struct {
 	Out          io.Writer
 	PathOptions  *kubecmdconfig.PathOptions
 
-	ProjectName string
-	ProjectOnly bool
+	ProjectName  string
+	ProjectOnly  bool
+	DisplayShort bool
 }
 
 const (
@@ -75,6 +76,7 @@ func NewCmdProject(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 			}
 		},
 	}
+	cmd.Flags().BoolVarP(&options.DisplayShort, "short", "q", false, "If true, display only the project name")
 	return cmd
 }
 
@@ -124,6 +126,11 @@ func (o ProjectOptions) RunProject() error {
 		currentProject := currentContext.Namespace
 
 		if len(currentProject) > 0 {
+			if o.DisplayShort {
+				fmt.Fprintln(out, currentProject)
+				return nil
+			}
+
 			_, err := o.Client.Projects().Get(currentProject)
 			if err != nil {
 				if kapierrors.IsNotFound(err) {
@@ -146,6 +153,9 @@ func (o ProjectOptions) RunProject() error {
 			}
 
 		} else {
+			if o.DisplayShort {
+				return fmt.Errorf("no project has been set")
+			}
 			fmt.Fprintf(out, "No project has been set. Pass a project name to make that the default.\n")
 		}
 		return nil
@@ -216,8 +226,13 @@ func (o ProjectOptions) RunProject() error {
 		contextNameIsGenerated = true
 	}
 
-	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config); err != nil {
+	if err := kubecmdconfig.ModifyConfig(o.PathOptions, config, true); err != nil {
 		return err
+	}
+
+	if o.DisplayShort {
+		fmt.Fprintln(out, namespaceInUse)
+		return nil
 	}
 
 	if contextInUse != namespaceInUse && !contextNameIsGenerated {

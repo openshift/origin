@@ -1,7 +1,7 @@
 package meta
 
 import (
-	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
+	kmeta "k8s.io/kubernetes/pkg/api/meta"
 )
 
 // MultiRESTMapper is a wrapper for multiple RESTMappers.

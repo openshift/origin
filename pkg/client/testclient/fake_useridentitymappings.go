@@ -1,6 +1,8 @@
 package testclient
 
 import (
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
@@ -11,24 +13,33 @@ type FakeUserIdentityMappings struct {
 }
 
 func (c *FakeUserIdentityMappings) Get(name string) (*userapi.UserIdentityMapping, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-useridentitymapping", Value: name}, &userapi.UserIdentityMapping{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("useridentitymappings", name), &userapi.UserIdentityMapping{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*userapi.UserIdentityMapping), err
 }
 
-func (c *FakeUserIdentityMappings) Create(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-useridentitymapping", Value: mapping}, &userapi.UserIdentityMapping{})
+func (c *FakeUserIdentityMappings) Create(inObj *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("useridentitymappings", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*userapi.UserIdentityMapping), err
 }
 
-func (c *FakeUserIdentityMappings) Update(mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-useridentitymapping", Value: mapping}, &userapi.UserIdentityMapping{})
+func (c *FakeUserIdentityMappings) Update(inObj *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("useridentitymappings", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*userapi.UserIdentityMapping), err
 }
 
 func (c *FakeUserIdentityMappings) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-useridentitymapping", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("useridentitymappings", name), &userapi.UserIdentityMapping{})
+	return err
 }

@@ -8,11 +8,16 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ProjectsController', function ($scope, $route, DataService, AuthService, Logger) {
+  .controller('ProjectsController', function ($scope, $route, $filter, $location, $modal, DataService, AuthService, AlertMessageService, Logger, hashSizeFilter) {
     $scope.projects = {};
     $scope.alerts = $scope.alerts || {};
-    $scope.emptyMessage = "Loading...";
+    $scope.showGetStarted = false;
     $scope.canCreate = undefined;
+
+    AlertMessageService.getAlerts().forEach(function(alert) {
+      $scope.alerts[alert.name] = alert.data;
+    });
+    AlertMessageService.clearAlerts();
 
     $('#openshift-logo').on('click.projectsPage', function() {
       // Force a reload. Angular doesn't reload the view when the URL doesn't change.
@@ -24,11 +29,47 @@ angular.module('openshiftConsole')
       $('#openshift-logo').off('click.projectsPage');
     });
 
-    AuthService.withUser().then(function() {
-      DataService.list("projects", $scope, function(projects) {
-        $scope.projects = projects.by("metadata.name");
-        $scope.emptyMessage = "No projects to show.";
+    $scope.openDeleteModal = function(project) {
+      // opening the modal with settings scope as parent
+      $scope.project = project;
+      var modalInstance = $modal.open({
+        animation: true,
+        templateUrl: 'views/modals/delete-project.html',
+        controller: 'DeleteModalController',
+        scope: $scope
       });
+
+      modalInstance.result.then(function() {
+        // actually deleting the project
+        var projectName = project.metadata.name;
+        delete $scope.alerts[projectName];
+        DataService.delete('projects', projectName, $scope)
+        .then(function() {
+          // called if successful deletion
+          $scope.alerts[projectName] = {
+            type: "success",
+            message: "Project " + $filter('displayName')(project) + " was marked for deletion."
+          };
+
+          loadProjects();
+        })
+        .catch(function(err) {
+          // called if failure to delete
+          $scope.alerts[projectName] = {
+            type: "error",
+            message: "Project " + $filter('displayName')(project) + " could not be deleted.",
+            details: getErrorDetails(err)
+          };
+          Logger.error("Project " + $filter('displayName')(project) + " could not be deleted.", getErrorDetails(err));
+        })
+        .finally(function() {
+          $scope.project = {};
+        });
+      });
+    };
+
+    AuthService.withUser().then(function() {
+      loadProjects();
     });
 
     // Test if the user can submit project requests. Handle error notifications
@@ -63,4 +104,25 @@ angular.module('openshiftConsole')
         }
       }
     });
+
+    var getErrorDetails = function(result) {
+      var error = result.data || {};
+      if (error.message) {
+        return error.message;
+      }
+
+      var status = result.status || error.status;
+      if (status) {
+        return "Status: " + status;
+      }
+
+      return "";
+    };
+
+    var loadProjects = function() {
+      DataService.list("projects", $scope, function(projects) {
+        $scope.projects = projects.by("metadata.name");
+        $scope.showGetStarted = hashSizeFilter($scope.projects) === 0;
+      });
+    };
   });

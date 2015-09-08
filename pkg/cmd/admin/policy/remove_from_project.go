@@ -7,14 +7,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
 const (
@@ -103,20 +105,25 @@ func (o *RemoveFromProjectOptions) Run() error {
 
 	usersRemoved := util.StringSet{}
 	groupsRemoved := util.StringSet{}
+	sasRemoved := util.StringSet{}
+	othersRemoved := util.StringSet{}
+
+	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
 	for _, currPolicyBinding := range bindingList.Items {
 		for _, currBinding := range authorizationapi.SortRoleBindings(currPolicyBinding.RoleBindings, true) {
-			bindingHasGroups := len(o.Groups) > 0 && currBinding.Groups.HasAny(o.Groups...)
-			bindingHasUsers := len(o.Users) > 0 && currBinding.Users.HasAny(o.Users...)
-			if !bindingHasGroups && !bindingHasUsers {
+			originalSubjects := make([]kapi.ObjectReference, len(currBinding.Subjects))
+			copy(originalSubjects, currBinding.Subjects)
+			oldUsers, oldGroups, oldSAs, oldOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, originalSubjects)
+			oldUsersSet, oldGroupsSet, oldSAsSet, oldOtherSet := util.NewStringSet(oldUsers...), util.NewStringSet(oldGroups...), util.NewStringSet(oldSAs...), util.NewStringSet(oldOthers...)
+
+			currBinding.Subjects = removeSubjects(currBinding.Subjects, subjectsToRemove)
+			newUsers, newGroups, newSAs, newOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, currBinding.Subjects)
+			newUsersSet, newGroupsSet, newSAsSet, newOtherSet := util.NewStringSet(newUsers...), util.NewStringSet(newGroups...), util.NewStringSet(newSAs...), util.NewStringSet(newOthers...)
+
+			if len(currBinding.Subjects) == len(originalSubjects) {
 				continue
 			}
-
-			existingGroups := util.NewStringSet(currBinding.Groups.List()...)
-			existingUsers := util.NewStringSet(currBinding.Users.List()...)
-
-			currBinding.Groups.Delete(o.Groups...)
-			currBinding.Users.Delete(o.Users...)
 
 			_, err = o.Client.RoleBindings(o.BindingNamespace).Update(currBinding)
 			if err != nil {
@@ -127,22 +134,31 @@ func (o *RemoveFromProjectOptions) Run() error {
 			if len(currBinding.RoleRef.Namespace) == 0 {
 				roleDisplayName = currBinding.RoleRef.Name
 			}
-			if diff := existingGroups.Difference(currBinding.Groups); len(diff) != 0 {
+
+			if diff := oldUsersSet.Difference(newUsersSet); len(diff) != 0 {
+				fmt.Fprintf(o.Out, "Removing %s from users %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
+				usersRemoved.Insert(diff.List()...)
+			}
+			if diff := oldGroupsSet.Difference(newGroupsSet); len(diff) != 0 {
 				fmt.Fprintf(o.Out, "Removing %s from groups %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
 				groupsRemoved.Insert(diff.List()...)
 			}
-			if diff := existingUsers.Difference(currBinding.Users); len(diff) != 0 {
-				fmt.Fprintf(o.Out, "Removing %s from users %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
-				usersRemoved.Insert(diff.List()...)
+			if diff := oldSAsSet.Difference(newSAsSet); len(diff) != 0 {
+				fmt.Fprintf(o.Out, "Removing %s from serviceaccounts %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
+				sasRemoved.Insert(diff.List()...)
+			}
+			if diff := oldOtherSet.Difference(newOtherSet); len(diff) != 0 {
+				fmt.Fprintf(o.Out, "Removing %s from subjects %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
+				othersRemoved.Insert(diff.List()...)
 			}
 		}
 	}
 
-	if diff := util.NewStringSet(o.Groups...).Difference(groupsRemoved); len(diff) != 0 {
-		fmt.Fprintf(o.Out, "Groups %v were not bound to roles in project %s.\n", diff.List(), o.BindingNamespace)
-	}
 	if diff := util.NewStringSet(o.Users...).Difference(usersRemoved); len(diff) != 0 {
 		fmt.Fprintf(o.Out, "Users %v were not bound to roles in project %s.\n", diff.List(), o.BindingNamespace)
+	}
+	if diff := util.NewStringSet(o.Groups...).Difference(groupsRemoved); len(diff) != 0 {
+		fmt.Fprintf(o.Out, "Groups %v were not bound to roles in project %s.\n", diff.List(), o.BindingNamespace)
 	}
 
 	return nil

@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/rest"
+	kclient "k8s.io/kubernetes/pkg/client"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/validation"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -16,9 +17,7 @@ import (
 // TestValidationRegistration makes sure that any RESTStorage that allows create or update has the correct validation register.
 // It doesn't guarantee that it's actually called, but it does guarantee that it at least exists
 func TestValidationRegistration(t *testing.T) {
-	config := &MasterConfig{
-		KubeletClientConfig: &kclient.KubeletConfig{},
-	}
+	config := fakeMasterConfig()
 
 	storageMap := config.GetRestStorage()
 	for key, storage := range storageMap {
@@ -52,9 +51,7 @@ func TestValidationRegistration(t *testing.T) {
 func TestAllOpenShiftResourceCoverage(t *testing.T) {
 	allOpenshift := authorizationapi.ExpandResources(util.NewStringSet(authorizationapi.GroupsToResources[authorizationapi.OpenshiftAllGroupName]...))
 
-	config := &MasterConfig{
-		KubeletClientConfig: &kclient.KubeletConfig{},
-	}
+	config := fakeMasterConfig()
 
 	storageMap := config.GetRestStorage()
 	for key := range storageMap {
@@ -63,5 +60,13 @@ func TestAllOpenShiftResourceCoverage(t *testing.T) {
 		}
 
 		t.Errorf("authorizationapi.GroupsToResources[authorizationapi.OpenshiftAllGroupName] is missing %v.  Check pkg/authorization/api/types.go.", strings.ToLower(key))
+	}
+}
+
+// fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
+func fakeMasterConfig() *MasterConfig {
+	return &MasterConfig{
+		KubeletClientConfig: &kclient.KubeletConfig{},
+		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
 	}
 }

@@ -11,11 +11,11 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	klatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/authorizer"

@@ -77,7 +77,7 @@ func TestParseRange(t *testing.T) {
 			continue
 		}
 		if r.String() != testCase.in {
-			t.Errorf("%s: range.String() did not match input: %s", r.String())
+			t.Errorf("%s: range.String() did not match input: %s", s, r.String())
 		}
 		if *r != testCase.r {
 			t.Errorf("%s: unexpected range: %#v", s, r)
@@ -164,7 +164,7 @@ func TestLabel(t *testing.T) {
 	for s, testCase := range testCases {
 		labels, err := ParseLabel(testCase.in)
 		if err != nil {
-			t.Errorf("%s: failed to parse labels: %v", err)
+			t.Errorf("%s: failed to parse labels: %v", s, err)
 			continue
 		}
 		if !reflect.DeepEqual(labels.Categories, testCase.expect) {

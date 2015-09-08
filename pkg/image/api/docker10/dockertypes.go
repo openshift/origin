@@ -1,8 +1,8 @@
 package docker10
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // DockerImage is the type representing a docker image and its various properties when

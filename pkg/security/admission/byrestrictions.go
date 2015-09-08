@@ -1,7 +1,7 @@
 package admission
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // ByRestrictions is a helper to sort SCCs in order of most restrictive to least restrictive.

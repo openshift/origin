@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -309,11 +309,13 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 		}
 
 		subjectAccessReview := authorizationapi.SubjectAccessReview{
-			Verb:         "get",
-			Resource:     "imagestreams",
-			User:         user.GetName(),
-			Groups:       util.NewStringSet(user.GetGroups()...),
-			ResourceName: streamName,
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:         "get",
+				Resource:     "imagestreams",
+				ResourceName: streamName,
+			},
+			User:   user.GetName(),
+			Groups: util.NewStringSet(user.GetGroups()...),
 		}
 		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
 		glog.V(1).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)

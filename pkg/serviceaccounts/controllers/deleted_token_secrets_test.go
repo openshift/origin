@@ -5,9 +5,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // emptySecretReferences is used by a service account without any secrets
@@ -121,38 +124,40 @@ func serviceAccountTokenSecretWithoutTokenData() *api.Secret {
 }
 
 func TestTokenDeletion(t *testing.T) {
+	dockercfgSecretFieldSelector := fields.OneTermEqualSelector(client.SecretType, string(api.SecretTypeDockercfg))
+
 	testcases := map[string]struct {
 		ClientObjects []runtime.Object
 
 		DeletedSecret *api.Secret
 
-		ExpectedActions []testclient.FakeAction
+		ExpectedActions []testclient.Action
 	}{
 		"deleted token secret without serviceaccount": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 			DeletedSecret: serviceAccountTokenSecret(),
 
-			ExpectedActions: []testclient.FakeAction{
-				{Action: "list-secrets"},
-				{Action: "delete-secret", Value: "default-dockercfg-fplln"},
+			ExpectedActions: []testclient.Action{
+				testclient.NewListAction("secrets", "default", labels.Everything(), dockercfgSecretFieldSelector),
+				testclient.NewDeleteAction("secrets", "default", "default-dockercfg-fplln"),
 			},
 		},
 		"deleted token secret with serviceaccount with reference": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 
 			DeletedSecret: serviceAccountTokenSecret(),
-			ExpectedActions: []testclient.FakeAction{
-				{Action: "list-secrets"},
-				{Action: "delete-secret", Value: "default-dockercfg-fplln"},
+			ExpectedActions: []testclient.Action{
+				testclient.NewListAction("secrets", "default", labels.Everything(), dockercfgSecretFieldSelector),
+				testclient.NewDeleteAction("secrets", "default", "default-dockercfg-fplln"),
 			},
 		},
 		"deleted token secret with serviceaccount without reference": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 
 			DeletedSecret: serviceAccountTokenSecret(),
-			ExpectedActions: []testclient.FakeAction{
-				{Action: "list-secrets"},
-				{Action: "delete-secret", Value: "default-dockercfg-fplln"},
+			ExpectedActions: []testclient.Action{
+				testclient.NewListAction("secrets", "default", labels.Everything(), dockercfgSecretFieldSelector),
+				testclient.NewDeleteAction("secrets", "default", "default-dockercfg-fplln"),
 			},
 		},
 	}
@@ -169,25 +174,21 @@ func TestTokenDeletion(t *testing.T) {
 			controller.secretDeleted(tc.DeletedSecret)
 		}
 
-		for i, action := range client.Actions {
+		for i, action := range client.Actions() {
 			if len(tc.ExpectedActions) < i+1 {
-				t.Errorf("%s: %d unexpected actions: %+v", k, len(client.Actions)-len(tc.ExpectedActions), client.Actions[i:])
+				t.Errorf("%s: %d unexpected actions: %+v", k, len(client.Actions())-len(tc.ExpectedActions), client.Actions()[i:])
 				break
 			}
 
 			expectedAction := tc.ExpectedActions[i]
-			if expectedAction.Action != action.Action {
-				t.Errorf("%s: Expected %s, got %s", k, expectedAction.Action, action.Action)
-				continue
-			}
-			if !reflect.DeepEqual(expectedAction.Value, action.Value) {
-				t.Errorf("%s: Expected\n\t%#v\ngot\n\t%#v", k, expectedAction.Value, action.Value)
+			if !reflect.DeepEqual(expectedAction, action) {
+				t.Errorf("%s: Expected %v, got %v", k, expectedAction, action)
 				continue
 			}
 		}
 
-		if len(tc.ExpectedActions) > len(client.Actions) {
-			t.Errorf("%s: %d additional expected actions:%+v", k, len(tc.ExpectedActions)-len(client.Actions), tc.ExpectedActions[len(client.Actions):])
+		if len(tc.ExpectedActions) > len(client.Actions()) {
+			t.Errorf("%s: %d additional expected actions:%+v", k, len(tc.ExpectedActions)-len(client.Actions()), tc.ExpectedActions[len(client.Actions()):])
 		}
 	}
 }

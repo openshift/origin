@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
 	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/git"
+	"github.com/openshift/source-to-image/pkg/ignore"
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
@@ -32,6 +33,7 @@ type OnBuild struct {
 type onBuildSourceHandler struct {
 	build.Downloader
 	build.Preparer
+	build.Ignorer
 }
 
 // New returns a new instance of OnBuild builder
@@ -53,6 +55,7 @@ func New(config *api.Config) (*OnBuild, error) {
 	b.source = onBuildSourceHandler{
 		&git.Clone{b.git, b.fs},
 		s,
+		&ignore.DockerIgnorer{},
 	}
 	b.garbage = &build.DefaultCleaner{b.fs, b.docker}
 	return b, nil
@@ -151,11 +154,11 @@ func (b *OnBuild) copySTIScripts(config *api.Config) {
 	scriptsPath := filepath.Join(config.WorkingDir, "upload", "scripts")
 	sourcePath := filepath.Join(config.WorkingDir, "upload", "src")
 	if _, err := b.fs.Stat(filepath.Join(scriptsPath, api.Run)); err == nil {
-		glog.V(3).Infof("Found STI 'run' script, copying to application source dir")
+		glog.V(3).Infof("Found S2I 'run' script, copying to application source dir")
 		b.fs.Copy(filepath.Join(scriptsPath, api.Run), sourcePath)
 	}
 	if _, err := b.fs.Stat(filepath.Join(scriptsPath, api.Assemble)); err == nil {
-		glog.V(3).Infof("Found STI 'assemble' script, copying to application source dir")
+		glog.V(3).Infof("Found S2I 'assemble' script, copying to application source dir")
 		b.fs.Copy(filepath.Join(scriptsPath, api.Assemble), sourcePath)
 	}
 }

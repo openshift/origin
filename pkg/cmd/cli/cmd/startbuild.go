@@ -14,10 +14,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -61,7 +61,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
 	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified BuildConfig or build; accepts 'all', 'generic', or 'github'")
-	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing BuildConfign to trigger")
+	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing BuildConfig to trigger")
 	cmd.Flags().String("git-post-receive", "", "The contents of the post-receive hook to trigger a build")
 	cmd.Flags().String("git-repository", "", "The path to the git repository for post-receive; defaults to the current directory")
 	return cmd

@@ -5,20 +5,22 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/tools"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
 )
 
 var (
@@ -41,10 +43,10 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Con
 	return &authorizationapi.SubjectAccessReviewResponse{Allowed: f.allow}, f.err
 }
 
-func newHelper(t *testing.T) (*tools.FakeEtcdClient, tools.EtcdHelper) {
+func newHelper(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
-	helper := tools.NewEtcdHelper(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
+	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	return fakeEtcdClient, helper
 }
 
@@ -195,7 +197,7 @@ func TestCreateImageStreamOK(t *testing.T) {
 	}
 
 	actual := &api.ImageStream{}
-	if err := helper.ExtractObj("/imagestreams/default/foo", actual, false); err != nil {
+	if err := helper.Get("/imagestreams/default/foo", actual, false); err != nil {
 		t.Fatalf("unexpected extraction error: %v", err)
 	}
 	if actual.Name != stream.Name {
@@ -305,7 +307,7 @@ func TestCreateImageStreamSpecTagsFromSet(t *testing.T) {
 		}
 
 		actual := &api.ImageStream{}
-		if err := helper.ExtractObj("/imagestreams/default/foo", actual, false); err != nil {
+		if err := helper.Get("/imagestreams/default/foo", actual, false); err != nil {
 			t.Fatalf("%s: unexpected extraction error: %v", name, err)
 		}
 		if e, a := fmt.Sprintf("%s/other:latest", otherNamespace), actual.Status.Tags["other"].Items[0].DockerImageReference; e != a {
@@ -486,7 +488,7 @@ func TestUpdateImageStreamSpecTagsFromSet(t *testing.T) {
 		}
 
 		actual := &api.ImageStream{}
-		if err := helper.ExtractObj("/imagestreams/default/foo", actual, false); err != nil {
+		if err := helper.Get("/imagestreams/default/foo", actual, false); err != nil {
 			t.Fatalf("%s: unexpected extraction error: %v", name, err)
 		}
 		if e, a := fmt.Sprintf("%s/other:latest", otherNamespace), actual.Status.Tags["other"].Items[0].DockerImageReference; e != a {

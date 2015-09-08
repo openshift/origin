@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	kcmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	kclient "k8s.io/kubernetes/pkg/client"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -37,14 +37,15 @@ your ticket or client certificate will not be removed from the current system si
 are typically managed by other programs. Instead, you can delete your config file to remove
 the local copy of that certificate or the record of your server login.
 
-After logging out, if you want to log back into the OpenShift server, try '%[1]s'.`
+After logging out, if you want to log back into the server use '%[1]s'.`
 
-	logoutExample = `  // Logout
+	logoutExample = `
+  // Logout
   $ %[1]s`
 )
 
 // NewCmdLogout implements the OpenShift cli logout command
-func NewCmdLogout(name, fullName, oscLoginFullCommand string, f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
+func NewCmdLogout(name, fullName, ocLoginFullCommand string, f *osclientcmd.Factory, reader io.Reader, out io.Writer) *cobra.Command {
 	options := &LogoutOptions{
 		Out: out,
 	}
@@ -52,7 +53,7 @@ func NewCmdLogout(name, fullName, oscLoginFullCommand string, f *osclientcmd.Fac
 	cmds := &cobra.Command{
 		Use:     name,
 		Short:   "End the current server session",
-		Long:    fmt.Sprintf(logoutLong, oscLoginFullCommand),
+		Long:    fmt.Sprintf(logoutLong, ocLoginFullCommand),
 		Example: fmt.Sprintf(logoutExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, cmd, args); err != nil {
@@ -135,7 +136,7 @@ func (o LogoutOptions) RunLogout() error {
 		}
 	}
 
-	if err := kcmdconfig.ModifyConfig(o.PathOptions, newConfig); err != nil {
+	if err := kcmdconfig.ModifyConfig(o.PathOptions, newConfig, true); err != nil {
 		return err
 	}
 

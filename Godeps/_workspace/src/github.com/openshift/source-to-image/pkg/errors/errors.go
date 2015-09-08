@@ -20,6 +20,7 @@ const (
 	URLHandlerError
 	STIContainerError
 	SourcePathError
+	BuilderUserNotAllowedError
 )
 
 // Error represents an error thrown during STI execution
@@ -202,5 +203,22 @@ func NewSourcePathError(path string) error {
 		Details:    nil,
 		ErrorCode:  SourcePathError,
 		Suggestion: "check the source code path on the local filesystem",
+	}
+}
+
+// NewBuilderUserNotAllowedError returns a new error that indicates that the build
+// could not run because the builder is not allowed to specify a user outside of the
+// range of allowed users
+func NewBuilderUserNotAllowedError(image string, onbuild bool) error {
+	var msg string
+	if onbuild {
+		msg = fmt.Sprintf("image %q includes at least one ONBUILD instruction that sets the user to a user that is not allowed", image)
+	} else {
+		msg = fmt.Sprintf("image %q must specify a user that is numeric and within the range of allowed users", image)
+	}
+	return Error{
+		Message:    msg,
+		ErrorCode:  BuilderUserNotAllowedError,
+		Suggestion: "modify builder image to use a numeric user within the allowed range or build without the --allowed-uids flag",
 	}
 }

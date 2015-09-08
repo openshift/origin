@@ -1,22 +1,28 @@
 package describe
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/labels"
+	kutil "k8s.io/kubernetes/pkg/util"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageapi "github.com/openshift/origin/pkg/image/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 type describeClient struct {
@@ -26,17 +32,68 @@ type describeClient struct {
 	*testclient.Fake
 }
 
-func TestDescribeFor(t *testing.T) {
+// DescriberCoverageExceptions is the list of API types that do NOT have corresponding describers
+// If you add something to this list, explain why it doesn't need validation.  waaaa is not a valid
+// reason.
+var DescriberCoverageExceptions = []reflect.Type{
+	reflect.TypeOf(&buildapi.BuildLogOptions{}),                       // normal users don't ever look at these
+	reflect.TypeOf(&buildapi.BuildRequest{}),                          // normal users don't ever look at these
+	reflect.TypeOf(&imageapi.DockerImage{}),                           // not a top level resource
+	reflect.TypeOf(&oauthapi.OAuthAccessToken{}),                      // normal users don't ever look at these
+	reflect.TypeOf(&oauthapi.OAuthAuthorizeToken{}),                   // normal users don't ever look at these
+	reflect.TypeOf(&oauthapi.OAuthClientAuthorization{}),              // normal users don't ever look at these
+	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),             // normal users don't ever look at these
+	reflect.TypeOf(&projectapi.ProjectRequest{}),                      // normal users don't ever look at these
+	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // not a top level resource
+
+	// these resources can't be "GET"ed, so you can't make a describer for them
+	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),
+	reflect.TypeOf(&authorizationapi.ResourceAccessReviewResponse{}),
+	reflect.TypeOf(&authorizationapi.SubjectAccessReview{}),
+	reflect.TypeOf(&authorizationapi.ResourceAccessReview{}),
+	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
+	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
+}
+
+// MissingDescriberCoverageExceptions is the list of types that were missing describer methods when I started
+// You should never add to this list
+// TODO describers should be added for these types
+var MissingDescriberCoverageExceptions = []reflect.Type{
+	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
+	reflect.TypeOf(&oauthapi.OAuthClient{}),
+	reflect.TypeOf(&sdnapi.ClusterNetwork{}),
+	reflect.TypeOf(&sdnapi.HostSubnet{}),
+	reflect.TypeOf(&sdnapi.NetNamespace{}),
+}
+
+func TestDescriberCoverage(t *testing.T) {
 	c := &client.Client{}
-	testTypesList := []string{
-		"Build", "BuildConfig", "BuildLog", "DeploymentConfig",
-		"Image", "ImageStream", "ImageStreamTag", "ImageStreamImage",
-		"Route", "Project",
-	}
-	for _, o := range testTypesList {
-		_, ok := DescriberFor(o, c, &ktestclient.Fake{}, "")
+
+main:
+	for _, apiType := range kapi.Scheme.KnownTypes("") {
+		if !strings.Contains(apiType.PkgPath(), "openshift/origin") {
+			continue
+		}
+		// we don't describe lists
+		if strings.HasSuffix(apiType.Name(), "List") {
+			continue
+		}
+
+		ptrType := reflect.PtrTo(apiType)
+		for _, exception := range DescriberCoverageExceptions {
+			if ptrType == exception {
+				continue main
+			}
+		}
+		for _, exception := range MissingDescriberCoverageExceptions {
+			if ptrType == exception {
+				continue main
+			}
+		}
+
+		_, ok := DescriberFor(apiType.Name(), c, &ktestclient.Fake{}, "")
 		if !ok {
-			t.Errorf("Unable to obtain describer for %s", o)
+			t.Errorf("missing printer for %v.  Check pkg/cmd/cli/describe/describer.go", apiType)
 		}
 	}
 }

@@ -16,9 +16,13 @@ import (
 
 	"github.com/AaronO/go-git-http"
 	"github.com/AaronO/go-git-http/auth"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/healthz"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"k8s.io/kubernetes/pkg/client/clientcmd"
+	"k8s.io/kubernetes/pkg/healthz"
+
+	authapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 )
 
@@ -35,12 +39,18 @@ HOOK_PATH
   path to a directory containing hooks for all repositories; if not set no global hooks will be used
 ALLOW_GIT_PUSH
   if 'no', pushes will be not be accepted; defaults to true
+ALLOW_ANON_GIT_PULL
+  if 'yes', pulls may be made without authorization; defaults to false
 ALLOW_GIT_HOOKS
   if 'no', hooks cannot be read or set; defaults to true
 ALLOW_LAZY_CREATE
   if 'no', repositories will not automatically be initialized on push; defaults to true
 REQUIRE_GIT_AUTH
   a user/password combination required to access the repo of the form "<user>:<password>"; defaults to none
+REQUIRE_SERVER_AUTH
+	a URL to an OpenShift server for verifying authorization credentials provided by a user. Requires
+	AUTOLINK_NAMESPACE to be set (the namespace that authorization will be checked in). Users must have
+	'get' on 'pods' to pull (be a viewer) and 'create' on 'pods' to push (be an editor)
 GIT_FORCE_CLEAN
   if 'yes', any initial repository directories will be deleted prior to start; defaults to no
   WARNING: this is destructive and you will lose any data you have already pushed
@@ -87,6 +97,8 @@ type Config struct {
 
 	CleanBeforeClone bool
 	InitialClones    map[string]Clone
+
+	AuthMessage string
 }
 
 // Clone is a repository to clone
@@ -155,15 +167,75 @@ func NewEnviromentConfig() (*Config, error) {
 		config.HookDirectory = path
 	}
 
-	if value := os.Getenv("REQUIRE_GIT_AUTH"); len(value) > 0 {
-		parts := strings.Split(value, ":")
+	allowAnonymousGet := os.Getenv("ALLOW_ANON_GIT_PULL") == "yes"
+	serverAuth := os.Getenv("REQUIRE_SERVER_AUTH")
+	gitAuth := os.Getenv("REQUIRE_GIT_AUTH")
+	if len(serverAuth) > 0 && len(gitAuth) > 0 {
+		return nil, fmt.Errorf("only one of REQUIRE_SERVER_AUTH or REQUIRE_GIT_AUTH may be specified")
+	}
+
+	if len(serverAuth) > 0 {
+		namespace := os.Getenv("AUTH_NAMESPACE")
+		if len(namespace) == 0 {
+			return nil, fmt.Errorf("when REQUIRE_SERVER_AUTH is set, AUTH_NAMESPACE must also be specified")
+		}
+
+		if serverAuth == "-" {
+			serverAuth = ""
+		}
+		rules := clientcmd.NewDefaultClientConfigLoadingRules()
+		rules.ExplicitPath = serverAuth
+		kubeconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, &clientcmd.ConfigOverrides{})
+		cfg, err := kubeconfig.ClientConfig()
+		if err != nil {
+			return nil, fmt.Errorf("could not create a client for REQUIRE_SERVER_AUTH: %v", err)
+		}
+		osc, err := client.New(cfg)
+		if err != nil {
+			return nil, fmt.Errorf("could not create a client for REQUIRE_SERVER_AUTH: %v", err)
+		}
+
+		config.AuthMessage = fmt.Sprintf("Authenticating against %s allow-push=%t anon-pull=%t", cfg.Host, config.AllowPush, allowAnonymousGet)
+		config.AuthenticatorFn = auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
+			if !info.Push && allowAnonymousGet {
+				return true, nil
+			}
+			req := &authapi.LocalSubjectAccessReview{
+				Action: authapi.AuthorizationAttributes{
+					Verb:     "get",
+					Resource: "pods",
+				},
+			}
+			if info.Push {
+				if !config.AllowPush {
+					return false, nil
+				}
+				req.Action.Verb = "create"
+			}
+			res, err := osc.ImpersonateLocalSubjectAccessReviews(namespace, info.Password).Create(req)
+			if err != nil {
+				return false, err
+			}
+			//log.Printf("debug: server response allowed=%t message=%s", res.Allowed, res.Reason)
+			return res.Allowed, nil
+		})
+	}
+
+	if len(gitAuth) > 0 {
+		parts := strings.Split(gitAuth, ":")
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("REQUIRE_GIT_AUTH must be a username and password separated by a ':'")
 		}
+		config.AuthMessage = fmt.Sprintf("Authenticating against username/password allow-push=%t", config.AllowPush)
 		username, password := parts[0], parts[1]
 		config.AuthenticatorFn = auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
-			if info.Push && !config.AllowPush {
-				return false, nil
+			if info.Push {
+				if !config.AllowPush {
+					return false, nil
+				}
+				if allowAnonymousGet {
+					return true, nil
+				}
 			}
 			if info.Username != username || info.Password != password {
 				return false, nil
@@ -293,6 +365,9 @@ func Start(config *Config) error {
 	mux.Handle("/", prometheus.InstrumentHandler("git", handler))
 	mux.Handle("/_/", http.StripPrefix("/_", ops))
 
+	if len(config.AuthMessage) > 0 {
+		log.Printf("%s", config.AuthMessage)
+	}
 	log.Printf("Serving %s on %s", config.Home, config.Listen)
 	return http.ListenAndServe(config.Listen, mux)
 }

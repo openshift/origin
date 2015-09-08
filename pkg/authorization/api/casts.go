@@ -1,7 +1,7 @@
 package api
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // policies
@@ -167,8 +167,7 @@ func ToRoleBinding(in *ClusterRoleBinding) *RoleBinding {
 
 	ret := &RoleBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Users = in.Users
-	ret.Groups = in.Groups
+	ret.Subjects = in.Subjects
 	ret.RoleRef = ToRoleRef(in.RoleRef)
 	return ret
 }
@@ -235,8 +234,7 @@ func ToClusterRoleBinding(in *RoleBinding) *ClusterRoleBinding {
 
 	ret := &ClusterRoleBinding{}
 	ret.ObjectMeta = in.ObjectMeta
-	ret.Users = in.Users
-	ret.Groups = in.Groups
+	ret.Subjects = in.Subjects
 	ret.RoleRef = ToClusterRoleRef(in.RoleRef)
 
 	return ret

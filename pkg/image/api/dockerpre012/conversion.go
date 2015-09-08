@@ -3,9 +3,9 @@ package dockerpre012
 import (
 	"github.com/fsouza/go-dockerclient"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/util"
 
 	newer "github.com/openshift/origin/pkg/image/api"
 )

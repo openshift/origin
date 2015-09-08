@@ -8,8 +8,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -45,7 +45,7 @@ Example: Creating a secure router certificate.
 `
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateServerCertOptions{SignerCertOptions: &SignerCertOptions{}, Output: out}
+	options := &CreateServerCertOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,

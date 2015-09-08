@@ -10,14 +10,19 @@ angular.module("openshiftConsole")
         about: "@",
         aboutTitle: "@",
         editText: "@",
-        expand: "@"
+        expand: "=?",
+        canToggle: "=?"
       },
       templateUrl: "views/directives/osc-form-section.html",
-      link: function(scope, element, attrs){
+      link: function(scope, element, attrs) {
         if(!attrs.editText) {
            attrs.editText="Edit";
         }
-        scope.expand = attrs.expand ? true : false;
+
+        if (!angular.isDefined(attrs.canToggle)) {
+          scope.canToggle = true;
+        }
+
         scope.toggle = function(){
           scope.expand = !scope.expand;
         };

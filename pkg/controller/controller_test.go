@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	kcache "github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kcache "k8s.io/kubernetes/pkg/client/cache"
+	kutil "k8s.io/kubernetes/pkg/util"
 )
 
 func TestRetryController_handleOneRetryableError(t *testing.T) {

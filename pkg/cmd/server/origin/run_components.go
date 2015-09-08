@@ -6,15 +6,15 @@ import (
 	"path"
 	"time"
 
-	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator"
-	etcdallocator "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/service/allocator/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	serviceaccountadmission "github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/serviceaccount"
+	"k8s.io/kubernetes/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/controller/serviceaccount"
+	"k8s.io/kubernetes/pkg/registry/service/allocator"
+	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
+	"k8s.io/kubernetes/pkg/util"
+	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -39,7 +39,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
-	"github.com/openshift/origin/plugins/osdn"
+	"github.com/openshift/origin/plugins/osdn/flatsdn"
+	"github.com/openshift/origin/plugins/osdn/multitenant"
 )
 
 // RunProjectAuthorizationCache starts the project authorization cache
@@ -67,9 +68,16 @@ func (c *MasterConfig) RunServiceAccountsController() {
 		return
 	}
 	options := serviceaccount.DefaultServiceAccountsControllerOptions()
-	options.Names = util.NewStringSet(c.Options.ServiceAccountConfig.ManagedNames...)
+	options.ServiceAccounts = []kapi.ServiceAccount{}
+
+	for _, saName := range c.Options.ServiceAccountConfig.ManagedNames {
+		sa := kapi.ServiceAccount{}
+		sa.Name = saName
+
+		options.ServiceAccounts = append(options.ServiceAccounts, sa)
+	}
+
 	serviceaccount.NewServiceAccountsController(c.KubeClient(), options).Run()
-	glog.Infof("Started Service Account Manager")
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -100,7 +108,6 @@ func (c *MasterConfig) RunServiceAccountTokensController() {
 	}
 
 	serviceaccount.NewTokensController(c.KubeClient(), options).Run()
-	glog.Infof("Started Service Account Token Manager")
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
@@ -118,8 +125,6 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 		DefaultDockerURL:    serviceaccountcontrollers.DefaultOpenshiftDockerURL,
 	}
 	serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClient(), dockerRegistryControllerOptions).Run()
-
-	glog.Infof("Started Service Account Pull Secret Controllers")
 }
 
 // RunPolicyCache starts the policy cache
@@ -138,6 +143,14 @@ func (c *MasterConfig) RunDNSServer() {
 	if err != nil {
 		glog.Fatalf("Could not start DNS: %v", err)
 	}
+	switch c.Options.DNSConfig.BindNetwork {
+	case "tcp":
+		config.BindNetwork = "ip"
+	case "tcp4":
+		config.BindNetwork = "ipv4"
+	case "tcp6":
+		config.BindNetwork = "ipv6"
+	}
 	config.DnsAddr = c.Options.DNSConfig.BindAddress
 	config.NoRec = true // do not want to deploy an open resolver
 
@@ -149,19 +162,19 @@ func (c *MasterConfig) RunDNSServer() {
 		glog.Warningf("Binding DNS on port %v instead of 53 (you may need to run as root and update your config), using %s which will not resolve from all locations", port, c.Options.DNSConfig.BindAddress)
 	}
 
-	if ok, err := cmdutil.TryListen(c.Options.DNSConfig.BindAddress); !ok {
+	if ok, err := cmdutil.TryListen(c.Options.DNSConfig.BindNetwork, c.Options.DNSConfig.BindAddress); !ok {
 		glog.Warningf("Could not start DNS: %v", err)
 		return
 	}
 
 	go func() {
-		err := dns.ListenAndServe(config, c.DNSServerClient(), c.EtcdHelper.Client.(*etcdclient.Client))
+		err := dns.ListenAndServe(config, c.DNSServerClient(), c.EtcdClient)
 		glog.Fatalf("Could not start DNS: %v", err)
 	}()
 
 	cmdutil.WaitForSuccessfulDial(false, "tcp", c.Options.DNSConfig.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
-	glog.Infof("OpenShift DNS listening at %s", c.Options.DNSConfig.BindAddress)
+	glog.Infof("DNS listening at %s", c.Options.DNSConfig.BindAddress)
 }
 
 // RunProjectCache populates project cache, used by scheduler and project admission controller.
@@ -182,6 +195,8 @@ func (c *MasterConfig) RunBuildController() {
 		glog.Fatalf("Unable to load storage version %s: %v", storageVersion, err)
 	}
 
+	admissionControl := admission.NewFromPlugins(c.PrivilegedLoopbackKubernetesClient, []string{"SecurityContextConstraint"}, "")
+
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
 		OSClient:     osclient,
@@ -196,7 +211,8 @@ func (c *MasterConfig) RunBuildController() {
 			Image:                stiImage,
 			TempDirectoryCreator: buildstrategy.STITempDirectoryCreator,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: interfaces.Codec,
+			Codec:            interfaces.Codec,
+			AdmissionControl: admissionControl,
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			// TODO: this will be set to --storage-version (the internal schema we use)
@@ -232,6 +248,14 @@ func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 	factory.Create().Run()
 }
 
+// RunBuildConfigChangeController starts the build config change trigger controller process.
+func (c *MasterConfig) RunBuildConfigChangeController() {
+	bcClient, _ := c.BuildConfigChangeControllerClients()
+	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
+	factory := buildcontrollerfactory.BuildConfigControllerFactory{Client: bcClient, BuildConfigInstantiator: bcInstantiator}
+	factory.Create().Run()
+}
+
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
 	_, kclient := c.DeploymentControllerClients()
@@ -250,7 +274,7 @@ func (c *MasterConfig) RunDeploymentController() {
 
 	factory := deploycontroller.DeploymentControllerFactory{
 		KubeClient:     kclient,
-		Codec:          c.EtcdHelper.Codec,
+		Codec:          c.EtcdHelper.Codec(),
 		Environment:    env,
 		DeployerImage:  c.ImageFor("deployer"),
 		ServiceAccount: bootstrappolicy.DeployerServiceAccountName,
@@ -277,7 +301,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	factory := deployconfigcontroller.DeploymentConfigControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      c.EtcdHelper.Codec,
+		Codec:      c.EtcdHelper.Codec(),
 	}
 	controller := factory.Create()
 	controller.Run()
@@ -289,7 +313,7 @@ func (c *MasterConfig) RunDeploymentConfigChangeController() {
 	factory := configchangecontroller.DeploymentConfigChangeControllerFactory{
 		Client:     osclient,
 		KubeClient: kclient,
-		Codec:      c.EtcdHelper.Codec,
+		Codec:      c.EtcdHelper.Codec(),
 	}
 	controller := factory.Create()
 	controller.Run()
@@ -306,8 +330,11 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	osclient, kclient := c.SDNControllerClients()
-	if c.Options.NetworkConfig.NetworkPluginName == osdn.NetworkPluginName() {
-		osdn.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength)
+	switch c.Options.NetworkConfig.NetworkPluginName {
+	case flatsdn.NetworkPluginName():
+		flatsdn.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
+	case multitenant.NetworkPluginName():
+		multitenant.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
 	}
 }
 
@@ -362,4 +389,9 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 	}
 	controller := factory.Create()
 	controller.Run()
+}
+
+// RunGroupCache starts the group cache
+func (c *MasterConfig) RunGroupCache() {
+	c.GroupCache.Run()
 }

@@ -15,7 +15,13 @@
         <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true" style="margin-right: 5px;"></span>
       </span>
       <!-- Message -->
-      A build of {{build.metadata.labels.buildconfig}}
+      Build
+      <span ng-if="build | annotation : 'buildNumber'">
+        {{build.metadata.labels.buildconfig}} #{{build | annotation : 'buildNumber'}}
+      </span>
+      <span ng-if="!(build | annotation : 'buildNumber')">
+        {{build.metadata.name}}
+      </span>
       <span ng-switch="build.status.phase" class="hide-ng-leave">
         <span ng-switch-when="Complete">completed.</span>
         <span ng-switch-when="Failed">failed.</span>

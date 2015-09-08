@@ -1,11 +1,13 @@
 package strategy
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -18,11 +20,35 @@ func (t *FakeTempDirCreator) CreateTempDirectory() (string, error) {
 	return "test_temp", nil
 }
 
-func TestSTICreateBuildPod(t *testing.T) {
+type FakeAdmissionControl struct {
+	admit bool
+}
+
+func (a *FakeAdmissionControl) Admit(attr admission.Attributes) (err error) {
+	if a.admit {
+		return nil
+	}
+	return fmt.Errorf("pod not allowed")
+}
+
+func (a *FakeAdmissionControl) Handles(operation admission.Operation) bool {
+	return true
+}
+
+func TestSTICreateBuildPodRootNotAllowed(t *testing.T) {
+	testSTICreateBuildPod(t, false)
+}
+
+func TestSTICreateBuildPodRootAllowed(t *testing.T) {
+	testSTICreateBuildPod(t, true)
+}
+
+func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	strategy := &SourceBuildStrategy{
 		Image:                "sti-test-image",
 		TempDirectoryCreator: &FakeTempDirCreator{},
 		Codec:                latest.Codec,
+		AdmissionControl:     &FakeAdmissionControl{admit: rootAllowed},
 	}
 
 	expected := mockSTIBuild()
@@ -52,8 +78,12 @@ func TestSTICreateBuildPod(t *testing.T) {
 	}
 	// strategy ENV is whitelisted into the container environment, and not all
 	// the values are allowed, so only expect 6 not 7 values.
-	if len(container.Env) != 6 {
-		t.Fatalf("Expected 6 elements in Env table, got %d: %+v", len(container.Env), container.Env)
+	expectedEnvCount := 8
+	if !rootAllowed {
+		expectedEnvCount = 9
+	}
+	if len(container.Env) != expectedEnvCount {
+		t.Fatalf("Expected 9 elements in Env table, got %d: %+v", len(container.Env), container.Env)
 	}
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
@@ -71,6 +101,7 @@ func TestSTICreateBuildPod(t *testing.T) {
 	}
 	found := false
 	foundIllegal := false
+	foundAllowedUIDs := false
 	for _, v := range container.Env {
 		if v.Name == "BUILD_LOGLEVEL" && v.Value == "bar" {
 			found = true
@@ -78,12 +109,21 @@ func TestSTICreateBuildPod(t *testing.T) {
 		if v.Name == "ILLEGAL" {
 			foundIllegal = true
 		}
+		if v.Name == "ALLOWED_UIDS" && v.Value == "1-" {
+			foundAllowedUIDs = true
+		}
 	}
 	if !found {
 		t.Fatalf("Expected variable BUILD_LOGLEVEL be defined for the container")
 	}
 	if foundIllegal {
 		t.Fatalf("Found illegal environment variable 'ILLEGAL' defined on container")
+	}
+	if foundAllowedUIDs && rootAllowed {
+		t.Fatalf("Did not expect ALLOWED_UIDS when root is allowed")
+	}
+	if !foundAllowedUIDs && !rootAllowed {
+		t.Fatalf("Expected ALLLOWED_UIDS when root is not allowed")
 	}
 	buildJSON, _ := latest.Codec.Encode(expected)
 	errorCases := map[int][]string{
@@ -111,7 +151,9 @@ func mockSTIBuild() *buildapi.Build {
 			Source: buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{
 					URI: "http://my.build.com/the/stibuild/Dockerfile",
+					Ref: "master",
 				},
+				ContextDir:   "foo",
 				SourceSecret: &kapi.LocalObjectReference{Name: "fooSecret"},
 			},
 			Strategy: buildapi.BuildStrategy{

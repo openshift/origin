@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -12,18 +12,18 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools/etcdtest"
-	watchapi "github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
-	"github.com/GoogleCloudPlatform/kubernetes/plugin/pkg/admission/admit"
+	kapi "k8s.io/kubernetes/pkg/api"
+	klatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/apiserver"
+	"k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	watchapi "k8s.io/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -113,7 +113,7 @@ func TestTriggers_imageChange(t *testing.T) {
 	}
 	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Fatalf("error getting OpenShift cluster admin client: %v", err)
+		t.Fatalf("error getting cluster admin client: %v", err)
 	}
 	openshiftClusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -305,7 +305,7 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	defer openshift.lock.Unlock()
 
 	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, _ := master.NewEtcdHelper(etcdClient, latest.Version, etcdtest.PathPrefix())
+	etcdHelper, _ := master.NewEtcdStorage(etcdClient, latest.InterfacesFor, latest.Version, etcdtest.PathPrefix())
 
 	osMux := http.NewServeMux()
 	openshift.server = httptest.NewServer(osMux)
@@ -324,7 +324,7 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	handlerContainer := master.NewHandlerContainer(osMux)
 
 	_ = master.New(&master.Config{
-		EtcdHelper:       etcdHelper,
+		DatabaseStorage:  etcdHelper,
 		KubeletClient:    kubeletClient,
 		APIPrefix:        "/api",
 		AdmissionControl: admit.NewAlwaysAdmit(),

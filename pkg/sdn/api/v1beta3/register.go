@@ -1,7 +1,7 @@
 package v1beta3
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api"
 )
 
 func init() {
@@ -10,6 +10,8 @@ func init() {
 		&ClusterNetworkList{},
 		&HostSubnet{},
 		&HostSubnetList{},
+		&NetNamespace{},
+		&NetNamespaceList{},
 	)
 }
 
@@ -17,3 +19,5 @@ func (*ClusterNetwork) IsAnAPIObject()     {}
 func (*ClusterNetworkList) IsAnAPIObject() {}
 func (*HostSubnet) IsAnAPIObject()         {}
 func (*HostSubnetList) IsAnAPIObject()     {}
+func (*NetNamespace) IsAnAPIObject()       {}
+func (*NetNamespaceList) IsAnAPIObject()   {}

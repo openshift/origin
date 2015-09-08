@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
@@ -24,7 +24,7 @@ func NewCommandCreateBootstrapProjectTemplate(f *clientcmd.Factory, commandName 
 
 	cmd := &cobra.Command{
 		Use:   commandName,
-		Short: "Create bootstrap project template for OpenShift",
+		Short: "Create a bootstrap project template",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Validate(args); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))

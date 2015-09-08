@@ -4,16 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	kmeta "github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api"
+	klatest "k8s.io/kubernetes/pkg/api/latest"
+	kmeta "k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/golang/glog"
 
 	_ "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/api/v1beta3"
 )
@@ -98,16 +97,16 @@ func init() {
 	kubeMapper := klatest.RESTMapper
 
 	// list of versions we support on the server, in preferred order
-	versions := []string{"v1beta3", "v1"}
+	versions := []string{"v1", "v1beta3"}
 
 	originMapper := kmeta.NewDefaultRESTMapper(
 		versions,
-		func(version string) (*kmeta.VersionInterfaces, bool) {
+		func(version string) (*kmeta.VersionInterfaces, error) {
 			interfaces, err := InterfacesFor(version)
 			if err != nil {
-				return nil, false
+				return nil, err
 			}
-			return interfaces, true
+			return interfaces, nil
 		},
 	)
 
@@ -124,6 +123,7 @@ func init() {
 		"User":                true,
 		"Identity":            true,
 		"UserIdentityMapping": true,
+		"Group":               true,
 
 		"OAuthAccessToken":         true,
 		"OAuthAuthorizeToken":      true,
@@ -137,6 +137,7 @@ func init() {
 
 		"ClusterNetwork": true,
 		"HostSubnet":     true,
+		"NetNamespace":   true,
 	}
 
 	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
@@ -160,5 +161,5 @@ func init() {
 
 	// For Origin we use MultiRESTMapper that handles both Origin and Kubernetes
 	// objects
-	RESTMapper = meta.MultiRESTMapper{originMapper, kubeMapper}
+	RESTMapper = kmeta.MultiRESTMapper{originMapper, kubeMapper}
 }

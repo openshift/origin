@@ -19,6 +19,10 @@ func (*fakeSourceHandler) Prepare(r *api.Config) error {
 	return nil
 }
 
+func (*fakeSourceHandler) Ignore(r *api.Config) error {
+	return nil
+}
+
 func (*fakeSourceHandler) Download(r *api.Config) (*api.SourceInfo, error) {
 	return &api.SourceInfo{}, nil
 }

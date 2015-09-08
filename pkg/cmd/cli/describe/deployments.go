@@ -10,12 +10,12 @@ import (
 
 	"github.com/openshift/origin/pkg/api/graph"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	kctl "k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/labels"
 
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	"github.com/openshift/origin/pkg/client"

@@ -34,9 +34,6 @@
         "portalIP": "",
         "type": "ClusterIP",
         "sessionAffinity": "None"
-      },
-      "status": {
-        "loadBalancer": {}
       }
     },
     {
@@ -91,7 +88,7 @@
             "containers": [
               {
                 "name": "jenkins",
-                "image": "openshift/jenkins-16-centos7",
+                "image": "${JENKINS_IMAGE}",
                 "env": [
                   {
                     "name": "JENKINS_PASSWORD",
@@ -126,8 +123,7 @@
             "dnsPolicy": "ClusterFirst"
           }
         }
-      },
-      "status": {}
+      }
     }
   ],
   "parameters": [
@@ -135,6 +131,11 @@
       "name": "JENKINS_SERVICE_NAME",
       "description": "Jenkins service name",
       "value": "jenkins"
+    },
+    {
+      "name": "JENKINS_IMAGE",
+      "description": "Jenkins Docker image to use",
+      "value": "openshift/jenkins-1-centos7"
     },
     {
       "name": "JENKINS_PASSWORD",

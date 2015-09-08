@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
+	"k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client/clientcmd"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 )

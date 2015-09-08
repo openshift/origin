@@ -33,14 +33,10 @@ func mustNewURLs(t *testing.T, urls []string) []url.URL {
 }
 
 func TestConfigVerifyBootstrapWithoutClusterAndDiscoveryURLFail(t *testing.T) {
-	cluster, err := NewClusterFromString("", "")
-	if err != nil {
-		t.Fatalf("NewClusterFromString error: %v", err)
-	}
 	c := &ServerConfig{
-		Name:         "node1",
-		DiscoveryURL: "",
-		Cluster:      cluster,
+		Name:               "node1",
+		DiscoveryURL:       "",
+		InitialPeerURLsMap: types.URLsMap{},
 	}
 	if err := c.VerifyBootstrap(); err == nil {
 		t.Errorf("err = nil, want not nil")
@@ -48,16 +44,16 @@ func TestConfigVerifyBootstrapWithoutClusterAndDiscoveryURLFail(t *testing.T) {
 }
 
 func TestConfigVerifyExistingWithDiscoveryURLFail(t *testing.T) {
-	cluster, err := NewClusterFromString("", "node1=http://127.0.0.1:2380")
+	cluster, err := types.NewURLsMap("node1=http://127.0.0.1:2380")
 	if err != nil {
-		t.Fatalf("NewClusterFromString error: %v", err)
+		t.Fatalf("NewCluster error: %v", err)
 	}
 	c := &ServerConfig{
-		Name:         "node1",
-		DiscoveryURL: "http://127.0.0.1:4001/abcdefg",
-		PeerURLs:     mustNewURLs(t, []string{"http://127.0.0.1:2380"}),
-		Cluster:      cluster,
-		NewCluster:   false,
+		Name:               "node1",
+		DiscoveryURL:       "http://127.0.0.1:2379/abcdefg",
+		PeerURLs:           mustNewURLs(t, []string{"http://127.0.0.1:2380"}),
+		InitialPeerURLsMap: cluster,
+		NewCluster:         false,
 	}
 	if err := c.VerifyJoinExisting(); err == nil {
 		t.Errorf("err = nil, want not nil")
@@ -105,7 +101,7 @@ func TestConfigVerifyLocalMember(t *testing.T) {
 		},
 		{
 			// Advertised peer URLs must match those in cluster-state
-			"node1=http://localhost:7001,node1=http://localhost:12345",
+			"node1=http://localhost:2380,node1=http://localhost:12345",
 			[]string{"http://localhost:12345"},
 			true,
 
@@ -113,7 +109,7 @@ func TestConfigVerifyLocalMember(t *testing.T) {
 		},
 		{
 			// Advertised peer URLs must match those in cluster-state
-			"node1=http://localhost:7001",
+			"node1=http://localhost:2380",
 			[]string{},
 			true,
 
@@ -121,7 +117,7 @@ func TestConfigVerifyLocalMember(t *testing.T) {
 		},
 		{
 			// do not care about the urls if strict is not set
-			"node1=http://localhost:7001",
+			"node1=http://localhost:2380",
 			[]string{},
 			false,
 
@@ -130,20 +126,19 @@ func TestConfigVerifyLocalMember(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		cluster, err := NewClusterFromString("", tt.clusterSetting)
+		cluster, err := types.NewURLsMap(tt.clusterSetting)
 		if err != nil {
 			t.Fatalf("#%d: Got unexpected error: %v", i, err)
 		}
 		cfg := ServerConfig{
-			Name:    "node1",
-			Cluster: cluster,
+			Name:               "node1",
+			InitialPeerURLsMap: cluster,
 		}
 		if tt.apurls != nil {
 			cfg.PeerURLs = mustNewURLs(t, tt.apurls)
 		}
 		err = cfg.verifyLocalMember(tt.strict)
 		if (err == nil) && tt.shouldError {
-			t.Errorf("%#v", *cluster)
 			t.Errorf("#%d: Got no error where one was expected", i)
 		}
 		if (err != nil) && !tt.shouldError {

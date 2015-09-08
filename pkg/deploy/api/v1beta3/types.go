@@ -1,7 +1,7 @@
 package v1beta3
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1beta3"
+	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 )
 
 // DeploymentPhase describes the possible states a deployment can be in.
@@ -271,7 +271,7 @@ type DeploymentTriggerImageChangeParams struct {
 	// Kind may be left blank, in which case it defaults to "ImageStreamTag". The "Name" is
 	// the only required subfield - if Namespace is blank, the namespace of the current deployment
 	// trigger will be used.
-	From kapi.ObjectReference `json:"from" description:"a reference to an ImageRepository, ImageStream, or ImageStreamTag to watch for changes`
+	From kapi.ObjectReference `json:"from" description:"a reference to an ImageRepository, ImageStream, or ImageStreamTag to watch for changes"`
 	// LastTriggeredImage is the last image to be triggered.
 	LastTriggeredImage string `json:"lastTriggeredImage" description:"the last image to be triggered"`
 }
