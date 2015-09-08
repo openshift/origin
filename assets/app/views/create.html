@@ -27,9 +27,9 @@
                       ng-disabled="from_source_form.$invalid" value="">Next</button>
                   </span>
                 </div>
-                <div id="from_source_help" class="help-block">For example,
+                <div id="from_source_help" class="help-block">For example, https://github.com/openshift/nodejs-ex#master
                   <a href="#" ng-click="from_source_url = 'https://github.com/openshift/nodejs-ex#master'"
-                    >https://github.com/openshift/nodejs-ex#master</a></div>
+                    style="margin-left: 3px;">Try it out!<i class="fa fa-level-up" style="margin-left: 3px; font-size: 17px;"></i></a></div>
                 <span class="text-warning" ng-if="from_source_form.from_source_url.$dirty && !sourceURLPattern.test(from_source_url)">Source repository should be a URL</span>
               </div>
             </div>
