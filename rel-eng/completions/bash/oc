@@ -377,6 +377,7 @@ _oc_start-build()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--commit=")
     flags+=("--follow")
     flags+=("--from-build=")
     flags+=("--from-webhook=")
