@@ -127,7 +127,7 @@ func (d *DockerBuilder) checkSourceURI(testConnection bool) error {
 	if !d.git.ValidCloneSpec(rawurl) {
 		return fmt.Errorf("Invalid git source url: %s", rawurl)
 	}
-	if strings.HasPrefix(rawurl, "git@") {
+	if strings.HasPrefix(rawurl, "git@") || strings.HasPrefix(rawurl, "git://") {
 		return nil
 	}
 	srcURL, err := url.Parse(rawurl)
