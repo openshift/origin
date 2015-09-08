@@ -14,12 +14,17 @@ import (
 	rest "github.com/openshift/origin/pkg/route/registry/route"
 )
 
+type RouteStorage struct {
+	Route  *REST
+	Status *StatusREST
+}
+
 type REST struct {
 	*etcdgeneric.Etcd
 }
 
 // NewREST returns a RESTStorage object that will work against routes.
-func NewREST(s storage.Interface, allocator route.RouteAllocator) *REST {
+func NewREST(s storage.Interface, allocator route.RouteAllocator) RouteStorage {
 	strategy := rest.NewStrategy(allocator)
 	prefix := "/routes"
 	store := &etcdgeneric.Etcd{
@@ -44,5 +49,23 @@ func NewREST(s storage.Interface, allocator route.RouteAllocator) *REST {
 
 		Storage: s,
 	}
-	return &REST{store}
+	return RouteStorage{
+		Route:  &REST{store},
+		Status: &StatusREST{store},
+	}
+}
+
+// StatusREST implements the REST endpoint for changing the status of a route.
+type StatusREST struct {
+	store *etcdgeneric.Etcd
+}
+
+// New creates a new route resource
+func (r *StatusREST) New() runtime.Object {
+	return &api.Route{}
+}
+
+// Update alters the status subset of an object.
+func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
 }

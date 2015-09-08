@@ -38,7 +38,7 @@ func NewSimpleAllocationPlugin(suffix string) (*SimpleAllocationPlugin, error) {
 // the "global" router shard.
 // TODO: replace with per router allocation
 func (p *SimpleAllocationPlugin) Allocate(route *routeapi.Route) (*routeapi.RouterShard, error) {
-	glog.V(4).Infof("Allocating global shard *.%s to Route: %s", p.DNSSuffix, route.ServiceName)
+	glog.V(4).Infof("Allocating global shard *.%s to Route: %s", p.DNSSuffix, route.Spec.To.Name)
 
 	return &routeapi.RouterShard{ShardName: "global", DNSSuffix: p.DNSSuffix}, nil
 }

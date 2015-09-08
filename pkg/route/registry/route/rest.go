@@ -42,7 +42,8 @@ func (routeStrategy) NamespaceScoped() bool {
 
 func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 	route := obj.(*api.Route)
-	if len(route.Host) == 0 && s.RouteAllocator != nil {
+	route.Status = api.RouteStatus{}
+	if len(route.Spec.Host) == 0 && s.RouteAllocator != nil {
 		// TODO: this does not belong here, and should be removed
 		shard, err := s.RouteAllocator.AllocateRouterShard(route)
 		if err != nil {
@@ -50,7 +51,7 @@ func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 			util.HandleError(errors.NewInternalError(fmt.Errorf("allocation error: %v for route: %#v", err, obj)))
 			return
 		}
-		route.Host = s.RouteAllocator.GenerateHostname(route, shard)
+		route.Spec.Host = s.RouteAllocator.GenerateHostname(route, shard)
 		if route.Annotations == nil {
 			route.Annotations = map[string]string{}
 		}
@@ -59,6 +60,9 @@ func (s routeStrategy) PrepareForCreate(obj runtime.Object) {
 }
 
 func (routeStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	route := obj.(*api.Route)
+	oldRoute := old.(*api.Route)
+	route.Status = oldRoute.Status
 }
 
 func (routeStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.ValidationErrorList {
@@ -80,6 +84,22 @@ func (routeStrategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 
+type routeStatusStrategy struct {
+	routeStrategy
+}
+
+var StatusStrategy = routeStatusStrategy{NewStrategy(nil)}
+
+func (routeStatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newRoute := obj.(*api.Route)
+	oldRoute := old.(*api.Route)
+	newRoute.Spec = oldRoute.Spec
+}
+
+func (routeStatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+	return validation.ValidateRouteStatusUpdate(obj.(*api.Route), old.(*api.Route))
+}
+
 // MatchRoute returns a matcher for a route
 func MatchRoute(label labels.Selector, field fields.Selector) generic.Matcher {
 	return &generic.SelectionPredicate{label, field, getAttrs}
@@ -94,8 +114,8 @@ func getAttrs(obj runtime.Object) (objLabels labels.Set, objFields fields.Set, e
 func RouteToSelectableFields(route *api.Route) fields.Set {
 	return fields.Set{
 		"metadata.name": route.Name,
-		"spec.path":     route.Path,
-		"spec.host":     route.Host,
-		"spec.to.name":  route.ServiceName,
+		"spec.path":     route.Spec.Path,
+		"spec.host":     route.Spec.Host,
+		"spec.to.name":  route.Spec.To.Name,
 	}
 }

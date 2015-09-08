@@ -2139,6 +2139,25 @@ func convert_v1_ProjectStatus_To_api_ProjectStatus(in *projectapiv1.ProjectStatu
 	return nil
 }
 
+func convert_api_Route_To_v1_Route(in *routeapi.Route, out *routeapiv1.Route, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.Route))(in)
+	}
+	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := convert_api_RouteSpec_To_v1_RouteSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := convert_api_RouteStatus_To_v1_RouteStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
 func convert_api_RouteList_To_v1_RouteList(in *routeapi.RouteList, out *routeapiv1.RouteList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapi.RouteList))(in)
@@ -2152,12 +2171,70 @@ func convert_api_RouteList_To_v1_RouteList(in *routeapi.RouteList, out *routeapi
 	if in.Items != nil {
 		out.Items = make([]routeapiv1.Route, len(in.Items))
 		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
+			if err := convert_api_Route_To_v1_Route(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.Items = nil
+	}
+	return nil
+}
+
+func convert_api_RouteSpec_To_v1_RouteSpec(in *routeapi.RouteSpec, out *routeapiv1.RouteSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RouteSpec))(in)
+	}
+	out.Host = in.Host
+	out.Path = in.Path
+	if err := convert_api_ObjectReference_To_v1_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	if in.TLS != nil {
+		out.TLS = new(routeapiv1.TLSConfig)
+		if err := convert_api_TLSConfig_To_v1_TLSConfig(in.TLS, out.TLS, s); err != nil {
+			return err
+		}
+	} else {
+		out.TLS = nil
+	}
+	return nil
+}
+
+func convert_api_RouteStatus_To_v1_RouteStatus(in *routeapi.RouteStatus, out *routeapiv1.RouteStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RouteStatus))(in)
+	}
+	return nil
+}
+
+func convert_api_TLSConfig_To_v1_TLSConfig(in *routeapi.TLSConfig, out *routeapiv1.TLSConfig, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.TLSConfig))(in)
+	}
+	out.Termination = routeapiv1.TLSTerminationType(in.Termination)
+	out.Certificate = in.Certificate
+	out.Key = in.Key
+	out.CACertificate = in.CACertificate
+	out.DestinationCACertificate = in.DestinationCACertificate
+	return nil
+}
+
+func convert_v1_Route_To_api_Route(in *routeapiv1.Route, out *routeapi.Route, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1.Route))(in)
+	}
+	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
+		return err
+	}
+	if err := convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := convert_v1_RouteSpec_To_api_RouteSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := convert_v1_RouteStatus_To_api_RouteStatus(&in.Status, &out.Status, s); err != nil {
+		return err
 	}
 	return nil
 }
@@ -2175,13 +2252,52 @@ func convert_v1_RouteList_To_api_RouteList(in *routeapiv1.RouteList, out *routea
 	if in.Items != nil {
 		out.Items = make([]routeapi.Route, len(in.Items))
 		for i := range in.Items {
-			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
+			if err := convert_v1_Route_To_api_Route(&in.Items[i], &out.Items[i], s); err != nil {
 				return err
 			}
 		}
 	} else {
 		out.Items = nil
 	}
+	return nil
+}
+
+func convert_v1_RouteSpec_To_api_RouteSpec(in *routeapiv1.RouteSpec, out *routeapi.RouteSpec, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1.RouteSpec))(in)
+	}
+	out.Host = in.Host
+	out.Path = in.Path
+	if err := convert_v1_ObjectReference_To_api_ObjectReference(&in.To, &out.To, s); err != nil {
+		return err
+	}
+	if in.TLS != nil {
+		out.TLS = new(routeapi.TLSConfig)
+		if err := convert_v1_TLSConfig_To_api_TLSConfig(in.TLS, out.TLS, s); err != nil {
+			return err
+		}
+	} else {
+		out.TLS = nil
+	}
+	return nil
+}
+
+func convert_v1_RouteStatus_To_api_RouteStatus(in *routeapiv1.RouteStatus, out *routeapi.RouteStatus, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1.RouteStatus))(in)
+	}
+	return nil
+}
+
+func convert_v1_TLSConfig_To_api_TLSConfig(in *routeapiv1.TLSConfig, out *routeapi.TLSConfig, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1.TLSConfig))(in)
+	}
+	out.Termination = routeapi.TLSTerminationType(in.Termination)
+	out.Certificate = in.Certificate
+	out.Key = in.Key
+	out.CACertificate = in.CACertificate
+	out.DestinationCACertificate = in.DestinationCACertificate
 	return nil
 }
 
@@ -3195,10 +3311,14 @@ func init() {
 		convert_api_RoleList_To_v1_RoleList,
 		convert_api_Role_To_v1_Role,
 		convert_api_RouteList_To_v1_RouteList,
+		convert_api_RouteSpec_To_v1_RouteSpec,
+		convert_api_RouteStatus_To_v1_RouteStatus,
+		convert_api_Route_To_v1_Route,
 		convert_api_SecretSpec_To_v1_SecretSpec,
 		convert_api_SourceControlUser_To_v1_SourceControlUser,
 		convert_api_SourceRevision_To_v1_SourceRevision,
 		convert_api_SubjectAccessReviewResponse_To_v1_SubjectAccessReviewResponse,
+		convert_api_TLSConfig_To_v1_TLSConfig,
 		convert_api_TemplateList_To_v1_TemplateList,
 		convert_api_TypeMeta_To_v1_TypeMeta,
 		convert_api_UserIdentityMapping_To_v1_UserIdentityMapping,
@@ -3273,10 +3393,14 @@ func init() {
 		convert_v1_RoleList_To_api_RoleList,
 		convert_v1_Role_To_api_Role,
 		convert_v1_RouteList_To_api_RouteList,
+		convert_v1_RouteSpec_To_api_RouteSpec,
+		convert_v1_RouteStatus_To_api_RouteStatus,
+		convert_v1_Route_To_api_Route,
 		convert_v1_SecretSpec_To_api_SecretSpec,
 		convert_v1_SourceControlUser_To_api_SourceControlUser,
 		convert_v1_SourceRevision_To_api_SourceRevision,
 		convert_v1_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse,
+		convert_v1_TLSConfig_To_api_TLSConfig,
 		convert_v1_TemplateList_To_api_TemplateList,
 		convert_v1_TypeMeta_To_api_TypeMeta,
 		convert_v1_UserIdentityMapping_To_api_UserIdentityMapping,

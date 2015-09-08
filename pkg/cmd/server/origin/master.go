@@ -441,7 +441,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
 
-		"routes": routeEtcd,
+		"routes":        routeEtcd.Route,
+		"routes/status": routeEtcd.Status,
 
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,

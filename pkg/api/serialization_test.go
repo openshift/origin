@@ -26,6 +26,7 @@ import (
 	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
+	route "github.com/openshift/origin/pkg/route/api"
 	template "github.com/openshift/origin/pkg/template/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -190,6 +191,13 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			}
 			if j.To != nil && strings.Contains(j.To.Name, ":") {
 				j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
+			}
+		},
+		func(j *route.RouteSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.To = api.ObjectReference{
+				Kind: "Service",
+				Name: j.To.Name,
 			}
 		},
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {

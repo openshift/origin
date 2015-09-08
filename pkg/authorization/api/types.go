@@ -85,7 +85,7 @@ var (
 		OpenshiftExposedGroupName:   {BuildGroupName, ImageGroupName, DeploymentGroupName, TemplateGroupName, "routes"},
 		OpenshiftAllGroupName: {OpenshiftExposedGroupName, UserGroupName, OAuthGroupName, PolicyOwnerGroupName, SDNGroupName, PermissionGrantingGroupName, OpenshiftStatusGroupName, "projects",
 			"clusterroles", "clusterrolebindings", "clusterpolicies", "clusterpolicybindings", "images" /* cluster scoped*/, "projectrequests"},
-		OpenshiftStatusGroupName: {"imagestreams/status"},
+		OpenshiftStatusGroupName: {"imagestreams/status", "routes/status"},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
 		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},

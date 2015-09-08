@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/version"
 	f5plugin "github.com/openshift/origin/plugins/router/f5"
 )
@@ -145,10 +146,12 @@ func (o *F5RouterOptions) Run() error {
 		PrivateKey:   o.PrivateKey,
 		Insecure:     o.Insecure,
 	}
-	plugin, err := f5plugin.NewF5Plugin(cfg)
+	f5Plugin, err := f5plugin.NewF5Plugin(cfg)
 	if err != nil {
 		return err
 	}
+
+	plugin := controller.NewUniqueHost(f5Plugin, controller.HostForRoute)
 
 	oc, kc, err := o.Config.Clients()
 	if err != nil {

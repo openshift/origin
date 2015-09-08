@@ -182,8 +182,8 @@ func hostIndexFunc(obj interface{}) ([]string, error) {
 	hosts := []string{
 		fmt.Sprintf("%s-%s%s", route.Name, route.Namespace, ".generated.local"),
 	}
-	if len(route.Host) > 0 {
-		hosts = append(hosts, route.Host)
+	if len(route.Spec.Host) > 0 {
+		hosts = append(hosts, route.Spec.Host)
 	}
 	return hosts, nil
 }

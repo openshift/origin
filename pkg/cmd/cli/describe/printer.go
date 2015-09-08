@@ -350,15 +350,15 @@ func printProjectList(projects *projectapi.ProjectList, w io.Writer, withNamespa
 
 func printRoute(route *routeapi.Route, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
 	tlsTerm := ""
-	if route.TLS != nil {
-		tlsTerm = string(route.TLS.Termination)
+	if route.Spec.TLS != nil {
+		tlsTerm = string(route.Spec.TLS.Termination)
 	}
 	if withNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", route.Namespace); err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", route.Name, route.Host, route.Path, route.ServiceName, labels.Set(route.Labels), tlsTerm)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", route.Name, route.Spec.Host, route.Spec.Path, route.Spec.To.Name, labels.Set(route.Labels), tlsTerm)
 	return err
 }
 
