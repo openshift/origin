@@ -30,10 +30,10 @@
 %global product_name Origin
 %endif
 
-Name:           %{package_name}
+Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the rel-eng directory of this project
-Version:        0.0.1
+Version:        3.0.1.901
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
