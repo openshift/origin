@@ -29,21 +29,27 @@ type IpamInterface interface {
 }
 
 // ListenAndServeNetutilServer initializes a server to respond to HTTP network requests on the ipam interface
-func ListenAndServeNetutilServer(ipam IpamInterface, address net.IP, port uint, tlsOptions *TLSOptions) {
+func ListenAndServeNetutilServer(ipam IpamInterface, address net.IP, port uint, tlsOptions *TLSOptions) error {
 	handler := NewServer(ipam)
+	addr := net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10))
 	s := &http.Server{
-		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
 		Handler:        handler,
 		ReadTimeout:    5 * time.Minute,
 		WriteTimeout:   5 * time.Minute,
 		MaxHeaderBytes: 1 << 20,
 	}
+	var listener net.Listener
+	var err error
 	if tlsOptions != nil {
-		s.TLSConfig = tlsOptions.Config
-		s.ListenAndServeTLS(tlsOptions.CertFile, tlsOptions.KeyFile)
+		listener, err = tls.Listen("tcp", addr, tlsOptions.Config)
 	} else {
-		s.ListenAndServe()
+		listener, err = net.Listen("tcp", addr)
 	}
+	if err != nil {
+		return err
+	}
+	go s.Serve(listener)
+	return nil
 }
 
 // NewServer initializes and configures the netutils_server.Server object to handle HTTP requests.
