@@ -3,12 +3,11 @@ package prune
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
-	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
+
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -63,29 +62,6 @@ type ImageStreamPruner interface {
 	PruneImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error)
 }
 
-// BlobPruner knows how to delete a blob from the Docker registry.
-type BlobPruner interface {
-	// PruneBlob uses registryClient to ask the registry at registryURL to delete
-	// the blob.
-	PruneBlob(registryClient *http.Client, registryURL, blob string) error
-}
-
-// LayerPruner knows how to delete a repository layer link from the Docker
-// registry.
-type LayerPruner interface {
-	// PruneLayer uses registryClient to ask the registry at registryURL to
-	// delete the repository layer link.
-	PruneLayer(registryClient *http.Client, registryURL, repo, layer string) error
-}
-
-// ManifestPruner knows how to delete image manifest data for a repository from
-// the Docker registry.
-type ManifestPruner interface {
-	// PruneManifest uses registryClient to ask the registry at registryURL to
-	// delete the repository's image manifest data.
-	PruneManifest(registryClient *http.Client, registryURL, repo, manifest string) error
-}
-
 // ImageRegistryPrunerOptions contains the fields used to initialize a new
 // ImageRegistryPruner.
 type ImageRegistryPrunerOptions struct {
@@ -117,78 +93,24 @@ type ImageRegistryPrunerOptions struct {
 	// DryRun indicates that no changes will be made to the cluster and nothing
 	// will be removed.
 	DryRun bool
-	// RegistryClient is the http.Client to use when contacting the registry.
-	RegistryClient *http.Client
-	// RegistryURL is the URL for the registry.
-	RegistryURL string
 }
 
 // ImageRegistryPruner knows how to prune images and layers.
 type ImageRegistryPruner interface {
-	// Prune uses imagePruner, streamPruner, layerPruner, blobPruner, and
-	// manifestPruner to remove images that have been identified as candidates
-	// for pruning based on the ImageRegistryPruner's internal pruning algorithm.
-	// Please see NewImageRegistryPruner for details on the algorithm.
-	Prune(imagePruner ImagePruner, streamPruner ImageStreamPruner, layerPruner LayerPruner, blobPruner BlobPruner, manifestPruner ManifestPruner) error
+	// Prune uses imagePruner and streamPruner to remove images that have been
+	// identified as candidates for pruning based on the ImageRegistryPruner's
+	// internal pruning algorithm. Please see NewImageRegistryPruner for details
+	// on the algorithm.
+	Prune(imagePruner ImagePruner, streamPruner ImageStreamPruner) error
 }
 
 // imageRegistryPruner implements ImageRegistryPruner.
 type imageRegistryPruner struct {
-	g              graph.Graph
-	algorithm      pruneAlgorithm
-	registryPinger registryPinger
-	registryClient *http.Client
-	registryURL    string
+	g         graph.Graph
+	algorithm pruneAlgorithm
 }
 
 var _ ImageRegistryPruner = &imageRegistryPruner{}
-
-// registryPinger performs a health check against a registry.
-type registryPinger interface {
-	// ping performs a health check against registry.
-	ping(registry string) error
-}
-
-// defaultRegistryPinger implements registryPinger.
-type defaultRegistryPinger struct {
-	client *http.Client
-}
-
-func (drp *defaultRegistryPinger) ping(registry string) error {
-	healthzCheck := func(proto, registry string) error {
-		healthzResponse, err := drp.client.Get(fmt.Sprintf("%s://%s/healthz", proto, registry))
-		if err != nil {
-			return err
-		}
-		defer healthzResponse.Body.Close()
-
-		if healthzResponse.StatusCode != http.StatusOK {
-			return fmt.Errorf("unexpected status code %d", healthzResponse.StatusCode)
-		}
-
-		return nil
-	}
-
-	var err error
-	for _, proto := range []string{"https", "http"} {
-		glog.V(4).Infof("Trying %s for %s", proto, registry)
-		err = healthzCheck(proto, registry)
-		if err == nil {
-			break
-		}
-		glog.V(4).Infof("Error with %s for %s: %v", proto, registry, err)
-	}
-
-	return err
-}
-
-// dryRunRegistryPinger implements registryPinger.
-type dryRunRegistryPinger struct {
-}
-
-func (*dryRunRegistryPinger) ping(registry string) error {
-	return nil
-}
 
 /*
 NewImageRegistryPruner creates a new ImageRegistryPruner.
@@ -246,19 +168,9 @@ func NewImageRegistryPruner(options ImageRegistryPrunerOptions) ImageRegistryPru
 	addBuildsToGraph(g, options.Builds)
 	addDeploymentConfigsToGraph(g, options.DCs)
 
-	var rp registryPinger
-	if options.DryRun {
-		rp = &dryRunRegistryPinger{}
-	} else {
-		rp = &defaultRegistryPinger{options.RegistryClient}
-	}
-
 	return &imageRegistryPruner{
-		g:              g,
-		algorithm:      algorithm,
-		registryPinger: rp,
-		registryClient: options.RegistryClient,
-		registryURL:    options.RegistryURL,
+		g:         g,
+		algorithm: algorithm,
 	}
 }
 
@@ -698,62 +610,20 @@ func pruneImages(g graph.Graph, imageNodes []*imagegraph.ImageNode, imagePruner 
 	return errs
 }
 
-func (p *imageRegistryPruner) determineRegistry(imageNodes []*imagegraph.ImageNode) (string, error) {
-	if len(p.registryURL) > 0 {
-		return p.registryURL, nil
-	}
-
-	// we only support a single internal registry, and all images have the same registry
-	// so we just take the 1st one and use it
-	pullSpec := imageNodes[0].Image.DockerImageReference
-
-	ref, err := imageapi.ParseDockerImageReference(pullSpec)
-	if err != nil {
-		return "", fmt.Errorf("unable to parse %q: %v", pullSpec, err)
-	}
-
-	if len(ref.Registry) == 0 {
-		return "", fmt.Errorf("%s does not include a registry", pullSpec)
-	}
-
-	return ref.Registry, nil
-}
-
-// Run identifies images eligible for pruning, invoking imagePruneFunc for each
-// image, and then it identifies layers eligible for pruning, invoking
-// layerPruneFunc for each registry URL that has layers that can be pruned.
-func (p *imageRegistryPruner) Prune(imagePruner ImagePruner, streamPruner ImageStreamPruner, layerPruner LayerPruner, blobPruner BlobPruner, manifestPruner ManifestPruner) error {
-	allNodes := p.g.Nodes()
-
-	imageNodes := getImageNodes(allNodes)
+// Prune identifies images eligible for pruning and prunes them
+func (p *imageRegistryPruner) Prune(imagePruner ImagePruner, streamPruner ImageStreamPruner) error {
+	imageNodes := getImageNodes(p.g.Nodes())
 	if len(imageNodes) == 0 {
 		return nil
 	}
 
-	registryURL, err := p.determineRegistry(imageNodes)
-	if err != nil {
-		return fmt.Errorf("unable to determine registry: %v", err)
-	}
-	glog.V(1).Infof("Using registry: %s", registryURL)
-
-	if err := p.registryPinger.ping(registryURL); err != nil {
-		return fmt.Errorf("error communicating with registry: %v", err)
-	}
-
-	prunableImageNodes, prunableImageIDs := calculatePrunableImages(p.g, imageNodes)
-	graphWithoutPrunableImages := subgraphWithoutPrunableImages(p.g, prunableImageIDs)
-	prunableLayers := calculatePrunableLayers(graphWithoutPrunableImages)
+	prunableImageNodes, _ := calculatePrunableImages(p.g, imageNodes)
 
 	errs := []error{}
-
 	errs = append(errs, pruneStreams(p.g, prunableImageNodes, streamPruner)...)
-	errs = append(errs, pruneLayers(p.g, p.registryClient, registryURL, prunableLayers, layerPruner)...)
-	errs = append(errs, pruneBlobs(p.g, p.registryClient, registryURL, prunableLayers, blobPruner)...)
-	errs = append(errs, pruneManifests(p.g, p.registryClient, registryURL, prunableImageNodes, manifestPruner)...)
 
 	if len(errs) > 0 {
-		// If we had any errors removing image references from image streams or deleting
-		// layers, blobs, or manifest data from the registry, stop here and don't
+		// If we had any errors removing image references from image streams stop here and don't
 		// delete any images. This way, you can rerun prune and retry things that failed.
 		return kerrors.NewAggregate(errs)
 	}
@@ -789,69 +659,6 @@ func streamLayerReferences(g graph.Graph, layerNode *imagegraph.ImageLayerNode) 
 	}
 
 	return ret
-}
-
-// pruneLayers invokes layerPruner.PruneLayer for each repository layer link to
-// be deleted from the registry.
-func pruneLayers(g graph.Graph, registryClient *http.Client, registryURL string, layerNodes []*imagegraph.ImageLayerNode, layerPruner LayerPruner) []error {
-	errs := []error{}
-
-	for _, layerNode := range layerNodes {
-		// get streams that reference layer
-		streamNodes := streamLayerReferences(g, layerNode)
-
-		for _, streamNode := range streamNodes {
-			stream := streamNode.ImageStream
-			streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
-
-			glog.V(4).Infof("Pruning registry=%q, repo=%q, layer=%q", registryURL, streamName, layerNode.Layer)
-			if err := layerPruner.PruneLayer(registryClient, registryURL, streamName, layerNode.Layer); err != nil {
-				errs = append(errs, fmt.Errorf("error pruning repo %q layer link %q: %v", streamName, layerNode.Layer, err))
-			}
-		}
-	}
-
-	return errs
-}
-
-// pruneBlobs invokes blobPruner.PruneBlob for each blob to be deleted from the
-// registry.
-func pruneBlobs(g graph.Graph, registryClient *http.Client, registryURL string, layerNodes []*imagegraph.ImageLayerNode, blobPruner BlobPruner) []error {
-	errs := []error{}
-
-	for _, layerNode := range layerNodes {
-		glog.V(4).Infof("Pruning registry=%q, blob=%q", registryURL, layerNode.Layer)
-		if err := blobPruner.PruneBlob(registryClient, registryURL, layerNode.Layer); err != nil {
-			errs = append(errs, fmt.Errorf("error pruning blob %q: %v", layerNode.Layer, err))
-		}
-	}
-
-	return errs
-}
-
-// pruneManifests invokes manifestPruner.PruneManifest for each repository
-// manifest to be deleted from the registry.
-func pruneManifests(g graph.Graph, registryClient *http.Client, registryURL string, imageNodes []*imagegraph.ImageNode, manifestPruner ManifestPruner) []error {
-	errs := []error{}
-
-	for _, imageNode := range imageNodes {
-		for _, n := range g.To(imageNode) {
-			streamNode, ok := n.(*imagegraph.ImageStreamNode)
-			if !ok {
-				continue
-			}
-
-			stream := streamNode.ImageStream
-			repoName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
-
-			glog.V(4).Infof("Pruning manifest for registry %q, repo %q, image %q", registryURL, repoName, imageNode.Image.Name)
-			if err := manifestPruner.PruneManifest(registryClient, registryURL, repoName, imageNode.Image.Name); err != nil {
-				errs = append(errs, fmt.Errorf("error pruning manifest for registry %q, repo %q, image %q: %v", registryURL, repoName, imageNode.Image.Name, err))
-			}
-		}
-	}
-
-	return errs
 }
 
 // deletingImagePruner deletes an image from OpenShift.
@@ -891,101 +698,4 @@ func (p *deletingImageStreamPruner) PruneImageStream(stream *imageapi.ImageStrea
 	glog.V(4).Infof("Updating ImageStream %s/%s", stream.Namespace, stream.Name)
 	glog.V(5).Infof("Updated stream: %#v", stream)
 	return p.streams.ImageStreams(stream.Namespace).UpdateStatus(stream)
-}
-
-// deleteFromRegistry uses registryClient to send a DELETE request to the
-// provided url. It attempts an https request first; if that fails, it fails
-// back to http.
-func deleteFromRegistry(registryClient *http.Client, url string) error {
-	deleteFunc := func(proto, url string) error {
-		req, err := http.NewRequest("DELETE", url, nil)
-		if err != nil {
-			glog.Errorf("Error creating request: %v", err)
-			return fmt.Errorf("error creating request: %v", err)
-		}
-
-		glog.V(4).Infof("Sending request to registry")
-		resp, err := registryClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("error sending request: %v", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusNoContent {
-			glog.V(1).Infof("Unexpected status code in response: %d", resp.StatusCode)
-			decoder := json.NewDecoder(resp.Body)
-			var response errcode.Errors
-			decoder.Decode(&response)
-			glog.V(1).Infof("Response: %#v", response)
-			return &response
-		}
-
-		return nil
-	}
-
-	var err error
-	for _, proto := range []string{"https", "http"} {
-		glog.V(4).Infof("Trying %s for %s", proto, url)
-		err = deleteFunc(proto, fmt.Sprintf("%s://%s", proto, url))
-		if err == nil {
-			return nil
-		}
-
-		if _, ok := err.(*errcode.Errors); ok {
-			// we got a response back from the registry, so return it
-			return err
-		}
-
-		// we didn't get a success or a errcode.Errors response back from the registry
-		glog.V(4).Infof("Error with %s for %s: %v", proto, url, err)
-	}
-	return err
-}
-
-// deletingLayerPruner deletes a repository layer link from the registry.
-type deletingLayerPruner struct {
-}
-
-var _ LayerPruner = &deletingLayerPruner{}
-
-// NewDeletingLayerPruner creates a new deletingLayerPruner.
-func NewDeletingLayerPruner() LayerPruner {
-	return &deletingLayerPruner{}
-}
-
-func (p *deletingLayerPruner) PruneLayer(registryClient *http.Client, registryURL, repoName, layer string) error {
-	glog.V(4).Infof("Pruning registry %q, repo %q, layer %q", registryURL, repoName, layer)
-	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/admin/%s/layers/%s", registryURL, repoName, layer))
-}
-
-// deletingBlobPruner deletes a blob from the registry.
-type deletingBlobPruner struct {
-}
-
-var _ BlobPruner = &deletingBlobPruner{}
-
-// NewDeletingLayerPruner creates a new deletingBlobPruner.
-func NewDeletingBlobPruner() BlobPruner {
-	return &deletingBlobPruner{}
-}
-
-func (p *deletingBlobPruner) PruneBlob(registryClient *http.Client, registryURL, blob string) error {
-	glog.V(4).Infof("Pruning registry %q, blob %q", registryURL, blob)
-	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/admin/blobs/%s", registryURL, blob))
-}
-
-// deletingManifestPruner deletes repository manifest data from the registry.
-type deletingManifestPruner struct {
-}
-
-var _ ManifestPruner = &deletingManifestPruner{}
-
-// NewDeletingManifestPruner creates a new deletingManifestPruner.
-func NewDeletingManifestPruner() ManifestPruner {
-	return &deletingManifestPruner{}
-}
-
-func (p *deletingManifestPruner) PruneManifest(registryClient *http.Client, registryURL, repoName, manifest string) error {
-	glog.V(4).Infof("Pruning manifest for registry %q, repo %q, manifest %q", registryURL, repoName, manifest)
-	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/admin/%s/manifests/%s", registryURL, repoName, manifest))
 }

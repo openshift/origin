@@ -91,7 +91,7 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, args []string, out i
 
 	o.Out = out
 
-	osClient, kClient, registryClient, err := getClients(f, o.CABundle)
+	osClient, kClient, _, err := getClients(f, o.CABundle)
 	if err != nil {
 		return err
 	}
@@ -147,8 +147,6 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, args []string, out i
 		Builds:           allBuilds,
 		DCs:              allDCs,
 		DryRun:           o.Confirm == false,
-		RegistryClient:   registryClient,
-		RegistryURL:      o.RegistryUrlOverride,
 	}
 
 	o.Pruner = prune.NewImageRegistryPruner(options)
@@ -178,21 +176,15 @@ func (o *PruneImagesOptions) RunPruneImages() error {
 
 	imagePruner := &describingImagePruner{w: w}
 	imageStreamPruner := &describingImageStreamPruner{w: w}
-	layerPruner := &describingLayerPruner{w: w}
-	blobPruner := &describingBlobPruner{w: w}
-	manifestPruner := &describingManifestPruner{w: w}
 
 	if o.Confirm {
 		imagePruner.delegate = prune.NewDeletingImagePruner(o.Client.Images())
 		imageStreamPruner.delegate = prune.NewDeletingImageStreamPruner(o.Client)
-		layerPruner.delegate = prune.NewDeletingLayerPruner()
-		blobPruner.delegate = prune.NewDeletingBlobPruner()
-		manifestPruner.delegate = prune.NewDeletingManifestPruner()
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove images")
 	}
 
-	return o.Pruner.Prune(imagePruner, imageStreamPruner, layerPruner, blobPruner, manifestPruner)
+	return o.Pruner.Prune(imagePruner, imageStreamPruner)
 }
 
 // describingImageStreamPruner prints information about each image stream update.
@@ -252,101 +244,6 @@ func (p *describingImagePruner) PruneImage(image *imageapi.Image) error {
 	err := p.delegate.PruneImage(image)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error deleting image %s from server: %v\n", image.Name, err)
-	}
-
-	return err
-}
-
-// describingLayerPruner prints information about each repo layer link being
-// deleted. If a delegate exists, its PruneLayer function is invoked prior to
-// returning.
-type describingLayerPruner struct {
-	w             io.Writer
-	delegate      prune.LayerPruner
-	headerPrinted bool
-}
-
-var _ prune.LayerPruner = &describingLayerPruner{}
-
-func (p *describingLayerPruner) PruneLayer(registryClient *http.Client, registryURL, repo, layer string) error {
-	if !p.headerPrinted {
-		p.headerPrinted = true
-		fmt.Fprintln(p.w, "\nDeleting registry repository layer links ...")
-		fmt.Fprintln(p.w, "REPO\tLAYER")
-	}
-
-	fmt.Fprintf(p.w, "%s\t%s\n", repo, layer)
-
-	if p.delegate == nil {
-		return nil
-	}
-
-	err := p.delegate.PruneLayer(registryClient, registryURL, repo, layer)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting repository %s layer link %s from the registry: %v\n", repo, layer, err)
-	}
-
-	return err
-}
-
-// describingBlobPruner prints information about each blob being deleted. If a
-// delegate exists, its PruneBlob function is invoked prior to returning.
-type describingBlobPruner struct {
-	w             io.Writer
-	delegate      prune.BlobPruner
-	headerPrinted bool
-}
-
-var _ prune.BlobPruner = &describingBlobPruner{}
-
-func (p *describingBlobPruner) PruneBlob(registryClient *http.Client, registryURL, layer string) error {
-	if !p.headerPrinted {
-		p.headerPrinted = true
-		fmt.Fprintln(p.w, "\nDeleting registry layer blobs ...")
-		fmt.Fprintln(p.w, "BLOB")
-	}
-
-	fmt.Fprintf(p.w, "%s\n", layer)
-
-	if p.delegate == nil {
-		return nil
-	}
-
-	err := p.delegate.PruneBlob(registryClient, registryURL, layer)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting blob %s from the registry: %v\n", layer, err)
-	}
-
-	return err
-}
-
-// describingManifestPruner prints information about each repo manifest being
-// deleted. If a delegate exists, its PruneManifest function is invoked prior
-// to returning.
-type describingManifestPruner struct {
-	w             io.Writer
-	delegate      prune.ManifestPruner
-	headerPrinted bool
-}
-
-var _ prune.ManifestPruner = &describingManifestPruner{}
-
-func (p *describingManifestPruner) PruneManifest(registryClient *http.Client, registryURL, repo, manifest string) error {
-	if !p.headerPrinted {
-		p.headerPrinted = true
-		fmt.Fprintln(p.w, "\nDeleting registry repository manifest data ...")
-		fmt.Fprintln(p.w, "REPO\tIMAGE")
-	}
-
-	fmt.Fprintf(p.w, "%s\t%s\n", repo, manifest)
-
-	if p.delegate == nil {
-		return nil
-	}
-
-	err := p.delegate.PruneManifest(registryClient, registryURL, repo, manifest)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting data for repository %s image manifest %s from the registry: %v\n", repo, manifest, err)
 	}
 
 	return err
