@@ -44,13 +44,6 @@ Setup() {
     ipaddr=$(docker inspect --format "{{.NetworkSettings.IPAddress}}" ${net_container})
     veth_host=$(get_veth_host $pid)
 
-    # If the caller didn't pass a tenant ID, we make one up based on
-    # the first two letters of the pod name.
-    # FIXME: remove this when it's no longer needed for testing
-    if [ -z "$tenant_id" ]; then
-       tenant_id=$(echo $pod_name | perl -ne 'print unpack("S", $_)')
-    fi
-
     brctl delif lbr0 $veth_host
     ovs-vsctl add-port br0 ${veth_host} 
     ovs_port=$(ovs-ofctl -O OpenFlow13 dump-ports-desc br0  | grep ${veth_host} | cut -d "(" -f 1 | tr -d ' ')
