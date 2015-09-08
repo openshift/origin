@@ -13,11 +13,13 @@ NETWORK_PLUGIN=${6:-${OPENSHIFT_SDN:-""}}
 
 NODE_PREFIX="${INSTANCE_PREFIX}-node-"
 NODE_NAMES=( $(eval echo ${NODE_PREFIX}{1..${NUM_NODES}}) )
+SDN_NODE_NAME="${INSTANCE_PREFIX}-master-sdn"
 
 DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
 
 DEPLOYED_ROOT="/data"
 SCRIPT_ROOT="${DEPLOYED_ROOT}/hack/dind"
+SUPERVISORD_CONF="/etc/supervisord.conf"
 
 CONFIG_ROOT=${OS_DIND_CONFIG_ROOT:-/tmp/openshift-dind-cluster/${INSTANCE_PREFIX}}
 DEPLOYED_CONFIG_ROOT="/config"
@@ -38,4 +40,29 @@ alias oc-less-log="less ${log_target}"
 alias oc-tail-log="tail -f ${log_target}"
 alias oc-create-hello="oc create -f ${deployed_root}/examples/hello-openshift/hello-pod.json"
 EOF
+}
+
+os::dind::reload-docker() {
+  # Ensure that openshift-sdn has written configuration for docker
+  # before triggering a docker restart.
+  echo "Waiting for openshift-sdn to update supervisord.conf with docker config"
+  local counter=0
+  local timeout=30
+  while grep -q 'DOCKER_DAEMON_ARGS=\"\"' "${SUPERVISORD_CONF}"; do
+    if [[ "${counter}" -lt "${timeout}" ]]; then
+      counter=$((counter + 1))
+      echo -n '.'
+      sleep 1
+    else
+      echo -e "\n[ERROR] Timeout waiting for openshift-sdn to update supervisord.conf"
+      exit 1
+    fi
+  done
+  echo -e '\nDone'
+
+  # Stop docker gracefully
+  ${SCRIPT_ROOT}/kill-docker.sh
+
+  # Restart docker
+  supervisorctl update
 }

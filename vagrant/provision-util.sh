@@ -10,14 +10,15 @@ os::util::join() {
 os::util::install-cmds() {
   local deployed_root=$1
 
-  cp ${deployed_root}/_output/local/go/bin/{openshift,oc} /usr/bin
+  cp ${deployed_root}/_output/local/go/bin/{openshift,oc,osadm} /usr/bin
 }
 
 os::util::add-to-hosts-file() {
   local ip=$1
   local name=$2
+  local force=${3:-0}
 
-  if ! grep -q "${ip}" /etc/hosts; then
+  if ! grep -q "${ip}" /etc/hosts || [ "${force}" = "1" ]; then
     local entry="${ip}\t${name}"
     echo -e "Adding '${entry}' to hosts file"
     echo -e "${entry}" >> /etc/hosts
