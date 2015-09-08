@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -o errexit
 set -o nounset
 set -o pipefail
 
@@ -11,9 +11,15 @@ cd "${OS_ROOT}"
 
 echo "===== Verifying Generated Completions ====="
 
+platform="$(os::build::host_platform)"
+if [[ "${platform}" != "linux/amd64" ]]; then
+  echo "WARNING: Completions cannot be verified on non-Linux systems (${platform})"
+  exit 0
+fi
+
 COMPLETION_ROOT_REL="rel-eng/completions"
 COMPLETION_ROOT="${OS_ROOT}/${COMPLETION_ROOT_REL}"
-TMP_COMPLETION_ROOT_REL="_tmp/verify-generated-completions/"
+TMP_COMPLETION_ROOT_REL="_output/verify-generated-completions/"
 TMP_COMPLETION_ROOT="${OS_ROOT}/${TMP_COMPLETION_ROOT_REL}/${COMPLETION_ROOT_REL}"
 
 echo "Generating fresh completions..."

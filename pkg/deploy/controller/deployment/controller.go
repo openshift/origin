@@ -5,10 +5,10 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/record"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -146,7 +146,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 					deployerPod.Spec.ActiveDeadlineSeconds = &zeroDelay
 					if _, err := c.podClient.updatePod(deployerPod.Namespace, &deployerPod); err != nil {
 						c.recorder.Eventf(deployment, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
-						return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployutil.LabelForDeployment(deployment), err)
+						return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
 					}
 					glog.V(4).Infof("Cancelled deployer pod %s for deployment %s", deployerPod.Name, deployutil.LabelForDeployment(deployment))
 				}

@@ -200,7 +200,7 @@ OpenShift, through labels and deployment configurations, can support multiple si
 
 4.  Create a service that uses the common label:
 
-        $ oc expose dc/ab-example-a --name=ab-example --selector=ab-example=true
+        $ oc expose dc/ab-example-a --name=ab-example --selector=ab-example=true --generator=service/v1
 
     If you have the router installed, make the application available via a route (or use the service IP directly)
 
@@ -208,9 +208,9 @@ OpenShift, through labels and deployment configurations, can support multiple si
 
     Browse to the application at `ab-example.<project>.<router_domain>` to verify you see the 'v1' image.
 
-5.  Create a second shard based on the same source image as the first shard, and set a unique value:
+5.  Create a second shard based on the same source image as the first shard but different tagged version, and set a unique value:
 
-        $ oc new-app deployment-example --name=ab-example-b --labels=ab-example=true SUBTITLE="shard B"
+        $ oc new-app openshift/deployment-example:v2 --name=ab-example-b --labels=ab-example=true SUBTITLE="shard B" COLOR="red"
 
 6.  Edit the newly created shard to set a label `ab-example=true` that will be common to all shards:
 
@@ -226,11 +226,11 @@ OpenShift, through labels and deployment configurations, can support multiple si
 
         $ oc scale dc/ab-example-a --replicas=0
 
-    Refreshing your browser should show "v1" and "shard B"
+    Refreshing your browser should show "v2" and "shard B" (in red)
 
         $ oc scale dc/ab-example-a --replicas=1; oc scale dc/ab-example-b --replicas=0
 
-    Refreshing your browser should show "v1" and "shard A"
+    Refreshing your browser should show "v1" and "shard A" (in blue)
 
 If you trigger a deployment on either shard, only the pods in that shard will be affected. You can easily trigger a deployment by changing the `SUBTITLE` environment variable in either deployment config `oc edit dc/ab-example-a` or `oc edit dc/ab-example-b`. You can add additional shards by repeating steps 5-7.
 

@@ -10,9 +10,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/util"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/external"

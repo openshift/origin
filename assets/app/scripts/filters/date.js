@@ -14,7 +14,7 @@ angular.module('openshiftConsole')
       if (!timestampLhs) {
         return timestampLhs;
       }
-      timestampRhs = timestampRhs || Date();
+      timestampRhs = timestampRhs || new Date(); // moment expects either an ISO format string or a Date object
 
       var ms = moment(timestampRhs).diff(timestampLhs);
       var duration = moment.duration(ms);

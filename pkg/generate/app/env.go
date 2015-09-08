@@ -3,7 +3,7 @@ package app
 import (
 	"sort"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // Environment holds environment variables for new-app

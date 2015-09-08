@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	watchapi "github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	watchapi "k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -43,11 +43,18 @@ func init() {
 	testutil.RequireEtcd()
 }
 
+type controllerCount struct {
+	BuildControllers,
+	BuildPodControllers,
+	ImageChangeControllers,
+	ConfigChangeControllers int
+}
+
 // TestConcurrentBuildControllers tests the transition of a build from new to pending. Ensures that only a single New -> Pending
 // transition happens and that only a single pod is created during a set period of time.
 func TestConcurrentBuildControllers(t *testing.T) {
 	// Start a master with multiple BuildControllers
-	osClient, kClient := setupBuildControllerTest(5, 0, 0, t)
+	osClient, kClient := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
 
 	// Setup an error channel
 	errChan := make(chan error) // go routines will send a message on this channel if an error occurs. Once this happens the test is over
@@ -122,7 +129,7 @@ type buildControllerPodTest struct {
 // TestConcurrentBuildPodControllers tests the lifecycle of a build pod when running multiple controllers.
 func TestConcurrentBuildPodControllers(t *testing.T) {
 	// Start a master with multiple BuildPodControllers
-	osClient, kClient := setupBuildControllerTest(0, 5, 0, t)
+	osClient, kClient := setupBuildControllerTest(controllerCount{BuildPodControllers: 5}, t)
 
 	ns := testutil.Namespace()
 	waitTime := ConcurrentBuildPodControllersTestWait
@@ -226,7 +233,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 						errChan <- fmt.Errorf("%s: unexpected object received: %#v", test.Name, e.Object)
 					}
 					if e.Type != watchapi.Modified {
-						errChan <- fmt.Errorf("%s: unexpected event received: %s, object: %#v", e.Type, e.Object)
+						errChan <- fmt.Errorf("%s: unexpected event received: %s, object: %#v", test.Name, e.Type, e.Object)
 					}
 					if done {
 						errChan <- fmt.Errorf("%s: unexpected build state: %#v", test.Name, e.Object)
@@ -240,7 +247,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 			select {
 			case err := <-errChan:
 				buildWatch.Stop()
-				t.Errorf("Error: %v\n", test.Name, err)
+				t.Errorf("%s: Error: %v\n", test.Name, err)
 				break
 			case <-time.After(waitTime):
 				buildWatch.Stop()
@@ -255,7 +262,7 @@ func TestConcurrentBuildPodControllers(t *testing.T) {
 
 func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
 	// Start a master with multiple ImageChangeTrigger controllers
-	osClient, _ := setupBuildControllerTest(0, 0, 5, t)
+	osClient, _ := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
 	tag := "latest"
 	streamName := "test-image-trigger-repo"
 
@@ -267,18 +274,23 @@ func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
 }
 
 func TestBuildDeleteController(t *testing.T) {
-	osClient, kClient := setupBuildControllerTest(0, 0, 0, t)
+	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
 	runBuildDeleteTest(t, osClient, kClient)
 }
 
 func TestBuildRunningPodDeleteController(t *testing.T) {
-	osClient, kClient := setupBuildControllerTest(0, 0, 0, t)
+	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
 	runBuildRunningPodDeleteTest(t, osClient, kClient)
 }
 
 func TestBuildCompletePodDeleteController(t *testing.T) {
-	osClient, kClient := setupBuildControllerTest(0, 0, 0, t)
+	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
 	runBuildCompletePodDeleteTest(t, osClient, kClient)
+}
+
+func TestConcurrentBuildConfigControllers(t *testing.T) {
+	osClient, kClient := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
+	runBuildConfigChangeControllerTest(t, osClient, kClient)
 }
 
 func checkErr(t *testing.T, err error) {
@@ -287,7 +299,7 @@ func checkErr(t *testing.T, err error) {
 	}
 }
 
-func setupBuildControllerTest(additionalBuildControllers, additionalBuildPodControllers, additionalImageChangeControllers int, t *testing.T) (*client.Client, *kclient.Client) {
+func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, *kclient.Client) {
 	master, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	checkErr(t, err)
 
@@ -312,14 +324,17 @@ func setupBuildControllerTest(additionalBuildControllers, additionalBuildPodCont
 	// We don't want to proceed with the rest of the test until those are available
 	openshiftConfig.BuildControllerClients()
 
-	for i := 0; i < additionalBuildControllers; i++ {
+	for i := 0; i < counts.BuildControllers; i++ {
 		openshiftConfig.RunBuildController()
 	}
-	for i := 0; i < additionalBuildPodControllers; i++ {
+	for i := 0; i < counts.BuildPodControllers; i++ {
 		openshiftConfig.RunBuildPodController()
 	}
-	for i := 0; i < additionalImageChangeControllers; i++ {
+	for i := 0; i < counts.ImageChangeControllers; i++ {
 		openshiftConfig.RunBuildImageChangeTriggerController()
+	}
+	for i := 0; i < counts.ConfigChangeControllers; i++ {
+		openshiftConfig.RunBuildConfigChangeController()
 	}
 	return clusterAdminClient, clusterAdminKubeClient
 }
@@ -332,7 +347,6 @@ func waitForWatch(t *testing.T, name string, w watchapi.Interface) *watchapi.Eve
 		t.Fatalf("Timed out waiting for watch: %s", name)
 		return nil
 	}
-	return nil
 }
 
 func runImageChangeTriggerTest(t *testing.T, clusterAdminClient *client.Client, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {
@@ -674,4 +688,52 @@ func runBuildCompletePodDeleteTest(t *testing.T, clusterAdminClient *client.Clie
 	if newBuild.Status.Phase != buildapi.BuildPhaseComplete {
 		t.Fatalf("build status was updated to %s after deleting pod, should have stayed as %s", newBuild.Status.Phase, buildapi.BuildPhaseComplete)
 	}
+}
+
+func runBuildConfigChangeControllerTest(t *testing.T, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {
+	config := configChangeBuildConfig()
+	created, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(config)
+	if err != nil {
+		t.Fatalf("Couldn't create BuildConfig: %v", err)
+	}
+
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to Builds %v", err)
+	}
+	defer watch.Stop()
+
+	watch2, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), created.ResourceVersion)
+	if err != nil {
+		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
+	}
+	defer watch2.Stop()
+
+	// wait for initial build event
+	event := waitForWatch(t, "config change initial build added", watch)
+	if e, a := watchapi.Added, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+
+	event = waitForWatch(t, "config change config updated", watch2)
+	if e, a := watchapi.Modified, event.Type; e != a {
+		t.Fatalf("expected watch event type %s, got %s", e, a)
+	}
+	if bc := event.Object.(*buildapi.BuildConfig); bc.Status.LastVersion == 0 {
+		t.Fatalf("expected build config lastversion to be greater than zero after build")
+	}
+}
+
+func configChangeBuildConfig() *buildapi.BuildConfig {
+	bc := &buildapi.BuildConfig{}
+	bc.Name = "testcfgbc"
+	bc.Namespace = testutil.Namespace()
+	bc.Spec.BuildSpec.Source.Type = buildapi.BuildSourceGit
+	bc.Spec.BuildSpec.Source.Git = &buildapi.GitBuildSource{}
+	bc.Spec.BuildSpec.Source.Git.URI = "git://github.com/openshift/ruby-hello-world.git"
+	bc.Spec.BuildSpec.Strategy.Type = buildapi.DockerBuildStrategyType
+	bc.Spec.BuildSpec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
+	configChangeTrigger := buildapi.BuildTriggerPolicy{Type: buildapi.ConfigChangeBuildTriggerType}
+	bc.Spec.Triggers = append(bc.Spec.Triggers, configChangeTrigger)
+	return bc
 }

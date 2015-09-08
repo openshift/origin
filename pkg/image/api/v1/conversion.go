@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/image/api"
 )

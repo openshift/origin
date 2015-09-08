@@ -1,17 +1,22 @@
 package client
 
 import (
+	"errors"
+	"fmt"
+
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
 
-// SubjectAccessReviewsNamespacer has methods to work with SubjectAccessReview resources in a namespace
-type SubjectAccessReviewsNamespacer interface {
-	SubjectAccessReviews(namespace string) SubjectAccessReviewInterface
+type SubjectAccessReviewsImpersonator interface {
+	ImpersonateSubjectAccessReviews(token string) SubjectAccessReviewInterface
 }
 
-// ClusterSubjectAccessReviews has methods to work with SubjectAccessReview resources in the cluster scope
-type ClusterSubjectAccessReviews interface {
-	ClusterSubjectAccessReviews() SubjectAccessReviewInterface
+// SubjectAccessReviews has methods to work with SubjectAccessReview resources in the cluster scope
+type SubjectAccessReviews interface {
+	SubjectAccessReviews() SubjectAccessReviewInterface
 }
 
 // SubjectAccessReviewInterface exposes methods on SubjectAccessReview resources.
@@ -19,42 +24,77 @@ type SubjectAccessReviewInterface interface {
 	Create(policy *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error)
 }
 
-// subjectAccessReviews implements SubjectAccessReviewsNamespacer interface
+// subjectAccessReviews implements SubjectAccessReviews interface
 type subjectAccessReviews struct {
-	r  *Client
-	ns string
+	r     *Client
+	token *string
 }
 
-// newSubjectAccessReviews returns a subjectAccessReviews
-func newSubjectAccessReviews(c *Client, namespace string) *subjectAccessReviews {
+// newImpersonatingSubjectAccessReviews returns a subjectAccessReviews
+func newImpersonatingSubjectAccessReviews(c *Client, token string) *subjectAccessReviews {
 	return &subjectAccessReviews{
-		r:  c,
-		ns: namespace,
+		r:     c,
+		token: &token,
 	}
 }
 
-// Create creates new policy. Returns the server's representation of the policy and error if one occurs.
-func (c *subjectAccessReviews) Create(policy *authorizationapi.SubjectAccessReview) (result *authorizationapi.SubjectAccessReviewResponse, err error) {
-	result = &authorizationapi.SubjectAccessReviewResponse{}
-	err = c.r.Post().Namespace(c.ns).Resource("subjectAccessReviews").Body(policy).Do().Into(result)
-	return
-}
-
-// clusterSubjectAccessReviews implements ClusterSubjectAccessReviews interface
-type clusterSubjectAccessReviews struct {
-	r *Client
-}
-
-// newClusterSubjectAccessReviews returns a clusterSubjectAccessReviews
-func newClusterSubjectAccessReviews(c *Client) *clusterSubjectAccessReviews {
-	return &clusterSubjectAccessReviews{
+// newSubjectAccessReviews returns a subjectAccessReviews
+func newSubjectAccessReviews(c *Client) *subjectAccessReviews {
+	return &subjectAccessReviews{
 		r: c,
 	}
 }
 
-// Create creates new policy. Returns the server's representation of the policy and error if one occurs.
-func (c *clusterSubjectAccessReviews) Create(policy *authorizationapi.SubjectAccessReview) (result *authorizationapi.SubjectAccessReviewResponse, err error) {
-	result = &authorizationapi.SubjectAccessReviewResponse{}
-	err = c.r.Post().Resource("subjectAccessReviews").Body(policy).Do().Into(result)
-	return
+func (c *subjectAccessReviews) Create(sar *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+	result := &authorizationapi.SubjectAccessReviewResponse{}
+
+	// if this a cluster SAR, then no special handling
+	if len(sar.Action.Namespace) == 0 {
+		req, err := overrideAuth(c.token, c.r.Post().Resource("subjectAccessReviews"))
+		if err != nil {
+			return &authorizationapi.SubjectAccessReviewResponse{}, err
+		}
+
+		err = req.Body(sar).Do().Into(result)
+		return result, err
+	}
+
+	err := c.r.Post().Resource("subjectAccessReviews").Body(sar).Do().Into(result)
+
+	// if the namespace values don't match then we definitely hit an old server.  If we got a forbidden, then we might have hit an old server
+	// and should try the old endpoint
+	if (sar.Action.Namespace != result.Namespace) || kapierrors.IsForbidden(err) {
+		req, err := overrideAuth(c.token, c.r.Post().Namespace(sar.Action.Namespace).Resource("subjectAccessReviews"))
+		if err != nil {
+			return &authorizationapi.SubjectAccessReviewResponse{}, err
+		}
+
+		deprecatedResponse := &authorizationapi.SubjectAccessReviewResponse{}
+		deprecatedAttemptErr := req.Body(sar).Do().Into(deprecatedResponse)
+
+		// if we definitely hit an old server, then return the error and result you get from the older server.
+		if sar.Action.Namespace != result.Namespace {
+			return deprecatedResponse, deprecatedAttemptErr
+		}
+
+		// if we're not certain it was an old server, success overwrites the previous error, but failure doesn't overwrite the previous error
+		if deprecatedAttemptErr == nil {
+			err = nil
+			result = deprecatedResponse
+		}
+	}
+
+	return result, err
+}
+
+// overrideAuth specifies the token to authenticate the request with.  token == "" is not allowed
+func overrideAuth(token *string, req *client.Request) (*client.Request, error) {
+	if token != nil {
+		if len(*token) == 0 {
+			return nil, errors.New("impersonating token may not be empty")
+		}
+
+		req.SetHeader("Authorization", fmt.Sprintf("Bearer %s", *token))
+	}
+	return req, nil
 }

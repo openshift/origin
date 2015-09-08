@@ -11,14 +11,14 @@ Output the inputs and dependencies of your builds
 
 [options="nowrap"]
 ----
-  // Build the dependency tree for the 'latest' tag in centos7
-  $ openshift admin build-chain centos7
+  // Build the dependency tree for the 'latest' tag in <image-stream>
+  $ openshift admin build-chain <image-stream>
 
   // Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
-  $ openshift admin build-chain centos7:v2 -o dot | dot -T svg -o deps.svg
+  $ openshift admin build-chain <image-stream>:v2 -o dot | dot -T svg -o deps.svg
 
   // Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
-  $ openshift admin build-chain centos7 -n test --all
+  $ openshift admin build-chain <image-stream> -n test --all
 ----
 ====
 
@@ -107,6 +107,48 @@ displays Merged kubeconfig settings or a specified kubeconfig file.
 ====
 
 
+== oadm groups add-users
+Add users to a group
+
+====
+
+[options="nowrap"]
+----
+  // Add user1 and user2 to my-group
+  $ openshift admin groups add-users my-group user1 user2
+----
+====
+
+
+== oadm groups new
+Create a new group
+
+====
+
+[options="nowrap"]
+----
+  // Add a group with no users
+  $ openshift admin groups new my-group
+
+  // Add a group with two users
+  $ openshift admin groups new my-group user1 user2
+----
+====
+
+
+== oadm groups remove-users
+Remove users from a group
+
+====
+
+[options="nowrap"]
+----
+  // Remove user1 and user2 from my-group
+  $ openshift admin groups remove-users my-group user1 user2
+----
+====
+
+
 == oadm ipfailover
 Install an IP failover group to a set of nodes
 
@@ -125,7 +167,7 @@ Install an IP failover group to a set of nodes
 
   // Create an IP failover configuration on a selection of nodes labeled
   // "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
-  // listening on port 80 (aka the OpenShift router process).
+  // listening on port 80, such as the router process).
   $ openshift admin ipfailover ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
 
   // Use a different IP failover config image and see the configuration:
@@ -171,12 +213,15 @@ Replace cluster roles to match the recommended bootstrap policy
 
   // Replace cluster roles that don't match the current defaults
   $ openshift admin policy reconcile-cluster-roles --confirm
+
+  // Display the union of the default and modified cluster roles
+  $ openshift admin policy reconcile-cluster-roles --additive-only
 ----
 ====
 
 
 == oadm registry
-Install the OpenShift Docker registry
+Install the integrated Docker registry
 
 ====
 
@@ -198,7 +243,7 @@ Install the OpenShift Docker registry
 
 
 == oadm router
-Install an OpenShift router
+Install a router
 
 ====
 

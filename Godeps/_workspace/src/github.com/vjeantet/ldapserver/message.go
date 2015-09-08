@@ -51,7 +51,9 @@ func (m *Message) String() string {
 // Abandon close the Done channel, to notify handler's user function to stop any
 // running process
 func (m *Message) Abandon() {
-	close(m.Done)
+	if m.Done != nil {
+		close(m.Done)
+	}
 }
 
 //GetDoneChannel return a channel, which indicate the the request should be

@@ -1,21 +1,30 @@
 <div class="navbar-project container-fluid">
   <div class="row">
-    <div class="col-sm-4">
-      <div class="form-group">
-        <label class="control-label" for="boostrapSelect">Projects</label>
+    <div row class="col-sm-4">
+      <div flex class="form-group">
+        <label class="control-label hidden-xs" for="boostrapSelect">Projects</label>
         <!-- TODO add multiple attribute back to the select tag when we support selecting multiple -->
         <!-- Use title="" to prevent "Nothing selected" from briefly flashing while the projects are still loading. -->
         <select class="selectpicker form-control" data-selected-text-format="count>3" id="boostrapSelect" title=""></select>
       </div>
+      <!-- Filter and create buttons show at mobile -->
+      <div class="project-actions visible-xs-inline-block">
+        <a class="btn-flat-default" href="javascript:;" role="button" data-toggle="collapse" data-target=".navbar-collapse-3" aria-expanded="false" title="Filter by labels" aria-pressed="false" ng-if="!renderOptions || !renderOptions.hideFilterWidget">
+          <i class="fa fa-filter"></i>
+        </a>
+        <a class="btn-flat-default" href="project/{{projectName}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
+          <i class="fa fa-plus"></i>
+        </a>
+      </div>
     </div>
-    <div class="col-sm-5 filter">
+    <div class="col-sm-5 filter navbar-collapse-3 navbar-filter-widget-collapse">
       <div class="form-group">
-        <label ng-if="!renderOptions || !renderOptions.hideFilterWidget" class="control-label">Filter by labels</label>
+        <label ng-if="!renderOptions || !renderOptions.hideFilterWidget" class="control-label hidden-xs">Filter by labels</label>
         <div class="navbar-filter-widget"></div>
       </div>
       <div class="active-filters"></div>
     </div>
-    <div class="col-sm-3 create-button-container">
+    <div class="col-sm-3 create-button-container hidden-xs">
       <a href="project/{{projectName}}/create" ng-disabled="project.status.phase != 'Active'" class="btn btn-lg btn-primary">Add to Project</a>
       <span ng-if="project.status.phase == 'Terminating'" class="pficon-layered" data-toggle="tooltip" data-placement="left" title="This project has been marked for deletion. No content may be created in this project." style="cursor: help; font-size: 32px; vertical-align: top; margin-left: 5px;">
         <span class="pficon pficon-warning-triangle"></span>

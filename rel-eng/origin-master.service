@@ -1,0 +1,21 @@
+[Unit]
+Description=Origin Master Service
+Documentation=https://github.com/openshift/origin
+After=network.target
+After=etcd.service
+Before=origin-node.service
+Requires=network.target
+
+[Service]
+Type=notify
+EnvironmentFile=/etc/sysconfig/origin-master
+Environment=GOTRACEBACK=crash
+ExecStart=/usr/bin/openshift start master --config=${CONFIG_FILE} $OPTIONS
+LimitNOFILE=131072
+LimitCORE=infinity
+WorkingDirectory=/var/lib/origin/
+SyslogIdentifier=origin-master
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=origin-node.service

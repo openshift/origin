@@ -209,6 +209,8 @@ _oadm_policy_add-role-to-user()
     flags+=("--help")
     flags+=("-h")
     flags+=("--role-namespace=")
+    flags+=("--serviceaccount=")
+    two_word_flags+=("-z")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -227,6 +229,8 @@ _oadm_policy_remove-role-from-user()
     flags+=("--help")
     flags+=("-h")
     flags+=("--role-namespace=")
+    flags+=("--serviceaccount=")
+    two_word_flags+=("-z")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -380,6 +384,7 @@ _oadm_policy_reconcile-cluster-roles()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--additive-only")
     flags+=("--confirm")
     flags+=("--help")
     flags+=("-h")
@@ -423,6 +428,77 @@ _oadm_policy()
     must_have_one_noun=()
 }
 
+_oadm_groups_new()
+{
+    last_command="oadm_groups_new"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_groups_add-users()
+{
+    last_command="oadm_groups_add-users"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_groups_remove-users()
+{
+    last_command="oadm_groups_remove-users"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_groups()
+{
+    last_command="oadm_groups"
+    commands=()
+    commands+=("new")
+    commands+=("add-users")
+    commands+=("remove-users")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oadm_router()
 {
     last_command="oadm_router"
@@ -439,8 +515,16 @@ _oadm_router()
     flags_completion+=("__handle_filename_extension_flag kubeconfig")
     flags+=("--default-cert=")
     flags+=("--dry-run")
+    flags+=("--external-host=")
+    flags+=("--external-host-http-vserver=")
+    flags+=("--external-host-https-vserver=")
+    flags+=("--external-host-insecure")
+    flags+=("--external-host-password=")
+    flags+=("--external-host-private-key=")
+    flags+=("--external-host-username=")
     flags+=("--help")
     flags+=("-h")
+    flags+=("--host-network")
     flags+=("--images=")
     flags+=("--labels=")
     flags+=("--latest-images")
@@ -556,6 +640,7 @@ _oadm_build-chain()
     flags+=("-h")
     flags+=("--output=")
     two_word_flags+=("-o")
+    flags+=("--trigger-only")
 
     must_have_one_flag=()
     must_have_one_noun=()
@@ -959,6 +1044,23 @@ _oadm_create-bootstrap-policy-file()
     must_have_one_noun=()
 }
 
+_oadm_create-login-template()
+{
+    last_command="oadm_create-login-template"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oadm_overwrite-policy()
 {
     last_command="oadm_overwrite-policy"
@@ -1199,6 +1301,7 @@ _oadm()
     commands=()
     commands+=("new-project")
     commands+=("policy")
+    commands+=("groups")
     commands+=("router")
     commands+=("ipfailover")
     commands+=("registry")
@@ -1210,6 +1313,7 @@ _oadm()
     commands+=("create-api-client-config")
     commands+=("create-bootstrap-project-template")
     commands+=("create-bootstrap-policy-file")
+    commands+=("create-login-template")
     commands+=("overwrite-policy")
     commands+=("create-node-config")
     commands+=("ca")
@@ -1220,7 +1324,6 @@ _oadm()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--allow-dynamic-housekeeping")
     flags+=("--alsologtostderr")
     flags+=("--api-version=")
     flags+=("--boot-id-file=")
@@ -1252,7 +1355,6 @@ _oadm()
     flags+=("--logtostderr")
     flags+=("--machine-id-file=")
     flags+=("--match-server-version")
-    flags+=("--max-housekeeping-interval=")
     flags+=("--namespace=")
     two_word_flags+=("-n")
     flags+=("--server=")

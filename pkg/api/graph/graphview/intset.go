@@ -3,7 +3,7 @@ package graphview
 import (
 	"sort"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 type IntSet map[int]util.Empty

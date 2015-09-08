@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/pflag"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/client"
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
@@ -101,7 +101,7 @@ func TestLogin(t *testing.T) {
 	// 	t.Fatalf("unexpected error: %v", err)
 	// }
 
-	userWhoamiOptions := cmd.WhoAmIOptions{oClient.Users(), ioutil.Discard}
+	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: oClient.Users(), Out: ioutil.Discard}
 	retrievedUser, err := userWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -110,7 +110,7 @@ func TestLogin(t *testing.T) {
 		t.Errorf("expected %v, got %v", retrievedUser.Name, username)
 	}
 
-	adminWhoamiOptions := cmd.WhoAmIOptions{clusterAdminClient.Users(), ioutil.Discard}
+	adminWhoamiOptions := cmd.WhoAmIOptions{UserInterface: clusterAdminClient.Users(), Out: ioutil.Discard}
 	retrievedAdmin, err := adminWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

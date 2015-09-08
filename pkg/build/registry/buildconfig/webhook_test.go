@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/rest"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/test"
 	"github.com/openshift/origin/pkg/build/webhook"
+	"github.com/openshift/origin/pkg/util/rest"
 )
 
 type buildConfigInstantiator struct {

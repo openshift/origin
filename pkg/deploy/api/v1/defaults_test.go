@@ -4,11 +4,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/runtime"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	current "github.com/openshift/origin/pkg/deploy/api/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
@@ -31,10 +31,15 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 	return obj3
 }
 
-func TestDefaults_rollingParams(t *testing.T) {
+func TestDefaults(t *testing.T) {
 	c := &current.DeploymentConfig{}
 	o := roundTrip(t, runtime.Object(c))
 	config := o.(*current.DeploymentConfig)
+
+	if len(config.Spec.Triggers) != 1 && config.Spec.Triggers[0].Type != current.DeploymentTriggerOnConfigChange {
+		t.Errorf("expected default trigger for config: %#v", config.Spec.Triggers)
+	}
+
 	strat := config.Spec.Strategy
 	if e, a := current.DeploymentStrategyTypeRolling, strat.Type; e != a {
 		t.Errorf("expected strategy type %s, got %s", e, a)

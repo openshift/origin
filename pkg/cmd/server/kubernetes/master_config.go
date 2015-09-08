@@ -8,22 +8,27 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/cmd/kube-apiserver/app"
-	cmapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kube-controller-manager/app"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/admission"
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/cloudprovider"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/cmd/kube-apiserver/app"
+	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
+	"k8s.io/kubernetes/pkg/admission"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapilatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/apiserver"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/util"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
+
+// AdmissionPlugins is the full list of admission control plugins to enable in the order they must run
+var AdmissionPlugins = []string{"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "ResourceQuota", "DenyExecOnPrivileged"}
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -41,11 +46,11 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 
 	// Connect and setup etcd interfaces
-	etcdClient, err := etcd.GetAndTestEtcdClient(options.EtcdClientInfo)
+	etcdClient, err := etcd.EtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}
-	ketcdHelper, err := master.NewEtcdHelper(etcdClient, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+	databaseStorage, err := master.NewEtcdStorage(etcdClient, kapilatest.InterfacesFor, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 	}
@@ -80,11 +85,9 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 
 	server := app.NewAPIServer()
 	server.EventTTL = 2 * time.Hour
-	server.ServiceClusterIPRange = util.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
+	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
-	server.AdmissionControl = strings.Join([]string{
-		"NamespaceExists", "NamespaceLifecycle", "OriginPodNodeEnvironment", "LimitRanger", "ServiceAccount", "SecurityContextConstraint", "ResourceQuota",
-	}, ",")
+	server.AdmissionControl = strings.Join(AdmissionPlugins, ",")
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
@@ -107,13 +110,32 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		return nil, err
 	}
 
-	admissionController := admission.NewFromPlugins(kubeClient, strings.Split(server.AdmissionControl, ","), server.AdmissionControlConfigFile)
+	plugins := []admission.Interface{}
+	for _, pluginName := range strings.Split(server.AdmissionControl, ",") {
+		switch pluginName {
+		case saadmit.PluginName:
+			// we need to set some custom parameters on the service account admission controller, so create that one by hand
+			saAdmitter := saadmit.NewServiceAccount(kubeClient)
+			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
+			saAdmitter.Run()
+			plugins = append(plugins, saAdmitter)
+
+		default:
+			plugin := admission.InitPlugin(pluginName, kubeClient, server.AdmissionControlConfigFile)
+			if plugin != nil {
+				plugins = append(plugins, plugin)
+			}
+
+		}
+	}
+	admissionController := admission.NewChainHandler(plugins...)
 
 	m := &master.Config{
 		PublicAddress: net.ParseIP(options.KubernetesMasterConfig.MasterIP),
 		ReadWritePort: port,
 
-		EtcdHelper: ketcdHelper,
+		DatabaseStorage:    databaseStorage,
+		ExpDatabaseStorage: databaseStorage,
 
 		EventTTL: server.EventTTL,
 		//MinRequestTimeout: server.MinRequestTimeout,

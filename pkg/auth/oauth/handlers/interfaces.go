@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/openshift/origin/pkg/auth/api"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 // AuthenticationHandler reacts to unauthenticated requests

@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 type ExtendedArguments map[string][]string
@@ -14,6 +14,10 @@ type NodeConfig struct {
 	// NodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname.
 	// If you're describing a set of static nodes to the master, this value must match one of the values in the list
 	NodeName string `json:"nodeName"`
+
+	// Node may have multiple IPs, specify the IP to use for pod traffic routing
+	// If not specified, network parse/lookup on the nodeName is performed and the first non-loopback address is used
+	NodeIP string `json:"nodeIP"`
 
 	// ServingInfo describes how to start serving
 	ServingInfo ServingInfo `json:"servingInfo"`
@@ -27,8 +31,11 @@ type NodeConfig struct {
 	// DNSIP holds the IP
 	DNSIP string `json:"dnsIP"`
 
-	// NetworkPluginName is a string specifying the networking plugin
-	NetworkPluginName string `json:"networkPluginName"`
+	// Deprecated and maintained for backward compatibility, use NetworkConfig.NetworkPluginName instead
+	DeprecatedNetworkPluginName string `json:"networkPluginName,omitempty"`
+
+	// NetworkConfig provides network options for the node
+	NetworkConfig NodeNetworkConfig `json:"networkConfig"`
 
 	// VolumeDirectory is the directory that volumes will be stored under
 	VolumeDirectory string `json:"volumeDirectory"`
@@ -52,6 +59,14 @@ type NodeConfig struct {
 	KubeletArguments ExtendedArguments `json:"kubeletArguments,omitempty"`
 }
 
+// NodeNetworkConfig provides network options for the node
+type NodeNetworkConfig struct {
+	// NetworkPluginName is a string specifying the networking plugin
+	NetworkPluginName string `json:"networkPluginName"`
+	// Maximum transmission unit for the network packets
+	MTU uint `json:"mtu"`
+}
+
 // DockerConfig holds Docker related configuration options.
 type DockerConfig struct {
 	// ExecHandlerName is the name of the handler to use for executing
@@ -73,6 +88,9 @@ const (
 	ControllersAll = "*"
 )
 
+// FeatureList contains a set of features
+type FeatureList []string
+
 type MasterConfig struct {
 	v1.TypeMeta `json:",inline"`
 
@@ -92,10 +110,20 @@ type MasterConfig struct {
 	// will start automatically. The default value is "*" which will start all controllers. When
 	// using "*", you may exclude controllers by prepending a "-" in front of their name. No other
 	// values are recognized at this time.
-	Controllers string `json:"controllers,omitempty"`
+	Controllers string `json:"controllers"`
 	// PauseControllers instructs the master to not automatically start controllers, but instead
 	// to wait until a notification to the server is received before launching them.
-	PauseControllers bool `json:"pauseControllers,omitempty"`
+	PauseControllers bool `json:"pauseControllers"`
+	// ControllerLeaseTTL enables controller election, instructing the master to attempt to acquire
+	// a lease before controllers start and renewing it within a number of seconds defined by this value.
+	// Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or
+	// omitted) and controller election can be disabled with -1.
+	ControllerLeaseTTL int `json:"controllerLeaseTTL"`
+
+	// DisabledFeatures is a list of features that should not be started.  We
+	// omitempty here because its very unlikely that anyone will want to
+	// manually disable features and we don't want to encourage it.
+	DisabledFeatures FeatureList `json:"disabledFeatures"`
 
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the
@@ -137,7 +165,7 @@ type MasterConfig struct {
 	RoutingConfig RoutingConfig `json:"routingConfig"`
 
 	// NetworkConfig to be passed to the compiled in network plugin
-	NetworkConfig NetworkConfig `json:"networkConfig"`
+	NetworkConfig MasterNetworkConfig `json:"networkConfig"`
 }
 
 type ProjectConfig struct {
@@ -194,11 +222,12 @@ type RoutingConfig struct {
 	Subdomain string `json:"subdomain"`
 }
 
-// NetworkConfig to be passed to the compiled in network plugin
-type NetworkConfig struct {
+// MasterNetworkConfig to be passed to the compiled in network plugin
+type MasterNetworkConfig struct {
 	NetworkPluginName  string `json:"networkPluginName"`
 	ClusterNetworkCIDR string `json:"clusterNetworkCIDR"`
 	HostSubnetLength   uint   `json:"hostSubnetLength"`
+	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
 }
 
 type ImageConfig struct {
@@ -258,6 +287,9 @@ type EtcdStorageConfig struct {
 type ServingInfo struct {
 	// BindAddress is the ip:port to serve on
 	BindAddress string `json:"bindAddress"`
+	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",
+	// "tcp4", and "tcp6"
+	BindNetwork string `json:"bindNetwork"`
 	// CertInfo is the TLS cert info for serving secure traffic.
 	// this is anonymous so that we can inline it for serialization
 	CertInfo `json:",inline"`
@@ -284,6 +316,9 @@ type MasterClients struct {
 type DNSConfig struct {
 	// BindAddress is the ip:port to serve DNS on
 	BindAddress string `json:"bindAddress"`
+	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",
+	// "tcp4", and "tcp6"
+	BindNetwork string `json:"bindNetwork"`
 }
 
 type AssetConfig struct {
@@ -298,6 +333,22 @@ type AssetConfig struct {
 
 	// MasterPublicURL is how the web console can access the OpenShift v1 server
 	MasterPublicURL string `json:"masterPublicURL"`
+
+	// ExtensionScripts are file paths on the asset server files to load as scripts when the Web
+	// Console loads
+	ExtensionScripts []string `json:"extensionScripts"`
+
+	// ExtensionStylesheets are file paths on the asset server files to load as stylesheets when
+	// the Web Console loads
+	ExtensionStylesheets []string `json:"extensionStylesheets"`
+
+	// Extensions are files to serve from the asset server filesystem under a subcontext
+	Extensions []AssetExtensionsConfig `json:"extensions"`
+
+	// ExtensionDevelopment when true tells the asset server to reload extension scripts and
+	// stylesheets for every request rather than only at startup. It lets you develop extensions
+	// without having to restart the server for every change.
+	ExtensionDevelopment bool `json:"extensionDevelopment"`
 }
 
 type OAuthConfig struct {
@@ -320,12 +371,25 @@ type OAuthConfig struct {
 	SessionConfig *SessionConfig `json:"sessionConfig"`
 
 	TokenConfig TokenConfig `json:"tokenConfig"`
+
+	// Templates allow you to customize pages like the login page.
+	Templates *OAuthTemplates `json:"templates"`
+}
+
+type OAuthTemplates struct {
+	// Login is a path to a file containing a go template used to render the login page.
+	// If unspecified, the default login page is used.
+	Login string `json:"login"`
 }
 
 type ServiceAccountConfig struct {
 	// ManagedNames is a list of service account names that will be auto-created in every namespace.
 	// If no names are specified, the ServiceAccountsController will not be started.
 	ManagedNames []string `json:"managedNames"`
+
+	// LimitSecretReferences controls whether or not to allow a service account to reference any secret in a namespace
+	// without explicitly referencing them
+	LimitSecretReferences bool `json:"limitSecretReferences"`
 
 	// PrivateKeyFile is a file containing a PEM-encoded private RSA key, used to sign service account tokens.
 	// If no private key is specified, the service account TokensController will not be started.
@@ -427,11 +491,11 @@ type LDAPPasswordIdentityProvider struct {
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
 	CA string `json:"ca"`
-	// Attributes maps LDAP attributes to identities
-	Attributes LDAPAttributes `json:"attributes"`
+	// LDAPEntryAttributeMapping maps LDAP attributes to identities
+	LDAPEntryAttributeMapping LDAPAttributeMapping `json:"attributeMappings"`
 }
 
-type LDAPAttributes struct {
+type LDAPAttributeMapping struct {
 	// ID is the list of attributes whose values should be used as the user ID. Required.
 	// LDAP standard identity attribute is "dn"
 	ID []string `json:"id"`
@@ -449,6 +513,22 @@ type LDAPAttributes struct {
 
 type RequestHeaderIdentityProvider struct {
 	v1.TypeMeta `json:",inline"`
+
+	// LoginURL is a URL to redirect unauthenticated /authorize requests to
+	// Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here
+	// ${url} is replaced with the current URL, escaped to be safe in a query parameter
+	//   https://www.example.com/sso-login?then=${url}
+	// ${query} is replaced with the current query string
+	//   https://www.example.com/auth-proxy/oauth/authorize?${query}
+	LoginURL string `json:"loginURL"`
+
+	// ChallengeURL is a URL to redirect unauthenticated /authorize requests to
+	// Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here
+	// ${url} is replaced with the current URL, escaped to be safe in a query parameter
+	//   https://www.example.com/sso-login?then=${url}
+	// ${query} is replaced with the current query string
+	//   https://www.example.com/auth-proxy/oauth/authorize?${query}
+	ChallengeURL string `json:"challengeURL"`
 
 	// ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
 	ClientCA string `json:"clientCA"`
@@ -562,7 +642,8 @@ type KubernetesMasterConfig struct {
 	APILevels []string `json:"apiLevels"`
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string `json:"masterIP"`
-	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
+	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer,
+	// or if set to -1, indicates this is part of a cluster.
 	MasterCount int `json:"masterCount"`
 	// ServicesSubnet is the subnet to use for assigning service IPs
 	ServicesSubnet string `json:"servicesSubnet"`
@@ -601,4 +682,17 @@ type PodManifestConfig struct {
 	// FileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
 	// The interval needs to be a positive value
 	FileCheckIntervalSeconds int64 `json:"fileCheckIntervalSeconds"`
+}
+
+type AssetExtensionsConfig struct {
+	// SubContext is the path under /<context>/extensions/ to serve files from SourceDirectory
+	Name string `json:"name"`
+	// SourceDirectory is a directory on the asset server to serve files under Name in the Web
+	// Console. It may have nested folders.
+	SourceDirectory string `json:"sourceDirectory"`
+	// HTML5Mode determines whether to redirect to the root index.html when a file is not found.
+	// This is needed for apps that use the HTML5 history API like AngularJS apps with HTML5
+	// mode enabled. If HTML5Mode is true, also rewrite the base element in index.html with the
+	// Web Console's context root. Defaults to false.
+	HTML5Mode bool `json:"html5Mode"`
 }

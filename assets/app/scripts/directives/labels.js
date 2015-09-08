@@ -5,8 +5,15 @@ angular.module('openshiftConsole')
     return {
       restrict: 'E',
       scope: {
-        labels: "="
+        labels: "=",
+        expand: "=?",
+        canToggle: "=?"
       },
-      templateUrl: 'views/directives/labels.html'
+      templateUrl: 'views/directives/labels.html',
+      link: function(scope, element, attrs) {
+        if (!angular.isDefined(attrs.canToggle)) {
+          scope.canToggle = true;
+        }
+      }
     };
   });

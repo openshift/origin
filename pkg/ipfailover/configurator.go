@@ -3,8 +3,8 @@ package ipfailover
 import (
 	"io"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 type Configurator struct {

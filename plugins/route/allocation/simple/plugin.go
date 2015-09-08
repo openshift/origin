@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/util"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )

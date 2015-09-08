@@ -5,11 +5,11 @@ import (
 	"github.com/golang/glog"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	errors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/record"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	errors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/client/record"
+	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -216,15 +216,24 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	case kapi.PodRunning:
 		// The pod's still running
 		nextStatus = buildapi.BuildPhaseRunning
-	case kapi.PodSucceeded, kapi.PodFailed:
+	case kapi.PodSucceeded:
 		// Check the exit codes of all the containers in the pod
 		nextStatus = buildapi.BuildPhaseComplete
-		for _, info := range pod.Status.ContainerStatuses {
-			if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
-				nextStatus = buildapi.BuildPhaseFailed
-				break
+		if len(pod.Status.ContainerStatuses) == 0 {
+			// no containers in the pod means something went badly wrong, so the build
+			// should be failed.
+			glog.V(2).Infof("Failing build %s/%s because the pod has no containers", build.Namespace, build.Name)
+			nextStatus = buildapi.BuildPhaseFailed
+		} else {
+			for _, info := range pod.Status.ContainerStatuses {
+				if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
+					nextStatus = buildapi.BuildPhaseFailed
+					break
+				}
 			}
 		}
+	case kapi.PodFailed:
+		nextStatus = buildapi.BuildPhaseFailed
 	}
 
 	if build.Status.Phase != nextStatus {

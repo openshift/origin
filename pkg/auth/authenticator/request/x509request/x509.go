@@ -5,9 +5,9 @@ import (
 	"crypto/x509/pkix"
 	"net/http"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/kubernetes/pkg/auth/user"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 // UserConversion defines an interface for extracting user info from a client certificate chain

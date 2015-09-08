@@ -3,8 +3,8 @@ package cmd
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	ktc "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
+	kapi "k8s.io/kubernetes/pkg/api"
+	ktc "k8s.io/kubernetes/pkg/client/testclient"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"

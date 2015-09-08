@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -35,7 +35,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 	}
 
 	if e, a := 1, len(scaler.Events); e != a {
-		t.Fatalf("expected %s scale calls, got %d", e, a)
+		t.Fatalf("expected %d scale calls, got %d", e, a)
 	}
 	if e, a := uint(2), scaler.Events[0].Size; e != a {
 		t.Errorf("expected scale up to %d, got %d", e, a)
@@ -201,7 +201,7 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 	}
 
 	if e, a := 2, len(scaler.Events); e != a {
-		t.Fatalf("expected %s scale calls, got %d", e, a)
+		t.Fatalf("expected %d scale calls, got %d", e, a)
 	}
 	if e, a := uint(1), scaler.Events[0].Size; e != a {
 		t.Errorf("expected scale up to %d, got %d", e, a)
@@ -239,7 +239,7 @@ func TestRecreate_acceptorFail(t *testing.T) {
 	t.Logf("got expected error: %v", err)
 
 	if e, a := 1, len(scaler.Events); e != a {
-		t.Fatalf("expected %s scale calls, got %d", e, a)
+		t.Fatalf("expected %d scale calls, got %d", e, a)
 	}
 	if e, a := uint(1), scaler.Events[0].Size; e != a {
 		t.Errorf("expected scale up to %d, got %d", e, a)

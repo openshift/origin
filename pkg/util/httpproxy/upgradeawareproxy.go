@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/third_party/golang/netutil"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/third_party/golang/netutil"
 
 	"github.com/golang/glog"
 )

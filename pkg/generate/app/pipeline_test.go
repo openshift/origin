@@ -5,10 +5,12 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 type portDesc struct {
@@ -98,6 +100,57 @@ func objsToString(objs Objects) string {
 	}
 	result += "}"
 	return result
+}
+
+func TestAcceptUnique(t *testing.T) {
+	is := func(name, ns string) *imageapi.ImageStream {
+		obj := &imageapi.ImageStream{}
+		obj.Name = name
+		obj.Namespace = ns
+		return obj
+	}
+	dc := func(name, ns string) *deployapi.DeploymentConfig {
+		obj := &deployapi.DeploymentConfig{}
+		obj.Name = name
+		obj.Namespace = ns
+		return obj
+	}
+	objs := func(list ...runtime.Object) []runtime.Object {
+		return list
+	}
+	tests := []struct {
+		name   string
+		objs   []runtime.Object
+		expect int
+	}{
+		{
+			name:   "same name, different kind, different ns",
+			objs:   objs(is("aaa", "ns1"), is("aaa", "ns2"), dc("aaa", "ns1")),
+			expect: 3,
+		},
+		{
+			name:   "dup name, empty ns",
+			objs:   objs(is("aaa", ""), is("aaa", "")),
+			expect: 1,
+		},
+		{
+			name:   "different name, empty ns",
+			objs:   objs(is("aaa", ""), is("bbb", ""), dc("aaa", "")),
+			expect: 3,
+		},
+	}
+	for _, tc := range tests {
+		au := NewAcceptUnique(kapi.Scheme)
+		cnt := 0
+		for _, obj := range tc.objs {
+			if au.Accept(obj) {
+				cnt++
+			}
+		}
+		if cnt != tc.expect {
+			t.Errorf("%s: did not get expected number of objects. Expected: %d, Got: %d", tc.name, tc.expect, cnt)
+		}
+	}
 }
 
 func TestAddServices(t *testing.T) {

@@ -12,12 +12,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	klatest "github.com/GoogleCloudPlatform/kubernetes/pkg/api/latest"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/master/ports"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	kapi "k8s.io/kubernetes/pkg/api"
+	klatest "k8s.io/kubernetes/pkg/api/latest"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/master/ports"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -110,7 +110,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 }
 
 func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
-	options := &CreateNodeConfigOptions{SignerCertOptions: &SignerCertOptions{}}
+	options := &CreateNodeConfigOptions{SignerCertOptions: NewDefaultSignerCertOptions()}
 	options.VolumeDir = "openshift.local.volumes"
 	// TODO: replace me with a proper round trip of config options through decode
 	options.DNSDomain = "cluster.local"
@@ -147,16 +147,16 @@ func (o CreateNodeConfigOptions) Validate(args []string) error {
 		return errors.New("no arguments are supported")
 	}
 	if len(o.NodeConfigDir) == 0 {
-		return errors.New("node-dir must be provided")
+		return errors.New("--node-dir must be provided")
 	}
 	if len(o.NodeName) == 0 {
-		return errors.New("node must be provided")
+		return errors.New("--node must be provided")
 	}
 	if len(o.APIServerURL) == 0 {
-		return errors.New("master must be provided")
+		return errors.New("--master must be provided")
 	}
-	if len(o.APIServerCAFile) == 0 {
-		return errors.New("certificate-authority must be provided")
+	if _, err := os.Stat(o.APIServerCAFile); len(o.APIServerCAFile) == 0 || err != nil {
+		return fmt.Errorf("--certificate-authority, %q must be a valid certificate file", cmdutil.GetDisplayFilename(o.APIServerCAFile))
 	}
 	if len(o.Hostnames) == 0 {
 		return errors.New("at least one hostname must be provided")
@@ -164,29 +164,29 @@ func (o CreateNodeConfigOptions) Validate(args []string) error {
 
 	if len(o.ClientCertFile) != 0 {
 		if len(o.ClientKeyFile) == 0 {
-			return errors.New("client-key must be provided if client-certificate is provided")
+			return errors.New("--client-key must be provided if --client-certificate is provided")
 		}
 	} else if len(o.ClientKeyFile) != 0 {
-		return errors.New("client-certificate must be provided if client-key is provided")
+		return errors.New("--client-certificate must be provided if --client-key is provided")
 	}
 
 	if len(o.ServerCertFile) != 0 {
 		if len(o.ServerKeyFile) == 0 {
-			return errors.New("server-key must be provided if server-certificate is provided")
+			return errors.New("--server-key must be provided if --server-certificate is provided")
 		}
 	} else if len(o.ServerKeyFile) != 0 {
-		return errors.New("server-certificate must be provided if server-key is provided")
+		return errors.New("--server-certificate must be provided if --server-key is provided")
 	}
 
 	if o.IsCreateClientCertificate() || o.IsCreateServerCertificate() {
 		if len(o.SignerCertOptions.KeyFile) == 0 {
-			return errors.New("signer-key must be provided to create certificates")
+			return errors.New("--signer-key must be provided to create certificates")
 		}
 		if len(o.SignerCertOptions.CertFile) == 0 {
-			return errors.New("signer-cert must be provided to create certificates")
+			return errors.New("--signer-cert must be provided to create certificates")
 		}
 		if len(o.SignerCertOptions.SerialFile) == 0 {
-			return errors.New("signer-serial must be provided to create certificates")
+			return errors.New("--signer-serial must be provided to create certificates")
 		}
 	}
 
@@ -376,7 +376,9 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 
 		MasterKubeConfig: kubeConfigFile,
 
-		NetworkPluginName: o.NetworkPluginName,
+		NetworkConfig: configapi.NodeNetworkConfig{
+			NetworkPluginName: o.NetworkPluginName,
+		},
 	}
 
 	if o.UseTLS() {

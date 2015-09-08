@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -o errexit
 set -o nounset
 set -o pipefail
 
@@ -13,7 +13,7 @@ echo "===== Verifying Generated Docs ====="
 
 GENERATED_DOCS_ROOT_REL="docs/generated"
 GENERATED_DOCS_ROOT="${OS_ROOT}/${GENERATED_DOCS_ROOT_REL}"
-TMP_GENERATED_DOCS_ROOT_REL="_tmp/verify-generated-docs"
+TMP_GENERATED_DOCS_ROOT_REL="_output/verify-generated-docs"
 TMP_GENERATED_DOCS_ROOT="${OS_ROOT}/${TMP_GENERATED_DOCS_ROOT_REL}/${GENERATED_DOCS_ROOT_REL}"
 
 echo "Generating fresh docs..."

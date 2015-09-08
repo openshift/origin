@@ -1,7 +1,7 @@
 package v1
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
+	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 type ClusterNetwork struct {
@@ -10,6 +10,7 @@ type ClusterNetwork struct {
 
 	Network          string `json:"network" description:"CIDR string to specify the global overlay network's L3 space"`
 	HostSubnetLength int    `json:"hostsubnetlength" description:"number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host"`
+	ServiceNetwork   string `json:"serviceNetwork" description:"CIDR string to specify the service network"`
 }
 
 type ClusterNetworkList struct {
@@ -18,7 +19,7 @@ type ClusterNetworkList struct {
 	Items         []ClusterNetwork `json:"items" description:"list of cluster networks"`
 }
 
-// HostSubnet encapsulates the inputs needed to define the container subnet network on a minion
+// HostSubnet encapsulates the inputs needed to define the container subnet network on a node
 type HostSubnet struct {
 	kapi.TypeMeta   `json:",inline"`
 	kapi.ObjectMeta `json:"metadata,omitempty"`
@@ -34,4 +35,20 @@ type HostSubnetList struct {
 	kapi.TypeMeta `json:",inline"`
 	kapi.ListMeta `json:"metadata,omitempty"`
 	Items         []HostSubnet `json:"items" description:"list of host subnets"`
+}
+
+// NetNamespace encapsulates the inputs needed to define a unique network namespace on the cluster
+type NetNamespace struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+
+	NetName string `json:"netname" description:"Name of the network namespace."`
+	NetID   uint   `json:"netid" description:"NetID of the network namespace assigned to each overlay network packet."`
+}
+
+// NetNamespaceList is a collection of NetNamespaces
+type NetNamespaceList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+	Items         []NetNamespace `json:"items" description:"list of net namespaces"`
 }

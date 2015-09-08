@@ -3,8 +3,8 @@ package api
 import (
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 const (
@@ -12,8 +12,12 @@ const (
 	BuildAnnotation = "openshift.io/build.name"
 	// DeprecatedBuildLabel is old value of BuildLabel, it'll be removed in OpenShift 3.1.
 	DeprecatedBuildLabel = "build"
+	// BuildNumberAnnotation is an annotation whose value is the sequential number for this Build
+	BuildNumberAnnotation = "openshift.io/build.number"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	BuildLabel = "openshift.io/build.name"
+	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
+	DefaultDockerLabelNamespace = "io.openshift."
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
@@ -244,6 +248,13 @@ type CustomBuildStrategy struct {
 	// inside the Docker container.
 	// TODO: Allow admins to enforce 'false' for this option
 	ExposeDockerSocket bool
+
+	// ForcePull describes if the controller should configure the build pod to always pull the images
+	// for the builder or only pull if it is not present locally
+	ForcePull bool
+
+	// Secrets is a list of additional secrets that will be included in the custom build pod
+	Secrets []SecretSpec
 }
 
 // DockerBuildStrategy defines input parameters specific to Docker build.
@@ -352,6 +363,12 @@ type ImageChangeTrigger struct {
 	// LastTriggeredImageID is used internally by the ImageChangeController to save last
 	// used image ID for build
 	LastTriggeredImageID string
+
+	// From is a reference to an ImageStreamTag that will trigger a build when updated
+	// It is optional. If no From is specified, the From image from the build strategy
+	// will be used. Only one ImageChangeTrigger with an empty From reference is allowed in
+	// a build configuration.
+	From *kapi.ObjectReference
 }
 
 // BuildTriggerPolicy describes a policy for a single trigger that results in a new Build.
@@ -387,6 +404,10 @@ const (
 	// availability of a new version of an image
 	ImageChangeBuildTriggerType           BuildTriggerType = "ImageChange"
 	ImageChangeBuildTriggerTypeDeprecated BuildTriggerType = "imageChange"
+
+	// ConfigChangeBuildTriggerType will trigger a build on an initial build config creation
+	// WARNING: In the future the behavior will change to trigger a build on any config change
+	ConfigChangeBuildTriggerType BuildTriggerType = "ConfigChange"
 )
 
 // BuildList is a collection of Builds.
@@ -449,6 +470,14 @@ type BuildRequest struct {
 
 	// TriggeredByImage is the Image that triggered this build.
 	TriggeredByImage *kapi.ObjectReference
+
+	// From is the reference to the ImageStreamTag that triggered the build.
+	From *kapi.ObjectReference
+
+	// LastVersion (optional) is the LastVersion of the BuildConfig that was used
+	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
+	// not be generated.
+	LastVersion *int
 }
 
 // BuildLogOptions is the REST options for a build log
@@ -462,4 +491,13 @@ type BuildLogOptions struct {
 	// NoWait if true causes the call to return immediately even if the build
 	// is not available yet. Otherwise the server will wait until the build has started.
 	NoWait bool
+}
+
+// SecretSpec specifies a secret to be included in a build pod and its corresponding mount point
+type SecretSpec struct {
+	// SecretSource is a reference to the secret
+	SecretSource kapi.LocalObjectReference
+
+	// MountPath is the path at which to mount the secret
+	MountPath string
 }

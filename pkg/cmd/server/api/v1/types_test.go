@@ -3,9 +3,9 @@ package v1
 import (
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/ghodss/yaml"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -26,13 +26,17 @@ imageConfig:
   latest: false
 kind: NodeConfig
 masterKubeConfig: ""
-networkPluginName: ""
+networkConfig:
+  mtu: 0
+  networkPluginName: ""
+nodeIP: ""
 nodeName: ""
 podManifestConfig:
   fileCheckIntervalSeconds: 0
   path: ""
 servingInfo:
   bindAddress: ""
+  bindNetwork: ""
   certFile: ""
   clientCA: ""
   keyFile: ""
@@ -47,19 +51,28 @@ volumeDirectory: ""
 	expectedSerializedMasterConfig = `apiLevels: null
 apiVersion: v1
 assetConfig:
+  extensionDevelopment: false
+  extensionScripts: null
+  extensionStylesheets: null
+  extensions: null
   logoutURL: ""
   masterPublicURL: ""
   publicURL: ""
   servingInfo:
     bindAddress: ""
+    bindNetwork: ""
     certFile: ""
     clientCA: ""
     keyFile: ""
     maxRequestsInFlight: 0
     requestTimeoutSeconds: 0
+controllerLeaseTTL: 0
+controllers: ""
 corsAllowedOrigins: null
+disabledFeatures: null
 dnsConfig:
   bindAddress: ""
+  bindNetwork: ""
 etcdClientInfo:
   ca: ""
   certFile: ""
@@ -70,11 +83,13 @@ etcdConfig:
   peerAddress: ""
   peerServingInfo:
     bindAddress: ""
+    bindNetwork: ""
     certFile: ""
     clientCA: ""
     keyFile: ""
   servingInfo:
     bindAddress: ""
+    bindNetwork: ""
     certFile: ""
     clientCA: ""
     keyFile: ""
@@ -112,6 +127,7 @@ networkConfig:
   clusterNetworkCIDR: ""
   hostSubnetLength: 0
   networkPluginName: ""
+  serviceNetworkCIDR: ""
 oauthConfig:
   assetPublicURL: ""
   grantConfig:
@@ -151,7 +167,7 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
-      attributes:
+      attributeMappings:
         email: null
         id: null
         name: null
@@ -167,9 +183,11 @@ oauthConfig:
     name: ""
     provider:
       apiVersion: v1
+      challengeURL: ""
       clientCA: ""
       headers: null
       kind: RequestHeaderIdentityProvider
+      loginURL: ""
   - challenge: false
     login: false
     name: ""
@@ -213,9 +231,11 @@ oauthConfig:
     sessionMaxAgeSeconds: 0
     sessionName: ""
     sessionSecretsFile: ""
+  templates: null
   tokenConfig:
     accessTokenMaxAgeSeconds: 0
     authorizeTokenMaxAgeSeconds: 0
+pauseControllers: false
 policyConfig:
   bootstrapPolicyFile: ""
   openshiftInfrastructureNamespace: ""
@@ -228,12 +248,14 @@ projectConfig:
 routingConfig:
   subdomain: ""
 serviceAccountConfig:
+  limitSecretReferences: false
   managedNames: null
   masterCA: ""
   privateKeyFile: ""
   publicKeyFiles: null
 servingInfo:
   bindAddress: ""
+  bindNetwork: ""
   certFile: ""
   clientCA: ""
   keyFile: ""

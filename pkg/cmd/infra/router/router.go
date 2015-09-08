@@ -1,134 +1,158 @@
 package router
 
 import (
-	"errors"
 	"fmt"
-	"strconv"
+	"time"
 
 	"github.com/golang/glog"
-	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
-	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/router"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util"
+
+	oclient "github.com/openshift/origin/pkg/client"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
-	"github.com/openshift/origin/pkg/util/proc"
-	"github.com/openshift/origin/pkg/version"
-	templateplugin "github.com/openshift/origin/plugins/router/template"
-
-	ktypes "github.com/GoogleCloudPlatform/kubernetes/pkg/types"
 )
 
-const (
-	routerLong = `
-Start an OpenShift router
+// RouterSelection controls what routes and resources on the server are considered
+// part of this router.
+type RouterSelection struct {
+	ResyncInterval time.Duration
 
-This command launches a router connected to your OpenShift master. The router listens for routes and endpoints
-created by users and keeps a local router configuration up to date with those changes.`
-)
+	LabelSelector string
+	Labels        labels.Selector
+	FieldSelector string
+	Fields        fields.Selector
 
-type templateRouterConfig struct {
-	Config             *clientcmd.Config
-	TemplateFile       string
-	ReloadScript       string
-	DefaultCertificate string
-	RouterService      ktypes.NamespacedName
-	StatsPort          string
-	StatsPassword      string
-	StatsUsername      string
+	Namespace              string
+	NamespaceLabelSelector string
+	NamespaceLabels        labels.Selector
+
+	ProjectLabelSelector string
+	ProjectLabels        labels.Selector
 }
 
-// NewCommndTemplateRouter provides CLI handler for the template router backend
-func NewCommandTemplateRouter(name string) *cobra.Command {
-	cfg := &templateRouterConfig{
-		Config: clientcmd.NewConfig(),
-	}
-
-	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s%s", name, clientcmd.ConfigSyntax),
-		Short: "Start an OpenShift router",
-		Long:  routerLong,
-		Run: func(c *cobra.Command, args []string) {
-			defaultCert := util.Env("DEFAULT_CERTIFICATE", "")
-			if len(defaultCert) > 0 {
-				cfg.DefaultCertificate = defaultCert
-			}
-
-			routerSvcNamespace := util.Env("ROUTER_SERVICE_NAMESPACE", "")
-			routerSvcName := util.Env("ROUTER_SERVICE_NAME", "")
-			cfg.RouterService = ktypes.NamespacedName{
-				Namespace: routerSvcNamespace,
-				Name:      routerSvcName,
-			}
-
-			plugin, err := makeTemplatePlugin(cfg)
-			if err != nil {
-				glog.Fatal(err)
-			}
-
-			if err = start(cfg.Config, plugin); err != nil {
-				glog.Fatal(err)
-			}
-		},
-	}
-
-	cmd.AddCommand(version.NewVersionCommand(name))
-
-	flag := cmd.Flags()
-	cfg.Config.Bind(flag)
-	flag.StringVar(&cfg.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
-	flag.StringVar(&cfg.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
-	flag.StringVar(&cfg.StatsPort, "stats-port", util.Env("STATS_PORT", ""), "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
-	flag.StringVar(&cfg.StatsPassword, "stats-password", util.Env("STATS_PASSWORD", ""), "If the underlying router implementation can provide statistics this is the requested password for auth.")
-	flag.StringVar(&cfg.StatsUsername, "stats-user", util.Env("STATS_USERNAME", ""), "If the underlying router implementation can provide statistics this is the requested username for auth.")
-
-	return cmd
+// Bind sets the appropriate labels
+func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
+	flag.DurationVar(&o.ResyncInterval, "resync-interval", 10*time.Minute, "The interval at which the route list should be fully refreshed")
+	flag.StringVar(&o.LabelSelector, "labels", cmdutil.Env("ROUTE_LABELS", ""), "A label selector to apply to the routes to watch")
+	flag.StringVar(&o.FieldSelector, "fields", cmdutil.Env("ROUTE_FIELDS", ""), "A field selector to apply to routes to watch")
+	flag.StringVar(&o.ProjectLabelSelector, "project-labels", cmdutil.Env("PROJECT_LABELS", ""), "A label selector to apply to projects to watch; if '*' watches all projects the client can access")
+	flag.StringVar(&o.NamespaceLabelSelector, "namespace-labels", cmdutil.Env("NAMESPACE_LABELS", ""), "A label selector to apply to namespaces to watch")
 }
 
-func makeTemplatePlugin(cfg *templateRouterConfig) (*templateplugin.TemplatePlugin, error) {
-	if cfg.TemplateFile == "" {
-		return nil, errors.New("Template file must be specified")
-	}
-
-	if cfg.ReloadScript == "" {
-		return nil, errors.New("Reload script must be specified")
-	}
-
-	statsPort := 0
-	var err error = nil
-	if cfg.StatsPort != "" {
-		statsPort, err = strconv.Atoi(cfg.StatsPort)
+// Complete converts string representations of field and label selectors to their parsed equivalent, or
+// returns an error.
+func (o *RouterSelection) Complete() error {
+	if len(o.LabelSelector) > 0 {
+		s, err := labels.Parse(o.LabelSelector)
 		if err != nil {
-			return nil, errors.New("Invalid stats port")
+			return fmt.Errorf("label selector is not valid: %v", err)
+		}
+		o.Labels = s
+	} else {
+		o.Labels = labels.Everything()
+	}
+
+	if len(o.FieldSelector) > 0 {
+		s, err := fields.ParseSelector(o.FieldSelector)
+		if err != nil {
+			return fmt.Errorf("field selector is not valid: %v", err)
+		}
+		o.Fields = s
+	} else {
+		o.Fields = fields.Everything()
+	}
+
+	if len(o.ProjectLabelSelector) > 0 {
+		if len(o.Namespace) > 0 {
+			return fmt.Errorf("only one of --project-labels and --namespace may be used")
+		}
+		if len(o.NamespaceLabelSelector) > 0 {
+			return fmt.Errorf("only one of --namespace-labels and --project-labels may be used")
+		}
+
+		if o.ProjectLabelSelector == "*" {
+			o.ProjectLabels = labels.Everything()
+		} else {
+			s, err := labels.Parse(o.ProjectLabelSelector)
+			if err != nil {
+				return fmt.Errorf("--project-labels selector is not valid: %v", err)
+			}
+			o.ProjectLabels = s
 		}
 	}
 
-	templatePluginCfg := templateplugin.TemplatePluginConfig{
-		TemplatePath:       cfg.TemplateFile,
-		ReloadScriptPath:   cfg.ReloadScript,
-		DefaultCertificate: cfg.DefaultCertificate,
-		StatsPort:          statsPort,
-		StatsUsername:      cfg.StatsUsername,
-		StatsPassword:      cfg.StatsPassword,
-		PeerService:        cfg.RouterService,
+	if len(o.NamespaceLabelSelector) > 0 {
+		if len(o.Namespace) > 0 {
+			return fmt.Errorf("only one of --namespace-labels and --namespace may be used")
+		}
+		s, err := labels.Parse(o.NamespaceLabelSelector)
+		if err != nil {
+			return fmt.Errorf("--namespace-labels selector is not valid: %v", err)
+		}
+		o.NamespaceLabels = s
 	}
-	return templateplugin.NewTemplatePlugin(templatePluginCfg)
+	return nil
 }
 
-// start launches the load balancer.
-func start(cfg *clientcmd.Config, plugin router.Plugin) error {
-	osClient, kubeClient, err := cfg.Clients()
-	if err != nil {
-		return err
+// NewFactory initializes a factory that will watch the requested routes
+func (o *RouterSelection) NewFactory(oc oclient.Interface, kc kclient.Interface) *controllerfactory.RouterControllerFactory {
+	factory := controllerfactory.NewDefaultRouterControllerFactory(oc, kc)
+	factory.Labels = o.Labels
+	factory.Fields = o.Fields
+	factory.Namespace = o.Namespace
+	factory.ResyncInterval = o.ResyncInterval
+	switch {
+	case o.NamespaceLabels != nil:
+		glog.Infof("Router is only using routes in namespaces matching %s", o.NamespaceLabels)
+		factory.Namespaces = namespaceNames{kc.Namespaces(), o.NamespaceLabels}
+	case o.ProjectLabels != nil:
+		glog.Infof("Router is only using routes in projects matching %s", o.ProjectLabels)
+		factory.Namespaces = projectNames{oc.Projects(), o.ProjectLabels}
+	case len(factory.Namespace) > 0:
+		glog.Infof("Router is only using resources in namespace %s", factory.Namespace)
+	default:
+		glog.Infof("Router is including routes in all namespaces")
 	}
+	return factory
+}
 
-	proc.StartReaper()
+// projectNames returns the names of projects matching the label selector
+type projectNames struct {
+	client   oclient.ProjectInterface
+	selector labels.Selector
+}
 
-	factory := controllerfactory.RouterControllerFactory{KClient: kubeClient, OSClient: osClient}
-	controller := factory.Create(plugin)
-	controller.Run()
+func (n projectNames) NamespaceNames() (util.StringSet, error) {
+	all, err := n.client.List(n.selector, fields.Everything())
+	if err != nil {
+		return nil, err
+	}
+	names := make(util.StringSet, len(all.Items))
+	for i := range all.Items {
+		names.Insert(all.Items[i].Name)
+	}
+	return names, nil
+}
 
-	select {}
+// namespaceNames returns the names of namespaces matching the label selector
+type namespaceNames struct {
+	client   kclient.NamespaceInterface
+	selector labels.Selector
+}
 
-	return nil
+func (n namespaceNames) NamespaceNames() (util.StringSet, error) {
+	all, err := n.client.List(n.selector, fields.Everything())
+	if err != nil {
+		return nil, err
+	}
+	names := make(util.StringSet, len(all.Items))
+	for i := range all.Items {
+		names.Insert(all.Items[i].Name)
+	}
+	return names, nil
 }

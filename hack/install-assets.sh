@@ -41,7 +41,7 @@ if ! which bower > /dev/null 2>&1 ; then
     cmd "sudo npm install -g bower"
   fi
 fi
- 
+
 # Install grunt if needed
 if ! which grunt > /dev/null 2>&1 ; then
   if [[ "${TRAVIS-}" == "true" ]]; then
@@ -54,11 +54,11 @@ fi
 pushd ${OS_ROOT}/assets > /dev/null
   cmd "npm install --unsafe-perm"
   cmd "node_modules/protractor/bin/webdriver-manager update"
-  
+
   # In case upstream components change things without incrementing versions
   cmd "bower cache clean --allow-root"
   cmd "bower install --allow-root"
-  
+
   cmd "rm -rf openshift-jvm"
   cmd "mkdir -p openshift-jvm"
   unset CURL_CA_BUNDLE

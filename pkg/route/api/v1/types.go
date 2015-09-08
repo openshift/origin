@@ -1,7 +1,7 @@
 package v1
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api/v1"
+	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
@@ -30,9 +30,8 @@ type RouteSpec struct {
 	//Ports []RoutePort `json:"ports,omitempty"`
 
 	// Host is an alias/DNS that points to the service. Optional
-	// Can be host or host:port
-	// host and port are combined to follow the net/url URL struct
-	Host string `json:"host" description:"optional: alias/dns that points to the service, can be host or host:port"`
+	// Must follow DNS952 subdomain conventions.
+	Host string `json:"host" description:"optional: alias/dns that points to the service, must follow DNS 952 subdomain conventions"`
 	// Path that the router watches for, to route traffic for to the service. Optional
 	Path string `json:"path,omitempty" description:"optional: path that the router watches to route traffic to the service"`
 

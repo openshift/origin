@@ -1,9 +1,15 @@
 package api
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+)
+
+const (
+	FeatureBuilder    = `Builder`
+	FeatureS2I        = `S2I Builder`
+	FeatureWebConsole = `Web Console`
 )
 
 var (
@@ -13,6 +19,9 @@ var (
 	DefaultOpenShiftAPILevels  = []string{"v1beta3", "v1"}
 	DeadKubernetesAPILevels    = []string{"v1beta1", "v1beta2"}
 	DeadOpenShiftAPILevels     = []string{"v1beta1"}
+
+	KnownOpenShiftFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
+	AtomicDisabledFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
 )
 
 type ExtendedArguments map[string][]string
@@ -24,6 +33,10 @@ type NodeConfig struct {
 	// NodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname.
 	// If you're describing a set of static nodes to the master, this value must match one of the values in the list
 	NodeName string
+
+	// Node may have multiple IPs, specify the IP to use for pod traffic routing
+	// If not specified, network parse/lookup on the nodeName is performed and the first non-loopback address is used
+	NodeIP string
 
 	// ServingInfo describes how to start serving
 	ServingInfo ServingInfo
@@ -37,8 +50,8 @@ type NodeConfig struct {
 	// DNSIP holds the IP
 	DNSIP string
 
-	// NetworkPluginName is a string specifying the networking plugin
-	NetworkPluginName string
+	// NetworkConfig provides network options for the node
+	NetworkConfig NodeNetworkConfig
 
 	// VolumeDir is the directory that volumes will be stored under
 	VolumeDirectory string
@@ -62,6 +75,14 @@ type NodeConfig struct {
 	KubeletArguments ExtendedArguments
 }
 
+// NodeNetworkConfig provides network options for the node
+type NodeNetworkConfig struct {
+	// NetworkPluginName is a string specifying the networking plugin
+	NetworkPluginName string
+	// Maximum transmission unit for the network packets
+	MTU uint
+}
+
 // DockerConfig holds Docker related configuration options.
 type DockerConfig struct {
 	// ExecHandlerName is the name of the handler to use for executing
@@ -82,6 +103,8 @@ const (
 	// ControllersAll indicates all controllers should be started.
 	ControllersAll = "*"
 )
+
+type FeatureList []string
 
 type MasterConfig struct {
 	api.TypeMeta
@@ -105,7 +128,17 @@ type MasterConfig struct {
 	Controllers string
 	// PauseControllers instructs the master to not automatically start controllers, but instead
 	// to wait until a notification to the server is received before launching them.
+	// TODO: will be disabled in function for 1.1.
 	PauseControllers bool
+	// ControllerLeaseTTL enables controller election, instructing the master to attempt to acquire
+	// a lease before controllers start and renewing it within a number of seconds defined by this value.
+	// Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or
+	// omitted) and controller election can be disabled with -1.
+	ControllerLeaseTTL int
+	// TODO: the next field added to controllers must be added to a new controllers struct
+
+	// Allow to disable OpenShift components
+	DisabledFeatures FeatureList
 
 	// EtcdStorageConfig contains information about how API resources are
 	// stored in Etcd. These values are only relevant when etcd is the
@@ -148,7 +181,7 @@ type MasterConfig struct {
 	RoutingConfig RoutingConfig
 
 	// NetworkConfig to be passed to the compiled in network plugin
-	NetworkConfig NetworkConfig
+	NetworkConfig MasterNetworkConfig
 }
 
 type ProjectConfig struct {
@@ -205,11 +238,12 @@ type PolicyConfig struct {
 	OpenShiftInfrastructureNamespace string
 }
 
-// NetworkConfig to be passed to the compiled in network plugin
-type NetworkConfig struct {
+// MasterNetworkConfig to be passed to the compiled in network plugin
+type MasterNetworkConfig struct {
 	NetworkPluginName  string
 	ClusterNetworkCIDR string
 	HostSubnetLength   uint
+	ServiceNetworkCIDR string
 }
 
 type ImageConfig struct {
@@ -268,6 +302,9 @@ type EtcdStorageConfig struct {
 type ServingInfo struct {
 	// BindAddress is the ip:port to serve on
 	BindAddress string
+	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",
+	// "tcp4", and "tcp6"
+	BindNetwork string
 	// ServerCert is the TLS cert info for serving secure traffic
 	ServerCert CertInfo
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
@@ -293,6 +330,9 @@ type MasterClients struct {
 type DNSConfig struct {
 	// BindAddress is the ip:port to serve DNS on
 	BindAddress string
+	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",
+	// "tcp4", and "tcp6"
+	BindNetwork string
 }
 
 type AssetConfig struct {
@@ -307,6 +347,22 @@ type AssetConfig struct {
 
 	// MasterPublicURL is how the web console can access the OpenShift api server
 	MasterPublicURL string
+
+	// ExtensionScripts are file paths on the asset server files to load as scripts when the Web
+	// Console loads
+	ExtensionScripts []string
+
+	// ExtensionStylesheets are file paths on the asset server files to load as stylesheets when
+	// the Web Console loads
+	ExtensionStylesheets []string
+
+	// Extensions are files to serve from the asset server filesystem under a subcontext
+	Extensions []AssetExtensionsConfig
+
+	// ExtensionDevelopment when true tells the asset server to reload extension scripts and
+	// stylesheets for every request rather than only at startup. It lets you develop extensions
+	// without having to restart the server for every change.
+	ExtensionDevelopment bool
 }
 
 type OAuthConfig struct {
@@ -329,12 +385,25 @@ type OAuthConfig struct {
 	SessionConfig *SessionConfig
 
 	TokenConfig TokenConfig
+
+	// Templates allow you to customize pages like the login page.
+	Templates *OAuthTemplates
+}
+
+type OAuthTemplates struct {
+	// Login is a path to a file containing a go template used to render the login page.
+	// If unspecified, the default login page is used.
+	Login string
 }
 
 type ServiceAccountConfig struct {
 	// ManagedNames is a list of service account names that will be auto-created in every namespace.
 	// If no names are specified, the ServiceAccountsController will not be started.
 	ManagedNames []string
+
+	// LimitSecretReferences controls whether or not to allow a service account to reference any secret in a namespace
+	// without explicitly referencing them
+	LimitSecretReferences bool
 
 	// PrivateKeyFile is a file containing a PEM-encoded private RSA key, used to sign service account tokens.
 	// If no private key is specified, the service account TokensController will not be started.
@@ -436,11 +505,11 @@ type LDAPPasswordIdentityProvider struct {
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
 	CA string
-	// Attributes maps LDAP attributes to identities
-	Attributes LDAPAttributes
+	// LDAPEntryAttributeMapping maps LDAP attributes to identities
+	LDAPEntryAttributeMapping LDAPAttributeMapping
 }
 
-type LDAPAttributes struct {
+type LDAPAttributeMapping struct {
 	// ID is the list of attributes whose values should be used as the user ID. Required.
 	// LDAP standard identity attribute is "dn"
 	ID []string
@@ -458,6 +527,22 @@ type LDAPAttributes struct {
 
 type RequestHeaderIdentityProvider struct {
 	api.TypeMeta
+
+	// LoginURL is a URL to redirect unauthenticated /authorize requests to
+	// Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here
+	// ${url} is replaced with the current URL, escaped to be safe in a query parameter
+	//   https://www.example.com/sso-login?then=${url}
+	// ${query} is replaced with the current query string
+	//   https://www.example.com/auth-proxy/oauth/authorize?${query}
+	LoginURL string
+
+	// ChallengeURL is a URL to redirect unauthenticated /authorize requests to
+	// Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here
+	// ${url} is replaced with the current URL, escaped to be safe in a query parameter
+	//   https://www.example.com/sso-login?then=${url}
+	// ${query} is replaced with the current query string
+	//   https://www.example.com/auth-proxy/oauth/authorize?${query}
+	ChallengeURL string
 
 	// ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.
 	ClientCA string
@@ -573,7 +658,8 @@ type KubernetesMasterConfig struct {
 	APILevels []string
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string
-	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer.
+	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer,
+	// or if set to -1, indicates this is part of a cluster.
 	MasterCount int
 	// ServicesSubnet is the subnet to use for assigning service IPs
 	ServicesSubnet string
@@ -612,4 +698,17 @@ type PodManifestConfig struct {
 	// FileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data
 	// The interval needs to be a positive value
 	FileCheckIntervalSeconds int64
+}
+
+type AssetExtensionsConfig struct {
+	// Name is the path under /<context>/extensions/ to serve files from SourceDirectory
+	Name string
+	// SourceDirectory is a directory on the asset server to serve files under Name in the Web
+	// Console. It may have nested folders.
+	SourceDirectory string
+	// HTML5Mode determines whether to redirect to the root index.html when a file is not found.
+	// This is needed for apps that use the HTML5 history API like AngularJS apps with HTML5
+	// mode enabled. If HTML5Mode is true, also rewrite the base element in index.html with the
+	// Web Console's context root. Defaults to false.
+	HTML5Mode bool
 }

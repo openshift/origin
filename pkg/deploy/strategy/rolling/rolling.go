@@ -6,13 +6,13 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/wait"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
@@ -20,7 +20,7 @@ import (
 )
 
 // TODO: This should perhaps be made public upstream. See:
-// https://github.com/GoogleCloudPlatform/kubernetes/issues/7851
+// https://github.com/kubernetes/kubernetes/issues/7851
 const sourceIdAnnotation = "kubectl.kubernetes.io/update-source-id"
 
 // RollingDeploymentStrategy is a Strategy which implements rolling
@@ -35,8 +35,8 @@ const sourceIdAnnotation = "kubectl.kubernetes.io/update-source-id"
 // These caveats can be resolved with future upstream refactorings to
 // RollingUpdater[1][2].
 //
-// [1] https://github.com/GoogleCloudPlatform/kubernetes/pull/7183
-// [2] https://github.com/GoogleCloudPlatform/kubernetes/issues/7851
+// [1] https://github.com/kubernetes/kubernetes/pull/7183
+// [2] https://github.com/kubernetes/kubernetes/issues/7851
 type RollingDeploymentStrategy struct {
 	// initialStrategy is used when there are no prior deployments.
 	initialStrategy acceptingDeploymentStrategy
@@ -56,7 +56,7 @@ type RollingDeploymentStrategy struct {
 // acceptingDeploymentStrategy is a DeploymentStrategy which accepts an
 // injected UpdateAcceptor as part of the deploy function. This is a hack to
 // support using the Recreate strategy for initial deployments and should be
-// removed when https://github.com/GoogleCloudPlatform/kubernetes/pull/7183 is
+// removed when https://github.com/kubernetes/kubernetes/pull/7183 is
 // fixed.
 type acceptingDeploymentStrategy interface {
 	DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error
@@ -174,10 +174,10 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// unless it already exists on the deployment.
 	//
 	// Related upstream issue:
-	// https://github.com/GoogleCloudPlatform/kubernetes/pull/7183
+	// https://github.com/kubernetes/kubernetes/pull/7183
 	to, err = s.client.GetReplicationController(to.Namespace, to.Name)
 	if err != nil {
-		return fmt.Errorf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(to))
+		return fmt.Errorf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(to), err)
 	}
 	if _, hasSourceId := to.Annotations[sourceIdAnnotation]; !hasSourceId {
 		to.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", from.Name, from.ObjectMeta.UID)
@@ -194,7 +194,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// on the RC. For now, fake it out by just setting replicas to 1.
 	//
 	// Related upstream issue:
-	// https://github.com/GoogleCloudPlatform/kubernetes/pull/7183
+	// https://github.com/kubernetes/kubernetes/pull/7183
 	to.Spec.Replicas = 1
 
 	// Perform a rolling update.

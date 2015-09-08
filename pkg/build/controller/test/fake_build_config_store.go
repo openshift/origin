@@ -1,8 +1,8 @@
 package test
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 type FakeBuildConfigStore struct {

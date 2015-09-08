@@ -3,11 +3,11 @@ package controller
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	ktestclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/project/api"
+	kapi "k8s.io/kubernetes/pkg/api"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 func TestSyncNamespaceThatIsTerminating(t *testing.T) {
@@ -37,27 +37,28 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 	}
 
 	// TODO: we will expect a finalize namespace call after rebase
-	expectedActionSet := util.NewStringSet(
-		"list-buildconfig",
-		"list-policies",
-		"list-imagestreams",
-		"list-policyBindings",
-		"list-roleBinding",
-		"list-role",
-		"list-routes",
-		"list-templates",
-		"list-builds",
-		"finalize-namespace",
-		"list-deploymentconfig",
-	)
-	actionSet := util.NewStringSet()
-	for i := range mockKubeClient.Actions {
-		actionSet.Insert(mockKubeClient.Actions[i].Action)
+	expectedActionSet := []ktestclient.Action{
+		ktestclient.NewListAction("buildconfigs", "", nil, nil),
+		ktestclient.NewListAction("policies", "", nil, nil),
+		ktestclient.NewListAction("imagestreams", "", nil, nil),
+		ktestclient.NewListAction("policybindings", "", nil, nil),
+		ktestclient.NewListAction("rolebindings", "", nil, nil),
+		ktestclient.NewListAction("roles", "", nil, nil),
+		ktestclient.NewListAction("routes", "", nil, nil),
+		ktestclient.NewListAction("templates", "", nil, nil),
+		ktestclient.NewListAction("builds", "", nil, nil),
+		ktestclient.NewListAction("namespace", "", nil, nil),
+		ktestclient.NewListAction("deploymentconfig", "", nil, nil),
 	}
-	for i := range mockOriginClient.Actions {
-		actionSet.Insert(mockOriginClient.Actions[i].Action)
+	actionSet := []ktestclient.Action{}
+	for i := range mockKubeClient.Actions() {
+		actionSet = append(actionSet, mockKubeClient.Actions()[i])
 	}
-	if !(actionSet.HasAll(expectedActionSet.List()...) && (len(actionSet) == len(expectedActionSet))) {
+	for i := range mockOriginClient.Actions() {
+		actionSet = append(actionSet, mockOriginClient.Actions()[i])
+	}
+
+	if len(actionSet) != len(expectedActionSet) {
 		t.Errorf("Expected actions: %v, but got: %v", expectedActionSet, actionSet)
 	}
 }
@@ -85,13 +86,14 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error when handling namespace %v", err)
 	}
-	actionSet := util.NewStringSet()
-	for i := range mockKubeClient.Actions {
-		actionSet.Insert(mockKubeClient.Actions[i].Action)
+	actionSet := []ktestclient.Action{}
+	for i := range mockKubeClient.Actions() {
+		actionSet = append(actionSet, mockKubeClient.Actions()[i])
 	}
-	for i := range mockOriginClient.Actions {
-		actionSet.Insert(mockOriginClient.Actions[i].Action)
+	for i := range mockOriginClient.Actions() {
+		actionSet = append(actionSet, mockOriginClient.Actions()[i])
 	}
+
 	if len(actionSet) != 0 {
 		t.Errorf("Expected no action from controller, but got: %v", actionSet)
 	}

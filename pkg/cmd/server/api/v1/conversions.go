@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/conversion"
 
 	newer "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -43,6 +43,15 @@ func init() {
 				obj.PodEvictionTimeout = "5m"
 			}
 		},
+		func(obj *NodeConfig) {
+			// Defaults/migrations for NetworkConfig
+			if len(obj.NetworkConfig.NetworkPluginName) == 0 {
+				obj.NetworkConfig.NetworkPluginName = obj.DeprecatedNetworkPluginName
+			}
+			if obj.NetworkConfig.MTU == 0 {
+				obj.NetworkConfig.MTU = 1450
+			}
+		},
 		func(obj *EtcdStorageConfig) {
 			if len(obj.KubernetesStorageVersion) == 0 {
 				obj.KubernetesStorageVersion = "v1"
@@ -62,6 +71,16 @@ func init() {
 				obj.ExecHandlerName = DockerExecHandlerNative
 			}
 		},
+		func(obj *ServingInfo) {
+			if len(obj.BindNetwork) == 0 {
+				obj.BindNetwork = "tcp4"
+			}
+		},
+		func(obj *DNSConfig) {
+			if len(obj.BindNetwork) == 0 {
+				obj.BindNetwork = "tcp4"
+			}
+		},
 		func(obj *SecurityAllocator) {
 			if len(obj.UIDAllocatorRange) == 0 {
 				obj.UIDAllocatorRange = "1000000000-1999999999/10000"
@@ -79,8 +98,15 @@ func init() {
 		panic(err)
 	}
 	err = newer.Scheme.AddConversionFuncs(
+		func(in *NodeConfig, out *newer.NodeConfig, s conversion.Scope) error {
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+		},
+		func(in *newer.NodeConfig, out *NodeConfig, s conversion.Scope) error {
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+		},
 		func(in *ServingInfo, out *newer.ServingInfo, s conversion.Scope) error {
 			out.BindAddress = in.BindAddress
+			out.BindNetwork = in.BindNetwork
 			out.ClientCA = in.ClientCA
 			out.ServerCert.CertFile = in.CertFile
 			out.ServerCert.KeyFile = in.KeyFile
@@ -88,6 +114,7 @@ func init() {
 		},
 		func(in *newer.ServingInfo, out *ServingInfo, s conversion.Scope) error {
 			out.BindAddress = in.BindAddress
+			out.BindNetwork = in.BindNetwork
 			out.ClientCA = in.ClientCA
 			out.CertFile = in.ServerCert.CertFile
 			out.KeyFile = in.ServerCert.KeyFile

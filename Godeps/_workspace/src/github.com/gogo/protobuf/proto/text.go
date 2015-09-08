@@ -46,7 +46,6 @@ import (
 	"io"
 	"log"
 	"math"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -253,6 +252,84 @@ func writeStruct(w *textWriter, sv reflect.Value) error {
 			}
 			continue
 		}
+		if fv.Kind() == reflect.Map {
+			// Map fields are rendered as a repeated struct with key/value fields.
+			keys := fv.MapKeys()
+			sort.Sort(mapKeys(keys))
+			for _, key := range keys {
+				val := fv.MapIndex(key)
+				if err := writeName(w, props); err != nil {
+					return err
+				}
+				if !w.compact {
+					if err := w.WriteByte(' '); err != nil {
+						return err
+					}
+				}
+				// open struct
+				if err := w.WriteByte('<'); err != nil {
+					return err
+				}
+				if !w.compact {
+					if err := w.WriteByte('\n'); err != nil {
+						return err
+					}
+				}
+				w.indent()
+				// key
+				if _, err := w.WriteString("key:"); err != nil {
+					return err
+				}
+				if !w.compact {
+					if err := w.WriteByte(' '); err != nil {
+						return err
+					}
+				}
+				if err := writeAny(w, key, props.mkeyprop); err != nil {
+					return err
+				}
+				if err := w.WriteByte('\n'); err != nil {
+					return err
+				}
+				// nil values aren't legal, but we can avoid panicking because of them.
+				if val.Kind() != reflect.Ptr || !val.IsNil() {
+					// value
+					if _, err := w.WriteString("value:"); err != nil {
+						return err
+					}
+					if !w.compact {
+						if err := w.WriteByte(' '); err != nil {
+							return err
+						}
+					}
+					if err := writeAny(w, val, props.mvalprop); err != nil {
+						return err
+					}
+					if err := w.WriteByte('\n'); err != nil {
+						return err
+					}
+				}
+				// close struct
+				w.unindent()
+				if err := w.WriteByte('>'); err != nil {
+					return err
+				}
+				if err := w.WriteByte('\n'); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+		if props.proto3 && fv.Kind() == reflect.Slice && fv.Len() == 0 {
+			// empty bytes field
+			continue
+		}
+		if props.proto3 && fv.Kind() != reflect.Ptr && fv.Kind() != reflect.Slice {
+			// proto3 non-repeated scalar field; skip if zero value
+			if isProto3Zero(fv) {
+				continue
+			}
+		}
 
 		if err := writeName(w, props); err != nil {
 			return err
@@ -354,7 +431,7 @@ func writeAny(w *textWriter, v reflect.Value, props *Properties) error {
 	switch v.Kind() {
 	case reflect.Slice:
 		// Should only be a []byte; repeated fields are handled in writeStruct.
-		if err := writeString(w, string(v.Interface().([]byte))); err != nil {
+		if err := writeString(w, string(v.Bytes())); err != nil {
 			return err
 		}
 	case reflect.String:
@@ -482,7 +559,7 @@ func writeMessageSet(w *textWriter, ms *MessageSet) error {
 	return nil
 }
 
-func writeUnknownStruct(w *textWriter, data []byte) (err error) {
+func writeUnknownStruct(w *textWriter, data []byte) error {
 	if !w.compact {
 		if _, err := fmt.Fprintf(w, "/* %d unknown bytes */\n", len(data)); err != nil {
 			return err
@@ -542,7 +619,7 @@ func writeUnknownStruct(w *textWriter, data []byte) (err error) {
 		if err != nil {
 			return err
 		}
-		if err = w.WriteByte('\n'); err != nil {
+		if err := w.WriteByte('\n'); err != nil {
 			return err
 		}
 	}
@@ -607,10 +684,7 @@ func writeExtensions(w *textWriter, pv reflect.Value) error {
 
 		pb, err := GetExtension(ep, desc)
 		if err != nil {
-			if _, err := fmt.Fprintln(os.Stderr, "proto: failed getting extension: ", err); err != nil {
-				return err
-			}
-			continue
+			return fmt.Errorf("failed getting extension: %v", err)
 		}
 
 		// Repeated extensions will appear as a slice.

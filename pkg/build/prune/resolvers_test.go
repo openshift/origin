@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -144,25 +144,24 @@ func TestPerBuildConfigResolver(t *testing.T) {
 			if err != nil {
 				t.Errorf("Unexpected err %v", err)
 			}
-			completedBuilds, failedBuilds := []*buildapi.Build{}, []*buildapi.Build{}
+			var completeBuilds, failedBuilds []*buildapi.Build
 			for _, build := range buildItems {
 				if buildCompleteStatusFilterSet.Has(string(build.Status.Phase)) {
-					completedBuilds = append(completedBuilds, build)
+					completeBuilds = append(completeBuilds, build)
 				} else if buildFailedStatusFilterSet.Has(string(build.Status.Phase)) {
 					failedBuilds = append(failedBuilds, build)
 				}
 			}
-			sort.Sort(sortableBuilds(completedBuilds))
-			sort.Sort(sortableBuilds(failedBuilds))
-			purgeCompleted := []*buildapi.Build{}
-			purgeFailed := []*buildapi.Build{}
-			if keep >= 0 && keep < len(completedBuilds) {
-				purgeCompleted = completedBuilds[keep:]
+			sort.Sort(sort.Reverse(buildapi.BuildPtrSliceByCreationTimestamp(completeBuilds)))
+			sort.Sort(sort.Reverse(buildapi.BuildPtrSliceByCreationTimestamp(failedBuilds)))
+			var purgeComplete, purgeFailed []*buildapi.Build
+			if keep >= 0 && keep < len(completeBuilds) {
+				purgeComplete = completeBuilds[keep:]
 			}
 			if keep >= 0 && keep < len(failedBuilds) {
 				purgeFailed = failedBuilds[keep:]
 			}
-			for _, build := range purgeCompleted {
+			for _, build := range purgeComplete {
 				expectedNames.Insert(build.Name)
 			}
 			for _, build := range purgeFailed {

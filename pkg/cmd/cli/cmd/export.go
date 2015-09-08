@@ -7,13 +7,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	utilerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubectl"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -41,10 +41,10 @@ to generate the API structure for a template to which you can add parameters and
   %[1]s export svc,dc -l name=test
 
   // export all services to a template
-  %[1]s export service --all --as-template=test
+  %[1]s export service --as-template=test
 
   // export to JSON
-  %[1]s export service --all -o json
+  %[1]s export service -o json
 
   // convert a file on disk to the latest API version (in YAML, the default)
   %[1]s export -f a_v1beta3_service.json --output-version=v1 --exact`
@@ -70,15 +70,18 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 	cmd.Flags().Bool("exact", false, "Preserve fields that may be cluster specific, such as service portalIPs or generated names")
 	cmd.Flags().Bool("raw", false, "If true, do not alter the resources in any way after they are loaded.")
 	cmd.Flags().StringP("selector", "l", "", "Selector (label query) to filter on")
-	cmd.Flags().Bool("all", false, "Select all resources in the namespace of the specified resource types")
+	cmd.Flags().Bool("all-namespaces", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 	cmd.Flags().VarP(&filenames, "filename", "f", "Filename, directory, or URL to file to use to edit the resource.")
+
+	cmd.Flags().Bool("all", true, "Select all resources in the namespace of the specified resource types")
+	cmd.Flags().MarkDeprecated("all", "all is ignored because specifying a resource without a name selects all the instances of that resource")
 	cmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
 func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, filenames util.StringList) error {
 	selector := cmdutil.GetFlagString(cmd, "selector")
-	all := cmdutil.GetFlagBool(cmd, "all")
+	allNamespaces := cmdutil.GetFlagBool(cmd, "all-namespaces")
 	exact := cmdutil.GetFlagBool(cmd, "exact")
 	asTemplate := cmdutil.GetFlagString(cmd, "as-template")
 	raw := cmdutil.GetFlagBool(cmd, "raw")
@@ -99,10 +102,10 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 
 	mapper, typer := f.Object()
 	b := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
-		NamespaceParam(cmdNamespace).DefaultNamespace().
+		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
 		FilenameParam(explicit, filenames...).
 		SelectorParam(selector).
-		ResourceTypeOrNameArgs(all, args...).
+		ResourceTypeOrNameArgs(true, args...).
 		Flatten()
 
 	one := false

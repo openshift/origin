@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
 	"github.com/openshift/origin/pkg/cmd/server/api"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 var Codec = runtime.CodecFor(api.Scheme, "v1")

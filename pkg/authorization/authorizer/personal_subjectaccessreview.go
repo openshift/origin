@@ -2,7 +2,7 @@ package authorizer
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -11,11 +11,24 @@ import (
 )
 
 func IsPersonalAccessReview(a AuthorizationAttributes) (bool, error) {
-	req, ok := a.GetRequestAttributes().(*http.Request)
-	if !ok {
-		return false, errors.New("expected request, but did not get one")
-	}
+	switch extendedAttributes := a.GetRequestAttributes().(type) {
+	case *http.Request:
+		return isPersonalAccessReviewFromRequest(a, extendedAttributes)
 
+	case *authorizationapi.SubjectAccessReview:
+		return isPersonalAccessReviewFromSAR(extendedAttributes), nil
+
+	case *authorizationapi.LocalSubjectAccessReview:
+		return isPersonalAccessReviewFromLocalSAR(extendedAttributes), nil
+
+	default:
+		return false, fmt.Errorf("unexpected request attributes for checking personal access review: %v", extendedAttributes)
+
+	}
+}
+
+// isPersonalAccessReviewFromRequest this variant handles the case where we have an httpRequest
+func isPersonalAccessReviewFromRequest(a AuthorizationAttributes, req *http.Request) (bool, error) {
 	// TODO once we're integrated with the api installer, we should have direct access to the deserialized content
 	// for now, this only happens on subjectaccessreviews with a personal check, pay the double retrieve and decode cost
 	body, err := ioutil.ReadAll(req.Body)
@@ -24,14 +37,36 @@ func IsPersonalAccessReview(a AuthorizationAttributes) (bool, error) {
 	}
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
-	subjectAccessReview := &authorizationapi.SubjectAccessReview{}
-	if err := latest.Codec.DecodeInto(body, subjectAccessReview); err != nil {
+	obj, err := latest.Codec.Decode(body)
+	if err != nil {
 		return false, err
 	}
+	switch castObj := obj.(type) {
+	case *authorizationapi.SubjectAccessReview:
+		return isPersonalAccessReviewFromSAR(castObj), nil
 
-	if (len(subjectAccessReview.User) == 0) && (len(subjectAccessReview.Groups) == 0) {
-		return true, nil
+	case *authorizationapi.LocalSubjectAccessReview:
+		return isPersonalAccessReviewFromLocalSAR(castObj), nil
+
+	default:
+		return false, nil
+	}
+}
+
+// isPersonalAccessReviewFromSAR this variant handles the case where we have an SAR
+func isPersonalAccessReviewFromSAR(sar *authorizationapi.SubjectAccessReview) bool {
+	if len(sar.User) == 0 && len(sar.Groups) == 0 {
+		return true
 	}
 
-	return false, nil
+	return false
+}
+
+// isPersonalAccessReviewFromLocalSAR this variant handles the case where we have a local SAR
+func isPersonalAccessReviewFromLocalSAR(sar *authorizationapi.LocalSubjectAccessReview) bool {
+	if len(sar.User) == 0 && len(sar.Groups) == 0 {
+		return true
+	}
+
+	return false
 }

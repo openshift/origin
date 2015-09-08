@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "mysql-persistent",
     "creationTimestamp": null,
@@ -13,7 +13,7 @@
   "objects": [
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
         "creationTimestamp": null
@@ -41,7 +41,7 @@
     },
     {
       "kind": "PersistentVolumeClaim",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}"
       },
@@ -58,7 +58,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
         "creationTimestamp": null
@@ -160,29 +160,34 @@
     {
       "name": "DATABASE_SERVICE_NAME",
       "description": "Database service name",
-      "value": "mysql"
+      "value": "mysql",
+      "required": true
     },
     {
       "name": "MYSQL_USER",
       "description": "Username for MySQL user that will be used for accessing the database",
       "generate": "expression",
-      "from": "user[A-Z0-9]{3}"
+      "from": "user[A-Z0-9]{3}",
+      "required": true
     },
     {
       "name": "MYSQL_PASSWORD",
       "description": "Password for the MySQL user",
       "generate": "expression",
-      "from": "[a-zA-Z0-9]{16}"
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
     },
     {
       "name": "MYSQL_DATABASE",
       "description": "Database name",
-      "value": "sampledb"
+      "value": "sampledb",
+      "required": true
     },
     {
       "name": "VOLUME_CAPACITY",
       "description": "Volume space available for data, e.g. 512Mi, 2Gi",
-      "value": "512Mi"
+      "value": "512Mi",
+      "required": true
     }
   ],
   "labels": {

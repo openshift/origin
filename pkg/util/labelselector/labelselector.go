@@ -23,8 +23,8 @@ package labelselector
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 )
 
 // constants definition for lexer token
@@ -232,7 +232,6 @@ func (p *Parser) parse() (map[string]string, error) {
 			return nil, fmt.Errorf("found '%s', expected: identifier or 'end of string'", lit)
 		}
 	}
-	return labelsMap, nil
 }
 
 func (p *Parser) parseLabel() (string, string, error) {

@@ -14,19 +14,17 @@
 
 // +build !windows,!plan9
 
-// InterruptHandler is a function that is called on receiving a
-// SIGTERM or SIGINT signal.
-
 package osutil
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 )
 
+// InterruptHandler is a function that is called on receiving a
+// SIGTERM or SIGINT signal.
 type InterruptHandler func()
 
 var (
@@ -59,7 +57,7 @@ func HandleInterrupts() {
 
 		interruptExitMu.Lock()
 
-		log.Printf("received %v signal, shutting down...", sig)
+		plog.Noticef("received %v signal, shutting down...", sig)
 
 		for _, h := range ihs {
 			h()

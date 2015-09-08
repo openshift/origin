@@ -20,4 +20,7 @@ VOLUME ["/opt/zookeeper/conf", "/opt/zookeeper/data", "/opt/zookeeper/log"]
 COPY config-and-run.sh ./bin/
 COPY zoo-template.cfg ./conf/
 
+# Fix the permissions when running in OpenShift
+RUN chmod -R a+rwx /opt/zookeeper/conf /opt/zookeeper/data /opt/zookeeper/log
+
 CMD ["/opt/zookeeper/bin/config-and-run.sh"]

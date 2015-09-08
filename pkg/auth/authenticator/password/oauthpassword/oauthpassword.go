@@ -3,11 +3,11 @@ package oauthpassword
 import (
 	"fmt"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"k8s.io/kubernetes/pkg/auth/user"
 )
 
 type Authenticator struct {

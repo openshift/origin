@@ -1,11 +1,10 @@
 package validation
 
 import (
-	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -168,6 +167,12 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 					},
 				},
 			},
+			Triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
+			},
 		},
 	}
 	if result := ValidateBuildConfig(buildConfig); len(result) > 0 {
@@ -213,30 +218,26 @@ func TestBuildConfigValidationFailureRequiredName(t *testing.T) {
 	}
 }
 
-func TestBuildConfigValidationFailureTooManyICT(t *testing.T) {
-	buildConfig := &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "foo"},
-		Spec: buildapi.BuildConfigSpec{
-			BuildSpec: buildapi.BuildSpec{
-				Source: buildapi.BuildSource{
-					Type: buildapi.BuildSourceGit,
-					Git: &buildapi.GitBuildSource{
-						URI: "http://github.com/my/repository",
-					},
-					ContextDir: "context",
-				},
-				Strategy: buildapi.BuildStrategy{
-					Type:           buildapi.DockerBuildStrategyType,
-					DockerStrategy: &buildapi.DockerBuildStrategy{},
-				},
-				Output: buildapi.BuildOutput{
-					To: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "repository/data",
-					},
+func TestBuildConfigImageChangeTriggers(t *testing.T) {
+	tests := []struct {
+		name        string
+		triggers    []buildapi.BuildTriggerPolicy
+		expectError bool
+		errorType   fielderrors.ValidationErrorType
+	}{
+		{
+			name: "valid default trigger",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
-			Triggers: []buildapi.BuildTriggerPolicy{
+			expectError: false,
+		},
+		{
+			name: "more than one default trigger",
+			triggers: []buildapi.BuildTriggerPolicy{
 				{
 					Type:        buildapi.ImageChangeBuildTriggerType,
 					ImageChange: &buildapi.ImageChangeTrigger{},
@@ -246,21 +247,224 @@ func TestBuildConfigValidationFailureTooManyICT(t *testing.T) {
 					ImageChange: &buildapi.ImageChangeTrigger{},
 				},
 			},
+			expectError: true,
+			errorType:   fielderrors.ValidationErrorTypeInvalid,
+		},
+		{
+			name: "missing image change struct",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+				},
+			},
+			expectError: true,
+			errorType:   fielderrors.ValidationErrorTypeRequired,
+		},
+		{
+			name: "only one default image change trigger",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "myimage:tag",
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid reference kind for trigger",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "myimage:tag",
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorType:   fielderrors.ValidationErrorTypeInvalid,
+		},
+		{
+			name: "empty reference kind for trigger",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Name: "myimage:tag",
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorType:   fielderrors.ValidationErrorTypeInvalid,
+		},
+		{
+			name: "duplicate imagestreamtag references",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "myimage:tag",
+						},
+					},
+				},
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "myimage:tag",
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorType:   fielderrors.ValidationErrorTypeInvalid,
+		},
+		{
+			name: "duplicate imagestreamtag - same as strategy ref",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type:        buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{},
+				},
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamTag",
+							Name: "builderimage:latest",
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorType:   fielderrors.ValidationErrorTypeInvalid,
+		},
+		{
+			name: "imagestreamtag references with same name, different ns",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamTag",
+							Name:      "myimage:tag",
+							Namespace: "ns1",
+						},
+					},
+				},
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamTag",
+							Name:      "myimage:tag",
+							Namespace: "ns2",
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "imagestreamtag references with same name, same ns",
+			triggers: []buildapi.BuildTriggerPolicy{
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamTag",
+							Name:      "myimage:tag",
+							Namespace: "ns",
+						},
+					},
+				},
+				{
+					Type: buildapi.ImageChangeBuildTriggerType,
+					ImageChange: &buildapi.ImageChangeTrigger{
+						From: &kapi.ObjectReference{
+							Kind:      "ImageStreamTag",
+							Name:      "myimage:tag",
+							Namespace: "ns",
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorType:   fielderrors.ValidationErrorTypeInvalid,
 		},
 	}
-	errors := ValidateBuildConfig(buildConfig)
-	if len(errors) != 1 {
-		t.Fatalf("Unexpected validation errors %v", errors)
-	}
-	err := errors[0].(*fielderrors.ValidationError)
-	if err.Type != fielderrors.ValidationErrorTypeInvalid {
-		t.Errorf("Unexpected error type, expected %s, got %s", fielderrors.ValidationErrorTypeInvalid, err.Type)
-	}
-	if err.Field != "triggers" {
-		t.Errorf("Unexpected field name expected triggers, got %s", err.Field)
-	}
-	if !strings.Contains(err.Detail, "only one ImageChange trigger is allowed") {
-		t.Errorf("Unexpected error details: %s", err.Detail)
+
+	for _, tc := range tests {
+		buildConfig := &buildapi.BuildConfig{
+			ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "foo"},
+			Spec: buildapi.BuildConfigSpec{
+				BuildSpec: buildapi.BuildSpec{
+					Source: buildapi.BuildSource{
+						Type: buildapi.BuildSourceGit,
+						Git: &buildapi.GitBuildSource{
+							URI: "http://github.com/my/repository",
+						},
+						ContextDir: "context",
+					},
+					Strategy: buildapi.BuildStrategy{
+						Type: buildapi.SourceBuildStrategyType,
+						SourceStrategy: &buildapi.SourceBuildStrategy{
+							From: kapi.ObjectReference{
+								Kind: "ImageStreamTag",
+								Name: "builderimage:latest",
+							},
+						},
+					},
+					Output: buildapi.BuildOutput{
+						To: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "repository/data",
+						},
+					},
+				},
+				Triggers: tc.triggers,
+			},
+		}
+		errors := ValidateBuildConfig(buildConfig)
+		// Check whether an error was returned
+		if hasError := len(errors) > 0; hasError != tc.expectError {
+			t.Errorf("%s: did not get expected result: %#v", tc.name, errors)
+		}
+		// Check whether it's the expected error type
+		if len(errors) > 0 && tc.expectError && tc.errorType != "" {
+			verr, ok := errors[0].(*fielderrors.ValidationError)
+			if !ok {
+				t.Errorf("%s: unexpected error: %#v. Expected ValidationError of type: %s", tc.name, errors[0], verr.Type)
+				continue
+			}
+			if verr.Type != tc.errorType {
+				t.Errorf("%s: unexpected error type. Expected: %s. Got: %s", tc.name, tc.errorType, verr.Type)
+			}
+		}
 	}
 }
 
@@ -790,11 +994,10 @@ func TestValidateTrigger(t *testing.T) {
 			trigger:  buildapi.BuildTriggerPolicy{},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("type")},
 		},
-		"trigger with unknown type": {
+		"trigger with unknown type is valid, but ignored": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: "UnknownTriggerType",
 			},
-			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("type", "", "")},
 		},
 		"GitHub type with no github webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GitHubWebHookBuildTriggerType},

@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/url"
 
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
 	"github.com/spf13/cobra"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/gitserver"
 	"github.com/openshift/origin/pkg/gitserver/autobuild"
@@ -16,7 +16,7 @@ const longCommandDesc = `
 Start a Git server
 
 This command launches a Git HTTP/HTTPS server that supports push and pull, mirroring,
-and automatic creation of OpenShift applications on push.
+and automatic creation of applications on push.
 
 %[1]s
 `

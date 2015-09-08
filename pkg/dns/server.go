@@ -1,7 +1,7 @@
 package dns
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client"
 
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/prometheus/client_golang/prometheus"
@@ -33,7 +33,7 @@ func ListenAndServe(config *server.Config, client *client.Client, etcdclient *et
 		}))
 	}
 
-	server.Metrics()
+	server.RegisterMetrics("", "skydns")
 	s := server.New(resolvers, config)
 	defer close(stop)
 	return s.Run()

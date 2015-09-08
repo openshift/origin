@@ -1,6 +1,8 @@
 package testclient
 
 import (
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
@@ -11,11 +13,19 @@ type FakeClusterNetwork struct {
 }
 
 func (c *FakeClusterNetwork) Get(name string) (*sdnapi.ClusterNetwork, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-network"}, &sdnapi.ClusterNetwork{})
+	obj, err := c.Fake.Invokes(ktestclient.NewRootGetAction("clusternetworks", name), &sdnapi.ClusterNetwork{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*sdnapi.ClusterNetwork), err
 }
 
-func (c *FakeClusterNetwork) Create(sdn *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-network"}, &sdnapi.ClusterNetwork{})
+func (c *FakeClusterNetwork) Create(inObj *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootCreateAction("clusternetworks", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*sdnapi.ClusterNetwork), err
 }

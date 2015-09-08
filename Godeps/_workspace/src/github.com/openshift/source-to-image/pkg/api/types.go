@@ -1,7 +1,12 @@
 package api
 
-import docker "github.com/fsouza/go-dockerclient"
+import (
+	docker "github.com/fsouza/go-dockerclient"
 
+	"github.com/openshift/source-to-image/pkg/util/user"
+)
+
+// Image label namespace constants
 const (
 	DefaultNamespace    = "io.openshift.s2i."
 	KubernetesNamespace = "io.k8s."
@@ -36,6 +41,10 @@ type Config struct {
 	// Docker images from private repositories
 	PullAuthentication docker.AuthConfiguration
 
+	// IncrementalAuthentication holds the authentication information for pulling the
+	// previous image from private repositories
+	IncrementalAuthentication docker.AuthConfiguration
+
 	// PreserveWorkingDir describes if working directory should be left after processing.
 	PreserveWorkingDir bool
 
@@ -62,6 +71,9 @@ type Config struct {
 	// variables.
 	EnvironmentFile string
 
+	// LabelNamespace provides the namespace under which the labels will be generated.
+	LabelNamespace string
+
 	// CallbackURL is a URL which is called upon successful build to inform about that fact.
 	CallbackURL string
 
@@ -77,6 +89,10 @@ type Config struct {
 	// WorkingDir describes temporary directory used for downloading sources, scripts and tar operations.
 	WorkingDir string
 
+	// WorkingSourceDir describes the subdirectory off of WorkingDir set up during the repo download
+	// that is later used as the root for ignore processing
+	WorkingSourceDir string
+
 	// LayeredBuild describes if this is build which layered scripts and sources on top of BuilderImage.
 	LayeredBuild bool
 
@@ -87,6 +103,15 @@ type Config struct {
 	// Specify a relative directory inside the application repository that should
 	// be used as a root directory for the application.
 	ContextDir string
+
+	// AllowedUIDs is a list of user ranges of users allowed to run the builder image.
+	// If a range is specified and the builder image uses a non-numeric user or a user
+	// that is outside the specified range, then the build fails.
+	AllowedUIDs user.RangeList
+
+	// RunImage will trigger a "docker run ..." invocation of the produced image so the user
+	// can see if it operates as he would expect
+	RunImage bool
 }
 
 // DockerConfig contains the configuration for a Docker connection

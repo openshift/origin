@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	kvalidation "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/user/api"
@@ -71,6 +71,30 @@ func ValidateIdentityProviderName(name string) (bool, string) {
 func ValidateIdentityProviderUserName(name string) (bool, string) {
 	// Any provider user name must be a valid user name
 	return ValidateUserName(name, false)
+}
+
+func ValidateGroup(group *api.Group) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, kvalidation.ValidateObjectMeta(&group.ObjectMeta, false, ValidateGroupName).Prefix("metadata")...)
+
+	for index, user := range group.Users {
+		if len(user) == 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("users[%d]", index), user, "may not be empty"))
+			continue
+		}
+		if ok, msg := ValidateUserName(user, false); !ok {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid(fmt.Sprintf("users[%d]", index), user, msg))
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateGroupUpdate(group *api.Group, old *api.Group) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, kvalidation.ValidateObjectMetaUpdate(&group.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
+	allErrs = append(allErrs, ValidateGroup(group)...)
+	return allErrs
 }
 
 func ValidateUser(user *api.User) fielderrors.ValidationErrorList {

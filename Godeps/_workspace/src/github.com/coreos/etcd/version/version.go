@@ -23,7 +23,9 @@ import (
 )
 
 var (
-	Version = "2.0.11"
+	// MinClusterVersion is the min cluster version this etcd binary is compatible with.
+	MinClusterVersion = "2.0.0"
+	Version           = "2.1.2"
 
 	// Git SHA Value will be set during build
 	GitSHA = "Not provided (use ./build instead of go build)"
@@ -39,6 +41,12 @@ const (
 	DataDir2_0Proxy DataDirVersion = "2.0 proxy"
 	DataDir2_0_1    DataDirVersion = "2.0.1"
 )
+
+type Versions struct {
+	Server  string `json:"etcdserver"`
+	Cluster string `json:"etcdcluster"`
+	// TODO: raft state machine version
+}
 
 func DetectDataDir(dirpath string) (DataDirVersion, error) {
 	names, err := fileutil.ReadDir(dirpath)

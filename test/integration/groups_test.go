@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -6,16 +6,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	groupscmd "github.com/openshift/origin/pkg/cmd/admin/groups"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 	testutil "github.com/openshift/origin/test/util"
 )
 
-func TestBasicGroupManipulation(t *testing.T) {
+func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -30,22 +29,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	valerieClientConfig := *clusterAdminClientConfig
-	valerieClientConfig.Username = ""
-	valerieClientConfig.Password = ""
-	valerieClientConfig.BearerToken = ""
-	valerieClientConfig.CertFile = ""
-	valerieClientConfig.KeyFile = ""
-	valerieClientConfig.CertData = nil
-	valerieClientConfig.KeyData = nil
-
-	accessToken, err := tokencmd.RequestToken(&valerieClientConfig, nil, "valerie", "security!")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	valerieClientConfig.BearerToken = accessToken
-	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
+	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -69,7 +53,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Errorf("expected %v, got %v", clusterAdminUser.Groups, expectedClusterAdminGroups)
 	}
 
-	valerieGroups := []string{"thegroup"}
+	valerieGroups := []string{"theGroup"}
 	firstValerie.Groups = append(firstValerie.Groups, valerieGroups...)
 	_, err = clusterAdminClient.Users().Update(firstValerie)
 	if err != nil {
@@ -100,7 +84,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 	roleBinding := &authorizationapi.RoleBinding{}
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
-	roleBinding.Groups = util.NewStringSet(valerieGroups...)
+	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, valerieGroups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 	_, err = clusterAdminClient.RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -113,6 +97,123 @@ func TestBasicGroupManipulation(t *testing.T) {
 	_, err = valerieOpenshiftClient.Projects().Get("empty")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+}
+
+func TestBasicGroupManipulation(t *testing.T) {
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	theGroup := &userapi.Group{}
+	theGroup.Name = "thegroup"
+	theGroup.Users = append(theGroup.Users, "valerie", "victor")
+	_, err = clusterAdminClient.Groups().Create(theGroup)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	_, err = valerieOpenshiftClient.Projects().Get("empty")
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+
+	emptyProject := &projectapi.Project{}
+	emptyProject.Name = "empty"
+	_, err = clusterAdminClient.Projects().Create(emptyProject)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	roleBinding := &authorizationapi.RoleBinding{}
+	roleBinding.Name = "admins"
+	roleBinding.RoleRef.Name = "admin"
+	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, []string{theGroup.Name}, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	_, err = clusterAdminClient.RoleBindings("empty").Create(roleBinding)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := testutil.WaitForPolicyUpdate(valerieOpenshiftClient, "empty", "get", "pods", true); err != nil {
+		t.Error(err)
+	}
+
+	// make sure that user groups are respected for policy
+	_, err = valerieOpenshiftClient.Projects().Get("empty")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	victorOpenshiftClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "victor")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	_, err = victorOpenshiftClient.Projects().Get("empty")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestGroupCommands(t *testing.T) {
+	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	newGroup := &groupscmd.NewGroupOptions{clusterAdminClient.Groups(), "group1", []string{"first", "second", "third", "first"}}
+	if err := newGroup.AddGroup(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	group1, err := clusterAdminClient.Groups().Get("group1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e, a := []string{"first", "second", "third"}, group1.Users; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, actual %v", e, a)
+	}
+
+	modifyUsers := &groupscmd.GroupModificationOptions{clusterAdminClient.Groups(), "group1", []string{"second", "fourth", "fifth"}}
+	if err := modifyUsers.AddUsers(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	group1, err = clusterAdminClient.Groups().Get("group1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e, a := []string{"first", "second", "third", "fourth", "fifth"}, group1.Users; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, actual %v", e, a)
+	}
+
+	if err := modifyUsers.RemoveUsers(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	group1, err = clusterAdminClient.Groups().Get("group1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if e, a := []string{"first", "third"}, group1.Users; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, actual %v", e, a)
 	}
 
 }

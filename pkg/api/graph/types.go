@@ -5,8 +5,8 @@ import (
 
 	"github.com/gonum/graph"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 )
 
 const (
@@ -52,10 +52,6 @@ func GetTopLevelContainerNode(g Graph, containedNode graph.Node) graph.Node {
 
 		prevContainingNode = currContainingNode
 	}
-
-	// can't happen
-	panic(fmt.Sprintf("math failed %v", visited))
-	return nil
 }
 
 // GetContainingNode returns the direct predecessor that is linked to the node by a ContainsEdgeKind.  It returns

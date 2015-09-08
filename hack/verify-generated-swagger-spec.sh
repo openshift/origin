@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -o errexit
 set -o nounset
 set -o pipefail
 
@@ -9,11 +9,11 @@ source "${OS_ROOT}/hack/common.sh"
 
 cd "${OS_ROOT}"
 
-echo "===== Verifying Swagger Spec ====="
+echo "===== Verifying API Swagger Spec ====="
 
 SPECROOT_REL="api/swagger-spec"
 SPECROOT="${OS_ROOT}/${SPECROOT_REL}"
-REL_TMP_PATH="_tmp/verify-generated-swagger-spec"
+REL_TMP_PATH="_output/verify-generated-swagger-spec"
 TMP_SPECROOT="${OS_ROOT}/${REL_TMP_PATH}/${SPECROOT_REL}"
 
 echo "Generating a fresh spec..."
@@ -21,6 +21,7 @@ if ! output=`${OS_ROOT}/hack/update-generated-swagger-spec.sh ${REL_TMP_PATH} 2>
 then
 	echo "FAILURE: Generation of fresh spec failed:"
 	echo "$output"
+  exit 1
 fi
 
 echo "Diffing current spec against freshly generated spec..."

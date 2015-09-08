@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 func TestGetName(t *testing.T) {
@@ -77,7 +77,7 @@ func TestGetNameIsDifferent(t *testing.T) {
 	}
 }
 
-// From github.com/GoogleCloudPlatform/kubernetes/pkg/api/generator.go
+// From k8s.io/kubernetes/pkg/api/generator.go
 var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789-")
 
 func randSeq(n int) string {

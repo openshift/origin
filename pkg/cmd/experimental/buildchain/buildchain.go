@@ -5,12 +5,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	kutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/fields"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/labels"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -24,19 +24,20 @@ const (
 Output the inputs and dependencies of your builds
 
 Supported formats for the generated graph are dot and a human-readable output.
-Tag and namespace are optional and if they are not specified, 'latest' and the 
+Tag and namespace are optional and if they are not specified, 'latest' and the
 default namespace will be used respectively.`
 
-	buildChainExample = `  // Build the dependency tree for the 'latest' tag in centos7
-  $ %[1]s centos7
+	buildChainExample = `  // Build the dependency tree for the 'latest' tag in <image-stream>
+  $ %[1]s <image-stream>
 
   // Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
-  $ %[1]s centos7:v2 -o dot | dot -T svg -o deps.svg
+  $ %[1]s <image-stream>:v2 -o dot | dot -T svg -o deps.svg
 
   // Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
-  $ %[1]s centos7 -n test --all`
+  $ %[1]s <image-stream> -n test --all`
 )
 
+// BuildChainRecommendedCommandName is the recommended command name
 const BuildChainRecommendedCommandName = "build-chain"
 
 // BuildChainOptions contains all the options needed for build-chain
@@ -47,6 +48,7 @@ type BuildChainOptions struct {
 	defaultNamespace string
 	namespaces       kutil.StringSet
 	allNamespaces    bool
+	triggerOnly      bool
 
 	output string
 
@@ -74,6 +76,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 	}
 
 	cmd.Flags().BoolVar(&options.allNamespaces, "all", false, "Build dependency tree for the specified image stream tag across all namespaces")
+	cmd.Flags().BoolVar(&options.triggerOnly, "trigger-only", true, "If true, only include dependencies based on build triggers. If false, include all dependencies.")
 	cmd.Flags().StringVarP(&options.output, "output", "o", "", "Output format of dependency tree")
 	return cmd
 }
@@ -151,7 +154,7 @@ func (o *BuildChainOptions) Validate() error {
 // experimental build-chain command
 func (o *BuildChainOptions) RunBuildChain() error {
 	ist := imagegraph.MakeImageStreamTagObjectMeta(o.defaultNamespace, o.name, o.tag)
-	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist)
+	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist, !o.triggerOnly)
 	if err != nil {
 		if _, isNotFoundErr := err.(describe.NotFoundErr); isNotFoundErr {
 			// Try to get the imageStreamTag via a direct GET
@@ -182,7 +185,7 @@ func buildChainInput(input string) (string, string, error) {
 	case 1:
 	case 2:
 		resourceType := resource[0]
-		if resourceType != "ist" && resourceType != "imagestreamtag" {
+		if resourceType != "istag" && resourceType != "imagestreamtag" {
 			return "", "", fmt.Errorf("invalid resource type %q", resourceType)
 		}
 	default:

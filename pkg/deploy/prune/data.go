@@ -4,25 +4,25 @@ import (
 	"fmt"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/cache"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // DeploymentByDeploymentConfigIndexFunc indexes Deployment items by their associated DeploymentConfig, if none, index with key "orphan"
-func DeploymentByDeploymentConfigIndexFunc(obj interface{}) (string, error) {
+func DeploymentByDeploymentConfigIndexFunc(obj interface{}) ([]string, error) {
 	controller, ok := obj.(*kapi.ReplicationController)
 	if !ok {
-		return "", fmt.Errorf("not a replication controller: %v", obj)
+		return nil, fmt.Errorf("not a replication controller: %v", obj)
 	}
 	name := deployutil.DeploymentConfigNameFor(controller)
 	if len(name) == 0 {
-		return "orphan", nil
+		return []string{"orphan"}, nil
 	}
-	return controller.Namespace + "/" + name, nil
+	return []string{controller.Namespace + "/" + name}, nil
 }
 
 // Filter filters the set of objects

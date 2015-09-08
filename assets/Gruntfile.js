@@ -53,6 +53,10 @@ module.exports = function (grunt) {
         files: '<%= yeoman.app %>/styles/*.less',
         tasks: ['less']
       },
+      extensions: {
+        files: ['extensions/extensions.js', 'extensions/extensions.css'],
+        tasks: ['copy:extensions']
+      },
       gruntfile: {
         files: ['Gruntfile.js']
       },
@@ -63,6 +67,7 @@ module.exports = function (grunt) {
         files: [
           '<%= yeoman.app %>/{,*/}*.html',
           '.tmp/styles/{,*/}*.css',
+          '.tmp/scripts/extensions.js',
           '<%= yeoman.app %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'
         ]
       }
@@ -375,10 +380,16 @@ module.exports = function (grunt) {
       }
     },
 
-    // Replace Google CDN references
-    cdnify: {
+    ngtemplates: {
       dist: {
-        html: ['<%= yeoman.dist %>/*.html']
+        cwd: '<%= yeoman.app %>',
+        src: 'views/**/*.html',
+        dest: '<%= yeoman.dist %>/scripts/templates.js',
+        options: {
+          module: 'openshiftConsole',
+          htmlmin: '<%= htmlmin.dist %>',
+          usemin: 'scripts/scripts.js'
+        }
       }
     },
 
@@ -450,6 +461,20 @@ module.exports = function (grunt) {
           src: 'fonts/*',
           dest: '.tmp/styles'
         }]
+      },
+      // Copy files in the extensions dir for development, but not distribution.
+      extensions: {
+        files: [{
+          expand: true,
+          cwd: 'extensions',
+          src: 'extensions.js',
+          dest: '.tmp/scripts'
+        }, {
+          expand: true,
+          cwd: 'extensions',
+          src: 'extensions.css',
+          dest: '.tmp/styles'
+        }]
       }
     },
 
@@ -457,7 +482,8 @@ module.exports = function (grunt) {
     concurrent: {
       server: [
         'less:development',
-        'copy:styles'
+        'copy:styles',
+        'copy:extensions'
       ],
       test: [
         'less:development'
@@ -480,14 +506,13 @@ module.exports = function (grunt) {
 
     protractor: {
       options: {
-        configFile: "test/protractor.conf.js", // Default config file
+        configFile: "test/protractor-chrome.conf.js", // Default config file
         keepAlive: false, // If false, the grunt process stops when the test fails.
         noColor: false, // If true, protractor will not use colors in its output.
         args: {
           // Arguments passed to the command
         }
       },
-      phantomjs: {},
       chrome: {
         options: {
           configFile: "test/protractor-chrome.conf.js", // Target-specific config file
@@ -538,6 +563,8 @@ module.exports = function (grunt) {
 
   grunt.loadNpmTasks('grunt-htmlhint');
 
+  grunt.loadNpmTasks('grunt-angular-templates');
+
   // karma must run prior to coverage since karma will generate the coverage results
   grunt.registerTask('test', [
     'clean:server',
@@ -553,15 +580,6 @@ module.exports = function (grunt) {
     'concurrent:server',
     'autoprefixer',
     'connect:test',
-    'protractor:phantomjs',
-    'clean:server'
-  ]);
-
-  grunt.registerTask('test-e2e-chrome', [
-    'clean:server',
-    'concurrent:server',
-    'autoprefixer',
-    'connect:test',
     'protractor:chrome',
     'clean:server'
   ]);
@@ -572,12 +590,12 @@ module.exports = function (grunt) {
     'htmlhint',
     'wiredep',
     'useminPrepare',
+    'ngtemplates',
     'concurrent:dist',
     'autoprefixer',
     'concat',
     'ngAnnotate',
     'copy:dist',
-    'cdnify',
     'less',
     'cssmin',
     'uglify',

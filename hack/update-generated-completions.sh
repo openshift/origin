@@ -9,6 +9,12 @@ set -o pipefail
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 
+platform="$(os::build::host_platform)"
+if [[ "${platform}" != "linux/amd64" ]]; then
+  echo "WARNING: Completions cannot be updated on non-Linux systems (${platform}) due to static link dependencies"
+  exit 1
+fi
+
 "${OS_ROOT}/hack/build-go.sh" cmd/genbashcomp
 
 # Find binary

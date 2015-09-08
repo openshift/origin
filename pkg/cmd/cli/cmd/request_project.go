@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/fields"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
@@ -30,7 +30,7 @@ type NewProjectOptions struct {
 
 const (
 	requestProjectLong = `
-Create a new project for yourself in OpenShift
+Create a new project for yourself
 
 Assuming your cluster admin has granted you permission, this command will create a new project
 for you and assign you as the project admin. If your administrator has not given you permission to
@@ -45,14 +45,14 @@ After your project is created it will be made your default project in your confi
   $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
 )
 
-func NewCmdRequestProject(name, fullName, oscLoginName, oscProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRequestProject(name, fullName, ocLoginName, ocProjectName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 	options.Out = out
 
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
 		Short:   "Request a new project",
-		Long:    fmt.Sprintf(requestProjectLong, oscLoginName, oscProjectName),
+		Long:    fmt.Sprintf(requestProjectLong, ocLoginName, ocProjectName),
 		Example: fmt.Sprintf(requestProjectExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(cmd, f); err != nil {

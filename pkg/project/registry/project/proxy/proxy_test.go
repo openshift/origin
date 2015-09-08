@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/project/api"
 )
@@ -91,10 +91,10 @@ func TestCreateProjectOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
-	if len(mockClient.Actions) != 1 {
+	if len(mockClient.Actions()) != 1 {
 		t.Errorf("Expected client action for create")
 	}
-	if mockClient.Actions[0].Action != "create-namespace" {
+	if !mockClient.Actions()[0].Matches("create", "namespaces") {
 		t.Errorf("Expected call to create-namespace")
 	}
 }
@@ -133,10 +133,10 @@ func TestDeleteProject(t *testing.T) {
 	if status.Status != kapi.StatusSuccess {
 		t.Errorf("Expected status=success, got: %#v", status)
 	}
-	if len(mockClient.Actions) != 1 {
+	if len(mockClient.Actions()) != 1 {
 		t.Errorf("Expected client action for delete")
 	}
-	if mockClient.Actions[0].Action != "delete-namespace" {
+	if !mockClient.Actions()[0].Matches("delete", "namespaces") {
 		t.Errorf("Expected call to delete-namespace")
 	}
 }

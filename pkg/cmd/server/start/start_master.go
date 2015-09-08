@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,10 +15,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/capabilities"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubelet"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -37,51 +39,51 @@ type MasterOptions struct {
 	CreateCertificates bool
 	ConfigFile         string
 	Output             io.Writer
+	DisabledFeatures   []string
 }
 
-const masterLong = `Start an OpenShift master.
+func (o *MasterOptions) DefaultsFromName(basename string) {
+	switch basename {
+	case "atomic-enterprise":
+		o.DisabledFeatures = configapi.AtomicDisabledFeatures
+	}
+}
 
-This command helps you launch an OpenShift master.  Running
+const masterLong = `Start a master server
 
-  $ openshift start master
+This command helps you launch a master server.  Running
 
-will start an OpenShift master listening on all interfaces, launch an etcd server to store
+  $ %[1]s start master
+
+will start a master listening on all interfaces, launch an etcd server to store
 persistent data, and launch the Kubernetes system components. The server will run in the
 foreground until you terminate the process.
 
-Note: starting OpenShift without passing the --master address will attempt to find the IP
+Note: starting the master without passing the --master address will attempt to find the IP
 address that will be visible inside running Docker containers. This is not always successful,
-so if you have problems tell OpenShift what public address it will be via --master=<ip>.
-
-You may also pass an optional argument to the start command to start OpenShift in one of the
-following roles:
-
-  // Launches the server and control plane for OpenShift. You may pass a list of the node
-  // hostnames you want to use, or create nodes via the REST API or 'openshift kube'.
-  $ openshift start master --nodes=<host1,host2,host3,...>
+so if you have problems tell the master what public address it should use via --master=<ip>.
 
 You may also pass --etcd=<address> to connect to an external etcd server.
 
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartMaster provides a CLI handler for 'start master' command
-func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
+func NewCommandStartMaster(basename string, out io.Writer) (*cobra.Command, *MasterOptions) {
 	options := &MasterOptions{Output: out}
+	options.DefaultsFromName(basename)
 
 	cmd := &cobra.Command{
 		Use:   "master",
-		Short: "Launch OpenShift master",
-		Long:  masterLong,
+		Short: "Launch a master",
+		Long:  fmt.Sprintf(masterLong, basename),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
+				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
 			if err := options.Validate(args); err != nil {
-				fmt.Println(err.Error())
-				c.Help()
+				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
@@ -90,9 +92,9 @@ func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
 			if err := options.StartMaster(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(options.Output, "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
-							fmt.Fprintf(options.Output, "  %s: %s\n", cause.Field, cause.Message)
+							fmt.Fprintf(c.Out(), "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
@@ -103,6 +105,17 @@ func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
 	}
 
 	options.MasterArgs = NewDefaultMasterArgs()
+	options.MasterArgs.StartAPI = true
+	options.MasterArgs.StartControllers = true
+	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
+		if config.KubernetesMasterConfig != nil && options.MasterArgs.MasterAddr.Provided {
+			if ip := net.ParseIP(options.MasterArgs.MasterAddr.Host); ip != nil {
+				glog.V(2).Infof("Using a masterIP override %q", ip)
+				config.KubernetesMasterConfig.MasterIP = ip.String()
+			}
+		}
+		return nil
+	}
 
 	flags := cmd.Flags()
 
@@ -119,6 +132,11 @@ func NewCommandStartMaster(out io.Writer) (*cobra.Command, *MasterOptions) {
 	// autocompletion hints
 	cmd.MarkFlagFilename("write-config")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
+
+	startControllers, _ := NewCommandStartMasterControllers("controllers", basename, out)
+	startAPI, _ := NewCommandStartMasterAPI("api", basename, out)
+	cmd.AddCommand(startAPI)
+	cmd.AddCommand(startControllers)
 
 	return cmd, options
 }
@@ -174,10 +192,10 @@ func (o MasterOptions) StartMaster() error {
 		return nil
 	}
 
+	// TODO: this should be encapsulated by RunMaster, but StartAllInOne has no
+	// way to communicate whether RunMaster should block.
 	go daemon.SdNotify("READY=1")
 	select {}
-
-	return nil
 }
 
 // RunMaster takes the options and:
@@ -245,6 +263,16 @@ func (o MasterOptions) RunMaster() error {
 		return nil
 	}
 
+	if o.MasterArgs.OverrideConfig != nil {
+		if err := o.MasterArgs.OverrideConfig(masterConfig); err != nil {
+			return err
+		}
+	}
+
+	// Inject disabled feature flags based on distribution being used and
+	// regardless of configuration. They aren't written to config file to
+	// prevent upgrade path issues.
+	masterConfig.DisabledFeatures.Add(o.DisabledFeatures...)
 	validationResults := validation.ValidateMasterConfig(masterConfig)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
@@ -255,11 +283,16 @@ func (o MasterOptions) RunMaster() error {
 		return kerrors.NewInvalid("MasterConfig", o.ConfigFile, validationResults.Errors)
 	}
 
-	if err := StartMaster(masterConfig); err != nil {
-		return err
+	if !o.MasterArgs.StartControllers {
+		masterConfig.Controllers = configapi.ControllersDisabled
 	}
 
-	return nil
+	m := &Master{
+		config:      masterConfig,
+		api:         o.MasterArgs.StartAPI,
+		controllers: o.MasterArgs.StartControllers,
+	}
+	return m.Start()
 }
 
 func (o MasterOptions) CreateBootstrapPolicy() error {
@@ -304,14 +337,33 @@ func (o MasterOptions) CreateCerts() error {
 	return nil
 }
 
-func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
-	glog.Infof("Starting OpenShift master on %s (%s)", openshiftMasterConfig.ServingInfo.BindAddress, version.Get().String())
-	glog.Infof("Public master address is %s", openshiftMasterConfig.AssetConfig.MasterPublicURL)
-
-	if openshiftMasterConfig.EtcdConfig != nil {
-		etcd.RunEtcd(openshiftMasterConfig.EtcdConfig)
+func buildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
+	if openshiftConfig.Options.KubernetesMasterConfig == nil {
+		return nil, nil
 	}
+	kubeConfig, err := kubernetes.BuildKubernetesMasterConfig(openshiftConfig.Options, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient())
+	return kubeConfig, err
+}
 
+// Master encapsulates starting the components of the master
+type Master struct {
+	config      *configapi.MasterConfig
+	controllers bool
+	api         bool
+}
+
+// NewMaster create a master launcher
+func NewMaster(config *configapi.MasterConfig, controllers, api bool) *Master {
+	return &Master{
+		config:      config,
+		controllers: controllers,
+		api:         api,
+	}
+}
+
+// Start launches a master. It will error if possible, but some background processes may still
+// be running and the process should exit after it finishes.
+func (m *Master) Start() error {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	capabilities.Initialize(capabilities.Capabilities{
@@ -319,24 +371,85 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 		HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
 	})
 
-	openshiftConfig, err := origin.BuildMasterConfig(*openshiftMasterConfig)
+	openshiftConfig, err := origin.BuildMasterConfig(*m.config)
 	if err != nil {
 		return err
 	}
 
-	go func() {
-		openshiftConfig.ControllerPlug.WaitForStop()
-		glog.Fatalf("Master shutdown requested")
-	}()
+	kubeMasterConfig, err := buildKubernetesMasterConfig(openshiftConfig)
+	if err != nil {
+		return err
+	}
+
+	if m.api {
+		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
+		glog.Infof("Public master address is %s", m.config.AssetConfig.MasterPublicURL)
+		if len(m.config.DisabledFeatures) > 0 {
+			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
+		}
+		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
+
+		if err := startAPI(openshiftConfig, kubeMasterConfig); err != nil {
+			return err
+		}
+		if m.controllers {
+			// run controllers asynchronously (not required to be "ready")
+			go func() {
+				if err := startControllers(openshiftConfig, kubeMasterConfig); err != nil {
+					glog.Fatal(err)
+				}
+			}()
+		}
+		return nil
+	}
+
+	if m.controllers {
+		glog.Infof("Starting controllers on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
+		if len(m.config.DisabledFeatures) > 0 {
+			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
+		}
+		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
+
+		if err := startHealth(openshiftConfig); err != nil {
+			return err
+		}
+		if err := startControllers(openshiftConfig, kubeMasterConfig); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func startHealth(openshiftConfig *origin.MasterConfig) error {
+	openshiftConfig.RunHealth()
+	return nil
+}
+
+// startAPI starts the components of the master that are considered part of the API - the Kubernetes
+// API and core controllers, the Origin API, the group, policy, project, and authorization caches,
+// etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
+// TODO: allow to be more granularly targeted
+func startAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
+	// start etcd
+	if oc.Options.EtcdConfig != nil {
+		etcd.RunEtcd(oc.Options.EtcdConfig)
+	}
+
+	// verify we can connect to etcd with the provided config
+	if err := etcd.TestEtcdClient(oc.EtcdClient); err != nil {
+		return err
+	}
 
 	// Must start policy caching immediately
-	openshiftConfig.RunPolicyCache()
-	openshiftConfig.RunProjectCache()
+	oc.RunGroupCache()
+	oc.RunPolicyCache()
+	oc.RunProjectCache()
 
 	unprotectedInstallers := []origin.APIInstaller{}
 
-	if openshiftMasterConfig.OAuthConfig != nil {
-		authConfig, err := origin.BuildAuthConfig(*openshiftMasterConfig)
+	if oc.Options.OAuthConfig != nil {
+		authConfig, err := origin.BuildAuthConfig(oc.Options)
 		if err != nil {
 			return err
 		}
@@ -344,97 +457,109 @@ func StartMaster(openshiftMasterConfig *configapi.MasterConfig) error {
 	}
 
 	var standaloneAssetConfig *origin.AssetConfig
-	if openshiftMasterConfig.AssetConfig != nil {
-		config, err := origin.BuildAssetConfig(*openshiftMasterConfig.AssetConfig)
+	if oc.WebConsoleEnabled() {
+		config, err := origin.BuildAssetConfig(*oc.Options.AssetConfig)
 		if err != nil {
 			return err
 		}
 
-		if openshiftMasterConfig.AssetConfig.ServingInfo.BindAddress == openshiftMasterConfig.ServingInfo.BindAddress {
+		if oc.Options.AssetConfig.ServingInfo.BindAddress == oc.Options.ServingInfo.BindAddress {
 			unprotectedInstallers = append(unprotectedInstallers, config)
 		} else {
 			standaloneAssetConfig = config
 		}
 	}
 
-	var kubeConfig *kubernetes.MasterConfig
-	if openshiftMasterConfig.KubernetesMasterConfig != nil {
-		kubeConfig, err = kubernetes.BuildKubernetesMasterConfig(*openshiftMasterConfig, openshiftConfig.RequestContextMapper, openshiftConfig.KubeClient())
-		if err != nil {
-			return err
-		}
-
-		openshiftConfig.Run([]origin.APIInstaller{kubeConfig}, unprotectedInstallers)
-
+	if kc != nil {
+		oc.Run([]origin.APIInstaller{kc}, unprotectedInstallers)
 	} else {
-		_, kubeConfig, err := configapi.GetKubeClient(openshiftMasterConfig.MasterClients.ExternalKubernetesKubeConfig)
+		_, kubeClientConfig, err := configapi.GetKubeClient(oc.Options.MasterClients.ExternalKubernetesKubeConfig)
 		if err != nil {
 			return err
 		}
-
 		proxy := &kubernetes.ProxyConfig{
-			ClientConfig: kubeConfig,
+			ClientConfig: kubeClientConfig,
 		}
-
-		openshiftConfig.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
+		oc.Run([]origin.APIInstaller{proxy}, unprotectedInstallers)
 	}
 
-	glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
+	oc.InitializeObjects()
 
 	if standaloneAssetConfig != nil {
 		standaloneAssetConfig.Run()
 	}
-	if openshiftMasterConfig.DNSConfig != nil {
-		openshiftConfig.RunDNSServer()
+
+	if oc.Options.DNSConfig != nil {
+		oc.RunDNSServer()
 	}
 
-	openshiftConfig.RunProjectAuthorizationCache()
+	oc.RunProjectAuthorizationCache()
+	return nil
+}
 
-	if openshiftMasterConfig.Controllers != configapi.ControllersDisabled {
-		go func() {
-			openshiftConfig.ControllerPlug.WaitForStart()
-			glog.Infof("Master controllers starting (%s)", openshiftMasterConfig.Controllers)
-
-			// Start these first, because they provide credentials for other controllers' clients
-			openshiftConfig.RunServiceAccountsController()
-			openshiftConfig.RunServiceAccountTokensController()
-			// used by admission controllers
-			openshiftConfig.RunServiceAccountPullSecretsControllers()
-			openshiftConfig.RunSecurityAllocationController()
-
-			if kubeConfig != nil {
-				_, rcClient, err := openshiftConfig.GetServiceAccountClients(openshiftConfig.ReplicationControllerServiceAccount)
-				if err != nil {
-					glog.Fatalf("Could not get client for replication controller: %v", err)
-				}
-
-				// called by admission control
-				kubeConfig.RunResourceQuotaManager()
-
-				// no special order
-				kubeConfig.RunNodeController()
-				kubeConfig.RunScheduler()
-				kubeConfig.RunReplicationController(rcClient)
-				kubeConfig.RunEndpointController()
-				kubeConfig.RunNamespaceController()
-				kubeConfig.RunPersistentVolumeClaimBinder()
-				kubeConfig.RunPersistentVolumeClaimRecycler(openshiftConfig.ImageFor("deployer"))
-			}
-
-			// no special order
-			openshiftConfig.RunBuildController()
-			openshiftConfig.RunBuildPodController()
-			openshiftConfig.RunBuildImageChangeTriggerController()
-			openshiftConfig.RunDeploymentController()
-			openshiftConfig.RunDeployerPodController()
-			openshiftConfig.RunDeploymentConfigController()
-			openshiftConfig.RunDeploymentConfigChangeController()
-			openshiftConfig.RunDeploymentImageChangeTriggerController()
-			openshiftConfig.RunImageImportController()
-			openshiftConfig.RunOriginNamespaceController()
-			openshiftConfig.RunSDNController()
-		}()
+// startControllers launches the controllers
+func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
+	if oc.Options.Controllers == configapi.ControllersDisabled {
+		return nil
 	}
+
+	go func() {
+		oc.ControllerPlugStart()
+		// when a manual shutdown (DELETE /controllers) or lease lost occurs, the process should exit
+		// this ensures no code is still running as a controller, and allows a process manager to reset
+		// the controller to come back into a candidate state and compete for the lease
+		oc.ControllerPlug.WaitForStop()
+		glog.Fatalf("Controller shutdown requested")
+	}()
+
+	oc.ControllerPlug.WaitForStart()
+	glog.Infof("Controllers starting (%s)", oc.Options.Controllers)
+
+	// Start these first, because they provide credentials for other controllers' clients
+	oc.RunServiceAccountsController()
+	oc.RunServiceAccountTokensController()
+	// used by admission controllers
+	oc.RunServiceAccountPullSecretsControllers()
+	oc.RunSecurityAllocationController()
+
+	if kc != nil {
+		_, rcClient, err := oc.GetServiceAccountClients(oc.ReplicationControllerServiceAccount)
+		if err != nil {
+			glog.Fatalf("Could not get client for replication controller: %v", err)
+		}
+
+		// called by admission control
+		kc.RunResourceQuotaManager()
+
+		// no special order
+		kc.RunNodeController()
+		kc.RunScheduler()
+		kc.RunReplicationController(rcClient)
+		kc.RunEndpointController()
+		kc.RunNamespaceController()
+		kc.RunPersistentVolumeClaimBinder()
+		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("deployer"))
+
+		glog.Infof("Started Kubernetes Controllers")
+	}
+
+	// no special order
+	if configapi.IsBuildEnabled(&oc.Options) {
+		oc.RunBuildController()
+		oc.RunBuildPodController()
+		oc.RunBuildConfigChangeController()
+		oc.RunBuildImageChangeTriggerController()
+	}
+	oc.RunDeploymentController()
+	oc.RunDeployerPodController()
+	oc.RunDeploymentConfigController()
+	oc.RunDeploymentConfigChangeController()
+	oc.RunDeploymentImageChangeTriggerController()
+	oc.RunImageImportController()
+	oc.RunOriginNamespaceController()
+	oc.RunSDNController()
+
+	glog.Infof("Started Origin Controllers")
 
 	return nil
 }

@@ -1,8 +1,8 @@
 package interfaces
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -208,10 +208,15 @@ func (a RoleBindingAdapter) RoleRef() kapi.ObjectReference {
 }
 
 func (a RoleBindingAdapter) Users() util.StringSet {
-	return a.roleBinding.Users
+	users, _ := authorizationapi.StringSubjectsFor(a.roleBinding.Namespace, a.roleBinding.Subjects)
+
+	return util.NewStringSet(users...)
 }
+
 func (a RoleBindingAdapter) Groups() util.StringSet {
-	return a.roleBinding.Groups
+	_, groups := authorizationapi.StringSubjectsFor(a.roleBinding.Namespace, a.roleBinding.Subjects)
+
+	return util.NewStringSet(groups...)
 }
 
 type ClusterPolicyBindingAdapter struct {
@@ -260,8 +265,12 @@ func (a ClusterRoleBindingAdapter) RoleRef() kapi.ObjectReference {
 }
 
 func (a ClusterRoleBindingAdapter) Users() util.StringSet {
-	return a.roleBinding.Users
+	users, _ := authorizationapi.StringSubjectsFor(a.roleBinding.Namespace, a.roleBinding.Subjects)
+
+	return util.NewStringSet(users...)
 }
 func (a ClusterRoleBindingAdapter) Groups() util.StringSet {
-	return a.roleBinding.Groups
+	_, groups := authorizationapi.StringSubjectsFor(a.roleBinding.Namespace, a.roleBinding.Subjects)
+
+	return util.NewStringSet(groups...)
 }

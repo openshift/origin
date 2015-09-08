@@ -7,7 +7,7 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -17,7 +17,7 @@ import (
 type expectedImage struct {
 	Tag   string
 	ID    string
-	Image *docker.Image
+	Image *dockerregistry.Image
 	Err   error
 }
 
@@ -43,7 +43,7 @@ func (f *fakeDockerRegistryClient) ImageTags(namespace, name string) (map[string
 	return f.Tags, f.Err
 }
 
-func (f *fakeDockerRegistryClient) ImageByTag(namespace, name, tag string) (*docker.Image, error) {
+func (f *fakeDockerRegistryClient) ImageByTag(namespace, name, tag string) (*dockerregistry.Image, error) {
 	if len(tag) == 0 {
 		tag = api.DefaultImageTag
 	}
@@ -56,7 +56,7 @@ func (f *fakeDockerRegistryClient) ImageByTag(namespace, name, tag string) (*doc
 	return nil, dockerregistry.NewImageNotFoundError(fmt.Sprintf("%s/%s", namespace, name), tag, tag)
 }
 
-func (f *fakeDockerRegistryClient) ImageByID(namespace, name, id string) (*docker.Image, error) {
+func (f *fakeDockerRegistryClient) ImageByID(namespace, name, id string) (*dockerregistry.Image, error) {
 	f.Namespace, f.Name, f.ID = namespace, name, id
 	for _, t := range f.Images {
 		if t.ID == id {
@@ -104,7 +104,7 @@ func TestControllerRepoHandled(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) == 0 {
 		t.Errorf("did not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 1 {
+	if len(fake.Actions()) != 1 {
 		t.Errorf("expected an update action: %#v", fake.Actions)
 	}
 }
@@ -125,7 +125,7 @@ func TestControllerTagRetrievalFails(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) != 0 {
 		t.Errorf("should not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 0 {
+	if len(fake.Actions()) != 0 {
 		t.Error("expected no actions on fake client")
 	}
 }
@@ -155,7 +155,7 @@ func TestControllerRetrievesInsecure(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) != 0 {
 		t.Errorf("should not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 0 {
+	if len(fake.Actions()) != 0 {
 		t.Error("expected no actions on fake client")
 	}
 }
@@ -175,8 +175,8 @@ func TestControllerImageNotFoundError(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) == 0 {
 		t.Errorf("did not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 1 {
-		t.Errorf("expected an update action: %#v", fake.Actions)
+	if len(fake.Actions()) != 1 {
+		t.Errorf("expected an update action: %#v", fake.Actions())
 	}
 }
 
@@ -203,8 +203,8 @@ func TestControllerImageWithGenericError(t *testing.T) {
 	if len(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) != 0 {
 		t.Errorf("did not expect annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 0 {
-		t.Errorf("expected no update action: %#v", fake.Actions)
+	if len(fake.Actions()) != 0 {
+		t.Errorf("expected no update action: %#v", fake.Actions())
 	}
 }
 
@@ -214,9 +214,11 @@ func TestControllerWithImage(t *testing.T) {
 		Images: []expectedImage{
 			{
 				ID: "found",
-				Image: &docker.Image{
-					Comment: "foo",
-					Config:  &docker.Config{},
+				Image: &dockerregistry.Image{
+					Image: docker.Image{
+						Comment: "foo",
+						Config:  &docker.Config{},
+					},
 				},
 			},
 		},
@@ -234,8 +236,8 @@ func TestControllerWithImage(t *testing.T) {
 	if !isRFC3339(stream.Annotations["openshift.io/image.dockerRepositoryCheck"]) {
 		t.Fatalf("did not set annotation: %#v", stream)
 	}
-	if len(fake.Actions) != 2 {
-		t.Errorf("expected an update action: %#v", fake.Actions)
+	if len(fake.Actions()) != 2 {
+		t.Errorf("expected an update action: %#v", fake.Actions())
 	}
 }
 
@@ -277,9 +279,11 @@ func TestControllerWithSpecTags(t *testing.T) {
 			Images: []expectedImage{
 				{
 					ID: "found",
-					Image: &docker.Image{
-						Comment: "foo",
-						Config:  &docker.Config{},
+					Image: &dockerregistry.Image{
+						Image: docker.Image{
+							Comment: "foo",
+							Config:  &docker.Config{},
+						},
 					},
 				},
 			},
@@ -303,21 +307,21 @@ func TestControllerWithSpecTags(t *testing.T) {
 			t.Fatalf("%s: did not set annotation: %#v", name, stream)
 		}
 		if test.expectUpdate {
-			if len(fake.Actions) != 2 {
-				t.Errorf("%s: expected an update action: %#v", name, fake.Actions)
+			if len(fake.Actions()) != 2 {
+				t.Errorf("%s: expected an update action: %#v", name, fake.Actions())
 			}
-			if e, a := "create-imagestream-mapping", fake.Actions[0].Action; e != a {
-				t.Errorf("%s: expected %s, got %s", name, e, a)
+			if !fake.Actions()[0].Matches("create", "imagestreammappings") {
+				t.Errorf("%s: expected %s, got %v", name, "create-imagestreammappings", fake.Actions()[0])
 			}
-			if e, a := "update-imagestream", fake.Actions[1].Action; e != a {
-				t.Errorf("%s: expected %s, got %s", name, e, a)
+			if !fake.Actions()[1].Matches("update", "imagestreams") {
+				t.Errorf("%s: expected %s, got %v", name, "update-imagestreams", fake.Actions()[1])
 			}
 		} else {
-			if len(fake.Actions) != 1 {
-				t.Errorf("%s: expected no update action: %#v", name, fake.Actions)
+			if len(fake.Actions()) != 1 {
+				t.Errorf("%s: expected no update action: %#v", name, fake.Actions())
 			}
-			if e, a := "update-imagestream", fake.Actions[0].Action; e != a {
-				t.Errorf("%s: expected %s, got %s", name, e, a)
+			if !fake.Actions()[0].Matches("update", "imagestreams") {
+				t.Errorf("%s: expected %s, got %v", name, "update-imagestreams", fake.Actions()[0])
 			}
 		}
 	}

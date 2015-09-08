@@ -5,10 +5,11 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client/clientcmd"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -26,6 +27,12 @@ type Config struct {
 	KubernetesAddr flagtypes.Addr
 	// CommonConfig is the shared base config for both the OpenShift config and Kubernetes config
 	CommonConfig kclient.Config
+	// Namespace is the namespace to act in
+	Namespace string
+
+	// If set, allow kubeconfig file loading
+	FromFile     bool
+	clientConfig clientcmd.ClientConfig
 }
 
 // NewConfig returns a new configuration
@@ -51,7 +58,11 @@ func (cfg *Config) Bind(flags *pflag.FlagSet) {
 	flags.Var(&cfg.MasterAddr, "master", "The address the master can be reached on (host, host:port, or URL).")
 	flags.Var(&cfg.KubernetesAddr, "kubernetes", "The address of the Kubernetes server (host, host:port, or URL). If omitted defaults to the master.")
 
-	BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
+	if cfg.FromFile {
+		cfg.clientConfig = DefaultClientConfig(flags)
+	} else {
+		BindClientConfigSecurityFlags(&cfg.CommonConfig, flags)
+	}
 }
 
 func EnvVars(host string, caData []byte, insecure bool, bearerTokenFile string) []api.EnvVar {
@@ -76,6 +87,31 @@ func EnvVars(host string, caData []byte, insecure bool, bearerTokenFile string) 
 func (cfg *Config) bindEnv() error {
 	var err error
 
+	// callers may not use the config file if they have specified a master directly
+	_, masterSet := util.GetEnv("OPENSHIFT_MASTER")
+	specifiedMaster := masterSet || cfg.MasterAddr.Provided
+
+	if cfg.clientConfig != nil && !specifiedMaster {
+		clientConfig, err := cfg.clientConfig.ClientConfig()
+		if err != nil {
+			return err
+		}
+		cfg.CommonConfig = *clientConfig
+		cfg.Namespace, _, err = cfg.clientConfig.Namespace()
+		if err != nil {
+			return err
+		}
+
+		if !cfg.MasterAddr.Provided {
+			cfg.MasterAddr.Set(cfg.CommonConfig.Host)
+		}
+		if !cfg.KubernetesAddr.Provided {
+			cfg.KubernetesAddr.Set(cfg.CommonConfig.Host)
+		}
+		return nil
+	}
+
+	// Legacy path - preserve env vars set on pods that previously were honored.
 	if value, ok := util.GetEnv("KUBERNETES_MASTER"); ok && !cfg.KubernetesAddr.Provided {
 		cfg.KubernetesAddr.Set(value)
 	}
@@ -163,7 +199,7 @@ func (cfg *Config) Clients() (osclient.Interface, kclient.Interface, error) {
 
 	osClient, err := osclient.New(cfg.OpenShiftConfig())
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to configure OpenShift client: %v", err)
+		return nil, nil, fmt.Errorf("Unable to configure Origin client: %v", err)
 	}
 
 	return osClient, kubeClient, nil

@@ -12,17 +12,17 @@ import (
 	"text/tabwriter"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/prune"
 	"github.com/spf13/cobra"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 const imagesLongDesc = `%s %s - prunes images`
@@ -125,7 +125,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	cmd.Flags().BoolVar(&cfg.Confirm, "confirm", cfg.Confirm, "Specify that image pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
 	cmd.Flags().DurationVar(&cfg.KeepYoungerThan, "keep-younger-than", cfg.KeepYoungerThan, "Specify the minimum age of a build for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(&cfg.KeepTagRevisions, "keep-tag-revisions", cfg.KeepTagRevisions, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
-	cmd.Flags().StringVar(&cfg.CABundle, "certificate-authority", cfg.CABundle, "The path to a certificate authority bundle to use when communicating with the OpenShift-managed registries. Defaults to the certificate authority data from the current user's config file.")
+	cmd.Flags().StringVar(&cfg.CABundle, "certificate-authority", cfg.CABundle, "The path to a certificate authority bundle to use when communicating with the managed Docker registries. Defaults to the certificate authority data from the current user's config file.")
 	cmd.Flags().StringVar(&cfg.RegistryUrlOverride, "registry-url", cfg.RegistryUrlOverride, "The address to use when contacting the registry, instead of using the default value. This is useful if you can't resolve or reach the registry (e.g.; the default is a cluster-internal URL) but you do have an alternative route that works.")
 
 	return cmd
@@ -175,7 +175,7 @@ var _ prune.ImagePruner = &describingImagePruner{}
 func (p *describingImagePruner) PruneImage(image *imageapi.Image) error {
 	if !p.headerPrinted {
 		p.headerPrinted = true
-		fmt.Fprintln(p.w, "\nDeleting images from OpenShift ...")
+		fmt.Fprintln(p.w, "\nDeleting images from server ...")
 		fmt.Fprintln(p.w, "IMAGE")
 	}
 
@@ -187,7 +187,7 @@ func (p *describingImagePruner) PruneImage(image *imageapi.Image) error {
 
 	err := p.delegate.PruneImage(image)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting image %s from OpenShift: %v\n", image.Name, err)
+		fmt.Fprintf(os.Stderr, "error deleting image %s from server: %v\n", image.Name, err)
 	}
 
 	return err

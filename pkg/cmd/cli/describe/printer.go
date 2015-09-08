@@ -8,9 +8,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	kctl "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kctl "k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -39,7 +39,7 @@ var (
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
-	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS"}
+	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
 	roleColumns             = []string{"NAME"}
 
 	oauthClientColumns              = []string{"NAME", "SECRET", "WWW-CHALLENGE", "REDIRECT URIS"}
@@ -50,12 +50,14 @@ var (
 	userColumns                = []string{"NAME", "UID", "FULL NAME", "IDENTITIES"}
 	identityColumns            = []string{"NAME", "IDP NAME", "IDP USER NAME", "USER NAME", "USER UID"}
 	userIdentityMappingColumns = []string{"NAME", "IDENTITY", "USER NAME", "USER UID"}
+	groupColumns               = []string{"NAME", "USERS"}
 
 	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 
 	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
-	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH"}
+	netNamespaceColumns   = []string{"NAME", "NETID"}
+	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -113,11 +115,15 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, columnLabels [
 	p.Handler(identityColumns, printIdentity)
 	p.Handler(identityColumns, printIdentityList)
 	p.Handler(userIdentityMappingColumns, printUserIdentityMapping)
+	p.Handler(groupColumns, printGroup)
+	p.Handler(groupColumns, printGroupList)
 
 	p.Handler(IsPersonalSubjectAccessReviewColumns, printIsPersonalSubjectAccessReview)
 
 	p.Handler(hostSubnetColumns, printHostSubnet)
 	p.Handler(hostSubnetColumns, printHostSubnetList)
+	p.Handler(netNamespaceColumns, printNetNamespaceList)
+	p.Handler(netNamespaceColumns, printNetNamespace)
 	p.Handler(clusterNetworkColumns, printClusterNetwork)
 	p.Handler(clusterNetworkColumns, printClusterNetworkList)
 
@@ -173,6 +179,11 @@ func printTemplate(t *templateapi.Template, w io.Writer, withNamespace, wide boo
 	default:
 		params = fmt.Sprintf("%d (all set)", total)
 	}
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", t.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", t.Name, description, params, len(t.Objects))
 	return err
 }
@@ -187,12 +198,19 @@ func printTemplateList(list *templateapi.TemplateList, w io.Writer, withNamespac
 }
 
 func printBuild(build *buildapi.Build, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", build.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Spec.Strategy.Type), build.Status.Phase, buildutil.GetBuildPodName(build))
 	return err
 }
 
 func printBuildList(buildList *buildapi.BuildList, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
-	for _, build := range buildList.Items {
+	builds := buildList.Items
+	sort.Sort(buildapi.BuildSliceByCreationTimestamp(builds))
+	for _, build := range builds {
 		if err := printBuild(&build, w, withNamespace, wide, columnLabels); err != nil {
 			return err
 		}
@@ -205,7 +223,18 @@ func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, withNamespace, wide
 		_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), bc.Spec.Strategy.CustomStrategy.From.Name)
 		return err
 	}
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), bc.Spec.Source.Git.URI)
+
+	uri := "MISSING"
+	if bc.Spec.Source.Git != nil {
+		uri = bc.Spec.Source.Git.URI
+	}
+
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", bc.Namespace); err != nil {
+			return err
+		}
+	}
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), uri)
 	return err
 }
 
@@ -225,12 +254,22 @@ func printImage(image *imageapi.Image, w io.Writer, withNamespace, wide bool, co
 
 func printImageStreamTag(ist *imageapi.ImageStreamTag, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
 	created := fmt.Sprintf("%s ago", formatRelativeTime(ist.CreationTimestamp.Time))
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", ist.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", ist.Name, ist.Image.DockerImageReference, created, ist.Image.Name)
 	return err
 }
 
 func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
 	created := fmt.Sprintf("%s ago", formatRelativeTime(isi.CreationTimestamp.Time))
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", isi.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", isi.Name, isi.Image.DockerImageReference, created, isi.Image.Name)
 	return err
 }
@@ -261,6 +300,11 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, withNamespace, 
 		latestTime = fmt.Sprintf("%s ago", formatRelativeTime(latest.Time))
 	}
 	tags = strings.Join(set.List(), ",")
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", stream.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.Name, stream.Status.DockerImageRepository, tags, latestTime)
 	return err
 }
@@ -309,6 +353,11 @@ func printRoute(route *routeapi.Route, w io.Writer, withNamespace, wide bool, co
 	if route.TLS != nil {
 		tlsTerm = string(route.TLS.Termination)
 	}
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", route.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", route.Name, route.Host, route.Path, route.ServiceName, labels.Set(route.Labels), tlsTerm)
 	return err
 }
@@ -329,6 +378,11 @@ func printDeploymentConfig(dc *deployapi.DeploymentConfig, w io.Writer, withName
 	}
 	tStr := strings.Join(triggers.List(), ", ")
 
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", dc.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", dc.Name, tStr, dc.LatestVersion)
 	return err
 }
@@ -350,6 +404,11 @@ func printPolicy(policy *authorizationapi.Policy, w io.Writer, withNamespace, wi
 	}
 	rolesString := strings.Join(roleNames.List(), ", ")
 
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", policy.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", policy.Name, rolesString, policy.LastModified)
 	return err
 }
@@ -371,6 +430,11 @@ func printPolicyBinding(policyBinding *authorizationapi.PolicyBinding, w io.Writ
 	}
 	roleBindingsString := strings.Join(roleBindingNames.List(), ", ")
 
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", policyBinding.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%v\n", policyBinding.Name, roleBindingsString, policyBinding.LastModified)
 	return err
 }
@@ -423,6 +487,11 @@ func printIsPersonalSubjectAccessReview(a *authorizationapi.IsPersonalSubjectAcc
 }
 
 func printRole(role *authorizationapi.Role, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", role.Namespace); err != nil {
+			return err
+		}
+	}
 	_, err := fmt.Fprintf(w, "%s\n", role.Name)
 	return err
 }
@@ -438,7 +507,14 @@ func printRoleList(list *authorizationapi.RoleList, w io.Writer, withNamespace, 
 }
 
 func printRoleBinding(roleBinding *authorizationapi.RoleBinding, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\n", roleBinding.Name, roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, roleBinding.Users.List(), roleBinding.Groups.List())
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", roleBinding.Namespace); err != nil {
+			return err
+		}
+	}
+	users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
+
+	_, err := fmt.Fprintf(w, "%s\t%s\t%v\t%v\t%v\t%v\n", roleBinding.Name, roleBinding.RoleRef.Namespace+"/"+roleBinding.RoleRef.Name, strings.Join(users, ", "), strings.Join(groups, ", "), strings.Join(sas, ", "), strings.Join(others, ", "))
 	return err
 }
 
@@ -543,6 +619,19 @@ func printUserIdentityMapping(mapping *userapi.UserIdentityMapping, w io.Writer,
 	return err
 }
 
+func printGroup(group *userapi.Group, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\n", group.Name, strings.Join(group.Users, ", "))
+	return err
+}
+func printGroupList(list *userapi.GroupList, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
+	for _, item := range list.Items {
+		if err := printGroup(&item, w, withNamespace, wide, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func printHostSubnet(h *sdnapi.HostSubnet, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", h.Name, h.Host, h.HostIP, h.Subnet)
 	return err
@@ -556,8 +645,22 @@ func printHostSubnetList(list *sdnapi.HostSubnetList, w io.Writer, withNamespace
 	return nil
 }
 
+func printNetNamespace(h *sdnapi.NetNamespace, w io.Writer, withNamespace bool, wide bool, columnLabels []string) error {
+	_, err := fmt.Fprintf(w, "%s\t%d\n", h.NetName, h.NetID)
+	return err
+}
+
+func printNetNamespaceList(list *sdnapi.NetNamespaceList, w io.Writer, withNamespace bool, wide bool, columnLabels []string) error {
+	for _, item := range list.Items {
+		if err := printNetNamespace(&item, w, withNamespace, wide, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func printClusterNetwork(n *sdnapi.ClusterNetwork, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\t%d\n", n.Name, n.Network, n.HostSubnetLength)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%d\t%s\n", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork)
 	return err
 }
 

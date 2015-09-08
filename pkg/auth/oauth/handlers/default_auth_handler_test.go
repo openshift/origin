@@ -161,6 +161,64 @@ func TestWithChallengeErrorsAndMergedSuccess(t *testing.T) {
 	if !(reflect.DeepEqual(map[string][]string(responseRecorder.HeaderMap), expectedHeader1) || reflect.DeepEqual(map[string][]string(responseRecorder.HeaderMap), expectedHeader2)) {
 		t.Errorf("Expected %#v or %#v, got %#v.", expectedHeader1, expectedHeader2, responseRecorder.HeaderMap)
 	}
+	if responseRecorder.Code != 401 {
+		t.Errorf("Expected 401, got %d", responseRecorder.Code)
+	}
+}
+
+func TestWithChallengeAndRedirect(t *testing.T) {
+	expectedError := "Location"
+	workingChallengeHandler1 := &mockChallenger{headerName: "Location", headerValue: "https://example.com"}
+	workingChallengeHandler2 := &mockChallenger{headerName: "WWW-Authenticate", headerValue: "Basic"}
+
+	authHandler := NewUnionAuthenticationHandler(
+		map[string]AuthenticationChallenger{
+			"first":  workingChallengeHandler1,
+			"second": workingChallengeHandler2,
+		}, nil, nil)
+	client := &testClient{&oauthapi.OAuthClient{RespondWithChallenges: true}}
+	req, _ := http.NewRequest("GET", "http://example.org", nil)
+	responseRecorder := httptest.NewRecorder()
+	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
+
+	if err == nil {
+		t.Errorf("Expected error, got none")
+	} else if !strings.Contains(err.Error(), expectedError) {
+		t.Errorf("Expected error containing %q, got %v", expectedError, err)
+	}
+	if handled {
+		t.Error("Unexpected handling.")
+	}
+}
+
+func TestWithRedirect(t *testing.T) {
+	workingChallengeHandler1 := &mockChallenger{headerName: "Location", headerValue: "https://example.com"}
+
+	// order of the array is not guaranteed
+	expectedHeader1 := map[string][]string{"Location": {"https://example.com"}}
+
+	authHandler := NewUnionAuthenticationHandler(
+		map[string]AuthenticationChallenger{
+			"first": workingChallengeHandler1,
+		},
+		nil, nil)
+	client := &testClient{&oauthapi.OAuthClient{RespondWithChallenges: true}}
+	req, _ := http.NewRequest("GET", "http://example.org", nil)
+	responseRecorder := httptest.NewRecorder()
+	handled, err := authHandler.AuthenticationNeeded(client, responseRecorder, req)
+
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if !handled {
+		t.Error("Expected handling.")
+	}
+	if !reflect.DeepEqual(map[string][]string(responseRecorder.HeaderMap), expectedHeader1) {
+		t.Errorf("Expected %#v, got %#v.", expectedHeader1, responseRecorder.HeaderMap)
+	}
+	if responseRecorder.Code != 302 {
+		t.Errorf("Expected 302, got %d", responseRecorder.Code)
+	}
 }
 
 type badTestClient struct {
@@ -196,49 +254,49 @@ func TestWarningRegex(t *testing.T) {
 		"empty": {},
 
 		// Invalid code segment
-		"code 2 numbers":   {Header: `19 OpenShift "Message goes here"`},
-		"code 4 numbers":   {Header: `1999 OpenShift "Message goes here"`},
-		"code non-numbers": {Header: `ABC OpenShift "Message goes here"`},
+		"code 2 numbers":   {Header: `19 Origin "Message goes here"`},
+		"code 4 numbers":   {Header: `1999 Origin "Message goes here"`},
+		"code non-numbers": {Header: `ABC Origin "Message goes here"`},
 
 		// Invalid agent segment
 		"agent missing": {Header: `199  "Message goes here"`},
 		"agent spaces":  {Header: `199 Open Shift "Message goes here"`},
 
 		// Invalid text segment
-		"text missing":       {Header: `199 OpenShift`},
-		"text unquoted":      {Header: `199 OpenShift Message`},
-		"text single quotes": {Header: `199 OpenShift 'Message'`},
-		"text bad quotes":    {Header: `199 OpenShift "Mes"sage"`},
-		"text bad escape":    {Header: `199 OpenShift "Mes\\"sage"`},
+		"text missing":       {Header: `199 Origin`},
+		"text unquoted":      {Header: `199 Origin Message`},
+		"text single quotes": {Header: `199 Origin 'Message'`},
+		"text bad quotes":    {Header: `199 Origin "Mes"sage"`},
+		"text bad escape":    {Header: `199 Origin "Mes\\"sage"`},
 
 		// Invalid date segment
-		"date unquoted":      {Header: `199 OpenShift "Message" Date`},
-		"date single quoted": {Header: `199 OpenShift "Message" 'Date'`},
-		"date empty":         {Header: `199 OpenShift "Message" ""`},
+		"date unquoted":      {Header: `199 Origin "Message" Date`},
+		"date single quoted": {Header: `199 Origin "Message" 'Date'`},
+		"date empty":         {Header: `199 Origin "Message" ""`},
 
 		// Valid segments
 		"valid no date": {
-			Header: `199 OpenShift "Message goes here"`,
+			Header: `199 Origin "Message goes here"`,
 			Match:  true,
-			Parts:  []string{"199", "OpenShift", "Message goes here", ""},
+			Parts:  []string{"199", "Origin", "Message goes here", ""},
 		},
 
 		"valid with date": {
-			Header: `199 OpenShift "Message goes here" "date"`,
+			Header: `199 Origin "Message goes here" "date"`,
 			Match:  true,
-			Parts:  []string{"199", "OpenShift", "Message goes here", "date"},
+			Parts:  []string{"199", "Origin", "Message goes here", "date"},
 		},
 
 		"valid with escaped quote": {
-			Header: `199 OpenShift "Message \" goes here" "date"`,
+			Header: `199 Origin "Message \" goes here" "date"`,
 			Match:  true,
-			Parts:  []string{"199", "OpenShift", `Message \" goes here`, "date"},
+			Parts:  []string{"199", "Origin", `Message \" goes here`, "date"},
 		},
 
 		"valid with escaped quote and slash": {
-			Header: `199 OpenShift "Message \\\" goes here" "date"`,
+			Header: `199 Origin "Message \\\" goes here" "date"`,
 			Match:  true,
-			Parts:  []string{"199", "OpenShift", `Message \\\" goes here`, "date"},
+			Parts:  []string{"199", "Origin", `Message \\\" goes here`, "date"},
 		},
 	}
 

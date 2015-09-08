@@ -3,7 +3,7 @@
 angular.module("openshiftConsole")
 
   .service("ApplicationGenerator", function(DataService){
-    var osApiVersion = DataService.osApiVersion;
+    var oApiVersion = DataService.oApiVersion;
     var k8sApiVersion = DataService.k8sApiVersion;
 
     var scope = {};
@@ -67,8 +67,8 @@ angular.module("openshiftConsole")
       }
 
       //augment labels
-      input.labels.name = input.name;
-      input.labels.generatedby = "OpenShiftWebConsole";
+      input.labels.app = input.name;
+      input.annotations["openshift.io/generatedby"] = "OpenShiftWebConsole";
 
       var imageSpec;
       if(input.buildConfig.sourceUrl !== null){
@@ -98,10 +98,11 @@ angular.module("openshiftConsole")
       }
       return {
         kind: "Route",
-        apiVersion: osApiVersion,
+        apiVersion: oApiVersion,
         metadata: {
           name: name,
-          labels: input.labels
+          labels: input.labels,
+          annotations: input.annotations
         },
         spec: {
           to: {
@@ -112,20 +113,21 @@ angular.module("openshiftConsole")
       };
     };
 
-    scope._generateDeploymentConfig = function(input, imageSpec, ports, labels){
+    scope._generateDeploymentConfig = function(input, imageSpec, ports){
       var env = [];
       angular.forEach(input.deploymentConfig.envVars, function(value, key){
         env.push({name: key, value: value});
       });
-      labels = angular.copy(labels);
-      labels.deploymentconfig = input.name;
+      var templateLabels = angular.copy(input.labels);
+      templateLabels.deploymentconfig = input.name;
 
       var deploymentConfig = {
-        apiVersion: osApiVersion,
+        apiVersion: oApiVersion,
         kind: "DeploymentConfig",
         metadata: {
           name: input.name,
-          labels: labels
+          labels: input.labels,
+          annotations: input.annotations
         },
         spec: {
           replicas: input.scaling.replicas,
@@ -135,7 +137,7 @@ angular.module("openshiftConsole")
           triggers: [],
           template: {
             metadata: {
-              labels: labels
+              labels: templateLabels
             },
             spec: {
               containers: [
@@ -173,13 +175,16 @@ angular.module("openshiftConsole")
       return deploymentConfig;
     };
 
-    scope._generateBuildConfig = function(input, imageSpec, labels){
+    scope._generateBuildConfig = function(input, imageSpec){
       var triggers = [
         {
           generic: {
             secret: scope._generateSecret()
           },
-          type: "generic"
+          type: "Generic"
+        },
+        {
+          type: "ConfigChange"
         }
       ];
       if(input.buildConfig.buildOnSourceChange){
@@ -187,22 +192,33 @@ angular.module("openshiftConsole")
             github: {
               secret: scope._generateSecret()
             },
-            type: "github"
+            type: "GitHub"
           }
         );
       }
       if(input.buildConfig.buildOnImageChange){
         triggers.push({
           imageChange: {},
-          type: "imageChange"
+          type: "ImageChange"
         });
       }
+
+      // User can input a URL that contains a ref
+      var uri = new URI(input.buildConfig.sourceUrl);
+      var sourceRef = uri.fragment();
+      if (!sourceRef || sourceRef.length === 0) {
+        sourceRef = "master";
+      }
+      uri.fragment("");
+      var sourceUrl = uri.href();
+
       return {
-        apiVersion: osApiVersion,
+        apiVersion: oApiVersion,
         kind: "BuildConfig",
         metadata: {
           name: input.name,
-          labels: labels
+          labels: input.labels,
+          annotations: input.annotations
         },
         spec: {
           output: {
@@ -213,8 +229,8 @@ angular.module("openshiftConsole")
           },
           source: {
             git: {
-              ref: "master",
-              uri: input.buildConfig.sourceUrl
+              ref: sourceRef,
+              uri: sourceUrl
             },
             type: "Git"
           },
@@ -235,11 +251,12 @@ angular.module("openshiftConsole")
 
     scope._generateImageStream = function(input){
       return {
-        apiVersion: osApiVersion,
+        apiVersion: oApiVersion,
         kind: "ImageStream",
         metadata: {
           name: input.name,
-          labels: input.labels
+          labels: input.labels,
+          annotations: input.annotations
         }
       };
     };
@@ -253,7 +270,8 @@ angular.module("openshiftConsole")
         apiVersion: k8sApiVersion,
         metadata: {
           name: serviceName,
-          labels: input.labels
+          labels: input.labels,
+          annotations: input.annotations
         },
         spec: {
           selector: {
@@ -263,7 +281,7 @@ angular.module("openshiftConsole")
       };
       //TODO add in when server supports headless services without a port spec
 //      if(port === 'None'){
-//        service.spec.portalIP = 'None';
+//        service.spec.clusterIP = 'None';
 //      }else{
         service.spec.ports = [{
           port: port.containerPort,

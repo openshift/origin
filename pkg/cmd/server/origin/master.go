@@ -12,13 +12,14 @@ import (
 	restful "github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/apiserver"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kmaster "github.com/GoogleCloudPlatform/kubernetes/pkg/master"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/apiserver"
+	kclient "k8s.io/kubernetes/pkg/client"
+	kmaster "k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
@@ -52,13 +53,14 @@ import (
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
-	routeetcd "github.com/openshift/origin/pkg/route/registry/etcd"
-	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
+	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
+	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	"github.com/openshift/origin/pkg/service"
 	templateregistry "github.com/openshift/origin/pkg/template/registry"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/etcd"
+	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
@@ -74,11 +76,13 @@ import (
 	clusterpolicybindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
 	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
 	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
+	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
+	"github.com/openshift/origin/pkg/authorization/registry/localsubjectaccessreview"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
-	resourceaccessreviewregistry "github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
+	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -168,7 +172,7 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = apiserver.CORS(handler, origins, nil, nil, "true")
 	}
 
-	if c.Options.AssetConfig != nil {
+	if c.WebConsoleEnabled() {
 		handler = assetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
 	}
 
@@ -186,6 +190,27 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 		handler = apiserver.MaxInFlightLimit(sem, longRunningRE, handler)
 	}
 
+	c.serve(handler, extra)
+
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+func (c *MasterConfig) RunHealth() {
+	ws := &restful.WebService{}
+	mux := http.NewServeMux()
+	hc := kmaster.NewHandlerContainer(mux)
+	hc.Add(ws)
+
+	initHealthCheckRoute(ws, "/healthz")
+	initReadinessCheckRoute(ws, "/healthz/ready", func() bool { return true })
+	initMetricsRoute(ws, "/metrics")
+
+	c.serve(hc, []string{"Started health checks at %s"})
+}
+
+// serve starts serving the provided http.Handler using security settings derived from the MasterConfig
+func (c *MasterConfig) serve(handler http.Handler, extra []string) {
 	timeout := c.Options.ServingInfo.RequestTimeoutSeconds
 	if timeout == -1 {
 		timeout = 0
@@ -212,25 +237,24 @@ func (c *MasterConfig) Run(protected []APIInstaller, unprotected []APIInstaller)
 				ClientAuth: tls.RequestClientCert,
 				ClientCAs:  c.ClientCAs,
 			}
-			glog.Fatal(server.ListenAndServeTLS(c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
+			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
 		} else {
 			glog.Fatal(server.ListenAndServe())
 		}
 	}, 0)
+}
 
-	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, "tcp", c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-
+// InitializeObjects ensures objects in Kubernetes and etcd are properly populated.
+// Requires a Kube client to be established and that etcd be started.
+func (c *MasterConfig) InitializeObjects() {
 	// Create required policy rules if needed
 	c.ensureComponentAuthorizationRules()
 	// Ensure the default SCCs are created
 	c.ensureDefaultSecurityContextConstraints()
 	// Bind default roles for service accounts in the default namespace if needed
 	c.ensureDefaultNamespaceServiceAccountRoles()
-
 	// Create the infra namespace
 	c.ensureOpenShiftInfraNamespace()
-
 	// Create the shared resource namespace
 	c.ensureOpenShiftSharedResourcesNamespace()
 }
@@ -247,7 +271,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
 		}
-		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s", OpenShiftAPIPrefixV1Beta3))
+		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1Beta3))
 		legacyAPIVersions = append(legacyAPIVersions, OpenShiftAPIV1Beta3)
 	}
 
@@ -255,7 +279,7 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		if err := c.api_v1(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1 API: %v", err)
 		}
-		messages = append(messages, fmt.Sprintf("Started OpenShift API at %%s%s (experimental)", OpenShiftAPIPrefixV1))
+		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1))
 		currentAPIVersions = append(currentAPIVersions, OpenShiftAPIV1)
 	}
 
@@ -276,11 +300,12 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		container.Add(root)
 	}
 
-	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
 	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
-	initHealthCheckRoute(root, "healthz")
-	initReadinessCheckRoute(root, "healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
+
+	initControllerRoutes(root, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
+	initHealthCheckRoute(root, "/healthz")
+	initReadinessCheckRoute(root, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 
 	return messages
 }
@@ -307,8 +332,11 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	deployConfigStorage := deployconfigetcd.NewStorage(c.EtcdHelper)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
-	routeEtcd := routeetcd.New(c.EtcdHelper)
+	routeAllocator := c.RouteAllocator()
+
+	routeEtcd := routeetcd.NewREST(c.EtcdHelper, routeAllocator)
 	hostSubnetStorage := hostsubnetetcd.NewREST(c.EtcdHelper)
+	netNamespaceStorage := netnamespaceetcd.NewREST(c.EtcdHelper)
 	clusterNetworkStorage := clusternetworketcd.NewREST(c.EtcdHelper)
 
 	userStorage := useretcd.NewREST(c.EtcdHelper)
@@ -334,6 +362,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
+	localSubjectAccessReviewStorage := localsubjectaccessreview.NewREST(subjectAccessReviewRegistry)
+	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.Authorizer)
+	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
+	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
 	imageStorage := imageetcd.NewREST(c.EtcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
@@ -344,8 +376,6 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
-
-	routeAllocator := c.RouteAllocator()
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
@@ -397,13 +427,6 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	)
 
 	storage := map[string]rest.Storage{
-		"builds":                   buildStorage,
-		"buildConfigs":             buildConfigStorage,
-		"buildConfigs/webhooks":    buildConfigWebHooks,
-		"builds/clone":             buildclonestorage.NewStorage(buildGenerator),
-		"buildConfigs/instantiate": buildinstantiatestorage.NewStorage(buildGenerator),
-		"builds/log":               buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient),
-
 		"images":              imageStorage,
 		"imageStreams":        imageStreamStorage,
 		"imageStreams/status": imageStreamStatusStorage,
@@ -412,21 +435,23 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"imageStreamTags":     imageStreamTagStorage,
 
 		"deploymentConfigs":         deployConfigStorage,
-		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec),
-		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec),
+		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
+		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
 
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
 
-		"routes": routeregistry.NewREST(routeEtcd, routeAllocator),
+		"routes": routeEtcd,
 
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,
 
 		"hostSubnets":     hostSubnetStorage,
+		"netNamespaces":   netNamespaceStorage,
 		"clusterNetworks": clusterNetworkStorage,
 
 		"users":                userStorage,
+		"groups":               groupetcd.NewREST(c.EtcdHelper),
 		"identities":           identityStorage,
 		"userIdentityMappings": userIdentityMappingStorage,
 
@@ -435,8 +460,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"oAuthClients":              clientetcd.NewREST(c.EtcdHelper),
 		"oAuthClientAuthorizations": clientauthetcd.NewREST(c.EtcdHelper),
 
-		"resourceAccessReviews": resourceaccessreviewregistry.NewREST(c.Authorizer),
-		"subjectAccessReviews":  subjectAccessReviewStorage,
+		"resourceAccessReviews":      resourceAccessReviewStorage,
+		"subjectAccessReviews":       subjectAccessReviewStorage,
+		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
+		"localResourceAccessReviews": localResourceAccessReviewStorage,
 
 		"policies":       policyStorage,
 		"policyBindings": policyBindingStorage,
@@ -447,6 +474,15 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterPolicyBindings": clusterPolicyBindingStorage,
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
+	}
+
+	if configapi.IsBuildEnabled(&c.Options) {
+		storage["builds"] = buildStorage
+		storage["buildConfigs"] = buildConfigStorage
+		storage["buildConfigs/webhooks"] = buildConfigWebHooks
+		storage["builds/clone"] = buildclonestorage.NewStorage(buildGenerator)
+		storage["buildConfigs/instantiate"] = buildinstantiatestorage.NewStorage(buildGenerator)
+		storage["builds/log"] = buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient)
 	}
 
 	return storage
@@ -475,8 +511,8 @@ func initHealthCheckRoute(root *restful.WebService, path string) {
 	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
 		resp.ResponseWriter.WriteHeader(http.StatusOK)
 		resp.ResponseWriter.Write([]byte("ok"))
-	}).Doc("return the health state of OpenShift").
-		Returns(http.StatusOK, "if OpenShift is healthy", nil).
+	}).Doc("return the health state of the master").
+		Returns(http.StatusOK, "if master is healthy", nil).
 		Produces(restful.MIME_JSON))
 }
 
@@ -490,10 +526,21 @@ func initReadinessCheckRoute(root *restful.WebService, path string, readyFunc fu
 		} else {
 			resp.ResponseWriter.WriteHeader(http.StatusServiceUnavailable)
 		}
-	}).Doc("return the readiness state of OpenShift").
-		Returns(http.StatusOK, "if OpenShift is ready", nil).
-		Returns(http.StatusServiceUnavailable, "if OpenShift is not ready", nil).
+	}).Doc("return the readiness state of the master").
+		Returns(http.StatusOK, "if the master is ready", nil).
+		Returns(http.StatusServiceUnavailable, "if the master is not ready", nil).
 		Produces(restful.MIME_JSON))
+}
+
+// initHealthCheckRoute initalizes an HTTP endpoint for health checking.
+// OpenShift is deemed healthy if the API server can respond with an OK messages
+func initMetricsRoute(root *restful.WebService, path string) {
+	h := prometheus.Handler()
+	root.Route(root.GET(path).To(func(req *restful.Request, resp *restful.Response) {
+		h.ServeHTTP(resp.ResponseWriter, req.Request)
+	}).Doc("return metrics for this process").
+		Returns(http.StatusOK, "if metrics are available", nil).
+		Produces("text/plain"))
 }
 
 func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {

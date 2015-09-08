@@ -7,8 +7,8 @@ describe("ApplicationGenerator", function(){
   beforeEach(function(){
     module('openshiftConsole', function($provide){
       $provide.value("DataService",{
-        osApiVersion: "v1beta3",
-        k8sApiVersion: "v1beta3"
+        oApiVersion: "v1",
+        k8sApiVersion: "v1"
       });
     });
 
@@ -43,6 +43,7 @@ describe("ApplicationGenerator", function(){
         foo: "bar",
         abc: "xyz"
       },
+      annotations: {},
       scaling: {
         replicas: 1
       },
@@ -50,11 +51,11 @@ describe("ApplicationGenerator", function(){
       imageTag: "latest",
       imageRepo: {
         "kind": "ImageStream",
-        "apiVersion": "v1beta3",
+        "apiVersion": "v1",
         "metadata": {
           "name": "origin-ruby-sample",
           "namespace": "test",
-          "selfLink": "/osapi/v1beta3/test/imagestreams/origin-ruby-sample",
+          "selfLink": "/oapi/v1/test/imagestreams/origin-ruby-sample",
           "uid": "ea1d67fc-c358-11e4-90e6-080027c5bfa9",
           "resourceVersion": "150",
           "creationTimestamp": "2015-03-05T16:58:58Z"
@@ -118,7 +119,7 @@ describe("ApplicationGenerator", function(){
 //      expect(service).toEqual(
 //        {
 //            "kind": "Service",
-//            "apiVersion": "v1beta3",
+//            "apiVersion": "v1",
 //            "metadata": {
 //                "name": "theServiceName",
 //                "labels" : {
@@ -126,7 +127,7 @@ describe("ApplicationGenerator", function(){
 //                  "abc" : "xyz"                }
 //            },
 //            "spec": {
-//                "portalIP" : "None",
+//                "clusterIP" : "None",
 //                "selector": {
 //                    "deploymentconfig": "ruby-hello-world"
 //                }
@@ -142,16 +143,25 @@ describe("ApplicationGenerator", function(){
       expect(ApplicationGenerator._generateRoute(input, input.name, "theServiceName")).toBe(null);
     });
 
-    it("should generate an unsecure Route when routing is required", function(){
-      var route = ApplicationGenerator._generateRoute(input, input.name, "theServiceName");
+    it("should generate an insecure Route when routing is required", function(){
+      // Add the same labels and annotations as application generator `generate()`
+      var routeInput = angular.copy(input);
+      routeInput.labels.app = input.name;
+      routeInput.annotations["openshift.io/generatedby"] = "OpenShiftWebConsole";
+
+      var route = ApplicationGenerator._generateRoute(routeInput, routeInput.name, "theServiceName");
       expect(route).toEqual({
         kind: "Route",
-        apiVersion: 'v1beta3',
+        apiVersion: 'v1',
         metadata: {
           name: "ruby-hello-world",
           labels : {
             "foo" : "bar",
-            "abc" : "xyz"
+            "abc" : "xyz",
+            "app": "ruby-hello-world"
+          },
+          annotations: {
+            "openshift.io/generatedby": "OpenShiftWebConsole"
           }
         },
         spec: {
@@ -173,15 +183,17 @@ describe("ApplicationGenerator", function(){
     it("should generate a BuildConfig for the source", function(){
       expect(resources.buildConfig).toEqual(
         {
-            "apiVersion": "v1beta3",
+            "apiVersion": "v1",
             "kind": "BuildConfig",
             "metadata": {
                 "name": "ruby-hello-world",
                 "labels": {
                   "foo" : "bar",
                   "abc" : "xyz",
-                  "name": "ruby-hello-world",
-                  "generatedby": "OpenShiftWebConsole"
+                  "app": "ruby-hello-world"
+                },
+                "annotations": {
+                  "openshift.io/generatedby": "OpenShiftWebConsole"
                 }
             },
             "spec": {
@@ -212,17 +224,20 @@ describe("ApplicationGenerator", function(){
                         "generic": {
                             "secret": "secret101"
                         },
-                        "type": "generic"
+                        "type": "Generic"
+                    },
+                    {
+                        "type": "ConfigChange"
                     },
                     {
                         "github": {
                             "secret": "secret101"
                         },
-                        "type": "github"
+                        "type": "GitHub"
                     },
                     {
                       "imageChange" : {},
-                      "type" : "imageChange"
+                      "type" : "ImageChange"
                     }
                 ]
             }
@@ -233,15 +248,17 @@ describe("ApplicationGenerator", function(){
     it("should generate an ImageStream for the build output", function(){
       expect(resources.imageStream).toEqual(
         {
-          "apiVersion": "v1beta3",
+          "apiVersion": "v1",
           "kind": "ImageStream",
           "metadata": {
               "name": "ruby-hello-world",
               labels : {
                 "foo" : "bar",
                 "abc" : "xyz",
-                "name": "ruby-hello-world",
-                "generatedby": "OpenShiftWebConsole"
+                "app" : "ruby-hello-world",
+              },
+              "annotations": {
+                "openshift.io/generatedby": "OpenShiftWebConsole"
               }
           }
         }
@@ -252,14 +269,16 @@ describe("ApplicationGenerator", function(){
       expect(resources.service).toEqual(
         {
             "kind": "Service",
-            "apiVersion": "v1beta3",
+            "apiVersion": "v1",
             "metadata": {
                 "name": "ruby-hello-world",
                 "labels" : {
                   "foo" : "bar",
                   "abc" : "xyz",
-                  "name": "ruby-hello-world",
-                  "generatedby": "OpenShiftWebConsole"
+                  "app" : "ruby-hello-world"
+                },
+                "annotations": {
+                  "openshift.io/generatedby": "OpenShiftWebConsole"
                 }
             },
             "spec": {
@@ -280,16 +299,17 @@ describe("ApplicationGenerator", function(){
       var resources = ApplicationGenerator.generate(input);
       expect(resources.deploymentConfig).toEqual(
         {
-          "apiVersion": "v1beta3",
+          "apiVersion": "v1",
           "kind": "DeploymentConfig",
           "metadata": {
             "name": "ruby-hello-world",
             "labels": {
               "foo" : "bar",
               "abc" : "xyz",
-              "name": "ruby-hello-world",
-              "generatedby" : "OpenShiftWebConsole",
-              "deploymentconfig": "ruby-hello-world"
+              "app" : "ruby-hello-world"
+            },
+            "annotations": {
+              "openshift.io/generatedby": "OpenShiftWebConsole"
             }
           },
           "spec": {
@@ -320,8 +340,7 @@ describe("ApplicationGenerator", function(){
                 "labels": {
                   "foo" : "bar",
                   "abc" : "xyz",
-                  "name": "ruby-hello-world",
-                  "generatedby" : "OpenShiftWebConsole",
+                  "app" : "ruby-hello-world",
                   "deploymentconfig": "ruby-hello-world"
                 }
               },
@@ -385,14 +404,16 @@ describe("ApplicationGenerator", function(){
         expect(resources.service).toEqual(
         {
             "kind": "Service",
-            "apiVersion": "v1beta3",
+            "apiVersion": "v1",
             "metadata": {
                 "name": "ruby-hello-world",
                 "labels" : {
                   "foo" : "bar",
                   "abc" : "xyz",
-                  "name": "ruby-hello-world",
-                  "generatedby": "OpenShiftWebConsole"
+                  "app" : "ruby-hello-world"
+                },
+                "annotations": {
+                  "openshift.io/generatedby": "OpenShiftWebConsole"
                 }
             },
             "spec": {

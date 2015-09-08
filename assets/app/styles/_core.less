@@ -27,7 +27,7 @@ html, body {
     margin-top: 35px;
     margin-bottom: @grid-gutter-width * 2;
     h1 {
-      margin-top: 10px;
+      margin: 10px 0 20px;
     }
   }
 }
@@ -39,28 +39,47 @@ html, body {
   .navbar-pf {
     background: @navbar-os-bg-color;
     .navbar-header {
-      border-bottom-color: lighten(@navbar-pf-bg-color, 62%);
+      .navbar-brand {
+        .brand-logo {
+          background: url('@{image-path}/logo-enterprise-thin.svg');
+          background-repeat: no-repeat;
+          width: 193px;
+          height: 10px;
+        }
+      }
     }
-    .navbar-utility > li {
+    .navbar-nav li {
       > a {
         border: 0;
         font-size: 12px;
         &:hover {
         }
       }
+      + li {
+        border-top: 0;
+      }
+    }
+    @media (max-width: @screen-xs-max) {
+      .navbar-utility {
+        border-top: 1px solid @navbar-pf-navbar-header-border-color;
+      }
     }
     .navbar-brand { 
       border: 0;
+      margin-left: 20px;
+      margin-top: 4px;
       padding: 8px 0 8px;
+
     }
   }
 }
 
 .console-os .navbar-project {
-  border-bottom: 1px solid @navbar-os-project-border-color; 
-  padding-bottom: 20px;
+  border-bottom: 1px solid @navbar-os-project-border-color;
+  padding-bottom: 5px;
+  padding-top: 5px;
   position: relative;
-  background: @navbar-os-project-bg;
+  background: #fff;
   label.control-label {
     color: @navbar-project-label-color;
     font-size: 11px;
@@ -111,9 +130,52 @@ html, body {
     margin-top: 15px;
   }
 }
-@media (min-width: @screen-sm-min) {
+@media (max-width: @screen-xs-max) {
+  // Project nav at mobile widths
   .console-os {
     .navbar-project {
+      .form-group {
+        display: inline;
+      }
+      .project-actions {
+        margin-right: -10px;
+        margin-left: 10px;
+        a {
+          color: lighten(@navbar-os-project-menu-color, 20%);
+          cursor: pointer;
+          display: inline-block;
+          font-size: 18px;
+          padding: 4px 14px 5px;
+          &:hover, &:active, &:focus {
+            background-color: @sidebar-os-hover-bg;
+            color: @navbar-os-project-menu-color;
+          }
+        }
+      }
+      .navbar-filter-widget {
+        margin-top: 10px;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+ @media (min-width: @screen-sm-min) {
+  .console-os {
+    .navbar-pf {
+      .navbar-header {
+        .navbar-brand {
+          margin-top: 0;
+        }
+      }
+    }
+    .navbar-project {
+      background: @navbar-os-project-bg;
+      padding-bottom: 20px;
+      padding-top: 0;
+      .navbar-filter-widget-collapse.collapse {
+        // Prevent filter field from being hidden when going from mobile to desktop width
+        display: block;
+      }
       .navbar-filter-widget {
         /* Prevent the filter button from wrapping at wide screen sizes. */
         min-width: 340px;
@@ -139,19 +201,31 @@ html, body {
   margin-bottom: 0;
 }
 
-.empty-state-msg {
-  background-color: #ffffff;
-  border-radius: @border-radius-sm;
-  box-shadow: @osc-object-box-shadow;
-  font-weight: 300;
-  margin: auto;
-  max-width: 600px;
+.empty-project {
+  margin: 10px auto;
+  max-width: 500px;
   padding: 30px;
-  text-align: center;
-  p {
-    font-size: @font-size-large;
-    max-width: 400px;
-    margin: 30px auto;
+  // Make sure icons are the same size so text aligns.
+  .fa {
+    width: 16px;
+    text-align: center;
+  }
+  dd {
+    margin-left: 20px;
+    margin-bottom: 10px;
+  }
+}
+
+.empty-project-list {
+  .text-center;
+  margin: @grid-gutter-width auto;
+  max-width: 600px;
+  padding: 0 (@grid-gutter-width / 2);
+  .btn {
+    margin: 10px 0 20px;
+  }
+  @media (min-height: 500px) {
+    margin-top: 150px;
   }
 }
 
@@ -161,6 +235,12 @@ html, body {
 
  label.checkbox {
   font-weight: normal;
+}
+
+// Make sure icons are the same size so headings align.
+.add-to-project h1 .fa {
+  width: 24px;
+  text-align: center;
 }
 
 .create-from-template,
@@ -209,14 +289,21 @@ html, body {
     border-top: 0;
   }
   .template-options {
+    line-height: 1.5;
     .list-unstyled {
-      line-height: 1.5;
+      .options {
+        margin-bottom: 12px;
+      }
       .help-block {
-        margin-top: 0;
+        margin: 0 0 5px 2px;
       }
     }
+    .form-group {
+      width: 100%;
+      max-width: 600px;
+    }
     .help-block {
-      margin-left: 2px;
+      margin-bottom: 5px;
     }
   }
 }
@@ -301,6 +388,12 @@ html, body {
   }
 }
 
+label.required:before {
+  content: '*';
+  position: absolute;
+  left: 10px;
+}
+
 .btn-xs {
   padding: 0 4px;
 }
@@ -329,6 +422,57 @@ code {
 
 .table-responsive {
   overflow-x: auto; // remove when we update to latest patternfly with twbs 3.3.4
+}
+
+.table-events {
+  background-color: #fff;
+  > tbody {
+    + tbody {
+      border-top-width: 1px;
+    }
+  }
+  tr {
+    @media (min-width: @screen-md-min) {
+      td.event-time {
+        white-space: nowrap;
+      }
+    }
+  }
+}
+@media (max-width: @screen-xs-max) {
+  .table-events {
+    thead, tbody, th, td, tr {
+      display: block;
+    }
+    thead tr {
+      /* Hide table headers (but not display: none;, for accessibility) */
+      .sr-only();
+    }
+    > tbody {
+      > tr {
+        > td {
+           /* Behave like a row */
+          border: none;
+          border-bottom: 1px solid #eee;
+          padding: 3px 6px 2px 35%;
+          position: relative;
+          &:last-child {
+            border-bottom: none;
+          }
+          &:before {
+            /* Act as mobile table header */
+            content: attr(data-title);
+            position: absolute;
+            top: 3px;
+            left: 6px;
+            width: 35%; 
+            padding-right: 10px; 
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+  }
 }
 
 .gutter-top-bottom {
@@ -408,4 +552,24 @@ select:invalid {
 }
 .input-number {
   width: 60px;
+}
+
+.action-button {
+  color: @gray-light;
+  cursor: pointer;
+  &:hover {
+    color: #000;
+  }
+}
+
+.modal-project-delete {
+  background-color: @gray-lighter;
+  h1 {
+    font-size: 21px;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  p {
+    font-size: @font-size-large + 1;
+  }
 }

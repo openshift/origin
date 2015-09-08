@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/proxy"
-	pconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/proxy/config"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	kexec "github.com/GoogleCloudPlatform/kubernetes/pkg/util/exec"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/iptables"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	pconfig "k8s.io/kubernetes/pkg/proxy/config"
+	proxy "k8s.io/kubernetes/pkg/proxy/userspace"
+	"k8s.io/kubernetes/pkg/util"
+	kexec "k8s.io/kubernetes/pkg/util/exec"
+	"k8s.io/kubernetes/pkg/util/iptables"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
@@ -85,7 +85,7 @@ func (c *NodeConfig) HandleDockerError(message string) {
 		glog.Fatalf("ERROR: %s", message)
 	}
 	glog.Errorf("WARNING: %s", message)
-	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env{"ApiVersion=1.18"}}
+	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockerclient.Env([]string{"ApiVersion=1.18"})}
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
@@ -128,7 +128,7 @@ func (c *NodeConfig) RunKubelet() {
 		if service, err := c.Client.Endpoints(kapi.NamespaceDefault).Get("kubernetes"); err == nil {
 			if ip, ok := firstIP(service, 53); ok {
 				if err := cmdutil.WaitForSuccessfulDial(false, "tcp", fmt.Sprintf("%s:%d", ip, 53), 50*time.Millisecond, 0, 2); err == nil {
-					c.KubeletConfig.ClusterDNS = util.IP(net.ParseIP(ip))
+					c.KubeletConfig.ClusterDNS = net.ParseIP(ip)
 				}
 			}
 		}
@@ -187,8 +187,7 @@ func (c *NodeConfig) RunProxy() {
 		}
 
 		pconfig.NewSourceAPI(
-			c.Client.Services(kapi.NamespaceAll),
-			c.Client.Endpoints(kapi.NamespaceAll),
+			c.Client,
 			30*time.Second,
 			serviceConfig.Channel("api"),
 			endpointsConfig.Channel("api"))

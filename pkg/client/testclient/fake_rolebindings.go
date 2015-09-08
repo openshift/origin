@@ -1,8 +1,9 @@
 package testclient
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -10,33 +11,47 @@ import (
 // FakeRoleBindings implements RoleBindingInterface. Meant to be embedded into a struct to get a default
 // implementation. This makes faking out just the methods you want to test easier.
 type FakeRoleBindings struct {
-	Fake *Fake
-}
-
-func (c *FakeRoleBindings) List(label labels.Selector, field fields.Selector) (*authorizationapi.RoleBindingList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-roleBinding"}, &authorizationapi.RoleBindingList{})
-	return obj.(*authorizationapi.RoleBindingList), err
+	Fake      *Fake
+	Namespace string
 }
 
 func (c *FakeRoleBindings) Get(name string) (*authorizationapi.RoleBinding, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-roleBinding"}, &authorizationapi.RoleBinding{})
+	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("rolebindings", c.Namespace, name), &authorizationapi.RoleBinding{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.RoleBinding), err
 }
 
-func (c *FakeRoleBindings) Create(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-roleBinding", Value: roleBinding}, &authorizationapi.RoleBinding{})
+func (c *FakeRoleBindings) List(label labels.Selector, field fields.Selector) (*authorizationapi.RoleBindingList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("rolebindings", c.Namespace, label, field), &authorizationapi.RoleBindingList{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*authorizationapi.RoleBindingList), err
+}
+
+func (c *FakeRoleBindings) Create(inObj *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("rolebindings", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.RoleBinding), err
 }
 
-func (c *FakeRoleBindings) Update(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-roleBinding"}, &authorizationapi.RoleBinding{})
+func (c *FakeRoleBindings) Update(inObj *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("rolebindings", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.RoleBinding), err
 }
 
 func (c *FakeRoleBindings) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-roleBinding", Value: name})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("rolebindings", c.Namespace, name), &authorizationapi.RoleBinding{})
+	return err
 }

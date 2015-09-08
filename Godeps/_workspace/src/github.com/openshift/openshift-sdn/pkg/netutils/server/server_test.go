@@ -14,11 +14,11 @@ func delIP(t *testing.T, delip string) error {
 	url := fmt.Sprintf("http://127.0.0.1:9080/netutils/ip/%s", delip)
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
-		t.Fatal("Error in forming request to IPAM server")
+		t.Fatal("Error in forming request to IPAM server: %v", err)
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatal("Error in connecting to IPAM server")
+		t.Fatal("Error in connecting to IPAM server: %v", err)
 	}
 	if res.StatusCode > 400 {
 		return fmt.Errorf("Bad response from server: %d", res.StatusCode)
@@ -29,11 +29,11 @@ func delIP(t *testing.T, delip string) error {
 func getIP(t *testing.T) string {
 	res, err := http.Get("http://127.0.0.1:9080/netutils/ip")
 	if err != nil {
-		t.Fatal("Error in connecting to IPAM server")
+		t.Fatal("Error in connecting to IPAM server: %v", err)
 	}
 	ip, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		t.Fatal("Error in obtaining IP address through server")
+		t.Fatal("Error in obtaining IP address through server: %v", err)
 	}
 	res.Body.Close()
 	return string(ip)

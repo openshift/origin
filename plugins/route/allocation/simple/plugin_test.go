@@ -3,8 +3,8 @@ package simple
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/route/api"
 	rac "github.com/openshift/origin/pkg/route/controller/allocation"
@@ -179,7 +179,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 	}
 
 	plugin, _ := NewSimpleAllocationPlugin("www.example.org")
-	fac := &rac.RouteAllocationControllerFactory{nil, nil}
+	fac := &rac.RouteAllocationControllerFactory{OSClient: nil, KubeClient: nil}
 	sac := fac.Create(plugin)
 
 	for _, tc := range tests {

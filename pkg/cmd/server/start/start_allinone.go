@@ -15,9 +15,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
@@ -25,30 +25,27 @@ import (
 )
 
 type AllInOneOptions struct {
-	MasterArgs *MasterArgs
-	NodeArgs   *NodeArgs
+	MasterOptions *MasterOptions
 
-	CreateCerts      bool
-	ConfigDir        util.StringFlag
-	MasterConfigFile string
-	NodeConfigFile   string
-	PrintIP          bool
+	NodeArgs *NodeArgs
 
-	Output io.Writer
+	ConfigDir      util.StringFlag
+	NodeConfigFile string
+	PrintIP        bool
 }
 
 const allInOneLong = `
-Start an OpenShift all-in-one server
+Start an all-in-one server
 
-This command helps you launch an OpenShift all-in-one server, which allows
-you to run all of the components of an OpenShift system on a server with Docker. Running
+This command helps you launch an all-in-one server, which allows you to run all of the
+components of an enterprise Kubernetes system on a server with Docker. Running:
 
-  $ openshift start
+  $ %[1]s start
 
-will start OpenShift listening on all interfaces, launch an etcd server to store persistent
+will start listening on all interfaces, launch an etcd server to store persistent
 data, and launch the Kubernetes system components. The server will run in the foreground until
-you terminate the process.  This command delegates to "openshift start master" and
-"openshift start node".
+you terminate the process.  This command delegates to "%[1]s start master" and
+"%[1]s start node".
 
 Note: starting OpenShift without passing the --master address will attempt to find the IP
 address that will be visible inside running Docker containers. This is not always successful,
@@ -59,20 +56,21 @@ You may also pass --etcd=<address> to connect to an external etcd server.
 You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`
 
 // NewCommandStartAllInOne provides a CLI handler for 'start' command
-func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
-	options := &AllInOneOptions{Output: out}
+func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *AllInOneOptions) {
+	options := &AllInOneOptions{MasterOptions: &MasterOptions{Output: out}}
+	options.MasterOptions.DefaultsFromName(basename)
 
 	cmds := &cobra.Command{
 		Use:   "start",
-		Short: "Launch OpenShift All-In-One",
-		Long:  allInOneLong,
+		Short: "Launch all-in-one server",
+		Long:  fmt.Sprintf(allInOneLong, basename),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(); err != nil {
-				fmt.Println(kcmdutil.UsageError(c, err.Error()))
+				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 			if err := options.Validate(args); err != nil {
-				fmt.Println(kcmdutil.UsageError(c, err.Error()))
+				fmt.Fprintln(c.Out(), kcmdutil.UsageError(c, err.Error()))
 				return
 			}
 
@@ -81,14 +79,14 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 			if err := options.StartAllInOne(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
-						fmt.Fprintf(c.Out(), "Invalid %s %s\n", details.Kind, details.Name)
+						fmt.Fprintf(c.Out(), "error: Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
 							fmt.Fprintf(c.Out(), "  %s: %s\n", cause.Field, cause.Message)
 						}
 						os.Exit(255)
 					}
 				}
-				glog.Fatalf("OpenShift could not start: %v", err)
+				glog.Fatalf("Server could not start: %v", err)
 			}
 		},
 	}
@@ -97,13 +95,13 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 	flags := cmds.Flags()
 
 	flags.Var(&options.ConfigDir, "write-config", "Directory to write an initial config into.  After writing, exit without starting the server.")
-	flags.StringVar(&options.MasterConfigFile, "master-config", "", "Location of the master configuration file to run from. When running from configuration files, all other command-line arguments are ignored.")
+	flags.StringVar(&options.MasterOptions.ConfigFile, "master-config", "", "Location of the master configuration file to run from. When running from configuration files, all other command-line arguments are ignored.")
 	flags.StringVar(&options.NodeConfigFile, "node-config", "", "Location of the node configuration file to run from. When running from configuration files, all other command-line arguments are ignored.")
-	flags.BoolVar(&options.CreateCerts, "create-certs", true, "Indicates whether missing certs should be created.")
+	flags.BoolVar(&options.MasterOptions.CreateCertificates, "create-certs", true, "Indicates whether missing certs should be created.")
 	flags.BoolVar(&options.PrintIP, "print-ip", false, "Print the IP that would be used if no master IP is specified and exit.")
 
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, _ := GetAllInOneArgs()
-	options.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
+	options.MasterOptions.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
 	// by default, all-in-ones all disabled docker.  Set it here so that if we allow it to be bound later, bindings take precedence
 	options.NodeArgs.AllowDisabledDocker = true
 
@@ -112,12 +110,12 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 	BindListenArg(listenArg, flags, "")
 	BindImageFormatArgs(imageFormatArgs, flags, "")
 
-	startMaster, _ := NewCommandStartMaster(out)
-	startNode, _ := NewCommandStartNode(out)
+	startMaster, _ := NewCommandStartMaster(basename, out)
+	startNode, _ := NewCommandStartNode(basename, out)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNode)
 
-	startKube := kubernetes.NewCommand("kubernetes", fullName, out)
+	startKube := kubernetes.NewCommand("kubernetes", basename, out)
 	cmds.AddCommand(startKube)
 
 	// autocompletion hints
@@ -131,6 +129,8 @@ func NewCommandStartAllInOne(fullName string, out io.Writer) (*cobra.Command, *A
 // GetAllInOneArgs makes sure that the node and master args that should be shared, are shared
 func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *KubeConnectionArgs) {
 	masterArgs := NewDefaultMasterArgs()
+	masterArgs.StartAPI = true
+	masterArgs.StartControllers = true
 	nodeArgs := NewDefaultNodeArgs()
 
 	listenArg := NewDefaultListenArg()
@@ -150,10 +150,10 @@ func GetAllInOneArgs() (*MasterArgs, *NodeArgs, *ListenArg, *ImageFormatArgs, *K
 
 func (o AllInOneOptions) Validate(args []string) error {
 	if len(args) != 0 {
-		return errors.New("No arguments are supported for start")
+		return errors.New("no arguments are supported for start")
 	}
 
-	if (len(o.MasterConfigFile) == 0) != (len(o.NodeConfigFile) == 0) {
+	if (len(o.MasterOptions.ConfigFile) == 0) != (len(o.NodeConfigFile) == 0) {
 		return errors.New("--master-config and --node-config must both be specified or both be unspecified")
 	}
 
@@ -167,7 +167,7 @@ func (o AllInOneOptions) Validate(args []string) error {
 
 	// if we are not starting up using a config file, run the argument validation
 	if !o.IsRunFromConfig() {
-		if err := o.MasterArgs.Validate(); err != nil {
+		if err := o.MasterOptions.MasterArgs.Validate(); err != nil {
 			return err
 		}
 
@@ -177,8 +177,8 @@ func (o AllInOneOptions) Validate(args []string) error {
 
 	}
 
-	if len(o.MasterArgs.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) != 0 {
-		return errors.New("all-in-one cannot start against with a remote kubernetes, start the master instead")
+	if len(o.MasterOptions.MasterArgs.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath) != 0 {
+		return errors.New("all-in-one cannot start with a remote Kubernetes server, start the master instead")
 	}
 
 	return nil
@@ -186,31 +186,31 @@ func (o AllInOneOptions) Validate(args []string) error {
 
 func (o *AllInOneOptions) Complete() error {
 	if o.ConfigDir.Provided() {
-		o.MasterArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), "master"))
+		o.MasterOptions.MasterArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), "master"))
 		o.NodeArgs.ConfigDir.Set(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
 	} else {
 		o.ConfigDir.Default("openshift.local.config")
-		o.MasterArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), "master"))
+		o.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), "master"))
 		o.NodeArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
 	}
 
 	nodeList := util.NewStringSet(strings.ToLower(o.NodeArgs.NodeName))
 	// take everything toLower
-	for _, s := range o.MasterArgs.NodeList {
+	for _, s := range o.MasterOptions.MasterArgs.NodeList {
 		nodeList.Insert(strings.ToLower(s))
 	}
-	o.MasterArgs.NodeList = nodeList.List()
+	o.MasterOptions.MasterArgs.NodeList = nodeList.List()
 
-	o.MasterArgs.NetworkArgs.NetworkPluginName = o.NodeArgs.NetworkPluginName
+	o.MasterOptions.MasterArgs.NetworkArgs.NetworkPluginName = o.NodeArgs.NetworkPluginName
 
-	masterAddr, err := o.MasterArgs.GetMasterAddress()
+	masterAddr, err := o.MasterOptions.MasterArgs.GetMasterAddress()
 	if err != nil {
 		return err
 	}
 	// in the all-in-one, default kubernetes URL to the master's address
 	o.NodeArgs.DefaultKubernetesURL = masterAddr
 	o.NodeArgs.NodeName = strings.ToLower(o.NodeArgs.NodeName)
-	o.NodeArgs.MasterCertDir = o.MasterArgs.ConfigDir.Value()
+	o.NodeArgs.MasterCertDir = o.MasterOptions.MasterArgs.ConfigDir.Value()
 
 	// in the all-in-one, default ClusterDNS to the master's address
 	if host, _, err := net.SplitHostPort(masterAddr.Host); err == nil {
@@ -234,15 +234,15 @@ func (o AllInOneOptions) StartAllInOne() error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(o.Output, "%s\n", host)
+		fmt.Fprintf(o.MasterOptions.Output, "%s\n", host)
 		return nil
 	}
-	masterOptions := MasterOptions{o.MasterArgs, o.CreateCerts, o.MasterConfigFile, o.Output}
+	masterOptions := *o.MasterOptions
 	if err := masterOptions.RunMaster(); err != nil {
 		return err
 	}
 
-	nodeOptions := NodeOptions{o.NodeArgs, o.NodeConfigFile, o.Output}
+	nodeOptions := NodeOptions{o.NodeArgs, o.NodeConfigFile, o.MasterOptions.Output}
 	if err := nodeOptions.RunNode(); err != nil {
 		return err
 	}
@@ -253,8 +253,6 @@ func (o AllInOneOptions) StartAllInOne() error {
 
 	daemon.SdNotify("READY=1")
 	select {}
-
-	return nil
 }
 
 func startProfiler() {
@@ -271,5 +269,5 @@ func (o AllInOneOptions) IsWriteConfigOnly() bool {
 }
 
 func (o AllInOneOptions) IsRunFromConfig() bool {
-	return (len(o.MasterConfigFile) > 0) && (len(o.NodeConfigFile) > 0)
+	return (len(o.MasterOptions.ConfigFile) > 0) && (len(o.NodeConfigFile) > 0)
 }

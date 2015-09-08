@@ -1,10 +1,10 @@
 package role
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -53,11 +53,18 @@ func (s *storage) ListClusterRoles(ctx kapi.Context, label labels.Selector, fiel
 
 func (s *storage) CreateClusterRole(ctx kapi.Context, node *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error) {
 	obj, err := s.Create(ctx, node)
+	if err != nil {
+		return nil, err
+	}
+
 	return obj.(*authorizationapi.ClusterRole), err
 }
 
 func (s *storage) UpdateClusterRole(ctx kapi.Context, node *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, bool, error) {
 	obj, created, err := s.Update(ctx, node)
+	if err != nil {
+		return nil, created, err
+	}
 	return obj.(*authorizationapi.ClusterRole), created, err
 }
 

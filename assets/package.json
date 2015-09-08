@@ -10,6 +10,7 @@
     "clean-css": "2.1.8",
     "connect-modrewrite": "0.7.9",
     "grunt": "0.4.5",
+    "grunt-angular-templates": "0.5.7",
     "grunt-autoprefixer": "0.7.6",
     "grunt-concurrent": "0.5.0",
     "grunt-contrib-clean": "0.5.0",
@@ -34,7 +35,7 @@
     "grunt-svgmin": "0.4.0",
     "grunt-usemin": "2.4.0",
     "grunt-wiredep": "1.9.0",
-    "html-minifier": "0.7.0",
+    "html-minifier": "0.7.2",
     "imagemin": "1.0.5",
     "jasmine-beforeall": "0.1.1",
     "jasmine-spec-reporter": "1.1.2",
@@ -57,7 +58,6 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "grunt test",
-    "postinstall": "node test/backport-selenium.js"
+    "test": "grunt test"
   }
 }

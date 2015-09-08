@@ -8,7 +8,7 @@ import (
 
 	"code.google.com/p/go-uuid/uuid"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
+	"k8s.io/kubernetes/pkg/storage"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -26,7 +26,7 @@ type AuthConfig struct {
 	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
 	AssetPublicAddresses []string
 	MasterRoots          *x509.CertPool
-	EtcdHelper           tools.EtcdHelper
+	EtcdHelper           storage.Interface
 
 	UserRegistry     userregistry.Registry
 	IdentityRegistry identityregistry.Registry
@@ -35,11 +35,11 @@ type AuthConfig struct {
 }
 
 func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
-	client, err := etcd.GetAndTestEtcdClient(options.EtcdClientInfo)
+	client, err := etcd.EtcdClient(options.EtcdClientInfo)
 	if err != nil {
 		return nil, err
 	}
-	etcdHelper, err := NewEtcdHelper(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
+	etcdHelper, err := NewEtcdStorage(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
 	}
@@ -62,7 +62,10 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
 	// TODO: allow configuring this
 	// TODO: remove hard-coding of development UI server
-	assetPublicURLs := []string{options.OAuthConfig.AssetPublicURL, "http://localhost:9000", "https://localhost:9000"}
+	assetPublicURLs := []string{}
+	if !options.DisabledFeatures.Has(configapi.FeatureWebConsole) {
+		assetPublicURLs = []string{options.OAuthConfig.AssetPublicURL, "http://localhost:9000", "https://localhost:9000"}
+	}
 
 	userStorage := useretcd.NewREST(etcdHelper)
 	userRegistry := userregistry.NewRegistry(userStorage)

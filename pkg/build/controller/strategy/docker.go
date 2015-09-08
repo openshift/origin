@@ -3,8 +3,8 @@ package strategy
 import (
 	"fmt"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -33,9 +33,11 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	containerEnv := []kapi.EnvVar{
 		{Name: "BUILD", Value: string(data)},
-		{Name: "SOURCE_REPOSITORY", Value: build.Spec.Source.Git.URI},
 		{Name: "BUILD_LOGLEVEL", Value: fmt.Sprintf("%d", cmdutil.GetLogLevel())},
 	}
+
+	addSourceEnvVars(build.Spec.Source, &containerEnv)
+
 	if len(strategy.Env) > 0 {
 		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
 	}
@@ -53,7 +55,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 					Name:  "docker-build",
 					Image: bs.Image,
 					Env:   containerEnv,
-					Args:  []string{"--loglevel=" + fmt.Sprintf("%d", cmdutil.GetLogLevel())},
+					Args:  []string{"--loglevel=" + getContainerVerbosity(containerEnv)},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					SecurityContext: &kapi.SecurityContext{
 						Privileged: &privileged,

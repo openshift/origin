@@ -8,8 +8,6 @@ import (
 	"os"
 	"strings"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/digest"
@@ -19,6 +17,8 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"golang.org/x/net/context"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 )
 
 func init() {
@@ -193,18 +193,18 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 
 		client, ok := UserClientFrom(ctx)
 		if !ok {
-			log.Errorf("Error creating user client to auto provision ImageStream: OpenShift user client unavailable")
+			log.Errorf("Error creating user client to auto provision image stream: Origin user client unavailable")
 			return statusErr
 		}
 
 		if _, err := client.ImageStreams(r.namespace).Create(&stream); err != nil {
-			log.Errorf("Error auto provisioning ImageStream: %s", err)
+			log.Errorf("Error auto provisioning image stream: %s", err)
 			return statusErr
 		}
 
 		// try to create the ISM again
 		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
-			log.Errorf("Error creating ImageStreamMapping: %s", err)
+			log.Errorf("Error creating image stream mapping: %s", err)
 			return err
 		}
 	}

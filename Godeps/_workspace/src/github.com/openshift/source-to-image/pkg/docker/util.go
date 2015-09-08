@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"bufio"
 	client "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 )
@@ -18,24 +19,74 @@ type DockerImageReference struct {
 	ID        string
 }
 
-const defaultRegistry = "https://index.docker.io/v1/"
+const (
+	// maxErrorOutput is the maximum length of the error output saved for processing
+	maxErrorOutput  = 1024
+	defaultRegistry = "https://index.docker.io/v1/"
+)
 
-func GetImageRegistryAuth(dockerCfg io.Reader, imageName string) client.AuthConfiguration {
+// GetImageRegistryAuth retrieves the appropriate docker client authentication object for a given
+// image name and a given set of client authentication objects.
+func GetImageRegistryAuth(auths *client.AuthConfigurations, imageName string) client.AuthConfiguration {
+	glog.V(5).Infof("Getting docker credentials for %s", imageName)
 	spec, err := ParseDockerImageReference(imageName)
 	if err != nil {
+		glog.Errorf("Failed to parse docker reference %s", imageName)
 		return client.AuthConfiguration{}
 	}
-	if auths, err := client.NewAuthConfigurations(dockerCfg); err == nil {
-		if auth, ok := auths.Configs[spec.Registry]; ok {
-			glog.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, spec.Registry, imageName)
-			return auth
-		}
-		if auth, ok := auths.Configs[defaultRegistry]; ok {
-			glog.V(5).Infof("Using %s credentials for pulling %s", auth.Email, imageName)
-			return auth
-		}
+
+	if auth, ok := auths.Configs[spec.Registry]; ok {
+		glog.V(5).Infof("Using %s[%s] credentials for pulling %s", auth.Email, spec.Registry, imageName)
+		return auth
+	}
+	if auth, ok := auths.Configs[defaultRegistry]; ok {
+		glog.V(5).Infof("Using %s credentials for pulling %s", auth.Email, imageName)
+		return auth
 	}
 	return client.AuthConfiguration{}
+}
+
+// LoadImageRegistryAuth loads and returns the set of client auth objects from a docker config
+// json file.
+func LoadImageRegistryAuth(dockerCfg io.Reader) *client.AuthConfigurations {
+	auths, err := client.NewAuthConfigurations(dockerCfg)
+	if err != nil {
+		glog.Errorf("Unable to load docker config")
+		return nil
+	}
+	return auths
+}
+
+// LoadAndGetImageRegistryAuth loads the set of client auth objects from a docker config file
+// and returns the appropriate client auth object for a given image name.
+func LoadAndGetImageRegistryAuth(dockerCfg io.Reader, imageName string) client.AuthConfiguration {
+	auths, err := client.NewAuthConfigurations(dockerCfg)
+	if err != nil {
+		glog.Errorf("Unable to load docker config")
+		return client.AuthConfiguration{}
+	}
+	return GetImageRegistryAuth(auths, imageName)
+}
+
+// StreamContainerIO takes data from the Reader and redirects to the log functin (typically we pass in
+// glog.Error for stderr and glog.Info for stdout
+func StreamContainerIO(errStream io.Reader, errOutput *string, log func(...interface{})) {
+	scanner := bufio.NewReader(errStream)
+	for {
+		text, err := scanner.ReadString('\n')
+		if err != nil {
+			// we're ignoring ErrClosedPipe, as this is information
+			// the docker container ended streaming logs
+			if err != io.ErrClosedPipe && err != io.EOF {
+				glog.Errorf("Error reading docker stderr, %v", err)
+			}
+			break
+		}
+		log(text)
+		if errOutput != nil && len(*errOutput) < maxErrorOutput {
+			*errOutput += text + "\n"
+		}
+	}
 }
 
 // ParseDockerImageReference parses a Docker pull spec string into a

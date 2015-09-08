@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/GoogleCloudPlatform/kubernetes/cmd/kube-controller-manager/app"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/cmd/kube-controller-manager/app"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 const controllersLong = `

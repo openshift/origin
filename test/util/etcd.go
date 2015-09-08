@@ -7,9 +7,9 @@ import (
 	"math/rand"
 	"os"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/capabilities"
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
+	"k8s.io/kubernetes/pkg/capabilities"
 )
 
 func init() {

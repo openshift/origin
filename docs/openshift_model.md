@@ -37,7 +37,7 @@ Model object that stores the logs from a particular build for later inspection.
 
 ## Deployment
 
-A deployment is a specially annotated [replicationController](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/replication-controller.md), specifying the desired configuration of that controller. See the [deployments](deployments.md) document.
+A deployment is a specially annotated [replicationController](https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/replication-controller.md), specifying the desired configuration of that controller. See the [deployments](deployments.md) document.
 
 ## DeploymentConfig
 

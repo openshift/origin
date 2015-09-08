@@ -32,8 +32,9 @@ At this stage of OpenShift 3 development, there are a few things that you will n
 
 - - -
 **VAGRANT USERS**:
-If you haven't already, fire up a Vagrant instance.
+If you haven't already, fire up a Vagrant instance, where since a OpenShift compile is occurring in a subsequent step below, you need to override the default amount of memory assigned to the VM.
 
+	$ export OPENSHIFT_MEMORY=2096
 	$ vagrant up
 	$ vagrant ssh
 
@@ -113,11 +114,11 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 2. Launch an all-in-one `openshift` instance
 
-        $ sudo openshift start &> logs/openshift.log &
+        $ sudo openshift start &> openshift.log &
 
        **VAGRANT USERS**: Instead of the above command, use
 
-        $ sudo /data/src/github.com/openshift/origin/_output/local/go/bin/openshift start --public-master=localhost &> logs/openshift.log &
+        $ sudo /data/src/github.com/openshift/origin/_output/local/go/bin/openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
 
     Note: sudo is required so the kubernetes proxy can manipulate iptables rules to expose service ports.
 
@@ -349,9 +350,26 @@ the ip address shown below with the correct one for your environment.
             # Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will
             # take some time.  Your pod will stay in Pending state while the pull is completed
             $ docker pull openshift/origin-haproxy-router
+            
+            # Create a service account that the router will use.  This service account must have access to use a
+            # security context constraint that allows host ports
+            $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
+         
+            # You may either create a new SCC or use an existing SCC.  The following command will
+            # display existing SCCs and if they support host network and host ports.
+            $ oc get scc -t "{{range .items}}{{.metadata.name}}: n={{.allowHostNetwork}},p={{.allowHostPorts}}; {{end}}"
+            privileged: n=true,p=true; restricted: n=false,p=false;
+            
+            # Edit your security context constraint to add the new service account in the users section
+            # in the form of system:serviceaccount:<namespace>:<name>.  In the above example the full
+            # name would be system:serviceaccount:default:router if you are creating the router in the default namespace.
+            $ oc edit scc <name>
 
             $ sudo chmod +r openshift.local.config/master/openshift-router.kubeconfig
-            $ oadm router --create --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+            # The router by default uses the host network. If you wish to
+            # use the container network stack and expose ports, add the
+            # --host-network=false option to the oadm router command.
+            $ oadm router --credentials=openshift.local.config/master/openshift-router.kubeconfig --config=openshift.local.config/master/admin.kubeconfig --service-account=router
               router # the service
               router # the deployment config
 

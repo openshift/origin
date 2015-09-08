@@ -7,12 +7,12 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kapierror "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/serviceaccount"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapierror "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/controller/serviceaccount"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 
@@ -56,22 +56,22 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 	}
 
 	// Ensure service account cluster role bindings exist
-	clusterRolesToUsernames := map[string][]string{
-		bootstrappolicy.BuildControllerRoleName:       {serviceaccount.MakeUsername(ns, c.BuildControllerServiceAccount)},
-		bootstrappolicy.DeploymentControllerRoleName:  {serviceaccount.MakeUsername(ns, c.DeploymentControllerServiceAccount)},
-		bootstrappolicy.ReplicationControllerRoleName: {serviceaccount.MakeUsername(ns, c.ReplicationControllerServiceAccount)},
+	clusterRolesToSubjects := map[string][]kapi.ObjectReference{
+		bootstrappolicy.BuildControllerRoleName:       {{Namespace: ns, Name: c.BuildControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.DeploymentControllerRoleName:  {{Namespace: ns, Name: c.DeploymentControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.ReplicationControllerRoleName: {{Namespace: ns, Name: c.ReplicationControllerServiceAccount, Kind: "ServiceAccount"}},
 	}
 	roleAccessor := policy.NewClusterRoleBindingAccessor(c.ServiceAccountRoleBindingClient())
-	for clusterRole, usernames := range clusterRolesToUsernames {
+	for clusterRole, subjects := range clusterRolesToSubjects {
 		addRole := &policy.RoleModificationOptions{
 			RoleName:            clusterRole,
 			RoleBindingAccessor: roleAccessor,
-			Users:               usernames,
+			Subjects:            subjects,
 		}
 		if err := addRole.AddRole(); err != nil {
-			glog.Errorf("Could not add %v users to the %v cluster role: %v\n", ns, usernames, clusterRole, err)
+			glog.Errorf("Could not add %v subjects to the %v cluster role: %v\n", subjects, clusterRole, err)
 		} else {
-			glog.V(2).Infof("Added %v users to the %v cluster role: %v\n", usernames, clusterRole, err)
+			glog.V(2).Infof("Added %v subjects to the %v cluster role: %v\n", subjects, clusterRole, err)
 		}
 	}
 }
@@ -128,8 +128,7 @@ func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,
 			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(kapi.NamespaceDefault, c.ServiceAccountRoleBindingClient()),
-			Users:               binding.Users.List(),
-			Groups:              binding.Groups.List(),
+			Subjects:            binding.Subjects,
 		}
 		if err := addRole.AddRole(); err != nil {
 			glog.Errorf("Could not add service accounts to the %v role in the %v namespace: %v\n", binding.RoleRef.Name, kapi.NamespaceDefault, err)
@@ -152,7 +151,8 @@ func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
 func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 	sccList, err := c.KubeClient().SecurityContextConstraints().List(labels.Everything(), fields.Everything())
 	if err != nil {
-		glog.Errorf("Unable to initialize security context constraints: %v", err)
+		glog.Errorf("Unable to initialize security context constraints: %v.  This may prevent the creation of pods", err)
+		return
 	}
 	if len(sccList.Items) > 0 {
 		return

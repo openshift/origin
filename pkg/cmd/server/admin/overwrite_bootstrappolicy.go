@@ -8,14 +8,13 @@ import (
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/spf13/cobra"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/resource"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/kubectl"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
@@ -25,6 +24,8 @@ import (
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
+	"k8s.io/kubernetes/pkg/storage"
+	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
@@ -108,20 +109,20 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 	if err != nil {
 		return err
 	}
-	etcdHelper, err := newEtcdHelper(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
+	storage, err := newStorage(etcdClient, masterConfig.EtcdStorageConfig.OpenShiftStorageVersion, masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return err
 	}
 
-	return OverwriteBootstrapPolicy(etcdHelper, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
+	return OverwriteBootstrapPolicy(storage, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
 }
 
-func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, policyFile, createBootstrapPolicyCommand string, change bool, out io.Writer) error {
+func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBootstrapPolicyCommand string, change bool, out io.Writer) error {
 	if !change {
 		fmt.Fprintf(out, "Performing a dry run of policy overwrite:\n\n")
 	}
 
-	mapper := cmdclientcmd.ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
+	mapper := cmdclientcmd.ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: latest.RESTMapper}}
 	typer := kapi.Scheme
 	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		return nil, nil
@@ -136,11 +137,11 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, policyFile, createBoo
 		return r.Err()
 	}
 
-	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(etcdHelper))
-	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(etcdHelper))
+	policyRegistry := policyregistry.NewRegistry(policyetcd.NewStorage(storage))
+	policyBindingRegistry := policybindingregistry.NewRegistry(policybindingetcd.NewStorage(storage))
 
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(etcdHelper))
-	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterpolicybindingetcd.NewStorage(etcdHelper))
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicyetcd.NewStorage(storage))
+	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterpolicybindingetcd.NewStorage(storage))
 
 	roleRegistry := roleregistry.NewRegistry(rolestorage.NewVirtualStorage(policyRegistry))
 	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry)
@@ -222,11 +223,11 @@ func OverwriteBootstrapPolicy(etcdHelper tools.EtcdHelper, policyFile, createBoo
 	})
 }
 
-// newEtcdHelper returns an EtcdHelper for the provided storage version.
-func newEtcdHelper(client *etcdclient.Client, version, prefix string) (oshelper tools.EtcdHelper, err error) {
+// newStorage returns an EtcdHelper for the provided storage version.
+func newStorage(client *etcdclient.Client, version, prefix string) (oshelper storage.Interface, err error) {
 	interfaces, err := latest.InterfacesFor(version)
 	if err != nil {
-		return tools.EtcdHelper{}, err
+		return nil, err
 	}
-	return tools.NewEtcdHelper(client, interfaces.Codec, prefix), nil
+	return etcdstorage.NewEtcdStorage(client, interfaces.Codec, prefix), nil
 }

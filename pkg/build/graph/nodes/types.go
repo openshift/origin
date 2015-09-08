@@ -47,7 +47,7 @@ func SourceRepositoryNodeName(source buildapi.BuildSource) osgraph.UniqueName {
 		sourceType, uri, ref := "git", source.Git.URI, source.Git.Ref
 		return osgraph.UniqueName(fmt.Sprintf("%s|%s|%s#%s", SourceRepositoryNodeKind, sourceType, uri, ref))
 	default:
-		panic(fmt.Sprintf("invalid build source", source))
+		panic(fmt.Sprintf("invalid build source: %v", source))
 	}
 }
 

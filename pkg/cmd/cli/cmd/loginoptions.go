@@ -7,17 +7,17 @@ import (
 	"os"
 	"path/filepath"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	kclientcmd "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	kclientcmdapi "github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	kcmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
-	kubecmdconfig "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/config"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client"
+	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	"k8s.io/kubernetes/pkg/fields"
+	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -87,9 +87,9 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 		if cmdutil.IsTerminal(o.Reader) {
 			for !o.serverProvided() {
 				defaultServer := defaultClusterURL
-				promptMsg := fmt.Sprintf("OpenShift server [%s]: ", defaultServer)
+				promptMsg := fmt.Sprintf("Server [%s]: ", defaultServer)
 
-				o.Server = cmdutil.PromptForStringWithDefault(o.Reader, defaultServer, promptMsg)
+				o.Server = cmdutil.PromptForStringWithDefault(o.Reader, o.Out, defaultServer, promptMsg)
 			}
 		}
 	}
@@ -133,6 +133,9 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 		switch {
 		case o.InsecureTLS:
 			clientConfig.Insecure = true
+			// insecure, clear CA info
+			clientConfig.CAFile = ""
+			clientConfig.CAData = nil
 
 		// certificate issue, prompt user for insecure connection
 		case clientcmd.IsCertificateAuthorityUnknown(result.Error()):
@@ -148,10 +151,13 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 				fmt.Fprintln(o.Out, "The server uses a certificate signed by an unknown authority.")
 				fmt.Fprintln(o.Out, "You can bypass the certificate check, but any data you send to the server could be intercepted by others.")
 
-				clientConfig.Insecure = cmdutil.PromptForBool(os.Stdin, "Use insecure connections? (y/n): ")
+				clientConfig.Insecure = cmdutil.PromptForBool(os.Stdin, o.Out, "Use insecure connections? (y/n): ")
 				if !clientConfig.Insecure {
 					return nil, fmt.Errorf(clientcmd.GetPrettyMessageFor(result.Error()))
 				}
+				// insecure, clear CA info
+				clientConfig.CAFile = ""
+				clientConfig.CAData = nil
 				fmt.Fprintln(o.Out)
 			}
 
@@ -212,43 +218,36 @@ func (o *LoginOptions) gatherAuthInfo() error {
 				return err
 			}
 
-			fmt.Fprintln(o.Out, "The token provided is invalid (probably expired).\n")
+			fmt.Fprint(o.Out, "The token provided is invalid (probably expired).\n\n")
 		}
 	}
 
-	// if a token was provided try to make use of it
-	// make sure we have a username before continuing
-	if !o.usernameProvided() {
-		if cmdutil.IsTerminal(o.Reader) {
-			for !o.usernameProvided() {
-				o.Username = cmdutil.PromptForString(o.Reader, "Username: ")
-			}
-		}
-	}
+	// if a username was provided try to make use of it
+	if o.usernameProvided() {
+		// search all valid contexts with matching server stanzas to see if we have a matching user stanza
+		kubeconfig := *o.StartingKubeConfig
+		matchingClusters := getMatchingClusters(*clientConfig, kubeconfig)
 
-	// search all valid contexts with matching server stanzas to see if we have a matching user stanza
-	kubeconfig := *o.StartingKubeConfig
-	matchingClusters := getMatchingClusters(*clientConfig, kubeconfig)
+		for key, context := range o.StartingKubeConfig.Contexts {
+			if matchingClusters.Has(context.Cluster) {
+				clientcmdConfig := kclientcmd.NewDefaultClientConfig(kubeconfig, &kclientcmd.ConfigOverrides{CurrentContext: key})
+				if kubeconfigClientConfig, err := clientcmdConfig.ClientConfig(); err == nil {
+					if osClient, err := client.New(kubeconfigClientConfig); err == nil {
+						if me, err := whoAmI(osClient); err == nil && (o.Username == me.Name) {
+							clientConfig.BearerToken = kubeconfigClientConfig.BearerToken
+							clientConfig.CertFile = kubeconfigClientConfig.CertFile
+							clientConfig.CertData = kubeconfigClientConfig.CertData
+							clientConfig.KeyFile = kubeconfigClientConfig.KeyFile
+							clientConfig.KeyData = kubeconfigClientConfig.KeyData
 
-	for key, context := range o.StartingKubeConfig.Contexts {
-		if matchingClusters.Has(context.Cluster) {
-			clientcmdConfig := kclientcmd.NewDefaultClientConfig(kubeconfig, &kclientcmd.ConfigOverrides{CurrentContext: key})
-			if kubeconfigClientConfig, err := clientcmdConfig.ClientConfig(); err == nil {
-				if osClient, err := client.New(kubeconfigClientConfig); err == nil {
-					if me, err := whoAmI(osClient); err == nil && (o.Username == me.Name) {
-						clientConfig.BearerToken = kubeconfigClientConfig.BearerToken
-						clientConfig.CertFile = kubeconfigClientConfig.CertFile
-						clientConfig.CertData = kubeconfigClientConfig.CertData
-						clientConfig.KeyFile = kubeconfigClientConfig.KeyFile
-						clientConfig.KeyData = kubeconfigClientConfig.KeyData
+							o.Config = clientConfig
 
-						o.Config = clientConfig
+							if key == o.StartingKubeConfig.CurrentContext {
+								fmt.Fprintf(o.Out, "Logged into %q as %q using existing credentials.\n\n", o.Config.Host, o.Username)
+							}
 
-						if key == o.StartingKubeConfig.CurrentContext {
-							fmt.Fprintf(o.Out, "Already logged into %q as %q.\n\n", o.Config.Host, o.Username)
+							return nil
 						}
-
-						return nil
 					}
 				}
 			}
@@ -278,7 +277,7 @@ func (o *LoginOptions) gatherAuthInfo() error {
 	}
 	o.Username = me.Name
 	o.Config = clientConfig
-	fmt.Fprintln(o.Out, "Login successful.\n")
+	fmt.Fprint(o.Out, "Login successful.\n\n")
 
 	return nil
 }
@@ -394,7 +393,7 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 		return false, err
 	}
 
-	if err := kubecmdconfig.ModifyConfig(o.PathOptions, *configToWrite); err != nil {
+	if err := kubecmdconfig.ModifyConfig(o.PathOptions, *configToWrite, true); err != nil {
 		return false, err
 	}
 

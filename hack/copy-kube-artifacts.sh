@@ -11,7 +11,7 @@ source "${OS_ROOT}/hack/common.sh"
 cd "${OS_ROOT}"
 
 KUBE_ROOT=${1:-""}
-KUBE_GODEP_ROOT="${OS_ROOT}/Godeps/_workspace/src/github.com/GoogleCloudPlatform/kubernetes"
+KUBE_GODEP_ROOT="${OS_ROOT}/Godeps/_workspace/src/k8s.io/kubernetes"
 
 if [ -z "$KUBE_ROOT" ]; then
   echo "usage: copy-kube-artifacts.sh <kubernetes root dir>"
@@ -20,46 +20,35 @@ fi
 
 special_files="README.md
 api/swagger-spec/v1.json
+docs/user-guide/multi-pod.yaml
 examples/examples_test.go
-examples/walkthrough/README.md
+examples/pod
 examples/iscsi/README.md
-examples/simple-yaml.md
 "
 
 descriptor_dirs="cmd/integration
+docs/admin/limitrange/
 examples/
+examples/elasticsearch/
 examples/guestbook
 examples/guestbook-go
-examples/walkthrough
-examples/update-demo
-examples/persistent-volumes/volumes
-examples/persistent-volumes/claims
-examples/persistent-volumes/simpletest
 examples/iscsi
 examples/glusterfs
-examples/liveness
 examples/rbd/secret
 examples/rbd
 examples/cassandra
 examples/celery-rabbitmq
 examples/cluster-dns
-examples/downward-api
 examples/elasticsearch
 examples/explorer
 examples/hazelcast
-examples/kubernetes-namespaces
-examples/limitrange
-examples/logging-demo
 examples/meteor
 examples/mysql-wordpress-pd
 examples/nfs
-examples/node-selection
 examples/openshift-origin
 examples/phabricator
 examples/redis
-examples/resourcequota
 examples/rethinkdb
-examples/secrets
 examples/spark
 examples/storm"
 

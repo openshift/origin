@@ -4,6 +4,54 @@
 toc::[]
 
 
+== oc annotate
+Update the annotations on a resource
+
+====
+
+[options="nowrap"]
+----
+  // Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
+  // If the same annotation is set multiple times, only the last value will be applied
+  $ openshift cli annotate pods foo description='my frontend'
+
+  // Update pod 'foo' with the annotation 'description' and the value
+  // 'my frontend running nginx', overwriting any existing value.
+  $ openshift cli annotate --overwrite pods foo description='my frontend running nginx'
+
+  // Update all pods in the namespace
+  $ openshift cli annotate pods --all description='my frontend running nginx'
+
+  // Update pod 'foo' only if the resource is unchanged from version 1.
+  $ openshift cli annotate pods foo description='my frontend running nginx' --resource-version=1
+
+  // Update pod 'foo' by removing an annotation named 'description' if it exists.
+  // Does not require the --overwrite flag.
+  $ openshift cli annotate pods foo description-
+----
+====
+
+
+== oc attach
+Attach to a running container.
+
+====
+
+[options="nowrap"]
+----
+  // get output from running pod 123456-7890, using the first container by default
+  $ openshift cli attach 123456-7890
+
+  // get output from ruby-container from pod 123456-7890
+  $ openshift cli attach 123456-7890 -c ruby-container date
+
+  // switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
+  // and sends stdout/stderr from 'bash' back to the client
+  $ openshift cli attach 123456-7890 -c ruby-container -i -t
+----
+====
+
+
 == oc build-logs
 Show logs from a build
 
@@ -137,7 +185,7 @@ Create a resource by filename or stdin
 
 
 == oc delete
-Delete a resource by filename, stdin, resource and name, or by resources and label selector.
+Delete resources by filenames, stdin, resources and names, or by resources and label selector.
 
 ====
 
@@ -284,10 +332,10 @@ Export resources so they can be used elsewhere
   openshift cli export svc,dc -l name=test
 
   // export all services to a template
-  openshift cli export service --all --as-template=test
+  openshift cli export service --as-template=test
 
   // export to JSON
-  openshift cli export service --all -o json
+  openshift cli export service -o json
 
   // convert a file on disk to the latest API version (in YAML, the default)
   openshift cli export -f a_v1beta3_service.json --output-version=v1 --exact
@@ -378,7 +426,7 @@ Update the labels on a resource
 
 
 == oc login
-Log in to an OpenShift server
+Log in to a server
 
 ====
 
@@ -403,6 +451,7 @@ End the current server session
 
 [options="nowrap"]
 ----
+
   // Logout
   $ openshift cli logout
 ----
@@ -432,7 +481,15 @@ Create a new application
 
 [options="nowrap"]
 ----
-  // Create an application based on the source code in the current git repository (with a public remote) and a Docker image
+
+  // List all local templates and image streams that can be used to create an app
+  $ openshift cli new-app --list
+
+  // Search all templates, image streams, and Docker images for the ones that match "ruby"
+  $ openshift cli new-app --search ruby
+
+  // Create an application based on the source code in the current git repository (with a public remote) 
+  // and a Docker image
   $ openshift cli new-app . --docker-image=repo/langimage
 
   // Create a Ruby application based on the provided [image]~[source code] combination
@@ -484,6 +541,9 @@ Create a new build configuration
 
   // Create a build config from a remote repository using its beta2 branch
   $ openshift cli new-build https://github.com/openshift/ruby-hello-world#beta2
+
+  // Create a build config from a remote repository and add custom environment variables into resulting image
+  $ openshift cli new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development
 ----
 ====
 
@@ -652,6 +712,32 @@ Start a shell session in a pod
 ====
 
 
+== oc run
+Run a particular image on the cluster.
+
+====
+
+[options="nowrap"]
+----
+  // Starts a single instance of nginx.
+  $ openshift cli run nginx --image=nginx
+
+  // Starts a replicated instance of nginx.
+  $ openshift cli run nginx --image=nginx --replicas=5
+
+  // Dry run. Print the corresponding API objects without creating them.
+  $ openshift cli run nginx --image=nginx --dry-run
+
+  // Start a single instance of nginx, but overload the spec of the replication
+  // controller with a partial set of values parsed from JSON.
+  $ openshift cli run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
+
+  // Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
+  $ openshift cli run -i -tty nginx --image=nginx --restart=Never
+----
+====
+
+
 == oc scale
 Change the number of pods in a deployment
 
@@ -683,6 +769,9 @@ Create a new secret based on a key file or on files within a directory
 
   // Create a new secret named my-secret with keys for each file in the folder "bar"
   $ openshift cli secrets new my-secret path/to/bar
+
+  // Create a new .dockercfg secret named my-secret
+  $ openshift cli secrets new my-secret path/to/.dockercfg
 ----
 ====
 
@@ -721,7 +810,7 @@ Show an overview of the current project
 
 
 == oc stop
-Gracefully shut down a resource by name or filename.
+Deprecated: Gracefully shut down a resource by name or filename.
 
 ====
 
@@ -762,14 +851,14 @@ Tag existing images into image streams
 
 
 == oc types
-An introduction to the concepts and types in OpenShift
+An introduction to concepts and types
 
 ====
 
 [options="nowrap"]
 ----
   // View all projects you have access to
-  $ openshift cli projects
+  $ openshift cli get projects
 
   // See a list of all services in the current project
   $ openshift cli get svc
@@ -790,45 +879,32 @@ Update volume on a resource with a pod template
 
 [options="nowrap"]
 ----
-  // Add new volume of type 'emptyDir' for deployment config 'registry' and mount under /opt inside the containers
-  // The volume name is auto generated
-  $ openshift cli volume dc/registry --add --mount-path=/opt
+  // List volumes defined on all deployment configs in the current project
+  $ openshift cli volume dc --all
 
-  // Add new volume 'v1' with secret 'magic' for replication controller 'r1'
-  $ openshift cli volume rc/r1 --add --name=v1 -m /etc --type=secret --secret-name=magic
+  // Add a new empty dir volume to deployment config (dc) 'registry' mounted under
+  // /var/lib/registry
+  $ openshift cli volume dc/registry --add --mount-path=/var/lib/registry
 
-  // Add new volume to replication controller 'r1' based on git repository
-  // or other volume sources not supported by --type
-  $ openshift cli volume rc/r1 --add -m /repo --source=<json-string>
+  // Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
+  $ openshift cli volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
 
-  // Add emptyDir volume 'v1' to a deployment config definition on disk and 
-  // update the deployment config on the server
-  $ openshift cli volume -f dc.json --add --name=v1
-
-  // Create a new persistent volume and overwrite existing volume 'v1' for replication controller 'r1'
-  $ openshift cli volume rc/r1 --add --name=v1 -t persistentVolumeClaim --claim-name=pvc1 --overwrite
-
-  // Overwrite the replication controller 'r1' mount point to /data for volume v1
-  $ openshift cli volume rc r1 --add --name=v1 -m /data --overwrite
-
-  // Remove all volumes for deployment config 'd1'
-  $ openshift cli volume dc/d1 --remove --confirm
-
-  // Remove volume 'v1' from deployment config 'registry'  
+  // Remove volume 'v1' from deployment config 'registry'
   $ openshift cli volume dc/registry --remove --name=v1
 
-  // Modify the deployment config "d1" by removing volume mount "v1" from container "c1"
+  // Create a new persistent volume claim that overwrites an existing volume 'v1'
+  $ openshift cli volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
+
+  // Change the mount point for volume 'v1' to /data
+  $ openshift cli volume dc/registry --add --name=v1 -m /data --overwrite
+
+  // Modify the deployment config by removing volume mount "v1" from container "c1"
   // (and by removing the volume "v1" if no other containers have volume mounts that reference it)
-  $ openshift cli volume dc/d1 --remove --name=v1 --containers=c1
+  $ openshift cli volume dc/registry --remove --name=v1 --containers=c1
 
-  // List volumes defined on replication controller 'r1'
-  $ openshift cli volume rc r1 --list
-
-  // List volumes defined on all pods
-  $ openshift cli volume pods --all --list
-
-  // Output json object with volume info for deployment config 'd1' but don't alter the object on server
-  $ openshift cli volume dc/d1 --add --name=v1 --mount=/opt -o json
+  // Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
+  // Ceph, Gluster, NFS, ISCSI, ...)
+  $ openshift cli volume dc/registry --add -m /repo --source=<json-string>
 ----
 ====
 

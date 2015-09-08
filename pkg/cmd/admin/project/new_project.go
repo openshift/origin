@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kerrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	kcmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
-	errorsutil "github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	errorsutil "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -128,8 +128,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,
 			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(o.ProjectName, o.Client),
-			Users:               binding.Users.List(),
-			Groups:              binding.Groups.List(),
+			Subjects:            binding.Subjects,
 		}
 		if err := addRole.AddRole(); err != nil {
 			fmt.Printf("Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)

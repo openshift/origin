@@ -1,4 +1,4 @@
-// +build integration,!no-etcd
+// +build integration,etcd
 
 package integration
 
@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
@@ -21,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func init() {

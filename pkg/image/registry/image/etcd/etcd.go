@@ -3,15 +3,15 @@ package etcd
 import (
 	"errors"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 // REST implements a RESTStorage for images against etcd.
@@ -20,7 +20,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(h tools.EtcdHelper) *REST {
+func NewREST(s storage.Interface) *REST {
 	prefix := "/images"
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.Image{} },
@@ -42,7 +42,7 @@ func NewREST(h tools.EtcdHelper) *REST {
 
 		ReturnDeletedObject: false,
 
-		Helper: h,
+		Storage: s,
 	}
 	return &REST{store: store}
 }

@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	kapierrors "github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/auth/user"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -44,7 +44,7 @@ func testNewClusterBindings() []authorizationapi.ClusterPolicyBinding {
 				"cluster-admins": {
 					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admins"},
 					RoleRef:    kapi.ObjectReference{Name: "cluster-admin"},
-					Users:      util.NewStringSet("system:admin"),
+					Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemUserKind, Name: "system:admin"}},
 				},
 			},
 		},

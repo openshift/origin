@@ -35,7 +35,7 @@ type stiGit struct {
 
 var gitSshURLExp = regexp.MustCompile(`\A([\w\d\-_\.+]+@[\w\d\-_\.+]+:[\w\d\-_\.+%/]+\.git)$`)
 
-var allowedSchemes = []string{"git", "http", "https", "file"}
+var allowedSchemes = []string{"git", "http", "https", "file", "ssh"}
 
 func stringInSlice(s string, slice []string) bool {
 	for _, element := range slice {
@@ -66,20 +66,19 @@ func (h *stiGit) ValidCloneSpec(source string) bool {
 
 // Clone clones a git repository to a specific target directory
 func (h *stiGit) Clone(source, target string) error {
-	outReader, outWriter := io.Pipe()
-	errReader, errWriter := io.Pipe()
-	defer func() {
-		outReader.Close()
-		outWriter.Close()
-		errReader.Close()
-		errWriter.Close()
-	}()
-	opts := util.CommandOpts{
-		Stdout: outWriter,
-		Stderr: errWriter,
-	}
-	go pipeToLog(outReader, glog.Info)
-	go pipeToLog(errReader, glog.Error)
+
+	// NOTE, we don NOT pass in both stdout and stderr, because
+	// with running with --quiet, and no output heading to stdout, hangs were occurring with the coordination
+	// of underlying channel management in the Go layer when dealing with the Go Cmd wrapper around
+	// git, sending of stdout/stderr to the Pipes created here, and the glog routines sent to pipeToLog
+	//
+	// It was agreed that we wanted to keep --quiet and no stdout output ....leaving stderr only since
+	// --quiet does not surpress that anyway reduced the frequency of the hang, but it still occurred.
+	// the pipeToLog method has been left for now for historical purposes, but if this implemenetation
+	// of git clone holds, we'll want to delete that at some point.
+
+	opts := util.CommandOpts{}
+
 	return h.runner.RunWithOptions(opts, "git", "clone", "--quiet", "--recursive", source, target)
 }
 

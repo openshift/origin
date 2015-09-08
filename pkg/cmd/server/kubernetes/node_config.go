@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	kapp "github.com/GoogleCloudPlatform/kubernetes/cmd/kubelet/app"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/kubelet/dockertools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/errors"
 	"github.com/golang/glog"
+	kapp "k8s.io/kubernetes/cmd/kubelet/app"
+	"k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/kubelet"
+	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/errors"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -85,7 +85,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		dockerExecHandler = &dockertools.NsenterExecHandler{}
 	}
 
-	kubeAddress, kubePortStr, err := net.SplitHostPort(options.ServingInfo.BindAddress)
+	kubeAddressStr, kubePortStr, err := net.SplitHostPort(options.ServingInfo.BindAddress)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse node address: %v", err)
 	}
@@ -93,25 +93,34 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse node port: %v", err)
 	}
-
-	address := util.IP{}
-	if err := address.Set(kubeAddress); err != nil {
-		return nil, err
+	kubeAddress := net.ParseIP(kubeAddressStr)
+	if kubeAddress == nil {
+		return nil, fmt.Errorf("Invalid DNS IP: %s", kubeAddressStr)
 	}
 
 	// declare the OpenShift defaults from config
 	server := kapp.NewKubeletServer()
 	server.Config = path
 	server.RootDirectory = options.VolumeDirectory
-	server.HostnameOverride = options.NodeName
+
+	// kubelet finds the node IP address by doing net.ParseIP(hostname) and if that fails,
+	// it does net.LookupIP(NodeName) and picks the first non-loopback address.
+	// Pass node IP as hostname to make kubelet use the desired IP address.
+	if len(options.NodeIP) > 0 {
+		server.HostnameOverride = options.NodeIP
+	} else {
+		server.HostnameOverride = options.NodeName
+	}
 	server.AllowPrivileged = true
 	server.RegisterNode = true
-	server.Address = address
+	server.Address = kubeAddress
 	server.Port = uint(kubePort)
 	server.ReadOnlyPort = 0 // no read only access
-	server.ClusterDNS = util.IP(dnsIP)
+	server.CadvisorPort = 0 // no unsecured cadvisor access
+	server.HealthzPort = 0  // no unsecured healthz access
+	server.ClusterDNS = dnsIP
 	server.ClusterDomain = options.DNSDomain
-	server.NetworkPluginName = options.NetworkPluginName
+	server.NetworkPluginName = options.NetworkConfig.NetworkPluginName
 	server.HostNetworkSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
 	server.HTTPCheckFrequency = 0 // no remote HTTP pod creation access
 	server.FileCheckFrequency = time.Duration(fileCheckInterval) * time.Second
@@ -138,6 +147,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	}
 
 	// provide any config overrides
+	cfg.NodeName = options.NodeName
 	cfg.StreamingConnectionIdleTimeout = 5 * time.Minute // TODO: should be set
 	cfg.KubeClient = kubeClient
 	cfg.DockerExecHandler = dockerExecHandler

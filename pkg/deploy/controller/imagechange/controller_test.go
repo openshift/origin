@@ -4,7 +4,7 @@ import (
 	"flag"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapitest "github.com/openshift/origin/pkg/deploy/api/test"

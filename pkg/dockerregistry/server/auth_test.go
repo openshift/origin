@@ -12,8 +12,8 @@ import (
 	"github.com/docker/distribution/registry/auth"
 	"golang.org/x/net/context"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/api"
@@ -66,10 +66,10 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 		err = verifyImageStreamAccess("foo", "bar", "create", client)
 		if err == nil || test.expectedError == nil {
 			if err != test.expectedError {
-				t.Fatal("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
+				t.Fatalf("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
 			}
 		} else if err.Error() != test.expectedError.Error() {
-			t.Fatal("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
+			t.Fatalf("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
 		}
 		server.Close()
 	}
@@ -174,9 +174,9 @@ func TestAccessController(t *testing.T) {
 			openshiftResponses: []response{
 				{500, "Uh oh"},
 			},
-			expectedError:     errors.New("an error on the server has prevented the request from succeeding (post subjectAccessReviews)"),
+			expectedError:     errors.New("an error on the server has prevented the request from succeeding (post localSubjectAccessReviews)"),
 			expectedChallenge: false,
-			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
 		},
 		"valid openshift token but token not scoped for the given repo operation": {
 			access: []auth.Access{{
@@ -192,7 +192,7 @@ func TestAccessController(t *testing.T) {
 			},
 			expectedError:     ErrOpenShiftAccessDenied,
 			expectedChallenge: true,
-			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
 		},
 		"partially valid openshift token": {
 			// Check all the different resource-type/verb combinations we allow to make sure they validate and continue to validate remaining Resource requests
@@ -212,10 +212,10 @@ func TestAccessController(t *testing.T) {
 			expectedError:     ErrOpenShiftAccessDenied,
 			expectedChallenge: true,
 			expectedActions: []string{
-				"POST /oapi/v1/namespaces/foo/subjectaccessreviews",
-				"POST /oapi/v1/namespaces/bar/subjectaccessreviews",
+				"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews",
+				"POST /oapi/v1/namespaces/bar/localsubjectaccessreviews",
 				"POST /oapi/v1/subjectaccessreviews",
-				"POST /oapi/v1/namespaces/baz/subjectaccessreviews",
+				"POST /oapi/v1/namespaces/baz/localsubjectaccessreviews",
 			},
 		},
 		"valid openshift token": {
@@ -232,7 +232,7 @@ func TestAccessController(t *testing.T) {
 			},
 			expectedError:     nil,
 			expectedChallenge: false,
-			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/subjectaccessreviews"},
+			expectedActions:   []string{"POST /oapi/v1/namespaces/foo/localsubjectaccessreviews"},
 		},
 		"pruning": {
 			access: []auth.Access{

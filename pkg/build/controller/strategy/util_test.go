@@ -3,8 +3,8 @@ package strategy
 import (
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
@@ -68,7 +68,7 @@ func isVolumeSourceEmpty(volumeSource kapi.VolumeSource) bool {
 }
 
 func TestSetupBuildEnvEmpty(t *testing.T) {
-	build := mockCustomBuild()
+	build := mockCustomBuild(false)
 	containerEnv := []kapi.EnvVar{
 		{Name: "BUILD", Value: ""},
 		{Name: "SOURCE_REPOSITORY", Value: build.Spec.Source.Git.URI},

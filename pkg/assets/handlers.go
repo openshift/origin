@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 var varyHeaderRegexp = regexp.MustCompile("\\s*,\\s*")
@@ -182,16 +182,19 @@ type WebConsoleConfig struct {
 	LogoutURI string
 }
 
-func GeneratedConfigHandler(config WebConsoleConfig, h http.Handler) http.Handler {
+func GeneratedConfigHandler(config WebConsoleConfig) (http.Handler, error) {
+	var buffer bytes.Buffer
+	if err := configTemplate.Execute(&buffer, config); err != nil {
+		return nil, err
+	}
+	content := buffer.Bytes()
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.TrimPrefix(r.URL.Path, "/") == "config.js" {
-			w.Header().Add("Cache-Control", "no-cache, no-store")
-			w.Header().Add("Content-Type", "application/json")
-			if err := configTemplate.Execute(w, config); err != nil {
-				util.HandleError(fmt.Errorf("unable to render config template: %v", err))
-			}
-			return
+		w.Header().Add("Cache-Control", "no-cache, no-store")
+		w.Header().Add("Content-Type", "application/json")
+		_, err := w.Write(content)
+		if err != nil {
+			util.HandleError(fmt.Errorf("Error serving Web Console configuration: %v", err))
 		}
-		h.ServeHTTP(w, r)
-	})
+	}), nil
 }

@@ -23,11 +23,15 @@
             clear: both;
           }
           h2 {
+            // make size, weight and height consistent with project list select
+            font-size: 15px;
+            font-weight: 500;
             margin-left: 20px;
-            margin-top: 13px;
+            margin-top: 17px;
           }
           .navbar-toggle {
             margin-right: 10px;
+            padding: 9px;
             .icon-bar {
               background-color: #333;
             }
@@ -43,7 +47,6 @@
           border-bottom: 1px solid @navbar-os-project-border-color;
           &.active {
             > a {
-              border-bottom: 1px solid @navbar-os-project-border-color;
               &:after {
                 content: '';
                 width: 4px;
@@ -78,6 +81,9 @@
           .sidenav-secondary {
             ul.nav-sidenav-secondary {
               > li {
+                &:first-child {
+                  border-top: 1px solid @navbar-os-project-border-color;
+                }
                 > a {
                   &:hover, &:focus {
                     background-color: transparent;
@@ -154,6 +160,7 @@
         .navbar-sidebar {
           font-size: 12px;
           border-right: 1px solid @navbar-os-project-border-color;
+          border-bottom: 0;
           width: @sidebar-left-width-sm;
           position: absolute;
           top:0;
@@ -166,9 +173,6 @@
           }
           ul.nav-sidenav > li {
             position: static;
-            &.active > a {
-              border-bottom: 0;
-            }
             > a {
               text-align: center;
               padding: @sidebar-os-padding-x @sidebar-os-padding-y;
@@ -192,6 +196,9 @@
               ul.nav-sidenav-secondary {
                 margin-bottom: 20px;
                 li {
+                  &:first-child {
+                    border-top: none;
+                  }
                   &.active a {
                     text-decoration: underline;
                     color: @link-hover-color;

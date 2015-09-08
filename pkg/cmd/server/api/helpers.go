@@ -8,14 +8,79 @@ import (
 	"strings"
 	"time"
 
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/client/clientcmd"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
+
+var (
+	knownOpenShiftFeatureSet map[string]string
+)
+
+func init() {
+	knownOpenShiftFeatureSet = make(map[string]string, len(KnownOpenShiftFeatures))
+	for _, feature := range KnownOpenShiftFeatures {
+		knownOpenShiftFeatureSet[strings.ToLower(feature)] = feature
+	}
+}
+
+// Add extends feature list with given valid items. They are appended
+// unless already present.
+func (fl *FeatureList) Add(items ...string) error {
+	unknown := []string{}
+	toAppend := make([]string, 0, len(items))
+	for _, item := range items {
+		feature, exists := knownOpenShiftFeatureSet[strings.ToLower(item)]
+		if !exists {
+			unknown = append(unknown, item)
+			continue
+		}
+		if fl.Has(feature) {
+			continue
+		}
+		toAppend = append(toAppend, feature)
+	}
+	if len(unknown) > 0 {
+		return fmt.Errorf("unknown features: %s", strings.Join(unknown, ", "))
+	}
+	*fl = append(*fl, toAppend...)
+	return nil
+}
+
+// Delete removes given items from feature list while keeping its original
+// order.
+func (fl *FeatureList) Delete(items ...string) {
+	if len(*fl) == 0 || len(items) == 0 {
+		return
+	}
+	toDelete := util.NewStringSet()
+	for _, item := range items {
+		toDelete.Insert(strings.ToLower(item))
+	}
+	newList := []string{}
+	for _, item := range *fl {
+		if !toDelete.Has(strings.ToLower(item)) {
+			newList = append(newList, item)
+		}
+	}
+	*fl = newList
+}
+
+// Has returns true if given feature exists in feature list. The check is
+// case-insensitive.
+func (fl FeatureList) Has(feature string) bool {
+	lowerCased := strings.ToLower(feature)
+	for _, item := range fl {
+		if strings.ToLower(item) == lowerCased {
+			return true
+		}
+	}
+	return false
+}
 
 // ParseNamespaceAndName returns back the namespace and name (empty if something goes wrong), for a given string.
 // This is useful when pointing to a particular resource inside of our config.
@@ -94,12 +159,25 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 			}
 		}
+
+		if config.OAuthConfig.Templates != nil {
+			refs = append(refs, &config.OAuthConfig.Templates.Login)
+		}
 	}
 
 	if config.AssetConfig != nil {
 		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.CertFile)
 		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.KeyFile)
 		refs = append(refs, &config.AssetConfig.ServingInfo.ClientCA)
+		for i := range config.AssetConfig.ExtensionScripts {
+			refs = append(refs, &config.AssetConfig.ExtensionScripts[i])
+		}
+		for i := range config.AssetConfig.ExtensionStylesheets {
+			refs = append(refs, &config.AssetConfig.ExtensionStylesheets[i])
+		}
+		for i := range config.AssetConfig.Extensions {
+			refs = append(refs, &config.AssetConfig.Extensions[i].SourceDirectory)
+		}
 	}
 
 	if config.KubernetesMasterConfig != nil {

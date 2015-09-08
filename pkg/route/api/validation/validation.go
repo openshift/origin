@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	kval "github.com/GoogleCloudPlatform/kubernetes/pkg/api/validation"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/api/validation"
+	kval "k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"

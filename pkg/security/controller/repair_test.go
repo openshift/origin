@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/testclient"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/security/uid"
 )
@@ -28,10 +28,8 @@ func (r *fakeRange) CreateOrUpdate(update *kapi.RangeAllocation) error {
 }
 
 func TestRepair(t *testing.T) {
-	var action testclient.FakeAction
 	client := &testclient.Fake{
-		ReactFn: func(a testclient.FakeAction) (runtime.Object, error) {
-			action = a
+		ReactFn: func(a testclient.Action) (runtime.Object, error) {
 			list := &kapi.NamespaceList{
 				Items: []kapi.Namespace{
 					{ObjectMeta: kapi.ObjectMeta{Name: "default"}},

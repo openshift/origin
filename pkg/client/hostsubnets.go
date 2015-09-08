@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/watch"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -42,14 +42,14 @@ func (c *hostSubnet) List() (result *sdnapi.HostSubnetList, err error) {
 	return
 }
 
-// Get returns information about a particular user or an error
+// Get returns host subnet information for a given host or an error
 func (c *hostSubnet) Get(hostName string) (result *sdnapi.HostSubnet, err error) {
 	result = &sdnapi.HostSubnet{}
 	err = c.r.Get().Resource("hostSubnets").Name(hostName).Do().Into(result)
 	return
 }
 
-// Create creates a new user. Returns the server's representation of the user and error if one occurs.
+// Create creates a new host subnet. Returns the server's representation of the host subnet and error if one occurs.
 func (c *hostSubnet) Create(hostSubnet *sdnapi.HostSubnet) (result *sdnapi.HostSubnet, err error) {
 	result = &sdnapi.HostSubnet{}
 	err = c.r.Post().Resource("hostSubnets").Body(hostSubnet).Do().Into(result)

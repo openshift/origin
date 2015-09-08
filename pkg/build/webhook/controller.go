@@ -7,9 +7,9 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // Plugin for Webhook verification is dependent on the sending side, it can be

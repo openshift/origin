@@ -3,8 +3,8 @@ package clientcmd
 import (
 	"github.com/spf13/pflag"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
+	"k8s.io/kubernetes/pkg/client/clientcmd"
 )
 
 func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {

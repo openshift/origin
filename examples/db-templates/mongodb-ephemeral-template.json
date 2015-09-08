@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "mongodb-ephemeral",
     "creationTimestamp": null,
@@ -13,7 +13,7 @@
   "objects": [
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
         "creationTimestamp": null
@@ -41,7 +41,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
         "creationTimestamp": null
@@ -147,30 +147,35 @@
     {
       "name": "DATABASE_SERVICE_NAME",
       "description": "Database service name",
-      "value": "mongodb"
+      "value": "mongodb",
+      "required": true
     },
     {
       "name": "MONGODB_USER",
       "description": "Username for MongoDB user that will be used for accessing the database",
       "generate": "expression",
-      "from": "user[A-Z0-9]{3}"
+      "from": "user[A-Z0-9]{3}",
+      "required": true
     },
     {
       "name": "MONGODB_PASSWORD",
       "description": "Password for the MongoDB user",
       "generate": "expression",
-      "from": "[a-zA-Z0-9]{16}"
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
     },
     {
       "name": "MONGODB_DATABASE",
       "description": "Database name",
-      "value": "sampledb"
+      "value": "sampledb",
+      "required": true
     },
     {
       "name": "MONGODB_ADMIN_PASSWORD",
       "description": "Password for the database admin user",
       "generate": "expression",
-      "from": "[a-zA-Z0-9]{16}"
+      "from": "[a-zA-Z0-9]{16}",
+      "required": true
     }
   ],
   "labels": {

@@ -57,10 +57,9 @@
 
               <div ng-repeat="trigger in buildConfig.spec.triggers">
                 <div ng-switch="trigger.type">
-                  <div ng-switch-when="github">
-                    
+                  <div ng-switch-when="GitHub">
                       <dt>GitHub webhook URL
-                        <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more 
+                        <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more
                         <i class="fa fa-external-link"></i></span></a>
                       </dt>
                       <dd>
@@ -68,7 +67,7 @@
                         <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.github.secret : project.metadata.name"></copy-to-clipboard-button>
                       </dd>
                   </div>
-                  <div ng-switch-when="generic">
+                  <div ng-switch-when="Generic">
                       <dt>Generic webhook URL
                         <a href="{{'webhooks' | helpLink}}" target="_blank"><span class="learn-more-block">Learn more <i class="fa fa-external-link"></i></span></a>
                       </dt>
@@ -77,7 +76,7 @@
                         <copy-to-clipboard-button clipboard-text="buildConfigName | webhookURL : trigger.type : trigger.generic.secret : project.metadata.name"></copy-to-clipboard-button>
                       </dd>
                   </div>
-                  <div ng-switch-when="imageChange">
+                  <div ng-switch-when="ImageChange">
                     <div ng-switch="buildConfig.spec.strategy.type">
                       <div ng-switch-when="Source">
                         <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.sourceStrategy.from && buildConfig.spec.strategy.sourceStrategy.from.kind!='ImageStreamImage'">
@@ -141,7 +140,8 @@
             </dl>
           </div>
         </div>
-        <div class="well build-well" ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true">
+        <!-- When expanded, pass undefined to limitToOrAll to show all builds. -->
+        <div ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true | limitToOrAll: (expanded ? undefined : defaultBuildLimit)" class="well build-well">
           <div class="row">
             <div class="col-md-7 col-sm-7 col-xs-7">
               <h3>{{build.metadata.name}}</h3>
@@ -213,6 +213,7 @@
             </div><!-- /.col -->
           </div><!-- /.row -->
         </div><!-- /build .well -->
+        <div ng-hide="expanded || (buildsByBuildConfig[buildConfigName] | hashSize) <= defaultBuildLimit"><a href="" ng-click="expanded = true">Show older builds</a></div>
       </div><!-- /buildConfig .tile -->
 
       <!-- render any builds whose build configs no longer exist -->

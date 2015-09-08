@@ -1,9 +1,10 @@
 package testclient
 
 import (
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -15,38 +16,48 @@ type FakeRoutes struct {
 	Namespace string
 }
 
+func (c *FakeRoutes) Get(name string) (*routeapi.Route, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewGetAction("routes", c.Namespace, name), &routeapi.Route{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*routeapi.Route), err
+}
+
 func (c *FakeRoutes) List(label labels.Selector, field fields.Selector) (*routeapi.RouteList, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "list-routes"}, &routeapi.RouteList{})
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("routes", c.Namespace, label, field), &routeapi.RouteList{})
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*routeapi.RouteList), err
 }
 
-func (c *FakeRoutes) Get(name string) (*routeapi.Route, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "get-route"}, &routeapi.Route{})
+func (c *FakeRoutes) Create(inObj *routeapi.Route) (*routeapi.Route, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewCreateAction("routes", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
 	return obj.(*routeapi.Route), err
 }
 
-func (c *FakeRoutes) Create(route *routeapi.Route) (*routeapi.Route, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "create-route"}, &routeapi.Route{})
-	return obj.(*routeapi.Route), err
-}
+func (c *FakeRoutes) Update(inObj *routeapi.Route) (*routeapi.Route, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewUpdateAction("routes", c.Namespace, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
 
-func (c *FakeRoutes) Update(route *routeapi.Route) (*routeapi.Route, error) {
-	obj, err := c.Fake.Invokes(FakeAction{Action: "update-route"}, &routeapi.Route{})
 	return obj.(*routeapi.Route), err
 }
 
 func (c *FakeRoutes) Delete(name string) error {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "delete-route"})
-	return nil
+	_, err := c.Fake.Invokes(ktestclient.NewDeleteAction("routes", c.Namespace, name), &routeapi.Route{})
+	return err
 }
 
 func (c *FakeRoutes) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Lock.Lock()
-	defer c.Fake.Lock.Unlock()
-
-	c.Fake.Actions = append(c.Fake.Actions, FakeAction{Action: "watch-routes"})
-	return nil, nil
+	c.Fake.Invokes(ktestclient.NewWatchAction("routes", c.Namespace, label, field, resourceVersion), nil)
+	return c.Fake.Watch, nil
 }

@@ -8,10 +8,10 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/credentialprovider"
-	cmdutil "github.com/GoogleCloudPlatform/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/credentialprovider"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/spf13/cobra"
 )
@@ -24,21 +24,25 @@ Create a new dockercfg secret
 
 Dockercfg secrets are used to authenticate against Docker registries.
 
-When using the Docker command line to push images, you can authenticate to a given registry by running 
+When using the Docker command line to push images, you can authenticate to a given registry by running
   'docker login DOCKER_REGISTRY_SERVER --username=DOCKER_USER --password=DOCKER_PASSWORD --email=DOCKER_EMAIL'.
-That produces a ~/.dockercfg file that is used by subsequent 'docker push' and 'docker pull' commands to authenticate to the registry.
+That produces a ~/.dockercfg file that is used by subsequent 'docker push' and 'docker pull' commands to
+authenticate to the registry.
 
-When using OpenShift, you may have a Docker registry that requires authentication.  In order for the nodes to pull images on your behalf, they have to have the credentials.  You can provide this information by creating a dockercfg secret and attaching it to your service account.
+When creating applications, you may have a Docker registry that requires authentication.  In order for the
+nodes to pull images on your behalf, they have to have the credentials.  You can provide this information
+by creating a dockercfg secret and attaching it to your service account.
 
 If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
 
-  $ %s SECRET_NAME --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+  $ %[1]s SECRET_NAME --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
 
 If you do already have a .dockercfg file, you can create a dockercfg secret by using:
 
-  $ %s SECRET_NAME path/to/.dockercfg
+  $ %[2]s SECRET_NAME path/to/.dockercfg
 
-You can then use '%s SERVICE_ACCOUNT' to add the new secret to 'imagePullSecrets' for the node to use or 'secrets' for builds to use.
+You can then use '%[3]s SERVICE_ACCOUNT' to add the new secret to 'imagePullSecrets' for the node to use or
+'secrets' for builds to use.
 `
 )
 
@@ -112,10 +116,6 @@ func (o CreateDockerConfigOptions) CreateDockerSecret() error {
 }
 
 func (o CreateDockerConfigOptions) MakeDockerSecret() (*api.Secret, error) {
-	if err := o.Validate(); err != nil {
-		return nil, err
-	}
-
 	dockercfgAuth := credentialprovider.DockerConfigEntry{
 		Username: o.Username,
 		Password: o.Password,
@@ -161,7 +161,7 @@ func (o *CreateDockerConfigOptions) Complete(f *cmdutil.Factory, args []string) 
 
 func (o CreateDockerConfigOptions) Validate() error {
 	if len(o.SecretNamespace) == 0 {
-		return errors.New("SecretNamespace must be present")
+		return errors.New("secret namespace must be present")
 	}
 	if len(o.SecretName) == 0 {
 		return errors.New("secret name must be present")
@@ -179,7 +179,7 @@ func (o CreateDockerConfigOptions) Validate() error {
 		return errors.New("docker-email must be present")
 	}
 	if o.SecretsInterface == nil {
-		return errors.New("SecretsInterface must be present")
+		return errors.New("secrets interface must be present")
 	}
 
 	if strings.Contains(o.Username, ":") {

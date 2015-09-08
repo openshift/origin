@@ -1,16 +1,16 @@
 package etcd
 
 import (
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	etcdgeneric "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/etcd"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/tools"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/storage"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 // REST implements a RESTStorage for image streams against etcd.
@@ -20,7 +20,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST) {
+func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST) {
 	prefix := "/imagestreams"
 	store := etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ImageStream{} },
@@ -37,7 +37,7 @@ func NewREST(h tools.EtcdHelper, defaultRegistry imagestream.DefaultRegistry, su
 		EndpointName: "imageStream",
 
 		ReturnDeletedObject: false,
-		Helper:              h,
+		Storage:             s,
 	}
 
 	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry)

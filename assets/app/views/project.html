@@ -2,7 +2,7 @@
   <project-page class="project-overview-page">
     <div ng-controller="OverviewController">
       <tasks></tasks>
-      <div class="page-header page-header-bleed-right">
+      <div ng-if="!renderOptions.showGetStarted" class="page-header page-header-bleed-right">
         <h1 title="{{project | displayName}}">Project {{project | displayName}}</h1>
       </div>
 
@@ -13,16 +13,27 @@
       <div ng-if="(services | hashSize) == 0">
 
         <!-- Getting started -->
-        <div ng-if="renderOptions.showGetStarted" class="center-block empty-state-msg">
-          <h2>Welcome.</h2>
+        <div ng-if="renderOptions.showGetStarted" class="empty-project">
+          <h2 class="text-center">Get started with your project.</h2>
 
-          <p class="text-muted">
-            You can create a new application from a Git source repository
-            or a template to begin.
+          <p class="gutter-top">
+            Begin creating your application by
+
+          <dl>
+            <dt><i class="fa fa-code"></i> Building from source code</dt>
+            <dd>Use your source or one of our example repositories to build an application image.</dd>
+
+            <dt><i class="fa fa-bolt"></i> Creating from templates</dt>
+            <dd>Launch ready-to-run Instant Apps or add components like databases and message queues.</dd>
+          </dl>
+
           </p>
-          <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
-            Get Started
-          </a>
+          <p class="gutter-top text-center">
+            <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
+              Add to Project
+            </a>
+          </p>
+
         </div>
 
         <!-- Normal empty message (loading... or filtered) -->
@@ -41,7 +52,7 @@
 
             <div class="component-block">
               <div class="component">
-                <div class="component-label">
+                <div ng-attr-title="{{service | serviceImplicitDNSName}}" class="component-label">
                   <!-- "service" class is present for e2e tests to check   -->
                   Service <span ng-if="displayRouteByService[serviceId]">: <span class="service">{{serviceId}}</span></span>
                 </div>
@@ -72,9 +83,6 @@
               </div>
 
               <div class="component meta-data">
-                <span ng-if="service.spec.portalIP && service.spec.portalIP !== 'None'">
-                  routing traffic on {{service.spec.portalIP}}
-                </span>
                 <div ng-if="numPorts">
                   <!--
                   Show only the first two ports if there are many since we don't have much space here.
@@ -82,7 +90,8 @@
                   -->
                   <span ng-repeat="portMapping in service.spec.ports | orderBy:'port' | limitTo:2" class="nowrap">
                     <!-- Group port mappings and allow multiple mappings to stack if needed -->
-                    <span class="port-mappings">port {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
+                    <span class="port-mappings">
+                      {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
                       ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span></span>
                   </span>
                   <span ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
@@ -92,7 +101,6 @@
               </div>
             </div>
           </div>
-
 
           <!--
           Iterate over deploymentConfigs for this service.

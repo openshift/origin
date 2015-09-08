@@ -43,9 +43,17 @@ SWAGGER_API_PATH="${HOST}/swaggerapi/"
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
-# set path so OpenShift is available
-GO_OUT="${OS_ROOT}/_output/local/go/bin"
-export PATH="${GO_OUT}:${PATH}"
+openshift=$(cd "${OS_ROOT}"; echo "$(pwd)/_output/local/go/bin/openshift")
+
+if [[ ! -e "${openshift}" ]]; then
+  {
+    echo "It looks as if you don't have a compiled openshift binary"
+    echo
+    echo "If you are running from a clone of the git repo, please run"
+    echo "'./hack/build-go.sh'."
+  } >&2
+  exit 1
+fi
 
 # create temp dir
 TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
@@ -54,15 +62,22 @@ export CURL_CA_BUNDLE="${TEMP_DIR}/openshift.local.config/master/ca.crt"
 # Start openshift
 echo "Starting OpenShift..."
 pushd "${TEMP_DIR}" > /dev/null
-OPENSHIFT_ON_PANIC=crash openshift start master --listen="https://0.0.0.0:8443" --master="https://127.0.0.1:8443" &> /dev/null &
+OPENSHIFT_ON_PANIC=crash "${openshift}" start master --master="https://127.0.0.1:8443" >/dev/null 2>&1  &
 OS_PID=$!
 popd > /dev/null
 
 wait_for_url "${HOST}/healthz" "apiserver: " 0.25 80
 
 echo "Updating ${SWAGGER_SPEC_OUT_DIR}:"
-echo "Updating ${SWAGGER_SPEC_OUT_DIR}/oapi-v1.json from ${SWAGGER_API_PATH}oapi/v1..."
-curl "${SWAGGER_API_PATH}oapi/v1" > "${SWAGGER_SPEC_OUT_DIR}/oapi-v1.json"
-echo "Updating ${SWAGGER_SPEC_OUT_DIR}/api-v1.json from ${SWAGGER_API_PATH}api/v1..."
-curl "${SWAGGER_API_PATH}api/v1" > "${SWAGGER_SPEC_OUT_DIR}/api-v1.json"
+
+ENDPOINT_TYPES="oapi api"
+for type in $ENDPOINT_TYPES
+do
+    ENDPOINTS=(v1)
+    for endpoint in $ENDPOINTS
+    do
+        echo "Updating ${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json from ${SWAGGER_API_PATH}${type}/${endpoint}..."
+        curl -w "\n" "${SWAGGER_API_PATH}${type}/${endpoint}" > "${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json"
+    done
+done
 echo "SUCCESS"

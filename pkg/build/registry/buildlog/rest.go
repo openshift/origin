@@ -6,16 +6,16 @@ import (
 
 	"github.com/golang/glog"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/errors"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/rest"
-	kclient "github.com/GoogleCloudPlatform/kubernetes/pkg/client"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/fields"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/labels"
-	genericrest "github.com/GoogleCloudPlatform/kubernetes/pkg/registry/generic/rest"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/registry/pod"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/watch"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/rest"
+	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
+	"k8s.io/kubernetes/pkg/registry/pod"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/build"
@@ -97,6 +97,9 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	}
 	location, transport, err := pod.LogLocation(r.PodGetter, r.ConnectionInfo, ctx, buildPodName, logOpts)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, errors.NewNotFound("pod", buildPodName)
+		}
 		return nil, errors.NewBadRequest(err.Error())
 	}
 	return &genericrest.LocationStreamer{

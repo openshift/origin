@@ -1,19 +1,22 @@
 package api_test
 
 import (
+	"fmt"
 	"math/rand"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/api/meta"
-	apitesting "github.com/GoogleCloudPlatform/kubernetes/pkg/api/testing"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/conversion"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/runtime"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
 	"github.com/google/gofuzz"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
+	apitesting "k8s.io/kubernetes/pkg/api/testing"
+	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util"
 
 	osapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
@@ -24,6 +27,7 @@ import (
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
 	template "github.com/openshift/origin/pkg/template/api"
+	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
 func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, seed int64) runtime.Object {
@@ -41,6 +45,82 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 		},
 		func(j *authorizationapi.ClusterPolicyBinding, c fuzz.Continue) {
 			j.RoleBindings = make(map[string]*authorizationapi.ClusterRoleBinding)
+		},
+		func(j *authorizationapi.RoleBinding, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			for i := range j.Subjects {
+				kinds := []string{authorizationapi.UserKind, authorizationapi.SystemUserKind, authorizationapi.GroupKind, authorizationapi.SystemGroupKind, authorizationapi.ServiceAccountKind}
+				j.Subjects[i].Kind = kinds[c.Intn(len(kinds))]
+				switch j.Subjects[i].Kind {
+				case authorizationapi.UserKind:
+					j.Subjects[i].Namespace = ""
+					if valid, _ := uservalidation.ValidateUserName(j.Subjects[i].Name, false); !valid {
+						j.Subjects[i].Name = fmt.Sprintf("validusername%d", i)
+					}
+
+				case authorizationapi.GroupKind:
+					j.Subjects[i].Namespace = ""
+					if valid, _ := uservalidation.ValidateGroupName(j.Subjects[i].Name, false); !valid {
+						j.Subjects[i].Name = fmt.Sprintf("validgroupname%d", i)
+					}
+
+				case authorizationapi.ServiceAccountKind:
+					if valid, _ := validation.ValidateNamespaceName(j.Subjects[i].Namespace, false); !valid {
+						j.Subjects[i].Namespace = fmt.Sprintf("sanamespacehere%d", i)
+					}
+					if valid, _ := validation.ValidateServiceAccountName(j.Subjects[i].Name, false); !valid {
+						j.Subjects[i].Name = fmt.Sprintf("sanamehere%d", i)
+					}
+
+				case authorizationapi.SystemUserKind, authorizationapi.SystemGroupKind:
+					j.Subjects[i].Namespace = ""
+					j.Subjects[i].Name = ":" + j.Subjects[i].Name
+
+				}
+
+				j.Subjects[i].UID = types.UID("")
+				j.Subjects[i].APIVersion = ""
+				j.Subjects[i].ResourceVersion = ""
+				j.Subjects[i].FieldPath = ""
+			}
+		},
+		func(j *authorizationapi.ClusterRoleBinding, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			for i := range j.Subjects {
+				kinds := []string{authorizationapi.UserKind, authorizationapi.SystemUserKind, authorizationapi.GroupKind, authorizationapi.SystemGroupKind, authorizationapi.ServiceAccountKind}
+				j.Subjects[i].Kind = kinds[c.Intn(len(kinds))]
+				switch j.Subjects[i].Kind {
+				case authorizationapi.UserKind:
+					j.Subjects[i].Namespace = ""
+					if valid, _ := uservalidation.ValidateUserName(j.Subjects[i].Name, false); !valid {
+						j.Subjects[i].Name = fmt.Sprintf("validusername%d", i)
+					}
+
+				case authorizationapi.GroupKind:
+					j.Subjects[i].Namespace = ""
+					if valid, _ := uservalidation.ValidateGroupName(j.Subjects[i].Name, false); !valid {
+						j.Subjects[i].Name = fmt.Sprintf("validgroupname%d", i)
+					}
+
+				case authorizationapi.ServiceAccountKind:
+					if valid, _ := validation.ValidateNamespaceName(j.Subjects[i].Namespace, false); !valid {
+						j.Subjects[i].Namespace = fmt.Sprintf("sanamespacehere%d", i)
+					}
+					if valid, _ := validation.ValidateServiceAccountName(j.Subjects[i].Name, false); !valid {
+						j.Subjects[i].Name = fmt.Sprintf("sanamehere%d", i)
+					}
+
+				case authorizationapi.SystemUserKind, authorizationapi.SystemGroupKind:
+					j.Subjects[i].Namespace = ""
+					j.Subjects[i].Name = ":" + j.Subjects[i].Name
+
+				}
+
+				j.Subjects[i].UID = types.UID("")
+				j.Subjects[i].APIVersion = ""
+				j.Subjects[i].ResourceVersion = ""
+				j.Subjects[i].FieldPath = ""
+			}
 		},
 		func(j *template.Template, c fuzz.Continue) {
 			c.Fuzz(&j.ObjectMeta)
@@ -111,6 +191,10 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			if j.To != nil && strings.Contains(j.To.Name, ":") {
 				j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
 			}
+		},
+		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)

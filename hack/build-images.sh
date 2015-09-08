@@ -33,19 +33,20 @@ echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
 imagedir="_output/imagecontext"
 rm -rf "${imagedir}"
 mkdir -p "${imagedir}"
-tar xzf "${OS_PRIMARY_RELEASE_TAR}" -C "${imagedir}"
-tar xzf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
+tar xzpf "${OS_PRIMARY_RELEASE_TAR}" -C "${imagedir}"
+tar xzpf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
 
 # Copy primary binaries to the appropriate locations.
-cp -f "${imagedir}/openshift" images/origin/bin
-cp -f "${imagedir}/openshift" images/router/haproxy/bin
-cp -f "${imagedir}/openshift" images/ipfailover/keepalived/bin
+cp -pf "${imagedir}/openshift" images/origin/bin
+cp -pf "${imagedir}/openshift" images/router/haproxy/bin
+cp -pf "${imagedir}/openshift" images/ipfailover/keepalived/bin
 
 # Copy image binaries to the appropriate locations.
-cp -f "${imagedir}/pod" images/pod/bin
-cp -f "${imagedir}/hello-openshift" examples/hello-openshift/bin
-cp -f "${imagedir}/deployment"      examples/deployment/bin
-cp -f "${imagedir}/dockerregistry"  images/dockerregistry/bin
+cp -pf "${imagedir}/pod" images/pod/bin
+cp -pf "${imagedir}/hello-openshift" examples/hello-openshift/bin
+cp -pf "${imagedir}/deployment"      examples/deployment/bin
+cp -pf "${imagedir}/gitserver"       examples/gitserver/bin
+cp -pf "${imagedir}/dockerregistry"  images/dockerregistry/bin
 
 # builds an image and tags it two ways - with latest, and with the release tag
 function image {
@@ -66,9 +67,9 @@ image openshift/origin-deployer              images/deployer
 image openshift/origin-docker-builder        images/builder/docker/docker-builder
 image openshift/origin-gitserver             examples/gitserver
 image openshift/origin-sti-builder           images/builder/docker/sti-builder
+image openshift/origin-f5-router             images/router/f5
 # unpublished images
 image openshift/origin-custom-docker-builder images/builder/docker/custom-docker-builder
-image openshift/sti-image-builder            images/builder/docker/sti-image-builder
 
 # extra images (not part of infrastructure)
 image openshift/hello-openshift              examples/hello-openshift

@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "github.com/GoogleCloudPlatform/kubernetes/pkg/api"
-	"github.com/GoogleCloudPlatform/kubernetes/pkg/util"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -18,15 +18,25 @@ type subjectAccessTest struct {
 }
 
 type testAuthorizer struct {
-	allowed bool
-	reason  string
-	err     string
+	allowed          bool
+	reason           string
+	err              string
+	deniedNamespaces util.StringSet
 
-	actualAttributes *authorizer.DefaultAuthorizationAttributes
+	actualAttributes authorizer.DefaultAuthorizationAttributes
 }
 
 func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (allowed bool, reason string, err error) {
-	attributes, ok := passedAttributes.(*authorizer.DefaultAuthorizationAttributes)
+	// allow the initial check for "can I run this SAR at all"
+	if passedAttributes.GetResource() == "localsubjectaccessreviews" {
+		if len(a.deniedNamespaces) != 0 && a.deniedNamespaces.Has(kapi.NamespaceValue(ctx)) {
+			return false, "denied initial check", nil
+		}
+
+		return true, "", nil
+	}
+
+	attributes, ok := passedAttributes.(authorizer.DefaultAuthorizationAttributes)
 	if !ok {
 		return false, "ERROR", errors.New("unexpected type for test")
 	}
@@ -42,6 +52,27 @@ func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes a
 	return util.StringSet{}, util.StringSet{}, nil
 }
 
+func TestDeniedNamespace(t *testing.T) {
+	test := &subjectAccessTest{
+		authorizer: &testAuthorizer{
+			allowed:          false,
+			err:              "denied initial check",
+			deniedNamespaces: util.NewStringSet("foo"),
+		},
+		reviewRequest: &authorizationapi.SubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Namespace: "foo",
+				Verb:      "get",
+				Resource:  "pods",
+			},
+			User:   "foo",
+			Groups: util.NewStringSet(),
+		},
+	}
+
+	test.runTest(t)
+}
+
 func TestEmptyReturn(t *testing.T) {
 	test := &subjectAccessTest{
 		authorizer: &testAuthorizer{
@@ -49,10 +80,12 @@ func TestEmptyReturn(t *testing.T) {
 			reason:  "because reasons",
 		},
 		reviewRequest: &authorizationapi.SubjectAccessReview{
-			User:     "foo",
-			Groups:   util.NewStringSet(),
-			Verb:     "get",
-			Resource: "pods",
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:     "get",
+				Resource: "pods",
+			},
+			User:   "foo",
+			Groups: util.NewStringSet(),
 		},
 	}
 
@@ -66,9 +99,11 @@ func TestNoErrors(t *testing.T) {
 			reason:  "because good things",
 		},
 		reviewRequest: &authorizationapi.SubjectAccessReview{
-			Groups:   util.NewStringSet("not-master"),
-			Verb:     "delete",
-			Resource: "deploymentConfigs",
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:     "delete",
+				Resource: "deploymentConfigs",
+			},
+			Groups: util.NewStringSet("not-master"),
 		},
 	}
 
@@ -81,10 +116,12 @@ func TestErrors(t *testing.T) {
 			err: "some-random-failure",
 		},
 		reviewRequest: &authorizationapi.SubjectAccessReview{
-			User:     "foo",
-			Groups:   util.NewStringSet("first", "second"),
-			Verb:     "get",
-			Resource: "pods",
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:     "get",
+				Resource: "pods",
+			},
+			User:   "foo",
+			Groups: util.NewStringSet("first", "second"),
 		},
 	}
 
@@ -92,28 +129,30 @@ func TestErrors(t *testing.T) {
 }
 
 func (r *subjectAccessTest) runTest(t *testing.T) {
-	const namespace = "unittest"
-
 	storage := REST{r.authorizer}
 
 	expectedResponse := &authorizationapi.SubjectAccessReviewResponse{
-		Namespace: namespace,
+		Namespace: r.reviewRequest.Action.Namespace,
 		Allowed:   r.authorizer.allowed,
 		Reason:    r.authorizer.reason,
 	}
 
-	expectedAttributes := &authorizer.DefaultAuthorizationAttributes{
-		Verb:     r.reviewRequest.Verb,
-		Resource: r.reviewRequest.Resource,
-	}
+	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(r.reviewRequest.Action)
 
-	ctx := kapi.WithNamespace(kapi.NewContext(), namespace)
+	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 	obj, err := storage.Create(ctx, r.reviewRequest)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err == nil && len(r.authorizer.err) != 0 {
-		t.Fatalf("unexpected non-error: %v", err)
+	if len(r.authorizer.err) != 0 {
+		if err == nil {
+			t.Fatalf("unexpected non-error: %v", err)
+		}
+		if e, a := r.authorizer.err, err.Error(); e != a {
+			t.Fatalf("expected %v, got %v", e, a)
+		}
+
+		return
 	}
 
 	switch obj.(type) {
