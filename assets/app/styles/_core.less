@@ -6,6 +6,11 @@ html, body {
   height: 100%;
 }
 
+// See https://docs.angularjs.org/api/ng/directive/ngCloak
+[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+  display: none !important;
+}
+
 .console-os {
   background-color: @body-bg;
   height: ~"calc(100% - 121px)"; // removes scrollbar on pages with less than full viewport content
