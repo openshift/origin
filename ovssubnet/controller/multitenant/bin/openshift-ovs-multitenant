@@ -1,5 +1,6 @@
 #!/bin/bash
-set -ex
+# TODO: Reuse common portions in openshift-ovs-subnet and openshift-ovs-multitenant (probably we should handle this when we convert shell scripts to libovsdb APIs)
+set -e
 
 lock_file=/var/lock/openshift-sdn.lock
 
@@ -75,15 +76,29 @@ Teardown() {
     ovs-ofctl -O OpenFlow13 del-flows br0 "table=6,cookie=0x${ovs_port}/0xffffffff"
 }
 
+Status() {
+    ipaddr=$(docker inspect --format "{{.NetworkSettings.IPAddress}}" ${net_container})
+    if [ -z "$ipaddr" ]; then
+	exit 1
+    fi
+
+    printf "{ \"kind\": \"PodNetworkStatus\", \"apiVersion\": \"v1beta1\", \"ip\": \"${ipaddr}\" }\n"
+}
+
 case "$action" in
     init)
 	lockwrap Init
 	;;
     setup)
+	set -x
 	lockwrap Setup
 	;;
     teardown)
+	set -x
 	lockwrap Teardown
+	;;
+    status)
+	lockwrap Status
 	;;
     *)
         echo "Bad input: $@"
