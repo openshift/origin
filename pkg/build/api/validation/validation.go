@@ -76,6 +76,17 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) fielderrors.ValidationErr
 	}
 
 	allErrs = append(allErrs, validateBuildSpec(&config.Spec.BuildSpec).Prefix("spec")...)
+
+	// validate ImageChangeTriggers of DockerStrategy builds
+	strategy := config.Spec.BuildSpec.Strategy
+	if strategy.Type == buildapi.DockerBuildStrategyType && strategy.DockerStrategy.From == nil {
+		for _, trigger := range config.Spec.Triggers {
+			if trigger.Type == buildapi.ImageChangeBuildTriggerType && trigger.ImageChange.From == nil {
+				allErrs = append(allErrs, fielderrors.NewFieldRequired("imageChange.from"))
+			}
+		}
+	}
+
 	return allErrs
 }
 
