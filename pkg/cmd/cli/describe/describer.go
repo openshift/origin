@@ -574,7 +574,6 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Description", project.Annotations[projectapi.ProjectDescription])
 		formatString(out, "Status", project.Status.Phase)
 		formatString(out, "Node Selector", nodeSelector)
-		fmt.Fprintf(out, "\n")
 		if len(resourceQuotaList.Items) == 0 {
 			formatString(out, "Quota", "")
 		} else {
@@ -600,7 +599,6 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 				}
 			}
 		}
-		fmt.Fprintf(out, "\n")
 		if len(limitRangeList.Items) == 0 {
 			formatString(out, "Resource limits", "")
 		} else {
