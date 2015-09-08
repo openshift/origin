@@ -6,6 +6,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"io"
 	"os"
+	"runtime/debug"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -151,7 +152,8 @@ The list of all possible is:
 		defer func() {
 			if r := recover(); r != nil {
 				failed = true
-				errors = append(errors, fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Stack trace follows : \n%v", r))
+				stack := debug.Stack()
+				errors = append(errors, fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, stack))
 			}
 		}()
 		detected, detectWarnings, detectErrors := o.detectClientConfig() // may log and return problems
@@ -219,9 +221,10 @@ func (o DiagnosticsOptions) Run(diagnostics []types.Diagnostic) (bool, error, in
 			defer func() {
 				if r := recover(); r != nil {
 					errorCount += 1
+					stack := debug.Stack()
 					o.Logger.Error("CED3017",
-						fmt.Sprintf("While running the %s diagnostic, a panic was encountered.\nThis is a bug in diagnostics. Stack trace follows : \n%s",
-							diagnostic.Name(), fmt.Sprintf("%v", r)))
+						fmt.Sprintf("While running the %s diagnostic, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%s\n%s",
+							diagnostic.Name(), fmt.Sprintf("%v", r), stack))
 				}
 			}()
 
