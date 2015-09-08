@@ -296,8 +296,8 @@ describe('', function() {
         waitForPresence('.component .service', 'database');
         waitForPresence('.component .service', 'frontend');
         waitForPresence('.component .route', 'www.example.com');
-        waitForPresence('.pod-template-build a', 'ruby-sample-build #1');
-        waitForPresence('.deployment-trigger', 'new image for origin-ruby-sample:latest');
+        waitForPresence('.pod-template-build a', '#1');
+        waitForPresence('.deployment-trigger', 'from image change');
         expect(element.all(by.css(".pod-running")).count()).toEqual(3);
         // TODO: validate correlated images, builds, source
       });

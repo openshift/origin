@@ -72,6 +72,9 @@ html, body {
 
     }
   }
+  .page-header {
+    margin-top: 22px;
+  }
 }
 
 .console-os .navbar-project {
@@ -405,6 +408,11 @@ code {
   white-space: normal;
 }
 
+// Fix to override the Firefox 40+ behavior to add text-decoration
+// No other browser does this.
+abbr[data-original-title], abbr[title] {
+  text-decoration: none;
+}
 
 .dl-horizontal {
   &.left {

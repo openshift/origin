@@ -7,7 +7,7 @@
 <div class="component-block pod-template-container">
   <div class="component pod-template-block" ng-repeat="container in podTemplate.spec.containers">
     <div class="pod-template">
-      <h4>{{container.name}}</h4>
+      <div class="component-label">Container: {{container.name}}</div>
       <div ng-if="container.image" class="pod-template-image">
         <span class="fa fa-cube" aria-hidden="true"></span>
         Image: {{container.image | imageStreamName}}
@@ -21,36 +21,37 @@
             <span class="fa fa-refresh" aria-hidden="true"></span>
             Build:
             <span ng-if="build | annotation : 'buildNumber'">
-              <a ng-href="project/{{build.metadata.namespace}}/browse/builds#build-{{build.metadata.name}}">{{build.metadata.labels.buildconfig}} #{{build | annotation : 'buildNumber'}}</a>
+              <a ng-href="project/{{build.metadata.namespace}}/browse/builds#build-{{build.metadata.name}}">#{{build | annotation : 'buildNumber'}}</a>
             </span>
             <span ng-if="!(build | annotation : 'buildNumber')">
               <a ng-href="project/{{build.metadata.namespace}}/browse/builds#build-{{build.metadata.name}}">{{build.metadata.name}}</a>
             </span>
-          </div>
-          <div ng-if="build.spec.source">
-            <span class="fa fa-code" aria-hidden="true"></span>
-            <span>Source:
-              <span ng-switch="build.spec.source.type">
-                <span ng-switch-when="Git">
-                  <span ng-if="build.spec.revision.git.commit">
-                    {{build.spec.revision.git.message}}
-                    (<osc-git-link
-                      uri="build.spec.source.git.uri"
-                      commit="build.spec.revision.git.commit">{{build.spec.revision.git.commit | limitTo:7}}</osc-git-link>)
-                    <span ng-if="build.spec.revision.git.author">
-                      authored by {{build.spec.revision.git.author.name}}
+            <span ng-if="build.spec.source">
+              from
+              <span class="fa fa-code" aria-hidden="true" style="margin-right: 0;"></span>
+              <span>
+                <span ng-switch="build.spec.source.type">
+                  <span ng-switch-when="Git">
+                    <span ng-if="build.spec.revision.git.commit">
+                      {{build.spec.revision.git.message}}
+                      (<osc-git-link
+                        uri="build.spec.source.git.uri"
+                        commit="build.spec.revision.git.commit">{{build.spec.revision.git.commit | limitTo:7}}</osc-git-link>)
+                      <span ng-if="build.spec.revision.git.author">
+                        authored by {{build.spec.revision.git.author.name}}
+                      </span>
+                    </span>
+                    <span ng-if="!build.spec.revision.git.commit">
+                      <osc-git-link uri="build.spec.source.git.uri">{{build.spec.source.git.uri}}</osc-git-link>
                     </span>
                   </span>
-                  <span ng-if="!build.spec.revision.git.commit">
-                    <osc-git-link uri="build.spec.source.git.uri">{{build.spec.source.git.uri}}</osc-git-link>
+                  <span ng-switch-default>
+                    {{build.spec.source.type || 'Unknown'}}
                   </span>
-                </span>
-                <span ng-switch-default>
-                  {{build.spec.source.type || 'Unknown'}}
                 </span>
               </span>
             </span>
-          </div>
+          </div>            
         </div>
       </div>
 

@@ -21,6 +21,14 @@
   }
 }
 
+.pod-multiple-box-shadow(@color) {
+  box-shadow:
+    1px 1px 0 rgba(0, 0, 0, 0.2),
+    3px 3px 0 @color,
+    4px 4px 0 rgba(0, 0, 0, 0.2),
+    6px 6px 0 @color,
+    7px 7px 0 rgba(0, 0, 0, 0.2);  
+}
 
 // Requires inline-block or block
 // FIXME: Replace with Bootstrap text-overflow() ?
