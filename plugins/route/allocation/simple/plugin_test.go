@@ -64,6 +64,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 	tests := []struct {
 		name  string
 		route *api.Route
+		empty bool
 	}{
 		{
 			name: "No Name",
@@ -73,6 +74,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 				},
 				ServiceName: "service",
 			},
+			empty: true,
 		},
 		{
 			name: "No namespace",
@@ -82,6 +84,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 				},
 				ServiceName: "nonamespace",
 			},
+			empty: true,
 		},
 		{
 			name: "No service name",
@@ -124,8 +127,11 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 	for _, tc := range tests {
 		shard, _ := plugin.Allocate(tc.route)
 		name := plugin.GenerateHostname(tc.route, shard)
-		if len(name) <= 0 {
+		switch {
+		case len(name) == 0 && !tc.empty, len(name) != 0 && tc.empty:
 			t.Errorf("Test case %s got %d length name.", tc.name, len(name))
+		case tc.empty:
+			continue
 		}
 		if !util.IsDNS1123Subdomain(name) {
 			t.Errorf("Test case %s got %s - invalid DNS name.", tc.name, name)
@@ -137,6 +143,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 	tests := []struct {
 		name  string
 		route *api.Route
+		empty bool
 	}{
 		{
 			name: "No Name",
@@ -146,6 +153,17 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 				},
 				ServiceName: "service",
 			},
+			empty: true,
+		},
+		{
+			name: "Host but no name",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "namespace",
+				},
+				Host: "foo.com",
+			},
+			empty: true,
 		},
 		{
 			name: "No namespace",
@@ -155,6 +173,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 				},
 				ServiceName: "nonamespace",
 			},
+			empty: true,
 		},
 		{
 			name: "No service name",
@@ -188,8 +207,11 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 			t.Errorf("Test case %s got an error %s", tc.name, err)
 		}
 		name := sac.GenerateHostname(tc.route, shard)
-		if len(name) <= 0 {
-			t.Errorf("Test case %s got %d length name", tc.name, len(name))
+		switch {
+		case len(name) == 0 && !tc.empty, len(name) != 0 && tc.empty:
+			t.Errorf("Test case %s got %d length name.", tc.name, len(name))
+		case tc.empty:
+			continue
 		}
 		if !util.IsDNS1123Subdomain(name) {
 			t.Errorf("Test case %s got %s - invalid DNS name.", tc.name, name)
