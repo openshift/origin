@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
+	"github.com/openshift/origin/pkg/generate/git"
 )
 
 type builder interface {
@@ -26,7 +28,7 @@ type factoryFunc func(
 
 // run is responsible for preparing environment for actual build.
 // It accepts factoryFunc and an ordered array of SCMAuths.
-func run(builderFactory factoryFunc, scmAuths []scmauth.SCMAuth) {
+func run(builderFactory factoryFunc) {
 	client, endpoint, err := dockerutil.NewHelper().GetClient()
 	if err != nil {
 		glog.Fatalf("Error obtaining docker client: %v", err)
@@ -38,6 +40,11 @@ func run(builderFactory factoryFunc, scmAuths []scmauth.SCMAuth) {
 		glog.Fatalf("Unable to parse build: %v", err)
 	}
 	if build.Spec.Source.SourceSecret != nil {
+		sourceURL, err := git.ParseRepository(build.Spec.Source.Git.URI)
+		if err != nil {
+			glog.Fatalf("Cannot parse build URL: %s", build.Spec.Source.Git.URI)
+		}
+		scmAuths := auths(sourceURL)
 		if err := setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths); err != nil {
 			glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
 		}
@@ -85,51 +92,55 @@ func setupSourceSecret(sourceSecretName string, scmAuths []scmauth.SCMAuth) erro
 	if err != nil {
 		return err
 	}
-	found := false
 
-SCMAuthLoop:
-	for _, scmAuth := range scmAuths {
-		glog.V(3).Infof("Checking for '%s' in secret '%s'", scmAuth.Name(), sourceSecretName)
-		for _, file := range files {
-			if file.Name() == scmAuth.Name() {
-				glog.Infof("Using '%s' from secret '%s'", scmAuth.Name(), sourceSecretName)
-				if err := scmAuth.Setup(sourceSecretDir); err != nil {
-					glog.Warningf("Error setting up '%s': %v", scmAuth.Name(), err)
-					continue
-				}
-				found = true
-				break SCMAuthLoop
+	// Filter the list of SCMAuths based on the secret files that are present
+	scmAuthsPresent := map[string]scmauth.SCMAuth{}
+	for _, file := range files {
+		glog.V(3).Infof("Finding auth for %q in secret %q", file.Name(), sourceSecretName)
+		for _, scmAuth := range scmAuths {
+			if scmAuth.Handles(file.Name()) {
+				glog.V(3).Infof("Found SCMAuth %q to handle %q", scmAuth.Name(), file.Name())
+				scmAuthsPresent[scmAuth.Name()] = scmAuth
 			}
 		}
 	}
-	if !found {
-		return fmt.Errorf("the provided secret '%s' did not have any of the supported keys %v",
-			sourceSecretName, getSCMNames(scmAuths))
+
+	if len(scmAuthsPresent) == 0 {
+		return fmt.Errorf("no auth handler was found for the provided secret %q",
+			sourceSecretName)
 	}
+
+	for name, auth := range scmAuthsPresent {
+		glog.V(3).Infof("Setting up SCMAuth %q", name)
+		if err := auth.Setup(sourceSecretDir); err != nil {
+			// If an error occurs during setup, fail the build
+			return fmt.Errorf("cannot set up source authentication method %q: %v", name, err)
+		}
+	}
+
 	return nil
 }
 
-func getSCMNames(scmAuths []scmauth.SCMAuth) string {
-	var names string
-	for _, scmAuth := range scmAuths {
-		if len(names) > 0 {
-			names += ", "
-		}
-		names += scmAuth.Name()
+func auths(sourceURL *url.URL) []scmauth.SCMAuth {
+	auths := []scmauth.SCMAuth{
+		&scmauth.SSHPrivateKey{},
+		&scmauth.UsernamePassword{SourceURL: *sourceURL},
+		&scmauth.CACert{SourceURL: *sourceURL},
+		&scmauth.GitConfig{},
 	}
-	return names
+	return auths
 }
 
 // RunDockerBuild creates a docker builder and runs its build
 func RunDockerBuild() {
 	run(func(client bld.DockerClient, sock string, build *api.Build) builder {
 		return bld.NewDockerBuilder(client, build)
-	}, []scmauth.SCMAuth{&scmauth.SSHPrivateKey{}})
+	})
 }
 
 // RunSTIBuild creates a STI builder and runs its build
 func RunSTIBuild() {
 	run(func(client bld.DockerClient, sock string, build *api.Build) builder {
 		return bld.NewSTIBuilder(client, sock, build)
-	}, []scmauth.SCMAuth{&scmauth.SSHPrivateKey{}})
+	})
 }
