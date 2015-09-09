@@ -50,14 +50,14 @@ angular.module('openshiftConsole')
       if (!action) {
         // Loading of the page that will create deploymentConfigDeploymentsInProgress structure, which will associate running deployment to his deploymentConfig.
         $scope.deploymentConfigDeploymentsInProgress = associateRunningDeploymentToDeploymentConfig($scope.deploymentsByDeploymentConfig);
-      } else if (action === 'ADDED' || (action === 'MODIFIED' && ['New', 'Pending', 'Running'].indexOf($scope.deploymentStatus(deployment)) > -1)) {
+      } else if (action === 'ADDED' || (action === 'MODIFIED' && ['New', 'Pending', 'Running'].indexOf(deploymentStatus(deployment)) > -1)) {
         // When new deployment id instantiated/cloned, or in case of a retry, associate him to his deploymentConfig and add him into deploymentConfigDeploymentsInProgress structure.
         $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] = $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] || {};
         $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName] = deployment;
       } else if (action === 'MODIFIED') {
         // After the deployment ends remove him from the deploymentConfigDeploymentsInProgress structure.
-        var deploymentStatus = $scope.deploymentStatus(deployment);
-        if (deploymentStatus === "Complete" || deploymentStatus === "Failed"){
+        var status = deploymentStatus(deployment);
+        if (status === "Complete" || status === "Failed"){
           delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
         }
       }
@@ -99,8 +99,8 @@ angular.module('openshiftConsole')
       angular.forEach(deploymentsByDeploymentConfig, function(deploymentConfigDeployments, deploymentConfigName) {
         deploymentConfigDeploymentsInProgress[deploymentConfigName] = {};
         angular.forEach(deploymentConfigDeployments, function(deployment, deploymentName) {
-          var deploymentStatus = $scope.deploymentStatus(deployment);
-          if (deploymentStatus === "New" || deploymentStatus === "Pending" || deploymentStatus === "Running") {
+          var status = deploymentStatus(deployment);
+          if (status === "New" || status === "Pending" || status === "Running") {
             deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName] = deployment;
           }
         });
@@ -313,13 +313,17 @@ angular.module('openshiftConsole')
       return deploymentVersion === deploymentConfigVersion;
     };
 
-    $scope.deploymentStatus = function(deployment) {
-      return $filter('annotation')(deployment, 'deploymentStatus');
+    $scope.deploymentIsInProgress = function(deployment) {
+      return ['New', 'Pending', 'Running'].indexOf(deploymentStatus(deployment)) > -1;
     };
 
-    $scope.deploymentIsInProgress = function(deployment) {
-      return ['New', 'Pending', 'Running'].indexOf($scope.deploymentStatus(deployment)) > -1;
-    };
+    // helper function local to the controller
+    function deploymentStatus(deployment) {
+      return $filter('annotation')(deployment, 'deploymentStatus');
+    }
+
+    // exposed for views' use
+    $scope.deploymentStatus = deploymentStatus;
 
     LabelFilter.onActiveFiltersChanged(function(labelSelector) {
       // trigger a digest loop
