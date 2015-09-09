@@ -1,0 +1,61 @@
+FROM rhel7
+
+# Based on work by: Peter Schiffer <pschiffe@redhat.com>
+MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
+LABEL Vendor="Red Hat" License=GPLv2+
+LABEL Version=3.0.1.0-1.git.527.f8d5fed.el7ose
+
+LABEL OPENSHIFT_VERSION 3.0.1.0-1.git.527.f8d5fed.el7ose
+LABEL IMAGE_DESCRIPTION OpenShift3 Node Container
+LABEL IMAGE_TAGS        openshift, openshift3, openshift-node, openshift-sdn-ovs, openvswitch
+
+#RUN rpm --install --excludedocs --nodeps \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/libmnl-1.0.3-7.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/libnetfilter_conntrack-1.0.4-2.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/libnfnetlink-1.0.1-4.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/iptables-1.4.21-13.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/iproute-3.10.0-21.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/bridge-utils-1.5-9.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/procps-ng-3.3.10-3.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/ethtool-3.15-2.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/socat-1.7.2.2-5.el7.x86_64.rpm \
+#        http://download.devel.redhat.com/brewroot/packages/openssl/1.0.1e/42.el7_1.9/x86_64/openssl-1.0.1e-42.el7_1.9.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/binutils-2.23.52.0.1-30.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/xz-5.1.2-9alpha.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/kmod-libs-14-10.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/kmod-14-10.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/sysvinit-tools-2.88-14.dsf.el7.x86_64.rpm \
+#        http://download.eng.brq.redhat.com/pub/rhel/released/RHEL-7/7.1/Server/x86_64/os/Packages/device-mapper-libs-1.02.93-3.el7.x86_64.rpm \
+#        http://buildvm-devops.usersys.redhat.com/puddle/build/OpenShiftEnterpriseErrata/3.0/2015-08-19.1/RH7-RHOSE-3.0/x86_64/os/Packages/openshift-3.0.1.0-1.git.527.f8d5fed.el7ose.x86_64.rpm \
+#        http://buildvm-devops.usersys.redhat.com/puddle/build/OpenShiftEnterpriseErrata/3.0/2015-08-19.1/RH7-RHOSE-3.0/x86_64/os/Packages/openshift-node-3.0.1.0-1.git.527.f8d5fed.el7ose.x86_64.rpm \
+#        http://buildvm-devops.usersys.redhat.com/puddle/build/OpenShiftEnterpriseErrata/3.0/2015-08-19.1/RH7-RHOSE-3.0/x86_64/os/Packages/openshift-sdn-ovs-3.0.1.0-1.git.527.f8d5fed.el7ose.x86_64.rpm \
+#        http://buildvm-devops.usersys.redhat.com/puddle/build/OpenShiftEnterpriseErrata/3.0/2015-08-19.1/RH7-RHOSE-3.0/x86_64/os/Packages/openvswitch-2.3.1-2.git20150113.el7.x86_64.rpm
+
+# TODO: beta rpms being used here to get tuned versions to survive an install:
+RUN rpm -e --nodeps systemd-container-libs systemd-container
+RUN yum install --enablerepo=rhel-7-server-rpms --enablerepo=rhel-7-server-extras-rpms --enablerepo=rhel-7-server-ose-3.0-rpms --disablerepo=rhel-sap-hana-for-rhel-7-server-rpms --enablerepo=rhel-7-server-beta-rpms \
+    -y openshift-node openshift-sdn-ovs libmnl libnetfilter_conntrack \
+       libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
+       binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs \
+    && yum clean all
+
+COPY openshift-sdn-kube-subnet-setup.sh /usr/bin/
+RUN chmod +x /usr/bin/openshift-sdn-kube-subnet-setup.sh
+
+COPY openshift-ovs-subnet /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet/
+RUN chmod +x /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet/openshift-ovs-subnet
+
+COPY ose3-node-run.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/ose3-node-run.sh
+
+VOLUME [ "/etc/openshift", "/var/lib/openshift" ]
+WORKDIR /var/lib/openshift
+
+ENV HOME /root
+ENV OPENSHIFT_CONTAINERIZED true
+ENV KUBECONFIG /etc/openshift/node/node.kubeconfig
+
+CMD [ "/usr/local/bin/ose3-node-run.sh" ]
+
+LABEL RUN docker run -d --name NAME --privileged --net=host --restart=always -v /:/rootfs:ro -e HOST=/rootfs -v /etc/systemd/system:/host-etc/systemd/system -e HOST_ETC=/host-etc -v /etc/localtime:/etc/localtime:ro -v /etc/machine-id:/etc/machine-id:ro -v /lib/modules:/lib/modules -v /run:/run -v /sys:/sys:ro -v /usr/bin/docker:/usr/bin/docker:ro -v /var/lib/docker:/var/lib/docker -v /etc/openshift-node:/etc/openshift:Z -v /etc/openshift-node/openvswitch:/etc/openvswitch:Z -v /etc/openshift-node/sdn:/etc/openshift-sdn:Z -v /var/lib/openshift:/var/lib/openshift:z IMAGE
+
