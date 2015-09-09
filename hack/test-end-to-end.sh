@@ -196,6 +196,11 @@ wait_for_build_start "test"
 wait_for_build "test"
 wait_for_app "test"
 
+echo "[INFO] Starting build from ${STI_CONFIG_FILE} with non-existing commit..."
+set +e
+oc start-build test --commit=fffffff --wait && echo "The build was supposed to fail, but it succeeded." && exit 1
+set -e
+
 # Remote command execution
 echo "[INFO] Validating exec"
 frontend_pod=$(oc get pod -l deploymentconfig=frontend -t '{{(index .items 0).metadata.name}}')
