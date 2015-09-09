@@ -152,23 +152,23 @@ func (e *Etcd) ListPredicate(ctx api.Context, m generic.Matcher) (runtime.Object
 	trace := util.NewTrace("List " + reflect.TypeOf(list).String())
 	defer trace.LogIfLong(600 * time.Millisecond)
 	if name, ok := m.MatchesSingle(); ok {
-		trace.Step("About to read single object")
-		key, err := e.KeyFunc(ctx, name)
-		if err != nil {
-			return nil, err
+		if key, err := e.KeyFunc(ctx, name); err == nil {
+			trace.Step("About to read single object")
+			err = e.Storage.GetToList(key, list)
+			trace.Step("Object extracted")
+			if err != nil {
+				return nil, err
+			}
+			defer trace.Step("List filtered")
+			return generic.FilterList(list, m, generic.DecoratorFunc(e.Decorator))
 		}
-		err = e.Storage.GetToList(key, list)
-		trace.Step("Object extracted")
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		trace.Step("About to list directory")
-		err := e.Storage.List(e.KeyRootFunc(ctx), list)
-		trace.Step("List extracted")
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	trace.Step("About to list directory")
+	err := e.Storage.List(e.KeyRootFunc(ctx), list)
+	trace.Step("List extracted")
+	if err != nil {
+		return nil, err
 	}
 	defer trace.Step("List filtered")
 	return generic.FilterList(list, m, generic.DecoratorFunc(e.Decorator))
@@ -466,11 +466,9 @@ func (e *Etcd) WatchPredicate(ctx api.Context, m generic.Matcher, resourceVersio
 	}
 
 	if name, ok := m.MatchesSingle(); ok {
-		key, err := e.KeyFunc(ctx, name)
-		if err != nil {
-			return nil, err
+		if key, err := e.KeyFunc(ctx, name); err == nil {
+			return e.Storage.Watch(key, version, filterFunc)
 		}
-		return e.Storage.Watch(key, version, filterFunc)
 	}
 
 	return e.Storage.WatchList(e.KeyRootFunc(ctx), version, filterFunc)
