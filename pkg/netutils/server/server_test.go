@@ -45,7 +45,7 @@ func TestIPServe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error while initializing IPAM: %v", err)
 	}
-	go ListenAndServeNetutilServer(ipam, net.ParseIP("127.0.0.1"), 9080, nil)
+	ListenAndServeNetutilServer(ipam, net.ParseIP("127.0.0.1"), 9080, nil)
 
 	// get, get, delete, get
 	ip := getIP(t)

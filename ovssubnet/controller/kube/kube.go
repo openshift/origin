@@ -66,7 +66,6 @@ func (c *FlowController) manageLocalIpam(ipnet *net.IPNet) error {
 		return err
 	}
 	f.Close()
-	// listen and serve does not return the control
 	netutils_server.ListenAndServeNetutilServer(ipam, net.ParseIP(ipamHost), ipamPort, nil)
 	return nil
 }
