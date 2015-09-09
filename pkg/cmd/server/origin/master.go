@@ -106,7 +106,7 @@ var (
 	excludedV1Types      = excludedV1Beta3Types
 
 	// TODO: correctly solve identifying requests by type
-	longRunningRE = regexp.MustCompile("watch|proxy|logs|exec|portforward")
+	longRunningRE = regexp.MustCompile("watch|proxy|logs?|exec|portforward|attach")
 )
 
 // APIInstaller installs additional API components into this server
