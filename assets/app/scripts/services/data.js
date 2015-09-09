@@ -167,6 +167,38 @@ angular.module('openshiftConsole')
   };
 
 // resource:  API resource (e.g. "pods")
+// name:      API name, the unique name for the object
+// object:    API object data(eg. { kind: "Build", parameters: { ... } } )
+// context:   API context (e.g. {project: "..."})
+// opts:      http - options to pass to the inner $http call
+// Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the delete call completes.
+  DataService.prototype.update = function(resource, name, object, context, opts) {
+    resource = normalizeResource(resource);
+    opts = opts || {};
+    var deferred = $q.defer();
+    var self = this;
+    this._getNamespace(resource, context, opts).then(function(ns){
+      $http(angular.extend({
+        method: 'PUT',
+        data: object,
+        url: self._urlForResource(resource, name, object.apiVersion, context, false, ns)
+      }, opts.http || {}))
+      .success(function(data, status, headerFunc, config, statusText) {
+        deferred.resolve(data);
+      })
+      .error(function(data, status, headers, config) {
+        deferred.reject({
+          data: data,
+          status: status,
+          headers: headers,
+          config: config
+        });
+      });
+    });
+    return deferred.promise;
+  };
+
+// resource:  API resource (e.g. "pods")
 // name:      API name, the unique name for the object.
 //            In case the name of the Object is provided, expected format of 'resource' parameter is 'resource/subresource', eg: 'buildconfigs/instantiate'.
 // object:    API object data(eg. { kind: "Build", parameters: { ... } } )
