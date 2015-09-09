@@ -55,6 +55,12 @@ oc create -f test/integration/fixtures/test-service.json
 oc expose service frontend
 [ "$(oc get route frontend | grep 'name=frontend')" ]
 oc delete svc,route -l name=frontend
+# Test that external services are exposable
+oc create -f test/fixtures/external-service.yaml
+oc expose svc/external
+[ "$(oc get route external | grep 'external=service')" ]
+oc delete route external
+oc delete svc external
 echo "expose: ok"
 
 oc delete all --all
