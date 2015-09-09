@@ -30,7 +30,7 @@ with a name and file path, in which case the given name will be used. Specifying
 using with all valid keys in that directory.
 `
 
-	newExamples = `  // Create a new secret named my-secret with a key named ssh-privatekey
+	newExample = `  // Create a new secret named my-secret with a key named ssh-privatekey
   $ %[1]s my-secret ~/.ssh/ssh-privatekey
 
   // Create a new secret named my-secret with keys named ssh-privatekey and ssh-publickey instead of the names of the keys on disk
@@ -73,7 +73,7 @@ func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writ
 		Use:     fmt.Sprintf("%s NAME [KEY=]SOURCE ...", name),
 		Short:   "Create a new secret based on a key file or on files within a directory",
 		Long:    newLong,
-		Example: fmt.Sprintf(newExamples, fullName),
+		Example: fmt.Sprintf(newExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := options.Complete(args, f); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
