@@ -53,8 +53,7 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
         var title = container.name || 'Untitled Container';
         var token = AuthService.UserStore().getToken() || '';
         var targetURI = new URI().path(BaseHref)
-                                 .segment('java')
-                                 .segment('index.html')
+                                 .segment('java/') // Must have a trailing slash to avoid runtime errors in Safari
                                  .hash(token)
                                  .query({
                                    jolokiaUrl: jolokiaUrl,
