@@ -3,12 +3,15 @@ package scaler
 import (
 	"time"
 
+	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -35,6 +38,13 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 	}
 	cond := kubectl.ScaleCondition(scaler, preconditions, namespace, name, newSize)
 	if err := wait.Poll(retry.Interval, retry.Timeout, cond); err != nil {
+		if scaleErr := err.(kubectl.ControllerScaleError); kerrors.IsNotFound(scaleErr.ActualError) {
+			glog.Infof("No deployment found for dc/%s. Scaling the deployment configuration template...", name)
+			if _, err := scaler.c.(*realScalerClient).UpdateDeploymentConfig(namespace, name, newSize); err != nil {
+				return err
+			}
+			return nil
+		}
 		return err
 	}
 	if waitForReplicas != nil {
@@ -101,4 +111,15 @@ func (c *realScalerClient) UpdateReplicationController(namespace string, rc *kap
 // number set
 func (c *realScalerClient) ControllerHasDesiredReplicas(rc *kapi.ReplicationController) wait.ConditionFunc {
 	return kclient.ControllerHasDesiredReplicas(c.kc, rc)
+}
+
+// UpdateDeploymentConfig tries to get and update the provided deployment configuration template with the
+// provided replicas size
+func (c *realScalerClient) UpdateDeploymentConfig(namespace, name string, newSize uint) (*api.DeploymentConfig, error) {
+	dc, err := c.oc.DeploymentConfigs(namespace).Get(name)
+	if err != nil {
+		return nil, err
+	}
+	dc.Template.ControllerTemplate.Replicas = int(newSize)
+	return c.oc.DeploymentConfigs(namespace).Update(dc)
 }
