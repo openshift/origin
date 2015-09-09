@@ -31,10 +31,12 @@ function setup_env_vars {
 	# Use either the latest release built images, or latest.
 	if [[ -z "${USE_IMAGES-}" ]]; then
 		IMAGES='openshift/origin-${component}:latest'
+		export TAG=latest
 		export USE_IMAGES=${IMAGES}
 		if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
 			COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
 			IMAGES="openshift/origin-\${component}:${COMMIT}"
+			export TAG=${COMMIT}
 			export USE_IMAGES=${IMAGES}
 		fi
 	fi
@@ -381,7 +383,7 @@ reset_tmp_dir() {
 		sudo rm -rf ${BASETMPDIR}
 	fi
 
-	mkdir -p ${BASETMPDIR} ${LOG_DIR} ${ARTIFACT_DIR} ${FAKE_HOME_DIR}
+	mkdir -p ${BASETMPDIR} ${LOG_DIR} ${ARTIFACT_DIR} ${FAKE_HOME_DIR} ${VOLUME_DIR}
 	set -e
 }
 
@@ -499,6 +501,30 @@ function install_registry {
 function wait_for_registry {
 	wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=${ADMIN_KUBECONFIG} || echo "0")" != "0" ]]' $((5*TIME_MIN))
 }
+
+
+# Wait for builds to start
+# $1 namespace
+function os::build:wait_for_start() {
+	echo "[INFO] Waiting for $1 namespace build to start"
+	wait_for_command "oc get -n $1 builds | grep -i running" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
+	BUILD_ID=`oc get -n $1 builds  --output-version=v1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	echo "[INFO] Build ${BUILD_ID} started"
+}
+
+# Wait for builds to complete
+# $1 namespace
+function os::build:wait_for_end() {
+	echo "[INFO] Waiting for $1 namespace build to complete"
+	wait_for_command "oc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
+	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	echo "[INFO] Build ${BUILD_ID} finished"
+	# TODO: fix
+	set +e
+	oc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
+	set -e
+}
+
 
 ######
 # end of common functions for extended test group's run.sh scripts
