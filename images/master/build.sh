@@ -8,7 +8,7 @@ export DOCKER_REGISTRY=localhost:5000
 
 # From build-common in original oseonatomic repo:
 #sudo docker build --no-cache=true --force-rm --tag $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION .
-sudo docker build --tag $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION .
+sudo docker build -f Dockerfile.product --tag $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION .
 #docker tag --force $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION $DOCKER_IMAGE_NAME:latest
 #docker tag --force $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION
 #docker tag --force $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest
