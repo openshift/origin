@@ -754,6 +754,25 @@ Change the number of pods in a deployment
 ====
 
 
+== oc secrets add
+Add secrets to a ServiceAccount
+
+====
+
+[options="nowrap"]
+----
+  // To use your secret inside of a pod or as a push, pull, or source secret for a build, you must add a 'mount' secret to your service account like this:
+  $ openshift cli secrets add serviceaccount/sa-name secrets/secret-name secrets/another-secret-name
+
+  // To use your secret as an image pull secret, you must add a 'pull' secret to your service account like this:
+  $ openshift cli secrets add serviceaccount/sa-name secrets/secret-name --for=pull
+
+  // To use your secret for image pulls or inside a pod:
+  $ openshift cli secrets add serviceaccount/sa-name secrets/secret-name --for=pull,mount
+----
+====
+
+
 == oc secrets new
 Create a new secret based on a key file or on files within a directory
 
@@ -772,6 +791,25 @@ Create a new secret based on a key file or on files within a directory
 
   // Create a new .dockercfg secret named my-secret
   $ openshift cli secrets new my-secret path/to/.dockercfg
+----
+====
+
+
+== oc secrets new-dockercfg
+Create a new dockercfg secret
+
+====
+
+[options="nowrap"]
+----
+  // If you don't already have a .dockercfg file, you can create a dockercfg secret directly by using:
+  $ openshift cli secrets new-dockercfg SECRET_NAME --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL
+
+  // If you do already have a .dockercfg file, you can create a dockercfg secret by using:
+  $ openshift cli secrets new SECRET_NAME path/to/.dockercfg
+
+  // To add new secret to 'imagePullSecrets' for the node, or 'secrets' for builds, use:
+  $ openshift cli edit SERVICE_ACCOUNT
 ----
 ====
 
