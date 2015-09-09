@@ -4,15 +4,184 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/runtime"
-
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	current "github.com/openshift/origin/pkg/deploy/api/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+
+	v1 "github.com/openshift/origin/pkg/api/v1"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 )
 
+func TestDefaults(t *testing.T) {
+	defaultIntOrString := util.NewIntOrStringFromString("25%")
+	differentIntOrString := util.NewIntOrStringFromInt(5)
+	tests := []struct {
+		original *deployv1.DeploymentConfig
+		expected *deployv1.DeploymentConfig
+	}{
+		{
+			original: &deployv1.DeploymentConfig{},
+			expected: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRolling,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							UpdatePeriodSeconds: newInt64(deployapi.DefaultRollingUpdatePeriodSeconds),
+							IntervalSeconds:     newInt64(deployapi.DefaultRollingIntervalSeconds),
+							TimeoutSeconds:      newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							MaxSurge:            &defaultIntOrString,
+							MaxUnavailable:      &defaultIntOrString,
+						},
+					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type: deployv1.DeploymentTriggerOnConfigChange,
+						},
+					},
+				},
+			},
+		},
+		{
+			original: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRecreate,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							UpdatePeriodSeconds: newInt64(5),
+							IntervalSeconds:     newInt64(6),
+							TimeoutSeconds:      newInt64(7),
+							MaxSurge:            &differentIntOrString,
+							MaxUnavailable:      &differentIntOrString,
+						},
+					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type: deployv1.DeploymentTriggerOnImageChange,
+						},
+					},
+				},
+			},
+			expected: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRecreate,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							UpdatePeriodSeconds: newInt64(5),
+							IntervalSeconds:     newInt64(6),
+							TimeoutSeconds:      newInt64(7),
+							MaxSurge:            &differentIntOrString,
+							MaxUnavailable:      &differentIntOrString,
+						},
+					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type: deployv1.DeploymentTriggerOnImageChange,
+						},
+					},
+				},
+			},
+		},
+		{
+			original: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRolling,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							UpdatePeriodSeconds: newInt64(5),
+							IntervalSeconds:     newInt64(6),
+							TimeoutSeconds:      newInt64(7),
+							UpdatePercent:       newInt(50),
+						},
+					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type: deployv1.DeploymentTriggerOnImageChange,
+						},
+					},
+				},
+			},
+			expected: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRolling,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							UpdatePeriodSeconds: newInt64(5),
+							IntervalSeconds:     newInt64(6),
+							TimeoutSeconds:      newInt64(7),
+							UpdatePercent:       newInt(50),
+							MaxSurge:            newIntOrString(util.NewIntOrStringFromString("50%")),
+							MaxUnavailable:      newIntOrString(util.NewIntOrStringFromInt(0)),
+						},
+					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type: deployv1.DeploymentTriggerOnImageChange,
+						},
+					},
+				},
+			},
+		},
+		{
+			original: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRolling,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							UpdatePeriodSeconds: newInt64(5),
+							IntervalSeconds:     newInt64(6),
+							TimeoutSeconds:      newInt64(7),
+							UpdatePercent:       newInt(-25),
+						},
+					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type: deployv1.DeploymentTriggerOnImageChange,
+						},
+					},
+				},
+			},
+			expected: &deployv1.DeploymentConfig{
+				Spec: deployv1.DeploymentConfigSpec{
+					Strategy: deployv1.DeploymentStrategy{
+						Type: deployv1.DeploymentStrategyTypeRolling,
+						RollingParams: &deployv1.RollingDeploymentStrategyParams{
+							UpdatePeriodSeconds: newInt64(5),
+							IntervalSeconds:     newInt64(6),
+							TimeoutSeconds:      newInt64(7),
+							UpdatePercent:       newInt(-25),
+							MaxSurge:            newIntOrString(util.NewIntOrStringFromInt(0)),
+							MaxUnavailable:      newIntOrString(util.NewIntOrStringFromString("25%")),
+						},
+					},
+					Triggers: []deployv1.DeploymentTriggerPolicy{
+						{
+							Type: deployv1.DeploymentTriggerOnImageChange,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, test := range tests {
+		t.Logf("test %d", i)
+		original := test.original
+		expected := test.expected
+		obj2 := roundTrip(t, runtime.Object(original))
+		got, ok := obj2.(*deployv1.DeploymentConfig)
+		if !ok {
+			t.Errorf("unexpected object: %v", got)
+			t.FailNow()
+		}
+		if !reflect.DeepEqual(got.Spec, expected.Spec) {
+			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", got, expected, util.ObjectDiff(expected, got), util.ObjectGoPrintSideBySide(expected, got))
+		}
+	}
+}
+
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	data, err := kapi.Codec.Encode(obj)
+	data, err := v1.Codec.Encode(obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil
@@ -31,26 +200,14 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 	return obj3
 }
 
-func TestDefaults(t *testing.T) {
-	c := &current.DeploymentConfig{}
-	o := roundTrip(t, runtime.Object(c))
-	config := o.(*current.DeploymentConfig)
+func newInt64(val int64) *int64 {
+	return &val
+}
 
-	if len(config.Spec.Triggers) != 1 && config.Spec.Triggers[0].Type != current.DeploymentTriggerOnConfigChange {
-		t.Errorf("expected default trigger for config: %#v", config.Spec.Triggers)
-	}
+func newInt(val int) *int {
+	return &val
+}
 
-	strat := config.Spec.Strategy
-	if e, a := current.DeploymentStrategyTypeRolling, strat.Type; e != a {
-		t.Errorf("expected strategy type %s, got %s", e, a)
-	}
-	if e, a := deployapi.DefaultRollingUpdatePeriodSeconds, *strat.RollingParams.UpdatePeriodSeconds; e != a {
-		t.Errorf("expected UpdatePeriodSeconds %d, got %d", e, a)
-	}
-	if e, a := deployapi.DefaultRollingIntervalSeconds, *strat.RollingParams.IntervalSeconds; e != a {
-		t.Errorf("expected IntervalSeconds %d, got %d", e, a)
-	}
-	if e, a := deployapi.DefaultRollingTimeoutSeconds, *strat.RollingParams.TimeoutSeconds; e != a {
-		t.Errorf("expected UpdatePeriodSeconds %d, got %d", e, a)
-	}
+func newIntOrString(ios util.IntOrString) *util.IntOrString {
+	return &ios
 }

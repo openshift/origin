@@ -24,3 +24,8 @@ when that change will happen.
 (with the `namespace` field set) or `/ns/namespace-name/localsubjectaccessreview`.  In 
 Origin 1.y / OSE 3.y, support for `/ns/namespace-name/subjectaccessreview` wil be removed.
 At that time, the openshift docker registry image must be upgraded in order to continue functioning.
+
+1. The `deploymentConfig.rollingParams.updatePercent` field is deprecated in
+  favor of `deploymentConfig.rollingParams.maxUnavailable` and
+  `deploymentConfig.rollingParams.maxSurge`. The `updatePercent` field will be
+  removed  in Origin 1.1 (OSE 3.1).

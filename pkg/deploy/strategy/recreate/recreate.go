@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -76,7 +77,7 @@ func (s *RecreateDeploymentStrategy) Deploy(from *kapi.ReplicationController, to
 //
 // This is currently only used in conjunction with the rolling update strategy
 // for initial deployments.
-func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
+func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 	config, err := deployutil.DecodeDeploymentConfig(to, s.codec)
 	if err != nil {
 		return fmt.Errorf("couldn't decode config from deployment %s: %v", to.Name, err)

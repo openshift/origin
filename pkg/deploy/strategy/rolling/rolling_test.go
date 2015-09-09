@@ -6,12 +6,14 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	// kerrors "k8s.io/kubernetes/pkg/api/errors"
+	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	api "github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -19,15 +21,10 @@ func TestRolling_deployInitial(t *testing.T) {
 	initialStrategyInvoked := false
 
 	strategy := &RollingDeploymentStrategy{
-		codec: api.Codec,
-		client: &rollingUpdaterClient{
-			GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
-				t.Fatalf("unexpected call to GetReplicationController")
-				return nil, nil
-			},
-		},
+		codec:  api.Codec,
+		client: ktestclient.NewSimpleFake(),
 		initialStrategy: &testStrategy{
-			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
+			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				initialStrategyInvoked = true
 				return nil
 			},
@@ -63,25 +60,26 @@ func TestRolling_deployRolling(t *testing.T) {
 		latest.Name:     latest,
 		deployment.Name: deployment,
 	}
+	deploymentUpdated := false
+
+	fake := &ktestclient.Fake{}
+	fake.ReactFn = func(action ktestclient.Action) (runtime.Object, error) {
+		switch a := action.(type) {
+		case ktestclient.GetAction:
+			return deployments[a.GetName()], nil
+		case ktestclient.UpdateAction:
+			deploymentUpdated = true
+			return a.GetObject().(*kapi.ReplicationController), nil
+		}
+		return nil, nil
+	}
 
 	var rollingConfig *kubectl.RollingUpdaterConfig
-	deploymentUpdated := false
 	strategy := &RollingDeploymentStrategy{
-		codec: api.Codec,
-		client: &rollingUpdaterClient{
-			GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return deployments[name], nil
-			},
-			UpdateReplicationControllerFn: func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				if rc.Name != deployment.Name {
-					t.Fatalf("unexpected call to UpdateReplicationController for %s", rc.Name)
-				}
-				deploymentUpdated = true
-				return rc, nil
-			},
-		},
+		codec:  api.Codec,
+		client: fake,
 		initialStrategy: &testStrategy{
-			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
+			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
 				return nil
 			},
@@ -145,18 +143,22 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 
 	deployments := map[string]*kapi.ReplicationController{latest.Name: latest}
 
+	fake := &ktestclient.Fake{}
+	fake.ReactFn = func(action ktestclient.Action) (runtime.Object, error) {
+		switch a := action.(type) {
+		case ktestclient.GetAction:
+			return deployments[a.GetName()], nil
+		case ktestclient.UpdateAction:
+			return a.GetObject().(*kapi.ReplicationController), nil
+		}
+		return nil, nil
+	}
+
 	strategy := &RollingDeploymentStrategy{
-		codec: api.Codec,
-		client: &rollingUpdaterClient{
-			GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
-				return deployments[name], nil
-			},
-			UpdateReplicationControllerFn: func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				return rc, nil
-			},
-		},
+		codec:  api.Codec,
+		client: fake,
 		initialStrategy: &testStrategy{
-			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
+			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
 				return nil
 			},
@@ -211,18 +213,10 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	var hookError error
 
 	strategy := &RollingDeploymentStrategy{
-		codec: api.Codec,
-		client: &rollingUpdaterClient{
-			GetReplicationControllerFn: func(namespace, name string) (*kapi.ReplicationController, error) {
-				t.Fatalf("unexpected call to GetReplicationController")
-				return nil, nil
-			},
-			UpdateReplicationControllerFn: func(namespace string, rc *kapi.ReplicationController) (*kapi.ReplicationController, error) {
-				return rc, nil
-			},
-		},
+		codec:  api.Codec,
+		client: ktestclient.NewSimpleFake(),
 		initialStrategy: &testStrategy{
-			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
+			deployFn: func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				return nil
 			},
 		},
@@ -270,10 +264,10 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 }
 
 type testStrategy struct {
-	deployFn func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error
+	deployFn func(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error
 }
 
-func (s *testStrategy) DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor kubectl.UpdateAcceptor) error {
+func (s *testStrategy) DeployWithAcceptor(from *kapi.ReplicationController, to *kapi.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 	return s.deployFn(from, to, desiredReplicas, updateAcceptor)
 }
 
@@ -307,7 +301,7 @@ func rollingParams(preFailurePolicy, postFailurePolicy deployapi.LifecycleHookFa
 	}
 }
 
-func getUpdateAcceptor(timeout time.Duration) kubectl.UpdateAcceptor {
+func getUpdateAcceptor(timeout time.Duration) strat.UpdateAcceptor {
 	return &testAcceptor{
 		acceptFn: func(deployment *kapi.ReplicationController) error {
 			return nil

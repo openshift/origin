@@ -485,7 +485,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			"STATS_PASSWORD":                     cfg.StatsPassword,
 		}
 
-		updatePercent := int(-10)
+		updatePercent := int(-25)
 
 		secrets, volumes, mounts, err := generateSecretsConfig(cfg, kClient,
 			namespace)
