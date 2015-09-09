@@ -178,14 +178,8 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 	}
 
 	wg.Wait()
-	// When waiting for the build to complete and the build fail, exit with 1 so the
-	// scripts can read this and treat the build as a failed.
-	if exitErr != nil {
-		fmt.Fprintf(cmd.Out(), "%v\n", exitErr)
-		os.Exit(1)
-	}
 
-	return nil
+	return exitErr
 }
 
 // RunListBuildWebHooks prints the webhooks for the provided build config.
