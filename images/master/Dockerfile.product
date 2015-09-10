@@ -4,12 +4,13 @@ FROM rhel7
 MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
 LABEL Name="aos3/aos-master"
 LABEL Vendor="Red Hat" License=GPLv2+
-LABEL Version=v3.0.1.900
-LABEL Release="2"
-LABEL BZComponent="aos3-master-docker"
+LABEL Version=v3.0.1.901
+LABEL Release="3"
+LABEL BZComponent="aos3-aos-master-docker"
 LABEL Architecture="x86_64"
 
-RUN yum install -y openshift-master hostname && yum clean all
+RUN yum-config-manager --enable RH7-RHAOS-3.1
+RUN yum install -y atomic-openshift-master hostname && yum clean all
 
 COPY ose3-master-run.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/ose3-master-run.sh
