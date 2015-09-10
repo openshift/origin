@@ -191,6 +191,12 @@ function start() {
   ${DOCKER_CMD} exec -t "${master_cid}" bash -c \
     "${SCRIPT_ROOT}/provision-master.sh ${args} ${MASTER_NAME} ${NETWORK_PLUGIN}"
 
+  # Ensure that non-root users have read access to the configuration.
+  # Security shouldn't be a concern for dind since it will only be
+  # used for dev and test.
+  find "${CONFIG_ROOT}" -type d -exec sudo chmod ga+rx {} \;
+  find "${CONFIG_ROOT}" -type f -exec sudo chmod ga+r {} \;
+
   for (( i=0; i < ${#node_cids[@]}; i++ )); do
     local cid="${node_cids[$i]}"
     local name="${NODE_NAMES[$i]}"
@@ -246,6 +252,30 @@ function stop() {
 
 }
 
+function test-net-e2e() {
+  local focus_regex="${NETWORKING_E2E_FOCUS:-}"
+  local skip_regex="${NETWORKING_E2E_SKIP:-}"
+
+  if [ ! -d "${CONFIG_ROOT}" ]; then
+    >&2 echo "Error: dind cluster not found.  To launch a cluster:"
+    >&2 echo ""
+    >&2 echo "    hack/dind-cluster.sh start"
+    >&2 echo ""
+    exit 1
+  fi
+
+  source ${ORIGIN_ROOT}/hack/util.sh
+  source ${ORIGIN_ROOT}/hack/common.sh
+
+  ensure_ginkgo_or_die
+
+  os::build::extended
+
+  os::util::run-net-extended-tests "${CONFIG_ROOT}" "${focus_regex}" \
+    "${skip_regex}"
+}
+
+
 case "${1:-""}" in
   start)
     start
@@ -261,7 +291,10 @@ case "${1:-""}" in
     BUILD_IMAGES=1
     build-images
     ;;
+  test-net-e2e)
+    test-net-e2e
+    ;;
   *)
-    echo "Usage: $0 {start|stop|restart|build-images}"
+    echo "Usage: $0 {start|stop|restart|build-images|test-net-e2e}"
     exit 2
 esac
