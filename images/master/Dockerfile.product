@@ -2,9 +2,10 @@ FROM rhel7
 
 # Based on work by: Peter Schiffer <pschiffe@redhat.com>
 MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
+LABEL Name="aos3/aos-master"
 LABEL Vendor="Red Hat" License=GPLv2+
 LABEL Version=v3.0.1.900
-LABEL Release="1"
+LABEL Release="2"
 LABEL BZComponent="aos3-master-docker"
 LABEL Architecture="x86_64"
 
