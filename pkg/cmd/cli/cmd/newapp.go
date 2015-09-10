@@ -10,8 +10,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
 
@@ -271,15 +274,57 @@ func setLabels(labels map[string]string, result *newcmd.AppResult) error {
 	return nil
 }
 
+// isInvalidTriggerError returns true if the given error is
+// a validation error that contains 'invalid trigger type' in its
+// error message. This error is returned from older servers that
+// consider the presence of unknown trigger types to be an error.
+func isInvalidTriggerError(err error) bool {
+	if !kapierrors.IsInvalid(err) {
+		return false
+	}
+	statusErr, ok := err.(*kapierrors.StatusError)
+	if !ok {
+		return false
+	}
+	return strings.Contains(statusErr.Status().Message, "invalid trigger type")
+}
+
+// retryBuildConfig determines if the given error is caused by an invalid trigger
+// error on a BuildConfig. If that is the case, it will remove all triggers with a
+// type that is not in the whitelist for an older server.
+func retryBuildConfig(info *resource.Info, err error) runtime.Object {
+	triggerTypeWhiteList := map[buildapi.BuildTriggerType]struct{}{
+		buildapi.GitHubWebHookBuildTriggerType:  {},
+		buildapi.GenericWebHookBuildTriggerType: {},
+		buildapi.ImageChangeBuildTriggerType:    {},
+	}
+	if info.Mapping.Kind == "BuildConfig" && isInvalidTriggerError(err) {
+		bc, ok := info.Object.(*buildapi.BuildConfig)
+		if !ok {
+			return nil
+		}
+		triggers := []buildapi.BuildTriggerPolicy{}
+		for _, t := range bc.Spec.Triggers {
+			if _, inList := triggerTypeWhiteList[t.Type]; inList {
+				triggers = append(triggers, t)
+			}
+		}
+		bc.Spec.Triggers = triggers
+		return bc
+	}
+	return nil
+}
+
 func createObjects(f *clientcmd.Factory, out io.Writer, result *newcmd.AppResult) error {
-	// TODO: Validate everything before building
 	mapper, typer := f.Factory.Object()
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
 		Typer:             typer,
 		RESTClientFactory: f.Factory.RESTClient,
-
-		After: configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
+		After:             configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
+		// Retry is used to support previous versions of the API server that will
+		// consider the presence of an unknown trigger type to be an error.
+		Retry: retryBuildConfig,
 	}
 	if errs := bulk.Create(result.List, result.Namespace); len(errs) != 0 {
 		return errExit

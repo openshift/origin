@@ -16,6 +16,7 @@ type Bulk struct {
 	Typer             runtime.ObjectTyper
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	After             func(*resource.Info, error)
+	Retry             func(info *resource.Info, err error) runtime.Object
 }
 
 func NewPrintNameOrErrorAfter(out, errs io.Writer) func(*resource.Info, error) {
@@ -26,6 +27,14 @@ func NewPrintNameOrErrorAfter(out, errs io.Writer) func(*resource.Info, error) {
 			fmt.Fprintf(errs, "Error: %v\n", err)
 		}
 	}
+}
+
+func encodeAndCreate(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
+	data, err := info.Mapping.Codec.Encode(obj)
+	if err != nil {
+		return nil, err
+	}
+	return resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, data)
 }
 
 // Create attempts to create each item generically, gathering all errors in the
@@ -46,13 +55,12 @@ func (b *Bulk) Create(list *kapi.List, namespace string) []error {
 			after(info, err)
 			continue
 		}
-		data, err := info.Mapping.Codec.Encode(item)
-		if err != nil {
-			errs = append(errs, err)
-			after(info, err)
-			continue
+		obj, err := encodeAndCreate(info, namespace, item)
+		if err != nil && b.Retry != nil {
+			if obj := b.Retry(info, err); obj != nil {
+				obj, err = encodeAndCreate(info, namespace, obj)
+			}
 		}
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Create(namespace, false, data)
 		if err != nil {
 			errs = append(errs, err)
 			after(info, err)
