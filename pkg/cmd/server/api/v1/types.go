@@ -491,8 +491,8 @@ type LDAPPasswordIdentityProvider struct {
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
 	CA string `json:"ca"`
-	// LDAPEntryAttributeMapping maps LDAP attributes to identities
-	LDAPEntryAttributeMapping LDAPAttributeMapping `json:"attributeMappings"`
+	// Attributes maps LDAP attributes to identities
+	Attributes LDAPAttributeMapping `json:"attributes"`
 }
 
 type LDAPAttributeMapping struct {
