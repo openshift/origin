@@ -91,7 +91,7 @@ func TestOAuthLDAP(t *testing.T) {
 				BindPassword: bindPassword,
 				Insecure:     true,
 				CA:           "",
-				LDAPEntryAttributeMapping: configapi.LDAPAttributeMapping{
+				Attributes: configapi.LDAPAttributeMapping{
 					ID:                []string{idAttr1, idAttr2},
 					PreferredUsername: []string{loginAttr1, loginAttr2},
 					Name:              []string{nameAttr1, nameAttr2},
