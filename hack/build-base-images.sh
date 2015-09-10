@@ -9,6 +9,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 source "${OS_ROOT}/hack/util.sh"
@@ -21,3 +22,5 @@ cd "${OS_ROOT}"
 docker build --tag openshift/origin-base                   "${OS_ROOT}/images/base"
 docker build --tag openshift/origin-haproxy-router-base    "${OS_ROOT}/images/router/haproxy-base"
 docker build --tag openshift/origin-release                "${OS_ROOT}/images/release"
+
+ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
