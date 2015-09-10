@@ -3,7 +3,7 @@
 set -ex
 source $(dirname $0)/provision-config.sh
 
-NETWORK_PLUGIN=$(os::util::get-network-plugin ${4:-""})
+NETWORK_PLUGIN=$(os::util::get-network-plugin ${5:-""})
 
 NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
 sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1

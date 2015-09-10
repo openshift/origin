@@ -10,14 +10,15 @@ os::util::join() {
 os::util::install-cmds() {
   local deployed_root=$1
 
-  cp ${deployed_root}/_output/local/go/bin/{openshift,oc} /usr/bin
+  cp ${deployed_root}/_output/local/go/bin/{openshift,oc,osadm} /usr/bin
 }
 
 os::util::add-to-hosts-file() {
   local ip=$1
   local name=$2
+  local force=${3:-0}
 
-  if ! grep -q "${ip}" /etc/hosts; then
+  if ! grep -q "${ip}" /etc/hosts || [ "${force}" = "1" ]; then
     local entry="${ip}\t${name}"
     echo -e "Adding '${entry}' to hosts file"
     echo -e "${entry}" >> /etc/hosts
@@ -40,20 +41,20 @@ os::util::setup-hosts-file() {
 }
 
 os::util::init-certs() {
-  local openshift_root=$1
+  local config_root=$1
   local network_plugin=$2
   local master_name=$3
   local master_ip=$4
   local -n node_names=$5
   local -n node_ips=$6
 
-  local server_config_dir=${openshift_root}/openshift.local.config
+  local server_config_dir=${config_root}/openshift.local.config
   local volumes_dir="/var/lib/openshift.local.volumes"
   local cert_dir="${server_config_dir}/master"
 
   echo "Generating certs"
 
-  pushd "${openshift_root}"
+  pushd "${config_root}" > /dev/null
 
   # Master certs
   /usr/bin/openshift admin ca create-master-certs \
@@ -80,19 +81,19 @@ os::util::init-certs() {
       --volume-dir="${volumes_dir}"
   done
 
-  popd
+  popd > /dev/null
 }
 
 # Set up the KUBECONFIG environment variable for use by oc
 os::util::set-oc-env() {
-  local deployed_root=$1
+  local config_root=$1
   local target=$2
 
-  if [ "${deployed_root}" = "/" ]; then
-    deployed_root=""
+  if [ "${config_root}" = "/" ]; then
+    config_root=""
   fi
 
-  local path="${deployed_root}/openshift.local.config/master/admin.kubeconfig"
+  local path="${config_root}/openshift.local.config/master/admin.kubeconfig"
   echo "export KUBECONFIG=${path}" >> "${target}"
 }
 
@@ -121,14 +122,14 @@ os::util::install-sdn() {
   # openshift-sdn development.
   local sdn_root="${deployed_root}/third-party/openshift-sdn"
   if [ -d "${sdn_root}" ]; then
-    pushd "${sdn_root}"
+    pushd "${sdn_root}" > /dev/null
       make
       make "install-dev"
-    popd
+    popd > /dev/null
   else
     local osdn_base_path="${deployed_root}/Godeps/_workspace/src/github.com/openshift/openshift-sdn"
     local osdn_controller_path="${osdn_base_path}/ovssubnet/controller"
-    pushd "${osdn_controller_path}"
+    pushd "${osdn_controller_path}" > /dev/null
       # The subnet plugin is discovered via the kube network plugin path.
       local kube_osdn_path="/usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet"
       mkdir -p "${kube_osdn_path}"
@@ -149,7 +150,7 @@ os::util::install-sdn() {
 [Service]
 EnvironmentFile=-/run/openshift-sdn/docker-network
 EOF
-    popd
+    popd > /dev/null
   fi
 
 }

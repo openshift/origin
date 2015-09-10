@@ -88,24 +88,16 @@ function check-selinux() {
 
 IMAGE_REPO="${OS_DIND_IMAGE_REPO:-}"
 IMAGE_TAG="${OS_DIND_IMAGE_TAG:-}"
-function get-image-name() {
-  local name=$1
-
-  echo "${IMAGE_REPO}openshift/dind-${name}${IMAGE_TAG}"
-}
-
-BASE_IMAGE=$(get-image-name base)
-MASTER_IMAGE=$(get-image-name master)
-NODE_IMAGE=$(get-image-name node)
+DIND_IMAGE="${IMAGE_REPO}openshift/dind${IMAGE_TAG}"
 BUILD_IMAGES="${OS_DIND_BUILD_IMAGES:-1}"
 
 function build-image() {
   local build_root=$1
   local image_name=$2
 
-  pushd "${build_root}"
-  ${DOCKER_CMD} build -t "${image_name}" .
-  popd
+  pushd "${build_root}" > /dev/null
+    ${DOCKER_CMD} build -t "${image_name}" .
+  popd > /dev/null
 }
 
 function build-images() {
@@ -115,21 +107,11 @@ function build-images() {
     echo "Building container images"
     if [ "${IMAGE_REPO}" != "" ]; then
       # Failure to cache is assumed to not be worth failing the build.
-      ${DOCKER_CMD} pull "${BASE_IMAGE}" || true
-      ${DOCKER_CMD} pull "${MASTER_IMAGE}" || true
-      ${DOCKER_CMD} pull "${NODE_IMAGE}" || true
+      ${DOCKER_CMD} pull "${DIND_IMAGE}" || true
     fi
-    build-image "${ORIGIN_ROOT}/images/dind/base" "${BASE_IMAGE}"
+    build-image "${ORIGIN_ROOT}/images/dind" "${DIND_IMAGE}"
     if [ "${IMAGE_REPO}" != "" ]; then
-      # Tag the base image for use by master and node image builds
-      ${DOCKER_CMD} tag "${BASE_IMAGE}" "openshift/dind-base" || true
-    fi
-    build-image "${ORIGIN_ROOT}/images/dind/master" "${MASTER_IMAGE}"
-    build-image "${ORIGIN_ROOT}/images/dind/node" "${NODE_IMAGE}"
-    if [ "${IMAGE_REPO}" != "" ]; then
-      ${DOCKER_CMD} push "${BASE_IMAGE}" || true
-      ${DOCKER_CMD} push "${MASTER_IMAGE}" || true
-      ${DOCKER_CMD} push "${NODE_IMAGE}" || true
+      ${DOCKER_CMD} push "${DIND_IMAGE}" || true
     fi
   fi
 }
@@ -179,41 +161,53 @@ function start() {
   sudo modprobe br_netfilter || true
   sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
   ensure-loopback-for-dind "${NUM_NODES}"
+  mkdir -p "${CONFIG_ROOT}"
 
   build-images
 
   ## Create containers
   echo "Launching containers"
-  local base_run_cmd="${DOCKER_CMD} run -dt -v ${ORIGIN_ROOT}:${DEPLOYED_ROOT}"
+  local root_volume="-v ${ORIGIN_ROOT}:${DEPLOYED_ROOT}"
+  local config_volume="-v ${CONFIG_ROOT}:${DEPLOYED_CONFIG_ROOT}"
+  local base_run_cmd="${DOCKER_CMD} run -dt ${root_volume} ${config_volume}"
 
-  local master_cid=$(${base_run_cmd} --name="${MASTER_NAME}" \
-    --hostname="${MASTER_NAME}" "${MASTER_IMAGE}")
+  local master_cid=$(${base_run_cmd} --privileged --name="${MASTER_NAME}" \
+    --hostname="${MASTER_NAME}" "${DIND_IMAGE}")
   local master_ip=$(get-docker-ip "${master_cid}")
 
   local node_cids=()
   local node_ips=()
   for name in "${NODE_NAMES[@]}"; do
     local cid=$(${base_run_cmd} --privileged --name="${name}" \
-      --hostname="${name}" "${NODE_IMAGE}")
+      --hostname="${name}" "${DIND_IMAGE}")
     node_cids+=( "${cid}" )
     node_ips+=( $(get-docker-ip "${cid}") )
   done
   node_ips=$(os::util::join , ${node_ips[@]})
 
   ## Provision containers
+  local args="${master_ip} ${NUM_NODES} ${node_ips} ${INSTANCE_PREFIX}"
   echo "Provisioning ${MASTER_NAME}"
-  ${DOCKER_CMD} exec -t "${master_cid}" bash -c "\
-    ${SCRIPT_ROOT}/provision-master.sh \
-    ${master_ip} ${NUM_NODES} ${node_ips} ${MASTER_NAME} ${NETWORK_PLUGIN}"
+  ${DOCKER_CMD} exec -t "${master_cid}" bash -c \
+    "${SCRIPT_ROOT}/provision-master.sh ${args} ${MASTER_NAME} ${NETWORK_PLUGIN}"
+
+  # Ensure that non-root users have read access to the configuration.
+  # Security shouldn't be a concern for dind since it will only be
+  # used for dev and test.
+  find "${CONFIG_ROOT}" -type d -exec sudo chmod ga+rx {} \;
+  find "${CONFIG_ROOT}" -type f -exec sudo chmod ga+r {} \;
 
   for (( i=0; i < ${#node_cids[@]}; i++ )); do
     local cid="${node_cids[$i]}"
     local name="${NODE_NAMES[$i]}"
     echo "Provisioning ${name}"
-    ${DOCKER_CMD} exec "${cid}" bash -c "\
-      ${SCRIPT_ROOT}/provision-node.sh \
-      ${master_ip} ${NUM_NODES} ${node_ips} ${name}"
+    ${DOCKER_CMD} exec "${cid}" bash -c \
+      "${SCRIPT_ROOT}/provision-node.sh ${args} ${name}"
   done
+
+  echo "Disabling scheduling for the sdn node"
+  ${DOCKER_CMD} exec "${master_cid}" bash -cl \
+    "osadm manage-node ${SDN_NODE_NAME} --schedulable=false > /dev/null"
 }
 
 function stop() {
@@ -241,6 +235,10 @@ function stop() {
     done
   fi
 
+  echo "Clearing configuration to avoid conflict with a future cluster"
+  # The container will have created configuration as root
+  sudo rm -rf ${CONFIG_ROOT}/openshift.local.*
+
   # Volume cleanup is not compatible with SELinux
   check-selinux
 
@@ -254,9 +252,29 @@ function stop() {
 
 }
 
-function wipe-config() {
-  rm -rf "${ORIGIN_ROOT}/openshift.local.*"
+function test-net-e2e() {
+  local focus_regex="${NETWORKING_E2E_FOCUS:-}"
+  local skip_regex="${NETWORKING_E2E_SKIP:-}"
+
+  if [ ! -d "${CONFIG_ROOT}" ]; then
+    >&2 echo "Error: dind cluster not found.  To launch a cluster:"
+    >&2 echo ""
+    >&2 echo "    hack/dind-cluster.sh start"
+    >&2 echo ""
+    exit 1
+  fi
+
+  source ${ORIGIN_ROOT}/hack/util.sh
+  source ${ORIGIN_ROOT}/hack/common.sh
+
+  ensure_ginkgo_or_die
+
+  os::build::extended
+
+  os::util::run-net-extended-tests "${CONFIG_ROOT}" "${focus_regex}" \
+    "${skip_regex}"
 }
+
 
 case "${1:-""}" in
   start)
@@ -273,15 +291,10 @@ case "${1:-""}" in
     BUILD_IMAGES=1
     build-images
     ;;
-  wipe)
-    wipe-config
-    ;;
-  wipe-restart)
-    stop
-    wipe-config
-    start
+  test-net-e2e)
+    test-net-e2e
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|build-images|wipe|wipe-restart}"
+    echo "Usage: $0 {start|stop|restart|build-images|test-net-e2e}"
     exit 2
 esac

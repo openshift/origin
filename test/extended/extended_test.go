@@ -19,6 +19,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/authentication"
 	_ "github.com/openshift/origin/test/extended/builds"
 	_ "github.com/openshift/origin/test/extended/images"
+	_ "github.com/openshift/origin/test/extended/networking"
 	_ "github.com/openshift/origin/test/extended/router"
 
 	exutil "github.com/openshift/origin/test/extended/util"
