@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientcmd"
 	"k8s.io/kubernetes/test/e2e"
 
+	_ "github.com/openshift/origin/test/extended/authentication"
 	_ "github.com/openshift/origin/test/extended/builds"
 	_ "github.com/openshift/origin/test/extended/images"
 	_ "github.com/openshift/origin/test/extended/router"

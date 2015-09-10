@@ -15,6 +15,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/validation"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -87,6 +88,13 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"mysql-ephemeral-template":       &templateapi.Template{},
 			"postgresql-ephemeral-template":  &templateapi.Template{},
 			"mongodb-ephemeral-template":     &templateapi.Template{},
+		},
+		"../test/extended/fixtures/ldap": {
+			"ldapserver-buildconfig":         &buildapi.BuildConfig{},
+			"ldapserver-deploymentconfig":    &deployapi.DeploymentConfig{},
+			"ldapserver-imagestream":         &imageapi.ImageStream{},
+			"ldapserver-imagestream-testenv": &imageapi.ImageStream{},
+			"ldapserver-service":             &kapi.Service{},
 		},
 		"../test/integration/fixtures": {
 			"test-deployment-config":    &deployapi.DeploymentConfig{},
