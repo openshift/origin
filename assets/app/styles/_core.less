@@ -38,16 +38,6 @@ html, body {
   }
   .navbar-pf {
     background: @navbar-os-bg-color;
-    .navbar-header {
-      .navbar-brand {
-        .brand-logo {
-          background: url('@{image-path}/logo-origin-thin.svg');
-          background-repeat: no-repeat;
-          width: 160px;
-          height: 10px;
-        }
-      }
-    }
     .navbar-nav li {
       > a {
         border: 0;
@@ -75,6 +65,12 @@ html, body {
   .page-header {
     margin-top: 22px;
   }
+}
+#header-logo {
+  background: url('@{image-path}/logo-origin-thin.svg');
+  background-repeat: no-repeat;
+  width: 160px;
+  height: 10px;
 }
 
 .console-os .navbar-project {
