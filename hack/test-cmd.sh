@@ -66,9 +66,10 @@ fi
 export USE_IMAGES
 
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
-ETCD_PORT=${ETCD_PORT:-4001}
+ETCD_PORT=${ETCD_PORT:-24001}
+ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 API_SCHEME=${API_SCHEME:-https}
-API_PORT=${API_PORT:-8443}
+export API_PORT=${API_PORT:-28443}
 API_HOST=${API_HOST:-127.0.0.1}
 MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
 PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
@@ -148,10 +149,13 @@ openshift start \
   --images="${USE_IMAGES}"
 
 
+# Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
+sed -i "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+sed -i "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+
 # Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start \
-  --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
+OPENSHIFT_ON_PANIC=crash openshift start master \
+  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
   --loglevel=4 \
   1>&2 2>"${TEMP_DIR}/openshift.log" &
 OS_PID=$!
@@ -165,10 +169,8 @@ fi
 # set the home directory so we don't pick up the users .config
 export HOME="${FAKE_HOME_DIR}"
 
-wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "kubelet: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
-wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1beta3/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 
 # profile the cli commands
 export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
