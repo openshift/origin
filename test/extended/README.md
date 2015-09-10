@@ -3,7 +3,7 @@
 This document describes how a developer can write a new extended test for
 OpenShift and the structure of extended tests.
 
-Prerequires
+Prerequisites
 -----------
 
 In order to execute the extended tests, you have to install
@@ -141,11 +141,11 @@ oc = oc.Run("create").Args("-f", testFixture)
 
 A Go template can be set as a parameter for the OpenShift CLI command, by using the `Template()` method. Keep in mind that in order to use this method, the `get` verb has to be specified by the `Run()` command.
 ```go
-oc = oc.Run("get").Template({{ .spec }})
+oc = oc.Run("get").Args("foo").Template("{{ .spec }}")
 ```
 is an equivalent to
 ```console
-$ oc get foo -o template -t '{{ .spec }}
+$ oc get foo -o template -t '{{ .spec }}'
 ```
 
 To execute the command you will need to call either `Execute()`, which will execute the command and return any error that occurs, or `Output()`  which returns any error that occurs as well as the output.

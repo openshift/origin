@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -279,4 +280,27 @@ func ExtendedTestPath() string {
 // The path is relative to EXTENDED_TEST_PATH (./test/extended/*)
 func FixturePath(elem ...string) string {
 	return filepath.Join(append([]string{ExtendedTestPath()}, elem...)...)
+}
+
+// FetchURL grabs the output from the specified url and returns it.
+// It will retry once per second for duration retryTimeout if an error occurs during the request.
+func FetchURL(url string, retryTimeout time.Duration) (response string, err error) {
+
+	waitFunc := func() (bool, error) {
+		r, err := http.Get(url)
+		if err != nil {
+			// lie to the poller that we didn't get an error even though we did
+			// because otherwise it's going to give up.
+			return false, nil
+		}
+		defer r.Body.Close()
+		bytes, err := ioutil.ReadAll(r.Body)
+		response = string(bytes)
+		return true, nil
+	}
+	pollErr := wait.Poll(time.Duration(1*time.Second), retryTimeout, waitFunc)
+	if pollErr != nil {
+		return "", pollErr
+	}
+	return
 }
