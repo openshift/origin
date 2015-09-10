@@ -242,7 +242,7 @@ func DetermineDerefAliasesBehavior(derefAliasesString string) (DerefAliases, err
 	}
 	derefAliases, exists := mapping[derefAliasesString]
 	if !exists {
-		return -1, fmt.Errorf("not a valid LDAP search scope: %s", derefAliasesString)
+		return -1, fmt.Errorf("not a valid LDAP alias dereferncing behavior: %s", derefAliasesString)
 	}
 	return derefAliases, nil
 }
