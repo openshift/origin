@@ -15071,6 +15071,14 @@
       "format": "int64",
       "description": "the time to wait for updates before giving up"
      },
+     "maxUnavailable": {
+      "type": "string",
+      "description": "max number of pods that can be unavailable during the update; value can be an absolute number or a percentage of total pods at start of update"
+     },
+     "maxSurge": {
+      "type": "string",
+      "description": "max number of pods that can be scheduled above the original number of pods; value can be an absolute number or a percentage of total pods at start of update"
+     },
      "updatePercent": {
       "type": "integer",
       "format": "int32",
