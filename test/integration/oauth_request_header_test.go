@@ -167,6 +167,7 @@ func TestOAuthRequestHeader(t *testing.T) {
 		Name:            "requestheader",
 		UseAsChallenger: true,
 		UseAsLogin:      true,
+		MappingMethod:   "claim",
 		Provider: runtime.EmbeddedObject{
 			Object: &configapi.RequestHeaderIdentityProvider{
 				ChallengeURL: proxyServer.URL + "/oauth/authorize?${query}",

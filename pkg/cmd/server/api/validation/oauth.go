@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	"github.com/openshift/origin/pkg/auth/server/login"
+	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -110,6 +111,13 @@ func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 	return validationResults
 }
 
+var validMappingMethods = sets.NewString(
+	string(identitymapper.MappingMethodLookup),
+	string(identitymapper.MappingMethodClaim),
+	string(identitymapper.MappingMethodAdd),
+	string(identitymapper.MappingMethodGenerate),
+)
+
 func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationResults {
 	validationResults := ValidationResults{}
 
@@ -118,6 +126,12 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 	}
 	if ok, err := validation.ValidateIdentityProviderName(identityProvider.Name); !ok {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("name", identityProvider.Name, err))
+	}
+
+	if len(identityProvider.MappingMethod) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("mappingMethod"))
+	} else if !validMappingMethods.Has(identityProvider.MappingMethod) {
+		validationResults.AddErrors(fielderrors.NewFieldValueNotSupported("mappingMethod", identityProvider.MappingMethod, validMappingMethods.List()))
 	}
 
 	if !api.IsIdentityProviderType(identityProvider.Provider) {

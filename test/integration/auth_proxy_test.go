@@ -71,7 +71,10 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	identityStorage := identityetcd.NewREST(etcdHelper)
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 
-	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(identityRegistry, userRegistry)
+	identityMapper, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodGenerate)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// this auth request handler is the one that is supposed to recognize information from a front proxy
 	authRequestHandler := headerrequest.NewAuthenticator("front-proxy-test", headerrequest.NewDefaultConfig(), identityMapper)
