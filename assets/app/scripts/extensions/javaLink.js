@@ -40,7 +40,7 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
       }
       var pod = $scope.$eval('podTemplate');
       // TODO distinguish between pod and pod templates for now...
-      if (!pod || !pod.status) {
+      if (!pod || !pod.status || pod.status.phase !== 'Running') {
         return;
       }
       var podName = pod.metadata.name;
