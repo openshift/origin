@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/test"
 )
 
@@ -40,7 +41,7 @@ func getGit() (*stiGit, *test.FakeCmdRunner) {
 
 func TestGitClone(t *testing.T) {
 	gh, ch := getGit()
-	err := gh.Clone("source1", "target1")
+	err := gh.Clone("source1", "target1", api.CloneConfig{Quiet: true, Recursive: true})
 	if err != nil {
 		t.Errorf("Unexpected error returned from clone: %v\n", err)
 	}
@@ -56,7 +57,7 @@ func TestGitCloneError(t *testing.T) {
 	gh, ch := getGit()
 	runErr := fmt.Errorf("Run Error")
 	ch.Err = runErr
-	err := gh.Clone("source1", "target1")
+	err := gh.Clone("source1", "target1", api.CloneConfig{})
 	if err != runErr {
 		t.Errorf("Unexpected error returned from clone: %v\n", err)
 	}

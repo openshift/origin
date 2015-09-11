@@ -48,6 +48,10 @@ type Config struct {
 	// PreserveWorkingDir describes if working directory should be left after processing.
 	PreserveWorkingDir bool
 
+	// DisableRecursive disables the --recursive option for the git clone that
+	// allows to use the GIT without requiring the git submodule to be called.
+	DisableRecursive bool
+
 	// Source URL describing the location of sources used to build the result image.
 	Source string
 
@@ -196,4 +200,11 @@ type SourceInfo struct {
 	// The output image will contain this information as 'io.openshift.build.source-context-dir'
 	// label.
 	ContextDir string
+}
+
+// CloneConfig specifies the options used when cloning the application source
+// code.
+type CloneConfig struct {
+	Recursive bool
+	Quiet     bool
 }

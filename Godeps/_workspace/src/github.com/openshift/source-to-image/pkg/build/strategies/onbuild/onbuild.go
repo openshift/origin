@@ -12,8 +12,9 @@ import (
 	"github.com/openshift/source-to-image/pkg/build"
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
 	"github.com/openshift/source-to-image/pkg/docker"
-	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/ignore"
+	"github.com/openshift/source-to-image/pkg/scm"
+	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
@@ -53,7 +54,7 @@ func New(config *api.Config) (*OnBuild, error) {
 	s.SetScripts([]string{}, []string{api.Assemble, api.Run})
 
 	b.source = onBuildSourceHandler{
-		&git.Clone{b.git, b.fs},
+		scm.DownloaderForSource(config.Source),
 		s,
 		&ignore.DockerIgnorer{},
 	}
