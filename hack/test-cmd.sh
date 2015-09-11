@@ -235,6 +235,12 @@ oc new-project project-foo --display-name="my project" --description="boring pro
 oc logout
 [ -z "$(oc get pods | grep 'system:anonymous')" ]
 
+# log in as an image-pruner and test that oadm prune images works against the atomic binary
+oadm policy add-cluster-role-to-user system:image-pruner pruner --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
+oc login --server=${KUBERNETES_MASTER}/ --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u pruner -p anything
+# this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
+oadm prune images
+
 # log in and set project to use from now on
 oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 oc get projects
