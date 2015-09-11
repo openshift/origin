@@ -75,6 +75,18 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
 )
 readonly OPENSHIFT_BINARY_COPY=(
   oadm
+  kubelet
+  kube-proxy
+  kube-apiserver
+  kube-controller-manager
+  kube-scheduler
+)
+readonly OC_BINARY_COPY=(
+  kubectl
+)
+readonly OS_BINARY_RELEASE_WINDOWS=(
+  oc.exe
+  kubectl.exe
 )
 
 # os::build::binaries_from_targets take a list of build targets and return the
@@ -316,16 +328,29 @@ os::build::place_bins() {
       for linkname in "${OPENSHIFT_BINARY_COPY[@]}"; do
         local src="${release_binpath}/openshift${suffix}"
         if [[ -f "${src}" ]]; then
-          cp "${release_binpath}/openshift${suffix}" "${release_binpath}/${linkname}${suffix}"
+          ln "${release_binpath}/openshift${suffix}" "${release_binpath}/${linkname}${suffix}"
+        fi
+      done
+      for linkname in "${OC_BINARY_COPY[@]}"; do
+        local src="${release_binpath}/oc${suffix}"
+        if [[ -f "${src}" ]]; then
+          ln "${release_binpath}/oc${suffix}" "${release_binpath}/${linkname}${suffix}"
         fi
       done
 
       # Create the release archive.
       local platform_segment="${platform//\//-}"
-      local archive_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.tar.gz"
-
-      echo "++ Creating ${archive_name}"
-      tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" -C "${release_binpath}" .
+      if [[ $platform == "windows/amd64" ]]; then
+        local archive_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.zip"
+        echo "++ Creating ${archive_name}"
+        for file in "${OS_BINARY_RELEASE_WINDOWS[@]}"; do
+          zip "${OS_LOCAL_RELEASEPATH}/${archive_name}" -qj "${release_binpath}/${file}"
+        done
+      else
+        local archive_name="${OS_RELEASE_ARCHIVE}-${OS_GIT_VERSION}-${OS_GIT_COMMIT}-${platform_segment}.tar.gz"
+        echo "++ Creating ${archive_name}"
+        tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" -C "${release_binpath}" .
+      fi
       rm -rf "${release_binpath}"
     done
   )
