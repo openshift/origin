@@ -259,7 +259,6 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, api.DefaultDockerLabelNamespace)
 	newFileData = appendMetadata(Label, newFileData, labels)
-
 	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
 		return err
 	}
@@ -276,10 +275,10 @@ func appendMetadata(inst MetaInstruction, fileData string, envVars map[string]st
 	first := true
 	for k, v := range envVars {
 		if first {
-			fileData += fmt.Sprintf("%s %s=\"%s\"", inst, k, v)
+			fileData += fmt.Sprintf("%s %s=%+q", inst, k, v)
 			first = false
 		} else {
-			fileData += fmt.Sprintf(" \\\n\t%s=\"%s\"", k, v)
+			fileData += fmt.Sprintf(" \\\n\t%s=%+q", k, v)
 		}
 	}
 	fileData += "\n"
