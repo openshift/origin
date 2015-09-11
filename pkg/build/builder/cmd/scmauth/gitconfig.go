@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 )
 
-const GitConfigName = "gitconfig"
+const GitConfigName = ".gitconfig"
 
 // GitConfig implements SCMAuth interface for using a custom .gitconfig file
 type GitConfig struct{}
