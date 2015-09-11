@@ -13,6 +13,7 @@ type ClusterNetworkingInterface interface {
 type ClusterNetworkInterface interface {
 	Get(name string) (*sdnapi.ClusterNetwork, error)
 	Create(sub *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error)
+	Update(sub *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error)
 }
 
 // clusterNetwork implements ClusterNetworkInterface interface
@@ -38,5 +39,12 @@ func (c *clusterNetwork) Get(networkName string) (result *sdnapi.ClusterNetwork,
 func (c *clusterNetwork) Create(cn *sdnapi.ClusterNetwork) (result *sdnapi.ClusterNetwork, err error) {
 	result = &sdnapi.ClusterNetwork{}
 	err = c.r.Post().Resource("clusterNetworks").Body(cn).Do().Into(result)
+	return
+}
+
+// Update updates the ClusterNetwork on the server. Returns the server's representation of the ClusterNetwork and error if one occurs.
+func (c *clusterNetwork) Update(cn *sdnapi.ClusterNetwork) (result *sdnapi.ClusterNetwork, err error) {
+	result = &sdnapi.ClusterNetwork{}
+	err = c.r.Put().Resource("clusterNetworks").Name(cn.Name).Body(cn).Do().Into(result)
 	return
 }
