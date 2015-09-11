@@ -13,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -23,14 +22,29 @@ import (
 	"github.com/openshift/origin/pkg/util/jsonmerge"
 )
 
+// EditOptions is a struct that contains all variables needed for cli edit command.
+type EditOptions struct {
+	out       io.Writer
+	printer   kubectl.ResourcePrinter
+	namespace string
+	rmap      *resource.Mapper
+	args      []string
+	builder   *resource.Builder
+
+	ext       string
+	filenames []string
+	version   string
+	fullName  string
+}
+
 const (
 	editLong = `
 Edit a resource from the default editor
 
 The edit command allows you to directly edit any API resource you can retrieve via the
 command line tools. It will open the editor defined by your OC_EDITOR, GIT_EDITOR,
-or EDITOR environment variables, or fall back to 'vi' for Linux or 'notepad' for Windows. 
-You can edit multiple objects, although changes are applied one at a time. The command 
+or EDITOR environment variables, or fall back to 'vi' for Linux or 'notepad' for Windows.
+You can edit multiple objects, although changes are applied one at a time. The command
 accepts filenames as well as command line arguments, although the files you point to must
 be previously saved versions of resources.
 
@@ -57,16 +71,19 @@ saved copy to include the latest resource version.`
   $ %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
 )
 
-// NewCmdEdit implements the OpenShift cli edit command
+// NewCmdEdit implements the OpenShift cli edit command.
 func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	filenames := []string{}
+	var options EditOptions
 	cmd := &cobra.Command{
 		Use:     "edit (RESOURCE/NAME | -f FILENAME)",
 		Short:   "Edit a resource on the server",
 		Long:    editLong,
 		Example: fmt.Sprintf(editExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunEdit(fullName, f, out, cmd, args, filenames)
+			if err := options.Complete(fullName, f, out, cmd, args); err != nil {
+				cmdutil.CheckErr(err)
+			}
+			err := options.RunEdit()
 			if err == errExit {
 				os.Exit(1)
 			}
@@ -74,23 +91,24 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 		},
 	}
 	usage := "Filename, directory, or URL to file to use to edit the resource"
-	kubectl.AddBoundJsonFilenameFlag(cmd, &filenames, usage)
+	kubectl.AddBoundJsonFilenameFlag(cmd, &options.filenames, usage)
 	cmd.Flags().StringP("output", "o", "yaml", "Output format. One of: yaml|json.")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 	return cmd
 }
 
-// RunEdit contains all the necessary functionality for the OpenShift cli edit command
-func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, filenames util.StringList) error {
-	var printer kubectl.ResourcePrinter
-	var ext string
+// Complete completes struct variables.
+func (o *EditOptions) Complete(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+	o.fullName = fullName
+	o.args = args
+	o.out = out
 	switch format := cmdutil.GetFlagString(cmd, "output"); format {
 	case "json":
-		printer = &kubectl.JSONPrinter{}
-		ext = ".json"
+		o.printer = &kubectl.JSONPrinter{}
+		o.ext = ".json"
 	case "yaml":
-		printer = &kubectl.YAMLPrinter{}
-		ext = ".yaml"
+		o.printer = &kubectl.YAMLPrinter{}
+		o.ext = ".yaml"
 	default:
 		return cmdutil.UsageError(cmd, "The flag 'output' must be one of yaml|json")
 	}
@@ -99,41 +117,43 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 	if err != nil {
 		return err
 	}
+	o.namespace = cmdNamespace
 
 	mapper, typer := f.Object()
-	rmap := &resource.Mapper{
+	o.rmap = &resource.Mapper{
 		ObjectTyper:  typer,
 		RESTMapper:   mapper,
 		ClientMapper: f.ClientMapperForCommand(),
 	}
 
-	b := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
-		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, filenames...).
-		//SelectorParam(selector).
-		ResourceTypeOrNameArgs(true, args...).
+	o.builder = resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
+		NamespaceParam(o.namespace).DefaultNamespace().
+		FilenameParam(explicit, o.filenames...).
+		// SelectorParam(selector).
+		ResourceTypeOrNameArgs(true, o.args...).
 		Latest()
-	if err != nil {
-		return err
-	}
 
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err
 	}
 
-	r := b.Flatten().Do()
+	o.version = cmdutil.OutputVersion(cmd, clientConfig.Version)
+	return nil
+}
+
+// RunEdit contains all the necessary functionality for the OpenShift cli edit command.
+func (o *EditOptions) RunEdit() error {
+	r := o.builder.Flatten().Do()
+	results := editResults{}
 	infos, err := r.Infos()
 	if err != nil {
 		return err
 	}
-
-	defaultVersion := cmdutil.OutputVersion(cmd, clientConfig.Version)
-	results := editResults{}
 	for {
-		obj, err := resource.AsVersionedObject(infos, false, defaultVersion)
+		obj, err := resource.AsVersionedObject(infos, false, o.version)
 		if err != nil {
-			return preservedFile(err, results.file, cmd.Out())
+			return preservedFile(err, results.file, o.out)
 		}
 
 		// TODO: add an annotating YAML printer that can print inline comments on each field,
@@ -142,18 +162,18 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 		// generate the file to edit
 		buf := &bytes.Buffer{}
 		if _, err := results.header.WriteTo(buf); err != nil {
-			return preservedFile(err, results.file, cmd.Out())
+			return preservedFile(err, results.file, o.out)
 		}
-		if err := printer.PrintObj(obj, buf); err != nil {
-			return preservedFile(err, results.file, cmd.Out())
+		if err := o.printer.PrintObj(obj, buf); err != nil {
+			return preservedFile(err, results.file, o.out)
 		}
 		original := buf.Bytes()
 
 		// launch the editor
 		edit := editor.NewDefaultEditor()
-		edited, file, err := edit.LaunchTempFile("oc-edit-", ext, buf)
+		edited, file, err := edit.LaunchTempFile("oc-edit-", o.ext, buf)
 		if err != nil {
-			return preservedFile(err, results.file, cmd.Out())
+			return preservedFile(err, results.file, o.out)
 		}
 
 		// cleanup any file from the previous pass
@@ -164,24 +184,24 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 		glog.V(4).Infof("User edited:\n%s", string(edited))
 		lines, err := hasLines(bytes.NewBuffer(edited))
 		if err != nil {
-			return preservedFile(err, file, cmd.Out())
+			return preservedFile(err, file, o.out)
 		}
 		if bytes.Equal(original, edited) {
 			if len(results.edit) > 0 {
-				preservedFile(nil, file, cmd.Out())
+				preservedFile(nil, file, o.out)
 			} else {
 				os.Remove(file)
 			}
-			fmt.Fprintln(cmd.Out(), "Edit cancelled, no changes made.")
+			fmt.Fprintln(o.out, "Edit cancelled, no changes made.")
 			return nil
 		}
 		if !lines {
 			if len(results.edit) > 0 {
-				preservedFile(nil, file, cmd.Out())
+				preservedFile(nil, file, o.out)
 			} else {
 				os.Remove(file)
 			}
-			fmt.Fprintln(cmd.Out(), "Edit cancelled, saved file was empty.")
+			fmt.Fprintln(o.out, "Edit cancelled, saved file was empty.")
 			return nil
 		}
 
@@ -190,7 +210,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 		}
 
 		// parse the edited file
-		updates, err := rmap.InfoForData(edited, "edited-file")
+		updates, err := o.rmap.InfoForData(edited, "edited-file")
 		if err != nil {
 			results.header.reasons = append(results.header.reasons, editReason{
 				head: fmt.Sprintf("The edited file had a syntax error: %v", err),
@@ -198,11 +218,11 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 			continue
 		}
 
-		visitor := resource.NewFlattenListVisitor(updates, rmap)
+		visitor := resource.NewFlattenListVisitor(updates, o.rmap)
 
 		// need to make sure the original namespace wasn't changed while editing
-		if err = visitor.Visit(resource.RequireNamespace(cmdNamespace)); err != nil {
-			return preservedFile(err, file, cmd.Out())
+		if err = visitor.Visit(resource.RequireNamespace(o.namespace)); err != nil {
+			return preservedFile(err, file, o.out)
 		}
 
 		// attempt to calculate a delta for merging conflicts
@@ -213,7 +233,7 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 		} else {
 			delta.AddPreconditions(jsonmerge.RequireKeyUnchanged("apiVersion"))
 			results.delta = delta
-			results.version = defaultVersion
+			results.version = o.version
 		}
 
 		err = visitor.Visit(func(info *resource.Info) error {
@@ -223,30 +243,30 @@ func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Co
 			}
 			updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, data)
 			if err != nil {
-				fmt.Fprintln(cmd.Out(), results.AddError(err, info))
+				fmt.Fprintln(o.out, results.AddError(err, info))
 				return nil
 			}
 			info.Refresh(updated, true)
-			fmt.Fprintf(out, "%s/%s\n", info.Mapping.Resource, info.Name)
+			fmt.Fprintf(o.out, "%s/%s\n", info.Mapping.Resource, info.Name)
 			return nil
 		})
 		if err != nil {
-			return preservedFile(err, file, cmd.Out())
+			return preservedFile(err, file, o.out)
 		}
 
 		if results.retryable > 0 {
-			fmt.Fprintf(cmd.Out(), "You can run `%s update -f %s` to try this update again.\n", fullName, file)
+			fmt.Fprintf(o.out, "You can run `%s update -f %s` to try this update again.\n", o.fullName, file)
 			return errExit
 		}
 		if results.conflict > 0 {
-			fmt.Fprintf(cmd.Out(), "You must update your local resource version and run `%s update -f %s` to overwrite the remote changes.\n", fullName, file)
+			fmt.Fprintf(o.out, "You must update your local resource version and run `%s update -f %s` to overwrite the remote changes.\n", o.fullName, file)
 			return errExit
 		}
 		if len(results.edit) == 0 {
 			if results.notfound == 0 {
 				os.Remove(file)
 			} else {
-				fmt.Fprintf(cmd.Out(), "The edits you made on deleted resources have been saved to %q\n", file)
+				fmt.Fprintf(o.out, "The edits you made on deleted resources have been saved to %q\n", file)
 			}
 			return nil
 		}
