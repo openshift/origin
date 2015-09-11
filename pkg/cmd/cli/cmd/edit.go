@@ -23,14 +23,19 @@ import (
 	"github.com/openshift/origin/pkg/util/jsonmerge"
 )
 
+type EditOptions struct {
+ output       	string
+ outputVersion string
+}
+
 const (
 	editLong = `
 Edit a resource from the default editor
 
 The edit command allows you to directly edit any API resource you can retrieve via the
 command line tools. It will open the editor defined by your OC_EDITOR, GIT_EDITOR,
-or EDITOR environment variables, or fall back to 'vi' for Linux or 'notepad' for Windows. 
-You can edit multiple objects, although changes are applied one at a time. The command 
+or EDITOR environment variables, or fall back to 'vi' for Linux or 'notepad' for Windows.
+You can edit multiple objects, although changes are applied one at a time. The command
 accepts filenames as well as command line arguments, although the files you point to must
 be previously saved versions of resources.
 
@@ -59,6 +64,7 @@ saved copy to include the latest resource version.`
 
 // NewCmdEdit implements the OpenShift cli edit command
 func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	var options EditOptions
 	filenames := []string{}
 	cmd := &cobra.Command{
 		Use:     "edit (RESOURCE/NAME | -f FILENAME)",
@@ -66,25 +72,27 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 		Long:    editLong,
 		Example: fmt.Sprintf(editExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunEdit(fullName, f, out, cmd, args, filenames)
+			//volani
+			err := options.RunEdit(fullName, f, out, cmd, args, filenames)
 			if err == errExit {
 				os.Exit(1)
 			}
 			cmdutil.CheckErr(err)
 		},
 	}
+//TODO
 	usage := "Filename, directory, or URL to file to use to edit the resource"
 	kubectl.AddBoundJsonFilenameFlag(cmd, &filenames, usage)
-	cmd.Flags().StringP("output", "o", "yaml", "Output format. One of: yaml|json.")
-	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
+	cmd.Flags().StringP(&options.output, "o", "yaml", "Output format. One of: yaml|json.")
+	cmd.Flags().String(&options.outputVersion, "", "Output the formatted object with the given version (default api-version).")
 	return cmd
 }
 
 // RunEdit contains all the necessary functionality for the OpenShift cli edit command
-func RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, filenames util.StringList) error {
+func (o *EditOptions) RunEdit(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, filenames util.StringList) error {
 	var printer kubectl.ResourcePrinter
 	var ext string
-	switch format := cmdutil.GetFlagString(cmd, "output"); format {
+	switch o.output {
 	case "json":
 		printer = &kubectl.JSONPrinter{}
 		ext = ".json"
