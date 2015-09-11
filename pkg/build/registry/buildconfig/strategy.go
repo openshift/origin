@@ -38,12 +38,14 @@ func (strategy) AllowUnconditionalUpdate() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(obj runtime.Object) {
-	_ = obj.(*api.BuildConfig)
+	bc := obj.(*api.BuildConfig)
+	dropUnknownTriggers(bc)
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(obj, old runtime.Object) {
-	_ = obj.(*api.BuildConfig)
+	bc := obj.(*api.BuildConfig)
+	dropUnknownTriggers(bc)
 }
 
 // Validate validates a new policy.
@@ -79,4 +81,15 @@ func SelectableFields(buildConfig *api.BuildConfig) fields.Set {
 // CheckGracefulDelete allows a build config to be gracefully deleted.
 func (strategy) CheckGracefulDelete(obj runtime.Object, options *kapi.DeleteOptions) bool {
 	return false
+}
+
+// dropUnknownTriggers drops any triggers that are of an unknown type
+func dropUnknownTriggers(bc *api.BuildConfig) {
+	triggers := []api.BuildTriggerPolicy{}
+	for _, t := range bc.Spec.Triggers {
+		if api.KnownTriggerTypes.Has(string(t.Type)) {
+			triggers = append(triggers, t)
+		}
+	}
+	bc.Spec.Triggers = triggers
 }

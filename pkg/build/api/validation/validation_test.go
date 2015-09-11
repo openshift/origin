@@ -1008,10 +1008,11 @@ func TestValidateTrigger(t *testing.T) {
 			trigger:  buildapi.BuildTriggerPolicy{},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("type")},
 		},
-		"trigger with unknown type is valid, but ignored": {
+		"trigger with unknown type": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: "UnknownTriggerType",
 			},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("type", "", "")},
 		},
 		"GitHub type with no github webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GitHubWebHookBuildTriggerType},
