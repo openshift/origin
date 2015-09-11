@@ -21,7 +21,8 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
-	"github.com/openshift/source-to-image/pkg/git"
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 )
@@ -200,7 +201,7 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 	}()
 
 	glog.V(2).Infof("Cloning source from %s", d.build.Spec.Source.Git.URI)
-	if err := d.git.Clone(d.build.Spec.Source.Git.URI, dir); err != nil {
+	if err := d.git.Clone(d.build.Spec.Source.Git.URI, dir, s2iapi.CloneConfig{Recursive: true, Quiet: true}); err != nil {
 		return err
 	}
 

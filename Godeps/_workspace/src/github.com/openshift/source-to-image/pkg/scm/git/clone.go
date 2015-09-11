@@ -20,13 +20,18 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 	targetSourceDir := filepath.Join(config.WorkingDir, api.Source)
 	config.WorkingSourceDir = targetSourceDir
 	var info *api.SourceInfo
+	cloneConfig := api.CloneConfig{Quiet: true, Recursive: !config.DisableRecursive}
 
 	if c.ValidCloneSpec(config.Source) {
 		if len(config.ContextDir) > 0 {
 			targetSourceDir = filepath.Join(config.WorkingDir, api.ContextTmp)
 		}
-		glog.V(2).Infof("Cloning into %s", targetSourceDir)
-		if err := c.Clone(config.Source, targetSourceDir); err != nil {
+		if cloneConfig.Recursive {
+			glog.V(2).Infof("Cloning sources and all GIT submodules into %q", targetSourceDir)
+		} else {
+			glog.V(2).Infof("Cloning sources into %q", targetSourceDir)
+		}
+		if err := c.Clone(config.Source, targetSourceDir, cloneConfig); err != nil {
 			glog.V(1).Infof("Git clone failed: %+v", err)
 			return nil, err
 		}

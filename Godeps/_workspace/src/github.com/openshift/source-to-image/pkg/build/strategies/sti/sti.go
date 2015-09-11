@@ -13,8 +13,9 @@ import (
 	"github.com/openshift/source-to-image/pkg/build/strategies/layered"
 	dockerpkg "github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/errors"
-	"github.com/openshift/source-to-image/pkg/git"
 	"github.com/openshift/source-to-image/pkg/ignore"
+	"github.com/openshift/source-to-image/pkg/scm"
+	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/scripts"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
@@ -98,7 +99,7 @@ func New(req *api.Config) (*STI, error) {
 
 	// The sources are downloaded using the GIT downloader.
 	// TODO: Add more SCM in future.
-	b.source = &git.Clone{b.git, b.fs}
+	b.source = scm.DownloaderForSource(req.Source)
 	b.garbage = &build.DefaultCleaner{b.fs, b.docker}
 	b.layered, err = layered.New(req, b)
 
