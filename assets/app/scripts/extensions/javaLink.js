@@ -62,7 +62,6 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
                                  });
         window.location.href = targetURI.toString();
       };
-      console.log("added");
       var answer = $compile(template)($scope);
       return answer;
     });
