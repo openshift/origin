@@ -750,6 +750,10 @@ Change the number of pods in a deployment
 
   // If the replication controller named foo's current size is 2, scale foo to 3.
   $ openshift cli scale --current-replicas=2 --replicas=3 replicationcontrollers foo
+
+  // Scale the latest deployment of 'bar'. In case of no deployment, bar's template
+  // will be scaled instead.
+  $ openshift cli scale --replicas=10 dc bar
 ----
 ====
 
