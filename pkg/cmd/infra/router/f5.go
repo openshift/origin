@@ -99,7 +99,7 @@ func (o *F5Router) Validate() error {
 	return nil
 }
 
-// NewCommndF5Router provides CLI handler for the F5 router sync plugin.
+// NewCommandF5Router provides CLI handler for the F5 router sync plugin.
 func NewCommandF5Router(name string) *cobra.Command {
 	options := &F5RouterOptions{
 		Config: clientcmd.NewConfig(),
@@ -122,6 +122,7 @@ func NewCommandF5Router(name string) *cobra.Command {
 
 	flag := cmd.Flags()
 	options.Config.Bind(flag)
+	options.F5Router.Bind(flag)
 	options.RouterSelection.Bind(flag)
 
 	return cmd
