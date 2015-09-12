@@ -35,7 +35,6 @@ angular.module('openshiftConsole')
       $scope.logoutMessage = "Logging out...";
       window.location.href = AUTH_CFG.logout_uri;
     } else {
-      // TODO: redirect to configurable logout destination
       $log.debug("LogoutController, not logged in, logout complete");
       $scope.logoutMessage = 'You are logged out. Return to the <a href="./">console</a>.';
     }

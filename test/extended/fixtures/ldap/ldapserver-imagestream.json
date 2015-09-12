@@ -1,0 +1,25 @@
+{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "openldap",
+    "creationTimestamp": null
+  },
+  "spec": {
+    "dockerImageRepository": "openshift/openldap-2441-centos7",
+    "tags": [
+      {
+        "tag": "latest",
+        "annotations": {
+          "description": "Provides OpenLDAP v2.4.41",
+          "iconClass": "fa-server",
+          "tags": "server,openldap",
+          "version": "2.4.41"
+        }
+      }
+    ]
+  },
+  "status": {
+    "dockerImageRepository": ""
+  }
+}

@@ -43,7 +43,7 @@ angular.module('openshiftConsole')
         });
 
         $(elem).on("mousemove.oscobject", function() {
-          if (scope.resource) {
+          if (scope.resource || $(this).hasClass("osc-object-stacked")) {
             $(".osc-object-hover").not(this).removeClass("osc-object-hover");
             $(this).addClass("osc-object-hover");
             return false;
@@ -51,7 +51,7 @@ angular.module('openshiftConsole')
         });
 
         $(elem).on("mouseleave.oscobject", function() {
-          if (scope.resource) {
+          if (scope.resource || $(this).hasClass("osc-object-stacked")) {
             $(this).removeClass("osc-object-hover");
           }
         });

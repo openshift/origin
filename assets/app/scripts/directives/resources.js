@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('overviewDeployment', function() {
+  .directive('overviewDeployment', function($location, $timeout, LabelFilter) {
     return {
       restrict: 'E',
       scope: {
@@ -18,7 +18,15 @@ angular.module('openshiftConsole')
         // Pods
         pods: '='
       },
-      templateUrl: 'views/_overview-deployment.html'
+      templateUrl: 'views/_overview-deployment.html',
+      controller: function($scope) {
+        $scope.viewPodsForDeployment = function(deployment) {
+          $location.url("/project/" + deployment.metadata.namespace + "/browse/pods");
+          $timeout(function() {
+            LabelFilter.setLabelSelector(new LabelSelector(deployment.spec.selector, true));
+          }, 1);
+        };
+      }
     };
   })
   .directive('overviewMonopod', function() {
@@ -45,11 +53,41 @@ angular.module('openshiftConsole')
     return {
       restrict: 'E',
       scope: {
-        pods: '='
+        pods: '=',
+        projectName: '@?' //TODO optional for now
       },
-      templateUrl: 'views/_pods.html'
+      templateUrl: 'views/_pods.html',
+      controller: function($scope) {
+        $scope.phases = [
+          "Failed",
+          "Pending",
+          "Running",
+          "Succeeded",
+          "Unknown"
+        ];
+        $scope.expandedPhase = null;
+        $scope.warningsExpanded = false;
+        $scope.expandPhase = function(phase, warningsExpanded, $event) {
+          $scope.expandedPhase = phase;
+          $scope.warningsExpanded = warningsExpanded;
+          if ($event) {
+            $event.stopPropagation();
+          }
+        };
+      }
     };
   })
+  .directive('podContent', function() {
+    // sub-directive used by the pods directive
+    return {
+      restrict: 'E',
+      scope: {
+        pod: '=',
+        troubled: '='
+      },
+      templateUrl: 'views/directives/_pod-content.html'
+    };
+  })  
   .directive('triggers', function() {
     var hideBuildKey = function(build) {
       return 'hide/build/' + build.metadata.namespace + '/' + build.metadata.name;

@@ -14,20 +14,28 @@ angular.module('openshiftConsole')
       }
     };
   })
-  .filter('annotation', function() {
-    // This maps an annotation key to all known synonymous keys to insulate
-    // the referring code from key renames across API versions.
-    var annotationMap = {
-      "deploymentConfig": ["openshift.io/deployment-config.name"],
-      "deployment": ["openshift.io/deployment.name"],
-      "pod": ["openshift.io/deployer-pod.name"],
-      "deploymentStatus": ["openshift.io/deployment.phase"],
-      "encodedDeploymentConfig": ["openshift.io/encoded-deployment-config"],
-      "deploymentVersion": ["openshift.io/deployment-config.latest-version"],
-      "displayName": ["openshift.io/display-name"],
-      "description": ["openshift.io/description"],
-      "buildNumber": ["openshift.io/build.number"]
+  .filter('annotationName', function() {
+    return function(annotationKey) {
+      // This maps an annotation key to all known synonymous keys to insulate
+      // the referring code from key renames across API versions.
+      var annotationMap = {
+        "deploymentConfig":         ["openshift.io/deployment-config.name"],
+        "deployment":               ["openshift.io/deployment.name"],
+        "pod":                      ["openshift.io/deployer-pod.name"],
+        "deployerPodFor":           ["openshift.io/deployer-pod-for.name"],
+        "deploymentStatus":         ["openshift.io/deployment.phase"],
+        "deploymentStatusReason":   ["openshift.io/deployment.status-reason"],
+        "deploymentCancelled":      ["openshift.io/deployment.cancelled"],
+        "encodedDeploymentConfig":  ["openshift.io/encoded-deployment-config"],
+        "deploymentVersion":        ["openshift.io/deployment-config.latest-version"],
+        "displayName":              ["openshift.io/display-name"],
+        "description":              ["openshift.io/description"],
+        "buildNumber":              ["openshift.io/build.number"]
+      };
+      return annotationMap[annotationKey] || null;
     };
+  })
+  .filter('annotation', function(annotationNameFilter) {
     return function(resource, key) {
       if (resource && resource.metadata && resource.metadata.annotations) {
         // If the key's already in the annotation map, return it.
@@ -35,7 +43,7 @@ angular.module('openshiftConsole')
           return resource.metadata.annotations[key];
         }
         // Try and return a value for a mapped key.
-        var mappings = annotationMap[key] || [];
+        var mappings = annotationNameFilter(key) || [];
         for (var i=0; i < mappings.length; i++) {
           var mappedKey = mappings[i];
           if (resource.metadata.annotations[mappedKey] !== undefined) {
@@ -217,11 +225,12 @@ angular.module('openshiftConsole')
   .filter('webhookURL', function(DataService) {
     return function(buildConfig, type, secret, project) {
       return DataService.url({
-        type: "buildconfigs/webhooks",
-        id: buildConfig,
-        namespace: project,
-        secret: secret,
-        hookType: type.toLowerCase()
+      	// arbitrarily many subresources can be included
+      	// url encoding of the segments is handled by the url() function
+      	// subresource segments cannot contain '/'
+        resource: "buildconfigs/webhooks/" + secret + "/" + type.toLowerCase(),
+        name: buildConfig,
+        namespace: project
       });
     };
   })
@@ -309,22 +318,20 @@ angular.module('openshiftConsole')
       return itemsArray;
     };
   })
-  .filter('isTroubledPod', function() {
-    // Scenario - Stuck Pod
-    // Check if the pod has been pending for a long time.
-    var isStuck = function(pod) {
+  .filter('isPodStuck', function() {
+    return function(pod) {
       if (pod.status.phase !== 'Pending') {
         return false;
       }
 
+      // If this logic ever changes, update the message in podWarnings
       var fiveMinutesAgo = moment().subtract(5, 'm');
       var created = moment(pod.metadata.creationTimestamp);
-      return created.isBefore(fiveMinutesAgo);
+      return created.isBefore(fiveMinutesAgo);      
     };
-
-    // Scenario - Looping Container
-    // Check if the container is frequently restarting.
-    var isLooping = function(containerStatus) {
+  })
+  .filter('isContainerLooping', function() {
+    return function(containerStatus) {
       if (containerStatus.restartCount < 3 ||
           !containerStatus.state.running ||
           !containerStatus.state.running.startedAt) {
@@ -332,33 +339,40 @@ angular.module('openshiftConsole')
       }
 
       // Only return true if the container has restarted recently.
+      // If this logic ever changes, update the message in podWarnings
       var fiveMinutesAgo = moment().subtract(5, 'm');
       var started = moment(containerStatus.state.running.startedAt);
       return started.isAfter(fiveMinutesAgo);
     };
-
-    // Scenario - Failed Container
-    // Check if the terminated container exited with a non-zero exit code
-    var isFailed = function(containerStatus) {
+  })
+  .filter('isContainerFailed', function() {
+    return function(containerStatus) {
+      // If this logic ever changes, update the message in podWarnings
       return containerStatus.state.terminated && containerStatus.state.terminated.exitCode !== 0;
     };
-
-    // Scenario - Unprepared Container
-    // Check if the container still isn't ready after a length of time.
-    var isUnprepared = function(containerStatus) {
+  })
+  .filter('isContainerUnprepared', function() {
+    return function(containerStatus) {
       if (!containerStatus.state.running ||
           containerStatus.ready !== false ||
           !containerStatus.state.running.startedAt) {
         return false;
       }
 
+      // If this logic ever changes, update the message in podWarnings
       var fiveMinutesAgo = moment().subtract(5, 'm');
       var started = moment(containerStatus.state.running.startedAt);
       return started.isBefore(fiveMinutesAgo);
     };
-
+  })
+  .filter('isTroubledPod', function(isPodStuckFilter, isContainerLoopingFilter, isContainerFailedFilter, isContainerUnpreparedFilter) {
     return function(pod) {
-      if (isStuck(pod)) {
+      if (pod.status.phase === 'Unknown') {
+        // We always show Unknown pods in a warning state
+        return true;
+      }
+
+      if (isPodStuckFilter(pod)) {
         return true;
       }
 
@@ -370,13 +384,13 @@ angular.module('openshiftConsole')
           if (!containerStatus.state) {
             continue;
           }
-          if (isFailed(containerStatus)) {
+          if (isContainerFailedFilter(containerStatus)) {
             return true;
           }
-          if (isLooping(containerStatus)) {
+          if (isContainerLoopingFilter(containerStatus)) {
             return true;
           }
-          if (isUnprepared(containerStatus)) {
+          if (isContainerUnpreparedFilter(containerStatus)) {
             return true;
           }
         }
@@ -385,6 +399,64 @@ angular.module('openshiftConsole')
       return false;
     };
   })
+  .filter('podWarnings', function(isPodStuckFilter, isContainerLoopingFilter, isContainerFailedFilter, isContainerUnpreparedFilter) {
+    return function(pod) {
+      var warnings = [];
+
+      if (pod.status.phase === 'Unknown') {
+        // We always show Unknown pods in a warning state
+        warnings.push({reason: 'Unknown', message: 'The state of this pod could not be obtained. This is typically due to an error communicating with the host of the pod.'});
+      }
+
+      if (isPodStuckFilter(pod)) {
+        warnings.push({reason: "Stuck", message: "This pod has been stuck in the pending state for more than five minutes."});
+      }
+
+      if (pod.status.phase === 'Running' && pod.status.containerStatuses) {
+        // Check container statuses and short circuit when we find any problem.
+        var i;
+        for (i = 0; i < pod.status.containerStatuses.length; ++i) {
+          var containerStatus = pod.status.containerStatuses[i];
+          if (!containerStatus.state) {
+            continue;
+          }
+          if (isContainerFailedFilter(containerStatus)) {
+            warnings.push({reason: "Failed", message: "The container " + containerStatus.name + " failed with a non-zero exit code " + containerStatus.state.terminated.exitCode + "."});
+          }
+          if (isContainerLoopingFilter(containerStatus)) {
+            warnings.push({reason: "Looping", message: "The container " + containerStatus.name + " is restarting frequently, which usually indicates a problem. It has restarted " + containerStatus.restartCount + " times, and has restarted within the last five minutes."});
+          }
+          if (isContainerUnpreparedFilter(containerStatus)) {
+            warnings.push({reason: "Unprepared", message: "The container " + containerStatus.name + " has been running for more than five minutes and has not passed its readiness check."});
+          }
+        }
+      }
+
+      return warnings.length > 0 ? warnings : null;
+    };
+  })
+  .filter('troubledPods', function(isTroubledPodFilter) {
+    return function(pods) {
+      var troublePods = [];
+      angular.forEach(pods, function(pod){
+        if (isTroubledPodFilter(pod)) {
+          troublePods.push(pod);
+        }
+      });
+      return troublePods;
+    };
+  })
+  .filter('notTroubledPods', function(isTroubledPodFilter) {
+    return function(pods) {
+      var notTroublePods = [];
+      angular.forEach(pods, function(pod){
+        if (!isTroubledPodFilter(pod)) {
+          notTroublePods.push(pod);
+        }
+      });
+      return notTroublePods;
+    };
+  })  
   .filter('projectOverviewURL', function(Navigate) {
     return function(projectName) {
       return Navigate.projectOverviewURL(projectName);
@@ -545,5 +617,16 @@ angular.module('openshiftConsole')
 
       // cluster.local suffix is customizable, so leave it off. <name>.<namespace>.svc resolves.
       return service.metadata.name + '.' + service.metadata.namespace + '.svc';
+    };
+  })
+  .filter('podsForPhase', function() {
+    return function(pods, phase) {
+      var podsForPhase = [];
+      angular.forEach(pods, function(pod){
+        if (pod.status.phase === phase) {
+          podsForPhase.push(pod);
+        }
+      });
+      return podsForPhase;
     };
   });

@@ -26,6 +26,7 @@ import (
 	build "github.com/openshift/origin/pkg/build/api"
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
+	route "github.com/openshift/origin/pkg/route/api"
 	template "github.com/openshift/origin/pkg/template/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
@@ -192,31 +193,40 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.To.Name = strings.Replace(j.To.Name, ":", "-", -1)
 			}
 		},
+		func(j *route.RouteSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.To = api.ObjectReference{
+				Kind: "Service",
+				Name: j.To.Name,
+			}
+		},
 		func(j *deploy.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Triggers = []deploy.DeploymentTriggerPolicy{{Type: deploy.DeploymentTriggerOnConfigChange}}
 		},
 		func(j *deploy.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			mkintp := func(i int) *int64 {
-				v := int64(i)
-				return &v
-			}
-			switch c.Intn(3) {
-			case 0:
-				// TODO: we should not have to set defaults, instead we should be able
-				// to detect defaults were applied.
-				j.Type = deploy.DeploymentStrategyTypeRolling
-				j.RollingParams = &deploy.RollingDeploymentStrategyParams{
-					IntervalSeconds:     mkintp(1),
-					UpdatePeriodSeconds: mkintp(1),
-					TimeoutSeconds:      mkintp(120),
+			strategyTypes := []deploy.DeploymentStrategyType{deploy.DeploymentStrategyTypeRecreate, deploy.DeploymentStrategyTypeRolling, deploy.DeploymentStrategyTypeCustom}
+			j.Type = strategyTypes[c.Rand.Intn(len(strategyTypes))]
+			switch j.Type {
+			case deploy.DeploymentStrategyTypeRolling:
+				params := &deploy.RollingDeploymentStrategyParams{}
+				randInt64 := func() *int64 {
+					p := int64(c.RandUint64())
+					return &p
 				}
-			case 1:
-				j.Type = deploy.DeploymentStrategyTypeRecreate
-				j.RollingParams = nil
-			case 2:
-				j.Type = deploy.DeploymentStrategyTypeCustom
+				params.TimeoutSeconds = randInt64()
+				params.IntervalSeconds = randInt64()
+				params.UpdatePeriodSeconds = randInt64()
+				if c.RandBool() {
+					params.MaxUnavailable = util.NewIntOrStringFromInt(int(c.RandUint64()))
+					params.MaxSurge = util.NewIntOrStringFromInt(int(c.RandUint64()))
+				} else {
+					params.MaxSurge = util.NewIntOrStringFromString(fmt.Sprintf("%d%%", c.RandUint64()))
+					params.MaxUnavailable = util.NewIntOrStringFromString(fmt.Sprintf("%d%%", c.RandUint64()))
+				}
+				j.RollingParams = params
+			default:
 				j.RollingParams = nil
 			}
 		},

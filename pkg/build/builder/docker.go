@@ -21,7 +21,8 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
-	"github.com/openshift/source-to-image/pkg/git"
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
 )
@@ -127,7 +128,7 @@ func (d *DockerBuilder) checkSourceURI(testConnection bool) error {
 	if !d.git.ValidCloneSpec(rawurl) {
 		return fmt.Errorf("Invalid git source url: %s", rawurl)
 	}
-	if strings.HasPrefix(rawurl, "git@") {
+	if strings.HasPrefix(rawurl, "git@") || strings.HasPrefix(rawurl, "git://") {
 		return nil
 	}
 	srcURL, err := url.Parse(rawurl)
@@ -200,7 +201,7 @@ func (d *DockerBuilder) fetchSource(dir string) error {
 	}()
 
 	glog.V(2).Infof("Cloning source from %s", d.build.Spec.Source.Git.URI)
-	if err := d.git.Clone(d.build.Spec.Source.Git.URI, dir); err != nil {
+	if err := d.git.Clone(d.build.Spec.Source.Git.URI, dir, s2iapi.CloneConfig{Recursive: true, Quiet: true}); err != nil {
 		return err
 	}
 
@@ -259,7 +260,6 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, api.DefaultDockerLabelNamespace)
 	newFileData = appendMetadata(Label, newFileData, labels)
-
 	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
 		return err
 	}
@@ -276,10 +276,10 @@ func appendMetadata(inst MetaInstruction, fileData string, envVars map[string]st
 	first := true
 	for k, v := range envVars {
 		if first {
-			fileData += fmt.Sprintf("%s %s=\"%s\"", inst, k, v)
+			fileData += fmt.Sprintf("%s %s=%+q", inst, k, v)
 			first = false
 		} else {
-			fileData += fmt.Sprintf(" \\\n\t%s=\"%s\"", k, v)
+			fileData += fmt.Sprintf(" \\\n\t%s=%+q", k, v)
 		}
 	}
 	fileData += "\n"

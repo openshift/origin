@@ -1,8 +1,10 @@
 package multitenant
 
 import (
-	"github.com/golang/glog"
+	"encoding/json"
 	"strconv"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/openshift-sdn/ovssubnet"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
@@ -14,6 +16,7 @@ const (
 	initCmd     = "init"
 	setUpCmd    = "setup"
 	tearDownCmd = "teardown"
+	statusCmd   = "status"
 )
 
 type MultitenantPlugin struct {
@@ -65,7 +68,20 @@ func (plugin *MultitenantPlugin) TearDownPod(namespace string, name string, id k
 	return err
 }
 
-// TODO unbreak this
-func (plugin *MultitenantPlugin) Status(namespace string, name string, podInfraContainerID kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
-	return nil, nil
+func (plugin *MultitenantPlugin) Status(namespace string, name string, id kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
+	vnid, err := plugin.getVnid(namespace)
+	if err != nil {
+		return nil, err
+	}
+	out, err := utilexec.New().Command(plugin.getExecutable(), statusCmd, namespace, name, string(id), strconv.FormatUint(uint64(vnid), 10)).CombinedOutput()
+	glog.V(5).Infof("PodNetworkStatus 'multitenant' network plugin output: %s, %v", string(out), err)
+	if err != nil {
+		return nil, err
+	}
+	var podNetworkStatus knetwork.PodNetworkStatus
+	err = json.Unmarshal([]byte(out), &podNetworkStatus)
+	if err != nil {
+		return nil, err
+	}
+	return &podNetworkStatus, nil
 }

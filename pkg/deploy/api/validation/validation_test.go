@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -31,6 +32,7 @@ func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
 					IntervalSeconds:     mkint64p(interval),
 					UpdatePeriodSeconds: mkint64p(updatePeriod),
 					TimeoutSeconds:      mkint64p(timeout),
+					MaxSurge:            kutil.NewIntOrStringFromInt(1),
 				},
 			},
 			ControllerTemplate: test.OkControllerTemplate(),
@@ -38,7 +40,7 @@ func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
 	}
 }
 
-func rollingConfigPct(interval, updatePeriod, timeout, percent int) api.DeploymentConfig {
+func rollingConfigMax(maxSurge, maxUnavailable kutil.IntOrString) api.DeploymentConfig {
 	return api.DeploymentConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
 		Triggers:   manualTrigger(),
@@ -46,10 +48,11 @@ func rollingConfigPct(interval, updatePeriod, timeout, percent int) api.Deployme
 			Strategy: api.DeploymentStrategy{
 				Type: api.DeploymentStrategyTypeRolling,
 				RollingParams: &api.RollingDeploymentStrategyParams{
-					IntervalSeconds:     mkint64p(interval),
-					UpdatePeriodSeconds: mkint64p(updatePeriod),
-					TimeoutSeconds:      mkint64p(timeout),
-					UpdatePercent:       mkintp(percent),
+					IntervalSeconds:     mkint64p(1),
+					UpdatePeriodSeconds: mkint64p(1),
+					TimeoutSeconds:      mkint64p(1),
+					MaxSurge:            maxSurge,
+					MaxUnavailable:      maxUnavailable,
 				},
 			},
 			ControllerTemplate: test.OkControllerTemplate(),
@@ -346,6 +349,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 							IntervalSeconds:     mkint64p(1),
 							UpdatePeriodSeconds: mkint64p(1),
 							TimeoutSeconds:      mkint64p(20),
+							MaxSurge:            kutil.NewIntOrStringFromInt(1),
 							Pre: &api.LifecycleHook{
 								ExecNewPod: &api.ExecNewPodHook{
 									Command:       []string{"cmd"},
@@ -360,40 +364,45 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			fielderrors.ValidationErrorTypeRequired,
 			"template.strategy.rollingParams.pre.failurePolicy",
 		},
-		"invalid zero template.strategy.rollingParams.updatePercent": {
-			rollingConfigPct(1, 1, 1, 0),
+		"both maxSurge and maxUnavailable 0 template.strategy.rollingParams.maxUnavailable": {
+			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromInt(0)),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.updatePercent",
+			"template.strategy.rollingParams.maxUnavailable",
 		},
-		"invalid lower bound template.strategy.rollingParams.updatePercent": {
-			rollingConfigPct(1, 1, 1, -101),
+		"invalid lower bound template.strategy.rollingParams.maxUnavailable": {
+			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromInt(-100)),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.updatePercent",
+			"template.strategy.rollingParams.maxUnavailable",
 		},
-		"invalid upper bound template.strategy.rollingParams.updatePercent": {
-			rollingConfigPct(1, 1, 1, 101),
+		"invalid lower bound template.strategy.rollingParams.maxSurge": {
+			rollingConfigMax(kutil.NewIntOrStringFromInt(-1), kutil.NewIntOrStringFromInt(0)),
 			fielderrors.ValidationErrorTypeInvalid,
-			"template.strategy.rollingParams.updatePercent",
+			"template.strategy.rollingParams.maxSurge",
 		},
-		"valid negative upper bound template.strategy.rollingParams.updatePercent": {
-			rollingConfigPct(1, 1, 1, -100),
-			"",
-			"",
+		"both maxSurge and maxUnavailable 0 percent template.strategy.rollingParams.maxUnavailable": {
+			rollingConfigMax(kutil.NewIntOrStringFromString("0%"), kutil.NewIntOrStringFromString("0%")),
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.maxUnavailable",
 		},
-		"valid upper bound template.strategy.rollingParams.updatePercent": {
-			rollingConfigPct(1, 1, 1, 100),
-			"",
-			"",
+		"invalid lower bound percent template.strategy.rollingParams.maxUnavailable": {
+			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromString("-1%")),
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.maxUnavailable",
 		},
-		"valid negative lower bound template.strategy.rollingParams.updatePercent": {
-			rollingConfigPct(1, 1, 1, -1),
-			"",
-			"",
+		"invalid upper bound percent template.strategy.rollingParams.maxUnavailable": {
+			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromString("101%")),
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.maxUnavailable",
 		},
-		"valid lower bound template.strategy.rollingParams.updatePercent": {
-			rollingConfigPct(1, 1, 1, 1),
-			"",
-			"",
+		"invalid percent template.strategy.rollingParams.maxUnavailable": {
+			rollingConfigMax(kutil.NewIntOrStringFromInt(0), kutil.NewIntOrStringFromString("foo")),
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.maxUnavailable",
+		},
+		"invalid percent template.strategy.rollingParams.maxSurge": {
+			rollingConfigMax(kutil.NewIntOrStringFromString("foo"), kutil.NewIntOrStringFromString("100%")),
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.rollingParams.maxSurge",
 		},
 	}
 

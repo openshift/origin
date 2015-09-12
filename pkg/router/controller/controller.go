@@ -75,8 +75,8 @@ func (c *RouterController) HandleRoute() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	glog.V(4).Infof("Processing Route: %s", route.ServiceName)
-	glog.V(4).Infof("           Alias: %s", route.Host)
+	glog.V(4).Infof("Processing Route: %s", route.Spec.To.Name)
+	glog.V(4).Infof("           Alias: %s", route.Spec.Host)
 	glog.V(4).Infof("           Event: %s", eventType)
 
 	if err := c.Plugin.HandleRoute(eventType, route); err != nil {

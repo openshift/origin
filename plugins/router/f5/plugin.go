@@ -458,16 +458,16 @@ func (p *F5Plugin) HandleNamespaces(namespaces util.StringSet) error {
 func (p *F5Plugin) HandleRoute(eventType watch.EventType,
 	route *routeapi.Route) error {
 	glog.V(4).Infof("Processing route for service: %v (%v)",
-		route.ServiceName, route)
+		route.Spec.To.Name, route)
 
 	// Name of the pool in F5.
-	poolname := poolName(route.Namespace, route.ServiceName)
+	poolname := poolName(route.Namespace, route.Spec.To.Name)
 
 	// Virtual hostname for policy rule in F5.
-	hostname := route.Host
+	hostname := route.Spec.Host
 
 	// Pathname for the policy rule in F5.
-	pathname := route.Path
+	pathname := route.Spec.Path
 
 	// Name for the route in F5.
 	routename := routeName(*route)
@@ -488,7 +488,7 @@ func (p *F5Plugin) HandleRoute(eventType watch.EventType,
 			return err
 		}
 
-		err = p.addRoute(routename, poolname, hostname, pathname, route.TLS)
+		err = p.addRoute(routename, poolname, hostname, pathname, route.Spec.TLS)
 		if err != nil {
 			return err
 		}
@@ -515,7 +515,7 @@ func (p *F5Plugin) HandleRoute(eventType watch.EventType,
 			return err
 		}
 
-		err = p.addRoute(routename, poolname, hostname, pathname, route.TLS)
+		err = p.addRoute(routename, poolname, hostname, pathname, route.Spec.TLS)
 		if err != nil {
 			return err
 		}

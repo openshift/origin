@@ -19,4 +19,24 @@ angular.module('openshiftConsole')
         }
       }
     };
+  })
+  .directive('podWarnings', function(podWarningsFilter) {
+    return {
+      restrict:'E',
+      scope: {
+        pod: '='
+      },
+      link: function($scope, element) {
+        var warnings = podWarningsFilter($scope.pod);
+        var content = "";
+        angular.forEach(warnings, function(warning) {
+          content += warning.message + "<br>";
+        });       
+        $('.pficon-layered', element)
+          .attr("data-content", content)
+          .popover("destroy")
+          .popover();
+      },
+      templateUrl: 'views/directives/_pod-warnings.html'
+    };
   });

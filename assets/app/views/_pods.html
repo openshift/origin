@@ -2,22 +2,64 @@
 Expects the following variables:
 pods - a hash of pod objects by id
 -->
-<div class="component-block pod-container">
-  <div class="animate-repeat pod osc-object" ng-repeat="pod in pods track by (pod | uid)" kind="Pod" resource="pod"
-      ng-class="(pod | isTroubledPod) ? 'pod-warning' : ('pod-' + pod.status.phase.toLowerCase())">
-    <div class="pod-text" ng-switch="pod.status.phase">
-      <strong class="pod-status-label">{{pod.status.phase}}</strong>
-      <div ng-switch-when="Pending">
-        <span ng-if="!pod.spec.nodeName">scheduling...</span>
-        <span ng-if="pod.spec.nodeName && !pod.status.startTime">scheduled</span>
-        <span ng-if="pod.spec.nodeName && pod.status.startTime">pulling...</span>
+<div class="component-block" ng-if="(pods | hashSize) > 3">
+  <div class="pod-container">
+    <div class="pod  pod-{{phase.toLowerCase()}} pod-multiple osc-object osc-object-stacked" ng-repeat-start="phase in phases"  ng-if="(phasePods = (pods | podsForPhase : phase)).length && (troublePods = (phasePods | troubledPods)) && (expandedPhase != phase || warningsExpanded) && (phasePods.length - troublePods.length > 0)" ng-click="expandPhase(phase, false, $event)" title="Expand to see individual pods">
+      <div style="font-size:24px; line-height: 19px;">
+        <span>{{phasePods.length - troublePods.length}}</span>
       </div>
-      <div ng-switch-default>
-        &nbsp;
-        <span ng-if="pod.status.podIP">{{pod.status.podIP}}</span>
-        <relative-timestamp ng-if="!pod.status.podIP" timestamp="pod.status.startTime"></relative-timestamp>
-        &nbsp;
+      <div class="pod-text">{{phase}}</div>
+      <i class="fa fa-ellipsis-h"></i>
+    </div>
+    <div class="pod pod-warning pod-multiple osc-object osc-object-stacked" ng-repeat-end  ng-if="(expandedPhase != phase || !warningsExpanded) && (phasePods = (pods | podsForPhase : phase)).length && (troublePods = (phasePods | troubledPods)).length" ng-click="expandPhase(phase, true, $event)" title="Expand to see individual pods">
+      <div style="font-size:24px; line-height: 19px;">
+        <span>{{troublePods.length}}</span>
+        <span class="pficon-layered" ng-if="troublePods.length" data-content="These pods are having problems, view a pod to see more details." style="font-size: 14px; margin-right: -24px" data-toggle="popover" data-placement="right" data-trigger="hover">
+          <span class="pficon pficon-warning-triangle"></span>
+          <span class="pficon pficon-warning-exclamation"></span>
+        </span>
       </div>
+      <div class="pod-text">{{phase}}</div>
+      <i class="fa fa-ellipsis-h"></i>
+    </div>    
+  </div>
+</div>
+
+<div class="component-block" ng-if="(pods | hashSize) > 3">
+  <div ng-if="expandedPhase">
+    <div ng-if="!warningsExpanded">
+      <div class="pod-container">
+        <div class="pod pod-{{pod.status.phase.toLowerCase()}} osc-object" ng-repeat="pod in (phasePods = (pods | podsForPhase : expandedPhase | notTroubledPods)) | limitTo : 3 track by (pod | uid)"  
+              kind="Pod" resource="pod">
+          <pod-content pod="pod" troubled="false"></pod-content>
+        </div>
+      </div>
+      <div class="pull-right small" style="margin-top: -7px;" ng-if="(phasePods = (pods | podsForPhase : expandedPhase | notTroubledPods)).length > 0">
+        <span ng-if="phasePods.length > 3" style="margin-right: 5px; color: #999;">... and {{phasePods.length - 3}} more</span>
+        <a href="javascript:;" ng-click="expandPhase(null)" style="margin-top: -10px;">Collapse</a>
+      </div>      
+    </div>
+    
+    <div ng-if="warningsExpanded">
+      <div class="pod-container"> 
+        <div class="pod pod-warning osc-object" ng-repeat="pod in (phasePods = (pods | podsForPhase : expandedPhase | troubledPods)) | limitTo : 3 track by (pod | uid)"  
+              kind="Pod" resource="pod">
+          <pod-content pod="pod" troubled="true"></pod-content>
+        </div>    
+      </div>
+      <div class="pull-right small" style="margin-top: -7px;" ng-if="(phasePods = (pods | podsForPhase : expandedPhase | troubledPods)).length > 0">
+        <span ng-if="phasePods.length > 3" style="margin-right: 5px; color: #999;">... and {{phasePods.length - 3}} more</span>
+        <a href="javascript:;" ng-click="expandPhase(null)" style="margin-top: -10px;">Collapse</a>
+      </div>        
+    </div>  
+  </div>
+</div>
+
+<div class="component-block" ng-if="(pods | hashSize) <= 3">
+  <div class="pod-container">
+    <div class="animate-repeat pod osc-object" ng-repeat="pod in pods track by (pod | uid)"  
+          kind="Pod" resource="pod" ng-class="(isTroubled = (pod | isTroubledPod)) ? 'pod-warning' : ('pod-' + pod.status.phase.toLowerCase())">
+      <pod-content pod="pod" troubled="isTroubled"></pod-content>
     </div>
   </div>
 </div>

@@ -21,17 +21,17 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 	result = append(result, kval.ValidateObjectMeta(&route.ObjectMeta, true, oapi.GetNameValidationFunc(kval.ValidatePodName)).Prefix("metadata")...)
 
 	//host is not required but if it is set ensure it meets DNS requirements
-	if len(route.Host) > 0 {
-		if !util.IsDNS1123Subdomain(route.Host) {
-			result = append(result, fielderrors.NewFieldInvalid("host", route.Host, "host must conform to DNS 952 subdomain conventions"))
+	if len(route.Spec.Host) > 0 {
+		if !util.IsDNS1123Subdomain(route.Spec.Host) {
+			result = append(result, fielderrors.NewFieldInvalid("host", route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
 		}
 	}
 
-	if len(route.Path) > 0 && !strings.HasPrefix(route.Path, "/") {
-		result = append(result, fielderrors.NewFieldInvalid("path", route.Path, "path must begin with /"))
+	if len(route.Spec.Path) > 0 && !strings.HasPrefix(route.Spec.Path, "/") {
+		result = append(result, fielderrors.NewFieldInvalid("path", route.Spec.Path, "path must begin with /"))
 	}
 
-	if len(route.ServiceName) == 0 {
+	if len(route.Spec.To.Name) == 0 {
 		result = append(result, fielderrors.NewFieldRequired("serviceName"))
 	}
 
@@ -46,7 +46,15 @@ func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) fielderro
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta).Prefix("metadata")...)
 
-	allErrs = append(allErrs, ValidateRoute(route)...)
+	allErrs = append(allErrs, ValidateRoute(route).Prefix("spec.tls")...)
+	return allErrs
+}
+
+func ValidateRouteStatusUpdate(route *routeapi.Route, older *routeapi.Route) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta).Prefix("metadata")...)
+
+	// TODO: validate route status
 	return allErrs
 }
 
@@ -54,7 +62,7 @@ func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) fielderro
 // by ValidateRoute.
 func validateTLS(route *routeapi.Route) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
-	tls := route.TLS
+	tls := route.Spec.TLS
 
 	//no termination, ignore other settings
 	if tls == nil || tls.Termination == "" {

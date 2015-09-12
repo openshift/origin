@@ -180,7 +180,7 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider) Va
 	}
 
 	// At least one attribute to use as the user id is required
-	if len(provider.LDAPEntryAttributeMapping.ID) == 0 {
+	if len(provider.Attributes.ID) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.attributes.id", "[]", "at least one id attribute is required (LDAP standard identity attribute is 'dn')"))
 	}
 

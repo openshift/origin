@@ -253,13 +253,13 @@ Install a router
   $ openshift admin router --dry-run
 
   // See what the router would look like if created
-  $ openshift admin router -o json
+  $ openshift admin router -o json --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount
 
   // Create a router if it does not exist
-  $ openshift admin router router-west --create --replicas=2
+  $ openshift admin router router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
 
   // Use a different router image and see the router configuration
-  $ openshift admin router region-west -o yaml --images=myrepo/somerouter:mytag
+  $ openshift admin router region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
 ----
 ====
 

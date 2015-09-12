@@ -125,10 +125,18 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 	existingDeployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 	existingDeployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
 
+	mkpod := func(name string) kapi.Pod {
+		return kapi.Pod{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: name,
+				Labels: map[string]string{
+					deployapi.DeployerPodForDeploymentLabel: existingDeployment.Name,
+				},
+			},
+		}
+	}
 	existingDeployerPods := []kapi.Pod{
-		{ObjectMeta: kapi.ObjectMeta{Name: "prehook"}},
-		{ObjectMeta: kapi.ObjectMeta{Name: "posthook"}},
-		{ObjectMeta: kapi.ObjectMeta{Name: "deployerpod"}},
+		mkpod("prehook"), mkpod("posthook"), mkpod("deployerpod"),
 	}
 
 	kubeClient := &ktc.Fake{}

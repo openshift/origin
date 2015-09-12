@@ -524,13 +524,13 @@ func (d *RouteDescriber) Describe(namespace, name string) (string, error) {
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, route.ObjectMeta)
-		formatString(out, "Host", route.Host)
-		formatString(out, "Path", route.Path)
-		formatString(out, "Service", route.ServiceName)
+		formatString(out, "Host", route.Spec.Host)
+		formatString(out, "Path", route.Spec.Path)
+		formatString(out, "Service", route.Spec.To.Name)
 
 		tlsTerm := ""
-		if route.TLS != nil {
-			tlsTerm = string(route.TLS.Termination)
+		if route.Spec.TLS != nil {
+			tlsTerm = string(route.Spec.TLS.Termination)
 		}
 		formatString(out, "TLS Termination", tlsTerm)
 		return nil
@@ -574,7 +574,6 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Description", project.Annotations[projectapi.ProjectDescription])
 		formatString(out, "Status", project.Status.Phase)
 		formatString(out, "Node Selector", nodeSelector)
-		fmt.Fprintf(out, "\n")
 		if len(resourceQuotaList.Items) == 0 {
 			formatString(out, "Quota", "")
 		} else {
@@ -600,7 +599,6 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 				}
 			}
 		}
-		fmt.Fprintf(out, "\n")
 		if len(limitRangeList.Items) == 0 {
 			formatString(out, "Resource limits", "")
 		} else {

@@ -207,6 +207,11 @@ func (oi *OsdnRegistryInterface) WriteNetworkConfig(network string, subnetLength
 	if err == nil {
 		if cn.Network == network && cn.HostSubnetLength == int(subnetLength) && cn.ServiceNetwork == serviceNetwork {
 			return nil
+		} else if cn.Network == network && cn.HostSubnetLength == int(subnetLength) && cn.ServiceNetwork == "" {
+			// Upgrade from 3.0.0
+			cn.ServiceNetwork = serviceNetwork
+			_, err = oi.oClient.ClusterNetwork().Update(cn)
+			return err
 		} else {
 			return fmt.Errorf("A network already exists and does not match the new network's parameters - Existing: (%s, %d, %s); New: (%s, %d, %s) ", cn.Network, cn.HostSubnetLength, cn.ServiceNetwork, network, subnetLength, serviceNetwork)
 		}

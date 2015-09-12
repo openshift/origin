@@ -8,18 +8,16 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
-  .factory("ProxyPod", function(API_CFG) {
-    return function(namespace, podId, port) {
-      var kubeProxyURI = new URI().host(API_CFG.k8s.hostPort).path(API_CFG.k8s.prefix);
-      var apiVersion = API_CFG.k8s.version || 'v1beta3';
+  .factory("ProxyPod", function(DataService) {
+    return function(namespace, podName, port) {
       if (port) {
-        podId = podId + ':' + port;
+        podName = podName + ':' + port;
       }
-      kubeProxyURI.segment(apiVersion)
-                  .segment('namespaces').segment(namespace)
-                  .segment('pods').segment(podId)
-                  .segment('proxy');
-      return kubeProxyURI;
+      return new URI(DataService.url({
+        resource: 'pods/proxy',
+        name: podName,
+        namespace: namespace
+      }));
     };
   })
   .run(function(ProxyPod, BaseHref, HawtioExtension, $templateCache, $compile, AuthService) {
@@ -42,12 +40,12 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
       }
       var pod = $scope.$eval('podTemplate');
       // TODO distinguish between pod and pod templates for now...
-      if (!pod || !pod.status) {
+      if (!pod || !pod.status || pod.status.phase !== 'Running') {
         return;
       }
-      var podId = pod.metadata.name;
+      var podName = pod.metadata.name;
       var namespace = pod.metadata.namespace;
-      $scope.jolokiaUrl = ProxyPod(namespace, podId, jolokiaPort.containerPort).segment('jolokia/').toString();
+      $scope.jolokiaUrl = ProxyPod(namespace, podName, jolokiaPort.containerPort).segment('jolokia/').toString();
       $scope.gotoContainerView = function($event, container, jolokiaUrl) {
         $event.preventDefault();
         $event.stopPropagation();
@@ -55,8 +53,7 @@ angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
         var title = container.name || 'Untitled Container';
         var token = AuthService.UserStore().getToken() || '';
         var targetURI = new URI().path(BaseHref)
-                                 .segment('java')
-                                 .segment('index.html')
+                                 .segment('java/') // Must have a trailing slash to avoid runtime errors in Safari
                                  .hash(token)
                                  .query({
                                    jolokiaUrl: jolokiaUrl,

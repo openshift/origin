@@ -1,0 +1,40 @@
+{
+  "kind": "BuildConfig",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "openldap",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "openldap"
+    }
+  },
+  "spec": {
+    "source": {
+      "type": "Git",
+      "git": {
+        "uri": "git://github.com/openshift/origin.git",
+        "ref": "master"
+      },
+      "contextDir": "images/openldap"
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "from": {
+          "kind": "ImageStreamTag",
+          "name": "openldap:latest"
+        }
+      }
+    },
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "openldap-testenv:latest"
+      }
+    },
+    "resources": {}
+  },
+  "status": {
+    "lastVersion": 0
+  }
+}

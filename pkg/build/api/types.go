@@ -389,6 +389,14 @@ type BuildTriggerPolicy struct {
 // BuildTriggerType refers to a specific BuildTriggerPolicy implementation.
 type BuildTriggerType string
 
+//NOTE: Adding a new trigger type requires adding the type to KnownTriggerTypes
+var KnownTriggerTypes = util.NewStringSet(
+	string(GitHubWebHookBuildTriggerType),
+	string(GenericWebHookBuildTriggerType),
+	string(ImageChangeBuildTriggerType),
+	string(ConfigChangeBuildTriggerType),
+)
+
 const (
 	// GitHubWebHookBuildTriggerType represents a trigger that launches builds on
 	// GitHub webhook invocations

@@ -36,7 +36,7 @@ subscription-manager repos \
 --enable="rhel-7-server-rpms" \
 --enable="rhel-7-server-extras-rpms" \
 --enable="rhel-7-server-optional-rpms" \
---enable="rhel-server-7-ose-beta-rpms"
+--enable="rhel-server-7-ose-3.0-rpms"
 -----------------------------------------
 
 6 Install Packages

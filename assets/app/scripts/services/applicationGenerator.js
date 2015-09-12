@@ -182,12 +182,9 @@ angular.module("openshiftConsole")
             secret: scope._generateSecret()
           },
           type: "Generic"
-        },
-        {
-          type: "ConfigChange"
         }
       ];
-      if(input.buildConfig.buildOnSourceChange){
+      if (input.buildConfig.buildOnSourceChange) {
         triggers.push({
             github: {
               secret: scope._generateSecret()
@@ -196,10 +193,15 @@ angular.module("openshiftConsole")
           }
         );
       }
-      if(input.buildConfig.buildOnImageChange){
+      if (input.buildConfig.buildOnImageChange) {
         triggers.push({
           imageChange: {},
           type: "ImageChange"
+        });
+      }
+      if (input.buildConfig.buildOnConfigChange) {
+        triggers.push({
+          type: "ConfigChange"
         });
       }
 

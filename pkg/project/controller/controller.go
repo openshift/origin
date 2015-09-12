@@ -213,6 +213,9 @@ func deleteDeploymentConfigs(client osclient.Interface, ns string) error {
 func deleteBuilds(client osclient.Interface, ns string) error {
 	items, err := client.Builds(ns).List(labels.Everything(), fields.Everything())
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 	for i := range items.Items {
@@ -227,6 +230,9 @@ func deleteBuilds(client osclient.Interface, ns string) error {
 func deleteBuildConfigs(client osclient.Interface, ns string) error {
 	items, err := client.BuildConfigs(ns).List(labels.Everything(), fields.Everything())
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 	for i := range items.Items {

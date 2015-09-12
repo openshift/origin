@@ -129,7 +129,31 @@ angular.module('openshiftConsole')
             {
               type: "error",
               message: "An error occurred while starting the build.",
-              details: getErrorDetails(result)
+              details: $filter('getErrorDetails')(result)
+            }
+          ];
+        }
+      );
+    };
+
+    $scope.cancelBuild = function(build, buildConfigName) {
+      var canceledBuild = angular.copy(build);
+      canceledBuild.status.cancelled = true;
+      DataService.update("builds", canceledBuild.metadata.name, canceledBuild, $scope).then(
+        function() {
+            $scope.alerts = [
+            {
+              type: "success",
+              message: "Cancelling build " + build.metadata.name + " of " + buildConfigName + ".",
+            }
+          ];
+        },
+        function(result) {
+          $scope.alerts = [
+            {
+              type: "error",
+              message: "An error occurred cancelling the build.",
+              details: $filter('getErrorDetails')(result)
             }
           ];
         }
@@ -159,7 +183,7 @@ angular.module('openshiftConsole')
             {
               type: "error",
               message: "An error occurred while rerunning the build.",
-              details: getErrorDetails(result)
+              details: $filter('getErrorDetails')(result)
             }
           ];
         }
@@ -174,20 +198,6 @@ angular.module('openshiftConsole')
         updateFilterWarning();
       });
     });
-
-    function getErrorDetails(result) {
-      var error = result.data || {};
-      if (error.message) {
-        return error.message;
-      }
-
-      var status = result.status || error.status;
-      if (status) {
-        return "Status: " + status;
-      }
-
-      return "";
-    }
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
