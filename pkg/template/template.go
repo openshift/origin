@@ -34,19 +34,19 @@ func NewProcessor(generators map[string]Generator) *Processor {
 func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorList {
 	templateErrors := fielderrors.ValidationErrorList{}
 
-	if err := p.GenerateParameterValues(template); err != nil {
-		return append(templateErrors.Prefix("Template"), fielderrors.NewFieldInvalid("parameters", err, "failure to generate parameter value"))
+	if err, badParam := p.GenerateParameterValues(template); err != nil {
+		return append(templateErrors.Prefix("Template"), fielderrors.NewFieldInvalid("parameters", *badParam, err.Error()))
 	}
 
 	for i, item := range template.Objects {
 		if obj, ok := item.(*runtime.Unknown); ok {
 			// TODO: use runtime.DecodeList when it returns ValidationErrorList
-			obj, err := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
+			decodedObj, err := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
 			if err != nil {
-				util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("objects", err, "unable to handle object"))
+				util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("objects", obj, "unable to handle object"))
 				continue
 			}
-			item = obj
+			item = decodedObj
 		}
 
 		newItem, err := p.SubstituteParameters(template.Parameters, item)
@@ -150,7 +150,8 @@ func (p *Processor) SubstituteParameters(params []api.Parameter, item runtime.Ob
 // "[0-1]{8}"       | "01001100"
 // "0x[A-F0-9]{4}"  | "0xB3AF"
 // "[a-zA-Z0-9]{8}" | "hW4yQU5i"
-func (p *Processor) GenerateParameterValues(t *api.Template) error {
+// If an error occurs, the parameter that caused the error is returned along with the error message.
+func (p *Processor) GenerateParameterValues(t *api.Template) (error, *api.Parameter) {
 	for i := range t.Parameters {
 		param := &t.Parameters[i]
 		if len(param.Value) > 0 {
@@ -159,25 +160,23 @@ func (p *Processor) GenerateParameterValues(t *api.Template) error {
 		if param.Generate != "" {
 			generator, ok := p.Generators[param.Generate]
 			if !ok {
-				return fmt.Errorf("template.parameters[%v]: Unable to find the '%v' generator", i, param.Generate)
+				return fmt.Errorf("template.parameters[%v]: Unable to find the '%v' generator for parameter %s", i, param.Generate, param.Name), param
 			}
 			if generator == nil {
-				return fmt.Errorf("template.parameters[%v]: Invalid '%v' generator", i, param.Generate)
+				return fmt.Errorf("template.parameters[%v]: Invalid '%v' generator for parameter %s", i, param.Generate, param.Name), param
 			}
 			value, err := generator.GenerateValue(param.From)
 			if err != nil {
-				return err
+				return fmt.Errorf("template.parameters[%v]: Error %v generating value for parameter %s", i, err.Error(), param.Name), param
 			}
 			param.Value, ok = value.(string)
 			if !ok {
-				return fmt.Errorf("template.parameters[%v]: Unable to convert the generated value '%#v' to string", i, value)
+				return fmt.Errorf("template.parameters[%v]: Unable to convert the generated value '%#v' to string for parameter %s", i, value, param.Name), param
 			}
 		}
 		if len(param.Value) == 0 && param.Required {
-			err := fielderrors.NewFieldRequired(fmt.Sprintf("parameters[%d].value", i))
-			err.Detail = fmt.Sprintf("parameter %s is required and must be specified", param.Name)
-			return err
+			return fmt.Errorf("template.parameters[%v]: parameter %s is required and must be specified", i, param.Name), param
 		}
 	}
-	return nil
+	return nil, nil
 }

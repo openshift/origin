@@ -113,7 +113,7 @@ func TestParameterGenerators(t *testing.T) {
 	for i, test := range tests {
 		processor := NewProcessor(test.generators)
 		template := api.Template{Parameters: []api.Parameter{test.parameter}}
-		err := processor.GenerateParameterValues(&template)
+		err, _ := processor.GenerateParameterValues(&template)
 		if err != nil && test.shouldPass {
 			t.Errorf("test[%v]: Unexpected error %v", i, err)
 		}
