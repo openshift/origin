@@ -26,8 +26,8 @@
   <!-- Header for deployments. Surface deployment config and trigger info. -->
   <div class="component-block component-meta" ng-if="isDeployment">
     <div class="component">
-      <div class="component-label">Deployment</div>
-      <h3 class="h4">
+      <div class="component-label">
+        <span>Deployment: </span>
         {{deploymentConfigId}}, #{{rc | annotation:'deploymentVersion'}}
         <span class="pficon-layered" ng-if="deploymentConfigMissing" data-toggle="tooltip" data-placement="right"
             title="The deployment config this deployment was created from no longer exists." style="cursor: help;">
@@ -39,19 +39,21 @@
           <span class="pficon pficon-warning-triangle"></span>
           <span class="pficon pficon-warning-exclamation"></span>
         </span>
-      </h3>
+      </div>
     </div>
 
     <div class="component meta-data">
-      created <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp
+      <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp
       ><span ng-if="rc.causes.length"
-        ><span>, triggered by
+        ><span>
           <span class="deployment-trigger" ng-repeat="cause in rc.causes">
             <span ng-switch="cause.type">
               <span ng-switch-when="ImageChange">
-                a new image <span ng-if="cause.imageTrigger.from">for {{cause.imageTrigger.from | imageObjectRef : null : true}}</span>
+                <span ng-if="cause.imageTrigger.from">
+                  from <abbr title="{{cause.imageTrigger.from | imageObjectRef : null : true}}">image</abbr> change
+                </span>
               </span>
-              <span ng-switch-when="ConfigChange">a config change</span>
+              <span ng-switch-when="ConfigChange">from config change</span>
               <span ng-switch-default>{{cause.type}}</span>
             </span>
           </span>
@@ -63,8 +65,7 @@
   <!-- Header for replication controllers. Name and timestamp only. -->
   <div class="component-block component-meta" ng-if="!isDeployment">
     <div class="component">
-      <div class="component-label">Replication Controller</div>
-      <h3 class="h4">{{rc.metadata.name}}</h3>
+      <div class="component-label">Replication Controller: {{rc.metadata.name}}</div>
     </div>
 
     <div class="component meta-data">
@@ -72,22 +73,27 @@
     </div>
   </div>
 
-  <div class="pod-block">
-    <div class="component-label">Pod Template</div>
-
-    <pod-template
-      pod-template="rc.spec.template"
-      images-by-docker-reference="imagesByDockerReference"
-      builds="builds">
-    </pod-template>
-
-    <div class="component-label">
-      Pods
-      <span ng-if="rc.status.replicas === (rc | desiredReplicas)" class="component-label-details">({{rc.status.replicas}})</span>
-      <span ng-if="rc.status.replicas !== (rc | desiredReplicas)" class="component-label-details">(scaling to {{rc | desiredReplicas}})</span>
+  <div class="pod-block row">
+    <div class="col-xs-12 col-lg-6">
+      <div class="component-label">Pod Template</div>
+      <pod-template
+        pod-template="rc.spec.template"
+        images-by-docker-reference="imagesByDockerReference"
+        builds="builds">
+      </pod-template>
     </div>
 
-    <pods pods="pods"></pods>
+    <div class="col-xs-12 col-lg-6">
+      <div class="component-label">
+        <a href="" ng-click="viewPodsForDeployment(rc)">
+          Pods
+          <span ng-if="rc.status.replicas === (rc | desiredReplicas)" class="component-label-details">({{rc.status.replicas}})</span>
+          <span ng-if="rc.status.replicas !== (rc | desiredReplicas)" class="component-label-details">(scaling to {{rc | desiredReplicas}})</span>
+        </a>
+      </div>
+
+      <pods pods="pods"></pods>
+    </div>
   </div>
 
 </div>

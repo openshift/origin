@@ -31,10 +31,12 @@ function setup_env_vars {
 	# Use either the latest release built images, or latest.
 	if [[ -z "${USE_IMAGES-}" ]]; then
 		IMAGES='openshift/origin-${component}:latest'
+		export TAG=latest
 		export USE_IMAGES=${IMAGES}
 		if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
 			COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
 			IMAGES="openshift/origin-\${component}:${COMMIT}"
+			export TAG=${COMMIT}
 			export USE_IMAGES=${IMAGES}
 		fi
 	fi
@@ -381,7 +383,7 @@ reset_tmp_dir() {
 		sudo rm -rf ${BASETMPDIR}
 	fi
 
-	mkdir -p ${BASETMPDIR} ${LOG_DIR} ${ARTIFACT_DIR} ${FAKE_HOME_DIR}
+	mkdir -p ${BASETMPDIR} ${LOG_DIR} ${ARTIFACT_DIR} ${FAKE_HOME_DIR} ${VOLUME_DIR}
 	set -e
 }
 
@@ -500,6 +502,52 @@ function wait_for_registry {
 	wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=${ADMIN_KUBECONFIG} || echo "0")" != "0" ]]' $((5*TIME_MIN))
 }
 
+
+# Wait for builds to start
+# $1 namespace
+function os::build:wait_for_start() {
+	echo "[INFO] Waiting for $1 namespace build to start"
+	wait_for_command "oc get -n $1 builds | grep -i running" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
+	BUILD_ID=`oc get -n $1 builds  --output-version=v1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	echo "[INFO] Build ${BUILD_ID} started"
+}
+
+# Wait for builds to complete
+# $1 namespace
+function os::build:wait_for_end() {
+	echo "[INFO] Waiting for $1 namespace build to complete"
+	wait_for_command "oc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
+	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	echo "[INFO] Build ${BUILD_ID} finished"
+	# TODO: fix
+	set +e
+	oc build-logs -n $1 $BUILD_ID > $LOG_DIR/$1build.log
+	set -e
+}
+
+# enable-selinux/disable-selinux use the shared control variable
+# SELINUX_DISABLED to determine whether to re-enable selinux after it
+# has been disabled.  The goal is to allow temporary disablement of
+# selinux enforcement while avoiding enabling enforcement in an
+# environment where it is not already enabled.
+SELINUX_DISABLED=0
+
+function enable-selinux {
+  if [ "${SELINUX_DISABLED}" = "1" ]; then
+    os::log::info "Re-enabling selinux enforcement"
+    setenforce 1
+    SELINUX_DISABLED=0
+  fi
+}
+
+function disable-selinux {
+  if selinuxenabled; then
+    os::log::info "Temporarily disabling selinux enforcement"
+    setenforce 0
+    SELINUX_DISABLED=1
+  fi
+}
+
 ######
 # end of common functions for extended test group's run.sh scripts
 ######
@@ -573,57 +621,19 @@ os::log::error_exit() {
 	exit "${code}"
 }
 
-# Log an error but keep going.	Don't dump the stack or exit.
-os::log::error() {
-	echo "!!! ${1-}" >&2
-	shift
-	for message; do
-	echo "	$message" >&2
-	done
+os::log::with-severity() {
+  local msg=$1
+  local severity=$2
+
+  echo "[$2] ${1}"
 }
 
-# Print an usage message to stderr.	The arguments are printed directly.
-os::log::usage() {
-	echo >&2
-	local message
-	for message; do
-	echo "$message" >&2
-	done
-	echo >&2
-}
-
-os::log::usage_from_stdin() {
-	local messages=()
-	while read -r line; do
-	messages+=$line
-	done
-
-	os::log::usage "${messages[@]}"
-}
-
-# Print out some info that isn't a top level status line
 os::log::info() {
-	for message; do
-	echo "$message"
-	done
+  os::log::with-severity "${1}" "INFO"
 }
 
-os::log::info_from_stdin() {
-	local messages=()
-	while read -r line; do
-	messages+=$line
-	done
-
-	os::log::info "${messages[@]}"
-}
-
-# Print a status line.	Formatted to show up in a stream of output.
-os::log::status() {
-	echo "+++ $1"
-	shift
-	for message; do
-	echo "	$message"
-	done
+os::log::warn() {
+  os::log::with-severity "${1}" "WARNING"
 }
 
 find_files() {
@@ -638,4 +648,46 @@ find_files() {
 		-o -wholename '*/Godeps/*' \
 		\) -prune \
 	\) -name '*.go' | sort -u
+}
+
+os::util::run-extended-tests() {
+  local config_root=$1
+  local focus_regex=$2
+  local skip_regex=${3:-}
+  local log_path=${4:-}
+
+  export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
+  export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
+
+  local test_cmd="ginkgo -progress -stream -v -focus=\"${focus_regex}\" \
+-skip=\"${skip_regex}\" ${OS_OUTPUT_BINPATH}/extended.test"
+  if [ "${log_path}" != "" ]; then
+    test_cmd="${test_cmd} | tee ${log_path}"
+  fi
+
+  pushd "${EXTENDED_TEST_PATH}" > /dev/null
+    eval "${test_cmd}; "'exit_status=${PIPESTATUS[0]}'
+  popd > /dev/null
+
+  return ${exit_status}
+}
+
+os::util::run-net-extended-tests() {
+  local config_root=$1
+  local focus_regex=${2:-.etworking[:]*}
+  local skip_regex=${3:-}
+  local log_path=${4:-}
+
+  if [ -z "${skip_regex}" ]; then
+      # The intra-pod test is currently broken for origin.
+      skip_regex='Networking.*intra-pod'
+      # Only the multitenant plugin can pass the isolation test
+      if ! grep -q 'redhat/openshift-ovs-multitenant' \
+           $(find "${config_root}" -name 'node-config.yaml' | head -n 1); then
+        skip_regex="(${skip_regex}|networking: isolation)"
+      fi
+  fi
+
+  os::util::run-extended-tests "${config_root}" "${focus_regex}" \
+    "${skip_regex}" "${log_path}"
 }

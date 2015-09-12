@@ -342,13 +342,14 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 
 	config := ServiceAliasConfig{
 		Host: host,
-		Path: route.Path,
+		Path: route.Spec.Path,
 	}
 
-	if route.TLS != nil && len(route.TLS.Termination) > 0 {
-		config.TLSTermination = route.TLS.Termination
+	tls := route.Spec.TLS
+	if tls != nil && len(tls.Termination) > 0 {
+		config.TLSTermination = tls.Termination
 
-		if route.TLS.Termination != routeapi.TLSTerminationPassthrough {
+		if tls.Termination != routeapi.TLSTerminationPassthrough {
 			if config.Certificates == nil {
 				config.Certificates = make(map[string]Certificate)
 			}
@@ -356,27 +357,27 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 			certKey := generateCertKey(&config)
 			cert := Certificate{
 				ID:         backendKey,
-				Contents:   route.TLS.Certificate,
-				PrivateKey: route.TLS.Key,
+				Contents:   tls.Certificate,
+				PrivateKey: tls.Key,
 			}
 
 			config.Certificates[certKey] = cert
 
-			if len(route.TLS.CACertificate) > 0 {
+			if len(tls.CACertificate) > 0 {
 				caCertKey := generateCACertKey(&config)
 				caCert := Certificate{
 					ID:       backendKey,
-					Contents: route.TLS.CACertificate,
+					Contents: tls.CACertificate,
 				}
 
 				config.Certificates[caCertKey] = caCert
 			}
 
-			if len(route.TLS.DestinationCACertificate) > 0 {
+			if len(tls.DestinationCACertificate) > 0 {
 				destCertKey := generateDestCertKey(&config)
 				destCert := Certificate{
 					ID:       backendKey,
-					Contents: route.TLS.DestinationCACertificate,
+					Contents: tls.DestinationCACertificate,
 				}
 
 				config.Certificates[destCertKey] = destCert

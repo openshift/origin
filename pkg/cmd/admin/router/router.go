@@ -41,7 +41,7 @@ service called 'router' and create one if it does not exist. If you want to test
 a router has already been created add the --dry-run flag and the command will exit with
 1 if the registry does not exist.
 
-If a router does not exist with the given name, the --create flag can be passed to
+If a router does not exist with the given name, this command will
 create a deployment configuration and service that will run the router. If you are
 running your router in production, you should pass --replicas=2 or higher to ensure
 you have failover protection.`
@@ -50,13 +50,13 @@ you have failover protection.`
   $ %[1]s %[2]s --dry-run
 
   // See what the router would look like if created
-  $ %[1]s %[2]s -o json
+  $ %[1]s %[2]s -o json --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount
 
   // Create a router if it does not exist
-  $ %[1]s %[2]s router-west --create --replicas=2
+  $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
 
   // Use a different router image and see the router configuration
-  $ %[1]s %[2]s region-west -o yaml --images=myrepo/somerouter:mytag`
+  $ %[1]s %[2]s region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag`
 
 	secretsVolumeName = "secret-volume"
 	secretsPath       = "/etc/secret-volume"
@@ -485,7 +485,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			"STATS_PASSWORD":                     cfg.StatsPassword,
 		}
 
-		updatePercent := int(-10)
+		updatePercent := int(-25)
 
 		secrets, volumes, mounts, err := generateSecretsConfig(cfg, kClient,
 			namespace)

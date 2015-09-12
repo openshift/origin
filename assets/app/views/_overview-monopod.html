@@ -10,8 +10,7 @@
 
   <div class="component-block component-meta">
     <div class="component">
-      <span class="component-label">Pod</span>
-      <h3 class="h4">{{pod.metadata.name}}</h3>
+      <span class="component-label">Pod: {{pod.metadata.name}}</span>
     </div>
 
     <div class="component meta-data">
@@ -20,11 +19,15 @@
 
   </div>               
 
-  <div class="pod-block">
-    <div class="component-label">Containers</div>
-    <pod-template pod-template="pod"></pod-template>
+  <div class="pod-block row">
+    <div class="col-xs-12 col-lg-6">  
+      <div class="component-label">Containers</div>
+      <pod-template pod-template="pod"></pod-template>
+    </div>
 
-    <div class="component-label">Status</div>
-    <pods pods="[pod]"></pods>
+    <div class="col-xs-12 col-lg-6">
+      <div class="component-label">Status</div>
+      <pods pods="[pod]"></pods>
+    </div>
   </div>
 </div>

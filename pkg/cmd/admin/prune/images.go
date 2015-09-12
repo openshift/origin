@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/prune"
+	oserrors "github.com/openshift/origin/pkg/util/errors"
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client"
@@ -70,9 +71,13 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 			cmdutil.CheckErr(err)
 
 			allBCs, err := osClient.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			// We need to tolerate 'not found' errors for buildConfigs since they may be disabled in Atomic
+			err = oserrors.TolerateNotFoundError(err)
 			cmdutil.CheckErr(err)
 
 			allBuilds, err := osClient.Builds(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			// We need to tolerate 'not found' errors for builds since they may be disabled in Atomic
+			err = oserrors.TolerateNotFoundError(err)
 			cmdutil.CheckErr(err)
 
 			allDCs, err := osClient.DeploymentConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())

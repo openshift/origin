@@ -1,13 +1,16 @@
 package describe
 
 import (
+	"bytes"
 	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -70,5 +73,156 @@ main:
 		if err := printer.PrintObj(newStruct.(runtime.Object), ioutil.Discard); (err != nil) && strings.Contains(err.Error(), "error: unknown type ") {
 			t.Errorf("missing printer for %v.  Check pkg/cmd/cli/describe/printer.go", apiType)
 		}
+	}
+}
+
+func TestPrintImageStream(t *testing.T) {
+	buf := bytes.NewBuffer([]byte{})
+	streams := mockStreams()
+
+	tests := []struct {
+		name          string
+		stream        *imageapi.ImageStream
+		withNamespace bool
+		expectedOut   string
+		expectedErr   error
+	}{
+		{
+			name:        "less than three tags",
+			stream:      streams[0],
+			expectedOut: "latest,other",
+		},
+		{
+			name:        "three tags",
+			stream:      streams[1],
+			expectedOut: "third,latest,other",
+		},
+		{
+			name:        "more than three tags",
+			stream:      streams[2],
+			expectedOut: "another,third,latest + 1 more...",
+		},
+	}
+
+	for _, test := range tests {
+		if err := printImageStream(test.stream, buf, test.withNamespace, false, nil); err != test.expectedErr {
+			t.Errorf("error mismatch: expected %v, got %v", test.expectedErr, err)
+			continue
+		}
+		got := buf.String()
+		buf.Reset()
+
+		if !strings.Contains(got, test.expectedOut) {
+			t.Errorf("unexpected output:\n%s\nexpected to contain: %s", got, test.expectedOut)
+			continue
+		}
+	}
+
+}
+
+func mockStreams() []*imageapi.ImageStream {
+	return []*imageapi.ImageStream{
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "less-than-three-tags"},
+			Status: imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"other": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: "other-ref",
+								Created:              kutil.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Image:                "other-image",
+							},
+						},
+					},
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: "latest-ref",
+								Created:              kutil.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Image:                "latest-image",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "three-tags"},
+			Status: imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"other": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: "other-ref",
+								Created:              kutil.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Image:                "other-image",
+							},
+						},
+					},
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: "latest-ref",
+								Created:              kutil.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Image:                "latest-image",
+							},
+						},
+					},
+					"third": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: "third-ref",
+								Created:              kutil.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+								Image:                "third-image",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{Name: "more-than-three-tags"},
+			Status: imageapi.ImageStreamStatus{
+				Tags: map[string]imageapi.TagEventList{
+					"other": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: "other-ref",
+								Created:              kutil.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Image:                "other-image",
+							},
+						},
+					},
+					"latest": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: "latest-ref",
+								Created:              kutil.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Image:                "latest-image",
+							},
+						},
+					},
+					"third": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: "third-ref",
+								Created:              kutil.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+								Image:                "third-image",
+							},
+						},
+					},
+					"another": {
+						Items: []imageapi.TagEvent{
+							{
+								DockerImageReference: "another-ref",
+								Created:              kutil.Date(2015, 9, 4, 13, 55, 0, 0, time.UTC),
+								Image:                "another-image",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }

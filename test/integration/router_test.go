@@ -296,10 +296,14 @@ func TestRouter(t *testing.T) {
 					Name:      tc.serviceName,
 					Namespace: ns,
 				},
-				Host:        tc.routeAlias,
-				Path:        tc.routePath,
-				ServiceName: tc.serviceName,
-				TLS:         tc.routeTLS,
+				Spec: routeapi.RouteSpec{
+					Host: tc.routeAlias,
+					Path: tc.routePath,
+					To: kapi.ObjectReference{
+						Name: tc.serviceName,
+					},
+					TLS: tc.routeTLS,
+				},
 			},
 		}
 
@@ -422,9 +426,13 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Name:      "path",
 				Namespace: "default",
 			},
-			Host:        "www.example.com",
-			Path:        "/test",
-			ServiceName: "myService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example.com",
+				Path: "/test",
+				To: kapi.ObjectReference{
+					Name: "myService",
+				},
+			},
 		},
 	}
 
@@ -458,9 +466,13 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Name:              "path",
 				Namespace:         "alt",
 			},
-			Host:        "www.example.com",
-			Path:        "/test",
-			ServiceName: "altService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example.com",
+				Path: "/test",
+				To: kapi.ObjectReference{
+					Name: "altService",
+				},
+			},
 		},
 	}
 	fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)
@@ -479,8 +491,12 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Name:              "host",
 				Namespace:         "default",
 			},
-			Host:        "www.example.com",
-			ServiceName: "myService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example.com",
+				To: kapi.ObjectReference{
+					Name: "myService",
+				},
+			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
@@ -501,9 +517,13 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Name:      "path",
 				Namespace: "default",
 			},
-			Host:        "www.example.com",
-			Path:        "/test",
-			ServiceName: "myService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example.com",
+				Path: "/test",
+				To: kapi.ObjectReference{
+					Name: "myService",
+				},
+			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
@@ -530,8 +550,12 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Name:              "host",
 				Namespace:         "alt",
 			},
-			Host:        "www.example.com",
-			ServiceName: "altService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example.com",
+				To: kapi.ObjectReference{
+					Name: "altService",
+				},
+			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
@@ -552,8 +576,12 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Name:              "host",
 				Namespace:         "alt",
 			},
-			Host:        "www.example.com",
-			ServiceName: "altService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example.com",
+				To: kapi.ObjectReference{
+					Name: "altService",
+				},
+			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
@@ -573,8 +601,12 @@ func TestRouterPathSpecificity(t *testing.T) {
 				Name:      "host",
 				Namespace: "default",
 			},
-			Host:        "www.example.com",
-			ServiceName: "myService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example.com",
+				To: kapi.ObjectReference{
+					Name: "myService",
+				},
+			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(routeEvent)
@@ -639,8 +671,12 @@ func TestRouterDuplications(t *testing.T) {
 				Name:      "example",
 				Namespace: "default",
 			},
-			Host:        "www.example.com",
-			ServiceName: "myService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example.com",
+				To: kapi.ObjectReference{
+					Name: "myService",
+				},
+			},
 		},
 	}
 	example2RouteEvent := &watch.Event{
@@ -650,8 +686,12 @@ func TestRouterDuplications(t *testing.T) {
 				Name:      "example2",
 				Namespace: "default",
 			},
-			Host:        "www.example2.com",
-			ServiceName: "myService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example2.com",
+				To: kapi.ObjectReference{
+					Name: "myService",
+				},
+			},
 		},
 	}
 
@@ -687,8 +727,12 @@ func TestRouterDuplications(t *testing.T) {
 				Name:      "example2",
 				Namespace: "default",
 			},
-			Host:        "www.example2.com",
-			ServiceName: "myService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example2.com",
+				To: kapi.ObjectReference{
+					Name: "myService",
+				},
+			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(example2RouteCleanupEvent)
@@ -699,8 +743,12 @@ func TestRouterDuplications(t *testing.T) {
 				Name:      "example",
 				Namespace: "default",
 			},
-			Host:        "www.example.com",
-			ServiceName: "myService",
+			Spec: routeapi.RouteSpec{
+				Host: "www.example.com",
+				To: kapi.ObjectReference{
+					Name: "myService",
+				},
+			},
 		},
 	}
 	fakeMasterAndPod.RouteChannel <- eventString(exampleRouteCleanupEvent)

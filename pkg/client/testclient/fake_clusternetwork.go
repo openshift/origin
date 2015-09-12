@@ -29,3 +29,12 @@ func (c *FakeClusterNetwork) Create(inObj *sdnapi.ClusterNetwork) (*sdnapi.Clust
 
 	return obj.(*sdnapi.ClusterNetwork), err
 }
+
+func (c *FakeClusterNetwork) Update(inObj *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("clusternetworks", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*sdnapi.ClusterNetwork), err
+}

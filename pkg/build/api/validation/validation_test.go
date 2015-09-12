@@ -94,7 +94,6 @@ func newDefaultParameters() buildapi.BuildSpec {
 }
 
 func TestValidateBuildUpdate(t *testing.T) {
-
 	old := &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "my-build", ResourceVersion: "1"},
 		Spec:       newDefaultParameters(),
@@ -144,7 +143,10 @@ func TestValidateBuildUpdate(t *testing.T) {
 	}
 }
 
-func TestBuildConfigValidationSuccess(t *testing.T) {
+// TestBuildConfigDockerStrategyImageChangeTrigger ensures that it is invalid to
+// have a BuildConfig with Docker strategy and an ImageChangeTrigger where
+// neither DockerStrategy.From nor ImageChange.From are defined.
+func TestBuildConfigDockerStrategyImageChangeTrigger(t *testing.T) {
 	buildConfig := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: buildapi.BuildConfigSpec{
@@ -175,8 +177,20 @@ func TestBuildConfigValidationSuccess(t *testing.T) {
 			},
 		},
 	}
-	if result := ValidateBuildConfig(buildConfig); len(result) > 0 {
-		t.Errorf("Unexpected validation error returned %v", result)
+	errors := ValidateBuildConfig(buildConfig)
+	switch len(errors) {
+	case 0:
+		t.Errorf("Expected validation error, got nothing")
+	case 1:
+		err, ok := errors[0].(*fielderrors.ValidationError)
+		if !ok {
+			t.Fatalf("Expected error to be fielderrors.ValidationError, got %T", errors[0])
+		}
+		if err.Type != fielderrors.ValidationErrorTypeRequired {
+			t.Errorf("Expected error to be '%v', got '%v'", fielderrors.ValidationErrorTypeRequired, err.Type)
+		}
+	default:
+		t.Errorf("Expected a single validation error, got %v", errors)
 	}
 }
 
@@ -994,10 +1008,11 @@ func TestValidateTrigger(t *testing.T) {
 			trigger:  buildapi.BuildTriggerPolicy{},
 			expected: []*fielderrors.ValidationError{fielderrors.NewFieldRequired("type")},
 		},
-		"trigger with unknown type is valid, but ignored": {
+		"trigger with unknown type": {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: "UnknownTriggerType",
 			},
+			expected: []*fielderrors.ValidationError{fielderrors.NewFieldInvalid("type", "", "")},
 		},
 		"GitHub type with no github webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GitHubWebHookBuildTriggerType},

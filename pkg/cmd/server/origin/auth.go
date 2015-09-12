@@ -493,7 +493,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 			BindDN:       provider.BindDN,
 			BindPassword: provider.BindPassword,
 
-			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.LDAPEntryAttributeMapping),
+			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.Attributes),
 		}
 		return ldappassword.New(identityProvider.Name, opts, identityMapper)
 

@@ -7,8 +7,8 @@ set -o nounset
 set -o pipefail
 
 pid_file=/var/run/docker.pid
-pid=$(cat "${pid_file}")
 if [ -f "${pid_file}" ]; then
+  pid=$(cat "${pid_file}")
   kill "${pid}"
   echo "Waiting for docker daemon to exit"
   COUNTER=0

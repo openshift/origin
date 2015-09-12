@@ -259,12 +259,20 @@ const (
 Scale also allows users to specify one or more preconditions for the scale action.
 If --current-replicas or --resource-version is specified, it is validated before the
 scale is attempted, and it is guaranteed that the precondition holds true when the
-scale is sent to the server.`
+scale is sent to the server.
+
+Note that scaling a deployment configuration with no deployments will update the
+desired replicas in the configuration template.`
+
 	scaleExample = `  // Scale replication controller named 'foo' to 3.
   $ %[1]s scale --replicas=3 replicationcontrollers foo
 
   // If the replication controller named foo's current size is 2, scale foo to 3.
-  $ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo`
+  $ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo
+
+  // Scale the latest deployment of 'bar'. In case of no deployment, bar's template
+  // will be scaled instead.
+  $ %[1]s scale --replicas=10 dc bar`
 )
 
 // NewCmdScale is a wrapper for the Kubernetes cli scale command

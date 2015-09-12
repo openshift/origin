@@ -10,13 +10,16 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -33,14 +36,19 @@ This command starts a build for the provided BuildConfig or re-runs an existing 
 --from-build=<name>. You may pass the --follow flag to see output from the build.`
 
 	startBuildExample = `  // Starts build from BuildConfig matching the name "3bd2ug53b"
-  $ %[1]s start-build 3bd2ug53b
+  $ %[1]s start-build sample-build
 
-  // Starts build from build matching the name "3bd2ug53b"
-  $ %[1]s start-build --from-build=3bd2ug53b
+  // Starts build from build matching the name "sample-build-1"
+  $ %[1]s start-build --from-build=sample-build-1
 
-  // Starts build from BuildConfig matching the name "3bd2ug53b" and watches the logs until the build
-  // completes or fails
-  $ %[1]s start-build 3bd2ug53b --follow`
+  // Starts build from BuildConfig matching the name "sample-build" and watches
+	// the logs until the build completes or fails
+  $ %[1]s start-build sample-build --follow
+
+  // Starts build from BuildConfig matching the name "sample-build" and wait until
+	// the build completes. It exits with a non-zero return code if the build
+	// fails. 
+  $ %[1]s start-build sample-build --wait`
 )
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
@@ -59,7 +67,9 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 		},
 	}
 	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
+	cmd.Flags().String("commit", "", "Specify the commit hash the build should be run from")
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
+	cmd.Flags().Bool("wait", false, "Wait for a build to complete and exit with a non-zero return code if the build fails")
 	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified BuildConfig or build; accepts 'all', 'generic', or 'github'")
 	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing BuildConfig to trigger")
 	cmd.Flags().String("git-post-receive", "", "The contents of the post-receive hook to trigger a build")
@@ -72,6 +82,8 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 	webhook := cmdutil.GetFlagString(cmd, "from-webhook")
 	buildName := cmdutil.GetFlagString(cmd, "from-build")
 	follow := cmdutil.GetFlagBool(cmd, "follow")
+	commit := cmdutil.GetFlagString(cmd, "commit")
+	waitForComplete := cmdutil.GetFlagBool(cmd, "wait")
 
 	switch {
 	case len(webhook) > 0:
@@ -110,6 +122,14 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 	request := &buildapi.BuildRequest{
 		ObjectMeta: kapi.ObjectMeta{Name: name},
 	}
+	if len(commit) > 0 {
+		request.Revision = &buildapi.SourceRevision{
+			Type: buildapi.BuildSourceGit,
+			Git: &buildapi.GitSourceRevision{
+				Commit: commit,
+			},
+		}
+	}
 	var newBuild *buildapi.Build
 	if isBuild {
 		if newBuild, err = client.Builds(namespace).Clone(request); err != nil {
@@ -122,22 +142,44 @@ func RunStartBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args
 	}
 	fmt.Fprintf(out, "%s\n", newBuild.Name)
 
-	if follow {
-		opts := buildapi.BuildLogOptions{
-			Follow: true,
-			NoWait: false,
-		}
-		rd, err := client.BuildLogs(namespace).Get(newBuild.Name, opts).Stream()
-		if err != nil {
-			return fmt.Errorf("error getting logs: %v", err)
-		}
-		defer rd.Close()
-		_, err = io.Copy(out, rd)
-		if err != nil {
-			return fmt.Errorf("error streaming logs: %v", err)
-		}
+	var (
+		wg      sync.WaitGroup
+		exitErr error
+	)
+
+	// Wait for the build to complete
+	if waitForComplete {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			exitErr = WaitForBuildComplete(client.Builds(namespace), newBuild.Name)
+		}()
 	}
-	return nil
+
+	// Stream the logs from the build
+	if follow {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			opts := buildapi.BuildLogOptions{
+				Follow: true,
+				NoWait: false,
+			}
+			rd, err := client.BuildLogs(namespace).Get(newBuild.Name, opts).Stream()
+			if err != nil {
+				fmt.Fprintf(cmd.Out(), "error getting logs: %v\n", err)
+				return
+			}
+			defer rd.Close()
+			if _, err = io.Copy(out, rd); err != nil {
+				fmt.Fprintf(cmd.Out(), "error streaming logs: %v\n", err)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	return exitErr
 }
 
 // RunListBuildWebHooks prints the webhooks for the provided build config.
@@ -326,4 +368,53 @@ func gitRefInfo(repo git.Repository, dir, ref string) (buildapi.GitRefInfo, erro
 	info.Committer.Email = lines[3]
 	info.Message = lines[4]
 	return info, nil
+}
+
+// WaitForBuildComplete waits for a build identified by the name to complete
+func WaitForBuildComplete(c osclient.BuildInterface, name string) error {
+	isOK := func(b *buildapi.Build) bool {
+		return b.Status.Phase == buildapi.BuildPhaseComplete
+	}
+	isFailed := func(b *buildapi.Build) bool {
+		return b.Status.Phase == buildapi.BuildPhaseFailed ||
+			b.Status.Phase == buildapi.BuildPhaseCancelled ||
+			b.Status.Phase == buildapi.BuildPhaseError
+	}
+	for {
+		list, err := c.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
+		if err != nil {
+			return err
+		}
+		for i := range list.Items {
+			if name == list.Items[i].Name && isOK(&list.Items[i]) {
+				return nil
+			}
+			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
+				return fmt.Errorf("The build %s/%s status is %q", &list.Items[i].Namespace, list.Items[i].Name, &list.Items[i].Status.Phase)
+			}
+		}
+
+		rv := list.ResourceVersion
+		w, err := c.Watch(labels.Everything(), fields.Set{"name": name}.AsSelector(), rv)
+		if err != nil {
+			return err
+		}
+		defer w.Stop()
+
+		for {
+			val, ok := <-w.ResultChan()
+			if !ok {
+				// reget and re-watch
+				break
+			}
+			if e, ok := val.Object.(*buildapi.Build); ok {
+				if name == e.Name && isOK(e) {
+					return nil
+				}
+				if name != e.Name || isFailed(e) {
+					return fmt.Errorf("The build %s/%s status is %q", e.Namespace, name, e.Status.Phase)
+				}
+			}
+		}
+	}
 }

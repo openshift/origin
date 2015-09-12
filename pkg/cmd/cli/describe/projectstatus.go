@@ -34,6 +34,7 @@ import (
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	"github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/origin/pkg/util/parallel"
 )
 
@@ -56,7 +57,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, uti
 		&rcLoader{namespace: namespace, lister: d.K},
 		&podLoader{namespace: namespace, lister: d.K},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
-		// then remove tolerateNotFoundErrors method.
+		// then remove errors.TolerateNotFoundError method.
 		&bcLoader{namespace: namespace, lister: d.C},
 		&buildLoader{namespace: namespace, lister: d.C},
 		&isLoader{namespace: namespace, lister: d.C},
@@ -890,7 +891,7 @@ type bcLoader struct {
 func (l *bcLoader) Load() error {
 	list, err := l.lister.BuildConfigs(l.namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return tolerateNotFoundErrors(err)
+		return errors.TolerateNotFoundError(err)
 	}
 
 	l.items = list.Items
@@ -914,7 +915,7 @@ type buildLoader struct {
 func (l *buildLoader) Load() error {
 	list, err := l.lister.Builds(l.namespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return tolerateNotFoundErrors(err)
+		return errors.TolerateNotFoundError(err)
 	}
 
 	l.items = list.Items
@@ -927,13 +928,4 @@ func (l *buildLoader) AddToGraph(g osgraph.Graph) error {
 	}
 
 	return nil
-}
-
-// tolerateNotFoundErrors is tolerant of not found errors in case builds are disabled server
-// side (Atomic).
-func tolerateNotFoundErrors(err error) error {
-	if kapierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
 }

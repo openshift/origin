@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/util/proc"
 	"github.com/openshift/origin/pkg/version"
 	templateplugin "github.com/openshift/origin/plugins/router/template"
@@ -146,10 +147,12 @@ func (o *TemplateRouterOptions) Run() error {
 		PeerService:        o.RouterService,
 	}
 
-	plugin, err := templateplugin.NewTemplatePlugin(pluginCfg)
+	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg)
 	if err != nil {
 		return err
 	}
+
+	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute)
 
 	oc, kc, err := o.Config.Clients()
 	if err != nil {

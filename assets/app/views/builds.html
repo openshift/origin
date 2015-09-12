@@ -78,41 +78,40 @@
                   </div>
                   <div ng-switch-when="ImageChange">
                     <div ng-switch="buildConfig.spec.strategy.type">
-                      <div ng-switch-when="Source">
-                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.sourceStrategy.from && buildConfig.spec.strategy.sourceStrategy.from.kind!='ImageStreamImage'">
-                          <dt>
-                            New image for:
-                          </dt>
-                          <dd>
-                            Image stream {{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                          </dd>
-                        </dl>
+                      <div ng-switch-when="Source" ng-if="buildConfig.spec.strategy.sourceStrategy.from && buildConfig.spec.strategy.sourceStrategy.from.kind!='ImageStreamImage'">
+                        <dt>
+                          New image for:
+                        </dt>
+                        <dd>
+                          Image stream {{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                        </dd>
                       </div>
-                      <div ng-switch-when="Docker">
-                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.dockerStrategy.from && buildConfig.spec.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
-                          <dt>
-                            New image for:
-                          </dt>
-                          <dd>
-                            Image stream {{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                          </dd>
-                          <br>
-                        </dl>
+                      <div ng-switch-when="Docker" ng-if="buildConfig.spec.strategy.dockerStrategy.from && buildConfig.spec.strategy.dockerStrategy.from.kind!='ImageStreamImage'">
+                        <dt>
+                          New image for:
+                        </dt>
+                        <dd>
+                          Image stream {{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                        </dd>
                       </div>
-                      <div ng-switch-when="Custom">
-                        <dl class="dl-horizontal" ng-if="buildConfig.spec.strategy.customStrategy.from && buildConfig.spec.strategy.customStrategy.from.kind!='ImageStreamImage'">
-                          <dt>
-                            New image for:
-                          </dt>
-                          <dd>
-                            Image stream {{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-                          </dd>
-                           <br>
-                        </dl>
+                      <div ng-switch-when="Custom" ng-if="buildConfig.spec.strategy.customStrategy.from && buildConfig.spec.strategy.customStrategy.from.kind!='ImageStreamImage'">
+                        <dt>
+                          New image for:
+                        </dt>
+                        <dd>
+                          Image stream {{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                        </dd>
                       </div>
                     </div>
                   </div>
-                  <div ng-switch-default>{{trigger.type}}</div>
+                  <div ng-switch-when="ConfigChange">
+                    <dt>Config change for:</dt>
+                    <dd>Build config {{buildConfig.metadata.name}}</dd>
+                  </div>
+                  <div ng-switch-default>
+                    <dt>Other trigger:</dt>
+                    <dd>{{trigger.type}}</dd>
+                  </div>
                 </div>
               </div>
             </dl>
@@ -143,20 +142,12 @@
         <!-- When expanded, pass undefined to limitToOrAll to show all builds. -->
         <div ng-repeat="build in buildsByBuildConfig[buildConfigName] | orderObjectsByDate : true | limitToOrAll: (expanded ? undefined : defaultBuildLimit)" class="well build-well">
           <div class="row">
-            <div class="col-md-7 col-sm-7 col-xs-7">
+            <div class="col-md-12 col-sm-12 col-xs-12">
               <h3>{{build.metadata.name}}</h3>
-            </div>
-            <div class="col-md-4 col-sm-4 col-xs-offset-1 col-xs-4 text-right">
-              <div>
-                <button class="btn btn-default" ng-click="cloneBuild(build.metadata.name)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) > 0">Rebuild</button>
-              </div>
             </div>
           </div><!-- /.row -->
           <div class="row">
             <div class="col-md-6">
-              <div class="build-detail">
-                <span class="build-detail-label">Created:</span><relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp>
-              </div>
               <div class="build-detail">
                 <span class="build-detail-label">Status:</span>
                 <span ng-switch="build.status.phase" class="hide-ng-leave">
@@ -168,6 +159,12 @@
                   <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
                 </span>
                 {{build.status.phase}}
+
+                <button class="btn btn-default build-status-button btn-primary" ng-click="cancelBuild(build, buildConfigName)" ng-if="build | isIncompleteBuild">Cancel</button>
+                <button class="btn btn-default build-status-button" ng-click="cloneBuild(build.metadata.name)" ng-hide="build | isIncompleteBuild" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) !== 0">Rebuild</button>
+              </div>
+              <div class="build-detail">
+                <span class="build-detail-label">Created:</span><relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp>
               </div>
               <div class="build-detail">
                 <span class="build-detail-label">Duration:</span>
@@ -183,7 +180,7 @@
                   </span>
                 </span>
               </div>
-            </div><!-- .col -->        
+            </div><!-- .col -->
             <div class="col-md-6">
               <div class="build-detail" ng-if="buildConfig.spec.strategy.type != build.spec.strategy.type">
                 <span class="build-detail-label">Build strategy:</span>{{build.spec.strategy.type}}

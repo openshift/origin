@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/version"
 	f5plugin "github.com/openshift/origin/plugins/router/f5"
 )
@@ -98,7 +99,7 @@ func (o *F5Router) Validate() error {
 	return nil
 }
 
-// NewCommndF5Router provides CLI handler for the F5 router sync plugin.
+// NewCommandF5Router provides CLI handler for the F5 router sync plugin.
 func NewCommandF5Router(name string) *cobra.Command {
 	options := &F5RouterOptions{
 		Config: clientcmd.NewConfig(),
@@ -121,6 +122,7 @@ func NewCommandF5Router(name string) *cobra.Command {
 
 	flag := cmd.Flags()
 	options.Config.Bind(flag)
+	options.F5Router.Bind(flag)
 	options.RouterSelection.Bind(flag)
 
 	return cmd
@@ -145,10 +147,12 @@ func (o *F5RouterOptions) Run() error {
 		PrivateKey:   o.PrivateKey,
 		Insecure:     o.Insecure,
 	}
-	plugin, err := f5plugin.NewF5Plugin(cfg)
+	f5Plugin, err := f5plugin.NewF5Plugin(cfg)
 	if err != nil {
 		return err
 	}
+
+	plugin := controller.NewUniqueHost(f5Plugin, controller.HostForRoute)
 
 	oc, kc, err := o.Config.Clients()
 	if err != nil {

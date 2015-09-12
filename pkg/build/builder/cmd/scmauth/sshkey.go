@@ -38,3 +38,8 @@ func (_ SSHPrivateKey) Setup(baseDir string) error {
 func (_ SSHPrivateKey) Name() string {
 	return SSHPrivateKeyMethodName
 }
+
+// Handles returns true if the file is an SSH private key
+func (_ SSHPrivateKey) Handles(name string) bool {
+	return name == SSHPrivateKeyMethodName
+}

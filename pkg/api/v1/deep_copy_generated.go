@@ -1527,6 +1527,24 @@ func deepCopy_v1_RollingDeploymentStrategyParams(in deployapiv1.RollingDeploymen
 	} else {
 		out.TimeoutSeconds = nil
 	}
+	if in.MaxUnavailable != nil {
+		if newVal, err := c.DeepCopy(in.MaxUnavailable); err != nil {
+			return err
+		} else {
+			out.MaxUnavailable = newVal.(*util.IntOrString)
+		}
+	} else {
+		out.MaxUnavailable = nil
+	}
+	if in.MaxSurge != nil {
+		if newVal, err := c.DeepCopy(in.MaxSurge); err != nil {
+			return err
+		} else {
+			out.MaxSurge = newVal.(*util.IntOrString)
+		}
+	} else {
+		out.MaxSurge = nil
+	}
 	if in.UpdatePercent != nil {
 		out.UpdatePercent = new(int)
 		*out.UpdatePercent = *in.UpdatePercent

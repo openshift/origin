@@ -23,6 +23,25 @@ USE_IMAGES=${USE_IMAGES:-$defaultimage}
 
 # Test admin manage-node operations
 [ "$(openshift admin manage-node --help 2>&1 | grep 'Manage nodes')" ]
+
+# create a node object to mess with
+echo 'apiVersion: v1
+kind: Node
+metadata:
+  labels:
+      kubernetes.io/hostname: fake-node
+  name: fake-node
+spec:
+  externalID: fake-node
+status:
+  conditions:
+  - lastHeartbeatTime: 2015-09-08T16:58:02Z
+    lastTransitionTime: 2015-09-04T11:49:06Z
+    reason: kubelet is posting ready status
+    status: "True"
+    type: Ready
+' | oc create -f -
+
 [ "$(oadm manage-node --selector='' --schedulable=true | grep --text 'Ready' | grep -v 'Sched')" ]
 oc create -f examples/hello-openshift/hello-pod.json
 #[ "$(oadm manage-node --list-pods | grep 'hello-openshift' | grep -E '(unassigned|assigned)')" ]

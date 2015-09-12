@@ -20,7 +20,7 @@ angular.module('openshiftConsole')
       templateUrl: "views/_sidebar-main-nav-item.html"
     };
   })
-  .directive('projectNav', function($timeout, $location, $filter, LabelFilter, DataService) {
+  .directive('projectNav', function($timeout, $location, $filter, LabelFilter, DataService, projectOverviewURLFilter) {
     return {
       restrict: 'EA',
       templateUrl: 'views/_project-nav.html',
@@ -34,6 +34,7 @@ angular.module('openshiftConsole')
           var project = $scope.project || {};
           var name = $scope.projectName;
           var isRealProject = !_.isEmpty(project);
+          var projectsGroup, linksGroup;
 
           if(!isRealProject) {
             if(!name) {
@@ -58,8 +59,16 @@ angular.module('openshiftConsole')
                       .attr("selected", item.metadata.name === name)
                       .text($filter('displayName')(item));
           });
+
+          // Use <optgroup> so bootstrap-select adds a divider.
+          projectsGroup = $('<optgroup label=""></optgroup>');
+          projectsGroup.append(options);
+          linksGroup = $('<optgroup label=""><option value="">View all projects</option></optgroup>');
+          // TODO: Add a create project link.
+
           select.empty();
-          select.append(options);
+          select.append(projectsGroup);
+          select.append(linksGroup);
           select.selectpicker('refresh');
         };
 
@@ -77,12 +86,8 @@ angular.module('openshiftConsole')
             tickIcon: 'fa-check'
           })
           .change(function() {
-            var newProject = $( this ).val();
-            var currentURL = $location.url();
-            var currProjRegex = /\/project\/[^\/]+/;
-            var currProjPrefix = currProjRegex.exec(currentURL);
-            var newURL = currentURL.replace(currProjPrefix, "/project/" + encodeURIComponent(newProject));
-            // $location.path(newUrl) may be sufficient...
+            var val = $(this).val();
+            var newURL = (val === "") ? "/" : projectOverviewURLFilter(val);
             $scope.$apply(function() {
               $location.url(newURL);
             });
