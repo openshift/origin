@@ -14,12 +14,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the rel-eng directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 45f2d27043b3605ad391c2b609624d6d98c5570c
+%global commit 92878fa84808be6f893d30d40901914cff419fc7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 1 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v1.0.4-1048-g45f2d27 -X github.com/openshift/origin/pkg/version.commitFromGit 45f2d27 -X k8s.io/kubernetes/pkg/version.gitCommit 44c91b1 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-alpha.0-1605-g44c91b1
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.1.901-132-g92878fa -X github.com/openshift/origin/pkg/version.commitFromGit 92878fa -X k8s.io/kubernetes/pkg/version.gitCommit 44c91b1 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-alpha.0-1605-g44c91b1
 }
 
 %if "%{dist}" == ".el7aos"
@@ -33,7 +33,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the rel-eng directory of this project
-Version:        3.0.1.901
+Version:        3.0.2.100
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -367,6 +367,102 @@ fi
 
 
 %changelog
+* Sat Sep 12 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.100
+- Include zip in the origin/release image (ccoleman@redhat.com)
+- Update bindata (slewis@fusesource.com)
+- Drop BuildConfig triggers of unknown type (cewong@redhat.com)
+- escape quotes in docker labels (bparees@redhat.com)
+- Fix oadm router F5 flags (miciah.masters@gmail.com)
+- Compatibility: Handle invalid build ConfigChange trigger. (cewong@redhat.com)
+- Update bindata (slewis@fusesource.com)
+- Removed debug logging (slewis@fusesource.com)
+- Update openshift-jvm (slewis@fusesource.com)
+- Make logo selector #header-logo and reduce specificity (sgoodwin@redhat.com)
+- fix examples (pweil@redhat.com)
+- Only show java console link if the pod is running, for #4612
+  (slewis@fusesource.com)
+- Bug 1256303: prune images: Tolerate missing bc/build errors for AEP
+  (mkargaki@redhat.com)
+- bump(github.com/openshift/source-to-image)
+  847bf029b540c689f1644419efd2e70b64b90547 (mfojtik@redhat.com)
+- scale: Doc scaling a config with no deployments (mkargaki@redhat.com)
+- Rename gitconfig secret key to .gitconfig (cewong@redhat.com)
+- UPSTREAM: google/cadvisor: 844: Fix cadvisor bug with advancing clocks
+  (jliggitt@redhat.com)
+- Update to openshift-jvm 1.0.22 (slewis@fusesource.com)
+- add sample repo annotation to imagestreams (bparees@redhat.com)
+- Update ClusterNetwork record when upgrading from 3.0.0 (danw@redhat.com)
+- Add extended network tests (marun@redhat.com)
+- Enable connectivity between dind master and pods (marun@redhat.com)
+- Allow cluster instance prefix to be overriden (marun@redhat.com)
+- Clean up pushd/popd stdout noise in cluster create (marun@redhat.com)
+- Isolate dind cluster config (marun@redhat.com)
+- Fix extended test infrastructure (marun@redhat.com)
+- Revert LDAP OAuth field rename (jliggitt@redhat.com)
+- Make oc edit cmd follow the hacking guide (bbartl.roman@gmail.com)
+- added openldap fixtures and test (skuznets@redhat.com)
+- Update to k8s-label-selector 0.0.8 (spadgett@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  e6604ec1114b1141c735114c08dc717a9a717929 (rpenta@redhat.com)
+- make end-to-end-docker a full test (deads@redhat.com)
+- Populated kubernetes pod network status for SDN multitenant plugin
+  (rpenta@redhat.com)
+- Port upstream rolling updater enhancements (ironcladlou@gmail.com)
+- Allow field labels to work for routes (ccoleman@redhat.com)
+- UPSTREAM: 13746: Fix field=metadata.name (ccoleman@redhat.com)
+- Ignore 404 on list of resources during delete (decarr@redhat.com)
+- Fixes JS error in deployments page (ffranz@redhat.com)
+- update repo address (pweil@redhat.com)
+- Clean up edge cases on overview to match new simplified look
+  (jforrest@redhat.com)
+- Remove index.html from Java console URL (spadgett@redhat.com)
+- UPSTREAM: 11942: Rolling updater availability enhancements
+  (ironcladlou@gmail.com)
+- Fix inconsistancy in secrets pkg (jhadvig@redhat.com)
+- Remove os.Exit(1) from start-build --wait (mfojtik@redhat.com)
+- Add --wait option to start-build (mfojtik@redhat.com)
+- UPSTREAM: 13705: Add pods/attach to long running requests, protect in
+  admission for privileged pods (jliggitt@redhat.com)
+- Add pods/attach to admin/edit roles (jliggitt@redhat.com)
+- Add Cancel button to UI for running builds (spadgett@redhat.com)
+- Disable deployment retry on web console until we have an api
+  (contact@fabianofranz.com)
+- Deploy, rollback, retry and cancel deployments from the web console
+  (ffranz@redhat.com)
+- Issue 4365 - example github url as a link is really confusing
+  (jforrest@redhat.com)
+- diagnostics: print stack trace on panic (lmeyer@redhat.com)
+- limit test-cmd.sh to the master on non-default ports (deads@redhat.com)
+- Move unique host functionality out of router plugin (ccoleman@redhat.com)
+- Use route.Spec internally (ccoleman@redhat.com)
+- Prevent aggressive wrapping of long project names before they have to. Fixes
+  https://github.com/openshift/origin/issues/4541 (sgoodwin@redhat.com)
+- Reduce whitespace on overview and collapse pods by their status Added popup
+  with warning details Fix firefox 40 double underline on abbr tags ( bug
+  1260349 ) (jforrest@redhat.com)
+- Put resource names in generated config, select endpoint using apiVersion
+  (jliggitt@redhat.com)
+- Rename type to resource (jliggitt@redhat.com)
+- UPSTREAM: 12845: Export KindToResource (jliggitt@redhat.com)
+- Validate ICTs of DockerStrategy BuildConfigs (rhcarvalho@gmail.com)
+- Fix missing port error when validating source url (mfojtik@redhat.com)
+- Add --commit option to start-build (mfojtik@redhat.com)
+- Add "View all projects" link to projects dropdown (spadgett@redhat.com)
+- Removing whitespaces in project describe (jhadvig@redhat.com)
+- Bug 1250652: Scale dc template in case of no deployment (mkargaki@redhat.com)
+- Use <name>-<namespace> instead of <name>.<namespace> in routes
+  (ccoleman@redhat.com)
+- Surface ConfigChange trigger in new app, render in build page
+  (jliggitt@redhat.com)
+- Bug 1250291 - labels must be applied to templates in deploymentconfigs
+  (ffranz@redhat.com)
+- Issue 3114 - watch should return cached data immediately
+  (jforrest@redhat.com)
+- get: Fix imageStream tag clutter (mkargaki@redhat.com)
+- Support additional source secret files in builds (cewong@redhat.com)
+- Vagrant: Config synced folder type for devcluster (marun@redhat.com)
+- Remove unused env vars from provision-config.sh (marun@redhat.com)
+
 * Tue Sep 08 2015 Scott Dodson <sdodson@redhat.com> 3.0.1.901
 - Bump 3.0.1.901 Early Access 3 RC (sdodson@redhat.com)
 - Make unknown trigger types to be warning not error (rhcarvalho@gmail.com)
