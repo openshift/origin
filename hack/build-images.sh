@@ -33,8 +33,8 @@ echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
 imagedir="_output/imagecontext"
 rm -rf "${imagedir}"
 mkdir -p "${imagedir}"
-tar xzpf "${OS_PRIMARY_RELEASE_TAR}" -C "${imagedir}"
-tar xzpf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
+tar --hard-dereference xzpf "${OS_PRIMARY_RELEASE_TAR}" -C "${imagedir}"
+tar --hard-dereference xzpf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
 
 # Copy primary binaries to the appropriate locations.
 cp -pf "${imagedir}/openshift" images/origin/bin
