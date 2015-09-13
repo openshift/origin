@@ -708,6 +708,9 @@ Start a shell session in a pod
 
   // Open a shell session on the first container in pod 'foo'
   $ openshift cli rsh foo
+
+  // Run the command 'cat /etc/resolv.conf' inside pod 'foo'
+  $ openshift cli rsh foo cat /etc/resolv.conf
 ----
 ====
 
