@@ -27,9 +27,9 @@ end
 
 def full_provision(vm, username = [])
   if pre_vagrant_171
-    vm.provision "shell", path: "vagrant/provision-full.sh", args: username, id: "setup"
+    vm.provision "shell", path: "contrib/vagrant/provision-full.sh", args: username, id: "setup"
   else
-    vm.provision "setup", type: "shell", path: "vagrant/provision-full.sh", args: username
+    vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: username
   end
 end
 
@@ -133,7 +133,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.define "#{VM_NAME_PREFIX}dind-host" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/vagrant/vagrant/provision-full.sh"
+      config.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-full.sh"
       config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh start"
       config.vm.hostname = "openshift-dind-host"
       config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
@@ -159,7 +159,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.define "#{VM_NAME_PREFIX}master" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{fixup_net_udev} #{ENV['OPENSHIFT_SDN']}"
+      config.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{fixup_net_udev} #{ENV['OPENSHIFT_SDN']}"
       config.vm.network "private_network", ip: "#{master_ip}"
       config.vm.hostname = "openshift-master"
       config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
@@ -172,7 +172,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion_ip = minion_ips[n]
         minion.vm.box = kube_box[kube_os]["name"]
         minion.vm.box_url = kube_box[kube_os]["box_url"]
-        minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{minion_ip} #{minion_index} #{fixup_net_udev}"
+        minion.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{minion_ip} #{minion_index} #{fixup_net_udev}"
         minion.vm.network "private_network", ip: "#{minion_ip}"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
         config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
@@ -189,9 +189,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
       if pre_vagrant_171
-        config.vm.provision "shell", path: "vagrant/provision-minimal.sh", id: "setup"
+        config.vm.provision "shell", path: "contrib/vagrant/provision-minimal.sh", id: "setup"
       else
-        config.vm.provision "setup", type: "shell", path: "vagrant/provision-minimal.sh"
+        config.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-minimal.sh"
       end
 
       config.vm.synced_folder ".", "/vagrant", disabled: true
