@@ -53,7 +53,7 @@ See the [security documentation](https://docs.openshift.org/latest/admin_guide/m
 
 Getting Started
 ---------------
-The easiest way to run Origin is in a Docker container (Origin requires Docker 1.6.2 or higher).
+The easiest way to run Origin is in a Docker container (Origin requires Docker 1.7.1 or higher).
 If you'd like to get started with Atomic Enterprise please refer to the [quickstart guide](docs/atomic-quick-start-tutorial.adoc).
 
 You'll need to configure the Docker daemon on your host to trust the Docker registry service you'll be starting.

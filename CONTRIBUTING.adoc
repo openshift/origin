@@ -45,7 +45,7 @@ Here's how to get set up:
 1. For Go, Git and optionally also Docker, follow the links below to get to installation information for these tools: +
 ** http://golang.org/doc/install[Installing Go]. You must install Go 1.4 and NOT use $HOME/go directory for Go installation.
 ** http://git-scm.com/book/en/v2/Getting-Started-Installing-Git[Installing Git]
-** https://docs.docker.com/installation/[Installing Docker]. NOTE: OpenShift requires Docker 1.6 or higher or 1.6.2 on CentOS/RHEL.
+** https://docs.docker.com/installation/[Installing Docker]. NOTE: OpenShift requires Docker 1.7.1 or higher.
 2. Next, create a Go workspace directory: +
 +
 ----
