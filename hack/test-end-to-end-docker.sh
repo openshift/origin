@@ -111,4 +111,4 @@ wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.2
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
 
 
-${OS_ROOT}/hack/test-end-to-end-scenario.sh
+${OS_ROOT}/test/end-to-end/core.sh
