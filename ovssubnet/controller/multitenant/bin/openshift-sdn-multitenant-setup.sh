@@ -148,6 +148,10 @@ EOF
         sysctl -w net.bridge.bridge-nf-call-iptables=0
     fi
 
+    # Cleanup docker0 since docker won't do it
+    ip link set docker0 down || true
+    brctl delbr docker0 || true
+
     # enable IP forwarding for ipv4 packets
     sysctl -w net.ipv4.ip_forward=1
     sysctl -w net.ipv4.conf.${TUN}.forwarding=1
