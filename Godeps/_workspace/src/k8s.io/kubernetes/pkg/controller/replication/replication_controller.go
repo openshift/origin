@@ -24,9 +24,9 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
@@ -39,7 +39,7 @@ import (
 
 const (
 	// We'll attempt to recompute the required replicas of all replication controllers
-	// the have fulfilled their expectations at least this often. This recomputation
+	// that have fulfilled their expectations at least this often. This recomputation
 	// happens based on contents in local pod storage.
 	FullControllerResyncPeriod = 30 * time.Second
 
@@ -177,7 +177,7 @@ func NewReplicationManager(kubeClient client.Interface, burstReplicas int) *Repl
 func (rm *ReplicationManager) SetEventRecorder(recorder record.EventRecorder) {
 	// TODO: Hack. We can't cleanly shutdown the event recorder, so benchmarks
 	// need to pass in a fake.
-	rm.podControl = controller.RealPodControl{rm.kubeClient, recorder}
+	rm.podControl = controller.RealPodControl{KubeClient: rm.kubeClient, Recorder: recorder}
 }
 
 // Run begins watching and syncing.
@@ -202,10 +202,10 @@ func (rm *ReplicationManager) getPodController(pod *api.Pod) *api.ReplicationCon
 		return nil
 	}
 	// In theory, overlapping controllers is user error. This sorting will not prevent
-	// osciallation of replicas in all cases, eg:
-	// rc1 (older rc): [(k1:v1)], replicas=1 rc2: [(k2:v2), (k1:v1)], replicas=2
-	// pod: [(k1:v1)] will wake both rc1 and rc2, and we will sync rc1.
-	// pod: [(k2:v2), (k1:v1)] will wake rc2 which creates a new replica.
+	// oscillation of replicas in all cases, eg:
+	// rc1 (older rc): [(k1=v1)], replicas=1 rc2: [(k2=v2)], replicas=2
+	// pod: [(k1:v1), (k2:v2)] will wake both rc1 and rc2, and we will sync rc1.
+	// pod: [(k2:v2)] will wake rc2 which creates a new replica.
 	sort.Sort(overlappingControllers(controllers))
 	return &controllers[0]
 }
@@ -213,6 +213,12 @@ func (rm *ReplicationManager) getPodController(pod *api.Pod) *api.ReplicationCon
 // When a pod is created, enqueue the controller that manages it and update it's expectations.
 func (rm *ReplicationManager) addPod(obj interface{}) {
 	pod := obj.(*api.Pod)
+	if pod.DeletionTimestamp != nil {
+		// on a restart of the controller manager, it's possible a new pod shows up in a state that
+		// is already pending deletion. Prevent the pod from being a creation observation.
+		rm.deletePod(pod)
+		return
+	}
 	if rc := rm.getPodController(pod); rc != nil {
 		rcKey, err := controller.KeyFunc(rc)
 		if err != nil {
@@ -234,6 +240,15 @@ func (rm *ReplicationManager) updatePod(old, cur interface{}) {
 	}
 	// TODO: Write a unittest for this case
 	curPod := cur.(*api.Pod)
+	if curPod.DeletionTimestamp != nil {
+		// when a pod is deleted gracefully it's deletion timestamp is first modified to reflect a grace period,
+		// and after such time has passed, the kubelet actually deletes it from the store. We receive an update
+		// for modification of the deletion timestamp and expect an rc to create more replicas asap, not wait
+		// until the kubelet actually deletes the pod. This is different from the Phase of a pod changing, because
+		// an rc never initiates a phase change, and so is never asleep waiting for the same.
+		rm.deletePod(curPod)
+		return
+	}
 	if rc := rm.getPodController(curPod); rc != nil {
 		rm.enqueueController(rc)
 	}

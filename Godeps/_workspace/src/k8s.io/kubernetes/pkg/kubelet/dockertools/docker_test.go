@@ -100,7 +100,7 @@ func verifyPackUnpack(t *testing.T, podNamespace, podUID, podName, containerName
 	util.DeepHashObject(hasher, *container)
 	computedHash := uint64(hasher.Sum32())
 	podFullName := fmt.Sprintf("%s_%s", podName, podNamespace)
-	name := BuildDockerName(KubeletContainerName{podFullName, types.UID(podUID), container.Name}, container)
+	_, name := BuildDockerName(KubeletContainerName{podFullName, types.UID(podUID), container.Name}, container)
 	returned, hash, err := ParseDockerName(name)
 	if err != nil {
 		t.Errorf("Failed to parse Docker container name %q: %v", name, err)
@@ -255,7 +255,7 @@ func TestPullWithJSONError(t *testing.T) {
 		"Bad gateway": {
 			"ubuntu",
 			&jsonmessage.JSONError{Code: 502, Message: "<!doctype html>\n<html class=\"no-js\" lang=\"\">\n    <head>\n  </head>\n    <body>\n   <h1>Oops, there was an error!</h1>\n        <p>We have been contacted of this error, feel free to check out <a href=\"http://status.docker.com/\">status.docker.com</a>\n           to see if there is a bigger issue.</p>\n\n    </body>\n</html>"},
-			"because the registry is temporarily unavailbe",
+			"because the registry is temporarily unavailable",
 		},
 	}
 	for i, test := range tests {
@@ -269,7 +269,7 @@ func TestPullWithJSONError(t *testing.T) {
 		}
 		err := puller.Pull(test.imageName, []api.Secret{})
 		if err == nil || !strings.Contains(err.Error(), test.expectedError) {
-			t.Errorf("%d: expect error %s, got : %s", i, test.expectedError, err)
+			t.Errorf("%s: expect error %s, got : %s", i, test.expectedError, err)
 			continue
 		}
 	}
@@ -656,7 +656,7 @@ func TestFindContainersByPod(t *testing.T) {
 	}
 	fakeClient := &FakeDockerClient{}
 	np, _ := network.InitNetworkPlugin([]network.NetworkPlugin{}, "", network.NewFakeHost(nil))
-	containerManager := NewFakeDockerManager(fakeClient, &record.FakeRecorder{}, nil, nil, &cadvisorApi.MachineInfo{}, PodInfraContainerImage, 0, 0, "", kubecontainer.FakeOS{}, np, nil, nil, nil)
+	containerManager := NewFakeDockerManager(fakeClient, &record.FakeRecorder{}, nil, nil, &cadvisorApi.MachineInfo{}, PodInfraContainerImage, 0, 0, "", kubecontainer.FakeOS{}, np, nil, nil)
 	for i, test := range tests {
 		fakeClient.ContainerList = test.containerList
 		fakeClient.ExitedContainerList = test.exitedContainerList
@@ -734,6 +734,46 @@ func TestMakePortsAndBindings(t *testing.T) {
 			if value[0].HostIP != "" {
 				t.Errorf("Unexpected host IP: %s", value[0].HostIP)
 			}
+		}
+	}
+}
+
+func TestMilliCPUToQuota(t *testing.T) {
+	testCases := []struct {
+		input  int64
+		quota  int64
+		period int64
+	}{
+		{
+			input:  int64(0),
+			quota:  int64(0),
+			period: int64(0),
+		},
+		{
+			input:  int64(200),
+			quota:  int64(20000),
+			period: int64(100000),
+		},
+		{
+			input:  int64(500),
+			quota:  int64(50000),
+			period: int64(100000),
+		},
+		{
+			input:  int64(1000),
+			quota:  int64(100000),
+			period: int64(100000),
+		},
+		{
+			input:  int64(1500),
+			quota:  int64(150000),
+			period: int64(100000),
+		},
+	}
+	for _, testCase := range testCases {
+		quota, period := milliCPUToQuota(testCase.input)
+		if quota != testCase.quota || period != testCase.period {
+			t.Errorf("Input %v, expected quota %v period %v, but got quota %v period %v", testCase.input, testCase.quota, testCase.period, quota, period)
 		}
 	}
 }

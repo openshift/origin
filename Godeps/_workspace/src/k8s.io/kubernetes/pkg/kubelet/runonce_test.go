@@ -76,6 +76,7 @@ func TestRunOnce(t *testing.T) {
 	cadvisor.On("MachineInfo").Return(&cadvisorApi.MachineInfo{}, nil)
 
 	podManager, _ := newFakePodManager()
+	diskSpaceManager, _ := newDiskSpaceManager(cadvisor, DiskSpacePolicy{})
 
 	kb := &Kubelet{
 		rootDirectory:       "/tmp/kubelet",
@@ -88,6 +89,7 @@ func TestRunOnce(t *testing.T) {
 		podManager:          podManager,
 		os:                  kubecontainer.FakeOS{},
 		volumeManager:       newVolumeManager(),
+		diskSpaceManager:    diskSpaceManager,
 	}
 	kb.containerManager, _ = newContainerManager(cadvisor, "", "", "")
 
@@ -145,6 +147,13 @@ func TestRunOnce(t *testing.T) {
 					State:  docker.State{Running: true, Pid: 42},
 				},
 			},
+			{
+				label: "syncPod",
+				container: docker.Container{
+					Config: &docker.Config{Image: "someimage"},
+					State:  docker.State{Running: true, Pid: 42},
+				},
+			},
 		},
 		t: t,
 	}
@@ -162,8 +171,7 @@ func TestRunOnce(t *testing.T) {
 		kubecontainer.FakeOS{},
 		kb.networkPlugin,
 		kb,
-		nil,
-		newKubeletRuntimeHooks(kb.recorder))
+		nil)
 
 	pods := []*api.Pod{
 		{

@@ -152,50 +152,26 @@ func (e *Etcd) ListPredicate(ctx api.Context, m generic.Matcher) (runtime.Object
 	trace := util.NewTrace("List " + reflect.TypeOf(list).String())
 	defer trace.LogIfLong(600 * time.Millisecond)
 	if name, ok := m.MatchesSingle(); ok {
-		if key, err := e.KeyFunc(ctx, name); err == nil {
-			trace.Step("About to read single object")
-			err = e.Storage.GetToList(key, list)
-			trace.Step("Object extracted")
-			if err != nil {
-				return nil, err
-			}
-			defer trace.Step("List filtered")
-			return generic.FilterList(list, m, generic.DecoratorFunc(e.Decorator))
+		trace.Step("About to read single object")
+		key, err := e.KeyFunc(ctx, name)
+		if err != nil {
+			return nil, err
 		}
-	}
-
-	trace.Step("About to list directory")
-	err := e.Storage.List(e.KeyRootFunc(ctx), list)
-	trace.Step("List extracted")
-	if err != nil {
-		return nil, err
+		err = e.Storage.GetToList(key, list)
+		trace.Step("Object extracted")
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		trace.Step("About to list directory")
+		err := e.Storage.List(e.KeyRootFunc(ctx), list)
+		trace.Step("List extracted")
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer trace.Step("List filtered")
 	return generic.FilterList(list, m, generic.DecoratorFunc(e.Decorator))
-}
-
-// CreateWithName inserts a new item with the provided name
-// DEPRECATED: use Create instead
-func (e *Etcd) CreateWithName(ctx api.Context, name string, obj runtime.Object) error {
-	key, err := e.KeyFunc(ctx, name)
-	if err != nil {
-		return err
-	}
-	if e.CreateStrategy != nil {
-		if err := rest.BeforeCreate(e.CreateStrategy, ctx, obj); err != nil {
-			return err
-		}
-	}
-	ttl, err := e.calculateTTL(obj, 0, false)
-	if err != nil {
-		return err
-	}
-	err = e.Storage.Create(key, obj, nil, ttl)
-	err = etcderr.InterpretCreateError(err, e.EndpointName, name)
-	if err == nil && e.Decorator != nil {
-		err = e.Decorator(obj)
-	}
-	return err
 }
 
 // Create inserts a new item according to the unique key from the object.
@@ -236,25 +212,6 @@ func (e *Etcd) Create(ctx api.Context, obj runtime.Object) (runtime.Object, erro
 		}
 	}
 	return out, nil
-}
-
-// UpdateWithName updates the item with the provided name
-// DEPRECATED: use Update instead
-func (e *Etcd) UpdateWithName(ctx api.Context, name string, obj runtime.Object) error {
-	key, err := e.KeyFunc(ctx, name)
-	if err != nil {
-		return err
-	}
-	ttl, err := e.calculateTTL(obj, 0, true)
-	if err != nil {
-		return err
-	}
-	err = e.Storage.Set(key, obj, nil, ttl)
-	err = etcderr.InterpretUpdateError(err, e.EndpointName, name)
-	if err == nil && e.Decorator != nil {
-		err = e.Decorator(obj)
-	}
-	return err
 }
 
 // Update performs an atomic update and set of the object. Returns the result of the update
@@ -384,6 +341,11 @@ func (e *Etcd) Get(ctx api.Context, name string) (runtime.Object, error) {
 	return obj, nil
 }
 
+var (
+	errAlreadyDeleting = fmt.Errorf("abort delete")
+	errDeleteNow       = fmt.Errorf("delete now")
+)
+
 // Delete removes the item from etcd.
 func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) (runtime.Object, error) {
 	key, err := e.KeyFunc(ctx, name)
@@ -410,13 +372,41 @@ func (e *Etcd) Delete(ctx api.Context, name string, options *api.DeleteOptions) 
 	if pendingGraceful {
 		return e.finalizeDelete(obj, false)
 	}
-	if graceful && *options.GracePeriodSeconds != 0 {
+	if graceful {
 		trace.Step("Graceful deletion")
 		out := e.NewFunc()
-		if err := e.Storage.Set(key, obj, out, uint64(*options.GracePeriodSeconds)); err != nil {
+		lastGraceful := int64(0)
+		err := e.Storage.GuaranteedUpdate(
+			key, out, false,
+			storage.SimpleUpdate(func(existing runtime.Object) (runtime.Object, error) {
+				graceful, pendingGraceful, err := rest.BeforeDelete(e.DeleteStrategy, ctx, existing, options)
+				if err != nil {
+					return nil, err
+				}
+				if pendingGraceful {
+					return nil, errAlreadyDeleting
+				}
+				if !graceful {
+					return nil, errDeleteNow
+				}
+				lastGraceful = *options.GracePeriodSeconds
+				return existing, nil
+			}),
+		)
+		switch err {
+		case nil:
+			if lastGraceful > 0 {
+				return out, nil
+			}
+			// fall through and delete immediately
+		case errDeleteNow:
+			// we've updated the object to have a zero grace period, or it's already at 0, so
+			// we should fall through and truly delete the object.
+		case errAlreadyDeleting:
+			return e.finalizeDelete(obj, true)
+		default:
 			return nil, etcderr.InterpretUpdateError(err, e.EndpointName, name)
 		}
-		return e.finalizeDelete(out, true)
 	}
 
 	// delete immediately, or no graceful deletion supported
@@ -476,9 +466,11 @@ func (e *Etcd) WatchPredicate(ctx api.Context, m generic.Matcher, resourceVersio
 	}
 
 	if name, ok := m.MatchesSingle(); ok {
-		if key, err := e.KeyFunc(ctx, name); err == nil {
-			return e.Storage.Watch(key, version, filterFunc)
+		key, err := e.KeyFunc(ctx, name)
+		if err != nil {
+			return nil, err
 		}
+		return e.Storage.Watch(key, version, filterFunc)
 	}
 
 	return e.Storage.WatchList(e.KeyRootFunc(ctx), version, filterFunc)

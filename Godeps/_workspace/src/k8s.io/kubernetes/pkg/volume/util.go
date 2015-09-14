@@ -21,48 +21,15 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/resource"
 )
-
-func GetAccessModesAsString(modes []api.PersistentVolumeAccessMode) string {
-	modesAsString := ""
-
-	if contains(modes, api.ReadWriteOnce) {
-		appendAccessMode(&modesAsString, "RWO")
-	}
-	if contains(modes, api.ReadOnlyMany) {
-		appendAccessMode(&modesAsString, "ROX")
-	}
-	if contains(modes, api.ReadWriteMany) {
-		appendAccessMode(&modesAsString, "RWX")
-	}
-
-	return modesAsString
-}
-
-func appendAccessMode(modes *string, mode string) {
-	if *modes != "" {
-		*modes += ","
-	}
-	*modes += mode
-}
-
-func contains(modes []api.PersistentVolumeAccessMode, mode api.PersistentVolumeAccessMode) bool {
-	for _, m := range modes {
-		if m == mode {
-			return true
-		}
-	}
-	return false
-}
 
 // ScrubPodVolumeAndWatchUntilCompletion is intended for use with volume Recyclers.  This function will
 // save the given Pod to the API and watch it until it completes, fails, or the pod's ActiveDeadlineSeconds is exceeded, whichever comes first.
@@ -153,20 +120,5 @@ func (c *realScrubberClient) WatchPod(name, namespace, resourceVersion string, s
 	return func() *api.Pod {
 		obj := queue.Pop()
 		return obj.(*api.Pod)
-	}
-}
-
-// CalculateTimeoutForVolume calculates time for a Scrubber pod to complete a recycle operation.
-// The calculation and return value is either the minimumTimeout or the timeoutIncrement per Gi of storage size, whichever is greater.
-func CalculateTimeoutForVolume(minimumTimeout, timeoutIncrement int, pv *api.PersistentVolume) int64 {
-	giQty := resource.MustParse("1Gi")
-	pvQty := pv.Spec.Capacity[api.ResourceStorage]
-	giSize := giQty.Value()
-	pvSize := pvQty.Value()
-	timeout := (pvSize / giSize) * int64(timeoutIncrement)
-	if timeout < int64(minimumTimeout) {
-		return int64(minimumTimeout)
-	} else {
-		return timeout
 	}
 }

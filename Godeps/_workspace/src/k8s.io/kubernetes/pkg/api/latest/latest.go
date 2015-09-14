@@ -25,8 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/registered"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/api/v1beta3"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // Version is the string that represents the current external default version.
@@ -80,16 +79,15 @@ func init() {
 
 	// the list of kinds that are scoped at the root of the api hierarchy
 	// if a kind is not enumerated here, it is assumed to have a namespace scope
-	rootScoped := util.NewStringSet(
+	rootScoped := sets.NewString(
 		"Node",
 		"Minion",
 		"Namespace",
 		"PersistentVolume",
-		"SecurityContextConstraints",
 	)
 
 	// these kinds should be excluded from the list of resources
-	ignoredKinds := util.NewStringSet(
+	ignoredKinds := sets.NewString(
 		"ListOptions",
 		"DeleteOptions",
 		"Status",
@@ -97,9 +95,11 @@ func init() {
 		"PodExecOptions",
 		"PodAttachOptions",
 		"PodProxyOptions",
-		"Daemon")
+		"ThirdPartyResource",
+		"ThirdPartyResourceData",
+		"ThirdPartyResourceList")
 
-	mapper := api.NewDefaultRESTMapper(versions, InterfacesFor, importPrefix, ignoredKinds, rootScoped)
+	mapper := api.NewDefaultRESTMapper("api", versions, InterfacesFor, importPrefix, ignoredKinds, rootScoped)
 	// setup aliases for groups of resources
 	mapper.AddResourceAlias("all", userResources...)
 	RESTMapper = mapper
@@ -110,12 +110,6 @@ func init() {
 // string, or an error if the version is not known.
 func InterfacesFor(version string) (*meta.VersionInterfaces, error) {
 	switch version {
-	case "v1beta3":
-		return &meta.VersionInterfaces{
-			Codec:            v1beta3.Codec,
-			ObjectConvertor:  api.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
 	case "v1":
 		return &meta.VersionInterfaces{
 			Codec:            v1.Codec,

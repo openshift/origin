@@ -52,6 +52,11 @@ type action struct {
 	Namer  ScopeNamer
 }
 
+// An interface to see if an object supports swagger documentation as a method
+type documentable interface {
+	SwaggerDoc() map[string]string
+}
+
 // errEmptyName is returned when API requests do not fill the name section of the path.
 var errEmptyName = errors.NewBadRequest("name must be provided")
 
@@ -195,7 +200,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		versionedDeleterObject = indirectArbitraryPointer(objectPtr)
 		isDeleter = true
 	case isDeleter:
-		gracefulDeleter = rest.GracefulDeleteAdapter{deleter}
+		gracefulDeleter = rest.GracefulDeleteAdapter{Deleter: deleter}
 	}
 
 	versionedStatusPtr, err := a.group.Creater.New(serverVersion, "Status")
@@ -243,6 +248,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 
 	var ctxFn ContextFunc
 	ctxFn = func(req *restful.Request) api.Context {
+		if context == nil {
+			return api.NewContext()
+		}
 		if ctx, ok := context.Get(req.Request); ok {
 			return ctx
 		}
@@ -334,7 +342,6 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		if !hasSubresource {
 			namer = scopeNaming{scope, a.group.Linker, gpath.Join(a.prefix, itemPath), true}
 			actions = appendIf(actions, action{"LIST", resource, params, namer}, isLister)
-			actions = appendIf(actions, action{"POST", resource, params, namer}, isCreater)
 			actions = appendIf(actions, action{"WATCHLIST", "watch/" + resource, params, namer}, allowWatchList)
 		}
 		break
@@ -797,7 +804,11 @@ func addObjectParams(ws *restful.WebService, route *restful.RouteBuilder, obj in
 				if len(jsonName) == 0 {
 					continue
 				}
-				desc := sf.Tag.Get("description")
+
+				var desc string
+				if docable, ok := obj.(documentable); ok {
+					desc = docable.SwaggerDoc()[jsonName]
+				}
 				route.Param(ws.QueryParameter(jsonName, desc).DataType(typeToJSON(sf.Type.Name())))
 			}
 		}
@@ -817,7 +828,7 @@ func typeToJSON(typeName string) string {
 		return "string"
 	case "float64", "float32":
 		return "number"
-	case "util.Time", "*util.Time":
+	case "util.Time":
 		return "string"
 	default:
 		return typeName

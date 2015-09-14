@@ -38,6 +38,7 @@ const (
 	EtcdSet    = "set"
 	EtcdCAS    = "compareAndSwap"
 	EtcdDelete = "delete"
+	EtcdExpire = "expire"
 )
 
 // TransformFunc attempts to convert an object to another object for use with a watcher.
@@ -181,8 +182,8 @@ func (w *etcdWatcher) translate() {
 		case err := <-w.etcdError:
 			if err != nil {
 				w.emit(watch.Event{
-					watch.Error,
-					&api.Status{
+					Type: watch.Error,
+					Object: &api.Status{
 						Status:  api.StatusFailure,
 						Message: err.Error(),
 					},
@@ -353,7 +354,7 @@ func (w *etcdWatcher) sendResult(res *etcd.Response) {
 		w.sendAdd(res)
 	case EtcdSet, EtcdCAS:
 		w.sendModify(res)
-	case EtcdDelete:
+	case EtcdDelete, EtcdExpire:
 		w.sendDelete(res)
 	default:
 		glog.Errorf("unknown action: %v", res.Action)

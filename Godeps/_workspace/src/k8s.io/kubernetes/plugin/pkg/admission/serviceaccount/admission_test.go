@@ -22,7 +22,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/types"
 )
@@ -411,36 +411,6 @@ func TestRejectsUnreferencedSecretVolumes(t *testing.T) {
 		ObjectMeta: api.ObjectMeta{
 			Name:      DefaultServiceAccountName,
 			Namespace: ns,
-		},
-	})
-
-	pod := &api.Pod{
-		Spec: api.PodSpec{
-			Volumes: []api.Volume{
-				{VolumeSource: api.VolumeSource{Secret: &api.SecretVolumeSource{SecretName: "foo"}}},
-			},
-		},
-	}
-	attrs := admission.NewAttributesRecord(pod, "Pod", ns, "myname", string(api.ResourcePods), "", admission.Create, nil)
-	err := admit.Admit(attrs)
-	if err == nil {
-		t.Errorf("Expected rejection for using a secret the service account does not reference")
-	}
-}
-
-func TestAllowUnreferencedSecretVolumesForPermissiveSAs(t *testing.T) {
-	ns := "myns"
-
-	admit := NewServiceAccount(nil)
-	admit.LimitSecretReferences = false
-	admit.RequireAPIToken = false
-
-	// Add the default service account for the ns into the cache
-	admit.serviceAccounts.Add(&api.ServiceAccount{
-		ObjectMeta: api.ObjectMeta{
-			Name:        DefaultServiceAccountName,
-			Namespace:   ns,
-			Annotations: map[string]string{EnforceMountableSecretsAnnotation: "true"},
 		},
 	})
 

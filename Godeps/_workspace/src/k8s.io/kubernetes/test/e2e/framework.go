@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -38,23 +38,13 @@ type Framework struct {
 
 	Namespace *api.Namespace
 	Client    *client.Client
-
-	// Allows to override the initialization of the namespace
-	nsCreateFunc func(string, *client.Client) (*api.Namespace, error)
 }
 
 // NewFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
 func NewFramework(baseName string) *Framework {
-	return InitializeFramework(baseName, createTestingNS)
-}
-
-// InitializeFramework initialize the framework by allowing to pass a custom
-// namespace creation function.
-func InitializeFramework(baseName string, nsCreateFunc func(string, *client.Client) (*api.Namespace, error)) *Framework {
 	f := &Framework{
-		BaseName:     baseName,
-		nsCreateFunc: nsCreateFunc,
+		BaseName: baseName,
 	}
 
 	BeforeEach(f.beforeEach)
@@ -72,7 +62,7 @@ func (f *Framework) beforeEach() {
 	f.Client = c
 
 	By("Building a namespace api object")
-	namespace, err := f.nsCreateFunc(f.BaseName, f.Client)
+	namespace, err := createTestingNS(f.BaseName, f.Client)
 	Expect(err).NotTo(HaveOccurred())
 
 	f.Namespace = namespace
@@ -96,6 +86,8 @@ func (f *Framework) afterEach() {
 		// Note that we don't wait for any cleanup to propagate, which means
 		// that if you delete a bunch of pods right before ending your test,
 		// you may or may not see the killing/deletion/cleanup events.
+
+		dumpAllPodInfo(f.Client)
 	}
 
 	// Check whether all nodes are ready after the test.

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sync"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
 )
@@ -307,7 +307,7 @@ func (f *DeltaFIFO) Pop() interface{} {
 // 'f' takes ownership of the map, you should not reference the map again
 // after calling this function. f's queue is reset, too; upon return, it
 // will contain the items in the map, in no particular order.
-func (f *DeltaFIFO) Replace(list []interface{}) error {
+func (f *DeltaFIFO) Replace(list []interface{}, resourceVersion string) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	for _, item := range list {
@@ -319,7 +319,7 @@ func (f *DeltaFIFO) Replace(list []interface{}) error {
 		return nil
 	}
 
-	keySet := make(util.StringSet, len(list))
+	keySet := make(sets.String, len(list))
 	for _, item := range list {
 		key, err := f.KeyOf(item)
 		if err != nil {

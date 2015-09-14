@@ -22,13 +22,7 @@ import (
 	// given binary target.
 
 	//Cloud providers
-	_ "k8s.io/kubernetes/pkg/cloudprovider/aws"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/gce"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/mesos"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/openstack"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/ovirt"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/rackspace"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/vagrant"
+	_ "k8s.io/kubernetes/pkg/cloudprovider/providers"
 
 	// Volume plugins
 	"k8s.io/kubernetes/pkg/volume"
@@ -48,14 +42,11 @@ func ProbeRecyclableVolumePlugins(flags VolumeConfigFlags) []volume.VolumePlugin
 	// CLI flags meant to configure volume plugins.  From that single config, create an instance of volume.VolumeConfig
 	// for a specific plugin and pass that instance to the plugin's ProbeVolumePlugins(config) func.
 	hostPathConfig := volume.VolumeConfig{
-		RecyclerMinimumTimeout:   flags.PersistentVolumeRecyclerMinimumTimeoutHostPath,
-		RecyclerTimeoutIncrement: flags.PersistentVolumeRecyclerIncrementTimeoutHostPath,
-		RecyclerDefaultPod:       flags.PersistentVolumeRecyclerDefaultPod,
+	// transfer attributes from VolumeConfig to this instance of volume.VolumeConfig
 	}
 	nfsConfig := volume.VolumeConfig{
-		RecyclerMinimumTimeout:   flags.PersistentVolumeRecyclerMinimumTimeoutNFS,
-		RecyclerTimeoutIncrement: flags.PersistentVolumeRecyclerIncrementTimeoutNFS,
-		RecyclerDefaultPod:       flags.PersistentVolumeRecyclerDefaultPod,
+	// TODO transfer config.PersistentVolumeRecyclerTimeoutNFS and other flags to this instance of VolumeConfig
+	// Configuring recyclers will be done in a follow-up PR
 	}
 
 	allPlugins = append(allPlugins, host_path.ProbeVolumePlugins(hostPathConfig)...)

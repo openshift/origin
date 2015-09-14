@@ -23,22 +23,12 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 const kubectlAnnotationPrefix = "kubectl.kubernetes.io/"
 
 type NamespaceInfo struct {
 	Namespace string
-}
-
-// TODO Move to labels package.
-func formatLabels(labelMap map[string]string) string {
-	l := labels.Set(labelMap).String()
-	if l == "" {
-		l = "<none>"
-	}
-	return l
 }
 
 func listOfImages(spec *api.PodSpec) []string {
@@ -106,6 +96,7 @@ func expandResourceShortcut(resource string) string {
 		"cs":     "componentstatuses",
 		"ev":     "events",
 		"ep":     "endpoints",
+		"hpa":    "horizontalpodautoscalers",
 		"limits": "limitranges",
 		"no":     "nodes",
 		"ns":     "namespaces",
@@ -115,7 +106,6 @@ func expandResourceShortcut(resource string) string {
 		"quota":  "resourcequotas",
 		"rc":     "replicationcontrollers",
 		"svc":    "services",
-		"scc":    "securityContextConstraints",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded

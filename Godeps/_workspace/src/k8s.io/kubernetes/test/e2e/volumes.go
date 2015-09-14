@@ -34,7 +34,7 @@ package e2e
 import (
 	"fmt"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -234,7 +234,7 @@ var _ = Describe("Volumes", func() {
 
 	AfterEach(func() {
 		if clean {
-			if err := c.Namespaces().Delete(namespace.Name); err != nil {
+			if err := deleteNS(c, namespace.Name); err != nil {
 				Failf("Couldn't delete ns %s", err)
 			}
 		}
@@ -272,7 +272,7 @@ var _ = Describe("Volumes", func() {
 					ReadOnly: true,
 				},
 			}
-			// Must match content of contrib/for-tests/volumes-tester/nfs/index.html
+			// Must match content of test/images/volumes-tester/nfs/index.html
 			testVolumeClient(c, config, volume, "Hello from NFS!")
 		})
 	})
@@ -344,12 +344,12 @@ var _ = Describe("Volumes", func() {
 			volume := api.VolumeSource{
 				Glusterfs: &api.GlusterfsVolumeSource{
 					EndpointsName: config.prefix + "-server",
-					// 'test_vol' comes from contrib/for-tests/volumes-tester/gluster/run_gluster.sh
+					// 'test_vol' comes from test/images/volumes-tester/gluster/run_gluster.sh
 					Path:     "test_vol",
 					ReadOnly: true,
 				},
 			}
-			// Must match content of contrib/for-tests/volumes-tester/gluster/index.html
+			// Must match content of test/images/volumes-tester/gluster/index.html
 			testVolumeClient(c, config, volume, "Hello from GlusterFS!")
 		})
 	})
@@ -389,14 +389,14 @@ var _ = Describe("Volumes", func() {
 			volume := api.VolumeSource{
 				ISCSI: &api.ISCSIVolumeSource{
 					TargetPortal: serverIP + ":3260",
-					// from contrib/for-tests/volumes-tester/iscsi/initiatorname.iscsi
+					// from test/images/volumes-tester/iscsi/initiatorname.iscsi
 					IQN:      "iqn.2003-01.org.linux-iscsi.f21.x8664:sn.4b0aae584f7c",
 					Lun:      0,
 					FSType:   "ext2",
 					ReadOnly: true,
 				},
 			}
-			// Must match content of contrib/for-tests/volumes-tester/iscsi/block.tar.gz
+			// Must match content of test/images/volumes-tester/iscsi/block.tar.gz
 			testVolumeClient(c, config, volume, "Hello from iSCSI")
 		})
 	})
@@ -443,7 +443,7 @@ var _ = Describe("Volumes", func() {
 					Name: config.prefix + "-secret",
 				},
 				Data: map[string][]byte{
-					// from contrib/for-tests/volumes-tester/rbd/keyring
+					// from test/images/volumes-tester/rbd/keyring
 					"key": []byte("AQDRrKNVbEevChAAEmRC+pW/KBVHxa0w/POILA=="),
 				},
 			}
@@ -473,9 +473,77 @@ var _ = Describe("Volumes", func() {
 					ReadOnly: true,
 				},
 			}
-			// Must match content of contrib/for-tests/volumes-tester/gluster/index.html
+			// Must match content of test/images/volumes-tester/gluster/index.html
 			testVolumeClient(c, config, volume, "Hello from RBD")
 
+		})
+	})
+	////////////////////////////////////////////////////////////////////////
+	// Ceph
+	////////////////////////////////////////////////////////////////////////
+
+	// Marked with [Skipped] to skip the test by default (see driver.go),
+	// the test needs privileged containers, which are disabled by default.
+	// Run the test with "go run hack/e2e.go ... --ginkgo.focus=Volume"
+	Describe("[Skipped] CephFS", func() {
+		It("should be mountable", func() {
+			config := VolumeTestConfig{
+				namespace:   namespace.Name,
+				prefix:      "cephfs",
+				serverImage: "gcr.io/google_containers/volume-ceph",
+				serverPorts: []int{6789},
+			}
+
+			defer func() {
+				if clean {
+					volumeTestCleanup(c, config)
+				}
+			}()
+			pod := startVolumeServer(c, config)
+			serverIP := pod.Status.PodIP
+			Logf("Ceph server IP address: %v", serverIP)
+			By("sleeping a bit to give ceph server time to initialize")
+			time.Sleep(20 * time.Second)
+
+			// create ceph secret
+			secret := &api.Secret{
+				TypeMeta: api.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1beta3",
+				},
+				ObjectMeta: api.ObjectMeta{
+					Name: config.prefix + "-secret",
+				},
+				// Must use the ceph keyring at contrib/for-tests/volumes-ceph/ceph/init.sh
+				// and encode in base64
+				Data: map[string][]byte{
+					"key": []byte("AQAMgXhVwBCeDhAA9nlPaFyfUSatGD4drFWDvQ=="),
+				},
+			}
+
+			defer func() {
+				if clean {
+					if err := c.Secrets(namespace.Name).Delete(secret.Name); err != nil {
+						Failf("unable to delete secret %v: %v", secret.Name, err)
+					}
+				}
+			}()
+
+			var err error
+			if secret, err = c.Secrets(namespace.Name).Create(secret); err != nil {
+				Failf("unable to create test secret %s: %v", secret.Name, err)
+			}
+
+			volume := api.VolumeSource{
+				CephFS: &api.CephFSVolumeSource{
+					Monitors:  []string{serverIP + ":6789"},
+					User:      "kube",
+					SecretRef: &api.LocalObjectReference{Name: config.prefix + "-secret"},
+					ReadOnly:  true,
+				},
+			}
+			// Must match content of contrib/for-tests/volumes-ceph/ceph/index.html
+			testVolumeClient(c, config, volume, "Hello Ceph!")
 		})
 	})
 

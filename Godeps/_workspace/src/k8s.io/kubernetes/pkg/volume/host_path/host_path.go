@@ -21,39 +21,26 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
 )
 
 // This is the primary entrypoint for volume plugins.
-// The volumeConfig arg provides the ability to configure volume behavior.  It is implemented as a pointer to allow nils.
-// The hostPathPlugin is used to store the volumeConfig and give it, when needed, to the func that creates HostPath Recyclers.
-// Tests that exercise recycling should not use this func but instead use ProbeRecyclablePlugins() to override default behavior.
-func ProbeVolumePlugins(volumeConfig volume.VolumeConfig) []volume.VolumePlugin {
-	return []volume.VolumePlugin{
-		&hostPathPlugin{
-			host:            nil,
-			newRecyclerFunc: newRecycler,
-			config:          volumeConfig,
-		},
-	}
+// Tests covering recycling should not use this func but instead
+// use their own array of plugins w/ a custom recyclerFunc as appropriate
+func ProbeVolumePlugins(config volume.VolumeConfig) []volume.VolumePlugin {
+	return []volume.VolumePlugin{&hostPathPlugin{nil, newRecycler}}
 }
 
-func ProbeRecyclableVolumePlugins(recyclerFunc func(spec *volume.Spec, host volume.VolumeHost, volumeConfig volume.VolumeConfig) (volume.Recycler, error), volumeConfig volume.VolumeConfig) []volume.VolumePlugin {
-	return []volume.VolumePlugin{
-		&hostPathPlugin{
-			host:            nil,
-			newRecyclerFunc: recyclerFunc,
-			config:          volumeConfig,
-		},
-	}
+func ProbeRecyclableVolumePlugins(recyclerFunc func(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error)) []volume.VolumePlugin {
+	return []volume.VolumePlugin{&hostPathPlugin{nil, recyclerFunc}}
 }
 
 type hostPathPlugin struct {
 	host volume.VolumeHost
 	// decouple creating recyclers by deferring to a function.  Allows for easier testing.
-	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost, volumeConfig volume.VolumeConfig) (volume.Recycler, error)
-	config          volume.VolumeConfig
+	newRecyclerFunc func(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error)
 }
 
 var _ volume.VolumePlugin = &hostPathPlugin{}
@@ -74,7 +61,7 @@ func (plugin *hostPathPlugin) Name() string {
 
 func (plugin *hostPathPlugin) CanSupport(spec *volume.Spec) bool {
 	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.HostPath != nil) ||
-			(spec.Volume != nil && spec.Volume.HostPath != nil)
+		(spec.Volume != nil && spec.Volume.HostPath != nil)
 }
 
 func (plugin *hostPathPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -102,20 +89,14 @@ func (plugin *hostPathPlugin) NewCleaner(volName string, podUID types.UID, _ mou
 }
 
 func (plugin *hostPathPlugin) NewRecycler(spec *volume.Spec) (volume.Recycler, error) {
-	return plugin.newRecyclerFunc(spec, plugin.host, plugin.config)
+	return plugin.newRecyclerFunc(spec, plugin.host)
 }
 
-func newRecycler(spec *volume.Spec, host volume.VolumeHost, config volume.VolumeConfig) (volume.Recycler, error) {
+func newRecycler(spec *volume.Spec, host volume.VolumeHost) (volume.Recycler, error) {
 	if spec.PersistentVolume == nil || spec.PersistentVolume.Spec.HostPath == nil {
 		return nil, fmt.Errorf("spec.PersistentVolumeSource.HostPath is nil")
 	}
-	return &hostPathRecycler{
-		name:    spec.Name(),
-		path:    spec.PersistentVolume.Spec.HostPath.Path,
-		host:    host,
-		config:  config,
-		timeout: volume.CalculateTimeoutForVolume(config.RecyclerMinimumTimeout, config.RecyclerTimeoutIncrement, spec.PersistentVolume),
-	}, nil
+	return &hostPathRecycler{spec.Name(), spec.PersistentVolume.Spec.HostPath.Path, host}, nil
 }
 
 // HostPath volumes represent a bare host file or directory mount.
@@ -172,11 +153,9 @@ func (c *hostPathCleaner) TearDownAt(dir string) error {
 // hostPathRecycler scrubs a hostPath volume by running "rm -rf" on the volume in a pod
 // This recycler only works on a single host cluster and is for testing purposes only.
 type hostPathRecycler struct {
-	name    string
-	path    string
-	host    volume.VolumeHost
-	config  volume.VolumeConfig
-	timeout int64
+	name string
+	path string
+	host volume.VolumeHost
 }
 
 func (r *hostPathRecycler) GetPath() string {
@@ -187,14 +166,46 @@ func (r *hostPathRecycler) GetPath() string {
 // A HostPath is recycled by scheduling a pod to run "rm -rf" on the contents of the volume.  This is meant for
 // development and testing in a single node cluster only.
 // Recycle blocks until the pod has completed or any error occurs.
+// The scrubber pod's is expected to succeed within 30 seconds when testing localhost.
 func (r *hostPathRecycler) Recycle() error {
-	pod := r.config.RecyclerDefaultPod
-	// overrides
-	pod.Spec.ActiveDeadlineSeconds = &r.timeout
-	pod.GenerateName = "pv-scrubber-hostpath-"
-	pod.Spec.Volumes[0].VolumeSource = api.VolumeSource{
-		HostPath: &api.HostPathVolumeSource{
-			Path: r.path,
+	timeout := int64(30)
+	pod := &api.Pod{
+		ObjectMeta: api.ObjectMeta{
+			GenerateName: "pv-scrubber-" + util.ShortenString(r.name, 44) + "-",
+			Namespace:    api.NamespaceDefault,
+		},
+		Spec: api.PodSpec{
+			ActiveDeadlineSeconds: &timeout,
+			RestartPolicy:         api.RestartPolicyNever,
+			Volumes: []api.Volume{
+				{
+					Name: "vol",
+					VolumeSource: api.VolumeSource{
+						HostPath: &api.HostPathVolumeSource{Path: r.path},
+					},
+				},
+			},
+			Containers: []api.Container{
+				{
+					Name:  "scrubber",
+					Image: "gcr.io/google_containers/busybox",
+					// delete the contents of the volume, but not the directory itself
+					Command: []string{"/bin/sh"},
+					// the scrubber:
+					//		1. validates the /scrub directory exists
+					// 		2. creates a text file in the directory to be scrubbed
+					//		3. performs rm -rf on the directory
+					//		4. tests to see if the directory is empty
+					// the pod fails if the error code is returned
+					Args: []string{"-c", "test -e /scrub && echo $(date) > /scrub/trash.txt && rm -rf /scrub/* && test -z \"$(ls -A /scrub)\" || exit 1"},
+					VolumeMounts: []api.VolumeMount{
+						{
+							Name:      "vol",
+							MountPath: "/scrub",
+						},
+					},
+				},
+			},
 		},
 	}
 	return volume.ScrubPodVolumeAndWatchUntilCompletion(pod, r.host.GetKubeClient())
