@@ -493,15 +493,6 @@ os::build::ldflags() {
   )
 }
 
-os::build::extended() {
-    # Compile the extended tests first to avoid waiting for OpenShift server to
-    # start and fail sooner on compilation errors.
-    echo "Building test/extended ..."
-    os::build::setup_env
-    go test -c ./test/extended \
-      -o ${OS_OUTPUT_BINPATH}/extended.test || exit 1
-}
-
 os::build::gen-docs() {
   local cmd="$1"
   local dest="$2"

@@ -13,15 +13,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-OS_ROOT=$(
-  unset CDPATH
-  origin_root=$(dirname "${BASH_SOURCE}")/../../..
-  cd "${origin_root}"
-  pwd
-)
-
-source ${OS_ROOT}/hack/util.sh
-source ${OS_ROOT}/hack/common.sh
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
+source "${OS_ROOT}/hack/util.sh"
+source "${OS_ROOT}/hack/common.sh"
+os::log::install_errexit
 
 # These strings filter the available tests.
 NETWORKING_E2E_FOCUS="${NETWORKING_E2E_FOCUS:-}"
@@ -119,7 +114,8 @@ function test-osdn-plugin() {
 
 ensure_ginkgo_or_die
 
-os::build::extended
+os::build::setup_env
+go test -c ./test/extended/networking -o ${OS_OUTPUT_BINPATH}/networking.test
 
 os::log::info "Starting 'networking' extended tests"
 
