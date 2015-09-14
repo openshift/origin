@@ -78,6 +78,14 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 	currentStatus := deployutil.DeploymentStatusFor(deployment)
 	nextStatus := currentStatus
 
+	// If the deployment's already in a terminal state, do nothing. Otherwise we
+	// might reset the state based on the outcome of the deployer pod, which is
+	// now irrelevant (we already have a deployment outcome).
+	if currentStatus == deployapi.DeploymentStatusFailed ||
+		currentStatus == deployapi.DeploymentStatusComplete {
+		return nil
+	}
+
 	switch pod.Status.Phase {
 	case kapi.PodRunning:
 		nextStatus = deployapi.DeploymentStatusRunning
@@ -93,16 +101,13 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 			delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
 		}
 	case kapi.PodFailed:
-		// if the deployment is already marked Failed, do not attempt clean up again
-		if currentStatus != deployapi.DeploymentStatusFailed {
-			// clean up will also update the deployment status to Failed
-			// failure to clean up will result in retries and
-			// the deployment will not be marked Failed
-			// Note: this will prevent new deployments from being created for this config
-			err := c.cleanupFailedDeployment(deployment)
-			if err != nil {
-				return transientError(fmt.Sprintf("couldn't clean up failed deployment: %v", err))
-			}
+		// clean up will also update the deployment status to Failed
+		// failure to clean up will result in retries and
+		// the deployment will not be marked Failed
+		// Note: this will prevent new deployments from being created for this config
+		err := c.cleanupFailedDeployment(deployment)
+		if err != nil {
+			return transientError(fmt.Sprintf("couldn't clean up failed deployment: %v", err))
 		}
 	}
 

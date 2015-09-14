@@ -129,48 +129,16 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 
 		// Handle deployment cancellation.
 		if deployutil.IsDeploymentCancelled(deployment) {
-			deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
-			if err != nil {
-				return fmt.Errorf("couldn't fetch deployer pods for %s while trying to cancel deployment: %v", deployutil.LabelForDeployment(deployment), err)
-			}
-			glog.V(4).Infof("Cancelling %d deployer pods for deployment %s", len(deployerPods), deployutil.LabelForDeployment(deployment))
-			zeroDelay := int64(1)
-			for _, deployerPod := range deployerPods {
-				if deployerPod.Status.Phase == kapi.PodPending {
-					// If the pod hasn't yet been scheduled, just delete it.
-					err := c.podClient.deletePod(deployerPod.Namespace, deployerPod.Name)
-					if err != nil {
-						c.recorder.Eventf(deployment, "failedCancellation", "Error deleting deployer pod %s while cancelling deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
-						return fmt.Errorf("couldn't delete deployer pod %s while cancelling deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
-					}
-					// If we deleted the unscheduled primary deployer pod, just
-					// transition to failed immediately, since the DeployerPodController
-					// has no cleanup to do as the deployment never executed.
-					if deployerPod.Name == deployutil.DeployerPodNameForDeployment(deployment.Name) {
-						nextStatus = deployapi.DeploymentStatusFailed
-					}
-					glog.V(4).Infof("Deleted deployer pod %s while cancelling deployment %s", deployerPod.Name, deployutil.LabelForDeployment(deployment))
-				} else {
-					// Since the deployer pod is already running, set
-					// ActiveDeadlineSeconds on the pod so it's terminated very soon. If
-					// the primary deployer pod has a deadline and doesn't get deleted,
-					// the DeployerPodController will handle failing the deployment and
-					// perfoming any other cleanup.
-					if deployerPod.Spec.ActiveDeadlineSeconds == nil || *deployerPod.Spec.ActiveDeadlineSeconds != zeroDelay {
-						deployerPod.Spec.ActiveDeadlineSeconds = &zeroDelay
-						if _, err := c.podClient.updatePod(deployerPod.Namespace, &deployerPod); err != nil {
-							c.recorder.Eventf(deployment, "failedCancellation", "Error cancelling deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
-							return fmt.Errorf("couldn't cancel deployer pod %s for deployment %s: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err)
-						}
-						glog.V(4).Infof("Cancelled deployer pod %s for deployment %s", deployerPod.Name, deployutil.LabelForDeployment(deployment))
-					}
-				}
-			}
+			nextStatus = deployapi.DeploymentStatusFailed
 			c.recorder.Eventf(deployment, "cancelled", "Cancelled deployment")
 		}
-	case deployapi.DeploymentStatusFailed:
-		// Nothing to do in this terminal state.
-	case deployapi.DeploymentStatusComplete:
+	case deployapi.DeploymentStatusComplete, deployapi.DeploymentStatusFailed:
+		// If the deployment failed normally (not via manual cancellation), leave
+		// the deployer pods around for analysis. Otherwise, clean them up.
+		if currentStatus == deployapi.DeploymentStatusFailed &&
+			!deployutil.IsDeploymentCancelled(deployment) {
+			break
+		}
 		// now list any pods in the namespace that have the specified label
 		deployerPods, err := c.podClient.getDeployerPodsFor(deployment.Namespace, deployment.Name)
 		if err != nil {
