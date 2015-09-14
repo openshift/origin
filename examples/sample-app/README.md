@@ -259,7 +259,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     Sample output:
 
         NAME                  TYPE                STATUS              POD
-        ruby-sample-build-1   STI                 Complete            ruby-sample-build-1
+        ruby-sample-build-1   Source              Complete            ruby-sample-build-1
 
      The built image will be named with the ImageStream
      (origin-ruby-sample) named in the BuildConfig and pushed to the
