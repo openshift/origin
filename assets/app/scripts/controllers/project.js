@@ -21,6 +21,9 @@ angular.module('openshiftConsole')
       showSidebarRight: false
     };
 
+    /* The view mode of the overview project page */
+    $scope.overviewMode = 'tiles';
+
     AuthService.withUser().then(function() {
       DataService.get("projects", $scope.projectName, $scope, {errorNotification: false}).then(
         // success
