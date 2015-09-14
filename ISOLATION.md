@@ -1,4 +1,4 @@
-## SDN with Isolation for Openshift
+## SDN with Isolation for OpenShift
 
 This document describes the architecture, benefits, and limitations of the isolation/multitenant implementation for openshift-sdn.
 
