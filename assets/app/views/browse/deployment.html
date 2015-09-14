@@ -1,0 +1,97 @@
+<div ng-controller="DeploymentController" class="content">
+  <project-page>
+    <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+    <alerts alerts="alerts"></alerts>
+    <div ng-if="deployment">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="tile">
+            <dl class="dl-horizontal left">
+              <dt>Name:</dt>
+              <dd>{{deployment.metadata.name}}</dd>
+              <dt>Status:</dt>
+              <dd>
+                <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave">
+                  <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>              
+                  <span ng-switch-when="Deployed" class="fa fa-check text-success" aria-hidden="true"></span>
+                  <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
+                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
+                  <span ng-switch-when="New" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
+                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
+                  <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
+                </span>
+                {{deployment | deploymentStatus}} 
+                <span style="margin-left: 7px;">
+                  <button ng-show="!rollBackCollapsed && (deployment | deploymentStatus) == 'Complete' && !(deployment | deploymentIsLatest : deploymentConfig) && !deployment.metadata.deleted" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" type="button" class="btn btn-primary" ng-click="rollBackCollapsed = !rollBackCollapsed">Roll Back</button>
+                  <div ng-show="rollBackCollapsed" class="well well-sm">
+                    Use the following settings from {{deployment.metadata.name}} when rolling back: 
+                    <div class="checkbox">
+                      <label>
+                        <input type="checkbox" ng-model="changeScaleSettings" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0"> replica count and selector
+                      </label>
+                    </div>
+                    <div class="checkbox">
+                      <label>
+                        <input type="checkbox" ng-model="changeStrategy" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0"> deployment strategy
+                      </label>
+                    </div>
+                    <div class="checkbox">
+                      <label>
+                        <input type="checkbox" ng-model="changeTriggers" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0"> deployment trigger
+                      </label>
+                    </div>
+                    <button type="button" ng-click="rollbackToDeployment(deployment, changeScaleSettings, changeStrategy, changeTriggers)" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" class="btn btn-primary">Roll Back</button>
+                  </div>
+                  <!-- disabled until we have an api endpoint for retry
+                  <button ng-show="(deployment | deploymentStatus) == 'Failed'" type="button" ng-click="retryFailedDeployment(deployment)" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" class="btn btn-primary" ng-if="(deployment | deploymentIsLatest : deploymentConfig) && !deployment.metadata.deleted">Retry</button>
+                  -->
+                  <button ng-show="(deployment | deploymentIsInProgress) && !deployment.metadata.deleted" type="button" ng-click="cancelRunningDeployment(deployment)" class="btn btn-primary">Cancel</button>
+                </span>                
+              </dd>
+              <dt ng-if="deployment | isDeployment">Deployment config:</dt>
+              <dd ng-if="deployment | isDeployment">
+                <a href="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfigName}}">{{deploymentConfigName}}</a>
+              </dd>
+              <dt>Created:</dt>
+              <dd>
+                <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
+              </dd>
+              <dt ng-if="deployment | annotation:'deploymentStatusReason'">Status reason:</dt>
+              <dd ng-if="deployment | annotation:'deploymentStatusReason'">
+                {{deployment | annotation:'deploymentStatusReason'}}
+              </dd>
+              <dt ng-if="deployment | deploymentIsInProgress">Duration:</dt>
+              <dd ng-if="deployment | deploymentIsInProgress">
+                <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave">
+                  <span ng-switch-when="Running">running for <duration-until-now timestamp="deployment.metadata.creationTimestamp"></duration-until-now></span>
+                  <span ng-switch-default>waiting for <duration-until-now timestamp="deployment.metadata.creationTimestamp"></duration-until-now></span>
+                </span>
+              </dd>
+              <dt>Labels:</dt>
+              <dd>
+                <span ng-if="!deployment.metadata.labels">none</span>
+                <span ng-repeat="(labelKey, labelValue) in deployment.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
+              </dd>
+              <dt>Selectors:</dt>
+              <dd>
+                <span ng-if="!deployment.spec.selector">none</span>
+                <span ng-repeat="(labelKey, labelValue) in deployment.spec.selector">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
+              </dd>
+              <dt>Replicas:</dt>
+              <dd>
+                {{deployment.status.replicas}} current / {{deployment.spec.replicas}} desired
+              </dd>
+            </dl>
+            <div class="deployment-detail">
+              <span>Pod template:</span>
+              <pod-template
+                pod-template="deployment.spec.template"
+                images-by-docker-reference="imagesByDockerReference"
+                builds="builds"></pod-template>
+            </div>
+          </div> <!-- /tile -->
+        </div><!-- .col -->
+      </div>
+    </div>
+  </project-page>
+</div>

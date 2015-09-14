@@ -197,7 +197,10 @@ html, body {
 }
 
 .breadcrumb {
-  margin-bottom: 0;
+  font-size: @font-size-base - 1;
+  strong {
+    font-weight: 600;
+  }
 }
 
 .empty-project {
@@ -227,6 +230,23 @@ html, body {
     margin-top: 150px;
   }
 }
+
+  .service-table {
+    border: 0;
+    margin: 10px 0 5px;
+    table {
+      .table;
+      .table-condensed;
+      .text-center;
+      .small;
+      margin-bottom: 0;
+      thead {
+        tr th {
+          .text-center;
+        }
+      }
+    }
+  }
 
 
 // Create App
@@ -424,61 +444,6 @@ abbr[data-original-title], abbr[title] {
   }
 }
 
-.table-responsive {
-  overflow-x: auto; // remove when we update to latest patternfly with twbs 3.3.4
-}
-
-.table-events {
-  background-color: #fff;
-  > tbody {
-    + tbody {
-      border-top-width: 1px;
-    }
-  }
-  tr {
-    @media (min-width: @screen-md-min) {
-      td.event-time {
-        white-space: nowrap;
-      }
-    }
-  }
-}
-@media (max-width: @screen-xs-max) {
-  .table-events {
-    thead, tbody, th, td, tr {
-      display: block;
-    }
-    thead tr {
-      /* Hide table headers (but not display: none;, for accessibility) */
-      .sr-only();
-    }
-    > tbody {
-      > tr {
-        > td {
-           /* Behave like a row */
-          border: none;
-          border-bottom: 1px solid #eee;
-          padding: 3px 6px 2px 35%;
-          position: relative;
-          &:last-child {
-            border-bottom: none;
-          }
-          &:before {
-            /* Act as mobile table header */
-            content: attr(data-title);
-            position: absolute;
-            top: 3px;
-            left: 6px;
-            width: 35%; 
-            padding-right: 10px; 
-            white-space: nowrap;
-          }
-        }
-      }
-    }
-  }
-}
-
 .gutter-top-bottom {
   padding: @grid-gutter-width / 2 0;
   &.gutter-top-bottom-2x {
@@ -575,5 +540,13 @@ select:invalid {
   }
   p {
     font-size: @font-size-large + 1;
+  }
+}
+
+.status {
+  .status-icon {
+    margin-right: 6px;
+    width: 13px;
+    text-align: center;
   }
 }

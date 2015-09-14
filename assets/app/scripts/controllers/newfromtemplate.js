@@ -132,13 +132,12 @@ angular.module('openshiftConsole')
           if (result.data && result.data.message) {
             details = result.data.message;
           }
-          $scope.alerts = [
+          $scope.alerts["process"] = 
             {
               type: "error",
               message: "An error occurred processing the template.",
               details: details
-            }
-          ];
+            };
         }
       );
     };
@@ -152,7 +151,7 @@ angular.module('openshiftConsole')
     }
 
     $scope.emptyMessage = "Loading...";
-    $scope.alerts = [];
+    $scope.alerts = {};
     $scope.projectName = $routeParams.project;
     $scope.projectPromise = $.Deferred();
     DataService.get("projects", $scope.projectName, $scope).then(function(project) {

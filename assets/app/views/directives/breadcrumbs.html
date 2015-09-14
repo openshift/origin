@@ -1,0 +1,6 @@
+<ol class="breadcrumb" ng-if="breadcrumbs.length">
+  <li ng-repeat="breadcrumb in breadcrumbs" ng-class="{'active': !$last}">
+    <a ng-if="!$last" href="{{breadcrumb.link}}">{{breadcrumb.title}}</a>
+    <strong ng-if="$last">{{breadcrumb.title}}</strong>
+  </li>
+</ol>

@@ -5,63 +5,84 @@
         <h1>Services</h1>
       </div>
       <alerts alerts="alerts"></alerts>
-      <div ng-if="(services | hashSize) == 0">
-        <div>
-          <em>{{emptyMessage}}</em>
-        </div>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Cluster IP</th>
+              <th>External IP</th>
+              <th>Ports</th>
+              <th>Selector</th>
+              <th>Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-if="(services | hashSize) == 0"><td colspan="6"><em>{{emptyMessage}}</em></td></tr>
+            <tr ng-repeat="service in services | orderObjectsByDate : true">
+              <td><a href="project/{{projectName}}/browse/services/{{service.metadata.name}}">{{service.metadata.name}}</a></td>
+              <td>{{service.spec.clusterIP}}</td>
+              <td>
+                <span ng-if="!service.status.loadBalancer.ingress.length"><em>none</em></span>
+                <span ng-repeat="ingress in service.status.loadBalancer.ingress | limitTo: 4">{{ingress.ip}}<span ng-if="!$last">,
+                </span></span><span ng-if="service.status.loadBalancer.ingress.length === 5">,
+                  {{service.status.loadBalancer.ingress[4].ip}}</span><span ng-if="service.status.loadBalancer.ingress.length > 5">,
+                  and {{service.status.loadBalancer.ingress.length - 4}} others</span>
+              </td>
+              <td>
+                <span ng-if="!service.spec.ports.length"><em>none</em></span>
+                <span ng-repeat="portMapping in service.spec.ports | limitTo: 4">{{portMapping.port}} ({{portMapping.protocol}})<span ng-if="!$last">,
+                </span></span><span ng-if="service.spec.ports.length === 5">,
+                  {{service.spec.ports[4].port}} ({{service.spec.ports[4].protocol}})</span><span ng-if="service.spec.ports.length > 5">,
+                  and {{service.spec.ports.length - 4}} others</span>
+              </td>
+              <td>
+                <span ng-if="!service.spec.selector"><em>none</em></span>
+                <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>              
+              </td>
+              <td><relative-timestamp timestamp="service.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div ng-repeat="service in services" class="tile">
-        <h3 id="service-{{service.metadata.name}}">
-          {{service.metadata.name}}
-          <span class="tile-timestamp">Created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></span>
-        </h3>
-        <div>Selectors: <span ng-if="!service.spec.selector"><em>none</em></span>
-            <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector"> {{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>
-        </div>
-        <div>Type: {{service.spec.type}}</div>
-        <div>Routes: <span ng-if="(routesByService[service.metadata.name] | hashSize) == 0"><em>none</em></span>
-            <span ng-repeat="(routeName, route) in routesByService[service.metadata.name]">
-                <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
-                <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
-                <span ng-show="!$last">, </span>
-            </span>
-        </div>
-        <div class="table-responsive">
-          <table ng-if="service.spec.ports.length" style="max-width: 650px;">
-            <thead>
-              <tr>
-                <th>Node Port</th>
-                <th role="presentation"></th>
-                <th>
-                  Service Port
-                  <!-- Show cluster IP in column header instead of table body at small screen widths to save space. -->
-                  <span class="visible-xs">({{service.spec.clusterIP}})</span>
-                </th>
-                <th role="presentation"></th>
-                <th>Target Port</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr ng-repeat="portMapping in service.spec.ports | orderBy:'port'">
-                <td>
-                  <span ng-if="portMapping.nodePort">{{portMapping.nodePort}}</span>
-                  <span ng-if="!portMapping.nodePort" class="text-muted">none</span>
-                </td>
-                <td role="presentation" class="text-muted">&#8594;</td>
-                <td><span ng-if="service.spec.clusterIP && service.spec.clusterIP !== 'None'">
-                    <span class="hidden-xs">{{service.spec.clusterIP}}:</span></span>{{portMapping.port}}</td>
-                <td role="presentation" class="text-muted">&#8594;</td>
-                <td>{{portMapping.targetPort}}&nbsp;({{portMapping.protocol}})</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <h3>Routes</h3>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Hostname</th>
+              <th>Routes to</th>
+              <th>Age</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-if="(routes | hashSize) == 0"><td colspan="6"><em>{{emptyMessageRoutes}}</em></td></tr>
+            <tr ng-repeat="route in routes | orderObjectsByDate : true">
+              <td>{{route.metadata.name}}</td>
+              <td>
+                <span ng-if="(route | isWebRoute)">
+                  <a href="{{route | routeWebURL}}">{{route | routeLabel}}</a>
+                </span>
+                <span ng-if="!(route | isWebRoute)">
+                  {{route | routeLabel}}
+                </span>
+              </td>
+              <td>
+                <span>{{route.spec.to.kind}}: </span>
+                <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
+                <span ng-if="route.spec.to.kind == 'Service'"><a href="project/{{projectName}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></span>
+              </td>
+              <td><relative-timestamp timestamp="route.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div ng-if="routesByService['']" style="margin-bottom: 10px;">
         <h3>No Service</h3>
         <div>Routes: <span ng-repeat="(routeName, route) in routesByService['']">{{route.host}}<span ng-show="!$last">, </span></span></div>
-      </div>
+      </div>      
     </div>
   </project-page>
 </div>
