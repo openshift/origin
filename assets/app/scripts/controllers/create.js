@@ -8,9 +8,15 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateController', function ($scope, DataService, tagsFilter, uidFilter, createFromSourceURLFilter, LabelFilter, $location, Logger) {
+  .controller('CreateController', function ($scope, DataService, AuthService, Upload, tagsFilter, uidFilter, createFromSourceURLFilter, LabelFilter, $location, Logger) {
     var projectTemplates;
     var openshiftTemplates;
+
+    // for creating with auth
+    AuthService.withUser();
+
+    // alerts
+    $scope.alerts = $scope.alerts || {};
 
     // Templates with the `instant-apps` tag.
     $scope.instantApps = undefined;
@@ -24,17 +30,21 @@ angular.module('openshiftConsole')
 
     $scope.sourceURLPattern = /^((ftp|http|https|git):\/\/(\w+:{0,1}[^\s@]*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/;
 
-    DataService.list("templates", $scope, function(templates) {
-      projectTemplates = templates.by("metadata.name");
-      updateTemplates();
-      Logger.info("project templates", projectTemplates);
-    });
+    function loadTemplates() {
+      DataService.list("templates", $scope, function(templates) {
+        projectTemplates = templates.by("metadata.name");
+        updateTemplates();
+        Logger.info("project templates", projectTemplates);
+      });
 
-    DataService.list("templates", {namespace: "openshift"}, function(templates) {
-      openshiftTemplates = templates.by("metadata.name");
-      updateTemplates();
-      Logger.info("openshift templates", openshiftTemplates);
-    });
+      DataService.list("templates", {namespace: "openshift"}, function(templates) {
+        openshiftTemplates = templates.by("metadata.name");
+        updateTemplates();
+        Logger.info("openshift templates", openshiftTemplates);
+      });
+    }
+
+    loadTemplates();
 
     function isInstantApp(template) {
       var i, tags = tagsFilter(template);
@@ -76,4 +86,9 @@ angular.module('openshiftConsole')
         $location.url(createFromSourceURL);
       }
     };
+
+    // watch
+    $scope.$on('refreshList', function() {
+      loadTemplates();
+    });
   });

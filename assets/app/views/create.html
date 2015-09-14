@@ -39,7 +39,9 @@
             <div class="col-md-12">
               <div class="separator"></div>
               <h1><i class="fa fa-bolt"></i> Create Using a Template</h1>
+              <alerts alerts="alerts"></alerts>
               <p>Templates have predefined resources for quickly creating components. You can customize some options in the next step.</p>
+              <upload-button alerts="alerts" resource-type="template" refresh="refresh"></upload-button>
               <h3>Instant Apps</h3>
               <div ng-if="!templatesLoaded && (instantApps | hashSize) === 0">Loading...</div>
               <div ng-if="templatesLoaded && (instantApps | hashSize) === 0">
