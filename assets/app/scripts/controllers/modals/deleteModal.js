@@ -3,9 +3,9 @@
 
 /**
  * @ngdoc function
- * @name openshiftConsole.controller:ServicesController
+ * @name openshiftConsole.controller:DeleteModalController
  * @description
- * # ProjectController
+ * # DeleteModalController
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')

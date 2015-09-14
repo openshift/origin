@@ -12,7 +12,10 @@
       </div>
       <div class="tile" ng-repeat="(buildConfigName, buildConfig) in buildConfigs">
         <div>
-          <h2>{{buildConfigName}}</h2>
+          <h2>
+            {{buildConfigName}}
+            <delete-button resource-type="buildconfig" resource-name="{{buildConfigName}}" alerts="alerts"></delete-button>
+          </h2>
           <dl class="dl-horizontal left indent">
           <div>
             <dt>Build strategy:</dt>

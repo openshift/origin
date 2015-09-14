@@ -1,0 +1,10 @@
+<div class="modal-resource-delete">
+  <div class="modal-body">
+    <h1>Are you sure you want to delete the {{nameFormatMap[resourceType]}} '<strong>{{displayName ? displayName : resourceName}}</strong>'?</h1>
+    <p>This<span ng-if="isProject"> will <strong>delete all resources</strong> associated with the project {{displayName ? displayName : resourceName}} and</span> <strong>cannot be undone</strong>.  Make sure this is something you really want to do!</p>
+  </div>
+  <div class="modal-footer">
+      <button class="btn btn-lg btn-danger" type="button" ng-click="delete();">Delete this {{nameFormatMap[resourceType]}}</button>
+      <button class="btn btn-lg btn-default" type="button" ng-click="cancel();">Cancel</button>
+  </div>
+</div>

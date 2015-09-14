@@ -13,7 +13,8 @@
       <div ng-repeat="service in services" class="tile">
         <h3 id="service-{{service.metadata.name}}">
           {{service.metadata.name}}
-          <span class="tile-timestamp">Created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></span>
+          <delete-button resource-type="service" resource-name="{{service.metadata.name}}" alerts="alerts"></delete-button>   
+          <span class="tile-timestamp" style="margin-right: 10px;">Created <relative-timestamp timestamp="service.metadata.creationTimestamp"></relative-timestamp></span>
         </h3>
         <div>Selectors: <span ng-if="!service.spec.selector"><em>none</em></span>
             <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector"> {{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>
