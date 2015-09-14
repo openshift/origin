@@ -30,9 +30,7 @@ echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"
 echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
 echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
 
-imagedir="_output/imagecontext"
-rm -rf "${imagedir}"
-mkdir -p "${imagedir}"
+imagedir="$(mktemp -d 2>/dev/null || mktemp -d -t imagedir.XXXXXX)"
 tar xzpf "${OS_PRIMARY_RELEASE_TAR}" -C "${imagedir}"
 tar xzpf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
 
