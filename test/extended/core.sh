@@ -49,7 +49,7 @@ oc create -n openshift -f examples/image-streams/image-streams-centos7.json --co
 pushd ${OS_ROOT}/test/extended >/dev/null
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
-TMPDIR=${BASETMPDIR} ginkgo -progress -skip="${SKIP:-}" -stream -v -p ${OS_OUTPUT_BINPATH}/extended.test "$@"
+TMPDIR=${BASETMPDIR} ginkgo -progress -stream -v -p ${OS_OUTPUT_BINPATH}/extended.test "$@"
 popd >/dev/null
 
 
