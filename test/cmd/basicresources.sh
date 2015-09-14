@@ -11,7 +11,7 @@ os::log::install_errexit
 # This test validates basic resource retrieval and command interaction
 
 # Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
-[ "$(oc create -f test/resource-builder/directory -f test/resource-builder/json-no-extension -f test/resource-builder/yml-no-extension 2>&1)" ]
+[ "$(oc create -f test/fixtures/resource-builder/directory -f test/fixtures/resource-builder/json-no-extension -f test/fixtures/resource-builder/yml-no-extension 2>&1)" ]
 # Explicitly specified extensionless files
 oc get secret json-no-extension yml-no-extension
 # Scanned files with extensions inside directories

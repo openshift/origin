@@ -7,7 +7,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-OS_ROOT=$(dirname "${BASH_SOURCE}")/..
+OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
 os::log::install_errexit
 
@@ -16,30 +16,30 @@ TEST_ASSETS="${TEST_ASSETS:-false}"
 
 
 function wait_for_app() {
-	echo "[INFO] Waiting for app in namespace $1"
-	echo "[INFO] Waiting for database pod to start"
-	wait_for_command "oc get -n $1 pods -l name=database | grep -i Running" $((60*TIME_SEC))
+  echo "[INFO] Waiting for app in namespace $1"
+  echo "[INFO] Waiting for database pod to start"
+  wait_for_command "oc get -n $1 pods -l name=database | grep -i Running" $((60*TIME_SEC))
 
-	echo "[INFO] Waiting for database service to start"
-	wait_for_command "oc get -n $1 services | grep database" $((20*TIME_SEC))
-	DB_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
+  echo "[INFO] Waiting for database service to start"
+  wait_for_command "oc get -n $1 services | grep database" $((20*TIME_SEC))
+  DB_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service database)
 
-	echo "[INFO] Waiting for frontend pod to start"
-	wait_for_command "oc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
+  echo "[INFO] Waiting for frontend pod to start"
+  wait_for_command "oc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
 
-	echo "[INFO] Waiting for frontend service to start"
-	wait_for_command "oc get -n $1 services | grep frontend" $((20*TIME_SEC))
-	FRONTEND_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
+  echo "[INFO] Waiting for frontend service to start"
+  wait_for_command "oc get -n $1 services | grep frontend" $((20*TIME_SEC))
+  FRONTEND_IP=$(oc get -n $1 --output-version=v1beta3 --template="{{ .spec.portalIP }}" service frontend)
 
-	echo "[INFO] Waiting for database to start..."
-	wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
+  echo "[INFO] Waiting for database to start..."
+  wait_for_url_timed "http://${DB_IP}:5434" "[INFO] Database says: " $((3*TIME_MIN))
 
-	echo "[INFO] Waiting for app to start..."
-	wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
+  echo "[INFO] Waiting for app to start..."
+  wait_for_url_timed "http://${FRONTEND_IP}:5432" "[INFO] Frontend says: " $((2*TIME_MIN))
 
-	echo "[INFO] Testing app"
-	wait_for_command '[[ "$(curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337)" = "Key created" ]]'
-	wait_for_command '[[ "$(curl -s http://${FRONTEND_IP}:5432/keys/foo)" = "1337" ]]'
+  echo "[INFO] Testing app"
+  wait_for_command '[[ "$(curl -s -X POST http://${FRONTEND_IP}:5432/keys/foo -d value=1337)" = "Key created" ]]'
+  wait_for_command '[[ "$(curl -s http://${FRONTEND_IP}:5432/keys/foo)" = "1337" ]]'
 }
 
 # add e2e-user as a viewer for the default namespace so we can see infrastructure pieces appear
@@ -72,7 +72,7 @@ echo "[INFO] Pulled ruby-20-centos7"
 echo "[INFO] Waiting for Docker registry pod to start"
 wait_for_registry
 
-# services can end up on any IP.	Make sure we get the IP we need for the docker registry
+# services can end up on any IP.  Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
 
 registry="$(dig @${API_HOST} "docker-registry.default.svc.cluster.local." +short A | head -n 1)"
@@ -195,7 +195,7 @@ echo "[INFO] Validating pod.spec.nodeSelector rejections"
 # Create a project that enforces an impossible to satisfy nodeSelector, and two pods, one of which has an explicit node name
 openshift admin new-project node-selector --description="This is an example project to test node selection prevents deployment" --admin="e2e-user" --node-selector="impossible-label=true"
 NODE_NAME=`oc get node --no-headers | awk '{print $1}'`
-oc process -n node-selector -v NODE_NAME="${NODE_NAME}" -f test/node-selector/pods.json | oc create -n node-selector -f -
+oc process -n node-selector -v NODE_NAME="${NODE_NAME}" -f test/fixtures/node-selector/pods.json | oc create -n node-selector -f -
 # The pod without a node name should fail to schedule
 wait_for_command "oc get events -n node-selector | grep pod-without-node-name | grep failedScheduling"        $((20*TIME_SEC))
 # The pod with a node name should be rejected by the kubelet
@@ -243,19 +243,19 @@ oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.after.txt
 # UI e2e tests can be found in assets/test/e2e
 if [[ "$TEST_ASSETS" == "true" ]]; then
 
-	if [[ "$TEST_ASSETS_HEADLESS" == "true" ]]; then
-		echo "[INFO] Starting virtual framebuffer for headless tests..."
-		export DISPLAY=:10
-		Xvfb :10 -screen 0 1024x768x24 -ac &
-	fi
+  if [[ "$TEST_ASSETS_HEADLESS" == "true" ]]; then
+    echo "[INFO] Starting virtual framebuffer for headless tests..."
+    export DISPLAY=:10
+    Xvfb :10 -screen 0 1024x768x24 -ac &
+  fi
 
-	echo "[INFO] Running UI e2e tests at time..."
-	echo `date`
-	pushd ${OS_ROOT}/assets > /dev/null
-		grunt test-e2e
-	echo "UI  e2e done at time "
-	echo `date`
+  echo "[INFO] Running UI e2e tests at time..."
+  echo `date`
+  pushd ${OS_ROOT}/assets > /dev/null
+    grunt test-e2e
+  echo "UI  e2e done at time "
+  echo `date`
 
-	popd > /dev/null
+  popd > /dev/null
 
 fi
