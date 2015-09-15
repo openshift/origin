@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
+
 	"time"
 
 	"github.com/docker/docker/pkg/units"
@@ -289,14 +291,11 @@ func (o *DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer
 		fmt.Fprintf(out, "There have been no deployments for %s/%s\n", config.Namespace, config.Name)
 		return nil
 	}
+	sort.Sort(deployutil.DeploymentsByLatestVersionDesc(deployments.Items))
 	failedCancellations := []string{}
 	anyCancelled := false
-	var latest *kapi.ReplicationController
 	for _, deployment := range deployments.Items {
 		status := deployutil.DeploymentStatusFor(&deployment)
-		if deployment.Name == deployutil.LatestDeploymentNameForConfig(config) {
-			latest = &deployment
-		}
 		switch status {
 		case deployapi.DeploymentStatusNew,
 			deployapi.DeploymentStatusPending,
@@ -322,18 +321,12 @@ func (o *DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer
 		return fmt.Errorf("couldn't cancel deployment %s", strings.Join(failedCancellations, ", "))
 	}
 	if !anyCancelled {
-		if latest == nil {
-			// TODO: this could mean that a new deployment is forthcoming but hasn't
-			// yet been created; might not be worth trying to express in this
-			// context.
-			fmt.Fprintf(out, "No deployments are in progress\n")
-		} else {
-			timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
-			fmt.Fprintf(out, "No deployments are in progress (latest deployment #%d %s %s ago)\n",
-				deployutil.DeploymentVersionFor(latest),
-				strings.ToLower(string(deployutil.DeploymentStatusFor(latest))),
-				timeAt)
-		}
+		latest := &deployments.Items[0]
+		timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
+		fmt.Fprintf(out, "No deployments are in progress (latest deployment #%d %s %s ago)\n",
+			deployutil.DeploymentVersionFor(latest),
+			strings.ToLower(string(deployutil.DeploymentStatusFor(latest))),
+			timeAt)
 	}
 	return nil
 }
