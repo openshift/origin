@@ -117,6 +117,7 @@ func (templater *templater) UsageFunc(exposedFlags ...string) func(*cobra.Comman
 			"eq":                  cobra.Eq,
 			"rpad":                rpad,
 			"flagsNotIntersected": flagsNotIntersected,
+			"visibleFlags":        visibleFlags,
 			"flagsUsages":         flagsUsages,
 			"cmdGroups":           templater.cmdGroups,
 			"rootCmd":             templater.rootCmdName,
@@ -225,6 +226,17 @@ func flagsNotIntersected(l *flag.FlagSet, r *flag.FlagSet) *flag.FlagSet {
 	f := flag.NewFlagSet("notIntersected", flag.ContinueOnError)
 	l.VisitAll(func(flag *flag.Flag) {
 		if r.Lookup(flag.Name) == nil {
+			f.AddFlag(flag)
+		}
+	})
+	return f
+}
+
+func visibleFlags(l *flag.FlagSet) *flag.FlagSet {
+	hidden := "help"
+	f := flag.NewFlagSet("visible", flag.ContinueOnError)
+	l.VisitAll(func(flag *flag.Flag) {
+		if flag.Name != hidden {
 			f.AddFlag(flag)
 		}
 	})
