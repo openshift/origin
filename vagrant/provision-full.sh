@@ -41,8 +41,6 @@ set_env /root
 systemctl enable docker
 systemctl start docker
 
-usermod -a -G docker $USERNAME
-
 echo To install etcd, run hack/install-etcd.sh
 
 sed -i s/^Defaults.*requiretty/\#Defaults\ requiretty/g /etc/sudoers
