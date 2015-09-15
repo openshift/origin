@@ -1,6 +1,25 @@
 'use strict';
 
 angular.module('openshiftConsole')
+  .directive("catalogCategory", function () {
+    return {
+      restrict: "E",
+      scope: {
+        categoryLabel: "@",
+        builders: "=",
+        templates: "=",
+        project: "@",
+        itemLimit: "@",
+        filterTag: "="
+      },
+      templateUrl: "views/catalog/_catalog-category.html",
+      controller: function($scope) {
+        $scope.builderID = function(builder) {
+          return builder.imageStream.metadata.uid + ":" + builder.imageStreamTag;
+        };
+      }
+    };
+  })
   .directive('catalogTemplate', function() {
     return {
       restrict: 'E',
@@ -9,7 +28,8 @@ angular.module('openshiftConsole')
       replace: true,
       scope: {
         template: '=',
-        project: '='
+        project: '@',
+        filterTag: "="
       },
       templateUrl: 'views/catalog/_template.html'
     };
@@ -22,11 +42,12 @@ angular.module('openshiftConsole')
       replace: true,
       scope: {
         image: '=',
-        imageRepo: '=',
+        imageStream: '=',
         imageTag: '=',
         version: '=',
-        project: '=',
-        sourceUrl: '='
+        project: '@',
+        filterTag: "=",
+        isBuilder: "=?"
       },
       templateUrl: 'views/catalog/_image.html'
     };

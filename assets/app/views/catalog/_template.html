@@ -1,32 +1,26 @@
-<div class="tile tile-template tile-click label-tags" ng-attr-title="{{template.metadata.name}}">
-  <div class="tile-table">
-    <div class="tile-table-cell template-icon">
+<div class="tile tile-compact tile-template tile-click label-tags" ng-attr-title="{{(template | description) || template.metadata.name}}">
+  <div row cross-axis="center" class="tile-flex">
+    <div row main-axis="center" class="image-icon">
       <custom-icon resource="template" kind="template" ></custom-icon>
     </div>
-    <div class="tile-table-cell">
+    <div flex>
       <h3><a class="tile-target" ng-href="{{template | createFromTemplateURL : project}}">{{template.metadata.name}}</a></h3>
-      <p ng-if="template | description">
-        <truncate-long-text content="template | description" limit="256" use-word-boundary="true"></truncate-long-text>
-      </p>
-      <p>
-        <div ng-if="template | annotation : 'provider'">
-          <label style="margin-right: 5px;">Provider:</label>
-          {{template | annotation : 'provider'}}
-        </div>
-        <div>
-          <label style="margin-right: 5px;">Namespace:</label>
-          {{template.metadata.namespace}}
-        </div>
-        <div ng-if="template | annotation : 'version'">
-          <label style="margin-right: 5px;">Version:</label>
-          {{template | annotation : 'version'}}
-        </div>
-      </p>
-      <p>
-        <span ng-repeat="tag in (template | tags)" class="tag small text-muted">
-          {{tag}}
-        </span>
-      </p>
+      <div ng-if="template | annotation : 'provider'">
+        <label style="margin-right: 5px;">Provider:</label>
+        {{template | annotation : 'provider'}}
+      </div>
+      <!-- Only show the namespace if it's not in the shared openshift namespace -->
+      <div ng-if="template.metadata.namespace !== 'openshift'">
+        <label style="margin-right: 5px;">Namespace:</label>
+        {{template.metadata.namespace}}
+      </div>
+      <div ng-if="template | annotation : 'version'">
+        <label style="margin-right: 5px;">Version:</label>
+        {{template | annotation : 'version'}}
+      </div>
+      <a href="" ng-click="filterTag(tag)" ng-repeat="tag in (template | tags)" class="tag small">
+        {{tag}}
+      </a>
     </div>
   </div>
 </div>

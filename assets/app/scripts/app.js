@@ -123,7 +123,7 @@ angular
       })
       .when('/project/:project/browse/builds/:buildconfig', {
         templateUrl: 'views/browse/build-config.html'
-      }) 
+      })
       .when('/project/:project/browse/builds/:buildconfig/:build', {
         templateUrl: 'views/browse/build.html'
       })
@@ -131,20 +131,20 @@ angular
       // Needs to still be prefixed with browse/builds so the secondary nav active state is correct
       .when('/project/:project/browse/builds-noconfig/:build', {
         templateUrl: 'views/browse/build.html'
-      })      
+      })
       .when('/project/:project/browse/deployments', {
         templateUrl: 'views/deployments.html'
       })
       .when('/project/:project/browse/deployments/:deploymentconfig', {
         templateUrl: 'views/browse/deployment-config.html'
-      })      
+      })
       .when('/project/:project/browse/deployments/:deploymentconfig/:deployment', {
         templateUrl: 'views/browse/deployment.html'
       })
       // Needs to still be prefixed with browse/deployments so the secondary nav active state is correct
       .when('/project/:project/browse/deployments-replicationcontrollers/:replicationcontroller', {
         templateUrl: 'views/browse/deployment.html'
-      })                  
+      })
       .when('/project/:project/browse/events', {
         templateUrl: 'views/events.html'
       })
@@ -153,24 +153,18 @@ angular
       })
       .when('/project/:project/browse/images/:image', {
         templateUrl: 'views/browse/image.html'
-      })      
+      })
       .when('/project/:project/browse/pods', {
         templateUrl: 'views/pods.html'
       })
       .when('/project/:project/browse/pods/:pod', {
         templateUrl: 'views/browse/pod.html'
-      })      
+      })
       .when('/project/:project/browse/services', {
         templateUrl: 'views/services.html'
       })
       .when('/project/:project/browse/services/:service', {
         templateUrl: 'views/browse/service.html'
-      })      
-      .when('/project/:project/catalog/templates', {
-        templateUrl: 'views/catalog/templates.html'
-      })
-      .when('/project/:project/catalog/images', {
-        templateUrl: 'views/catalog/images.html'
       })
       .when('/project/:project/create', {
         templateUrl: 'views/create.html'

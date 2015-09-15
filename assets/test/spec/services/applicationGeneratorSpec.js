@@ -50,7 +50,7 @@ describe("ApplicationGenerator", function(){
       },
       imageName: "origin-ruby-sample",
       imageTag: "latest",
-      imageRepo: {
+      imageStream: {
         "kind": "ImageStream",
         "apiVersion": "v1",
         "metadata": {
