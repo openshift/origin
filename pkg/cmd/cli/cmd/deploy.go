@@ -259,12 +259,12 @@ func (o *DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer)
 	// Delete the deployer pod as well as the deployment hooks pods, if any
 	pods, err := o.kubeClient.Pods(config.Namespace).List(deployutil.DeployerPodSelector(deploymentName), fields.Everything())
 	if err != nil {
-		return fmt.Errorf("Failed to list deployer/hook pods for deployment #%d: %v", config.LatestVersion, err)
+		return fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.LatestVersion, err)
 	}
 	for _, pod := range pods.Items {
 		err := o.kubeClient.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
 		if err != nil {
-			return fmt.Errorf("Failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.LatestVersion, err)
+			return fmt.Errorf("failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.LatestVersion, err)
 		}
 	}
 
@@ -274,7 +274,7 @@ func (o *DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer)
 	delete(deployment.Annotations, deployapi.DeploymentCancelledAnnotation)
 	_, err = o.kubeClient.ReplicationControllers(deployment.Namespace).Update(deployment)
 	if err == nil {
-		fmt.Fprintf(out, "retried #%d\n", config.LatestVersion)
+		fmt.Fprintf(out, "Retried #%d\n", config.LatestVersion)
 	}
 	return err
 }
@@ -286,7 +286,7 @@ func (o *DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer
 		return err
 	}
 	if len(deployments.Items) == 0 {
-		fmt.Fprintf(out, "there have been no deployments for %s/%s\n", config.Namespace, config.Name)
+		fmt.Fprintf(out, "There have been no deployments for %s/%s\n", config.Namespace, config.Name)
 		return nil
 	}
 	failedCancellations := []string{}
@@ -310,10 +310,10 @@ func (o *DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer
 			deployment.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
 			_, err := o.kubeClient.ReplicationControllers(deployment.Namespace).Update(&deployment)
 			if err == nil {
-				fmt.Fprintf(out, "cancelled deployment #%d\n", config.LatestVersion)
+				fmt.Fprintf(out, "Cancelled deployment #%d\n", config.LatestVersion)
 				anyCancelled = true
 			} else {
-				fmt.Fprintf(out, "couldn't cancel deployment #%d (status: %s): %v\n", deployutil.DeploymentVersionFor(&deployment), status, err)
+				fmt.Fprintf(out, "Couldn't cancel deployment #%d (status: %s): %v\n", deployutil.DeploymentVersionFor(&deployment), status, err)
 				failedCancellations = append(failedCancellations, strconv.Itoa(deployutil.DeploymentVersionFor(&deployment)))
 			}
 		}
@@ -326,10 +326,10 @@ func (o *DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer
 			// TODO: this could mean that a new deployment is forthcoming but hasn't
 			// yet been created; might not be worth trying to express in this
 			// context.
-			fmt.Fprintf(out, "no deployments are in progress\n")
+			fmt.Fprintf(out, "No deployments are in progress\n")
 		} else {
 			timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
-			fmt.Fprintf(out, "no deployments are in progress (latest deployment #%d %s %s ago)\n",
+			fmt.Fprintf(out, "No deployments are in progress (latest deployment #%d %s %s ago)\n",
 				deployutil.DeploymentVersionFor(latest),
 				strings.ToLower(string(deployutil.DeploymentStatusFor(latest))),
 				timeAt)
@@ -348,13 +348,13 @@ func (o *DeployOptions) reenableTriggers(config *deployapi.DeploymentConfig, out
 		}
 	}
 	if len(enabled) == 0 {
-		fmt.Fprintln(out, "no image triggers found to enable")
+		fmt.Fprintln(out, "No image triggers found to enable")
 		return nil
 	}
 	_, err := o.osClient.DeploymentConfigs(config.Namespace).Update(config)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "enabled image triggers: %s\n", strings.Join(enabled, ","))
+	fmt.Fprintf(out, "Enabled image triggers: %s\n", strings.Join(enabled, ","))
 	return nil
 }
