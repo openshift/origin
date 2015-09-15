@@ -377,6 +377,14 @@ os::build::make_openshift_binary_symlinks() {
 os::build::detect_local_release_tars() {
   local platform="$1"
 
+  if [[ ! -d "${OS_LOCAL_RELEASEPATH}" ]]; then
+    echo "There are no release artifacts in ${OS_LOCAL_RELEASEPATH}"
+    exit 2
+  fi
+  if [[ ! -d "${OS_LOCAL_RELEASEPATH}/.commit" ]]; then
+    echo "There is no release .commit identifier ${OS_LOCAL_RELEASEPATH}"
+    exit 2
+  fi
   local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-*-${platform}-* | grep -v image)
   if [[ $(echo "${primary}" | wc -l) -ne 1 ]]; then
     echo "There should be exactly one ${platform} primary tar in $OS_LOCAL_RELEASEPATH"
