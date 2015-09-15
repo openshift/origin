@@ -5,7 +5,6 @@
 package server
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -27,7 +26,6 @@ var (
 	promExternalRequestCount *prometheus.CounterVec
 	promRequestCount         *prometheus.CounterVec
 	promErrorCount           *prometheus.CounterVec
-	promCacheSize            *prometheus.GaugeVec
 	promCacheMiss            *prometheus.CounterVec
 	promRequestDuration      *prometheus.HistogramVec
 	promResponseSize         *prometheus.HistogramVec
@@ -51,14 +49,14 @@ func Metrics() {
 
 	_, err := strconv.Atoi(prometheusPort)
 	if err != nil {
-		log.Fatalf("skydns: bad port for prometheus: %s", prometheusPort)
+		fatalf("bad port for prometheus: %s", prometheusPort)
 	}
 
 	http.Handle(prometheusPath, prometheus.Handler())
 	go func() {
-		log.Fatalf("skydns: %s", http.ListenAndServe(":"+prometheusPort, nil))
+		fatalf("%s", http.ListenAndServe(":"+prometheusPort, nil))
 	}()
-	log.Printf("skydns: metrics enabled on :%s%s", prometheusPort, prometheusPath)
+	logf("metrics enabled on :%s%s", prometheusPort, prometheusPath)
 }
 
 // RegisterMetrics registers DNS specific Prometheus metrics with the provided namespace
@@ -88,15 +86,6 @@ func RegisterMetrics(prometheusNamespace, prometheusSubsystem string) {
 	}, []string{"error"}) // nxdomain, nodata, truncated, refused, overflow
 	prometheus.MustRegister(promErrorCount)
 
-	// Caches
-	promCacheSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: prometheusNamespace,
-		Subsystem: prometheusSubsystem,
-		Name:      "cache_total_size",
-		Help:      "The total size of all elements in the cache.",
-	}, []string{"type"}) // response, signature
-	prometheus.MustRegister(promCacheSize)
-
 	promCacheMiss = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: prometheusNamespace,
 		Subsystem: prometheusSubsystem,
@@ -119,8 +108,11 @@ func RegisterMetrics(prometheusNamespace, prometheusSubsystem string) {
 		Subsystem: prometheusSubsystem,
 		Name:      "dns_response_size",
 		Help:      "Size of the returns response in bytes.",
-		// Powers of 2 up to the maximum size.
-		Buckets: []float64{0, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536},
+		// 4k increments after 4096
+		Buckets: []float64{0, 512, 1024, 1500, 2048, 4096,
+			8192, 12288, 16384, 20480, 24576, 28672, 32768, 36864,
+			40960, 45056, 49152, 53248, 57344, 61440, 65536,
+		},
 	}, []string{"type"}) // udp, tcp
 	prometheus.MustRegister(promResponseSize)
 

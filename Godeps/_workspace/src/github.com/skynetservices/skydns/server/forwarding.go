@@ -6,14 +6,12 @@ package server
 
 import (
 	"fmt"
-	"log"
-	"net"
 
 	"github.com/miekg/dns"
 )
 
 // ServeDNSForward forwards a request to a nameservers and returns the response.
-func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) {
+func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	StatsForwardCount.Inc(1)
 	promExternalRequestCount.WithLabelValues("recursive").Inc()
 
@@ -24,15 +22,15 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) {
 		m.Authoritative = false
 		m.RecursionAvailable = false
 		w.WriteMsg(m)
-		return
+		return m
 	}
 
 	if len(s.config.Nameservers) == 0 || dns.CountLabel(req.Question[0].Name) < s.config.Ndots {
 		if s.config.Verbose {
 			if len(s.config.Nameservers) == 0 {
-				log.Printf("skydns: can not forward, no nameservers defined")
+				logf("can not forward, no nameservers defined")
 			} else {
-				log.Printf("skydns: can not forward, name too short (less than %d labels): `%s'", s.config.Ndots, req.Question[0].Name)
+				logf("can not forward, name too short (less than %d labels): `%s'", s.config.Ndots, req.Question[0].Name)
 			}
 		}
 		m := new(dns.Msg)
@@ -41,12 +39,10 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) {
 		m.Authoritative = false     // no matter what set to false
 		m.RecursionAvailable = true // and this is still true
 		w.WriteMsg(m)
-		return
+		return m
 	}
-	tcp := false
-	if _, ok := w.RemoteAddr().(*net.TCPAddr); ok {
-		tcp = true
-	}
+
+	tcp := isTCP(w)
 
 	var (
 		r   *dns.Msg
@@ -66,7 +62,7 @@ Redo:
 		r.Compress = true
 		r.Id = req.Id
 		w.WriteMsg(r)
-		return
+		return r
 	}
 	// Seen an error, this can only mean, "server not reached", try again
 	// but only if we have not exausted our nameservers.
@@ -76,16 +72,17 @@ Redo:
 		goto Redo
 	}
 
-	log.Printf("skydns: failure to forward request %q", err)
+	logf("failure to forward request %q", err)
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.SetRcode(req, dns.RcodeServerFailure)
 	w.WriteMsg(m)
+	return m
 }
 
 // ServeDNSReverse is the handler for DNS requests for the reverse zone. If nothing is found
 // locally the request is forwarded to the forwarder for resolution.
-func (s *server) ServeDNSReverse(w dns.ResponseWriter, req *dns.Msg) {
+func (s *server) ServeDNSReverse(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Compress = true
@@ -96,11 +93,12 @@ func (s *server) ServeDNSReverse(w dns.ResponseWriter, req *dns.Msg) {
 		// TODO(miek): Reverse DNSSEC. We should sign this, but requires a key....and more
 		// Probably not worth the hassle?
 		if err := w.WriteMsg(m); err != nil {
-			log.Printf("skydns: failure to return reply %q", err)
+			logf("failure to return reply %q", err)
 		}
+		return m
 	}
 	// Always forward if not found locally.
-	s.ServeDNSForward(w, req)
+	return s.ServeDNSForward(w, req)
 }
 
 // Lookup looks up name,type using the recursive nameserver defines
