@@ -120,7 +120,7 @@ angular.module('openshiftConsole')
             $scope.alerts = [
             {
               type: "success",
-              message: "Build " + build.metadata.name + " has started.",
+              message: "Build " + build.metadata.name + " has started."
             }
           ];
         },
@@ -174,7 +174,7 @@ angular.module('openshiftConsole')
             $scope.alerts = [
             {
               type: "success",
-              message: "Build " + buildName + " is being rebuilt as " + build.metadata.name + ".",
+              message: "Build " + buildName + " is being rebuilt as " + build.metadata.name + "."
             }
           ];
         },

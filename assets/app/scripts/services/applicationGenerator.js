@@ -21,7 +21,7 @@ angular.module("openshiftConsole")
     /**
     * Find the 'first' port of exposed ports.
     * @param            ports  list of ports (e.g {containerPort: 80, protocol: "tcp"})
-    * @return {integer} The port/protocol pair of the lowest container port
+    * @return {string} The port/protocol pair of the lowest container port
     */
     scope._getFirstPort = function(ports){
       var first = "None";
