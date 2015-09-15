@@ -2,9 +2,14 @@ package osdn
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
+	log "github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
 	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/fields"
@@ -34,17 +39,17 @@ func (oi *OsdnRegistryInterface) InitSubnets() error {
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, error) {
+func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, string, error) {
 	hostSubnetList, err := oi.oClient.HostSubnets().List()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	// convert HostSubnet to osdnapi.Subnet
 	subList := make([]osdnapi.Subnet, 0, len(hostSubnetList.Items))
 	for _, subnet := range hostSubnetList.Items {
 		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, SubnetIP: subnet.Subnet})
 	}
-	return subList, nil
+	return subList, hostSubnetList.ListMeta.ResourceVersion, nil
 }
 
 func (oi *OsdnRegistryInterface) GetSubnet(nodeName string) (*osdnapi.Subnet, error) {
@@ -71,32 +76,21 @@ func (oi *OsdnRegistryInterface) CreateSubnet(nodeName string, sub *osdnapi.Subn
 	return err
 }
 
-func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan *osdnapi.SubnetEvent, stop chan bool) error {
-	subnetEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	listWatch := &cache.ListWatch{
-		ListFunc: func() (runtime.Object, error) {
-			return oi.oClient.HostSubnets().List()
-		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return oi.oClient.HostSubnets().Watch(resourceVersion)
-		},
-	}
-	cache.NewReflector(listWatch, &api.HostSubnet{}, subnetEventQueue, 4*time.Minute).Run()
+func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan<- *osdnapi.SubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+	eventQueue, startVersion := oi.createAndRunEventQueue("HostSubnet", nil, ready, start)
 
+	checkCondition := true
 	for {
-		eventType, obj, err := subnetEventQueue.Pop()
+		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
 		if err != nil {
 			return err
 		}
+		hs := obj.(*api.HostSubnet)
+
 		switch eventType {
 		case watch.Added, watch.Modified:
-			// create SubnetEvent
-			hs := obj.(*api.HostSubnet)
 			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetIP: hs.Subnet}}
 		case watch.Deleted:
-			// TODO: There is a chance that a Delete event will not get triggered.
-			// Need to use a periodic sync loop that lists and compares.
-			hs := obj.(*api.HostSubnet)
 			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetIP: hs.Subnet}}
 		}
 	}
@@ -107,10 +101,10 @@ func (oi *OsdnRegistryInterface) InitNodes() error {
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, error) {
+func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, string, error) {
 	knodes, err := oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	nodes := make([]osdnapi.Node, 0, len(knodes.Items))
@@ -122,12 +116,12 @@ func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, error) {
 			var err error
 			nodeIP, err = osdn.GetNodeIP(node.ObjectMeta.Name)
 			if err != nil {
-				return nil, err
+				return nil, "", err
 			}
 		}
 		nodes = append(nodes, osdnapi.Node{Name: node.ObjectMeta.Name, IP: nodeIP})
 	}
-	return nodes, nil
+	return nodes, knodes.ListMeta.ResourceVersion, nil
 }
 
 func (oi *OsdnRegistryInterface) CreateNode(nodeName string, data string) error {
@@ -149,29 +143,22 @@ func (oi *OsdnRegistryInterface) getNodeAddressMap() (map[types.UID]string, erro
 	return nodeAddressMap, nil
 }
 
-func (oi *OsdnRegistryInterface) WatchNodes(receiver chan *osdnapi.NodeEvent, stop chan bool) error {
-	nodeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	listWatch := &cache.ListWatch{
-		ListFunc: func() (runtime.Object, error) {
-			return oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
-		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return oi.kClient.Nodes().Watch(labels.Everything(), fields.Everything(), resourceVersion)
-		},
-	}
-	cache.NewReflector(listWatch, &kapi.Node{}, nodeEventQueue, 4*time.Minute).Run()
+func (oi *OsdnRegistryInterface) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+	eventQueue, startVersion := oi.createAndRunEventQueue("Node", nil, ready, start)
 
 	nodeAddressMap, err := oi.getNodeAddressMap()
 	if err != nil {
 		return err
 	}
 
+	checkCondition := true
 	for {
-		eventType, obj, err := nodeEventQueue.Pop()
+		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
 		if err != nil {
 			return err
 		}
 		node := obj.(*kapi.Node)
+
 		nodeIP := ""
 		if len(node.Status.Addresses) > 0 {
 			nodeIP = node.Status.Addresses[0].Address
@@ -194,8 +181,6 @@ func (oi *OsdnRegistryInterface) WatchNodes(receiver chan *osdnapi.NodeEvent, st
 				nodeAddressMap[node.ObjectMeta.UID] = nodeIP
 			}
 		case watch.Deleted:
-			// TODO: There is a chance that a Delete event will not get triggered.
-			// Need to use a periodic sync loop that lists and compares.
 			receiver <- &osdnapi.NodeEvent{Type: osdnapi.Deleted, Node: osdnapi.Node{Name: node.ObjectMeta.Name}}
 			delete(nodeAddressMap, node.ObjectMeta.UID)
 		}
@@ -247,97 +232,73 @@ func (oi *OsdnRegistryInterface) CheckEtcdIsAlive(seconds uint64) bool {
 	return true
 }
 
-func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, error) {
+func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, string, error) {
 	namespaceList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	namespaces := make([]string, 0, len(namespaceList.Items))
 	for _, ns := range namespaceList.Items {
 		namespaces = append(namespaces, ns.Name)
 	}
-	return namespaces, nil
+	return namespaces, namespaceList.ListMeta.ResourceVersion, nil
 }
 
-func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan *osdnapi.NamespaceEvent, stop chan bool) error {
-	nsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	listWatch := &cache.ListWatch{
-		ListFunc: func() (runtime.Object, error) {
-			return oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
-		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return oi.kClient.Namespaces().Watch(labels.Everything(), fields.Everything(), resourceVersion)
-		},
-	}
-	cache.NewReflector(listWatch, &kapi.Namespace{}, nsEventQueue, 4*time.Minute).Run()
+func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan<- *osdnapi.NamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+	eventQueue, startVersion := oi.createAndRunEventQueue("Namespace", nil, ready, start)
 
+	checkCondition := true
 	for {
-		eventType, obj, err := nsEventQueue.Pop()
+		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
 		if err != nil {
 			return err
 		}
+		ns := obj.(*kapi.Namespace)
+
 		switch eventType {
 		case watch.Added:
-			// we should ignore the modified event because status updates cause unnecessary noise
-			// the only time we would care about modified would be if the node changes its IP address
-			// and hence all nodes need to update their vtep entries for the respective subnet
-			// create nodeEvent
-			ns := obj.(*kapi.Namespace)
 			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Added, Name: ns.ObjectMeta.Name}
 		case watch.Deleted:
-			// TODO: There is a chance that a Delete event will not get triggered.
-			// Need to use a periodic sync loop that lists and compares.
-			ns := obj.(*kapi.Namespace)
 			receiver <- &osdnapi.NamespaceEvent{Type: osdnapi.Deleted, Name: ns.ObjectMeta.Name}
+		case watch.Modified:
+			// Ignore, we don't need to update SDN in case of namespace updates
 		}
 	}
 }
 
-func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan *osdnapi.NetNamespaceEvent, stop chan bool) error {
-	netNsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	listWatch := &cache.ListWatch{
-		ListFunc: func() (runtime.Object, error) {
-			return oi.oClient.NetNamespaces().List()
-		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return oi.oClient.NetNamespaces().Watch(resourceVersion)
-		},
-	}
-	cache.NewReflector(listWatch, &api.NetNamespace{}, netNsEventQueue, 4*time.Minute).Run()
+func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan<- *osdnapi.NetNamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
+	eventQueue, startVersion := oi.createAndRunEventQueue("NetNamespace", nil, ready, start)
 
+	checkCondition := true
 	for {
-		eventType, obj, err := netNsEventQueue.Pop()
+		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
 		if err != nil {
 			return err
 		}
+		netns := obj.(*api.NetNamespace)
+
 		switch eventType {
 		case watch.Added:
-			// we should ignore the modified event because status updates cause unnecessary noise
-			// the only time we would care about modified would be if the node changes its IP address
-			// and hence all nodes need to update their vtep entries for the respective subnet
-			// create nodeEvent
-			netns := obj.(*api.NetNamespace)
 			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Added, Name: netns.NetName, NetID: netns.NetID}
 		case watch.Deleted:
-			// TODO: There is a chance that a Delete event will not get triggered.
-			// Need to use a periodic sync loop that lists and compares.
-			netns := obj.(*api.NetNamespace)
 			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Deleted, Name: netns.NetName}
+		case watch.Modified:
+			// Ignore, we don't need to update SDN in case of network namespace updates
 		}
 	}
 }
 
-func (oi *OsdnRegistryInterface) GetNetNamespaces() ([]osdnapi.NetNamespace, error) {
+func (oi *OsdnRegistryInterface) GetNetNamespaces() ([]osdnapi.NetNamespace, string, error) {
 	netNamespaceList, err := oi.oClient.NetNamespaces().List()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	// convert api.NetNamespace to osdnapi.NetNamespace
 	nsList := make([]osdnapi.NetNamespace, 0, len(netNamespaceList.Items))
 	for _, netns := range netNamespaceList.Items {
 		nsList = append(nsList, osdnapi.NetNamespace{Name: netns.Name, NetID: netns.NetID})
 	}
-	return nsList, nil
+	return nsList, netNamespaceList.ListMeta.ResourceVersion, nil
 }
 
 func (oi *OsdnRegistryInterface) GetNetNamespace(name string) (osdnapi.NetNamespace, error) {
@@ -367,16 +328,16 @@ func (oi *OsdnRegistryInterface) InitServices() error {
 	return nil
 }
 
-func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, error) {
+func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, string, error) {
 	kNsList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	oServList := make([]osdnapi.Service, 0)
 	for _, ns := range kNsList.Items {
 		kServList, err := oi.kClient.Services(ns.Name).List(labels.Everything())
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
 		// convert kube ServiceList into []osdnapi.Service
@@ -384,27 +345,20 @@ func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, error) {
 			if kService.Spec.ClusterIP == "None" {
 				continue
 			}
-			for i := range kService.Spec.Ports {
-				oService := osdnapi.Service{
-					Name:      kService.ObjectMeta.Name,
-					Namespace: ns.Name,
-					IP:        kService.Spec.ClusterIP,
-					Protocol:  osdnapi.ServiceProtocol(kService.Spec.Ports[i].Protocol),
-					Port:      uint(kService.Spec.Ports[i].Port),
-				}
-				oServList = append(oServList, oService)
+			for _, port := range kService.Spec.Ports {
+				oServList = append(oServList, newSDNService(&kService, ns.Name, port))
 			}
 		}
 	}
-	return oServList, nil
+	return oServList, kNsList.ListMeta.ResourceVersion, nil
 }
 
-func (oi *OsdnRegistryInterface) WatchServices(receiver chan *osdnapi.ServiceEvent, stop chan bool) error {
+func (oi *OsdnRegistryInterface) WatchServices(receiver chan<- *osdnapi.ServiceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	// watch for namespaces, and launch a go func for each namespace that is new
 	// kill the watch for each namespace that is deleted
 	nsevent := make(chan *osdnapi.NamespaceEvent)
 	namespaceTable := make(map[string]chan bool)
-	go oi.WatchNamespaces(nsevent, stop)
+	go oi.WatchNamespaces(nsevent, ready, start, stop)
 	for {
 		select {
 		case ev := <-nsevent:
@@ -430,18 +384,8 @@ func (oi *OsdnRegistryInterface) WatchServices(receiver chan *osdnapi.ServiceEve
 	}
 }
 
-func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, receiver chan *osdnapi.ServiceEvent, stop chan bool) error {
-	serviceEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	listWatch := &cache.ListWatch{
-		ListFunc: func() (runtime.Object, error) {
-			return oi.kClient.Services(namespace).List(labels.Everything())
-		},
-		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
-			return oi.kClient.Services(namespace).Watch(labels.Everything(), fields.Everything(), resourceVersion)
-		},
-	}
-	cache.NewReflector(listWatch, &kapi.Service{}, serviceEventQueue, 4*time.Minute).Run()
-
+func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, receiver chan<- *osdnapi.ServiceEvent, stop chan bool) error {
+	serviceEventQueue, _ := oi.runEventQueue("Service", namespace)
 	go func() {
 		select {
 		case <-stop:
@@ -457,41 +401,25 @@ func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, rec
 			}
 			return err
 		}
+		kServ := obj.(*kapi.Service)
+		// Ignore headless services
+		if kServ.Spec.ClusterIP == "None" {
+			continue
+		}
+
 		switch eventType {
 		case watch.Added:
-			// we should ignore the modified event because status updates cause unnecessary noise
-			// the only time we would care about modified would be if the service IP changes (does not happen)
-			kServ := obj.(*kapi.Service)
-			if kServ.Spec.ClusterIP == "None" {
-				continue
-			}
-			for i := range kServ.Spec.Ports {
-				oServ := osdnapi.Service{
-					Name:      kServ.ObjectMeta.Name,
-					Namespace: namespace,
-					IP:        kServ.Spec.ClusterIP,
-					Protocol:  osdnapi.ServiceProtocol(kServ.Spec.Ports[i].Protocol),
-					Port:      uint(kServ.Spec.Ports[i].Port),
-				}
+			for _, port := range kServ.Spec.Ports {
+				oServ := newSDNService(kServ, namespace, port)
 				receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Added, Service: oServ}
 			}
 		case watch.Deleted:
-			// TODO: There is a chance that a Delete event will not get triggered.
-			// Need to use a periodic sync loop that lists and compares.
-			kServ := obj.(*kapi.Service)
-			if kServ.Spec.ClusterIP == "None" {
-				continue
-			}
-			for i := range kServ.Spec.Ports {
-				oServ := osdnapi.Service{
-					Name:      kServ.ObjectMeta.Name,
-					Namespace: namespace,
-					IP:        kServ.Spec.ClusterIP,
-					Protocol:  osdnapi.ServiceProtocol(kServ.Spec.Ports[i].Protocol),
-					Port:      uint(kServ.Spec.Ports[i].Port),
-				}
+			for _, port := range kServ.Spec.Ports {
+				oServ := newSDNService(kServ, namespace, port)
 				receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Deleted, Service: oServ}
 			}
+		case watch.Modified:
+			// Ignore, we don't need to update SDN in case of service updates
 		case watch.Error:
 			// Check if the namespace is dead, if so quit
 			_, err = oi.kClient.Namespaces().Get(namespace)
@@ -499,5 +427,148 @@ func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, rec
 				break
 			}
 		}
+	}
+}
+
+func newSDNService(kServ *kapi.Service, namespace string, port kapi.ServicePort) osdnapi.Service {
+	return osdnapi.Service{
+		Name:      kServ.ObjectMeta.Name,
+		Namespace: namespace,
+		IP:        kServ.Spec.ClusterIP,
+		Protocol:  osdnapi.ServiceProtocol(port.Protocol),
+		Port:      uint(port.Port),
+	}
+}
+
+// Run event queue for the given resource
+func (oi *OsdnRegistryInterface) runEventQueue(resourceName string, args interface{}) (*oscache.EventQueue, *cache.Reflector) {
+	eventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	lw := &cache.ListWatch{}
+	var expectedType interface{}
+	switch strings.ToLower(resourceName) {
+	case "hostsubnet":
+		expectedType = &api.HostSubnet{}
+		lw.ListFunc = func() (runtime.Object, error) {
+			return oi.oClient.HostSubnets().List()
+		}
+		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
+			return oi.oClient.HostSubnets().Watch(resourceVersion)
+		}
+	case "node":
+		expectedType = &kapi.Node{}
+		lw.ListFunc = func() (runtime.Object, error) {
+			return oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
+		}
+		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
+			return oi.kClient.Nodes().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		}
+	case "namespace":
+		expectedType = &kapi.Namespace{}
+		lw.ListFunc = func() (runtime.Object, error) {
+			return oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
+		}
+		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
+			return oi.kClient.Namespaces().Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		}
+	case "netnamespace":
+		expectedType = &api.NetNamespace{}
+		lw.ListFunc = func() (runtime.Object, error) {
+			return oi.oClient.NetNamespaces().List()
+		}
+		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
+			return oi.oClient.NetNamespaces().Watch(resourceVersion)
+		}
+	case "service":
+		expectedType = &kapi.Service{}
+		namespace := args.(string)
+		lw.ListFunc = func() (runtime.Object, error) {
+			return oi.kClient.Services(namespace).List(labels.Everything())
+		}
+		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
+			return oi.kClient.Services(namespace).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		}
+	default:
+		log.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
+	}
+	reflector := cache.NewReflector(lw, expectedType, eventQueue, 4*time.Minute)
+	reflector.Run()
+	return eventQueue, reflector
+}
+
+// Ensures given event queue is ready for watching new changes
+// and unblock other end of the ready channel
+func sendWatchReadiness(reflector *cache.Reflector, ready chan<- bool) {
+	// timeout: 1min
+	retries := 120
+	retryInterval := 500 * time.Millisecond
+	// Try every retryInterval and bail-out if it exceeds max retries
+	for i := 0; i < retries; i++ {
+		// Reflector does list and watch of the resource
+		// when listing of the resource is done, resourceVersion will be populated
+		// and the event queue will be ready to watch any new changes
+		version := reflector.LastSyncResourceVersion()
+		if len(version) > 0 {
+			ready <- true
+			return
+		}
+		time.Sleep(retryInterval)
+	}
+	log.Fatalf("SDN event queue is not ready for watching new changes(timeout: 1min)")
+}
+
+// Get resource version from start channel
+// Watch interface for the resource will process any item after this version
+func getStartVersion(start <-chan string, resourceName string) uint64 {
+	var version uint64
+	var err error
+
+	timeout := time.Minute
+	select {
+	case rv := <-start:
+		version, err = strconv.ParseUint(rv, 10, 64)
+		if err != nil {
+			log.Fatalf("Invalid start version %s for %s, error: %v", rv, resourceName, err)
+		}
+	case <-time.After(timeout):
+		log.Fatalf("Error fetching resource version for %s (timeout: %v)", resourceName, timeout)
+	}
+	return version
+}
+
+// createAndRunEventQueue will create and run event queue and also returns start version for watching any new changes
+func (oi *OsdnRegistryInterface) createAndRunEventQueue(resourceName string, args interface{}, ready chan<- bool, start <-chan string) (*oscache.EventQueue, uint64) {
+	eventQueue, reflector := oi.runEventQueue(resourceName, args)
+	sendWatchReadiness(reflector, ready)
+	startVersion := getStartVersion(start, resourceName)
+	return eventQueue, startVersion
+}
+
+// getEvent returns next item in the event queue which satisfies item version greater than given start version
+// checkCondition is an optimization that ignores version check when it is not needed
+func getEvent(eventQueue *oscache.EventQueue, startVersion uint64, checkCondition *bool) (watch.EventType, interface{}, error) {
+	if *checkCondition {
+		// Ignore all events with version <= given start version
+		for {
+			eventType, obj, err := eventQueue.Pop()
+			if err != nil {
+				return watch.Error, nil, err
+			}
+			accessor, err := meta.Accessor(obj)
+			if err != nil {
+				return watch.Error, nil, err
+			}
+			currentVersion, err := strconv.ParseUint(accessor.ResourceVersion(), 10, 64)
+			if err != nil {
+				return watch.Error, nil, err
+			}
+			if currentVersion <= startVersion {
+				log.V(5).Infof("Ignoring %s with version %d, start version: %d", accessor.Name(), currentVersion, startVersion)
+				continue
+			}
+			*checkCondition = false
+			return eventType, obj, nil
+		}
+	} else {
+		return eventQueue.Pop()
 	}
 }
