@@ -15,7 +15,7 @@ cd "${OS_ROOT}"
 
 # Copy the linux release archives release back to the local _output/local/go/bin directory.
 # TODO: support different OS's?
-os::build::detect_local_release_tars "linux"
+os::build::detect_local_release_tars "linux-amd64"
 
 mkdir -p "${OS_LOCAL_BINPATH}"
 tar mxzf "${OS_PRIMARY_RELEASE_TAR}" -C "${OS_LOCAL_BINPATH}"

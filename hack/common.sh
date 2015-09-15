@@ -42,6 +42,7 @@ readonly OS_CROSS_COMPILE_PLATFORMS=(
   linux/amd64
   darwin/amd64
   windows/amd64
+  linux/386
 )
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
@@ -385,13 +386,13 @@ os::build::detect_local_release_tars() {
     echo "There is no release .commit identifier ${OS_LOCAL_RELEASEPATH}"
     exit 2
   fi
-  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-*-${platform}-* | grep -v image)
+  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-*-${platform}* | grep -v image)
   if [[ $(echo "${primary}" | wc -l) -ne 1 ]]; then
     echo "There should be exactly one ${platform} primary tar in $OS_LOCAL_RELEASEPATH"
     exit 2
   fi
 
-  local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}-*)
+  local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}*)
   if [[ $(echo "${image}" | wc -l) -ne 1 ]]; then
     echo "There should be exactly one ${platform} image tar in $OS_LOCAL_RELEASEPATH"
     exit 3

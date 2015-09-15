@@ -24,7 +24,7 @@ if [[ ! -d _output/local/releases ]]; then
 fi
 
 # Extract the release achives to a staging area.
-os::build::detect_local_release_tars "linux"
+os::build::detect_local_release_tars "linux-amd64"
 
 echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"
 echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
