@@ -34,6 +34,8 @@ func TestRolling_deployInitial(t *testing.T) {
 			return nil
 		},
 		getUpdateAcceptor: getUpdateAcceptor,
+		apiRetryPeriod:    1 * time.Millisecond,
+		apiRetryTimeout:   10 * time.Millisecond,
 	}
 
 	config := deploytest.OkDeploymentConfig(1)
@@ -89,6 +91,8 @@ func TestRolling_deployRolling(t *testing.T) {
 			return nil
 		},
 		getUpdateAcceptor: getUpdateAcceptor,
+		apiRetryPeriod:    1 * time.Millisecond,
+		apiRetryTimeout:   10 * time.Millisecond,
 	}
 
 	err := strategy.Deploy(latest, deployment, 2)
@@ -172,6 +176,8 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 			},
 		},
 		getUpdateAcceptor: getUpdateAcceptor,
+		apiRetryPeriod:    1 * time.Millisecond,
+		apiRetryTimeout:   10 * time.Millisecond,
 	}
 
 	cases := []struct {
@@ -229,6 +235,8 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 			},
 		},
 		getUpdateAcceptor: getUpdateAcceptor,
+		apiRetryPeriod:    1 * time.Millisecond,
+		apiRetryTimeout:   10 * time.Millisecond,
 	}
 
 	cases := []struct {
