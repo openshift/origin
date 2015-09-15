@@ -381,7 +381,7 @@ os::build::detect_local_release_tars() {
     echo "There are no release artifacts in ${OS_LOCAL_RELEASEPATH}"
     exit 2
   fi
-  if [[ ! -d "${OS_LOCAL_RELEASEPATH}/.commit" ]]; then
+  if [[ ! -f "${OS_LOCAL_RELEASEPATH}/.commit" ]]; then
     echo "There is no release .commit identifier ${OS_LOCAL_RELEASEPATH}"
     exit 2
   fi
