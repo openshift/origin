@@ -132,15 +132,15 @@ func (sub *EtcdSubnetRegistry) InitNodes() error {
 	return err
 }
 
-func (sub *EtcdSubnetRegistry) GetNodes() ([]api.Node, error) {
+func (sub *EtcdSubnetRegistry) GetNodes() ([]api.Node, string, error) {
 	key := sub.etcdCfg.NodePath
 	resp, err := sub.client().Get(key, false, true)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if resp.Node.Dir == false {
-		return nil, errors.New("Node path is not a directory")
+		return nil, "", errors.New("Node path is not a directory")
 	}
 
 	nodes := make([]api.Node, 0)
@@ -154,30 +154,30 @@ func (sub *EtcdSubnetRegistry) GetNodes() ([]api.Node, error) {
 
 		nodeIP, err := getNodeIP(node.Value)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		nodes = append(nodes, api.Node{Name: nodeName, IP: nodeIP})
 	}
-	return nodes, nil
+	return nodes, "", nil
 }
 
 func (sub *EtcdSubnetRegistry) InitServices() error {
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) GetServices() ([]api.Service, error) {
-	return nil, nil
+func (sub *EtcdSubnetRegistry) GetServices() ([]api.Service, string, error) {
+	return nil, "", nil
 }
 
-func (sub *EtcdSubnetRegistry) GetSubnets() ([]api.Subnet, error) {
+func (sub *EtcdSubnetRegistry) GetSubnets() ([]api.Subnet, string, error) {
 	key := sub.etcdCfg.SubnetPath
 	resp, err := sub.client().Get(key, false, true)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	if resp.Node.Dir == false {
-		return nil, errors.New("Subnet path is not a directory")
+		return nil, "", errors.New("Subnet path is not a directory")
 	}
 
 	subnets := make([]api.Subnet, 0)
@@ -191,7 +191,7 @@ func (sub *EtcdSubnetRegistry) GetSubnets() ([]api.Subnet, error) {
 		}
 		subnets = append(subnets, s)
 	}
-	return subnets, err
+	return subnets, "", err
 }
 
 func (sub *EtcdSubnetRegistry) GetSubnet(nodeName string) (*api.Subnet, error) {
@@ -294,13 +294,14 @@ func (sub *EtcdSubnetRegistry) CreateSubnet(nodeName string, subnet *api.Subnet)
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) WatchNodes(receiver chan *api.NodeEvent, stop chan bool) error {
+func (sub *EtcdSubnetRegistry) WatchNodes(receiver chan<- *api.NodeEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	var rev uint64
 	rev = 0
 	key := sub.etcdCfg.NodePath
+	ret := make(chan bool)
 	log.Infof("Watching %s for new nodes.", key)
 	for {
-		resp, err := sub.watch(key, rev, stop)
+		resp, err := sub.watch(key, rev, ret)
 		if err != nil && err == etcd.ErrWatchStoppedByUser {
 			log.Infof("New subnet event error: %v", err)
 			return err
@@ -339,15 +340,16 @@ func (sub *EtcdSubnetRegistry) watch(key string, rev uint64, stop chan bool) (*e
 	return rawResp.Unmarshal()
 }
 
-func (sub *EtcdSubnetRegistry) WatchServices(receiver chan *api.ServiceEvent, stop chan bool) error {
+func (sub *EtcdSubnetRegistry) WatchServices(receiver chan<- *api.ServiceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) WatchSubnets(receiver chan *api.SubnetEvent, stop chan bool) error {
+func (sub *EtcdSubnetRegistry) WatchSubnets(receiver chan<- *api.SubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	for {
 		var rev uint64
 		rev = 0
 		key := sub.etcdCfg.SubnetPath
+		stop := make(chan bool)
 		resp, err := sub.watch(key, rev, stop)
 		if resp == nil && err == nil {
 			continue
@@ -363,26 +365,26 @@ func (sub *EtcdSubnetRegistry) WatchSubnets(receiver chan *api.SubnetEvent, stop
 	}
 }
 
-func (sub *EtcdSubnetRegistry) GetNamespaces() ([]string, error) {
+func (sub *EtcdSubnetRegistry) GetNamespaces() ([]string, string, error) {
 	namespaces := make([]string, 0)
 	// TODO
-	return namespaces, nil
+	return namespaces, "", nil
 }
 
-func (sub *EtcdSubnetRegistry) WatchNamespaces(receiver chan *api.NamespaceEvent, stop chan bool) error {
+func (sub *EtcdSubnetRegistry) WatchNamespaces(receiver chan<- *api.NamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	// TODO
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) WatchNetNamespaces(receiver chan *api.NetNamespaceEvent, stop chan bool) error {
+func (sub *EtcdSubnetRegistry) WatchNetNamespaces(receiver chan<- *api.NetNamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
 	// TODO
 	return nil
 }
 
-func (sub *EtcdSubnetRegistry) GetNetNamespaces() ([]api.NetNamespace, error) {
+func (sub *EtcdSubnetRegistry) GetNetNamespaces() ([]api.NetNamespace, string, error) {
 	nslist := make([]api.NetNamespace, 0)
 	// TODO
-	return nslist, nil
+	return nslist, "", nil
 }
 
 func (sub *EtcdSubnetRegistry) GetNetNamespace(name string) (api.NetNamespace, error) {
