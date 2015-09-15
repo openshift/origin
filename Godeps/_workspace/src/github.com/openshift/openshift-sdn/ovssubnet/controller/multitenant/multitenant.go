@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/openshift/openshift-sdn/ovssubnet/api"
+	"github.com/openshift/openshift-sdn/pkg/firewalld"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 )
 
@@ -32,12 +33,65 @@ func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork st
 			status := exitErr.ProcessState.Sys().(syscall.WaitStatus)
 			if status.Exited() && status.ExitStatus() == 140 {
 				// valid, do nothing, its just a benevolent restart
-				return nil
+				err = nil
 			}
 		}
-		log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
 	}
-	return err
+	if err != nil {
+		log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
+		return err
+	}
+
+	fw := firewalld.New()
+	err = c.SetupIptables(fw, containerNetwork)
+	if err != nil {
+		log.Errorf("Error setting up iptables: %v\n", err)
+		return err
+	}
+
+	fw.AddReloadFunc(func() {
+		err = c.SetupIptables(fw, containerNetwork)
+		if err != nil {
+			log.Errorf("Error reloading iptables: %v\n", err)
+		}
+	})
+
+	return nil
+}
+
+type FirewallRule struct {
+	ipv      string
+	table    string
+	chain    string
+	priority int
+	args     []string
+}
+
+func (c *FlowController) SetupIptables(fw *firewalld.Interface, containerNetwork string) error {
+	if fw.IsRunning() {
+		rules := []FirewallRule{
+			{firewalld.IPv4, "nat", "POSTROUTING", 0, []string{"-s", containerNetwork, "!", "-d", containerNetwork, "-j", "MASQUERADE"}},
+			{firewalld.IPv4, "filter", "INPUT", 0, []string{"-p", "udp", "-m", "multiport", "--dports", "4789", "-m", "comment", "--comment", "001 vxlan incoming", "-j", "ACCEPT"}},
+			{firewalld.IPv4, "filter", "INPUT", 0, []string{"-i", "tun0", "-m", "comment", "--comment", "traffic from docker for internet", "-j", "ACCEPT"}},
+			{firewalld.IPv4, "filter", "FORWARD", 0, []string{"-d", containerNetwork, "-j", "ACCEPT"}},
+			{firewalld.IPv4, "filter", "FORWARD", 0, []string{"-s", containerNetwork, "-j", "ACCEPT"}},
+		}
+
+		for _, rule := range rules {
+			err := fw.EnsureRule(rule.ipv, rule.table, rule.chain, rule.priority, rule.args)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		exec.Command("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", containerNetwork, "!", "-d", containerNetwork, "-j", "MASQUERADE").Run()
+		err := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", containerNetwork, "!", "-d", containerNetwork, "-j", "MASQUERADE").Run()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (c *FlowController) AddOFRules(nodeIP, subnet, localIP string) error {
