@@ -1052,6 +1052,12 @@ angular.module('openshiftConsole')
     return null;
   };
 
+  DataService.prototype.openshiftAPIBaseUrl = function() {
+    var protocol = window.location.protocol === "http:" ? "http" : "https";
+    var hostPort = API_CFG.openshift.hostPort;
+    return new URI({protocol: protocol, hostname: hostPort}).toString();
+  };
+
   DataService.prototype.resourceInfo = function(resource, preferredAPIVersion) {
     var api, apiVersion, prefix;
     for (var apiName in API_CFG) {

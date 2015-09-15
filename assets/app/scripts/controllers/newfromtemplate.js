@@ -11,6 +11,7 @@
 angular.module('openshiftConsole')
   .controller('NewFromTemplateController', function ($scope, $http, $routeParams, DataService, $q, $location, TaskList, $parse, Navigate, $filter, imageObjectRefFilter, failureObjectNameFilter) {
     var displayNameFilter = $filter('displayName');
+    var humanize = $filter('humanize');
 
     var dcContainers = $parse('spec.template.spec.containers');
     var builderImage = $parse('spec.strategy.sourceStrategy.from || spec.strategy.dockerStrategy.from || spec.strategy.customStrategy.from');
@@ -98,6 +99,7 @@ angular.module('openshiftConsole')
           };
 
           var helpLinks = getHelpLinks($scope.template);
+          TaskList.clear();
           TaskList.add(titles, helpLinks, function() {
             var d = $q.defer();
             DataService.createList(config.objects, $scope).then(
@@ -105,15 +107,23 @@ angular.module('openshiftConsole')
                 var alerts = [];
                 var hasErrors = false;
                 if (result.failure.length > 0) {
+                  hasErrors = true;
                   result.failure.forEach(
                     function(failure) {
                       var objectName = failureObjectNameFilter(failure) || "object";
                       alerts.push({
                         type: "error",
-                        message: "Cannot create " + objectName + ". ",
+                        message: "Cannot create " + humanize(objectName).toLowerCase() + ". ",
                         details: failure.data.message
                       });
-                      hasErrors = true;
+                    }
+                  );
+                  result.success.forEach(
+                    function(success) {
+                      alerts.push({
+                        type: "success",
+                        message: "Created " + humanize(success.kind).toLowerCase() + " \"" + success.metadata.name + "\" successfully. "
+                      });
                     }
                   );
                 } else {
@@ -125,7 +135,7 @@ angular.module('openshiftConsole')
             );
             return d.promise;
           });
-          Navigate.toProjectOverview($scope.projectName);
+          Navigate.toNextSteps($routeParams.name, $scope.projectName);
         },
         function(result) { // failure
           var details;

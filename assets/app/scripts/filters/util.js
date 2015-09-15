@@ -124,8 +124,16 @@ angular.module('openshiftConsole')
   .filter('helpLink', function() {
     return function(type) {
       switch(type) {
+        case "cli":
+          return "https://docs.openshift.org/latest/cli_reference/overview.html";
+        case "get_started_cli":
+          return "https://docs.openshift.org/latest/cli_reference/get_started_cli.html";
+        case "basic_cli_operations":
+          return "https://docs.openshift.org/latest/cli_reference/basic_cli_operations.html";
         case "webhooks":
           return "http://docs.openshift.org/latest/dev_guide/builds.html#webhook-triggers";
+        case "new_app":
+          return "http://docs.openshift.org/latest/dev_guide/new_app.html";
         case "start-build":
           return "http://docs.openshift.org/latest/dev_guide/builds.html#starting-a-build";
         case "deployment-operations":
@@ -263,5 +271,16 @@ angular.module('openshiftConsole')
       }
 
       return "";
+    };
+  })
+  .filter('humanize', function() {
+    return function(kind) {
+      return kind
+          // insert a space between lower & upper
+          .replace(/([a-z])([A-Z])/g, '$1 $2')
+          // space before last upper in a sequence followed by lower
+          .replace(/\b([A-Z]+)([A-Z])([a-z])/, '$1 $2$3')
+          // uppercase the first character
+          .replace(/^./, function(str){ return str.toUpperCase(); });
     };
   });

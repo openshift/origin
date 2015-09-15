@@ -1,0 +1,86 @@
+<div ng-controller="ProjectController">
+  <div ng-controller="NextStepsController" class="container next-steps">
+    <ol class="breadcrumb"><!-- TODO use the breadcrumb directive -->
+      <li><a href="{{projectName | projectOverviewURL}}">{{projectDisplayName()}}</a></li>
+      <li><a href="project/{{projectName}}/create">Add to Project</a></li>
+      <li ng-if="name"><a href="#" ng-click="goBack()">{{name}}</a></li>
+      <li class="active"><strong ng-if="pendingTasks(tasks()).length">Creating</strong><strong ng-if="!pendingTasks(tasks()).length">Next Steps</strong></li>
+    </ol>
+
+    <div ng-controller="TasksController">
+      <h1 ng-if="!tasks().length">Completed. <a href="project/{{projectName}}/overview">Go to overview</a>.</h1>
+      <h1 ng-if="tasks().length && allTasksSuccessful(tasks())">Application created. <a href="project/{{projectName}}/overview">Continue to overview</a>.</h1>
+      <h1 ng-if="pendingTasks(tasks()).length">Creating...</h1>
+      <h1 ng-if="!pendingTasks(tasks()).length && erroredTasks(tasks()).length">Completed, with errors</h1>
+
+      <div ng-repeat="task in tasks()" ng-if="tasks().length && !allTasksSuccessful(tasks())">
+        <h3>
+          <i class="spinner spinner-xs spinner-inline" ng-show="task.status=='started'"></i>
+          {{ task | taskTitle }}.
+        </h3>
+        <div ng-repeat="alert in task.alerts">
+          <div ng-switch="alert.type">
+            <div ng-switch-when="error">
+              <span class="pficon-layered">
+                <span class="pficon pficon-error-octagon"></span>
+                <span class="pficon pficon-error-exclamation"></span>
+              </span>
+              <span ng-if="alert.message">{{alert.message}}</span><span ng-if="alert.details">{{alert.details}}.</span>
+            </div>
+            <div ng-switch-when="warning">
+              <span class="pficon-layered">
+                <span class="pficon pficon-warning-triangle"></span>
+                <span class="pficon pficon-warning-exclamation"></span>
+              </span>
+              <span ng-if="alert.message">{{alert.message}}</span><span ng-if="alert.details">{{alert.details}}.</span>
+            </div>
+            <div ng-switch-when="success">
+              <span class="pficon pficon-ok"></span>
+              <span ng-if="alert.message">{{alert.message}}</span><span ng-if="alert.details">{{alert.details}}</span>
+            </div>  
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" ng-controller="TasksController">
+      <div ng-if="!pendingTasks(tasks()).length && erroredTasks(tasks()).length" class="col-md-12">
+        <h2>Things you can do</h2>
+        <p>Go to the <a href="project/{{projectName}}/overview">overview page</a> to see more details about this project. Make sure you don't already have <a href="project/{{projectName}}/browse/services">services</a>, <a href="project/{{projectName}}/browse/builds">build configs</a>, <a href="project/{{projectName}}/browse/deployments">deployment configs</a>, or other resources with the same names you are trying to create. Refer to the <a target="_blank" href="{{'new_app' | helpLink}}">documentation for creating new applications</a> for more information.</p>
+
+        <h3>Command line tools</h3>
+        <p>You may want to use the <code>oc</code> command line tool to help with troubleshooting. After <a target="_blank" href="{{'get_started_cli' | helpLink}}">downloading and installing</a> it, you can log in, switch to this particular project, and try some commands :</p>
+
+        <pre class="code prettyprint">oc login {{loginBaseUrl}}
+oc project {{projectName}}
+oc build-logs -h
+oc logs -h</pre>
+
+        <p>For more information about the command line tools, check the <a target="_blank" href="{{'cli' | helpLink}}">CLI Reference</a> and <a target="_blank" href="{{'basic_cli_operations' | helpLink}}">Basic CLI Operations</a>.</p>
+      </div>
+
+      <div ng-if="allTasksSuccessful(tasks())" ng-class="createdBuildConfigWithGitHubTrigger() ? 'col-md-6' : 'col-md-12'">
+        <h2>Manage your app</h2>
+        <p>The web console is convenient, but if you need deeper control you may want to try our command line tools.</p>
+        
+        <h3>Command line tools</h3>
+        <p><a target="_blank" href="{{'get_started_cli' | helpLink}}">Download and install</a> the <code>oc</code> command line tool. After that, you can start by logging in, switching to this particular project, and displaying an overview of it, by doing:</p>
+
+        <pre class="code prettyprint">oc login {{loginBaseUrl}}
+oc project {{projectName}}
+oc status</pre>
+
+        <p>For more information about the command line tools, check the <a target="_blank" href="{{'cli' | helpLink}}">CLI Reference</a> and <a target="_blank" href="{{'basic_cli_operations' | helpLink}}">Basic CLI Operations</a>.</p>
+      </div>
+
+      <div ng-if="createdBuildConfigWithGitHubTrigger()" class="col-md-6">
+        <h2>Making code changes</h2>
+        <div ng-repeat="trigger in createdBuildConfig.spec.triggers" ng-if="trigger.type == 'GitHub'">
+          <p>A GitHub <a target="_blank" href="{{'webhooks' | helpLink}}">webhook trigger</a> has been created for the <strong>{{createdBuildConfig.metadata.name}}</strong> build config. You can now set up the webhook in your GitHub repository settings in <a target="_blank" href="{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks">{{createdBuildConfig.spec.source.git.uri | githubLink}}/settings/hooks</a>, using the following payload URL:</p>
+          <pre class="code">{{createdBuildConfig.metadata.name | webhookURL : trigger.type : trigger.github.secret : projectName}}</pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
