@@ -67,3 +67,7 @@ EOF
 
 systemctl daemon-reload
 systemctl restart docker.service
+
+# Cleanup docker0 since docker won't do it
+ip link set docker0 down || true
+brctl delbr docker0 || true
