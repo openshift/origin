@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -323,13 +324,39 @@ func StartTestMaster() (*configapi.MasterConfig, string, error) {
 	return master, adminKubeConfigFile, err
 }
 
+// serviceAccountSecretsExist checks whether the given service account has at least a token and a dockercfg
+// secret associated with it.
+func serviceAccountSecretsExist(client *kclient.Client, namespace string, sa *kapi.ServiceAccount) bool {
+	foundTokenSecret := false
+	foundDockercfgSecret := false
+	for _, secret := range sa.Secrets {
+		ns := namespace
+		if len(secret.Namespace) > 0 {
+			ns = secret.Namespace
+		}
+		secret, err := client.Secrets(ns).Get(secret.Name)
+		if err == nil {
+			switch secret.Type {
+			case kapi.SecretTypeServiceAccountToken:
+				foundTokenSecret = true
+			case kapi.SecretTypeDockercfg:
+				foundDockercfgSecret = true
+			}
+		}
+	}
+	return foundTokenSecret && foundDockercfgSecret
+}
+
+// WaitForServiceAccounts ensures the service accounts needed by build pods exist in the namespace
+// The extra controllers tend to starve the service account controller
 func WaitForServiceAccounts(client *kclient.Client, namespace string, accounts []string) error {
-	// Ensure the service accounts needed by build pods exist in the namespace
-	// The extra controllers tend to starve the service account controller
 	serviceAccounts := client.ServiceAccounts(namespace)
 	return wait.Poll(time.Second, ServiceAccountWaitTimeout, func() (bool, error) {
 		for _, account := range accounts {
-			if _, err := serviceAccounts.Get(account); err != nil {
+			if sa, err := serviceAccounts.Get(account); err != nil {
+				if !serviceAccountSecretsExist(client, namespace, sa) {
+					continue
+				}
 				return false, nil
 			}
 		}
