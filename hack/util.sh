@@ -481,7 +481,24 @@ function cleanup_openshift {
 
 	echo "[INFO] Cleanup complete"
 	set -e
-}	
+}
+
+# create a .gitconfig for test-cmd secrets
+function create_gitconfig {
+	USERNAME=sample-user
+	PASSWORD=password
+	GITCONFIG_DIR=$(mktemp -d /tmp/test-gitconfig.XXXX)
+	touch ${GITCONFIG_DIR}/.gitconfig
+	git config --file ${GITCONFIG_DIR}/.gitconfig user.name ${USERNAME}
+	git config --file ${GITCONFIG_DIR}/.gitconfig user.token ${PASSWORD}
+	echo ${GITCONFIG_DIR}/.gitconfig
+}
+
+function create_valid_file {
+	FILE_DIR=$(mktemp -d /tmp/test-file.XXXX)
+	touch ${FILE_DIR}/${1}
+	echo ${FILE_DIR}/${1}
+}
 
 # install the router for the extended tests
 function install_router {
