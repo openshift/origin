@@ -162,7 +162,6 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVarP(&opts.Selector, "selector", "l", "", "Selector (label query) to filter on")
 	cmd.Flags().BoolVar(&opts.All, "all", false, "select all resources in the namespace of the specified resource types")
 	cmd.Flags().VarP(&opts.Filenames, "filename", "f", "Filename, directory, or URL to file to use to edit the resource.")
-
 	cmd.Flags().BoolVar(&opts.Add, "add", false, "Add volume and/or volume mounts for containers")
 	cmd.Flags().BoolVar(&opts.Remove, "remove", false, "Remove volume and/or volume mounts for containers")
 	cmd.Flags().BoolVar(&opts.List, "list", false, "List volumes and volume mounts for containers")
@@ -182,6 +181,8 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVar(&addOpts.ClaimSize, "claim-size", "", "If specified along with a persistent volume type, create a new claim with the given size in bytes. Accepts SI notation: 10, 10G, 10Gi")
 	cmd.Flags().StringVar(&addOpts.ClaimMode, "claim-mode", "ReadWriteOnce", "Set the access mode of the claim to be created. Valid values are ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
 	cmd.Flags().StringVar(&addOpts.Source, "source", "", "Details of volume source as json string. This can be used if the required volume type is not supported by --type option. (e.g.: '{\"gitRepo\": {\"repository\": <git-url>, \"revision\": <commit-hash>}}')")
+
+	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
 }

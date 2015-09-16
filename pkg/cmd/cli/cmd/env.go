@@ -83,6 +83,9 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 	cmd.Flags().String("resource-version", "", "If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
 	cmd.Flags().StringP("output", "o", "", "Display the changed objects instead of updating them. One of: json|yaml.")
 	cmd.Flags().String("output-version", "", "Output the changed objects with the given version (default api-version).")
+
+	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
+
 	return cmd
 }
 

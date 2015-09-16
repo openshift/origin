@@ -52,11 +52,11 @@ __oc_require_pod_and_container()
 
 __custom_func() {
     case ${last_command} in
-        oc_get | oc_describe | oc_delete)
+        oc_get | oc_describe | oc_delete | oc_label | oc_stop | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume)
             __oc_get_resource
             return
             ;;
-        oc_log)
+        oc_logs)
             __oc_require_pod_and_container
             return
             ;;
