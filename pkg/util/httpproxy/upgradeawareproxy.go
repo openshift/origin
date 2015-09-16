@@ -90,21 +90,16 @@ func singleJoiningSlash(a, b string) string {
 }
 
 func (p *UpgradeAwareSingleHostReverseProxy) newProxyRequest(req *http.Request) (*http.Request, error) {
-	// TODO is this the best way to clone the original request and create
-	// the new request for the backend? Do we need to copy anything else?
-	//
 	backendURL := *p.backendAddr
 	// if backendAddr is http://host/base and req is for /foo, the resulting path
 	// for backendURL should be /base/foo
-	backendURL.Path = singleJoiningSlash(backendURL.Path, req.URL.Path)
-	backendURL.RawQuery = req.URL.RawQuery
+	backendURL.Opaque = singleJoiningSlash(backendURL.Path, req.RequestURI)
 
-	newReq, err := http.NewRequest(req.Method, backendURL.String(), req.Body)
-	if err != nil {
-		return nil, err
-	}
-	// TODO is this the right way to copy headers?
-	newReq.Header = req.Header
+	// Method used by the httputil.ReverseProxy for requests
+	// maps are still shallow copy, but ReverseProxy copies the headers correctly
+	newReq := new(http.Request)
+	*newReq = *req
+	newReq.URL = &backendURL
 
 	// TODO do we need to exclude any other headers?
 	removeAuthHeaders(newReq)
