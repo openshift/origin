@@ -82,11 +82,18 @@ if [[ -z ${TEST_ONLY+x} ]]; then
 
   trap "exit" INT TERM
   trap "cleanup" EXIT
-
   echo "[INFO] Starting server"
 
   setup_env_vars
   reset_tmp_dir
+  # when selinux is enforcing, the volume dir selinux label needs to be
+  # svirt_sandbox_file_t
+  #
+  # TODO: fix the selinux policy to either allow openshift_var_lib_dir_t
+  # or to default the volume dir to svirt_sandbox_file_t.
+  if selinuxenabled; then
+         sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
+  fi
   configure_os_server
   start_os_server
 
@@ -94,6 +101,7 @@ if [[ -z ${TEST_ONLY+x} ]]; then
 
   install_registry
   wait_for_registry
+  CREATE_ROUTER_CERT=1 install_router
 
   echo "[INFO] Creating image streams"
   oc create -n openshift -f examples/image-streams/image-streams-centos7.json --config="${ADMIN_KUBECONFIG}"
