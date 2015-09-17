@@ -2,11 +2,19 @@ package util
 
 import (
 	"fmt"
+	"strings"
+
+	g "github.com/onsi/ginkgo"
+
+	gson "encoding/json"
 	dockerClient "github.com/fsouza/go-dockerclient"
 	tutil "github.com/openshift/origin/test/util"
+	"k8s.io/kubernetes/pkg/credentialprovider"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
-//TagImage, as the name implies, will apply the "tagor" tag string to the image current tagged by "tagee"
+//TagImage will apply the "tagor" tag string to the image current tagged by "tagee"
 func TagImage(tagee, tagor string) error {
 	client, dcerr := tutil.NewDockerClient()
 	if dcerr != nil {
@@ -20,8 +28,8 @@ func TagImage(tagee, tagor string) error {
 	return client.TagImage(tagor, opts)
 }
 
-//PullImage, as the name implies, initiates the equivalent of a `docker pull` for the "name" parameter
-func PullImage(name string) error {
+//PullImage initiates the equivalent of a `docker pull` for the "name" parameter
+func PullImage(name string, authCfg dockerClient.AuthConfiguration) error {
 	client, err := tutil.NewDockerClient()
 	if err != nil {
 		return err
@@ -30,7 +38,62 @@ func PullImage(name string) error {
 		Repository: name,
 		Tag:        "latest",
 	}
-	return client.PullImage(opts, dockerClient.AuthConfiguration{})
+	return client.PullImage(opts, authCfg)
+}
+
+//PushImage initiates the equivalent of a `docker push` for the "name" parameter to the local registry
+func PushImage(name string, authCfg dockerClient.AuthConfiguration) error {
+	client, err := tutil.NewDockerClient()
+	if err != nil {
+		return err
+	}
+	opts := dockerClient.PushImageOptions{
+		Name: name,
+		Tag:  "latest",
+	}
+	return client.PushImage(opts, authCfg)
+}
+
+//BuildAuthConfiguration constructs a non-standard dockerClient.AuthConfiguration that can be used to communicate with the openshift internal docker registry
+func BuildAuthConfiguration(credKey string, oc *CLI) (*dockerClient.AuthConfiguration, error) {
+	authCfg := &dockerClient.AuthConfiguration{}
+	secretList, err := oc.AdminKubeREST().Secrets(oc.Namespace()).List(labels.Everything(), fields.Everything())
+
+	g.By(fmt.Sprintf("get secret list err %v ", err))
+	if err == nil {
+		for _, secret := range secretList.Items {
+			g.By(fmt.Sprintf("secret name %s ", secret.ObjectMeta.Name))
+			if strings.Contains(secret.ObjectMeta.Name, "builder-dockercfg") {
+				dockercfgToken := secret.Data[".dockercfg"]
+				dockercfgTokenJson := string(dockercfgToken)
+				g.By(fmt.Sprintf("docker cfg token json %s ", dockercfgTokenJson))
+
+				creds := credentialprovider.DockerConfig{}
+				err = gson.Unmarshal(dockercfgToken, &creds)
+				g.By(fmt.Sprintf("json unmarshal err %v ", err))
+				if err == nil {
+
+					// borrowed from openshift/origin/pkg/build/builder/cmd/dockercfg/cfg.go, but we get the
+					// secrets and dockercfg data via `oc` vs. internal use of env vars and local file reading,
+					// so we don't use the public methods present there
+					keyring := credentialprovider.BasicDockerKeyring{}
+					keyring.Add(creds)
+					authConfs, found := keyring.Lookup(credKey)
+					g.By(fmt.Sprintf("found auth %v with auth cfg len %d ", found, len(authConfs)))
+					if !found || len(authConfs) == 0 {
+						return authCfg, err
+					}
+					// have seen this does not get set
+					if len(authConfs[0].ServerAddress) == 0 {
+						authConfs[0].ServerAddress = credKey
+					}
+					g.By(fmt.Sprintf("dockercfg with svrAddr %s user %s pass %s email %s ", authConfs[0].ServerAddress, authConfs[0].Username, authConfs[0].Password, authConfs[0].Email))
+					return &authConfs[0], err
+				}
+			}
+		}
+	}
+	return authCfg, err
 }
 
 type MissingTagError struct {

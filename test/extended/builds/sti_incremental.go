@@ -13,7 +13,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("builds: parallel: S2I incremental build with push and pull to authenticated registry", func() {
+var _ = g.Describe("builds: incremental: S2I incremental build with push and pull to authenticated registry", func() {
 	defer g.GinkgoRecover()
 	var (
 		templateFixture = exutil.FixturePath("fixtures", "incremental-auth-build.json")
