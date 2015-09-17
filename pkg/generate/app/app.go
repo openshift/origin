@@ -25,7 +25,9 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
-const volumeNameInfix = "volume"
+const (
+	volumeNameInfix = "volume"
+)
 
 // NameSuggester is an object that can suggest a name for itself
 type NameSuggester interface {

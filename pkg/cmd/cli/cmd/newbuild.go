@@ -100,6 +100,9 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.
 	if err := setLabels(config.Labels, result); err != nil {
 		return err
 	}
+	if err := setAnnotations(map[string]string{newcmd.GeneratedByNamespace: newcmd.GeneratedByNewBuild}, result); err != nil {
+		return err
+	}
 	if len(cmdutil.GetFlagString(c, "output")) != 0 {
 		return f.Factory.PrintObject(c, result.List, out)
 	}
