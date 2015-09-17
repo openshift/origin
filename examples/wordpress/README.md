@@ -41,6 +41,7 @@ OpenShift expects that storage volumes are provisioned by system administrator o
 
 * [NFS](nfs/README.md)
 * [OpenStack Cinder](cinder/README.md)
+- [Fibre Channel](fc/README.md)
 
 ## Persistent Volumes Claims
 Now that the "system admin" guy has deployed some Persistent Volumes, you can continue as an application developer and actually use these volumes to store some MySQL and Wordpress data. From now on, the guide does not depend on the underlying storage technology!
