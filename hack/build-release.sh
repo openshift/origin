@@ -25,13 +25,14 @@ mkdir -p "${context}"
 mkdir -p "${OS_OUTPUT}"
 
 # Generate version definitions.
+# You can commit a specific version by specifying OS_GIT_COMMIT="" prior to build
 os::build::get_version_vars
 os::build::save_version_vars "${context}/os-version-defs"
 
 echo "++ Building release ${OS_GIT_VERSION}"
 
 # Create the input archive.
-git archive --format=tar -o "${context}/archive.tar" HEAD
+git archive --format=tar -o "${context}/archive.tar" "${OS_GIT_COMMIT}"
 tar -rf "${context}/archive.tar" -C "${context}" os-version-defs
 gzip -f "${context}/archive.tar"
 
