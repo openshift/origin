@@ -31,14 +31,33 @@
 # to enforcing mode.  Set selinux to permissive or disable it
 # entirely.
 #
-# Vagrant Dev Cluster
-# -------------------
+# OpenShift Configuration
+# -----------------------
 #
-# At present the dind setup uses the same config (./openshift.local.*)
-# as a vagrant-deployed cluster, so it is not possible to run both a
-# vm-based dev cluster and a dind-based dev cluster from a given repo
-# clone.  Until this is fixed, it is necessary to run only a vm or
-# dind-based cluster at a time, or run them from separate repos.
+# By default, a dind openshift cluster stores its configuration
+# (openshift.local.*) in /tmp/openshift-dind-cluster/openshift.  Since
+# configuration is stored in a different location than a
+# vagrant-deployed cluster (which stores configuration in the root of
+# the origin tree), vagrant and dind clusters can run simultaneously
+# without conflict.  It's also possible to run multiple dind clusters
+# simultaneously by overriding the instance prefix.  The following
+# command would ensure configuration was stored at
+# /tmp/openshift-dind/cluster/my-cluster:
+#
+#    OS_INSTANCE_PREFIX=my-cluster hack/dind-cluster.sh [command]
+#
+# It is also possible to specify an entirely different configuration path:
+#
+#    OS_DIND_CONFIG_ROOT=[path] hack/dind-cluster.sh [command]
+#
+# Running Tests
+# -------------
+#
+# This script includes a shortcut for running the networking e2e
+# tests.  The test-net-e2e command will run the extended networking
+# tests against an already running dind cluster:
+#
+#     hack/dind-cluster.sh test-net-e2e
 #
 # Bash Aliases
 # ------------
