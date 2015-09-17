@@ -42,6 +42,15 @@ func ValidateImage(image *api.Image) fielderrors.ValidationErrorList {
 	return result
 }
 
+func ValidateImageUpdate(newImage, oldImage *api.Image) fielderrors.ValidationErrorList {
+	result := fielderrors.ValidationErrorList{}
+
+	result = append(result, validation.ValidateObjectMetaUpdate(&newImage.ObjectMeta, &oldImage.ObjectMeta).Prefix("metadata")...)
+	result = append(result, ValidateImage(newImage)...)
+
+	return result
+}
+
 // ValidateImageStream tests required fields for an ImageStream.
 func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
