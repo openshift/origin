@@ -378,6 +378,14 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 	repair := securitycontroller.NewRepair(time.Minute, kclient.Namespaces(), uidRange, etcdAlloc)
 	if err := repair.RunOnce(); err != nil {
 		// TODO: v scary, may need to use direct etcd calls?
+		// If the security controller fails during RunOnce it could mean a
+		// couple of things:
+		// 1. an unexpected etcd error occurred getting an allocator or the namespaces
+		// 2. the allocation blocks were full - would result in an admission controller that is unable
+		//	  to create the strategies correctly which would likely mean that the cluster
+		//	  would not admit pods the the majority of users.
+		// 3. an unexpected error persisting an allocation for a namespace has occurred - same as above
+		// In all cases we do not want to continue normal operations, this should be fatal.
 		glog.Fatalf("Unable to initialize namespaces: %v", err)
 	}
 
