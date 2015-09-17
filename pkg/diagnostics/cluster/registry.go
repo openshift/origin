@@ -140,7 +140,7 @@ func (d *ClusterRegistry) CanRun() (bool, error) {
 	if d.OsClient == nil || d.KubeClient == nil {
 		return false, fmt.Errorf("must have kube and os clients")
 	}
-	return adminCan(d.OsClient, authorizationapi.AuthorizationAttributes{
+	return userCan(d.OsClient, authorizationapi.AuthorizationAttributes{
 		Namespace:    kapi.NamespaceDefault,
 		Verb:         "get",
 		Resource:     "services",

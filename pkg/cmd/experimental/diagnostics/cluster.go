@@ -21,7 +21,7 @@ import (
 var (
 	// availableClusterDiagnostics contains the names of cluster diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClusterDiagnostics = util.NewStringSet(clustdiags.NodeDefinitionsName, clustdiags.ClusterRegistryName, clustdiags.ClusterRouterName)
+	availableClusterDiagnostics = util.NewStringSet(clustdiags.NodeDefinitionsName, clustdiags.ClusterRegistryName, clustdiags.ClusterRouterName, clustdiags.ClusterRolesName)
 )
 
 // buildClusterDiagnostics builds cluster Diagnostic objects if a cluster-admin client can be extracted from the rawConfig passed in.
@@ -52,6 +52,8 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{kclusterClient, clusterClient})
 		case clustdiags.ClusterRouterName:
 			diagnostics = append(diagnostics, &clustdiags.ClusterRouter{kclusterClient, clusterClient})
+		case clustdiags.ClusterRolesName:
+			diagnostics = append(diagnostics, &clustdiags.ClusterRoles{clusterClient, clusterClient})
 
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
