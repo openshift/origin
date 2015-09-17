@@ -21,6 +21,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/tar"
@@ -260,11 +261,20 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 	}
 	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, api.DefaultDockerLabelNamespace)
 	newFileData = appendMetadata(Label, newFileData, labels)
-	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
+
+	node, err := parser.Parse(strings.NewReader(newFileData))
+	if err != nil {
 		return err
 	}
 
-	return nil
+	err = insertEnvAfterFrom(node, d.build.Spec.Strategy.DockerStrategy.Env)
+	if err != nil {
+		return err
+	}
+
+	instructions := dockerfile.ParseTreeToDockerfile(node)
+
+	return ioutil.WriteFile(dockerfilePath, instructions, filePerm)
 }
 
 // appendMetadata appends a Docker instruction that adds metadata values
@@ -414,6 +424,37 @@ func traverseAST(cmd string, node *parser.Node) int {
 		}
 	}
 	return index
+}
+
+// insertEnvAfterFrom inserts an ENV instruction with the environment variables
+// from env after every FROM instruction in node.
+func insertEnvAfterFrom(node *parser.Node, env []kapi.EnvVar) error {
+	if node == nil || len(env) == 0 {
+		return nil
+	}
+
+	// Build ENV instruction.
+	var m []dockerfile.KeyValue
+	for _, e := range env {
+		m = append(m, dockerfile.KeyValue{Key: e.Name, Value: e.Value})
+	}
+	buildEnv, err := dockerfile.Env(m)
+	if err != nil {
+		return err
+	}
+
+	// Insert the buildEnv after every FROM instruction.
+	// We iterate in reverse order, otherwise indices would have to be
+	// recomputed after each step, because we're changing node in-place.
+	indices := dockerfile.FindAll(node, dockercmd.From)
+	for i := len(indices) - 1; i >= 0; i-- {
+		err := dockerfile.InsertInstructions(node, indices[i]+1, buildEnv)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // setupPullSecret provides a Docker authentication configuration when the
