@@ -1,14 +1,9 @@
-package extended
+package ha
 
 import (
 	"testing"
 
 	flag "github.com/spf13/pflag"
-
-	_ "github.com/openshift/origin/test/extended/authentication"
-	_ "github.com/openshift/origin/test/extended/builds"
-	_ "github.com/openshift/origin/test/extended/images"
-	_ "github.com/openshift/origin/test/extended/router"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

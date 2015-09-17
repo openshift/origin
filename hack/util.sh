@@ -152,44 +152,6 @@ function start_os_server {
 	echo `date`
 }
 
-# start_os_api_server starts standalone OS's API. Node and Controllers need to be started
-# separately. Useful for testing controllers election.
-function start_os_api_server {
-	echo "[INFO] `openshift version`"
-	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
-	echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
-	echo "[INFO] Volumes dir is:            ${VOLUME_DIR}"
-	echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
-	echo "[INFO] Using images:              ${USE_IMAGES}"
-	echo "[INFO] MasterIP is:               ${MASTER_ADDR}"
-
-	echo "[INFO] Scan of OpenShift related processes already up via ps -ef | grep openshift : "
-	ps -ef | grep openshift
-	echo "[INFO] Starting OpenShift API server"
-	sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash \
-	 openshift start master api \
-	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-	 --loglevel=4 \
-	&> "${LOG_DIR}/openshift-api.log" &
-	export OS_API_PID=$!
-
-	echo "[INFO] OpenShift API server start at: "
-	echo `date`
-}
-
-function start_os_node {
-	echo "[INFO] Starting OpenShift node"
-	sudo env "PATH=${PATH}" OPENSHIFT_ON_PANIC=crash \
-	 openshift start node \
-	 --config=${NODE_CONFIG_DIR}/node-config.yaml \
-	 --loglevel=4 \
-	&> "${LOG_DIR}/openshift-node.log" &
-	export OS_NODE_PID=$!
-
-	echo "[INFO] OpenShift node start at:"
-	echo `date`
-}
-
 # ensure_iptables_or_die tests if the testing machine has iptables available
 # and in PATH. Also test whether current user has sudo privileges.	
 function ensure_iptables_or_die {
@@ -407,60 +369,36 @@ function validate_response {
 }
 
 # start_etcd starts an etcd server
-# $1 - Optional host (Default: 127.0.0.1)
-# $2 - Optional port (Default: 4001)
-function start_etcd_extended() {
-	[ ! -z "${ETCD_STARTED-}" ] && return
+function start_etcd() {
+        if [[ -n "${ETCD_PID:-}" ]] && kill -0 "$ETCD_PID"; then
+            echo "Etcd server is already running as pid=${ETCD_PID}."
+            return 0
+        fi
 
-	local host=${1:-${ETCD_HOST:-127.0.0.1}}
-	local port=${2:-${ETCD_PORT:-4001}}
+	ETCD_HOST=${ETCD_HOST:-127.0.0.1}
+	ETCD_PORT=${ETCD_PORT:-4001}
 	local scheme=http
 	if [[ -n "${ETCD_CERT_FILE:-}" && -n "${ETCD_KEY_FILE:-}" && -n "${ETCD_TRUSTED_CA_FILE:-}" ]]; then
 		scheme=https
 	fi
-	local client_url="$scheme://$host:$port"
+	local client_url="$scheme://$ETCD_HOST:$ETCD_PORT"
 
-	set +e
-
-	if [ "$(which etcd 2>/dev/null)" == "" ]; then
-		if [[ ! -f ${OS_ROOT}/_tools/etcd/bin/etcd ]]; then
-			echo "etcd must be in your PATH or installed in _tools/etcd/bin/ with hack/install-etcd.sh"
-			exit 1
-		fi
-		export PATH="${OS_ROOT}/_tools/etcd/bin:$PATH"
-	fi
-
-	local running_etcd=$(ps -ef | grep etcd | grep -c name)
-	if [ "$running_etcd" != "0" ]; then
-		echo "etcd appears to already be running on this machine, please kill and restart the test."
-		exit 1
-	fi
-
-	# Stop on any failures
-	set -e
-
-	# get etcd version
-	local etcd_version=$(etcd --version | awk '{print $3}')
-	local etcd_args=""
-	if [[ "${etcd_version}" =~ ^2 ]]; then
-		etcd_args="--initial-cluster test=http://$host:2380,test=http://$host:7001"
-		etcd_args+=" --initial-advertise-peer-urls http://$host:2380,http://$host:7001"
-		etcd_args+=" --listen-client-urls $client_url"
-		etcd_args+=" --advertise-client-urls $client_url"
-	else
-		etcd_args="-bind-addr ${host}:${port}"
-	fi
-
-	# Start etcd
 	export ETCD_DIR=$(mktemp -d -t test-etcd.XXXXXX)
 	local log_file="${LOG_DIR:-$ETCD_DIR}/etcd.log"
+
+        local etcd_args=( --data-dir "$ETCD_DIR" )
+        etcd_args+=( --initial-cluster "test=http://$ETCD_HOST:2380,test=http://$ETCD_HOST:7001" )
+        etcd_args+=( --initial-advertise-peer-urls "http://$ETCD_HOST:2380,http://$ETCD_HOST:7001" )
+        etcd_args+=( --listen-client-urls "$client_url" )
+        etcd_args+=( --advertise-client-urls "$client_url" )
+
 	echo "[INFO] Starting etcd server listening on ${client_url}"
-	etcd -name test -debug -data-dir $ETCD_DIR $etcd_args >$log_file 2>&1 &
+	etcd -name test -debug "${etcd_args[@]}" >$log_file 2>&1 &
 	export ETCD_PID=$!
 
 	CURL_CERT="${ETCD_CERT_FILE:-}" CURL_KEY="${ETCD_KEY_FILE:-}" \
-		wait_for_url "$scheme://$host:$port/version" "etcd: " 0.25 80
-	curl -X PUT "$scheme://$host:$port/v2/keys/_test"
+		wait_for_url "$scheme://$ETCD_HOST:$ETCD_PORT/version" "etcd: " 0.25 80
+	curl -X PUT "$scheme://$ETCD_HOST:$ETCD_PORT/v2/keys/_test"
 	echo
 }
 

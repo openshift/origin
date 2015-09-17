@@ -54,10 +54,12 @@ func NewControllersManager(configPath string, numControllers, listenPortStart in
 
 	if outputDir == "" && os.Getenv("TMPDIR") != "" {
 		outputDir = os.Getenv("TMPDIR")
-		logsDir := filepath.Join(os.Getenv("TMPDIR"), "logs")
-		os.MkdirAll(logsDir, 0644)
-		g.GinkgoWriter.Write([]byte(fmt.Sprintf("Logging controllers outputs to %s\n", logsDir)))
 	}
+	logsDir := filepath.Join(outputDir, "logs")
+	if err := os.MkdirAll(logsDir, 0644); err != nil && !os.IsExist(err) {
+		return nil, fmt.Errorf("Failed to create log dir: %v", err)
+	}
+	g.GinkgoWriter.Write([]byte(fmt.Sprintf("Logging controllers outputs to %s\n", logsDir)))
 
 	mgr := &ControllersManager{
 		configPath:      configPath,
