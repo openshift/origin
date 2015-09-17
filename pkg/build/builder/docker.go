@@ -147,33 +147,50 @@ func (d *DockerBuilder) checkSourceURI(testConnection bool) error {
 // is included in the build revision, that commit ID is checked out. Otherwise
 // if a ref is included in the source definition, that ref is checked out.
 func (d *DockerBuilder) fetchSource(dir string) error {
-	// Set the HTTP and HTTPS proxies to be used by git clone.
-	originalProxies := setHTTPProxy(d.build.Spec.Source.Git.HTTPProxy, d.build.Spec.Source.Git.HTTPSProxy)
-	defer resetHTTPProxy(originalProxies)
+	hasGitSource := false
+	// TODO: refactor me into a method
+	if gitSource := d.build.Spec.Source.Git; gitSource != nil {
+		hasGitSource = true
+		revision := d.build.Spec.Revision
 
-	// Check source URI, trying to connect to the server only if not using a proxy.
-	usingProxy := len(originalProxies) > 0
-	if err := d.checkSourceURI(!usingProxy); err != nil {
-		return err
+		// Set the HTTP and HTTPS proxies to be used by git clone.
+		originalProxies := setHTTPProxy(gitSource.HTTPProxy, gitSource.HTTPSProxy)
+		defer resetHTTPProxy(originalProxies)
+
+		// Check source URI, trying to connect to the server only if not using a proxy.
+		usingProxy := len(originalProxies) > 0
+		if err := d.checkSourceURI(!usingProxy); err != nil {
+			return err
+		}
+
+		glog.V(2).Infof("Cloning source from %s", gitSource.URI)
+		if err := d.git.Clone(gitSource.URI, dir, s2iapi.CloneConfig{Recursive: true, Quiet: true}); err != nil {
+			return err
+		}
+
+		// if we specify a commit, ref, or branch to checkout, do so
+		if len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0) {
+			commit := gitSource.Ref
+			if revision != nil && revision.Git != nil && revision.Git.Commit != "" {
+				commit = revision.Git.Commit
+			}
+			if err := d.git.Checkout(dir, commit); err != nil {
+				return err
+			}
+		}
 	}
 
-	glog.V(2).Infof("Cloning source from %s", d.build.Spec.Source.Git.URI)
-	if err := d.git.Clone(d.build.Spec.Source.Git.URI, dir, s2iapi.CloneConfig{Recursive: true, Quiet: true}); err != nil {
-		return err
+	// a Dockerfile has been specified, create or overwrite into the destination
+	if dockerfileSource := d.build.Spec.Source.Dockerfile; dockerfileSource != nil {
+		baseDir := dir
+		// if a context dir has been defined and we cloned source, overwrite the destination
+		if hasGitSource && len(d.build.Spec.Source.ContextDir) != 0 {
+			baseDir = filepath.Join(baseDir, d.build.Spec.Source.ContextDir)
+		}
+		return ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
 	}
 
-	if d.build.Spec.Source.Git.Ref == "" &&
-		(d.build.Spec.Revision == nil ||
-			d.build.Spec.Revision.Git == nil ||
-			d.build.Spec.Revision.Git.Commit == "") {
-		return nil
-	}
-	if d.build.Spec.Revision != nil &&
-		d.build.Spec.Revision.Git != nil &&
-		d.build.Spec.Revision.Git.Commit != "" {
-		return d.git.Checkout(dir, d.build.Spec.Revision.Git.Commit)
-	}
-	return d.git.Checkout(dir, d.build.Spec.Source.Git.Ref)
+	return nil
 }
 
 // addBuildParameters checks if a Image is set to replace the default base image.

@@ -110,15 +110,21 @@ func ValidateBuildRequest(request *buildapi.BuildRequest) fielderrors.Validation
 
 func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	isCustomBuild := spec.Strategy.Type == buildapi.CustomBuildStrategyType
-	// Validate 'source' and 'output' for all build types except Custom build
-	// where they are optional and validated only if present.
-	if !isCustomBuild || (isCustomBuild && len(spec.Source.Type) != 0) {
+	hasSourceType := len(spec.Source.Type) != 0
+	switch t := spec.Strategy.Type; {
+	// 'source' is optional for Custom builds
+	case t == buildapi.CustomBuildStrategyType && hasSourceType:
 		allErrs = append(allErrs, validateSource(&spec.Source).Prefix("source")...)
-
-		if spec.Revision != nil {
-			allErrs = append(allErrs, validateRevision(spec.Revision).Prefix("revision")...)
+	case t == buildapi.SourceBuildStrategyType:
+		allErrs = append(allErrs, validateSource(&spec.Source).Prefix("source")...)
+		if spec.Source.Type == buildapi.BuildSourceDockerfile {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("source.type", nil, "may not be type Dockerfile for source builds"))
 		}
+	case t == buildapi.DockerBuildStrategyType:
+		allErrs = append(allErrs, validateSource(&spec.Source).Prefix("source")...)
+	}
+	if spec.Revision != nil {
+		allErrs = append(allErrs, validateRevision(spec.Revision).Prefix("revision")...)
 	}
 
 	allErrs = append(allErrs, validateOutput(&spec.Output).Prefix("output")...)
@@ -130,13 +136,29 @@ func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList
 
 func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if input.Type != buildapi.BuildSourceGit {
+	switch input.Type {
+	case buildapi.BuildSourceGit:
+		if input.Git == nil {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("git"))
+		} else {
+			allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
+		}
+		if input.Dockerfile != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfile", "", "may not be set when type is Git"))
+		}
+	case buildapi.BuildSourceDockerfile:
+		if input.Dockerfile == nil {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("dockerfile"))
+		} else {
+			if len(*input.Dockerfile) > 60*1000 {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfile", "", "must be smaller than 60Kb"))
+			}
+		}
+		if input.Git != nil {
+			allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
+		}
+	case "":
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
-	}
-	if input.Git == nil {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("git"))
-	} else {
-		allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
 	}
 	allErrs = append(allErrs, validateSecretRef(input.SourceSecret).Prefix("sourceSecret")...)
 	return allErrs

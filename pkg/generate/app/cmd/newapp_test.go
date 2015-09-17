@@ -908,7 +908,7 @@ func TestRunBuild(t *testing.T) {
 		name        string
 		config      *AppConfig
 		expected    map[string][]string
-		expectedErr error
+		expectedErr func(error) bool
 	}{
 		{
 			name: "successful ruby app generation",
@@ -946,15 +946,66 @@ func TestRunBuild(t *testing.T) {
 				"buildConfig": {"ruby-hello-world"},
 				"imageStream": {"ruby-20-centos7"},
 			},
-			expectedErr: nil,
+		},
+		{
+			name: "successful build from dockerfile",
+			config: &AppConfig{
+				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"origin-base"},
+				"imageStream": {"origin-base"},
+			},
+		},
+		{
+			name: "unsuccessful build from dockerfile due to strategy conflict",
+			config: &AppConfig{
+				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+				Strategy:   "source",
+
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expectedErr: func(err error) bool {
+				return err.Error() == "when directly referencing a Dockerfile, the strategy must must be 'docker'"
+			},
 		},
 	}
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
 		res, err := test.config.RunBuilds(os.Stdout, os.Stderr)
-		if err != test.expectedErr {
-			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		}
+		if err != nil {
 			continue
 		}
 		got := map[string][]string{}
@@ -1167,10 +1218,7 @@ tests:
 // Make sure that buildPipelines defaults DockerImage.Config if needed to
 // avoid a nil panic.
 func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
-	dockerParser := dockerfile.NewParser()
-
-	dockerFileInput := strings.NewReader("EXPOSE 1234\nEXPOSE 4567")
-	dockerFile, err := dockerParser.Parse(dockerFileInput)
+	dockerFile, err := app.NewDockerfile("EXPOSE 1234\nEXPOSE 4567")
 	if err != nil {
 		t.Fatal(err)
 	}

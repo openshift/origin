@@ -206,6 +206,10 @@ func (r *ReferenceBuilder) AddSourceRepository(input string) (*SourceRepository,
 	return source, true
 }
 
+func (r *ReferenceBuilder) AddExistingSourceRepository(source *SourceRepository) {
+	r.repos = append(r.repos, source)
+}
+
 // Result returns the result of the config conversion to object references
 func (r *ReferenceBuilder) Result() (ComponentReferences, SourceRepositories, []error) {
 	return r.refs, r.repos, r.errs

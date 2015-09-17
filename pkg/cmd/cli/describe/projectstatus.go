@@ -535,6 +535,8 @@ func buildTimestamp(build *buildapi.Build) util.Time {
 
 func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 	switch source.Type {
+	case buildapi.BuildSourceDockerfile:
+		return "Dockerfile", true
 	case buildapi.BuildSourceGit:
 		if len(source.Git.Ref) == 0 {
 			return source.Git.URI, true

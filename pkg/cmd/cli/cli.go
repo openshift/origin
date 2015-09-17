@@ -86,7 +86,7 @@ func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
 				cmd.NewCmdBuildLogs(fullName, f, out),
 				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),
-				cmd.NewCmdNewBuild(fullName, f, out),
+				cmd.NewCmdNewBuild(fullName, f, in, out),
 				cmd.NewCmdCancelBuild(fullName, f, out),
 				cmd.NewCmdImportImage(fullName, f, out),
 				cmd.NewCmdScale(fullName, f, out),

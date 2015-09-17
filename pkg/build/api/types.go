@@ -121,12 +121,18 @@ type BuildSourceType string
 const (
 	//BuildSourceGit is a Git SCM
 	BuildSourceGit BuildSourceType = "Git"
+	// bulidSourceDockerfile is an embedded dockerfile
+	BuildSourceDockerfile BuildSourceType = "Dockerfile"
 )
 
-// BuildSource is the SCM used for the build
+// BuildSource is the input used for the build
 type BuildSource struct {
-	// Type of source control management system
+	// Type of build inputsystem
 	Type BuildSourceType
+
+	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
+	// specified, the From and Env on the Docker build strategy are applied on top of this file.
+	Dockerfile *string
 
 	// Git contains optional information about git build source
 	Git *GitBuildSource

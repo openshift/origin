@@ -858,6 +858,12 @@ func deepCopy_api_BuildRequest(in buildapi.BuildRequest, out *buildapi.BuildRequ
 
 func deepCopy_api_BuildSource(in buildapi.BuildSource, out *buildapi.BuildSource, c *conversion.Cloner) error {
 	out.Type = in.Type
+	if in.Dockerfile != nil {
+		out.Dockerfile = new(string)
+		*out.Dockerfile = *in.Dockerfile
+	} else {
+		out.Dockerfile = nil
+	}
 	if in.Git != nil {
 		out.Git = new(buildapi.GitBuildSource)
 		if err := deepCopy_api_GitBuildSource(*in.Git, out.Git, c); err != nil {
