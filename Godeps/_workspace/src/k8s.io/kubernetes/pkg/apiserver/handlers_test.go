@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/pkg/util/wait"
 )
 
 type fakeRL bool
@@ -41,13 +42,21 @@ func (f fakeRL) CanAccept() bool { return bool(f) }
 func (f fakeRL) Accept()         {}
 
 func expectHTTP(url string, code int, t *testing.T) {
-	r, err := http.Get(url)
+	var response *http.Response
+	err := wait.Poll(10, time.Duration(100*time.Millisecond), func() (bool, error) {
+		var e error
+		response, e = http.Get(url)
+		if response.StatusCode == 429 {
+			return false, nil
+		}
+		return true, e
+	})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 		return
 	}
-	if r.StatusCode != code {
-		t.Errorf("unexpected response: %v", r.StatusCode)
+	if response.StatusCode != code {
+		t.Errorf("unexpected response: %v", response.StatusCode)
 	}
 }
 
