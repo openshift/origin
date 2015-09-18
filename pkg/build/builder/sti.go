@@ -58,7 +58,7 @@ func (s *STIBuilder) Build() error {
 		DockerCfgPath:  os.Getenv(dockercfg.PullAuthType),
 		Tag:            tag,
 		ScriptsURL:     s.build.Spec.Strategy.SourceStrategy.Scripts,
-		Environment:    getBuildEnvVars(s.build),
+		Environment:    buildEnvVars(s.build),
 		LabelNamespace: api.DefaultDockerLabelNamespace,
 		Incremental:    s.build.Spec.Strategy.SourceStrategy.Incremental,
 		ForcePull:      s.build.Spec.Strategy.SourceStrategy.ForcePull,
@@ -156,4 +156,21 @@ func (s *STIBuilder) Build() error {
 		glog.Flush()
 	}
 	return nil
+}
+
+// buildEnvVars returns a map with build metadata to be inserted into Docker
+// images produced by build. It transforms the output from buildInfo into the
+// input format expected by stiapi.Config.Environment.
+// Note that using a map has at least two downsides:
+// 1. The order of metadata KeyValue pairs is lost;
+// 2. In case of repeated Keys, the last Value takes precedence right here,
+//    instead of deferring what to do with repeated environment variables to the
+//    Docker runtime.
+func buildEnvVars(build *api.Build) map[string]string {
+	bi := buildInfo(build)
+	envVars := make(map[string]string, len(bi))
+	for _, item := range bi {
+		envVars[item.Key] = item.Value
+	}
+	return envVars
 }
