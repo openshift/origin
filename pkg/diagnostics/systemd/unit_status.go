@@ -3,8 +3,6 @@ package systemd
 import (
 	"errors"
 	"fmt"
-	"os/exec"
-	"runtime"
 
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -24,13 +22,10 @@ func (d UnitStatus) Description() string {
 	return "Check status for related systemd units"
 }
 func (d UnitStatus) CanRun() (bool, error) {
-	if runtime.GOOS == "linux" {
-		if _, err := exec.LookPath("systemctl"); err == nil {
-			return true, nil
-		}
+	if HasSystemctl() {
+		return true, nil
 	}
-
-	return false, errors.New("systemd is not present on this host")
+	return false, errors.New("systemd is not present/functional on this host")
 }
 func (d UnitStatus) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(UnitStatusName)
