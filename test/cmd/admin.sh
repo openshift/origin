@@ -121,7 +121,7 @@ echo "router: ok"
 
 # Test running a registry
 [ ! "$(oadm registry --dry-run | grep 'does not exist')"]
-[ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | grep 'openshift/origin-docker-registry')" ]
+[ "$(oadm registry -o yaml --credentials="${KUBECONFIG}" | egrep 'image:.*-docker-registry')" ]
 oadm registry --credentials="${KUBECONFIG}" --images="${USE_IMAGES}"
 [ "$(oadm registry | grep 'service exists')" ]
 echo "registry: ok"
