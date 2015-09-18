@@ -79,11 +79,17 @@ Requires:       tuned >= %{tuned_version}
 %{summary}
 
 %package clients
-Summary:      %{product_name} Client binaries for Linux, Mac OSX, and Windows
+Summary:      %{product_name} Client binaries for Linux
+
+%description clients
+%{summary}
+
+%package clients-other
+Summary:      %{product_name} Client binaries for Mac OSX, and Windows
 BuildRequires: golang-pkg-darwin-amd64
 BuildRequires: golang-pkg-windows-386
 
-%description clients
+%description clients-other
 %{summary}
 
 %package dockerregistry
@@ -135,15 +141,14 @@ pushd _thirdpartyhacks
 popd
 export GOPATH=$(pwd)/_build:$(pwd)/_thirdpartyhacks:%{buildroot}%{gopath}:%{gopath}
 # Build all linux components we care about
-for cmd in openshift dockerregistry
+for cmd in oc openshift dockerregistry
 do
         go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
 
 # Build clients for other platforms
-# TODO: build cmd/oc instead of openshift
-GOOS=windows GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
-GOOS=darwin GOARCH=amd64 go install -ldflags "%{ldflags}" %{import_path}/cmd/openshift
+GOOS=windows GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
+GOOS=darwin GOARCH=amd64 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
 
 #Build our pod
 pushd images/pod/
@@ -155,17 +160,16 @@ popd
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in openshift dockerregistry
+for bin in oc openshift dockerregistry
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
 done
 
 # Install client executable for windows and mac
-install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
-install -p -m 755 _build/bin/openshift %{buildroot}%{_datadir}/%{name}/linux/oc
-install -p -m 755 _build/bin/darwin_amd64/openshift %{buildroot}/%{_datadir}/%{name}/macosx/oc
-install -p -m 755 _build/bin/windows_386/openshift.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
+install -d %{buildroot}%{_datadir}/%{name}/{macosx,windows}
+install -p -m 755 _build/bin/darwin_amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
+install -p -m 755 _build/bin/windows_386/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 
 #Install pod
 install -p -m 755 images/pod/pod %{buildroot}%{_bindir}/
@@ -174,7 +178,7 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
-for cmd in oc openshift-router openshift-deploy openshift-sti-build openshift-docker-build origin atomic-enterprise \
+for cmd in openshift-router openshift-deploy openshift-sti-build openshift-docker-build origin atomic-enterprise \
   oadm kubectl kubernetes kubelet kube-proxy kube-apiserver kube-controller-manager kube-scheduler ; do
     ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
 done
@@ -220,7 +224,6 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %files
 %defattr(-,root,root,-)
 %doc README.md LICENSE
-%{_bindir}/oc
 %{_bindir}/openshift
 %{_bindir}/openshift-router
 %{_bindir}/openshift-deploy
@@ -353,7 +356,9 @@ if [ "$1" = 0 ]; then
 fi
 
 %files clients
-%{_datadir}/%{name}/linux/oc
+%{_bindir}/oc
+
+%files clients-other
 %{_datadir}/%{name}/macosx/oc
 %{_datadir}/%{name}/windows/oc.exe
 
