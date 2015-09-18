@@ -1,6 +1,6 @@
 {
   "kind": "Template",
-  "apiVersion": "v1beta3",
+  "apiVersion": "v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
     "creationTimestamp": null,
@@ -11,7 +11,7 @@
   "objects": [
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null
@@ -39,7 +39,7 @@
     },
     {
       "kind": "Route",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
         "creationTimestamp": null
@@ -61,7 +61,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "origin-ruby-sample",
         "creationTimestamp": null
@@ -73,7 +73,7 @@
     },
     {
       "kind": "ImageStream",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "origin-custom-docker-builder",
         "creationTimestamp": null
@@ -87,7 +87,7 @@
     },
     {
       "kind": "BuildConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "ruby-sample-build",
         "creationTimestamp": null,
@@ -153,7 +153,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
         "creationTimestamp": null
@@ -251,7 +251,7 @@
     },
     {
       "kind": "Service",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "database",
         "creationTimestamp": null
@@ -279,7 +279,7 @@
     },
     {
       "kind": "DeploymentConfig",
-      "apiVersion": "v1beta3",
+      "apiVersion": "v1",
       "metadata": {
         "name": "database",
         "creationTimestamp": null

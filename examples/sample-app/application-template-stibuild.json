@@ -100,18 +100,6 @@
       "spec": {
         "triggers": [
           {
-            "type": "GitHub",
-            "github": {
-              "secret": "secret101"
-            }
-          },
-          {
-            "type": "Generic",
-            "generic": {
-              "secret": "secret101"
-            }
-          },
-          {
             "type": "ImageChange",
             "imageChange": {}
           },
