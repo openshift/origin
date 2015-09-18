@@ -5,8 +5,8 @@ MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
 LABEL Name="aos3/aos-master"
 LABEL Vendor="Red Hat" License=GPLv2+
 LABEL Version=v3.0.1.901
-LABEL Release="3"
-LABEL BZComponent="aos3-aos-master-docker"
+LABEL Release="4"
+LABEL BZComponent="aos3-master-docker"
 LABEL Architecture="x86_64"
 
 RUN yum-config-manager --enable RH7-RHAOS-3.1
