@@ -109,7 +109,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Message: "Troubleshooting and Debugging Commands:",
 			Commands: []*cobra.Command{
 				cmd.NewCmdLogs(fullName, f, out),
-				cmd.NewCmdRsh(fullName, f, in, out, errout),
+				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, in, out, errout),
+				cmd.NewCmdRsync(cmd.RsyncRecommendedName, fullName, f, out, errout),
 				cmd.NewCmdExec(fullName, f, in, out, errout),
 				cmd.NewCmdPortForward(fullName, f),
 				cmd.NewCmdProxy(fullName, f, out),

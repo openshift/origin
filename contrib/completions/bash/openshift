@@ -2655,6 +2655,27 @@ _openshift_cli_rsh()
     must_have_one_noun=()
 }
 
+_openshift_cli_rsync()
+{
+    last_command="openshift_cli_rsync"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--delete")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--use-tar")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_cli_exec()
 {
     last_command="openshift_cli_exec"
@@ -3467,6 +3488,7 @@ _openshift_cli()
     commands+=("delete")
     commands+=("logs")
     commands+=("rsh")
+    commands+=("rsync")
     commands+=("exec")
     commands+=("port-forward")
     commands+=("proxy")

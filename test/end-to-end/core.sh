@@ -159,7 +159,10 @@ echo "[INFO] Validating port-forward"
 oc port-forward -p ${frontend_pod} 10080:8080  &> "${LOG_DIR}/port-forward.log" &
 wait_for_url_timed "http://localhost:10080" "[INFO] Frontend says: " $((10*TIME_SEC))
 
-
+# Rsync
+echo "[INFO] Validating rsync"
+oc rsync examples/sample-app ${frontend_pod}:/tmp
+[ "$(oc rsh ${frontend_pod} ls /tmp/sample-app | grep "application-template-stibuild")" ]
 
 #echo "[INFO] Applying Docker application config"
 #oc create -n docker -f "${DOCKER_CONFIG_FILE}"
