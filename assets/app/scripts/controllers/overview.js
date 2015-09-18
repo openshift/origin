@@ -415,6 +415,7 @@ angular.module('openshiftConsole')
       $scope.$apply(function() {
         $scope.services = labelSelector.select($scope.unfilteredServices);
         updateFilterWarning();
+        updateTopology();
       });
     });
 
@@ -431,52 +432,71 @@ angular.module('openshiftConsole')
         return resource.kind + resource.metadata.uid;
       }
 
-      // We only add pods that are pointed to by a service
-      angular.forEach($scope.pods, function(pod) {
-        if (showMonopod(pod)) {
-          topologyItems[makeId(pod)] = pod;
-        }
+      // Add the services
+      angular.forEach($scope.services, function(service) {
+        topologyItems[makeId(service)] = service;
       });
 
-      // Put each of the resources into the topology. Each of these
-      // are name -> object mappings.
-      [ $scope.routes,
-        $scope.services,
-        $scope.deployments,
-        $scope.deploymentConfigs
-      ].forEach(function(resources) {
-        angular.forEach(resources, function(resource) {
-          topologyItems[makeId(resource)] = resource;
-        });
-      });
-
-      /*
-       * Most of the tables in this scope are in a standard form with
-       * string keys, pointing to a map of further name -> object mappings.
-       *
-       * We can process them all together.
-       *
-       * Only relationships for objects added above will be displayed by
-       * the topology. So we can (for example) leave relations for monopods in.
-       */
+      // Add everything related to services, each of these tables are in
+      // standard form with string keys, pointing to a map of further
+      // name -> resource mappings.
       [
-        [ $scope.podsByService, $scope.services ],
-        [ $scope.monopodsByService, $scope.services ],
-        [ $scope.podsByDeployment, $scope.deployments ],
-        [ $scope.deploymentsByService, $scope.services ],
-        [ $scope.deploymentConfigsByService, $scope.services ],
-        [ $scope.routesByService, $scope.services ]
-      ].forEach(function(args) {
-        var map = args[0];
-        var lookup = args[1];
-        angular.forEach(map, function(resources, name) {
-          var source = lookup[name];
-          if (source) {
+        $scope.podsByService,
+        $scope.monopodsByService,
+        $scope.deploymentsByService,
+        $scope.deploymentConfigsByService,
+        $scope.routesByService
+      ].forEach(function(map) {
+        angular.forEach(map, function(resources, serviceName) {
+          var service = $scope.services[serviceName];
+          if (!serviceName || service) {
             angular.forEach(resources, function(resource) {
-              topologyRelations.push({ source: makeId(source), target: makeId(resource) });
+              if (map !== $scope.monopodsByService || showMonopod(resource)) {
+                topologyItems[makeId(resource)] = resource;
+              }
             });
           }
         });
+      });
+
+      // Things to link to services. Note that we can push as relations
+      // no non-existing items into the topology without ill effect
+      [
+        $scope.podsByService,
+        $scope.monopodsByService,
+        $scope.routesByService
+      ].forEach(function(map) {
+        angular.forEach(map, function(resources, serviceName) {
+          var service = $scope.services[serviceName];
+          if (service) {
+            angular.forEach(resources, function(resource) {
+              topologyRelations.push({ source: makeId(service), target: makeId(resource) });
+            });
+          }
+        });
+      });
+
+      // A special case, not related to services
+      angular.forEach($scope.podsByDeployment, function(pods, deploymentName) {
+        var deployment = $scope.deployments[deploymentName];
+        if (makeId(deployment) in topologyItems) {
+          angular.forEach(pods, function(pod) {
+	    topologyItems[makeId(pod)] = pod;
+            topologyRelations.push({ source: makeId(deployment), target: makeId(pod) });
+          });
+        }
+      });
+
+      // Link deployment configs to their deployment
+      angular.forEach($scope.deployments, function(deployment, deploymentName) {
+	var deploymentConfig, annotations = deployment.metadata.annotations || {};
+	var deploymentConfigName = annotations["openshift.io/deployment-config.name"] || deploymentName;
+	if (deploymentConfigName) {
+          deploymentConfig = $scope.deploymentConfigs[deploymentConfigName];
+          if (deploymentConfig) {
+            topologyRelations.push({ source: makeId(deploymentConfig), target: makeId(deployment) });
+          }
+        }
       });
 
       $scope.topologyItems = topologyItems;

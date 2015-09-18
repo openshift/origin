@@ -16,9 +16,10 @@ kubernetes-topology-graph {
     font-size: 21px;
   }
 
-  // These links are rendered dotted
+  // These links are rendered dotted, where relationship incidental
   line.ServiceReplicationController,
   line.ServiceDeploymentConfig,
+  line.DeploymentConfigReplicationController,
   line.ReplicationControllerPod {
     stroke-dasharray: 1, 3;
     strake-linecap: round;
