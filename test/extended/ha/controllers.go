@@ -23,7 +23,7 @@ import (
 
 var (
 	reExitCode *regexp.Regexp
-	m          *exutil.ControllersManager
+	m          *exutil.CMonitor
 )
 
 func init() {
@@ -31,10 +31,7 @@ func init() {
 }
 
 var _ = g.BeforeSuite(func() {
-	// Run a controller manager with one intitial controllers instance.
-	// Running controllers are needed for NewCLI to run.
-	// FIXME: seems like OutputDir is unset at this moment (execution of the first test)
-	mgr, err := exutil.NewControllersManager(exutil.MasterConfigPath(), 0, 8444, exutil.TestContext.OutputDir)
+	mgr, err := exutil.NewCMonitor(exutil.MasterConfigPath(), 0, 8444, exutil.TestContext.OutputDir)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	m = mgr
 

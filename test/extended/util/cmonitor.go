@@ -17,10 +17,10 @@ const (
 	EtcdLeasePath = `/openshift.io/leases/controllers`
 )
 
-// ControllersManager allows to start and stop controllers instances,
+// CMonitor allows to start and stop controllers instances,
 // distinguish currently active one by looking up leaseID in etcd storage and
 // allows for updating and deleting of the lease.
-type ControllersManager struct {
+type CMonitor struct {
 	configPath      string
 	listenPortStart int
 	OutputDir       string
@@ -30,7 +30,7 @@ type ControllersManager struct {
 	allocatedPorts  *list.List
 }
 
-func NewControllersManager(configPath string, numControllers, listenPortStart int, outputDir string) (*ControllersManager, error) {
+func NewCMonitor(configPath string, numControllers, listenPortStart int, outputDir string) (*CMonitor, error) {
 	if listenPortStart <= 0 {
 		return nil, fmt.Errorf("Expected listenPortStart > 0, not %d", listenPortStart)
 	}
@@ -61,7 +61,7 @@ func NewControllersManager(configPath string, numControllers, listenPortStart in
 	}
 	g.GinkgoWriter.Write([]byte(fmt.Sprintf("Logging controllers outputs to %s\n", logsDir)))
 
-	mgr := &ControllersManager{
+	mgr := &CMonitor{
 		configPath:      configPath,
 		listenPortStart: listenPortStart,
 		OutputDir:       outputDir,
@@ -82,7 +82,7 @@ func NewControllersManager(configPath string, numControllers, listenPortStart in
 	return mgr, nil
 }
 
-func (m *ControllersManager) allocateNewPort() int {
+func (m *CMonitor) allocateNewPort() int {
 	prev := m.listenPortStart - 1
 	for elem := m.allocatedPorts.Front(); elem != nil; elem = elem.Next() {
 		if prev < elem.Value.(int)-1 {
@@ -95,7 +95,7 @@ func (m *ControllersManager) allocateNewPort() int {
 	return prev + 1
 }
 
-func (m *ControllersManager) allocatePort(port int) {
+func (m *CMonitor) allocatePort(port int) {
 	for elem := m.allocatedPorts.Front(); elem != nil; elem = elem.Next() {
 		if elem.Value.(int) == port {
 			return
@@ -108,7 +108,7 @@ func (m *ControllersManager) allocatePort(port int) {
 	m.allocatedPorts.PushBack(port)
 }
 
-func (m *ControllersManager) freePort(port int) {
+func (m *CMonitor) freePort(port int) {
 	for elem := m.allocatedPorts.Front(); elem != m.allocatedPorts.Back(); elem = elem.Next() {
 		if elem.Value.(int) == port {
 			m.allocatedPorts.Remove(elem)
@@ -120,7 +120,7 @@ func (m *ControllersManager) freePort(port int) {
 	}
 }
 
-func (m *ControllersManager) markDead(ctrlList ...*Controllers) {
+func (m *CMonitor) markDead(ctrlList ...*Controllers) {
 	for _, ctrls := range ctrlList {
 		for i := 0; i < len(m.alive); i++ {
 			if m.alive[i].cmd == ctrls.cmd {
@@ -136,7 +136,7 @@ func (m *ControllersManager) markDead(ctrlList ...*Controllers) {
 // checkAlive iterates over a list of running instances of controllers and
 // releases anu terminated. It returns True if at least one such instance was
 // found.
-func (m *ControllersManager) checkAlive() bool {
+func (m *CMonitor) checkAlive() bool {
 	modified := false
 	for i := 0; i < len(m.alive); {
 		if m.alive[i].Exited() {
@@ -149,12 +149,12 @@ func (m *ControllersManager) checkAlive() bool {
 	return modified
 }
 
-func (m *ControllersManager) Len() int {
+func (m *CMonitor) Len() int {
 	m.checkAlive()
 	return len(m.alive)
 }
 
-func (m *ControllersManager) StartNewInstance() (*Controllers, error) {
+func (m *CMonitor) StartNewInstance() (*Controllers, error) {
 	ctrls := NewControllers(m.allocateNewPort(), m.configPath, m.OutputDir)
 	if err := ctrls.Start(); err != nil {
 		return nil, err
@@ -163,7 +163,7 @@ func (m *ControllersManager) StartNewInstance() (*Controllers, error) {
 	return ctrls, nil
 }
 
-func (m *ControllersManager) GetActive() (*Controllers, error) {
+func (m *CMonitor) GetActive() (*Controllers, error) {
 	latest, err := m.EtcdClient.Get(EtcdLeasePath, false, false)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to obtain a lease: %v", err)
@@ -186,7 +186,7 @@ func (m *ControllersManager) GetActive() (*Controllers, error) {
 	return nil, nil
 }
 
-func (m *ControllersManager) WaitForActive(timeout time.Duration) (*Controllers, time.Duration, error) {
+func (m *CMonitor) WaitForActive(timeout time.Duration) (*Controllers, time.Duration, error) {
 	var latestResp *etcdclient.Response
 	start := time.Now()
 	findInstance := func(leaseID string) *Controllers {
@@ -271,14 +271,14 @@ Loop:
 	return nil, time.Now().Sub(start), fmt.Errorf("timeout (%s) occured while waiting for an activation of controllers instance", timeout.String())
 }
 
-func (m *ControllersManager) GetAlive() []*Controllers {
+func (m *CMonitor) GetAlive() []*Controllers {
 	m.checkAlive()
 	res := make([]*Controllers, len(m.alive))
 	copy(res, m.alive)
 	return res
 }
 
-func (m *ControllersManager) GetInactive() []*Controllers {
+func (m *CMonitor) GetInactive() []*Controllers {
 	inactive := []*Controllers{}
 	active, _ := m.GetActive()
 	for i := 0; i < len(m.alive); {
@@ -295,7 +295,7 @@ func (m *ControllersManager) GetInactive() []*Controllers {
 	return inactive
 }
 
-func (m *ControllersManager) ReleaseControllers(ctrList ...*Controllers) {
+func (m *CMonitor) ReleaseControllers(ctrList ...*Controllers) {
 	ctrlsToString := func(l []*Controllers) string {
 		cs := make([]string, 0, len(m.alive))
 		for _, c := range l {
@@ -312,13 +312,13 @@ func (m *ControllersManager) ReleaseControllers(ctrList ...*Controllers) {
 	}
 }
 
-func (m *ControllersManager) DeleteLease() error {
+func (m *CMonitor) DeleteLease() error {
 	fmt.Fprintf(g.GinkgoWriter, "Deleting current controllers lease\n")
 	_, err := m.EtcdClient.Delete(EtcdLeasePath, false)
 	return err
 }
 
-func (m *ControllersManager) SetLeaseID(leaseID string) error {
+func (m *CMonitor) SetLeaseID(leaseID string) error {
 	fmt.Fprintf(g.GinkgoWriter, "Setting current controllers leaseID to %q\n", leaseID)
 	_, err := m.EtcdClient.Set(EtcdLeasePath, leaseID, m.LeaseTTL)
 	return err
