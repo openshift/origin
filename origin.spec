@@ -183,6 +183,8 @@ for cmd in openshift-router openshift-deploy openshift-sti-build openshift-docke
     ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
 done
 
+ln -s %{_bindir}/oc %{buildroot}%{_bindir}/kubectl
+
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
 # different service for origin vs aos
@@ -232,7 +234,6 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_bindir}/origin
 %{_bindir}/atomic-enterprise
 %{_bindir}/oadm
-%{_bindir}/kubectl
 %{_bindir}/kubernetes
 %{_bindir}/kubelet
 %{_bindir}/kube-proxy
@@ -357,6 +358,7 @@ fi
 
 %files clients
 %{_bindir}/oc
+%{_bindir}/kubectl
 
 %files clients-other
 %{_datadir}/%{name}/macosx/oc
