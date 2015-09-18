@@ -165,14 +165,10 @@ The list of all possible is:
 		}
 		if !detected { // there just plain isn't any client config file available
 			o.Logger.Notice("CED3014", "No client configuration specified; skipping client and cluster diagnostics.")
-		} else if rawConfig, err := o.buildRawConfig(); rawConfig == nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
+		} else if rawConfig, err := o.buildRawConfig(); err != nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
 			o.Logger.Error("CED3015", fmt.Sprintf("Client configuration failed to load; skipping client and cluster diagnostics due to error: %s", err.Error()))
 			errors = append(errors, err)
 		} else {
-			if err != nil { // error encountered, proceed with caution
-				o.Logger.Error("CED3016", fmt.Sprintf("Client configuration loading encountered an error, but proceeding anyway. Error was:\n%s", err.Error()))
-				errors = append(errors, err)
-			}
 			clientDiags, ok, err := o.buildClientDiagnostics(rawConfig)
 			failed = failed || !ok
 			if ok {
