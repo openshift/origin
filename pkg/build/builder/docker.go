@@ -147,46 +147,15 @@ func (d *DockerBuilder) checkSourceURI(testConnection bool) error {
 // is included in the build revision, that commit ID is checked out. Otherwise
 // if a ref is included in the source definition, that ref is checked out.
 func (d *DockerBuilder) fetchSource(dir string) error {
-	origProxy := make(map[string]string)
-	var setHttp, setHttps bool
-	// set the http proxy to be used by the git clone performed by S2I
-	if len(d.build.Spec.Source.Git.HTTPSProxy) != 0 {
-		glog.V(2).Infof("Setting https proxy variables for Git to %s", d.build.Spec.Source.Git.HTTPSProxy)
-		origProxy["HTTPS_PROXY"] = os.Getenv("HTTPS_PROXY")
-		origProxy["https_proxy"] = os.Getenv("https_proxy")
-		os.Setenv("HTTPS_PROXY", d.build.Spec.Source.Git.HTTPSProxy)
-		os.Setenv("https_proxy", d.build.Spec.Source.Git.HTTPSProxy)
-		setHttps = true
-	}
-	if len(d.build.Spec.Source.Git.HTTPProxy) != 0 {
-		glog.V(2).Infof("Setting http proxy variables for Git to %s", d.build.Spec.Source.Git.HTTPProxy)
-		origProxy["HTTP_PROXY"] = os.Getenv("HTTP_PROXY")
-		origProxy["http_proxy"] = os.Getenv("http_proxy")
-		os.Setenv("HTTP_PROXY", d.build.Spec.Source.Git.HTTPProxy)
-		os.Setenv("http_proxy", d.build.Spec.Source.Git.HTTPProxy)
-		setHttp = true
-	}
+	// Set the HTTP and HTTPS proxies to be used by git clone.
+	originalProxies := setHTTPProxy(d.build.Spec.Source.Git.HTTPProxy, d.build.Spec.Source.Git.HTTPSProxy)
+	defer resetHTTPProxy(originalProxies)
 
-	// can't test access to the git uri if a proxy is required.
-	if err := d.checkSourceURI(!setHttp && !setHttps); err != nil {
+	// Check source URI, trying to connect to the server only if not using a proxy.
+	usingProxy := len(originalProxies) > 0
+	if err := d.checkSourceURI(!usingProxy); err != nil {
 		return err
 	}
-
-	defer func() {
-		// reset http proxy env variables to original value
-		if setHttps {
-			glog.V(4).Infof("Resetting HTTPS_PROXY variable for Git to %s", origProxy["HTTPS_PROXY"])
-			os.Setenv("HTTPS_PROXY", origProxy["HTTPS_PROXY"])
-			glog.V(4).Infof("Resetting https_proxy variable for Git to %s", origProxy["https_proxy"])
-			os.Setenv("https_proxy", origProxy["https_proxy"])
-		}
-		if setHttp {
-			glog.V(4).Infof("Resetting HTTP_PROXY variable for Git to %s", origProxy["HTTP_PROXY"])
-			os.Setenv("HTTP_PROXY", origProxy["HTTP_PROXY"])
-			glog.V(4).Infof("Resetting http_proxy variable for Git to %s", origProxy["http_proxy"])
-			os.Setenv("http_proxy", origProxy["http_proxy"])
-		}
-	}()
 
 	glog.V(2).Infof("Cloning source from %s", d.build.Spec.Source.Git.URI)
 	if err := d.git.Clone(d.build.Spec.Source.Git.URI, dir, s2iapi.CloneConfig{Recursive: true, Quiet: true}); err != nil {
