@@ -240,7 +240,6 @@ func (m *CMonitor) WaitForActive(timeout time.Duration) (*Controllers, time.Dura
 
 Loop:
 	for {
-		// TODO: is there a need for a stop channel?
 		stopChan := make(chan bool)
 		responseChan := make(chan *etcdclient.Response)
 		errChan := make(chan error)
@@ -252,6 +251,7 @@ Loop:
 			response, err := m.EtcdClient.Watch(EtcdLeasePath, index, false, nil, stopChan)
 			if err != nil {
 				errChan <- err
+				return
 			}
 			responseChan <- response
 		}()
@@ -264,7 +264,15 @@ Loop:
 			}
 			latestResp = resp
 		case <-time.After(start.Add(timeout).Sub(time.Now())):
-			stopChan <- true
+			// Stop the watch and wait for goroutine to terminate
+			close(stopChan)
+			select {
+			case <-errChan:
+			case resp := <-responseChan:
+				if ctrls := findInstance(resp.Node.Value); ctrls != nil {
+					return ctrls, time.Now().Sub(start), nil
+				}
+			}
 			break Loop
 		}
 	}
