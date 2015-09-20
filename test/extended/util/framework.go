@@ -293,9 +293,37 @@ func ExtendedTestPath() string {
 	return os.Getenv("EXTENDED_TEST_PATH")
 }
 
-// MasterConfigPath returns absolute path to openshift master config
+// MasterConfigDir returns an absolute path to OpenShift master's configuration directory
+func MasterConfigDir() string {
+	configDir := os.Getenv("MASTER_CONFIG_DIR")
+	if configDir == "" {
+		kubeCfg := KubeConfigPath()
+		configDir = filepath.Dir(kubeCfg)
+	}
+	return configDir
+}
+
+// MasterConfigPath returns absolute path to OpenShift master config
 func MasterConfigPath() string {
-	return os.Getenv("MASTER_CONFIG_PATH")
+	path := os.Getenv("MASTER_CONFIG_PATH")
+	if path == "" {
+		path = filepath.Join(MasterConfigDir(), "master-config.yaml")
+	}
+	return path
+}
+
+// RegistryKubeConfig returns abslute path to internal registry's kubeconfig
+func RegistryKubeConfig() string {
+	return filepath.Join(MasterConfigDir(), "openshift-registry.kubeconfig")
+}
+
+// UseImages returns a template of OpenShift image references to use
+func UseImages() string {
+	imgs := os.Getenv("USE_IMAGES")
+	if imgs == "" {
+		imgs = "docker.io/openshift/origin-${component}:latest"
+	}
+	return imgs
 }
 
 // FixturePath returns absolute path to given fixture file

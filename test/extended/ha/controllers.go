@@ -40,6 +40,9 @@ var _ = g.BeforeSuite(func() {
 	o.Expect(err).NotTo(o.HaveOccurred())
 	_, _, err = m.WaitForActive(time.Second * 2)
 	o.Expect(err).NotTo(o.HaveOccurred())
+
+	fmt.Fprintf(g.GinkgoWriter, "Deploying internal registry\n")
+	deployRegistry()
 })
 
 var _ = g.AfterSuite(func() {
@@ -162,6 +165,9 @@ var _ = g.Describe("ha: Election of OpenShift controllers", func() {
 		g.By("Waiting for deployer service account")
 		err := exutil.WaitForDeployerAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Waiting for internal docker registry")
+		waitForRegistry(oc)
 	})
 
 	g.AfterEach(func() {
@@ -260,3 +266,26 @@ var _ = g.Describe("ha: Election of OpenShift controllers", func() {
 	})
 
 })
+
+func deployRegistry() {
+	cmd := exec.Command("openshift", "admin", "registry",
+		"--config="+exutil.KubeConfigPath(),
+		"--credentials="+exutil.RegistryKubeConfig(),
+		"--images="+exutil.UseImages(),
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		g.Fail(fmt.Sprintf("Failed to create registry: %v, output:\n%s\n", err, out))
+	}
+}
+
+func waitForRegistry(oc *exutil.CLI) {
+	username := oc.Username()
+	namespace := oc.Namespace()
+	oc.ChangeUser("admin")
+	defer oc.ChangeUser(username)
+	oc.SetNamespace("default")
+	defer oc.SetNamespace(namespace)
+	err := oc.KubeFramework().WaitForAnEndpoint("docker-registry")
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
