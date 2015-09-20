@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
@@ -88,11 +89,9 @@ var CheckBuildFailedFunc = func(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
 }
 
-// WaitForBuilderAccount waits until the builder service account gets fully
-// provisioned
-func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
+func waitForAccount(c kclient.ServiceAccountsInterface, accountName string) error {
 	waitFunc := func() (bool, error) {
-		sc, err := c.Get("builder")
+		sc, err := c.Get(accountName)
 		if err != nil {
 			return false, err
 		}
@@ -106,22 +105,16 @@ func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
 	return wait.Poll(60, time.Duration(1*time.Second), waitFunc)
 }
 
+// WaitForBuilderAccount waits until the builder service account gets fully
+// provisioned
+func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
+	return waitForAccount(c, bootstrappolicy.BuilderServiceAccountName)
+}
+
 // WaitForDeployerAccount waits until the deployer service account gets fully
 // provisioned
 func WaitForDeployerAccount(c kclient.ServiceAccountsInterface) error {
-	waitFunc := func() (bool, error) {
-		sc, err := c.Get("deployer")
-		if err != nil {
-			return false, err
-		}
-		for _, s := range sc.Secrets {
-			if strings.Contains(s.Name, "dockercfg") {
-				return true, nil
-			}
-		}
-		return false, nil
-	}
-	return wait.Poll(60, time.Duration(1*time.Second), waitFunc)
+	return waitForAccount(c, bootstrappolicy.DeployerServiceAccountName)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
