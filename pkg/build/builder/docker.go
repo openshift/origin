@@ -1,10 +1,7 @@
 package builder
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"net/url"
@@ -19,12 +16,14 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/openshift/source-to-image/pkg/util"
+
+	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
 const (
@@ -46,17 +45,6 @@ type DockerBuilder struct {
 	build        *api.Build
 	urlTimeout   time.Duration
 }
-
-// MetaInstuction represent an Docker instruction used for adding metadata
-// to Dockerfile
-type MetaInstruction string
-
-const (
-	// Label represents the LABEL Docker instruction
-	Label MetaInstruction = "LABEL"
-	// Env represents the ENV Docker instruction
-	Env MetaInstruction = "ENV"
-)
 
 // NewDockerBuilder creates a new instance of DockerBuilder
 func NewDockerBuilder(dockerClient DockerClient, build *api.Build) *DockerBuilder {
@@ -228,192 +216,80 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 		dockerfilePath = filepath.Join(dir, d.build.Spec.Source.ContextDir, "Dockerfile")
 	}
 
-	fileStat, err := os.Lstat(dockerfilePath)
+	f, err := os.Open(dockerfilePath)
 	if err != nil {
 		return err
 	}
 
-	filePerm := fileStat.Mode()
-
-	fileData, err := ioutil.ReadFile(dockerfilePath)
+	// Parse the Dockerfile.
+	node, err := parser.Parse(f)
 	if err != nil {
 		return err
 	}
 
-	var newFileData string
+	// Update base image if build strategy specifies the From field.
 	if d.build.Spec.Strategy.DockerStrategy.From != nil && d.build.Spec.Strategy.DockerStrategy.From.Kind == "DockerImage" {
-		newFileData, err = replaceValidCmd(dockercmd.From, d.build.Spec.Strategy.DockerStrategy.From.Name, fileData)
+		err := replaceLastFrom(node, d.build.Spec.Strategy.DockerStrategy.From.Name)
 		if err != nil {
 			return err
 		}
-	} else {
-		newFileData = newFileData + string(fileData)
 	}
 
-	envVars := getBuildEnvVars(d.build)
-	newFileData = appendMetadata(Env, newFileData, envVars)
+	// Append build info as environment variables.
+	err = appendEnv(node, d.buildInfo())
+	if err != nil {
+		return err
+	}
 
+	// Append build labels.
+	err = appendLabel(node, d.buildLabels(dir))
+	if err != nil {
+		return err
+	}
+
+	// Insert environment variables defined in the build strategy.
+	err = insertEnvAfterFrom(node, d.build.Spec.Strategy.DockerStrategy.Env)
+	if err != nil {
+		return err
+	}
+
+	instructions := dockerfile.ParseTreeToDockerfile(node)
+
+	// Overwrite the Dockerfile.
+	fi, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(dockerfilePath, instructions, fi.Mode())
+}
+
+// buildInfo converts the buildInfo output to a format that appendEnv can
+// consume.
+func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
+	bi := buildInfo(d.build)
+	kv := make([]dockerfile.KeyValue, len(bi))
+	for i, item := range bi {
+		kv[i] = dockerfile.KeyValue{Key: item.Key, Value: item.Value}
+	}
+	return kv
+}
+
+// buildLabels returns a slice of KeyValue pairs in a format that appendEnv can
+// consume.
+func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
 	labels := map[string]string{}
 	sourceInfo := d.git.GetInfo(dir)
 	if len(d.build.Spec.Source.ContextDir) > 0 {
 		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
 	}
 	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, api.DefaultDockerLabelNamespace)
-	newFileData = appendMetadata(Label, newFileData, labels)
-	if ioutil.WriteFile(dockerfilePath, []byte(newFileData), filePerm); err != nil {
-		return err
+	kv := make([]dockerfile.KeyValue, len(labels))
+	i := 0
+	for k, v := range labels {
+		kv[i] = dockerfile.KeyValue{Key: k, Value: v}
+		i++
 	}
-
-	return nil
-}
-
-// appendMetadata appends a Docker instruction that adds metadata values
-// to a string containing a valid Dockerfile.
-func appendMetadata(inst MetaInstruction, fileData string, envVars map[string]string) string {
-	if !strings.HasSuffix(fileData, "\n") {
-		fileData += "\n"
-	}
-	first := true
-	for k, v := range envVars {
-		if first {
-			fileData += fmt.Sprintf("%s %s=%+q", inst, k, v)
-			first = false
-		} else {
-			fileData += fmt.Sprintf(" \\\n\t%s=%+q", k, v)
-		}
-	}
-	fileData += "\n"
-	return fileData
-}
-
-// invalidCmdErr represents an error returned from replaceValidCmd
-// when an invalid Dockerfile command has been passed to
-// replaceValidCmd
-var invalidCmdErr = errors.New("invalid Dockerfile command")
-
-// replaceCmdErr represents an error returned from replaceValidCmd
-// when a command which has more than one valid occurrences inside
-// a Dockerfile has been passed or the specified command cannot
-// be found
-var replaceCmdErr = errors.New("cannot replace given Dockerfile command")
-
-// replaceValidCmd replaces the valid occurrence of a command
-// in a Dockerfile with the given replaceArgs
-func replaceValidCmd(cmd, replaceArgs string, fileData []byte) (string, error) {
-	if _, ok := dockercmd.Commands[cmd]; !ok {
-		return "", invalidCmdErr
-	}
-	buf := bytes.NewBuffer(fileData)
-	// Parse with Docker parser
-	node, err := parser.Parse(buf)
-	if err != nil {
-		return "", errors.New("cannot parse Dockerfile: " + err.Error())
-	}
-
-	pos := traverseAST(cmd, node)
-	if pos == 0 {
-		return "", replaceCmdErr
-	}
-
-	// Re-initialize the buffer
-	buf = bytes.NewBuffer(fileData)
-	var newFileData string
-	var index int
-	var replaceNextLn bool
-	for {
-		line, err := buf.ReadString('\n')
-		if err != nil && err != io.EOF {
-			return "", err
-		}
-		line = strings.TrimSpace(line)
-
-		// The current line starts with the specified command (cmd)
-		if strings.HasPrefix(strings.ToUpper(line), strings.ToUpper(cmd)) {
-			index++
-
-			// The current line finishes on a backslash.
-			// All we need to do is replace the next line
-			// with our specified replaceArgs
-			if line[len(line)-1:] == "\\" && index == pos {
-				replaceNextLn = true
-
-				args := strings.Split(line, " ")
-				if len(args) > 2 {
-					// Keep just our Dockerfile command and the backslash
-					newFileData += args[0] + " \\" + "\n"
-				} else {
-					newFileData += line + "\n"
-				}
-				continue
-			}
-
-			// Normal ending line
-			if index == pos {
-				line = fmt.Sprintf("%s %s", strings.ToUpper(cmd), replaceArgs)
-			}
-		}
-
-		// Previous line ended on a backslash
-		// This line contains command arguments
-		if replaceNextLn {
-			if line[len(line)-1:] == "\\" {
-				// Ignore all successive lines terminating on a backslash
-				// since they all are going to be replaced by replaceArgs
-				continue
-			}
-			replaceNextLn = false
-			line = replaceArgs
-		}
-
-		if err == io.EOF {
-			// Otherwise, the new Dockerfile will have one newline
-			// more in the end
-			newFileData += line
-			break
-		}
-		newFileData += line + "\n"
-	}
-
-	// Parse output for validation
-	buf = bytes.NewBuffer([]byte(newFileData))
-	if _, err := parser.Parse(buf); err != nil {
-		return "", errors.New("cannot parse new Dockerfile: " + err.Error())
-	}
-
-	return newFileData, nil
-}
-
-// traverseAST traverses the Abstract Syntax Tree output
-// from the Docker parser and returns the valid position
-// of the command it was requested to look for.
-//
-// Note that this function is intended to be used with
-// Dockerfile commands that should be specified only once
-// in a Dockerfile (FROM, CMD, ENTRYPOINT)
-func traverseAST(cmd string, node *parser.Node) int {
-	switch cmd {
-	case dockercmd.From, dockercmd.Entrypoint, dockercmd.Cmd:
-	default:
-		return 0
-	}
-
-	index := 0
-	if node.Value == cmd {
-		index++
-	}
-	for _, n := range node.Children {
-		index += traverseAST(cmd, n)
-	}
-	if node.Next != nil {
-		for n := node.Next; n != nil; n = n.Next {
-			if len(n.Children) > 0 {
-				index += traverseAST(cmd, n)
-			} else if n.Value == cmd {
-				index++
-			}
-		}
-	}
-	return index
+	return kv
 }
 
 // setupPullSecret provides a Docker authentication configuration when the
@@ -445,4 +321,86 @@ func (d *DockerBuilder) dockerBuild(dir string) error {
 		return err
 	}
 	return buildImage(d.dockerClient, dir, noCache, d.build.Spec.Output.To.Name, d.tar, auth, forcePull)
+}
+
+// replaceLastFrom changes the last FROM instruction of node to point to the
+// base image image.
+func replaceLastFrom(node *parser.Node, image string) error {
+	if node == nil {
+		return nil
+	}
+	for i := len(node.Children) - 1; i >= 0; i-- {
+		child := node.Children[i]
+		if child != nil && child.Value == dockercmd.From {
+			from, err := dockerfile.From(image)
+			if err != nil {
+				return err
+			}
+			fromTree, err := parser.Parse(strings.NewReader(from))
+			if err != nil {
+				return err
+			}
+			node.Children[i] = fromTree.Children[0]
+			return nil
+		}
+	}
+	return nil
+}
+
+// appendEnv appends an ENV Dockerfile instruction as the last child of node
+// with keys and values from m.
+func appendEnv(node *parser.Node, m []dockerfile.KeyValue) error {
+	return appendKeyValueInstruction(dockerfile.Env, node, m)
+}
+
+// appendLabel appends a LABEL Dockerfile instruction as the last child of node
+// with keys and values from m.
+func appendLabel(node *parser.Node, m []dockerfile.KeyValue) error {
+	return appendKeyValueInstruction(dockerfile.Label, node, m)
+}
+
+// appendKeyValueInstruction is a primitive used to avoid code duplication.
+// Callers should use a derivative of this such as appendEnv or appendLabel.
+// appendKeyValueInstruction appends a Dockerfile instruction with key-value
+// syntax created by f as the last child of node with keys and values from m.
+func appendKeyValueInstruction(f func([]dockerfile.KeyValue) (string, error), node *parser.Node, m []dockerfile.KeyValue) error {
+	if node == nil {
+		return nil
+	}
+	instruction, err := f(m)
+	if err != nil {
+		return err
+	}
+	return dockerfile.InsertInstructions(node, len(node.Children), instruction)
+}
+
+// insertEnvAfterFrom inserts an ENV instruction with the environment variables
+// from env after every FROM instruction in node.
+func insertEnvAfterFrom(node *parser.Node, env []kapi.EnvVar) error {
+	if node == nil || len(env) == 0 {
+		return nil
+	}
+
+	// Build ENV instruction.
+	var m []dockerfile.KeyValue
+	for _, e := range env {
+		m = append(m, dockerfile.KeyValue{Key: e.Name, Value: e.Value})
+	}
+	buildEnv, err := dockerfile.Env(m)
+	if err != nil {
+		return err
+	}
+
+	// Insert the buildEnv after every FROM instruction.
+	// We iterate in reverse order, otherwise indices would have to be
+	// recomputed after each step, because we're changing node in-place.
+	indices := dockerfile.FindAll(node, dockercmd.From)
+	for i := len(indices) - 1; i >= 0; i-- {
+		err := dockerfile.InsertInstructions(node, indices[i]+1, buildEnv)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
