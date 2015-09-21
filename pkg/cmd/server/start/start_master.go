@@ -367,8 +367,10 @@ func (m *Master) Start() error {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	capabilities.Initialize(capabilities.Capabilities{
-		AllowPrivileged:    true,
-		HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
+		AllowPrivileged: true,
+		PrivilegedSources: capabilities.PrivilegedSources{
+			HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
+		},
 	})
 
 	openshiftConfig, err := origin.BuildMasterConfig(*m.config)
