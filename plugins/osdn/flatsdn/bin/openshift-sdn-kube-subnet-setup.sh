@@ -124,6 +124,12 @@ function setup() {
     ovs-vsctl del-port br0 vovsbr || true
     ovs-vsctl add-port br0 vovsbr -- set Interface vovsbr ofport_request=9
 
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0,priority=100,arp,nw_dst=${local_subnet_gateway},actions=output:2"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0,priority=100,ip,nw_dst=${local_subnet_gateway},actions=output:2"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0,priority=75,ip,nw_dst=${local_subnet_cidr},actions=output:9"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0,priority=75,arp,nw_dst=${local_subnet_cidr},actions=output:9"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=0,priority=50,actions=output:2"
+
     # setup tun address
     ip addr add ${local_subnet_gateway}/${local_subnet_mask_len} dev ${TUN}
     ip link set ${TUN} up
