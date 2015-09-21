@@ -9,11 +9,10 @@ import (
 
 	log "github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/ovssubnet/api"
-	"github.com/openshift/openshift-sdn/ovssubnet/controller/kube"
-	"github.com/openshift/openshift-sdn/ovssubnet/controller/lbr"
-	"github.com/openshift/openshift-sdn/ovssubnet/controller/multitenant"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
+	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
+	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/kube"
+	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/multitenant"
 )
 
 const (
@@ -36,8 +35,8 @@ type OvsController struct {
 }
 
 type FlowController interface {
-	Setup(localSubnetIP, globalSubnetIP, serviceSubnetIP string, mtu uint) error
-	AddOFRules(nodeIP, localSubnetIP, localIP string) error
+	Setup(localSubnetCIDR, clusterNetworkCIDR, serviceNetworkCIDR string, mtu uint) error
+	AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) error
 	DelOFRules(nodeIP, localIP string) error
 	AddServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
 	DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error
@@ -57,14 +56,6 @@ func NewMultitenantController(sub api.SubnetRegistry, hostname string, selfIP st
 		mtController.flowController = multitenant.NewFlowController()
 	}
 	return mtController, err
-}
-
-func NewDefaultController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
-	defaultController, err := NewController(sub, hostname, selfIP, ready)
-	if err == nil {
-		defaultController.flowController = lbr.NewFlowController()
-	}
-	return defaultController, err
 }
 
 func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
@@ -89,7 +80,7 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready
 	}, nil
 }
 
-func (oc *OvsController) StartMaster(sync bool, containerNetwork string, containerSubnetLength uint, serviceNetwork string) error {
+func (oc *OvsController) StartMaster(sync bool, clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	// wait a minute for etcd to come alive
 	status := oc.subnetRegistry.CheckEtcdIsAlive(60)
 	if !status {
@@ -113,15 +104,15 @@ func (oc *OvsController) StartMaster(sync bool, containerNetwork string, contain
 		return err
 	}
 	for _, sub := range subnets {
-		subrange = append(subrange, sub.SubnetIP)
+		subrange = append(subrange, sub.SubnetCIDR)
 	}
 
-	err = oc.subnetRegistry.WriteNetworkConfig(containerNetwork, containerSubnetLength, serviceNetwork)
+	err = oc.subnetRegistry.WriteNetworkConfig(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR)
 	if err != nil {
 		return err
 	}
 
-	oc.subnetAllocator, err = netutils.NewSubnetAllocator(containerNetwork, containerSubnetLength, subrange)
+	oc.subnetAllocator, err = netutils.NewSubnetAllocator(clusterNetworkCIDR, clusterBitsPerSubnet, subrange)
 	if err != nil {
 		return err
 	}
@@ -286,8 +277,8 @@ func (oc *OvsController) AddNode(nodeName string, nodeIP string) error {
 	}
 
 	subnet := &api.Subnet{
-		NodeIP:   nodeIP,
-		SubnetIP: sn.String(),
+		NodeIP:     nodeIP,
+		SubnetCIDR: sn.String(),
 	}
 	err = oc.subnetRegistry.CreateSubnet(nodeName, subnet)
 	if err != nil {
@@ -303,9 +294,9 @@ func (oc *OvsController) DeleteNode(nodeName string) error {
 		log.Errorf("Error fetching subnet for node %s for delete operation.", nodeName)
 		return err
 	}
-	_, ipnet, err := net.ParseCIDR(sub.SubnetIP)
+	_, ipnet, err := net.ParseCIDR(sub.SubnetCIDR)
 	if err != nil {
-		log.Errorf("Error parsing subnet for node %s for deletion: %s", nodeName, sub.SubnetIP)
+		log.Errorf("Error parsing subnet for node %s for deletion: %s", nodeName, sub.SubnetCIDR)
 		return err
 	}
 	oc.subnetAllocator.ReleaseNetwork(ipnet)
@@ -333,17 +324,17 @@ func (oc *OvsController) StartNode(sync, skipsetup bool, mtu uint) error {
 	// call flow controller's setup
 	if !skipsetup {
 		// Assume we are working with IPv4
-		containerNetwork, err := oc.subnetRegistry.GetContainerNetwork()
+		clusterNetworkCIDR, err := oc.subnetRegistry.GetClusterNetworkCIDR()
 		if err != nil {
-			log.Errorf("Failed to obtain ContainerNetwork: %v", err)
+			log.Errorf("Failed to obtain ClusterNetwork: %v", err)
 			return err
 		}
-		servicesNetwork, err := oc.subnetRegistry.GetServicesNetwork()
+		servicesNetworkCIDR, err := oc.subnetRegistry.GetServicesNetworkCIDR()
 		if err != nil {
 			log.Errorf("Failed to obtain ServicesNetwork: %v", err)
 			return err
 		}
-		err = oc.flowController.Setup(oc.localSubnet.SubnetIP, containerNetwork, servicesNetwork, mtu)
+		err = oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR, mtu)
 		if err != nil {
 			return err
 		}
@@ -355,7 +346,7 @@ func (oc *OvsController) StartNode(sync, skipsetup bool, mtu uint) error {
 	}
 	subnets := result.([]api.Subnet)
 	for _, s := range subnets {
-		oc.flowController.AddOFRules(s.NodeIP, s.SubnetIP, oc.localIP)
+		oc.flowController.AddOFRules(s.NodeIP, s.SubnetCIDR, oc.localIP)
 	}
 	if _, ok := oc.flowController.(*multitenant.FlowController); ok {
 		result, err := oc.watchAndGetResource("NetNamespace")
@@ -491,7 +482,7 @@ func (oc *OvsController) watchCluster(ready chan<- bool, start <-chan string) {
 			switch ev.Type {
 			case api.Added:
 				// add openflow rules
-				oc.flowController.AddOFRules(ev.Subnet.NodeIP, ev.Subnet.SubnetIP, oc.localIP)
+				oc.flowController.AddOFRules(ev.Subnet.NodeIP, ev.Subnet.SubnetCIDR, oc.localIP)
 			case api.Deleted:
 				// delete openflow rules meant for the node
 				oc.flowController.DelOFRules(ev.Subnet.NodeIP, oc.localIP)

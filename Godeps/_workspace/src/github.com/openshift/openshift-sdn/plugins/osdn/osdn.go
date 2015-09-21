@@ -18,8 +18,8 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
 
-	osdn "github.com/openshift/openshift-sdn/ovssubnet"
-	osdnapi "github.com/openshift/openshift-sdn/ovssubnet/api"
+	osdn "github.com/openshift/openshift-sdn/pkg/ovssubnet"
+	osdnapi "github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -47,7 +47,7 @@ func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, string, error) 
 	// convert HostSubnet to osdnapi.Subnet
 	subList := make([]osdnapi.Subnet, 0, len(hostSubnetList.Items))
 	for _, subnet := range hostSubnetList.Items {
-		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, SubnetIP: subnet.Subnet})
+		subList = append(subList, osdnapi.Subnet{NodeIP: subnet.HostIP, SubnetCIDR: subnet.Subnet})
 	}
 	return subList, hostSubnetList.ListMeta.ResourceVersion, nil
 }
@@ -57,7 +57,7 @@ func (oi *OsdnRegistryInterface) GetSubnet(nodeName string) (*osdnapi.Subnet, er
 	if err != nil {
 		return nil, err
 	}
-	return &osdnapi.Subnet{NodeIP: hs.HostIP, SubnetIP: hs.Subnet}, nil
+	return &osdnapi.Subnet{NodeIP: hs.HostIP, SubnetCIDR: hs.Subnet}, nil
 }
 
 func (oi *OsdnRegistryInterface) DeleteSubnet(nodeName string) error {
@@ -70,7 +70,7 @@ func (oi *OsdnRegistryInterface) CreateSubnet(nodeName string, sub *osdnapi.Subn
 		ObjectMeta: kapi.ObjectMeta{Name: nodeName},
 		Host:       nodeName,
 		HostIP:     sub.NodeIP,
-		Subnet:     sub.SubnetIP,
+		Subnet:     sub.SubnetCIDR,
 	}
 	_, err := oi.oClient.HostSubnets().Create(hs)
 	return err
@@ -89,9 +89,9 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan<- *osdnapi.SubnetEve
 
 		switch eventType {
 		case watch.Added, watch.Modified:
-			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetIP: hs.Subnet}}
+			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Added, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetCIDR: hs.Subnet}}
 		case watch.Deleted:
-			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetIP: hs.Subnet}}
+			receiver <- &osdnapi.SubnetEvent{Type: osdnapi.Deleted, NodeName: hs.Host, Subnet: osdnapi.Subnet{NodeIP: hs.HostIP, SubnetCIDR: hs.Subnet}}
 		}
 	}
 }
@@ -212,17 +212,12 @@ func (oi *OsdnRegistryInterface) WriteNetworkConfig(network string, subnetLength
 	return err
 }
 
-func (oi *OsdnRegistryInterface) GetContainerNetwork() (string, error) {
+func (oi *OsdnRegistryInterface) GetClusterNetworkCIDR() (string, error) {
 	cn, err := oi.oClient.ClusterNetwork().Get("default")
 	return cn.Network, err
 }
 
-func (oi *OsdnRegistryInterface) GetSubnetLength() (uint64, error) {
-	cn, err := oi.oClient.ClusterNetwork().Get("default")
-	return uint64(cn.HostSubnetLength), err
-}
-
-func (oi *OsdnRegistryInterface) GetServicesNetwork() (string, error) {
+func (oi *OsdnRegistryInterface) GetServicesNetworkCIDR() (string, error) {
 	cn, err := oi.oClient.ClusterNetwork().Get("default")
 	return cn.ServiceNetwork, err
 }

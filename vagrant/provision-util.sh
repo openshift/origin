@@ -123,8 +123,9 @@ os::util::install-sdn() {
   local sdn_root="${deployed_root}/third-party/openshift-sdn"
   if [ -d "${sdn_root}" ]; then
     pushd "${sdn_root}" > /dev/null
-      make
-      make "install-dev"
+    # TODO: Enable these commands once we have a separate binary for openshift-sdn
+    # make
+    # make "install-dev"
     popd > /dev/null
   else
     local osdn_base_path="${deployed_root}/Godeps/_workspace/src/github.com/openshift/openshift-sdn"

@@ -20,9 +20,8 @@ type SubnetRegistry interface {
 	CreateNode(nodeName string, data string) error
 	WatchNodes(receiver chan<- *NodeEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
-	WriteNetworkConfig(network string, subnetLength uint, serviceNetwork string) error
-	GetContainerNetwork() (string, error)
-	GetSubnetLength() (uint64, error)
+	WriteNetworkConfig(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
+	GetClusterNetworkCIDR() (string, error)
 	CheckEtcdIsAlive(seconds uint64) bool
 
 	GetNamespaces() ([]string, string, error)
@@ -34,14 +33,14 @@ type SubnetRegistry interface {
 	WriteNetNamespace(name string, id uint) error
 	DeleteNetNamespace(name string) error
 
-	GetServicesNetwork() (string, error)
+	GetServicesNetworkCIDR() (string, error)
 	GetServices() ([]Service, string, error)
 	WatchServices(receiver chan<- *ServiceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 }
 
 type Subnet struct {
-	NodeIP   string
-	SubnetIP string
+	NodeIP     string
+	SubnetCIDR string
 }
 
 type SubnetEvent struct {
