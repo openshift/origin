@@ -89,13 +89,13 @@ Obsoletes:      openshift-clients < 1.0.6
 %description clients
 %{summary}
 
-%package clients-other
+%package clients-redistributable
 Summary:      %{product_name} Client binaries for Mac OSX, and Windows
 BuildRequires: golang-pkg-darwin-amd64
 BuildRequires: golang-pkg-windows-386
-Obsoletes:      openshift-clients-other < 1.0.6
+Obsoletes:      openshift-clients-redistributable < 1.0.6
 
-%description clients-other
+%description clients-redistributable
 %{summary}
 
 %package dockerregistry
@@ -186,7 +186,7 @@ install -d -m 0755 %{buildroot}%{_unitdir}
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 
 for cmd in openshift-router openshift-deploy openshift-sti-build openshift-docker-build origin atomic-enterprise \
-  oadm kubectl kubernetes kubelet kube-proxy kube-apiserver kube-controller-manager kube-scheduler ; do
+  oadm kubernetes kubelet kube-proxy kube-apiserver kube-controller-manager kube-scheduler ; do
     ln -s %{_bindir}/openshift %{buildroot}%{_bindir}/$cmd
 done
 
@@ -373,7 +373,7 @@ fi
 %{_bindir}/oc
 %{_bindir}/kubectl
 
-%files clients-other
+%files clients-redistributable
 %{_datadir}/%{name}/macosx/oc
 %{_datadir}/%{name}/windows/oc.exe
 
