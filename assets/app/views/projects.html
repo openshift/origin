@@ -8,7 +8,7 @@
       <div row flex cross-axis="center" class="tile tile-project tile-click">
         <div flex>
           <h2 class="project">
-            <a class="tile-target" href="project/{{project.metadata.name}}">{{(project | displayName) || project.metadata.name}}</a>
+            <a class="tile-target" href="project/{{project.metadata.name}}">{{(project | uniqueDisplayName : projects)}}</a>
             <span ng-if="project.status.phase != 'Active'" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This project has been marked for deletion." style="cursor: help; vertical-align: top; margin-left: 5px;">
               <span class="pficon pficon-warning-triangle"></span>
               <span class="pficon pficon-warning-exclamation"></span>
@@ -17,12 +17,12 @@
           <div class="muted" style="margin-top: -5px;" ng-if="project | description">
             <truncate-long-text content="project | description" limit="512" use-word-boundary="true"></truncate-long-text>
           </div>
-        </div>    
+        </div>
         <div row main-axis="end" ng-if="project.status.phase == 'Active'">
-          <i class="fa fa-trash-o fa-2x action-button" 
+          <i class="fa fa-trash-o fa-2x action-button"
             ng-click="$event.stopPropagation(); openDeleteModal(project);"
-            data-toggle="tooltip" 
-            data-placement="left" 
+            data-toggle="tooltip"
+            data-placement="left"
             title="Delete Project"></i>
         </div>
       </div>

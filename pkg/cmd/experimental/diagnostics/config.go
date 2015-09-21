@@ -1,6 +1,8 @@
 package diagnostics
 
 import (
+	"errors"
+
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
 
@@ -22,8 +24,11 @@ func (o DiagnosticsOptions) detectClientConfig() (bool, []types.DiagnosticError,
 // use the base factory to return a raw config (not specific to a context)
 func (o DiagnosticsOptions) buildRawConfig() (*clientcmdapi.Config, error) {
 	kubeConfig, configErr := o.Factory.OpenShiftClientConfig.RawConfig()
-	if len(kubeConfig.Contexts) == 0 {
+	if configErr != nil {
 		return nil, configErr
 	}
-	return &kubeConfig, configErr
+	if len(kubeConfig.Contexts) == 0 {
+		return nil, errors.New("No contexts found in config file.")
+	}
+	return &kubeConfig, nil
 }

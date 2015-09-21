@@ -42,6 +42,7 @@ ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.4
+Obsoletes:      openshift < 1.0.6
 
 %description
 %{summary}
@@ -49,9 +50,10 @@ BuildRequires:  golang >= 1.4
 %package master
 Summary:        %{product_name} Master
 Requires:       %{name} = %{version}-%{release}
-Requires(post): systemd
-Requires(preun): systemd
+Requires(post):   systemd
+Requires(preun):  systemd
 Requires(postun): systemd
+Obsoletes:      openshift-master < 1.0.6
 
 %description master
 %{summary}
@@ -64,9 +66,10 @@ Requires:       tuned-profiles-%{name}-node = %{version}-%{release}
 Requires:       util-linux
 Requires:       socat
 Requires:       nfs-utils
-Requires(post): systemd
-Requires(preun): systemd
+Requires(post):   systemd
+Requires(preun):  systemd
 Requires(postun): systemd
+Obsoletes:      openshift-node < 1.0.6
 
 %description node
 %{summary}
@@ -74,12 +77,14 @@ Requires(postun): systemd
 %package -n tuned-profiles-%{name}-node
 Summary:        Tuned profiles for %{product_name} Node hosts
 Requires:       tuned >= %{tuned_version}
+Obsoletes:      tuned-profiles-openshift-node < 1.0.6
 
 %description -n tuned-profiles-%{name}-node
 %{summary}
 
 %package clients
 Summary:      %{product_name} Client binaries for Linux
+Obsoletes:      openshift-clients < 1.0.6
 
 %description clients
 %{summary}
@@ -88,6 +93,7 @@ Summary:      %{product_name} Client binaries for Linux
 Summary:      %{product_name} Client binaries for Mac OSX, and Windows
 BuildRequires: golang-pkg-darwin-amd64
 BuildRequires: golang-pkg-windows-386
+Obsoletes:      openshift-clients-other < 1.0.6
 
 %description clients-other
 %{summary}
@@ -112,6 +118,7 @@ Requires:         openvswitch >= %{openvswitch_version}
 Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         ethtool
+Obsoletes:        openshift-sdn-ovs < 1.0.6
 
 %description sdn-ovs
 %{summary}
@@ -251,6 +258,12 @@ if [ -d "%{_sysconfdir}/openshift" ]; then
     ln -s %{_sysconfdir}/openshift %{_sysconfdir}/origin
   fi
 fi
+if [ -d "%{_sharedstatedir}/openshift" ]; then
+  if ! [ -d "%{_sharedstatedir}/origin"  ]; then
+    ln -s %{_sharedstatedir}/openshift %{_sharedstatedir}/origin
+  fi
+fi
+
 
 %files master
 %defattr(-,root,root,-)
@@ -374,6 +387,10 @@ fi
 
 
 %changelog
+* Fri Sep 18 2015 Scott Dodson <sdodson@redhat.com> 0.2-9
+- Rename from openshift -> origin
+- Symlink /var/lib/origin to /var/lib/openshift if /var/lib/openshift exists
+
 * Wed Aug 12 2015 Steve Milner <smilner@redhat.com> 0.2-8
 - Master configs will be generated if none are found when the master is installed.
 - Node configs will be generated if none are found when the master is installed.

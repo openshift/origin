@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 	flag "github.com/spf13/pflag"
-	"k8s.io/kubernetes/pkg/client/clientcmd"
+	//"k8s.io/kubernetes/pkg/client/clientcmd"
 	"k8s.io/kubernetes/test/e2e"
 )
 
@@ -33,7 +33,12 @@ func InitTest() {
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0777)
 
-	flag.StringVar(&TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, KubeConfigPath(), "Path to kubeconfig containing embedded authinfo.")
+	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
+	TestContext.KubectlPath = "oc"
+	TestContext.KubeConfig = KubeConfigPath()
+	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
+
+	//flag.StringVar(&TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, KubeConfigPath(), "Path to kubeconfig containing embedded authinfo.")
 	flag.StringVar(&TestContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
 
 	// Override the default Kubernetes E2E configuration

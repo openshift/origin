@@ -94,6 +94,24 @@ angular.module('openshiftConsole')
       return null;
     };
   })
+  .filter('uniqueDisplayName', function(displayNameFilter){
+    function countNames(projects){
+      var nameCount = {};
+      angular.forEach(projects, function(project, key){
+        var displayName = displayNameFilter(project);
+        nameCount[displayName] = (nameCount[displayName] || 0) + 1;
+      });
+      return nameCount;
+    }
+    return function (resource, projects){
+      var displayName = displayNameFilter(resource);
+      var name = resource.metadata.name;
+      if (displayName !== name && countNames(projects)[displayName] > 1 ){
+        return displayName + ' (' + name + ')';
+      }
+      return displayName;
+    };
+  })
   .filter('tags', function(annotationFilter) {
     return function(resource, /* optional */ annotationKey) {
       annotationKey = annotationKey || "tags";
@@ -327,7 +345,7 @@ angular.module('openshiftConsole')
       // If this logic ever changes, update the message in podWarnings
       var fiveMinutesAgo = moment().subtract(5, 'm');
       var created = moment(pod.metadata.creationTimestamp);
-      return created.isBefore(fiveMinutesAgo);      
+      return created.isBefore(fiveMinutesAgo);
     };
   })
   .filter('isContainerLooping', function() {
@@ -456,7 +474,7 @@ angular.module('openshiftConsole')
       });
       return notTroublePods;
     };
-  })  
+  })
   .filter('projectOverviewURL', function(Navigate) {
     return function(projectName) {
       return Navigate.projectOverviewURL(projectName);
