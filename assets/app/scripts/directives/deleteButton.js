@@ -95,29 +95,6 @@ angular.module("openshiftConsole")
                   $location.url(redirect);
                 }
               }
- 
-              if (resourceType === 'service') {
-                var availableRoutes = {};
-                DataService.list('routes', scope.$parent, function(data) {
-                  availableRoutes = data.by('metadata.name');
-                });
-                if (availableRoutes[resourceName]) {
-                  DataService.delete('routes', resourceName, scope.$parent)
-                  .then(function() {
-                    scope.alerts[resourceName] = {
-                      type: "success",
-                      message: formattedResource + " and its routes have been marked for deletion."
-                    };
-                  })
-                  .catch(function(err) {
-                    scope.alerts[resourceName] = {
-                      type: "warning",
-                      message: 'Routes for ' + formattedResource + "\'" + " could not be deleted.",
-                      details: getErrorDetails(err)
-                    };
-                  });
-                }
-              }
             });
           });
         };
