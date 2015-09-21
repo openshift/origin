@@ -170,7 +170,7 @@ func TestJsonGogsPushEvent(t *testing.T) {
 }
 
 func postFile(eventHeader, eventName, filename, url string, expStatusCode int, t *testing.T) {
-	data, err := ioutil.ReadFile("fixtures/" + filename)
+	data, err := ioutil.ReadFile("../../../../test/fixtures/webhook/github/" + filename)
 	if err != nil {
 		t.Errorf("Failed to open %s: %v", filename, err)
 	}
@@ -232,7 +232,7 @@ func setup(t *testing.T, filename, eventType string) *testContext {
 		},
 		path: "/foobar",
 	}
-	event, err := ioutil.ReadFile("fixtures/" + filename)
+	event, err := ioutil.ReadFile("../../../../test/fixtures/webhook/github/" + filename)
 	if err != nil {
 		t.Errorf("Failed to open %s: %v", filename, err)
 	}

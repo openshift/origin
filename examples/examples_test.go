@@ -106,7 +106,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"test-buildcli":             &kapi.List{},
 			"test-buildcli-beta2":       &kapi.List{},
 		},
-		"../test/templates/fixtures": {
+		"../test/fixtures/templates": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation
 			"guestbook_list":  &templateapi.Template{},
 			"guestbook":       &templateapi.Template{},

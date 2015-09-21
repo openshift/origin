@@ -16,11 +16,11 @@ func TestValidate(t *testing.T) {
 	}{
 		{
 			testName: "validArgs",
-			args:     []string{"testSecret", "./bsFixtures/www.google.com"},
+			args:     []string{"testSecret", "../../../../test/fixtures/placeholders/www.google.com"},
 		},
 		{
 			testName: "noName",
-			args:     []string{"./bsFixtures/www.google.com"},
+			args:     []string{"../../../../test/fixtures/placeholders/www.google.com"},
 			expErr:   true, //"Secret name is required"
 		},
 		{
@@ -49,56 +49,60 @@ func TestCreateSecret(t *testing.T) {
 	}{
 		{
 			testName: "validSources",
-			args:     []string{"testSecret", "./bsFixtures/www.google.com", "./bsFixtures/dirNoSubdir"},
+			args: []string{"testSecret",
+				"../../../../test/fixtures/placeholders/www.google.com",
+				"../../../../test/fixtures/placeholders/dirNoSubdir"},
 		},
 		{
 			testName: "invalidDNS",
-			args:     []string{"testSecret", "./bsFixtures/invalid/invalid-DNS"},
-			expErr:   true, // "/bsFixtures/invalid-DNS cannot be used as a key in a secret"
+			args:     []string{"testSecret", "../../../../test/fixtures/placeholders/invalid/invalid-DNS"},
+			expErr:   true, // "../../../../test/fixtures/placeholders/invalid-DNS cannot be used as a key in a secret"
 		},
 		{
 			testName: "leadingDotsAllowed",
-			args:     []string{"testSecret", "./bsFixtures/leadingdot/.dockercfg"},
+			args:     []string{"testSecret", "../../../../test/fixtures/placeholders/leadingdot/.dockercfg"},
 		},
 		{
 			testName: "filesSameName",
-			args:     []string{"testSecret", "./bsFixtures/www.google.com", "./bsFixtures/multiple/www.google.com"},
-			expErr:   true, // "Multiple files with the same name (www.google.com) cannot be included a secret"
+			args: []string{"testSecret",
+				"../../../../test/fixtures/placeholders/www.google.com",
+				"../../../../test/fixtures/placeholders/multiple/www.google.com"},
+			expErr: true, // "Multiple files with the same name (www.google.com) cannot be included a secret"
 		},
 		{
 			testName: "testQuietTrue",
-			args:     []string{"testSecret", "./bsFixtures/dir"},
+			args:     []string{"testSecret", "../../../../test/fixtures/placeholders/dir"},
 			quiet:    true,
 		},
 		{
 			testName: "testQuietFalse",
-			args:     []string{"testSecret", "./bsFixtures/dir"},
+			args:     []string{"testSecret", "../../../../test/fixtures/placeholders/dir"},
 			expErr:   true, // "Skipping resource <resource path>"
 		},
 		{
 			testName: "testNamedKeys",
-			args:     []string{"testSecret", ".googlename=./bsFixtures/www.google.com"},
+			args:     []string{"testSecret", ".googlename=../../../../test/fixtures/placeholders/www.google.com"},
 			expErr:   false,
 		},
 		{
 			testName: "testNamedDir",
-			args:     []string{"testSecret", ".somename=./bsFixtures/dirNoSubdir"},
+			args:     []string{"testSecret", ".somename=../../../../test/fixtures/placeholders/dirNoSubdir"},
 			expErr:   true, // "Cannot give a key name for a directory path."
 		},
 		{
 			testName: "testUnnamedDir",
-			args:     []string{"testSecret", "./bsFixtures/dirContainsMany"},
+			args:     []string{"testSecret", "../../../../test/fixtures/placeholders/dirContainsMany"},
 			expErr:   false,
 		},
 		{
 			testName: "testMalformedName",
-			args:     []string{"testSecret", ".google=name=./bsFixtures/www.google.com"},
+			args:     []string{"testSecret", ".google=name=../../../../test/fixtures/placeholders/www.google.com"},
 			expErr:   true, // "Key names or file paths cannot contain '='."
 		},
 		{
 			testName: "testMissingName",
-			args:     []string{"testSecret", "=./bsFixtures/www.google.com"},
-			expErr:   true, // "Key name for file path ./bsFixtures/www.google.com missing."
+			args:     []string{"testSecret", "=../../../../test/fixtures/placeholders/www.google.com"},
+			expErr:   true, // "Key name for file path ../../../../test/fixtures/placeholders/www.google.com missing."
 		},
 		{
 			testName: "testMissingPath",
@@ -107,13 +111,17 @@ func TestCreateSecret(t *testing.T) {
 		},
 		{
 			testName: "testNamesAvoidCollision",
-			args:     []string{"testSecret", ".googlename=./bsFixtures/www.google.com", ".othergooglename=./bsFixtures/multiple/www.google.com"},
-			expErr:   false,
+			args: []string{"testSecret",
+				".googlename=../../../../test/fixtures/placeholders/www.google.com",
+				".othergooglename=../../../../test/fixtures/placeholders/multiple/www.google.com"},
+			expErr: false,
 		},
 		{
 			testName: "testNameCollision",
-			args:     []string{"testSecret", ".googlename=./bsFixtures/www.google.com", ".googlename=./bsFixtures/multiple/www.google.com"},
-			expErr:   true, // "Cannot add key google-name from path ./bsFixtures/multiple/www.google.com, another key by that name already exists."
+			args: []string{"testSecret",
+				".googlename=../../../../test/fixtures/placeholders/www.google.com",
+				".googlename=../../../../test/fixtures/placeholders/multiple/www.google.com"},
+			expErr: true, // "Cannot add key google-name from path ../../../../test/fixtures/placeholders/multiple/www.google.com, another key by that name already exists."
 		},
 	}
 	for _, test := range tests {
@@ -136,7 +144,7 @@ func TestSecretTypeSpecified(t *testing.T) {
 	options := CreateSecretOptions{
 		Name:           "any",
 		SecretTypeName: string(kapi.SecretTypeDockercfg),
-		Sources:        util.StringList([]string{"./bsFixtures/www.google.com"}),
+		Sources:        util.StringList([]string{"../../../../test/fixtures/placeholders/www.google.com"}),
 		Stderr:         ioutil.Discard,
 	}
 
@@ -151,7 +159,7 @@ func TestSecretTypeSpecified(t *testing.T) {
 func TestSecretTypeDiscovered(t *testing.T) {
 	options := CreateSecretOptions{
 		Name:    "any",
-		Sources: util.StringList([]string{"./bsFixtures/leadingdot/.dockercfg"}),
+		Sources: util.StringList([]string{"../../../../test/fixtures/placeholders/leadingdot/.dockercfg"}),
 		Stderr:  ioutil.Discard,
 	}
 

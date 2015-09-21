@@ -26,7 +26,7 @@ func TestValidateBasicAuth(t *testing.T) {
 			params: CreateBasicAuthSecretOptions{
 				Username:        "testUser",
 				Password:        "testPassword",
-				CertificatePath: "./bsFixtures/valid/ca.crt",
+				CertificatePath: "../../../../test/fixtures/placeholders/valid/ca.crt",
 			},
 			expErr: false,
 		},
@@ -36,7 +36,7 @@ func TestValidateBasicAuth(t *testing.T) {
 			params: CreateBasicAuthSecretOptions{
 				Username:      "testUser",
 				Password:      "testPassword",
-				GitConfigPath: "./bsFixtures/leadingdot/.gitconfig",
+				GitConfigPath: "../../../../test/fixtures/placeholders/leadingdot/.gitconfig",
 			},
 			expErr: false,
 		},

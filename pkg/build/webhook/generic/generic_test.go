@@ -28,7 +28,7 @@ func GivenRequest(method string) *http.Request {
 }
 
 func GivenRequestWithPayload(t *testing.T, filename string) *http.Request {
-	data, err := ioutil.ReadFile("fixtures/" + filename)
+	data, err := ioutil.ReadFile("../../../../test/fixtures/webhook/generic/" + filename)
 	if err != nil {
 		t.Errorf("Error reading setup data: %v", err)
 		return nil
@@ -39,7 +39,7 @@ func GivenRequestWithPayload(t *testing.T, filename string) *http.Request {
 }
 
 func GivenRequestWithRefsPayload(t *testing.T) *http.Request {
-	data, err := ioutil.ReadFile("fixtures/post-receive-git.json")
+	data, err := ioutil.ReadFile("../../../../test/fixtures/webhook/generic/post-receive-git.json")
 	if err != nil {
 		t.Errorf("Error reading setup data: %v", err)
 		return nil
