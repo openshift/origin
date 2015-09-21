@@ -263,6 +263,7 @@ echo "config files: ok"
 
 # from this point every command will use config from the KUBECONFIG env var
 export KUBECONFIG="${HOME}/.kube/non-default-config"
+export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
 
 
 # NOTE: Do not add tests here, add them to test/cmd/*.
@@ -272,6 +273,9 @@ for test in "${tests[@]}"; do
   echo
   echo "++ ${test}"
   name=$(basename ${test} .sh)
+
+  # switch back to a standard identity. This prevents individual tests from changing contexts and messing up other tests
+  oc project ${CLUSTER_ADMIN_CONTEXT}
   oc new-project "cmd-${name}"
   ${test}
   oc delete project "cmd-${name}"
