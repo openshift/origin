@@ -50,6 +50,7 @@ Obsoletes:      openshift < 1.0.6
 %package master
 Summary:        %{product_name} Master
 Requires:       %{name} = %{version}-%{release}
+Requires:       %{name}-clients = %{version}-%{release}
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
