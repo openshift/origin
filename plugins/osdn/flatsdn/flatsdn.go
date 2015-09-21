@@ -68,13 +68,13 @@ func (plugin *flatsdnPlugin) Name() string {
 }
 
 func (plugin *flatsdnPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
-	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, namespace, name, string(id)).CombinedOutput()
+	out, err := utilexec.New().Command(plugin.getExecutable(), setUpCmd, namespace, name, string(id), "-1").CombinedOutput()
 	glog.V(5).Infof("SetUpPod 'flatsdn' network plugin output: %s, %v", string(out), err)
 	return err
 }
 
 func (plugin *flatsdnPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
-	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, namespace, name, string(id)).CombinedOutput()
+	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, namespace, name, string(id), "-1").CombinedOutput()
 	glog.V(5).Infof("TearDownPod 'flatsdn' network plugin output: %s, %v", string(out), err)
 	return err
 }
