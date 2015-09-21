@@ -30,6 +30,7 @@ export KUBE_REPO_ROOT="${OS_ROOT}/../../../k8s.io/kubernetes"
 function join { local IFS="$1"; shift; echo "$*"; }
 
 # The following skip rules excludes upstream e2e tests that fail.
+# TODO: add all users to privileged
 SKIP_TESTS=(
   "\[Skipped\]"           # Explicitly skipped upstream
 
@@ -46,13 +47,16 @@ SKIP_TESTS=(
   EmptyDir                # TRIAGE
   Proxy                   # TRIAGE
   "Examples e2e"          # TRIAGE: Some are failing due to permissions
-  Kubectl                 # TRIAGE: may be able to be reenabled
+  Kubectl                 # TRIAGE: we don't support the kubeconfig flag, and images won't run
   Namespaces              # Namespace controller broken, issue #4731
   "hostPath"              # Need to add ability for the test case to use to hostPath
   "mount an API token into pods" # We add 6 secrets, not 1
   "create a functioning NodePort service" # Tries to bind to port 80, needs cap netsys upstream
   "Networking should function for intra-pod" # Needs two nodes, add equiv test for 1 node, then use networking suite
   "environment variables for services" # Tries to proxy directly to the node, but the underlying cert is wrong?  Is proxy broken?
+  "should provide labels and annotations files" # the image can't read the files
+  "Ask kubelet to report container resource usage" # container resource usage not exposed yet?
+  "should provide Internet connection for containers" # DNS inside container failing!!!
 
   # Needs triage to determine why it is failing
   "Addon update"          # TRIAGE

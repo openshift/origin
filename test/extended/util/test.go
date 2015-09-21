@@ -34,7 +34,7 @@ func InitTest() {
 	os.MkdirAll(extendedOutputDir, 0777)
 
 	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
-	TestContext.KubectlPath = "oc"
+	TestContext.KubectlPath = "kubectl"
 	TestContext.KubeConfig = KubeConfigPath()
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
 
