@@ -5,12 +5,10 @@ import (
 	"fmt"
 	log "github.com/golang/glog"
 	"net"
-	"os"
 	"os/exec"
 	"syscall"
 
 	"github.com/openshift/openshift-sdn/pkg/netutils"
-	netutils_server "github.com/openshift/openshift-sdn/pkg/netutils/server"
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
 )
 
@@ -39,7 +37,6 @@ func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork st
 		log.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
 		return err
 	}
-	//go c.manageLocalIpam(ipnet)
 	_, err = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0").CombinedOutput()
 	if err != nil {
 		return err
@@ -50,24 +47,6 @@ func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork st
 	_, err = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
 	_, err = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", iprule).CombinedOutput()
 	return err
-}
-
-func (c *FlowController) manageLocalIpam(ipnet *net.IPNet) error {
-	ipamHost := "127.0.0.1"
-	ipamPort := uint(9080)
-	inuse := make([]string, 0)
-	ipam, _ := netutils.NewIPAllocator(ipnet.String(), inuse)
-	f, err := os.Create("/etc/openshift-sdn/config.env")
-	if err != nil {
-		return err
-	}
-	_, err = f.WriteString(fmt.Sprintf("OPENSHIFT_SDN_TAP1_ADDR=%s\nOPENSHIFT_SDN_IPAM_SERVER=http://%s:%s", netutils.GenerateDefaultGateway(ipnet), ipamHost, ipamPort))
-	if err != nil {
-		return err
-	}
-	f.Close()
-	netutils_server.ListenAndServeNetutilServer(ipam, net.ParseIP(ipamHost), ipamPort, nil)
-	return nil
 }
 
 func (c *FlowController) AddOFRules(nodeIP, subnet, localIP string) error {

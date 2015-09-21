@@ -152,7 +152,6 @@ function setup() {
     ip route del ${subnet} dev lbr0 proto kernel scope link src ${subnet_gateway} || true
 
     mkdir -p /etc/openshift-sdn
-    echo "export OPENSHIFT_SDN_TAP1_ADDR=${tun_gateway}" >& "/etc/openshift-sdn/config.env"
     echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_subnet}" >> "/etc/openshift-sdn/config.env"
 }
 
