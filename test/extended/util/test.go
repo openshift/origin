@@ -35,7 +35,8 @@ func InitTest() {
 
 	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
 	TestContext.KubectlPath = "oc"
-	os.Setenv("KUBECONFIG", KubeConfigPath())
+	TestContext.KubeConfig = KubeConfigPath()
+	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
 
 	//flag.StringVar(&TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, KubeConfigPath(), "Path to kubeconfig containing embedded authinfo.")
 	flag.StringVar(&TestContext.OutputDir, "extended-tests-output-dir", extendedOutputDir, "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
