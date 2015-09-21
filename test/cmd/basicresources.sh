@@ -41,6 +41,12 @@ oc delete services frontend
 echo "services: ok"
 
 oc get nodes
+(
+  # subshell so we can unset kubeconfig
+  cfg="${KUBECONFIG}"
+  unset KUBECONFIG
+  kubectl get nodes --kubeconfig="${cfg}"
+)
 echo "nodes: ok"
 
 oc get routes

@@ -162,10 +162,6 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 	cmds.Aliases = []string{"kubectl"}
 	cmds.Use = name
 	cmds.Short = "Kubernetes cluster management via kubectl"
-	cmds.Long = cmds.Long + `
-
-This command exposes the exact semantics of the Kubernetes command line client with additional
-support for application lifecycles.`
 	flags.VisitAll(func(flag *pflag.Flag) {
 		if f := cmds.PersistentFlags().Lookup(flag.Name); f == nil {
 			cmds.PersistentFlags().AddFlag(flag)
@@ -173,6 +169,7 @@ support for application lifecycles.`
 			glog.V(5).Infof("already registered flag %s", flag.Name)
 		}
 	})
+	cmds.PersistentFlags().Var(flags.Lookup("config").Value, "kubeconfig", "Specify a kubeconfig file to define the configuration")
 	templates.ActsAsRootCommand(cmds)
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 	return cmds
