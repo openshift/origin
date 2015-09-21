@@ -42,6 +42,7 @@ ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.4
+Requires:       %{name}-clients = %{version}-%{release}
 Obsoletes:      openshift < 1.0.6
 
 %description
@@ -50,7 +51,6 @@ Obsoletes:      openshift < 1.0.6
 %package master
 Summary:        %{product_name} Master
 Requires:       %{name} = %{version}-%{release}
-Requires:       %{name}-clients = %{version}-%{release}
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
@@ -175,7 +175,8 @@ do
 done
 
 # Install client executable for windows and mac
-install -d %{buildroot}%{_datadir}/%{name}/{macosx,windows}
+install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
+install -p -m 755 _build/bin/oc %{buildroot}%{_datadir}/%{name}/linux/oc
 install -p -m 755 _build/bin/darwin_amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
 install -p -m 755 _build/bin/windows_386/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 
@@ -375,6 +376,7 @@ fi
 %{_bindir}/kubectl
 
 %files clients-redistributable
+%{_datadir}/%{name}/linux/oc
 %{_datadir}/%{name}/macosx/oc
 %{_datadir}/%{name}/windows/oc.exe
 
