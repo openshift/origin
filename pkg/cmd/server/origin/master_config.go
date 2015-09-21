@@ -366,11 +366,11 @@ func (c *MasterConfig) AdmissionControlClient() kclient.Interface {
 	return admissionControlClient(c.KubeClient(), c.OpenShiftClient())
 }
 
-// SecurityContextConstraintsClient returns a client object used to query all SecurityContextConstraints
+// PodSecurityPolicyClient returns a client object used to query all SecurityContextConstraints
 // within the cluster.
 // It must have the following capabilities:
 // create, list all SecurityContextConstraints
-func (c *MasterConfig) SecurityContextConstraintsClient() *osclient.Client {
+func (c *MasterConfig) PodSecurityPolicyClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 

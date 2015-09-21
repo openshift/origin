@@ -140,6 +140,9 @@ func init() {
 		"HostSubnet":     true,
 		"NetNamespace":   true,
 
+		"PodSecurityPolicy": true,
+		// TODO: deprecated but maintained for backwards compatibility.  Remove when the api
+		// is no longer supported
 		"SecurityContextConstraints": true,
 	}
 

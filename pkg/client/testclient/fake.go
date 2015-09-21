@@ -123,8 +123,8 @@ func (c *Fake) Actions() []ktestclient.Action {
 var _ client.Interface = &Fake{}
 
 // SecurityContextConstraints provides a fake REST client for SecurityContextConstraints.
-func (c *Fake) SecurityContextConstraints() client.SecurityContextConstraintInterface {
-	return &FakeSecurityContextConstraints{Fake: c}
+func (c *Fake) PodSecurityPolicies() client.PodSecurityPolicyInterface {
+	return &FakePodSecurityPolicies{Fake: c}
 }
 
 // Builds provides a fake REST client for Builds

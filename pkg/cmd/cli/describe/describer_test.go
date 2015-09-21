@@ -23,6 +23,7 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	pspapi "github.com/openshift/origin/pkg/security/policy/api"
 )
 
 type describeClient struct {
@@ -45,6 +46,7 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),             // normal users don't ever look at these
 	reflect.TypeOf(&projectapi.ProjectRequest{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // not a top level resource
+	reflect.TypeOf(&pspapi.SecurityContextConstraints{}),              // always converted to PodSecurityPolicy and backed by proxy storage
 
 	// these resources can't be "GET"ed, so you can't make a describer for them
 	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),

@@ -252,7 +252,10 @@ func expandResourceShortcut(resource string) string {
 		"sa":      "serviceAccounts",
 		"pv":      "persistentVolumes",
 		"pvc":     "persistentVolumeClaims",
-		"scc":     "securityContextConstraints",
+		"psp":     "podSecurityPolicies",
+
+		// TODO: deprecated, this should be removed eventually
+		"scc": "podSecurityPolicies",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded

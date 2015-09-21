@@ -8779,6 +8779,432 @@
     ]
    },
    {
+    "path": "/oapi/v1/podsecuritypolicies",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSecurityPolicyList",
+      "method": "GET",
+      "summary": "list or watch objects of kind PodSecurityPolicy",
+      "nickname": "listNamespacedPodSecurityPolicy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicyList"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.PodSecurityPolicy",
+      "method": "POST",
+      "summary": "create a PodSecurityPolicy",
+      "nickname": "createNamespacedPodSecurityPolicy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSecurityPolicy",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicy"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/podsecuritypolicies",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "json.WatchEvent",
+      "method": "GET",
+      "summary": "watch individual changes to a list of PodSecurityPolicy",
+      "nickname": "watchNamespacedPodSecurityPolicyList",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "json.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/podsecuritypolicies/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "v1.PodSecurityPolicy",
+      "method": "GET",
+      "summary": "read the specified PodSecurityPolicy",
+      "nickname": "readNamespacedPodSecurityPolicy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the PodSecurityPolicy",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicy"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.PodSecurityPolicy",
+      "method": "PUT",
+      "summary": "replace the specified PodSecurityPolicy",
+      "nickname": "replaceNamespacedPodSecurityPolicy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.PodSecurityPolicy",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the PodSecurityPolicy",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicy"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.PodSecurityPolicy",
+      "method": "PATCH",
+      "summary": "partially update the specified PodSecurityPolicy",
+      "nickname": "patchNamespacedPodSecurityPolicy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "api.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the PodSecurityPolicy",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.PodSecurityPolicy"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     },
+     {
+      "type": "v1.Status",
+      "method": "DELETE",
+      "summary": "delete a PodSecurityPolicy",
+      "nickname": "deleteNamespacedPodSecurityPolicy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeleteOptions",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the PodSecurityPolicy",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Status"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/oapi/v1/watch/podsecuritypolicies/{name}",
+    "description": "OpenShift REST API, version v1",
+    "operations": [
+     {
+      "type": "json.WatchEvent",
+      "method": "GET",
+      "summary": "watch changes to an object of kind PodSecurityPolicy",
+      "nickname": "watchNamespacedPodSecurityPolicy",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the PodSecurityPolicy",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "json.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/oapi/v1/namespaces/{namespace}/policies",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -17040,6 +17466,229 @@
        "type": "string"
       },
       "description": "valid redirection URIs associated with a client"
+     }
+    }
+   },
+   "v1.PodSecurityPolicyList": {
+    "id": "v1.PodSecurityPolicyList",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ListMeta"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.PodSecurityPolicy"
+      },
+      "description": "list of PodSecurityPolicy objects"
+     }
+    }
+   },
+   "v1.PodSecurityPolicy": {
+    "id": "v1.PodSecurityPolicy",
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta"
+     },
+     "spec": {
+      "$ref": "v1.PodSecurityPolicySpec",
+      "description": "EXPERIMENTAL - pod security policy spec"
+     }
+    }
+   },
+   "v1.PodSecurityPolicySpec": {
+    "id": "v1.PodSecurityPolicySpec",
+    "required": [
+     "allowHostPorts"
+    ],
+    "properties": {
+     "privileged": {
+      "type": "boolean",
+      "description": "EXPERIMENTAL - allow containers to run as privileged"
+     },
+     "capabilities": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Capability"
+      },
+      "description": "EXPERIMENTAL - capabilities that are allowed to be added"
+     },
+     "volumes": {
+      "$ref": "v1.VolumeSecurityPolicy",
+      "description": "EXPERIMENTAL - volume plugins that are allowed to be used"
+     },
+     "hostNetwork": {
+      "type": "boolean",
+      "description": "EXPERIMENTAL - allow the use of the hostNetwork in the pod spec"
+     },
+     "allowHostPorts": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.HostPortRange"
+      },
+      "description": "EXPERIMENTAL - allow the use of the host ports in the containers"
+     },
+     "seLinuxContext": {
+      "$ref": "v1.SELinuxContextStrategyOptions",
+      "description": "EXPERIMENTAL - strategy used to generate SELinuxOptions"
+     },
+     "runAsUser": {
+      "$ref": "v1.RunAsUserStrategyOptions",
+      "description": "EXPERIMENTAL - strategy used to generate RunAsUser"
+     },
+     "users": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "EXPERIMENTAL - users allowed to use this PodSecurityPolicy"
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "EXPERIMENTAL - groups allowed to use this PodSecurityPolicy"
+     }
+    }
+   },
+   "v1.VolumeSecurityPolicy": {
+    "id": "v1.VolumeSecurityPolicy",
+    "properties": {
+     "hostPath": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the HostPath volume plugin"
+     },
+     "emptyDir": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the EmptyDir volume plugin"
+     },
+     "gcePersistentDisk": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the GCEPersistentDisk volume plugin"
+     },
+     "awsElasticBlockStore": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the AWSElasticBlockStore volume plugin"
+     },
+     "gitRepo": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the GitRepo volume plugin"
+     },
+     "secret": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the Secret volume plugin"
+     },
+     "nfs": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the NFS volume plugin"
+     },
+     "iscsi": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the ISCSI volume plugin"
+     },
+     "glusterfs": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the Glusterfs volume plugin"
+     },
+     "persistentVolumeClaim": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the PersistentVolumeClaim volume plugin"
+     },
+     "rbd": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the RBD volume plugin"
+     },
+     "cinder": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the Cinder volume plugin"
+     },
+     "cephfs": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the CephFS volume plugin"
+     },
+     "downwardAPI": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the DownwardAPI volume plugin"
+     },
+     "fc": {
+      "type": "boolean",
+      "description": "allows or disallows the use of the FC volume plugin"
+     }
+    }
+   },
+   "v1.HostPortRange": {
+    "id": "v1.HostPortRange",
+    "required": [
+     "start",
+     "end"
+    ],
+    "properties": {
+     "start": {
+      "type": "integer",
+      "format": "int32",
+      "description": "starting port of the range"
+     },
+     "end": {
+      "type": "integer",
+      "format": "int32",
+      "description": "ending port of the range"
+     }
+    }
+   },
+   "v1.SELinuxContextStrategyOptions": {
+    "id": "v1.SELinuxContextStrategyOptions",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "strategy used to generate the SELinux context"
+     },
+     "seLinuxOptions": {
+      "$ref": "v1.SELinuxOptions",
+      "description": "seLinuxOptions required to run as; required for MustRunAs"
+     }
+    }
+   },
+   "v1.RunAsUserStrategyOptions": {
+    "id": "v1.RunAsUserStrategyOptions",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "strategy used to generate RunAsUser"
+     },
+     "uid": {
+      "type": "integer",
+      "format": "int64",
+      "description": "the uid to always run as; required for MustRunAs"
+     },
+     "uidRangeMin": {
+      "type": "integer",
+      "format": "int64",
+      "description": "min value for range based allocators"
+     },
+     "uidRangeMax": {
+      "type": "integer",
+      "format": "int64",
+      "description": "max value for range based allocators"
      }
     }
    },

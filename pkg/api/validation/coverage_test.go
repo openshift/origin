@@ -10,6 +10,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	pspapi "github.com/openshift/origin/pkg/security/policy/api"
 )
 
 // KnownValidationExceptions is the list of API types that do NOT have corresponding validation
@@ -21,6 +22,7 @@ var KnownValidationExceptions = []reflect.Type{
 	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // only an api type for runtime.EmbeddedObject, never accepted
 	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),   // this object is only returned, never accepted
 	reflect.TypeOf(&authorizationapi.ResourceAccessReviewResponse{}),  // this object is only returned, never accepted
+	reflect.TypeOf(&pspapi.SecurityContextConstraints{}),              // always converted to PodSecurityPolicy and backed by proxy storage
 }
 
 // MissingValidationExceptions is the list of types that were missing validation methods when I started

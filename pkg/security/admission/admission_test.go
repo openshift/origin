@@ -14,8 +14,8 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 
 	allocator "github.com/openshift/origin/pkg/security"
-	sccapi "github.com/openshift/origin/pkg/security/scc/api"
-	sccprovider "github.com/openshift/origin/pkg/security/scc/provider"
+	pspapi "github.com/openshift/origin/pkg/security/policy/api"
+	pspprovider "github.com/openshift/origin/pkg/security/policy/provider"
 )
 
 func NewTestAdmission(store cache.Store, kclient client.Interface) kadmission.Interface {
@@ -46,36 +46,40 @@ func TestAdmit(t *testing.T) {
 	tc := testclient.NewSimpleFake(namespace, serviceAccount)
 
 	// create scc that requires allocation retrieval
-	saSCC := &sccapi.SecurityContextConstraints{
+	saSCC := &pspapi.PodSecurityPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "scc-sa",
 		},
-		RunAsUser: sccapi.RunAsUserStrategyOptions{
-			Type: sccapi.RunAsUserStrategyMustRunAsRange,
+		Spec: pspapi.PodSecurityPolicySpec{
+			RunAsUser: pspapi.RunAsUserStrategyOptions{
+				Type: pspapi.RunAsUserStrategyMustRunAsRange,
+			},
+			SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+				Type: pspapi.SELinuxStrategyMustRunAs,
+			},
+			Groups: []string{"system:serviceaccounts"},
 		},
-		SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-			Type: sccapi.SELinuxStrategyMustRunAs,
-		},
-		Groups: []string{"system:serviceaccounts"},
 	}
 	// create scc that has specific requirements that shouldn't match but is permissioned to
 	// service accounts to test exact matches
 	var exactUID int64 = 999
-	saExactSCC := &sccapi.SecurityContextConstraints{
+	saExactSCC := &pspapi.PodSecurityPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "scc-sa-exact",
 		},
-		RunAsUser: sccapi.RunAsUserStrategyOptions{
-			Type: sccapi.RunAsUserStrategyMustRunAs,
-			UID:  &exactUID,
-		},
-		SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-			Type: sccapi.SELinuxStrategyMustRunAs,
-			SELinuxOptions: &kapi.SELinuxOptions{
-				Level: "s9:z0,z1",
+		Spec: pspapi.PodSecurityPolicySpec{
+			RunAsUser: pspapi.RunAsUserStrategyOptions{
+				Type: pspapi.RunAsUserStrategyMustRunAs,
+				UID:  &exactUID,
 			},
+			SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+				Type: pspapi.SELinuxStrategyMustRunAs,
+				SELinuxOptions: &kapi.SELinuxOptions{
+					Level: "s9:z0,z1",
+				},
+			},
+			Groups: []string{"system:serviceaccounts"},
 		},
-		Groups: []string{"system:serviceaccounts"},
 	}
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	store.Add(saExactSCC)
@@ -202,20 +206,27 @@ func TestAdmit(t *testing.T) {
 
 	// now add an escalated scc to the group and re-run the cases that expected failure, they should
 	// now pass by validating against the escalated scc.
-	adminSCC := &sccapi.SecurityContextConstraints{
+	adminSCC := &pspapi.PodSecurityPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "scc-admin",
 		},
-		AllowPrivilegedContainer: true,
-		AllowHostNetwork:         true,
-		AllowHostPorts:           true,
-		RunAsUser: sccapi.RunAsUserStrategyOptions{
-			Type: sccapi.RunAsUserStrategyRunAsAny,
+		Spec: pspapi.PodSecurityPolicySpec{
+			Privileged:  true,
+			HostNetwork: true,
+			HostPorts: []pspapi.HostPortRange{
+				{
+					Start: 1,
+					End:   65535,
+				},
+			},
+			RunAsUser: pspapi.RunAsUserStrategyOptions{
+				Type: pspapi.RunAsUserStrategyRunAsAny,
+			},
+			SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+				Type: pspapi.SELinuxStrategyRunAsAny,
+			},
+			Groups: []string{"system:serviceaccounts"},
 		},
-		SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-			Type: sccapi.SELinuxStrategyRunAsAny,
-		},
-		Groups: []string{"system:serviceaccounts"},
 	}
 	store.Add(adminSCC)
 
@@ -241,19 +252,21 @@ func TestAssignSecurityContext(t *testing.T) {
 	// set up test data
 	// scc that will deny privileged container requests and has a default value for a field (uid)
 	var uid int64 = 9999
-	scc := &sccapi.SecurityContextConstraints{
+	scc := &pspapi.PodSecurityPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test scc",
 		},
-		SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-			Type: sccapi.SELinuxStrategyRunAsAny,
-		},
-		RunAsUser: sccapi.RunAsUserStrategyOptions{
-			Type: sccapi.RunAsUserStrategyMustRunAs,
-			UID:  &uid,
+		Spec: pspapi.PodSecurityPolicySpec{
+			SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+				Type: pspapi.SELinuxStrategyRunAsAny,
+			},
+			RunAsUser: pspapi.RunAsUserStrategyOptions{
+				Type: pspapi.RunAsUserStrategyMustRunAs,
+				UID:  &uid,
+			},
 		},
 	}
-	provider, err := sccprovider.NewSimpleProvider(scc)
+	provider, err := pspprovider.NewSimpleProvider(scc)
 	if err != nil {
 		t.Fatalf("failed to create provider: %v", err)
 	}
@@ -362,54 +375,60 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 
 	testCases := map[string]struct {
 		// use a generating function so we can test for non-mutation
-		scc         func() *sccapi.SecurityContextConstraints
+		scc         func() *pspapi.PodSecurityPolicy
 		namespace   *kapi.Namespace
 		expectedErr string
 	}{
 		"valid non-preallocated scc": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *pspapi.PodSecurityPolicy {
+				return &pspapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "valid non-preallocated scc",
 					},
-					SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-						Type: sccapi.SELinuxStrategyRunAsAny,
-					},
-					RunAsUser: sccapi.RunAsUserStrategyOptions{
-						Type: sccapi.RunAsUserStrategyRunAsAny,
+					Spec: pspapi.PodSecurityPolicySpec{
+						SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+							Type: pspapi.SELinuxStrategyRunAsAny,
+						},
+						RunAsUser: pspapi.RunAsUserStrategyOptions{
+							Type: pspapi.RunAsUserStrategyRunAsAny,
+						},
 					},
 				}
 			},
 			namespace: namespaceValid,
 		},
 		"valid pre-allocated scc": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *pspapi.PodSecurityPolicy {
+				return &pspapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "valid pre-allocated scc",
 					},
-					SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-						Type:           sccapi.SELinuxStrategyMustRunAs,
-						SELinuxOptions: &kapi.SELinuxOptions{User: "myuser"},
-					},
-					RunAsUser: sccapi.RunAsUserStrategyOptions{
-						Type: sccapi.RunAsUserStrategyMustRunAsRange,
+					Spec: pspapi.PodSecurityPolicySpec{
+						SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+							Type:           pspapi.SELinuxStrategyMustRunAs,
+							SELinuxOptions: &kapi.SELinuxOptions{User: "myuser"},
+						},
+						RunAsUser: pspapi.RunAsUserStrategyOptions{
+							Type: pspapi.RunAsUserStrategyMustRunAsRange,
+						},
 					},
 				}
 			},
 			namespace: namespaceValid,
 		},
 		"pre-allocated no uid annotation": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *pspapi.PodSecurityPolicy {
+				return &pspapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "pre-allocated no uid annotation",
 					},
-					SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-						Type: sccapi.SELinuxStrategyMustRunAs,
-					},
-					RunAsUser: sccapi.RunAsUserStrategyOptions{
-						Type: sccapi.RunAsUserStrategyMustRunAsRange,
+					Spec: pspapi.PodSecurityPolicySpec{
+						SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+							Type: pspapi.SELinuxStrategyMustRunAs,
+						},
+						RunAsUser: pspapi.RunAsUserStrategyOptions{
+							Type: pspapi.RunAsUserStrategyMustRunAsRange,
+						},
 					},
 				}
 			},
@@ -417,16 +436,18 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			expectedErr: "unable to find pre-allocated uid annotation",
 		},
 		"pre-allocated no mcs annotation": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *pspapi.PodSecurityPolicy {
+				return &pspapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "pre-allocated no mcs annotation",
 					},
-					SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-						Type: sccapi.SELinuxStrategyMustRunAs,
-					},
-					RunAsUser: sccapi.RunAsUserStrategyOptions{
-						Type: sccapi.RunAsUserStrategyMustRunAsRange,
+					Spec: pspapi.PodSecurityPolicySpec{
+						SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+							Type: pspapi.SELinuxStrategyMustRunAs,
+						},
+						RunAsUser: pspapi.RunAsUserStrategyOptions{
+							Type: pspapi.RunAsUserStrategyMustRunAsRange,
+						},
 					},
 				}
 			},
@@ -434,16 +455,18 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 			expectedErr: "unable to find pre-allocated mcs annotation",
 		},
 		"bad scc strategy options": {
-			scc: func() *sccapi.SecurityContextConstraints {
-				return &sccapi.SecurityContextConstraints{
+			scc: func() *pspapi.PodSecurityPolicy {
+				return &pspapi.PodSecurityPolicy{
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "bad scc user options",
 					},
-					SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-						Type: sccapi.SELinuxStrategyRunAsAny,
-					},
-					RunAsUser: sccapi.RunAsUserStrategyOptions{
-						Type: sccapi.RunAsUserStrategyMustRunAs,
+					Spec: pspapi.PodSecurityPolicySpec{
+						SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+							Type: pspapi.SELinuxStrategyRunAsAny,
+						},
+						RunAsUser: pspapi.RunAsUserStrategyOptions{
+							Type: pspapi.RunAsUserStrategyMustRunAs,
+						},
 					},
 				}
 			},
@@ -467,7 +490,7 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 
 		// create the providers, this method only needs the namespace
 		attributes := kadmission.NewAttributesRecord(nil, "", v.namespace.Name, "", "", "", kadmission.Create, nil)
-		_, errs := admit.createProvidersFromConstraints(attributes.GetNamespace(), []*sccapi.SecurityContextConstraints{scc})
+		_, errs := admit.createProvidersFromConstraints(attributes.GetNamespace(), []*pspapi.PodSecurityPolicy{scc})
 
 		if !reflect.DeepEqual(scc, v.scc()) {
 			diff := util.ObjectDiff(scc, v.scc())
@@ -492,18 +515,22 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 }
 
 func TestMatchingSecurityContextConstraints(t *testing.T) {
-	sccs := []*sccapi.SecurityContextConstraints{
+	sccs := []*pspapi.PodSecurityPolicy{
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "match group",
 			},
-			Groups: []string{"group"},
+			Spec: pspapi.PodSecurityPolicySpec{
+				Groups: []string{"group"},
+			},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: "match user",
 			},
-			Users: []string{"user"},
+			Spec: pspapi.PodSecurityPolicySpec{
+				Users: []string{"user"},
+			},
 		},
 	}
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
@@ -578,44 +605,54 @@ func TestRequiresPreAllocatedUIDRange(t *testing.T) {
 	var uid int64 = 1
 
 	testCases := map[string]struct {
-		scc      *sccapi.SecurityContextConstraints
+		scc      *pspapi.PodSecurityPolicy
 		requires bool
 	}{
 		"must run as": {
-			scc: &sccapi.SecurityContextConstraints{
-				RunAsUser: sccapi.RunAsUserStrategyOptions{
-					Type: sccapi.RunAsUserStrategyMustRunAs,
+			scc: &pspapi.PodSecurityPolicy{
+				Spec: pspapi.PodSecurityPolicySpec{
+					RunAsUser: pspapi.RunAsUserStrategyOptions{
+						Type: pspapi.RunAsUserStrategyMustRunAs,
+					},
 				},
 			},
 		},
 		"run as any": {
-			scc: &sccapi.SecurityContextConstraints{
-				RunAsUser: sccapi.RunAsUserStrategyOptions{
-					Type: sccapi.RunAsUserStrategyRunAsAny,
+			scc: &pspapi.PodSecurityPolicy{
+				Spec: pspapi.PodSecurityPolicySpec{
+					RunAsUser: pspapi.RunAsUserStrategyOptions{
+						Type: pspapi.RunAsUserStrategyRunAsAny,
+					},
 				},
 			},
 		},
 		"run as non-root": {
-			scc: &sccapi.SecurityContextConstraints{
-				RunAsUser: sccapi.RunAsUserStrategyOptions{
-					Type: sccapi.RunAsUserStrategyMustRunAsNonRoot,
+			scc: &pspapi.PodSecurityPolicy{
+				Spec: pspapi.PodSecurityPolicySpec{
+					RunAsUser: pspapi.RunAsUserStrategyOptions{
+						Type: pspapi.RunAsUserStrategyMustRunAsNonRoot,
+					},
 				},
 			},
 		},
 		"run as range": {
-			scc: &sccapi.SecurityContextConstraints{
-				RunAsUser: sccapi.RunAsUserStrategyOptions{
-					Type: sccapi.RunAsUserStrategyMustRunAsRange,
+			scc: &pspapi.PodSecurityPolicy{
+				Spec: pspapi.PodSecurityPolicySpec{
+					RunAsUser: pspapi.RunAsUserStrategyOptions{
+						Type: pspapi.RunAsUserStrategyMustRunAsRange,
+					},
 				},
 			},
 			requires: true,
 		},
 		"run as range with specified params": {
-			scc: &sccapi.SecurityContextConstraints{
-				RunAsUser: sccapi.RunAsUserStrategyOptions{
-					Type:        sccapi.RunAsUserStrategyMustRunAsRange,
-					UIDRangeMin: &uid,
-					UIDRangeMax: &uid,
+			scc: &pspapi.PodSecurityPolicy{
+				Spec: pspapi.PodSecurityPolicySpec{
+					RunAsUser: pspapi.RunAsUserStrategyOptions{
+						Type:        pspapi.RunAsUserStrategyMustRunAsRange,
+						UIDRangeMin: &uid,
+						UIDRangeMax: &uid,
+					},
 				},
 			},
 		},
@@ -631,31 +668,37 @@ func TestRequiresPreAllocatedUIDRange(t *testing.T) {
 
 func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 	testCases := map[string]struct {
-		scc      *sccapi.SecurityContextConstraints
+		scc      *pspapi.PodSecurityPolicy
 		requires bool
 	}{
 		"must run as": {
-			scc: &sccapi.SecurityContextConstraints{
-				SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-					Type: sccapi.SELinuxStrategyMustRunAs,
+			scc: &pspapi.PodSecurityPolicy{
+				Spec: pspapi.PodSecurityPolicySpec{
+					SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+						Type: pspapi.SELinuxStrategyMustRunAs,
+					},
 				},
 			},
 			requires: true,
 		},
 		"must with level specified": {
-			scc: &sccapi.SecurityContextConstraints{
-				SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-					Type: sccapi.SELinuxStrategyMustRunAs,
-					SELinuxOptions: &kapi.SELinuxOptions{
-						Level: "foo",
+			scc: &pspapi.PodSecurityPolicy{
+				Spec: pspapi.PodSecurityPolicySpec{
+					SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+						Type: pspapi.SELinuxStrategyMustRunAs,
+						SELinuxOptions: &kapi.SELinuxOptions{
+							Level: "foo",
+						},
 					},
 				},
 			},
 		},
 		"run as any": {
-			scc: &sccapi.SecurityContextConstraints{
-				SELinuxContext: sccapi.SELinuxContextStrategyOptions{
-					Type: sccapi.SELinuxStrategyRunAsAny,
+			scc: &pspapi.PodSecurityPolicy{
+				Spec: pspapi.PodSecurityPolicySpec{
+					SELinuxContext: pspapi.SELinuxContextStrategyOptions{
+						Type: pspapi.SELinuxStrategyRunAsAny,
+					},
 				},
 			},
 		},
@@ -670,7 +713,7 @@ func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 }
 
 func TestDeduplicateSecurityContextConstraints(t *testing.T) {
-	duped := []*sccapi.SecurityContextConstraints{
+	duped := []*pspapi.PodSecurityPolicy{
 		{ObjectMeta: kapi.ObjectMeta{Name: "a"}},
 		{ObjectMeta: kapi.ObjectMeta{Name: "a"}},
 		{ObjectMeta: kapi.ObjectMeta{Name: "b"}},

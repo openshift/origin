@@ -9672,432 +9672,6 @@
     ]
    },
    {
-    "path": "/api/v1/securitycontextconstraints",
-    "description": "API at /api/v1 version v1",
-    "operations": [
-     {
-      "type": "v1.SecurityContextConstraintsList",
-      "method": "GET",
-      "summary": "list or watch objects of kind SecurityContextConstraints",
-      "nickname": "listNamespacedSecurityContextConstraints",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "labelSelector",
-        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "fieldSelector",
-        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "boolean",
-        "paramType": "query",
-        "name": "watch",
-        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "resourceVersion",
-        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
-        "required": false,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.SecurityContextConstraintsList"
-       }
-      ],
-      "produces": [
-       "application/json"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.SecurityContextConstraints",
-      "method": "POST",
-      "summary": "create a SecurityContextConstraints",
-      "nickname": "createNamespacedSecurityContextConstraints",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.SecurityContextConstraints",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.SecurityContextConstraints"
-       }
-      ],
-      "produces": [
-       "application/json"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     }
-    ]
-   },
-   {
-    "path": "/api/v1/watch/securitycontextconstraints",
-    "description": "API at /api/v1 version v1",
-    "operations": [
-     {
-      "type": "json.WatchEvent",
-      "method": "GET",
-      "summary": "watch individual changes to a list of SecurityContextConstraints",
-      "nickname": "watchNamespacedSecurityContextConstraintsList",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "labelSelector",
-        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "fieldSelector",
-        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "boolean",
-        "paramType": "query",
-        "name": "watch",
-        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "resourceVersion",
-        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
-        "required": false,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "json.WatchEvent"
-       }
-      ],
-      "produces": [
-       "application/json"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     }
-    ]
-   },
-   {
-    "path": "/api/v1/securitycontextconstraints/{name}",
-    "description": "API at /api/v1 version v1",
-    "operations": [
-     {
-      "type": "v1.SecurityContextConstraints",
-      "method": "GET",
-      "summary": "read the specified SecurityContextConstraints",
-      "nickname": "readNamespacedSecurityContextConstraints",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "path",
-        "name": "name",
-        "description": "name of the SecurityContextConstraints",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.SecurityContextConstraints"
-       }
-      ],
-      "produces": [
-       "application/json"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.SecurityContextConstraints",
-      "method": "PUT",
-      "summary": "replace the specified SecurityContextConstraints",
-      "nickname": "replaceNamespacedSecurityContextConstraints",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.SecurityContextConstraints",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "path",
-        "name": "name",
-        "description": "name of the SecurityContextConstraints",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.SecurityContextConstraints"
-       }
-      ],
-      "produces": [
-       "application/json"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     },
-     {
-      "type": "v1.SecurityContextConstraints",
-      "method": "PATCH",
-      "summary": "partially update the specified SecurityContextConstraints",
-      "nickname": "patchNamespacedSecurityContextConstraints",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "api.Patch",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "path",
-        "name": "name",
-        "description": "name of the SecurityContextConstraints",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.SecurityContextConstraints"
-       }
-      ],
-      "produces": [
-       "application/json"
-      ],
-      "consumes": [
-       "application/json-patch+json",
-       "application/merge-patch+json",
-       "application/strategic-merge-patch+json"
-      ]
-     },
-     {
-      "type": "v1.Status",
-      "method": "DELETE",
-      "summary": "delete a SecurityContextConstraints",
-      "nickname": "deleteNamespacedSecurityContextConstraints",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "v1.DeleteOptions",
-        "paramType": "body",
-        "name": "body",
-        "description": "",
-        "required": true,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "path",
-        "name": "name",
-        "description": "name of the SecurityContextConstraints",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.Status"
-       }
-      ],
-      "produces": [
-       "application/json"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     }
-    ]
-   },
-   {
-    "path": "/api/v1/watch/securitycontextconstraints/{name}",
-    "description": "API at /api/v1 version v1",
-    "operations": [
-     {
-      "type": "json.WatchEvent",
-      "method": "GET",
-      "summary": "watch changes to an object of kind SecurityContextConstraints",
-      "nickname": "watchNamespacedSecurityContextConstraints",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "labelSelector",
-        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "fieldSelector",
-        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "boolean",
-        "paramType": "query",
-        "name": "watch",
-        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "resourceVersion",
-        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "path",
-        "name": "name",
-        "description": "name of the SecurityContextConstraints",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "json.WatchEvent"
-       }
-      ],
-      "produces": [
-       "application/json"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     }
-    ]
-   },
-   {
     "path": "/api/v1/namespaces/{namespace}/serviceaccounts",
     "description": "API at /api/v1 version v1",
     "operations": [
@@ -11812,6 +11386,432 @@
         "name": "resourceVersion",
         "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
         "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "json.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/api/v1/securitycontextconstraints",
+    "description": "API at /api/v1 version v1",
+    "operations": [
+     {
+      "type": "v1.SecurityContextConstraintsList",
+      "method": "GET",
+      "summary": "list or watch objects of kind SecurityContextConstraints",
+      "nickname": "listNamespacedSecurityContextConstraints",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SecurityContextConstraintsList"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.SecurityContextConstraints",
+      "method": "POST",
+      "summary": "create a SecurityContextConstraints",
+      "nickname": "createNamespacedSecurityContextConstraints",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.SecurityContextConstraints",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SecurityContextConstraints"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/api/v1/watch/securitycontextconstraints",
+    "description": "API at /api/v1 version v1",
+    "operations": [
+     {
+      "type": "json.WatchEvent",
+      "method": "GET",
+      "summary": "watch individual changes to a list of SecurityContextConstraints",
+      "nickname": "watchNamespacedSecurityContextConstraintsList",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "json.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/api/v1/securitycontextconstraints/{name}",
+    "description": "API at /api/v1 version v1",
+    "operations": [
+     {
+      "type": "v1.SecurityContextConstraints",
+      "method": "GET",
+      "summary": "read the specified SecurityContextConstraints",
+      "nickname": "readNamespacedSecurityContextConstraints",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the SecurityContextConstraints",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SecurityContextConstraints"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.SecurityContextConstraints",
+      "method": "PUT",
+      "summary": "replace the specified SecurityContextConstraints",
+      "nickname": "replaceNamespacedSecurityContextConstraints",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.SecurityContextConstraints",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the SecurityContextConstraints",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SecurityContextConstraints"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.SecurityContextConstraints",
+      "method": "PATCH",
+      "summary": "partially update the specified SecurityContextConstraints",
+      "nickname": "patchNamespacedSecurityContextConstraints",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "api.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the SecurityContextConstraints",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.SecurityContextConstraints"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     },
+     {
+      "type": "v1.Status",
+      "method": "DELETE",
+      "summary": "delete a SecurityContextConstraints",
+      "nickname": "deleteNamespacedSecurityContextConstraints",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeleteOptions",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the SecurityContextConstraints",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Status"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/api/v1/watch/securitycontextconstraints/{name}",
+    "description": "API at /api/v1 version v1",
+    "operations": [
+     {
+      "type": "json.WatchEvent",
+      "method": "GET",
+      "summary": "watch changes to an object of kind SecurityContextConstraints",
+      "nickname": "watchNamespacedSecurityContextConstraints",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the SecurityContextConstraints",
+        "required": true,
         "allowMultiple": false
        }
       ],
@@ -14432,136 +14432,6 @@
      }
     }
    },
-   "v1.SecurityContextConstraintsList": {
-    "id": "v1.SecurityContextConstraintsList",
-    "required": [
-     "items"
-    ],
-    "properties": {
-     "kind": {
-      "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
-     },
-     "apiVersion": {
-      "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
-     },
-     "metadata": {
-      "$ref": "v1.ListMeta"
-     },
-     "items": {
-      "type": "array",
-      "items": {
-       "$ref": "v1.SecurityContextConstraints"
-      }
-     }
-    }
-   },
-   "v1.SecurityContextConstraints": {
-    "id": "v1.SecurityContextConstraints",
-    "required": [
-     "allowPrivilegedContainer",
-     "allowedCapabilities",
-     "allowHostDirVolumePlugin",
-     "allowHostNetwork",
-     "allowHostPorts"
-    ],
-    "properties": {
-     "kind": {
-      "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
-     },
-     "apiVersion": {
-      "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
-     },
-     "metadata": {
-      "$ref": "v1.ObjectMeta"
-     },
-     "allowPrivilegedContainer": {
-      "type": "boolean",
-      "description": "allow containers to run as privileged"
-     },
-     "allowedCapabilities": {
-      "type": "array",
-      "items": {
-       "$ref": "v1.Capability"
-      },
-      "description": "capabilities that are allowed to be added"
-     },
-     "allowHostDirVolumePlugin": {
-      "type": "boolean",
-      "description": "allow the use of the host dir volume plugin"
-     },
-     "allowHostNetwork": {
-      "type": "boolean",
-      "description": "allow the use of the hostNetwork in the pod spec"
-     },
-     "allowHostPorts": {
-      "type": "boolean",
-      "description": "allow the use of the host ports in the containers"
-     },
-     "seLinuxContext": {
-      "$ref": "v1.SELinuxContextStrategyOptions",
-      "description": "strategy used to generate SELinuxOptions"
-     },
-     "runAsUser": {
-      "$ref": "v1.RunAsUserStrategyOptions",
-      "description": "strategy used to generate RunAsUser"
-     },
-     "users": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      },
-      "description": "users allowed to use this SecurityContextConstraints"
-     },
-     "groups": {
-      "type": "array",
-      "items": {
-       "type": "string"
-      },
-      "description": "groups allowed to use this SecurityContextConstraints"
-     }
-    }
-   },
-   "v1.SELinuxContextStrategyOptions": {
-    "id": "v1.SELinuxContextStrategyOptions",
-    "properties": {
-     "type": {
-      "type": "string",
-      "description": "strategy used to generate the SELinux context"
-     },
-     "seLinuxOptions": {
-      "$ref": "v1.SELinuxOptions",
-      "description": "seLinuxOptions required to run as; required for MustRunAs"
-     }
-    }
-   },
-   "v1.RunAsUserStrategyOptions": {
-    "id": "v1.RunAsUserStrategyOptions",
-    "properties": {
-     "type": {
-      "type": "string",
-      "description": "strategy used to generate RunAsUser"
-     },
-     "uid": {
-      "type": "integer",
-      "format": "int64",
-      "description": "the uid to always run as; required for MustRunAs"
-     },
-     "uidRangeMin": {
-      "type": "integer",
-      "format": "int64",
-      "description": "min value for range based allocators"
-     },
-     "uidRangeMax": {
-      "type": "integer",
-      "format": "int64",
-      "description": "max value for range based allocators"
-     }
-    }
-   },
    "v1.ServiceAccountList": {
     "id": "v1.ServiceAccountList",
     "description": "ServiceAccountList is a list of ServiceAccount objects",
@@ -14788,6 +14658,137 @@
      "hostname": {
       "type": "string",
       "description": "Hostname is set for load-balancer ingress points that are DNS based (typically AWS load-balancers)"
+     }
+    }
+   },
+   "v1.SecurityContextConstraintsList": {
+    "id": "v1.SecurityContextConstraintsList",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ListMeta"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.SecurityContextConstraints"
+      },
+      "description": "list of SecurityContextConstraints objects"
+     }
+    }
+   },
+   "v1.SecurityContextConstraints": {
+    "id": "v1.SecurityContextConstraints",
+    "required": [
+     "allowPrivilegedContainer",
+     "allowedCapabilities",
+     "allowHostDirVolumePlugin",
+     "allowHostNetwork",
+     "allowHostPorts"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta"
+     },
+     "allowPrivilegedContainer": {
+      "type": "boolean",
+      "description": "allow containers to run as privileged"
+     },
+     "allowedCapabilities": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Capability"
+      },
+      "description": "capabilities that are allowed to be added"
+     },
+     "allowHostDirVolumePlugin": {
+      "type": "boolean",
+      "description": "allow the use of the host dir volume plugin"
+     },
+     "allowHostNetwork": {
+      "type": "boolean",
+      "description": "allow the use of the hostNetwork in the pod spec"
+     },
+     "allowHostPorts": {
+      "type": "boolean",
+      "description": "allow the use of the host ports in the containers"
+     },
+     "seLinuxContext": {
+      "$ref": "v1.SELinuxContextStrategyOptions",
+      "description": "strategy used to generate SELinuxOptions"
+     },
+     "runAsUser": {
+      "$ref": "v1.RunAsUserStrategyOptions",
+      "description": "strategy used to generate RunAsUser"
+     },
+     "users": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "users allowed to use this PodSecurityPolicy"
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "groups allowed to use this PodSecurityPolicy"
+     }
+    }
+   },
+   "v1.SELinuxContextStrategyOptions": {
+    "id": "v1.SELinuxContextStrategyOptions",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "strategy used to generate the SELinux context"
+     },
+     "seLinuxOptions": {
+      "$ref": "v1.SELinuxOptions",
+      "description": "seLinuxOptions required to run as; required for MustRunAs"
+     }
+    }
+   },
+   "v1.RunAsUserStrategyOptions": {
+    "id": "v1.RunAsUserStrategyOptions",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "strategy used to generate RunAsUser"
+     },
+     "uid": {
+      "type": "integer",
+      "format": "int64",
+      "description": "the uid to always run as; required for MustRunAs"
+     },
+     "uidRangeMin": {
+      "type": "integer",
+      "format": "int64",
+      "description": "min value for range based allocators"
+     },
+     "uidRangeMax": {
+      "type": "integer",
+      "format": "int64",
+      "description": "max value for range based allocators"
      }
     }
    }

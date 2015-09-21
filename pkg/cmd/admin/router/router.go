@@ -602,7 +602,7 @@ func generateStatsPassword() string {
 
 func validateServiceAccount(osClient osclient.Interface, ns string, sa string) error {
 	// get cluster sccs
-	sccList, err := osClient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+	sccList, err := osClient.PodSecurityPolicies().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return fmt.Errorf("unable to validate service account %v", err)
 	}
@@ -611,7 +611,8 @@ func validateServiceAccount(osClient osclient.Interface, ns string, sa string) e
 	userInfo := serviceaccount.UserInfo(ns, sa, "")
 	for _, scc := range sccList.Items {
 		if admission.ConstraintAppliesTo(&scc, userInfo) {
-			if scc.AllowHostPorts {
+			// TODO: this needs to check for the host ports we're exposing now
+			if len(scc.Spec.HostPorts) > 0 {
 				return nil
 			}
 		}

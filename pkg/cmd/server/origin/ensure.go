@@ -143,8 +143,8 @@ func (c *MasterConfig) ensureNamespaceServiceAccountRoleBindings(namespace *kapi
 	}
 }
 
-func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
-	sccList, err := c.SecurityContextConstraintsClient().SecurityContextConstraints().List(labels.Everything(), fields.Everything())
+func (c *MasterConfig) ensureDefaultPodSecurityPolicy() {
+	sccList, err := c.PodSecurityPolicyClient().PodSecurityPolicies().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		glog.Errorf("Unable to initialize security context constraints: %v.  This may prevent the creation of pods", err)
 		return
@@ -156,8 +156,8 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 	glog.Infof("No security context constraints detected, adding defaults")
 	ns := c.Options.PolicyConfig.OpenShiftInfrastructureNamespace
 	buildControllerUsername := serviceaccount.MakeUsername(ns, c.BuildControllerServiceAccount)
-	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(buildControllerUsername) {
-		_, err = c.SecurityContextConstraintsClient().SecurityContextConstraints().Create(&scc)
+	for _, scc := range bootstrappolicy.GetBootstrapPodSecurityPolicy(buildControllerUsername) {
+		_, err = c.PodSecurityPolicyClient().PodSecurityPolicies().Create(&scc)
 		if err != nil {
 			glog.Errorf("Unable to create default security context constraint %s.  Got error: %v", scc.Name, err)
 		}

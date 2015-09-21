@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/rest"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
@@ -65,8 +66,10 @@ func TestAllOpenShiftResourceCoverage(t *testing.T) {
 
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
-	return &MasterConfig{
+	cfg := &MasterConfig{
 		KubeletClientConfig: &kclient.KubeletConfig{},
 		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
 	}
+	cfg.Options.EtcdStorageConfig.KubernetesStorageVersion = klatest.Version
+	return cfg
 }
