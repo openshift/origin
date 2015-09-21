@@ -43,6 +43,12 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStr
 				IntervalSeconds:     newInt64(6),
 				TimeoutSeconds:      newInt64(7),
 				UpdatePercent:       newInt(-25),
+				Pre: &LifecycleHook{
+					FailurePolicy: LifecycleHookFailurePolicyIgnore,
+				},
+				Post: &LifecycleHook{
+					FailurePolicy: LifecycleHookFailurePolicyAbort,
+				},
 			},
 			out: &newer.RollingDeploymentStrategyParams{
 				UpdatePeriodSeconds: newInt64(5),
@@ -51,6 +57,12 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStr
 				UpdatePercent:       newInt(-25),
 				MaxSurge:            util.NewIntOrStringFromInt(0),
 				MaxUnavailable:      util.NewIntOrStringFromString("25%"),
+				Pre: &newer.LifecycleHook{
+					FailurePolicy: newer.LifecycleHookFailurePolicyIgnore,
+				},
+				Post: &newer.LifecycleHook{
+					FailurePolicy: newer.LifecycleHookFailurePolicyAbort,
+				},
 			},
 		},
 		{

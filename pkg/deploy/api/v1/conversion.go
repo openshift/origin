@@ -204,6 +204,17 @@ func convert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStrategy
 	out.TimeoutSeconds = in.TimeoutSeconds
 	out.UpdatePercent = in.UpdatePercent
 
+	if in.Pre != nil {
+		if err := s.Convert(&in.Pre, &out.Pre, 0); err != nil {
+			return err
+		}
+	}
+	if in.Post != nil {
+		if err := s.Convert(&in.Post, &out.Post, 0); err != nil {
+			return err
+		}
+	}
+
 	if in.UpdatePercent != nil {
 		pct := kutil.NewIntOrStringFromString(fmt.Sprintf("%d%%", int(math.Abs(float64(*in.UpdatePercent)))))
 		if *in.UpdatePercent > 0 {
@@ -227,6 +238,17 @@ func convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategy
 	out.IntervalSeconds = in.IntervalSeconds
 	out.TimeoutSeconds = in.TimeoutSeconds
 	out.UpdatePercent = in.UpdatePercent
+
+	if in.Pre != nil {
+		if err := s.Convert(&in.Pre, &out.Pre, 0); err != nil {
+			return err
+		}
+	}
+	if in.Post != nil {
+		if err := s.Convert(&in.Post, &out.Post, 0); err != nil {
+			return err
+		}
+	}
 
 	if out.MaxUnavailable == nil {
 		out.MaxUnavailable = &kutil.IntOrString{}
