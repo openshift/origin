@@ -64,7 +64,7 @@ do_master () {
 	    fi
 	fi
 
-	if [ $reg_ip != $resolv_ip ]; then
+	if [ "$reg_ip" != "$resolv_ip" ]; then
 	    echo "Node $node: the IP in OpenShift ($reg_ip) does not match DNS/hosts ($resolv_ip)"
 	fi
 
