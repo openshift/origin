@@ -27,17 +27,6 @@ angular
   // configure our tabs and routing
   .config(['mainNavTabs','$routeProvider', 'HawtioNavBuilderProvider', function(tabs, $routeProvider, builder) {
     var template = function() {
-      // TODO - Don't love triggering the show/hide drawer here, would prefer if
-      // we could listen for an event that the nav was being redrawn and
-      // check HawtioNav.selected()
-      if (this.isSelected()) {
-        if (this.tabs && this.tabs.length > 0) {
-          $("body").addClass("show-drawer");
-        }
-        else {
-          $("body").removeClass("show-drawer");
-        }
-      }
       return "<sidebar-nav-item></sidebar-nav-item>";
     };
 
