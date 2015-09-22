@@ -873,6 +873,28 @@ func deepCopy_v1_LocalObjectReference(in LocalObjectReference, out *LocalObjectR
 	return nil
 }
 
+func deepCopy_v1_MetadataFile(in MetadataFile, out *MetadataFile, c *conversion.Cloner) error {
+	out.Name = in.Name
+	if err := deepCopy_v1_ObjectFieldSelector(in.FieldRef, &out.FieldRef, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deepCopy_v1_MetadataVolumeSource(in MetadataVolumeSource, out *MetadataVolumeSource, c *conversion.Cloner) error {
+	if in.Items != nil {
+		out.Items = make([]MetadataFile, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_v1_MetadataFile(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_v1_NFSVolumeSource(in NFSVolumeSource, out *NFSVolumeSource, c *conversion.Cloner) error {
 	out.Server = in.Server
 	out.Path = in.Path
@@ -1548,6 +1570,7 @@ func deepCopy_v1_PodSpec(in PodSpec, out *PodSpec, c *conversion.Cloner) error {
 	} else {
 		out.NodeSelector = nil
 	}
+	out.DeprecatedHost = in.DeprecatedHost
 	out.ServiceAccountName = in.ServiceAccountName
 	out.DeprecatedServiceAccount = in.DeprecatedServiceAccount
 	out.NodeName = in.NodeName
@@ -1573,9 +1596,6 @@ func deepCopy_v1_PodSpec(in PodSpec, out *PodSpec, c *conversion.Cloner) error {
 		out.ImagePullSecrets = nil
 	}
 
-	// Carry copy
-	out.DeprecatedHost = in.DeprecatedHost
-	out.DeprecatedServiceAccount = in.DeprecatedServiceAccount
 	return nil
 }
 
@@ -2401,6 +2421,14 @@ func deepCopy_v1_VolumeSource(in VolumeSource, out *VolumeSource, c *conversion.
 	} else {
 		out.FC = nil
 	}
+	if in.Metadata != nil {
+		out.Metadata = new(MetadataVolumeSource)
+		if err := deepCopy_v1_MetadataVolumeSource(*in.Metadata, out.Metadata, c); err != nil {
+			return err
+		}
+	} else {
+		out.Metadata = nil
+	}
 	return nil
 }
 
@@ -2479,6 +2507,8 @@ func init() {
 		deepCopy_v1_LoadBalancerIngress,
 		deepCopy_v1_LoadBalancerStatus,
 		deepCopy_v1_LocalObjectReference,
+		deepCopy_v1_MetadataFile,
+		deepCopy_v1_MetadataVolumeSource,
 		deepCopy_v1_NFSVolumeSource,
 		deepCopy_v1_Namespace,
 		deepCopy_v1_NamespaceList,
