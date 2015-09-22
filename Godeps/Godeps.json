@@ -623,7 +623,7 @@
 		},
 		{
 			"ImportPath": "github.com/miekg/dns",
-			"Rev": "c13058f493c3756207ced654dce2986e812f2bcf"
+			"Rev": "46e689ee1104f5db16a173a798fb0f0ee5c7d3ef"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
@@ -698,12 +698,12 @@
 			"Comment": "v1.0.1-71-g00d1cb3",
 			"Rev": "847bf029b540c689f1644419efd2e70b64b90547"
 		},
-    {
+		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm/file",
 			"Comment": "v1.0.1-71-g00d1cb3",
 			"Rev": "847bf029b540c689f1644419efd2e70b64b90547"
 		},
-    {
+		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm/git",
 			"Comment": "v1.0.1-71-g00d1cb3",
 			"Rev": "847bf029b540c689f1644419efd2e70b64b90547"
@@ -761,23 +761,23 @@
 		},
 		{
 			"ImportPath": "github.com/skynetservices/skydns/backends/etcd",
-			"Comment": "2.5.1a",
-			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
+			"Comment": "2.5.2d",
+			"Rev": "bb2ebadc9746f23e4a296e3cbdb8c01e956baee1"
 		},
 		{
 			"ImportPath": "github.com/skynetservices/skydns/cache",
-			"Comment": "2.5.1a",
-			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
+			"Comment": "2.5.2d",
+			"Rev": "bb2ebadc9746f23e4a296e3cbdb8c01e956baee1"
 		},
 		{
 			"ImportPath": "github.com/skynetservices/skydns/msg",
-			"Comment": "2.5.1a",
-			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
+			"Comment": "2.5.2d",
+			"Rev": "bb2ebadc9746f23e4a296e3cbdb8c01e956baee1"
 		},
 		{
 			"ImportPath": "github.com/skynetservices/skydns/server",
-			"Comment": "2.5.1a",
-			"Rev": "1be70b5b8aa07acccd972146d84011b670af88b4"
+			"Comment": "2.5.2d",
+			"Rev": "bb2ebadc9746f23e4a296e3cbdb8c01e956baee1"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
