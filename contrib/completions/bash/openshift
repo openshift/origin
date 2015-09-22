@@ -1834,6 +1834,41 @@ _openshift_admin_create-node-config()
     must_have_one_noun=()
 }
 
+_openshift_admin_create-master-config()
+{
+    last_command="openshift_admin_create-master-config"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--cors-allowed-origins=")
+    flags+=("--dns=")
+    flags+=("--etcd=")
+    flags+=("--etcd-dir=")
+    flags_with_completion+=("--etcd-dir")
+    flags_completion+=("_filedir")
+    flags+=("--host-subnet-length=")
+    flags+=("--images=")
+    flags+=("--kubeconfig=")
+    flags+=("--kubernetes=")
+    flags+=("--latest-images")
+    flags+=("--listen=")
+    flags+=("--master=")
+    flags+=("--master-config=")
+    flags+=("--network-cidr=")
+    flags+=("--network-plugin=")
+    flags+=("--nodes=")
+    flags+=("--pause")
+    flags+=("--portal-net=")
+    flags+=("--public-master=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_admin_ca_create-master-certs()
 {
     last_command="openshift_admin_ca_create-master-certs"
@@ -1993,6 +2028,7 @@ _openshift_admin()
     commands+=("create-login-template")
     commands+=("overwrite-policy")
     commands+=("create-node-config")
+    commands+=("create-master-config")
     commands+=("ca")
     commands+=("options")
 
