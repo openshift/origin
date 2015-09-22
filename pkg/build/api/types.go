@@ -131,7 +131,11 @@ type BuildSource struct {
 	Type BuildSourceType
 
 	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
-	// specified, the From and Env on the Docker build strategy are applied on top of this file.
+	// specified, the FROM may be modified based on your strategy base image and additional ENV
+	// stanzas from your strategy environment will be added after the FROM, but before the rest
+	// of your Dockerfile stanzas. The Dockerfile source type may be used with other options like
+	// git - in those cases the Git repo will have any innate Dockerfile replaced in the context
+	// dir.
 	Dockerfile *string
 
 	// Git contains optional information about git build source

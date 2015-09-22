@@ -39,7 +39,7 @@ Once the build configuration is created you may need to run a build with 'start-
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world#beta2
 
   // Create a build config using a Dockerfile specified as an argument
-  $ %[1]s new-build -D $'FROM centos7\nRUN yum install apache'
+  $ %[1]s new-build -D $'FROM centos7\nRUN yum install -y apache'
 
   // Create a build config from a remote repository and add custom environment variables into resulting image
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development`

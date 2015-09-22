@@ -269,11 +269,9 @@ func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
 		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
 	}
 	labels = util.GenerateLabelsFromSourceInfo(labels, sourceInfo, api.DefaultDockerLabelNamespace)
-	kv := make([]dockerfile.KeyValue, len(labels))
-	i := 0
+	kv := make([]dockerfile.KeyValue, 0, len(labels))
 	for k, v := range labels {
-		kv[i] = dockerfile.KeyValue{Key: k, Value: v}
-		i++
+		kv = append(kv, dockerfile.KeyValue{Key: k, Value: v})
 	}
 	return kv
 }
@@ -342,6 +340,9 @@ func appendEnv(node *parser.Node, m []dockerfile.KeyValue) error {
 // appendLabel appends a LABEL Dockerfile instruction as the last child of node
 // with keys and values from m.
 func appendLabel(node *parser.Node, m []dockerfile.KeyValue) error {
+	if len(m) == 0 {
+		return nil
+	}
 	return appendKeyValueInstruction(dockerfile.Label, node, m)
 }
 

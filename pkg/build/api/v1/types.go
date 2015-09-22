@@ -118,10 +118,12 @@ type BuildSource struct {
 	Type BuildSourceType `json:"type" description:"type of source control management system"`
 
 	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
-	// specified, the From and Env on the Docker build strategy are applied on top of this file.
-	// The Dockerfile source type may be used with other options like .git - in those cases the
-	// Git repo will have any innate Dockerfile replaced in the context dir.
-	Dockerfile *string `json:"dockerfile,omitempty" description:"the contents of a Dockerfile to build; FROM and ENV may be overridden if you have specified 'from' and 'env' on the build strategy"`
+	// specified, the FROM may be modified based on your strategy base image and additional ENV
+	// stanzas from your strategy environment will be added after the FROM, but before the rest
+	// of your Dockerfile stanzas. The Dockerfile source type may be used with other options like
+	// git - in those cases the Git repo will have any innate Dockerfile replaced in the context
+	// dir.
+	Dockerfile *string `json:"dockerfile,omitempty" description:"the contents of a Dockerfile to build; FROM may be overridden by your strategy source, and additional ENV from your strategy will be placed before the rest of the Dockerfile stanzas"`
 
 	// Git contains optional information about git build source
 	Git *GitBuildSource `json:"git,omitempty" description:"optional information about git build source"`

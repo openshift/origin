@@ -134,6 +134,8 @@ func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList
 	return allErrs
 }
 
+const maxDockerfileLengthBytes = 60 * 1000
+
 func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	switch input.Type {
@@ -150,8 +152,8 @@ func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList
 		if input.Dockerfile == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("dockerfile"))
 		} else {
-			if len(*input.Dockerfile) > 60*1000 {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfile", "", "must be smaller than 60Kb"))
+			if len(*input.Dockerfile) > maxDockerfileLengthBytes {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfile", "", fmt.Sprintf("must be smaller than %d bytes", maxDockerfileLengthBytes)))
 			}
 		}
 		if input.Git != nil {
