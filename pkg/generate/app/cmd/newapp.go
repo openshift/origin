@@ -29,6 +29,12 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
+const (
+	GeneratedByNamespace = "openshift.io/generated-by"
+	GeneratedByNewApp    = "OpenShiftNewApp"
+	GeneratedByNewBuild  = "OpenShiftNewBuild"
+)
+
 // AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
 	SourceRepositories util.StringList
