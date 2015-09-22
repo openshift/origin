@@ -9,10 +9,10 @@ import (
 
 	log "github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/ovssubnet/api"
-	"github.com/openshift/openshift-sdn/ovssubnet/controller/kube"
-	"github.com/openshift/openshift-sdn/ovssubnet/controller/multitenant"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
+	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
+	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/kube"
+	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/multitenant"
 )
 
 const (

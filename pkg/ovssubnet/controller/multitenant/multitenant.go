@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/openshift/openshift-sdn/ovssubnet/api"
 	"github.com/openshift/openshift-sdn/pkg/firewalld"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
+	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
 )
 
 type FlowController struct {
