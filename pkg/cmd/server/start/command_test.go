@@ -14,6 +14,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 )
 
 // this groups of methods force all the unit tests to share the same config directory
@@ -74,7 +75,7 @@ func TestCommandBindingListen(t *testing.T) {
 	valueToSet := "http://example.org:9123"
 	actualCfg := executeMasterCommand([]string{"--listen=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 	expectedArgs.ListenArg.ListenAddr.Set(valueToSet)
 
 	if expectedArgs.ListenArg.ListenAddr.String() != actualCfg.ListenArg.ListenAddr.String() {
@@ -86,7 +87,7 @@ func TestCommandBindingMaster(t *testing.T) {
 	valueToSet := "http://example.org:9123"
 	actualCfg := executeMasterCommand([]string{"--master=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 	expectedArgs.MasterAddr.Set(valueToSet)
 
 	if expectedArgs.MasterAddr.String() != actualCfg.MasterAddr.String() {
@@ -98,7 +99,7 @@ func TestCommandBindingMasterPublic(t *testing.T) {
 	valueToSet := "http://example.org:9123"
 	actualCfg := executeMasterCommand([]string{"--public-master=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 	expectedArgs.MasterPublicAddr.Set(valueToSet)
 
 	if expectedArgs.MasterPublicAddr.String() != actualCfg.MasterPublicAddr.String() {
@@ -110,7 +111,7 @@ func TestCommandBindingEtcd(t *testing.T) {
 	valueToSet := "http://example.org:9123"
 	actualCfg := executeMasterCommand([]string{"--etcd=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 	expectedArgs.EtcdAddr.Set(valueToSet)
 
 	if expectedArgs.EtcdAddr.String() != actualCfg.EtcdAddr.String() {
@@ -131,7 +132,7 @@ func TestCommandBindingImageTemplateFormat(t *testing.T) {
 	valueToSet := "some-format-string"
 	actualCfg := executeMasterCommand([]string{"--images=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 	expectedArgs.ImageFormatArgs.ImageTemplate.Format = valueToSet
 
 	if expectedArgs.ImageFormatArgs.ImageTemplate.Format != actualCfg.ImageFormatArgs.ImageTemplate.Format {
@@ -140,7 +141,7 @@ func TestCommandBindingImageTemplateFormat(t *testing.T) {
 }
 
 func TestCommandBindingImageLatest(t *testing.T) {
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 
 	valueToSet := strconv.FormatBool(!expectedArgs.ImageFormatArgs.ImageTemplate.Latest)
 	actualCfg := executeMasterCommand([]string{"--latest-images=" + valueToSet})
@@ -156,7 +157,7 @@ func TestCommandBindingEtcdDir(t *testing.T) {
 	valueToSet := "some-string"
 	actualCfg := executeMasterCommand([]string{"--etcd-dir=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 	expectedArgs.EtcdDir = valueToSet
 
 	if expectedArgs.EtcdDir != actualCfg.EtcdDir {
@@ -169,7 +170,7 @@ func TestCommandBindingNodesForMaster(t *testing.T) {
 	valueToSet := "first,second,third"
 	actualCfg := executeMasterCommand([]string{"master", "--nodes=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 	expectedArgs.NodeList.Set(valueToSet)
 
 	if expectedArgs.NodeList.String() != actualCfg.NodeList.String() {
@@ -181,7 +182,7 @@ func TestCommandBindingNodesForMaster(t *testing.T) {
 func TestCommandBindingNodesDefaultingMaster(t *testing.T) {
 	actualCfg := executeMasterCommand([]string{"master"})
 
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 	expectedArgs.NodeList.Set("")
 
 	if expectedArgs.NodeList.String() != actualCfg.NodeList.String() {
@@ -193,7 +194,7 @@ func TestCommandBindingCors(t *testing.T) {
 	valueToSet := "first,second,third"
 	actualCfg := executeMasterCommand([]string{"--cors-allowed-origins=" + valueToSet})
 
-	expectedArgs := NewDefaultMasterArgs()
+	expectedArgs := configutil.NewDefaultMasterArgs()
 	expectedArgs.CORSAllowedOrigins.Set(valueToSet)
 
 	if expectedArgs.CORSAllowedOrigins.String() != actualCfg.CORSAllowedOrigins.String() {
@@ -201,7 +202,7 @@ func TestCommandBindingCors(t *testing.T) {
 	}
 }
 
-func executeMasterCommand(args []string) *MasterArgs {
+func executeMasterCommand(args []string) *configutil.MasterArgs {
 	argsToUse := make([]string, 0, 4+len(args))
 	argsToUse = append(argsToUse, "master")
 	argsToUse = append(argsToUse, args...)
@@ -225,12 +226,12 @@ func executeMasterCommand(args []string) *MasterArgs {
 	return cfg.MasterArgs
 }
 
-func executeAllInOneCommand(args []string) (*MasterArgs, *NodeArgs) {
+func executeAllInOneCommand(args []string) (*configutil.MasterArgs, *configutil.NodeArgs) {
 	masterArgs, _, _, nodeArgs, _, _ := executeAllInOneCommandWithConfigs(args)
 	return masterArgs, nodeArgs
 }
 
-func executeAllInOneCommandWithConfigs(args []string) (*MasterArgs, *configapi.MasterConfig, error, *NodeArgs, *configapi.NodeConfig, error) {
+func executeAllInOneCommandWithConfigs(args []string) (*configutil.MasterArgs, *configapi.MasterConfig, error, *configutil.NodeArgs, *configapi.NodeConfig, error) {
 	argsToUse := make([]string, 0, 4+len(args))
 	argsToUse = append(argsToUse, "start")
 	argsToUse = append(argsToUse, args...)

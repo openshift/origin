@@ -4,13 +4,14 @@ import (
 	"strings"
 	"testing"
 
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 )
 
 func TestMasterURLNoPathAllowed(t *testing.T) {
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set("http://example.com:9012/")
 	err := masterArgs.Validate()
 
@@ -20,7 +21,7 @@ func TestMasterURLNoPathAllowed(t *testing.T) {
 }
 
 func TestMasterPublicURLNoPathAllowed(t *testing.T) {
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterPublicAddr.Set("http://example.com:9012/")
 	err := masterArgs.Validate()
 
@@ -32,7 +33,7 @@ func TestMasterPublicURLNoPathAllowed(t *testing.T) {
 func TestMasterPublicAddressDefaulting(t *testing.T) {
 	expected := "http://example.com:9012"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set(expected)
 
 	actual, err := masterArgs.GetMasterPublicAddress()
@@ -47,7 +48,7 @@ func TestMasterPublicAddressDefaulting(t *testing.T) {
 func TestMasterPublicAddressExplicit(t *testing.T) {
 	expected := "http://external.com:12445"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set("http://internal.com:9012")
 	masterArgs.MasterPublicAddr.Set(expected)
 
@@ -64,7 +65,7 @@ func TestAssetPublicAddressDefaulting(t *testing.T) {
 	master := "http://example.com:9011"
 	expected := "http://example.com:9011/console/"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set(master)
 
 	actual, err := masterArgs.GetAssetPublicAddress()
@@ -79,7 +80,7 @@ func TestAssetPublicAddressDefaulting(t *testing.T) {
 func TestKubernetesAddressDefaulting(t *testing.T) {
 	expected := "http://example.com:9012"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set(expected)
 	masterAddr, _ := masterArgs.GetMasterAddress()
 
@@ -96,7 +97,7 @@ func TestEtcdAddressDefaulting(t *testing.T) {
 	expected := "https://example.com:4001"
 	master := "http://example.com:9012"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set(master)
 
 	actual, err := masterArgs.GetEtcdAddress()
@@ -114,7 +115,7 @@ func TestEtcdAddressUseListenScheme(t *testing.T) {
 	// Port from default
 	expected := "http://example.com:4001"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set("https://example.com:9012")
 	masterArgs.ListenArg.ListenAddr.Set("http://0.0.0.0:8043")
 
@@ -130,7 +131,7 @@ func TestEtcdAddressUseListenScheme(t *testing.T) {
 func TestEtcdAddressExplicit(t *testing.T) {
 	expected := "http://external.com:12445"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set("http://internal.com:9012")
 	masterArgs.EtcdAddr.Set(expected)
 
@@ -146,7 +147,7 @@ func TestEtcdAddressExplicit(t *testing.T) {
 func TestEtcdBindAddressDefault(t *testing.T) {
 	expected := "0.0.0.0:4001"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	actual := masterArgs.GetEtcdBindAddress()
 	if expected != actual {
 		t.Fatalf("expected %v, got %v", expected, actual)
@@ -156,7 +157,7 @@ func TestEtcdBindAddressDefault(t *testing.T) {
 func TestEtcdPeerAddressDefault(t *testing.T) {
 	expected := "0.0.0.0:7001"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	actual := masterArgs.GetEtcdPeerBindAddress()
 	if expected != actual {
 		t.Fatalf("expected %v, got %v", expected, actual)
@@ -166,7 +167,7 @@ func TestEtcdPeerAddressDefault(t *testing.T) {
 func TestEtcdBindAddressDefaultToBind(t *testing.T) {
 	expected := "1.2.3.4:4001"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.ListenArg.ListenAddr.Set("https://1.2.3.4:8080")
 
 	actual := masterArgs.GetEtcdBindAddress()
@@ -182,7 +183,7 @@ func TestMasterAddressDefaultingToBindValues(t *testing.T) {
 	}
 	expected := "http://" + defaultIP.String() + ":9012"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.ListenArg.ListenAddr.Set("http://0.0.0.0:9012")
 
 	actual, err := masterArgs.GetMasterAddress()
@@ -197,7 +198,7 @@ func TestMasterAddressDefaultingToBindValues(t *testing.T) {
 func TestMasterAddressExplicit(t *testing.T) {
 	expected := "http://external.com:12445"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set(expected)
 
 	actual, err := masterArgs.GetMasterAddress()
@@ -212,7 +213,7 @@ func TestMasterAddressExplicit(t *testing.T) {
 func TestKubeClientForExternalKubernetesMasterWithNoConfig(t *testing.T) {
 	expected := "https://localhost:8443"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set(expected)
 	masterAddr, _ := masterArgs.GetMasterAddress()
 
@@ -228,7 +229,7 @@ func TestKubeClientForExternalKubernetesMasterWithNoConfig(t *testing.T) {
 func TestKubeClientForNodeWithNoConfig(t *testing.T) {
 	expected := "https://localhost:8443"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.MasterAddr.Set(expected)
 	masterAddr, _ := masterArgs.GetMasterAddress()
 
@@ -245,7 +246,7 @@ func TestKubeClientForExternalKubernetesMasterWithConfig(t *testing.T) {
 	expectedServer := "https://some-other-server:1234"
 	expectedUser := "myuser"
 
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.KubeConnectionArgs.ClientConfigLoadingRules, masterArgs.KubeConnectionArgs.ClientConfig = makeKubeconfig(expectedServer, expectedUser)
 
 	masterAddr, _ := masterArgs.GetMasterAddress()
@@ -263,7 +264,7 @@ func TestKubeClientForNodeWithConfig(t *testing.T) {
 	expectedServer := "https://some-other-server:1234"
 	expectedUser := "myuser"
 
-	nodeArgs := NewDefaultNodeArgs()
+	nodeArgs := configutil.NewDefaultNodeArgs()
 	nodeArgs.KubeConnectionArgs.ClientConfigLoadingRules, nodeArgs.KubeConnectionArgs.ClientConfig = makeKubeconfig(expectedServer, expectedUser)
 
 	actual, err := nodeArgs.KubeConnectionArgs.GetKubernetesAddress(nil)
@@ -276,7 +277,7 @@ func TestKubeClientForNodeWithConfig(t *testing.T) {
 }
 
 func TestKubeClientForExternalKubernetesMasterWithErrorKubeconfig(t *testing.T) {
-	masterArgs := NewDefaultMasterArgs()
+	masterArgs := configutil.NewDefaultMasterArgs()
 	masterArgs.KubeConnectionArgs.ClientConfigLoadingRules, masterArgs.KubeConnectionArgs.ClientConfig = makeErrorKubeconfig()
 
 	// GetKubernetesAddress hits the invalid kubeconfig in the fallback chain

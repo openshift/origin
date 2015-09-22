@@ -23,6 +23,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/start"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/test/util"
 )
@@ -63,7 +64,7 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 	return "", fmt.Errorf("Could not find available port in the range %d-%d", lowPort, highPort)
 }
 
-func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs) {
+func setupStartOptions() (*configutil.MasterArgs, *configutil.NodeArgs, *configutil.ListenArg, *configutil.ImageFormatArgs, *configutil.KubeConnectionArgs) {
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs := start.GetAllInOneArgs()
 
 	basedir := util.GetBaseDir()
@@ -127,7 +128,7 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 	return masterConfig, nil
 }
 
-func CreateBootstrapPolicy(masterArgs *start.MasterArgs) error {
+func CreateBootstrapPolicy(masterArgs *configutil.MasterArgs) error {
 	createBootstrapPolicy := &admin.CreateBootstrapPolicyFileOptions{
 		File: path.Join(masterArgs.ConfigDir.Value(), "policy.json"),
 		OpenShiftSharedResourcesNamespace: "openshift",
@@ -143,7 +144,7 @@ func CreateBootstrapPolicy(masterArgs *start.MasterArgs) error {
 	return nil
 }
 
-func CreateMasterCerts(masterArgs *start.MasterArgs) error {
+func CreateMasterCerts(masterArgs *configutil.MasterArgs) error {
 	hostnames, err := masterArgs.GetServerCertHostnames()
 	if err != nil {
 		return err
@@ -159,7 +160,7 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 
 	createMasterCerts := admin.CreateMasterCertsOptions{
 		CertDir:    masterArgs.ConfigDir.Value(),
-		SignerName: admin.DefaultSignerName(),
+		SignerName: configutil.DefaultSignerName(),
 		Hostnames:  hostnames.List(),
 
 		APIServerURL:       masterURL.String(),
@@ -178,11 +179,11 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 	return nil
 }
 
-func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
-	getSignerOptions := &admin.SignerCertOptions{
-		CertFile:   admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca"),
-		KeyFile:    admin.DefaultKeyFilename(nodeArgs.MasterCertDir, "ca"),
-		SerialFile: admin.DefaultSerialFilename(nodeArgs.MasterCertDir, "ca"),
+func CreateNodeCerts(nodeArgs *configutil.NodeArgs, masterURL string) error {
+	getSignerOptions := &configutil.SignerCertOptions{
+		CertFile:   configutil.DefaultCertFilename(nodeArgs.MasterCertDir, "ca"),
+		KeyFile:    configutil.DefaultKeyFilename(nodeArgs.MasterCertDir, "ca"),
+		SerialFile: configutil.DefaultSerialFilename(nodeArgs.MasterCertDir, "ca"),
 	}
 
 	createNodeConfig := admin.NewDefaultCreateNodeConfigOptions()
@@ -193,8 +194,8 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 	createNodeConfig.Hostnames = []string{nodeArgs.NodeName}
 	createNodeConfig.ListenAddr = nodeArgs.ListenArg.ListenAddr
 	createNodeConfig.APIServerURL = masterURL
-	createNodeConfig.APIServerCAFile = admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")
-	createNodeConfig.NodeClientCAFile = admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")
+	createNodeConfig.APIServerCAFile = configutil.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")
+	createNodeConfig.NodeClientCAFile = configutil.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")
 
 	if err := createNodeConfig.Validate(nil); err != nil {
 		return err
@@ -207,14 +208,14 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 }
 
 func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, error) {
-	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
+	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &configutil.NodeArgs{}}
 	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions()
 	startOptions.MasterOptions.MasterArgs.NodeList = nil
 	startOptions.NodeArgs.AllowDisabledDocker = true
-	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
+	startOptions.ServiceNetworkCIDR = configutil.NewDefaultNetworkArgs().ServiceNetworkCIDR
 	startOptions.Complete()
 	startOptions.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
-	startOptions.NodeArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
+	startOptions.NodeArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", configutil.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
 	startOptions.NodeArgs.MasterCertDir = startOptions.MasterOptions.MasterArgs.ConfigDir.Value()
 
 	if err := CreateMasterCerts(startOptions.MasterOptions.MasterArgs); err != nil {
