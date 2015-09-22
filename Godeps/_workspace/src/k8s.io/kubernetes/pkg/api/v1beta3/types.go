@@ -214,7 +214,10 @@ type VolumeSource struct {
 	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
 	CephFS *CephFSVolumeSource `json:"cephfs,omitempty" description:"Ceph filesystem that will be mounted on the host machine"`
 	// DownwardAPI represents metadata about the pod that should populate this volume
-	DownwardAPI *DownwardAPIVolumeSource `json:"metadata,omitempty" description: "Metadata volume containing information about the pod"`
+	DownwardAPI *DownwardAPIVolumeSource `json:"downwardAPI,omitempty"`
+	// Metadata represents metadata about the pod that should populate this volume
+	// NOTE: Deprecated in favor of DownwardAPI
+	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description: "Metadata volume containing information about the pod"`
 }
 
 type PersistentVolumeClaimVolumeSource struct {
@@ -411,16 +414,32 @@ type GlusterfsVolumeSource struct {
 	ReadOnly bool `json:"readOnly,omitempty" description:"glusterfs volume to be mounted with read-only permissions"`
 }
 
-// DownwardAPIVolumeSource represents a volume containing metadata about a pod.
+// DownwardAPIVolumeSource represents a volume containing downward API info
 type DownwardAPIVolumeSource struct {
-	// Items is a list of metadata file name
-	Items []DownwardAPIVolumeFile `json:"items,omitempty" description:"list of metadata files"`
+	// Items is a list of DownwardAPIVolume file
+	Items []DownwardAPIVolumeFile `json:"items,omitempty"`
 }
 
-// DownwardAPIVolumeFile expresses information about a file holding pod metadata.
+// DownwardAPIVolumeFile represents a single file containing information from the downward API
 type DownwardAPIVolumeFile struct {
 	// Required: Path is  the relative path name of the file to be created. Must not be absolute or contain the '..' path. Must be utf-8 encoded. The first item of the relative path must not start with '..'
-	Path string `json:"path" description:"the path of the file to be created"`
+	Path string `json:"path"`
+	// Required: Selects a field of the pod: only annotations, labels, name and  namespace are supported.
+	FieldRef ObjectFieldSelector `json:"fieldRef"`
+}
+
+// MetadataVolumeSource represents a volume containing metadata about a pod.
+// NOTE: Deprecated in favor of DownwardAPIVolumeSource
+type MetadataVolumeSource struct {
+	// Items is a list of metadata file name
+	Items []MetadataFile `json:"items,omitempty" description:"list of metadata files"`
+}
+
+// MetadataFile expresses information about a file holding pod metadata.
+// NOTE: Deprecated in favor of DownwardAPIVolumeFile
+type MetadataFile struct {
+	// Required: Name is the name of the file
+	Name string `json:"name" description:"the name of the file to be created"`
 	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
 	FieldRef ObjectFieldSelector `json:"fieldRef" description:"selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"`
 }

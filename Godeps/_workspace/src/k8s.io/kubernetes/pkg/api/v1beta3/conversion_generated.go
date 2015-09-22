@@ -2196,117 +2196,6 @@ func convert_api_VolumeMount_To_v1beta3_VolumeMount(in *api.VolumeMount, out *Vo
 	return nil
 }
 
-func convert_api_VolumeSource_To_v1beta3_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.VolumeSource))(in)
-	}
-	if in.HostPath != nil {
-		out.HostPath = new(HostPathVolumeSource)
-		if err := convert_api_HostPathVolumeSource_To_v1beta3_HostPathVolumeSource(in.HostPath, out.HostPath, s); err != nil {
-			return err
-		}
-	} else {
-		out.HostPath = nil
-	}
-	if in.EmptyDir != nil {
-		out.EmptyDir = new(EmptyDirVolumeSource)
-		if err := convert_api_EmptyDirVolumeSource_To_v1beta3_EmptyDirVolumeSource(in.EmptyDir, out.EmptyDir, s); err != nil {
-			return err
-		}
-	} else {
-		out.EmptyDir = nil
-	}
-	if in.GCEPersistentDisk != nil {
-		out.GCEPersistentDisk = new(GCEPersistentDiskVolumeSource)
-		if err := convert_api_GCEPersistentDiskVolumeSource_To_v1beta3_GCEPersistentDiskVolumeSource(in.GCEPersistentDisk, out.GCEPersistentDisk, s); err != nil {
-			return err
-		}
-	} else {
-		out.GCEPersistentDisk = nil
-	}
-	if in.AWSElasticBlockStore != nil {
-		out.AWSElasticBlockStore = new(AWSElasticBlockStoreVolumeSource)
-		if err := convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource(in.AWSElasticBlockStore, out.AWSElasticBlockStore, s); err != nil {
-			return err
-		}
-	} else {
-		out.AWSElasticBlockStore = nil
-	}
-	if in.GitRepo != nil {
-		out.GitRepo = new(GitRepoVolumeSource)
-		if err := convert_api_GitRepoVolumeSource_To_v1beta3_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
-			return err
-		}
-	} else {
-		out.GitRepo = nil
-	}
-	if in.Secret != nil {
-		out.Secret = new(SecretVolumeSource)
-		if err := convert_api_SecretVolumeSource_To_v1beta3_SecretVolumeSource(in.Secret, out.Secret, s); err != nil {
-			return err
-		}
-	} else {
-		out.Secret = nil
-	}
-	if in.NFS != nil {
-		out.NFS = new(NFSVolumeSource)
-		if err := convert_api_NFSVolumeSource_To_v1beta3_NFSVolumeSource(in.NFS, out.NFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.NFS = nil
-	}
-	if in.ISCSI != nil {
-		out.ISCSI = new(ISCSIVolumeSource)
-		if err := convert_api_ISCSIVolumeSource_To_v1beta3_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
-			return err
-		}
-	} else {
-		out.ISCSI = nil
-	}
-	if in.Glusterfs != nil {
-		out.Glusterfs = new(GlusterfsVolumeSource)
-		if err := convert_api_GlusterfsVolumeSource_To_v1beta3_GlusterfsVolumeSource(in.Glusterfs, out.Glusterfs, s); err != nil {
-			return err
-		}
-	} else {
-		out.Glusterfs = nil
-	}
-	if in.PersistentVolumeClaim != nil {
-		out.PersistentVolumeClaim = new(PersistentVolumeClaimVolumeSource)
-		if err := convert_api_PersistentVolumeClaimVolumeSource_To_v1beta3_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
-			return err
-		}
-	} else {
-		out.PersistentVolumeClaim = nil
-	}
-	if in.RBD != nil {
-		out.RBD = new(RBDVolumeSource)
-		if err := convert_api_RBDVolumeSource_To_v1beta3_RBDVolumeSource(in.RBD, out.RBD, s); err != nil {
-			return err
-		}
-	} else {
-		out.RBD = nil
-	}
-	if in.CephFS != nil {
-		out.CephFS = new(CephFSVolumeSource)
-		if err := convert_api_CephFSVolumeSource_To_v1beta3_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.CephFS = nil
-	}
-	if in.DownwardAPI != nil {
-		out.DownwardAPI = new(DownwardAPIVolumeSource)
-		if err := convert_api_DownwardAPIVolumeSource_To_v1beta3_DownwardAPIVolumeSource(in.DownwardAPI, out.DownwardAPI, s); err != nil {
-			return err
-		}
-	} else {
-		out.DownwardAPI = nil
-	}
-	return nil
-}
-
 func convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in *AWSElasticBlockStoreVolumeSource, out *api.AWSElasticBlockStoreVolumeSource, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*AWSElasticBlockStoreVolumeSource))(in)
@@ -4477,117 +4366,6 @@ func convert_v1beta3_VolumeMount_To_api_VolumeMount(in *VolumeMount, out *api.Vo
 	return nil
 }
 
-func convert_v1beta3_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*VolumeSource))(in)
-	}
-	if in.HostPath != nil {
-		out.HostPath = new(api.HostPathVolumeSource)
-		if err := convert_v1beta3_HostPathVolumeSource_To_api_HostPathVolumeSource(in.HostPath, out.HostPath, s); err != nil {
-			return err
-		}
-	} else {
-		out.HostPath = nil
-	}
-	if in.EmptyDir != nil {
-		out.EmptyDir = new(api.EmptyDirVolumeSource)
-		if err := convert_v1beta3_EmptyDirVolumeSource_To_api_EmptyDirVolumeSource(in.EmptyDir, out.EmptyDir, s); err != nil {
-			return err
-		}
-	} else {
-		out.EmptyDir = nil
-	}
-	if in.GCEPersistentDisk != nil {
-		out.GCEPersistentDisk = new(api.GCEPersistentDiskVolumeSource)
-		if err := convert_v1beta3_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource(in.GCEPersistentDisk, out.GCEPersistentDisk, s); err != nil {
-			return err
-		}
-	} else {
-		out.GCEPersistentDisk = nil
-	}
-	if in.AWSElasticBlockStore != nil {
-		out.AWSElasticBlockStore = new(api.AWSElasticBlockStoreVolumeSource)
-		if err := convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource(in.AWSElasticBlockStore, out.AWSElasticBlockStore, s); err != nil {
-			return err
-		}
-	} else {
-		out.AWSElasticBlockStore = nil
-	}
-	if in.GitRepo != nil {
-		out.GitRepo = new(api.GitRepoVolumeSource)
-		if err := convert_v1beta3_GitRepoVolumeSource_To_api_GitRepoVolumeSource(in.GitRepo, out.GitRepo, s); err != nil {
-			return err
-		}
-	} else {
-		out.GitRepo = nil
-	}
-	if in.Secret != nil {
-		out.Secret = new(api.SecretVolumeSource)
-		if err := convert_v1beta3_SecretVolumeSource_To_api_SecretVolumeSource(in.Secret, out.Secret, s); err != nil {
-			return err
-		}
-	} else {
-		out.Secret = nil
-	}
-	if in.NFS != nil {
-		out.NFS = new(api.NFSVolumeSource)
-		if err := convert_v1beta3_NFSVolumeSource_To_api_NFSVolumeSource(in.NFS, out.NFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.NFS = nil
-	}
-	if in.ISCSI != nil {
-		out.ISCSI = new(api.ISCSIVolumeSource)
-		if err := convert_v1beta3_ISCSIVolumeSource_To_api_ISCSIVolumeSource(in.ISCSI, out.ISCSI, s); err != nil {
-			return err
-		}
-	} else {
-		out.ISCSI = nil
-	}
-	if in.Glusterfs != nil {
-		out.Glusterfs = new(api.GlusterfsVolumeSource)
-		if err := convert_v1beta3_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource(in.Glusterfs, out.Glusterfs, s); err != nil {
-			return err
-		}
-	} else {
-		out.Glusterfs = nil
-	}
-	if in.PersistentVolumeClaim != nil {
-		out.PersistentVolumeClaim = new(api.PersistentVolumeClaimVolumeSource)
-		if err := convert_v1beta3_PersistentVolumeClaimVolumeSource_To_api_PersistentVolumeClaimVolumeSource(in.PersistentVolumeClaim, out.PersistentVolumeClaim, s); err != nil {
-			return err
-		}
-	} else {
-		out.PersistentVolumeClaim = nil
-	}
-	if in.RBD != nil {
-		out.RBD = new(api.RBDVolumeSource)
-		if err := convert_v1beta3_RBDVolumeSource_To_api_RBDVolumeSource(in.RBD, out.RBD, s); err != nil {
-			return err
-		}
-	} else {
-		out.RBD = nil
-	}
-	if in.CephFS != nil {
-		out.CephFS = new(api.CephFSVolumeSource)
-		if err := convert_v1beta3_CephFSVolumeSource_To_api_CephFSVolumeSource(in.CephFS, out.CephFS, s); err != nil {
-			return err
-		}
-	} else {
-		out.CephFS = nil
-	}
-	if in.DownwardAPI != nil {
-		out.DownwardAPI = new(api.DownwardAPIVolumeSource)
-		if err := convert_v1beta3_DownwardAPIVolumeSource_To_api_DownwardAPIVolumeSource(in.DownwardAPI, out.DownwardAPI, s); err != nil {
-			return err
-		}
-	} else {
-		out.DownwardAPI = nil
-	}
-	return nil
-}
-
 func init() {
 	err := api.Scheme.AddGeneratedConversionFuncs(
 		convert_api_AWSElasticBlockStoreVolumeSource_To_v1beta3_AWSElasticBlockStoreVolumeSource,
@@ -4702,7 +4480,6 @@ func init() {
 		convert_api_TCPSocketAction_To_v1beta3_TCPSocketAction,
 		convert_api_TypeMeta_To_v1beta3_TypeMeta,
 		convert_api_VolumeMount_To_v1beta3_VolumeMount,
-		convert_api_VolumeSource_To_v1beta3_VolumeSource,
 		convert_api_Volume_To_v1beta3_Volume,
 		convert_v1beta3_AWSElasticBlockStoreVolumeSource_To_api_AWSElasticBlockStoreVolumeSource,
 		convert_v1beta3_Binding_To_api_Binding,
@@ -4816,7 +4593,6 @@ func init() {
 		convert_v1beta3_TCPSocketAction_To_api_TCPSocketAction,
 		convert_v1beta3_TypeMeta_To_api_TypeMeta,
 		convert_v1beta3_VolumeMount_To_api_VolumeMount,
-		convert_v1beta3_VolumeSource_To_api_VolumeSource,
 		convert_v1beta3_Volume_To_api_Volume,
 	)
 	if err != nil {

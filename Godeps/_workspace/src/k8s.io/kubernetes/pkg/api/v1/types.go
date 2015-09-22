@@ -280,12 +280,13 @@ type VolumeSource struct {
 	// Cinder represents a cinder volume attached and mounted on kubelets host machine
 	// More info: http://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md
 	Cinder *CinderVolumeSource `json:"cinder,omitempty"`
-
 	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
 	CephFS *CephFSVolumeSource `json:"cephfs,omitempty"`
-
 	// DownwardAPI represents downward API about the pod that should populate this volume
 	DownwardAPI *DownwardAPIVolumeSource `json:"downwardAPI,omitempty"`
+	// Metadata represents metadata about the pod that should populate this volume
+	// NOTE: Deprecated in favor of DownwardAPI
+	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description: "Metadata volume containing information about the pod"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -2543,6 +2544,22 @@ type ComponentStatusList struct {
 
 	// List of ComponentStatus objects.
 	Items []ComponentStatus `json:"items"`
+}
+
+// MetadataVolumeSource represents a volume containing metadata about a pod.
+// NOTE: Deprecated in favor of DownwardAPIVolumeSource
+type MetadataVolumeSource struct {
+	// Items is a list of metadata file name
+	Items []MetadataFile `json:"items,omitempty" description:"list of metadata files"`
+}
+
+// MetadataFile expresses information about a file holding pod metadata.
+// NOTE: Deprecated in favor of DownwardAPIVolumeFile
+type MetadataFile struct {
+	// Required: Name is the name of the file
+	Name string `json:"name" description:"the name of the file to be created"`
+	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+	FieldRef ObjectFieldSelector `json:"fieldRef" description:"selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"`
 }
 
 // DownwardAPIVolumeSource represents a volume containing downward API info
