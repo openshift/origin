@@ -101,43 +101,15 @@ func (s *STIBuilder) Build() error {
 
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
 
-	origProxy := make(map[string]string)
-	var setHttp, setHttps bool
-	// set the http proxy to be used by the git clone performed by S2I
-	if len(s.build.Spec.Source.Git.HTTPSProxy) != 0 {
-		glog.V(2).Infof("Setting https proxy variables for Git to %s", s.build.Spec.Source.Git.HTTPSProxy)
-		origProxy["HTTPS_PROXY"] = os.Getenv("HTTPS_PROXY")
-		origProxy["https_proxy"] = os.Getenv("https_proxy")
-		os.Setenv("HTTPS_PROXY", s.build.Spec.Source.Git.HTTPSProxy)
-		os.Setenv("https_proxy", s.build.Spec.Source.Git.HTTPSProxy)
-		setHttps = true
-	}
-	if len(s.build.Spec.Source.Git.HTTPProxy) != 0 {
-		glog.V(2).Infof("Setting http proxy variables for Git to %s", s.build.Spec.Source.Git.HTTPProxy)
-		origProxy["HTTP_PROXY"] = os.Getenv("HTTP_PROXY")
-		origProxy["http_proxy"] = os.Getenv("http_proxy")
-		os.Setenv("HTTP_PROXY", s.build.Spec.Source.Git.HTTPProxy)
-		os.Setenv("http_proxy", s.build.Spec.Source.Git.HTTPProxy)
-		setHttp = true
-	}
+	// Set the HTTP and HTTPS proxies to be used by the S2I build.
+	originalProxies := setHTTPProxy(s.build.Spec.Source.Git.HTTPProxy, s.build.Spec.Source.Git.HTTPSProxy)
 
 	if _, err = builder.Build(config); err != nil {
 		return err
 	}
 
-	// reset http proxy env variables to original value
-	if setHttps {
-		glog.V(4).Infof("Resetting HTTPS_PROXY variable for Git to %s", origProxy["HTTPS_PROXY"])
-		os.Setenv("HTTPS_PROXY", origProxy["HTTPS_PROXY"])
-		glog.V(4).Infof("Resetting https_proxy variable for Git to %s", origProxy["https_proxy"])
-		os.Setenv("https_proxy", origProxy["https_proxy"])
-	}
-	if setHttp {
-		glog.V(4).Infof("Resetting HTTP_PROXY variable for Git to %s", origProxy["HTTP_PROXY"])
-		os.Setenv("HTTP_PROXY", origProxy["HTTP_PROXY"])
-		glog.V(4).Infof("Resetting http_proxy variable for Git to %s", origProxy["http_proxy"])
-		os.Setenv("http_proxy", origProxy["http_proxy"])
-	}
+	// Reset proxies back to their original value.
+	resetHTTPProxy(originalProxies)
 
 	if push {
 		// Get the Docker push authentication
