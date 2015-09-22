@@ -92,7 +92,7 @@ CLI interface
 In order to be able to call the OpenShift CLI and Kubernetes and OpenShift REST clients and simulate the OpenShift `oc` command in the test suite, first we need to create an instance of the CLI, in the top-level Ginkgo describe container.
 The top-level describe container should also specify the bucket into which the test belongs and a short test description. Other globally accessible variables (eg. fixtures) can be declared as well.
 
-```
+```go
 package extended
 
 import (
@@ -111,7 +111,7 @@ var _ = g.Describe("<test bucket>: <Testing scenario>", func() {
 
 The test suite should be organized into lower-level Ginkgo describe(s) container, together with a message which elaborates on the goal of the test. Inside each lower-level describe container specify a single spec with the `It` container , which shares the context in which the spec runs. The `It` container also takes a message which explains how the test goal will be achieved.
 
-```
+```go
 var _ = g.Describe("default: STI build", func() {
 	defer GinkgoRecover()
 	var (
@@ -130,41 +130,41 @@ var _ = g.Describe("default: STI build", func() {
 After that you are free to simulate any `oc` command by calling the CLI methods from the extended package.
 
 As first, the command verb (get, create, start-build, ...) has to be specified upon the created CLI instance with the `Run()` method.
-```
+```go
 oc = oc.Run("create")
 ```
 
 Then the command parameters have to be specified by using the `Args()` command. You may also notice the methods can be easily chained.
-```
+```go
 oc = oc.Run("create").Args("-f", testFixture)
 ```
 
 A Go template can be set as a parameter for the OpenShift CLI command, by using the `Template()` method. Keep in mind that in order to use this method, the `get` verb has to be specified by the `Run()` command.
-```
+```go
 oc = oc.Run("get").Template({{ .spec }})
 ```
 is an equivalent to
-```
-oc get foo -o template -t '{{ .spec }}
+```console
+$ oc get foo -o template -t '{{ .spec }}
 ```
 
 To execute the command you will need to call either `Execute()`, which will execute the command and return any error that occurs, or `Output()`  which returns any error that occurs as well as the output.
 
-```
+```go
 err := oc.Run("create").Args("-f", testFixture).Execute()
 ```
-```
+```go
 buildName, err := oc.Run("start-build").Args("test").Output()
 ```
 
 To print out the purpose of the next command, or set of commands, use the Ginkgo’s `By` function.
-```
+```go
 g.By("starting a test build")
 buildName, err := oc.Run("start-build").Args("test").Output()
 ```
 
 To evaluate if the the command was successfully executed without any errors retrieved, use the Gomega’s `Expect` syntax to make expectations on the error.
-```
+```go
 err = oc.Run("create").Args("-f", stiEnvBuildFixture).Execute()
 o.Expect(err).NotTo(o.HaveOccurred())
 ```
