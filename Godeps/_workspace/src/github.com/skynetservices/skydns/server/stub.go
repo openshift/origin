@@ -5,7 +5,6 @@
 package server
 
 import (
-	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -37,7 +36,7 @@ func (s *server) UpdateStubZones() {
 
 	services, err := s.backend.Records("stub.dns."+s.config.Domain, false)
 	if err != nil {
-		log.Printf("skydns: stub zone update failed: %s", err)
+		logf("stub zone update failed: %s", err)
 		return
 	}
 	for _, serv := range services {
@@ -46,7 +45,7 @@ func (s *server) UpdateStubZones() {
 		}
 		ip := net.ParseIP(serv.Host)
 		if ip == nil {
-			log.Printf("skydns: stub zone non-address %s seen for: %s", serv.Key, serv.Host)
+			logf("stub zone non-address %s seen for: %s", serv.Key, serv.Host)
 			continue
 		}
 
@@ -58,7 +57,7 @@ func (s *server) UpdateStubZones() {
 
 		// If the remaining name equals s.config.LocalDomain we ignore it.
 		if domain == s.config.localDomain {
-			log.Printf("skydns: not adding stub zone for my own domain")
+			logf("not adding stub zone for my own domain")
 			continue
 		}
 		stubmap[domain] = append(stubmap[domain], net.JoinHostPort(serv.Host, strconv.Itoa(serv.Port)))
@@ -68,7 +67,7 @@ func (s *server) UpdateStubZones() {
 }
 
 // ServeDNSStubForward forwards a request to a nameservers and returns the response.
-func (s *server) ServeDNSStubForward(w dns.ResponseWriter, req *dns.Msg, ns []string) {
+func (s *server) ServeDNSStubForward(w dns.ResponseWriter, req *dns.Msg, ns []string) *dns.Msg {
 	StatsStubForwardCount.Inc(1)
 	promExternalRequestCount.WithLabelValues("stub").Inc()
 
@@ -79,16 +78,14 @@ func (s *server) ServeDNSStubForward(w dns.ResponseWriter, req *dns.Msg, ns []st
 			if o.Option() == ednsStubCode && len(o.(*dns.EDNS0_LOCAL).Data) == 1 &&
 				o.(*dns.EDNS0_LOCAL).Data[0] == 1 {
 				// Maybe log source IP here?
-				log.Printf("skydns: not fowarding stub request to another stub")
-				return
+				logf("not fowarding stub request to another stub")
+				return nil
 			}
 		}
 	}
 
-	tcp := false
-	if _, ok := w.RemoteAddr().(*net.TCPAddr); ok {
-		tcp = true
-	}
+	tcp := isTCP(w)
+
 	// Add a custom EDNS0 option to the packet, so we can detect loops
 	// when 2 stubs are forwarding to each other.
 	if option != nil {
@@ -116,7 +113,7 @@ Redo:
 		r.Compress = true
 		r.Id = req.Id
 		w.WriteMsg(r)
-		return
+		return r
 	}
 	// Seen an error, this can only mean, "server not reached", try again
 	// but only if we have not exausted our nameservers.
@@ -126,9 +123,10 @@ Redo:
 		goto Redo
 	}
 
-	log.Printf("skydns: failure to forward stub request %q", err)
+	logf("failure to forward stub request %q", err)
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.SetRcode(req, dns.RcodeServerFailure)
 	w.WriteMsg(m)
+	return m
 }

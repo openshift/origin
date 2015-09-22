@@ -181,9 +181,15 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	if err != nil {
 		return handleRunError(c, err)
 	}
+
 	if err := setLabels(config.Labels, result); err != nil {
 		return err
 	}
+
+	if err := setAnnotations(map[string]string{newcmd.GeneratedByNamespace: newcmd.GeneratedByNewApp}, result); err != nil {
+		return err
+	}
+
 	if len(cmdutil.GetFlagString(c, "output")) != 0 {
 		return f.Factory.PrintObject(c, result.List, out)
 	}
@@ -256,6 +262,16 @@ func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, confi
 		return cmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
 	}
 
+	return nil
+}
+
+func setAnnotations(annotations map[string]string, result *newcmd.AppResult) error {
+	for _, object := range result.List.Items {
+		err := util.AddObjectAnnotations(object, annotations)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

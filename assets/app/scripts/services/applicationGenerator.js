@@ -68,7 +68,7 @@ angular.module("openshiftConsole")
 
       //augment labels
       input.labels.app = input.name;
-      input.annotations["openshift.io/generatedby"] = "OpenShiftWebConsole";
+      input.annotations["openshift.io/generated-by"] = "OpenShiftWebConsole";
 
       var imageSpec;
       if(input.buildConfig.sourceUrl !== null){

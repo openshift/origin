@@ -131,11 +131,11 @@ func ReadRR(q io.Reader, filename string) (RR, error) {
 	return r.RR, nil
 }
 
-// ParseZone reads a RFC 1035 style one from r. It returns *Tokens on the
+// ParseZone reads a RFC 1035 style zonefile from r. It returns *Tokens on the
 // returned channel, which consist out the parsed RR, a potential comment or an error.
 // If there is an error the RR is nil. The string file is only used
 // in error reporting. The string origin is used as the initial origin, as
-// if the file would start with: $ORIGIN origin  .
+// if the file would start with: $ORIGIN origin .
 // The directives $INCLUDE, $ORIGIN, $TTL and $GENERATE are supported.
 // The channel t is closed by ParseZone when the end of r is reached.
 //
@@ -152,7 +152,7 @@ func ReadRR(q io.Reader, filename string) (RR, error) {
 //
 //	foo. IN A 10.0.0.1 ; this is a comment
 //
-// The text "; this is comment" is returned in Token.Comment . Comments inside the
+// The text "; this is comment" is returned in Token.Comment. Comments inside the
 // RR are discarded. Comments on a line by themselves are discarded too.
 func ParseZone(r io.Reader, origin, file string) chan *Token {
 	return parseZoneHelper(r, origin, file, 10000)
@@ -281,7 +281,7 @@ func parseZone(r io.Reader, origin, f string, t chan *Token, include int) {
 			case zBlank:
 				l := <-c
 				if l.value == zString {
-					if _, ok := IsDomainName(l.token); !ok {
+					if _, ok := IsDomainName(l.token); !ok || l.length == 0 || l.err {
 						t <- &Token{Error: &ParseError{f, "bad origin name", l}}
 						return
 					}
@@ -500,14 +500,14 @@ func zlexer(s *scan, c chan lex) {
 	for err == nil {
 		l.column = s.position.Column
 		l.line = s.position.Line
-		if stri > maxTok {
+		if stri >= maxTok {
 			l.token = "token length insufficient for parsing"
 			l.err = true
 			debug.Printf("[%+v]", l.token)
 			c <- l
 			return
 		}
-		if comi > maxTok {
+		if comi >= maxTok {
 			l.token = "comment length insufficient for parsing"
 			l.err = true
 			debug.Printf("[%+v]", l.token)
@@ -806,7 +806,11 @@ func zlexer(s *scan, c chan lex) {
 
 // Extract the class number from CLASSxx
 func classToInt(token string) (uint16, bool) {
-	class, ok := strconv.Atoi(token[5:])
+	offset := 5
+	if len(token) < offset+1 {
+		return 0, false
+	}
+	class, ok := strconv.Atoi(token[offset:])
 	if ok != nil || class > maxUint16 {
 		return 0, false
 	}
@@ -815,7 +819,11 @@ func classToInt(token string) (uint16, bool) {
 
 // Extract the rr number from TYPExxx
 func typeToInt(token string) (uint16, bool) {
-	typ, ok := strconv.Atoi(token[4:])
+	offset := 4
+	if len(token) < offset+1 {
+		return 0, false
+	}
+	typ, ok := strconv.Atoi(token[offset:])
 	if ok != nil || typ > maxUint16 {
 		return 0, false
 	}
