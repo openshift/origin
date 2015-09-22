@@ -218,6 +218,28 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				params.TimeoutSeconds = randInt64()
 				params.IntervalSeconds = randInt64()
 				params.UpdatePeriodSeconds = randInt64()
+
+				policyTypes := []deploy.LifecycleHookFailurePolicy{
+					deploy.LifecycleHookFailurePolicyRetry,
+					deploy.LifecycleHookFailurePolicyAbort,
+					deploy.LifecycleHookFailurePolicyIgnore,
+				}
+				if c.RandBool() {
+					params.Pre = &deploy.LifecycleHook{
+						FailurePolicy: policyTypes[c.Rand.Intn(len(policyTypes))],
+						ExecNewPod: &deploy.ExecNewPodHook{
+							ContainerName: c.RandString(),
+						},
+					}
+				}
+				if c.RandBool() {
+					params.Post = &deploy.LifecycleHook{
+						FailurePolicy: policyTypes[c.Rand.Intn(len(policyTypes))],
+						ExecNewPod: &deploy.ExecNewPodHook{
+							ContainerName: c.RandString(),
+						},
+					}
+				}
 				if c.RandBool() {
 					params.MaxUnavailable = util.NewIntOrStringFromInt(int(c.RandUint64()))
 					params.MaxSurge = util.NewIntOrStringFromInt(int(c.RandUint64()))
