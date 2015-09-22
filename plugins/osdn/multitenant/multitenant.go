@@ -31,6 +31,7 @@ func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetwork s
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
+	kc.AdminNamespaces = append(kc.AdminNamespaces, "default")
 	err = kc.StartMaster(false, clusterNetwork, clusterNetworkLength, serviceNetwork)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
