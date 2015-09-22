@@ -11,6 +11,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 )
 
 const CreateSignerCertCommandName = "create-signer-cert"
@@ -29,7 +30,7 @@ func BindCreateSignerCertOptions(options *CreateSignerCertOptions, flags *pflag.
 	flags.StringVar(&options.CertFile, prefix+"cert", "openshift.local.config/master/ca.crt", "The certificate file.")
 	flags.StringVar(&options.KeyFile, prefix+"key", "openshift.local.config/master/ca.key", "The key file.")
 	flags.StringVar(&options.SerialFile, prefix+"serial", "openshift.local.config/master/ca.serial.txt", "The serial file that keeps track of how many certs have been signed.")
-	flags.StringVar(&options.Name, prefix+"name", DefaultSignerName(), "The name of the signer.")
+	flags.StringVar(&options.Name, prefix+"name", configutil.DefaultSignerName(), "The name of the signer.")
 	flags.BoolVar(&options.Overwrite, prefix+"overwrite", options.Overwrite, "Overwrite existing cert files if found.  If false, any existing file will be left as-is.")
 
 	// autocompletion hints

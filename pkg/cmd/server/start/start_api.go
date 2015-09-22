@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 )
 
 const apiLong = `Start the master API
@@ -76,7 +77,7 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 	}.Default()
 
 	// allow the listen address to be overridden on a per process basis
-	listenArg := &ListenArg{
+	listenArg := &configutil.ListenArg{
 		ListenAddr: flagtypes.Addr{
 			Value:         "127.0.0.1:8444",
 			DefaultScheme: "https",
@@ -85,7 +86,7 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 		}.Default(),
 	}
 
-	options.MasterArgs = NewDefaultMasterArgs()
+	options.MasterArgs = configutil.NewDefaultMasterArgs()
 	options.MasterArgs.StartAPI = true
 	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
 		// we do not currently enable multi host etcd for the cluster
@@ -111,7 +112,7 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. Required")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
 	flags.Var(&masterAddr, "master", "The address the master should register for itself. Defaults to the master address from the config.")
-	BindListenArg(listenArg, flags, "")
+	configutil.BindListenArg(listenArg, flags, "")
 
 	return cmd, options
 }

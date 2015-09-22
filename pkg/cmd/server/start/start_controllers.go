@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 )
 
 const controllersLong = `Start the master controllers
@@ -67,7 +68,7 @@ func NewCommandStartMasterControllers(name, basename string, out io.Writer) (*co
 	}
 
 	// start controllers on a non conflicting health port from the default master
-	listenArg := &ListenArg{
+	listenArg := &configutil.ListenArg{
 		ListenAddr: flagtypes.Addr{
 			Value:         "127.0.0.1:8444",
 			DefaultScheme: "https",
@@ -76,7 +77,7 @@ func NewCommandStartMasterControllers(name, basename string, out io.Writer) (*co
 		}.Default(),
 	}
 
-	options.MasterArgs = NewDefaultMasterArgs()
+	options.MasterArgs = configutil.NewDefaultMasterArgs()
 	options.MasterArgs.StartControllers = true
 	options.MasterArgs.OverrideConfig = func(config *configapi.MasterConfig) error {
 		config.ServingInfo.BindAddress = listenArg.ListenAddr.URL.Host
@@ -87,7 +88,7 @@ func NewCommandStartMasterControllers(name, basename string, out io.Writer) (*co
 	// This command only supports reading from config and the listen argument
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the master configuration file to run from. Required")
 	cmd.MarkFlagFilename("config", "yaml", "yml")
-	BindListenArg(listenArg, flags, "")
+	configutil.BindListenArg(listenArg, flags, "")
 
 	return cmd, options
 }

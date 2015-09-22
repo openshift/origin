@@ -13,12 +13,13 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 )
 
 const CreateServerCertCommandName = "create-server-cert"
 
 type CreateServerCertOptions struct {
-	SignerCertOptions *SignerCertOptions
+	SignerCertOptions *configutil.SignerCertOptions
 
 	CertFile string
 	KeyFile  string
@@ -46,7 +47,7 @@ Example: Creating a secure router certificate.
 `
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
-	options := &CreateServerCertOptions{SignerCertOptions: NewDefaultSignerCertOptions(), Output: out}
+	options := &CreateServerCertOptions{SignerCertOptions: configutil.NewDefaultSignerCertOptions(), Output: out}
 
 	cmd := &cobra.Command{
 		Use:   commandName,
@@ -64,7 +65,7 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	}
 
 	flags := cmd.Flags()
-	BindSignerCertOptions(options.SignerCertOptions, flags, "")
+	configutil.BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
 	flags.StringVar(&options.CertFile, "cert", "", "The certificate file. Choose a name that indicates what the service is.")
 	flags.StringVar(&options.KeyFile, "key", "", "The key file. Choose a name that indicates what the service is.")

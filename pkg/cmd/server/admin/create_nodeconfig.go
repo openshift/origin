@@ -22,14 +22,16 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	latestconfigapi "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	configutil "github.com/openshift/origin/pkg/cmd/server/util"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
 const NodeConfigCommandName = "create-node-config"
 
 type CreateNodeConfigOptions struct {
-	SignerCertOptions *SignerCertOptions
+	SignerCertOptions *configutil.SignerCertOptions
 
 	NodeConfigDir string
 
@@ -73,7 +75,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 
 	flags := cmd.Flags()
 
-	BindSignerCertOptions(options.SignerCertOptions, flags, "")
+	configutil.BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
 	flags.StringVar(&options.NodeConfigDir, "node-dir", "", "The client data directory.")
 
@@ -110,7 +112,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 }
 
 func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
-	options := &CreateNodeConfigOptions{SignerCertOptions: NewDefaultSignerCertOptions()}
+	options := &CreateNodeConfigOptions{SignerCertOptions: configutil.NewDefaultSignerCertOptions()}
 	options.VolumeDir = "openshift.local.volumes"
 	// TODO: replace me with a proper round trip of config options through decode
 	options.DNSDomain = "cluster.local"
@@ -205,18 +207,18 @@ func CopyFile(src, dest string, permissions os.FileMode) error {
 }
 
 func (o CreateNodeConfigOptions) CreateNodeFolder() error {
-	servingCertInfo := DefaultNodeServingCertInfo(o.NodeConfigDir)
-	clientCertInfo := DefaultNodeClientCertInfo(o.NodeConfigDir)
+	servingCertInfo := configutil.DefaultNodeServingCertInfo(o.NodeConfigDir)
+	clientCertInfo := configutil.DefaultNodeClientCertInfo(o.NodeConfigDir)
 
 	clientCertFile := clientCertInfo.CertFile
 	clientKeyFile := clientCertInfo.KeyFile
-	apiServerCAFile := DefaultCAFilename(o.NodeConfigDir, CAFilePrefix)
+	apiServerCAFile := configutil.DefaultCAFilename(o.NodeConfigDir, configutil.CAFilePrefix)
 
 	serverCertFile := servingCertInfo.CertFile
 	serverKeyFile := servingCertInfo.KeyFile
-	nodeClientCAFile := DefaultCAFilename(o.NodeConfigDir, "node-client-ca")
+	nodeClientCAFile := configutil.DefaultCAFilename(o.NodeConfigDir, "node-client-ca")
 
-	kubeConfigFile := DefaultNodeKubeConfigFile(o.NodeConfigDir)
+	kubeConfigFile := configutil.DefaultNodeKubeConfigFile(o.NodeConfigDir)
 	nodeConfigFile := path.Join(o.NodeConfigDir, "node-config.yaml")
 	nodeJSONFile := path.Join(o.NodeConfigDir, "node-registration.json")
 

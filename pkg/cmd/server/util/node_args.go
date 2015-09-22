@@ -1,4 +1,4 @@
-package start
+package util
 
 import (
 	"errors"
@@ -15,7 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/util"
 
-	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -130,14 +129,14 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		DNSDomain: args.ClusterDomain,
 		DNSIP:     dnsIP,
 
-		MasterKubeConfig: admin.DefaultNodeKubeConfigFile(args.ConfigDir.Value()),
+		MasterKubeConfig: DefaultNodeKubeConfigFile(args.ConfigDir.Value()),
 
 		PodManifestConfig: nil,
 	}
 
 	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = admin.DefaultNodeServingCertInfo(args.ConfigDir.Value())
-		config.ServingInfo.ClientCA = admin.DefaultKubeletClientCAFile(args.MasterCertDir)
+		config.ServingInfo.ServerCert = DefaultNodeServingCertInfo(args.ConfigDir.Value())
+		config.ServingInfo.ClientCA = DefaultKubeletClientCAFile(args.MasterCertDir)
 	}
 
 	internal, err := applyDefaults(config, "v1")
