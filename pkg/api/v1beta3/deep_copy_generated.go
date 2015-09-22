@@ -461,6 +461,14 @@ func deepCopy_v1beta3_PolicyRule(in v1beta3.PolicyRule, out *v1beta3.PolicyRule,
 	} else {
 		out.AttributeRestrictions = newVal.(runtime.RawExtension)
 	}
+	if in.APIGroups != nil {
+		out.APIGroups = make([]string, len(in.APIGroups))
+		for i := range in.APIGroups {
+			out.APIGroups[i] = in.APIGroups[i]
+		}
+	} else {
+		out.APIGroups = nil
+	}
 	if in.ResourceKinds != nil {
 		out.ResourceKinds = make([]string, len(in.ResourceKinds))
 		for i := range in.ResourceKinds {
