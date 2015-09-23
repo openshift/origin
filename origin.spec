@@ -32,7 +32,7 @@
 
 Name:           %{package_name}
 # Version is not kept up to date and is intended to be set by tito custom
-# builders provided in the rel-eng directory of this project
+# builders provided in the rel-eng directory of this project - test
 Version:        0.0.1
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
