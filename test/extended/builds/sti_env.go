@@ -51,7 +51,7 @@ var _ = g.Describe("builds: parallel: STI build with .sti/environment file", fun
 			imageName, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("writing the pod defintion to a file")
+			g.By("writing the pod definition to a file")
 			outputPath := filepath.Join(exutil.TestContext.OutputDir, oc.Namespace()+"-sample-pod.json")
 			pod := exutil.CreatePodForImage(imageName)
 			err = exutil.WriteObjectToFile(pod, outputPath)
