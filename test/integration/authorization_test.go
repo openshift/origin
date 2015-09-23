@@ -718,6 +718,53 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 			t.Errorf("review\n\t%#v\nexpected\n\t%#v\ngot\n\t%#v", sar, expectedResponse, actualResponse)
 		}
 	}
+
+	// harold should be able to issue a self SAR against any project with the OLD policy
+	{
+		otherNamespace := "chisel-project"
+		// we need a real project for this to make it past admission.
+		// TODO, this is an information leaking problem.  This admission plugin leaks knowledge of which projects exist via SARs
+		if _, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, otherNamespace, "charlie"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// remove the new permission for localSAR
+		basicUserRole, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.BasicUserRoleName)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		for i := range basicUserRole.Rules {
+			basicUserRole.Rules[i].Resources.Delete("localsubjectaccessreviews")
+		}
+
+		if _, err := clusterAdminClient.ClusterRoles().Update(basicUserRole); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		sar := &authorizationapi.SubjectAccessReview{
+			Action: authorizationapi.AuthorizationAttributes{
+				Verb:     "get",
+				Resource: "imagestreams/layers",
+			},
+		}
+		actualResponse := &authorizationapi.SubjectAccessReviewResponse{}
+		err = haroldClient.Post().Namespace(otherNamespace).Resource("subjectAccessReviews").Body(sar).Do().Into(actualResponse)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		expectedResponse := &authorizationapi.SubjectAccessReviewResponse{
+			Allowed:   false,
+			Reason:    `User "harold" cannot get imagestreams/layers in project "chisel-project"`,
+			Namespace: otherNamespace,
+		}
+		if (actualResponse.Namespace != expectedResponse.Namespace) ||
+			(actualResponse.Allowed != expectedResponse.Allowed) ||
+			(!strings.HasPrefix(actualResponse.Reason, expectedResponse.Reason)) {
+			t.Errorf("review\n\t%#v\nexpected\n\t%#v\ngot\n\t%#v", sar, expectedResponse, actualResponse)
+		}
+	}
+
 }
 
 // TestOldLocalResourceAccessReviewEndpoint checks to make sure that the old resource access review endpoint still functions properly
