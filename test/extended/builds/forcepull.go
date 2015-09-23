@@ -62,7 +62,7 @@ var _ = g.Describe("builds: serial: ForcePull from OpenShift induced builds (vs.
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.AdminKubeREST().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -74,12 +74,6 @@ var _ = g.Describe("builds: serial: ForcePull from OpenShift induced builds (vs.
 
 		g.AfterEach(func() {
 			exutil.ResetImage(resetData)
-		})
-
-		g.JustBeforeEach(func() {
-			g.By("waiting for builder service account")
-			err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
-			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.Context("\n FORCE PULL TEST:  when s2i force pull is false and the image is bad", func() {
