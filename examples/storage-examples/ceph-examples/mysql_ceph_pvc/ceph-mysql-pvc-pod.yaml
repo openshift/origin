@@ -1,0 +1,25 @@
+apiVersion: v1
+id: mysql
+kind: Pod
+metadata: 
+  name: ceph-mysql
+spec: 
+  containers: 
+    - name: ceph-mysql
+      image: mysql
+      ports:
+        - name: mysql-db
+          containerPort: 3306
+      volumeMounts: 
+        - name: mysql-pv
+          mountPath: /var/lib/mysql
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: foopass
+      securityContext:
+        capabilities: {}
+        privileged: true #privileged required for the rbd mount
+  volumes: 
+    - name: mysql-pv
+      persistentVolumeClaim:
+        claimName: ceph-claim
