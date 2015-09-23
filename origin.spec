@@ -32,7 +32,7 @@
 
 Name:           %{package_name}
 # Version is not kept up to date and is intended to be set by tito custom
-# builders provided in the rel-eng directory of this project - test
+# builders provided in the rel-eng directory of this project
 Version:        0.0.1
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
@@ -83,12 +83,19 @@ Obsoletes:      tuned-profiles-openshift-node < 1.0.6
 %{summary}
 
 %package clients
-Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
-BuildRequires:  golang-pkg-darwin-amd64
-BuildRequires:  golang-pkg-windows-386
+Summary:        %{product_name} Client binaries for Linux
 Obsoletes:      openshift-clients < 1.0.6
 
 %description clients
+%{summary}
+
+%package clients-redistributable
+Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
+BuildRequires:  golang-pkg-darwin-amd64
+BuildRequires:  golang-pkg-windows-386
+Obsoletes:      openshift-clients-redistributable < 1.0.6
+
+%description clients-redistributable
 %{summary}
 
 %package dockerregistry
@@ -365,6 +372,8 @@ if [ "$1" = 0 ]; then
 fi
 
 %files clients
+
+%files clients-redistributable
 %{_datadir}/%{name}/linux/oc
 %{_datadir}/%{name}/macosx/oc
 %{_datadir}/%{name}/windows/oc.exe
