@@ -42,6 +42,7 @@ ExclusiveArch:  x86_64
 Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.gz
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.4
+Requires:       %{name}-clients = %{version}-%{release}
 Obsoletes:      openshift < 1.0.6
 
 %description
@@ -234,7 +235,6 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %files
 %defattr(-,root,root,-)
 %doc README.md LICENSE
-%{_bindir}/oc
 %{_bindir}/openshift
 %{_bindir}/openshift-router
 %{_bindir}/openshift-deploy
@@ -243,7 +243,6 @@ install -p -m 644 rel-eng/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_bindir}/origin
 %{_bindir}/atomic-enterprise
 %{_bindir}/oadm
-%{_bindir}/kubectl
 %{_bindir}/kubernetes
 %{_bindir}/kubelet
 %{_bindir}/kube-proxy
@@ -373,6 +372,8 @@ if [ "$1" = 0 ]; then
 fi
 
 %files clients
+%{_bindir}/oc
+%{_bindir}/kubectl
 
 %files clients-redistributable
 %{_datadir}/%{name}/linux/oc
