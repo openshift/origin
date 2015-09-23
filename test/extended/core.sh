@@ -97,4 +97,4 @@ fi
 echo "[INFO] Running extended tests"
 
 # Run the tests
-TMPDIR=${BASETMPDIR} ginkgo -progress -stream -v -p "-skip=${SKIP}" "$@" ${OS_OUTPUT_BINPATH}/extended.test
+TMPDIR=${BASETMPDIR} ginkgo -progress -stream -v "-skip=${SKIP}" "$@" ${OS_OUTPUT_BINPATH}/extended.test
