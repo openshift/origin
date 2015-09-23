@@ -89,7 +89,7 @@ CONTAINER_ACCESSIBLE_API_HOST="${CONTAINER_ACCESSIBLE_API_HOST:-172.17.42.1}"
 STI_CONFIG_FILE="${LOG_DIR}/stiAppConfig.json"
 DOCKER_CONFIG_FILE="${LOG_DIR}/dockerAppConfig.json"
 CUSTOM_CONFIG_FILE="${LOG_DIR}/customAppConfig.json"
-GO_OUT="${OS_ROOT}/_output/local/go/bin"
+GO_OUT="${OS_ROOT}/_output/local/bin/$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 
 # set path so OpenShift is available
 export PATH="${GO_OUT}:${PATH}"

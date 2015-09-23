@@ -8,7 +8,6 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
-
 os::log::install_errexit
 
 function cleanup()
@@ -43,7 +42,7 @@ SWAGGER_API_PATH="${HOST}/swaggerapi/"
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
 
-openshift=$(cd "${OS_ROOT}"; echo "$(pwd)/_output/local/go/bin/openshift")
+openshift=$(cd "${OS_ROOT}"; echo "$(pwd)/_output/local/bin/$(os::util::host_platform)/openshift")
 
 if [[ ! -e "${openshift}" ]]; then
   {

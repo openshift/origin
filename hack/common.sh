@@ -122,32 +122,7 @@ os::build::build_binaries() {
     local version_ldflags
     version_ldflags=$(os::build::ldflags)
 
-    # Use eval to preserve embedded quoted strings.
-    local goflags
-    eval "goflags=(${OS_GOFLAGS:-})"
-
-    local -a targets=()
-    local arg
-    for arg; do
-      if [[ "${arg}" == -* ]]; then
-        # Assume arguments starting with a dash are flags to pass to go.
-        goflags+=("${arg}")
-      else
-        targets+=("${arg}")
-      fi
-    done
-
-    if [[ ${#targets[@]} -eq 0 ]]; then
-      targets=("${OS_ALL_TARGETS[@]}")
-    fi
-
-    local -a platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
-    if [[ ${#platforms[@]} -eq 0 ]]; then
-      platforms=("$(os::build::host_platform)")
-    fi
-
-    local binaries
-    binaries=($(os::build::binaries_from_targets "${targets[@]}"))
+    os::build::export_targets "$@"
 
     local platform
     for platform in "${platforms[@]}"; do
@@ -159,6 +134,37 @@ os::build::build_binaries() {
       os::build::unset_platform_envs "${platform}"
     done
   )
+}
+
+# Generates the set of target packages, binaries, and platforms to build for.
+# Accepts binaries via $@, and platforms via OS_BUILD_PLATFORMS, or defaults to
+# the current platform.
+os::build::export_targets() {
+  # Use eval to preserve embedded quoted strings.
+  local goflags
+  eval "goflags=(${OS_GOFLAGS:-})"
+
+  targets=()
+  local arg
+  for arg; do
+    if [[ "${arg}" == -* ]]; then
+      # Assume arguments starting with a dash are flags to pass to go.
+      goflags+=("${arg}")
+    else
+      targets+=("${arg}")
+    fi
+  done
+
+  if [[ ${#targets[@]} -eq 0 ]]; then
+    targets=("${OS_ALL_TARGETS[@]}")
+  fi
+
+  binaries=($(os::build::binaries_from_targets "${targets[@]}"))
+
+  platforms=("${OS_BUILD_PLATFORMS[@]:+${OS_BUILD_PLATFORMS[@]}}")
+  if [[ ${#platforms[@]} -eq 0 ]]; then
+    platforms=("$(os::build::host_platform)")
+  fi
 }
 
 # Takes the platform name ($1) and sets the appropriate golang env variables
@@ -254,11 +260,11 @@ EOF
   unset GOBIN
 }
 
-# This will take OS_RELEASE_BINARIES from $GOPATH/bin and copy them to the appropriate
+# This will take $@ from $GOPATH/bin and copy them to the appropriate
 # place in ${OS_OUTPUT_BINDIR}
 #
 # If OS_RELEASE_ARCHIVE is set, tar archives prefixed with OS_RELEASE_ARCHIVE for
-# each OS_RELEASE_PLATFORMS are created.
+# each of OS_BUILD_PLATFORMS are created.
 #
 # Ideally this wouldn't be necessary and we could just set GOBIN to
 # OS_OUTPUT_BINDIR but that won't work in the face of cross compilation.  'go
@@ -277,7 +283,9 @@ os::build::place_bins() {
       mkdir -p "${OS_LOCAL_RELEASEPATH}"
     fi
 
-    for platform in "${OS_RELEASE_PLATFORMS[@]-(host_platform)}"; do
+    os::build::export_targets "$@"
+
+    for platform in "${platforms[@]}"; do
       # The substitution on platform_src below will replace all slashes with
       # underscores.  It'll transform darwin/amd64 -> darwin_amd64.
       local platform_src="/${platform//\//_}"
@@ -295,21 +303,19 @@ os::build::place_bins() {
 
       # Create an array of binaries to release. Append .exe variants if the platform is windows.
       local -a binaries=()
-      local binary
-      for binary in "${OS_RELEASE_BINARIES[@]}"; do
-        binaries+=("${binary}")
+      for binary in "${targets[@]}"; do
+        binary=$(basename $binary)
         if [[ $platform == "windows/amd64" ]]; then
           binaries+=("${binary}.exe")
+        else
+          binaries+=("${binary}")
         fi
       done
 
-      # Copy the only the specified release binaries to the shared OS_OUTPUT_BINPATH.
-      local -a includes=()
+      # Move the specified release binaries to the shared OS_OUTPUT_BINPATH.
       for binary in "${binaries[@]}"; do
-        includes+=("--include=${binary}")
+        mv "${full_binpath_src}/${binary}" "${OS_OUTPUT_BINPATH}/${platform}/"
       done
-      find "${full_binpath_src}" -maxdepth 1 -type f -exec \
-        rsync "${includes[@]}" --exclude="*" -pt {} "${OS_OUTPUT_BINPATH}/${platform}" \;
 
       # If no release archive was requested, we're done.
       if [[ "${OS_RELEASE_ARCHIVE-}" == "" ]]; then
@@ -318,8 +324,9 @@ os::build::place_bins() {
 
       # Create a temporary bin directory containing only the binaries marked for release.
       local release_binpath=$(mktemp -d openshift.release.${OS_RELEASE_ARCHIVE}.XXX)
-      find "${full_binpath_src}" -maxdepth 1 -type f -exec \
-        rsync "${includes[@]}" --exclude="*" -pt {} "${release_binpath}" \;
+      for binary in "${binaries[@]}"; do
+        cp "${OS_OUTPUT_BINPATH}/${platform}/${binary}" "${release_binpath}/"
+      done
 
       # Create binary copies where specified.
       local suffix=""
@@ -358,11 +365,12 @@ os::build::place_bins() {
 }
 
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
-# binary in _output/local/go/bin
+# binary in _output/local/bin/${platform}
 os::build::make_openshift_binary_symlinks() {
-  if [[ -f "${OS_LOCAL_BINPATH}/openshift" ]]; then
+  platform=$(os::build::host_platform)
+  if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift" ]]; then
     for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
-      ln -sf openshift "${OS_LOCAL_BINPATH}/${linkname}"
+      ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
     done
   fi
 }

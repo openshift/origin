@@ -10,7 +10,7 @@ os::util::join() {
 os::util::install-cmds() {
   local deployed_root=$1
 
-  cp ${deployed_root}/_output/local/go/bin/{openshift,oc,osadm} /usr/bin
+  cp ${deployed_root}/_output/local/bin/linux/amd64/{openshift,oc,osadm} /usr/bin
 }
 
 os::util::add-to-hosts-file() {
