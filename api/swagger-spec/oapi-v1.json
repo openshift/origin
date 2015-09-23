@@ -15162,6 +15162,13 @@
      "containerName": {
       "type": "string",
       "description": "the name of a container from the pod template whose image will be used for the hook container"
+     },
+     "volumes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "the names of volumes from the pod template which should be included in the hook pod; an empty list means no volumes will be copied, and names not found in the pod spec will be ignored"
      }
     }
    },
