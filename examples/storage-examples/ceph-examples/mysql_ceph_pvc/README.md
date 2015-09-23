@@ -18,8 +18,8 @@ If the steps to install the environment, ceph, ose and mysql have not already be
 
 The enviromnent used for all of the examples is described [here](../ENV.md). It is assumed that ceph is already up and running, either on bare metal, in a VM, or containerized.
 
-### Setting up Openshift Enterprise (OSE):
-The steps needed to seup a simple OSE cluster with 1 master and 1 worker node are described [here](../OSE.md).
+### Setting up Openshift for Ceph:
+The steps needed to setup a simple OSE cluster that supports ceph are described [here](../OSE.md).
 
 ### Setting up MySQL:
 Follow the instructions [here](../MYSQL.md) to initialize and validate containerized mysql.
