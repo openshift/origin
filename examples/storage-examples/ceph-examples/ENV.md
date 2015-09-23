@@ -11,7 +11,7 @@ The RHEL-7 hosts running the OSE master and OSE nodes should have the following 
 * all OSE nodes (master and workers) and the ceph host need to be running docker. Currently docker version 1.8 has storage setup issues, so see below on how to upgrade or downgrade the version of docker on your VMs.
 
 ### Docker:
-Docker may be on the OS running OSE, but make sure the docker version is 1.6 or 1.7 -- not 1.8.
+Make sure the docker version is 1.6 or 1.7 -- not 1.8. Docker versions later than 1.8 may work fine but there is currently a storage related issue with docker 1.8. The examples here have been tested with docker 1.6 and 1.7.
 
 ```
 $ docker --version
