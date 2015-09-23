@@ -1,4 +1,4 @@
-package util
+package server
 
 import (
 	"errors"
@@ -23,7 +23,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	"github.com/openshift/origin/test/util"
 )
 
 // ServiceAccountWaitTimeout is used to determine how long to wait for the service account
@@ -33,16 +33,11 @@ const ServiceAccountWaitTimeout = 30 * time.Second
 // RequireServer verifies if the etcd, docker and the OpenShift server are
 // available and you can successfully connected to them.
 func RequireServer() {
-	RequireEtcd()
-	RequireDocker()
-	if _, err := GetClusterAdminClient(KubeConfigPath()); err != nil {
+	util.RequireEtcd()
+	util.RequireDocker()
+	if _, err := util.GetClusterAdminClient(util.KubeConfigPath()); err != nil {
 		os.Exit(1)
 	}
-}
-
-// GetBaseDir returns the base directory used for test.
-func GetBaseDir() string {
-	return cmdutil.Env("BASETMPDIR", path.Join(os.TempDir(), "openshift-"+Namespace()))
 }
 
 // FindAvailableBindAddress returns a bind address on 127.0.0.1 with a free port in the low-high range.
@@ -70,7 +65,7 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, *start.ImageFormatArgs, *start.KubeConnectionArgs) {
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, kubeConnectionArgs := start.GetAllInOneArgs()
 
-	basedir := GetBaseDir()
+	basedir := util.GetBaseDir()
 
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
 	masterArgs.EtcdDir = path.Join(basedir, "etcd")
@@ -91,7 +86,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 
 	masterArgs.MasterAddr.Set(masterAddr)
 	listenArg.ListenAddr.Set(masterAddr)
-	masterArgs.EtcdAddr.Set(GetEtcdURL())
+	masterArgs.EtcdAddr.Set(util.GetEtcdURL())
 
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
@@ -111,7 +106,7 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 	startOptions := start.MasterOptions{}
 	startOptions.MasterArgs, _, _, _, _ = setupStartOptions()
 	startOptions.Complete()
-	startOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", "master"))
+	startOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
 
 	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
 		return nil, err
@@ -215,8 +210,8 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, e
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
 	startOptions.Complete()
-	startOptions.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", "master"))
-	startOptions.NodeArgs.ConfigDir.Default(path.Join(GetBaseDir(), "openshift.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
+	startOptions.MasterOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
+	startOptions.NodeArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", admin.DefaultNodeDir(startOptions.NodeArgs.NodeName)))
 	startOptions.NodeArgs.MasterCertDir = startOptions.MasterOptions.MasterArgs.ConfigDir.Value()
 
 	if err := CreateMasterCerts(startOptions.MasterOptions.MasterArgs); err != nil {
@@ -280,14 +275,14 @@ func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error)
 
 func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
 	if testOptions.DeleteAllEtcdKeys {
-		DeleteAllEtcdKeys()
+		util.DeleteAllEtcdKeys()
 	}
 
 	if err := start.NewMaster(masterConfig, true, true).Start(); err != nil {
 		return "", err
 	}
-	adminKubeConfigFile := KubeConfigPath()
-	clientConfig, err := GetClusterAdminClientConfig(adminKubeConfigFile)
+	adminKubeConfigFile := util.KubeConfigPath()
+	clientConfig, err := util.GetClusterAdminClientConfig(adminKubeConfigFile)
 	if err != nil {
 		return "", err
 	}
@@ -303,7 +298,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 
 	for {
 		// confirm that we can actually query from the api server
-		if client, err := GetClusterAdminClient(adminKubeConfigFile); err == nil {
+		if client, err := util.GetClusterAdminClient(adminKubeConfigFile); err == nil {
 			if _, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything()); err == nil {
 				break
 			}
@@ -379,34 +374,6 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Co
 		return nil, err
 	}
 
-	client, _, _, err := GetClientForUser(clientConfig, adminUser)
+	client, _, _, err := util.GetClientForUser(clientConfig, adminUser)
 	return client, err
-}
-
-func GetClientForUser(clientConfig kclient.Config, username string) (*client.Client, *kclient.Client, *kclient.Config, error) {
-	token, err := tokencmd.RequestToken(&clientConfig, nil, username, "password")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	userClientConfig := clientConfig
-	userClientConfig.BearerToken = token
-	userClientConfig.Username = ""
-	userClientConfig.Password = ""
-	userClientConfig.TLSClientConfig.CertFile = ""
-	userClientConfig.TLSClientConfig.KeyFile = ""
-	userClientConfig.TLSClientConfig.CertData = nil
-	userClientConfig.TLSClientConfig.KeyData = nil
-
-	kubeClient, err := kclient.New(&userClientConfig)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	osClient, err := client.New(&userClientConfig)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return osClient, kubeClient, &userClientConfig, nil
 }

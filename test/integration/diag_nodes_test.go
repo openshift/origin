@@ -13,11 +13,11 @@ import (
 	clusterdiags "github.com/openshift/origin/pkg/diagnostics/cluster"
 	diagtype "github.com/openshift/origin/pkg/diagnostics/types"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestDiagNodeConditions(t *testing.T) {
-	//masterConfig, nodeConfig, clientFile, err := testutil.StartTestAllInOne()
-	_, nodeConfig, clientFile, err := testutil.StartTestAllInOne()
+	_, nodeConfig, clientFile, err := testserver.StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

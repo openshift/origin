@@ -22,6 +22,7 @@ import (
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
@@ -69,7 +70,7 @@ func makeMapping(user, identity string) *api.UserIdentityMapping {
 
 func TestUserInitialization(t *testing.T) {
 
-	masterConfig, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

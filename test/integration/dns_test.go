@@ -13,10 +13,11 @@ import (
 
 	"github.com/miekg/dns"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestDNS(t *testing.T) {
-	masterConfig, clientFile, err := testutil.StartTestMaster()
+	masterConfig, clientFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

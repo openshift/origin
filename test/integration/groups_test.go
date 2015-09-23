@@ -12,10 +12,11 @@ import (
 	userapi "github.com/openshift/origin/pkg/user/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestBasicUserBasedGroupManipulation(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -102,7 +103,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 }
 
 func TestBasicGroupManipulation(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -171,7 +172,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 }
 
 func TestGroupCommands(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

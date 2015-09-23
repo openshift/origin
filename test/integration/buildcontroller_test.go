@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 var (
@@ -300,7 +301,7 @@ func checkErr(t *testing.T, err error) {
 }
 
 func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, *kclient.Client) {
-	master, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	checkErr(t, err)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
@@ -313,7 +314,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 	})
 	checkErr(t, err)
 
-	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
