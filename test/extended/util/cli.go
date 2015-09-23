@@ -19,6 +19,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client"
 	clientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/test/e2e"
 )
 
@@ -51,6 +52,7 @@ func NewCLI(project, adminConfigPath string) *CLI {
 		FatalErr(fmt.Errorf("You must set the KUBECONFIG variable to admin kubeconfig."))
 	}
 	client.adminConfigPath = adminConfigPath
+	kcmdutil.BehaviorOnFatal(func(msg string) { panic(msg) })
 	return client
 }
 
@@ -231,18 +233,27 @@ func (c *CLI) printCmd() string {
 }
 
 // Output executes the command and return the output as string
-func (c *CLI) Output() (string, error) {
+func (c *CLI) Output() (out string, err error) {
 	if c.verbose {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
 	}
-	err := c.cmd.Execute()
-	if err != nil {
-		FatalErr(err)
-	}
+	// Capture the panic and convert it to a regular error
+	defer func() {
+		if r := recover(); r != nil {
+			out = fmt.Sprintf("%s", r)
+			err = fmt.Errorf("PANIC: %s", out)
+		}
+	}()
+	err = c.cmd.Execute()
 	if c.verbose {
 		fmt.Printf("DEBUG: %q\n", trimmedOutput(c.stdout))
 	}
 	return trimmedOutput(c.stdout), err
+}
+
+// Stdout returns the current stdout writer
+func (c *CLI) Stdout() io.Writer {
+	return c.stdout
 }
 
 // OutputToFile executes the command and store output to a file
