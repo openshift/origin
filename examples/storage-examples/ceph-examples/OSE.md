@@ -1,11 +1,11 @@
-Setup a Simple OpenShift Enterprise (OSE) Cluster
-=================================================
+Setup a Simple OpenShift Cluster Supporting Ceph
+================================================
 
 ### Environment:
 The enviromnent used for all of the ceph examples is described [here](ENV.md). It is assumed that ceph is already up and running, either on bare metal, in a VM, or containerized.
 
 ### Setting up OSE:
-The following OpenShift/origin guides should be followed when setting up OSE:
+The following OpenShift documents are pertinent to setting up OSE:
 * https://docs.openshift.com/enterprise/3.0/admin_guide/install/prerequisites.html -- Prerequisites
 * https://docs.openshift.org/latest/getting_started/administrators.html#running-in-a-docker-container -- Getting Started for Administrator
 * https://docs.openshift.com/enterprise/3.0/admin_guide/install/quick_install.html -- **Quick Installation**
