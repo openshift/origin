@@ -102,6 +102,10 @@ type ExecNewPodHook struct {
 	// ContainerName is the name of a container in the deployment pod template
 	// whose Docker image will be used for the hook pod's container.
 	ContainerName string `json:"containerName" description:"the name of a container from the pod template whose image will be used for the hook container"`
+	// Volumes is a list of named volumes from the pod template which should be
+	// copied to the hook pod. Volumes names not found in pod spec are ignored.
+	// An empty list means no volumes will be copied.
+	Volumes []string `json:"volumes,omitempty" description:"the names of volumes from the pod template which should be included in the hook pod; an empty list means no volumes will be copied, and names not found in the pod spec will be ignored"`
 }
 
 // RollingDeploymentStrategyParams are the input to the Rolling deployment
