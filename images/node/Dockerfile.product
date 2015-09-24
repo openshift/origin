@@ -24,8 +24,8 @@ RUN chmod +x /usr/bin/openshift-sdn-kube-subnet-setup.sh
 COPY openshift-sdn-multitenant-setup.sh /usr/bin/
 RUN chmod +x /usr/bin/openshift-sdn-multitenant-setup.sh
 
-COPY ose3-node-run.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/ose3-node-run.sh
+COPY aos-node-run.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/aos-node-run.sh
 
 VOLUME [ "/etc/openshift", "/var/lib/openshift" ]
 WORKDIR /var/lib/openshift
@@ -34,7 +34,7 @@ ENV HOME /root
 ENV OPENSHIFT_CONTAINERIZED true
 ENV KUBECONFIG /etc/openshift/node/node.kubeconfig
 
-CMD [ "/usr/local/bin/ose3-node-run.sh" ]
+CMD [ "/usr/local/bin/aos-node-run.sh" ]
 
 LABEL RUN docker run -d --name NAME --privileged --net=host --pid=host --restart=always -v /:/rootfs:ro -e HOST=/rootfs -v /etc/systemd/system:/host-etc/systemd/system -e HOST_ETC=/host-etc -v /etc/localtime:/etc/localtime:ro -v /etc/machine-id:/etc/machine-id:ro -v /lib/modules:/lib/modules -v /run:/run -v /sys:/sys:ro -v /usr/bin/docker:/usr/bin/docker:ro -v /var/lib/docker:/var/lib/docker -v /etc/openshift-node:/etc/openshift:Z -v /etc/openshift-node/openvswitch:/etc/openvswitch:Z -v /etc/openshift-node/sdn:/etc/openshift-sdn:Z -v /var/lib/openshift:/var/lib/openshift:z IMAGE
 
