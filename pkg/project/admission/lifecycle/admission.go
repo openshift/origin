@@ -52,7 +52,7 @@ type lifecycle struct {
 	creatableResources util.StringSet
 }
 
-var recommendedCreatableResources = util.NewStringSet("subjectaccessreviews", "resourceaccessreviews")
+var recommendedCreatableResources = util.NewStringSet("subjectaccessreviews", "resourceaccessreviews", "localsubjectaccessreviews", "localresourceaccessreviews")
 
 // Admit enforces that a namespace must exist in order to associate content with it.
 // Admit enforces that a namespace that is terminating cannot accept new content being associated with it.
