@@ -4,8 +4,8 @@ FROM rhel7
 MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
 LABEL name="aos3/aos-master"
 LABEL vendor="Red Hat, Inc."
-LABEL version=v3.0.1.901
-LABEL release="5"
+LABEL version=v3.0.2.100
+LABEL release="1"
 LABEL com.redhat.component="aos3-master-docker"
 LABEL architecture="x86_64"
 LABEL summary="Atomic OpenShift Master"
