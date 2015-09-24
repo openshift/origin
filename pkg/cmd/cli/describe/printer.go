@@ -14,7 +14,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -26,8 +25,8 @@ import (
 )
 
 var (
-	buildColumns            = []string{"NAME", "TYPE", "STATUS", "POD"}
-	buildConfigColumns      = []string{"NAME", "TYPE", "SOURCE"}
+	buildColumns            = []string{"NAME", "TYPE", "FROM", "STATUS", "STARTED"}
+	buildConfigColumns      = []string{"NAME", "TYPE", "FROM", "LATEST"}
 	imageColumns            = []string{"NAME", "DOCKER REF"}
 	imageStreamTagColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
@@ -35,7 +34,7 @@ var (
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "TLS TERMINATION"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
-	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST VERSION"}
+	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
 	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
@@ -203,8 +202,45 @@ func printBuild(build *buildapi.Build, w io.Writer, withNamespace, wide bool, co
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Spec.Strategy.Type), build.Status.Phase, buildutil.GetBuildPodName(build))
+	var created string
+	if build.Status.StartTimestamp != nil {
+		created = fmt.Sprintf("%s ago", formatRelativeTime(build.Status.StartTimestamp.Time))
+	}
+	from := describeSourceShort(build.Spec)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Spec.Strategy.Type), from, build.Status.Phase, created)
 	return err
+}
+
+func describeSourceShort(spec buildapi.BuildSpec) string {
+	var from string
+	switch source := spec.Source; {
+	case source.Dockerfile != nil && source.Git != nil:
+		from = "Dockerfile,Git"
+		if rev := describeSourceGitRevision(spec); len(rev) != 0 {
+			from = fmt.Sprintf("%s@%s", from, rev)
+		}
+	case source.Dockerfile != nil:
+		from = "Dockerfile"
+	case source.Git != nil:
+		from = "Git"
+		if rev := describeSourceGitRevision(spec); len(rev) != 0 {
+			from = fmt.Sprintf("%s@%s", from, rev)
+		}
+	case len(source.Type) > 0:
+		from = string(source.Type)
+	}
+	return from
+}
+
+func describeSourceGitRevision(spec buildapi.BuildSpec) string {
+	var rev string
+	if spec.Revision != nil && spec.Revision.Git != nil {
+		rev = spec.Revision.Git.Commit
+	}
+	if len(rev) == 0 && spec.Source.Git != nil {
+		rev = spec.Source.Git.Ref
+	}
+	return rev
 }
 
 func printBuildList(buildList *buildapi.BuildList, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
@@ -220,21 +256,18 @@ func printBuildList(buildList *buildapi.BuildList, w io.Writer, withNamespace, w
 
 func printBuildConfig(bc *buildapi.BuildConfig, w io.Writer, withNamespace, wide bool, columnLabels []string) error {
 	if bc.Spec.Strategy.Type == buildapi.CustomBuildStrategyType {
-		_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), bc.Spec.Strategy.CustomStrategy.From.Name)
+		_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), bc.Spec.Strategy.CustomStrategy.From.Name, bc.Status.LastVersion)
 		return err
 	}
 
-	uri := "MISSING"
-	if bc.Spec.Source.Git != nil {
-		uri = bc.Spec.Source.Git.URI
-	}
+	from := describeSourceShort(bc.Spec.BuildSpec)
 
 	if withNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", bc.Namespace); err != nil {
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%v\t%s\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), uri)
+	_, err := fmt.Fprintf(w, "%s\t%v\t%s\t%d\n", bc.Name, describeStrategy(bc.Spec.Strategy.Type), from, bc.Status.LastVersion)
 	return err
 }
 

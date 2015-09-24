@@ -13,6 +13,14 @@ project="$(oc project -q)"
 
 # This test validates builds and build related commands
 
+oc new-build openshift/ruby-20-centos7 https://github.com/openshift/ruby-hello-world.git
+oc get bc/ruby-hello-world
+cat "${OS_ROOT}/Dockerfile" | oc new-build -D - --name=test
+oc get bc/test
+oc new-build --dockerfile=$'FROM centos\nRUN yum install -y apache'
+oc get bc/centos
+oc delete all --all
+
 oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -
 oc get buildConfigs
 oc get bc

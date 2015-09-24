@@ -466,6 +466,8 @@ _oc_new-build()
 
     flags+=("--code=")
     flags+=("--docker-image=")
+    flags+=("--dockerfile=")
+    two_word_flags+=("-D")
     flags+=("--env=")
     two_word_flags+=("-e")
     flags+=("--image=")

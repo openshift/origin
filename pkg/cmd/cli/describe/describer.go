@@ -181,15 +181,18 @@ func describeStrategy(strategyType buildapi.BuildStrategyType) buildapi.BuildStr
 
 func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 	formatString(out, "Strategy", describeStrategy(p.Strategy.Type))
-	switch p.Strategy.Type {
-	case buildapi.DockerBuildStrategyType:
-		describeDockerStrategy(p.Strategy.DockerStrategy, out)
-	case buildapi.SourceBuildStrategyType:
-		describeSourceStrategy(p.Strategy.SourceStrategy, out)
-	case buildapi.CustomBuildStrategyType:
-		describeCustomStrategy(p.Strategy.CustomStrategy, out)
-	}
+
 	formatString(out, "Source Type", p.Source.Type)
+	if p.Source.Dockerfile != nil {
+		if len(strings.TrimSpace(*p.Source.Dockerfile)) == 0 {
+			formatString(out, "Dockerfile", "")
+		} else {
+			fmt.Fprintf(out, "Dockerfile:\n")
+			for _, s := range strings.Split(*p.Source.Dockerfile, "\n") {
+				fmt.Fprintf(out, "  %s\n", s)
+			}
+		}
+	}
 	if p.Source.Git != nil {
 		formatString(out, "URL", p.Source.Git.URI)
 		if len(p.Source.Git.Ref) > 0 {
@@ -213,6 +216,16 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 			formatString(out, "Message", rev.Message)
 		}
 	}
+
+	switch p.Strategy.Type {
+	case buildapi.DockerBuildStrategyType:
+		describeDockerStrategy(p.Strategy.DockerStrategy, out)
+	case buildapi.SourceBuildStrategyType:
+		describeSourceStrategy(p.Strategy.SourceStrategy, out)
+	case buildapi.CustomBuildStrategyType:
+		describeCustomStrategy(p.Strategy.CustomStrategy, out)
+	}
+
 	if p.Output.To != nil {
 		if len(p.Output.To.Namespace) != 0 {
 			formatString(out, "Output to", fmt.Sprintf("%s %s/%s", p.Output.To.Kind, p.Output.To.Namespace, p.Output.To.Name))
@@ -240,9 +253,9 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writer) {
 	if len(s.From.Name) != 0 {
 		if len(s.From.Namespace) != 0 {
-			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
+			formatString(out, "From Image", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
 		} else {
-			formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
+			formatString(out, "From Image", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
 		}
 	}
 	if len(s.Scripts) != 0 {
@@ -262,9 +275,9 @@ func describeSourceStrategy(s *buildapi.SourceBuildStrategy, out *tabwriter.Writ
 func describeDockerStrategy(s *buildapi.DockerBuildStrategy, out *tabwriter.Writer) {
 	if s.From != nil && len(s.From.Name) != 0 {
 		if len(s.From.Namespace) != 0 {
-			formatString(out, "Image Reference", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
+			formatString(out, "From Image", fmt.Sprintf("%s %s/%s", s.From.Kind, s.From.Namespace, s.From.Name))
 		} else {
-			formatString(out, "Image Reference", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
+			formatString(out, "From Image", fmt.Sprintf("%s %s", s.From.Kind, s.From.Name))
 		}
 	}
 	if s.PullSecret != nil {
@@ -306,18 +319,43 @@ func describeCustomStrategy(s *buildapi.CustomBuildStrategy, out *tabwriter.Writ
 
 // DescribeTriggers generates information about the triggers associated with a buildconfig
 func (d *BuildConfigDescriber) DescribeTriggers(bc *buildapi.BuildConfig, out *tabwriter.Writer) {
+	describeBuildTriggers(bc.Spec.Triggers, out)
 	webhooks := webhookURL(bc, d.Interface)
 	for whType, whURL := range webhooks {
 		t := strings.Title(whType)
 		formatString(out, "Webhook "+t, whURL)
 	}
-	for _, trigger := range bc.Spec.Triggers {
-		if trigger.Type != buildapi.ImageChangeBuildTriggerType {
-			continue
-		}
-		fmt.Fprintf(out, fmt.Sprintf("Image Repository Trigger\n"))
-		formatString(out, "- LastTriggeredImageID", trigger.ImageChange.LastTriggeredImageID)
+}
+
+func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, w *tabwriter.Writer) {
+	if len(triggers) == 0 {
+		formatString(w, "Triggered by", "<none>")
+		return
 	}
+
+	labels := []string{}
+
+	for _, t := range triggers {
+		switch t.Type {
+		case buildapi.GitHubWebHookBuildTriggerType, buildapi.GenericWebHookBuildTriggerType:
+			continue
+		case buildapi.ConfigChangeBuildTriggerType:
+			labels = append(labels, "Config")
+		case buildapi.ImageChangeBuildTriggerType:
+			if t.ImageChange != nil && t.ImageChange.From != nil && len(t.ImageChange.From.Name) > 0 {
+				labels = append(labels, fmt.Sprintf("Image(%s %s)", t.ImageChange.From.Kind, t.ImageChange.From.Name))
+			} else {
+				labels = append(labels, string(t.Type))
+			}
+		case "":
+			labels = append(labels, "<unknown>")
+		default:
+			labels = append(labels, string(t.Type))
+		}
+	}
+
+	desc := strings.Join(labels, ", ")
+	formatString(w, "Triggered by", desc)
 }
 
 // Describe returns the description of a buildConfig
@@ -344,13 +382,13 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		if len(buildList.Items) == 0 {
 			return nil
 		}
-		fmt.Fprintf(out, "Builds:\n  Name\tStatus\tDuration\tCreation Time\n")
+		fmt.Fprintf(out, "\nBuild\tStatus\tDuration\tCreation Time\n")
 
 		builds := buildList.Items
 		sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds)))
 
 		for i, build := range builds {
-			fmt.Fprintf(out, "  %s \t%s \t%v \t%v\n",
+			fmt.Fprintf(out, "%s \t%s \t%v \t%v\n",
 				build.Name,
 				strings.ToLower(string(build.Status.Phase)),
 				describeBuildDuration(&build),

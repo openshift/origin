@@ -34,7 +34,9 @@ type CLI struct {
 	globalArgs      []string
 	commandArgs     []string
 	finalArgs       []string
+	stdin           *bytes.Buffer
 	stdout          io.Writer
+	stderr          io.Writer
 	verbose         bool
 	cmd             *cobra.Command
 	kubeFramework   *e2e.Framework
@@ -176,8 +178,7 @@ func (c *CLI) Namespace() string {
 }
 
 // SetOutput allows to override the default command output
-func (c *CLI) SetOutput(out io.Writer) *CLI {
-	c.stdout = out
+func (c *CLI) setOutput(out io.Writer) *CLI {
 	for _, subCmd := range c.cmd.Commands() {
 		subCmd.SetOutput(c.stdout)
 	}
@@ -189,7 +190,8 @@ func (c *CLI) SetOutput(out io.Writer) *CLI {
 // This function also override the default 'stdout' to redirect all output
 // to a buffer and prepare the global flags such as namespace and config path.
 func (c *CLI) Run(verb string) *CLI {
-	out := new(bytes.Buffer)
+
+	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
 		verb:            verb,
 		kubeFramework:   c.KubeFramework(),
@@ -197,14 +199,15 @@ func (c *CLI) Run(verb string) *CLI {
 		configPath:      c.configPath,
 		username:        c.username,
 		outputDir:       c.outputDir,
-		cmd:             cli.NewCommandCLI("oc", "openshift", out),
+		cmd:             cli.NewCommandCLI("oc", "openshift", in, out, errout),
 		globalArgs: []string{
 			verb,
 			fmt.Sprintf("--namespace=%s", c.Namespace()),
 			fmt.Sprintf("--config=%s", c.configPath),
 		},
 	}
-	return nc.SetOutput(out)
+	nc.stdin, nc.stdout, nc.stderr = in, out, errout
+	return nc.setOutput(c.stdout)
 }
 
 // Template sets a Go template for the OpenShift CLI command.
@@ -217,6 +220,12 @@ func (c *CLI) Template(t string) *CLI {
 	commandArgs := append(c.commandArgs, templateArgs...)
 	c.finalArgs = append(c.globalArgs, commandArgs...)
 	c.cmd.SetArgs(c.finalArgs)
+	return c
+}
+
+// InputString adds expected input to the command
+func (c *CLI) InputString(input string) *CLI {
+	c.stdin.WriteString(input)
 	return c
 }
 

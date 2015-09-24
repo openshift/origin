@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"io/ioutil"
 	"testing"
 
@@ -24,7 +25,7 @@ var WhitelistedCommands = util.NewStringSet()
 func TestKubectlCompatibility(t *testing.T) {
 	f := clientcmd.New(pflag.NewFlagSet("name", pflag.ContinueOnError))
 
-	oc := NewCommandCLI("oc", "oc", ioutil.Discard)
+	oc := NewCommandCLI("oc", "oc", &bytes.Buffer{}, ioutil.Discard, ioutil.Discard)
 	kubectl := kcmd.NewKubectlCommand(f.Factory, nil, ioutil.Discard, ioutil.Discard)
 
 kubectlLoop:

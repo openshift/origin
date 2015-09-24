@@ -68,10 +68,13 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	}
 	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
 	cmd.Flags().String("commit", "", "Specify the commit hash the build should be run from")
+
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
 	cmd.Flags().Bool("wait", false, "Wait for a build to complete and exit with a non-zero return code if the build fails")
+
 	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified BuildConfig or build; accepts 'all', 'generic', or 'github'")
 	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing BuildConfig to trigger")
+
 	cmd.Flags().String("git-post-receive", "", "The contents of the post-receive hook to trigger a build")
 	cmd.Flags().String("git-repository", "", "The path to the git repository for post-receive; defaults to the current directory")
 	return cmd

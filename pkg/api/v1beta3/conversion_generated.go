@@ -758,6 +758,12 @@ func convert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource, ou
 		defaulting.(func(*buildapi.BuildSource))(in)
 	}
 	out.Type = apiv1beta3.BuildSourceType(in.Type)
+	if in.Dockerfile != nil {
+		out.Dockerfile = new(string)
+		*out.Dockerfile = *in.Dockerfile
+	} else {
+		out.Dockerfile = nil
+	}
 	if in.Git != nil {
 		out.Git = new(apiv1beta3.GitBuildSource)
 		if err := convert_api_GitBuildSource_To_v1beta3_GitBuildSource(in.Git, out.Git, s); err != nil {
@@ -1139,6 +1145,12 @@ func convert_v1beta3_BuildSource_To_api_BuildSource(in *apiv1beta3.BuildSource, 
 		defaulting.(func(*apiv1beta3.BuildSource))(in)
 	}
 	out.Type = buildapi.BuildSourceType(in.Type)
+	if in.Dockerfile != nil {
+		out.Dockerfile = new(string)
+		*out.Dockerfile = *in.Dockerfile
+	} else {
+		out.Dockerfile = nil
+	}
 	if in.Git != nil {
 		out.Git = new(buildapi.GitBuildSource)
 		if err := convert_v1beta3_GitBuildSource_To_api_GitBuildSource(in.Git, out.Git, s); err != nil {

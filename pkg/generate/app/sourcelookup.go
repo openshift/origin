@@ -1,10 +1,10 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/url"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -18,6 +18,53 @@ var (
 	argumentGit         = regexp.MustCompile("^(http://|https://|git@|git://).*(?:#([a-zA-Z0-9]*))?$")
 	argumentGitProtocol = regexp.MustCompile("^(git@|git://)")
 )
+
+type Dockerfile interface {
+	Dockerfile() (dockerfile.Dockerfile, error)
+	Contents() string
+}
+
+func NewDockerfileFromFile(path string) (Dockerfile, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("Dockerfile %q is empty", path)
+	}
+	df := dockerfileContents{
+		contents: string(data),
+	}
+	df.parsed, df.err = dockerfile.NewParser().Parse(bytes.NewBuffer(data))
+	return df, nil
+}
+
+func NewDockerfile(contents string) (Dockerfile, error) {
+	if len(contents) == 0 {
+		return nil, fmt.Errorf("Dockerfile is empty")
+	}
+	df := dockerfileContents{
+		contents: contents,
+	}
+	if parsed, err := dockerfile.NewParser().Parse(bytes.NewBufferString(contents)); err == nil {
+		df.parsed = parsed
+	}
+	return df, nil
+}
+
+type dockerfileContents struct {
+	parsed   dockerfile.Dockerfile
+	err      error
+	contents string
+}
+
+func (d dockerfileContents) Contents() string {
+	return d.contents
+}
+
+func (d dockerfileContents) Dockerfile() (dockerfile.Dockerfile, error) {
+	return d.parsed, d.err
+}
 
 // IsPossibleSourceRepository checks whether the provided string is a source repository or not
 func IsPossibleSourceRepository(s string) bool {
@@ -38,8 +85,9 @@ type SourceRepository struct {
 	contextDir string
 	info       *SourceRepositoryInfo
 
-	usedBy          []ComponentReference
-	buildWithDocker bool
+	usedBy           []ComponentReference
+	buildWithDocker  bool
+	ignoreRepository bool
 }
 
 // NewSourceRepository creates a reference to a local or remote source code repository from
@@ -53,6 +101,22 @@ func NewSourceRepository(s string) (*SourceRepository, error) {
 	return &SourceRepository{
 		location: s,
 		url:      *location,
+	}, nil
+}
+
+// NewSourceRepositoryForDockerfile creates a source repository that is set up to use
+// the contents of a Dockerfile as the input of the build.
+func NewSourceRepositoryForDockerfile(contents string) (*SourceRepository, error) {
+	dockerfile, err := NewDockerfile(contents)
+	if err != nil {
+		return nil, err
+	}
+	return &SourceRepository{
+		buildWithDocker:  true,
+		ignoreRepository: true,
+		info: &SourceRepositoryInfo{
+			Dockerfile: dockerfile,
+		},
 	}, nil
 }
 
@@ -88,6 +152,9 @@ func (r *SourceRepository) String() string {
 // Detect clones source locally if not already local and runs code detection
 // with the given detector.
 func (r *SourceRepository) Detect(d Detector) error {
+	if r.info != nil {
+		return nil
+	}
 	path, err := r.LocalPath()
 	if err != nil {
 		return err
@@ -200,7 +267,7 @@ func (rr SourceRepositories) NotUsed() SourceRepositories {
 type SourceRepositoryInfo struct {
 	Path       string
 	Types      []SourceLanguageType
-	Dockerfile dockerfile.Dockerfile
+	Dockerfile Dockerfile
 }
 
 // Terms returns which languages the source repository was
@@ -259,12 +326,7 @@ func (e SourceRepositoryEnumerator) Detect(dir string) (*SourceRepositoryInfo, e
 		}
 	}
 	if path, ok, err := e.Tester.Has(dir); err == nil && ok {
-		file, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-		defer file.Close()
-		dockerfile, err := dockerfile.NewParser().Parse(file)
+		dockerfile, err := NewDockerfileFromFile(path)
 		if err != nil {
 			return nil, err
 		}
@@ -285,18 +347,26 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		return nil, nil, fmt.Errorf("an image ref is required to generate a strategy and sourceref")
 	}
 
-	remoteURL, err := repo.RemoteURL()
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s", repo.location)
-	}
 	strategy := &BuildStrategyRef{
 		Base:          image,
 		IsDockerBuild: repo.IsDockerBuild(),
 	}
-	source := &SourceRef{
-		URL:        remoteURL,
-		Ref:        remoteURL.Fragment,
-		ContextDir: repo.ContextDir(),
+	var source *SourceRef
+	switch {
+	case repo.ignoreRepository && repo.Info() != nil && repo.Info().Dockerfile != nil:
+		source = &SourceRef{
+			DockerfileContents: repo.Info().Dockerfile.Contents(),
+		}
+	default:
+		remoteURL, err := repo.RemoteURL()
+		if err != nil {
+			return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s", repo.location)
+		}
+		source = &SourceRef{
+			URL:        remoteURL,
+			Ref:        remoteURL.Fragment,
+			ContextDir: repo.ContextDir(),
+		}
 	}
 	return strategy, source, nil
 }

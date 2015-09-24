@@ -51,10 +51,7 @@ created for you.
 
 You can easily switch between multiple projects using '%[1]s project <projectname>'.`
 
-func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
-	in := os.Stdin
-	errout := os.Stderr
-
+func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
@@ -86,7 +83,7 @@ func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
 				cmd.NewCmdBuildLogs(fullName, f, out),
 				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),
-				cmd.NewCmdNewBuild(fullName, f, out),
+				cmd.NewCmdNewBuild(fullName, f, in, out),
 				cmd.NewCmdCancelBuild(fullName, f, out),
 				cmd.NewCmdImportImage(fullName, f, out),
 				cmd.NewCmdScale(fullName, f, out),
@@ -180,7 +177,7 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	out := os.Stdout
+	in, out, errout := os.Stdin, os.Stdout, os.Stderr
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
@@ -192,7 +189,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "kubectl":
 		cmd = NewCmdKubectl(basename, out)
 	default:
-		cmd = NewCommandCLI(basename, basename, out)
+		cmd = NewCommandCLI(basename, basename, in, out, errout)
 	}
 
 	if cmd.UsageFunc() == nil {

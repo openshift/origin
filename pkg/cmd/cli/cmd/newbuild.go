@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -37,12 +38,15 @@ Once the build configuration is created you may need to run a build with 'start-
   // Create a build config from a remote repository using its beta2 branch
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world#beta2
 
+  // Create a build config using a Dockerfile specified as an argument
+  $ %[1]s new-build -D $'FROM centos7\nRUN yum install -y apache'
+
   // Create a build config from a remote repository and add custom environment variables into resulting image
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development`
 )
 
 // NewCmdNewBuild implements the OpenShift cli new-build command
-func NewCmdNewBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
 	mapper, typer := f.Object()
 	clientMapper := f.ClientMapperForCommand()
 	config := newcmd.NewAppConfig(typer, mapper, clientMapper)
@@ -54,7 +58,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 		Example: fmt.Sprintf(newBuildExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			config.AddEnvironmentToBuild = true
-			err := RunNewBuild(fullName, f, out, c, args, config)
+			err := RunNewBuild(fullName, f, out, in, c, args, config)
 			if err == errExit {
 				os.Exit(1)
 			}
@@ -68,6 +72,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	cmd.Flags().StringVar(&config.Name, "name", "", "Set name to use for generated build artifacts")
 	cmd.Flags().VarP(&config.Environment, "env", "e", "Specify key value pairs of environment variables to set into resulting image.")
 	cmd.Flags().StringVar(&config.Strategy, "strategy", "", "Specify the build strategy to use if you don't want to detect (docker|source).")
+	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
 	cmdutil.AddPrinterFlags(cmd)
@@ -76,7 +81,15 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 }
 
 // RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
-func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Reader, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+	if config.Dockerfile == "-" {
+		data, err := ioutil.ReadAll(in)
+		if err != nil {
+			return err
+		}
+		config.Dockerfile = string(data)
+	}
+
 	if err := setupAppConfig(f, c, args, config); err != nil {
 		return err
 	}

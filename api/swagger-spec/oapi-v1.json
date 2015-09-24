@@ -13906,6 +13906,10 @@
       "type": "string",
       "description": "type of source control management system"
      },
+     "dockerfile": {
+      "type": "string",
+      "description": "the contents of a Dockerfile to build; FROM may be overridden by your strategy source, and additional ENV from your strategy will be placed before the rest of the Dockerfile stanzas"
+     },
      "git": {
       "$ref": "v1.GitBuildSource",
       "description": "optional information about git build source"
