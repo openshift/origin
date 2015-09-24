@@ -2,12 +2,13 @@ FROM rhel7
 
 # Based on work by: Peter Schiffer <pschiffe@redhat.com>
 MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
-LABEL Name="aos3/aos-node"
-LABEL Vendor="Red Hat" License=GPLv2+
-LABEL Version=v3.0.1.901
-LABEL Release="1"
-LABEL BZComponent="aos3-node-docker"
-LABEL Architecture="x86_64"
+LABEL name="aos3/aos-node"
+LABEL vendor="Red Hat" License=GPLv2+
+LABEL version=v3.0.1.901
+LABEL release="2"
+LABEL com.redhat.component="aos3-node-docker"
+LABEL architecture="x86_64"
+LABEL summary="Atomic OpenShift Node"
 
 RUN yum-config-manager --enable RH7-RHAOS-3.1 --enable rhel-7-server-extras-rpms
 # TODO: beta rpms being used here to get tuned versions to survive an install:

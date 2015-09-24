@@ -2,18 +2,19 @@ FROM rhel7
 
 # Based on work by: Peter Schiffer <pschiffe@redhat.com>
 MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
-LABEL Name="aos3/aos-master"
-LABEL Vendor="Red Hat" License=GPLv2+
-LABEL Version=v3.0.1.901
-LABEL Release="4"
-LABEL BZComponent="aos3-master-docker"
-LABEL Architecture="x86_64"
+LABEL name="aos3/aos-master"
+LABEL vendor="Red Hat, Inc."
+LABEL version=v3.0.1.901
+LABEL release="5"
+LABEL com.redhat.component="aos3-master-docker"
+LABEL architecture="x86_64"
+LABEL summary="Atomic OpenShift Master"
 
 RUN yum-config-manager --enable RH7-RHAOS-3.1
 RUN yum install -y atomic-openshift-master hostname && yum clean all
 
-COPY ose3-master-run.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/ose3-master-run.sh
+COPY aos-master-run.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/aos-master-run.sh
 
 VOLUME [ "/etc/openshift", "/var/lib/openshift" ]
 WORKDIR /var/lib/openshift
@@ -21,7 +22,7 @@ WORKDIR /var/lib/openshift
 ENV HOME /root
 ENV OPENSHIFT_CONTAINERIZED true
 
-CMD [ "/usr/local/bin/ose3-master-run.sh" ]
+CMD [ "/usr/local/bin/aos-master-run.sh" ]
 
 LABEL RUN docker run -d --name NAME --net=host --restart=always -v /etc/localtime:/etc/localtime:ro -v /etc/openshift-master:/etc/openshift:Z -v /var/lib/openshift:/var/lib/openshift:z -e HOST_HOSTNAME=$(hostname) -p 53:53 -p 53:53/udp -p 4001:4001 -p 7001:7001 -p 8443:8443 IMAGE
 
