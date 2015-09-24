@@ -72,7 +72,7 @@ do_master () {
 	try_eval ping -c1 -W2 $node
     done
 
-    oc get nodes -t '{{range .items}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{.address}} {{end}}{{end}}{{end}}' | tr ' ' '\012' > $logmaster/node-ips
+    oc get nodes -t '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}}:{{.address}} {{end}}{{end}}{{end}}' | tr ' :' '\012 ' > $logmaster/node-ips
 }
 
 # Returns a list of pods in the form "minion-1:mypod:namespace:10.1.0.2:e4f1d61b"
@@ -443,14 +443,13 @@ do_master_and_nodes ()
 	try_eval scp -pr root@$master:$logdir/master $logdir/
     fi
 
-    nodes=$(cat $logdir/master/node-ips)
-    for node in $nodes; do
+    while read name addr; do
 	echo ""
-	echo "Analyzing $node"
+	echo "Analyzing $name ($addr)"
 
-	run_self_via_ssh $node --node
-	try_eval scp -pr root@$node:$logdir/nodes $logdir/
-    done
+	run_self_via_ssh $addr --node < /dev/null
+	try_eval scp -pr root@$addr:$logdir/nodes $logdir/
+    done < $logdir/master/node-ips
 }
 
 ########
