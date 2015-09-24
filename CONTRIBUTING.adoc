@@ -209,7 +209,7 @@ https://github.com/kubernetes/kubernetes#community-discussion-and-support[Join t
 If you run into difficulties running OpenShift, start by reading through the https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md[troubleshooting guide].
 
 == The Roadmap
-The OpenShift project roadmap lives https://trello.com/b/nlLwlKoz/openshift-origin-roadmap[on Trello]. Of particular interest to those who want to get involved with the OpenShift 3 architecture are the following topics:
+The OpenShift project roadmap lives https://trello.com/b/nlLwlKoz/atomicopenshift-roadmap[on Trello]. Of particular interest to those who want to get involved with the OpenShift 3 architecture are the following topics:
 
 * https://trello.com/c/uqNIamJi[Orchestration]
 * https://trello.com/c/ja8bbQwy[Networking]
