@@ -96,126 +96,76 @@ split_podspec () {
     eval ${prefix}_id=${array[4]}
 }
 
-do_node_connectivity_check () {
-    base_pod_addr=$1
-    base_pod_name=$2
-    base_pod_pid=$3
-    local_same_addr=$4
-    local_same_name=$5
-    local_different_addr=$6
-    local_different_name=$7
-    remote_same_addr=$8
-    remote_same_name=$9
-    remote_different_addr=${10}
-    remote_different_name=${11}
+get_port_for_addr () {
+    addr=$1
+    sed -ne "s/.*nw_dst=${addr}.*output://p" $lognode/flows | head -1
+}
 
-    base_pod_port=$(sed -ne "s/.*nw_dst=${base_pod_addr}.*output://p" $lognode/flows)
-    if [ -z "$base_pod_port" ]; then
-	echo "Could not find port for $base_pod_addr in dump-flow output"
-	return
-    fi
+get_vnid_for_addr () {
+    addr=$1
     # On multitenant, the sed will match and output, eg "xd1", which we prefix with "0"
     # to get "0xd1". On non-multitenant, the sed won't match, and outputs nothing, which
     # we prefix with "0" to get "0". So either way, $base_pod_vnid is correct.
-    base_pod_vnid=0$(sed -ne "s/.*reg0=0\(x[^,]*\),.*nw_dst=${base_pod_addr}.*/\1/p" $lognode/flows)
+    echo 0$(sed -ne "s/.*reg0=0\(x[^,]*\),.*nw_dst=${addr}.*/\1/p" $lognode/flows | head -1)
+}
 
-    base_pod_ether=$(nsenter -n -t $base_pod_pid ip a | sed -ne "s/.*link.ether \([^ ]*\) .*/\1/p")
-    if [ -z "$base_pod_port" ]; then
-	echo "Could not find MAC address for $base_pod in 'ip addr' output"
-	return
+do_pod_to_pod_connectivity_check () {
+    where=$1
+    namespace=$2
+    base_pod_name=$3
+    base_pod_addr=$4
+    base_pod_pid=$5
+    base_pod_port=$6
+    base_pod_vnid=$7
+    base_pod_ether=$8
+    other_pod_name=$9
+    other_pod_addr=${10}
+
+    echo $where pod, $namespace namespace: | tr '[a-z]' '[A-Z]'
+    echo ""
+
+    other_pod_port=$(get_port_for_addr $other_pod_addr)
+    other_pod_vnid=$(get_vnid_for_addr $other_pod_addr)
+    if [ -z "$other_pod_port" ]; then
+	other_pod_port=1 # vxlan
+	case $namespace in
+	    default)
+		other_pod_vnid=0
+		;;
+	    same)
+		other_pod_vnid=$base_pod_vnid
+		;;
+	    different)
+		# VNIDs 1-10 are currently unused, so this is always different from $base_pod_vnid
+		other_pod_vnid=6
+		;;
+	esac
     fi
 
-    if [ -n "$local_same_addr" ]; then
-	echo "LOCAL, SAME NAMESPACE:"
-	echo ""
-	other_pod_port=$(sed -ne "s/.*nw_dst=${local_same_addr}.*output://p" $lognode/flows)
-	if [ -n "$other_pod_port" ]; then
-	    echo "$base_pod_name -> $local_same_name"
-	    echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${base_pod_port},reg0=${base_pod_vnid},ip,nw_src=${base_pod_addr},nw_dst=${local_same_addr}"
-	    echo ""
-	    echo "$local_same_name -> $base_pod_name"
-	    echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${other_pod_port},reg0=${base_pod_vnid},ip,nw_src=${local_same_addr},nw_dst=${base_pod_addr}"
-	else
-	    echo "Could not find port for ${local_same_addr}!"
-	fi
-	echo ""
+    echo "$base_pod_name -> $other_pod_name"
+    echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${base_pod_port},reg0=${base_pod_vnid},ip,nw_src=${base_pod_addr},nw_dst=${other_pod_addr}"
+    echo ""
+    echo "$other_pod_name -> $base_pod_name"
+    echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${other_pod_port},reg0=${other_pod_vnid},ip,nw_src=${other_pod_addr},nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
+    echo ""
 
-	if nsenter -n -t $base_pod_pid ping -c 1 -W 2 $local_same_addr >& /dev/null; then
-	    echo "ping $local_same_addr  ->  success"
-	else
-	    echo "ping $local_same_addr  ->  failed"
-	fi
-
-	echo ""
-	echo ""
+    if nsenter -n -t $base_pod_pid ping -c 1 -W 2 $other_pod_addr >& /dev/null; then
+	echo "ping $other_pod_addr  ->  success"
+    else
+	echo "ping $other_pod_addr  ->  failed"
     fi
 
-    if [ -n "$local_different_addr" ]; then
-	echo "LOCAL, DIFFERENT NAMESPACE:"
-	echo ""
-	other_pod_port=$(sed -ne "s/.*nw_dst=${local_different_addr}.*output://p" $lognode/flows)
-	other_pod_vnid=0$(sed -ne "s/.*reg0=0\(x[^,]*\),.*nw_dst=${local_different_addr}.*/\1/p" $lognode/flows)
-	if [ -n "$other_pod_port" ]; then
-	    echo "$base_pod_name -> $local_different_name"
-	    echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${base_pod_port},reg0=${base_pod_vnid},ip,nw_src=${base_pod_addr},nw_dst=${local_different_addr}"
-	    echo ""
-	    echo "$local_different_name -> $base_pod_name"
-	    echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${other_pod_port},reg0=${other_pod_vnid},ip,nw_src=${local_different_addr},nw_dst=${base_pod_addr}"
-	else
-	    echo "Could not find port for ${local_different_addr}!"
-	fi
-	echo ""
+    echo ""
+    echo ""
+}
 
-	if nsenter -n -t $base_pod_pid ping -c 1 -W 2 $local_different_addr >& /dev/null; then
-	    echo "ping $local_different_addr  ->  success"
-	else
-	    echo "ping $local_different_addr  ->  failed"
-	fi
-
-	echo ""
-	echo ""
-    fi
-
-    if [ -n "$remote_same_addr" ]; then
-	echo "REMOTE, SAME NAMESPACE:"
-	echo ""
-	echo "$base_pod_name -> $remote_same_name"
-	echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${base_pod_port},reg0=${base_pod_vnid},ip,nw_src=${base_pod_addr},nw_dst=${remote_same_addr}"
-	echo ""
-	echo "$remote_same_name -> $base_pod_name"
-	echo_and_eval ovs-appctl ofproto/trace br0 "in_port=1,tun_id=${base_pod_vnid},ip,nw_src=${remote_same_addr},nw_dst=${base_pod_addr}"
-	echo ""
-
-	if nsenter -n -t $base_pod_pid ping -c 1 -W 2 $remote_same_addr >& /dev/null; then
-	    echo "ping $remote_same_addr  ->  success"
-	else
-	    echo "ping $remote_same_addr  ->  failed"
-	fi
-
-	echo ""
-	echo ""
-    fi
-
-    if [ -n "$remote_different_addr" ]; then
-	echo "REMOTE, DIFFERENT NAMESPACE:"
-	echo ""
-	echo "$base_pod_name -> $remote_different_name"
-	echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${base_pod_port},reg0=${base_pod_vnid},ip,nw_src=${base_pod_addr},nw_dst=${remote_different_addr}"
-	echo ""
-	# VNIDs 1-10 are currently unused
-	echo "$remote_different_name -> $base_pod_name"
-	echo_and_eval ovs-appctl ofproto/trace br0 "in_port=1,tun_id=6,ip,nw_src=${remote_different_addr},nw_dst=${base_pod_addr}"
-	echo ""
-
-	if nsenter -n -t $base_pod_pid ping -c 1 -W 2 $remote_different_addr >& /dev/null; then
-	    echo "ping $remote_different_addr  ->  success"
-	else
-	    echo "ping $remote_different_addr  ->  failed"
-	fi
-
-	echo ""
-	echo ""
-    fi
+do_pod_external_connectivity_check () {
+    base_pod_name=$1
+    base_pod_addr=$2
+    base_pod_pid=$3
+    base_pod_port=$4
+    base_pod_vnid=$5
+    base_pod_ether=$6
 
     echo "EXTERNAL TRAFFIC:"
     echo ""
@@ -263,16 +213,10 @@ do_node () {
     echo_and_eval ovs-ofctl -O OpenFlow13 dump-flows br0 >& $lognode/flows
     echo_and_eval ovs-ofctl -O OpenFlow13 show br0 >& $lognode/ovs-show
 
-    first_pod_addr=
-    local_same_addr=
-    local_different_addr=
-    remote_same_addr=
-    remote_different_addr=
-
     # Iterate over all pods on this node, and log some data about them.
     # Remember the name, address, namespace, and pid of the first pod we find on
-    # this node, and (if possible), the name and address of two additional pods
-    # on this node, one in the same namespace and one in a different namespace.
+    # this node which is not in the default namespace
+    base_pod_addr=
     for pod in $(get_pods); do
 	split_podspec pod
 	if [ "$pod_node" != "$node" ]; then
@@ -291,46 +235,83 @@ do_node () {
 	echo_and_eval nsenter -n -t $pid ip addr show >& $logpod/addresses
 	echo_and_eval nsenter -n -t $pid ip route show >& $logpod/routes
 
-	if [ -z "$first_pod_addr" ]; then
-	    first_pod_addr=$pod_addr
-	    first_pod_ns=$pod_ns
-	    first_pod_name=$pod_name
-	    first_pod_pid=$pid
-	elif [ "$pod_ns" = "$first_pod_ns" -a -z "$local_same_addr" ]; then
-	    local_same_addr=$pod_addr
-	    local_same_name=$pod_name
-	elif [ "$pod_ns" != "$first_pod_ns" -a -z "$local_different_addr" ]; then
-	    local_different_addr=$pod_addr
-	    local_different_name=$pod_name
+	# If we haven't found a local pod yet, or if we have, but it's
+	# in the default namespace, then make this the new base pod.
+	if [ -z "$base_pod_addr" -o "$base_pod_ns" = "default" ]; then
+	    base_pod_addr=$pod_addr
+	    base_pod_ns=$pod_ns
+	    base_pod_name=$pod_name
+	    base_pod_pid=$pid
 	fi
     done
 
-    if [ -z "$first_pod_addr" ]; then
+    if [ -z "$base_pod_addr" ]; then
 	echo "No pods on $node, so no connectivity tests"
 	return
     fi
 
-    # Now find some remote pods to test against
-    for pod in $pods; do
-	split_podspec pod
+    base_pod_port=$(get_port_for_addr $base_pod_addr)
+    if [ -z "$base_pod_port" ]; then
+	echo "Could not find port for ${base_pod_addr}!"
+	return
+    fi
+    base_pod_vnid=$(get_vnid_for_addr $base_pod_addr)
+    if [ -z "$base_pod_vnid" ]; then
+	echo "Could not find VNID for ${base_pod_addr}!"
+	return
+    fi
+    base_pod_ether=$(nsenter -n -t $base_pod_pid ip a | sed -ne "s/.*link.ether \([^ ]*\) .*/\1/p")
+    if [ -z "$base_pod_ether" ]; then
+	echo "Could not find MAC address for ${base_pod_addr}!"
+	return
+    fi
 
-	if [ "$pod_node" != "$node" ]; then
-	    if [ "$pod_ns" = "$first_pod_ns" -a -z "$remote_same_addr" ]; then
-		remote_same_addr=$pod_addr
-		remote_same_name=$pod_name
-	    elif [ "$pod_ns" != "$first_pod_ns" -a -z "$remote_different_addr" ]; then
-		remote_different_addr=$pod_addr
-		remote_different_name=$pod_name
-	    fi
+    unset did_local_default   did_local_same   did_local_different
+    unset did_remote_default  did_remote_same  did_remote_different
+    if [ "$base_pod_ns" = "default" ]; then
+	# These would be redundant with the "default" tests
+	did_local_same=1
+	did_remote_same=1
+    fi
+
+    # Now find other pods of various types to test connectivity against
+    touch $lognode/connectivity
+    for pod in $(get_pods); do
+	split_podspec pod
+	if [ "$pod_addr" = "$base_pod_addr" ]; then
+	    continue
 	fi
+
+	if [ "$pod_node" = "$node" ]; then
+	    where=local
+	else
+	    where=remote
+	fi
+	if [ "$pod_ns" = "default" ]; then
+	    namespace=default
+	elif [ "$pod_ns" = "$base_pod_ns" ]; then
+	    namespace=same
+	else
+	    namespace=different
+	fi
+
+	if [ "$(eval echo \$did_${where}_${namespace})" = 1 ]; then
+	    continue
+	fi
+
+	do_pod_to_pod_connectivity_check $where $namespace \
+					 $base_pod_name $base_pod_addr \
+					 $base_pod_pid $base_pod_port \
+					 $base_pod_vnid $base_pod_ether \
+					 $pod_name $pod_addr \
+					 &>> $lognode/connectivity
+	eval did_${where}_${namespace}=1
     done
 
-    do_node_connectivity_check "$first_pod_addr" "$first_pod_name" "$first_pod_pid" \
-			       "$local_same_addr" "$local_same_name" \
-			       "$local_different_addr" "$local_different_name" \
-			       "$remote_same_addr" "$remote_same_name" \
-			       "$remote_different_addr" "$remote_different_name" \
-			       >& $lognode/connectivity
+    do_pod_external_connectivity_check $base_pod_name $base_pod_addr \
+				       $base_pod_pid $base_pod_port \
+				       $base_pod_vnid $base_pod_ether \
+				       &>> $lognode/connectivity
 }
 
 run_self_via_ssh () {
