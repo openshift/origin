@@ -260,7 +260,7 @@ func GetFlagDuration(cmd *cobra.Command, flag string) time.Duration {
 }
 
 func AddValidateFlags(cmd *cobra.Command) {
-	cmd.Flags().Bool("validate", true, "If true, use a schema to validate the input before sending it")
+	cmd.Flags().Bool("validate", false, "If true, use a schema to validate the input before sending it")
 	cmd.Flags().String("schema-cache-dir", "/tmp/kubectl.schema", "If non-empty, load/store cached API schemas in this directory, default is '/tmp/kubectl.schema'")
 }
 
