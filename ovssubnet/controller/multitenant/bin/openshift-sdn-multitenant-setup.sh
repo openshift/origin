@@ -52,7 +52,7 @@ function setup() {
     ip link set vovsbr txqueuelen 0
 
     ovs-vsctl del-port br0 vovsbr || true
-    ovs-vsctl add-port br0 vovsbr -- set Interface vovsbr ofport_request=9
+    ovs-vsctl add-port br0 vovsbr -- set Interface vovsbr ofport_request=3
 
     # Table 0; learn MAC addresses and continue with table 1
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=0, actions=learn(table=8, priority=200, hard_timeout=900, NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[], load:NXM_NX_TUN_IPV4_SRC[]->NXM_NX_TUN_IPV4_DST[], output:NXM_OF_IN_PORT[]), goto_table:1"
@@ -61,7 +61,7 @@ function setup() {
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, arp, actions=goto_table:8"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=1, actions=goto_table:2" # vxlan0
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=2, actions=goto_table:5" # tun0
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=9, actions=goto_table:5" # vovsbr
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, in_port=3, actions=goto_table:5" # vovsbr
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=1, actions=goto_table:3"            # container
 
     # Table 2; incoming from vxlan
