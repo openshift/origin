@@ -141,6 +141,9 @@ func New(c *Config) (*Client, error) {
 		return nil, err
 	}
 	experimentalConfig := *c
+	// clearing Version from the config so that the --api-version flag will work.  This may or may not be unborked after the next rebase
+	// but they are working on the issue in: https://github.com/kubernetes/kubernetes/pull/14383
+	experimentalConfig.Version = ""
 	experimentalClient, err := NewExperimental(&experimentalConfig)
 	if err != nil {
 		return nil, err

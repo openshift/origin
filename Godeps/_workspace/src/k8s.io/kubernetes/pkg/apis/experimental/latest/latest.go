@@ -22,7 +22,6 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/registered"
 	_ "k8s.io/kubernetes/pkg/apis/experimental"
 	"k8s.io/kubernetes/pkg/apis/experimental/v1"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -42,12 +41,11 @@ var (
 const importPrefix = "k8s.io/kubernetes/pkg/apis/experimental"
 
 func init() {
-	Version = registered.RegisteredVersions[0]
+	// hardcode these values to be correct for now.  The next rebase completely changes how these are registered
+	Version = "v1"
+	Versions = []string{"v1"}
+
 	Codec = runtime.CodecFor(api.Scheme, Version)
-	// Put the registered versions in Versions in reverse order.
-	for i := len(registered.RegisteredVersions) - 1; i >= 0; i-- {
-		Versions = append(Versions, registered.RegisteredVersions[i])
-	}
 
 	// the list of kinds that are scoped at the root of the api hierarchy
 	// if a kind is not enumerated here, it is assumed to have a namespace scope
