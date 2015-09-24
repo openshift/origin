@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"path"
 	"sync"
 	"testing"
 
@@ -206,10 +207,10 @@ func TestUserInitialization(t *testing.T) {
 
 	for k, testcase := range testcases {
 		// Cleanup
-		if err := etcdHelper.RecursiveDelete(useretcd.EtcdPrefix, true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
+		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, useretcd.EtcdPrefix), true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up users: %v", err)
 		}
-		if err := etcdHelper.RecursiveDelete(identityetcd.EtcdPrefix, true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
+		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, identityetcd.EtcdPrefix), true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up identities: %v", err)
 		}
 

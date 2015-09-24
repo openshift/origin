@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktypes "k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -62,7 +62,7 @@ type routerInterface interface {
 	// RemoveRoute removes the given route for the given id.
 	RemoveRoute(id string, route *routeapi.Route)
 	// Reduce the list of routes to only these namespaces
-	FilterNamespaces(namespaces util.StringSet)
+	FilterNamespaces(namespaces sets.String)
 	// Commit refreshes the backend and persists the router state.
 	Commit() error
 }
@@ -162,7 +162,7 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 
 // HandleAllowedNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
-func (p *TemplatePlugin) HandleNamespaces(namespaces util.StringSet) error {
+func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 	p.Router.FilterNamespaces(namespaces)
 	return p.Router.Commit()
 }

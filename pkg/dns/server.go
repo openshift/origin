@@ -1,7 +1,7 @@
 package dns
 
 import (
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/prometheus/client_golang/prometheus"

@@ -16,8 +16,8 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	testutil "github.com/openshift/origin/test/util"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
-	clientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/test/e2e"
 )
 

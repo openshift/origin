@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/client"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"

@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
@@ -533,8 +533,8 @@ func newAdzePolicies() []authorizationapi.Policy {
 					},
 					Rules: append(make([]authorizationapi.PolicyRule, 0),
 						authorizationapi.PolicyRule{
-							Verbs:     util.NewStringSet("watch", "list", "get"),
-							Resources: util.NewStringSet("buildConfigs"),
+							Verbs:     sets.NewString("watch", "list", "get"),
+							Resources: sets.NewString("buildConfigs"),
 						}),
 				},
 			},

@@ -10,11 +10,12 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e"
 
@@ -169,7 +170,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 	name string,
 	isOK, isFailed func(*kapi.ReplicationController) bool) error {
 	for {
-		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, kutil.NewStringSet(name))
+		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, sets.NewString(name))
 		if err != nil {
 			return fmt.Errorf("unexpected error generating label selector: %v", err)
 		}

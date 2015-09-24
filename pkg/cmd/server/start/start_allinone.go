@@ -18,6 +18,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
@@ -196,7 +197,7 @@ func (o *AllInOneOptions) Complete() error {
 		o.NodeArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
 	}
 
-	nodeList := util.NewStringSet(strings.ToLower(o.NodeArgs.NodeName))
+	nodeList := sets.NewString(strings.ToLower(o.NodeArgs.NodeName))
 	// take everything toLower
 	for _, s := range o.MasterOptions.MasterArgs.NodeList {
 		nodeList.Insert(strings.ToLower(s))

@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
 

@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"

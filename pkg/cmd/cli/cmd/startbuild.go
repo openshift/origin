@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/labels"
@@ -35,19 +35,19 @@ Start a build
 This command starts a build for the provided BuildConfig or re-runs an existing build using
 --from-build=<name>. You may pass the --follow flag to see output from the build.`
 
-	startBuildExample = `  // Starts build from BuildConfig matching the name "3bd2ug53b"
+	startBuildExample = `  # Starts build from BuildConfig matching the name "3bd2ug53b"
   $ %[1]s start-build sample-build
 
-  // Starts build from build matching the name "sample-build-1"
+  # Starts build from build matching the name "sample-build-1"
   $ %[1]s start-build --from-build=sample-build-1
 
-  // Starts build from BuildConfig matching the name "sample-build" and watches
-	// the logs until the build completes or fails
+  # Starts build from BuildConfig matching the name "sample-build" and watches
+	# the logs until the build completes or fails
   $ %[1]s start-build sample-build --follow
 
-  // Starts build from BuildConfig matching the name "sample-build" and wait until
-	// the build completes. It exits with a non-zero return code if the build
-	// fails. 
+  # Starts build from BuildConfig matching the name "sample-build" and wait until
+	# the build completes. It exits with a non-zero return code if the build
+	# fails. 
   $ %[1]s start-build sample-build --wait`
 )
 

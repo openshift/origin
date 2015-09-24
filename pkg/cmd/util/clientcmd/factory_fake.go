@@ -11,8 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	"k8s.io/kubernetes/pkg/api/validation"
-	kclient "k8s.io/kubernetes/pkg/client"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -53,6 +53,10 @@ func (t *testPrinter) PrintObj(obj runtime.Object, out io.Writer) error {
 	t.Objects = append(t.Objects, obj)
 	fmt.Fprintf(out, "%#v", obj)
 	return t.Err
+}
+
+func (t *testPrinter) HandledResources() []string {
+	return []string{}
 }
 
 type testFactory struct {
@@ -98,10 +102,10 @@ func newFakeKubeFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 		Describer: func(*meta.RESTMapping) (kubectl.Describer, error) {
 			return t.Describer, t.Err
 		},
-		Printer: func(mapping *meta.RESTMapping, noHeaders, withNamespace bool, wide bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
+		Printer: func(mapping *meta.RESTMapping, noHeaders, withNamespace bool, wide bool, showAll bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
 			return t.Printer, t.Err
 		},
-		Validator: func() (validation.Schema, error) {
+		Validator: func(validate bool, cacheDir string) (validation.Schema, error) {
 			return t.Validator, t.Err
 		},
 		DefaultNamespace: func() (string, bool, error) {
@@ -114,7 +118,7 @@ func newFakeKubeFactory() (*cmdutil.Factory, *testFactory, runtime.Codec) {
 			generator, ok := generators[name]
 			return generator, ok
 		},
-	}, t, testapi.Codec()
+	}, t, testapi.Default.Codec()
 }
 
 // NewFakeFactory returns a new fake OpenShift factory

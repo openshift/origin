@@ -18,7 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
@@ -239,7 +239,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			if currClient.Name != OSCliClientBase.Name {
 				// Add in any redirects from the existing one
 				// This preserves any additional customized redirects in the default clients
-				redirects := util.NewStringSet(currClient.RedirectURIs...)
+				redirects := sets.NewString(currClient.RedirectURIs...)
 				for _, redirect := range existing.RedirectURIs {
 					if !redirects.Has(redirect) {
 						currClient.RedirectURIs = append(currClient.RedirectURIs, redirect)
@@ -433,7 +433,7 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 
 		// OpenID Connect requests MUST contain the openid scope value
 		// http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
-		scopes := util.NewStringSet("openid")
+		scopes := sets.NewString("openid")
 		scopes.Insert(provider.ExtraScopes...)
 
 		config := openid.Config{

@@ -11,8 +11,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
-	"k8s.io/kubernetes/pkg/util"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // CSRFTokenHeader is a marker header that indicates we are not a browser that got tricked into requesting basic auth
@@ -39,7 +39,7 @@ func RequestToken(clientCfg *kclient.Config, reader io.Reader, defaultUsername s
 	// requestHeaders holds additional headers to add to the request. This can be changed by challengeHandlers
 	requestHeaders := http.Header{}
 	// requestedURLSet/requestedURLList hold the URLs we have requested, to prevent redirect loops. Gets reset when a challenge is handled.
-	requestedURLSet := util.NewStringSet()
+	requestedURLSet := sets.NewString()
 	requestedURLList := []string{}
 
 	for {
@@ -65,7 +65,7 @@ func RequestToken(clientCfg *kclient.Config, reader io.Reader, defaultUsername s
 				}
 
 				// Reset request set/list. Since we're setting different headers, it is legitimate to request the same urls
-				requestedURLSet = util.NewStringSet()
+				requestedURLSet = sets.NewString()
 				requestedURLList = []string{}
 				// Use the response to the challenge as the new headers
 				requestHeaders = newRequestHeaders

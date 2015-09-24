@@ -10,6 +10,7 @@ import (
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -113,9 +114,9 @@ func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfi
 	var ca *crypto.TLSCertificateConfig
 	written := true
 	if o.Overwrite {
-		ca, err = signerCert.MakeServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		ca, err = signerCert.MakeServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...))
 	} else {
-		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, util.NewStringSet([]string(o.Hostnames)...))
+		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...))
 	}
 	if written {
 		glog.V(3).Infof("Generated new server certificate as %s, key as %s\n", o.CertFile, o.KeyFile)

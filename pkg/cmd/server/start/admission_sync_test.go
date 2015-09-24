@@ -8,12 +8,12 @@ import (
 	_ "k8s.io/kubernetes/cmd/kube-apiserver/app"
 
 	"k8s.io/kubernetes/pkg/admission"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 )
 
-var admissionPluginsNotUsedByKube = util.NewStringSet(
+var admissionPluginsNotUsedByKube = sets.NewString(
 	"AlwaysAdmit",            // from kube, no need for this by default
 	"AlwaysDeny",             // from kube, no need for this by default
 	"NamespaceAutoProvision", // from kube, it creates a namespace if a resource is created in a non-existent namespace.  We don't want this behavior
@@ -25,9 +25,9 @@ var admissionPluginsNotUsedByKube = util.NewStringSet(
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {
-	registeredKubePlugins := util.NewStringSet(admission.GetPlugins()...)
+	registeredKubePlugins := sets.NewString(admission.GetPlugins()...)
 
-	usedAdmissionPlugins := util.NewStringSet(kubernetes.AdmissionPlugins...)
+	usedAdmissionPlugins := sets.NewString(kubernetes.AdmissionPlugins...)
 
 	if missingPlugins := usedAdmissionPlugins.Difference(registeredKubePlugins); len(missingPlugins) != 0 {
 		t.Errorf("%v not found", missingPlugins.List())

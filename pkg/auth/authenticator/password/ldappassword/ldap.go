@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/go-ldap/ldap"
 	"github.com/golang/glog"
@@ -102,7 +103,7 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 	)
 
 	// Build list of attributes to retrieve
-	attrs := util.NewStringSet(a.options.URL.QueryAttribute)
+	attrs := sets.NewString(a.options.URL.QueryAttribute)
 	attrs.Insert(a.options.UserAttributeDefiner.AllAttributes().List()...)
 
 	// Search for LDAP record

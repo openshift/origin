@@ -93,7 +93,7 @@ oc login -u e2e-user -p pass
 oc status -n default
 
 oc project cache
-token=$(oc config view --flatten -o template -t '{{with index .users 0}}{{.user.token}}{{end}}')
+token=$(oc config view --flatten -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${token} ]]
 
 echo "[INFO] Docker login as e2e-user to ${DOCKER_REGISTRY}"
@@ -147,7 +147,7 @@ set -e
 
 # Remote command execution
 echo "[INFO] Validating exec"
-frontend_pod=$(oc get pod -l deploymentconfig=frontend -t '{{(index .items 0).metadata.name}}')
+frontend_pod=$(oc get pod -l deploymentconfig=frontend --template='{{(index .items 0).metadata.name}}')
 # when running as a restricted pod the registry will run with a pre-allocated
 # user in the neighborhood of 1000000+.  Look for a substring of the pre-allocated uid range
 [ "$(oc exec -p ${frontend_pod} id | grep 1000)" ]
@@ -180,7 +180,7 @@ oc project ${CLUSTER_ADMIN_CONTEXT}
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 --template="{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 # Check for privileged exec limitations.
 echo "[INFO] Validating privileged pod exec"
@@ -213,7 +213,7 @@ openshift admin new-project node-selector --description="This is an example proj
 NODE_NAME=`oc get node --no-headers | awk '{print $1}'`
 oc process -n node-selector -v NODE_NAME="${NODE_NAME}" -f test/fixtures/node-selector/pods.json | oc create -n node-selector -f -
 # The pod without a node name should fail to schedule
-wait_for_command "oc get events -n node-selector | grep pod-without-node-name | grep failedScheduling"        $((20*TIME_SEC))
+wait_for_command "oc get events -n node-selector | grep pod-without-node-name | grep FailedScheduling"        $((20*TIME_SEC))
 # The pod with a node name should be rejected by the kubelet
 wait_for_command "oc get events -n node-selector | grep pod-with-node-name    | grep NodeSelectorMismatching" $((20*TIME_SEC))
 
@@ -237,7 +237,7 @@ docker tag -f gcr.io/google_containers/pause ${DOCKER_REGISTRY}/cache/prune
 docker push ${DOCKER_REGISTRY}/cache/prune
 
 # record the storage before pruning
-registry_pod=$(oc get pod -l deploymentconfig=docker-registry -t '{{(index .items 0).metadata.name}}')
+registry_pod=$(oc get pod -l deploymentconfig=docker-registry --template='{{(index .items 0).metadata.name}}')
 oc exec -p ${registry_pod} du /registry > ${LOG_DIR}/prune-images.before.txt
 
 # set up pruner user

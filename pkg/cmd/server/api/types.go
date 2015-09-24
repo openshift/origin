@@ -3,7 +3,7 @@ package api
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -638,7 +638,7 @@ const (
 	GrantHandlerDeny GrantHandlerType = "deny"
 )
 
-var ValidGrantHandlerTypes = util.NewStringSet(string(GrantHandlerAuto), string(GrantHandlerPrompt), string(GrantHandlerDeny))
+var ValidGrantHandlerTypes = sets.NewString(string(GrantHandlerAuto), string(GrantHandlerPrompt), string(GrantHandlerDeny))
 
 type EtcdConfig struct {
 	// ServingInfo describes how to start serving the etcd master

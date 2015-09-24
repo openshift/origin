@@ -3,26 +3,12 @@
 package integration
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	klatest "k8s.io/kubernetes/pkg/api/latest"
-	"k8s.io/kubernetes/pkg/api/rest"
-	kv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
-	"k8s.io/kubernetes/pkg/apiserver"
-	kclient "k8s.io/kubernetes/pkg/client"
-	"k8s.io/kubernetes/pkg/master"
-	namespaceetcd "k8s.io/kubernetes/pkg/registry/namespace/etcd"
-	"k8s.io/kubernetes/pkg/tools/etcdtest"
-	"k8s.io/kubernetes/plugin/pkg/admission/admit"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/client"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	projectregistry "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -33,78 +19,16 @@ func init() {
 
 // TestProjectIsNamespace verifies that a project is a namespace, and a namespace is a project
 func TestProjectIsNamespace(t *testing.T) {
-	testutil.DeleteAllEtcdKeys()
-	etcdClient := testutil.NewEtcdClient()
-	etcdHelper, err := master.NewEtcdStorage(etcdClient, latest.InterfacesFor, "v1", etcdtest.PathPrefix())
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// create a kube and its client
-	kubeInterfaces, _ := klatest.InterfacesFor(klatest.Version)
-	namespaceStorage, _, _ := namespaceetcd.NewStorage(etcdHelper)
-	kubeStorage := map[string]rest.Storage{
-		"namespaces": namespaceStorage,
-	}
-
-	osMux := http.NewServeMux()
-	server := httptest.NewServer(osMux)
-	defer server.Close()
-	handlerContainer := master.NewHandlerContainer(osMux)
-
-	version := &apiserver.APIGroupVersion{
-		Root:    "/api",
-		Version: "v1beta3",
-
-		Storage: kubeStorage,
-		Codec:   kv1beta3.Codec,
-
-		Mapper: klatest.RESTMapper,
-
-		Creater:   kapi.Scheme,
-		Typer:     kapi.Scheme,
-		Convertor: kapi.Scheme,
-		Linker:    kubeInterfaces.MetadataAccessor,
-
-		Admit:   admit.NewAlwaysAdmit(),
-		Context: kapi.NewRequestContextMapper(),
-	}
-	if err := version.InstallREST(handlerContainer); err != nil {
-		t.Fatalf("unable to install REST: %v", err)
-	}
-
-	kubeClient, err := kclient.New(&kclient.Config{Host: server.URL, Version: "v1beta3"})
+	originClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-
-	// create an origin
-	originInterfaces, _ := latest.InterfacesFor(latest.Version)
-	originStorage := map[string]rest.Storage{
-		"projects": projectregistry.NewREST(kubeClient.Namespaces(), nil),
-	}
-	osVersion := &apiserver.APIGroupVersion{
-		Root:    "/oapi",
-		Version: "v1",
-
-		Storage: originStorage,
-		Codec:   latest.Codec,
-
-		Mapper: latest.RESTMapper,
-
-		Creater:   kapi.Scheme,
-		Typer:     kapi.Scheme,
-		Convertor: kapi.Scheme,
-		Linker:    originInterfaces.MetadataAccessor,
-
-		Admit:   admit.NewAlwaysAdmit(),
-		Context: kapi.NewRequestContextMapper(),
-	}
-	if err := osVersion.InstallREST(handlerContainer); err != nil {
-		t.Fatalf("unable to install REST: %v", err)
-	}
-
-	originClient, err := client.New(&kclient.Config{Host: server.URL})
+	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

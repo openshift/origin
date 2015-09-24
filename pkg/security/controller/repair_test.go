@@ -5,7 +5,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/security/uid"
@@ -28,16 +28,16 @@ func (r *fakeRange) CreateOrUpdate(update *kapi.RangeAllocation) error {
 }
 
 func TestRepair(t *testing.T) {
-	client := &testclient.Fake{
-		ReactFn: func(a testclient.Action) (runtime.Object, error) {
-			list := &kapi.NamespaceList{
-				Items: []kapi.Namespace{
-					{ObjectMeta: kapi.ObjectMeta{Name: "default"}},
-				},
-			}
-			return list, nil
-		},
-	}
+	client := &testclient.Fake{}
+	client.AddReactor("*", "*", func(a testclient.Action) (bool, runtime.Object, error) {
+		list := &kapi.NamespaceList{
+			Items: []kapi.Namespace{
+				{ObjectMeta: kapi.ObjectMeta{Name: "default"}},
+			},
+		}
+		return true, list, nil
+	})
+
 	alloc := &fakeRange{
 		Range: &kapi.RangeAllocation{},
 	}

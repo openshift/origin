@@ -3,8 +3,8 @@ package util
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
-	"k8s.io/kubernetes/pkg/util"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/project/api"
 )
@@ -71,7 +71,7 @@ func finalizeInternal(kubeClient kclient.Interface, namespace *kapi.Namespace, w
 	namespaceFinalize.ObjectMeta = namespace.ObjectMeta
 	namespaceFinalize.Spec = namespace.Spec
 
-	finalizerSet := util.NewStringSet()
+	finalizerSet := sets.NewString()
 	for i := range namespace.Spec.Finalizers {
 		finalizerSet.Insert(string(namespace.Spec.Finalizers[i]))
 	}

@@ -6,7 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -21,11 +21,11 @@ func testNewClusterPolicies() []authorizationapi.ClusterPolicy {
 			Roles: map[string]*authorizationapi.ClusterRole{
 				"cluster-admin": {
 					ObjectMeta: kapi.ObjectMeta{Name: "cluster-admin"},
-					Rules:      []authorizationapi.PolicyRule{{Verbs: util.NewStringSet("*"), Resources: util.NewStringSet("*")}},
+					Rules:      []authorizationapi.PolicyRule{{Verbs: sets.NewString("*"), Resources: sets.NewString("*")}},
 				},
 				"admin": {
 					ObjectMeta: kapi.ObjectMeta{Name: "admin"},
-					Rules:      []authorizationapi.PolicyRule{{Verbs: util.NewStringSet("*"), Resources: util.NewStringSet("*")}},
+					Rules:      []authorizationapi.PolicyRule{{Verbs: sets.NewString("*"), Resources: sets.NewString("*")}},
 				},
 			},
 		},

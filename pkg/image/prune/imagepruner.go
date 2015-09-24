@@ -23,6 +23,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // TODO these edges should probably have an `Add***Edges` method in images/graph and be moved there
@@ -599,7 +600,7 @@ func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet
 		func(g graph.Interface, node gonum.Node) bool {
 			return !prunableImageIDs.Has(node.ID())
 		},
-		func(g graph.Interface, head, tail gonum.Node, edgeKinds util.StringSet) bool {
+		func(g graph.Interface, head, tail gonum.Node, edgeKinds sets.String) bool {
 			if prunableImageIDs.Has(head.ID()) {
 				return false
 			}
@@ -648,7 +649,7 @@ func pruneStreams(g graph.Graph, imageNodes []*imagegraph.ImageNode, streamPrune
 			}
 
 			stream := streamNode.ImageStream
-			updatedTags := util.NewStringSet()
+			updatedTags := sets.NewString()
 
 			glog.V(4).Infof("Checking if ImageStream %s/%s has references to image %s in status.tags", stream.Namespace, stream.Name, imageNode.Image.Name)
 

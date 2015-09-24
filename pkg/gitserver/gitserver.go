@@ -18,7 +18,7 @@ import (
 	"github.com/AaronO/go-git-http/auth"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"k8s.io/kubernetes/pkg/client/clientcmd"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/healthz"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"

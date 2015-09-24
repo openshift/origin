@@ -5,7 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/rest/resttest"
+	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
@@ -20,6 +20,11 @@ func newHelper(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	fakeEtcdClient.TestIndex = true
 	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	return fakeEtcdClient, helper
+}
+
+func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
+	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "")
+	return NewREST(etcdStorage), fakeClient
 }
 
 func validNew() *api.Template {
@@ -41,8 +46,7 @@ func validChanged() *api.Template {
 }
 
 func TestStorage(t *testing.T) {
-	_, helper := newHelper(t)
-	storage := NewREST(helper)
+	storage, _ := newStorage(t)
 	var _ rest.Creater = storage
 	var _ rest.Lister = storage
 	var _ rest.GracefulDeleter = storage
@@ -51,9 +55,8 @@ func TestStorage(t *testing.T) {
 }
 
 func TestCreate(t *testing.T) {
-	fakeEtcdClient, helper := newHelper(t)
-	storage := NewREST(helper)
-	test := resttest.New(t, storage, fakeEtcdClient.SetError)
+	storage, fakeClient := newStorage(t)
+	test := registrytest.New(t, fakeClient, storage.Etcd)
 	template := validNew()
 	template.ObjectMeta = kapi.ObjectMeta{}
 	test.TestCreate(

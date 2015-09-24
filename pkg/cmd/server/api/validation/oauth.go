@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	"github.com/openshift/origin/pkg/auth/server/login"
@@ -36,7 +36,7 @@ func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 
 	validationResults.AddErrors(ValidateGrantConfig(config.GrantConfig).Prefix("grantConfig")...)
 
-	providerNames := util.NewStringSet()
+	providerNames := sets.NewString()
 	redirectingIdentityProviders := []string{}
 
 	challengeIssuingIdentityProviders := []string{}

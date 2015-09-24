@@ -15,12 +15,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -463,7 +464,7 @@ func describeDockerImage(out *tabwriter.Writer, image *imageapi.DockerConfig) {
 	}
 	formatString(out, "Working Dir", image.WorkingDir)
 	formatString(out, "User", image.User)
-	ports := util.NewStringSet()
+	ports := sets.NewString()
 	for k := range image.ExposedPorts {
 		ports.Insert(k)
 	}
@@ -475,7 +476,7 @@ func describeDockerImage(out *tabwriter.Writer, image *imageapi.DockerConfig) {
 			fmt.Fprintf(out, "\t%s\n", env)
 		}
 	}
-	volumes := util.NewStringSet()
+	volumes := sets.NewString()
 	for k := range image.Volumes {
 		volumes.Insert(k)
 	}
@@ -820,7 +821,7 @@ func (d *IdentityDescriber) Describe(namespace, name string) (string, error) {
 			} else if err != nil {
 				nameValue += fmt.Sprintf(" (Error: User lookup failed)")
 			} else {
-				if !util.NewStringSet(resolvedUser.Identities...).Has(name) {
+				if !sets.NewString(resolvedUser.Identities...).Has(name) {
 					nameValue += fmt.Sprintf(" (Error: User identities do not include %s)", name)
 				}
 				if resolvedUser.UID != identity.User.UID {
@@ -963,7 +964,7 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 		formatString(out, "Last Modified", policy.LastModified)
 
 		// using .List() here because I always want the sorted order that it provides
-		for _, key := range util.KeySet(reflect.ValueOf(policy.Roles)).List() {
+		for _, key := range sets.KeySet(reflect.ValueOf(policy.Roles)).List() {
 			role := policy.Roles[key]
 			fmt.Fprint(out, key+"\t"+policyRuleHeadings+"\n")
 			for _, rule := range role.Rules {
@@ -983,7 +984,7 @@ func describePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions.Object)
 
 		buffer := new(bytes.Buffer)
-		printer := NewHumanReadablePrinter(true, false, false, []string{})
+		printer := NewHumanReadablePrinter(true, false, false, false, []string{})
 		if err := printer.PrintObj(rule.AttributeRestrictions.Object, buffer); err == nil {
 			extensionString = strings.TrimSpace(buffer.String())
 		}
@@ -1051,7 +1052,7 @@ func DescribePolicyBinding(policyBinding *authorizationapi.PolicyBinding) (strin
 		formatString(out, "Policy", policyBinding.PolicyRef.Namespace)
 
 		// using .List() here because I always want the sorted order that it provides
-		for _, key := range util.KeySet(reflect.ValueOf(policyBinding.RoleBindings)).List() {
+		for _, key := range sets.KeySet(reflect.ValueOf(policyBinding.RoleBindings)).List() {
 			roleBinding := policyBinding.RoleBindings[key]
 			users, groups, sas, others := authorizationapi.SubjectsStrings(roleBinding.Namespace, roleBinding.Subjects)
 

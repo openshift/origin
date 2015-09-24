@@ -6,8 +6,9 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 // scc exec is a pass through to *constraint, so we only need to test that
@@ -80,18 +81,15 @@ func TestExecAdmit(t *testing.T) {
 
 	for k, v := range testCases {
 		tc := testclient.NewSimpleFake()
-		tc.ReactFn = func(a testclient.Action) (runtime.Object, error) {
-			if a.Matches("get", "pods") {
-				return v.pod, nil
-			}
-
-			return nil, nil
-		}
+		tc.PrependReactor("get", "pods", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
+			return true, v.pod, nil
+		})
+		tc.AddWatchReactor("*", testclient.DefaultWatchReactor(watch.NewFake(), nil))
 
 		// create the admission plugin
 		p := NewSCCExecRestrictions(tc)
 
-		attrs := kadmission.NewAttributesRecord(v.pod, "Pod", "namespace", "", v.resource, v.subresource, v.operation, &user.DefaultInfo{})
+		attrs := kadmission.NewAttributesRecord(v.pod, "Pod", "namespace", "pod-name", v.resource, v.subresource, v.operation, &user.DefaultInfo{})
 		err := p.Admit(attrs)
 
 		if v.shouldAdmit && err != nil {
@@ -101,6 +99,9 @@ func TestExecAdmit(t *testing.T) {
 			t.Errorf("%s: expected errors but received none", k)
 		}
 
+		for _, action := range tc.Actions() {
+			t.Logf("%s: %#v", k, action)
+		}
 		if !v.shouldHaveClientAction && (len(tc.Actions()) > 0) {
 			t.Errorf("%s: unexpected actions: %v", k, tc.Actions())
 		}

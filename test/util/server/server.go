@@ -12,7 +12,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/wait"

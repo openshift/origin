@@ -11,8 +11,8 @@ import (
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
-	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
@@ -67,7 +67,7 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		name = user.GetName()
 
 		// remove the known virtual groups from the list if they are present
-		contextGroups := kutil.NewStringSet(user.GetGroups()...)
+		contextGroups := sets.NewString(user.GetGroups()...)
 		contextGroups.Delete(bootstrappolicy.UnauthenticatedGroup, bootstrappolicy.AuthenticatedGroup)
 
 		if ok, _ := validation.ValidateUserName(name, false); !ok {

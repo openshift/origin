@@ -8,8 +8,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 	"k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
-	"k8s.io/kubernetes/pkg/client/clientcmd"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"

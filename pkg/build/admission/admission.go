@@ -7,9 +7,9 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -92,7 +92,7 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 			ResourceName: resourceName(build.ObjectMeta),
 		},
 		User:   attr.GetUserInfo().GetName(),
-		Groups: util.NewStringSet(attr.GetUserInfo().GetGroups()...),
+		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
 	}
 	return a.checkAccess(strategyType, subjectAccessReview, attr)
 }
@@ -107,7 +107,7 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 			ResourceName: resourceName(buildConfig.ObjectMeta),
 		},
 		User:   attr.GetUserInfo().GetName(),
-		Groups: util.NewStringSet(attr.GetUserInfo().GetGroups()...),
+		Groups: sets.NewString(attr.GetUserInfo().GetGroups()...),
 	}
 	return a.checkAccess(strategyType, subjectAccessReview, attr)
 }

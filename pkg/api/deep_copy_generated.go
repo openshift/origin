@@ -16,6 +16,7 @@ import (
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
 	util "k8s.io/kubernetes/pkg/util"
+	sets "k8s.io/kubernetes/pkg/util/sets"
 )
 
 func deepCopy_api_AuthorizationAttributes(in api.AuthorizationAttributes, out *api.AuthorizationAttributes, c *conversion.Cloner) error {
@@ -281,12 +282,12 @@ func deepCopy_api_LocalSubjectAccessReview(in api.LocalSubjectAccessReview, out 
 	}
 	out.User = in.User
 	if in.Groups != nil {
-		out.Groups = make(util.StringSet)
+		out.Groups = make(sets.String)
 		for key, val := range in.Groups {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Groups[key] = newVal.(util.Empty)
+				out.Groups[key] = newVal.(sets.Empty)
 			}
 		}
 	} else {
@@ -412,12 +413,12 @@ func deepCopy_api_PolicyList(in api.PolicyList, out *api.PolicyList, c *conversi
 
 func deepCopy_api_PolicyRule(in api.PolicyRule, out *api.PolicyRule, c *conversion.Cloner) error {
 	if in.Verbs != nil {
-		out.Verbs = make(util.StringSet)
+		out.Verbs = make(sets.String)
 		for key, val := range in.Verbs {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Verbs[key] = newVal.(util.Empty)
+				out.Verbs[key] = newVal.(sets.Empty)
 			}
 		}
 	} else {
@@ -429,36 +430,36 @@ func deepCopy_api_PolicyRule(in api.PolicyRule, out *api.PolicyRule, c *conversi
 		out.AttributeRestrictions = newVal.(runtime.EmbeddedObject)
 	}
 	if in.Resources != nil {
-		out.Resources = make(util.StringSet)
+		out.Resources = make(sets.String)
 		for key, val := range in.Resources {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Resources[key] = newVal.(util.Empty)
+				out.Resources[key] = newVal.(sets.Empty)
 			}
 		}
 	} else {
 		out.Resources = nil
 	}
 	if in.ResourceNames != nil {
-		out.ResourceNames = make(util.StringSet)
+		out.ResourceNames = make(sets.String)
 		for key, val := range in.ResourceNames {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.ResourceNames[key] = newVal.(util.Empty)
+				out.ResourceNames[key] = newVal.(sets.Empty)
 			}
 		}
 	} else {
 		out.ResourceNames = nil
 	}
 	if in.NonResourceURLs != nil {
-		out.NonResourceURLs = make(util.StringSet)
+		out.NonResourceURLs = make(sets.String)
 		for key, val := range in.NonResourceURLs {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.NonResourceURLs[key] = newVal.(util.Empty)
+				out.NonResourceURLs[key] = newVal.(sets.Empty)
 			}
 		}
 	} else {
@@ -487,24 +488,24 @@ func deepCopy_api_ResourceAccessReviewResponse(in api.ResourceAccessReviewRespon
 	}
 	out.Namespace = in.Namespace
 	if in.Users != nil {
-		out.Users = make(util.StringSet)
+		out.Users = make(sets.String)
 		for key, val := range in.Users {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Users[key] = newVal.(util.Empty)
+				out.Users[key] = newVal.(sets.Empty)
 			}
 		}
 	} else {
 		out.Users = nil
 	}
 	if in.Groups != nil {
-		out.Groups = make(util.StringSet)
+		out.Groups = make(sets.String)
 		for key, val := range in.Groups {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Groups[key] = newVal.(util.Empty)
+				out.Groups[key] = newVal.(sets.Empty)
 			}
 		}
 	} else {
@@ -627,12 +628,12 @@ func deepCopy_api_SubjectAccessReview(in api.SubjectAccessReview, out *api.Subje
 	}
 	out.User = in.User
 	if in.Groups != nil {
-		out.Groups = make(util.StringSet)
+		out.Groups = make(sets.String)
 		for key, val := range in.Groups {
 			if newVal, err := c.DeepCopy(val); err != nil {
 				return err
 			} else {
-				out.Groups[key] = newVal.(util.Empty)
+				out.Groups[key] = newVal.(sets.Empty)
 			}
 		}
 	} else {
@@ -1320,6 +1321,8 @@ func deepCopy_api_DeploymentDetails(in deployapi.DeploymentDetails, out *deploya
 		for i := range in.Causes {
 			if newVal, err := c.DeepCopy(in.Causes[i]); err != nil {
 				return err
+			} else if newVal == nil {
+				out.Causes[i] = nil
 			} else {
 				out.Causes[i] = newVal.(*deployapi.DeploymentCause)
 			}
@@ -2399,6 +2402,8 @@ func deepCopy_api_Template(in templateapi.Template, out *templateapi.Template, c
 		for i := range in.Objects {
 			if newVal, err := c.DeepCopy(in.Objects[i]); err != nil {
 				return err
+			} else if newVal == nil {
+				out.Objects[i] = nil
 			} else {
 				out.Objects[i] = newVal.(runtime.Object)
 			}

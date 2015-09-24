@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	testpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/test"
@@ -22,8 +22,8 @@ type subjectsTest struct {
 	context    kapi.Context
 	attributes *DefaultAuthorizationAttributes
 
-	expectedUsers  util.StringSet
-	expectedGroups util.StringSet
+	expectedUsers  sets.String
+	expectedGroups sets.String
 	expectedError  string
 }
 
@@ -34,8 +34,8 @@ func TestSubjects(t *testing.T) {
 			Verb:     "get",
 			Resource: "pods",
 		},
-		expectedUsers:  util.NewStringSet("Anna", "ClusterAdmin", "Ellen", "Valerie", "system:serviceaccount:adze:second", "system:serviceaccount:foo:default", "system:serviceaccount:other:first"),
-		expectedGroups: util.NewStringSet("RootUsers", "system:cluster-admins", "system:cluster-readers", "system:masters", "system:nodes"),
+		expectedUsers:  sets.NewString("Anna", "ClusterAdmin", "Ellen", "Valerie", "system:serviceaccount:adze:second", "system:serviceaccount:foo:default", "system:serviceaccount:other:first"),
+		expectedGroups: sets.NewString("RootUsers", "system:cluster-admins", "system:cluster-readers", "system:masters", "system:nodes"),
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = newAdzePolicies()

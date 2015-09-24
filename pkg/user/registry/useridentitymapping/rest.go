@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/identity"
@@ -242,13 +243,13 @@ func identityReferencesUser(identity *api.Identity, user *api.User) bool {
 
 // userReferencesIdentity returns true if the user's identity list contains the given identity
 func userReferencesIdentity(user *api.User, identity *api.Identity) bool {
-	return util.NewStringSet(user.Identities...).Has(identity.Name)
+	return sets.NewString(user.Identities...).Has(identity.Name)
 }
 
 // addIdentityToUser adds the given identity to the user's list of identities
 // returns true if the user's identity list was modified
 func addIdentityToUser(identity *api.Identity, user *api.User) bool {
-	identities := util.NewStringSet(user.Identities...)
+	identities := sets.NewString(user.Identities...)
 	if identities.Has(identity.Name) {
 		return false
 	}
@@ -260,7 +261,7 @@ func addIdentityToUser(identity *api.Identity, user *api.User) bool {
 // removeIdentityFromUser removes the given identity from the user's list of identities
 // returns true if the user's identity list was modified
 func removeIdentityFromUser(identity *api.Identity, user *api.User) bool {
-	identities := util.NewStringSet(user.Identities...)
+	identities := sets.NewString(user.Identities...)
 	if !identities.Has(identity.Name) {
 		return false
 	}

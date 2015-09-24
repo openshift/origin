@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
-	kclientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 

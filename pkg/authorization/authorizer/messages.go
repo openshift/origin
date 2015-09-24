@@ -10,8 +10,8 @@ import (
 const DefaultProjectRequestForbidden = "You may not request a new project via this API."
 
 type ForbiddenMessageResolver struct {
-	// TODO if these maps were map[string]map[util.StringSet]ForbiddenMessageMaker, we'd be able to handle cases where sets of resources wanted slightly different messages
-	// unfortunately, maps don't support keys like that, requiring StringSet serialization and deserialization.
+	// TODO if these maps were map[string]map[sets.String]ForbiddenMessageMaker, we'd be able to handle cases where sets of resources wanted slightly different messages
+	// unfortunately, maps don't support keys like that, requiring sets.String serialization and deserialization.
 	namespacedVerbsToResourcesToForbiddenMessageMaker map[string]map[string]ForbiddenMessageMaker
 	rootScopedVerbsToResourcesToForbiddenMessageMaker map[string]map[string]ForbiddenMessageMaker
 

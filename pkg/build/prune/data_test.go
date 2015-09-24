@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -162,7 +163,7 @@ func TestPopuldatedDataSet(t *testing.T) {
 			}
 		}
 	}
-	expectedNames := util.NewStringSet("build-1", "build-2")
+	expectedNames := sets.NewString("build-1", "build-2")
 	buildResults, err := dataSet.ListBuildsByBuildConfig(buildConfigs[0])
 	if err != nil {
 		t.Errorf("Unexpected result %v", err)

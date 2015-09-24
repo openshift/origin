@@ -1380,6 +1380,8 @@ func deepCopy_v1_DeploymentDetails(in deployapiv1.DeploymentDetails, out *deploy
 		for i := range in.Causes {
 			if newVal, err := c.DeepCopy(in.Causes[i]); err != nil {
 				return err
+			} else if newVal == nil {
+				out.Causes[i] = nil
 			} else {
 				out.Causes[i] = newVal.(*deployapiv1.DeploymentCause)
 			}

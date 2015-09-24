@@ -5,7 +5,7 @@ import (
 	"path"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -20,7 +20,7 @@ type ClientCertInfo struct {
 	CertLocation    configapi.CertInfo
 	UnqualifiedUser string
 	User            string
-	Groups          util.StringSet
+	Groups          sets.String
 }
 
 func DefaultSignerName() string {
@@ -92,7 +92,7 @@ func DefaultRouterClientCertInfo(certDir string) ClientCertInfo {
 		},
 		UnqualifiedUser: bootstrappolicy.RouterUnqualifiedUsername,
 		User:            bootstrappolicy.RouterUsername,
-		Groups:          util.NewStringSet(bootstrappolicy.RouterGroup),
+		Groups:          sets.NewString(bootstrappolicy.RouterGroup),
 	}
 }
 
@@ -104,7 +104,7 @@ func DefaultRegistryClientCertInfo(certDir string) ClientCertInfo {
 		},
 		UnqualifiedUser: bootstrappolicy.RegistryUnqualifiedUsername,
 		User:            bootstrappolicy.RegistryUsername,
-		Groups:          util.NewStringSet(bootstrappolicy.RegistryGroup),
+		Groups:          sets.NewString(bootstrappolicy.RegistryGroup),
 	}
 }
 
@@ -116,7 +116,7 @@ func DefaultOpenshiftLoopbackClientCertInfo(certDir string) ClientCertInfo {
 		},
 		UnqualifiedUser: bootstrappolicy.MasterUnqualifiedUsername,
 		User:            bootstrappolicy.MasterUsername,
-		Groups:          util.NewStringSet(bootstrappolicy.MastersGroup),
+		Groups:          sets.NewString(bootstrappolicy.MastersGroup),
 	}
 }
 
@@ -128,7 +128,7 @@ func DefaultClusterAdminClientCertInfo(certDir string) ClientCertInfo {
 		},
 		UnqualifiedUser: "admin",
 		User:            "system:admin",
-		Groups:          util.NewStringSet(bootstrappolicy.ClusterAdminGroup),
+		Groups:          sets.NewString(bootstrappolicy.ClusterAdminGroup),
 	}
 }
 

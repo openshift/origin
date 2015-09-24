@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/cache"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -347,7 +347,7 @@ func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
 		}
 
 		// Set up accepted pods for the scenario.
-		acceptedPods := kutil.NewStringSet()
+		acceptedPods := sets.NewString()
 		for _, podName := range s.acceptedPods {
 			acceptedPods.Insert(podName)
 		}

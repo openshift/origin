@@ -11,8 +11,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/latest"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
 	kerrs "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -61,7 +61,7 @@ const (
 )
 
 func ValidateScope(scope GroupSyncScope) bool {
-	knownScopes := util.NewStringSet(string(GroupSyncScopeAll), string(GroupSyncScopeWhitelist))
+	knownScopes := sets.NewString(string(GroupSyncScopeAll), string(GroupSyncScopeWhitelist))
 	return knownScopes.Has(string(scope))
 }
 
@@ -76,7 +76,7 @@ const (
 )
 
 func ValidateSource(source GroupSyncSource) bool {
-	knownSources := util.NewStringSet(string(GroupSyncSourceLDAP), string(GroupSyncSourceOpenShift))
+	knownSources := sets.NewString(string(GroupSyncSourceLDAP), string(GroupSyncSourceOpenShift))
 	return knownSources.Has(string(source))
 }
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"

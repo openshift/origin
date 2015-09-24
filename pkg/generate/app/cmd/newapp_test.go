@@ -13,10 +13,11 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
@@ -477,7 +478,7 @@ func TestRunAll(t *testing.T) {
 		expected        map[string][]string
 		expectedName    string
 		expectedErr     error
-		expectInsecure  util.StringSet
+		expectInsecure  sets.String
 		expectedVolumes map[string]string
 		checkPort       string
 	}{
@@ -664,7 +665,7 @@ func TestRunAll(t *testing.T) {
 			expectedName:    "ruby-hello-world",
 			expectedErr:     nil,
 			expectedVolumes: nil,
-			expectInsecure:  util.NewStringSet("example"),
+			expectInsecure:  sets.NewString("example"),
 		},
 		{
 			name: "emptyDir volumes",
@@ -1249,8 +1250,8 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedPorts := util.NewStringSet("1234", "4567")
-	actualPorts := util.NewStringSet()
+	expectedPorts := sets.NewString("1234", "4567")
+	actualPorts := sets.NewString()
 	for port := range group[0].InputImage.Info.Config.ExposedPorts {
 		actualPorts.Insert(port)
 	}
@@ -1320,20 +1321,17 @@ func dockerBuilderImage() *docker.Image {
 }
 
 func fakeImageStreamSearcher() app.Searcher {
-	client := &client.Fake{
-		ReactFn: func(action testclient.Action) (runtime.Object, error) {
-			if action.Matches("get", "imagestreams") {
-				return builderImageStream(), nil
-			}
-			if action.Matches("list", "imagestreams") {
-				return builderImageStreams(), nil
-			}
-			if action.Matches("get", "imagestreamimages") {
-				return builderImage(), nil
-			}
-			return nil, nil
-		},
-	}
+	client := &client.Fake{}
+	client.AddReactor("get", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, builderImageStream(), nil
+	})
+	client.AddReactor("list", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, builderImageStreams(), nil
+	})
+	client.AddReactor("get", "imagestreamimages", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, builderImage(), nil
+	})
+
 	return app.ImageStreamSearcher{
 		Client:            client,
 		ImageStreamImages: client,
@@ -1342,27 +1340,28 @@ func fakeImageStreamSearcher() app.Searcher {
 }
 
 func fakeTemplateSearcher() app.Searcher {
-	client := &client.Fake{
-		ReactFn: func(action testclient.Action) (runtime.Object, error) {
-			if action.Matches("list", "templates") {
-				return &templateapi.TemplateList{
-					Items: []templateapi.Template{
-						{
-							Objects: []runtime.Object{},
-							ObjectMeta: kapi.ObjectMeta{
-								Name:      "first-stored-template",
-								Namespace: "default",
-							},
-						},
-					},
-				}, nil
-			}
-			return nil, nil
-		},
-	}
+	client := &client.Fake{}
+	client.AddReactor("list", "templates", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, templateList(), nil
+	})
+
 	return app.TemplateSearcher{
 		Client:     client,
 		Namespaces: []string{"default"},
+	}
+}
+
+func templateList() *templateapi.TemplateList {
+	return &templateapi.TemplateList{
+		Items: []templateapi.Template{
+			{
+				Objects: []runtime.Object{},
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "first-stored-template",
+					Namespace: "default",
+				},
+			},
+		},
 	}
 }
 

@@ -11,14 +11,14 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -31,7 +31,7 @@ type NodeOptions struct {
 	Mapper            meta.RESTMapper
 	Typer             runtime.ObjectTyper
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
-	Printer           func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, columnLabels []string) (kubectl.ResourcePrinter, error)
+	Printer           func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, columnLabels []string) (kubectl.ResourcePrinter, error)
 
 	CmdPrinter       kubectl.ResourcePrinter
 	CmdPrinterOutput bool
@@ -120,10 +120,13 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 
 	errList := []error{}
 	nodeList := []*kapi.Node{}
-	_ = r.Visit(func(info *resource.Info) error {
+	_ = r.Visit(func(info *resource.Info, err error) error {
+		if err != nil {
+			return err
+		}
 		node, ok := info.Object.(*kapi.Node)
 		if !ok {
-			err := fmt.Errorf("cannot convert input to Node: %v", reflect.TypeOf(info.Object))
+			err = fmt.Errorf("cannot convert input to Node: %v", reflect.TypeOf(info.Object))
 			errList = append(errList, err)
 			// Don't bail out if one node fails
 			return nil
@@ -138,8 +141,8 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 	if len(nodeList) == 0 {
 		return nodeList, fmt.Errorf("No nodes found")
 	} else {
-		givenNodeNames := util.NewStringSet(n.NodeNames...)
-		foundNodeNames := util.StringSet{}
+		givenNodeNames := sets.NewString(n.NodeNames...)
+		foundNodeNames := sets.String{}
 		for _, node := range nodeList {
 			foundNodeNames.Insert(node.ObjectMeta.Name)
 		}
@@ -173,11 +176,11 @@ func (n *NodeOptions) GetPrinters(kind, version string) (kubectl.ResourcePrinter
 		return nil, nil, err
 	}
 
-	printerWithHeaders, err := n.Printer(mapping, false, false, false, []string{})
+	printerWithHeaders, err := n.Printer(mapping, false, false, false, false, []string{})
 	if err != nil {
 		return nil, nil, err
 	}
-	printerNoHeaders, err := n.Printer(mapping, true, false, false, []string{})
+	printerNoHeaders, err := n.Printer(mapping, true, false, false, false, []string{})
 	if err != nil {
 		return nil, nil, err
 	}

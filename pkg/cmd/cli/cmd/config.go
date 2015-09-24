@@ -23,10 +23,10 @@ config). When you login the first time, a new config file is created, and subseq
 
 Reference: https://github.com/kubernetes/kubernetes/blob/master/docs/user-guide/kubeconfig-file.md`
 
-	configExample = `  // Change the config context to use
+	configExample = `  # Change the config context to use
   %[1]s %[2]s use-context my-context
 
-  // Set the value of a config preference
+  # Set the value of a config preference
   %[1]s %[2]s set preferences.some true`
 )
 

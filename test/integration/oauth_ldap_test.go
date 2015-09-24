@@ -7,9 +7,10 @@ import (
 	"reflect"
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/client"
@@ -52,7 +53,7 @@ func TestOAuthLDAP(t *testing.T) {
 	)
 
 	expectedAttributes := [][]byte{}
-	for _, attr := range kutil.NewStringSet(searchAttr, nameAttr1, nameAttr2, idAttr1, idAttr2, emailAttr1, emailAttr2, loginAttr1, loginAttr2).List() {
+	for _, attr := range sets.NewString(searchAttr, nameAttr1, nameAttr2, idAttr1, idAttr2, emailAttr1, emailAttr2, loginAttr1, loginAttr2).List() {
 		expectedAttributes = append(expectedAttributes, []byte(attr))
 	}
 	expectedSearchRequest := ldapserver.SearchRequest{

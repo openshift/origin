@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -32,7 +32,7 @@ type UniqueHost struct {
 	hostToRoute HostToRouteMap
 	routeToHost RouteToHostMap
 	// nil means different than empty
-	allowedNamespaces util.StringSet
+	allowedNamespaces sets.String
 }
 
 // NewUniqueHost creates a plugin wrapper that ensures only unique routes are passed into
@@ -164,7 +164,7 @@ func (p *UniqueHost) HandleRoute(eventType watch.EventType, route *routeapi.Rout
 
 // HandleAllowedNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
-func (p *UniqueHost) HandleNamespaces(namespaces util.StringSet) error {
+func (p *UniqueHost) HandleNamespaces(namespaces sets.String) error {
 	p.allowedNamespaces = namespaces
 	changed := false
 	for k, v := range p.hostToRoute {
