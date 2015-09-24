@@ -19,7 +19,6 @@ import (
 func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
-
 	allErrs = append(allErrs, validateBuildSpec(&build.Spec).Prefix("spec")...)
 	return allErrs
 }
@@ -31,7 +30,7 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) fielderro
 	allErrs = append(allErrs, ValidateBuild(build)...)
 
 	if !kapi.Semantic.DeepEqual(build.Spec, older.Spec) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec", build.Spec, "spec is immutable"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec", "content of spec is not printed out, please refer to the \"details\"", "spec is immutable"))
 	}
 
 	return allErrs
