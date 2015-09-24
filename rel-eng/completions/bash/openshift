@@ -4099,6 +4099,53 @@ _openshift_kube()
     must_have_one_noun=()
 }
 
+_openshift_ex_validate_master-config()
+{
+    last_command="openshift_ex_validate_master-config"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_ex_validate_node-config()
+{
+    last_command="openshift_ex_validate_node-config"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_ex_validate()
+{
+    last_command="openshift_ex_validate"
+    commands=()
+    commands+=("master-config")
+    commands+=("node-config")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_ex_tokens_validate-token()
 {
     last_command="openshift_ex_tokens_validate-token"
@@ -4249,6 +4296,7 @@ _openshift_ex()
 {
     last_command="openshift_ex"
     commands=()
+    commands+=("validate")
     commands+=("tokens")
     commands+=("ipfailover")
     commands+=("build-chain")
