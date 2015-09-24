@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source $(dirname "${BASH_SOURCE}")/../../vagrant/provision-config.sh
+source $(dirname "${BASH_SOURCE}")/../../contrib/vagrant/provision-config.sh
 
 NUM_NODES=${NUM_MINIONS:-2}
 NODE_IPS=(${MINION_IPS//,/ })

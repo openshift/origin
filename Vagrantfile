@@ -114,8 +114,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.define "#{VM_NAME_PREFIX}dind-host" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-full.sh"
-      config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh start"
+      config.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-dind.sh"
+      config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh config-host"
+      config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh restart"
       config.vm.hostname = "openshift-dind-host"
       config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
     end

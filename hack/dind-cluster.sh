@@ -313,7 +313,11 @@ case "${1:-""}" in
   test-net-e2e)
     test-net-e2e
     ;;
+  config-host)
+    os::util::set-oc-env "${CONFIG_ROOT}" "/root/.bash_profile"
+    os::util::set-oc-env "${CONFIG_ROOT}" "/home/vagrant/.bash_profile"
+    ;;
   *)
-    echo "Usage: $0 {start|stop|restart|build-images|test-net-e2e}"
+    echo "Usage: $0 {start|stop|restart|build-images|test-net-e2e|config-host}"
     exit 2
 esac
