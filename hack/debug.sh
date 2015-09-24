@@ -48,6 +48,7 @@ do_master () {
     echo_and_eval cat /etc/hosts >& $logmaster/hosts
     echo_and_eval oc get nodes -o json >& $logmaster/nodes
     echo_and_eval oc get pods --all-namespaces -o json >& $logmaster/pods
+    echo_and_eval oc get services --all-namespaces -o json >& $logmaster/services
 
     for node in $nodes; do
 	reg_ip=$(oc get node $node -t '{{range .status.addresses}}{{if eq .type "InternalIP"}}{{.address}}{{end}}{{end}}')
@@ -94,6 +95,25 @@ split_podspec () {
     eval ${prefix}_ns=${array[2]}
     eval ${prefix}_addr=${array[3]}
     eval ${prefix}_id=${array[4]}
+}
+
+# Returns a list of services in the form "myservice:namespace:172.30.0.99:tcp:5454"
+get_services () {
+    oc get services --all-namespaces -t '{{range .items}}{{if ne .spec.clusterIP "None"}}{{.metadata.name}}:{{.metadata.namespace}}:{{.spec.clusterIP}}:{{(index .spec.ports 0).protocol}}:{{(index .spec.ports 0).port}} {{end}}{{end}}' | sed -e 's/:TCP:/:tcp:/g' -e 's/:UDP:/:udp:/g'
+}
+
+# Given the name of a variable containing a "servicespec" like
+# "myservice:namespace:172.30.0.99:tcp:5454", split into pieces
+split_servicespec () {
+    prefix=$1
+    spec=$(eval echo \${$prefix})
+
+    array=(${spec//:/ })
+    eval ${prefix}_name=${array[0]}
+    eval ${prefix}_ns=${array[1]}
+    eval ${prefix}_addr=${array[2]}
+    eval ${prefix}_proto=${array[3]}
+    eval ${prefix}_port=${array[4]}
 }
 
 get_port_for_addr () {
@@ -186,6 +206,39 @@ do_pod_external_connectivity_check () {
     fi
 }
 
+do_pod_service_connectivity_check () {
+    namespace=$1
+    base_pod_name=$2
+    base_pod_addr=$3
+    base_pod_pid=$4
+    base_pod_port=$5
+    base_pod_vnid=$6
+    base_pod_ether=$7
+    service_name=$8
+    service_addr=$9
+    service_proto=${10}
+    service_port=${11}
+
+    echo service, $namespace namespace: | tr '[a-z]' '[A-Z]'
+    echo ""
+
+    echo "$base_pod_name -> $service_name"
+    echo_and_eval ovs-appctl ofproto/trace br0 "in_port=${base_pod_port},reg0=${base_pod_vnid},${service_proto},nw_src=${base_pod_addr},nw_dst=${service_addr},${service_proto}_dst=${service_port}"
+    echo ""
+    echo "$service_name -> $base_pod_name"
+    echo_and_eval ovs-appctl ofproto/trace br0 "in_port=2,${service_proto},nw_src=${service_addr},nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
+    echo ""
+
+    if nsenter -n -t $base_pod_pid -- timeout 1 bash -c "echo -n '' > /dev/${service_proto}/${service_addr}/${service_port} 2>/dev/null"; then
+	echo "connect ${service_addr}:${service_port}  ->  success"
+    else
+	echo "connect ${service_addr}:${service_port}  ->  failed"
+    fi
+
+    echo ""
+    echo ""
+}
+
 do_node () {
     config=$(systemctl show -p ExecStart openshift-node.service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
     if [ -z "$config" ]; then
@@ -268,14 +321,16 @@ do_node () {
 
     unset did_local_default   did_local_same   did_local_different
     unset did_remote_default  did_remote_same  did_remote_different
+    unset did_service_default did_service_same did_service_different
     if [ "$base_pod_ns" = "default" ]; then
 	# These would be redundant with the "default" tests
 	did_local_same=1
 	did_remote_same=1
+	did_service_same=1
     fi
 
     # Now find other pods of various types to test connectivity against
-    touch $lognode/connectivity
+    touch $lognode/pod-connectivity
     for pod in $(get_pods); do
 	split_podspec pod
 	if [ "$pod_addr" = "$base_pod_addr" ]; then
@@ -304,14 +359,40 @@ do_node () {
 					 $base_pod_pid $base_pod_port \
 					 $base_pod_vnid $base_pod_ether \
 					 $pod_name $pod_addr \
-					 &>> $lognode/connectivity
+					 &>> $lognode/pod-connectivity
 	eval did_${where}_${namespace}=1
     done
 
     do_pod_external_connectivity_check $base_pod_name $base_pod_addr \
 				       $base_pod_pid $base_pod_port \
 				       $base_pod_vnid $base_pod_ether \
-				       &>> $lognode/connectivity
+				       &>> $lognode/pod-connectivity
+
+    # And now for services
+    touch $lognode/service-connectivity
+    for service in $(get_services); do
+	split_servicespec service
+
+	if [ "$service_ns" = "default" ]; then
+	    namespace=default
+	elif [ "$service_ns" = "$base_pod_ns" ]; then
+	    namespace=same
+	else
+	    namespace=different
+	fi
+
+	if [ "$(eval echo \$did_service_${namespace})" = 1 ]; then
+	    continue
+	fi
+
+	do_pod_service_connectivity_check $namespace \
+					  $base_pod_name $base_pod_addr \
+					  $base_pod_pid $base_pod_port \
+					  $base_pod_vnid $base_pod_ether \
+					  $service_name $service_addr $service_proto $service_port \
+					  &>> $lognode/service-connectivity
+	eval did_service_${namespace}=1
+    done
 }
 
 run_self_via_ssh () {
