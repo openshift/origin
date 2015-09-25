@@ -1,21 +1,21 @@
 package v1
 
 import (
-  "testing"
+	"testing"
 
-  "github.com/ghodss/yaml"
-  "k8s.io/kubernetes/pkg/runtime"
-  "k8s.io/kubernetes/pkg/util"
+	"github.com/ghodss/yaml"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 
-  internal "github.com/openshift/origin/pkg/cmd/server/api"
+	internal "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 const (
-  // This constant lists all possible options for the node config file in v1
-  // Before modifying this constant, ensure any changes have corresponding issues filed for:
-  // - documentation: https://github.com/openshift/openshift-docs/
-  // - install: https://github.com/openshift/openshift-ansible/
-  expectedSerializedNodeConfig = `allowDisabledDocker: false
+	// This constant lists all possible options for the node config file in v1
+	// Before modifying this constant, ensure any changes have corresponding issues filed for:
+	// - documentation: https://github.com/openshift/openshift-docs/
+	// - install: https://github.com/openshift/openshift-ansible/
+	expectedSerializedNodeConfig = `allowDisabledDocker: false
 apiVersion: v1
 dnsDomain: ""
 dnsIP: ""
@@ -43,12 +43,12 @@ servingInfo:
 volumeDirectory: ""
 `
 
-  // This constant lists all possible options for the master config file in v1.
-  // It also includes the fields for all the identity provider types.
-  // Before modifying this constant, ensure any changes have corresponding issues filed for:
-  // - documentation: https://github.com/openshift/openshift-docs/
-  // - install: https://github.com/openshift/openshift-ansible/
-  expectedSerializedMasterConfig = `apiLevels: null
+	// This constant lists all possible options for the master config file in v1.
+	// It also includes the fields for all the identity provider types.
+	// Before modifying this constant, ensure any changes have corresponding issues filed for:
+	// - documentation: https://github.com/openshift/openshift-docs/
+	// - install: https://github.com/openshift/openshift-ansible/
+	expectedSerializedMasterConfig = `apiLevels: null
 apiVersion: v1
 assetConfig:
   extensionDevelopment: false
@@ -265,58 +265,58 @@ servingInfo:
 )
 
 func TestNodeConfig(t *testing.T) {
-  config := &internal.NodeConfig{
-    PodManifestConfig: &internal.PodManifestConfig{},
-  }
-  serializedConfig, err := writeYAML(config)
-  if err != nil {
-    t.Fatal(err)
-  }
-  if string(serializedConfig) != expectedSerializedNodeConfig {
-    t.Errorf("Diff:\n-------------\n%s", util.StringDiff(string(serializedConfig), expectedSerializedNodeConfig))
-  }
+	config := &internal.NodeConfig{
+		PodManifestConfig: &internal.PodManifestConfig{},
+	}
+	serializedConfig, err := writeYAML(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(serializedConfig) != expectedSerializedNodeConfig {
+		t.Errorf("Diff:\n-------------\n%s", util.StringDiff(string(serializedConfig), expectedSerializedNodeConfig))
+	}
 }
 
 func TestMasterConfig(t *testing.T) {
-  config := &internal.MasterConfig{
-    KubernetesMasterConfig: &internal.KubernetesMasterConfig{},
-    EtcdConfig:             &internal.EtcdConfig{},
-    OAuthConfig: &internal.OAuthConfig{
-      IdentityProviders: []internal.IdentityProvider{
-        {Provider: runtime.EmbeddedObject{Object: &internal.BasicAuthPasswordIdentityProvider{}}},
-        {Provider: runtime.EmbeddedObject{Object: &internal.AllowAllPasswordIdentityProvider{}}},
-        {Provider: runtime.EmbeddedObject{Object: &internal.DenyAllPasswordIdentityProvider{}}},
-        {Provider: runtime.EmbeddedObject{Object: &internal.HTPasswdPasswordIdentityProvider{}}},
-        {Provider: runtime.EmbeddedObject{Object: &internal.LDAPPasswordIdentityProvider{}}},
-        {Provider: runtime.EmbeddedObject{Object: &internal.RequestHeaderIdentityProvider{}}},
-        {Provider: runtime.EmbeddedObject{Object: &internal.GitHubIdentityProvider{}}},
-        {Provider: runtime.EmbeddedObject{Object: &internal.GoogleIdentityProvider{}}},
-        {Provider: runtime.EmbeddedObject{Object: &internal.OpenIDIdentityProvider{}}},
-      },
-      SessionConfig: &internal.SessionConfig{},
-    },
-    AssetConfig: &internal.AssetConfig{},
-    DNSConfig:   &internal.DNSConfig{},
-  }
-  serializedConfig, err := writeYAML(config)
-  if err != nil {
-    t.Fatal(err)
-  }
-  if string(serializedConfig) != expectedSerializedMasterConfig {
-    t.Errorf("Diff:\n-------------\n%s", util.StringDiff(string(serializedConfig), expectedSerializedMasterConfig))
-  }
+	config := &internal.MasterConfig{
+		KubernetesMasterConfig: &internal.KubernetesMasterConfig{},
+		EtcdConfig:             &internal.EtcdConfig{},
+		OAuthConfig: &internal.OAuthConfig{
+			IdentityProviders: []internal.IdentityProvider{
+				{Provider: runtime.EmbeddedObject{Object: &internal.BasicAuthPasswordIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.AllowAllPasswordIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.DenyAllPasswordIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.HTPasswdPasswordIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.LDAPPasswordIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.RequestHeaderIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.GitHubIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.GoogleIdentityProvider{}}},
+				{Provider: runtime.EmbeddedObject{Object: &internal.OpenIDIdentityProvider{}}},
+			},
+			SessionConfig: &internal.SessionConfig{},
+		},
+		AssetConfig: &internal.AssetConfig{},
+		DNSConfig:   &internal.DNSConfig{},
+	}
+	serializedConfig, err := writeYAML(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(serializedConfig) != expectedSerializedMasterConfig {
+		t.Errorf("Diff:\n-------------\n%s", util.StringDiff(string(serializedConfig), expectedSerializedMasterConfig))
+	}
 
 }
 
 func writeYAML(obj runtime.Object) ([]byte, error) {
-  json, err := Codec.Encode(obj)
-  if err != nil {
-    return nil, err
-  }
+	json, err := Codec.Encode(obj)
+	if err != nil {
+		return nil, err
+	}
 
-  content, err := yaml.JSONToYAML(json)
-  if err != nil {
-    return nil, err
-  }
-  return content, err
+	content, err := yaml.JSONToYAML(json)
+	if err != nil {
+		return nil, err
+	}
+	return content, err
 }

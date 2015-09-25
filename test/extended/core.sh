@@ -58,6 +58,8 @@ SKIP_TESTS=(
   "Ask kubelet to report container resource usage" # container resource usage not exposed yet?
   "should provide Internet connection for containers" # DNS inside container failing!!!
 
+  "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
+
   # Needs triage to determine why it is failing
   "Addon update"          # TRIAGE
   SSH                     # TRIAGE

@@ -1,4 +1,4 @@
-package syncgroups
+package rfc2307
 
 import "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 

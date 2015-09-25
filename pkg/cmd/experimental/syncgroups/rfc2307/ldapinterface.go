@@ -2,20 +2,25 @@ package rfc2307
 
 import (
 	"github.com/go-ldap/ldap"
+	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
 func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
-	groupQuery ldaputil.IdentifiyingLDAPQueryOptions,
-	userQuery ldaputil.IdentifiyingLDAPQueryOptions,
-	groupMembershipAttributes []string) LDAPInterface {
+	groupQuery ldaputil.LDAPQueryOnAttribute,
+	groupNameAttributes []string,
+	groupMembershipAttributes []string,
+	userQuery ldaputil.LDAPQueryOnAttribute,
+	userNameAttributes []string) LDAPInterface {
 	return LDAPInterface{
 		clientConfig:              clientConfig,
 		groupQuery:                groupQuery,
-		userQuery:                 userQuery,
+		groupNameAttributes:       groupNameAttributes,
 		groupMembershipAttributes: groupMembershipAttributes,
+		userQuery:                 userQuery,
+		userNameAttributes:        userNameAttributes,
 		cachedUsers:               make(map[string]*ldap.Entry),
 		cachedGroups:              make(map[string]*ldap.Entry),
 	}
@@ -30,15 +35,21 @@ func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
 type LDAPInterface struct {
 	// clientConfig holds LDAP connection information
 	clientConfig ldaputil.LDAPClientConfig
+
 	// groupQuery holds the information necessary to make an LDAP query for a specific
 	// first-class group entry on the LDAP server
-	groupQuery ldaputil.IdentifiyingLDAPQueryOptions
+	groupQuery ldaputil.LDAPQueryOnAttribute
+	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its' name
+	groupNameAttributes []string
+	// groupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted
+	// as its' members
+	groupMembershipAttributes []string
+
 	// userQuery holds the information necessary to make an LDAP query for a specific
 	// first-class user entry on the LDAP server
-	userQuery ldaputil.IdentifiyingLDAPQueryOptions
-	// groupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted
-	// as the groups it is a member of
-	groupMembershipAttributes []string
+	userQuery ldaputil.LDAPQueryOnAttribute
+	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
+	userNameAttributes []string
 
 	// cachedGroups holds the result of group queries for later reference, indexed on group UID
 	// e.g. this will map an LDAP group UID to the LDAP entry returned from the query made using it
@@ -58,7 +69,7 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) (members []*ldap.Ent
 
 	// extract member UIDs from group entry
 	var ldapMemberUIDs []string
-	for _, attribute := range e.userQuery.NameAttributes {
+	for _, attribute := range e.userNameAttributes {
 		ldapMemberUIDs = append(ldapMemberUIDs, group.GetAttributeValues(attribute)...)
 	}
 
@@ -92,8 +103,11 @@ func (e *LDAPInterface) GroupEntryFor(ldapGroupUID string) (group *ldap.Entry, e
 // queryForGroup queries for a specific group identified by a ldapGroupUID with the query config stored
 // in a LDAPInterface
 func (e *LDAPInterface) queryForGroup(ldapGroupUID string) (group *ldap.Entry, err error) {
+	allAttributes := util.NewStringSet(e.groupNameAttributes...)
+	allAttributes.Insert(e.groupMembershipAttributes...)
+
 	// create the search request
-	searchRequest, err := e.groupQuery.NewSearchRequest(ldapGroupUID, e.groupMembershipAttributes)
+	searchRequest, err := e.groupQuery.NewSearchRequest(ldapGroupUID, allAttributes.List())
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +135,7 @@ func (e *LDAPInterface) userEntryFor(ldapUserUID string) (user *ldap.Entry, err 
 // determining which attributes to search for with a LDAPuserAttributeDefiner
 func (e *LDAPInterface) queryForUser(ldapUserUID string) (user *ldap.Entry, err error) {
 	// create the search request
-	searchRequest, err := e.userQuery.NewSearchRequest(ldapUserUID, []string{})
+	searchRequest, err := e.userQuery.NewSearchRequest(ldapUserUID, e.userNameAttributes)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +152,7 @@ func (e *LDAPInterface) ListGroups() (ldapGroupUIDs []string, err error) {
 	}
 	for _, group := range groups {
 		// cache groups returned from the server for later
-		ldapGroupUID := ldaputil.GetAttributeValue(group, e.groupQuery.NameAttributes)
+		ldapGroupUID := ldaputil.GetAttributeValue(group, e.groupNameAttributes)
 		e.cachedGroups[ldapGroupUID] = group
 		ldapGroupUIDs = append(ldapGroupUIDs, ldapGroupUID)
 	}

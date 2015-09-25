@@ -4279,6 +4279,24 @@ _openshift_ex_diagnostics()
     must_have_one_noun=()
 }
 
+_openshift_ex_sync-groups()
+{
+    last_command="openshift_ex_sync-groups"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--existing")
+    flags+=("--sync-config=")
+    flags+=("--whitelist=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_ex_options()
 {
     last_command="openshift_ex_options"
@@ -4303,6 +4321,7 @@ _openshift_ex()
     commands+=("ipfailover")
     commands+=("build-chain")
     commands+=("diagnostics")
+    commands+=("sync-groups")
     commands+=("options")
 
     flags=()
