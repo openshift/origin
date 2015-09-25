@@ -680,7 +680,7 @@ func filterImageStreams(result *AppResult) *AppResult {
 	// 2nd pass to remove ImageStreams not used by BuildConfigs
 	for _, item := range result.List.Items {
 		if is, ok := item.(*imageapi.ImageStream); ok {
-			if _, ok := imageStreams[types.NamespacedName{is.Namespace, is.Name}.String()]; ok {
+			if _, ok := imageStreams[types.NamespacedName{Namespace: is.Namespace, Name: is.Name}.String()]; ok {
 				items = append(items, is)
 			}
 		} else {
@@ -693,7 +693,7 @@ func filterImageStreams(result *AppResult) *AppResult {
 
 func makeImageStreamKey(ref kapi.ObjectReference) string {
 	name, _, _ := imageapi.SplitImageStreamTag(ref.Name)
-	return types.NamespacedName{ref.Namespace, name}.String()
+	return types.NamespacedName{Namespace: ref.Namespace, Name: name}.String()
 }
 
 // RunQuery executes the provided config and returns the result of the resolution.

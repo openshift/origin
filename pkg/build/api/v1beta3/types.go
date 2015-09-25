@@ -118,7 +118,7 @@ type BuildSource struct {
 
 	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
 	// specified, the From and Env on the Docker build strategy are applied on top of this file.
-	Dockerfile *string `json:"dockerfile,omitempty" description="the contents of a Dockerfile to build; FROM and ENV may be overridden if you have specified 'from' and 'env' on the build strategy"`
+	Dockerfile *string `json:"dockerfile,omitempty" description:"the contents of a Dockerfile to build; FROM and ENV may be overridden if you have specified 'from' and 'env' on the build strategy"`
 
 	// Git contains optional information about git build source
 	Git *GitBuildSource `json:"git,omitempty"`
