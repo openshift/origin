@@ -5,9 +5,9 @@ set -ex
 lock_file=/var/lock/openshift-sdn.lock
 subnet_gateway=$1
 subnet=$2
-cluster_subnet=$3
-subnet_mask_len=$4
-tun_gateway=$5
+subnet_mask_len=$3
+cluster_subnet=$4
+services_subnet=$5
 mtu=$6
 printf 'Container network is "%s"; local host has subnet "%s", mtu "%d" and gateway "%s".\n' "${cluster_subnet}" "${subnet}" "${mtu}" "${subnet_gateway}"
 TUN=tun0
@@ -121,7 +121,7 @@ function setup() {
     brctl addif lbr0 vlinuxbr
 
     # setup tun address
-    ip addr add ${tun_gateway}/${subnet_mask_len} dev ${TUN}
+    ip addr add ${subnet_gateway}/${subnet_mask_len} dev ${TUN}
     ip link set ${TUN} up
     ip route add ${cluster_subnet} dev ${TUN} proto kernel scope link
 

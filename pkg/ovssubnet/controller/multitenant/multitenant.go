@@ -25,7 +25,7 @@ func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork st
 	_, ipnet, err := net.ParseCIDR(localSubnet)
 	subnetMaskLength, _ := ipnet.Mask.Size()
 	gateway := netutils.GenerateDefaultGateway(ipnet).String()
-	out, err := exec.Command("openshift-sdn-multitenant-setup.sh", gateway, ipnet.String(), containerNetwork, fmt.Sprint(subnetMaskLength), gateway, servicesNetwork, fmt.Sprint(mtu)).CombinedOutput()
+	out, err := exec.Command("openshift-sdn-multitenant-setup.sh", gateway, ipnet.String(), fmt.Sprint(subnetMaskLength), containerNetwork, servicesNetwork, fmt.Sprint(mtu)).CombinedOutput()
 	log.Infof("Output of setup script:\n%s", out)
 	if err != nil {
 		exitErr, ok := err.(*exec.ExitError)
