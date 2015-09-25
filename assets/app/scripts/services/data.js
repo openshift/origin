@@ -479,7 +479,6 @@ angular.module('openshiftConsole')
           }
         }
       };
-      this._watchCallbacks(resource, context).add(wrapperCallback);
     }
     else if (!this._watchObjectCallbacks(resource, name, context).has()) {
       // This block may not be needed yet, don't expect this would get called without a callback currently...
@@ -488,29 +487,23 @@ angular.module('openshiftConsole')
 
     // For now just watch the type, eventually we may want to do something more complicated
     // and watch just the object if the type is not already being watched
-    this.watch(resource, context, null, opts);
-
-    // returned handle needs resource, name, context, and callback in order to unwatch
-    return {
-      resource: resource,
-      name: name,
-      context: context,
-      callback: wrapperCallback,
-      objectCallback: callback,
-      opts: opts
-    };
+    var handle = this.watch(resource, context, wrapperCallback, opts);
+    handle.objectCallback = callback;
+    handle.objectName = name;
+    
+    return handle;
   };
 
   DataService.prototype.unwatch = function(handle) {
     var resource = handle.resource;
-    var name = handle.name;
+    var objectName = handle.objectName;
     var context = handle.context;
     var callback = handle.callback;
     var objectCallback = handle.objectCallback;
     var opts = handle.opts;
     
-    if (objectCallback && name) {
-      var objCallbacks = this._watchObjectCallbacks(resource, name, context);
+    if (objectCallback && objectName) {
+      var objCallbacks = this._watchObjectCallbacks(resource, objectName, context);
       objCallbacks.remove(objectCallback);
     }
 
@@ -856,17 +849,19 @@ angular.module('openshiftConsole')
       else if (eventData.type === "DELETED") {
         // Add this ourselves since the API doesn't add anything
         // this way the views can use it to trigger special behaviors
-        if (eventData.object.metadata) {
-          eventData.object.metadata.deleted = true;
+        if (eventData.object && eventData.object.metadata && !eventData.object.metadata.deletionTimestamp) {
+          eventData.object.metadata.deletionTimestamp = (new Date()).toISOString();
         }
       }
 
-      this._resourceVersion(resource, context, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
+      if (eventData.object) {
+        this._resourceVersion(resource, context, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
+      }
       // TODO do we reset all the by() indices, or simply update them, since we should know what keys are there?
       // TODO let the data object handle its own update
       this._data(resource, context).update(eventData.object, eventData.type);
       var self = this;
-      // Wrap in a $timout which will trigger an $apply to mirror $http callback behavior
+      // Wrap in a $timeout which will trigger an $apply to mirror $http callback behavior
       // without timeout this is triggering a repeated digest loop
       $timeout(function() {
         self._watchCallbacks(resource, context).fire(self._data(resource, context), eventData.type, eventData.object);

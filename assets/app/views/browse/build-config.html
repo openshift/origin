@@ -116,7 +116,7 @@
             <dt>Manual:</dt>
             <dd>
               <span>
-                <button class="btn btn-primary" ng-click="startBuild(buildConfig.metadata.name)" ng-disabled="buildConfig.metadata.deleted || (buildConfigBuildsInProgress[buildConfig.metadata.name] | hashSize) > 0">Start Build</button>
+                <button class="btn btn-primary" ng-click="startBuild(buildConfig.metadata.name)" ng-disabled="buildConfig.metadata.deletionTimestamp || (buildConfigBuildsInProgress[buildConfig.metadata.name] | hashSize) > 0">Start Build</button>
               </span>
             </dd>
           </dl>

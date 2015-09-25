@@ -21,8 +21,8 @@
                 </span>
                 {{build.status.phase}}
 
-              <button class="btn btn-default build-status-button btn-primary" ng-click="cancelBuild(build, buildConfigName)" ng-if="!build.metadata.deleted && (build | isIncompleteBuild)">Cancel</button>
-              <button class="btn btn-default build-status-button" ng-click="cloneBuild(build.metadata.name)" ng-hide="build.metadata.deleted || (build | isIncompleteBuild)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) !== 0">Rebuild</button>
+              <button class="btn btn-default build-status-button btn-primary" ng-click="cancelBuild(build, buildConfigName)" ng-if="!build.metadata.deletionTimestamp && (build | isIncompleteBuild)">Cancel</button>
+              <button class="btn btn-default build-status-button" ng-click="cloneBuild(build.metadata.name)" ng-hide="build.metadata.deletionTimestamp || (build | isIncompleteBuild)" ng-disabled="(buildConfigBuildsInProgress[buildConfigName] | hashSize) !== 0">Rebuild</button>
               </dd>
               <dt>Created:</dt>
               <dd><relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></dd>
