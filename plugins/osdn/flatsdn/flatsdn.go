@@ -8,8 +8,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/exec"
 
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/openshift-sdn/plugins/osdn"
+	osclient "github.com/openshift/origin/pkg/client"
 )
 
 func NetworkPluginName() string {
