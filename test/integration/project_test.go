@@ -24,6 +24,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
@@ -159,7 +160,7 @@ func TestProjectIsNamespace(t *testing.T) {
 
 // TestProjectMustExist verifies that content cannot be added in a project that does not exist
 func TestProjectMustExist(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

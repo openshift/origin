@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirectLocation string) *http.Response {
@@ -41,11 +41,11 @@ func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirect
 }
 
 func TestAccessOriginWebConsole(t *testing.T) {
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err = testutil.StartConfiguredMaster(masterOptions); err != nil {
+	if _, err = testserver.StartConfiguredMaster(masterOptions); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -67,12 +67,12 @@ func TestAccessOriginWebConsole(t *testing.T) {
 }
 
 func TestAccessDisabledWebConsole(t *testing.T) {
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	masterOptions.DisabledFeatures.Add(configapi.FeatureWebConsole)
-	if _, err := testutil.StartConfiguredMaster(masterOptions); err != nil {
+	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

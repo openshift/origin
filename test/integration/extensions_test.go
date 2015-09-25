@@ -16,7 +16,7 @@ import (
 	"testing"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestExtensions(t *testing.T) {
@@ -51,7 +51,7 @@ func TestExtensions(t *testing.T) {
 	}
 
 	// Build master config.
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("Failed creating master configuration: %v", err)
 		return
@@ -78,7 +78,7 @@ func TestExtensions(t *testing.T) {
 	}
 
 	// Start server.
-	_, err = testutil.StartConfiguredMaster(masterOptions)
+	_, err = testserver.StartConfiguredMaster(masterOptions)
 	if err != nil {
 		t.Fatalf("Unexpected error starting server: %v", err)
 		return

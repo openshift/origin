@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestServiceAccountAuthorization(t *testing.T) {
@@ -32,7 +33,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	saUsername := serviceaccount.MakeUsername(saNamespace, saName)
 
 	// Start one OpenShift master as "cluster1" to play the external kube server
-	cluster1MasterConfig, cluster1AdminConfigFile, err := testutil.StartTestMaster()
+	cluster1MasterConfig, cluster1AdminConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -108,7 +109,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	}
 
 	// Set up cluster 2 to run against cluster 1 as external kubernetes
-	cluster2MasterConfig, err := testutil.DefaultMasterOptions()
+	cluster2MasterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -133,8 +134,8 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	cluster2MasterConfig.DNSConfig = nil
 
 	// Start cluster 2 (without clearing etcd) and get admin client configs and clients
-	cluster2Options := testutil.TestOptions{DeleteAllEtcdKeys: false}
-	cluster2AdminConfigFile, err := testutil.StartConfiguredMasterWithOptions(cluster2MasterConfig, cluster2Options)
+	cluster2Options := testserver.TestOptions{DeleteAllEtcdKeys: false}
+	cluster2AdminConfigFile, err := testserver.StartConfiguredMasterWithOptions(cluster2MasterConfig, cluster2Options)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -247,7 +248,7 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	saNamespace := api.NamespaceDefault
 	saName := serviceaccountadmission.DefaultServiceAccountName
 
-	_, clusterAdminConfig, err := testutil.StartTestMaster()
+	_, clusterAdminConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -303,13 +304,13 @@ func getServiceAccountPullSecret(client *kclient.Client, ns, name string) (strin
 }
 
 func TestEnforcingServiceAccount(t *testing.T) {
-	masterConfig, err := testutil.DefaultMasterOptions()
+	masterConfig, err := testserver.DefaultMasterOptions()
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = false
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminConfig, err := testutil.StartConfiguredMaster(masterConfig)
+	clusterAdminConfig, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

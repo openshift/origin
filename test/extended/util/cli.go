@@ -6,26 +6,25 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli"
-	cmdapi "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	testutil "github.com/openshift/origin/test/util"
-	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client"
 	clientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/test/e2e"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // REST clients.
 type CLI struct {
+	execPath        string
 	verb            string
 	configPath      string
 	adminConfigPath string
@@ -38,7 +37,6 @@ type CLI struct {
 	stdout          io.Writer
 	stderr          io.Writer
 	verbose         bool
-	cmd             *cobra.Command
 	kubeFramework   *e2e.Framework
 }
 
@@ -50,11 +48,11 @@ func NewCLI(project, adminConfigPath string) *CLI {
 	client.kubeFramework = e2e.InitializeFramework(project, client.SetupProject)
 	client.outputDir = os.TempDir()
 	client.username = "admin"
+	client.execPath = "oc"
 	if len(adminConfigPath) == 0 {
 		FatalErr(fmt.Errorf("You must set the KUBECONFIG variable to admin kubeconfig."))
 	}
 	client.adminConfigPath = adminConfigPath
-	kcmdutil.BehaviorOnFatal(func(msg string) { panic(msg) })
 	return client
 }
 
@@ -116,20 +114,20 @@ func (c *CLI) SetOutputDir(dir string) *CLI {
 // SetupProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project and Kubernetes E2E
 // suite will destroy the project after test case finish.
-// Note that the kubeClient is not used and serves just to make this function
-// compatible with upstream function.
 func (c *CLI) SetupProject(name string, kubeClient *kclient.Client) (*kapi.Namespace, error) {
 	newNamespace := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("extended-test-%s-", name))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", c.Namespace()))
 	e2e.Logf("The user is now %q", c.Username())
 
-	projectOpts := cmdapi.NewProjectOptions{
-		ProjectName: c.Namespace(),
-		Client:      c.REST(),
-		Out:         c.stdout,
-	}
 	e2e.Logf("Creating project %q", c.Namespace())
-	return c.kubeFramework.Namespace, projectOpts.Run()
+	_, err := c.REST().ProjectRequests().Create(&projectapi.ProjectRequest{
+		ObjectMeta: kapi.ObjectMeta{Name: c.Namespace()},
+	})
+	if err != nil {
+		e2e.Logf("Failed to create a project and namespace %q: %v", c.Namespace(), err)
+		return nil, err
+	}
+	return &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Namespace()}}, err
 }
 
 // Verbose turns on printing verbose messages when executing OpenShift commands
@@ -168,6 +166,15 @@ func (c *CLI) KubeREST() *kclient.Client {
 	return kubeClient
 }
 
+// AdminKubeREST provides a Kubernetes REST client for the cluster admin user.
+func (c *CLI) AdminKubeREST() *kclient.Client {
+	kubeClient, _, err := configapi.GetKubeClient(c.adminConfigPath)
+	if err != nil {
+		FatalErr(err)
+	}
+	return kubeClient
+}
+
 // Namespace returns the name of the namespace used in the current test case.
 // If the namespace is not set, an empty string is returned.
 func (c *CLI) Namespace() string {
@@ -177,12 +184,9 @@ func (c *CLI) Namespace() string {
 	return c.kubeFramework.Namespace.Name
 }
 
-// SetOutput allows to override the default command output
+// setOutput allows to override the default command output
 func (c *CLI) setOutput(out io.Writer) *CLI {
-	for _, subCmd := range c.cmd.Commands() {
-		subCmd.SetOutput(c.stdout)
-	}
-	c.cmd.SetOutput(c.stdout)
+	c.stdout = out
 	return c
 }
 
@@ -193,13 +197,13 @@ func (c *CLI) Run(verb string) *CLI {
 
 	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
+		execPath:        c.execPath,
 		verb:            verb,
 		kubeFramework:   c.KubeFramework(),
 		adminConfigPath: c.adminConfigPath,
 		configPath:      c.configPath,
 		username:        c.username,
 		outputDir:       c.outputDir,
-		cmd:             cli.NewCommandCLI("oc", "openshift", in, out, errout),
 		globalArgs: []string{
 			verb,
 			fmt.Sprintf("--namespace=%s", c.Namespace()),
@@ -219,7 +223,6 @@ func (c *CLI) Template(t string) *CLI {
 	templateArgs := []string{"--output=template", fmt.Sprintf("--template=%s", t)}
 	commandArgs := append(c.commandArgs, templateArgs...)
 	c.finalArgs = append(c.globalArgs, commandArgs...)
-	c.cmd.SetArgs(c.finalArgs)
 	return c
 }
 
@@ -233,7 +236,6 @@ func (c *CLI) InputString(input string) *CLI {
 func (c *CLI) Args(args ...string) *CLI {
 	c.commandArgs = args
 	c.finalArgs = append(c.globalArgs, c.commandArgs...)
-	c.cmd.SetArgs(c.finalArgs)
 	return c
 }
 
@@ -242,22 +244,26 @@ func (c *CLI) printCmd() string {
 }
 
 // Output executes the command and return the output as string
-func (c *CLI) Output() (out string, err error) {
+func (c *CLI) Output() (string, error) {
 	if c.verbose {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
 	}
-	// Capture the panic and convert it to a regular error
-	defer func() {
-		if r := recover(); r != nil {
-			out = fmt.Sprintf("%s", r)
-			err = fmt.Errorf("PANIC: %s", out)
+	out, err := exec.Command(c.execPath, c.finalArgs...).CombinedOutput()
+	trimmed := strings.TrimSpace(string(out))
+	switch err.(type) {
+	case nil:
+		c.stdout = bytes.NewBuffer(out)
+		if c.verbose {
+			fmt.Printf("DEBUG: %q\n", trimmed)
 		}
-	}()
-	err = c.cmd.Execute()
-	if c.verbose {
-		fmt.Printf("DEBUG: %q\n", trimmedOutput(c.stdout))
+		return trimmed, nil
+	case *exec.ExitError:
+		return trimmed, err
+	default:
+		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
+		// unreachable code
+		return "", nil
 	}
-	return trimmedOutput(c.stdout), err
 }
 
 // Stdout returns the current stdout writer
@@ -287,16 +293,6 @@ func (c *CLI) Execute() error {
 	}
 	os.Stdout.Sync()
 	return err
-}
-
-// trimmedOutput converts the stdout to a string and trims the trailing whitespaces
-func trimmedOutput(stdout io.Writer) string {
-	output, ok := stdout.(*bytes.Buffer)
-	if !ok {
-		fmt.Printf("WARNING: Unable to convert output to a buffer\n")
-		return ""
-	}
-	return strings.TrimSpace(output.String())
 }
 
 // FatalErr exits the test in case a fatal error has occured.

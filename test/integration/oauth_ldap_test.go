@@ -16,6 +16,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 
 	"github.com/vjeantet/ldapserver"
 )
@@ -66,7 +67,7 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// Start LDAP server
-	ldapAddress, err := testutil.FindAvailableBindAddress(8389, 8400)
+	ldapAddress, err := testserver.FindAvailableBindAddress(8389, 8400)
 	if err != nil {
 		t.Fatalf("could not allocate LDAP bind address: %v", err)
 	}
@@ -75,7 +76,7 @@ func TestOAuthLDAP(t *testing.T) {
 	ldapServer.Start(ldapAddress)
 	defer ldapServer.Stop()
 
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -101,7 +102,7 @@ func TestOAuthLDAP(t *testing.T) {
 		},
 	}
 
-	clusterAdminKubeConfig, err := testutil.StartConfiguredMaster(masterOptions)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
