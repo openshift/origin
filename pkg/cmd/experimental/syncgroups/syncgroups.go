@@ -99,9 +99,9 @@ type SyncGroupsOptions struct {
 	// WhitelistContents are the contents of the whitelist: names of OpenShift group or LDAP group UIDs
 	WhitelistContents []string
 
-	// Existing determines that only groups in OpenShift previously synced with this LDAP server
+	// SyncExisting determines that only groups in OpenShift previously synced with this LDAP server
 	// will be synced again
-	Existing bool
+	SyncExisting bool
 
 	// GroupsInterface is the interface used to interact with OpenShift Group objects
 	GroupInterface osclient.GroupInterface
@@ -145,13 +145,13 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 
 	cmd.Flags().StringVar(&options.WhitelistSource, "whitelist", "", "The path to the group whitelist")
 	cmd.Flags().StringVar(&options.ConfigSource, "sync-config", "", "The path to the sync config")
-	cmd.Flags().BoolVar(&options.Existing, "existing", false, "Sync only existing, previously-synced groups")
+	cmd.Flags().BoolVar(&options.SyncExisting, "existing", false, "Sync only existing, previously-synced groups")
 
 	return cmd
 }
 
 func (o *SyncGroupsOptions) Complete(args []string, f *clientcmd.Factory) error {
-	if o.Existing {
+	if o.SyncExisting {
 		o.Source = GroupSyncSourceOpenShift
 	} else {
 		o.Source = GroupSyncSourceLDAP
@@ -244,8 +244,9 @@ func (o *SyncGroupsOptions) Run() error {
 
 	// populate schema-independent syncer fields
 	syncer := LDAPGroupSyncer{
-		Host:        clientConfig.Host,
-		GroupClient: o.GroupInterface,
+		Host:         clientConfig.Host,
+		GroupClient:  o.GroupInterface,
+		SyncExisting: o.SyncExisting,
 	}
 
 	switch {
@@ -253,16 +254,12 @@ func (o *SyncGroupsOptions) Run() error {
 		syncer.UserNameMapper = NewUserNameMapper(o.Config.RFC2307Config.UserNameAttributes)
 
 		// config values are internalized
-		groupQuery, err := ldaputil.NewIdentifiyingLDAPQueryOptions(
-			o.Config.RFC2307Config.GroupQuery,
-			o.Config.RFC2307Config.GroupNameAttributes)
+		groupQuery, err := ldaputil.NewLDAPQueryOnAttribute(o.Config.RFC2307Config.GroupQuery)
 		if err != nil {
 			return err
 		}
 
-		userQuery, err := ldaputil.NewIdentifiyingLDAPQueryOptions(
-			o.Config.RFC2307Config.UserQuery,
-			o.Config.RFC2307Config.UserNameAttributes)
+		userQuery, err := ldaputil.NewLDAPQueryOnAttribute(o.Config.RFC2307Config.UserQuery)
 		if err != nil {
 			return err
 		}
@@ -270,8 +267,10 @@ func (o *SyncGroupsOptions) Run() error {
 		// the schema-specific ldapInterface is built from the config
 		ldapInterface := rfc2307.NewLDAPInterface(clientConfig,
 			groupQuery,
+			o.Config.RFC2307Config.GroupNameAttributes,
+			o.Config.RFC2307Config.GroupMembershipAttributes,
 			userQuery,
-			o.Config.RFC2307Config.GroupMembershipAttributes)
+			o.Config.RFC2307Config.UserNameAttributes)
 
 		// The LDAPInterface knows how to extract group members
 		syncer.GroupMemberExtractor = &ldapInterface

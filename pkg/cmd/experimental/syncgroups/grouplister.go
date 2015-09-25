@@ -29,7 +29,7 @@ type AllLocalGroupLister struct {
 	ldapURL string
 }
 
-func (l *AllLocalGroupLister) ListGroups() (ldapGroupUIDs []string, err error) {
+func (l *AllLocalGroupLister) ListGroups() ([]string, error) {
 	allGroups, err := l.client.List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
@@ -43,6 +43,7 @@ func (l *AllLocalGroupLister) ListGroups() (ldapGroupUIDs []string, err error) {
 		}
 	}
 
+	var ldapGroupUIDs []string
 	for _, group := range potentialGroups {
 		if err := validateGroupAnnotations(group); err != nil {
 			return nil, err
@@ -78,12 +79,13 @@ type LocalGroupLister struct {
 	client    osclient.GroupInterface
 }
 
-func (l *LocalGroupLister) ListGroups() (ldapGroupUIDs []string, err error) {
+func (l *LocalGroupLister) ListGroups() ([]string, error) {
 	groups, err := getOpenShiftGroups(l.whitelist, l.client)
 	if err != nil {
 		return nil, err
 	}
 
+	var ldapGroupUIDs []string
 	for _, group := range groups {
 		if err := validateGroupAnnotations(group); err != nil {
 			return nil, err
@@ -119,6 +121,6 @@ type WhitelistLDAPGroupLister struct {
 	GroupUIDs []string
 }
 
-func (l *WhitelistLDAPGroupLister) ListGroups() (ldapGroupUIDs []string, err error) {
+func (l *WhitelistLDAPGroupLister) ListGroups() ([]string, error) {
 	return l.GroupUIDs, nil
 }

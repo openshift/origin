@@ -4240,23 +4240,13 @@ _openshift_ex_sync-groups()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--help")
-    flags+=("-h")
-    flags+=("--no-headers")
-    flags+=("--output=")
-    two_word_flags+=("-o")
-    flags+=("--output-version=")
-    flags+=("--quiet")
-    flags+=("-q")
+    flags+=("--existing")
     flags+=("--sync-config=")
-    flags+=("--template=")
-    two_word_flags+=("-t")
     flags+=("--whitelist=")
 
     must_have_one_flag=()
     must_have_one_noun=()
 }
-
 
 _openshift_ex_options()
 {

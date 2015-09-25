@@ -6,6 +6,8 @@ import (
 
 	"github.com/go-ldap/ldap"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
@@ -31,6 +33,8 @@ type LDAPGroupSyncer struct {
 	GroupClient client.GroupInterface
 	// Host stores the address:port of the LDAP server
 	Host string
+	// SyncExisting determines if the sync job will only sync groups that already exist
+	SyncExisting bool
 }
 
 // Sync allows the LDAPGroupSyncer to be a GroupSyncer
@@ -112,7 +116,25 @@ func (s *LDAPGroupSyncer) findGroup(ldapGroupUID string) (*ouserapi.Group, error
 
 	group, err := s.GroupClient.Get(groupName)
 	if err != nil {
-		return nil, fmt.Errorf("could not get group for name: %s", groupName)
+		if s.SyncExisting {
+			return nil, fmt.Errorf("could not get group for name: %s", groupName)
+		} else {
+			//TODO(deads): Do not create group here
+			newGroup := &ouserapi.Group{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: groupName,
+					Annotations: map[string]string{
+						ldaputil.LDAPURLAnnotation: s.Host,
+						ldaputil.LDAPUIDAnnotation: ldapGroupUID,
+					},
+				},
+			}
+
+			group, err = s.GroupClient.Create(newGroup)
+			if err != nil {
+				return nil, fmt.Errorf("could not create new group for name %s: %v", groupName, err)
+			}
+		}
 	}
 
 	url, exists := group.Annotations[ldaputil.LDAPURLAnnotation]
@@ -122,7 +144,7 @@ func (s *LDAPGroupSyncer) findGroup(ldapGroupUID string) (*ouserapi.Group, error
 	}
 	uid, exists := group.Annotations[ldaputil.LDAPUIDAnnotation]
 	if !exists || uid != ldapGroupUID {
-		return nil, fmt.Errorf("group %s's %s annotation did not match sync host: wanted %s, got %s",
+		return nil, fmt.Errorf("group %s's %s annotation did not match LDAP UID: wanted %s, got %s",
 			group.Name, ldaputil.LDAPUIDAnnotation, ldapGroupUID, uid)
 	}
 	return group, nil
