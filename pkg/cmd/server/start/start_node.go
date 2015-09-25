@@ -11,9 +11,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/openshift-sdn/plugins/osdn/flatsdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
-	"github.com/openshift/origin/plugins/osdn/flatsdn"
-	"github.com/openshift/origin/plugins/osdn/multitenant"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
