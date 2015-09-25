@@ -52,7 +52,7 @@ func NewCmdRequestProject(name, fullName, ocLoginName, ocProjectName string, f *
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s NAME [--display-name=DISPLAYNAME] [--description=DESCRIPTION]", name),
 		Short:   "Request a new project",
-		Long:    fmt.Sprintf(requestProjectLong, ocLoginName, ocProjectName),
+		Long:    requestProjectLong,
 		Example: fmt.Sprintf(requestProjectExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.complete(cmd, f); err != nil {
