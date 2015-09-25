@@ -2193,6 +2193,16 @@ func convert_api_RouteList_To_v1_RouteList(in *routeapi.RouteList, out *routeapi
 	return nil
 }
 
+func convert_api_RoutePort_To_v1_RoutePort(in *routeapi.RoutePort, out *routeapiv1.RoutePort, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapi.RoutePort))(in)
+	}
+	if err := s.Convert(&in.TargetPort, &out.TargetPort, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
 func convert_api_RouteSpec_To_v1_RouteSpec(in *routeapi.RouteSpec, out *routeapiv1.RouteSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapi.RouteSpec))(in)
@@ -2201,6 +2211,14 @@ func convert_api_RouteSpec_To_v1_RouteSpec(in *routeapi.RouteSpec, out *routeapi
 	out.Path = in.Path
 	if err := convert_api_ObjectReference_To_v1_ObjectReference(&in.To, &out.To, s); err != nil {
 		return err
+	}
+	if in.Port != nil {
+		out.Port = new(routeapiv1.RoutePort)
+		if err := convert_api_RoutePort_To_v1_RoutePort(in.Port, out.Port, s); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
 	}
 	if in.TLS != nil {
 		out.TLS = new(routeapiv1.TLSConfig)
@@ -2274,6 +2292,16 @@ func convert_v1_RouteList_To_api_RouteList(in *routeapiv1.RouteList, out *routea
 	return nil
 }
 
+func convert_v1_RoutePort_To_api_RoutePort(in *routeapiv1.RoutePort, out *routeapi.RoutePort, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*routeapiv1.RoutePort))(in)
+	}
+	if err := s.Convert(&in.TargetPort, &out.TargetPort, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
 func convert_v1_RouteSpec_To_api_RouteSpec(in *routeapiv1.RouteSpec, out *routeapi.RouteSpec, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*routeapiv1.RouteSpec))(in)
@@ -2282,6 +2310,14 @@ func convert_v1_RouteSpec_To_api_RouteSpec(in *routeapiv1.RouteSpec, out *routea
 	out.Path = in.Path
 	if err := convert_v1_ObjectReference_To_api_ObjectReference(&in.To, &out.To, s); err != nil {
 		return err
+	}
+	if in.Port != nil {
+		out.Port = new(routeapi.RoutePort)
+		if err := convert_v1_RoutePort_To_api_RoutePort(in.Port, out.Port, s); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
 	}
 	if in.TLS != nil {
 		out.TLS = new(routeapi.TLSConfig)
@@ -3323,6 +3359,7 @@ func init() {
 		convert_api_RoleList_To_v1_RoleList,
 		convert_api_Role_To_v1_Role,
 		convert_api_RouteList_To_v1_RouteList,
+		convert_api_RoutePort_To_v1_RoutePort,
 		convert_api_RouteSpec_To_v1_RouteSpec,
 		convert_api_RouteStatus_To_v1_RouteStatus,
 		convert_api_Route_To_v1_Route,
@@ -3405,6 +3442,7 @@ func init() {
 		convert_v1_RoleList_To_api_RoleList,
 		convert_v1_Role_To_api_Role,
 		convert_v1_RouteList_To_api_RouteList,
+		convert_v1_RoutePort_To_api_RoutePort,
 		convert_v1_RouteSpec_To_api_RouteSpec,
 		convert_v1_RouteStatus_To_api_RouteStatus,
 		convert_v1_Route_To_api_Route,

@@ -132,6 +132,7 @@ func TestHandleEndpoints(t *testing.T) {
 		eventType           watch.EventType //type to be passed to the HandleEndpoints method
 		endpoints           *kapi.Endpoints //endpoints to be passed to the HandleEndpoints method
 		expectedServiceUnit *ServiceUnit    //service unit that will be compared against.
+		excludeUDP          bool
 	}{
 		{
 			name:      "Endpoint add",
@@ -202,7 +203,118 @@ func TestHandleEndpoints(t *testing.T) {
 	}
 
 	router := newTestRouter(make(map[string]ServiceUnit))
-	templatePlugin := newDefaultTemplatePlugin(router)
+	templatePlugin := newDefaultTemplatePlugin(router, true)
+	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
+	// here
+	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute)
+
+	for _, tc := range testCases {
+		plugin.HandleEndpoints(tc.eventType, tc.endpoints)
+
+		if !router.Committed {
+			t.Errorf("Expected router to be committed after HandleEndpoints call")
+		}
+
+		su, ok := router.FindServiceUnit(tc.expectedServiceUnit.Name)
+
+		if !ok {
+			t.Errorf("TestHandleEndpoints test case %s failed.  Couldn't find expected service unit with name %s", tc.name, tc.expectedServiceUnit.Name)
+		} else {
+			for expectedKey, expectedEp := range tc.expectedServiceUnit.EndpointTable {
+				actualEp := su.EndpointTable[expectedKey]
+
+				if expectedEp.ID != actualEp.ID || expectedEp.IP != actualEp.IP || expectedEp.Port != actualEp.Port {
+					t.Errorf("TestHandleEndpoints test case %s failed.  Expected endpoint didn't match actual endpoint %v : %v", tc.name, expectedEp, actualEp)
+				}
+			}
+		}
+	}
+}
+
+// TestHandleCPEndpoints test endpoint watch events with UDP excluded
+func TestHandleTCPEndpoints(t *testing.T) {
+	testCases := []struct {
+		name                string          //human readable name for test case
+		eventType           watch.EventType //type to be passed to the HandleEndpoints method
+		endpoints           *kapi.Endpoints //endpoints to be passed to the HandleEndpoints method
+		expectedServiceUnit *ServiceUnit    //service unit that will be compared against.
+	}{
+		{
+			name:      "Endpoint add",
+			eventType: watch.Added,
+			endpoints: &kapi.Endpoints{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "foo",
+					Name:      "test", //kapi.endpoints inherits the name of the service
+				},
+				Subsets: []kapi.EndpointSubset{{
+					Addresses: []kapi.EndpointAddress{{IP: "1.1.1.1"}},
+					Ports: []kapi.EndpointPort{
+						{Port: 345},
+						{Port: 346, Protocol: kapi.ProtocolUDP},
+					},
+				}}, //not specifying a port to force the port 80 assumption
+			},
+			expectedServiceUnit: &ServiceUnit{
+				Name: "foo/test", //service name from kapi.endpoints object
+				EndpointTable: []Endpoint{
+					{
+						ID:   "1.1.1.1:345",
+						IP:   "1.1.1.1",
+						Port: "345",
+					},
+				},
+			},
+		},
+		{
+			name:      "Endpoint mod",
+			eventType: watch.Modified,
+			endpoints: &kapi.Endpoints{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "foo",
+					Name:      "test",
+				},
+				Subsets: []kapi.EndpointSubset{{
+					Addresses: []kapi.EndpointAddress{{IP: "2.2.2.2"}},
+					Ports: []kapi.EndpointPort{
+						{Port: 8080},
+						{Port: 8081, Protocol: kapi.ProtocolUDP},
+					},
+				}},
+			},
+			expectedServiceUnit: &ServiceUnit{
+				Name: "foo/test",
+				EndpointTable: []Endpoint{
+					{
+						ID:   "2.2.2.2:8080",
+						IP:   "2.2.2.2",
+						Port: "8080",
+					},
+				},
+			},
+		},
+		{
+			name:      "Endpoint delete",
+			eventType: watch.Deleted,
+			endpoints: &kapi.Endpoints{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "foo",
+					Name:      "test",
+				},
+				Subsets: []kapi.EndpointSubset{{
+					Addresses: []kapi.EndpointAddress{{IP: "3.3.3.3"}},
+					Ports:     []kapi.EndpointPort{{Port: 0}},
+				}},
+			},
+			expectedServiceUnit: &ServiceUnit{
+				Name:          "foo/test",
+				EndpointTable: []Endpoint{},
+			},
+		},
+	}
+
+	router := newTestRouter(make(map[string]ServiceUnit))
+	templatePlugin := newDefaultTemplatePlugin(router, false)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute)
@@ -233,7 +345,7 @@ func TestHandleEndpoints(t *testing.T) {
 // TestHandleRoute test route watch events
 func TestHandleRoute(t *testing.T) {
 	router := newTestRouter(make(map[string]ServiceUnit))
-	templatePlugin := newDefaultTemplatePlugin(router)
+	templatePlugin := newDefaultTemplatePlugin(router, true)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute)
@@ -382,7 +494,7 @@ func TestHandleRoute(t *testing.T) {
 
 func TestNamespaceScopingFromEmpty(t *testing.T) {
 	router := newTestRouter(make(map[string]ServiceUnit))
-	templatePlugin := newDefaultTemplatePlugin(router)
+	templatePlugin := newDefaultTemplatePlugin(router, true)
 	// TODO: move tests that rely on unique hosts to pkg/router/controller and remove them from
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute)
@@ -442,7 +554,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 
 func TestUnchangingEndpointsDoesNotCommit(t *testing.T) {
 	router := newTestRouter(make(map[string]ServiceUnit))
-	plugin := newDefaultTemplatePlugin(router)
+	plugin := newDefaultTemplatePlugin(router, true)
 	endpoints := &kapi.Endpoints{
 		ObjectMeta: kapi.ObjectMeta{
 			Namespace: "foo",

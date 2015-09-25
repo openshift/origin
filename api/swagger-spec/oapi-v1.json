@@ -17497,9 +17497,25 @@
       "$ref": "v1.ObjectReference",
       "description": "an object the route points to.  only the service kind is allowed, and it will be defaulted to a service."
      },
+     "port": {
+      "$ref": "v1.RoutePort",
+      "description": "port that should be used by the router; this is a hint to control which pod endpoint port is used; if empty routers may use all endpoints and ports"
+     },
      "tls": {
       "$ref": "v1.TLSConfig",
       "description": "provides the ability to configure certificates and termination for the route"
+     }
+    }
+   },
+   "v1.RoutePort": {
+    "id": "v1.RoutePort",
+    "required": [
+     "targetPort"
+    ],
+    "properties": {
+     "targetPort": {
+      "type": "string",
+      "description": "the target port on the endpoints for the service; if this is a string must match the named port, if an integer, must match the port number"
      }
     }
    },

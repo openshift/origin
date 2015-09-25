@@ -18,12 +18,14 @@ import (
 // TemplatePlugin implements the router.Plugin interface to provide
 // a template based, backend-agnostic router.
 type TemplatePlugin struct {
-	Router routerInterface
+	Router     routerInterface
+	IncludeUDP bool
 }
 
-func newDefaultTemplatePlugin(router routerInterface) *TemplatePlugin {
+func newDefaultTemplatePlugin(router routerInterface, includeUDP bool) *TemplatePlugin {
 	return &TemplatePlugin{
-		Router: router,
+		Router:     router,
+		IncludeUDP: includeUDP,
 	}
 }
 
@@ -35,6 +37,7 @@ type TemplatePluginConfig struct {
 	StatsPort          int
 	StatsUsername      string
 	StatsPassword      string
+	IncludeUDP         bool
 	PeerService        *ktypes.NamespacedName
 }
 
@@ -70,7 +73,10 @@ type routerInterface interface {
 // NewTemplatePlugin creates a new TemplatePlugin.
 func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
-	masterTemplate, err := template.New("config").ParseFiles(cfg.TemplatePath)
+	globalFuncs := template.FuncMap{
+		"endpointsForAlias": endpointsForAlias,
+	}
+	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +106,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 		peerEndpointsKey:   peerKey,
 	}
 	router, err := newTemplateRouter(templateRouterCfg)
-	return newDefaultTemplatePlugin(router), err
+	return newDefaultTemplatePlugin(router, cfg.IncludeUDP), err
 }
 
 // HandleEndpoints processes watch events on the Endpoints resource.
@@ -120,7 +126,7 @@ func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *k
 	switch eventType {
 	case watch.Added, watch.Modified:
 		glog.V(4).Infof("Modifying endpoints for %s", key)
-		routerEndpoints := createRouterEndpoints(endpoints)
+		routerEndpoints := createRouterEndpoints(endpoints, !p.IncludeUDP)
 		key := endpointsKey(endpoints)
 		commit := p.Router.AddEndpoints(key, routerEndpoints)
 		if commit {
@@ -185,17 +191,22 @@ func peerEndpointsKey(namespacedName ktypes.NamespacedName) string {
 }
 
 // createRouterEndpoints creates openshift router endpoints based on k8s endpoints
-func createRouterEndpoints(endpoints *kapi.Endpoints) []Endpoint {
+func createRouterEndpoints(endpoints *kapi.Endpoints, excludeUDP bool) []Endpoint {
 	out := make([]Endpoint, 0, len(endpoints.Subsets)*4)
 
 	// TODO: review me for sanity
 	for _, s := range endpoints.Subsets {
-		for _, a := range s.Addresses {
-			for _, p := range s.Ports {
+		for _, p := range s.Ports {
+			if excludeUDP && p.Protocol == kapi.ProtocolUDP {
+				continue
+			}
+			for _, a := range s.Addresses {
 				ep := Endpoint{
 					ID:   fmt.Sprintf("%s:%d", a.IP, p.Port),
 					IP:   a.IP,
 					Port: strconv.Itoa(p.Port),
+
+					PortName: p.Name,
 				}
 				if a.TargetRef != nil {
 					ep.TargetName = a.TargetRef.Name

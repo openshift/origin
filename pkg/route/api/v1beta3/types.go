@@ -2,6 +2,7 @@ package v1beta3
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
@@ -35,24 +36,22 @@ type RouteSpec struct {
 	// be defaulted to Service.
 	To kapi.ObjectReference `json:"to"`
 
+	// If specified, the port to be used by the router. Most routers will use all
+	// endpoints exposed by the service by default - set this value to instruct routers
+	// which port to use.
+	Port *RoutePort `json:"port,omitempty"`
+
 	// TLS provides the ability to configure certificates and termination for the route
 	TLS *TLSConfig `json:"tls,omitempty"`
 }
 
-/*
+// RoutePort defines a port mapping from a router to an endpoint in the service endpoints.
 type RoutePort struct {
-	// Name is the name of the port that is used by the router. Routers may require
-	// this field be set. Routers may decide which names to expose.
-	Name string `json:"name"`
-
-	// Optional: the name of the target endpoint port.
-	TargetName string `json:"targetName"`
-
-	// Optional: the value of the target endpoint port to expose. May be omitted if
-	// name is set, and vice versa.
+	// The target port on pods selected by the service this route points to.
+	// If this is a string, it will be looked up as a named port in the target
+	// endpoints port list. Required
 	TargetPort util.IntOrString `json:"targetPort"`
 }
-*/
 
 // RouteStatus provides relevant info about the status of a route, including which routers
 // acknowledge it.

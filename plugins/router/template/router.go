@@ -76,6 +76,7 @@ type templateRouterCfg struct {
 	statsPassword      string
 	statsPort          int
 	peerEndpointsKey   string
+	includeUDP         bool
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -142,6 +143,20 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		return nil, err
 	}
 	return router, nil
+}
+
+func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
+	if len(alias.PreferPort) == 0 {
+		return svc.EndpointTable
+	}
+	endpoints := make([]Endpoint, 0, len(svc.EndpointTable))
+	for i := range svc.EndpointTable {
+		endpoint := svc.EndpointTable[i]
+		if endpoint.PortName == alias.PreferPort || endpoint.Port == alias.PreferPort {
+			endpoints = append(endpoints, endpoint)
+		}
+	}
+	return endpoints
 }
 
 // writeDefaultCert is called a single time during init to write out the default certificate
@@ -343,6 +358,10 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 	config := ServiceAliasConfig{
 		Host: host,
 		Path: route.Spec.Path,
+	}
+
+	if route.Spec.Port != nil {
+		config.PreferPort = route.Spec.Port.TargetPort.String()
 	}
 
 	tls := route.Spec.TLS

@@ -35,6 +35,14 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 		result = append(result, fielderrors.NewFieldRequired("serviceName"))
 	}
 
+	if route.Spec.Port != nil {
+		switch target := route.Spec.Port.TargetPort; {
+		case target.Kind == util.IntstrInt && target.IntVal == 0,
+			target.Kind == util.IntstrString && len(target.StrVal) == 0:
+			result = append(result, fielderrors.NewFieldRequired("targetPort"))
+		}
+	}
+
 	if errs := validateTLS(route); len(errs) != 0 {
 		result = append(result, errs.Prefix("tls")...)
 	}
@@ -46,7 +54,7 @@ func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) fielderro
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta).Prefix("metadata")...)
 
-	allErrs = append(allErrs, ValidateRoute(route).Prefix("spec.tls")...)
+	allErrs = append(allErrs, ValidateRoute(route)...)
 	return allErrs
 }
 
