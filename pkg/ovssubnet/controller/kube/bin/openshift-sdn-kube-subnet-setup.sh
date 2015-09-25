@@ -3,13 +3,13 @@
 set -ex
 
 lock_file=/var/lock/openshift-sdn.lock
-subnet_gateway=$1
-subnet=$2
-subnet_mask_len=$3
-cluster_subnet=$4
-services_subnet=$5
+local_subnet_gateway=$1
+local_subnet_cidr=$2
+local_subnet_mask_len=$3
+cluster_network_cidr=$4
+service_network_cidr=$5
 mtu=$6
-printf 'Container network is "%s"; local host has subnet "%s", mtu "%d" and gateway "%s".\n' "${cluster_subnet}" "${subnet}" "${mtu}" "${subnet_gateway}"
+printf 'Container network is "%s"; local host has subnet "%s", mtu "%d" and gateway "%s".\n' "${cluster_network_cidr}" "${local_subnet_cidr}" "${mtu}" "${local_subnet_gateway}"
 TUN=tun0
 
 # Synchronize code execution with a file lock.
@@ -81,7 +81,7 @@ EOF
 
 function setup_required() {
     ip=$(echo `ip a s lbr0 2>/dev/null|awk '/inet / {print $2}'`)
-    if [ "$ip" != "${subnet_gateway}/${subnet_mask_len}" ]; then
+    if [ "$ip" != "${local_subnet_gateway}/${local_subnet_mask_len}" ]; then
         return 0
     fi
     if ! docker_network_config check; then
@@ -116,26 +116,26 @@ function setup() {
     ip link set lbr0 down || true
     brctl delbr lbr0 || true
     brctl addbr lbr0
-    ip addr add ${subnet_gateway}/${subnet_mask_len} dev lbr0
+    ip addr add ${local_subnet_gateway}/${local_subnet_mask_len} dev lbr0
     ip link set lbr0 up
     brctl addif lbr0 vlinuxbr
 
     # setup tun address
-    ip addr add ${subnet_gateway}/${subnet_mask_len} dev ${TUN}
+    ip addr add ${local_subnet_gateway}/${local_subnet_mask_len} dev ${TUN}
     ip link set ${TUN} up
-    ip route add ${cluster_subnet} dev ${TUN} proto kernel scope link
+    ip route add ${cluster_network_cidr} dev ${TUN} proto kernel scope link
 
     ## iptables
-    iptables -t nat -D POSTROUTING -s ${cluster_subnet} ! -d ${cluster_subnet} -j MASQUERADE || true
-    iptables -t nat -A POSTROUTING -s ${cluster_subnet} ! -d ${cluster_subnet} -j MASQUERADE
+    iptables -t nat -D POSTROUTING -s ${cluster_network_cidr} ! -d ${cluster_network_cidr} -j MASQUERADE || true
+    iptables -t nat -A POSTROUTING -s ${cluster_network_cidr} ! -d ${cluster_network_cidr} -j MASQUERADE
     iptables -D INPUT -p udp -m multiport --dports 4789 -m comment --comment "001 vxlan incoming" -j ACCEPT || true
     iptables -D INPUT -i ${TUN} -m comment --comment "traffic from docker for internet" -j ACCEPT || true
     lineno=$(iptables -nvL INPUT --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}')
     iptables -I INPUT $lineno -p udp -m multiport --dports 4789 -m comment --comment "001 vxlan incoming" -j ACCEPT
     iptables -I INPUT $((lineno+1)) -i ${TUN} -m comment --comment "traffic from docker for internet" -j ACCEPT
     fwd_lineno=$(iptables -nvL FORWARD --line-numbers | grep "reject-with icmp-host-prohibited" | tail -n 1 | awk '{print $1}')
-    iptables -I FORWARD $fwd_lineno -d ${cluster_subnet} -j ACCEPT
-    iptables -I FORWARD $fwd_lineno -s ${cluster_subnet} -j ACCEPT
+    iptables -I FORWARD $fwd_lineno -d ${cluster_network_cidr} -j ACCEPT
+    iptables -I FORWARD $fwd_lineno -s ${cluster_network_cidr} -j ACCEPT
 
     ## docker
     docker_network_config update
@@ -149,10 +149,10 @@ function setup() {
     sysctl -w net.ipv4.conf.${TUN}.forwarding=1
 
     # delete the subnet routing entry created because of lbr0
-    ip route del ${subnet} dev lbr0 proto kernel scope link src ${subnet_gateway} || true
+    ip route del ${local_subnet_cidr} dev lbr0 proto kernel scope link src ${local_subnet_gateway} || true
 
     mkdir -p /etc/openshift-sdn
-    echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_subnet}" >> "/etc/openshift-sdn/config.env"
+    echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_network_cidr}" >> "/etc/openshift-sdn/config.env"
 }
 
 set +e

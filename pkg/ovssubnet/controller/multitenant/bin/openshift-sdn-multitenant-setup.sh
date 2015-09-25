@@ -3,13 +3,13 @@
 set -ex
 
 lock_file=/var/lock/openshift-sdn.lock
-subnet_gateway=$1
-subnet=$2
-subnet_mask_len=$3
-cluster_subnet=$4
-services_subnet=$5
+local_subnet_gateway=$1
+local_subnet_cidr=$2
+local_subnet_mask_len=$3
+cluster_network_cidr=$4
+service_network_cidr=$5
 mtu=$6
-printf 'Container network is "%s"; local host has subnet "%s", mtu "%d" and gateway "%s".\n' "${cluster_subnet}" "${subnet}" "${mtu}" "${subnet_gateway}"
+printf 'Container network is "%s"; local host has subnet "%s", mtu "%d" and gateway "%s".\n' "${cluster_network_cidr}" "${local_subnet_cidr}" "${mtu}" "${local_subnet_gateway}"
 TUN=tun0
 
 # Synchronize code execution with a file lock.
@@ -81,7 +81,7 @@ EOF
 
 function setup_required() {
     ip=$(echo `ip a s lbr0 2>/dev/null|awk '/inet / {print $2}'`)
-    if [ "$ip" != "${subnet_gateway}/${subnet_mask_len}" ]; then
+    if [ "$ip" != "${local_subnet_gateway}/${local_subnet_mask_len}" ]; then
         return 0
     fi
     if ! docker_network_config check; then
@@ -124,20 +124,20 @@ function setup() {
 
     # Table 2; incoming from vxlan
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, arp, actions=goto_table:8"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=200, ip, nw_dst=${subnet_gateway}, actions=output:2"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=200, ip, nw_dst=${local_subnet_gateway}, actions=output:2"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, tun_id=0, actions=goto_table:5"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, ip, nw_dst=${subnet}, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:6"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=2, priority=100, ip, nw_dst=${local_subnet_cidr}, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[], goto_table:6"
 
     # Table 3; incoming from container; filled in by openshift-ovs-multitenant
 
     # Table 4; services; mostly filled in by multitenant.go
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=100, ip, nw_dst=${services_subnet}, actions=drop"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=100, ip, nw_dst=${service_network_cidr}, actions=drop"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=0, actions=goto_table:5"
 
     # Table 5; general routing
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=200, ip, nw_dst=${subnet_gateway}, actions=output:2"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=150, ip, nw_dst=${subnet}, actions=goto_table:6"
-    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=100, ip, nw_dst=${cluster_subnet}, actions=goto_table:7"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=200, ip, nw_dst=${local_subnet_gateway}, actions=output:2"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=150, ip, nw_dst=${local_subnet_cidr}, actions=goto_table:6"
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=100, ip, nw_dst=${cluster_network_cidr}, actions=goto_table:7"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=5, priority=0, ip, actions=output:2"
 
     # Table 6; to local container; mostly filled in by openshift-ovs-multitenant
@@ -153,14 +153,14 @@ function setup() {
     ip link set lbr0 down || true
     brctl delbr lbr0 || true
     brctl addbr lbr0
-    ip addr add ${subnet_gateway}/${subnet_mask_len} dev lbr0
+    ip addr add ${local_subnet_gateway}/${local_subnet_mask_len} dev lbr0
     ip link set lbr0 up
     brctl addif lbr0 vlinuxbr
 
     # setup tun address
-    ip addr add ${subnet_gateway}/${subnet_mask_len} dev ${TUN}
+    ip addr add ${local_subnet_gateway}/${local_subnet_mask_len} dev ${TUN}
     ip link set ${TUN} up
-    ip route add ${cluster_subnet} dev ${TUN} proto kernel scope link
+    ip route add ${cluster_network_cidr} dev ${TUN} proto kernel scope link
 
     ## docker
     docker_network_config update
@@ -174,10 +174,10 @@ function setup() {
     sysctl -w net.ipv4.conf.${TUN}.forwarding=1
 
     # delete the subnet routing entry created because of lbr0
-    ip route del ${subnet} dev lbr0 proto kernel scope link src ${subnet_gateway} || true
+    ip route del ${local_subnet_cidr} dev lbr0 proto kernel scope link src ${local_subnet_gateway} || true
 
     mkdir -p /etc/openshift-sdn
-    echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_subnet}" >> "/etc/openshift-sdn/config.env"
+    echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_network_cidr}" >> "/etc/openshift-sdn/config.env"
 }
 
 set +e
