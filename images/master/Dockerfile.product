@@ -2,13 +2,12 @@ FROM rhel7
 
 # Based on work by: Peter Schiffer <pschiffe@redhat.com>
 MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
-LABEL name="aos3/aos-master"
-LABEL vendor="Red Hat, Inc."
-LABEL version=v3.0.2.100
-LABEL release="1"
-LABEL com.redhat.component="aos3-master-docker"
-LABEL architecture="x86_64"
-LABEL summary="Atomic OpenShift Master"
+LABEL Name="aos3/aos-master"
+LABEL Vendor="Red Hat" License=GPLv2+
+LABEL Version=v3.0.2.100
+LABEL Release="1"
+LABEL BZComponent="aos3-master-docker"
+LABEL Architecture="x86_64"
 
 RUN yum-config-manager --enable RH7-RHAOS-3.1
 RUN yum install -y atomic-openshift-master hostname && yum clean all
