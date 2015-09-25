@@ -35,10 +35,6 @@ func NewOsdnRegistryInterface(osClient *osclient.Client, kClient *kclient.Client
 	return OsdnRegistryInterface{osClient, kClient}
 }
 
-func (oi *OsdnRegistryInterface) InitSubnets() error {
-	return nil
-}
-
 func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, string, error) {
 	hostSubnetList, err := oi.oClient.HostSubnets().List()
 	if err != nil {
@@ -96,11 +92,6 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan<- *osdnapi.SubnetEve
 	}
 }
 
-func (oi *OsdnRegistryInterface) InitNodes() error {
-	// return no error, as this gets initialized by apiserver
-	return nil
-}
-
 func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, string, error) {
 	knodes, err := oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
 	if err != nil {
@@ -122,10 +113,6 @@ func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, string, error) {
 		nodes = append(nodes, osdnapi.Node{Name: node.ObjectMeta.Name, IP: nodeIP})
 	}
 	return nodes, knodes.ListMeta.ResourceVersion, nil
-}
-
-func (oi *OsdnRegistryInterface) CreateNode(nodeName string, data string) error {
-	return fmt.Errorf("Feature not supported in native mode. SDN cannot create/register nodes.")
 }
 
 func (oi *OsdnRegistryInterface) getNodeAddressMap() (map[types.UID]string, error) {
@@ -222,11 +209,6 @@ func (oi *OsdnRegistryInterface) GetServicesNetworkCIDR() (string, error) {
 	return cn.ServiceNetwork, err
 }
 
-func (oi *OsdnRegistryInterface) CheckEtcdIsAlive(seconds uint64) bool {
-	// always assumed to be true as we run through the apiserver
-	return true
-}
-
 func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, string, error) {
 	namespaceList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 	if err != nil {
@@ -317,10 +299,6 @@ func (oi *OsdnRegistryInterface) WriteNetNamespace(name string, id uint) error {
 
 func (oi *OsdnRegistryInterface) DeleteNetNamespace(name string) error {
 	return oi.oClient.NetNamespaces().Delete(name)
-}
-
-func (oi *OsdnRegistryInterface) InitServices() error {
-	return nil
 }
 
 func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, string, error) {

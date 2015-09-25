@@ -61,8 +61,6 @@ Setup() {
 }
 
 Teardown() {
-    source /etc/openshift-sdn/config.env
-
     pid=$(docker inspect --format "{{.State.Pid}}" ${net_container})
     network_mode=$(docker inspect --format "{{.HostConfig.NetworkMode}}" ${net_container})
     if [ "${network_mode}" == "host" ]; then

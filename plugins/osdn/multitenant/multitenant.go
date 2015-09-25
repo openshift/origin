@@ -32,7 +32,7 @@ func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetworkCI
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
 	kc.AdminNamespaces = append(kc.AdminNamespaces, "default")
-	err = kc.StartMaster(false, clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR)
+	err = kc.StartMaster(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
@@ -49,7 +49,7 @@ func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, p
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
 	mp.OvsController = kc
-	err = kc.StartNode(false, false, mtu)
+	err = kc.StartNode(mtu)
 	if err != nil {
 		glog.Fatalf("SDN Node failed: %v", err)
 	}
