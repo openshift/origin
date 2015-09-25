@@ -15,7 +15,7 @@ func NetworkPluginName() string {
 	return "redhat/openshift-ovs-multitenant"
 }
 
-func Master(registry *osdn.OsdnRegistryInterface, clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) {
+func Master(registry *osdn.Registry, clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) {
 	// get hostname from the gateway
 	output, err := exec.New().Command("uname", "-n").CombinedOutput()
 	if err != nil {
@@ -34,7 +34,7 @@ func Master(registry *osdn.OsdnRegistryInterface, clusterNetworkCIDR string, clu
 	}
 }
 
-func Node(registry *osdn.OsdnRegistryInterface, hostname string, publicIP string, ready chan struct{}, plugin knetwork.NetworkPlugin, mtu uint) {
+func Node(registry *osdn.Registry, hostname string, publicIP string, ready chan struct{}, plugin knetwork.NetworkPlugin, mtu uint) {
 	mp, ok := plugin.(*MultitenantPlugin)
 	if !ok {
 		glog.Fatalf("Failed to type cast provided plugin to a multitenant type plugin")
