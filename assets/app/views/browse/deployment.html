@@ -22,7 +22,7 @@
                 </span>
                 {{deployment | deploymentStatus}} 
                 <span style="margin-left: 7px;">
-                  <button ng-show="!rollBackCollapsed && (deployment | deploymentStatus) == 'Complete' && !(deployment | deploymentIsLatest : deploymentConfig) && !deployment.metadata.deleted" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" type="button" class="btn btn-primary" ng-click="rollBackCollapsed = !rollBackCollapsed">Roll Back</button>
+                  <button ng-show="!rollBackCollapsed && (deployment | deploymentStatus) == 'Complete' && !(deployment | deploymentIsLatest : deploymentConfig) && !deployment.metadata.deletionTimestamp" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" type="button" class="btn btn-primary" ng-click="rollBackCollapsed = !rollBackCollapsed">Roll Back</button>
                   <div ng-show="rollBackCollapsed" class="well well-sm">
                     Use the following settings from {{deployment.metadata.name}} when rolling back: 
                     <div class="checkbox">
@@ -43,9 +43,9 @@
                     <button type="button" ng-click="rollbackToDeployment(deployment, changeScaleSettings, changeStrategy, changeTriggers)" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" class="btn btn-primary">Roll Back</button>
                   </div>
                   <!-- disabled until we have an api endpoint for retry
-                  <button ng-show="(deployment | deploymentStatus) == 'Failed'" type="button" ng-click="retryFailedDeployment(deployment)" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" class="btn btn-primary" ng-if="(deployment | deploymentIsLatest : deploymentConfig) && !deployment.metadata.deleted">Retry</button>
+                  <button ng-show="(deployment | deploymentStatus) == 'Failed'" type="button" ng-click="retryFailedDeployment(deployment)" ng-disabled="(deploymentConfigDeploymentsInProgress[deploymentConfigName] | hashSize) > 0" class="btn btn-primary" ng-if="(deployment | deploymentIsLatest : deploymentConfig) && !deployment.metadata.deletionTimestamp">Retry</button>
                   -->
-                  <button ng-show="(deployment | deploymentIsInProgress) && !deployment.metadata.deleted" type="button" ng-click="cancelRunningDeployment(deployment)" class="btn btn-primary">Cancel</button>
+                  <button ng-show="(deployment | deploymentIsInProgress) && !deployment.metadata.deletionTimestamp" type="button" ng-click="cancelRunningDeployment(deployment)" class="btn btn-primary">Cancel</button>
                 </span>                
               </dd>
               <dt ng-if="deployment | isDeployment">Deployment config:</dt>

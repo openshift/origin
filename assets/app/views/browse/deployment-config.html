@@ -42,7 +42,7 @@
               <dt>Manual:</dt>
               <dd>
                 <span>
-                  <button class="btn btn-primary" ng-click="startLatestDeployment(deploymentConfig)" ng-disabled="deploymentConfig.metadata.deleted || (deploymentConfigDeploymentsInProgress[deploymentConfig.metadata.name] | hashSize) > 0">Start Deployment</button>
+                  <button class="btn btn-primary" ng-click="startLatestDeployment(deploymentConfig)" ng-disabled="deploymentConfig.metadata.deletionTimestamp || (deploymentConfigDeploymentsInProgress[deploymentConfig.metadata.name] | hashSize) > 0">Start Deployment</button>
                 </span>
               </dd>
             </dl>
