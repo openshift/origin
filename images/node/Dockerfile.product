@@ -5,7 +5,7 @@ MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
 LABEL Name="aos3/aos-node"
 LABEL Vendor="Red Hat" License=GPLv2+
 LABEL Version=v3.0.2.100
-LABEL Release="1"
+LABEL Release="2"
 LABEL BZComponent="aos3-node-docker"
 LABEL Architecture="x86_64"
 
@@ -14,7 +14,7 @@ RUN yum-config-manager --enable RH7-RHAOS-3.1 --enable rhel-7-server-extras-rpms
 #RUN rpm -e --nodeps systemd-container-libs systemd-container
 RUN yum install -y atomic-openshift-node atomic-openshift-sdn-ovs libmnl libnetfilter_conntrack \
     libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
-    binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs \
+    binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
     && yum clean all
 
 COPY openshift-sdn-kube-subnet-setup.sh /usr/bin/
