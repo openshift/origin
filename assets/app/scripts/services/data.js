@@ -2,7 +2,7 @@
 /* jshint eqeqeq: false, unused: false */
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger) {
+.factory('DataService', function($http, $q, $rootScope, $timeout, $ws, API_CFG, Logger, Notification) {
 
   function Data(array) {
     this._data = {};
@@ -303,12 +303,12 @@ angular.module('openshiftConsole')
     else if (!force && this._watchInFlight(resource, context) && this._resourceVersion(resource, context)) {
       var obj = existingData.by('metadata.name')[name];
       if (obj) {
-        $rootScope.$apply(function(){
+        $timeout(function(){
           deferred.resolve(obj);
         });
       }
       else {
-        $rootScope.$apply(function(){
+        $timeout(function(){
           // simulation of API object not found
           deferred.reject({
             data: {},
