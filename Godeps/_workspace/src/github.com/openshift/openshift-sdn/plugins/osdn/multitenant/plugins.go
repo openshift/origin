@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/openshift-sdn/ovssubnet"
+	"github.com/openshift/openshift-sdn/pkg/ovssubnet"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"

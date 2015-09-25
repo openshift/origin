@@ -36,11 +36,11 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
 
+	"github.com/openshift/openshift-sdn/plugins/osdn/flatsdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
-	"github.com/openshift/origin/plugins/osdn/flatsdn"
-	"github.com/openshift/origin/plugins/osdn/multitenant"
 )
 
 // RunProjectAuthorizationCache starts the project authorization cache
