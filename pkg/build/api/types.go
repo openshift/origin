@@ -14,6 +14,8 @@ const (
 	DeprecatedBuildLabel = "build"
 	// BuildNumberAnnotation is an annotation whose value is the sequential number for this Build
 	BuildNumberAnnotation = "openshift.io/build.number"
+	// BuildCloneAnnotation is an annotation whose value is the name of the build this build was cloned from
+	BuildCloneAnnotation = "openshift.io/build.clone-of"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	BuildLabel = "openshift.io/build.name"
 	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
