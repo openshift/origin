@@ -34,7 +34,7 @@
         <div ng-if="buildConfig.spec.source">
           <div ng-if="buildConfig.spec.source.type == 'Git'">
             <dt>Source repo:</dt>
-            <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink | linky'></dd>
+            <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink : buildConfig.spec.source.git.ref : buildConfig.spec.source.contextDir | linky'></dd>
             <dt ng-if="buildConfig.spec.source.git.ref">Source ref:</dt>
             <dd ng-if="buildConfig.spec.source.git.ref">{{buildConfig.spec.source.git.ref}}</dd>
             <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
