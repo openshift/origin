@@ -9,7 +9,7 @@ import (
 
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet"
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/plugins/osdn"
+	"github.com/openshift/openshift-sdn/plugins/osdn"
 )
 
 func NetworkPluginName() string {
