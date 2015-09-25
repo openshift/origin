@@ -22,8 +22,8 @@ type DefaultLDAPUserNameMapper struct {
 	nameAttributes []string
 }
 
-func (m *DefaultLDAPUserNameMapper) UserNameFor(ldapUser *ldap.Entry) (openShiftUserName string, err error) {
-	openShiftUserName = ldaputil.GetAttributeValue(ldapUser, m.nameAttributes)
+func (m *DefaultLDAPUserNameMapper) UserNameFor(ldapUser *ldap.Entry) (string, error) {
+	openShiftUserName := ldaputil.GetAttributeValue(ldapUser, m.nameAttributes)
 	if len(openShiftUserName) == 0 {
 		return "", fmt.Errorf("the user entry (%v) does not map to a OpenShift User name with the given mapping",
 			ldapUser)

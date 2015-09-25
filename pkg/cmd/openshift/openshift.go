@@ -161,7 +161,6 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
 	experimental.AddCommand(diagnostics.NewCommandDiagnostics("diagnostics", fullName+" diagnostics", out))
-	// TOOD(skuznets): Re-enable this command once ready
 	experimental.AddCommand(syncgroups.NewCmdSyncGroups(syncgroups.SyncGroupsRecommendedName, fullName+" "+syncgroups.SyncGroupsRecommendedName, f, out))
 	experimental.AddCommand(cmd.NewCmdOptions(out))
 	return experimental
