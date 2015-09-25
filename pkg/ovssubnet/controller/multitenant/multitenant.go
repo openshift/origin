@@ -21,11 +21,11 @@ func NewFlowController() *FlowController {
 	return &FlowController{}
 }
 
-func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork string, mtu uint) error {
-	_, ipnet, err := net.ParseCIDR(localSubnet)
-	subnetMaskLength, _ := ipnet.Mask.Size()
-	gateway := netutils.GenerateDefaultGateway(ipnet).String()
-	out, err := exec.Command("openshift-sdn-multitenant-setup.sh", gateway, ipnet.String(), containerNetwork, fmt.Sprint(subnetMaskLength), gateway, servicesNetwork, fmt.Sprint(mtu)).CombinedOutput()
+func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) error {
+	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
+	localSubnetMaskLength, _ := ipnet.Mask.Size()
+	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
+	out, err := exec.Command("openshift-sdn-multitenant-setup.sh", localSubnetGateway, localSubnetCIDR, fmt.Sprint(localSubnetMaskLength), clusterNetworkCIDR, servicesNetworkCIDR, fmt.Sprint(mtu)).CombinedOutput()
 	log.Infof("Output of setup script:\n%s", out)
 	if err != nil {
 		exitErr, ok := err.(*exec.ExitError)
@@ -43,14 +43,14 @@ func (c *FlowController) Setup(localSubnet, containerNetwork, servicesNetwork st
 	}
 
 	fw := firewalld.New()
-	err = c.SetupIptables(fw, containerNetwork)
+	err = c.SetupIptables(fw, clusterNetworkCIDR)
 	if err != nil {
 		log.Errorf("Error setting up iptables: %v\n", err)
 		return err
 	}
 
 	fw.AddReloadFunc(func() {
-		err = c.SetupIptables(fw, containerNetwork)
+		err = c.SetupIptables(fw, clusterNetworkCIDR)
 		if err != nil {
 			log.Errorf("Error reloading iptables: %v\n", err)
 		}
@@ -67,14 +67,14 @@ type FirewallRule struct {
 	args     []string
 }
 
-func (c *FlowController) SetupIptables(fw *firewalld.Interface, containerNetwork string) error {
+func (c *FlowController) SetupIptables(fw *firewalld.Interface, clusterNetworkCIDR string) error {
 	if fw.IsRunning() {
 		rules := []FirewallRule{
-			{firewalld.IPv4, "nat", "POSTROUTING", 0, []string{"-s", containerNetwork, "!", "-d", containerNetwork, "-j", "MASQUERADE"}},
+			{firewalld.IPv4, "nat", "POSTROUTING", 0, []string{"-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE"}},
 			{firewalld.IPv4, "filter", "INPUT", 0, []string{"-p", "udp", "-m", "multiport", "--dports", "4789", "-m", "comment", "--comment", "001 vxlan incoming", "-j", "ACCEPT"}},
 			{firewalld.IPv4, "filter", "INPUT", 0, []string{"-i", "tun0", "-m", "comment", "--comment", "traffic from docker for internet", "-j", "ACCEPT"}},
-			{firewalld.IPv4, "filter", "FORWARD", 0, []string{"-d", containerNetwork, "-j", "ACCEPT"}},
-			{firewalld.IPv4, "filter", "FORWARD", 0, []string{"-s", containerNetwork, "-j", "ACCEPT"}},
+			{firewalld.IPv4, "filter", "FORWARD", 0, []string{"-d", clusterNetworkCIDR, "-j", "ACCEPT"}},
+			{firewalld.IPv4, "filter", "FORWARD", 0, []string{"-s", clusterNetworkCIDR, "-j", "ACCEPT"}},
 		}
 
 		for _, rule := range rules {
@@ -84,8 +84,8 @@ func (c *FlowController) SetupIptables(fw *firewalld.Interface, containerNetwork
 			}
 		}
 	} else {
-		exec.Command("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", containerNetwork, "!", "-d", containerNetwork, "-j", "MASQUERADE").Run()
-		err := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", containerNetwork, "!", "-d", containerNetwork, "-j", "MASQUERADE").Run()
+		exec.Command("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE").Run()
+		err := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE").Run()
 		if err != nil {
 			return err
 		}
@@ -94,14 +94,14 @@ func (c *FlowController) SetupIptables(fw *firewalld.Interface, containerNetwork
 	return nil
 }
 
-func (c *FlowController) AddOFRules(nodeIP, subnet, localIP string) error {
+func (c *FlowController) AddOFRules(nodeIP, nodeSubnetCIDR, localIP string) error {
 	if nodeIP == localIP {
 		return nil
 	}
 
 	cookie := generateCookie(nodeIP)
-	iprule := fmt.Sprintf("table=7,cookie=0x%s,priority=100,ip,nw_dst=%s,actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, subnet, nodeIP)
-	arprule := fmt.Sprintf("table=8,cookie=0x%s,priority=100,arp,nw_dst=%s,actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, subnet, nodeIP)
+	iprule := fmt.Sprintf("table=7,cookie=0x%s,priority=100,ip,nw_dst=%s,actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, nodeSubnetCIDR, nodeIP)
+	arprule := fmt.Sprintf("table=8,cookie=0x%s,priority=100,arp,nw_dst=%s,actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", cookie, nodeSubnetCIDR, nodeIP)
 	o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", iprule).CombinedOutput()
 	log.Infof("Output of adding %s: %s (%v)", iprule, o, e)
 	o, e = exec.Command("ovs-ofctl", "-O", "OpenFlow13", "add-flow", "br0", arprule).CombinedOutput()
@@ -109,13 +109,13 @@ func (c *FlowController) AddOFRules(nodeIP, subnet, localIP string) error {
 	return e
 }
 
-func (c *FlowController) DelOFRules(node, localIP string) error {
-	if node == localIP {
+func (c *FlowController) DelOFRules(nodeIP, localIP string) error {
+	if nodeIP == localIP {
 		return nil
 	}
 
-	log.Infof("Calling del rules for %s", node)
-	cookie := generateCookie(node)
+	log.Infof("Calling del rules for %s", nodeIP)
+	cookie := generateCookie(nodeIP)
 	iprule := fmt.Sprintf("table=7,cookie=0x%s/0xffffffff", cookie)
 	arprule := fmt.Sprintf("table=8,cookie=0x%s/0xffffffff", cookie)
 	o, e := exec.Command("ovs-ofctl", "-O", "OpenFlow13", "del-flows", "br0", iprule).CombinedOutput()
