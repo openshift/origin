@@ -55,31 +55,26 @@ handle_uncommited_sdn_changes() {
 
 copy_files_to_origin() {
     local sdn_pkg_dir="$sdn_repo_dir/pkg"
-    local sdn_plugins_dir="$sdn_repo_dir/plugins/osdn"
+    local sdn_plugins_dir="$sdn_repo_dir/plugins"
     local origin_sdn_pkg_dir="$origin_repo_dir/Godeps/_workspace/src/github.com/openshift/openshift-sdn"
-    local origin_sdn_plugins_dir="$origin_repo_dir/plugins/osdn"
 
     if [ ! -d "$sdn_pkg_dir" ] || [ ! -d "$sdn_plugins_dir" ]; then
         die "openshift-sdn repo doesn't contain '$sdn_pkg_dir'|'$sdn_plugins_dir'"
     fi
-    if [ ! -d "$origin_sdn_pkg_dir" ] || [ ! -d "$origin_sdn_plugins_dir" ]; then
-        echo "Warning: openshift origin repo doesn't contain sdn dirs '$origin_sdn_pkg_dir'|'$origin_sdn_plugins_dir'"
+    if [ ! -d "$origin_sdn_pkg_dir" ]; then
+        echo "Warning: openshift origin repo doesn't contain sdn dirs under '$origin_sdn_pkg_dir'"
     fi
 
     # If any uncommited sdn changes found in origin repo, get user input before proceeding further
     handle_uncommited_sdn_changes $origin_sdn_pkg_dir
-    handle_uncommited_sdn_changes $origin_sdn_plugins_dir
 
     # Move old origin sdn changes to temporary sync dir 
     mv -f $origin_sdn_pkg_dir $temp_sync_dir
-    mv -f $origin_sdn_plugins_dir $temp_sync_dir
 
     mkdir -p $origin_sdn_pkg_dir || true
-    mkdir -p $origin_sdn_plugins_dir || true
 
     # Copy new sdn changes to origin repo
-    cp -rf $sdn_pkg_dir $origin_sdn_pkg_dir
-    cp -rf $sdn_plugins_dir/* $origin_sdn_plugins_dir
+    cp -rf $sdn_pkg_dir $sdn_plugins_dir $origin_sdn_pkg_dir
 }
 
 update_origin_godeps() {
