@@ -150,13 +150,12 @@ angular.module("openshiftConsole")
             return d.promise;
           },
           function(result) { // failure
-            $scope.alerts = [
+            $scope.alerts["create"] = 
               {
                 type: "error",
                 message: "An error occurred creating the application.",
                 details: "Status: " + result.status + ". " + result.data
-              }
-            ];
+              };
           }
         );
       Navigate.toProjectOverview($scope.projectName);

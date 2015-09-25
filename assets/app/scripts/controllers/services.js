@@ -12,9 +12,11 @@ angular.module('openshiftConsole')
     $scope.services = {};
     $scope.unfilteredServices = {};
     $scope.routesByService = {};
+    $scope.routes = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";
+    $scope.emptyMessageRoutes = "Loading...";
     var watches = [];
 
     watches.push(DataService.watch("services", $scope, function(services, action) {
@@ -35,7 +37,9 @@ angular.module('openshiftConsole')
     }));
 
     watches.push(DataService.watch("routes", $scope, function(routes){
-        $scope.routesByService = routesByService(routes.by("metadata.name"));
+        $scope.routes = routes.by("metadata.name");
+        $scope.emptyMessageRoutes = "No routes to show";
+        $scope.routesByService = routesByService($scope.routes);
         Logger.log("routes (subscribe)", $scope.routesByService);
     }));
 

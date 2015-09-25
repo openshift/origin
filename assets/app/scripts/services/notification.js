@@ -26,7 +26,9 @@ angular.module('openshiftConsole')
     opts = opts || {};
     var notifyOpts = {
       type: type,
-      message: message,
+      // TODO report this issue upstream to messenger, they don't handle messages with invalid html
+      // they should be escaping it
+      message: $('<div/>').text(message).html(),
       id: opts.id,
       actions: opts.actions
     };
