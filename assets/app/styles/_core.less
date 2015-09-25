@@ -207,6 +207,7 @@ html, body {
   margin: 10px auto;
   max-width: 500px;
   padding: 30px;
+
   // Make sure icons are the same size so text aligns.
   .fa {
     width: 16px;
@@ -218,8 +219,7 @@ html, body {
   }
 }
 
-.empty-project-list {
-  .text-center;
+.empty-state-message {
   margin: @grid-gutter-width auto;
   max-width: 600px;
   padding: 0 (@grid-gutter-width / 2);
@@ -252,14 +252,34 @@ html, body {
 // Create App
 // --------------------------------------------------
 
- label.checkbox {
+label.checkbox {
   font-weight: normal;
 }
 
 // Make sure icons are the same size so headings align.
-.add-to-project h1 .fa {
-  width: 24px;
-  text-align: center;
+.add-to-project {
+  .filter-group {
+    line-height: 1.75;
+    .search-input, .btn-group {
+      display: inline-block;
+      margin-bottom: 10px;
+      vertical-align: top;
+    }
+    .search-input {
+      width: 100%;
+      @media (min-width: @screen-sm-min) {
+        width: 400px;
+      }
+    }
+    .filter-btn {
+      margin-right: 5px;
+    }
+    @media (min-width: @screen-sm-min) {
+      .filter-msg {
+        display: inline-block;
+      }
+    }
+  }
 }
 
 .create-from-template,
@@ -336,7 +356,23 @@ html, body {
   }
 }
 
+.catalog-col section {
+  margin-bottom: 10px;
+  > h3 {
+    margin-top: 0;
+    small {
+      font-size: @font-size-base;
+    }
+  }
+}
+@media (min-width:@screen-sm-min) {
+  .catalog-col-2 {
+    margin-left: 3%;
+  }
+}
+
 .tag {
+  color: #999999;
   text-transform: uppercase;
   margin-right: 10px;
 }
@@ -347,6 +383,18 @@ html, body {
   // Stack at mobile screen sizes
   .flex-direction(@direction: column);
 
+  .tile-template, .tile-image {
+    width: 100%;
+    a.tag {
+      text-decoration: none;
+      &:hover {
+        color: black;
+        background: #dfdfdf;
+        text-decoration: none;
+      }
+    }
+  }
+
   // Arrange in columns >767px
   @media (min-width: @screen-sm-min) {
     .flex-direction(@direction: row);
@@ -354,13 +402,18 @@ html, body {
     .justify-content(@justify: flex-start);
     .tile-template, .tile-image {
       .flex(@columns: 1 0 auto);
-      min-width: 150px;
-      max-width: 325px;
+      width: 100%;
       margin-right: (@grid-gutter-width / 2);
+    }
+    &.catalog-fluid {
+      .tile-template, .tile-image {
+        width: 375px;
+      }
     }
   }
 }
 
+@create-form-md-width: 44%;
 @media (min-width: 767px) {
   .create-from-template,
   .create-from-image {
@@ -371,10 +424,13 @@ html, body {
         text-align: right;
       }
     }
-    .form-group {
+    .form-control-md {
+      width: @create-form-md-width;
+    }
+    .labels .form-group {
       // Show name/value fields like labels and env vars side by side at wide screen sizes.
       // Align text fields with read-only values.
-      width: 44%;
+      width: @create-form-md-width;
       .form-control {
         width: 100%;
       }

@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateProjectController', function ($scope, AuthService, DataService, Notification, Navigate) {
+  .controller('CreateProjectController', function ($scope, $location, AuthService, DataService, Notification) {
 
     AuthService.withUser();
 
@@ -23,7 +23,8 @@ angular.module('openshiftConsole')
           displayName: $scope.displayName,
           description: $scope.description
         }, $scope).then(function(data) { // Success
-          Navigate.toProjectOverview(data.metadata.name);
+          // Take the user directly to the create page to add content.
+          $location.path("project/" + encodeURIComponent(data.metadata.name) + "/create");
         }, function(result) { // Failure
           var data = result.data || {};
           if (data.reason === 'AlreadyExists') {

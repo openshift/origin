@@ -4,10 +4,9 @@ angular.module("openshiftConsole")
   .controller("CreateFromImageController", function ($scope,
       Logger,
       $q,
-      $routeParams, 
-      DataService, 
-      Navigate, 
-      NameGenerator, 
+      $routeParams,
+      DataService,
+      Navigate,
       ApplicationGenerator,
       TaskList,
       failureObjectNameFilter,
@@ -23,16 +22,12 @@ angular.module("openshiftConsole")
       if(!$routeParams.imageTag){
         Navigate.toErrorPage("Cannot create from source: a base image tag was not specified");
       }
-      if(!$routeParams.sourceURL){
-        Navigate.toErrorPage("Cannot create from source: source url was not specified");
-      }
 
       scope.emptyMessage = "Loading...";
       scope.imageName = $routeParams.imageName;
       scope.imageTag = $routeParams.imageTag;
       scope.namespace = $routeParams.namespace;
       scope.buildConfig = {
-        sourceUrl: $routeParams.sourceURL,
         buildOnSourceChange: true,
         buildOnImageChange: true,
         buildOnConfigChange: true
@@ -52,10 +47,22 @@ angular.module("openshiftConsole")
         replicas: 1
       };
 
-      DataService.get("imagestreams", scope.imageName, scope, {namespace: scope.namespace}).then(function(imageRepo){
-          scope.imageRepo = imageRepo;
+      scope.fillSampleRepo = function() {
+        var annotations;
+        if (!scope.image && !scope.image.metadata && !scope.image.metadata.annotations) {
+          return;
+        }
+
+        annotations = scope.image.metadata.annotations;
+        scope.buildConfig.sourceUrl = annotations.sampleRepo || "";
+        scope.buildConfig.gitRef = annotations.sampleRef || "";
+        scope.buildConfig.contextDir = annotations.sampleContextDir || "";
+      };
+
+      DataService.get("imagestreams", scope.imageName, scope, {namespace: scope.namespace}).then(function(imageStream){
+          scope.imageStream = imageStream;
           var imageName = scope.imageTag;
-          DataService.get("imagestreamtags", imageRepo.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(imageStreamTag){
+          DataService.get("imagestreamtags", imageStream.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(imageStreamTag){
               scope.image = imageStreamTag.image;
               angular.forEach(imageStreamTag.image.dockerImageMetadata.ContainerConfig.Env, function(entry){
                 var pair = entry.split("=");
@@ -69,10 +76,11 @@ angular.module("openshiftConsole")
         function(){
           Navigate.toErrorPage("Cannot create from source: the specified image could not be retrieved.");
         });
-        scope.name = NameGenerator.suggestFromSourceUrl(scope.buildConfig.sourceUrl);
     }
 
     initAndValidate($scope);
+
+    $scope.sourceURLPattern = /^((ftp|http|https|git):\/\/(\w+:{0,1}[^\s@]*@)|git@)?([^\s@]+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$/;
 
     var ifResourcesDontExist = function(resources, namespace, scope){
       var result = $q.defer();
@@ -84,7 +92,7 @@ angular.module("openshiftConsole")
         if (remaining === 0) {
           if(successResults.length > 0){
             //means some resources exist with the given nanme
-            result.reject(successResults); 
+            result.reject(successResults);
           }
           else
             //means no resources exist with the given nanme

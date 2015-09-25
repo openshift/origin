@@ -7,67 +7,115 @@
       </ol>
       <div class="row">
         <div class="col-md-12">
-          <h1><i class="fa fa-code"></i> Create Using Your Code</h1>
-          <form name="from_source_form" class="form-inline gutter-bottom">
-            <p>Create your application from a Git source code repository. Optionally specify a branch, tag, or commit ID with #ref.</p>
-            <div class="row">
-              <div class="col-md-8">
-                <div class="input-group">
-                  <span ng-class="{'has-warning': from_source_form.from_source_url.$dirty && !sourceURLPattern.test(from_source_url)}">
-                    <input class="form-control input-lg"
-                      name="from_source_url"
-                      placeholder="Repository URL"
-                      type="text"
-                      required
-                      aria-describedby="from_source_help"
-                      ng-model="from_source_url">
-                  </span>
-                  <span class="input-group-btn">
-                    <button type="submit" class="btn btn-lg btn-default" ng-click="createFromSource()"
-                      ng-disabled="from_source_form.$invalid" value="">Next</button>
-                  </span>
-                </div>
-                <div id="from_source_help" class="help-block">For example, https://github.com/openshift/nodejs-ex#master
-                  <a href="#" ng-click="from_source_url = 'https://github.com/openshift/nodejs-ex#master'"
-                    style="margin-left: 3px;">Try it out!<i class="fa fa-level-up" style="margin-left: 3px; font-size: 17px;"></i></a></div>
-                <span class="text-warning" ng-if="from_source_form.from_source_url.$dirty && !sourceURLPattern.test(from_source_url)">Source repository should be a URL</span>
+          <p ng-if="emptyCatalog && !loaded">Loading...</p>
+
+          <div ng-if="emptyCatalog && loaded && !nonBuilderImages.length" class="empty-state-message">
+            <h2 class="text-center">No images or templates.</h2>
+
+            <p class="gutter-top">
+              No images or templates are loaded for this project or the shared
+              <code>openshift</code> namespace. An image or template is
+              required to add content.
+            </p>
+
+            <p>
+              To load an image stream or template from a file, run the command
+              <div><code>oc create -f &lt;filename&gt; -n {{projectName}}</code></div>
+            </p>
+
+            <p><a href="{{projectName | projectOverviewURL}}">Back to overview</a></p>
+          </div>
+
+          <!-- Show an abbreviated message if only non-builders exist in the project.
+               We show a link to view the non-builder images below. -->
+          <p ng-if="emptyCatalog && loaded && nonBuilderImages.length">No builder images or templates.</p>
+
+          <div ng-show="!emptyCatalog">
+            <h1>Select Image or Template</h1>
+
+            <p>Choose from web frameworks, databases, and other components.</p>
+
+            <div class="filter-group">
+              <!-- Add a hidden label for screen readers. -->
+              <label for="search" class="sr-only">Filter by keyword</label>
+              <input
+                 ng-model="filter.keyword"
+                 autofocus
+                 type="search"
+                 id="search"
+                 placeholder="Filter by keyword"
+                 class="search-input form-control">
+
+              <!-- Filter by tag -->
+              <div dropdown keyboard-nav class="filter-btn btn-group">
+                <button class="dropdown-toggle" data-toggle="dropdown" role="menu">
+                  Browse
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                  <li ng-repeat="tag in categoryTags" role="menuitem">
+                    <a href="" ng-click="filter.tag = tag">{{tag}}</a>
+                  </li>
+                </ul>
+              </div>
+              <div ng-if="filter.tag" class="filter-msg">
+                Tagged with {{filter.tag}}.
+                <a href="" ng-click="filter.tag = ''">See all tags</a>
               </div>
             </div>
-          </form>
 
-          <div class="row">
-            <div class="col-md-12">
-              <div class="separator"></div>
-              <h1><i class="fa fa-bolt"></i> Create Using a Template</h1>
-              <p>Templates have predefined resources for quickly creating components. You can customize some options in the next step.</p>
-              <h3>Instant Apps</h3>
-              <div ng-if="!templatesLoaded && (instantApps | hashSize) === 0">Loading...</div>
-              <div ng-if="templatesLoaded && (instantApps | hashSize) === 0">
-                <em>There are no instant apps available.</em>
-              </div>
-              <div class="catalog">
-                <catalog-template
-                    template="template"
-                    project="projectName"
-                    ng-repeat="template in instantApps | toArray | orderBy : ['metadata.name', 'metadata.namespace']">
-                </catalog-template>
-              </div>
-              <div ng-show="!showAllTemplates && (otherTemplates | hashSize) !== 0" class="show-all-button-container gutter-bottom">
-                <a ng-click="showAllTemplates = true" class="btn btn-lg btn-primary">Show All Templates</a>
-              </div>
-              <div ng-show="showAllTemplates">
-                <h3>Other Templates</h3>
-                <div class="catalog">
-                  <catalog-template
-                      template="template"
-                      project="projectName"
-                      ng-repeat="template in otherTemplates | toArray | orderBy : ['metadata.name', 'metadata.namespace']">
-                  </catalog-template>
+            <div ng-if="filteredCategoryTags.length === 0 && !emptyCatalog && loaded" style="margin-top: 5px;">
+              All builder images and templates are hidden by the current filter.
+              <a href="" ng-click="filter.keyword = ''; filter.tag = ''">Clear filter</a>
+            </div>
+
+            <div row md="column" class="gutter-top">
+              <!-- left column -->
+              <div column flex class="catalog-col catalog-col-1">
+                <div ng-repeat="category in leftCategories">
+                  <catalog-category
+                    category-label="{{categoryLabels[category] || tag}}"
+                    builders="filteredBuildersByCategory[category]"
+                    templates="filteredTemplatesByCategory[category]"
+                    project="{{projectName}}"
+                    item-limit="{{itemLimit}}"
+                    filter-tag="filterTag">
+                  </catalog-category>
                 </div>
               </div>
+              <!-- right column -->
+              <div column flex class="catalog-col catalog-col-2">
+                <div ng-repeat="category in rightCategories">
+                  <catalog-category
+                    category-label="{{categoryLabels[category] || tag}}"
+                    builders="filteredBuildersByCategory[category]"
+                    templates="filteredTemplatesByCategory[category]"
+                    project="{{projectName}}"
+                    item-limit="{{itemLimit}}"
+                    filter-tag="filterTag">
+                  </catalog-category>
+                </div>
+              </div>
+            </div>
+
+            <!-- Don't show images without the builder tag by default, by allow the user to pick one. -->
+            <div ng-if="filteredNonBuilders.length" click-to-reveal link-text="Don't see the image you are looking for?" class="gutter-bottom">
+              <h2>Additional Images</h2>
               <div class="gutter-bottom">
-                To load additional templates into this project, run the command
-                <code>oc create -f &lt;template-filename&gt; -n {{projectName}}</code>
+                <span class="small pficon-layered">
+                  <span class="pficon pficon-warning-triangle"></span>
+                  <span class="pficon pficon-warning-exclamation"></span>
+                </span>
+                Some images in this list may not be able to build source. Use with caution.
+              </div>
+              <div class="catalog catalog-fluid">
+                <catalog-image
+                    image-stream="image.imageStream"
+                    image-tag="image.imageStreamTag"
+                    project="{{projectName}}"
+                    version="image.version"
+                    ng-repeat="image in filteredNonBuilders | orderBy : ['name', 'imageStream.metadata.namespace']">
+                </catalog-image>
               </div>
             </div>
           </div>
