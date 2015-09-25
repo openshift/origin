@@ -6,7 +6,6 @@ go:
 
 install:
   - ./hack/verify-gofmt.sh
-  - ./hack/build.sh
 
 script:
   - ./hack/test.sh

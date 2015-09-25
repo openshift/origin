@@ -1,107 +1,42 @@
-## SDN solutions for Openshift
+## SDN solutions for OpenShift
 
-Software to get an overlay network up and running for a Docker cluster.
+Software to get an overlay network up and running for OpenShift.
 
-#### Build and Install
+Currently, this doesn't run as a standalone binary, it works in conjunction with [openshift/origin](https://github.com/openshift/origin).
 
-	$ git clone https://github.com/openshift/openshift-sdn
-	$ cd openshift-sdn
-	$ make clean        # optional
-	$ make              # build
-	$ make install      # installs in /usr/bin
+#### Network Architecture
+High level OpenShift SDN architecture can be found [here](https://docs.openshift.org/latest/architecture/additional_concepts/sdn.html).
 
-#### Try it out
+For more implementation details, refer to [ISOLATION.md](https://github.com/openshift/openshift-sdn/blob/master/ISOLATION.md).
 
-##### Use vagrant, pre-define a cluster, and bring it up
-
-Create an openshift cluster on your desktop using vagrant:
-
+#### How to Contribute
+Clone openshift origin and openshift-sdn repositories:
+	
 	$ git clone https://github.com/openshift/origin
+	$ git clone https://github.com/openshift/openshift-sdn
+
+Make changes to openshift-sdn repository:
+	
+	$ cd openshift-sdn
+	Patch files...
+        
+Run unit tests in openshift-sdn repository:
+
+	$ cd openshift-sdn
+	$ hack/test.sh
+
+Synchronize your changes to origin repository:
+
+	$ cd openshift-sdn
+	$ hack/sync-to-origin.sh -r ../origin/
+
+Create openshift cluster with your sdn changes:
+
 	$ cd origin
 	$ make clean
+	$ make
 	$ export OPENSHIFT_DEV_CLUSTER=1
 	$ export OPENSHIFT_NUM_MINIONS=2
-	$ export OPENSHIFT_SDN=ovs-simple
 	$ vagrant up
 
-##### Manually add nodes to a master
-
-Steps to create manually create an OpenShift cluster with openshift-sdn. This requires that each machine (master, nodes) have compiled `openshift` and `openshift-sdn` already. Check [here](https://github.com/openshift/origin) for OpenShift instructions. Ensure 'openvswitch' is installed and running (`yum install -y openvswitch && systemctl enable openvswitch && systemctl start openvswitch`). Also verify that the `DOCKER_OPTIONS` variable is unset in your environment, or set to a known-working value (e.g. `DOCKER_OPTIONS='-b=lbr0 --mtu=1450 --selinux-enabled'`). If you don't know what to put there, it's probably best to leave it unset. :)
-
-On OpenShift master,
-
-	$ openshift start master [--nodes=node1]  # start the master openshift server (also starts the etcd server by default) with an optional list of nodes
-	$ openshift-sdn           # assumes etcd is running at localhost:4001
-
-To add a node to the cluster, do the following on the node:
-
-	$ openshift-sdn -etcd-endpoints=http://openshift-master:4001 -node -public-ip=<10.10....> -hostname <hostname>
-	where, 
-		-etcd-endpoints	: reach the etcd db here
-		-node 	        : run it in node mode (will watch etcd servers for new node subnets)
-		-public-ip	: use this field for suggesting the publicly reachable IP address of this node
-		-hostname	: the name that will be used to register the node with openshift-master
-	$ openshift start node --master=https://openshift-master:8443
-
-Back on the master, to finally register the node:
-
-	Create a json file for the new node resource
-        $ cat <<EOF > node-1.json
-	{
-		"kind":"Node",
-		"id":"openshift-minion-1",
-		"apiVersion":"v1"
-	}
-	EOF
-	where, openshift-minion-1 is a hostname that is resolvable from the master (or, create an entry in /etc/hosts and point it to the public-ip of the node).
-	$ openshift cli create -f node-1.json
-
-Done. Repeat last two pieces to add more nodes. Create new pods from the master (or just docker containers on the nodes), and see that the pods are indeed reachable from each other.
-
-
-##### OpenShift? PaaS? Can I have a 'plain setup' just for Docker?
-
-Someone needs to register that new nodes have joined the cluster. And instead of using OpenShift/Kubernetes to do that, we can use 'openshift-sdn' itself. Use '-sync' flag for that.
-
-Steps:
-
-1. Run etcd somewhere, and run the openshift-sdn master to watch it in sync mode.
-
-		$ systemctl start etcd
-		$ openshift-sdn -master -sync  # use -etcd-endpoints=http://target:4001 if etcd is not running locally
-
-2. To add a node, make sure the 'hostname/dns' is reachable from the machine that is running 'openshift-sdn master'. Then start the openshift-sdn in node mode with sync flag.
-
-		$ openshift-sdn -node -sync -etcd-endpoints=http://master-host:4001 -hostname=node-1-dns -public-ip=<public ip that the hostname resolves to>
-
-Done. Add more nodes by repeating step 2. All nodes should have a docker bridge (lbr0) that is part of the overlay network.
-
-#### Gotchas..
-
-Some requirements, some silly errors.
-
- - openshift-sdn fails with errors around ovs-vsctl.. 
-	yum -y install openvswitch && systemctl enable openvswitch && systemctl start openvswitch
- - openshift-sdn fails to start with errors relating to 'network not up' etc.
-	systemctl stop NetworkManager # that fella is nosy, does not like mint new bridges
- - openshift-sdn fails to start saying cannot reach etcd endpoints
-	etcd not running really or not listening on public interface? That machine not reachable possibly? -etcd-endpoints=https?? without ssl being supplied? Remove the trailing '/' from the url maybe?
- - openshift-sdn is up, I think I got the subnet, but my pings do not work
-	It may take a while for the ping to work (blame the docker linux bridge, optimizations coming). Check that all nodes' hostnames on master are resolvable and to the correct IP addresses. Last, but not the least - firewalld (switch it off and check, and then punch a hole for vxlan please).
-
-#### Performance Note
-
-The current design has a long path for packets directed for the overlay network.
-There are two veth-pairs, a linux bridge, and then the OpenVSwitch, that cause a drop in performance of about 40%
-
-An optimzed solution that eliminates the long-path to just a single veth-pair bring the performance close to the wire. The performance has been measured using sockperf.
-
-  | openshift-sdn | openshift-sdn (optimized) | without overlay
---- | --------- | ------- | ------
-Latency | 112us | 84us | 82us
-
-The optimized solution is available for use with OpenShift/Kubernetes only. Use '-kube' option with openshift-sdn on all hosts. And use the network_plugin for OpenShift/Kubernetes as 'redhat/openshift-ovs-subet'.
-
-#### TODO
-
- - Network isolation between groups of containers
+Validate your changes and test cases on the openshift cluster and submit corresponding pull requests to [openshift/openshift-sdn](https://github.com/openshift/openshift-sdn) and/or [openshift/origin](https://github.com/openshift/origin) repositories.

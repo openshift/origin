@@ -16,7 +16,6 @@ if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.2|go1.3|go1.4') ]]; then
 fi
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
-source "${OS_ROOT}/hack/common.sh"
 
 cd "${OS_ROOT}"
 

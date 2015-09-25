@@ -3,11 +3,6 @@
 	"GoVersion": "go1.3.3",
 	"Deps": [
 		{
-			"ImportPath": "github.com/coreos/go-etcd/etcd",
-			"Comment": "v0.2.0-rc1-120-g23142f6",
-			"Rev": "23142f6773a676cc2cae8dd0cb90b2ea761c853f"
-		},
-		{
 			"ImportPath": "github.com/godbus/dbus",
 			"Comment": "0-7-g939230d",
 			"Rev": "939230d2086a4f1870e04c52e0a376c25bae0ec4"
