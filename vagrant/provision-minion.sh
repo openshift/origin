@@ -4,11 +4,14 @@ source $(dirname $0)/provision-config.sh
 
 MINION_IP=$5
 MINION_INDEX=$6
+FIXUP_NET_UDEV=$7
 
-NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
-sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
+if [ "${FIXUP_NET_UDEV}" == "true" ]; then
+  NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
+  sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
 
-systemctl restart network
+  systemctl restart network
+fi
 
 # get the minion name, index is 1-based
 minion_name=${MINION_NAMES[$MINION_INDEX-1]}
