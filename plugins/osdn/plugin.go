@@ -1,4 +1,4 @@
-package multitenant
+package osdn
 
 import (
 	"encoding/json"
@@ -19,22 +19,27 @@ const (
 	statusCmd   = "status"
 )
 
-type MultitenantPlugin struct {
+type NetworkPlugin struct {
+	name          string
 	host          knetwork.Host
-	OvsController *ovssubnet.OvsController
+	ovsController *ovssubnet.OvsController
 }
 
-func GetKubeNetworkPlugin() knetwork.NetworkPlugin {
-	return &MultitenantPlugin{}
+func GetNetworkPlugin(pluginName string) knetwork.NetworkPlugin {
+	if pluginName != multitenantNetworkPluginName {
+		return nil
+	}
+	return &NetworkPlugin{name: pluginName}
 }
 
-func (plugin *MultitenantPlugin) getExecutable() string {
-	return "openshift-ovs-multitenant"
+func (plugin *NetworkPlugin) getExecutable() string {
+	// Skip "redhat/"
+	return plugin.name[7:]
 }
 
-func (plugin *MultitenantPlugin) getVnid(namespace string) (uint, error) {
+func (plugin *NetworkPlugin) getVnid(namespace string) (uint, error) {
 	// get vnid for the namespace
-	vnid, ok := plugin.OvsController.VNIDMap[namespace]
+	vnid, ok := plugin.ovsController.VNIDMap[namespace]
 	if !ok {
 		// vnid does not exist for this pod, set it to zero (or error?)
 		vnid = 0
@@ -42,16 +47,16 @@ func (plugin *MultitenantPlugin) getVnid(namespace string) (uint, error) {
 	return vnid, nil
 }
 
-func (plugin *MultitenantPlugin) Init(host knetwork.Host) error {
+func (plugin *NetworkPlugin) Init(host knetwork.Host) error {
 	plugin.host = host
 	return nil
 }
 
-func (plugin *MultitenantPlugin) Name() string {
-	return NetworkPluginName()
+func (plugin *NetworkPlugin) Name() string {
+	return plugin.name
 }
 
-func (plugin *MultitenantPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
+func (plugin *NetworkPlugin) SetUpPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	vnid, err := plugin.getVnid(namespace)
 	if err != nil {
 		return err
@@ -61,14 +66,14 @@ func (plugin *MultitenantPlugin) SetUpPod(namespace string, name string, id kube
 	return err
 }
 
-func (plugin *MultitenantPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
+func (plugin *NetworkPlugin) TearDownPod(namespace string, name string, id kubeletTypes.DockerID) error {
 	vnid, err := plugin.getVnid(namespace)
 	out, err := utilexec.New().Command(plugin.getExecutable(), tearDownCmd, namespace, name, string(id), strconv.FormatUint(uint64(vnid), 10)).CombinedOutput()
 	glog.V(5).Infof("TearDownPod 'multitenant' network plugin output: %s, %v", string(out), err)
 	return err
 }
 
-func (plugin *MultitenantPlugin) Status(namespace string, name string, id kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
+func (plugin *NetworkPlugin) Status(namespace string, name string, id kubeletTypes.DockerID) (*knetwork.PodNetworkStatus, error) {
 	vnid, err := plugin.getVnid(namespace)
 	if err != nil {
 		return nil, err
