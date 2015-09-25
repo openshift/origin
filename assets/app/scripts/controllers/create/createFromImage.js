@@ -10,8 +10,11 @@ angular.module("openshiftConsole")
       NameGenerator, 
       ApplicationGenerator,
       TaskList,
-      failureObjectNameFilter
+      failureObjectNameFilter,
+      $filter
     ){
+    var displayNameFilter = $filter('displayName');
+
     function initAndValidate(scope){
 
       if(!$routeParams.imageName){
@@ -115,12 +118,13 @@ angular.module("openshiftConsole")
 
     var createResources = function(resources){
       var titles = {
-        started: "Creating application " + $scope.name + " in project " + $scope.projectName,
-        success: "Created application " + $scope.name + " in project " + $scope.projectName,
-        failure: "Failed to create " + $scope.name + " in project " + $scope.projectName
+        started: "Creating application " + $scope.name + " in project " + $scope.projectDisplayName(),
+        success: "Created application " + $scope.name + " in project " + $scope.projectDisplayName(),
+        failure: "Failed to create " + $scope.name + " in project " + $scope.projectDisplayName()
       };
       var helpLinks = {};
 
+      TaskList.clear();
       TaskList.add(titles, helpLinks, function(){
         var d = $q.defer();
         DataService.createList(resources, $scope)
@@ -129,15 +133,23 @@ angular.module("openshiftConsole")
                 var alerts = [];
                 var hasErrors = false;
                 if (result.failure.length > 0) {
+                  hasErrors = true;
                   result.failure.forEach(
                     function(failure) {
                       var objectName = failureObjectNameFilter(failure) || "object";
                       alerts.push({
                         type: "error",
-                        message: "Cannot create " + objectName + ". ",
+                        message: "Cannot create " + humanize(objectName).toLowerCase() + ". ",
                         details: failure.data.message
                       });
-                      hasErrors = true;
+                    }
+                  );
+                  result.success.forEach(
+                    function(success) {
+                      alerts.push({
+                        type: "success",
+                        message: "Created " + humanize(success.kind).toLowerCase() + " \"" + success.metadata.name + "\" successfully. "
+                      });
                     }
                   );
                 } else {
@@ -158,11 +170,15 @@ angular.module("openshiftConsole")
               };
           }
         );
-      Navigate.toProjectOverview($scope.projectName);
+      Navigate.toNextSteps($scope.name, $scope.projectName);
     };
 
     var elseShowWarning = function(){
       $scope.nameTaken = true;
+    };
+
+    $scope.projectDisplayName = function() {
+      return displayNameFilter(this.project) || this.projectName;
     };
 
     $scope.createApp = function(){

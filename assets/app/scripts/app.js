@@ -181,6 +181,9 @@ angular
       .when('/project/:project/create/fromimage', {
         templateUrl: 'views/create/fromimage.html'
       })
+      .when('/project/:project/create/next', {
+        templateUrl: 'views/create/nextSteps.html'
+      })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',
         controller: 'OAuthController'

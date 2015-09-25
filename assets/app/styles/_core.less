@@ -327,6 +327,15 @@ html, body {
   }
 }
 
+.next-steps {
+  .tile {
+    margin-bottom: 0;
+    &.tile-status {
+      margin-top: 0;
+    }
+  }
+}
+
 .tag {
   text-transform: uppercase;
   margin-right: 10px;
@@ -422,6 +431,14 @@ label.required:before {
 
 code {
   white-space: normal;
+}
+
+pre {
+  &.code {
+    background-color: #fff;
+    border: none;
+    border-left: 2px solid rgb(204, 204, 204);
+  }  
 }
 
 // Fix to override the Firefox 40+ behavior to add text-decoration
