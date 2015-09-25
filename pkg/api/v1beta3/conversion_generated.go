@@ -834,6 +834,7 @@ func convert_api_BuildStatus_To_v1beta3_BuildStatus(in *buildapi.BuildStatus, ou
 		out.CompletionTimestamp = nil
 	}
 	out.Duration = in.Duration
+	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
 		out.Config = new(pkgapiv1beta3.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1beta3_ObjectReference(in.Config, out.Config, s); err != nil {
@@ -1221,6 +1222,7 @@ func convert_v1beta3_BuildStatus_To_api_BuildStatus(in *apiv1beta3.BuildStatus, 
 		out.CompletionTimestamp = nil
 	}
 	out.Duration = in.Duration
+	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
 		out.Config = new(pkgapi.ObjectReference)
 		if err := convert_v1beta3_ObjectReference_To_api_ObjectReference(in.Config, out.Config, s); err != nil {

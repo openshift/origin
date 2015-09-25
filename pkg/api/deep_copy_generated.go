@@ -935,6 +935,7 @@ func deepCopy_api_BuildStatus(in buildapi.BuildStatus, out *buildapi.BuildStatus
 		out.CompletionTimestamp = nil
 	}
 	out.Duration = in.Duration
+	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
 		if newVal, err := c.DeepCopy(in.Config); err != nil {
 			return err

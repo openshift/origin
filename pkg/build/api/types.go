@@ -84,6 +84,12 @@ type BuildStatus struct {
 	// Duration contains time.Duration object describing build time.
 	Duration time.Duration
 
+	// OutputDockerImageReference contains a reference to the Docker image that
+	// will be built by this build. It's value is computed from
+	// Build.Spec.Output.To, and should include the registry address, so that
+	// it can be used to push and pull the image.
+	OutputDockerImageReference string
+
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference
 }

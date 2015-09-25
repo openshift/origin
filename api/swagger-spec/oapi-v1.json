@@ -14501,6 +14501,10 @@
       "$ref": "time.Duration",
       "description": "amount of time the build has been running"
      },
+     "outputDockerImageReference": {
+      "type": "string",
+      "description": "reference to the Docker image built by this build, computed from build.spec.output.to, and can be used to push and pull the image"
+     },
      "config": {
       "$ref": "v1.ObjectReference",
       "description": "reference to build config from which this build was derived"
