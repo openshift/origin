@@ -18,6 +18,7 @@ var admissionPluginsNotUsedByKube = util.NewStringSet(
 	"AlwaysDeny",             // from kube, no need for this by default
 	"NamespaceAutoProvision", // from kube, it creates a namespace if a resource is created in a non-existent namespace.  We don't want this behavior
 	"SecurityContextDeny",    // from kube, it denies pods that want to use SCC capabilities.  We have different rules to allow this in openshift.
+	"DenyExecOnPrivileged",   // from kube, it denies exec to pods that have certain privileges.  This is superceded in origin by SCCExecRestrictions that checks against SCC rules.
 
 	"BuildByStrategy",          // from origin, only needed for managing builds, not kubernetes resources
 	"OriginNamespaceLifecycle", // from origin, only needed for rejecting openshift resources, so not needed by kube

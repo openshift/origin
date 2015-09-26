@@ -182,6 +182,22 @@ oc project ${CLUSTER_ADMIN_CONTEXT}
 # TODO: simplify when #4702 is fixed upstream
 wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
+# Check for privileged exec limitations.
+echo "[INFO] Validating privileged pod exec"
+router_pod=$(oc get pod -n default -l deploymentconfig=router -t '{{(index .items 0).metadata.name}}')
+oc policy add-role-to-user admin e2e-default-admin
+# login as a user that can't run privileged pods
+oc login -u e2e-default-admin -p pass
+# this next call should fail, but we want the output from it
+set +e
+output=$(oc exec -n default -tip ${router_pod} ls 2>&1)
+set -e
+echo "${output}" | grep -q "unable to validate against any security context constraint"
+# system:admin should be able to exec into it
+oc project ${CLUSTER_ADMIN_CONTEXT}
+oc exec -n default -tip ${router_pod} ls
+
+
 echo "[INFO] Validating routed app response..."
 # use the docker bridge ip address until there is a good way to get the auto-selected address from master
 # this address is considered stable
