@@ -8,10 +8,11 @@ TIME_MIN=$((60 * $TIME_SEC))
 # setup_env_vars exports all the necessary environment variables for configuring and
 # starting OS server.
 function setup_env_vars {
-	# determine API_HOST.  This is used to derive other values.  By default, it is first ipv4 address that isn't loopback or docker bridge
-	DEFAULT_SERVER_IP=`ifconfig | grep -Ev "(127.0.0.1|172.17.42.1)" | grep "inet " | head -n 1 | sed 's/adr://' | awk '{print $2}'`
-	export API_HOST="${API_HOST:-${DEFAULT_SERVER_IP}}"
+	# set path so OpenShift is available
+	GO_OUT="${OS_ROOT}/_output/local/bin/$(os::util::host_platform)"
+	export PATH="${GO_OUT}:${PATH}"
 
+	export API_HOST="${API_HOST:-$(openshift start --print-ip)}"
 	export LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 	export ETCD_DATA_DIR="${BASETMPDIR}/etcd"
 	export VOLUME_DIR="${BASETMPDIR}/volumes"
@@ -49,8 +50,11 @@ function setup_env_vars {
 
 	# change the location of $HOME so no one does anything naughty
 	export HOME="${FAKE_HOME_DIR}"
+}
 
-
+# configure_and_start_os will create and write OS master certificates, node config,
+# OS config.
+function configure_os_server {
 	# find the same IP that openshift start will bind to.	This allows access from pods that have to talk back to master
 	if [[ -z "${ALL_IP_ADDRESSES-}" ]]; then
 		ALL_IP_ADDRESSES=`ifconfig | grep "inet " | sed 's/adr://' | awk '{print $2}'`
@@ -65,14 +69,6 @@ function setup_env_vars {
 		export SERVER_HOSTNAME_LIST
 	fi
 
-	# set path so OpenShift is available
-	GO_OUT="${OS_ROOT}/_output/local/go/bin"
-	export PATH="${GO_OUT}:${PATH}"
-}
-
-# configure_and_start_os will create and write OS master certificates, node config,
-# OS config.
-function configure_os_server {
 	echo "[INFO] Creating certificates for the OpenShift server"
 	openshift admin ca create-master-certs \
 	--overwrite=false \
@@ -707,4 +703,18 @@ os::util::run-net-extended-tests() {
 
   os::util::run-extended-tests "${config_root}" "${focus_regex}" \
     "${skip_regex}" "${log_path}"
+}
+
+# Asks golang what it thinks the host platform is.  The go tool chain does some
+# slightly different things when the target platform matches the host platform.
+os::util::host_platform() {
+  echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
+}
+
+os::util::sed() {
+  if [[ "$(go env GOHOSTOS)" == "darwin" ]]; then
+  	sed -i '' $@
+  else
+  	sed -i'' $@
+  fi
 }

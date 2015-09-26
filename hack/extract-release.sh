@@ -17,8 +17,8 @@ cd "${OS_ROOT}"
 # TODO: support different OS's?
 os::build::detect_local_release_tars "linux-amd64"
 
-mkdir -p "${OS_LOCAL_BINPATH}"
-tar mxzf "${OS_PRIMARY_RELEASE_TAR}" -C "${OS_LOCAL_BINPATH}"
-tar mxzf "${OS_IMAGE_RELEASE_TAR}" -C "${OS_LOCAL_BINPATH}"
+mkdir -p "${OS_OUTPUT_BINPATH}/linux/amd64"
+tar mxzf "${OS_PRIMARY_RELEASE_TAR}" -C "${OS_OUTPUT_BINPATH}/linux/amd64"
+tar mxzf "${OS_IMAGE_RELEASE_TAR}" -C "${OS_OUTPUT_BINPATH}/linux/amd64"
 
 os::build::make_openshift_binary_symlinks
