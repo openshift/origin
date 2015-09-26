@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
@@ -89,11 +90,9 @@ var CheckBuildFailedFunc = func(b *buildapi.Build) bool {
 	return b.Status.Phase == buildapi.BuildPhaseFailed || b.Status.Phase == buildapi.BuildPhaseError
 }
 
-// WaitForBuilderAccount waits until the builder service account gets fully
-// provisioned
-func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
+func waitForAccount(c kclient.ServiceAccountsInterface, accountName string) error {
 	waitFunc := func() (bool, error) {
-		sc, err := c.Get("builder")
+		sc, err := c.Get(accountName)
 		if err != nil {
 			return false, err
 		}
@@ -105,6 +104,18 @@ func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
 		return false, nil
 	}
 	return wait.Poll(time.Duration(100*time.Millisecond), time.Duration(60*time.Second), waitFunc)
+}
+
+// WaitForBuilderAccount waits until the builder service account gets fully
+// provisioned
+func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
+	return waitForAccount(c, bootstrappolicy.BuilderServiceAccountName)
+}
+
+// WaitForDeployerAccount waits until the deployer service account gets fully
+// provisioned
+func WaitForDeployerAccount(c kclient.ServiceAccountsInterface) error {
+	return waitForAccount(c, bootstrappolicy.DeployerServiceAccountName)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
@@ -274,6 +285,39 @@ func KubeConfigPath() string {
 // ExtendedTestPath returns absolute path to extended tests directory
 func ExtendedTestPath() string {
 	return os.Getenv("EXTENDED_TEST_PATH")
+}
+
+// MasterConfigDir returns an absolute path to OpenShift master's configuration directory
+func MasterConfigDir() string {
+	configDir := os.Getenv("MASTER_CONFIG_DIR")
+	if configDir == "" {
+		kubeCfg := KubeConfigPath()
+		configDir = filepath.Dir(kubeCfg)
+	}
+	return configDir
+}
+
+// MasterConfigPath returns absolute path to OpenShift master config
+func MasterConfigPath() string {
+	path := os.Getenv("MASTER_CONFIG_PATH")
+	if path == "" {
+		path = filepath.Join(MasterConfigDir(), "master-config.yaml")
+	}
+	return path
+}
+
+// RegistryKubeConfig returns abslute path to internal registry's kubeconfig
+func RegistryKubeConfig() string {
+	return filepath.Join(MasterConfigDir(), "openshift-registry.kubeconfig")
+}
+
+// UseImages returns a template of OpenShift image references to use
+func UseImages() string {
+	imgs := os.Getenv("USE_IMAGES")
+	if imgs == "" {
+		imgs = "docker.io/openshift/origin-${component}:latest"
+	}
+	return imgs
 }
 
 // FixturePath returns absolute path to given fixture file
