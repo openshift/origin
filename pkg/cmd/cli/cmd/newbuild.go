@@ -90,14 +90,14 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 		config.Dockerfile = string(data)
 	}
 
-	if err := setupAppConfig(f, c, args, config); err != nil {
+	if err := setupAppConfig(f, out, c, args, config); err != nil {
 		return err
 	}
 
 	if err := setAppConfigLabels(c, config); err != nil {
 		return err
 	}
-	result, err := config.RunBuilds(out, c.Out())
+	result, err := config.RunBuilds()
 	if err != nil {
 		if errs, ok := err.(errors.Aggregate); ok {
 			if len(errs.Errors()) == 1 {
