@@ -490,12 +490,12 @@ os::build::ldflags() {
     os::build::get_version_vars
 
     declare -a ldflags=()
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}")
-    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}")
-    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}")
+    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.majorFromGit=${OS_GIT_MAJOR}")
+    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.minorFromGit=${OS_GIT_MINOR}")
+    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.versionFromGit=${OS_GIT_VERSION}")
+    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.commitFromGit=${OS_GIT_COMMIT}")
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit=${KUBE_GIT_COMMIT}")
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion=${KUBE_GIT_VERSION}")
 
     # The -ldflags parameter takes a single string, so join the output.
     echo "${ldflags[*]-}"

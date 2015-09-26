@@ -30,7 +30,8 @@ function cleanup()
           echo
           echo "pprof: top output"
           echo
-          go tool pprof -text ./_output/local/go/bin/openshift cpu.pprof
+          set +e
+          go tool pprof -cum -text ./_output/local/go/bin/openshift cpu.pprof
         fi
 
         echo
