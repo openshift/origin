@@ -2,8 +2,10 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
@@ -28,7 +30,10 @@ type BuildConfigInterface interface {
 	Update(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+
 	Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error)
+	InstantiateBinary(request *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error)
+
 	WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error)
 }
 
@@ -114,5 +119,18 @@ func (c *buildConfigs) Watch(label labels.Selector, field fields.Selector, resou
 func (c *buildConfigs) Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
 	result = &buildapi.Build{}
 	err = c.r.Post().Namespace(c.ns).Resource("buildConfigs").Name(request.Name).SubResource("instantiate").Body(request).Do().Into(result)
+	return
+}
+
+// Instantiate instantiates a new build from build config returning new object or an error
+func (c *buildConfigs) InstantiateBinary(request *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error) {
+	result = &buildapi.Build{}
+	err = c.r.Post().
+		Namespace(c.ns).
+		Resource("buildConfigs").
+		Name(request.Name).
+		SubResource("instantiatebinary").
+		VersionedParams(request, kapi.Scheme).
+		Body(r).Do().Into(result)
 	return
 }

@@ -70,8 +70,8 @@ import (
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
-	buildclonestorage "github.com/openshift/origin/pkg/build/registry/clone/generator"
-	buildinstantiatestorage "github.com/openshift/origin/pkg/build/registry/instantiate/generator"
+	"github.com/openshift/origin/pkg/build/registry/buildclone"
+	"github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
 
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
@@ -485,9 +485,10 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		storage["builds"] = buildStorage
 		storage["buildConfigs"] = buildConfigStorage
 		storage["buildConfigs/webhooks"] = buildConfigWebHooks
-		storage["builds/clone"] = buildclonestorage.NewStorage(buildGenerator)
-		storage["buildConfigs/instantiate"] = buildinstantiatestorage.NewStorage(buildGenerator)
-		storage["builds/log"] = buildlogregistry.NewREST(buildRegistry, c.BuildLogClient(), kubeletClient)
+		storage["builds/clone"] = buildclone.NewStorage(buildGenerator)
+		storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
+		storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), kubeletClient)
+		storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, c.BuildLogClient(), kubeletClient)
 	}
 
 	return storage

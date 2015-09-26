@@ -10,21 +10,19 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 	"k8s.io/kubernetes/pkg/registry/pod"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/registry/build"
+	"github.com/openshift/origin/pkg/build/registry"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
-	BuildRegistry  build.Registry
+	Getter         rest.Getter
+	Watcher        rest.Watcher
 	PodGetter      pod.ResourceGetter
 	ConnectionInfo kclient.ConnectionInfoGetter
 	Timeout        time.Duration
@@ -47,9 +45,10 @@ const defaultTimeout time.Duration = 10 * time.Second
 // NewREST creates a new REST for BuildLog
 // Takes build registry and pod client to get necessary attributes to assemble
 // URL to which the request shall be redirected in order to get build logs.
-func NewREST(b build.Registry, pn kclient.PodsNamespacer, connectionInfo kclient.ConnectionInfoGetter) *REST {
+func NewREST(getter rest.Getter, watcher rest.Watcher, pn kclient.PodsNamespacer, connectionInfo kclient.ConnectionInfoGetter) *REST {
 	return &REST{
-		BuildRegistry:  b,
+		Getter:         getter,
+		Watcher:        watcher,
 		PodGetter:      &podGetter{pn},
 		ConnectionInfo: connectionInfo,
 		Timeout:        defaultTimeout,
@@ -64,10 +63,11 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	if !ok {
 		return nil, errors.NewBadRequest("did not get an expected options.")
 	}
-	build, err := r.BuildRegistry.GetBuild(ctx, name)
+	obj, err := r.Getter.Get(ctx, name)
 	if err != nil {
-		return nil, errors.NewNotFound("build", name)
+		return nil, err
 	}
+	build := obj.(*api.Build)
 	switch build.Status.Phase {
 	// Build has not launched, wait til it runs
 	case api.BuildPhaseNew, api.BuildPhasePending:
@@ -77,18 +77,27 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 			return &genericrest.LocationStreamer{}, nil
 		}
 		glog.V(4).Infof("Build %s/%s is in %s state, waiting for Build to start", build.Namespace, name, build.Status.Phase)
-		err := r.waitForBuild(ctx, build)
+		latest, ok, err := registry.WaitForRunningBuild(r.Watcher, ctx, build, r.Timeout)
 		if err != nil {
-			return nil, err
+			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", name, err))
+		}
+		switch latest.Status.Phase {
+		case api.BuildPhaseError:
+			return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", name, buildutil.NoBuildLogsMessage))
+		case api.BuildPhaseCancelled:
+			return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", name, buildutil.NoBuildLogsMessage))
+		}
+		if !ok {
+			return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for build %s to start after %s", build.Name, r.Timeout), 1)
 		}
 
 	// The build was cancelled
 	case api.BuildPhaseCancelled:
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s was cancelled. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage))
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled. %s", name, buildutil.NoBuildLogsMessage))
 
 	// An error occurred launching the build, return an error
 	case api.BuildPhaseError:
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s/%s is in an error state. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage))
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s is in an error state. %s", name, buildutil.NoBuildLogsMessage))
 	}
 	// The container should be the default build container, so setting it to blank
 	buildPodName := buildutil.GetBuildPodName(build)
@@ -108,45 +117,6 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 		ContentType: "text/plain",
 		Flush:       buildLogOpts.Follow,
 	}, nil
-}
-
-func (r *REST) waitForBuild(ctx kapi.Context, build *api.Build) error {
-	fieldSelector := fields.Set{"metadata.name": build.Name}.AsSelector()
-	w, err := r.BuildRegistry.WatchBuilds(ctx, labels.Everything(), fieldSelector, build.ResourceVersion)
-	if err != nil {
-		return err
-	}
-	defer w.Stop()
-	done := make(chan struct{})
-	errchan := make(chan error)
-	go func(ch <-chan watch.Event) {
-		for event := range ch {
-			obj, ok := event.Object.(*api.Build)
-			if !ok {
-				errchan <- fmt.Errorf("event object is not a Build: %#v", event.Object)
-				break
-			}
-			switch obj.Status.Phase {
-			case api.BuildPhaseCancelled:
-				errchan <- fmt.Errorf("build %s/%s was cancelled. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage)
-				break
-			case api.BuildPhaseError:
-				errchan <- fmt.Errorf("build %s/%s is in an error state. %s", build.Namespace, build.Name, buildutil.NoBuildLogsMessage)
-				break
-			case api.BuildPhaseRunning, api.BuildPhaseComplete, api.BuildPhaseFailed:
-				done <- struct{}{}
-				break
-			}
-		}
-	}(w.ResultChan())
-	select {
-	case err := <-errchan:
-		return err
-	case <-done:
-		return nil
-	case <-time.After(r.Timeout):
-		return errors.NewTimeoutError(fmt.Sprintf("timed out waiting for Build %s/%s", build.Namespace, build.Name), 1)
-	}
 }
 
 // NewGetOptions returns a new options object for build logs

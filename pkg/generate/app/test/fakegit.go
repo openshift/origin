@@ -1,5 +1,9 @@
 package test
 
+import (
+	"io"
+)
+
 type FakeGit struct {
 	RootDir        string
 	GitURL         string
@@ -48,6 +52,10 @@ func (f *FakeGit) Init(source string, _ bool) error {
 }
 
 func (f *FakeGit) AddLocalConfig(source, key, value string) error {
+	return nil
+}
+
+func (f *FakeGit) Archive(source, ref, format string, w io.Writer) error {
 	return nil
 }
 

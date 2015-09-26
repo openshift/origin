@@ -1,4 +1,4 @@
-package instantiate
+package buildclone
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"

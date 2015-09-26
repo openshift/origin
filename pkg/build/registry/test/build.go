@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -55,4 +56,32 @@ func (r *BuildRegistry) DeleteBuild(ctx kapi.Context, id string) error {
 
 func (r *BuildRegistry) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return nil, r.Err
+}
+
+type BuildStorage struct {
+	Err   error
+	Build *buildapi.Build
+	sync.Mutex
+}
+
+func (r *BuildStorage) Get(ctx kapi.Context, id string) (runtime.Object, error) {
+	r.Lock()
+	defer r.Unlock()
+	return r.Build, r.Err
+}
+
+type BuildStorageWithOptions struct {
+	Err   error
+	Build *buildapi.Build
+	sync.Mutex
+}
+
+func (r *BuildStorageWithOptions) NewGetOptions() (runtime.Object, bool, string) {
+	return nil, false, ""
+}
+
+func (r *BuildStorageWithOptions) Get(ctx kapi.Context, id string, opts runtime.Object) (runtime.Object, error) {
+	r.Lock()
+	defer r.Unlock()
+	return r.Build, r.Err
 }

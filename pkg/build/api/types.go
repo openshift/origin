@@ -169,16 +169,27 @@ type BuildSourceType string
 
 // Valid values for BuildSourceType.
 const (
-	// BuildSourceGit is a Git SCM.
+	//BuildSourceGit instructs a build to use a Git source control repository as the build input.
 	BuildSourceGit BuildSourceType = "Git"
-	// BuildSourceDockerfile is an embedded Dockerfile.
+	// BuildSourceDockerfile uses a Dockerfile as the start of a build
 	BuildSourceDockerfile BuildSourceType = "Dockerfile"
+	// BuildSourceBinary indicates the build will accept a Binary file as input.
+	BuildSourceBinary BuildSourceType = "Binary"
 )
 
 // BuildSource is the input used for the build.
 type BuildSource struct {
-	// Type of build input system.
+	// Type of build input to accept
 	Type BuildSourceType
+
+	// Binary builds accept a binary as their input. The binary is generally assumed to be a tar,
+	// gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build
+	// context and an optional Dockerfile may be specified to override any Dockerfile in the
+	// build context. For Source builds, this is assumed to be an archive as described above. For
+	// Source and Docker builds, if binary.asFile is set the build will receive a directory with
+	// a single file. contextDir may be used when an archive is provided. Custom builds will
+	// receive this binary as input on STDIN.
+	Binary *BinaryBuildSource
 
 	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
 	// specified, the FROM may be modified based on your strategy base image and additional ENV
@@ -202,6 +213,16 @@ type BuildSource struct {
 	// data's key represent the authentication method to be used and value is
 	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
 	SourceSecret *kapi.LocalObjectReference
+}
+
+type BinaryBuildSource struct {
+	// AsFile indicates that the provided binary input should be considered a single file
+	// within the build input. For example, specifying "webapp.war" would place the provided
+	// binary as `/webapp.war` for the builder. If left empty, the Docker and Source build
+	// strategies assume this file is a zip, tar, or tar.gz file and extract it as the source.
+	// The custom strategy receives this binary as standard input. This filename may not
+	// contain slashes or be '..' or '.'.
+	AsFile string
 }
 
 // SourceRevision is the revision or commit information from the source for the build
@@ -530,6 +551,8 @@ type BuildLog struct {
 // BuildRequest is the resource used to pass parameters to build generator
 type BuildRequest struct {
 	unversioned.TypeMeta
+	// TODO: build request should allow name generation via Name and GenerateName, build config
+	// name should be provided as a separate field
 	kapi.ObjectMeta
 
 	// Revision is the information from the source for a specific repo snapshot.
@@ -541,10 +564,38 @@ type BuildRequest struct {
 	// From is the reference to the ImageStreamTag that triggered the build.
 	From *kapi.ObjectReference
 
+	// Binary indicates a request to build from a binary provided to the builder
+	Binary *BinaryBuildSource
+
 	// LastVersion (optional) is the LastVersion of the BuildConfig that was used
 	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
 	// not be generated.
 	LastVersion *int
+}
+
+type BinaryBuildRequestOptions struct {
+	unversioned.TypeMeta
+	kapi.ObjectMeta
+
+	AsFile string
+
+	// Commit is the value identifying a specific commit
+	Commit string
+
+	// Message is the description of a specific commit
+	Message string
+
+	// AuthorName of the source control user
+	AuthorName string
+
+	// AuthorEmail of the source control user
+	AuthorEmail string
+
+	// CommitterName of the source control user
+	CommitterName string
+
+	// CommitterEmail of the source control user
+	CommitterEmail string
 }
 
 // BuildLogOptions is the REST options for a build log

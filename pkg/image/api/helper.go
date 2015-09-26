@@ -128,6 +128,18 @@ func (r DockerImageReference) AsRepository() DockerImageReference {
 	return r
 }
 
+// DaemonMinimal clears defaults that Docker assumes.
+func (r DockerImageReference) DaemonMinimal() DockerImageReference {
+	if r.Namespace == "library" {
+		r.Namespace = ""
+	}
+	switch r.Registry {
+	case "index.docker.io", "docker.io":
+		r.Registry = ""
+	}
+	return r.Minimal()
+}
+
 // NameString returns the name of the reference with its tag or ID.
 func (r DockerImageReference) NameString() string {
 	switch {
