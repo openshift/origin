@@ -41,11 +41,25 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseInvalidFile(t *testing.T) {
-	p := NewParser()
-	_, err := p.Parse(invalidDockerfile())
+	tests := []struct {
+		name string
+		df   io.Reader
+	}{
+		{
+			name: "invalidated by us",
+			df:   invalidDockerfile(),
+		},
+		{
+			name: "invalidated by the Docker parser",
+			df:   invalidDockerfile2(),
+		},
+	}
 
-	if err == nil {
-		t.Errorf("Expected error to be reported. No error was returned.")
+	p := NewParser()
+	for _, test := range tests {
+		if _, err := p.Parse(test.df); err == nil {
+			t.Errorf("%s: Expected error to be reported. No error was returned.", test.name)
+		}
 	}
 }
 
@@ -93,5 +107,11 @@ this is some more useful stuff`
 func invalidDockerfile() io.Reader {
 	content := `FROM test
 TESTERROR`
+	return bytes.NewBufferString(content)
+}
+
+func invalidDockerfile2() io.Reader {
+	content := `FROM test
+ENV keyMissingValue`
 	return bytes.NewBufferString(content)
 }
