@@ -260,7 +260,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: app.MockSourceRepositories(),
+			repositories: MockSourceRepositories(t),
 			expectedErr:  "there are multiple code locations provided - use one of the following suggestions",
 		},
 		{
@@ -273,7 +273,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: app.MockSourceRepositories(),
+			repositories: MockSourceRepositories(t),
 			expectedErr:  "Use '[image]~[repo]' to declare which code goes with which image",
 		},
 		{
@@ -308,7 +308,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: []*app.SourceRepository{app.MockSourceRepositories()[0]},
+			repositories: MockSourceRepositories(t)[:1],
 			expectedErr:  "",
 		},
 		{
@@ -318,7 +318,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: app.MockSourceRepositories(),
+			repositories: MockSourceRepositories(t),
 			expectedErr:  "",
 		},
 	}
@@ -412,7 +412,7 @@ func TestDetectSource(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
-	mocks := app.MockSourceRepositories()
+	mocks := MockSourceRepositories(t)
 	tests := []struct {
 		name         string
 		cfg          *AppConfig
@@ -1388,4 +1388,22 @@ func fakeSimpleDockerSearcher() app.Searcher {
 			},
 		},
 	}
+}
+
+// MockSourceRepositories is a set of mocked source repositories used for
+// testing
+func MockSourceRepositories(t *testing.T) []*app.SourceRepository {
+	var b []*app.SourceRepository
+	for _, location := range []string{
+		"some/location.git",
+		"https://github.com/openshift/ruby-hello-world.git",
+		"another/location.git",
+	} {
+		s, err := app.NewSourceRepository(location)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b = append(b, s)
+	}
+	return b
 }
