@@ -13,7 +13,7 @@ source "${OS_ROOT}/hack/common.sh"
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
-# Copy the linux release archives release back to the local _output/local/go/bin directory.
+# Copy the linux release archives release back to the local _output/local/bin/linux/amd64 directory.
 # TODO: support different OS's?
 os::build::detect_local_release_tars "linux-amd64"
 
