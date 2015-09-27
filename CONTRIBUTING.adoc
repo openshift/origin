@@ -83,8 +83,11 @@ export PATH=$PATH:$GOPATH/bin
 
 9.  Now change into the directory with the OpenShift binaries, and start the OpenShift server:
 
-        $ cd _output/local/go/bin
+        $ cd _output/local/bin/linux/amd64
         $ sudo ./openshift start
+
++
+NOTE: Replace "linux/amd64" with the appropriate value for your platform/architecture.
 
 10.  Launch another terminal, change into the same directory you started OpenShift, and deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
 
@@ -137,7 +140,7 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
 7.  Now change into the directory with the OpenShift binaries, and start the OpenShift server:
 
-        $ cd _output/local/go/bin
+        $ cd _output/local/bin/linux/amd64
         $ sudo ./openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
 
 +
