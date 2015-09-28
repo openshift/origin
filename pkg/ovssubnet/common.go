@@ -1,7 +1,6 @@
 package ovssubnet
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"

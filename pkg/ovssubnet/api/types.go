@@ -15,7 +15,6 @@ type SubnetRegistry interface {
 	WatchSubnets(receiver chan<- *SubnetEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
 	GetNodes() ([]Node, string, error)
-	CreateNode(nodeName string, data string) error
 	WatchNodes(receiver chan<- *NodeEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
 	WriteNetworkConfig(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
