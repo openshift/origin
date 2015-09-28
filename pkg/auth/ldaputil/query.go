@@ -10,17 +10,43 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-// QueryOutOfBounds is an error that occurs when trying to search by DN for an entry that exists
+// errEntryNotFound is an error that occurs when trying to find a specific entry fails.
+type errEntryNotFound struct {
+}
+
+// Error returns the error string for the out-of-bounds query
+func (e *errEntryNotFound) Error() string {
+	return "search for entry did not return any results"
+}
+
+func IsEntryNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	_, ok := err.(*errEntryNotFound)
+	return ok
+}
+
+// errQueryOutOfBounds is an error that occurs when trying to search by DN for an entry that exists
 // outside of the tree specified with the BaseDN for search.
-type QueryOutOfBounds struct {
+type errQueryOutOfBounds struct {
 	BaseDN  string
 	QueryDN string
 }
 
 // Error returns the error string for the out-of-bounds query
-func (q *QueryOutOfBounds) Error() string {
-	return fmt.Sprintf("search for entry with dn=%q would search outside of the base dn specified (dn=%q)",
-		q.QueryDN, q.BaseDN)
+func (q *errQueryOutOfBounds) Error() string {
+	return fmt.Sprintf("search for entry with dn=%q would search outside of the base dn specified (dn=%q)", q.QueryDN, q.BaseDN)
+}
+
+func IsQueryOutOfBoundsError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	_, ok := err.(*errQueryOutOfBounds)
+	return ok
 }
 
 // LDAPQuery encodes an LDAP query
@@ -102,7 +128,7 @@ func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string,
 
 	if strings.EqualFold(o.QueryAttribute, "dn") {
 		if !strings.Contains(attributeValue, o.BaseDN) {
-			return nil, &QueryOutOfBounds{QueryDN: attributeValue, BaseDN: o.BaseDN}
+			return nil, &errQueryOutOfBounds{QueryDN: attributeValue, BaseDN: o.BaseDN}
 		}
 		if _, err := ldap.ParseDN(attributeValue); err != nil {
 			return nil, fmt.Errorf("could not search by dn, invalid dn value: %v", err)
@@ -160,6 +186,11 @@ func QueryForUniqueEntry(clientConfig LDAPClientConfig, query *ldap.SearchReques
 	if err != nil {
 		return nil, err
 	}
+
+	if len(result) == 0 {
+		return nil, &errEntryNotFound{}
+	}
+
 	if len(result) > 1 {
 		if query.Scope == ldap.ScopeBaseObject {
 			return nil, fmt.Errorf("multiple entries found matching dn=%q:\n%s",
@@ -169,6 +200,7 @@ func QueryForUniqueEntry(clientConfig LDAPClientConfig, query *ldap.SearchReques
 				query.Filter, formatResult(result))
 		}
 	}
+
 	entry := result[0]
 	glog.V(4).Infof("found dn=%q for %s", entry.DN, query.Filter)
 	return entry, nil
@@ -183,29 +215,8 @@ func formatResult(results []*ldap.Entry) string {
 	return "\t" + strings.Join(names[0:10], "\n\t")
 }
 
-// QueryForEntries queries for LDAP with the given searchRequest. The query is expected to return
-// at least one unique result. If this is not the case, errors are raised
+// QueryForEntries queries for LDAP with the given searchRequest
 func QueryForEntries(clientConfig LDAPClientConfig, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
-	results, err := IssueLDAPQuery(clientConfig, query)
-	if err != nil {
-		return nil, err
-	}
-
-	// No entries returned from the LDAP search request means that the LDAP search was not configured
-	// correctly. The search must return with at least one LDAP entry
-	if len(results) == 0 {
-		return nil, fmt.Errorf("no LDAP user entry found for filter: %s", query.Filter)
-	}
-
-	for _, entry := range results {
-		glog.V(4).Infof("found dn=%q for %s", entry.DN, query.Filter)
-	}
-	return results, nil
-}
-
-// IssueLDAPQuery connects to an LDAP server and binds to it if credentials are given, then issues
-// the given search request and returns the result or any errors encountered
-func IssueLDAPQuery(clientConfig LDAPClientConfig, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
 	connection, err := clientConfig.Connect()
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to the LDAP server: %v", err)
@@ -222,5 +233,8 @@ func IssueLDAPQuery(clientConfig LDAPClientConfig, query *ldap.SearchRequest) ([
 		return nil, fmt.Errorf("could not search the LDAP server: %v", err)
 	}
 
+	for _, entry := range searchResult.Entries {
+		glog.V(4).Infof("found dn=%q for %s", entry.DN, query.Filter)
+	}
 	return searchResult.Entries, nil
 }
