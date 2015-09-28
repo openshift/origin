@@ -97,3 +97,9 @@ func generateServiceRule(netID uint, IP string, protocol api.ServiceProtocol, po
 		return fmt.Sprintf("table=4,priority=200,reg0=%d,%s,nw_dst=%s,tp_dst=%d,actions=output:2", netID, strings.ToLower(string(protocol)), IP, port)
 	}
 }
+
+func (c *FlowController) UpdatePod(namespace, podName, containerID string, netID uint) error {
+	out, err := exec.Command("openshift-ovs-multitenant", "update", namespace, podName, containerID, fmt.Sprint(netID)).CombinedOutput()
+	log.V(5).Infof("UpdatePod output: %s, error: %v", out, err)
+	return err
+}
