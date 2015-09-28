@@ -14,5 +14,10 @@ fi
 GOPATH=${OSDN_ROOT}/_output:${OSDN_ROOT}/Godeps/_workspace
 export GOPATH
 
-go test -v github.com/openshift/openshift-sdn/pkg/netutils
-go test -v github.com/openshift/openshift-sdn/pkg/netutils/server
+ALL_TESTS="
+pkg/netutils
+pkg/netutils/server
+"
+for test in ${WHAT:-${ALL_TESTS}}; do
+    go test -v github.com/openshift/openshift-sdn/${test}
+done
