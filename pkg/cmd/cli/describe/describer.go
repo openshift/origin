@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/docker/docker/pkg/units"
 
@@ -248,6 +249,10 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 		if len(p.Revision.Git.Message) > 0 {
 			formatString(out, "Revision Message", p.Revision.Git.Message)
 		}
+	}
+
+	if p.CompletionDeadlineSeconds != nil {
+		formatString(out, "Fail Build After", time.Duration(*p.CompletionDeadlineSeconds)*time.Second)
 	}
 }
 

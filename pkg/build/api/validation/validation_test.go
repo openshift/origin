@@ -567,6 +567,7 @@ func TestValidateSource(t *testing.T) {
 }
 
 func TestValidateBuildSpec(t *testing.T) {
+	zero := int64(0)
 	longString := strings.Repeat("1234567890", 100*61)
 	shortString := "FROM foo"
 	errorCases := []struct {
@@ -873,6 +874,7 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
+		// 13
 		{
 			string(fielderrors.ValidationErrorTypeInvalid) + "source.dockerfile",
 			&buildapi.BuildSpec{
@@ -886,6 +888,7 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
+		// 14
 		{
 			string(fielderrors.ValidationErrorTypeInvalid) + "source.dockerfile",
 			&buildapi.BuildSpec{
@@ -900,6 +903,31 @@ func TestValidateBuildSpec(t *testing.T) {
 					Type:           buildapi.DockerBuildStrategyType,
 					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
+			},
+		},
+		// 15
+		// invalid because CompletionDeadlineSeconds <= 0
+		{
+			string(fielderrors.ValidationErrorTypeInvalid) + "completionDeadlineSeconds",
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+					ContextDir: "context",
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+				CompletionDeadlineSeconds: &zero,
 			},
 		},
 	}

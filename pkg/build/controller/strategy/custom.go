@@ -70,6 +70,9 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
+	if build.Spec.CompletionDeadlineSeconds != nil {
+		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
+	}
 
 	if err := setupBuildEnv(build, pod); err != nil {
 		return nil, err
