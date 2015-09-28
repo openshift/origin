@@ -67,6 +67,10 @@ type (
 		// the mock F5 host.
 		vserverIRules map[string][]string
 
+		// partitionPaths represent the partitions that exist in
+		// the mock F5 host.
+		partitionPaths map[string]string
+
 		// pools represents the pools that exist on the mock F5 host.
 		pools map[string]pool
 	}
@@ -143,6 +147,8 @@ var f5Routes = []Route{
 	{"postIRule", "POST", "/mgmt/tm/ltm/rule", postIRuleHandler},
 	{"getVserver", "GET", "/mgmt/tm/ltm/virtual/{vserverName}", getVserverHandler},
 	{"patchVserver", "PATCH", "/mgmt/tm/ltm/virtual/{vserverName}", patchVserverHandler},
+	{"getPartition", "GET", "/mgmt/tm/sys/folder/{partitionPath}", getPartitionPath},
+	{"postPartition", "POST", "/mgmt/tm/sys/folder", postPartitionPathHandler},
 	{"postPool", "POST", "/mgmt/tm/ltm/pool", postPoolHandler},
 	{"deletePool", "DELETE", "/mgmt/tm/ltm/pool/{poolName}", deletePoolHandler},
 	{"getPoolMembers", "GET", "/mgmt/tm/ltm/pool/{poolName}/members", getPoolMembersHandler},
@@ -176,7 +182,7 @@ func newF5Routes(mockF5State mockF5State) *mux.Router {
 	return mockF5
 }
 
-func newTestRouterWithState(state mockF5State) (*F5Plugin, *mockF5, error) {
+func newTestRouterWithState(state mockF5State, partitionPath string) (*F5Plugin, *mockF5, error) {
 	routerLogLevel := util.Env("TEST_ROUTER_LOGLEVEL", "")
 	if routerLogLevel != "" {
 		flag.Set("v", routerLogLevel)
@@ -205,13 +211,14 @@ func newTestRouterWithState(state mockF5State) (*F5Plugin, *mockF5, error) {
 	}
 
 	f5PluginTestCfg := F5PluginConfig{
-		Host:         url.Host,
-		Username:     "admin",
-		Password:     "password",
-		HttpVserver:  httpVserverName,
-		HttpsVserver: httpsVserverName,
-		PrivateKey:   "/dev/null",
-		Insecure:     true,
+		Host:          url.Host,
+		Username:      "admin",
+		Password:      "password",
+		HttpVserver:   httpVserverName,
+		HttpsVserver:  httpsVserverName,
+		PrivateKey:    "/dev/null",
+		Insecure:      true,
+		PartitionPath: partitionPath,
 	}
 	router, err := NewF5Plugin(f5PluginTestCfg)
 	if err != nil {
@@ -223,7 +230,8 @@ func newTestRouterWithState(state mockF5State) (*F5Plugin, *mockF5, error) {
 	return router, mockF5, nil
 }
 
-func newTestRouter() (*F5Plugin, *mockF5, error) {
+func newTestRouter(partitionPath string) (*F5Plugin, *mockF5, error) {
+	pathKey := strings.Replace(partitionPath, "/", "~", -1)
 	state := mockF5State{
 		policies: map[string]map[string]policyRule{},
 		vserverPolicies: map[string]map[string]bool{
@@ -240,10 +248,13 @@ func newTestRouter() (*F5Plugin, *mockF5, error) {
 		datagroups:    map[string]datagroup{},
 		iRules:        map[string]iRule{},
 		vserverIRules: map[string][]string{},
-		pools:         map[string]pool{},
+
+		// Add the default /Common partition path.
+		partitionPaths: map[string]string{pathKey: partitionPath},
+		pools:          map[string]pool{},
 	}
 
-	return newTestRouterWithState(state)
+	return newTestRouterWithState(state, partitionPath)
 }
 
 func (f5 *mockF5) close() {
@@ -621,6 +632,60 @@ func patchVserverHandler(f5state mockF5State) http.HandlerFunc {
 		iRules := []string(payload.Rules)
 
 		f5state.vserverIRules[vserverName] = iRules
+
+		OK(response)
+	}
+}
+
+func validatePartitionPath(response http.ResponseWriter, request *http.Request,
+	f5state mockF5State, partitionPath string) bool {
+	_, ok := f5state.partitionPaths[partitionPath]
+	if !ok {
+		response.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(response,
+			`{"code":404,"errorStack":[],"message":"01020036:3: The requested folder (%s) was not found."}`,
+			partitionPath)
+		return false
+	}
+
+	return true
+}
+
+func getPartitionPath(f5state mockF5State) http.HandlerFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		vars := mux.Vars(request)
+		partitionPath := vars["partitionPath"]
+
+		if !validatePartitionPath(response, request, f5state, partitionPath) {
+			return
+		}
+
+		fullPath := strings.Replace(partitionPath, "~", "/", -1)
+		parts := strings.Split(fullPath, "/")
+		partitionName := parts[0]
+		if len(parts) > 1 {
+			partitionName = parts[1]
+		}
+		fmt.Fprintf(response,
+			`{"deviceGroup":"%s/ose-sync-failover","fullPath":"%s","generation":580,"hidden":"false","inheritedDevicegroup":"true","inheritedTrafficGroup":"true","kind":"tm:sys:folder:folderstate","name":"%s","noRefCheck":"false","selfLink":"https://localhost/mgmt/tm/sys/folder/%s?ver=11.6.0","subPath":"/"}`,
+			fullPath, fullPath, partitionName, partitionPath)
+	}
+}
+
+func postPartitionPathHandler(f5state mockF5State) http.HandlerFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		payload := struct {
+			Name string `json:"name"`
+		}{}
+		decoder := json.NewDecoder(request.Body)
+		decoder.Decode(&payload)
+
+		partitionPath := payload.Name
+
+		// Convert / form to ~ form and add it to the map. This
+		// makes the GETs simpler: check/get the key in the map.
+		pathKey := strings.Replace(partitionPath, "/", "~", -1)
+		f5state.partitionPaths[pathKey] = partitionPath
 
 		OK(response)
 	}
@@ -1195,7 +1260,7 @@ func deleteSslCertHandler(f5state mockF5State) http.HandlerFunc {
 // BIG-IP host and validates the configuration of the F5 BIG-IP host after the
 // plug-in has performed its initialization.
 func TestInitializeF5Plugin(t *testing.T) {
-	router, mockF5, err := newTestRouter()
+	router, mockF5, err := newTestRouter(F5DefaultPartitionPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
@@ -1311,10 +1376,59 @@ func TestInitializeF5Plugin(t *testing.T) {
 	}
 }
 
+// TestF5PartitionPath creates an F5 router instance with a specific partition.
+func TestF5RouterPartition(t *testing.T) {
+	testCases := []struct {
+		// name of the test
+		name string
+
+		// partition path.
+		partition string
+	}{
+		{
+			name:      "Default/Common partition",
+			partition: "/Common",
+		},
+		{
+			name:      "Default partition redux",
+			partition: "/Common",
+		},
+		{
+			name:      "Custom partition",
+			partition: "/OSPartA",
+		},
+		{
+			name:      "Custom partition redux",
+			partition: "/OSPartA",
+		},
+		{
+			name:      "Sub partition",
+			partition: "/OSPartA/ShardOne",
+		},
+		{
+			name:      "Layered sub partition",
+			partition: "/OSPartA/region1/zone4/Shard-7",
+		},
+	}
+
+	for _, tc := range testCases {
+		_, mockF5, err := newTestRouter(tc.partition)
+		if err != nil {
+			t.Fatalf("Test case %q failed to initialize test router: %v", tc.name, err)
+		}
+
+		name := strings.Replace(tc.partition, "/", "~", -1)
+		_, ok := mockF5.state.partitionPaths[name]
+		if !ok {
+			t.Fatalf("Test case %q missing partition key %s", tc.name, name)
+		}
+	}
+}
+
 // TestHandleEndpoints tests endpoint watch events and validates that the state
 // of the F5 client object is as expected after each event.
 func TestHandleEndpoints(t *testing.T) {
-	router, mockF5, err := newTestRouter()
+	router, mockF5, err := newTestRouter(F5DefaultPartitionPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
@@ -1460,7 +1574,7 @@ func TestHandleEndpoints(t *testing.T) {
 // TestHandleRoute test route watch events and validates that the state of the
 // F5 client object is as expected after each event.
 func TestHandleRoute(t *testing.T) {
-	router, mockF5, err := newTestRouter()
+	router, mockF5, err := newTestRouter(F5DefaultPartitionPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
@@ -2081,7 +2195,7 @@ func TestHandleRoute(t *testing.T) {
 // a service and a route, modifies the route in several ways, and verifies that
 // the router correctly updates the route.
 func TestHandleRouteModifications(t *testing.T) {
-	router, mockF5, err := newTestRouter()
+	router, mockF5, err := newTestRouter(F5DefaultPartitionPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
@@ -2151,7 +2265,7 @@ func TestHandleRouteModifications(t *testing.T) {
 // the new instance behaves correctly picking up the state from the first
 // instance.
 func TestF5RouterSuccessiveInstances(t *testing.T) {
-	router, mockF5, err := newTestRouter()
+	router, mockF5, err := newTestRouter(F5DefaultPartitionPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
@@ -2240,7 +2354,7 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 
 	// Initialize a new router, but retain the mock F5 host.
 	mockF5.close()
-	router, mockF5, err = newTestRouterWithState(mockF5.state)
+	router, mockF5, err = newTestRouterWithState(mockF5.state, F5DefaultPartitionPath)
 	if err != nil {
 		t.Fatalf("Failed to initialize test router: %v", err)
 	}
