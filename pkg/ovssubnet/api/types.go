@@ -8,21 +8,18 @@ const (
 )
 
 type SubnetRegistry interface {
-	InitSubnets() error
 	GetSubnets() ([]Subnet, string, error)
 	GetSubnet(nodeName string) (*Subnet, error)
 	DeleteSubnet(nodeName string) error
 	CreateSubnet(sn string, sub *Subnet) error
 	WatchSubnets(receiver chan<- *SubnetEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
-	InitNodes() error
 	GetNodes() ([]Node, string, error)
 	CreateNode(nodeName string, data string) error
 	WatchNodes(receiver chan<- *NodeEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
 	WriteNetworkConfig(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
 	GetClusterNetworkCIDR() (string, error)
-	CheckEtcdIsAlive(seconds uint64) bool
 
 	GetNamespaces() ([]string, string, error)
 	WatchNamespaces(receiver chan<- *NamespaceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error

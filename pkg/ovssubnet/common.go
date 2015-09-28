@@ -80,23 +80,7 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready
 	}, nil
 }
 
-func (oc *OvsController) StartMaster(sync bool, clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
-	// wait a minute for etcd to come alive
-	status := oc.subnetRegistry.CheckEtcdIsAlive(60)
-	if !status {
-		log.Errorf("Etcd not running?")
-		return errors.New("Etcd not reachable. Sync cluster check failed.")
-	}
-	// initialize the node key
-	if sync {
-		err := oc.subnetRegistry.InitNodes()
-		if err != nil {
-			log.Infof("Node path already initialized.")
-		}
-	}
-
-	// initialize the subnet key?
-	oc.subnetRegistry.InitSubnets()
+func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	subrange := make([]string, 0)
 	subnets, _, err := oc.subnetRegistry.GetSubnets()
 	if err != nil {
@@ -303,41 +287,27 @@ func (oc *OvsController) DeleteNode(nodeName string) error {
 	return oc.subnetRegistry.DeleteSubnet(nodeName)
 }
 
-func (oc *OvsController) syncWithMaster() error {
-	return oc.subnetRegistry.CreateNode(oc.hostName, oc.localIP)
-}
-
-func (oc *OvsController) StartNode(sync, skipsetup bool, mtu uint) error {
-	if sync {
-		err := oc.syncWithMaster()
-		if err != nil {
-			log.Errorf("Failed to register with master: %v", err)
-			return err
-		}
-	}
+func (oc *OvsController) StartNode(mtu uint) error {
 	err := oc.initSelfSubnet()
 	if err != nil {
 		log.Errorf("Failed to get subnet for this host: %v", err)
 		return err
 	}
 
-	// call flow controller's setup
-	if !skipsetup {
-		// Assume we are working with IPv4
-		clusterNetworkCIDR, err := oc.subnetRegistry.GetClusterNetworkCIDR()
-		if err != nil {
-			log.Errorf("Failed to obtain ClusterNetwork: %v", err)
-			return err
-		}
-		servicesNetworkCIDR, err := oc.subnetRegistry.GetServicesNetworkCIDR()
-		if err != nil {
-			log.Errorf("Failed to obtain ServicesNetwork: %v", err)
-			return err
-		}
-		err = oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR, mtu)
-		if err != nil {
-			return err
-		}
+	// Assume we are working with IPv4
+	clusterNetworkCIDR, err := oc.subnetRegistry.GetClusterNetworkCIDR()
+	if err != nil {
+		log.Errorf("Failed to obtain ClusterNetwork: %v", err)
+		return err
+	}
+	servicesNetworkCIDR, err := oc.subnetRegistry.GetServicesNetworkCIDR()
+	if err != nil {
+		log.Errorf("Failed to obtain ServicesNetwork: %v", err)
+		return err
+	}
+	err = oc.flowController.Setup(oc.localSubnet.SubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR, mtu)
+	if err != nil {
+		return err
 	}
 
 	result, err := oc.watchAndGetResource("HostSubnet")
