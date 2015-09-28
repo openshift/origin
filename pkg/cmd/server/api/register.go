@@ -23,6 +23,8 @@ func init() {
 		&GoogleIdentityProvider{},
 		&OpenIDIdentityProvider{},
 		&GrantConfig{},
+
+		&LDAPSyncConfig{},
 	)
 }
 
@@ -41,3 +43,5 @@ func (*GrantConfig) IsAnAPIObject()                       {}
 func (*MasterConfig) IsAnAPIObject()   {}
 func (*NodeConfig) IsAnAPIObject()     {}
 func (*SessionSecrets) IsAnAPIObject() {}
+
+func (*LDAPSyncConfig) IsAnAPIObject() {}
