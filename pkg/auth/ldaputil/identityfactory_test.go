@@ -62,7 +62,7 @@ func TestGetAttributeValue(t *testing.T) {
 	}
 
 	for k, tc := range testcases {
-		v := getAttributeValue(tc.Entry, tc.Attributes)
+		v := GetAttributeValue(tc.Entry, tc.Attributes)
 		if v != tc.ExpectedValue {
 			t.Errorf("%s: Expected %q, got %q", k, tc.ExpectedValue, v)
 		}

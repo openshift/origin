@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
-	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -145,48 +144,16 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 }
 
 func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider) ValidationResults {
-	validationResults := ValidationResults{}
-
-	if len(provider.URL) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired("provider.url"))
-		return validationResults
-	}
-
-	u, err := ldaputil.ParseURL(provider.URL)
-	if err != nil {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.url", provider.URL, err.Error()))
-		return validationResults
-	}
-
-	// Make sure bindDN and bindPassword are both set, or both unset
-	// Both unset means an anonymous bind is used for search (https://tools.ietf.org/html/rfc4513#section-5.1.1)
-	// Both set means the name/password simple bind is used for search (https://tools.ietf.org/html/rfc4513#section-5.1.3)
-	if (len(provider.BindDN) == 0) != (len(provider.BindPassword) == 0) {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.bindDN", provider.BindDN, "bindDN and bindPassword must both be specified, or both be empty"))
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.bindPassword", "<masked>", "bindDN and bindPassword must both be specified, or both be empty"))
-	}
-
-	if provider.Insecure {
-		if u.Scheme == ldaputil.SchemeLDAPS {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.url", provider.URL, fmt.Sprintf("Cannot use %s scheme with insecure=true", u.Scheme)))
-		}
-		if len(provider.CA) > 0 {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.ca", provider.CA, "Cannot specify a ca with insecure=true"))
-		}
-	} else {
-		if len(provider.CA) > 0 {
-			validationResults.AddErrors(ValidateFile(provider.CA, "provider.ca")...)
-		}
-	}
+	validationResults := ValidateLDAPClientConfig("provider",
+		provider.URL,
+		provider.BindDN,
+		provider.BindPassword,
+		provider.CA,
+		provider.Insecure)
 
 	// At least one attribute to use as the user id is required
 	if len(provider.Attributes.ID) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.attributes.id", "[]", "at least one id attribute is required (LDAP standard identity attribute is 'dn')"))
-	}
-
-	// Warn if insecure
-	if provider.Insecure {
-		validationResults.AddWarnings(fielderrors.NewFieldInvalid("provider.insecure", provider.Insecure, "validating passwords over an insecure connection could allow them to be intercepted"))
 	}
 
 	return validationResults

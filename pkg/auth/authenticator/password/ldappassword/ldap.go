@@ -22,11 +22,6 @@ type Options struct {
 	// ClientConfig holds information about connecting with the LDAP server
 	ClientConfig ldaputil.LDAPClientConfig
 
-	// BindDN is the optional username to bind to for the search phase. If specified, BindPassword must also be set.
-	BindDN string
-	// BindPassword is the optional password to bind to for the search phase.
-	BindPassword string
-
 	// UserAttributeDefiner defines the values corresponding to OpenShift Identities in LDAP entries
 	// by using a deterministic mapping of LDAP entry attributes to OpenShift Identity fields. The first
 	// attribute with a non-empty value is used for all but the latter identity field. If no LDAP attributes
@@ -88,18 +83,15 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 		return nil, false, nil
 	}
 
-	// Make the connection
+	// Make the connection and bind to it if a bind DN and password were given
 	l, err := a.options.ClientConfig.Connect()
 	if err != nil {
 		return nil, false, err
 	}
 	defer l.Close()
 
-	// If specified, bind the username/password for search phase
-	if len(a.options.BindDN) > 0 {
-		if err := l.Bind(a.options.BindDN, a.options.BindPassword); err != nil {
-			return nil, false, err
-		}
+	if _, err := a.options.ClientConfig.Bind(l); err != nil {
+		return nil, false, err
 	}
 
 	// & together the filter specified in the LDAP options with the user-specific filter

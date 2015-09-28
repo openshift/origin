@@ -478,21 +478,18 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 			return nil, fmt.Errorf("Error parsing LDAPPasswordIdentityProvider URL: %v", err)
 		}
 
-		tlsConfig := &tls.Config{}
-		if len(provider.CA) > 0 {
-			roots, err := util.CertPoolFromFile(provider.CA)
-			if err != nil {
-				return nil, fmt.Errorf("error loading cert pool from ca file %s: %v", provider.CA, err)
-			}
-			tlsConfig.RootCAs = roots
+		clientConfig, err := ldaputil.NewLDAPClientConfig(provider.URL,
+			provider.BindDN,
+			provider.BindPassword,
+			provider.CA,
+			provider.Insecure)
+		if err != nil {
+			return nil, err
 		}
 
 		opts := ldappassword.Options{
-			URL:          url,
-			ClientConfig: ldaputil.NewLDAPClientConfig(url, provider.Insecure, tlsConfig),
-			BindDN:       provider.BindDN,
-			BindPassword: provider.BindPassword,
-
+			URL:                  url,
+			ClientConfig:         clientConfig,
 			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.Attributes),
 		}
 		return ldappassword.New(identityProvider.Name, opts, identityMapper)
