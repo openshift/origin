@@ -69,6 +69,8 @@ func setUp(t *testing.T) (Master, Config, *assert.Assertions) {
 // TestNew verifies that the New function returns a Master
 // using the configuration properly.
 func TestNew(t *testing.T) {
+	os.Setenv("ETCD_PREFIX", "thirdparty")
+
 	_, config, assert := setUp(t)
 	config.KubeletClient = client.FakeKubeletClient{}
 	master := New(&config)
