@@ -41,6 +41,8 @@ func NewSimpleFake(objects ...runtime.Object) *Fake {
 	fakeClient := &Fake{}
 	fakeClient.AddReactor("*", "*", ObjectReaction(o, latest.RESTMapper))
 
+	fakeClient.AddWatchReactor("*", DefaultWatchReactor(watch.NewFake(), nil))
+
 	return fakeClient
 }
 
@@ -88,13 +90,22 @@ func (c *Fake) AddReactor(verb, resource string, reaction ReactionFunc) {
 // PrependReactor adds a reactor to the beginning of the chain
 func (c *Fake) PrependReactor(verb, resource string, reaction ReactionFunc) {
 	newChain := make([]Reactor, 0, len(c.ReactionChain)+1)
-	newChain[0] = &SimpleReactor{verb, resource, reaction}
+	newChain = append(newChain, &SimpleReactor{verb, resource, reaction})
 	newChain = append(newChain, c.ReactionChain...)
+	c.ReactionChain = newChain
 }
 
 // AddWatchReactor appends a reactor to the end of the chain
 func (c *Fake) AddWatchReactor(resource string, reaction WatchReactionFunc) {
 	c.WatchReactionChain = append(c.WatchReactionChain, &SimpleWatchReactor{resource, reaction})
+}
+
+// PrependWatchReactor adds a reactor to the beginning of the chain
+func (c *Fake) PrependWatchReactor(resource string, reaction WatchReactionFunc) {
+	newChain := make([]WatchReactor, 0, len(c.WatchReactionChain)+1)
+	newChain = append(newChain, &SimpleWatchReactor{resource, reaction})
+	newChain = append(newChain, c.WatchReactionChain...)
+	c.WatchReactionChain = newChain
 }
 
 // Invokes records the provided Action and then invokes the ReactFn (if provided).
