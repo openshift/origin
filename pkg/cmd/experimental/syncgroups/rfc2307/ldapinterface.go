@@ -17,7 +17,6 @@ func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
 	return LDAPInterface{
 		clientConfig:              clientConfig,
 		groupQuery:                groupQuery,
-		groupNameAttributes:       groupNameAttributes,
 		groupMembershipAttributes: groupMembershipAttributes,
 		userQuery:                 userQuery,
 		userNameAttributes:        userNameAttributes,
@@ -39,10 +38,9 @@ type LDAPInterface struct {
 	// groupQuery holds the information necessary to make an LDAP query for a specific
 	// first-class group entry on the LDAP server
 	groupQuery ldaputil.LDAPQueryOnAttribute
-	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its' name
+	// groupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for an OpenShift group
 	groupNameAttributes []string
-	// groupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted
-	// as its' members
+	// groupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted as its members
 	groupMembershipAttributes []string
 
 	// userQuery holds the information necessary to make an LDAP query for a specific
@@ -60,7 +58,7 @@ type LDAPInterface struct {
 }
 
 // ExtractMembers returns the LDAP member entries for a group specified with a ldapGroupUID
-func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) (members []*ldap.Entry, err error) {
+func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, error) {
 	// get group entry from LDAP
 	group, err := e.GroupEntryFor(ldapGroupUID)
 	if err != nil {
@@ -73,6 +71,7 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) (members []*ldap.Ent
 		ldapMemberUIDs = append(ldapMemberUIDs, group.GetAttributeValues(attribute)...)
 	}
 
+	members := []*ldap.Entry{}
 	// find members on LDAP server or in cache
 	for _, ldapMemberUID := range ldapMemberUIDs {
 		memberEntry, err := e.userEntryFor(ldapMemberUID)
@@ -87,27 +86,26 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) (members []*ldap.Ent
 // GroupFor returns an LDAP group entry for the given group UID by searching the internal cache
 // of the LDAPInterface first, then sending an LDAP query if the cache did not contain the entry.
 // This also satisfies the LDAPGroupGetter interface
-func (e *LDAPInterface) GroupEntryFor(ldapGroupUID string) (group *ldap.Entry, err error) {
+func (e *LDAPInterface) GroupEntryFor(ldapGroupUID string) (*ldap.Entry, error) {
 	group, exists := e.cachedGroups[ldapGroupUID]
-	if !exists {
-		group, err = e.queryForGroup(ldapGroupUID)
-		if err != nil {
-			return nil, err
-		}
-		// cache for annotation extraction
-		e.cachedGroups[ldapGroupUID] = group
+	if exists {
+		return group, nil
 	}
+
+	group, err := e.queryForGroup(ldapGroupUID)
+	if err != nil {
+		return nil, err
+	}
+	// cache for annotation extraction
+	e.cachedGroups[ldapGroupUID] = group
 	return group, nil
 }
 
 // queryForGroup queries for a specific group identified by a ldapGroupUID with the query config stored
 // in a LDAPInterface
-func (e *LDAPInterface) queryForGroup(ldapGroupUID string) (group *ldap.Entry, err error) {
-	allAttributes := sets.NewString(e.groupNameAttributes...)
-	allAttributes.Insert(e.groupMembershipAttributes...)
-
+func (e *LDAPInterface) queryForGroup(ldapGroupUID string) (*ldap.Entry, error) {
 	// create the search request
-	searchRequest, err := e.groupQuery.NewSearchRequest(ldapGroupUID, allAttributes.List())
+	searchRequest, err := e.groupQuery.NewSearchRequest(ldapGroupUID, e.requiredGroupAttributes())
 	if err != nil {
 		return nil, err
 	}
@@ -133,9 +131,9 @@ func (e *LDAPInterface) userEntryFor(ldapUserUID string) (user *ldap.Entry, err 
 // queryForUser queries for an LDAP user entry identified with an LDAP user UID on an LDAP server
 // determined from a clientConfig by creating a search request from an LDAP query template and
 // determining which attributes to search for with a LDAPuserAttributeDefiner
-func (e *LDAPInterface) queryForUser(ldapUserUID string) (user *ldap.Entry, err error) {
+func (e *LDAPInterface) queryForUser(ldapUserUID string) (*ldap.Entry, error) {
 	// create the search request
-	searchRequest, err := e.userQuery.NewSearchRequest(ldapUserUID, e.userNameAttributes)
+	searchRequest, err := e.userQuery.NewSearchRequest(ldapUserUID, e.requiredUserAttributes())
 	if err != nil {
 		return nil, err
 	}
@@ -145,14 +143,16 @@ func (e *LDAPInterface) queryForUser(ldapUserUID string) (user *ldap.Entry, err 
 
 // ListGroups queries for all groups as configured with the common group filter and returns their
 // LDAP group UIDs. This also satisfies the LDAPGroupLister interface
-func (e *LDAPInterface) ListGroups() (ldapGroupUIDs []string, err error) {
+func (e *LDAPInterface) ListGroups() ([]string, error) {
 	groups, err := e.queryForGroups()
 	if err != nil {
 		return nil, err
 	}
+
+	ldapGroupUIDs := []string{}
 	for _, group := range groups {
 		// cache groups returned from the server for later
-		ldapGroupUID := ldaputil.GetAttributeValue(group, e.groupNameAttributes)
+		ldapGroupUID := ldaputil.GetAttributeValue(group, []string{e.groupQuery.QueryAttribute})
 		e.cachedGroups[ldapGroupUID] = group
 		ldapGroupUIDs = append(ldapGroupUIDs, ldapGroupUID)
 	}
@@ -161,8 +161,23 @@ func (e *LDAPInterface) ListGroups() (ldapGroupUIDs []string, err error) {
 
 // queryForGroups queries for all groups identified by a common filter in the query config stored
 // in a GroupListerDataExtractor
-func (e *LDAPInterface) queryForGroups() (groups []*ldap.Entry, err error) {
+func (e *LDAPInterface) queryForGroups() ([]*ldap.Entry, error) {
 	// create the search request
-	searchRequest := e.groupQuery.LDAPQuery.NewSearchRequest(e.groupMembershipAttributes)
+	searchRequest := e.groupQuery.LDAPQuery.NewSearchRequest(e.requiredGroupAttributes())
 	return ldaputil.QueryForEntries(e.clientConfig, searchRequest)
+}
+
+func (e *LDAPInterface) requiredGroupAttributes() []string {
+	allAttributes := sets.NewString(e.groupNameAttributes...) // these attributes will be used for a future openshift group name mapping
+	allAttributes.Insert(e.groupMembershipAttributes...)      // these attribute are used for finding group members
+	allAttributes.Insert(e.groupQuery.QueryAttribute)         // this is used for extracting the group UID (otherwise an entry isn't self-describing)
+
+	return allAttributes.List()
+}
+
+func (e *LDAPInterface) requiredUserAttributes() []string {
+	allAttributes := sets.NewString(e.userNameAttributes...) // these attributes will be used for a future openshift user name mapping
+	allAttributes.Insert(e.userQuery.QueryAttribute)         // this is used for extracting the user UID (otherwise an entry isn't self-describing)
+
+	return allAttributes.List()
 }

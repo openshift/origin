@@ -30,8 +30,7 @@ func (m *UserDefinedLDAPGroupNameMapper) GroupNameFor(ldapGroupUID string) (stri
 }
 
 // NewEntryAttributeGroupNameMapper returns a new EntryAttributeLDAPGroupNameMapper
-func NewEntryAttributeGroupNameMapper(nameAttribute []string,
-	groupGetter interfaces.LDAPGroupGetter) interfaces.LDAPGroupNameMapper {
+func NewEntryAttributeGroupNameMapper(nameAttribute []string, groupGetter interfaces.LDAPGroupGetter) interfaces.LDAPGroupNameMapper {
 	return &EntryAttributeLDAPGroupNameMapper{
 		nameAttribute: nameAttribute,
 		groupGetter:   groupGetter,

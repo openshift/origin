@@ -244,8 +244,8 @@ func ValidateExtendedArguments(config api.ExtendedArguments, flagFunc func(*pfla
 }
 
 func ValidateLDAPSyncConfig(config api.LDAPSyncConfig) ValidationResults {
-	validationResults := ValidateLDAPClientConfig("config",
-		config.Host,
+	validationResults := ValidateLDAPClientConfig("",
+		config.URL,
 		config.BindDN,
 		config.BindPassword,
 		config.CA,
@@ -271,9 +271,11 @@ func ValidateLDAPSyncConfig(config api.LDAPSyncConfig) ValidationResults {
 		validationResults.AddWarnings(configResults.Warnings...)
 		numConfigs++
 	}
-	if numConfigs != 1 {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid("", config.LDAPSchemaSpecificConfig,
-			"only one schema-specific config is allowed"))
+	if numConfigs > 1 {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("", config, "only one schema-specific config is allowed"))
+	}
+	if numConfigs == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("", config, "exactly one schema-specific config is required"))
 	}
 
 	return validationResults
@@ -283,13 +285,13 @@ func ValidateLDAPClientConfig(parent, url, bindDN, bindPassword, CA string, inse
 	validationResults := ValidationResults{}
 
 	if len(url) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired(parent + ".host"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired(parent + ".url"))
 		return validationResults
 	}
 
 	u, err := ldaputil.ParseURL(url)
 	if err != nil {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid(parent+".URL", url, err.Error()))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid(parent+".url", url, err.Error()))
 		return validationResults
 	}
 
@@ -330,24 +332,23 @@ func ValidateLDAPClientConfig(parent, url, bindDN, bindPassword, CA string, inse
 func ValidateRFC2307Config(config *api.RFC2307Config) ValidationResults {
 	validationResults := ValidationResults{}
 
-	groupQueryResults := ValidateLDAPQuery("groupQuery", config.GroupQuery)
-	validationResults.AddErrors(groupQueryResults.Errors...)
-	validationResults.AddWarnings(groupQueryResults.Warnings...)
-
+	validationResults.Append(ValidateLDAPQuery("allGroupsQuery", config.AllGroupsQuery))
+	if len(config.GroupUIDAttribute) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("groupUIDAttribute"))
+	}
 	if len(config.GroupNameAttributes) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired("groupName"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("groupNameAttributes"))
 	}
-
 	if len(config.GroupMembershipAttributes) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired("groupMembership"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("groupMembershipAttributes"))
 	}
 
-	userQueryResults := ValidateLDAPQuery("userQuery", config.UserQuery)
-	validationResults.AddErrors(userQueryResults.Errors...)
-	validationResults.AddWarnings(userQueryResults.Warnings...)
-
+	validationResults.Append(ValidateLDAPQuery("allUsersQuery", config.AllUsersQuery))
+	if len(config.UserUIDAttribute) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("userUIDAttribute"))
+	}
 	if len(config.UserNameAttributes) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired("userName"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("userNameAttributes"))
 	}
 
 	return validationResults
@@ -356,16 +357,12 @@ func ValidateRFC2307Config(config *api.RFC2307Config) ValidationResults {
 func ValidateActiveDirectoryConfig(config *api.ActiveDirectoryConfig) ValidationResults {
 	validationResults := ValidationResults{}
 
-	userQueryResults := ValidateLDAPQuery("usersQuery", config.UsersQuery)
-	validationResults.AddErrors(userQueryResults.Errors...)
-	validationResults.AddWarnings(userQueryResults.Warnings...)
-
+	validationResults.Append(ValidateLDAPQuery("allUsersQuery", config.AllUsersQuery))
 	if len(config.UserNameAttributes) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired("userName"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("userNameAttributes"))
 	}
-
 	if len(config.GroupMembershipAttributes) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired("groupMembership"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("groupMembershipAttributes"))
 	}
 
 	return validationResults
@@ -374,25 +371,22 @@ func ValidateActiveDirectoryConfig(config *api.ActiveDirectoryConfig) Validation
 func ValidateAugmentedActiveDirectoryConfig(config *api.AugmentedActiveDirectoryConfig) ValidationResults {
 	validationResults := ValidationResults{}
 
-	groupQueryResults := ValidateLDAPQuery("groupQuery", config.GroupQuery)
-	validationResults.AddErrors(groupQueryResults.Errors...)
-	validationResults.AddWarnings(groupQueryResults.Warnings...)
-
-	if len(config.GroupNameAttributes) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired("groupName"))
-	}
-
-	if len(config.GroupMembershipAttributes) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired("groupMembership"))
-	}
-
-	userQueryResults := ValidateLDAPQuery("usersQuery", config.UsersQuery)
-	validationResults.AddErrors(userQueryResults.Errors...)
-	validationResults.AddWarnings(userQueryResults.Warnings...)
-
+	validationResults.Append(ValidateLDAPQuery("allUsersQuery", config.AllUsersQuery))
 	if len(config.UserNameAttributes) == 0 {
-		validationResults.AddErrors(fielderrors.NewFieldRequired("userName"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("userNameAttributes"))
 	}
+	if len(config.GroupMembershipAttributes) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("groupMembershipAttributes"))
+	}
+
+	validationResults.Append(ValidateLDAPQuery("allGroupsQuery", config.AllGroupsQuery))
+	if len(config.GroupUIDAttribute) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("groupUIDAttribute"))
+	}
+	if len(config.GroupNameAttributes) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("groupNameAttributes"))
+	}
+
 	return validationResults
 }
 

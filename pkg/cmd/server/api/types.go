@@ -715,9 +715,9 @@ type AssetExtensionsConfig struct {
 
 type LDAPSyncConfig struct {
 	api.TypeMeta
-	// Host is the scheme, host and port of the LDAP server to connect to:
-	// scheme://host:port
-	Host string
+
+	// URL is the scheme, host and port of the LDAP server to connect to: scheme://host:port
+	URL string
 	// BindDN is an optional DN to bind with during the search phase.
 	BindDN string
 	// BindPassword is an optional password to bind with during the search phase.
@@ -734,17 +734,9 @@ type LDAPSyncConfig struct {
 	// OpenShift Group names
 	LDAPGroupUIDToOpenShiftGroupNameMapping map[string]string
 
-	// LDAPSchemaSpecificConfig holds the configuration for retrieving data from the LDAP server.
-	// This set of configuration varies with LDAP server schema.
-	LDAPSchemaSpecificConfig
-}
-
-// LDAPSchemaSpecificConfig holds the schema-specific configuration for data retrieval from the LDAP
-// server. Only one of the members can be specified.
-type LDAPSchemaSpecificConfig struct {
 	// RFC2307Config holds the configuration for extracting data from an LDAP server set up in a fashion
 	// similar to RFC2307: first-class group and user entries, with group membership determined by a
-	// multi-valued attribute on the group entry listing its' members
+	// multi-valued attribute on the group entry listing its members
 	RFC2307Config *RFC2307Config
 
 	// ActiveDirectoryConfig holds the configuration for extracting data from an LDAP server set up in a
@@ -759,29 +751,38 @@ type LDAPSchemaSpecificConfig struct {
 }
 
 type RFC2307Config struct {
-	// GroupQuery holds the template for an LDAP query that returns group entries
-	GroupQuery LDAPQuery
+	// AllGroupsQuery holds the template for an LDAP query that returns group entries.
+	AllGroupsQuery LDAPQuery
 
-	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its' name
+	// GroupUIDAttributes defines which attribute on an LDAP group entry will be interpreted as its unique identifier.
+	// (ldapGroupUID)
+	GroupUIDAttribute string
+
+	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for
+	// an OpenShift group
 	GroupNameAttributes []string
 
-	// GroupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted
-	// as its' members
+	// GroupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted  as its members.
+	// The values contained in those attributes must be queryable by your UserUIDAttribute
 	GroupMembershipAttributes []string
 
-	// UserQuery holds the template for an LDAP query that returns user entries
-	UserQuery LDAPQuery
+	// AllUsersQuery holds the template for an LDAP query that returns user entries.
+	AllUsersQuery LDAPQuery
 
-	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
+	// UserUIDAttribute defines which attribute on an LDAP user entry will be interpreted as its unique identifier.
+	// It must correspond to values that will be found from the GroupMembershipAttributes
+	UserUIDAttribute string
+
+	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.
+	// This should match your PreferredUsername setting for your LDAPPasswordIdentityProvider
 	UserNameAttributes []string
 }
 
 type ActiveDirectoryConfig struct {
-	// UsersQuery holds the template for an LDAP query that returns all user entries
-	// that are labelled as being members of a group
-	UsersQuery LDAPQuery
+	// AllUsersQuery holds the template for an LDAP query that returns user entries.
+	AllUsersQuery LDAPQuery
 
-	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
+	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.
 	UserNameAttributes []string
 
 	// GroupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted
@@ -790,22 +791,26 @@ type ActiveDirectoryConfig struct {
 }
 
 type AugmentedActiveDirectoryConfig struct {
-	// GroupQuery holds the template for an LDAP query that returns group entries
-	GroupQuery LDAPQuery
+	// AllUsersQuery holds the template for an LDAP query that returns user entries.
+	AllUsersQuery LDAPQuery
 
-	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its' name
-	GroupNameAttributes []string
-
-	// UsersQuery holds the template for an LDAP query that returns all user entries
-	// that are labelled as being members of a group
-	UsersQuery LDAPQuery
-
-	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
+	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.
 	UserNameAttributes []string
 
 	// GroupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted
 	// as the groups it is a member of
 	GroupMembershipAttributes []string
+
+	// AllGroupsQuery holds the template for an LDAP query that returns group entries.
+	AllGroupsQuery LDAPQuery
+
+	// GroupUIDAttributes defines which attribute on an LDAP group entry will be interpreted as its unique identifier.
+	// (ldapGroupUID)
+	GroupUIDAttribute string
+
+	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for
+	// an OpenShift group
+	GroupNameAttributes []string
 }
 
 type LDAPQuery struct {
@@ -833,9 +838,4 @@ type LDAPQuery struct {
 
 	// Filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN
 	Filter string
-
-	// QueryAttribute is the attribute for a specific filter that, when conjoined with the common filter,
-	// retrieves the specific LDAP entry from the LDAP server. (e.g. "cn", when formatted with "aGroupName"
-	// and conjoined with "objectClass=groupOfNames", becomes (&(objectClass=groupOfNames)(cn=aGroupName))")
-	QueryAttribute string
 }
