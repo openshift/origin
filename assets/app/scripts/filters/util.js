@@ -164,12 +164,25 @@ angular.module('openshiftConsole')
     };
   })
   .filter('githubLink', function() {
-    return function(link, commit) {
-      var m = link.match(/^(?:https?:\/\/|git:\/\/|git\+ssh:\/\/|git\+https:\/\/)?(?:[^@]+@)?github\.com[:\/]([^\/]+\/[^\/]+?)(?:\.git(#.*)?)?$/);
+    return function(link, ref, contextDir) {
+      var m = link.match(/^(?:https?:\/\/|git:\/\/|git\+ssh:\/\/|git\+https:\/\/)?(?:[^@]+@)?github\.com[:\/]([^\/]+\/[^\/]+?)(\/|(?:\.git(#.*)?))?$/);
       if (m) {
         link = "https://github.com/" + m[1];
-        if (commit) {
-          link += "/commit/" + commit;
+        // Remove leading / if there is one
+        if (contextDir && contextDir.charAt(0) === "/") {
+          contextDir = contextDir.substring(1);
+        }
+
+        // always use /tree for a generic ref instead of /commit or /blob, /tree will always resolve to the right thing.
+        if (contextDir) {
+          // Encode it in case there are funky characters in the folder names
+          contextDir = encodeURIComponent(contextDir);
+          // But then unencode the / characters
+          contextDir = contextDir.replace("%2F", "/");
+          link += "/tree/" + (encodeURIComponent(ref) || "master") + "/" + contextDir;
+        }
+        else if (ref && ref !== "master") {
+          link += "/tree/" + encodeURIComponent(ref);
         }
       }
       return link;

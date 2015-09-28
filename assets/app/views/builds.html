@@ -32,7 +32,7 @@
               <td>&nbsp;</td>
               <td>&nbsp;</td>
               <td>{{buildConfigs[buildConfigName].spec.strategy.type}}</td>
-              <td><span ng-if="buildConfigs[buildConfigName].spec.source.type == 'Git'" ng-bind-html='buildConfigs[buildConfigName].spec.source.git.uri | githubLink | linky'></span></td>
+              <td><span ng-if="buildConfigs[buildConfigName].spec.source.type == 'Git'" ng-bind-html='buildConfigs[buildConfigName].spec.source.git.uri | githubLink : buildConfigs[buildConfigName].spec.source.git.ref : buildConfigs[buildConfigName].spec.source.contextDir | linky'></span></td>
               <td>&nbsp;</td>
             </tr>
             <!-- Build config with builds, or builds whose build config has since been deleted -->
@@ -98,7 +98,7 @@
               <td>{{build.spec.strategy.type}}</td>            
               <td>
                 <span ng-if="build.spec.source">
-                  <span ng-if="build.spec.source.type == 'Git'" ng-bind-html='build.spec.source.git.uri | githubLink | linky'></span>
+                  <span ng-if="build.spec.source.type == 'Git'" ng-bind-html='build.spec.source.git.uri | githubLink : build.spec.source.git.ref : build.spec.source.contextDir | linky'></span>
                 </span>
               </td>
               <td>
