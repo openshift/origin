@@ -384,10 +384,10 @@ module.exports = function (grunt) {
       dist: {
         cwd: '<%= yeoman.app %>',
         src: 'views/**/*.html',
-        dest: '<%= yeoman.dist %>/scripts/templates.js',
+        dest: '.tmp/scripts/templates.js',
         options: {
           module: 'openshiftConsole',
-          htmlmin: '<%= htmlmin.dist %>',
+          htmlmin: '<%= htmlmin.dist.options %>',
           usemin: 'scripts/scripts.js'
         }
       }

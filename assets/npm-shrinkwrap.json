@@ -1,0 +1,14 @@
+{
+  "name": "assets",
+  "version": "0.0.0",
+  "dependencies": {
+    "grunt-angular-templates": {
+      "version": "0.5.7",
+      "dependencies": {
+        "html-minifier": {
+          "version": "0.7.2"
+        }
+      }
+    }
+  }
+}
