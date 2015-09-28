@@ -48,18 +48,24 @@ type F5PluginConfig struct {
 	// Insecure specifies whether the F5 plugin should perform strict certificate
 	// validation for connections to the F5 BIG-IP host.
 	Insecure bool
+
+	// PartitionPath specifies the F5 partition path to use, normally
+	// a partition is used to create an access control boundary for
+	// users and applications.
+	PartitionPath string
 }
 
 // NewF5Plugin makes a new f5 router plugin.
 func NewF5Plugin(cfg F5PluginConfig) (*F5Plugin, error) {
 	f5LTMCfg := f5LTMCfg{
-		host:         cfg.Host,
-		username:     cfg.Username,
-		password:     cfg.Password,
-		httpVserver:  cfg.HttpVserver,
-		httpsVserver: cfg.HttpsVserver,
-		privkey:      cfg.PrivateKey,
-		insecure:     cfg.Insecure,
+		host:          cfg.Host,
+		username:      cfg.Username,
+		password:      cfg.Password,
+		httpVserver:   cfg.HttpVserver,
+		httpsVserver:  cfg.HttpsVserver,
+		privkey:       cfg.PrivateKey,
+		insecure:      cfg.Insecure,
+		partitionPath: cfg.PartitionPath,
 	}
 	f5, err := newF5LTM(f5LTMCfg)
 	if err != nil {

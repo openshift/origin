@@ -149,6 +149,11 @@ type RouterConfig struct {
 	// ExternalHostInsecure specifies that the router should skip strict
 	// certificate verification when connecting to the external host.
 	ExternalHostInsecure bool
+
+	// ExternalHostPartitionPath specifies the partition path to use.
+	// This is used by some routers to create access access control
+	// boundaries for users and applications.
+	ExternalHostPartitionPath string
 }
 
 var errExit = fmt.Errorf("exit")
@@ -211,6 +216,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.ExternalHostHttpsVserver, "external-host-https-vserver", cfg.ExternalHostHttpsVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTPS connections.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPrivateKey, "external-host-private-key", cfg.ExternalHostPrivateKey, "If the underlying router implementation requires an SSH private key, this is the path to the private key file.")
 	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
+	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
 
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
 
@@ -465,24 +471,25 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		}
 
 		env := app.Environment{
-			"OPENSHIFT_MASTER":                   config.Host,
-			"OPENSHIFT_CA_DATA":                  string(config.CAData),
-			"OPENSHIFT_KEY_DATA":                 string(config.KeyData),
-			"OPENSHIFT_CERT_DATA":                string(config.CertData),
-			"OPENSHIFT_INSECURE":                 insecure,
-			"DEFAULT_CERTIFICATE":                defaultCert,
-			"ROUTER_SERVICE_NAME":                name,
-			"ROUTER_SERVICE_NAMESPACE":           namespace,
-			"ROUTER_EXTERNAL_HOST_HOSTNAME":      cfg.ExternalHost,
-			"ROUTER_EXTERNAL_HOST_USERNAME":      cfg.ExternalHostUsername,
-			"ROUTER_EXTERNAL_HOST_PASSWORD":      cfg.ExternalHostPassword,
-			"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":  cfg.ExternalHostHttpVserver,
-			"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER": cfg.ExternalHostHttpsVserver,
-			"ROUTER_EXTERNAL_HOST_INSECURE":      strconv.FormatBool(cfg.ExternalHostInsecure),
-			"ROUTER_EXTERNAL_HOST_PRIVKEY":       privkeyPath,
-			"STATS_PORT":                         strconv.Itoa(cfg.StatsPort),
-			"STATS_USERNAME":                     cfg.StatsUsername,
-			"STATS_PASSWORD":                     cfg.StatsPassword,
+			"OPENSHIFT_MASTER":                    config.Host,
+			"OPENSHIFT_CA_DATA":                   string(config.CAData),
+			"OPENSHIFT_KEY_DATA":                  string(config.KeyData),
+			"OPENSHIFT_CERT_DATA":                 string(config.CertData),
+			"OPENSHIFT_INSECURE":                  insecure,
+			"DEFAULT_CERTIFICATE":                 defaultCert,
+			"ROUTER_SERVICE_NAME":                 name,
+			"ROUTER_SERVICE_NAMESPACE":            namespace,
+			"ROUTER_EXTERNAL_HOST_HOSTNAME":       cfg.ExternalHost,
+			"ROUTER_EXTERNAL_HOST_USERNAME":       cfg.ExternalHostUsername,
+			"ROUTER_EXTERNAL_HOST_PASSWORD":       cfg.ExternalHostPassword,
+			"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":   cfg.ExternalHostHttpVserver,
+			"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER":  cfg.ExternalHostHttpsVserver,
+			"ROUTER_EXTERNAL_HOST_INSECURE":       strconv.FormatBool(cfg.ExternalHostInsecure),
+			"ROUTER_EXTERNAL_HOST_PARTITION_PATH": cfg.ExternalHostPartitionPath,
+			"ROUTER_EXTERNAL_HOST_PRIVKEY":        privkeyPath,
+			"STATS_PORT":                          strconv.Itoa(cfg.StatsPort),
+			"STATS_USERNAME":                      cfg.StatsUsername,
+			"STATS_PASSWORD":                      cfg.StatsPassword,
 		}
 
 		updatePercent := int(-25)
