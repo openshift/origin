@@ -2,6 +2,7 @@ package util
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/util"
 
@@ -37,11 +38,31 @@ func Finalized(namespace *kapi.Namespace) bool {
 }
 
 // Finalize will remove the origin finalizer from the namespace
-func Finalize(kubeClient kclient.Interface, namespace *kapi.Namespace) (*kapi.Namespace, error) {
+func Finalize(kubeClient kclient.Interface, namespace *kapi.Namespace) (result *kapi.Namespace, err error) {
 	if Finalized(namespace) {
 		return namespace, nil
 	}
-	return finalizeInternal(kubeClient, namespace, false)
+
+	// there is a potential for a resource conflict with base kubernetes finalizer
+	// as a result, we handle resource conflicts in case multiple finalizers try
+	// to finalize at same time
+	for {
+		result, err = finalizeInternal(kubeClient, namespace, false)
+		if err == nil {
+			return result, nil
+		}
+
+		if !kerrors.IsConflict(err) {
+			return nil, err
+		}
+
+		namespace, err = kubeClient.Namespaces().Get(namespace.Name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return
 }
 
 // finalizeInternal will update the namespace finalizer list to either have or not have origin finalizer
