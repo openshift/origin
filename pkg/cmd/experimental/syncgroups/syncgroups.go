@@ -9,10 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/api/latest"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -177,11 +178,17 @@ func (o *SyncGroupsOptions) Complete(args []string, f *clientcmd.Factory) error 
 		}
 	}
 
-	jsonData, err := ioutil.ReadFile(o.ConfigSource)
+	yamlConfig, err := ioutil.ReadFile(o.ConfigSource)
 	if err != nil {
 		return fmt.Errorf("could not read file %s: %v", o.ConfigSource, err)
 	}
-	latest.Codec.DecodeInto(jsonData, &o.Config)
+	jsonConfig, err := kyaml.ToJSON(yamlConfig)
+	if err != nil {
+		return fmt.Errorf("could not parse file %s: %v", o.ConfigSource, err)
+	}
+	if err := configapilatest.Codec.DecodeInto(jsonConfig, &o.Config); err != nil {
+		return err
+	}
 
 	if f != nil {
 		osClient, _, err := f.Clients()
