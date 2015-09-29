@@ -147,8 +147,10 @@ endif
 #
 # Example:
 #   make run
+OS_OUTPUT_BINPATH=$(shell bash -c 'source hack/common.sh; echo $${OS_OUTPUT_BINPATH}')
+PLATFORM=$(shell bash -c 'source hack/common.sh; os::build::host_platform')
 run: build
-	$(OUT_DIR)/local/go/bin/openshift start
+	$(OS_OUTPUT_BINPATH)/$(PLATFORM)/openshift start
 .PHONY: run
 
 # Remove all build artifacts.
