@@ -844,7 +844,7 @@
 		},
 		{
 			"ImportPath": "github.com/vjeantet/ldapserver",
-			"Rev": "5700661e721f508db936af42597a254c4ea6aea4"
+			"Rev": "19fbc46ed12348d5122812c8303fb82e49b6c25d"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/bcrypt",
