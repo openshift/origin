@@ -57,6 +57,7 @@ SKIP_TESTS=(
   "should provide labels and annotations files" # the image can't read the files
   "Ask kubelet to report container resource usage" # container resource usage not exposed yet?
   "should provide Internet connection for containers" # DNS inside container failing!!!
+  "able to delete 10 pods per node" # Panic because stats port isn't exposed
 
   "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
 
