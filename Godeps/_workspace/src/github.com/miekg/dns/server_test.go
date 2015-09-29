@@ -17,6 +17,16 @@ func HelloServer(w ResponseWriter, req *Msg) {
 	w.WriteMsg(m)
 }
 
+func HelloServerBadId(w ResponseWriter, req *Msg) {
+	m := new(Msg)
+	m.SetReply(req)
+	m.Id++
+
+	m.Extra = make([]RR, 1)
+	m.Extra[0] = &TXT{Hdr: RR_Header{Name: m.Question[0].Name, Rrtype: TypeTXT, Class: ClassINET, Ttl: 0}, Txt: []string{"Hello world"}}
+	w.WriteMsg(m)
+}
+
 func AnotherHelloServer(w ResponseWriter, req *Msg) {
 	m := new(Msg)
 	m.SetReply(req)
@@ -386,4 +396,55 @@ func TestShutdownUDP(t *testing.T) {
 	if err != nil {
 		t.Errorf("Could not shutdown test UDP server, %v", err)
 	}
+}
+
+type ExampleFrameLengthWriter struct {
+	Writer
+}
+
+func (e *ExampleFrameLengthWriter) Write(m []byte) (int, error) {
+	fmt.Println("writing raw DNS message of length", len(m))
+	return e.Writer.Write(m)
+}
+
+func ExampleDecorateWriter() {
+	// instrument raw DNS message writing
+	wf := DecorateWriter(func(w Writer) Writer {
+		return &ExampleFrameLengthWriter{w}
+	})
+
+	// simple UDP server
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	server := &Server{
+		PacketConn:     pc,
+		DecorateWriter: wf,
+	}
+
+	waitLock := sync.Mutex{}
+	waitLock.Lock()
+	server.NotifyStartedFunc = waitLock.Unlock
+	defer server.Shutdown()
+
+	go func() {
+		server.ActivateAndServe()
+		pc.Close()
+	}()
+
+	waitLock.Lock()
+
+	HandleFunc("miek.nl.", HelloServer)
+
+	c := new(Client)
+	m := new(Msg)
+	m.SetQuestion("miek.nl.", TypeTXT)
+	_, _, err = c.Exchange(m, pc.LocalAddr().String())
+	if err != nil {
+		fmt.Println("failed to exchange", err.Error())
+		return
+	}
+	// Output: writing raw DNS message of length 56
 }

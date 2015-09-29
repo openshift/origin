@@ -45,7 +45,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 	}
 
 	if !hasChangeTrigger {
-		glog.V(4).Infof("Ignoring DeploymentConfig %s; no change triggers detected", deployutil.LabelForDeploymentConfig(config))
+		glog.V(5).Infof("Ignoring DeploymentConfig %s; no change triggers detected", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -69,7 +69,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 		// comparison. It's the responsibility of the deployment config controller
 		// to make the deployment for the config, so return early.
 		if kerrors.IsNotFound(err) {
-			glog.V(2).Infof("Ignoring change for DeploymentConfig %s; no existing Deployment found", deployutil.LabelForDeploymentConfig(config))
+			glog.V(5).Infof("Ignoring change for DeploymentConfig %s; no existing Deployment found", deployutil.LabelForDeploymentConfig(config))
 			return nil
 		}
 		return fmt.Errorf("couldn't retrieve Deployment for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
@@ -82,7 +82,7 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 
 	// Detect template diffs, and return early if there aren't any changes.
 	if kapi.Semantic.DeepEqual(config.Template.ControllerTemplate.Template, deployedConfig.Template.ControllerTemplate.Template) {
-		glog.V(2).Infof("Ignoring DeploymentConfig change for %s (latestVersion=%d); same as Deployment %s", deployutil.LabelForDeploymentConfig(config), config.LatestVersion, deployutil.LabelForDeployment(deployment))
+		glog.V(5).Infof("Ignoring DeploymentConfig change for %s (latestVersion=%d); same as Deployment %s", deployutil.LabelForDeploymentConfig(config), config.LatestVersion, deployutil.LabelForDeployment(deployment))
 		return nil
 	}
 

@@ -29,6 +29,12 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
+const (
+	GeneratedByNamespace = "openshift.io/generated-by"
+	GeneratedByNewApp    = "OpenShiftNewApp"
+	GeneratedByNewBuild  = "OpenShiftNewBuild"
+)
+
 // AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
 	SourceRepositories util.StringList
@@ -47,6 +53,8 @@ type AppConfig struct {
 
 	AddEnvironmentToBuild bool
 
+	Dockerfile string
+
 	Name             string
 	Strategy         string
 	InsecureRegistry bool
@@ -54,6 +62,9 @@ type AppConfig struct {
 
 	AsSearch bool
 	AsList   bool
+
+	Out    io.Writer
+	ErrOut io.Writer
 
 	refBuilder *app.ReferenceBuilder
 
@@ -183,6 +194,18 @@ func (c *AppConfig) individualSourceRepositories() (app.SourceRepositories, erro
 			first = false
 		}
 	}
+	if len(c.Dockerfile) > 0 {
+		switch {
+		case c.Strategy == "docker", len(c.Strategy) == 0:
+		default:
+			return nil, fmt.Errorf("when directly referencing a Dockerfile, the strategy must must be 'docker'")
+		}
+		repo, err := app.NewSourceRepositoryForDockerfile(c.Dockerfile)
+		if err != nil {
+			return nil, fmt.Errorf("provided Dockerfile is not valid: %v", err)
+		}
+		c.refBuilder.AddExistingSourceRepository(repo)
+	}
 	_, repos, errs := c.refBuilder.Result()
 	return repos, errors.NewAggregate(errs)
 }
@@ -252,7 +275,7 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 	b.AddGroups(c.Groups)
 	refs, repos, errs := b.Result()
 
-	if len(repos) > 0 {
+	if len(c.ContextDir) > 0 && len(repos) > 0 {
 		repos[0].SetContextDir(c.ContextDir)
 		if len(repos) > 1 {
 			glog.Warningf("You have specified more than one source repository and a context directory. "+
@@ -292,7 +315,13 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 			errs = append(errs, fmt.Errorf("source not detected for repository %q", repo))
 			continue
 		case info.Dockerfile != nil && (len(c.Strategy) == 0 || c.Strategy == "docker"):
-			dockerFrom, ok := info.Dockerfile.GetDirective("FROM")
+			df, err := info.Dockerfile.Dockerfile()
+			if err != nil {
+				// an unparseable docker file should not terminate the entire create - it may be valid to Docker but not to us
+				fmt.Fprintf(c.ErrOut, "WARNING: The Dockerfile for the repository %q could not be parsed - no image stream can be created for the FROM\n", info.Path)
+				continue
+			}
+			dockerFrom, ok := df.GetDirective("FROM")
 			if !ok || len(dockerFrom) > 1 {
 				errs = append(errs, fmt.Errorf("invalid FROM directive in Dockerfile in repository %q", repo))
 			}
@@ -500,16 +529,18 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 
 				// Append any exposed ports from Dockerfile to input image
 				if ref.Input().Uses.IsDockerBuild() {
-					exposed, ok := ref.Input().Uses.Info().Dockerfile.GetDirective("EXPOSE")
-					if ok {
-						if input.Info == nil {
-							input.Info = &imageapi.DockerImage{
-								Config: &imageapi.DockerConfig{},
+					if df, err := ref.Input().Uses.Info().Dockerfile.Dockerfile(); err == nil {
+						exposed, ok := df.GetDirective("EXPOSE")
+						if ok {
+							if input.Info == nil {
+								input.Info = &imageapi.DockerImage{
+									Config: &imageapi.DockerConfig{},
+								}
 							}
-						}
-						input.Info.Config.ExposedPorts = map[string]struct{}{}
-						for _, p := range exposed {
-							input.Info.Config.ExposedPorts[p] = struct{}{}
+							input.Info.Config.ExposedPorts = map[string]struct{}{}
+							for _, p := range exposed {
+								input.Info.Config.ExposedPorts[p] = struct{}{}
+							}
 						}
 					}
 				}
@@ -606,14 +637,14 @@ type QueryResult struct {
 }
 
 // RunAll executes the provided config to generate all objects.
-func (c *AppConfig) RunAll(out, errOut io.Writer) (*AppResult, error) {
-	return c.run(out, errOut, app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
+func (c *AppConfig) RunAll() (*AppResult, error) {
+	return c.run(app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
 }
 
 // RunBuilds executes the provided config to generate just builds.
-func (c *AppConfig) RunBuilds(out, errOut io.Writer) (*AppResult, error) {
+func (c *AppConfig) RunBuilds() (*AppResult, error) {
 	bcAcceptor := app.NewAcceptBuildConfigs(c.typer)
-	result, err := c.run(out, errOut, app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew})
+	result, err := c.run(app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew})
 	if err != nil {
 		return nil, err
 	}
@@ -652,7 +683,7 @@ func filterImageStreams(result *AppResult) *AppResult {
 	// 2nd pass to remove ImageStreams not used by BuildConfigs
 	for _, item := range result.List.Items {
 		if is, ok := item.(*imageapi.ImageStream); ok {
-			if _, ok := imageStreams[types.NamespacedName{is.Namespace, is.Name}.String()]; ok {
+			if _, ok := imageStreams[types.NamespacedName{Namespace: is.Namespace, Name: is.Name}.String()]; ok {
 				items = append(items, is)
 			}
 		} else {
@@ -665,11 +696,11 @@ func filterImageStreams(result *AppResult) *AppResult {
 
 func makeImageStreamKey(ref kapi.ObjectReference) string {
 	name, _, _ := imageapi.SplitImageStreamTag(ref.Name)
-	return types.NamespacedName{ref.Namespace, name}.String()
+	return types.NamespacedName{Namespace: ref.Namespace, Name: name}.String()
 }
 
 // RunQuery executes the provided config and returns the result of the resolution.
-func (c *AppConfig) RunQuery(out, errOut io.Writer) (*QueryResult, error) {
+func (c *AppConfig) RunQuery() (*QueryResult, error) {
 	c.ensureDockerSearcher()
 	repositories, err := c.individualSourceRepositories()
 	if err != nil {
@@ -740,7 +771,7 @@ func (c *AppConfig) RunQuery(out, errOut io.Writer) (*QueryResult, error) {
 }
 
 // run executes the provided config applying provided acceptors.
-func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppResult, error) {
+func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	c.ensureDockerSearcher()
 	repositories, err := c.individualSourceRepositories()
 	if err != nil {
@@ -805,7 +836,7 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		}
 		if p.Image != nil && p.Image.HasEmptyDir {
 			if _, ok := warned[p.Image.Name]; !ok {
-				fmt.Fprintf(errOut, "NOTICE: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
+				fmt.Fprintf(c.ErrOut, "WARNING: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
 				warned[p.Image.Name] = struct{}{}
 			}
 		}

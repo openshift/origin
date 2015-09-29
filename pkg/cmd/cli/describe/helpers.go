@@ -11,7 +11,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -93,7 +93,7 @@ func formatAnnotations(out *tabwriter.Writer, m api.ObjectMeta, prefix string) {
 	if len(values[0]) > 0 {
 		formatString(out, prefix+"Description", values[0])
 	}
-	keys := util.NewStringSet()
+	keys := sets.NewString()
 	for k := range annotations {
 		keys.Insert(k)
 	}

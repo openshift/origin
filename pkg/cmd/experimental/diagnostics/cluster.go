@@ -5,15 +5,14 @@ import (
 	"regexp"
 	"strings"
 
-	kclient "k8s.io/kubernetes/pkg/client"
-	clientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
-	"k8s.io/kubernetes/pkg/util"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
-
 	clustdiags "github.com/openshift/origin/pkg/diagnostics/cluster"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -21,13 +20,13 @@ import (
 var (
 	// availableClusterDiagnostics contains the names of cluster diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClusterDiagnostics = util.NewStringSet(clustdiags.NodeDefinitionsName, clustdiags.ClusterRegistryName, clustdiags.ClusterRouterName)
+	availableClusterDiagnostics = sets.NewString(clustdiags.NodeDefinitionsName, clustdiags.ClusterRegistryName, clustdiags.ClusterRouterName, clustdiags.ClusterRolesName)
 )
 
 // buildClusterDiagnostics builds cluster Diagnostic objects if a cluster-admin client can be extracted from the rawConfig passed in.
 // Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
 func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
-	requestedDiagnostics := intersection(util.NewStringSet(o.RequestedDiagnostics...), availableClusterDiagnostics).List()
+	requestedDiagnostics := intersection(sets.NewString(o.RequestedDiagnostics...), availableClusterDiagnostics).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
 		return nil, true, nil // don't waste time on discovery
 	}
@@ -52,6 +51,8 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{kclusterClient, clusterClient})
 		case clustdiags.ClusterRouterName:
 			diagnostics = append(diagnostics, &clustdiags.ClusterRouter{kclusterClient, clusterClient})
+		case clustdiags.ClusterRolesName:
+			diagnostics = append(diagnostics, &clustdiags.ClusterRoles{clusterClient, clusterClient})
 
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)

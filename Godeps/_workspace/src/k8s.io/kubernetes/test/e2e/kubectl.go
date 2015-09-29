@@ -33,7 +33,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -91,7 +91,6 @@ var _ = Describe("Kubectl client", func() {
 			nautilusPath = filepath.Join(updateDemoRoot, "nautilus-rc.yaml")
 			kittenPath = filepath.Join(updateDemoRoot, "kitten-rc.yaml")
 		})
-
 		It("should create and stop a replication controller", func() {
 			defer cleanup(nautilusPath, ns, updateDemoSelector)
 
@@ -130,9 +129,6 @@ var _ = Describe("Kubectl client", func() {
 
 		BeforeEach(func() {
 			guestbookPath = filepath.Join(testContext.RepoRoot, "examples/guestbook")
-
-			// requires ExternalLoadBalancer support
-			SkipUnlessProviderIs("gce", "gke", "aws")
 		})
 
 		It("should create and stop a working application", func() {
@@ -190,6 +186,14 @@ var _ = Describe("Kubectl client", func() {
 			if e, a := "hi", execOutput; e != a {
 				Failf("Unexpected kubectl exec output. Wanted %q, got %q", e, a)
 			}
+		})
+
+		It("should support inline execution and attach", func() {
+			By("executing a command with run and attach")
+			runOutput := runKubectl(fmt.Sprintf("--namespace=%v", ns), "run", "run-test", "--image=busybox", "--restart=Never", "--attach=true", "echo", "running", "in", "container")
+			expectedRunOutput := "running in container"
+			Expect(runOutput).To(ContainSubstring(expectedRunOutput))
+			// everything in the ns will be deleted at the end of the test
 		})
 
 		It("should support port-forward", func() {
@@ -360,7 +364,7 @@ var _ = Describe("Kubectl client", func() {
 			nsFlag := fmt.Sprintf("--namespace=%v", ns)
 
 			redisPort := 6379
-			serviceTimeout := 30 * time.Second
+			serviceTimeout := 60 * time.Second
 
 			By("creating Redis RC")
 			runKubectl("create", "-f", controllerJson, nsFlag)
@@ -775,7 +779,7 @@ func makeRequestToGuestbook(c *client.Client, cmd, value string, ns string) (str
 		Namespace(ns).
 		Resource("services").
 		Name("frontend").
-		Suffix("/index.php").
+		Suffix("/guestbook.php").
 		Param("cmd", cmd).
 		Param("key", "messages").
 		Param("value", value).
@@ -816,7 +820,7 @@ func getUDData(jpgExpected string, ns string) func(*client.Client, string) error
 		if strings.Contains(data.Image, jpgExpected) {
 			return nil
 		} else {
-			return errors.New(fmt.Sprintf("data served up in container is innaccurate, %s didn't contain %s", data, jpgExpected))
+			return errors.New(fmt.Sprintf("data served up in container is inaccurate, %s didn't contain %s", data, jpgExpected))
 		}
 	}
 }

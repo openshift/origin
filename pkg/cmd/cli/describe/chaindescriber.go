@@ -11,8 +11,8 @@ import (
 	"github.com/gonum/graph/internal"
 	"github.com/gonum/graph/path"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kutil "k8s.io/kubernetes/pkg/util"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
@@ -38,12 +38,12 @@ func (e NotFoundErr) Error() string {
 // dependencies of an image stream
 type ChainDescriber struct {
 	c            client.BuildConfigsNamespacer
-	namespaces   kutil.StringSet
+	namespaces   sets.String
 	outputFormat string
 }
 
 // NewChainDescriber returns a new ChainDescriber
-func NewChainDescriber(c client.BuildConfigsNamespacer, namespaces kutil.StringSet, out string) *ChainDescriber {
+func NewChainDescriber(c client.BuildConfigsNamespacer, namespaces sets.String, out string) *ChainDescriber {
 	return &ChainDescriber{c: c, namespaces: namespaces, outputFormat: out}
 }
 

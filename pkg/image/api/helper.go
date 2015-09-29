@@ -7,7 +7,7 @@ import (
 
 	"github.com/docker/distribution/digest"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // DockerDefaultNamespace is the value for namespace when a single segment name is provided.
@@ -374,9 +374,9 @@ func NameAndTag(name, tag string) string {
 	return fmt.Sprintf("%s:%s", name, tag)
 }
 
-// ResolveImageID returns a StringSet of all the image IDs in stream that start with imageID.
-func ResolveImageID(stream *ImageStream, imageID string) util.StringSet {
-	set := util.NewStringSet()
+// ResolveImageID returns a sets.String of all the image IDs in stream that start with imageID.
+func ResolveImageID(stream *ImageStream, imageID string) sets.String {
+	set := sets.NewString()
 	for _, history := range stream.Status.Tags {
 		for _, tagging := range history.Items {
 			if d, err := digest.ParseDigest(tagging.Image); err == nil {

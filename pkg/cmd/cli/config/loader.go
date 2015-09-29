@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/client/clientcmd"
-	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )

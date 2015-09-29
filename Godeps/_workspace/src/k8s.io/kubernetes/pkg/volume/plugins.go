@@ -23,7 +23,8 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
@@ -121,6 +122,9 @@ type VolumeHost interface {
 	// the provided spec.  See comments on NewWrapperBuilder for more
 	// context.
 	NewWrapperCleaner(spec *Spec, podUID types.UID, mounter mount.Interface) (Cleaner, error)
+
+	//Get cloud provider from kubelet
+	GetCloudProvider() cloudprovider.Interface
 }
 
 // VolumePluginMgr tracks registered plugins.
@@ -165,22 +169,22 @@ func (spec *Spec) Name() string {
 // The binary should still use strong typing for this value when binding CLI values before they are passed as strings
 // in OtherAttributes.
 type VolumeConfig struct {
+	// RecyclerPodTemplate is pod template that understands how to scrub clean a persistent volume after its release.
+	// The template is used by plugins which override specific properties of the pod in accordance with that plugin.
+	// See NewPersistentVolumeRecyclerPodTemplate for the properties that are expected to be overridden.
+	RecyclerPodTemplate *api.Pod
 
-	// RecyclerDefaultPod is the default pod used to scrub a persistent volume clean after its release.
-	// The default scrubber supplied by the system is a simple "rm -rf /* /.*" of a volume.
-	RecyclerDefaultPod *api.Pod
-
-	// RecyclerMinimumTimeout is the minimum amount of time in seconds for the scrub pod's ActiveDeadlineSeconds attribute.
+	// RecyclerMinimumTimeout is the minimum amount of time in seconds for the recycler pod's ActiveDeadlineSeconds attribute.
 	// Added to the minimum timeout is the increment per Gi of capacity.
 	RecyclerMinimumTimeout int
 
-	// RecyclerTimeoutIncrement is the number of seconds added to the scrub pod's ActiveDeadlineSeconds for each
+	// RecyclerTimeoutIncrement is the number of seconds added to the recycler pod's ActiveDeadlineSeconds for each
 	// Gi of capacity in the persistent volume.
-	// Example: 5Gi volume x 30s increment = 150s + 30s minimum = 180s ActiveDeadlineSeconds for scrub pod
+	// Example: 5Gi volume x 30s increment = 150s + 30s minimum = 180s ActiveDeadlineSeconds for recycler pod
 	RecyclerTimeoutIncrement int
 
-	// thockin: do we want to wait on this until we have an actual use case?  I can change the comments above to
-	// reflect our intention for one-off config.
+	// OtherAttributes stores config as strings.  These strings are opaque to the system and only understood by the binary
+	// hosting the plugin and the plugin itself.
 	OtherAttributes map[string]string
 }
 
@@ -296,7 +300,7 @@ func (pm *VolumePluginMgr) FindPersistentPluginByName(name string) (PersistentVo
 	if persistentVolumePlugin, ok := volumePlugin.(PersistentVolumePlugin); ok {
 		return persistentVolumePlugin, nil
 	}
-	return nil, fmt.Errorf("no persistent volume plugin matched: %+v")
+	return nil, fmt.Errorf("no persistent volume plugin matched")
 }
 
 // FindRecyclablePluginByName fetches a persistent volume plugin by name.  If no plugin
@@ -312,14 +316,20 @@ func (pm *VolumePluginMgr) FindRecyclablePluginBySpec(spec *Spec) (RecyclableVol
 	return nil, fmt.Errorf("no recyclable volume plugin matched")
 }
 
-// GetDefaultPersistentVolumeRecyclerPod creates a template for a scrubber pod.  Most attributes are correct for scrubbers,
-// but other plugins are required to change the VolumeSource.  Plugins should also consider changing the pod's
-// ActiveDeadlineSeconds timeout and GenerateName. See the NFS plugin and its overrides.
-func GetDefaultPersistentVolumeRecyclerPod() *api.Pod {
+// NewPersistentVolumeRecyclerPodTemplate creates a template for a recycler pod.  By default, a recycler pod simply runs
+// "rm -rf" on a volume and tests for emptiness.  Most attributes of the template will be correct for most
+// plugin implementations.  The following attributes can be overridden per plugin via configuration:
+//
+// 1.  pod.Spec.Volumes[0].VolumeSource must be overridden.  Recycler implementations without a valid VolumeSource will fail.
+// 2.  pod.GenerateName helps distinguish recycler pods by name.  Recommended. Default is "pv-recycler-".
+// 3.  pod.Spec.ActiveDeadlineSeconds gives the recycler pod a maximum timeout before failing.  Recommended.  Default is 60 seconds.
+//
+// See HostPath and NFS for working recycler examples
+func NewPersistentVolumeRecyclerPodTemplate() *api.Pod {
 	timeout := int64(60)
 	pod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
-			GenerateName: "pv-scrubber-hostpath-",
+			GenerateName: "pv-recycler-",
 			Namespace:    api.NamespaceDefault,
 		},
 		Spec: api.PodSpec{
@@ -328,17 +338,14 @@ func GetDefaultPersistentVolumeRecyclerPod() *api.Pod {
 			Volumes: []api.Volume{
 				{
 					Name: "vol",
-					// IMPORTANT!  All plugins using this template must override the VolumeSource
-					// and make it applicable to the PersistentVolume being recycled.
-					// See HostPath and NFS implementations for examples.
-					VolumeSource: api.VolumeSource{
-						HostPath: &api.HostPathVolumeSource{"/thePathToScrub"},
-					},
+					// IMPORTANT!  All plugins using this template MUST override pod.Spec.Volumes[0].VolumeSource
+					// Recycler implementations without a valid VolumeSource will fail.
+					VolumeSource: api.VolumeSource{},
 				},
 			},
 			Containers: []api.Container{
 				{
-					Name:    "scrubber",
+					Name:    "pv-recycler",
 					Image:   "gcr.io/google_containers/busybox",
 					Command: []string{"/bin/sh"},
 					Args:    []string{"-c", "test -e /scrub && echo $(date) > /scrub/trash.txt && rm -rf /scrub/* /scrub/.* && test -z \"$(ls -A /scrub)\" || exit 1"},

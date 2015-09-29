@@ -228,8 +228,8 @@ describe('', function() {
           for (var key in project) {
             setInputValue(key, project[key]);
           }
-          clickAndGo('Create', '/project/' + project['name'] + '/overview');
-          waitForPresence('.navbar-project .bootstrap-select .selected .text', project['displayName']);
+          clickAndGo('Create', '/project/' + project['name'] + '/create');
+          waitForPresence('.breadcrumb li a', project['displayName']);
           checkProjectSettings(project['name'], project['displayName'], project['description']);
         });
 

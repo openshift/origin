@@ -15,7 +15,7 @@ import (
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	kresource "k8s.io/kubernetes/pkg/api/resource"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -56,31 +56,31 @@ Volume types include:
 
 For descriptions on other volume types, see https://docs.openshift.com`
 
-	volumeExample = `  // List volumes defined on all deployment configs in the current project
+	volumeExample = `  # List volumes defined on all deployment configs in the current project
   $ %[1]s volume dc --all
 
-  // Add a new empty dir volume to deployment config (dc) 'registry' mounted under
-  // /var/lib/registry
+  # Add a new empty dir volume to deployment config (dc) 'registry' mounted under
+  # /var/lib/registry
   $ %[1]s volume dc/registry --add --mount-path=/var/lib/registry
 
-  // Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
+  # Use an existing persistent volume claim (pvc) to overwrite an existing volume 'v1'
   $ %[1]s volume dc/registry --add --name=v1 -t pvc --claim-name=pvc1 --overwrite
 
-  // Remove volume 'v1' from deployment config 'registry'
+  # Remove volume 'v1' from deployment config 'registry'
   $ %[1]s volume dc/registry --remove --name=v1
 
-  // Create a new persistent volume claim that overwrites an existing volume 'v1'
+  # Create a new persistent volume claim that overwrites an existing volume 'v1'
   $ %[1]s volume dc/registry --add --name=v1 -t pvc --claim-size=1G --overwrite
 
-  // Change the mount point for volume 'v1' to /data
+  # Change the mount point for volume 'v1' to /data
   $ %[1]s volume dc/registry --add --name=v1 -m /data --overwrite
 
-  // Modify the deployment config by removing volume mount "v1" from container "c1"
-  // (and by removing the volume "v1" if no other containers have volume mounts that reference it)
+  # Modify the deployment config by removing volume mount "v1" from container "c1"
+  # (and by removing the volume "v1" if no other containers have volume mounts that reference it)
   $ %[1]s volume dc/registry --remove --name=v1 --containers=c1
 
-  // Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
-  // Ceph, Gluster, NFS, ISCSI, ...)
+  # Add new volume based on a more complex volume source (Git repo, AWS EBS, GCE PD,
+  # Ceph, Gluster, NFS, ISCSI, ...)
   $ %[1]s volume dc/registry --add -m /repo --source=<json-string>`
 
 	volumePrefix = "volume-"
@@ -162,7 +162,6 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVarP(&opts.Selector, "selector", "l", "", "Selector (label query) to filter on")
 	cmd.Flags().BoolVar(&opts.All, "all", false, "select all resources in the namespace of the specified resource types")
 	cmd.Flags().VarP(&opts.Filenames, "filename", "f", "Filename, directory, or URL to file to use to edit the resource.")
-
 	cmd.Flags().BoolVar(&opts.Add, "add", false, "Add volume and/or volume mounts for containers")
 	cmd.Flags().BoolVar(&opts.Remove, "remove", false, "Remove volume and/or volume mounts for containers")
 	cmd.Flags().BoolVar(&opts.List, "list", false, "List volumes and volume mounts for containers")
@@ -182,6 +181,8 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVar(&addOpts.ClaimSize, "claim-size", "", "If specified along with a persistent volume type, create a new claim with the given size in bytes. Accepts SI notation: 10, 10G, 10Gi")
 	cmd.Flags().StringVar(&addOpts.ClaimMode, "claim-mode", "ReadWriteOnce", "Set the access mode of the claim to be created. Valid values are ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
 	cmd.Flags().StringVar(&addOpts.Source, "source", "", "Details of volume source as json string. This can be used if the required volume type is not supported by --type option. (e.g.: '{\"gitRepo\": {\"repository\": <git-url>, \"revision\": <commit-hash>}}')")
+
+	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
 }

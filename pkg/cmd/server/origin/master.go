@@ -17,9 +17,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apiserver"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kmaster "k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/v1"
@@ -102,7 +103,7 @@ const (
 )
 
 var (
-	excludedV1Beta3Types = util.NewStringSet()
+	excludedV1Beta3Types = sets.NewString()
 	excludedV1Types      = excludedV1Beta3Types
 
 	// TODO: correctly solve identifying requests by type

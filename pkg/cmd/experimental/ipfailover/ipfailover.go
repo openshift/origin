@@ -27,21 +27,21 @@ recommended that the labeled selector for the nodes matches at least 2 nodes
 to ensure you have failover protection, and that you provide a --replicas=<n>
 value that matches the number of nodes for the given labeled selector.`
 
-	ipFailover_example = `  // Check the default IP failover configuration ("ipfailover"):
+	ipFailover_example = `  # Check the default IP failover configuration ("ipfailover"):
   $ %[1]s %[2]s
 
-  // See what the IP failover configuration would look like if it is created:
+  # See what the IP failover configuration would look like if it is created:
   $ %[1]s %[2]s -o json
 
-  // Create an IP failover configuration if it does not already exist:
+  # Create an IP failover configuration if it does not already exist:
   $ %[1]s %[2]s ipf --virtual-ips="10.1.1.1-4" --create
 
-  // Create an IP failover configuration on a selection of nodes labeled
-  // "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
-  // listening on port 80, such as the router process).
+  # Create an IP failover configuration on a selection of nodes labeled
+  # "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
+  # listening on port 80, such as the router process).
   $ %[1]s %[2]s ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
 
-  // Use a different IP failover config image and see the configuration:
+  # Use a different IP failover config image and see the configuration:
   $ %[1]s %[2]s ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag`
 )
 

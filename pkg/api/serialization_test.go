@@ -357,9 +357,6 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 var skipStandardVersions = map[string][]string{
 	"DockerImage": {"pre012", "1.0"},
 }
-var skipV1beta1 = map[string]struct{}{}
-var skipV1beta3 = map[string]struct{}{}
-var skipV1 = map[string]struct{}{}
 
 const fuzzIters = 20
 
@@ -408,14 +405,10 @@ func TestTypes(t *testing.T) {
 			}
 			fuzzInternalObject(t, "", item, seed)
 			roundTrip(t, osapi.Codec, item)
-			if _, ok := skipV1beta3[kind]; !ok {
-				fuzzInternalObject(t, "v1beta3", item, seed)
-				roundTrip(t, v1beta3.Codec, item)
-			}
-			if _, ok := skipV1[kind]; !ok {
-				fuzzInternalObject(t, "v1", item, seed)
-				roundTrip(t, v1.Codec, item)
-			}
+			fuzzInternalObject(t, "v1beta3", item, seed)
+			roundTrip(t, v1beta3.Codec, item)
+			fuzzInternalObject(t, "v1", item, seed)
+			roundTrip(t, v1.Codec, item)
 		}
 	}
 }

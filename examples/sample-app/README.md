@@ -3,11 +3,11 @@ OpenShift 3 Application Lifecycle Sample
 
 This is a set of configuration files and scripts which work with OpenShift 3 to create a new application and perform application builds.
 
-This example assumes you have successfully built the `openshift`
-binary executable (normally located under origin/\_output/local/go/bin),
-you have that and its symlink/copy `oc` in your `PATH` and root's,
-and Docker is installed and working.  See
-https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc.
+This example assumes you have successfully built the `openshift` binary
+executable (normally located under origin/\_output/local/bin/linux/amd64, or the
+equivalent for your host platform/architecture), you have that and its
+symlink/copy `oc` in your `PATH` and root's, and Docker is installed and
+working. See https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc.
 
 Alternatively, if you are using the openshift/origin Docker container, please
 make sure you follow these instructions first:
@@ -118,7 +118,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
        **VAGRANT USERS**: Instead of the above command, use
 
-        $ sudo /data/src/github.com/openshift/origin/_output/local/go/bin/openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
+        $ sudo /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
 
     Note: sudo is required so the kubernetes proxy can manipulate iptables rules to expose service ports.
 
@@ -350,16 +350,16 @@ the ip address shown below with the correct one for your environment.
             # Optional: pre-pull the router image.  This will be pulled automatically when the pod is created but will
             # take some time.  Your pod will stay in Pending state while the pull is completed
             $ docker pull openshift/origin-haproxy-router
-            
+
             # Create a service account that the router will use.  This service account must have access to use a
             # security context constraint that allows host ports
             $ echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f -
-         
+
             # You may either create a new SCC or use an existing SCC.  The following command will
             # display existing SCCs and if they support host network and host ports.
             $ oc get scc -t "{{range .items}}{{.metadata.name}}: n={{.allowHostNetwork}},p={{.allowHostPorts}}; {{end}}"
             privileged: n=true,p=true; restricted: n=false,p=false;
-            
+
             # Edit your security context constraint to add the new service account in the users section
             # in the form of system:serviceaccount:<namespace>:<name>.  In the above example the full
             # name would be system:serviceaccount:default:router if you are creating the router in the default namespace.

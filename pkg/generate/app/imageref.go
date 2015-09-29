@@ -41,6 +41,9 @@ func (g *imageRefGenerator) FromName(name string) (*ImageRef, error) {
 	}
 	return &ImageRef{
 		DockerImageReference: ref,
+		Info: &imageapi.DockerImage{
+			Config: &imageapi.DockerConfig{},
+		},
 	}, nil
 }
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/security/mcs"
 )
@@ -16,7 +16,7 @@ func TestAllocate(t *testing.T) {
 	if f := r.Free(); f != 10 {
 		t.Errorf("unexpected free %d", f)
 	}
-	found := util.NewStringSet()
+	found := sets.NewString()
 	count := 0
 	for r.Free() > 0 {
 		label, err := r.AllocateNext()

@@ -23,7 +23,7 @@ var _ = g.Describe("builds: parallel: STI build with .sti/environment file", fun
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.AdminKubeREST().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -51,7 +51,7 @@ var _ = g.Describe("builds: parallel: STI build with .sti/environment file", fun
 			imageName, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("writing the pod defintion to a file")
+			g.By("writing the pod definition to a file")
 			outputPath := filepath.Join(exutil.TestContext.OutputDir, oc.Namespace()+"-sample-pod.json")
 			pod := exutil.CreatePodForImage(imageName)
 			err = exutil.WriteObjectToFile(pod, outputPath)

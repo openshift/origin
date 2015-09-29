@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/client"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/third_party/golang/netutil"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"

@@ -21,7 +21,7 @@ angular.module("openshiftConsole")
     /**
     * Find the 'first' port of exposed ports.
     * @param            ports  list of ports (e.g {containerPort: 80, protocol: "tcp"})
-    * @return {integer} The port/protocol pair of the lowest container port
+    * @return {string} The port/protocol pair of the lowest container port
     */
     scope._getFirstPort = function(ports){
       var first = "None";
@@ -68,7 +68,7 @@ angular.module("openshiftConsole")
 
       //augment labels
       input.labels.app = input.name;
-      input.annotations["openshift.io/generatedby"] = "OpenShiftWebConsole";
+      input.annotations["openshift.io/generated-by"] = "OpenShiftWebConsole";
 
       var imageSpec;
       if(input.buildConfig.sourceUrl !== null){
@@ -208,13 +208,13 @@ angular.module("openshiftConsole")
       // User can input a URL that contains a ref
       var uri = new URI(input.buildConfig.sourceUrl);
       var sourceRef = uri.fragment();
-      if (!sourceRef || sourceRef.length === 0) {
+      if (!sourceRef) {
         sourceRef = "master";
       }
       uri.fragment("");
       var sourceUrl = uri.href();
 
-      return {
+      var bc = {
         apiVersion: oApiVersion,
         kind: "BuildConfig",
         metadata: {
@@ -231,7 +231,7 @@ angular.module("openshiftConsole")
           },
           source: {
             git: {
-              ref: sourceRef,
+              ref: input.buildConfig.gitRef || sourceRef,
               uri: sourceUrl
             },
             type: "Git"
@@ -249,6 +249,13 @@ angular.module("openshiftConsole")
           triggers: triggers
         }
       };
+
+      // Add contextDir only if specified.
+      if (input.buildConfig.contextDir) {
+        bc.spec.source.contextDir = input.buildConfig.contextDir;
+      }
+
+      return bc;
     };
 
     scope._generateImageStream = function(input){

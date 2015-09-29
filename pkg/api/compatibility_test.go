@@ -59,6 +59,73 @@ func TestCompatibility_v1_Pod(t *testing.T) {
 	)
 }
 
+// TestCompatibility_v1_VolumeSource tests that the metadata field in volume
+// sources gets properly round-tripped
+func TestCompatibility_v1_VolumeSource(t *testing.T) {
+	// Test volume source compatibility
+	path := "test/volume/source/compat"
+
+	metadata := []byte(fmt.Sprintf(`
+{
+	"kind":"Pod",
+	"apiVersion":"v1",
+	"metadata":{"name":"my-pod-name", "namespace":"my-pod-namespace"},
+	"spec": {
+		"containers":[{
+			"name":"my-container-name",
+			"image":"my-container-image",
+			"ports":[{"containerPort":1,"protocol":"TCP"}]
+		}],
+		"volumes":[{
+			"name":"a-metadata-volume",
+			"metadata":{"items":[{"name":"%s","fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}]}
+		}]
+	}
+}
+`, path))
+
+	downward := []byte(fmt.Sprintf(`
+{
+	"kind":"Pod",
+	"apiVersion":"v1",
+	"metadata":{"name":"my-pod-name", "namespace":"my-pod-namespace"},
+	"spec": {
+		"containers":[{
+			"name":"my-container-name",
+			"image":"my-container-image",
+			"ports":[{"containerPort":1,"protocol":"TCP"}]
+		}],
+		"volumes":[{
+			"name":"a-downwardapi-volume",
+			"downwardAPI":{"items":[{"path":"%s","fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}]}
+		}]
+	}
+}
+`, path))
+
+	t.Log("Testing 1.0.6 v1 migration added in PR #4663")
+	testCompatibility(
+		t, "v1", metadata,
+		func(obj runtime.Object) fielderrors.ValidationErrorList {
+			return validation.ValidatePod(obj.(*api.Pod))
+		},
+		map[string]string{
+			"spec.volumes[0].metadata.items[0].name":    path,
+			"spec.volumes[0].downwardAPI.items[0].path": path,
+		},
+	)
+	testCompatibility(
+		t, "v1", downward,
+		func(obj runtime.Object) fielderrors.ValidationErrorList {
+			return validation.ValidatePod(obj.(*api.Pod))
+		},
+		map[string]string{
+			"spec.volumes[0].metadata.items[0].name":    path,
+			"spec.volumes[0].downwardAPI.items[0].path": path,
+		},
+	)
+}
+
 func TestCompatibility_v1_Service(t *testing.T) {
 	// Test "spec.portalIP" -> "spec.clusterIP"
 	expectedIP := "1.2.3.4"

@@ -2,11 +2,12 @@
 
 angular.module('openshiftConsole')
   .filter('dateRelative', function() {
-    return function(timestamp) {
+    // dropSuffix will tell moment whether to include the "ago" text
+    return function(timestamp, dropSuffix) {
       if (!timestamp) {
         return timestamp;
       }
-      return moment(timestamp).fromNow();
+      return moment(timestamp).fromNow(dropSuffix);
     };
   })
   .filter('duration', function() {

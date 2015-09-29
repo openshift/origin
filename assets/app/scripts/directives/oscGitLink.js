@@ -6,7 +6,7 @@ angular.module('openshiftConsole')
     restrict: 'E',
     scope: {
       uri: "=",
-      commit: "=",
+      commit: "="
     },
     transclude: true,
     template: '<a ng-href="{{uri | githubLink : commit}}" ng-transclude></a>'

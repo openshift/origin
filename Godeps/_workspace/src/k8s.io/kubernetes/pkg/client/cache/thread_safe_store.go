@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // ThreadSafeStore is an interface that allows concurrent access to a storage backend.
@@ -41,7 +41,7 @@ type ThreadSafeStore interface {
 	Get(key string) (item interface{}, exists bool)
 	List() []interface{}
 	ListKeys() []string
-	Replace(map[string]interface{})
+	Replace(map[string]interface{}, string)
 	Index(indexName string, obj interface{}) ([]interface{}, error)
 	ListIndexFuncValues(name string) []string
 	ByIndex(indexName, indexKey string) ([]interface{}, error)
@@ -112,7 +112,7 @@ func (c *threadSafeMap) ListKeys() []string {
 	return list
 }
 
-func (c *threadSafeMap) Replace(items map[string]interface{}) {
+func (c *threadSafeMap) Replace(items map[string]interface{}, resourceVersion string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.items = items
@@ -142,7 +142,7 @@ func (c *threadSafeMap) Index(indexName string, obj interface{}) ([]interface{},
 	index := c.indices[indexName]
 
 	// need to de-dupe the return list.  Since multiple keys are allowed, this can happen.
-	returnKeySet := util.StringSet{}
+	returnKeySet := sets.String{}
 	for _, indexKey := range indexKeys {
 		set := index[indexKey]
 		for _, key := range set.List() {
@@ -208,7 +208,7 @@ func (c *threadSafeMap) updateIndices(oldObj interface{}, newObj interface{}, ke
 		for _, indexValue := range indexValues {
 			set := index[indexValue]
 			if set == nil {
-				set = util.StringSet{}
+				set = sets.String{}
 				index[indexValue] = set
 			}
 			set.Insert(key)

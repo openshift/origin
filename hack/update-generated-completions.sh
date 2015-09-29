@@ -18,7 +18,7 @@ fi
 "${OS_ROOT}/hack/build-go.sh" cmd/genbashcomp
 
 # Find binary
-genbashcomp=$( (ls -t _output/local/go/bin/genbashcomp) 2>/dev/null || true | head -1 )
+genbashcomp=$( (ls -t _output/local/bin/${platform}/genbashcomp) 2>/dev/null || true | head -1 )
 
 if [[ ! "$genbashcomp" ]]; then
   {

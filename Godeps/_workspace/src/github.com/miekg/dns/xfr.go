@@ -91,7 +91,6 @@ func (t *Transfer) inAxfr(id uint16, c chan *Envelope) {
 			c <- &Envelope{in.Answer, nil}
 		}
 	}
-	panic("dns: not reached")
 }
 
 func (t *Transfer) inIxfr(id uint16, c chan *Envelope) {
@@ -107,7 +106,7 @@ func (t *Transfer) inIxfr(id uint16, c chan *Envelope) {
 		t.SetReadDeadline(time.Now().Add(timeout))
 		in, err := t.ReadMsg()
 		if err != nil {
-			c <- &Envelope{in.Answer, err}
+			c <- &Envelope{nil, err}
 			return
 		}
 		if id != in.Id {

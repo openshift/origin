@@ -19,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/capabilities"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubelet"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -171,7 +171,7 @@ func (o *MasterOptions) Complete() error {
 		o.MasterArgs.ConfigDir.Default("openshift.local.config/master")
 	}
 
-	nodeList := util.NewStringSet()
+	nodeList := sets.NewString()
 	// take everything toLower
 	for _, s := range o.MasterArgs.NodeList {
 		nodeList.Insert(strings.ToLower(s))
@@ -367,8 +367,10 @@ func (m *Master) Start() error {
 	// Allow privileged containers
 	// TODO: make this configurable and not the default https://github.com/openshift/origin/issues/662
 	capabilities.Initialize(capabilities.Capabilities{
-		AllowPrivileged:    true,
-		HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
+		AllowPrivileged: true,
+		PrivilegedSources: capabilities.PrivilegedSources{
+			HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
+		},
 	})
 
 	openshiftConfig, err := origin.BuildMasterConfig(*m.config)

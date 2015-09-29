@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 const (
@@ -185,7 +186,7 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.Imag
 }
 
 func setup(t *testing.T) *client.Client {
-	_, clusterAdminKubeConfigFile, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -200,7 +201,7 @@ func setup(t *testing.T) *client.Client {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	projectAdminClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminKubeConfig, testutil.Namespace(), testutil.Namespace())
+	projectAdminClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminKubeConfig, testutil.Namespace(), testutil.Namespace())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

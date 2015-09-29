@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -39,7 +40,7 @@ func TestMergeResolver(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Unexpected results %v", results)
 	}
-	expectedNames := util.NewStringSet("b", "d")
+	expectedNames := sets.NewString("b", "d")
 	for _, build := range results {
 		if !expectedNames.Has(build.Name) {
 			t.Errorf("Unexpected name %v", build.Name)
@@ -54,7 +55,7 @@ func TestOrphanBuildResolver(t *testing.T) {
 	buildConfigs := []*buildapi.BuildConfig{activeBuildConfig}
 	builds := []*buildapi.Build{}
 
-	expectedNames := util.StringSet{}
+	expectedNames := sets.String{}
 	BuildPhaseOptions := []buildapi.BuildPhase{
 		buildapi.BuildPhaseCancelled,
 		buildapi.BuildPhaseComplete,
@@ -70,7 +71,7 @@ func TestOrphanBuildResolver(t *testing.T) {
 		buildapi.BuildPhaseError,
 		buildapi.BuildPhaseFailed,
 	}
-	BuildPhaseFilterSet := util.StringSet{}
+	BuildPhaseFilterSet := sets.String{}
 	for _, BuildPhase := range BuildPhaseFilter {
 		BuildPhaseFilterSet.Insert(string(BuildPhase))
 	}
@@ -91,7 +92,7 @@ func TestOrphanBuildResolver(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	foundNames := util.StringSet{}
+	foundNames := sets.String{}
 	for _, result := range results {
 		foundNames.Insert(result.Name)
 	}
@@ -135,9 +136,9 @@ func TestPerBuildConfigResolver(t *testing.T) {
 	for keep := 0; keep < buildsPerStatus*2; keep++ {
 		dataSet := NewDataSet(buildConfigs, builds)
 
-		expectedNames := util.StringSet{}
-		buildCompleteStatusFilterSet := util.NewStringSet(string(buildapi.BuildPhaseComplete))
-		buildFailedStatusFilterSet := util.NewStringSet(string(buildapi.BuildPhaseCancelled), string(buildapi.BuildPhaseError), string(buildapi.BuildPhaseFailed))
+		expectedNames := sets.String{}
+		buildCompleteStatusFilterSet := sets.NewString(string(buildapi.BuildPhaseComplete))
+		buildFailedStatusFilterSet := sets.NewString(string(buildapi.BuildPhaseCancelled), string(buildapi.BuildPhaseError), string(buildapi.BuildPhaseFailed))
 
 		for _, buildConfig := range buildConfigs {
 			buildItems, err := dataSet.ListBuildsByBuildConfig(buildConfig)
@@ -174,7 +175,7 @@ func TestPerBuildConfigResolver(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error %v", err)
 		}
-		foundNames := util.StringSet{}
+		foundNames := sets.String{}
 		for _, result := range results {
 			foundNames.Insert(result.Name)
 		}

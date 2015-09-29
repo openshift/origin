@@ -3,14 +3,31 @@ package systemd
 import (
 	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
 
+// HasSystemctl checks that systemctl exists, and is usable on this system.
+func HasSystemctl() bool {
+	if runtime.GOOS == "linux" {
+		systemctlErr := exec.Command("systemctl").Run()
+		if systemctlErr == nil {
+			return true
+		}
+	}
+	return false
+}
+
 func GetSystemdUnits(logger *log.Logger) map[string]types.SystemdUnit {
 	systemdUnits := map[string]types.SystemdUnit{}
+
+	if !HasSystemctl() {
+		logger.Notice("DS1010", "Systemd not available, skipping unit discovery.")
+		return systemdUnits
+	}
 
 	logger.Notice("DS1001", "Performing systemd discovery")
 	for _, name := range []string{"openshift", "openshift-master", "openshift-node", "openshift-sdn-master", "openshift-sdn-node", "docker", "openvswitch", "iptables", "etcd", "kubernetes"} {
@@ -28,8 +45,7 @@ func GetSystemdUnits(logger *log.Logger) map[string]types.SystemdUnit {
 func discoverSystemdUnit(logger *log.Logger, name string) types.SystemdUnit {
 	unit := types.SystemdUnit{Name: name, Exists: false}
 	if output, err := exec.Command("systemctl", "show", name).Output(); err != nil {
-		logger.Error("DS1004", fmt.Sprintf("Error running `systemctl show %s`: %s\nCannot analyze systemd units.", name, err.Error()))
-
+		logger.Error("DS1004", fmt.Sprintf("Unable to run `systemctl show %s`: %s\nCannot analyze systemd units.", name, err.Error()))
 	} else {
 		attr := make(map[string]string)
 		for _, line := range strings.Split(string(output), "\n") {

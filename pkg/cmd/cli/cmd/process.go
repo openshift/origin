@@ -33,19 +33,19 @@ as well as metadata describing the template.
 The output of the process command is always a list of one or more resources. You may pipe the
 output to the create command over STDIN (using the '-f -' option) or redirect it to a file.`
 
-	processExample = `  // Convert template.json file into resource list and pass to create
+	processExample = `  # Convert template.json file into resource list and pass to create
   $ %[1]s process -f template.json | %[1]s create -f -
 
-  // Process template while passing a user-defined label
+  # Process template while passing a user-defined label
   $ %[1]s process -f template.json -l name=mytemplate
 
-  // Convert stored template into resource list
+  # Convert stored template into resource list
   $ %[1]s process foo
 
-  // Convert template.json into resource list
+  # Convert template.json into resource list
   $ cat template.json | %[1]s process -f -
 
-  // Combine multiple templates into single resource list
+  # Combine multiple templates into single resource list
   $ cat template.json second_template.json | %[1]s process -f -`
 )
 
@@ -61,7 +61,6 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 			kcmdutil.CheckErr(err)
 		},
 	}
-
 	cmd.Flags().StringP("filename", "f", "", "Filename or URL to file to read a template")
 	cmd.Flags().StringP("value", "v", "", "Specify a list of key-value pairs (eg. -v FOO=BAR,BAR=FOO) to set/override parameter values")
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
@@ -71,6 +70,9 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	cmd.Flags().Bool("raw", false, "If true output the processed template instead of the template's objects. Implied by -o describe")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=template or -o=templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
+
+	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
+
 	return cmd
 }
 

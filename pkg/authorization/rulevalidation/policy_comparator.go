@@ -1,7 +1,7 @@
 package rulevalidation
 
 import (
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -49,11 +49,11 @@ func breakdownRule(rule authorizationapi.PolicyRule) []authorizationapi.PolicyRu
 		for verb := range rule.Verbs {
 			if len(rule.ResourceNames) > 0 {
 				for _, resourceName := range rule.ResourceNames.List() {
-					subrules = append(subrules, authorizationapi.PolicyRule{Resources: util.NewStringSet(resource), Verbs: util.NewStringSet(verb), ResourceNames: util.NewStringSet(resourceName)})
+					subrules = append(subrules, authorizationapi.PolicyRule{Resources: sets.NewString(resource), Verbs: sets.NewString(verb), ResourceNames: sets.NewString(resourceName)})
 				}
 
 			} else {
-				subrules = append(subrules, authorizationapi.PolicyRule{Resources: util.NewStringSet(resource), Verbs: util.NewStringSet(verb)})
+				subrules = append(subrules, authorizationapi.PolicyRule{Resources: sets.NewString(resource), Verbs: sets.NewString(verb)})
 			}
 
 		}

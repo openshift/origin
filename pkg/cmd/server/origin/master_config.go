@@ -16,13 +16,13 @@ import (
 	kapilatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/auth/user"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	kutil "k8s.io/kubernetes/pkg/util"
 	kutilrand "k8s.io/kubernetes/pkg/util/rand"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -338,7 +338,7 @@ func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectReques
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{kutil.NewStringSet("api", "osapi", "oapi"), latest.RESTMapper})
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{sets.NewString("api", "osapi", "oapi"), latest.RESTMapper})
 	return authorizationAttributeBuilder
 }
 

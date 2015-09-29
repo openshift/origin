@@ -69,6 +69,12 @@ type BuildStatus struct {
 	// Duration contains time.Duration object describing build time.
 	Duration time.Duration `json:"duration,omitempty" description:"amount of time the build has been running"`
 
+	// OutputDockerImageReference contains a reference to the Docker image that
+	// will be built by this build. It's value is computed from
+	// Build.Spec.Output.To, and should include the registry address, so that
+	// it can be used to push and pull the image.
+	OutputDockerImageReference string `json:"outputDockerImageReference,omitempty" description:"reference to the Docker image built by this build, computed from build.spec.output.to, and can be used to push and pull the image"`
+
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference `json:"config,omitempty" description:"reference to build config from which this build was derived"`
 }
@@ -108,12 +114,22 @@ type BuildSourceType string
 const (
 	//BuildSourceGit is a Git SCM
 	BuildSourceGit BuildSourceType = "Git"
+	// bulidSourceDockerfile is an embedded dockerfile
+	BuildSourceDockerfile BuildSourceType = "Dockerfile"
 )
 
 // BuildSource is the SCM used for the build
 type BuildSource struct {
 	// Type of source control management system
 	Type BuildSourceType `json:"type" description:"type of source control management system"`
+
+	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
+	// specified, the FROM may be modified based on your strategy base image and additional ENV
+	// stanzas from your strategy environment will be added after the FROM, but before the rest
+	// of your Dockerfile stanzas. The Dockerfile source type may be used with other options like
+	// git - in those cases the Git repo will have any innate Dockerfile replaced in the context
+	// dir.
+	Dockerfile *string `json:"dockerfile,omitempty" description:"the contents of a Dockerfile to build; FROM may be overridden by your strategy source, and additional ENV from your strategy will be placed before the rest of the Dockerfile stanzas"`
 
 	// Git contains optional information about git build source
 	Git *GitBuildSource `json:"git,omitempty" description:"optional information about git build source"`

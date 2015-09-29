@@ -7,10 +7,10 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/client"
@@ -156,12 +156,12 @@ func (mr *mockReviewer) Review(name string) (Review, error) {
 	return review, nil
 }
 
-func validateList(t *testing.T, lister Lister, user user.Info, expectedSet util.StringSet) {
+func validateList(t *testing.T, lister Lister, user user.Info, expectedSet sets.String) {
 	namespaceList, err := lister.List(user)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	results := util.StringSet{}
+	results := sets.String{}
 	for _, namespace := range namespaceList.Items {
 		results.Insert(namespace.Name)
 	}
@@ -214,10 +214,10 @@ func TestSyncNamespace(t *testing.T) {
 	// synchronize the cache
 	authorizationCache.synchronize()
 
-	validateList(t, authorizationCache, alice, util.NewStringSet("foo"))
-	validateList(t, authorizationCache, bob, util.NewStringSet("foo"))
-	validateList(t, authorizationCache, eve, util.NewStringSet("foo", "bar"))
-	validateList(t, authorizationCache, frank, util.NewStringSet("bar"))
+	validateList(t, authorizationCache, alice, sets.NewString("foo"))
+	validateList(t, authorizationCache, bob, sets.NewString("foo"))
+	validateList(t, authorizationCache, eve, sets.NewString("foo", "bar"))
+	validateList(t, authorizationCache, frank, sets.NewString("bar"))
 
 	// modify access rules
 	reviewer.expectedResults["foo"].users = []string{bob.GetName()}
@@ -243,8 +243,8 @@ func TestSyncNamespace(t *testing.T) {
 	authorizationCache.synchronize()
 
 	// make sure new rights hold
-	validateList(t, authorizationCache, alice, util.NewStringSet("bar"))
-	validateList(t, authorizationCache, bob, util.NewStringSet("foo", "bar", "car"))
-	validateList(t, authorizationCache, eve, util.NewStringSet("bar", "car"))
-	validateList(t, authorizationCache, frank, util.NewStringSet())
+	validateList(t, authorizationCache, alice, sets.NewString("bar"))
+	validateList(t, authorizationCache, bob, sets.NewString("foo", "bar", "car"))
+	validateList(t, authorizationCache, eve, sets.NewString("bar", "car"))
+	validateList(t, authorizationCache, frank, sets.NewString())
 }

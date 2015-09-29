@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -16,7 +17,7 @@ import (
 
 // NamespaceLister returns all the names that should be watched by the client
 type NamespaceLister interface {
-	NamespaceNames() (util.StringSet, error)
+	NamespaceNames() (sets.String, error)
 }
 
 // RouterController abstracts the details of watching the Route and Endpoints

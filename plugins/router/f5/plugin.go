@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -449,7 +449,7 @@ func (p *F5Plugin) deleteRoute(routename string) error {
 	return nil
 }
 
-func (p *F5Plugin) HandleNamespaces(namespaces util.StringSet) error {
+func (p *F5Plugin) HandleNamespaces(namespaces sets.String) error {
 	return fmt.Errorf("namespace limiting for F5 is not implemented")
 }
 

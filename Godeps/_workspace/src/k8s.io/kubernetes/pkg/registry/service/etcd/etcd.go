@@ -30,12 +30,13 @@ import (
 )
 
 type REST struct {
-	etcdgeneric.Etcd
+	*etcdgeneric.Etcd
 }
 
-func NewStorage(s storage.Interface) *REST {
+// NewREST returns a RESTStorage object that will work against services.
+func NewREST(s storage.Interface) *REST {
 	prefix := "/services/specs"
-	store := etcdgeneric.Etcd{
+	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.Service{} },
 		NewListFunc: func() runtime.Object { return &api.ServiceList{} },
 		KeyRootFunc: func(ctx api.Context) string {
@@ -60,8 +61,9 @@ func NewStorage(s storage.Interface) *REST {
 	return &REST{store}
 }
 
+// FIXME: Move it.
 func MatchServices(label labels.Selector, field fields.Selector) generic.Matcher {
-	return &generic.SelectionPredicate{label, field, ServiceAttributes}
+	return &generic.SelectionPredicate{Label: label, Field: field, GetAttrs: ServiceAttributes}
 }
 
 func ServiceAttributes(obj runtime.Object) (objLabels labels.Set, objFields fields.Set, err error) {

@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -25,13 +25,13 @@ stream, or a Docker image pull spec, and set it as the most recent image for a
 tag in 1 or more other image streams. It is similar to the 'docker tag'
 command, but it operates on image streams instead.`
 
-	tagExample = `  // Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip':
+	tagExample = `  # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip':
   $ %[1]s tag openshift/ruby:2.0 yourproject/ruby:tip
 
-  // Tag a specific image:
+  # Tag a specific image:
   $ %[1]s tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
 
-  // Tag an external Docker image:
+  # Tag an external Docker image:
   $ %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip`
 )
 
@@ -105,7 +105,7 @@ func RunTag(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []stri
 		sourceKind = determineSourceKind(f, sourceKind)
 	}
 	if len(sourceKind) > 0 {
-		validSources := util.NewStringSet("imagestreamtag", "istag", "imagestreamimage", "isimage", "docker", "dockerimage")
+		validSources := sets.NewString("imagestreamtag", "istag", "imagestreamimage", "isimage", "docker", "dockerimage")
 		if !validSources.Has(strings.ToLower(sourceKind)) {
 			cmdutil.CheckErr(cmdutil.UsageError(cmd, "invalid source %q; valid values are %v", original, strings.Join(validSources.List(), ", ")))
 		}

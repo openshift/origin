@@ -2,6 +2,16 @@
   <project-page class="project-overview-page">
     <div ng-controller="OverviewController">
       <tasks></tasks>
+      <div ng-if="!renderOptions.showGetStarted" class="actions pull-right">
+        <div class="btn-group">
+          <label class="btn btn-default" ng-model="$parent.overviewMode" btn-radio="'tiles'" title="Tile View">
+            <i class="fa fa-th-list"></i>
+          </label>
+          <label class="btn btn-default" ng-model="$parent.overviewMode" btn-radio="'topology'" title="Topology View">
+            <i class="fa fa-share-alt"></i>
+          </label>
+        </div>
+      </div>
       <div ng-if="!renderOptions.showGetStarted" class="page-header page-header-bleed-right">
         <h1 title="{{project | displayName}}">Project {{project | displayName}}</h1>
       </div>
@@ -13,22 +23,15 @@
       <div ng-if="(services | hashSize) == 0">
 
         <!-- Getting started -->
-        <div ng-if="renderOptions.showGetStarted" class="empty-project">
-          <h2 class="text-center">Get started with your project.</h2>
+        <div ng-if="renderOptions.showGetStarted" class="empty-project text-center">
+          <h2>Get started with your project.</h2>
 
           <p class="gutter-top">
-            Begin creating your application by
-
-          <dl>
-            <dt><i class="fa fa-code"></i> Building from source code</dt>
-            <dd>Use your source or one of our example repositories to build an application image.</dd>
-
-            <dt><i class="fa fa-bolt"></i> Creating from templates</dt>
-            <dd>Launch ready-to-run Instant Apps or add components like databases and message queues.</dd>
-          </dl>
-
+            Use your source or an example repository to build an application
+            image, or add components like databases and message queues.
           </p>
-          <p class="gutter-top text-center">
+
+          <p class="gutter-top">
             <a href="project/{{projectName}}/create" class="btn btn-lg btn-primary">
               Add to Project
             </a>
@@ -43,7 +46,37 @@
 
       </div>
 
-      <div>
+      <div ng-if="overviewMode == 'topology' && !renderOptions.showGetStarted">
+        <kubernetes-topology-graph bottom-of-window="1" items="topologyItems"
+          relations="topologyRelations" kinds="topologyKinds" selection="topologySelection">
+	</kubernetes-topology-graph>
+        <svg class="kube-topology" hidden>
+	  <defs>
+            <g class="Pod" id="vertex-Pod">
+              <circle r="16"></circle>
+              <text y="6" x="0.5">&#xf1b3;</text>
+            </g>
+            <g class="Service" id="vertex-Service">
+              <circle r="16"></circle>
+              <image height="27" width="27" x="-13" y="-13" xlink:href="images/service-icon.svg"></image>
+            </g>
+            <g class="ReplicationController" id="vertex-ReplicationController">
+              <circle r="16"></circle>
+              <image height="25" width="25" x="-12" y="-13" xlink:href="images/replicator-icon.svg"></image>
+            </g>
+            <g class="DeploymentConfig" id="vertex-DeploymentConfig">
+              <circle r="16"></circle>
+              <text y="8">&#xf013;</text>
+            </g>
+            <g class="Route" id="vertex-Route">
+              <circle r="16"></circle>
+              <image height="26" width="26" x="-13" y="-13" xlink:href="images/route-icon.svg"></image>
+            </g>
+          </defs>
+        </svg>
+      </div>
+
+      <div ng-if="overviewMode == 'tiles'">
 
         <!-- TODO handle multiple services mapping to the same deploymentConfig/deployment/pod -->
         <section ng-repeat="(serviceId, service) in services" class="components components-group">
@@ -205,7 +238,6 @@
 
         </section>
       </div>
-
 
     </div>
   </project-page>

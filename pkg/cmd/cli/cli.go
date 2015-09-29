@@ -51,10 +51,7 @@ created for you.
 
 You can easily switch between multiple projects using '%[1]s project <projectname>'.`
 
-func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
-	in := os.Stdin
-	errout := os.Stderr
-
+func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
@@ -86,7 +83,7 @@ func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
 				cmd.NewCmdBuildLogs(fullName, f, out),
 				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),
-				cmd.NewCmdNewBuild(fullName, f, out),
+				cmd.NewCmdNewBuild(fullName, f, in, out),
 				cmd.NewCmdCancelBuild(fullName, f, out),
 				cmd.NewCmdImportImage(fullName, f, out),
 				cmd.NewCmdScale(fullName, f, out),
@@ -129,7 +126,7 @@ func NewCommandCLI(name, fullName string, out io.Writer) *cobra.Command {
 				cmd.NewCmdRun(fullName, f, in, out, errout),
 				cmd.NewCmdAttach(fullName, f, in, out, errout),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, out),
-				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, out, fullName+" edit"),
+				secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, fullName+" edit"),
 			},
 		},
 		{
@@ -162,10 +159,6 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 	cmds.Aliases = []string{"kubectl"}
 	cmds.Use = name
 	cmds.Short = "Kubernetes cluster management via kubectl"
-	cmds.Long = cmds.Long + `
-
-This command exposes the exact semantics of the Kubernetes command line client with additional
-support for application lifecycles.`
 	flags.VisitAll(func(flag *pflag.Flag) {
 		if f := cmds.PersistentFlags().Lookup(flag.Name); f == nil {
 			cmds.PersistentFlags().AddFlag(flag)
@@ -173,6 +166,7 @@ support for application lifecycles.`
 			glog.V(5).Infof("already registered flag %s", flag.Name)
 		}
 	})
+	cmds.PersistentFlags().Var(flags.Lookup("config").Value, "kubeconfig", "Specify a kubeconfig file to define the configuration")
 	templates.ActsAsRootCommand(cmds)
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 	return cmds
@@ -183,7 +177,7 @@ support for application lifecycles.`
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	out := os.Stdout
+	in, out, errout := os.Stdin, os.Stdout, os.Stderr
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
@@ -195,7 +189,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "kubectl":
 		cmd = NewCmdKubectl(basename, out)
 	default:
-		cmd = NewCommandCLI(basename, basename, out)
+		cmd = NewCommandCLI(basename, basename, in, out, errout)
 	}
 
 	if cmd.UsageFunc() == nil {
@@ -204,22 +198,4 @@ func CommandFor(basename string) *cobra.Command {
 	flagtypes.GLog(cmd.PersistentFlags())
 
 	return cmd
-}
-
-// applyToCreate injects the deprecation notice about for 'apply' command into
-// 'create' command.
-// TODO: Remove this once we get rid of 'apply' in all documentation/etc.
-func applyToCreate(dst *cobra.Command) *cobra.Command {
-	dst.Aliases = append(dst.Aliases, "apply")
-	oldRun := dst.Run
-	dst.Run = func(c *cobra.Command, args []string) {
-		calledApply := false
-		calledApply = calledApply || len(os.Args) >= 2 && os.Args[1] == "apply" // `oc apply`
-		calledApply = calledApply || len(os.Args) >= 3 && os.Args[2] == "apply" // `openshift cli apply`
-		if calledApply {
-			glog.Errorf("DEPRECATED: The 'apply' command is now deprecated, use 'create' instead.")
-		}
-		oldRun(c, args)
-	}
-	return dst
 }

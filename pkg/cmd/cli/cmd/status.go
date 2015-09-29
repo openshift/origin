@@ -28,7 +28,7 @@ oc describe deploymentConfig, oc describe service).
 You can specify an output format of "-o dot" to have this command output the generated status
 graph in DOT format that is suitable for use by the "dot" command.`
 
-	statusExample = `  // Show an overview of the current project
+	statusExample = `  # Show an overview of the current project
   $ %[1]s`
 )
 

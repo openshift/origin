@@ -11,7 +11,7 @@ import (
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -21,10 +21,11 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -79,7 +80,7 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 }
 
 func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -128,7 +129,7 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 }
 
 func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -174,7 +175,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 
 	// I shouldn't be allowed to ask whether someone else can perform an action
 	askCanClusterAdminsCreateProject := &authorizationapi.LocalSubjectAccessReview{
-		Groups: util.NewStringSet("system:cluster-admins"),
+		Groups: sets.NewString("system:cluster-admins"),
 		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "projects"},
 	}
 	subjectAccessReviewTest{

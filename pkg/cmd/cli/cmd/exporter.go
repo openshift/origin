@@ -13,8 +13,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/registry/controller"
 	"k8s.io/kubernetes/pkg/registry/endpoint"
-	"k8s.io/kubernetes/pkg/registry/minion"
 	"k8s.io/kubernetes/pkg/registry/namespace"
+	"k8s.io/kubernetes/pkg/registry/node"
 	"k8s.io/kubernetes/pkg/registry/persistentvolume"
 	"k8s.io/kubernetes/pkg/registry/persistentvolumeclaim"
 	"k8s.io/kubernetes/pkg/registry/pod"
@@ -71,7 +71,7 @@ func (e *defaultExporter) Export(obj runtime.Object, exact bool) error {
 	// TODO: this needs to be fixed
 	//  limitrange.Strategy.PrepareForCreate(obj)
 	case *kapi.Node:
-		minion.Strategy.PrepareForCreate(obj)
+		node.Strategy.PrepareForCreate(obj)
 		if exact {
 			return nil
 		}

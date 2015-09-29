@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
@@ -115,7 +116,7 @@ func buildStrategyTypes() []buildapi.BuildStrategyType {
 
 func setupBuildStrategyTest(t *testing.T) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
 	namespace := testutil.Namespace()
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -130,7 +131,7 @@ func setupBuildStrategyTest(t *testing.T) (clusterAdminClient, projectAdminClien
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	projectAdminClient, err = testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "harold")
+	projectAdminClient, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

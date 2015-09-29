@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -135,6 +136,14 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("kubernetesMasterConfig", config.KubernetesMasterConfig, "kubernetesMasterConfig and masterClients.externalKubernetesKubeConfig are mutually exclusive"))
 	}
 
+	if len(config.NetworkConfig.ServiceNetworkCIDR) > 0 {
+		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.NetworkConfig.ServiceNetworkCIDR)); err != nil {
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("networkConfig.serviceNetworkCIDR", config.NetworkConfig.ServiceNetworkCIDR, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))
+		} else if config.KubernetesMasterConfig != nil && len(config.KubernetesMasterConfig.ServicesSubnet) > 0 && config.KubernetesMasterConfig.ServicesSubnet != config.NetworkConfig.ServiceNetworkCIDR {
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("networkConfig.serviceNetworkCIDR", config.NetworkConfig.ServiceNetworkCIDR, fmt.Sprintf("must match kubernetesMasterConfig.servicesSubnet value of %q", config.KubernetesMasterConfig.ServicesSubnet)))
+		}
+	}
+
 	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, "openShiftLoopbackKubeConfig").Prefix("masterClients")...)
 
 	if len(config.MasterClients.ExternalKubernetesKubeConfig) > 0 {
@@ -166,8 +175,8 @@ func ValidateAPILevels(apiLevels []string, knownAPILevels, deadAPILevels []strin
 		validationResults.AddErrors(fielderrors.NewFieldRequired(name))
 	}
 
-	deadLevels := util.NewStringSet(deadAPILevels...)
-	knownLevels := util.NewStringSet(knownAPILevels...)
+	deadLevels := sets.NewString(deadAPILevels...)
+	knownLevels := sets.NewString(knownAPILevels...)
 	for i, apiLevel := range apiLevels {
 		if deadLevels.Has(apiLevel) {
 			validationResults.AddWarnings(fielderrors.NewFieldInvalid(fmt.Sprintf(name+"[%d]", i), apiLevel, "unsupported level"))
@@ -203,7 +212,7 @@ func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.Validat
 func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubernetes bool) ValidationResults {
 	validationResults := ValidationResults{}
 
-	managedNames := util.NewStringSet(config.ManagedNames...)
+	managedNames := sets.NewString(config.ManagedNames...)
 	if !managedNames.Has(bootstrappolicy.BuilderServiceAccountName) {
 		validationResults.AddWarnings(fielderrors.NewFieldInvalid("managedNames", "", fmt.Sprintf("missing %q, which will require manual creation in each namespace before builds can run", bootstrappolicy.BuilderServiceAccountName)))
 	}

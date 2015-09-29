@@ -33,13 +33,19 @@ angular.module('openshiftConsole')
         var updateOptions = function() {
           var project = $scope.project || {};
           var name = $scope.projectName;
-          var isRealProject = !_.isEmpty(project);
+          var isRealProject = project.metadata && project.metadata.name;
           var projectsGroup, linksGroup;
 
-          if(!isRealProject) {
-            if(!name) {
-              return;
-            }
+          // If we don't have a name or a real project, nothing to do yet.
+          if (!name && !isRealProject) {
+            return;
+          }
+
+          if (!name) {
+            name = project.metadata.name;
+          }
+
+          if (!isRealProject) {
             project = {
               metadata: {
                 name: name
@@ -52,12 +58,11 @@ angular.module('openshiftConsole')
           }
 
           sortedProjects = $filter('orderByDisplayName')(projects);
-
           options = _.map(sortedProjects, function(item) {
             return $('<option>')
                       .attr("value", item.metadata.name)
                       .attr("selected", item.metadata.name === name)
-                      .text($filter('displayName')(item));
+                      .text($filter("uniqueDisplayName")(item, sortedProjects));
           });
 
           // Use <optgroup> so bootstrap-select adds a divider.
@@ -110,6 +115,15 @@ angular.module('openshiftConsole')
       templateUrl: 'views/_project-page.html'
     };
   })
+  .directive('breadcrumbs', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        breadcrumbs: '='
+      },      
+      templateUrl: 'views/directives/breadcrumbs.html'
+    };
+  })  
   .directive('back', ['$window', function($window) {
     return {
       restrict: 'A',

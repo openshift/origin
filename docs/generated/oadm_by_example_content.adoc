@@ -11,13 +11,13 @@ Output the inputs and dependencies of your builds
 
 [options="nowrap"]
 ----
-  // Build the dependency tree for the 'latest' tag in <image-stream>
+  # Build the dependency tree for the 'latest' tag in <image-stream>
   $ openshift admin build-chain <image-stream>
 
-  // Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
+  # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
   $ openshift admin build-chain <image-stream>:v2 -o dot | dot -T svg -o deps.svg
 
-  // Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
+  # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
   $ openshift admin build-chain <image-stream> -n test --all
 ----
 ====
@@ -30,10 +30,10 @@ Change configuration files for the client
 
 [options="nowrap"]
 ----
-  // Change the config context to use
+  # Change the config context to use
   openshift admin config use-context my-context
   
-  // Set the value of a config preference
+  # Set the value of a config preference
   openshift admin config set preferences.some true
 ----
 ====
@@ -46,13 +46,13 @@ Sets a cluster entry in kubeconfig
 
 [options="nowrap"]
 ----
-  // Set only the server field on the e2e cluster entry without touching other values.
+  # Set only the server field on the e2e cluster entry without touching other values.
   $ openshift admin config set-cluster e2e --server=https://1.2.3.4
   
-  // Embed certificate authority data for the e2e cluster entry
+  # Embed certificate authority data for the e2e cluster entry
   $ openshift admin config set-cluster e2e --certificate-authority=~/.kube/e2e/kubernetes.ca.crt
   
-  // Disable cert checking for the dev cluster entry
+  # Disable cert checking for the dev cluster entry
   $ openshift admin config set-cluster e2e --insecure-skip-tls-verify=true
 ----
 ====
@@ -65,7 +65,7 @@ Sets a context entry in kubeconfig
 
 [options="nowrap"]
 ----
-  // Set the user field on the gce context entry without touching other values
+  # Set the user field on the gce context entry without touching other values
   $ openshift admin config set-context gce --user=cluster-admin
 ----
 ====
@@ -78,14 +78,14 @@ Sets a user entry in kubeconfig
 
 [options="nowrap"]
 ----
-  // Set only the "client-key" field on the "cluster-admin"
-  // entry, without touching other values:
+  # Set only the "client-key" field on the "cluster-admin"
+  # entry, without touching other values:
   $ openshift admin config set-credentials cluster-admin --client-key=~/.kube/admin.key
   
-  // Set basic auth for the "cluster-admin" entry
+  # Set basic auth for the "cluster-admin" entry
   $ openshift admin config set-credentials cluster-admin --username=admin --password=uXFGweU9l35qcif
   
-  // Embed client certificate data in the "cluster-admin" entry
+  # Embed client certificate data in the "cluster-admin" entry
   $ openshift admin config set-credentials cluster-admin --client-certificate=~/.kube/admin.crt --embed-certs=true
 ----
 ====
@@ -98,10 +98,10 @@ displays Merged kubeconfig settings or a specified kubeconfig file.
 
 [options="nowrap"]
 ----
-  // Show Merged kubeconfig settings.
+  # Show Merged kubeconfig settings.
   $ openshift admin config view
   
-  // Get the password for the e2e user
+  # Get the password for the e2e user
   $ openshift admin config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
 ----
 ====
@@ -114,7 +114,7 @@ Add users to a group
 
 [options="nowrap"]
 ----
-  // Add user1 and user2 to my-group
+  # Add user1 and user2 to my-group
   $ openshift admin groups add-users my-group user1 user2
 ----
 ====
@@ -127,10 +127,10 @@ Create a new group
 
 [options="nowrap"]
 ----
-  // Add a group with no users
+  # Add a group with no users
   $ openshift admin groups new my-group
 
-  // Add a group with two users
+  # Add a group with two users
   $ openshift admin groups new my-group user1 user2
 ----
 ====
@@ -143,7 +143,7 @@ Remove users from a group
 
 [options="nowrap"]
 ----
-  // Remove user1 and user2 from my-group
+  # Remove user1 and user2 from my-group
   $ openshift admin groups remove-users my-group user1 user2
 ----
 ====
@@ -156,21 +156,21 @@ Install an IP failover group to a set of nodes
 
 [options="nowrap"]
 ----
-  // Check the default IP failover configuration ("ipfailover"):
+  # Check the default IP failover configuration ("ipfailover"):
   $ openshift admin ipfailover
 
-  // See what the IP failover configuration would look like if it is created:
+  # See what the IP failover configuration would look like if it is created:
   $ openshift admin ipfailover -o json
 
-  // Create an IP failover configuration if it does not already exist:
+  # Create an IP failover configuration if it does not already exist:
   $ openshift admin ipfailover ipf --virtual-ips="10.1.1.1-4" --create
 
-  // Create an IP failover configuration on a selection of nodes labeled
-  // "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
-  // listening on port 80, such as the router process).
+  # Create an IP failover configuration on a selection of nodes labeled
+  # "router=us-west-ha" (on 4 nodes with 7 virtual IPs monitoring a service
+  # listening on port 80, such as the router process).
   $ openshift admin ipfailover ipfailover --selector="router=us-west-ha" --virtual-ips="1.2.3.4,10.1.1.100-104,5.6.7.8" --watch-port=80 --replicas=4 --create
 
-  // Use a different IP failover config image and see the configuration:
+  # Use a different IP failover config image and see the configuration:
   $ openshift admin ipfailover ipf-alt --selector="hagroup=us-west-ha" --virtual-ips="1.2.3.4" -o yaml --images=myrepo/myipfailover:mytag
 ----
 ====
@@ -183,19 +183,19 @@ Manage nodes - list pods, evacuate, or mark ready
 
 [options="nowrap"]
 ----
-	// Block accepting any pods on given nodes
+	# Block accepting any pods on given nodes
 	$ openshift admin manage-node <mynode> --schedulable=false
 
-	// Mark selected nodes as schedulable
+	# Mark selected nodes as schedulable
 	$ openshift admin manage-node --selector="<env=dev>" --schedulable=true
 
-	// Migrate selected pods
+	# Migrate selected pods
 	$ openshift admin manage-node <mynode> --evacuate --pod-selector="<service=myapp>"
 
-	// Show pods that will be migrated
+	# Show pods that will be migrated
 	$ openshift admin manage-node <mynode> --evacuate --dry-run --pod-selector="<service=myapp>"
 
-	// List all pods on given nodes
+	# List all pods on given nodes
 	$ openshift admin manage-node <mynode1> <mynode2> --list-pods
 ----
 ====
@@ -208,13 +208,13 @@ Replace cluster roles to match the recommended bootstrap policy
 
 [options="nowrap"]
 ----
-  // Display the cluster roles that would be modified
+  # Display the cluster roles that would be modified
   $ openshift admin policy reconcile-cluster-roles
 
-  // Replace cluster roles that don't match the current defaults
+  # Replace cluster roles that don't match the current defaults
   $ openshift admin policy reconcile-cluster-roles --confirm
 
-  // Display the union of the default and modified cluster roles
+  # Display the union of the default and modified cluster roles
   $ openshift admin policy reconcile-cluster-roles --additive-only
 ----
 ====
@@ -227,16 +227,16 @@ Install the integrated Docker registry
 
 [options="nowrap"]
 ----
-  // Check if default Docker registry ("docker-registry") has been created
+  # Check if default Docker registry ("docker-registry") has been created
   $ openshift admin registry --dry-run
 
-  // See what the registry would look like if created
+  # See what the registry would look like if created
   $ openshift admin registry -o json
 
-  // Create a registry if it does not exist with two replicas
+  # Create a registry if it does not exist with two replicas
   $ openshift admin registry --replicas=2 --credentials=registry-user.kubeconfig
 
-  // Use a different registry image and see the registry configuration
+  # Use a different registry image and see the registry configuration
   $ openshift admin registry -o yaml --images=myrepo/docker-registry:mytag
 ----
 ====
@@ -249,16 +249,16 @@ Install a router
 
 [options="nowrap"]
 ----
-  // Check the default router ("router")
+  # Check the default router ("router")
   $ openshift admin router --dry-run
 
-  // See what the router would look like if created
+  # See what the router would look like if created
   $ openshift admin router -o json --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount
 
-  // Create a router if it does not exist
+  # Create a router if it does not exist
   $ openshift admin router router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
 
-  // Use a different router image and see the router configuration
+  # Use a different router image and see the router configuration
   $ openshift admin router region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
 ----
 ====

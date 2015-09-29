@@ -24,7 +24,7 @@
               "tags": "builder,ruby",
               "supports": "ruby:2.0,ruby",
               "version": "2.0",
-              "sampleRepo": "http://github.com/openshift/ruby-ex.git"
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
             },
             "from": {
               "Kind": "ImageStreamTag",
@@ -55,7 +55,7 @@
               "tags": "builder,nodejs",
               "supports":"nodejs:0.10,nodejs:0.1,nodejs",
               "version": "0.10",
-              "sampleRepo": "http://github.com/openshift/nodejs-ex.git"
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
             },
             "from": {
               "Kind": "ImageStreamTag",
@@ -86,7 +86,7 @@
               "tags": "builder,perl",
               "supports":"perl:5.16,perl",
               "version": "5.16",
-              "sampleRepo": "http://github.com/openshift/dancer-ex.git"
+              "sampleRepo": "https://github.com/openshift/dancer-ex.git"
             },
             "from": {
               "Kind": "ImageStreamTag",
@@ -117,7 +117,7 @@
               "tags": "builder,php",
               "supports":"php:5.5,php",
               "version": "5.5",
-              "sampleRepo": "http://github.com/openshift/cakephp-ex.git"
+              "sampleRepo": "https://github.com/openshift/cakephp-ex.git"
             },
             "from": {
               "Kind": "ImageStreamTag",
@@ -148,7 +148,7 @@
               "tags": "builder,python",
               "supports":"python:3.3,python",
               "version": "3.3",
-              "sampleRepo": "http://github.com/openshift/django-ex.git"
+              "sampleRepo": "https://github.com/openshift/django-ex.git"
             },
             "from": {
               "Kind": "ImageStreamTag",
@@ -179,7 +179,7 @@
               "tags": "builder,wildfly,java",
               "supports":"wildfly:8.1,jee,java",
               "version": "8.1",
-              "sampleRepo": "http://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
             },
             "from": {
               "Kind": "ImageStreamTag",

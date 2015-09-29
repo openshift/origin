@@ -22,16 +22,16 @@ There is also the ability to expose a deployment configuration, replication cont
 as a new service on a specified port. If no labels are specified, the new object will re-use the
 labels from the object it exposes.`
 
-	exposeExample = `  // Create a route based on service nginx. The new route will re-use nginx's labels
+	exposeExample = `  # Create a route based on service nginx. The new route will re-use nginx's labels
   $ %[1]s expose service nginx
 
-  // Create a route and specify your own label and route name
+  # Create a route and specify your own label and route name
   $ %[1]s expose service nginx -l name=myroute --name=fromdowntown
 
-  // Create a route and specify a hostname
+  # Create a route and specify a hostname
   $ %[1]s expose service nginx --hostname=www.example.com
 
-  // Expose a deployment configuration as a service and use the specified port
+  # Expose a deployment configuration as a service and use the specified port
   $ %[1]s expose dc ruby-hello-world --port=8080`
 )
 
@@ -50,11 +50,11 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	// when validating the use of it (invalid for routes)
 	cmd.Flags().Set("protocol", "")
 	cmd.Flag("protocol").DefValue = ""
+	defRun := cmd.Run
 	cmd.Run = func(cmd *cobra.Command, args []string) {
 		err := validate(cmd, f, args)
 		cmdutil.CheckErr(err)
-		err = kcmd.RunExpose(f.Factory, out, cmd, args)
-		cmdutil.CheckErr(err)
+		defRun(cmd, args)
 	}
 	cmd.Flags().String("hostname", "", "Set a hostname for the new route")
 	return cmd
@@ -63,7 +63,7 @@ func NewCmdExpose(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 // validate adds one layer of validation prior to calling the upstream
 // expose command.
 func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
-	namespace, _, err := f.DefaultNamespace()
+	namespace, enforceNamespace, err := f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
@@ -77,17 +77,10 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	r := resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
+		FilenameParam(enforceNamespace, cmdutil.GetFlagStringSlice(cmd, "filename")...).
 		ResourceTypeOrNameArgs(false, args...).
 		Flatten().
 		Do()
-	err = r.Err()
-	if err != nil {
-		return err
-	}
-	mapping, err := r.ResourceMapping()
-	if err != nil {
-		return err
-	}
 	infos, err := r.Infos()
 	if err != nil {
 		return err
@@ -96,12 +89,13 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		return fmt.Errorf("multiple resources provided: %v", args)
 	}
 	info := infos[0]
+	mapping := info.ResourceMapping()
 
 	generator := cmdutil.GetFlagString(cmd, "generator")
 	switch mapping.Kind {
 	case "Service":
 		switch generator {
-		case "service/v1":
+		case "service/v1", "service/v2":
 			// Set default protocol back for generating services
 			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
@@ -141,7 +135,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			// Default exposing everything except services as a service
 			cmd.Flags().Set("generator", "service/v1")
 			fallthrough
-		case "service/v1":
+		case "service/v1", "service/v2":
 			// Set default protocol back for generating services
 			if len(cmdutil.GetFlagString(cmd, "protocol")) == 0 {
 				cmd.Flags().Set("protocol", "TCP")
@@ -158,11 +152,12 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 func validateFlags(cmd *cobra.Command, generator string) error {
 	invalidFlags := []string{}
 
-	if generator == "service/v1" {
+	switch generator {
+	case "service/v1", "service/v2":
 		if len(cmdutil.GetFlagString(cmd, "hostname")) != 0 {
 			invalidFlags = append(invalidFlags, "--hostname")
 		}
-	} else if generator == "route/v1" {
+	case "route/v1":
 		if len(cmdutil.GetFlagString(cmd, "protocol")) != 0 {
 			invalidFlags = append(invalidFlags, "--protocol")
 		}
@@ -178,8 +173,8 @@ func validateFlags(cmd *cobra.Command, generator string) error {
 		if len(cmdutil.GetFlagString(cmd, "target-port")) != 0 {
 			invalidFlags = append(invalidFlags, "--target-port")
 		}
-		if len(cmdutil.GetFlagString(cmd, "public-ip")) != 0 {
-			invalidFlags = append(invalidFlags, "--public-ip")
+		if len(cmdutil.GetFlagString(cmd, "external-ip")) != 0 {
+			invalidFlags = append(invalidFlags, "--external-ip")
 		}
 		if cmdutil.GetFlagInt(cmd, "port") != -1 {
 			invalidFlags = append(invalidFlags, "--port")

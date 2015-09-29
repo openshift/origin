@@ -25,7 +25,9 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
-const volumeNameInfix = "volume"
+const (
+	volumeNameInfix = "volume"
+)
 
 // NameSuggester is an object that can suggest a name for itself
 type NameSuggester interface {
@@ -97,6 +99,8 @@ type SourceRef struct {
 	Dir        string
 	Name       string
 	ContextDir string
+
+	DockerfileContents string
 }
 
 func urlWithoutRef(url url.URL) string {
@@ -109,32 +113,46 @@ func (r *SourceRef) SuggestName() (string, bool) {
 	if len(r.Name) > 0 {
 		return r.Name, true
 	}
-	return nameFromGitURL(r.URL)
+	if r.URL != nil {
+		return nameFromGitURL(r.URL)
+	}
+	return "", false
 }
 
 // BuildSource returns an OpenShift BuildSource from the SourceRef
 func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTriggerPolicy) {
-	return &buildapi.BuildSource{
+	triggers := []buildapi.BuildTriggerPolicy{
+		{
+			Type: buildapi.GitHubWebHookBuildTriggerType,
+			GitHubWebHook: &buildapi.WebHookTrigger{
+				Secret: generateSecret(20),
+			},
+		},
+		{
+			Type: buildapi.GenericWebHookBuildTriggerType,
+			GenericWebHook: &buildapi.WebHookTrigger{
+				Secret: generateSecret(20),
+			},
+		},
+	}
+	var source *buildapi.BuildSource
+	switch {
+	case r.URL != nil:
+		source = &buildapi.BuildSource{
 			Type: buildapi.BuildSourceGit,
 			Git: &buildapi.GitBuildSource{
 				URI: urlWithoutRef(*r.URL),
 				Ref: r.Ref,
 			},
 			ContextDir: r.ContextDir,
-		}, []buildapi.BuildTriggerPolicy{
-			{
-				Type: buildapi.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &buildapi.WebHookTrigger{
-					Secret: generateSecret(20),
-				},
-			},
-			{
-				Type: buildapi.GenericWebHookBuildTriggerType,
-				GenericWebHook: &buildapi.WebHookTrigger{
-					Secret: generateSecret(20),
-				},
-			},
 		}
+	case len(r.DockerfileContents) != 0:
+		source = &buildapi.BuildSource{
+			Type:       buildapi.BuildSourceDockerfile,
+			Dockerfile: &r.DockerfileContents,
+		}
+	}
+	return source, triggers
 }
 
 // BuildStrategyRef is a reference to a build strategy
@@ -383,10 +401,13 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	if !ok {
 		return nil, fmt.Errorf("unable to suggest a name for this BuildConfig from %q", r.Source.URL)
 	}
-	source := &buildapi.BuildSource{}
+	var source *buildapi.BuildSource
 	sourceTriggers := []buildapi.BuildTriggerPolicy{}
 	if r.Source != nil {
 		source, sourceTriggers = r.Source.BuildSource()
+	}
+	if source == nil {
+		source = &buildapi.BuildSource{}
 	}
 	strategy := &buildapi.BuildStrategy{}
 	strategyTriggers := []buildapi.BuildTriggerPolicy{}

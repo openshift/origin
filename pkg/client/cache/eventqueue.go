@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	kcache "k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -43,6 +43,9 @@ type EventQueue struct {
 	events map[string]watch.EventType
 	queue  []string
 }
+
+// EventQueue implements kcache.Store
+var _ kcache.Store = &EventQueue{}
 
 // Describes the effect of processing a watch event on the event queue's state.
 type watchEventEffect string
@@ -222,14 +225,14 @@ func (eq *EventQueue) ListKeys() []string {
 	return list
 }
 
-// ContainedIDs returns a util.StringSet containing all IDs of the enqueued items.
+// ContainedIDs returns a sets.String containing all IDs of the enqueued items.
 // This is a snapshot of a moment in time, and one should keep in mind that
 // other go routines can add or remove items after you call this.
-func (eq *EventQueue) ContainedIDs() util.StringSet {
+func (eq *EventQueue) ContainedIDs() sets.String {
 	eq.lock.RLock()
 	defer eq.lock.RUnlock()
 
-	s := util.StringSet{}
+	s := sets.String{}
 	for _, key := range eq.queue {
 		s.Insert(key)
 	}
@@ -301,7 +304,7 @@ func (eq *EventQueue) Pop() (watch.EventType, interface{}, error) {
 // populates the queue with a watch.Modified event for each of the replaced
 // objects.  The backing store takes ownership of keyToObjs; you should not
 // reference the map again after calling this function.
-func (eq *EventQueue) Replace(objects []interface{}) error {
+func (eq *EventQueue) Replace(objects []interface{}, resourceVersion string) error {
 	eq.lock.Lock()
 	defer eq.lock.Unlock()
 
@@ -316,7 +319,7 @@ func (eq *EventQueue) Replace(objects []interface{}) error {
 		eq.queue = append(eq.queue, key)
 		eq.events[key] = watch.Modified
 	}
-	if err := eq.store.Replace(objects); err != nil {
+	if err := eq.store.Replace(objects, resourceVersion); err != nil {
 		return err
 	}
 

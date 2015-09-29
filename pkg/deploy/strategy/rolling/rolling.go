@@ -7,10 +7,12 @@ import (
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
@@ -21,6 +23,9 @@ import (
 // TODO: This should perhaps be made public upstream. See:
 // https://github.com/kubernetes/kubernetes/issues/7851
 const sourceIdAnnotation = "kubectl.kubernetes.io/update-source-id"
+
+const DefaultApiRetryPeriod = 1 * time.Second
+const DefaultApiRetryTimeout = 10 * time.Second
 
 // RollingDeploymentStrategy is a Strategy which implements rolling
 // deployments using the upstream Kubernetes RollingUpdater.
@@ -50,6 +55,10 @@ type RollingDeploymentStrategy struct {
 	// getUpdateAcceptor returns an UpdateAcceptor to verify the first replica
 	// of the deployment.
 	getUpdateAcceptor func(timeout time.Duration) strat.UpdateAcceptor
+	// apiRetryPeriod is how long to wait before retrying a failed API call.
+	apiRetryPeriod time.Duration
+	// apiRetryTimeout is how long to retry API calls before giving up.
+	apiRetryTimeout time.Duration
 }
 
 // acceptingDeploymentStrategy is a DeploymentStrategy which accepts an
@@ -71,6 +80,8 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 		codec:           codec,
 		initialStrategy: initialStrategy,
 		client:          client,
+		apiRetryPeriod:  DefaultApiRetryPeriod,
+		apiRetryTimeout: DefaultApiRetryTimeout,
 		rollingUpdate: func(config *kubectl.RollingUpdaterConfig) error {
 			updater := kubectl.NewRollingUpdater(namespace, client)
 			return updater.Update(config)
@@ -150,17 +161,37 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	//
 	// Related upstream issue:
 	// https://github.com/kubernetes/kubernetes/pull/7183
+	err = wait.Poll(s.apiRetryPeriod, s.apiRetryTimeout, func() (done bool, err error) {
+		existing, err := s.client.ReplicationControllers(to.Namespace).Get(to.Name)
+		if err != nil {
+			msg := fmt.Sprintf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(to), err)
+			if kerrors.IsNotFound(err) {
+				return false, fmt.Errorf("%s", msg)
+			}
+			// Try again.
+			glog.Infof(msg)
+			return false, nil
+		}
+		if _, hasSourceId := existing.Annotations[sourceIdAnnotation]; !hasSourceId {
+			existing.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", from.Name, from.ObjectMeta.UID)
+			if _, err := s.client.ReplicationControllers(existing.Namespace).Update(existing); err != nil {
+				msg := fmt.Sprintf("couldn't assign source annotation to deployment %s: %v", deployutil.LabelForDeployment(existing), err)
+				if kerrors.IsNotFound(err) {
+					return false, fmt.Errorf("%s", msg)
+				}
+				// Try again.
+				glog.Infof(msg)
+				return false, nil
+			}
+		}
+		return true, nil
+	})
+	if err != nil {
+		return err
+	}
 	to, err = s.client.ReplicationControllers(to.Namespace).Get(to.Name)
 	if err != nil {
-		return fmt.Errorf("couldn't look up deployment %s: %s", deployutil.LabelForDeployment(to), err)
-	}
-	if _, hasSourceId := to.Annotations[sourceIdAnnotation]; !hasSourceId {
-		to.Annotations[sourceIdAnnotation] = fmt.Sprintf("%s:%s", from.Name, from.ObjectMeta.UID)
-		if updated, err := s.client.ReplicationControllers(to.Namespace).Update(to); err != nil {
-			return fmt.Errorf("couldn't assign source annotation to deployment %s: %v", deployutil.LabelForDeployment(to), err)
-		} else {
-			to = updated
-		}
+		return err
 	}
 
 	// HACK: There's a validation in the rolling updater which assumes that when

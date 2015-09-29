@@ -9,11 +9,13 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
+	"github.com/openshift/origin/pkg/cmd/admin/validate"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	diagnostics "github.com/openshift/origin/pkg/cmd/experimental/diagnostics"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
+	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
 	"github.com/openshift/origin/pkg/cmd/experimental/tokens"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
@@ -40,7 +42,7 @@ Docker containers. To start an all-in-one server with the default configuration,
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	out := os.Stdout
+	in, out, errout := os.Stdin, os.Stdout, os.Stderr
 
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
@@ -60,7 +62,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "openshift-docker-build":
 		cmd = builder.NewCommandDockerBuilder(basename)
 	case "oc", "osc":
-		cmd = cli.NewCommandCLI(basename, basename, out)
+		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
 	case "oadm", "osadm":
 		cmd = admin.NewCommandAdmin(basename, basename, out)
 	case "kubectl":
@@ -93,7 +95,7 @@ func CommandFor(basename string) *cobra.Command {
 
 // NewCommandOpenShift creates the standard OpenShift command
 func NewCommandOpenShift(name string) *cobra.Command {
-	out := os.Stdout
+	in, out, errout := os.Stdin, os.Stdout, os.Stderr
 
 	product := "Origin"
 	switch name {
@@ -113,7 +115,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out)
 	root.AddCommand(startAllInOne)
 	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", out))
-	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", out))
+	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(version.NewVersionCommand(name))
@@ -152,14 +154,17 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 			c.SetOutput(out)
 			c.Help()
 		},
+		BashCompletionFunction: admin.BashCompletionFunc,
 	}
 
 	f := clientcmd.New(experimental.PersistentFlags())
 
+	experimental.AddCommand(validate.NewCommandValidate(validate.ValidateRecommendedName, fullName+" "+validate.ValidateRecommendedName, out))
 	experimental.AddCommand(tokens.NewCmdTokens(tokens.TokenRecommendedCommandName, fullName+" "+tokens.TokenRecommendedCommandName, f, out))
 	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, out))
 	experimental.AddCommand(diagnostics.NewCommandDiagnostics("diagnostics", fullName+" diagnostics", out))
+	experimental.AddCommand(syncgroups.NewCmdSyncGroups(syncgroups.SyncGroupsRecommendedName, fullName+" "+syncgroups.SyncGroupsRecommendedName, f, out))
 	experimental.AddCommand(cmd.NewCmdOptions(out))
 	return experimental
 }

@@ -3,9 +3,11 @@ package systemd
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -21,6 +23,17 @@ This should be very unusual, so please report this error:
 %s`
 )
 
+// HasJournalctl checks that journalctl exists, and is usable on this system.
+func HasJournalctl() bool {
+	if runtime.GOOS == "linux" {
+		journalctlErr := exec.Command("journalctl", "-n", "1").Run()
+		if journalctlErr == nil {
+			return true
+		}
+	}
+	return false
+}
+
 // AnalyzeLogs is a Diagnostic to check for recent problems in systemd service logs
 type AnalyzeLogs struct {
 	SystemdUnits map[string]types.SystemdUnit
@@ -35,7 +48,10 @@ func (d AnalyzeLogs) Description() string {
 }
 
 func (d AnalyzeLogs) CanRun() (bool, error) {
-	return true, nil
+	if HasJournalctl() {
+		return true, nil
+	}
+	return false, errors.New("journalctl is not present/functional on this host")
 }
 
 func (d AnalyzeLogs) Check() types.DiagnosticResult {

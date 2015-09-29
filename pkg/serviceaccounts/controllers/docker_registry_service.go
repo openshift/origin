@@ -8,14 +8,15 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -166,7 +167,7 @@ func (e *DockerRegistryServiceController) handleLocationChange(serviceLocation s
 		}
 
 		dockercfgMap := map[string]credentialprovider.DockerConfigEntry(*dockercfg)
-		keys := util.KeySet(reflect.ValueOf(dockercfgMap))
+		keys := sets.KeySet(reflect.ValueOf(dockercfgMap))
 		if len(keys) != 1 {
 			util.HandleError(err)
 			continue

@@ -8,8 +8,8 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
@@ -157,7 +157,7 @@ func (a *DefaultRuleResolver) GetEffectivePolicyRules(ctx kapi.Context) ([]autho
 
 	return rules, kerrors.NewAggregate(errs)
 }
-func appliesToUser(ruleUsers, ruleGroups util.StringSet, user user.Info) bool {
+func appliesToUser(ruleUsers, ruleGroups sets.String, user user.Info) bool {
 	if ruleUsers.Has(user.GetName()) {
 		return true
 	}

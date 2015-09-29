@@ -25,7 +25,7 @@ function set_env {
   if [[ $(grep GOPATH $USER_DIR/.bash_profile) = "" ]]; then
     touch $USER_DIR/.bash_profile
     echo "export GOPATH=/data" >> $USER_DIR/.bash_profile
-    echo "export PATH=\$GOPATH/src/github.com/openshift/origin/_output/local/go/bin:\$GOPATH/bin:\$PATH" >> $USER_DIR/.bash_profile
+    echo "export PATH=\$GOPATH/src/github.com/openshift/origin/_output/local/bin/linux/amd64:\$GOPATH/bin:\$PATH" >> $USER_DIR/.bash_profile
     echo "cd \$GOPATH/src/github.com/openshift/origin" >> $USER_DIR/.bash_profile
 
     echo "bind '\"\e[A\":history-search-backward'" >> $USER_DIR/.bashrc
@@ -40,8 +40,6 @@ set_env /root
 
 systemctl enable docker
 systemctl start docker
-
-usermod -a -G docker $USERNAME
 
 echo To install etcd, run hack/install-etcd.sh
 

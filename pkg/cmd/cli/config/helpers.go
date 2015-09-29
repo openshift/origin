@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/cmd/util"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 )
 
 // TODO should be moved upstream

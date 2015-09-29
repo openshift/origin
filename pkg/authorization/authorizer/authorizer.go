@@ -3,8 +3,8 @@ package authorizer
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
@@ -59,7 +59,7 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 	return false, denyReason, nil
 }
 
-func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
+func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (sets.String, sets.String, error) {
 	masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
 	globalUsers, globalGroups, err := a.getAllowedSubjectsFromNamespaceBindings(masterContext, attributes)
 	if err != nil {
@@ -70,18 +70,18 @@ func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes Au
 		return nil, nil, err
 	}
 
-	users := util.StringSet{}
+	users := sets.String{}
 	users.Insert(globalUsers.List()...)
 	users.Insert(localUsers.List()...)
 
-	groups := util.StringSet{}
+	groups := sets.String{}
 	groups.Insert(globalGroups.List()...)
 	groups.Insert(localGroups.List()...)
 
 	return users, groups, nil
 }
 
-func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.Context, passedAttributes AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
+func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.Context, passedAttributes AuthorizationAttributes) (sets.String, sets.String, error) {
 	attributes := coerceToDefaultAuthorizationAttributes(passedAttributes)
 
 	roleBindings, err := a.ruleResolver.GetRoleBindings(ctx)
@@ -89,8 +89,8 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.C
 		return nil, nil, err
 	}
 
-	users := util.StringSet{}
-	groups := util.StringSet{}
+	users := sets.String{}
+	groups := sets.String{}
 	for _, roleBinding := range roleBindings {
 		role, err := a.ruleResolver.GetRole(roleBinding)
 		if err != nil {
@@ -156,7 +156,7 @@ func coerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttrib
 	return attributes
 }
 
-func doesApplyToUser(ruleUsers, ruleGroups util.StringSet, user user.Info) bool {
+func doesApplyToUser(ruleUsers, ruleGroups sets.String, user user.Info) bool {
 	if ruleUsers.Has(user.GetName()) {
 		return true
 	}

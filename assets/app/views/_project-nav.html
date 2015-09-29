@@ -12,7 +12,7 @@
         <a class="btn-flat-default" href="javascript:;" role="button" data-toggle="collapse" data-target=".navbar-collapse-3" aria-expanded="false" title="Filter by labels" aria-pressed="false" ng-if="!renderOptions || !renderOptions.hideFilterWidget">
           <i class="fa fa-filter"></i>
         </a>
-        <a class="btn-flat-default" href="project/{{projectName}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
+        <a class="btn-flat-default" href="project/{{project.metadata.name}}/create" ng-disabled="project.status.phase != 'Active'" title="Add to project">
           <i class="fa fa-plus"></i>
         </a>
       </div>
@@ -25,7 +25,7 @@
       <div class="active-filters"></div>
     </div>
     <div class="col-sm-3 create-button-container hidden-xs">
-      <a href="project/{{projectName}}/create" ng-disabled="project.status.phase != 'Active'" class="btn btn-lg btn-primary">Add to Project</a>
+      <a href="project/{{project.metadata.name}}/create" ng-disabled="project.status.phase != 'Active'" class="btn btn-lg btn-primary">Add to Project</a>
       <span ng-if="project.status.phase == 'Terminating'" class="pficon-layered" data-toggle="tooltip" data-placement="left" title="This project has been marked for deletion. No content may be created in this project." style="cursor: help; font-size: 32px; vertical-align: top; margin-left: 5px;">
         <span class="pficon pficon-warning-triangle"></span>
         <span class="pficon pficon-warning-exclamation"></span>

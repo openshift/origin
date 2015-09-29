@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"path"
 	"sync"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
@@ -69,7 +71,7 @@ func makeMapping(user, identity string) *api.UserIdentityMapping {
 
 func TestUserInitialization(t *testing.T) {
 
-	masterConfig, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -205,10 +207,10 @@ func TestUserInitialization(t *testing.T) {
 
 	for k, testcase := range testcases {
 		// Cleanup
-		if err := etcdHelper.RecursiveDelete(useretcd.EtcdPrefix, true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
+		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, useretcd.EtcdPrefix), true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up users: %v", err)
 		}
-		if err := etcdHelper.RecursiveDelete(identityetcd.EtcdPrefix, true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
+		if _, err := etcdClient.Delete(path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, identityetcd.EtcdPrefix), true); err != nil && !etcdstorage.IsEtcdNotFound(err) {
 			t.Fatalf("Could not clean up identities: %v", err)
 		}
 

@@ -47,6 +47,7 @@ images=(
   openshift/origin-keepalived-ipfailover
   openshift/origin-sti-builder
   openshift/origin-haproxy-router
+  openshift/origin-f5-router
   openshift/hello-openshift
 )
 

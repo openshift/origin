@@ -68,7 +68,7 @@ func (plugin *nfsPlugin) Name() string {
 
 func (plugin *nfsPlugin) CanSupport(spec *volume.Spec) bool {
 	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.NFS != nil) ||
-			(spec.Volume != nil && spec.Volume.NFS != nil)
+		(spec.Volume != nil && spec.Volume.NFS != nil)
 }
 
 func (plugin *nfsPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -92,7 +92,6 @@ func (plugin *nfsPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod, mou
 	} else {
 		source = spec.PersistentVolume.Spec.NFS
 		readOnly = spec.ReadOnly
-
 	}
 	return &nfsBuilder{
 		nfs: &nfs{
@@ -154,12 +153,12 @@ func (b *nfsBuilder) SetUp() error {
 }
 
 func (b *nfsBuilder) SetUpAt(dir string) error {
-	mountpoint, err := b.mounter.IsMountPoint(dir)
-	glog.V(4).Infof("NFS mount set up: %s %v %v", dir, mountpoint, err)
+	notMnt, err := b.mounter.IsLikelyNotMountPoint(dir)
+	glog.V(4).Infof("NFS mount set up: %s %v %v", dir, !notMnt, err)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if mountpoint {
+	if !notMnt {
 		return nil
 	}
 	os.MkdirAll(dir, 0750)
@@ -170,22 +169,22 @@ func (b *nfsBuilder) SetUpAt(dir string) error {
 	}
 	err = b.mounter.Mount(source, dir, "nfs", options)
 	if err != nil {
-		mountpoint, mntErr := b.mounter.IsMountPoint(dir)
+		notMnt, mntErr := b.mounter.IsLikelyNotMountPoint(dir)
 		if mntErr != nil {
-			glog.Errorf("IsMountpoint check failed: %v", mntErr)
+			glog.Errorf("IsLikelyNotMountPoint check failed: %v", mntErr)
 			return err
 		}
-		if mountpoint {
+		if !notMnt {
 			if mntErr = b.mounter.Unmount(dir); mntErr != nil {
 				glog.Errorf("Failed to unmount: %v", mntErr)
 				return err
 			}
-			mountpoint, mntErr := b.mounter.IsMountPoint(dir)
+			notMnt, mntErr := b.mounter.IsLikelyNotMountPoint(dir)
 			if mntErr != nil {
-				glog.Errorf("IsMountpoint check failed: %v", mntErr)
+				glog.Errorf("IsLikelyNotMountPoint check failed: %v", mntErr)
 				return err
 			}
-			if mountpoint {
+			if !notMnt {
 				// This is very odd, we don't expect it.  We'll try again next sync loop.
 				glog.Errorf("%s is still mounted, despite call to unmount().  Will try again next sync loop.", dir)
 				return err
@@ -218,12 +217,12 @@ func (c *nfsCleaner) TearDown() error {
 }
 
 func (c *nfsCleaner) TearDownAt(dir string) error {
-	mountpoint, err := c.mounter.IsMountPoint(dir)
+	notMnt, err := c.mounter.IsLikelyNotMountPoint(dir)
 	if err != nil {
-		glog.Errorf("Error checking IsMountPoint: %v", err)
+		glog.Errorf("Error checking IsLikelyNotMountPoint: %v", err)
 		return err
 	}
-	if !mountpoint {
+	if notMnt {
 		return os.Remove(dir)
 	}
 
@@ -231,12 +230,12 @@ func (c *nfsCleaner) TearDownAt(dir string) error {
 		glog.Errorf("Unmounting failed: %v", err)
 		return err
 	}
-	mountpoint, mntErr := c.mounter.IsMountPoint(dir)
+	notMnt, mntErr := c.mounter.IsLikelyNotMountPoint(dir)
 	if mntErr != nil {
-		glog.Errorf("IsMountpoint check failed: %v", mntErr)
+		glog.Errorf("IsLikelyNotMountPoint check failed: %v", mntErr)
 		return mntErr
 	}
-	if !mountpoint {
+	if notMnt {
 		if err := os.Remove(dir); err != nil {
 			return err
 		}
@@ -273,20 +272,18 @@ func (r *nfsRecycler) GetPath() string {
 	return r.path
 }
 
-// Recycler provides methods to reclaim the volume resource.
-// A NFS volume is recycled by scheduling a pod to run "rm -rf" on the contents of the volume.
+// Recycle recycles/scrubs clean an NFS volume.
 // Recycle blocks until the pod has completed or any error occurs.
-// The scrubber pod's is expected to succeed within 5 minutes else an error will be returned.
 func (r *nfsRecycler) Recycle() error {
-	pod := r.config.RecyclerDefaultPod
+	pod := r.config.RecyclerPodTemplate
 	// overrides
 	pod.Spec.ActiveDeadlineSeconds = &r.timeout
-	pod.GenerateName = "pv-scrubber-nfs-"
+	pod.GenerateName = "pv-recycler-nfs-"
 	pod.Spec.Volumes[0].VolumeSource = api.VolumeSource{
 		NFS: &api.NFSVolumeSource{
 			Server: r.server,
 			Path:   r.path,
 		},
 	}
-	return volume.ScrubPodVolumeAndWatchUntilCompletion(pod, r.host.GetKubeClient())
+	return volume.RecycleVolumeByWatchingPodUntilCompletion(pod, r.host.GetKubeClient())
 }

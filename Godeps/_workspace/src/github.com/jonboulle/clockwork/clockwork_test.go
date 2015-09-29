@@ -1,6 +1,7 @@
 package clockwork
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
@@ -102,5 +103,18 @@ func TestNotifyBlockers(t *testing.T) {
 	case <-b5.ch:
 	case <-time.After(time.Second):
 		t.Fatalf("timed out waiting for channel close!")
+	}
+}
+
+func TestNewFakeClock(t *testing.T) {
+	fc := NewFakeClock()
+	now := fc.Now()
+	if now.IsZero() {
+		t.Fatalf("fakeClock.Now() fulfills IsZero")
+	}
+
+	now2 := fc.Now()
+	if !reflect.DeepEqual(now, now2) {
+		t.Fatalf("fakeClock.Now() returned different value: want=%#v got=%#v", now, now2)
 	}
 }

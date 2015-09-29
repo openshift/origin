@@ -11,7 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -95,7 +95,7 @@ func (d *ClusterRouter) CanRun() (bool, error) {
 	if d.KubeClient == nil || d.OsClient == nil {
 		return false, errors.New("must have kube and os client")
 	}
-	can, err := adminCan(d.OsClient, authorizationapi.AuthorizationAttributes{
+	can, err := userCan(d.OsClient, authorizationapi.AuthorizationAttributes{
 		Namespace:    kapi.NamespaceDefault,
 		Verb:         "get",
 		Resource:     "dc",

@@ -75,6 +75,20 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 	}
 	switch len(imperfect) {
 	case 0:
+		// If value is a file and there is a TemplateFileSearcher in one of the resolvers
+		// and trying to use it gives an error, use this error instead of ErrNoMatch.
+		// E.g., calling `oc new-app template.json` where template.json is a file
+		// with invalid JSON, it's better to return the JSON syntax error than a more
+		// generic message.
+		if isFile(value) {
+			for _, resolver := range r {
+				if _, ok := resolver.Searcher.(*TemplateFileSearcher); ok {
+					if _, err := resolver.Search(value); err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
 		return nil, ErrNoMatch{value: value}
 	case 1:
 		return imperfect[0], nil

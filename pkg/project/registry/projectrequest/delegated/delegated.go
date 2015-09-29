@@ -8,13 +8,13 @@ import (
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -159,7 +159,7 @@ func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Select
 			Resource: "projectrequests",
 		},
 		User:   userInfo.GetName(),
-		Groups: util.NewStringSet(userInfo.GetGroups()...),
+		Groups: sets.NewString(userInfo.GetGroups()...),
 	}
 	accessReviewResponse, err := r.openshiftClient.SubjectAccessReviews().Create(accessReview)
 	if err != nil {

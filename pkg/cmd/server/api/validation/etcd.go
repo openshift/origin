@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // ValidateEtcdConnectionInfo validates the connection info. If a server EtcdConfig is provided,
@@ -47,7 +47,7 @@ func ValidateEtcdConnectionInfo(config api.EtcdConnectionInfo, server *api.EtcdC
 		}
 
 		// Require the etcdClientInfo to include the address of the internal etcd
-		clientURLs := util.NewStringSet(config.URLs...)
+		clientURLs := sets.NewString(config.URLs...)
 		if !clientURLs.Has(builtInAddress) {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("urls", strings.Join(clientURLs.List(), ","), fmt.Sprintf("must include the etcd address %s", builtInAddress)))
 		}

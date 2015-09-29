@@ -47,8 +47,6 @@ func addKnownTypes() {
 		&PodTemplateList{},
 		&ReplicationController{},
 		&ReplicationControllerList{},
-		&DaemonList{},
-		&Daemon{},
 		&Service{},
 		&ServiceList{},
 		&Endpoints{},
@@ -84,6 +82,9 @@ func addKnownTypes() {
 		&ComponentStatusList{},
 		&SerializedReference{},
 		&RangeAllocation{},
+		&ThirdPartyResource{},
+		&ThirdPartyResourceList{},
+		&ThirdPartyResourceData{},
 		&SecurityContextConstraints{},
 		&SecurityContextConstraintsList{},
 	)
@@ -99,8 +100,6 @@ func (*PodTemplate) IsAnAPIObject()                    {}
 func (*PodTemplateList) IsAnAPIObject()                {}
 func (*ReplicationController) IsAnAPIObject()          {}
 func (*ReplicationControllerList) IsAnAPIObject()      {}
-func (*Daemon) IsAnAPIObject()                         {}
-func (*DaemonList) IsAnAPIObject()                     {}
 func (*Service) IsAnAPIObject()                        {}
 func (*ServiceList) IsAnAPIObject()                    {}
 func (*Endpoints) IsAnAPIObject()                      {}
@@ -136,5 +135,8 @@ func (*ComponentStatus) IsAnAPIObject()                {}
 func (*ComponentStatusList) IsAnAPIObject()            {}
 func (*SerializedReference) IsAnAPIObject()            {}
 func (*RangeAllocation) IsAnAPIObject()                {}
+func (*ThirdPartyResource) IsAnAPIObject()             {}
+func (*ThirdPartyResourceList) IsAnAPIObject()         {}
+func (*ThirdPartyResourceData) IsAnAPIObject()         {}
 func (*SecurityContextConstraints) IsAnAPIObject()     {}
 func (*SecurityContextConstraintsList) IsAnAPIObject() {}

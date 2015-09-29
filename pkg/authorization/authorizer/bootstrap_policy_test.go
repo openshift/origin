@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 
@@ -504,13 +505,13 @@ func newInvalidExtensionPolicies() []authorizationapi.Policy {
 					},
 					Rules: []authorizationapi.PolicyRule{
 						{
-							Verbs:                 util.NewStringSet("watch", "list", "get"),
-							Resources:             util.NewStringSet("buildConfigs"),
+							Verbs:                 sets.NewString("watch", "list", "get"),
+							Resources:             sets.NewString("buildConfigs"),
 							AttributeRestrictions: runtime.EmbeddedObject{Object: &authorizationapi.Role{}},
 						},
 						{
-							Verbs:     util.NewStringSet("update"),
-							Resources: util.NewStringSet("buildConfigs"),
+							Verbs:     sets.NewString("update"),
+							Resources: sets.NewString("buildConfigs"),
 						},
 					},
 				},

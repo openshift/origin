@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/go-ldap/ldap"
 	"github.com/golang/glog"
@@ -21,11 +22,6 @@ type Options struct {
 	URL ldaputil.LDAPURL
 	// ClientConfig holds information about connecting with the LDAP server
 	ClientConfig ldaputil.LDAPClientConfig
-
-	// BindDN is the optional username to bind to for the search phase. If specified, BindPassword must also be set.
-	BindDN string
-	// BindPassword is the optional password to bind to for the search phase.
-	BindPassword string
 
 	// UserAttributeDefiner defines the values corresponding to OpenShift Identities in LDAP entries
 	// by using a deterministic mapping of LDAP entry attributes to OpenShift Identity fields. The first
@@ -88,18 +84,15 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 		return nil, false, nil
 	}
 
-	// Make the connection
+	// Make the connection and bind to it if a bind DN and password were given
 	l, err := a.options.ClientConfig.Connect()
 	if err != nil {
 		return nil, false, err
 	}
 	defer l.Close()
 
-	// If specified, bind the username/password for search phase
-	if len(a.options.BindDN) > 0 {
-		if err := l.Bind(a.options.BindDN, a.options.BindPassword); err != nil {
-			return nil, false, err
-		}
+	if _, err := a.options.ClientConfig.Bind(l); err != nil {
+		return nil, false, err
 	}
 
 	// & together the filter specified in the LDAP options with the user-specific filter
@@ -110,7 +103,7 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 	)
 
 	// Build list of attributes to retrieve
-	attrs := util.NewStringSet(a.options.URL.QueryAttribute)
+	attrs := sets.NewString(a.options.URL.QueryAttribute)
 	attrs.Insert(a.options.UserAttributeDefiner.AllAttributes().List()...)
 
 	// Search for LDAP record

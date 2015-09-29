@@ -184,6 +184,9 @@ func TestValidateImageStream(t *testing.T) {
 	name191Char := strings.Repeat("b", 191)
 	name192Char := "x" + name191Char
 
+	missingNameErr := fielderrors.NewFieldRequired("metadata.name")
+	missingNameErr.Detail = "name or generateName is required"
+
 	tests := map[string]struct {
 		namespace             string
 		name                  string
@@ -195,9 +198,7 @@ func TestValidateImageStream(t *testing.T) {
 		"missing name": {
 			namespace: "foo",
 			name:      "",
-			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldRequired("metadata.name"),
-			},
+			expected:  fielderrors.ValidationErrorList{missingNameErr},
 		},
 		"no slash in Name": {
 			namespace: "foo",

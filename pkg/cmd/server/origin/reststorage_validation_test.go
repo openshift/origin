@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api/rest"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/validation"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -49,7 +49,7 @@ func TestValidationRegistration(t *testing.T) {
 
 // TestAllOpenShiftResourceCoverage checks to make sure that the openshift all group actually contains all openshift resources
 func TestAllOpenShiftResourceCoverage(t *testing.T) {
-	allOpenshift := authorizationapi.ExpandResources(util.NewStringSet(authorizationapi.GroupsToResources[authorizationapi.OpenshiftAllGroupName]...))
+	allOpenshift := authorizationapi.ExpandResources(sets.NewString(authorizationapi.GroupsToResources[authorizationapi.OpenshiftAllGroupName]...))
 
 	config := fakeMasterConfig()
 

@@ -19,7 +19,7 @@ angular.module('openshiftConsole')
 .factory('TaskList', function($timeout) {
 
   // Maximum amount of time that a successful task will hang around after completion
-  var TASK_TIMEOUT = 30*1000;
+  var TASK_TIMEOUT = 60*1000;
 
   function TaskList() {
     this.tasks = [];
@@ -72,5 +72,12 @@ angular.module('openshiftConsole')
     }
   };
 
+  // clear removes all task from the list of tasks
+  TaskList.prototype.clear = function() {
+    taskList.tasks = [];
+  };
+
+
   return taskList;
 });
+

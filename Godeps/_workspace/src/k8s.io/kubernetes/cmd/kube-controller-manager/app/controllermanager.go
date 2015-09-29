@@ -31,16 +31,17 @@ import (
 	"strconv"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
-	"k8s.io/kubernetes/pkg/client"
-	"k8s.io/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/kubernetes/pkg/controller/daemon"
 	"k8s.io/kubernetes/pkg/controller/endpoint"
 	"k8s.io/kubernetes/pkg/controller/namespace"
 	"k8s.io/kubernetes/pkg/controller/node"
 	"k8s.io/kubernetes/pkg/controller/persistentvolume"
+	"k8s.io/kubernetes/pkg/controller/podautoscaler"
+	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	replicationControllerPkg "k8s.io/kubernetes/pkg/controller/replication"
 	"k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/controller/route"
@@ -49,7 +50,6 @@ import (
 	"k8s.io/kubernetes/pkg/healthz"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/volume"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
@@ -58,33 +58,36 @@ import (
 
 // CMServer is the main context object for the controller manager.
 type CMServer struct {
-	Port                    int
-	Address                 net.IP
-	CloudProvider           string
-	CloudConfigFile         string
-	ConcurrentEndpointSyncs int
-	ConcurrentRCSyncs       int
-	ServiceSyncPeriod       time.Duration
-	NodeSyncPeriod          time.Duration
-	ResourceQuotaSyncPeriod time.Duration
-	NamespaceSyncPeriod     time.Duration
-	PVClaimBinderSyncPeriod time.Duration
-	VolumeConfigFlags       VolumeConfigFlags
-	RegisterRetryCount      int
-	NodeMonitorGracePeriod  time.Duration
-	NodeStartupGracePeriod  time.Duration
-	NodeMonitorPeriod       time.Duration
-	NodeStatusUpdateRetry   int
-	PodEvictionTimeout      time.Duration
-	DeletingPodsQps         float32
-	DeletingPodsBurst       int
-	ServiceAccountKeyFile   string
-	RootCAFile              string
+	Port                              int
+	Address                           net.IP
+	CloudProvider                     string
+	CloudConfigFile                   string
+	ConcurrentEndpointSyncs           int
+	ConcurrentRCSyncs                 int
+	ConcurrentDSCSyncs                int
+	ServiceSyncPeriod                 time.Duration
+	NodeSyncPeriod                    time.Duration
+	ResourceQuotaSyncPeriod           time.Duration
+	NamespaceSyncPeriod               time.Duration
+	PVClaimBinderSyncPeriod           time.Duration
+	VolumeConfigFlags                 VolumeConfigFlags
+	HorizontalPodAutoscalerSyncPeriod time.Duration
+	RegisterRetryCount                int
+	NodeMonitorGracePeriod            time.Duration
+	NodeStartupGracePeriod            time.Duration
+	NodeMonitorPeriod                 time.Duration
+	NodeStatusUpdateRetry             int
+	PodEvictionTimeout                time.Duration
+	DeletingPodsQps                   float32
+	DeletingPodsBurst                 int
+	ServiceAccountKeyFile             string
+	RootCAFile                        string
 
-	ClusterName       string
-	ClusterCIDR       net.IPNet
-	AllocateNodeCIDRs bool
-	EnableProfiling   bool
+	ClusterName                   string
+	ClusterCIDR                   net.IPNet
+	AllocateNodeCIDRs             bool
+	EnableProfiling               bool
+	EnableHorizontalPodAutoscaler bool
 
 	Master     string
 	Kubeconfig string
@@ -93,18 +96,21 @@ type CMServer struct {
 // NewCMServer creates a new CMServer with a default config.
 func NewCMServer() *CMServer {
 	s := CMServer{
-		Port:                    ports.ControllerManagerPort,
-		Address:                 net.ParseIP("127.0.0.1"),
-		ConcurrentEndpointSyncs: 5,
-		ConcurrentRCSyncs:       5,
-		ServiceSyncPeriod:       5 * time.Minute,
-		NodeSyncPeriod:          10 * time.Second,
-		ResourceQuotaSyncPeriod: 10 * time.Second,
-		NamespaceSyncPeriod:     5 * time.Minute,
-		PVClaimBinderSyncPeriod: 10 * time.Second,
-		RegisterRetryCount:      10,
-		PodEvictionTimeout:      5 * time.Minute,
-		ClusterName:             "kubernetes",
+		Port:                              ports.ControllerManagerPort,
+		Address:                           net.ParseIP("127.0.0.1"),
+		ConcurrentEndpointSyncs:           5,
+		ConcurrentRCSyncs:                 5,
+		ConcurrentDSCSyncs:                2,
+		ServiceSyncPeriod:                 5 * time.Minute,
+		NodeSyncPeriod:                    10 * time.Second,
+		ResourceQuotaSyncPeriod:           10 * time.Second,
+		NamespaceSyncPeriod:               5 * time.Minute,
+		PVClaimBinderSyncPeriod:           10 * time.Second,
+		HorizontalPodAutoscalerSyncPeriod: 1 * time.Minute,
+		RegisterRetryCount:                10,
+		PodEvictionTimeout:                5 * time.Minute,
+		ClusterName:                       "kubernetes",
+		EnableHorizontalPodAutoscaler:     false,
 		VolumeConfigFlags: VolumeConfigFlags{
 			// default values here
 			PersistentVolumeRecyclerMinimumTimeoutNFS:        300,
@@ -121,14 +127,12 @@ func NewCMServer() *CMServer {
 // of volume.VolumeConfig which are then passed to the appropriate plugin. The ControllerManager binary is the only
 // part of the code which knows what plugins are supported and which CLI flags correspond to each plugin.
 type VolumeConfigFlags struct {
-	// the pod to use as the default recycler.  default provided by the binary and the filepath flag can override.
-	PersistentVolumeRecyclerDefaultPod *api.Pod
-	// See CLI flag comments in the AddFlags func.
-	PersistentVolumeRecyclerDefaultPodFilePath       string
-	PersistentVolumeRecyclerMinimumTimeoutNFS        int
-	PersistentVolumeRecyclerIncrementTimeoutNFS      int
-	PersistentVolumeRecyclerMinimumTimeoutHostPath   int
-	PersistentVolumeRecyclerIncrementTimeoutHostPath int
+	PersistentVolumeRecyclerMinimumTimeoutNFS           int
+	PersistentVolumeRecyclerPodTemplateFilePathNFS      string
+	PersistentVolumeRecyclerIncrementTimeoutNFS         int
+	PersistentVolumeRecyclerPodTemplateFilePathHostPath string
+	PersistentVolumeRecyclerMinimumTimeoutHostPath      int
+	PersistentVolumeRecyclerIncrementTimeoutHostPath    int
 }
 
 // AddFlags adds flags for a specific CMServer to the specified FlagSet
@@ -146,11 +150,13 @@ func (s *CMServer) AddFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&s.ResourceQuotaSyncPeriod, "resource-quota-sync-period", s.ResourceQuotaSyncPeriod, "The period for syncing quota usage status in the system")
 	fs.DurationVar(&s.NamespaceSyncPeriod, "namespace-sync-period", s.NamespaceSyncPeriod, "The period for syncing namespace life-cycle updates")
 	fs.DurationVar(&s.PVClaimBinderSyncPeriod, "pvclaimbinder-sync-period", s.PVClaimBinderSyncPeriod, "The period for syncing persistent volumes and persistent volume claims")
-	fs.StringVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPodFilePath, "pv-recycler-default-pod-filepath", s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPodFilePath, "The file path to a pod definition used as a template for persistent volume recycling")
+	fs.StringVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerPodTemplateFilePathNFS, "pv-recycler-pod-template-filepath-nfs", s.VolumeConfigFlags.PersistentVolumeRecyclerPodTemplateFilePathNFS, "The file path to a pod definition used as a template for NFS persistent volume recycling")
 	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutNFS, "pv-recycler-minimum-timeout-nfs", s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutNFS, "The minimum ActiveDeadlineSeconds to use for an NFS Recycler pod")
 	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerIncrementTimeoutNFS, "pv-recycler-increment-timeout-nfs", s.VolumeConfigFlags.PersistentVolumeRecyclerIncrementTimeoutNFS, "the increment of time added per Gi to ActiveDeadlineSeconds for an NFS scrubber pod")
-	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "pv-recycler-minimum-timeout-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "The minimum ActiveDeadlineSeconds to use for a HostPath Recycler pod")
-	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "pv-recycler-timeout-increment-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "the increment of time added per Gi to ActiveDeadlineSeconds for a HostPath scrubber pod")
+	fs.StringVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerPodTemplateFilePathHostPath, "pv-recycler-pod-template-filepath-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerPodTemplateFilePathHostPath, "The file path to a pod definition used as a template for HostPath persistent volume recycling. This is for development and testing only and will not work in a multi-node cluster.")
+	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "pv-recycler-minimum-timeout-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerMinimumTimeoutHostPath, "The minimum ActiveDeadlineSeconds to use for a HostPath Recycler pod.  This is for development and testing only and will not work in a multi-node cluster.")
+	fs.IntVar(&s.VolumeConfigFlags.PersistentVolumeRecyclerIncrementTimeoutHostPath, "pv-recycler-timeout-increment-hostpath", s.VolumeConfigFlags.PersistentVolumeRecyclerIncrementTimeoutHostPath, "the increment of time added per Gi to ActiveDeadlineSeconds for a HostPath scrubber pod.  This is for development and testing only and will not work in a multi-node cluster.")
+	fs.DurationVar(&s.HorizontalPodAutoscalerSyncPeriod, "horizontal-pod-autoscaler-sync-period", s.HorizontalPodAutoscalerSyncPeriod, "The period for syncing the number of pods in horizontal pod autoscaler.")
 	fs.DurationVar(&s.PodEvictionTimeout, "pod-eviction-timeout", s.PodEvictionTimeout, "The grace period for deleting pods on failed nodes.")
 	fs.Float32Var(&s.DeletingPodsQps, "deleting-pods-qps", 0.1, "Number of nodes per second on which pods are deleted in case of node failure.")
 	fs.IntVar(&s.DeletingPodsBurst, "deleting-pods-burst", 10, "Number of nodes on which pods are bursty deleted in case of node failure. For more details look into RateLimiter.")
@@ -173,6 +179,7 @@ func (s *CMServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.Master, "master", s.Master, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
 	fs.StringVar(&s.Kubeconfig, "kubeconfig", s.Kubeconfig, "Path to kubeconfig file with authorization and master location information.")
 	fs.StringVar(&s.RootCAFile, "root-ca-file", s.RootCAFile, "If set, this root certificate authority will be included in service account's token secret. This must be a valid PEM-encoded CA bundle.")
+	fs.BoolVar(&s.EnableHorizontalPodAutoscaler, "enable-horizontal-pod-autoscaler", s.EnableHorizontalPodAutoscaler, "Enables horizontal pod autoscaler (requires enabling experimental API on apiserver). NOT IMPLEMENTED YET!")
 }
 
 // Run runs the CMServer.  This should never exit.
@@ -221,13 +228,16 @@ func (s *CMServer) Run(_ []string) error {
 	controllerManager := replicationControllerPkg.NewReplicationManager(kubeClient, replicationControllerPkg.BurstReplicas)
 	go controllerManager.Run(s.ConcurrentRCSyncs, util.NeverStop)
 
+	go daemon.NewDaemonSetsController(kubeClient).
+		Run(s.ConcurrentDSCSyncs, util.NeverStop)
+
 	cloud, err := cloudprovider.InitCloudProvider(s.CloudProvider, s.CloudConfigFile)
 	if err != nil {
 		glog.Fatalf("Cloud provider could not be initialized: %v", err)
 	}
 
 	nodeController := nodecontroller.NewNodeController(cloud, kubeClient,
-		s.PodEvictionTimeout, nodecontroller.NewPodEvictor(util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst)),
+		s.PodEvictionTimeout, util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst),
 		s.NodeMonitorGracePeriod, s.NodeStartupGracePeriod, s.NodeMonitorPeriod, &s.ClusterCIDR, s.AllocateNodeCIDRs)
 	nodeController.Run(s.NodeSyncPeriod)
 
@@ -250,20 +260,19 @@ func (s *CMServer) Run(_ []string) error {
 	resourceQuotaController := resourcequotacontroller.NewResourceQuotaController(kubeClient)
 	resourceQuotaController.Run(s.ResourceQuotaSyncPeriod)
 
-	namespaceController := namespacecontroller.NewNamespaceController(kubeClient, s.NamespaceSyncPeriod)
+	// An OR of all flags to enable/disable experimental features
+	experimentalMode := s.EnableHorizontalPodAutoscaler
+	namespaceController := namespacecontroller.NewNamespaceController(kubeClient, experimentalMode, s.NamespaceSyncPeriod)
 	namespaceController.Run()
+
+	if s.EnableHorizontalPodAutoscaler {
+		horizontalPodAutoscalerController := podautoscaler.NewHorizontalController(kubeClient, metrics.NewHeapsterMetricsClient(kubeClient))
+		horizontalPodAutoscalerController.Run(s.HorizontalPodAutoscalerSyncPeriod)
+	}
 
 	pvclaimBinder := volumeclaimbinder.NewPersistentVolumeClaimBinder(kubeClient, s.PVClaimBinderSyncPeriod)
 	pvclaimBinder.Run()
 
-	s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPod = volume.GetDefaultPersistentVolumeRecyclerPod()
-	if s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPodFilePath != "" {
-		recyclerPod, err := InitDefaultRecyclerPod(s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPodFilePath)
-		if err != nil {
-			glog.Fatalf("Override of default PersistentVolume Recycler pod failed: %+v", err)
-		}
-		s.VolumeConfigFlags.PersistentVolumeRecyclerDefaultPod = recyclerPod
-	}
 	pvRecycler, err := volumeclaimbinder.NewPersistentVolumeRecycler(kubeClient, s.PVClaimBinderSyncPeriod, ProbeRecyclableVolumePlugins(s.VolumeConfigFlags))
 	if err != nil {
 		glog.Fatalf("Failed to start persistent volume recycler: %+v", err)
@@ -305,27 +314,4 @@ func (s *CMServer) Run(_ []string) error {
 	).Run()
 
 	select {}
-	return nil
-}
-
-// InitDefaultRecyclerPod will read, load, and return a Pod from a file.
-// the pod will be used as the default persistent volume recycler pod.
-// it is intended to be "good enough" for recycling while allowing override of its properties
-// so that admins can implement whatever recycling operation they prefer for their persistent volumes.
-func InitDefaultRecyclerPod(filePath string) (*api.Pod, error) {
-	if filePath == "" {
-		return nil, fmt.Errorf("PersistentVolume Recycler file path not specified")
-	}
-	podDef, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading PersistentVolume Recycler file path %s: %+v", filePath, err)
-	}
-	if len(podDef) == 0 {
-		return nil, fmt.Errorf("PersistentVolume Recycler file was empty: %s", filePath)
-	}
-	pod := &api.Pod{}
-	if err := latest.Codec.DecodeInto(podDef, pod); err != nil {
-		return nil, fmt.Errorf("Error decoding PersistentVolume Recycler file: %v", err)
-	}
-	return pod, nil
 }

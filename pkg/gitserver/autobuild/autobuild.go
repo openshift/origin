@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
-	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/errors"

@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/labels"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -27,13 +27,13 @@ Supported formats for the generated graph are dot and a human-readable output.
 Tag and namespace are optional and if they are not specified, 'latest' and the
 default namespace will be used respectively.`
 
-	buildChainExample = `  // Build the dependency tree for the 'latest' tag in <image-stream>
+	buildChainExample = `  # Build the dependency tree for the 'latest' tag in <image-stream>
   $ %[1]s <image-stream>
 
-  // Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
+  # Build the dependency tree for 'v2' tag in dot format and visualize it via the dot utility
   $ %[1]s <image-stream>:v2 -o dot | dot -T svg -o deps.svg
 
-  // Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
+  # Build the dependency tree across all namespaces for the specified image stream tag found in 'test' namespace
   $ %[1]s <image-stream> -n test --all`
 )
 
@@ -46,7 +46,7 @@ type BuildChainOptions struct {
 	tag  string
 
 	defaultNamespace string
-	namespaces       kutil.StringSet
+	namespaces       sets.String
 	allNamespaces    bool
 	triggerOnly      bool
 
@@ -59,7 +59,7 @@ type BuildChainOptions struct {
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
 func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	options := &BuildChainOptions{
-		namespaces: kutil.NewStringSet(),
+		namespaces: sets.NewString(),
 	}
 	cmd := &cobra.Command{
 		Use:     "build-chain [IMAGESTREAM:TAG]",

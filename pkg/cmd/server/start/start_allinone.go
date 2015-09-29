@@ -18,6 +18,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
@@ -29,9 +30,10 @@ type AllInOneOptions struct {
 
 	NodeArgs *NodeArgs
 
-	ConfigDir      util.StringFlag
-	NodeConfigFile string
-	PrintIP        bool
+	ConfigDir          util.StringFlag
+	NodeConfigFile     string
+	PrintIP            bool
+	ServiceNetworkCIDR string
 }
 
 const allInOneLong = `
@@ -99,6 +101,7 @@ func NewCommandStartAllInOne(basename string, out io.Writer) (*cobra.Command, *A
 	flags.StringVar(&options.NodeConfigFile, "node-config", "", "Location of the node configuration file to run from. When running from configuration files, all other command-line arguments are ignored.")
 	flags.BoolVar(&options.MasterOptions.CreateCertificates, "create-certs", true, "Indicates whether missing certs should be created.")
 	flags.BoolVar(&options.PrintIP, "print-ip", false, "Print the IP that would be used if no master IP is specified and exit.")
+	flags.StringVar(&options.ServiceNetworkCIDR, "portal-net", NewDefaultNetworkArgs().ServiceNetworkCIDR, "The CIDR string representing the network that portal/service IPs will be assigned from. This must not overlap with any IP ranges assigned to nodes for pods.")
 
 	masterArgs, nodeArgs, listenArg, imageFormatArgs, _ := GetAllInOneArgs()
 	options.MasterOptions.MasterArgs, options.NodeArgs = masterArgs, nodeArgs
@@ -194,7 +197,7 @@ func (o *AllInOneOptions) Complete() error {
 		o.NodeArgs.ConfigDir.Default(path.Join(o.ConfigDir.Value(), admin.DefaultNodeDir(o.NodeArgs.NodeName)))
 	}
 
-	nodeList := util.NewStringSet(strings.ToLower(o.NodeArgs.NodeName))
+	nodeList := sets.NewString(strings.ToLower(o.NodeArgs.NodeName))
 	// take everything toLower
 	for _, s := range o.MasterOptions.MasterArgs.NodeList {
 		nodeList.Insert(strings.ToLower(s))
@@ -202,6 +205,7 @@ func (o *AllInOneOptions) Complete() error {
 	o.MasterOptions.MasterArgs.NodeList = nodeList.List()
 
 	o.MasterOptions.MasterArgs.NetworkArgs.NetworkPluginName = o.NodeArgs.NetworkPluginName
+	o.MasterOptions.MasterArgs.NetworkArgs.ServiceNetworkCIDR = o.ServiceNetworkCIDR
 
 	masterAddr, err := o.MasterOptions.MasterArgs.GetMasterAddress()
 	if err != nil {

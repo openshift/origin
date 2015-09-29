@@ -50,7 +50,7 @@ describe("ApplicationGenerator", function(){
       },
       imageName: "origin-ruby-sample",
       imageTag: "latest",
-      imageRepo: {
+      imageStream: {
         "kind": "ImageStream",
         "apiVersion": "v1",
         "metadata": {
@@ -148,7 +148,7 @@ describe("ApplicationGenerator", function(){
       // Add the same labels and annotations as application generator `generate()`
       var routeInput = angular.copy(input);
       routeInput.labels.app = input.name;
-      routeInput.annotations["openshift.io/generatedby"] = "OpenShiftWebConsole";
+      routeInput.annotations["openshift.io/generated-by"] = "OpenShiftWebConsole";
 
       var route = ApplicationGenerator._generateRoute(routeInput, routeInput.name, "theServiceName");
       expect(route).toEqual({
@@ -162,7 +162,7 @@ describe("ApplicationGenerator", function(){
             "app": "ruby-hello-world"
           },
           annotations: {
-            "openshift.io/generatedby": "OpenShiftWebConsole"
+            "openshift.io/generated-by": "OpenShiftWebConsole"
           }
         },
         spec: {
@@ -194,7 +194,7 @@ describe("ApplicationGenerator", function(){
                   "app": "ruby-hello-world"
                 },
                 "annotations": {
-                  "openshift.io/generatedby": "OpenShiftWebConsole"
+                  "openshift.io/generated-by": "OpenShiftWebConsole"
                 }
             },
             "spec": {
@@ -259,7 +259,7 @@ describe("ApplicationGenerator", function(){
                 "app" : "ruby-hello-world",
               },
               "annotations": {
-                "openshift.io/generatedby": "OpenShiftWebConsole"
+                "openshift.io/generated-by": "OpenShiftWebConsole"
               }
           }
         }
@@ -279,7 +279,7 @@ describe("ApplicationGenerator", function(){
                   "app" : "ruby-hello-world"
                 },
                 "annotations": {
-                  "openshift.io/generatedby": "OpenShiftWebConsole"
+                  "openshift.io/generated-by": "OpenShiftWebConsole"
                 }
             },
             "spec": {
@@ -310,7 +310,7 @@ describe("ApplicationGenerator", function(){
               "app" : "ruby-hello-world"
             },
             "annotations": {
-              "openshift.io/generatedby": "OpenShiftWebConsole"
+              "openshift.io/generated-by": "OpenShiftWebConsole"
             }
           },
           "spec": {
@@ -414,7 +414,7 @@ describe("ApplicationGenerator", function(){
                   "app" : "ruby-hello-world"
                 },
                 "annotations": {
-                  "openshift.io/generatedby": "OpenShiftWebConsole"
+                  "openshift.io/generated-by": "OpenShiftWebConsole"
                 }
             },
             "spec": {

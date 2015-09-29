@@ -16,8 +16,7 @@ import (
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/client"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/master"
@@ -45,6 +44,7 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
@@ -107,7 +107,7 @@ func TestTriggers_manual(t *testing.T) {
 }
 
 func TestTriggers_imageChange(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestTriggers_imageChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	openshiftProjectAdminClient, err := testutil.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	openshiftProjectAdminClient, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
@@ -310,8 +310,8 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	osMux := http.NewServeMux()
 	openshift.server = httptest.NewServer(osMux)
 
-	kubeClient := client.NewOrDie(&client.Config{Host: openshift.server.URL, Version: klatest.Version})
-	osClient := osclient.NewOrDie(&client.Config{Host: openshift.server.URL, Version: latest.Version})
+	kubeClient := kclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: klatest.Version})
+	osClient := osclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
 	openshift.KubeClient = kubeClient

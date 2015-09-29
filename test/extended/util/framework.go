@@ -3,17 +3,19 @@ package util
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e"
 
@@ -103,7 +105,7 @@ func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
 		}
 		return false, nil
 	}
-	return wait.Poll(60, time.Duration(1*time.Second), waitFunc)
+	return wait.Poll(time.Duration(100*time.Millisecond), time.Duration(60*time.Second), waitFunc)
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
@@ -168,7 +170,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 	name string,
 	isOK, isFailed func(*kapi.ReplicationController) bool) error {
 	for {
-		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, kutil.NewStringSet(name))
+		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, sets.NewString(name))
 		if err != nil {
 			return fmt.Errorf("unexpected error generating label selector: %v", err)
 		}
@@ -279,4 +281,27 @@ func ExtendedTestPath() string {
 // The path is relative to EXTENDED_TEST_PATH (./test/extended/*)
 func FixturePath(elem ...string) string {
 	return filepath.Join(append([]string{ExtendedTestPath()}, elem...)...)
+}
+
+// FetchURL grabs the output from the specified url and returns it.
+// It will retry once per second for duration retryTimeout if an error occurs during the request.
+func FetchURL(url string, retryTimeout time.Duration) (response string, err error) {
+
+	waitFunc := func() (bool, error) {
+		r, err := http.Get(url)
+		if err != nil {
+			// lie to the poller that we didn't get an error even though we did
+			// because otherwise it's going to give up.
+			return false, nil
+		}
+		defer r.Body.Close()
+		bytes, err := ioutil.ReadAll(r.Body)
+		response = string(bytes)
+		return true, nil
+	}
+	pollErr := wait.Poll(time.Duration(1*time.Second), retryTimeout, waitFunc)
+	if pollErr != nil {
+		return "", pollErr
+	}
+	return
 }

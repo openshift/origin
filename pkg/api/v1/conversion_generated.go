@@ -720,6 +720,12 @@ func convert_api_BuildSource_To_v1_BuildSource(in *buildapi.BuildSource, out *ap
 		defaulting.(func(*buildapi.BuildSource))(in)
 	}
 	out.Type = apiv1.BuildSourceType(in.Type)
+	if in.Dockerfile != nil {
+		out.Dockerfile = new(string)
+		*out.Dockerfile = *in.Dockerfile
+	} else {
+		out.Dockerfile = nil
+	}
 	if in.Git != nil {
 		out.Git = new(apiv1.GitBuildSource)
 		if err := convert_api_GitBuildSource_To_v1_GitBuildSource(in.Git, out.Git, s); err != nil {
@@ -790,6 +796,7 @@ func convert_api_BuildStatus_To_v1_BuildStatus(in *buildapi.BuildStatus, out *ap
 		out.CompletionTimestamp = nil
 	}
 	out.Duration = in.Duration
+	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
 		out.Config = new(pkgapiv1.ObjectReference)
 		if err := convert_api_ObjectReference_To_v1_ObjectReference(in.Config, out.Config, s); err != nil {
@@ -1101,6 +1108,12 @@ func convert_v1_BuildSource_To_api_BuildSource(in *apiv1.BuildSource, out *build
 		defaulting.(func(*apiv1.BuildSource))(in)
 	}
 	out.Type = buildapi.BuildSourceType(in.Type)
+	if in.Dockerfile != nil {
+		out.Dockerfile = new(string)
+		*out.Dockerfile = *in.Dockerfile
+	} else {
+		out.Dockerfile = nil
+	}
 	if in.Git != nil {
 		out.Git = new(buildapi.GitBuildSource)
 		if err := convert_v1_GitBuildSource_To_api_GitBuildSource(in.Git, out.Git, s); err != nil {
@@ -1171,6 +1184,7 @@ func convert_v1_BuildStatus_To_api_BuildStatus(in *apiv1.BuildStatus, out *build
 		out.CompletionTimestamp = nil
 	}
 	out.Duration = in.Duration
+	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
 		out.Config = new(pkgapi.ObjectReference)
 		if err := convert_v1_ObjectReference_To_api_ObjectReference(in.Config, out.Config, s); err != nil {
@@ -3016,6 +3030,12 @@ func convert_api_ObjectMeta_To_v1_ObjectMeta(in *pkgapi.ObjectMeta, out *pkgapiv
 	} else {
 		out.DeletionTimestamp = nil
 	}
+	if in.DeletionGracePeriodSeconds != nil {
+		out.DeletionGracePeriodSeconds = new(int64)
+		*out.DeletionGracePeriodSeconds = *in.DeletionGracePeriodSeconds
+	} else {
+		out.DeletionGracePeriodSeconds = nil
+	}
 	if in.Labels != nil {
 		out.Labels = make(map[string]string)
 		for key, val := range in.Labels {
@@ -3167,6 +3187,12 @@ func convert_v1_ObjectMeta_To_api_ObjectMeta(in *pkgapiv1.ObjectMeta, out *pkgap
 		}
 	} else {
 		out.DeletionTimestamp = nil
+	}
+	if in.DeletionGracePeriodSeconds != nil {
+		out.DeletionGracePeriodSeconds = new(int64)
+		*out.DeletionGracePeriodSeconds = *in.DeletionGracePeriodSeconds
+	} else {
+		out.DeletionGracePeriodSeconds = nil
 	}
 	if in.Labels != nil {
 		out.Labels = make(map[string]string)

@@ -3,7 +3,7 @@ package api
 import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -638,7 +638,7 @@ const (
 	GrantHandlerDeny GrantHandlerType = "deny"
 )
 
-var ValidGrantHandlerTypes = util.NewStringSet(string(GrantHandlerAuto), string(GrantHandlerPrompt), string(GrantHandlerDeny))
+var ValidGrantHandlerTypes = sets.NewString(string(GrantHandlerAuto), string(GrantHandlerPrompt), string(GrantHandlerDeny))
 
 type EtcdConfig struct {
 	// ServingInfo describes how to start serving the etcd master
@@ -711,4 +711,131 @@ type AssetExtensionsConfig struct {
 	// mode enabled. If HTML5Mode is true, also rewrite the base element in index.html with the
 	// Web Console's context root. Defaults to false.
 	HTML5Mode bool
+}
+
+type LDAPSyncConfig struct {
+	api.TypeMeta
+	// Host is the scheme, host and port of the LDAP server to connect to:
+	// scheme://host:port
+	Host string
+	// BindDN is an optional DN to bind with during the search phase.
+	BindDN string
+	// BindPassword is an optional password to bind with during the search phase.
+	BindPassword string
+	// Insecure, if true, indicates the connection should not use TLS.
+	// Cannot be set to true with a URL scheme of "ldaps://"
+	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830
+	Insecure bool
+	// CA is the optional trusted certificate authority bundle to use when making requests to the server
+	// If empty, the default system roots are used
+	CA string
+
+	// LDAPGroupUIDToOpenShiftGroupNameMapping is an optional direct mapping of LDAP group UIDs to
+	// OpenShift Group names
+	LDAPGroupUIDToOpenShiftGroupNameMapping map[string]string
+
+	// LDAPSchemaSpecificConfig holds the configuration for retrieving data from the LDAP server.
+	// This set of configuration varies with LDAP server schema.
+	LDAPSchemaSpecificConfig
+}
+
+// LDAPSchemaSpecificConfig holds the schema-specific configuration for data retrieval from the LDAP
+// server. Only one of the members can be specified.
+type LDAPSchemaSpecificConfig struct {
+	// RFC2307Config holds the configuration for extracting data from an LDAP server set up in a fashion
+	// similar to RFC2307: first-class group and user entries, with group membership determined by a
+	// multi-valued attribute on the group entry listing its' members
+	RFC2307Config *RFC2307Config
+
+	// ActiveDirectoryConfig holds the configuration for extracting data from an LDAP server set up in a
+	// fashion similar to that used in Active Directory: first-class user entries, with group membership
+	// determined by a multi-valued attribute on members listing groups they are a member of
+	ActiveDirectoryConfig *ActiveDirectoryConfig
+
+	// AugmentedActiveDirectoryConfig holds the configuration for extracting data from an LDAP server
+	// set up in a fashion similar to that used in Active Directory as described above, with one addition:
+	// first-class group entries exist and are used to hold metadata but not group membership
+	AugmentedActiveDirectoryConfig *AugmentedActiveDirectoryConfig
+}
+
+type RFC2307Config struct {
+	// GroupQuery holds the template for an LDAP query that returns group entries
+	GroupQuery LDAPQuery
+
+	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its' name
+	GroupNameAttributes []string
+
+	// GroupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted
+	// as its' members
+	GroupMembershipAttributes []string
+
+	// UserQuery holds the template for an LDAP query that returns user entries
+	UserQuery LDAPQuery
+
+	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
+	UserNameAttributes []string
+}
+
+type ActiveDirectoryConfig struct {
+	// UsersQuery holds the template for an LDAP query that returns all user entries
+	// that are labelled as being members of a group
+	UsersQuery LDAPQuery
+
+	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
+	UserNameAttributes []string
+
+	// GroupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted
+	// as the groups it is a member of
+	GroupMembershipAttributes []string
+}
+
+type AugmentedActiveDirectoryConfig struct {
+	// GroupQuery holds the template for an LDAP query that returns group entries
+	GroupQuery LDAPQuery
+
+	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its' name
+	GroupNameAttributes []string
+
+	// UsersQuery holds the template for an LDAP query that returns all user entries
+	// that are labelled as being members of a group
+	UsersQuery LDAPQuery
+
+	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
+	UserNameAttributes []string
+
+	// GroupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted
+	// as the groups it is a member of
+	GroupMembershipAttributes []string
+}
+
+type LDAPQuery struct {
+	// The DN of the branch of the directory where all searches should start from
+	BaseDN string
+
+	// The (optional) scope of the search. Can be:
+	// base: only the base object,
+	// one:  all object on the base level,
+	// sub:  the entire subtree
+	// Defaults to the entire subtree if not set
+	Scope string
+
+	// The (optional) behavior of the search with regards to alisases. Can be:
+	// never:  never dereference aliases,
+	// search: only dereference in searching,
+	// base:   only dereference in finding the base object,
+	// always: always dereference
+	// Defaults to always dereferencing if not set
+	DerefAliases string
+
+	// TimeLimit holds the limit of time in seconds that any request to the server can remain outstanding
+	// before the wait for a response is given up. If this is 0, no client-side limit is imposed
+	TimeLimit int
+
+	// Filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN
+	Filter string
+
+	// QueryAttribute is the attribute for a specific filter that, when conjoined with the common filter,
+	// retrieves the specific LDAP entry from the LDAP server. (e.g. "cn", when formatted with "aGroupName"
+	// and conjoined with "objectClass=groupOfNames", becomes (&(objectClass=groupOfNames)(cn=aGroupName))")
+	QueryAttribute string
 }

@@ -20,19 +20,14 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest/resttest"
-	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/storage"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
+	"k8s.io/kubernetes/pkg/registry/registrytest"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/tools"
-	"k8s.io/kubernetes/pkg/tools/etcdtest"
 )
 
-func newEtcdStorage(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
-	fakeEtcdClient := tools.NewFakeEtcdClient(t)
-	fakeEtcdClient.TestIndex = true
-	etcdStorage := etcdstorage.NewEtcdStorage(fakeEtcdClient, testapi.Codec(), etcdtest.PathPrefix())
-	return fakeEtcdClient, etcdStorage
+func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
+	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "")
+	return NewStorage(etcdStorage), fakeClient
 }
 
 func validNewSecurityContextConstraints(name string) *api.SecurityContextConstraints {
@@ -50,9 +45,8 @@ func validNewSecurityContextConstraints(name string) *api.SecurityContextConstra
 }
 
 func TestCreate(t *testing.T) {
-	fakeEtcdClient, etcdStorage := newEtcdStorage(t)
-	storage := NewStorage(etcdStorage)
-	test := resttest.New(t, storage, fakeEtcdClient.SetError).ClusterScope()
+	storage, fakeClient := newStorage(t)
+	test := registrytest.New(t, fakeClient, storage.Etcd).ClusterScope()
 	scc := validNewSecurityContextConstraints("foo")
 	scc.ObjectMeta = api.ObjectMeta{GenerateName: "foo-"}
 	test.TestCreate(
@@ -66,25 +60,15 @@ func TestCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	fakeEtcdClient, etcdStorage := newEtcdStorage(t)
-	storage := NewStorage(etcdStorage)
-	test := resttest.New(t, storage, fakeEtcdClient.SetError).ClusterScope()
-	key := etcdtest.AddPrefix("securitycontextconstraints/foo")
-
-	fakeEtcdClient.ExpectNotFoundGet(key)
-	fakeEtcdClient.ChangeIndex = 2
-	scc := validNewSecurityContextConstraints("foo")
-	existing := validNewSecurityContextConstraints("exists")
-	obj, err := storage.Create(api.NewDefaultContext(), existing)
-	if err != nil {
-		t.Fatalf("unable to create object: %v", err)
-	}
-	older := obj.(*api.SecurityContextConstraints)
-	older.ResourceVersion = "1"
-
+	storage, fakeEtcdClient := newStorage(t)
+	test := registrytest.New(t, fakeEtcdClient, storage.Etcd).ClusterScope()
 	test.TestUpdate(
-		scc,
-		existing,
-		older,
+		validNewSecurityContextConstraints("foo"),
+		// updateFunc
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.SecurityContextConstraints)
+			object.AllowPrivilegedContainer = true
+			return object
+		},
 	)
 }

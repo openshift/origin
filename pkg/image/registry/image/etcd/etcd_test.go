@@ -13,9 +13,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/rest/resttest"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
@@ -67,6 +67,11 @@ func newHelper(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	return fakeEtcdClient, helper
 }
 
+func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
+	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "")
+	return NewREST(etcdStorage), fakeClient
+}
+
 func TestStorage(t *testing.T) {
 	_, helper := newHelper(t)
 	storage := NewREST(helper)
@@ -83,9 +88,8 @@ func validNewImage() *api.Image {
 }
 
 func TestCreate(t *testing.T) {
-	fakeEtcdClient, helper := newHelper(t)
-	storage := NewREST(helper)
-	test := resttest.New(t, storage, fakeEtcdClient.SetError).ClusterScope()
+	storage, fakeClient := newStorage(t)
+	test := registrytest.New(t, fakeClient, storage.store).ClusterScope()
 	image := validNewImage()
 	image.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo"}
 	test.TestCreate(

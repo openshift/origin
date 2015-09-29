@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
-	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -42,16 +42,16 @@ NOTE: This command is intended to simplify the tasks of setting up a Docker regi
   installation. Some configuration beyond this command is still required to make
   your registry persist data.`
 
-	registryExample = `  // Check if default Docker registry ("docker-registry") has been created
+	registryExample = `  # Check if default Docker registry ("docker-registry") has been created
   $ %[1]s %[2]s --dry-run
 
-  // See what the registry would look like if created
+  # See what the registry would look like if created
   $ %[1]s %[2]s -o json
 
-  // Create a registry if it does not exist with two replicas
+  # Create a registry if it does not exist with two replicas
   $ %[1]s %[2]s --replicas=2 --credentials=registry-user.kubeconfig
 
-  // Use a different registry image and see the registry configuration
+  # Use a different registry image and see the registry configuration
   $ %[1]s %[2]s -o yaml --images=myrepo/docker-registry:mytag`
 )
 

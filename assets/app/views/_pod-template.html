@@ -20,12 +20,15 @@
           <div>
             <span class="fa fa-refresh" aria-hidden="true"></span>
             Build:
-            <span ng-if="build | annotation : 'buildNumber'">
-              <a ng-href="project/{{build.metadata.namespace}}/browse/builds#build-{{build.metadata.name}}">#{{build | annotation : 'buildNumber'}}</a>
+            <span ng-if="(build | annotation : 'buildNumber') && build.metadata.labels.buildconfig">
+              <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{build.metadata.labels.buildconfig}}/{{build.metadata.name}}">#{{build | annotation : 'buildNumber'}}</a>
             </span>
-            <span ng-if="!(build | annotation : 'buildNumber')">
-              <a ng-href="project/{{build.metadata.namespace}}/browse/builds#build-{{build.metadata.name}}">{{build.metadata.name}}</a>
+            <span ng-if="!(build | annotation : 'buildNumber') && build.metadata.labels.buildconfig">
+              <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{build.metadata.labels.buildconfig}}/{{build.metadata.name}}">{{build.metadata.name}}</a>
             </span>
+            <span ng-if="!build.metadata.labels.buildconfig">
+              <a ng-href="project/{{build.metadata.namespace}}/browse/builds-noconfig/{{build.metadata.name}}">{{build.metadata.name}}</a>
+            </span>  
             <span ng-if="build.spec.source">
               from
               <span class="fa fa-code" aria-hidden="true" style="margin-right: 0;"></span>

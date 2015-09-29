@@ -3,7 +3,7 @@ package prune
 import (
 	"sort"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -32,7 +32,7 @@ func (m *mergeResolver) Resolve() ([]*buildapi.Build, error) {
 
 // NewOrphanBuildResolver returns a Resolver that matches Build objects with no associated BuildConfig and has a BuildPhase in filter
 func NewOrphanBuildResolver(dataSet DataSet, BuildPhaseFilter []buildapi.BuildPhase) Resolver {
-	filter := util.NewStringSet()
+	filter := sets.NewString()
 	for _, BuildPhase := range BuildPhaseFilter {
 		filter.Insert(string(BuildPhase))
 	}
@@ -45,7 +45,7 @@ func NewOrphanBuildResolver(dataSet DataSet, BuildPhaseFilter []buildapi.BuildPh
 // orphanBuildResolver resolves orphan builds that match the specified filter
 type orphanBuildResolver struct {
 	dataSet          DataSet
-	BuildPhaseFilter util.StringSet
+	BuildPhaseFilter sets.String
 }
 
 // Resolve the matching set of Build objects
@@ -95,8 +95,8 @@ func (o *perBuildConfigResolver) Resolve() ([]*buildapi.Build, error) {
 		return nil, err
 	}
 
-	completeStates := util.NewStringSet(string(buildapi.BuildPhaseComplete))
-	failedStates := util.NewStringSet(string(buildapi.BuildPhaseFailed), string(buildapi.BuildPhaseError), string(buildapi.BuildPhaseCancelled))
+	completeStates := sets.NewString(string(buildapi.BuildPhaseComplete))
+	failedStates := sets.NewString(string(buildapi.BuildPhaseFailed), string(buildapi.BuildPhaseError), string(buildapi.BuildPhaseCancelled))
 
 	prunableBuilds := []*buildapi.Build{}
 	for _, buildConfig := range buildConfigs {

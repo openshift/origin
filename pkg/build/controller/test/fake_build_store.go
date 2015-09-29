@@ -2,7 +2,7 @@ package test
 
 import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 type FakeBuildStore struct {
@@ -34,8 +34,8 @@ func (s FakeBuildStore) ListKeys() []string {
 	return []string{"build"}
 }
 
-func (s FakeBuildStore) ContainedIDs() util.StringSet {
-	return util.NewStringSet()
+func (s FakeBuildStore) ContainedIDs() sets.String {
+	return sets.NewString()
 }
 
 func (s FakeBuildStore) Get(obj interface{}) (interface{}, bool, error) {
@@ -53,6 +53,6 @@ func (s FakeBuildStore) GetByKey(id string) (interface{}, bool, error) {
 	return s.Build, true, nil
 }
 
-func (s FakeBuildStore) Replace(list []interface{}) error {
+func (s FakeBuildStore) Replace(list []interface{}, resourceVersion string) error {
 	return nil
 }

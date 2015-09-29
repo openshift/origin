@@ -3,12 +3,20 @@
 set -ex
 source $(dirname $0)/provision-config.sh
 
-NETWORK_PLUGIN=$(os::util::get-network-plugin ${5:-""})
+FIXUP_NET_UDEV=$5
 
-NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
-sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
+NETWORK_PLUGIN=$(os::util::get-network-plugin ${6:-""})
 
-systemctl restart network
+if [ "${FIXUP_NET_UDEV}" == "true" ]; then
+  NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
+  rm -f ${NETWORK_CONF_PATH}ifcfg-enp*
+  if [[ -f "${NETWORK_CONF_PATH}ifcfg-eth1" ]]; then
+    sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
+    nmcli con reload
+    nmcli dev disconnect eth1
+    nmcli dev connect eth1
+  fi
+fi
 
 # Setup hosts file to ensure name resolution to each member of the cluster
 minion_ip_array=(${MINION_IPS//,/ })

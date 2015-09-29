@@ -13,6 +13,8 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/util.sh"
+os::log::install_errexit
 
 # Go to the top of the tree.
 cd "${OS_ROOT}"
@@ -24,15 +26,13 @@ if [[ ! -d _output/local/releases ]]; then
 fi
 
 # Extract the release achives to a staging area.
-os::build::detect_local_release_tars "linux"
+os::build::detect_local_release_tars "linux-amd64"
 
 echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"
 echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
 echo " image:   $(basename ${OS_IMAGE_RELEASE_TAR})"
 
-imagedir="_output/imagecontext"
-rm -rf "${imagedir}"
-mkdir -p "${imagedir}"
+imagedir="$(mktemp -d 2>/dev/null || mktemp -d -t imagedir.XXXXXX)"
 tar xzpf "${OS_PRIMARY_RELEASE_TAR}" -C "${imagedir}"
 tar xzpf "${OS_IMAGE_RELEASE_TAR}" -C "${imagedir}"
 

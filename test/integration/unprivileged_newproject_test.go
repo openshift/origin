@@ -20,10 +20,11 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -86,13 +87,13 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	namespace := "foo"
 	templateName := "bar"
 
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	masterOptions.ProjectConfig.ProjectRequestTemplate = namespace + "/" + templateName
 
-	clusterAdminKubeConfig, err := testutil.StartConfiguredMaster(masterOptions)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -175,7 +176,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 }
 
 func TestUnprivilegedNewProjectDenied(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

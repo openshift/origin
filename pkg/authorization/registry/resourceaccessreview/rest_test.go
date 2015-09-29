@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -18,10 +19,10 @@ type resourceAccessTest struct {
 }
 
 type testAuthorizer struct {
-	users            util.StringSet
-	groups           util.StringSet
+	users            sets.String
+	groups           sets.String
 	err              string
-	deniedNamespaces util.StringSet
+	deniedNamespaces sets.String
 
 	actualAttributes authorizer.DefaultAuthorizationAttributes
 }
@@ -38,7 +39,7 @@ func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Autho
 
 	return false, "", errors.New("unsupported")
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
+func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
 	attributes, ok := passedAttributes.(authorizer.DefaultAuthorizationAttributes)
 	if !ok {
 		return nil, nil, errors.New("unexpected type for test")
@@ -54,10 +55,10 @@ func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes a
 func TestDeniedNamespace(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			users:            util.StringSet{},
-			groups:           util.StringSet{},
+			users:            sets.String{},
+			groups:           sets.String{},
 			err:              "denied initial check",
-			deniedNamespaces: util.NewStringSet("foo"),
+			deniedNamespaces: sets.NewString("foo"),
 		},
 		reviewRequest: &authorizationapi.ResourceAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
@@ -74,8 +75,8 @@ func TestDeniedNamespace(t *testing.T) {
 func TestEmptyReturn(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			users:  util.StringSet{},
-			groups: util.StringSet{},
+			users:  sets.String{},
+			groups: sets.String{},
 		},
 		reviewRequest: &authorizationapi.ResourceAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
@@ -91,8 +92,8 @@ func TestEmptyReturn(t *testing.T) {
 func TestNoErrors(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			users:  util.NewStringSet("one", "two"),
-			groups: util.NewStringSet("three", "four"),
+			users:  sets.NewString("one", "two"),
+			groups: sets.NewString("three", "four"),
 		},
 		reviewRequest: &authorizationapi.ResourceAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
@@ -108,8 +109,8 @@ func TestNoErrors(t *testing.T) {
 func TestErrors(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			users:  util.StringSet{},
-			groups: util.StringSet{},
+			users:  sets.String{},
+			groups: sets.String{},
 			err:    "some-random-failure",
 		},
 		reviewRequest: &authorizationapi.ResourceAccessReview{
