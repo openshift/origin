@@ -63,8 +63,8 @@
           </div>
           <div>Routes:</div>
           <div>
-            <span ng-if="(routesByService[service.metadata.name] | hashSize) == 0"><em>none</em></span>
-            <span ng-repeat="(routeName, route) in routesByService[service.metadata.name]">
+            <span ng-if="!routesForService.length"><em>none</em></span>
+            <span ng-repeat="route in routesForService">
                 <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
                 <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
                 <span ng-show="!$last">, </span>
