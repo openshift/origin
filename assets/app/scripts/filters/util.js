@@ -125,15 +125,15 @@ angular.module('openshiftConsole')
     return function(type) {
       switch(type) {
         case "cli":
-          return "https://docs.openshift.org/latest/cli_reference/overview.html";
+          return "https://docs.openshift.com/enterprise/3.0/cli_reference/overview.html";
         case "get_started_cli":
-          return "https://docs.openshift.org/latest/cli_reference/get_started_cli.html";
+          return "https://docs.openshift.com/enterprise/3.0/cli_reference/get_started_cli.html";
         case "basic_cli_operations":
-          return "https://docs.openshift.org/latest/cli_reference/basic_cli_operations.html";
+          return "https://docs.openshift.com/enterprise/3.0/cli_reference/basic_cli_operations.html";
         case "webhooks":
-          return "http://docs.openshift.org/latest/dev_guide/builds.html#webhook-triggers";
+          return "http://docs.openshift.com/enterprise/3.0/dev_guide/builds.html#webhook-triggers";
         case "new_app":
-          return "http://docs.openshift.org/latest/dev_guide/new_app.html";
+          return "http://docs.openshift.com/enterprise/3.0/dev_guide/new_app.html";
         case "start-build":
           return "http://docs.openshift.com/enterprise/3.0/dev_guide/builds.html#starting-a-build";
         case "deployment-operations":
