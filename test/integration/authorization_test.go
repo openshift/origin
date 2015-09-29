@@ -299,6 +299,24 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		test.response.Groups.Insert("system:cluster-readers")
 		test.run(t)
 	}
+
+	{
+		if err := clusterAdminClient.ClusterRoles().Delete(bootstrappolicy.AdminRoleName); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		test := localResourceAccessReviewTest{
+			clientInterface: clusterAdminClient.LocalResourceAccessReviews("mallet-project"),
+			review:          localRequestWhoCanViewDeployments,
+			response: authorizationapi.ResourceAccessReviewResponse{
+				Users:     sets.NewString("edgar"),
+				Groups:    globalClusterAdminGroups,
+				Namespace: "mallet-project",
+			},
+		}
+		test.response.Users.Insert(globalClusterAdminUsers.List()...)
+		test.response.Groups.Insert("system:cluster-readers")
+		test.run(t)
+	}
 }
 
 type subjectAccessReviewTest struct {
