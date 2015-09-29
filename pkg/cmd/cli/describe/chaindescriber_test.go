@@ -7,8 +7,8 @@ import (
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
-	kutil "k8s.io/kubernetes/pkg/util"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
@@ -17,7 +17,7 @@ import (
 func TestChainDescriber(t *testing.T) {
 	tests := []struct {
 		testName         string
-		namespaces       kutil.StringSet
+		namespaces       sets.String
 		output           string
 		defaultNamespace string
 		name             string
@@ -30,7 +30,7 @@ func TestChainDescriber(t *testing.T) {
 	}{
 		{
 			testName:         "human readable test - single namespace",
-			namespaces:       kutil.NewStringSet("test"),
+			namespaces:       sets.NewString("test"),
 			output:           "",
 			defaultNamespace: "test",
 			name:             "ruby-20-centos7",
@@ -47,7 +47,7 @@ func TestChainDescriber(t *testing.T) {
 		},
 		{
 			testName:         "dot test - single namespace",
-			namespaces:       kutil.NewStringSet("test"),
+			namespaces:       sets.NewString("test"),
 			output:           "dot",
 			defaultNamespace: "test",
 			name:             "ruby-20-centos7",
@@ -73,7 +73,7 @@ func TestChainDescriber(t *testing.T) {
 		},
 		{
 			testName:         "human readable test - multiple namespaces",
-			namespaces:       kutil.NewStringSet("test", "master", "default"),
+			namespaces:       sets.NewString("test", "master", "default"),
 			output:           "",
 			defaultNamespace: "master",
 			name:             "ruby-20-centos7",
@@ -90,7 +90,7 @@ func TestChainDescriber(t *testing.T) {
 		},
 		{
 			testName:         "dot test - multiple namespaces",
-			namespaces:       kutil.NewStringSet("test", "master", "default"),
+			namespaces:       sets.NewString("test", "master", "default"),
 			output:           "dot",
 			defaultNamespace: "master",
 			name:             "ruby-20-centos7",
@@ -120,7 +120,7 @@ func TestChainDescriber(t *testing.T) {
 			defaultNamespace: "test",
 			tag:              "latest",
 			path:             "../../../../pkg/cmd/experimental/buildchain/test/multiple-trigger-bcs.yaml",
-			namespaces:       kutil.NewStringSet("test"),
+			namespaces:       sets.NewString("test"),
 			humanReadable: map[string]int{
 				"imagestreamtag/ruby-20-centos7:latest":   1,
 				"\tbc/parent1":                            1,
@@ -143,7 +143,7 @@ func TestChainDescriber(t *testing.T) {
 			defaultNamespace: "test",
 			tag:              "latest",
 			path:             "../../../../pkg/cmd/experimental/buildchain/test/multiple-trigger-bcs.yaml",
-			namespaces:       kutil.NewStringSet("test"),
+			namespaces:       sets.NewString("test"),
 			includeInputImg:  true,
 			humanReadable: map[string]int{
 				"imagestreamtag/ruby-20-centos7:latest":   1,

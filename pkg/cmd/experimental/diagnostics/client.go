@@ -3,8 +3,8 @@ package diagnostics
 import (
 	"fmt"
 
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
-	"k8s.io/kubernetes/pkg/util"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	clientdiags "github.com/openshift/origin/pkg/diagnostics/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -13,7 +13,7 @@ import (
 var (
 	// availableClientDiagnostics contains the names of client diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClientDiagnostics = util.NewStringSet(clientdiags.ConfigContextsName)
+	availableClientDiagnostics = sets.NewString(clientdiags.ConfigContextsName)
 )
 
 // buildClientDiagnostics builds client Diagnostic objects based on the rawConfig passed in.
@@ -25,11 +25,11 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 	_, _, clientErr := o.Factory.Clients()
 	if clientErr != nil {
 		o.Logger.Notice("CED0001", "Failed creating client from config; client diagnostics will be limited to config testing")
-		available = util.NewStringSet(clientdiags.ConfigContextsName)
+		available = sets.NewString(clientdiags.ConfigContextsName)
 	}
 
 	diagnostics := []types.Diagnostic{}
-	requestedDiagnostics := intersection(util.NewStringSet(o.RequestedDiagnostics...), available).List()
+	requestedDiagnostics := intersection(sets.NewString(o.RequestedDiagnostics...), available).List()
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 		case clientdiags.ConfigContextsName:

@@ -4,6 +4,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // Authorization is calculated against
@@ -103,28 +104,28 @@ var (
 
 func init() {
 	// set the non-escalating groups
-	GroupsToResources[OpenshiftNonEscalatingViewableGroupName] = ExpandResources(util.NewStringSet(GroupsToResources[OpenshiftAllGroupName]...)).
-		Difference(ExpandResources(util.NewStringSet(GroupsToResources[OpenshiftEscalatingViewableGroupName]...))).List()
+	GroupsToResources[OpenshiftNonEscalatingViewableGroupName] = ExpandResources(sets.NewString(GroupsToResources[OpenshiftAllGroupName]...)).
+		Difference(ExpandResources(sets.NewString(GroupsToResources[OpenshiftEscalatingViewableGroupName]...))).List()
 
-	GroupsToResources[KubeNonEscalatingViewableGroupName] = ExpandResources(util.NewStringSet(GroupsToResources[KubeAllGroupName]...)).
-		Difference(ExpandResources(util.NewStringSet(GroupsToResources[KubeEscalatingViewableGroupName]...))).List()
+	GroupsToResources[KubeNonEscalatingViewableGroupName] = ExpandResources(sets.NewString(GroupsToResources[KubeAllGroupName]...)).
+		Difference(ExpandResources(sets.NewString(GroupsToResources[KubeEscalatingViewableGroupName]...))).List()
 }
 
 // PolicyRule holds information that describes a policy rule, but does not contain information
 // about who the rule applies to or which namespace the rule applies to.
 type PolicyRule struct {
 	// Verbs is a list of Verbs that apply to ALL the ResourceKinds and AttributeRestrictions contained in this rule.  VerbAll represents all kinds.
-	Verbs util.StringSet
+	Verbs sets.String
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
 	AttributeRestrictions kruntime.EmbeddedObject
 	// Resources is a list of resources this rule applies to.  ResourceAll represents all resources.
-	Resources util.StringSet
+	Resources sets.String
 	// ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
-	ResourceNames util.StringSet
+	ResourceNames sets.String
 	// NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
 	// If an action is not a resource API request, then the URL is split on '/' and is checked against the NonResourceURLs to look for a match.
-	NonResourceURLs util.StringSet
+	NonResourceURLs sets.String
 }
 
 // IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
@@ -192,9 +193,9 @@ type ResourceAccessReviewResponse struct {
 	// Namespace is the namespace used for the access review
 	Namespace string
 	// Users is the list of users who can perform the action
-	Users util.StringSet
+	Users sets.String
 	// Groups is the list of groups who can perform the action
-	Groups util.StringSet
+	Groups sets.String
 }
 
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
@@ -227,7 +228,7 @@ type SubjectAccessReview struct {
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
-	Groups util.StringSet
+	Groups sets.String
 }
 
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
@@ -247,7 +248,7 @@ type LocalSubjectAccessReview struct {
 	// User is optional.  If both User and Groups are empty, the current authenticated user is used.
 	User string
 	// Groups is optional.  Groups is the list of groups to which the User belongs.
-	Groups util.StringSet
+	Groups sets.String
 }
 
 type AuthorizationAttributes struct {

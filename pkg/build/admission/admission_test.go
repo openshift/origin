@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/user"
-	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -153,27 +153,27 @@ func fakeUser() user.Info {
 
 func fakeClient(expectedResource string, reviewResponse *authorizationapi.SubjectAccessReviewResponse, obj runtime.Object) client.Interface {
 	emptyResponse := &authorizationapi.SubjectAccessReviewResponse{}
-	return &testclient.Fake{
-		ReactFn: func(action ktestclient.Action) (runtime.Object, error) {
-			switch {
-			case action.Matches("create", "localsubjectaccessreviews"):
-				review, ok := action.(ktestclient.CreateAction).GetObject().(*authorizationapi.LocalSubjectAccessReview)
-				if !ok {
-					return emptyResponse, fmt.Errorf("unexpected object received: %#v", review)
-				}
-				if review.Action.Resource != expectedResource {
-					return emptyResponse, fmt.Errorf("unexpected resource received: %s. expected: %s",
-						review.Action.Resource, expectedResource)
-				}
-				return reviewResponse, nil
-			case action.Matches("get", "buildconfigs"):
-				return obj, nil
-			case action.Matches("get", "builds"):
-				return obj, nil
-			}
-			return nil, nil
-		},
-	}
+
+	fake := &testclient.Fake{}
+	fake.AddReactor("create", "localsubjectaccessreviews", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		review, ok := action.(ktestclient.CreateAction).GetObject().(*authorizationapi.LocalSubjectAccessReview)
+		if !ok {
+			return true, emptyResponse, fmt.Errorf("unexpected object received: %#v", review)
+		}
+		if review.Action.Resource != expectedResource {
+			return true, emptyResponse, fmt.Errorf("unexpected resource received: %s. expected: %s",
+				review.Action.Resource, expectedResource)
+		}
+		return true, reviewResponse, nil
+	})
+	fake.AddReactor("get", "buildconfigs", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, obj, nil
+	})
+	fake.AddReactor("get", "builds", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, obj, nil
+	})
+
+	return fake
 }
 
 func testBuild(strategy buildapi.BuildStrategyType) *buildapi.Build {

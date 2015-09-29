@@ -6,7 +6,7 @@ import (
 	"os"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 func NewUserOpenShiftClient(bearerToken string) (*osclient.Client, error) {

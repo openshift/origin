@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktc "k8s.io/kubernetes/pkg/client/testclient"
+	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"

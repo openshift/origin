@@ -8,15 +8,15 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	// uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
-func ExpandResources(rawResources kutil.StringSet) kutil.StringSet {
-	ret := kutil.StringSet{}
+func ExpandResources(rawResources sets.String) sets.String {
+	ret := sets.String{}
 	toVisit := rawResources.List()
-	visited := kutil.StringSet{}
+	visited := sets.String{}
 
 	for i := 0; i < len(toVisit); i++ {
 		currResource := toVisit[i]

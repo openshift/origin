@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -174,8 +175,8 @@ func ValidateAPILevels(apiLevels []string, knownAPILevels, deadAPILevels []strin
 		validationResults.AddErrors(fielderrors.NewFieldRequired(name))
 	}
 
-	deadLevels := util.NewStringSet(deadAPILevels...)
-	knownLevels := util.NewStringSet(knownAPILevels...)
+	deadLevels := sets.NewString(deadAPILevels...)
+	knownLevels := sets.NewString(knownAPILevels...)
 	for i, apiLevel := range apiLevels {
 		if deadLevels.Has(apiLevel) {
 			validationResults.AddWarnings(fielderrors.NewFieldInvalid(fmt.Sprintf(name+"[%d]", i), apiLevel, "unsupported level"))
@@ -211,7 +212,7 @@ func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.Validat
 func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubernetes bool) ValidationResults {
 	validationResults := ValidationResults{}
 
-	managedNames := util.NewStringSet(config.ManagedNames...)
+	managedNames := sets.NewString(config.ManagedNames...)
 	if !managedNames.Has(bootstrappolicy.BuilderServiceAccountName) {
 		validationResults.AddWarnings(fielderrors.NewFieldInvalid("managedNames", "", fmt.Sprintf("missing %q, which will require manual creation in each namespace before builds can run", bootstrappolicy.BuilderServiceAccountName)))
 	}

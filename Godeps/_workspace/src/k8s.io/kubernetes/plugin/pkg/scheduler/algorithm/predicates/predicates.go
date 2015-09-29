@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 
@@ -127,12 +127,12 @@ func CheckPodsExceedingFreeResources(pods []*api.Pod, capacity api.ResourceList)
 		fitsCPU := totalMilliCPU == 0 || (totalMilliCPU-milliCPURequested) >= podRequest.milliCPU
 		fitsMemory := totalMemory == 0 || (totalMemory-memoryRequested) >= podRequest.memory
 		if !fitsCPU {
-			// the pod doesn't fit due to CPU limit
+			// the pod doesn't fit due to CPU request
 			notFittingCPU = append(notFittingCPU, pod)
 			continue
 		}
 		if !fitsMemory {
-			// the pod doesn't fit due to Memory limit
+			// the pod doesn't fit due to Memory request
 			notFittingMemory = append(notFittingMemory, pod)
 			continue
 		}

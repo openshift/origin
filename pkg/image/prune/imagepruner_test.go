@@ -10,12 +10,16 @@ import (
 	"testing"
 	"time"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
 )
 
 type fakeRegistryPinger struct {
@@ -318,7 +322,7 @@ func buildSpec(strategyType buildapi.BuildStrategyType, fromKind, fromNamespace,
 }
 
 type fakeImagePruner struct {
-	invocations util.StringSet
+	invocations sets.String
 	err         error
 }
 
@@ -330,7 +334,7 @@ func (p *fakeImagePruner) PruneImage(image *imageapi.Image) error {
 }
 
 type fakeImageStreamPruner struct {
-	invocations util.StringSet
+	invocations sets.String
 	err         error
 }
 
@@ -342,7 +346,7 @@ func (p *fakeImageStreamPruner) PruneImageStream(stream *imageapi.ImageStream, i
 }
 
 type fakeBlobPruner struct {
-	invocations util.StringSet
+	invocations sets.String
 	err         error
 }
 
@@ -354,7 +358,7 @@ func (p *fakeBlobPruner) PruneBlob(registryClient *http.Client, registryURL, blo
 }
 
 type fakeLayerPruner struct {
-	invocations util.StringSet
+	invocations sets.String
 	err         error
 }
 
@@ -366,7 +370,7 @@ func (p *fakeLayerPruner) PruneLayer(registryClient *http.Client, registryURL, r
 }
 
 type fakeManifestPruner struct {
-	invocations util.StringSet
+	invocations sets.String
 	err         error
 }
 
@@ -680,20 +684,20 @@ func TestImagePruning(t *testing.T) {
 		p := NewImageRegistryPruner(options)
 		p.(*imageRegistryPruner).registryPinger = &fakeRegistryPinger{}
 
-		imagePruner := &fakeImagePruner{invocations: util.NewStringSet()}
-		streamPruner := &fakeImageStreamPruner{invocations: util.NewStringSet()}
-		layerPruner := &fakeLayerPruner{invocations: util.NewStringSet()}
-		blobPruner := &fakeBlobPruner{invocations: util.NewStringSet()}
-		manifestPruner := &fakeManifestPruner{invocations: util.NewStringSet()}
+		imagePruner := &fakeImagePruner{invocations: sets.NewString()}
+		streamPruner := &fakeImageStreamPruner{invocations: sets.NewString()}
+		layerPruner := &fakeLayerPruner{invocations: sets.NewString()}
+		blobPruner := &fakeBlobPruner{invocations: sets.NewString()}
+		manifestPruner := &fakeManifestPruner{invocations: sets.NewString()}
 
 		p.Prune(imagePruner, streamPruner, layerPruner, blobPruner, manifestPruner)
 
-		expectedDeletions := util.NewStringSet(test.expectedDeletions...)
+		expectedDeletions := sets.NewString(test.expectedDeletions...)
 		if !reflect.DeepEqual(expectedDeletions, imagePruner.invocations) {
 			t.Errorf("%s: expected image deletions %q, got %q", name, expectedDeletions.List(), imagePruner.invocations.List())
 		}
 
-		expectedUpdatedStreams := util.NewStringSet(test.expectedUpdatedStreams...)
+		expectedUpdatedStreams := sets.NewString(test.expectedUpdatedStreams...)
 		if !reflect.DeepEqual(expectedUpdatedStreams, streamPruner.invocations) {
 			t.Errorf("%s: expected stream updates %q, got %q", name, expectedUpdatedStreams.List(), streamPruner.invocations.List())
 		}
@@ -714,7 +718,9 @@ func TestDeletingImagePruner(t *testing.T) {
 
 	for name, test := range tests {
 		imageClient := testclient.Fake{}
-		imageClient.SetErr(test.imageDeletionError)
+		imageClient.AddReactor("delete", "images", func(action ktc.Action) (handled bool, ret runtime.Object, err error) {
+			return true, nil, test.imageDeletionError
+		})
 		imagePruner := NewDeletingImagePruner(imageClient.Images())
 		err := imagePruner.PruneImage(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "id2"}})
 		if test.imageDeletionError != nil {
@@ -741,9 +747,9 @@ func TestRegistryPruning(t *testing.T) {
 	tests := map[string]struct {
 		images                    imageapi.ImageList
 		streams                   imageapi.ImageStreamList
-		expectedLayerDeletions    util.StringSet
-		expectedBlobDeletions     util.StringSet
-		expectedManifestDeletions util.StringSet
+		expectedLayerDeletions    sets.String
+		expectedBlobDeletions     sets.String
+		expectedManifestDeletions sets.String
 		pingErr                   error
 	}{
 		"layers unique to id1 pruned": {
@@ -764,15 +770,15 @@ func TestRegistryPruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedLayerDeletions: util.NewStringSet(
+			expectedLayerDeletions: sets.NewString(
 				"registry1|foo/bar|layer1",
 				"registry1|foo/bar|layer2",
 			),
-			expectedBlobDeletions: util.NewStringSet(
+			expectedBlobDeletions: sets.NewString(
 				"registry1|layer1",
 				"registry1|layer2",
 			),
-			expectedManifestDeletions: util.NewStringSet(
+			expectedManifestDeletions: sets.NewString(
 				"registry1|foo/bar|id1",
 			),
 		},
@@ -787,17 +793,17 @@ func TestRegistryPruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedLayerDeletions:    util.NewStringSet(),
-			expectedBlobDeletions:     util.NewStringSet(),
-			expectedManifestDeletions: util.NewStringSet(),
+			expectedLayerDeletions:    sets.NewString(),
+			expectedBlobDeletions:     sets.NewString(),
+			expectedManifestDeletions: sets.NewString(),
 		},
 		"blobs pruned when streams have already been deleted": {
 			images: imageList(
 				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
 				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
 			),
-			expectedLayerDeletions: util.NewStringSet(),
-			expectedBlobDeletions: util.NewStringSet(
+			expectedLayerDeletions: sets.NewString(),
+			expectedBlobDeletions: sets.NewString(
 				"registry1|layer1",
 				"registry1|layer2",
 				"registry1|layer3",
@@ -805,7 +811,7 @@ func TestRegistryPruning(t *testing.T) {
 				"registry1|layer5",
 				"registry1|layer6",
 			),
-			expectedManifestDeletions: util.NewStringSet(),
+			expectedManifestDeletions: sets.NewString(),
 		},
 		"ping error": {
 			images: imageList(
@@ -825,9 +831,9 @@ func TestRegistryPruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedLayerDeletions:    util.NewStringSet(),
-			expectedBlobDeletions:     util.NewStringSet(),
-			expectedManifestDeletions: util.NewStringSet(),
+			expectedLayerDeletions:    sets.NewString(),
+			expectedBlobDeletions:     sets.NewString(),
+			expectedManifestDeletions: sets.NewString(),
 			pingErr:                   errors.New("foo"),
 		},
 	}
@@ -854,11 +860,11 @@ func TestRegistryPruning(t *testing.T) {
 		p := NewImageRegistryPruner(options)
 		p.(*imageRegistryPruner).registryPinger = &fakeRegistryPinger{err: test.pingErr}
 
-		imagePruner := &fakeImagePruner{invocations: util.NewStringSet()}
-		streamPruner := &fakeImageStreamPruner{invocations: util.NewStringSet()}
-		layerPruner := &fakeLayerPruner{invocations: util.NewStringSet()}
-		blobPruner := &fakeBlobPruner{invocations: util.NewStringSet()}
-		manifestPruner := &fakeManifestPruner{invocations: util.NewStringSet()}
+		imagePruner := &fakeImagePruner{invocations: sets.NewString()}
+		streamPruner := &fakeImageStreamPruner{invocations: sets.NewString()}
+		layerPruner := &fakeLayerPruner{invocations: sets.NewString()}
+		blobPruner := &fakeBlobPruner{invocations: sets.NewString()}
+		manifestPruner := &fakeManifestPruner{invocations: sets.NewString()}
 
 		p.Prune(imagePruner, streamPruner, layerPruner, blobPruner, manifestPruner)
 

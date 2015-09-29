@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )

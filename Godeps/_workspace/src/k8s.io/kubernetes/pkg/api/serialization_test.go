@@ -31,11 +31,15 @@ import (
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
+
+	_ "k8s.io/kubernetes/pkg/apis/experimental"
+	_ "k8s.io/kubernetes/pkg/apis/experimental/v1"
 
 	flag "github.com/spf13/pflag"
 )
 
-var fuzzIters = flag.Int("fuzz_iters", 20, "How many fuzzing iterations to do.")
+var fuzzIters = flag.Int("fuzz-iters", 20, "How many fuzzing iterations to do.")
 
 func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, seed int64) runtime.Object {
 	apitesting.FuzzerFor(t, forVersion, rand.NewSource(seed)).Fuzz(item)
@@ -66,7 +70,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		return
 	}
 	if !api.Semantic.DeepEqual(item, obj2) {
-		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s\nSource: %#v\nFinal: %#v", name, util.ObjectGoPrintDiff(item, obj2), codec, string(data), printer.Sprintf("%#v", item), printer.Sprintf("%#v", obj2))
+		t.Errorf("1: %v: diff: %v\nCodec: %v\nSource:\n\n%#v\n\nEncoded:\n\n%s\n\nFinal:\n\n%#v", name, util.ObjectGoPrintDiff(item, obj2), codec, printer.Sprintf("%#v", item), string(data), printer.Sprintf("%#v", obj2))
 		return
 	}
 
@@ -84,13 +88,13 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 
 // roundTripSame verifies the same source object is tested in all API versions.
 func roundTripSame(t *testing.T, item runtime.Object, except ...string) {
-	set := util.NewStringSet(except...)
+	set := sets.NewString(except...)
 	seed := rand.Int63()
 	fuzzInternalObject(t, "", item, seed)
-	version := testapi.Version()
+	version := testapi.Default.Version()
 	if !set.Has(version) {
 		fuzzInternalObject(t, version, item, seed)
-		roundTrip(t, testapi.Codec(), item)
+		roundTrip(t, testapi.Default.Codec(), item)
 	}
 }
 
@@ -100,12 +104,7 @@ func TestSpecificKind(t *testing.T) {
 	defer api.Scheme.Log(nil)
 
 	kind := "PodList"
-	item, err := api.Scheme.New("", kind)
-	if err != nil {
-		t.Errorf("Couldn't make a %v? %v", kind, err)
-		return
-	}
-	roundTripSame(t, item)
+	doRoundTripTest(kind, t)
 }
 
 func TestList(t *testing.T) {
@@ -121,8 +120,8 @@ func TestList(t *testing.T) {
 	roundTripSame(t, item)
 }
 
-var nonRoundTrippableTypes = util.NewStringSet()
-var nonInternalRoundTrippableTypes = util.NewStringSet("List", "ListOptions", "PodExecOptions", "PodAttachOptions")
+var nonRoundTrippableTypes = sets.NewString()
+var nonInternalRoundTrippableTypes = sets.NewString("List", "ListOptions", "PodExecOptions", "PodAttachOptions")
 var nonRoundTrippableTypesByVersion = map[string][]string{}
 
 func TestRoundTripTypes(t *testing.T) {
@@ -135,22 +134,27 @@ func TestRoundTripTypes(t *testing.T) {
 		}
 		// Try a few times, since runTest uses random values.
 		for i := 0; i < *fuzzIters; i++ {
-			item, err := api.Scheme.New("", kind)
-			if err != nil {
-				t.Fatalf("Couldn't make a %v? %v", kind, err)
-			}
-			if _, err := meta.TypeAccessor(item); err != nil {
-				t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
-			}
-			roundTripSame(t, item, nonRoundTrippableTypesByVersion[kind]...)
-			if !nonInternalRoundTrippableTypes.Has(kind) {
-				roundTrip(t, api.Codec, fuzzInternalObject(t, "", item, rand.Int63()))
-			}
+			doRoundTripTest(kind, t)
 		}
 	}
 }
 
+func doRoundTripTest(kind string, t *testing.T) {
+	item, err := api.Scheme.New("", kind)
+	if err != nil {
+		t.Fatalf("Couldn't make a %v? %v", kind, err)
+	}
+	if _, err := meta.TypeAccessor(item); err != nil {
+		t.Fatalf("%q is not a TypeMeta and cannot be tested - add it to nonRoundTrippableTypes: %v", kind, err)
+	}
+	roundTripSame(t, item, nonRoundTrippableTypesByVersion[kind]...)
+	if !nonInternalRoundTrippableTypes.Has(kind) {
+		roundTrip(t, api.Codec, fuzzInternalObject(t, "", item, rand.Int63()))
+	}
+}
+
 func TestEncode_Ptr(t *testing.T) {
+	grace := int64(30)
 	pod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
 			Labels: map[string]string{"name": "foo"},
@@ -158,6 +162,8 @@ func TestEncode_Ptr(t *testing.T) {
 		Spec: api.PodSpec{
 			RestartPolicy: api.RestartPolicyAlways,
 			DNSPolicy:     api.DNSClusterFirst,
+
+			TerminationGracePeriodSeconds: &grace,
 		},
 	}
 	obj := runtime.Object(pod)

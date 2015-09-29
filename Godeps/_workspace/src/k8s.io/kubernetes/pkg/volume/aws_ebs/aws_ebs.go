@@ -27,7 +27,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/cloudprovider/aws"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/exec"
@@ -190,12 +190,12 @@ func (b *awsElasticBlockStoreBuilder) SetUp() error {
 // SetUpAt attaches the disk and bind mounts to the volume path.
 func (b *awsElasticBlockStoreBuilder) SetUpAt(dir string) error {
 	// TODO: handle failed mounts here.
-	mountpoint, err := b.mounter.IsMountPoint(dir)
-	glog.V(4).Infof("PersistentDisk set up: %s %v %v", dir, mountpoint, err)
+	notMnt, err := b.mounter.IsLikelyNotMountPoint(dir)
+	glog.V(4).Infof("PersistentDisk set up: %s %v %v", dir, !notMnt, err)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if mountpoint {
+	if !notMnt {
 		return nil
 	}
 
@@ -217,22 +217,22 @@ func (b *awsElasticBlockStoreBuilder) SetUpAt(dir string) error {
 	}
 	err = b.mounter.Mount(globalPDPath, dir, "", options)
 	if err != nil {
-		mountpoint, mntErr := b.mounter.IsMountPoint(dir)
+		notMnt, mntErr := b.mounter.IsLikelyNotMountPoint(dir)
 		if mntErr != nil {
-			glog.Errorf("isMountpoint check failed: %v", mntErr)
+			glog.Errorf("IsLikelyNotMountPoint check failed: %v", mntErr)
 			return err
 		}
-		if mountpoint {
+		if !notMnt {
 			if mntErr = b.mounter.Unmount(dir); mntErr != nil {
 				glog.Errorf("Failed to unmount: %v", mntErr)
 				return err
 			}
-			mountpoint, mntErr := b.mounter.IsMountPoint(dir)
+			notMnt, mntErr := b.mounter.IsLikelyNotMountPoint(dir)
 			if mntErr != nil {
-				glog.Errorf("isMountpoint check failed: %v", mntErr)
+				glog.Errorf("IsLikelyNotMountPoint check failed: %v", mntErr)
 				return err
 			}
-			if mountpoint {
+			if !notMnt {
 				// This is very odd, we don't expect it.  We'll try again next sync loop.
 				glog.Errorf("%s is still mounted, despite call to unmount().  Will try again next sync loop.", dir)
 				return err
@@ -296,12 +296,12 @@ func (c *awsElasticBlockStoreCleaner) TearDown() error {
 // Unmounts the bind mount, and detaches the disk only if the PD
 // resource was the last reference to that disk on the kubelet.
 func (c *awsElasticBlockStoreCleaner) TearDownAt(dir string) error {
-	mountpoint, err := c.mounter.IsMountPoint(dir)
+	notMnt, err := c.mounter.IsLikelyNotMountPoint(dir)
 	if err != nil {
 		glog.V(2).Info("Error checking if mountpoint ", dir, ": ", err)
 		return err
 	}
-	if !mountpoint {
+	if notMnt {
 		glog.V(2).Info("Not mountpoint, deleting")
 		return os.Remove(dir)
 	}
@@ -335,12 +335,12 @@ func (c *awsElasticBlockStoreCleaner) TearDownAt(dir string) error {
 	} else {
 		glog.V(2).Infof("Found multiple refs; won't detach EBS volume: %v", refs)
 	}
-	mountpoint, mntErr := c.mounter.IsMountPoint(dir)
+	notMnt, mntErr := c.mounter.IsLikelyNotMountPoint(dir)
 	if mntErr != nil {
-		glog.Errorf("isMountpoint check failed: %v", mntErr)
+		glog.Errorf("IsLikelyNotMountPoint check failed: %v", mntErr)
 		return err
 	}
-	if !mountpoint {
+	if notMnt {
 		if err := os.Remove(dir); err != nil {
 			glog.V(2).Info("Error removing mountpoint ", dir, ": ", err)
 			return err

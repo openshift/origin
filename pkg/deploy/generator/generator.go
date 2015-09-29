@@ -19,7 +19,7 @@ func (BasicDeploymentConfigController) ParamNames() []kubectl.GeneratorParam {
 	return basic.ParamNames()
 }
 
-func (BasicDeploymentConfigController) Generate(genericParams map[string]string) (runtime.Object, error) {
+func (BasicDeploymentConfigController) Generate(genericParams map[string]interface{}) (runtime.Object, error) {
 	obj, err := basic.Generate(genericParams)
 	if err != nil {
 		return nil, err

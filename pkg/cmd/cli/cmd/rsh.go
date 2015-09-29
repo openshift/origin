@@ -27,10 +27,10 @@ Note, some containers may not include a shell - use '%[1]s exec' if you need to 
 directly.`
 
 	rshExample = `
-  // Open a shell session on the first container in pod 'foo'
+  # Open a shell session on the first container in pod 'foo'
   $ %[1]s rsh foo
 
-  // Run the command 'cat /etc/resolv.conf' inside pod 'foo'
+  # Run the command 'cat /etc/resolv.conf' inside pod 'foo'
   $ %[1]s rsh foo cat /etc/resolv.conf`
 )
 

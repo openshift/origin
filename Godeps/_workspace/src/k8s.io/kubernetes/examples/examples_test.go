@@ -194,6 +194,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 		"../examples/glusterfs": {
 			"glusterfs-pod":       &api.Pod{},
 			"glusterfs-endpoints": &api.Endpoints{},
+			"glusterfs-service":   &api.Service{},
 		},
 		"../docs/user-guide/liveness": {
 			"exec-liveness": &api.Pod{},
@@ -236,10 +237,13 @@ func TestExampleObjectSchemas(t *testing.T) {
 		"../docs/user-guide/downward-api": {
 			"dapi-pod": &api.Pod{},
 		},
+		"../docs/user-guide/downward-api/volume/": {
+			"dapi-volume": &api.Pod{},
+		},
 		"../examples/elasticsearch": {
-			"apiserver-secret": nil,
-			"music-rc":         &api.ReplicationController{},
-			"music-service":    &api.Service{},
+			"es-rc":           &api.ReplicationController{},
+			"es-svc":          &api.Service{},
+			"service-account": nil,
 		},
 		"../examples/explorer": {
 			"pod": &api.Pod{},
@@ -331,6 +335,10 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"storm-worker-controller": &api.ReplicationController{},
 			"zookeeper-service":       &api.Service{},
 			"zookeeper":               &api.Pod{},
+		},
+		"../examples/cephfs/": {
+			"cephfs":             &api.Pod{},
+			"cephfs-with-secret": &api.Pod{},
 		},
 	}
 

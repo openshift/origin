@@ -7,10 +7,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	oclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -127,12 +127,12 @@ type projectNames struct {
 	selector labels.Selector
 }
 
-func (n projectNames) NamespaceNames() (util.StringSet, error) {
+func (n projectNames) NamespaceNames() (sets.String, error) {
 	all, err := n.client.List(n.selector, fields.Everything())
 	if err != nil {
 		return nil, err
 	}
-	names := make(util.StringSet, len(all.Items))
+	names := make(sets.String, len(all.Items))
 	for i := range all.Items {
 		names.Insert(all.Items[i].Name)
 	}
@@ -145,12 +145,12 @@ type namespaceNames struct {
 	selector labels.Selector
 }
 
-func (n namespaceNames) NamespaceNames() (util.StringSet, error) {
+func (n namespaceNames) NamespaceNames() (sets.String, error) {
 	all, err := n.client.List(n.selector, fields.Everything())
 	if err != nil {
 		return nil, err
 	}
-	names := make(util.StringSet, len(all.Items))
+	names := make(sets.String, len(all.Items))
 	for i := range all.Items {
 		names.Insert(all.Items[i].Name)
 	}

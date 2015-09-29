@@ -78,7 +78,7 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 
 func (o *NewProjectOptions) complete(args []string) error {
 	if len(args) != 1 {
-		return errors.New("You must specify one argument: project name")
+		return errors.New("you must specify one argument: project name")
 	}
 
 	o.ProjectName = args[0]

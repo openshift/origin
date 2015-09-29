@@ -12,7 +12,7 @@ import (
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -136,8 +136,8 @@ func TestAuthorizationOnlyResolveRolesForBindingsThatMatter(t *testing.T) {
 }
 
 // TODO this list should start collapsing as we continue to tighten access on generated system ids
-var globalClusterAdminUsers = util.NewStringSet()
-var globalClusterAdminGroups = util.NewStringSet("system:cluster-admins", "system:masters")
+var globalClusterAdminUsers = sets.NewString()
+var globalClusterAdminGroups = sets.NewString("system:cluster-admins", "system:masters")
 
 type resourceAccessReviewTest struct {
 	clientInterface client.ResourceAccessReviewInterface
@@ -252,7 +252,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			clientInterface: haroldClient.LocalResourceAccessReviews("hammer-project"),
 			review:          localRequestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:     util.NewStringSet("harold", "valerie"),
+				Users:     sets.NewString("harold", "valerie"),
 				Groups:    globalClusterAdminGroups,
 				Namespace: "hammer-project",
 			},
@@ -266,7 +266,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 			clientInterface: markClient.LocalResourceAccessReviews("mallet-project"),
 			review:          localRequestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
-				Users:     util.NewStringSet("mark", "edgar"),
+				Users:     sets.NewString("mark", "edgar"),
 				Groups:    globalClusterAdminGroups,
 				Namespace: "mallet-project",
 			},
@@ -516,7 +516,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 
 	askCanClusterAdminsCreateProject := &authorizationapi.SubjectAccessReview{
-		Groups: util.NewStringSet("system:cluster-admins"),
+		Groups: sets.NewString("system:cluster-admins"),
 		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "projects"},
 	}
 	subjectAccessReviewTest{
@@ -809,8 +809,8 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     util.NewStringSet("harold", "system:serviceaccount:hammer-project:builder"),
-			Groups:    util.NewStringSet("system:cluster-admins", "system:masters", "system:serviceaccounts:hammer-project"),
+			Users:     sets.NewString("harold", "system:serviceaccount:hammer-project:builder"),
+			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
 			!reflect.DeepEqual(actualResponse.Users.List(), expectedResponse.Users.List()) ||
@@ -836,8 +836,8 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     util.NewStringSet("harold", "system:serviceaccount:hammer-project:builder"),
-			Groups:    util.NewStringSet("system:cluster-admins", "system:masters", "system:serviceaccounts:hammer-project"),
+			Users:     sets.NewString("harold", "system:serviceaccount:hammer-project:builder"),
+			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
 			!reflect.DeepEqual(actualResponse.Users.List(), expectedResponse.Users.List()) ||

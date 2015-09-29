@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -28,7 +28,7 @@ func (r TemplateSearcher) Search(terms ...string) (ComponentMatches, error) {
 	matches := ComponentMatches{}
 
 	for _, term := range terms {
-		checkedNamespaces := util.NewStringSet()
+		checkedNamespaces := sets.NewString()
 
 		for _, namespace := range r.Namespaces {
 			if checkedNamespaces.Has(namespace) {

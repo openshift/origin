@@ -11,7 +11,7 @@ import (
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -175,7 +175,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 
 	// I shouldn't be allowed to ask whether someone else can perform an action
 	askCanClusterAdminsCreateProject := &authorizationapi.LocalSubjectAccessReview{
-		Groups: util.NewStringSet("system:cluster-admins"),
+		Groups: sets.NewString("system:cluster-admins"),
 		Action: authorizationapi.AuthorizationAttributes{Verb: "create", Resource: "projects"},
 	}
 	subjectAccessReviewTest{

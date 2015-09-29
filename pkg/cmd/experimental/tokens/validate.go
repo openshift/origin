@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -17,8 +17,8 @@ import (
 func NewCmdValidateToken(f *clientcmd.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate-token",
-		Short: "validate an access token",
-		Long:  `validate an access token`,
+		Short: "Validate an access token",
+		Long:  `Validate an access token`,
 		Run: func(cmd *cobra.Command, args []string) {
 			tokenValue := getFlagString(cmd, "token")
 
@@ -73,18 +73,18 @@ func validateToken(token string, clientConfig *kclient.Config) {
 func getTokenInfo(token string, osClient *osclient.Client) (string, *osintypes.InfoResponseData, error) {
 	osResult := osClient.Get().AbsPath("oauth", "info").Param("code", token).Do()
 	if osResult.Error() != nil {
-		return "", nil, fmt.Errorf("Error making info request: %v", osResult.Error())
+		return "", nil, fmt.Errorf("error making info request: %v", osResult.Error())
 	}
 	body, err := osResult.Raw()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error reading info response: %v", err)
+		return "", nil, fmt.Errorf("error reading info response: %v", err)
 	}
 	glog.V(1).Infof("Raw JSON: %s", string(body))
 
 	var accessData osintypes.InfoResponseData
 	err = json.Unmarshal(body, &accessData)
 	if err != nil {
-		return "", nil, fmt.Errorf("Error while unmarshalling info response: %v %v", err, string(body))
+		return "", nil, fmt.Errorf("error while unmarshalling info response: %v %v", err, string(body))
 	}
 	if accessData.Error == "invalid_request" {
 		return "", nil, fmt.Errorf("%q is not a valid token.", token)

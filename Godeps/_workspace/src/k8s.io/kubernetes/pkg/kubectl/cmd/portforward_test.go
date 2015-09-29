@@ -25,7 +25,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 type fakePortForwarder struct {
@@ -39,7 +39,7 @@ func (f *fakePortForwarder) ForwardPorts(req *client.Request, config *client.Con
 }
 
 func TestPortForward(t *testing.T) {
-	version := testapi.Version()
+	version := testapi.Default.Version()
 
 	tests := []struct {
 		name, version, podPath, pfPath, container string
@@ -101,7 +101,7 @@ func TestPortForward(t *testing.T) {
 }
 
 func TestPortForwardWithPFlag(t *testing.T) {
-	version := testapi.Version()
+	version := testapi.Default.Version()
 
 	tests := []struct {
 		name, version, podPath, pfPath, container string

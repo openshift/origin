@@ -199,21 +199,3 @@ func CommandFor(basename string) *cobra.Command {
 
 	return cmd
 }
-
-// applyToCreate injects the deprecation notice about for 'apply' command into
-// 'create' command.
-// TODO: Remove this once we get rid of 'apply' in all documentation/etc.
-func applyToCreate(dst *cobra.Command) *cobra.Command {
-	dst.Aliases = append(dst.Aliases, "apply")
-	oldRun := dst.Run
-	dst.Run = func(c *cobra.Command, args []string) {
-		calledApply := false
-		calledApply = calledApply || len(os.Args) >= 2 && os.Args[1] == "apply" // `oc apply`
-		calledApply = calledApply || len(os.Args) >= 3 && os.Args[2] == "apply" // `openshift cli apply`
-		if calledApply {
-			glog.Errorf("DEPRECATED: The 'apply' command is now deprecated, use 'create' instead.")
-		}
-		oldRun(c, args)
-	}
-	return dst
-}

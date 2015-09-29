@@ -3,7 +3,7 @@ package authorizer
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -65,7 +65,7 @@ func (test *nonResourceMatchTest) run(t *testing.T) {
 		URL:            test.url,
 	}
 
-	rule := authorizationapi.PolicyRule{NonResourceURLs: util.NewStringSet(test.matcher)}
+	rule := authorizationapi.PolicyRule{NonResourceURLs: sets.NewString(test.matcher)}
 
 	result := attributes.nonResourceMatches(rule)
 

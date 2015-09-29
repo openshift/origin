@@ -3,7 +3,7 @@ package bootstrappolicy
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -17,13 +17,13 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list"),
-					Resources: util.NewStringSet("templates", authorizationapi.ImageGroupName),
+					Verbs:     sets.NewString("get", "list"),
+					Resources: sets.NewString("templates", authorizationapi.ImageGroupName),
 				},
 				{
 					// so anyone can pull from openshift/* image streams
-					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("imagestreams/layers"),
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("imagestreams/layers"),
 				},
 			},
 		},
@@ -37,12 +37,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet(authorizationapi.VerbAll),
-					Resources: util.NewStringSet(authorizationapi.ResourceAll),
+					Verbs:     sets.NewString(authorizationapi.VerbAll),
+					Resources: sets.NewString(authorizationapi.ResourceAll),
 				},
 				{
-					Verbs:           util.NewStringSet(authorizationapi.VerbAll),
-					NonResourceURLs: util.NewStringSet(authorizationapi.NonResourceAll),
+					Verbs:           sets.NewString(authorizationapi.VerbAll),
+					NonResourceURLs: sets.NewString(authorizationapi.NonResourceAll),
 				},
 			},
 		},
@@ -52,16 +52,16 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet(authorizationapi.NonEscalatingResourcesGroupName),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString(authorizationapi.NonEscalatingResourcesGroupName),
 				},
 				{ // permissions to check access.  These creates are non-mutating
-					Verbs:     util.NewStringSet("create"),
-					Resources: util.NewStringSet("resourceaccessreviews", "subjectaccessreviews"),
+					Verbs:     sets.NewString("create"),
+					Resources: sets.NewString("resourceaccessreviews", "subjectaccessreviews"),
 				},
 				{
-					Verbs:           util.NewStringSet("get"),
-					NonResourceURLs: util.NewStringSet(authorizationapi.NonResourceAll),
+					Verbs:           sets.NewString("get"),
+					NonResourceURLs: sets.NewString(authorizationapi.NonResourceAll),
 				},
 			},
 		},
@@ -71,17 +71,17 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "patch", "delete"),
-					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
+					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
+					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString(authorizationapi.PolicyOwnerGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName),
 				},
 				{
-					Verbs: util.NewStringSet("get", "update"),
+					Verbs: sets.NewString("get", "update"),
 					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
-					Resources: util.NewStringSet("imagestreams/layers"),
+					Resources: sets.NewString("imagestreams/layers"),
 				},
 			},
 		},
@@ -91,17 +91,17 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch", "create", "update", "patch", "delete"),
-					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
+					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
+					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet(authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString(authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects"),
 				},
 				{
-					Verbs: util.NewStringSet("get", "update"),
+					Verbs: sets.NewString("get", "update"),
 					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
-					Resources: util.NewStringSet("imagestreams/layers"),
+					Resources: sets.NewString("imagestreams/layers"),
 				},
 			},
 		},
@@ -111,8 +111,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects"),
 				},
 			},
 		},
@@ -121,11 +121,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: BasicUserRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				{Verbs: util.NewStringSet("get"), Resources: util.NewStringSet("users"), ResourceNames: util.NewStringSet("~")},
-				{Verbs: util.NewStringSet("list"), Resources: util.NewStringSet("projectrequests")},
-				{Verbs: util.NewStringSet("list", "get"), Resources: util.NewStringSet("clusterroles")},
-				{Verbs: util.NewStringSet("list"), Resources: util.NewStringSet("projects")},
-				{Verbs: util.NewStringSet("create"), Resources: util.NewStringSet("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: runtime.EmbeddedObject{Object: &authorizationapi.IsPersonalSubjectAccessReview{}}},
+				{Verbs: sets.NewString("get"), Resources: sets.NewString("users"), ResourceNames: sets.NewString("~")},
+				{Verbs: sets.NewString("list"), Resources: sets.NewString("projectrequests")},
+				{Verbs: sets.NewString("list", "get"), Resources: sets.NewString("clusterroles")},
+				{Verbs: sets.NewString("list"), Resources: sets.NewString("projects")},
+				{Verbs: sets.NewString("create"), Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: runtime.EmbeddedObject{Object: &authorizationapi.IsPersonalSubjectAccessReview{}}},
 			},
 		},
 		{
@@ -133,7 +133,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				Name: SelfProvisionerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
-				{Verbs: util.NewStringSet("create"), Resources: util.NewStringSet("projectrequests")},
+				{Verbs: sets.NewString("create"), Resources: sets.NewString("projectrequests")},
 			},
 		},
 		{
@@ -142,8 +142,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:           util.NewStringSet("get"),
-					NonResourceURLs: util.NewStringSet("/healthz", "/healthz/*", "/version", "/api", "/oapi", "/osapi", "/api/", "/oapi/", "/osapi/"),
+					Verbs:           sets.NewString("get"),
+					NonResourceURLs: sets.NewString("/healthz", "/healthz/*", "/version", "/api", "/oapi", "/osapi", "/api/", "/oapi/", "/osapi/"),
 				},
 			},
 		},
@@ -153,9 +153,9 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs: util.NewStringSet("get"),
+					Verbs: sets.NewString("get"),
 					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
-					Resources: util.NewStringSet("imagestreams/layers"),
+					Resources: sets.NewString("imagestreams/layers"),
 				},
 			},
 		},
@@ -165,9 +165,9 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs: util.NewStringSet("get", "update"),
+					Verbs: sets.NewString("get", "update"),
 					// this is used by verifyImageStreamAccess in pkg/dockerregistry/server/auth.go
-					Resources: util.NewStringSet("imagestreams/layers"),
+					Resources: sets.NewString("imagestreams/layers"),
 				},
 			},
 		},
@@ -177,16 +177,16 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("delete"),
-					Resources: util.NewStringSet("images"),
+					Verbs:     sets.NewString("delete"),
+					Resources: sets.NewString("images"),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list"),
-					Resources: util.NewStringSet("images", "imagestreams", "pods", "replicationcontrollers", "buildconfigs", "builds", "deploymentconfigs"),
+					Verbs:     sets.NewString("get", "list"),
+					Resources: sets.NewString("images", "imagestreams", "pods", "replicationcontrollers", "buildconfigs", "builds", "deploymentconfigs"),
 				},
 				{
-					Verbs:     util.NewStringSet("update"),
-					Resources: util.NewStringSet("imagestreams/status"),
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("imagestreams/status"),
 				},
 			},
 		},
@@ -197,20 +197,20 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					// replicationControllerGetter
-					Verbs:     util.NewStringSet("get", "list"),
-					Resources: util.NewStringSet("replicationcontrollers"),
+					Verbs:     sets.NewString("get", "list"),
+					Resources: sets.NewString("replicationcontrollers"),
 				},
 				{
 					// RecreateDeploymentStrategy.replicationControllerClient
 					// RollingDeploymentStrategy.updaterClient
-					Verbs:     util.NewStringSet("get", "update"),
-					Resources: util.NewStringSet("replicationcontrollers"),
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("replicationcontrollers"),
 				},
 				{
 					// RecreateDeploymentStrategy.hookExecutor
 					// RollingDeploymentStrategy.hookExecutor
-					Verbs:     util.NewStringSet("get", "list", "watch", "create"),
-					Resources: util.NewStringSet("pods"),
+					Verbs:     sets.NewString("get", "list", "watch", "create"),
+					Resources: sets.NewString("pods"),
 				},
 			},
 		},
@@ -220,8 +220,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet(authorizationapi.VerbAll),
-					Resources: util.NewStringSet(authorizationapi.ResourceAll),
+					Verbs:     sets.NewString(authorizationapi.VerbAll),
+					Resources: sets.NewString(authorizationapi.ResourceAll),
 				},
 			},
 		},
@@ -233,30 +233,30 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// BuildControllerFactory.buildLW
 				// BuildControllerFactory.buildDeleteLW
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet("builds"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("builds"),
 				},
 				// BuildController.BuildUpdater (OSClientBuildClient)
 				{
-					Verbs:     util.NewStringSet("update"),
-					Resources: util.NewStringSet("builds"),
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("builds"),
 				},
 				// BuildController.ImageStreamClient (ControllerClient)
 				{
-					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("imagestreams"),
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("imagestreams"),
 				},
 				// BuildController.PodManager (ControllerClient)
 				// BuildDeleteController.PodManager (ControllerClient)
 				// BuildControllerFactory.buildDeleteLW
 				{
-					Verbs:     util.NewStringSet("get", "list", "create", "delete"),
-					Resources: util.NewStringSet("pods"),
+					Verbs:     sets.NewString("get", "list", "create", "delete"),
+					Resources: sets.NewString("pods"),
 				},
 				// BuildController.Recorder (EventBroadcaster)
 				{
-					Verbs:     util.NewStringSet("create", "update"),
-					Resources: util.NewStringSet("events"),
+					Verbs:     sets.NewString("create", "update"),
+					Resources: sets.NewString("events"),
 				},
 			},
 		},
@@ -267,23 +267,23 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				// DeploymentControllerFactory.deploymentLW
 				{
-					Verbs:     util.NewStringSet("list", "watch"),
-					Resources: util.NewStringSet("replicationcontrollers"),
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("replicationcontrollers"),
 				},
 				// DeploymentControllerFactory.deploymentClient
 				{
-					Verbs:     util.NewStringSet("get", "update"),
-					Resources: util.NewStringSet("replicationcontrollers"),
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("replicationcontrollers"),
 				},
 				// DeploymentController.podClient
 				{
-					Verbs:     util.NewStringSet("get", "list", "create", "delete", "update"),
-					Resources: util.NewStringSet("pods"),
+					Verbs:     sets.NewString("get", "list", "create", "delete", "update"),
+					Resources: sets.NewString("pods"),
 				},
 				// DeploymentController.recorder (EventBroadcaster)
 				{
-					Verbs:     util.NewStringSet("create", "update"),
-					Resources: util.NewStringSet("events"),
+					Verbs:     sets.NewString("create", "update"),
+					Resources: sets.NewString("events"),
 				},
 			},
 		},
@@ -294,28 +294,28 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				// ReplicationManager.rcController.ListWatch
 				{
-					Verbs:     util.NewStringSet("list", "watch"),
-					Resources: util.NewStringSet("replicationcontrollers"),
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("replicationcontrollers"),
 				},
 				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
 				{
-					Verbs:     util.NewStringSet("get", "update"),
-					Resources: util.NewStringSet("replicationcontrollers"),
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("replicationcontrollers"),
 				},
 				// ReplicationManager.podController.ListWatch
 				{
-					Verbs:     util.NewStringSet("list", "watch"),
-					Resources: util.NewStringSet("pods"),
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("pods"),
 				},
 				// ReplicationManager.podControl (RealPodControl)
 				{
-					Verbs:     util.NewStringSet("create", "delete"),
-					Resources: util.NewStringSet("pods"),
+					Verbs:     sets.NewString("create", "delete"),
+					Resources: sets.NewString("pods"),
 				},
 				// ReplicationManager.podControl.recorder
 				{
-					Verbs:     util.NewStringSet("create", "update"),
-					Resources: util.NewStringSet("events"),
+					Verbs:     sets.NewString("create", "update"),
+					Resources: sets.NewString("events"),
 				},
 			},
 		},
@@ -325,8 +325,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("delete"),
-					Resources: util.NewStringSet("oauthaccesstokens", "oauthauthorizetokens"),
+					Verbs:     sets.NewString("delete"),
+					Resources: sets.NewString("oauthaccesstokens", "oauthauthorizetokens"),
 				},
 			},
 		},
@@ -336,8 +336,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("list", "watch"),
-					Resources: util.NewStringSet("routes", "endpoints"),
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("routes", "endpoints"),
 				},
 			},
 		},
@@ -347,20 +347,20 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "delete"),
-					Resources: util.NewStringSet("images"),
+					Verbs:     sets.NewString("get", "delete"),
+					Resources: sets.NewString("images"),
 				},
 				{
-					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("imagestreamimages", "imagestreamtags", "imagestreams"),
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("imagestreamimages", "imagestreamtags", "imagestreams"),
 				},
 				{
-					Verbs:     util.NewStringSet("update"),
-					Resources: util.NewStringSet("imagestreams"),
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("imagestreams"),
 				},
 				{
-					Verbs:     util.NewStringSet("create"),
-					Resources: util.NewStringSet("imagestreammappings"),
+					Verbs:     sets.NewString("create"),
+					Resources: sets.NewString("imagestreammappings"),
 				},
 			},
 		},
@@ -371,8 +371,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					// Used to build serviceLister
-					Verbs:     util.NewStringSet("list", "watch"),
-					Resources: util.NewStringSet("services", "endpoints"),
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("services", "endpoints"),
 				},
 			},
 		},
@@ -383,64 +383,64 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					// Needed to build serviceLister, to populate env vars for services
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet("services"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("services"),
 				},
 				{
 					// Nodes can register themselves
 					// TODO: restrict to creating a node with the same name they announce
-					Verbs:     util.NewStringSet("create", "get", "list", "watch"),
-					Resources: util.NewStringSet("nodes"),
+					Verbs:     sets.NewString("create", "get", "list", "watch"),
+					Resources: sets.NewString("nodes"),
 				},
 				{
 					// TODO: restrict to the bound node once supported
-					Verbs:     util.NewStringSet("update"),
-					Resources: util.NewStringSet("nodes/status"),
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("nodes/status"),
 				},
 
 				{
 					// TODO: restrict to the bound node as creator once supported
-					Verbs:     util.NewStringSet("create", "update"),
-					Resources: util.NewStringSet("events"),
+					Verbs:     sets.NewString("create", "update"),
+					Resources: sets.NewString("events"),
 				},
 
 				{
 					// TODO: restrict to pods scheduled on the bound node once supported
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet("pods"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("pods"),
 				},
 				{
 					// TODO: remove once mirror pods are removed
 					// TODO: restrict deletion to mirror pods created by the bound node once supported
 					// Needed for the node to create/delete mirror pods
-					Verbs:     util.NewStringSet("get", "create", "delete"),
-					Resources: util.NewStringSet("pods"),
+					Verbs:     sets.NewString("get", "create", "delete"),
+					Resources: sets.NewString("pods"),
 				},
 				{
 					// TODO: restrict to pods scheduled on the bound node once supported
-					Verbs:     util.NewStringSet("update"),
-					Resources: util.NewStringSet("pods/status"),
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("pods/status"),
 				},
 
 				{
 					// TODO: restrict to secrets used by pods scheduled on bound node once supported
 					// Needed for imagepullsecrets, rbd/ceph and secret volumes
-					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("secrets"),
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("secrets"),
 				},
 
 				{
 					// TODO: restrict to claims/volumes used by pods scheduled on bound node once supported
 					// Needed for persistent volumes
-					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("persistentvolumeclaims", "persistentvolumes"),
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("persistentvolumeclaims", "persistentvolumes"),
 				},
 				{
 					// TODO: restrict to namespaces of pods scheduled on bound node once supported
 					// TODO: change glusterfs to use DNS lookup so this isn't needed?
 					// Needed for glusterfs volumes
-					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("endpoints"),
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("endpoints"),
 				},
 			},
 		},
@@ -451,24 +451,24 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet("hostsubnets"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("hostsubnets"),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet("netnamespaces"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("netnamespaces"),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet("nodes"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("nodes"),
 				},
 				{
-					Verbs:     util.NewStringSet("get"),
-					Resources: util.NewStringSet("clusternetworks"),
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString("clusternetworks"),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet("namespaces"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("namespaces"),
 				},
 			},
 		},
@@ -479,20 +479,20 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch", "create", "delete"),
-					Resources: util.NewStringSet("hostsubnets"),
+					Verbs:     sets.NewString("get", "list", "watch", "create", "delete"),
+					Resources: sets.NewString("hostsubnets"),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch", "create", "delete"),
-					Resources: util.NewStringSet("netnamespaces"),
+					Verbs:     sets.NewString("get", "list", "watch", "create", "delete"),
+					Resources: sets.NewString("netnamespaces"),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "list", "watch"),
-					Resources: util.NewStringSet("nodes"),
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("nodes"),
 				},
 				{
-					Verbs:     util.NewStringSet("get", "create"),
-					Resources: util.NewStringSet("clusternetworks"),
+					Verbs:     sets.NewString("get", "create"),
+					Resources: sets.NewString("clusternetworks"),
 				},
 			},
 		},
@@ -503,8 +503,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:     util.NewStringSet("get", "create"),
-					Resources: util.NewStringSet("buildconfigs/webhooks"),
+					Verbs:     sets.NewString("get", "create"),
+					Resources: sets.NewString("buildconfigs/webhooks"),
 				},
 			},
 		},

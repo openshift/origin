@@ -1,7 +1,7 @@
 package test
 
 import (
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 )
@@ -31,8 +31,8 @@ func (s FakeDeploymentConfigStore) List() []interface{} {
 	return []interface{}{s.DeploymentConfig}
 }
 
-func (s FakeDeploymentConfigStore) ContainedIDs() util.StringSet {
-	return util.NewStringSet()
+func (s FakeDeploymentConfigStore) ContainedIDs() sets.String {
+	return sets.NewString()
 }
 
 func (s FakeDeploymentConfigStore) Get(obj interface{}) (item interface{}, exists bool, err error) {

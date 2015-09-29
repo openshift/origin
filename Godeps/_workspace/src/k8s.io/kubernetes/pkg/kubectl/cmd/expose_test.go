@@ -19,25 +19,26 @@ package cmd
 import (
 	"bytes"
 	"net/http"
-	"reflect"
+	"strings"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 )
 
 func TestRunExposeService(t *testing.T) {
 	tests := []struct {
-		name   string
-		args   []string
-		ns     string
-		calls  map[string]string
-		input  runtime.Object
-		flags  map[string]string
-		output runtime.Object
-		status int
+		name     string
+		args     []string
+		ns       string
+		calls    map[string]string
+		input    runtime.Object
+		flags    map[string]string
+		output   runtime.Object
+		expected string
+		status   int
 	}{
 		{
 			name: "expose-service-from-service-no-selector-defined",
@@ -67,7 +68,8 @@ func TestRunExposeService(t *testing.T) {
 					Selector: map[string]string{"app": "go"},
 				},
 			},
-			status: 200,
+			expected: "service \"foo\" exposed",
+			status:   200,
 		},
 		{
 			name: "expose-service-from-service",
@@ -97,7 +99,8 @@ func TestRunExposeService(t *testing.T) {
 					Selector: map[string]string{"func": "stream"},
 				},
 			},
-			status: 200,
+			expected: "service \"foo\" exposed",
+			status:   200,
 		},
 		{
 			name: "no-name-passed-from-the-cli",
@@ -128,7 +131,8 @@ func TestRunExposeService(t *testing.T) {
 					Selector: map[string]string{"run": "this"},
 				},
 			},
-			status: 200,
+			expected: "service \"mayor\" exposed",
+			status:   200,
 		},
 		{
 			name: "expose-external-service",
@@ -159,7 +163,8 @@ func TestRunExposeService(t *testing.T) {
 					Type:     api.ServiceTypeLoadBalancer,
 				},
 			},
-			status: 200,
+			expected: "service \"foo\" exposed",
+			status:   200,
 		},
 		{
 			name: "expose-external-affinity-service",
@@ -191,7 +196,8 @@ func TestRunExposeService(t *testing.T) {
 					SessionAffinity: api.ServiceAffinityClientIP,
 				},
 			},
-			status: 200,
+			expected: "service \"foo\" exposed",
+			status:   200,
 		},
 		{
 			name: "expose-external-service",
@@ -204,8 +210,7 @@ func TestRunExposeService(t *testing.T) {
 			input: &api.Service{
 				ObjectMeta: api.ObjectMeta{Name: "baz", Namespace: "test", ResourceVersion: "12"},
 				Spec: api.ServiceSpec{
-					Selector: map[string]string{},
-					Ports:    []api.ServicePort{},
+					Ports: []api.ServicePort{},
 				},
 			},
 			// Even if we specify --selector, since service/test doesn't need one it will ignore it
@@ -222,7 +227,8 @@ func TestRunExposeService(t *testing.T) {
 					},
 				},
 			},
-			status: 200,
+			expected: "service \"frombaz\" exposed",
+			status:   200,
 		},
 	}
 
@@ -244,7 +250,7 @@ func TestRunExposeService(t *testing.T) {
 			}),
 		}
 		tf.Namespace = test.ns
-		buf, exp := bytes.NewBuffer([]byte{}), bytes.NewBuffer([]byte{})
+		buf := bytes.NewBuffer([]byte{})
 
 		cmd := NewCmdExposeService(f, buf)
 		cmd.SetOutput(buf)
@@ -253,11 +259,82 @@ func TestRunExposeService(t *testing.T) {
 		}
 		cmd.Run(cmd, test.args)
 
-		f.PrintObject(cmd, test.output, exp)
-
-		out, expectedOut := buf.String(), exp.String()
-		if !reflect.DeepEqual(out, expectedOut) {
+		out, expectedOut := buf.String(), test.expected
+		if !strings.Contains(out, expectedOut) {
 			t.Errorf("%s: Unexpected output! Expected\n%s\ngot\n%s", test.name, expectedOut, out)
+		}
+	}
+}
+
+func TestRunExposeServiceFromFile(t *testing.T) {
+	test := struct {
+		calls    map[string]string
+		input    runtime.Object
+		flags    map[string]string
+		output   runtime.Object
+		expected string
+		status   int
+	}{
+		calls: map[string]string{
+			"GET":  "/namespaces/test/services/redis-master",
+			"POST": "/namespaces/test/services",
+		},
+		input: &api.Service{
+			ObjectMeta: api.ObjectMeta{Name: "baz", Namespace: "test", ResourceVersion: "12"},
+			TypeMeta:   api.TypeMeta{Kind: "Service", APIVersion: "v1"},
+			Spec: api.ServiceSpec{
+				Selector: map[string]string{"app": "go"},
+			},
+		},
+		flags: map[string]string{"selector": "func=stream", "protocol": "UDP", "port": "14", "name": "foo", "labels": "svc=test"},
+		output: &api.Service{
+			ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "test", ResourceVersion: "12", Labels: map[string]string{"svc": "test"}},
+			TypeMeta:   api.TypeMeta{Kind: "Service", APIVersion: "v1"},
+			Spec: api.ServiceSpec{
+				Ports: []api.ServicePort{
+					{
+						Name:     "default",
+						Protocol: api.Protocol("UDP"),
+						Port:     14,
+					},
+				},
+				Selector: map[string]string{"func": "stream"},
+			},
+		},
+		status: 200,
+	}
+
+	f, tf, codec := NewAPIFactory()
+	tf.Printer = &testPrinter{}
+	tf.Client = &client.FakeRESTClient{
+		Codec: codec,
+		Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			switch p, m := req.URL.Path, req.Method; {
+			case p == test.calls[m] && m == "GET":
+				return &http.Response{StatusCode: test.status, Body: objBody(codec, test.input)}, nil
+			case p == test.calls[m] && m == "POST":
+				return &http.Response{StatusCode: test.status, Body: objBody(codec, test.output)}, nil
+			default:
+				t.Fatalf("unexpected request: %#v\n%#v", req.URL, req)
+				return nil, nil
+			}
+		}),
+	}
+	tf.Namespace = "test"
+	buf := bytes.NewBuffer([]byte{})
+
+	cmd := NewCmdExposeService(f, buf)
+	cmd.SetOutput(buf)
+
+	for flag, value := range test.flags {
+		cmd.Flags().Set(flag, value)
+	}
+	cmd.Flags().Set("filename", "../../../examples/guestbook/redis-master-service.yaml")
+	cmd.Run(cmd, []string{})
+	if len(test.expected) > 0 {
+		out := buf.String()
+		if !strings.Contains(out, test.expected) {
+			t.Errorf("unexpected output: %s", out)
 		}
 	}
 }

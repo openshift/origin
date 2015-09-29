@@ -1389,6 +1389,8 @@ func deepCopy_v1beta3_DeploymentDetails(in deployapiv1beta3.DeploymentDetails, o
 		for i := range in.Causes {
 			if newVal, err := c.DeepCopy(in.Causes[i]); err != nil {
 				return err
+			} else if newVal == nil {
+				out.Causes[i] = nil
 			} else {
 				out.Causes[i] = newVal.(*deployapiv1beta3.DeploymentCause)
 			}

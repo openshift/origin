@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -80,7 +80,7 @@ func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, ou
 
 func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, args []string, target *[]string, targetName string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("You must specify at least one argument: <%s> [%s]...", targetName, targetName)
+		return fmt.Errorf("you must specify at least one argument: <%s> [%s]...", targetName, targetName)
 	}
 
 	*target = append(*target, args...)
@@ -103,10 +103,10 @@ func (o *RemoveFromProjectOptions) Run() error {
 	}
 	sort.Sort(authorizationapi.PolicyBindingSorter(bindingList.Items))
 
-	usersRemoved := util.StringSet{}
-	groupsRemoved := util.StringSet{}
-	sasRemoved := util.StringSet{}
-	othersRemoved := util.StringSet{}
+	usersRemoved := sets.String{}
+	groupsRemoved := sets.String{}
+	sasRemoved := sets.String{}
+	othersRemoved := sets.String{}
 
 	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
@@ -115,11 +115,11 @@ func (o *RemoveFromProjectOptions) Run() error {
 			originalSubjects := make([]kapi.ObjectReference, len(currBinding.Subjects))
 			copy(originalSubjects, currBinding.Subjects)
 			oldUsers, oldGroups, oldSAs, oldOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, originalSubjects)
-			oldUsersSet, oldGroupsSet, oldSAsSet, oldOtherSet := util.NewStringSet(oldUsers...), util.NewStringSet(oldGroups...), util.NewStringSet(oldSAs...), util.NewStringSet(oldOthers...)
+			oldUsersSet, oldGroupsSet, oldSAsSet, oldOtherSet := sets.NewString(oldUsers...), sets.NewString(oldGroups...), sets.NewString(oldSAs...), sets.NewString(oldOthers...)
 
 			currBinding.Subjects = removeSubjects(currBinding.Subjects, subjectsToRemove)
 			newUsers, newGroups, newSAs, newOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, currBinding.Subjects)
-			newUsersSet, newGroupsSet, newSAsSet, newOtherSet := util.NewStringSet(newUsers...), util.NewStringSet(newGroups...), util.NewStringSet(newSAs...), util.NewStringSet(newOthers...)
+			newUsersSet, newGroupsSet, newSAsSet, newOtherSet := sets.NewString(newUsers...), sets.NewString(newGroups...), sets.NewString(newSAs...), sets.NewString(newOthers...)
 
 			if len(currBinding.Subjects) == len(originalSubjects) {
 				continue
@@ -154,10 +154,10 @@ func (o *RemoveFromProjectOptions) Run() error {
 		}
 	}
 
-	if diff := util.NewStringSet(o.Users...).Difference(usersRemoved); len(diff) != 0 {
+	if diff := sets.NewString(o.Users...).Difference(usersRemoved); len(diff) != 0 {
 		fmt.Fprintf(o.Out, "Users %v were not bound to roles in project %s.\n", diff.List(), o.BindingNamespace)
 	}
-	if diff := util.NewStringSet(o.Groups...).Difference(groupsRemoved); len(diff) != 0 {
+	if diff := sets.NewString(o.Groups...).Difference(groupsRemoved); len(diff) != 0 {
 		fmt.Fprintf(o.Out, "Groups %v were not bound to roles in project %s.\n", diff.List(), o.BindingNamespace)
 	}
 

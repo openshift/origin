@@ -1,7 +1,7 @@
 package client
 
 import (
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	api "github.com/openshift/origin/pkg/build/api"
 )

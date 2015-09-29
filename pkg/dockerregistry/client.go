@@ -15,7 +15,7 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )

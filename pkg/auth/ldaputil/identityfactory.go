@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-ldap/ldap"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -62,8 +62,8 @@ type LDAPUserAttributeDefiner struct {
 }
 
 // AllAttributes gets all attributes listed in the LDAPUserAttributeDefiner
-func (d *LDAPUserAttributeDefiner) AllAttributes() util.StringSet {
-	attrs := util.NewStringSet(d.attributeMapping.Email...)
+func (d *LDAPUserAttributeDefiner) AllAttributes() sets.String {
+	attrs := sets.NewString(d.attributeMapping.Email...)
 	attrs.Insert(d.attributeMapping.Name...)
 	attrs.Insert(d.attributeMapping.PreferredUsername...)
 	attrs.Insert(d.attributeMapping.ID...)

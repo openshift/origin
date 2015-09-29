@@ -9,7 +9,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	pkg_runtime "k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
 	flag "github.com/spf13/pflag"
@@ -55,7 +55,7 @@ func main() {
 		}
 	}
 
-	generator.RepackImports(util.NewStringSet("k8s.io/kubernetes/pkg/runtime"))
+	generator.RepackImports(sets.NewString("k8s.io/kubernetes/pkg/runtime"))
 	// the repack changes the name of the import
 	apiShort = generator.AddImport("k8s.io/kubernetes/pkg/api")
 

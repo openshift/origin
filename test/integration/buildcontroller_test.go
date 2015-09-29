@@ -9,7 +9,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	watchapi "k8s.io/kubernetes/pkg/watch"
@@ -564,7 +564,7 @@ func runBuildDeleteTest(t *testing.T, clusterAdminClient *client.Client, cluster
 
 	clusterAdminClient.Builds(testutil.Namespace()).Delete(newBuild.Name)
 
-	event = waitForWatch(t, "pod deleted due to build deleted", podWatch)
+	event = waitForWatchType(t, "pod deleted due to build deleted", podWatch, watchapi.Deleted)
 	if e, a := watchapi.Deleted, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
@@ -573,6 +573,26 @@ func runBuildDeleteTest(t *testing.T, clusterAdminClient *client.Client, cluster
 		t.Fatalf("Expected pod %s to be deleted, but pod %s was deleted", expected, pod.Name)
 	}
 
+}
+
+// waitForWatchType tolerates receiving 3 events before failing while watching for a particular event
+// type.
+func waitForWatchType(t *testing.T, name string, w watchapi.Interface, expect watchapi.EventType) *watchapi.Event {
+	tries := 3
+	for i := 0; i < tries; i++ {
+		select {
+		case e := <-w.ResultChan():
+			if e.Type != expect {
+				continue
+			}
+			return &e
+		case <-time.After(BuildControllersWatchTimeout):
+			t.Fatalf("Timed out waiting for watch: %s", name)
+			return nil
+		}
+	}
+	t.Fatalf("Waited for a %v event with %d tries but never received one", expect, tries)
+	return nil
 }
 
 func runBuildRunningPodDeleteTest(t *testing.T, clusterAdminClient *client.Client, clusterAdminKubeClient *kclient.Client) {

@@ -29,3 +29,5 @@ At that time, the openshift docker registry image must be upgraded in order to c
   favor of `deploymentConfig.rollingParams.maxUnavailable` and
   `deploymentConfig.rollingParams.maxSurge`. The `updatePercent` field will be
   removed  in Origin 1.1 (OSE 3.1).
+
+1. The `volume.metadata` field is deprecated as of Origin 1.0.6 in favor of `volume.downwardAPI`.

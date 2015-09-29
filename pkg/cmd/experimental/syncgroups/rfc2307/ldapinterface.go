@@ -2,7 +2,7 @@ package rfc2307
 
 import (
 	"github.com/go-ldap/ldap"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 )
@@ -103,7 +103,7 @@ func (e *LDAPInterface) GroupEntryFor(ldapGroupUID string) (group *ldap.Entry, e
 // queryForGroup queries for a specific group identified by a ldapGroupUID with the query config stored
 // in a LDAPInterface
 func (e *LDAPInterface) queryForGroup(ldapGroupUID string) (group *ldap.Entry, err error) {
-	allAttributes := util.NewStringSet(e.groupNameAttributes...)
+	allAttributes := sets.NewString(e.groupNameAttributes...)
 	allAttributes.Insert(e.groupMembershipAttributes...)
 
 	// create the search request

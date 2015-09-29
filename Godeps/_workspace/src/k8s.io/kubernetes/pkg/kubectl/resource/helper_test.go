@@ -28,13 +28,13 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
 func objBody(obj runtime.Object) io.ReadCloser {
-	return ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(testapi.Codec(), obj))))
+	return ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(testapi.Default.Codec(), obj))))
 }
 
 // splitPath returns the segments for a URL path.
@@ -93,7 +93,7 @@ func TestHelperDelete(t *testing.T) {
 	}
 	for _, test := range tests {
 		client := &client.FakeRESTClient{
-			Codec: testapi.Codec(),
+			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,
 		}
@@ -128,6 +128,7 @@ func TestHelperCreate(t *testing.T) {
 		return true
 	}
 
+	grace := int64(30)
 	tests := []struct {
 		Resp     *http.Response
 		RespFunc client.HTTPClientFunc
@@ -172,8 +173,9 @@ func TestHelperCreate(t *testing.T) {
 			ExpectObject: &api.Pod{
 				ObjectMeta: api.ObjectMeta{Name: "foo"},
 				Spec: api.PodSpec{
-					RestartPolicy: api.RestartPolicyAlways,
-					DNSPolicy:     api.DNSClusterFirst,
+					RestartPolicy:                 api.RestartPolicyAlways,
+					DNSPolicy:                     api.DNSClusterFirst,
+					TerminationGracePeriodSeconds: &grace,
 				},
 			},
 			Resp: &http.Response{StatusCode: http.StatusOK, Body: objBody(&api.Status{Status: api.StatusSuccess})},
@@ -182,7 +184,7 @@ func TestHelperCreate(t *testing.T) {
 	}
 	for i, test := range tests {
 		client := &client.FakeRESTClient{
-			Codec: testapi.Codec(),
+			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,
 		}
@@ -191,13 +193,13 @@ func TestHelperCreate(t *testing.T) {
 		}
 		modifier := &Helper{
 			RESTClient:      client,
-			Codec:           testapi.Codec(),
-			Versioner:       testapi.MetadataAccessor(),
+			Codec:           testapi.Default.Codec(),
+			Versioner:       testapi.Default.MetadataAccessor(),
 			NamespaceScoped: true,
 		}
 		data := []byte{}
 		if test.Object != nil {
-			data = []byte(runtime.EncodeOrDie(testapi.Codec(), test.Object))
+			data = []byte(runtime.EncodeOrDie(testapi.Default.Codec(), test.Object))
 		}
 		_, err := modifier.Create("bar", test.Modify, data)
 		if (err != nil) != test.Err {
@@ -216,7 +218,7 @@ func TestHelperCreate(t *testing.T) {
 		t.Logf("got body: %s", string(body))
 		expect := []byte{}
 		if test.ExpectObject != nil {
-			expect = []byte(runtime.EncodeOrDie(testapi.Codec(), test.ExpectObject))
+			expect = []byte(runtime.EncodeOrDie(testapi.Default.Codec(), test.ExpectObject))
 		}
 		if !reflect.DeepEqual(expect, body) {
 			t.Errorf("%d: unexpected body: %s", i, string(body))
@@ -268,7 +270,7 @@ func TestHelperGet(t *testing.T) {
 	}
 	for _, test := range tests {
 		client := &client.FakeRESTClient{
-			Codec: testapi.Codec(),
+			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,
 		}
@@ -329,7 +331,7 @@ func TestHelperList(t *testing.T) {
 					t.Errorf("url doesn't contain name: %#v", req.URL)
 					return false
 				}
-				if req.URL.Query().Get(api.LabelSelectorQueryParam(testapi.Version())) != labels.SelectorFromSet(labels.Set{"foo": "baz"}).String() {
+				if req.URL.Query().Get(api.LabelSelectorQueryParam(testapi.Default.Version())) != labels.SelectorFromSet(labels.Set{"foo": "baz"}).String() {
 					t.Errorf("url doesn't contain query parameters: %#v", req.URL)
 					return false
 				}
@@ -339,7 +341,7 @@ func TestHelperList(t *testing.T) {
 	}
 	for _, test := range tests {
 		client := &client.FakeRESTClient{
-			Codec: testapi.Codec(),
+			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,
 		}
@@ -347,7 +349,7 @@ func TestHelperList(t *testing.T) {
 			RESTClient:      client,
 			NamespaceScoped: true,
 		}
-		obj, err := modifier.List("bar", testapi.Version(), labels.SelectorFromSet(labels.Set{"foo": "baz"}))
+		obj, err := modifier.List("bar", testapi.Default.Version(), labels.SelectorFromSet(labels.Set{"foo": "baz"}))
 		if (err != nil) != test.Err {
 			t.Errorf("unexpected error: %t %v", test.Err, err)
 		}
@@ -381,6 +383,7 @@ func TestHelperReplace(t *testing.T) {
 		return true
 	}
 
+	grace := int64(30)
 	tests := []struct {
 		Resp      *http.Response
 		RespFunc  client.HTTPClientFunc
@@ -418,8 +421,9 @@ func TestHelperReplace(t *testing.T) {
 			ExpectObject: &api.Pod{
 				ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"},
 				Spec: api.PodSpec{
-					RestartPolicy: api.RestartPolicyAlways,
-					DNSPolicy:     api.DNSClusterFirst,
+					RestartPolicy:                 api.RestartPolicyAlways,
+					DNSPolicy:                     api.DNSClusterFirst,
+					TerminationGracePeriodSeconds: &grace,
 				},
 			},
 			Overwrite: true,
@@ -440,7 +444,7 @@ func TestHelperReplace(t *testing.T) {
 	}
 	for i, test := range tests {
 		client := &client.FakeRESTClient{
-			Codec: testapi.Codec(),
+			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,
 		}
@@ -449,13 +453,13 @@ func TestHelperReplace(t *testing.T) {
 		}
 		modifier := &Helper{
 			RESTClient:      client,
-			Codec:           testapi.Codec(),
-			Versioner:       testapi.MetadataAccessor(),
+			Codec:           testapi.Default.Codec(),
+			Versioner:       testapi.Default.MetadataAccessor(),
 			NamespaceScoped: true,
 		}
 		data := []byte{}
 		if test.Object != nil {
-			data = []byte(runtime.EncodeOrDie(testapi.Codec(), test.Object))
+			data = []byte(runtime.EncodeOrDie(testapi.Default.Codec(), test.Object))
 		}
 		_, err := modifier.Replace("bar", "foo", test.Overwrite, data)
 		if (err != nil) != test.Err {
@@ -474,7 +478,7 @@ func TestHelperReplace(t *testing.T) {
 		t.Logf("got body: %s", string(body))
 		expect := []byte{}
 		if test.ExpectObject != nil {
-			expect = []byte(runtime.EncodeOrDie(testapi.Codec(), test.ExpectObject))
+			expect = []byte(runtime.EncodeOrDie(testapi.Default.Codec(), test.ExpectObject))
 		}
 		if !reflect.DeepEqual(expect, body) {
 			t.Errorf("%d: unexpected body: %s", i, string(body))

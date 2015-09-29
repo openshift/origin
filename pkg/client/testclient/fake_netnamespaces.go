@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/watch"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
@@ -46,6 +46,5 @@ func (c *FakeNetNamespace) Delete(name string) error {
 }
 
 func (c *FakeNetNamespace) Watch(resourceVersion string) (watch.Interface, error) {
-	c.Fake.Invokes(ktestclient.NewRootWatchAction("netnamespaces", nil, nil, resourceVersion), nil)
-	return c.Fake.Watch, c.Fake.Err()
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("netnamespaces", nil, nil, resourceVersion))
 }

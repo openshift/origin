@@ -5,6 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -408,7 +409,7 @@ type BuildTriggerPolicy struct {
 type BuildTriggerType string
 
 //NOTE: Adding a new trigger type requires adding the type to KnownTriggerTypes
-var KnownTriggerTypes = util.NewStringSet(
+var KnownTriggerTypes = sets.NewString(
 	string(GitHubWebHookBuildTriggerType),
 	string(GenericWebHookBuildTriggerType),
 	string(ImageChangeBuildTriggerType),

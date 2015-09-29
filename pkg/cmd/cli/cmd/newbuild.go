@@ -29,19 +29,19 @@ remote repository that the server can see.
 
 Once the build configuration is created you may need to run a build with 'start-build'.`
 
-	newBuildExample = `  // Create a build config based on the source code in the current git repository (with a public remote) and a Docker image
+	newBuildExample = `  # Create a build config based on the source code in the current git repository (with a public remote) and a Docker image
   $ %[1]s new-build . --docker-image=repo/langimage
 
-  // Create a NodeJS build config based on the provided [image]~[source code] combination
+  # Create a NodeJS build config based on the provided [image]~[source code] combination
   $ %[1]s new-build openshift/nodejs-010-centos7~https://bitbucket.com/user/nodejs-app
 
-  // Create a build config from a remote repository using its beta2 branch
+  # Create a build config from a remote repository using its beta2 branch
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world#beta2
 
-  // Create a build config using a Dockerfile specified as an argument
+  # Create a build config using a Dockerfile specified as an argument
   $ %[1]s new-build -D $'FROM centos7\nRUN yum install -y apache'
 
-  // Create a build config from a remote repository and add custom environment variables into resulting image
+  # Create a build config from a remote repository and add custom environment variables into resulting image
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development`
 )
 

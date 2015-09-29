@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 func TestUserAgent(t *testing.T) {

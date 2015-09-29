@@ -15,7 +15,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -143,7 +143,7 @@ func cacheControlFilter(handler http.Handler, value string) http.Handler {
 // namespacingFilter adds a filter that adds the namespace of the request to the context.  Not all requests will have namespaces,
 // but any that do will have the appropriate value added.
 func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
-	infoResolver := &apiserver.APIRequestInfoResolver{util.NewStringSet("api", "osapi", "oapi"), latest.RESTMapper}
+	infoResolver := &apiserver.APIRequestInfoResolver{sets.NewString("api", "osapi", "oapi"), latest.RESTMapper}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, ok := contextMapper.Get(req)

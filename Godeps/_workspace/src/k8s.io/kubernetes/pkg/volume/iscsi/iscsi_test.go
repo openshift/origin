@@ -22,7 +22,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
@@ -113,7 +113,7 @@ func doTestPlugin(t *testing.T, spec *volume.Spec) {
 		t.Errorf("Failed to make a new Builder: %v", err)
 	}
 	if builder == nil {
-		t.Errorf("Got a nil Builder: %v")
+		t.Error("Got a nil Builder")
 	}
 
 	path := builder.GetPath()
@@ -148,7 +148,7 @@ func doTestPlugin(t *testing.T, spec *volume.Spec) {
 		t.Errorf("Failed to make a new Cleaner: %v", err)
 	}
 	if cleaner == nil {
-		t.Errorf("Got a nil Cleaner: %v")
+		t.Error("Got a nil Cleaner")
 	}
 
 	if err := cleaner.TearDown(); err != nil {
@@ -234,7 +234,8 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
 	o.Add(pv)
 	o.Add(claim)
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+	client := &testclient.Fake{}
+	client.AddReactor("*", "*", testclient.ObjectReaction(o, latest.RESTMapper))
 
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(ProbeVolumePlugins(), volume.NewFakeVolumeHost("/tmp/fake", client, nil))

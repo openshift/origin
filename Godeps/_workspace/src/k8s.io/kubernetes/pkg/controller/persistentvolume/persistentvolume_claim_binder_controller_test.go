@@ -24,14 +24,13 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/host_path"
 )
 
 func TestRunStop(t *testing.T) {
-	o := testclient.NewObjects(api.Scheme, api.Scheme)
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
+	client := &testclient.Fake{}
 	binder := NewPersistentVolumeClaimBinder(client, 1*time.Second)
 
 	if len(binder.stopChannels) != 0 {
@@ -118,7 +117,8 @@ func TestExampleObjects(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
+		client := &testclient.Fake{}
+		client.AddReactor("*", "*", testclient.ObjectReaction(o, api.RESTMapper))
 
 		if reflect.TypeOf(scenario.expected) == reflect.TypeOf(&api.PersistentVolumeClaim{}) {
 			pvc, err := client.PersistentVolumeClaims("ns").Get("doesntmatter")
@@ -178,12 +178,13 @@ func TestBindingWithExamples(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
+	client := &testclient.Fake{}
+	client.AddReactor("*", "*", testclient.ObjectReaction(o, api.RESTMapper))
 
 	pv, err := client.PersistentVolumes().Get("any")
 	pv.Spec.PersistentVolumeReclaimPolicy = api.PersistentVolumeReclaimRecycle
 	if err != nil {
-		t.Error("Unexpected error getting PV from client: %v", err)
+		t.Errorf("Unexpected error getting PV from client: %v", err)
 	}
 
 	claim, error := client.PersistentVolumeClaims("ns").Get("any")
@@ -281,11 +282,12 @@ func TestMissingFromIndex(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
+	client := &testclient.Fake{}
+	client.AddReactor("*", "*", testclient.ObjectReaction(o, api.RESTMapper))
 
 	pv, err := client.PersistentVolumes().Get("any")
 	if err != nil {
-		t.Error("Unexpected error getting PV from client: %v", err)
+		t.Errorf("Unexpected error getting PV from client: %v", err)
 	}
 
 	claim, error := client.PersistentVolumeClaims("ns").Get("any")

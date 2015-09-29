@@ -24,7 +24,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -186,7 +186,7 @@ func MakeCA(certFile, keyFile, serialFile, name string) (*CA, error) {
 	}, nil
 }
 
-func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, bool, error) {
+func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertificateConfig, bool, error) {
 	certConfig, err := GetServerCert(certFile, keyFile, hostnames)
 	if err != nil {
 		certConfig, err = ca.MakeServerCert(certFile, keyFile, hostnames)
@@ -196,7 +196,7 @@ func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames util.StringSe
 	return certConfig, false, nil
 }
 
-func GetServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
+func GetServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertificateConfig, error) {
 	server, err := GetTLSCertificateConfig(certFile, keyFile)
 	if err != nil {
 		return nil, err
@@ -214,7 +214,7 @@ func GetServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCert
 	return nil, fmt.Errorf("Existing server certificate in %s was missing some hostnames (%v) or IP addresses (%v).", certFile, missingDns, missingIps)
 }
 
-func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames util.StringSet) (*TLSCertificateConfig, error) {
+func (ca *CA) MakeServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertificateConfig, error) {
 	glog.V(4).Infof("Generating server certificate in %s, key in %s", certFile, keyFile)
 
 	serverPublicKey, serverPrivateKey, _ := NewKeyPair()

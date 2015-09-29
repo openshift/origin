@@ -59,7 +59,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 
 func (o *whoCanOptions) complete(args []string) error {
 	if len(args) != 2 {
-		return errors.New("You must specify two arguments: verb and resource")
+		return errors.New("you must specify two arguments: verb and resource")
 	}
 
 	o.verb = args[0]

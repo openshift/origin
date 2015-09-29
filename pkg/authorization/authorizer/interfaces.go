@@ -5,12 +5,12 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 type Authorizer interface {
 	Authorize(ctx kapi.Context, a AuthorizationAttributes) (allowed bool, reason string, err error)
-	GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (util.StringSet, util.StringSet, error)
+	GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (sets.String, sets.String, error)
 }
 
 type AuthorizationAttributeBuilder interface {

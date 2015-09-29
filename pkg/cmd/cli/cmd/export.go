@@ -37,16 +37,16 @@ versions.
 Another use case for export is to create reusable templates for applications. Pass --as-template
 to generate the API structure for a template to which you can add parameters and object labels.`
 
-	exportExample = `  // export the services and deployment configurations labeled name=test
+	exportExample = `  # export the services and deployment configurations labeled name=test
   %[1]s export svc,dc -l name=test
 
-  // export all services to a template
+  # export all services to a template
   %[1]s export service --as-template=test
 
-  // export to JSON
+  # export to JSON
   %[1]s export service -o json
 
-  // convert a file on disk to the latest API version (in YAML, the default)
+  # convert a file on disk to the latest API version (in YAML, the default)
   %[1]s export -f a_v1beta3_service.json --output-version=v1 --exact`
 )
 

@@ -35,8 +35,8 @@ type Interface interface {
 	// it could change between chunked reads). This is guaranteed to be
 	// consistent.
 	List() ([]MountPoint, error)
-	// IsMountPoint determines if a directory is a mountpoint.
-	IsMountPoint(file string) (bool, error)
+	// IsLikelyNotMountPoint determines if a directory is a mountpoint.
+	IsLikelyNotMountPoint(file string) (bool, error)
 }
 
 // This represents a single line in /proc/mounts or /etc/fstab.
@@ -102,7 +102,7 @@ func (mounter *SafeFormatAndMount) diskLooksUnformatted(disk string) (bool, erro
 	cmd := mounter.Runner.Command("file", args...)
 	dataOut, err := cmd.CombinedOutput()
 
-	// TODO (swagiaal): check if this disk has partitions and return false, and
+	// TODO (#13212): check if this disk has partitions and return false, and
 	// an error if so.
 
 	if err != nil {

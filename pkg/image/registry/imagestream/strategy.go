@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -315,7 +316,7 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 				ResourceName: streamName,
 			},
 			User:   user.GetName(),
-			Groups: util.NewStringSet(user.GetGroups()...),
+			Groups: sets.NewString(user.GetGroups()...),
 		}
 		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
 		glog.V(1).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)

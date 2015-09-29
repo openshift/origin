@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/pflag"
 
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -16,11 +16,11 @@ import (
 // MissingCommands is the list of commands we're already missing.
 // NEVER ADD TO THIS LIST
 // TODO kill this list
-var MissingCommands = util.NewStringSet("namespace", "rolling-update", "cluster-info", "api-versions")
+var MissingCommands = sets.NewString("namespace", "rolling-update", "cluster-info", "api-versions")
 
 // WhitelistedCommands is the list of commands we're never going to have in oc
 // defend each one with a comment
-var WhitelistedCommands = util.NewStringSet()
+var WhitelistedCommands = sets.NewString()
 
 func TestKubectlCompatibility(t *testing.T) {
 	f := clientcmd.New(pflag.NewFlagSet("name", pflag.ContinueOnError))

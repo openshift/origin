@@ -13,8 +13,7 @@ import (
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/client"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/master"
@@ -193,8 +192,8 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	osMux := http.NewServeMux()
 	openshift.server = httptest.NewServer(osMux)
 
-	kubeClient := client.NewOrDie(&client.Config{Host: openshift.server.URL, Version: klatest.Version})
-	osClient := osclient.NewOrDie(&client.Config{Host: openshift.server.URL, Version: latest.Version})
+	kubeClient := kclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: klatest.Version})
+	osClient := osclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
 	openshift.KubeClient = kubeClient

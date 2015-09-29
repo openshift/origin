@@ -14,8 +14,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
-	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -46,16 +46,16 @@ create a deployment configuration and service that will run the router. If you a
 running your router in production, you should pass --replicas=2 or higher to ensure
 you have failover protection.`
 
-	routerExample = `  // Check the default router ("router")
+	routerExample = `  # Check the default router ("router")
   $ %[1]s %[2]s --dry-run
 
-  // See what the router would look like if created
+  # See what the router would look like if created
   $ %[1]s %[2]s -o json --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount
 
-  // Create a router if it does not exist
+  # Create a router if it does not exist
   $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
 
-  // Use a different router image and see the router configuration
+  # Use a different router image and see the router configuration
   $ %[1]s %[2]s region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag`
 
 	secretsVolumeName = "secret-volume"

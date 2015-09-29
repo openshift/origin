@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 type mockPruneRecorder struct {
-	set util.StringSet
+	set sets.String
 	err error
 }
 
@@ -20,7 +21,7 @@ func (m *mockPruneRecorder) Handler(build *buildapi.Build) error {
 	return m.err
 }
 
-func (m *mockPruneRecorder) Verify(t *testing.T, expected util.StringSet) {
+func (m *mockPruneRecorder) Verify(t *testing.T, expected sets.String) {
 	if len(m.set) != len(expected) || !m.set.HasAll(expected.List()...) {
 		expectedValues := expected.List()
 		actualValues := m.set.List()
@@ -46,7 +47,7 @@ func TestPruneTask(t *testing.T) {
 		buildapi.BuildPhaseError,
 		buildapi.BuildPhaseFailed,
 	}
-	BuildPhaseFilterSet := util.StringSet{}
+	BuildPhaseFilterSet := sets.String{}
 	for _, BuildPhase := range BuildPhaseFilter {
 		BuildPhaseFilterSet.Insert(string(BuildPhase))
 	}
@@ -71,7 +72,7 @@ func TestPruneTask(t *testing.T) {
 
 			keepComplete := 1
 			keepFailed := 1
-			expectedValues := util.StringSet{}
+			expectedValues := sets.String{}
 			filter := &andFilter{
 				filterPredicates: []FilterPredicate{NewFilterBeforePredicate(keepYoungerThan)},
 			}
@@ -87,7 +88,7 @@ func TestPruneTask(t *testing.T) {
 				expectedValues.Insert(build.Name)
 			}
 
-			recorder := &mockPruneRecorder{set: util.StringSet{}}
+			recorder := &mockPruneRecorder{set: sets.String{}}
 			task := NewPruneTasker(buildConfigs, builds, keepYoungerThan, orphans, keepComplete, keepFailed, recorder.Handler)
 			err = task.PruneTask()
 			if err != nil {

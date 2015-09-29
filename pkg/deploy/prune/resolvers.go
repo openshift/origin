@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -34,7 +34,7 @@ func (m *mergeResolver) Resolve() ([]*kapi.ReplicationController, error) {
 
 // NewOrphanDeploymentResolver returns a Resolver that matches objects with no associated DeploymentConfig and has a DeploymentStatus in filter
 func NewOrphanDeploymentResolver(dataSet DataSet, deploymentStatusFilter []deployapi.DeploymentStatus) Resolver {
-	filter := util.NewStringSet()
+	filter := sets.NewString()
 	for _, deploymentStatus := range deploymentStatusFilter {
 		filter.Insert(string(deploymentStatus))
 	}
@@ -47,7 +47,7 @@ func NewOrphanDeploymentResolver(dataSet DataSet, deploymentStatusFilter []deplo
 // orphanDeploymentResolver resolves orphan deployments that match the specified filter
 type orphanDeploymentResolver struct {
 	dataSet                DataSet
-	deploymentStatusFilter util.StringSet
+	deploymentStatusFilter sets.String
 }
 
 // Resolve the matching set of objects
@@ -92,8 +92,8 @@ func (o *perDeploymentConfigResolver) Resolve() ([]*kapi.ReplicationController, 
 		return nil, err
 	}
 
-	completeStates := util.NewStringSet(string(deployapi.DeploymentStatusComplete))
-	failedStates := util.NewStringSet(string(deployapi.DeploymentStatusFailed))
+	completeStates := sets.NewString(string(deployapi.DeploymentStatusComplete))
+	failedStates := sets.NewString(string(deployapi.DeploymentStatusFailed))
 
 	results := []*kapi.ReplicationController{}
 	for _, deploymentConfig := range deploymentConfigs {

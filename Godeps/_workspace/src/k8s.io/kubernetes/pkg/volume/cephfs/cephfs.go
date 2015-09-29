@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ func (plugin *cephfsPlugin) Name() string {
 }
 
 func (plugin *cephfsPlugin) CanSupport(spec *volume.Spec) bool {
-	return (spec.Volume != nil && spec.Volume.VolumeSource.CephFS != nil) || (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.PersistentVolumeSource.CephFS != nil)
+	return (spec.Volume != nil && spec.Volume.CephFS != nil) || (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.CephFS != nil)
 }
 
 func (plugin *cephfsPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -96,16 +96,17 @@ func (plugin *cephfsPlugin) newBuilderInternal(spec *volume.Spec, podUID types.U
 		secret_file = "/etc/ceph/" + id + ".secret"
 	}
 
-	return &cephfs{
-		podUID:      podUID,
-		volName:     spec.Name(),
-		mon:         cephvs.Monitors,
-		secret:      secret,
-		readonly:    cephvs.ReadOnly,
-		id:          id,
-		secret_file: secret_file,
-		mounter:     mounter,
-		plugin:      plugin,
+	return &cephfsBuilder{
+		cephfs: &cephfs{
+			podUID:      podUID,
+			volName:     spec.Name(),
+			mon:         cephvs.Monitors,
+			secret:      secret,
+			id:          id,
+			secret_file: secret_file,
+			readonly:    cephvs.ReadOnly,
+			mounter:     mounter,
+			plugin:      plugin},
 	}, nil
 }
 
@@ -114,19 +115,20 @@ func (plugin *cephfsPlugin) NewCleaner(volName string, podUID types.UID, mounter
 }
 
 func (plugin *cephfsPlugin) newCleanerInternal(volName string, podUID types.UID, mounter mount.Interface) (volume.Cleaner, error) {
-	return &cephfs{
-		podUID:  podUID,
-		volName: volName,
-		mounter: mounter,
-		plugin:  plugin,
+	return &cephfsCleaner{
+		cephfs: &cephfs{
+			podUID:  podUID,
+			volName: volName,
+			mounter: mounter,
+			plugin:  plugin},
 	}, nil
 }
 
 func (plugin *cephfsPlugin) getVolumeSource(spec *volume.Spec) *api.CephFSVolumeSource {
-	if (spec.Volume != nil) && (spec.Volume.VolumeSource.CephFS != nil) {
-		return spec.Volume.VolumeSource.CephFS
+	if spec.Volume != nil && spec.Volume.CephFS != nil {
+		return spec.Volume.CephFS
 	} else {
-		return spec.PersistentVolume.Spec.PersistentVolumeSource.CephFS
+		return spec.PersistentVolume.Spec.CephFS
 	}
 }
 
@@ -143,23 +145,25 @@ type cephfs struct {
 	plugin      *cephfsPlugin
 }
 
-// IsReadOnly exposes if the volume is read only.
-func (cephfsVolume *cephfs) IsReadOnly() bool {
-	return cephfsVolume.readonly
+type cephfsBuilder struct {
+	*cephfs
 }
 
+var _ volume.Builder = &cephfsBuilder{}
+
 // SetUp attaches the disk and bind mounts to the volume path.
-func (cephfsVolume *cephfs) SetUp() error {
+func (cephfsVolume *cephfsBuilder) SetUp() error {
 	return cephfsVolume.SetUpAt(cephfsVolume.GetPath())
 }
 
-func (cephfsVolume *cephfs) SetUpAt(dir string) error {
-	mountpoint, err := cephfsVolume.mounter.IsMountPoint(dir)
-	glog.V(4).Infof("CephFS: mount set up: %s %v %v", dir, mountpoint, err)
+// SetUpAt attaches the disk and bind mounts to the volume path.
+func (cephfsVolume *cephfsBuilder) SetUpAt(dir string) error {
+	notMnt, err := cephfsVolume.mounter.IsLikelyNotMountPoint(dir)
+	glog.V(4).Infof("CephFS mount set up: %s %v %v", dir, !notMnt, err)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if mountpoint {
+	if !notMnt {
 		return nil
 	}
 	os.MkdirAll(dir, 0750)
@@ -175,36 +179,49 @@ func (cephfsVolume *cephfs) SetUpAt(dir string) error {
 	return err
 }
 
+func (cephfsVolume *cephfsBuilder) IsReadOnly() bool {
+	return cephfsVolume.readonly
+}
+
+type cephfsCleaner struct {
+	*cephfs
+}
+
+var _ volume.Cleaner = &cephfsCleaner{}
+
+// TearDown unmounts the bind mount
+func (cephfsVolume *cephfsCleaner) TearDown() error {
+	return cephfsVolume.TearDownAt(cephfsVolume.GetPath())
+}
+
+// TearDownAt unmounts the bind mount
+func (cephfsVolume *cephfsCleaner) TearDownAt(dir string) error {
+	return cephfsVolume.cleanup(dir)
+}
+
+// GatePath creates global mount path
 func (cephfsVolume *cephfs) GetPath() string {
 	name := cephfsPluginName
 	return cephfsVolume.plugin.host.GetPodVolumeDir(cephfsVolume.podUID, util.EscapeQualifiedNameForDisk(name), cephfsVolume.volName)
 }
 
-func (cephfsVolume *cephfs) TearDown() error {
-	return cephfsVolume.TearDownAt(cephfsVolume.GetPath())
-}
-
-func (cephfsVolume *cephfs) TearDownAt(dir string) error {
-	return cephfsVolume.cleanup(dir)
-}
-
 func (cephfsVolume *cephfs) cleanup(dir string) error {
-	mountpoint, err := cephfsVolume.mounter.IsMountPoint(dir)
+	noMnt, err := cephfsVolume.mounter.IsLikelyNotMountPoint(dir)
 	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("CephFS: Error checking IsMountPoint: %v", err)
+		return fmt.Errorf("CephFS: Error checking IsLikelyNotMountPoint: %v", err)
 	}
-	if !mountpoint {
+	if noMnt {
 		return os.RemoveAll(dir)
 	}
 
 	if err := cephfsVolume.mounter.Unmount(dir); err != nil {
 		return fmt.Errorf("CephFS: Unmounting failed: %v", err)
 	}
-	mountpoint, mntErr := cephfsVolume.mounter.IsMountPoint(dir)
+	noMnt, mntErr := cephfsVolume.mounter.IsLikelyNotMountPoint(dir)
 	if mntErr != nil {
 		return fmt.Errorf("CephFS: IsMountpoint check failed: %v", mntErr)
 	}
-	if !mountpoint {
+	if noMnt {
 		if err := os.RemoveAll(dir); err != nil {
 			return fmt.Errorf("CephFS: removeAll %s/%v", dir, err)
 		}

@@ -7,12 +7,12 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
@@ -36,11 +36,11 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 
 // TestAdmissionExists verifies you cannot create Origin content if namespace is not known
 func TestAdmissionExists(t *testing.T) {
-	mockClient := &testclient.Fake{
-		ReactFn: func(f testclient.Action) (runtime.Object, error) {
-			return &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
-		},
-	}
+	mockClient := &testclient.Fake{}
+	mockClient.AddReactor("*", "*", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
+	})
+
 	projectcache.FakeProjectCache(mockClient, cache.NewStore(cache.MetaNamespaceKeyFunc), "")
 	handler := &lifecycle{client: mockClient}
 	build := &buildapi.Build{
@@ -151,7 +151,7 @@ func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
 	}
 	storageMap := config.GetRestStorage()
-	resources := util.StringSet{}
+	resources := sets.String{}
 
 	for resource := range storageMap {
 		resources.Insert(strings.ToLower(resource))

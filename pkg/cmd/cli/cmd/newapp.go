@@ -15,8 +15,8 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -53,45 +53,45 @@ If you provide source code, you may need to run a build with 'start-build' after
 application is created.`
 
 	newAppExample = `
-  // List all local templates and image streams that can be used to create an app
+  # List all local templates and image streams that can be used to create an app
   $ %[1]s new-app --list
 
-  // Search all templates, image streams, and Docker images for the ones that match "ruby"
+  # Search all templates, image streams, and Docker images for the ones that match "ruby"
   $ %[1]s new-app --search ruby
 
-  // Create an application based on the source code in the current git repository (with a public remote) 
-  // and a Docker image
+  # Create an application based on the source code in the current git repository (with a public remote) 
+  # and a Docker image
   $ %[1]s new-app . --docker-image=repo/langimage
 
-  // Create a Ruby application based on the provided [image]~[source code] combination
+  # Create a Ruby application based on the provided [image]~[source code] combination
   $ %[1]s new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
 
-  // Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
+  # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
   $ %[1]s new-app mysql -l db=mysql
 
-  // Use a MySQL image in a private registry to create an app and override application artifacts' names
+  # Use a MySQL image in a private registry to create an app and override application artifacts' names
   $ %[1]s new-app --docker-image=myregistry.com/mycompany/mysql --name=private
 
-  // Create an application from a remote repository using its beta4 branch
+  # Create an application from a remote repository using its beta4 branch
   $ %[1]s new-app https://github.com/openshift/ruby-hello-world#beta4
 
-  // Create an application based on a stored template, explicitly setting a parameter value
+  # Create an application based on a stored template, explicitly setting a parameter value
   $ %[1]s new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
 
-  // Create an application from a remote repository and specify a context directory
+  # Create an application from a remote repository and specify a context directory
   $ %[1]s new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
  
-  // Create an application based on a template file, explicitly setting a parameter value
+  # Create an application based on a template file, explicitly setting a parameter value
   $ %[1]s new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
-  // Search for "mysql" in all image repositories and stored templates
+  # Search for "mysql" in all image repositories and stored templates
   $ %[1]s new-app --search mysql
 
-  // Search for "ruby", but only in stored templates (--template, --image and --docker-image
-  // can be used to filter search results)
+  # Search for "ruby", but only in stored templates (--template, --image and --docker-image
+  # can be used to filter search results)
   $ %[1]s new-app --search --template=ruby
 
-  // Search for "ruby" in stored templates and print the output as an YAML
+  # Search for "ruby" in stored templates and print the output as an YAML
   $ %[1]s new-app --search --template=ruby --output=yaml`
 
 	newAppNoInput = `You must specify one or more images, image streams, templates, or source code locations to create an application.
@@ -433,7 +433,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullNam
 			description := imageStream.ObjectMeta.Annotations["description"]
 			tags := "<none>"
 			if len(imageStream.Status.Tags) > 0 {
-				set := kutil.NewStringSet()
+				set := sets.NewString()
 				for tag := range imageStream.Status.Tags {
 					set.Insert(tag)
 				}
