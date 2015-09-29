@@ -4,7 +4,7 @@ import (
 	"github.com/golang/glog"
 	"strings"
 
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/exec"
 
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet"
