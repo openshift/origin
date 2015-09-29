@@ -15,6 +15,14 @@ angular.module('openshiftConsole')
         if (!angular.isDefined(attrs.canToggle)) {
           scope.canToggle = true;
         }
+
+        scope.isOnlyWhitespace = function(value) {
+          return /^\s+$/.test(value);
+        };
+
+        scope.focus = function(id) {
+          angular.element('#' + id).focus();
+        };
       }
     };
   });
