@@ -22,7 +22,7 @@ const (
 	createBasicAuthSecretLong = `
 Create a new basic authentication secret
 
-Basic authenticate secrets are used to authenticate against SCM servers.
+Basic authentication secrets are used to authenticate against SCM servers.
 
 When creating applications, you may have a SCM server that requires basic authentication - username, password.
 In order for the nodes to clone source code on your behalf, they have to have the credentials. You can provide 
@@ -62,7 +62,7 @@ func NewCmdCreateBasicAuthSecret(name, fullName string, f *kcmdutil.Factory, rea
 	}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s SECRET_NAME --username=USERNAME --password=PASSWORD [--ca-cert=FILENAME --gitconfig=FILENAME]", name),
+		Use:     fmt.Sprintf("%s SECRET --username=USERNAME --password=PASSWORD [--ca-cert=FILENAME] [--gitconfig=FILENAME]", name),
 		Short:   "Create a new secret for basic authentication",
 		Long:    createBasicAuthSecretLong,
 		Example: fmt.Sprintf(createBasicAuthSecretExample, fullName, newSecretFullName, ocEditFullName),
@@ -162,6 +162,20 @@ func (o *CreateBasicAuthSecretOptions) Complete(f *kcmdutil.Factory, args []stri
 	}
 	o.SecretName = args[0]
 
+	if o.PromptForPassword {
+		if len(o.Password) != 0 {
+			return errors.New("must provide either --prompt or --password flag")
+		}
+		if !cmdutil.IsTerminal(o.Reader) {
+			return errors.New("provided reader is not a terminal")
+		}
+
+		o.Password = cmdutil.PromptForPasswordString(o.Reader, o.Out, "Password: ")
+		if len(o.Password) == 0 {
+			return errors.New("password must be provided")
+		}
+	}
+
 	if f != nil {
 		client, err := f.Client()
 		if err != nil {
@@ -183,22 +197,8 @@ func (o CreateBasicAuthSecretOptions) Validate() error {
 		return errors.New("basic authentication secret name must be present")
 	}
 
-	if o.PromptForPassword {
-		if len(o.Password) != 0 {
-			return errors.New("must provide either --prompt or --password flag")
-		}
-		if cmdutil.IsTerminal(o.Reader) {
-			o.Password = cmdutil.PromptForPasswordString(o.Reader, o.Out, "Password: ")
-			if len(o.Password) == 0 {
-				return errors.New("password must be provided")
-			}
-		} else {
-			return errors.New("provided reader is not a terminal")
-		}
-	} else {
-		if len(o.Username) == 0 && len(o.Password) == 0 && len(o.CertificatePath) == 0 {
-			return errors.New("must provide basic authentication credentials")
-		}
+	if len(o.Username) == 0 && len(o.Password) == 0 {
+		return errors.New("must provide basic authentication credentials")
 	}
 
 	return nil

@@ -57,7 +57,7 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f *kcmdutil.Factory, out i
 	}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s SECRET_NAME --ssh-privatekey=FILENAME [--ca-cert=FILENAME] [--gitconfig=FILENAME]", name),
+		Use:     fmt.Sprintf("%s SECRET --ssh-privatekey=FILENAME [--ca-cert=FILENAME] [--gitconfig=FILENAME]", name),
 		Short:   "Create a new secret for SSH authentication",
 		Long:    createSSHAuthSecretLong,
 		Example: fmt.Sprintf(createSSHAuthSecretExample, fullName, newSecretFullName, ocEditFullName),
