@@ -21,7 +21,7 @@ func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetworkCI
 	osdnInterface := osdn.NewOsdnRegistryInterface(osClient, kClient)
 
 	// get hostname from the gateway
-	output, err := exec.New().Command("hostname", "-f").CombinedOutput()
+	output, err := exec.New().Command("uname", "-n").CombinedOutput()
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
