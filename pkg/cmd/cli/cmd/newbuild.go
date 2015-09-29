@@ -52,10 +52,11 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	config := newcmd.NewAppConfig(typer, mapper, clientMapper)
 
 	cmd := &cobra.Command{
-		Use:     "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
-		Short:   "Create a new build configuration",
-		Long:    newBuildLong,
-		Example: fmt.Sprintf(newBuildExample, fullName),
+		Use:        "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
+		Short:      "Create a new build configuration",
+		Long:       newBuildLong,
+		Example:    fmt.Sprintf(newBuildExample, fullName),
+		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
 			config.AddEnvironmentToBuild = true
 			err := RunNewBuild(fullName, f, out, in, c, args, config)

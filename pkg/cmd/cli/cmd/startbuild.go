@@ -57,10 +57,11 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	webhooks.Default("none")
 
 	cmd := &cobra.Command{
-		Use:     "start-build (BUILDCONFIG | --from-build=BUILD)",
-		Short:   "Starts a new build",
-		Long:    startBuildLong,
-		Example: fmt.Sprintf(startBuildExample, fullName),
+		Use:        "start-build (BUILDCONFIG | --from-build=BUILD)",
+		Short:      "Starts a new build",
+		Long:       startBuildLong,
+		Example:    fmt.Sprintf(startBuildExample, fullName),
+		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunStartBuild(f, out, cmd, args, webhooks)
 			cmdutil.CheckErr(err)

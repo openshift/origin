@@ -89,10 +89,11 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	}
 
 	cmd := &cobra.Command{
-		Use:     "deploy DEPLOYMENTCONFIG",
-		Short:   "View, start, cancel, or retry a deployment",
-		Long:    deployLong,
-		Example: fmt.Sprintf(deployExample, fullName),
+		Use:        "deploy DEPLOYMENTCONFIG",
+		Short:      "View, start, cancel, or retry a deployment",
+		Long:       deployLong,
+		Example:    fmt.Sprintf(deployExample, fullName),
+		SuggestFor: []string{"deployment"},
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, out); err != nil {
 				cmdutil.CheckErr(err)

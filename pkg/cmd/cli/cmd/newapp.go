@@ -115,10 +115,11 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	config := newcmd.NewAppConfig(typer, mapper, clientMapper)
 
 	cmd := &cobra.Command{
-		Use:     "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
-		Short:   "Create a new application",
-		Long:    newAppLong,
-		Example: fmt.Sprintf(newAppExample, fullName),
+		Use:        "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
+		Short:      "Create a new application",
+		Long:       newAppLong,
+		Example:    fmt.Sprintf(newAppExample, fullName),
+		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
 			err := RunNewApplication(fullName, f, out, c, args, config)
 			if err == errExit {
