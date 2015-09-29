@@ -122,25 +122,6 @@ func TestNoErrors(t *testing.T) {
 	test.runTest(t)
 }
 
-func TestErrors(t *testing.T) {
-	test := &resourceAccessTest{
-		authorizer: &testAuthorizer{
-			users:  sets.String{},
-			groups: sets.String{},
-			err:    "some-random-failure",
-		},
-		reviewRequest: &authorizationapi.LocalResourceAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
-				Namespace: "unittest",
-				Verb:      "get",
-				Resource:  "pods",
-			},
-		},
-	}
-
-	test.runTest(t)
-}
-
 func (r *resourceAccessTest) runTest(t *testing.T) {
 	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(r.authorizer)))
 
