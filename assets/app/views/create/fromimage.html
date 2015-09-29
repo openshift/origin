@@ -19,7 +19,7 @@
                 <div style="margin-bottom: 15px;">
                   <div class="form-group form-group-lg">
                    <label for="appname" class="required">Name</label>
-                   <div ng-class="{'has-error': ((form.appname.$invalid && form.appname.$dirty) || nameTaken)}">
+                   <div ng-class="{'has-error': ((form.appname.$invalid && form.appname.$touched) || nameTaken)}">
                      <input type="text"
                             required
                             take-focus
@@ -33,15 +33,15 @@
                             class="form-control form-control-md">
                     </div>
                     <div class="help-block">Used to uniquely identify within this project all the resources created to support the application.</div>
-                    <div class="has-error" ng-show="form.appname.$error.pattern">
+                    <div class="has-error" ng-show="form.appname.$error.pattern && form.appname.$touched">
                       <span class="help-block"><strong>Please enter a valid name.</strong>
                       <p>A valid name is applied to all generated resources. It is an alphanumeric (a-z, and 0-9) string with a maximum length of 24 characters, where the first character is a letter (a-z), and the '-' character is allowed anywhere except the first or last character.</p>
                       </span>
                     </div>
-                    <div class="has-error" ng-show="form.appname.$error.required && form.appname.$dirty">
+                    <div class="has-error" ng-show="form.appname.$error.required && form.appname.$touched">
                       <span class="help-block">A name is required.</span>
                     </div>
-                    <div class="has-error" ng-show="form.appname.$error.minlength && form.appname.$dirty">
+                    <div class="has-error" ng-show="form.appname.$error.minlength && form.appname.$touched">
                       <span class="help-block">The name must have at least 2 characters.</span>
                     </div>
                     <div class="has-error" ng-show="nameTaken">
@@ -52,7 +52,7 @@
 
                 <div class="form-group">
                   <label for="sourceUrl" class="required">Git Repository URL</label>
-                  <div ng-class="{'has-warning': form.sourceUrl.$dirty && !sourceURLPattern.test(buildConfig.sourceUrl), 'has-error': (form.sourceUrl.$error.required && form.sourceUrl.$dirty)}">
+                  <div ng-class="{'has-warning': form.sourceUrl.$touched && !sourceURLPattern.test(buildConfig.sourceUrl), 'has-error': (form.sourceUrl.$error.required && form.sourceUrl.$touched)}">
                      <input class="form-control"
                        id="sourceUrl"
                        name="sourceUrl"
@@ -68,11 +68,11 @@
                     <a href="" ng-click="fillSampleRepo()"
                       style="margin-left: 3px;">Try it<i class="fa fa-level-up" style="margin-left: 3px; font-size: 17px;"></i></a>
                   </div>
-                  <div class="has-error" ng-show="form.sourceUrl.$error.required && form.sourceUrl.$dirty">
+                  <div class="has-error" ng-show="form.sourceUrl.$error.required && form.sourceUrl.$touched">
                     <span class="help-block">A Git repository URL is required.</span>
                   </div>
                   <div>
-                    <span class="text-warning" ng-if="form.sourceUrl.$dirty && !sourceURLPattern.test(buildConfig.sourceUrl)">Git repository should be a URL.</span>
+                    <span class="text-warning" ng-if="form.sourceUrl.$touched && !sourceURLPattern.test(buildConfig.sourceUrl)">Git repository should be a URL.</span>
                   </div>
                 </div>
 
