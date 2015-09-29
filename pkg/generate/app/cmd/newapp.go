@@ -63,6 +63,9 @@ type AppConfig struct {
 	AsSearch bool
 	AsList   bool
 
+	Out    io.Writer
+	ErrOut io.Writer
+
 	refBuilder *app.ReferenceBuilder
 
 	dockerSearcher                  app.Searcher
@@ -315,7 +318,7 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 			df, err := info.Dockerfile.Dockerfile()
 			if err != nil {
 				// an unparseable docker file should not terminate the entire create - it may be valid to Docker but not to us
-				glog.V(1).Infof("The Dockerfile for the repository %q could not be parsed - no image stream can be created for the FROM", info.Path)
+				fmt.Fprintf(c.ErrOut, "WARNING: The Dockerfile for the repository %q could not be parsed - no image stream can be created for the FROM\n", info.Path)
 				continue
 			}
 			dockerFrom, ok := df.GetDirective("FROM")
@@ -634,14 +637,14 @@ type QueryResult struct {
 }
 
 // RunAll executes the provided config to generate all objects.
-func (c *AppConfig) RunAll(out, errOut io.Writer) (*AppResult, error) {
-	return c.run(out, errOut, app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
+func (c *AppConfig) RunAll() (*AppResult, error) {
+	return c.run(app.Acceptors{app.NewAcceptUnique(c.typer), app.AcceptNew})
 }
 
 // RunBuilds executes the provided config to generate just builds.
-func (c *AppConfig) RunBuilds(out, errOut io.Writer) (*AppResult, error) {
+func (c *AppConfig) RunBuilds() (*AppResult, error) {
 	bcAcceptor := app.NewAcceptBuildConfigs(c.typer)
-	result, err := c.run(out, errOut, app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew})
+	result, err := c.run(app.Acceptors{bcAcceptor, app.NewAcceptUnique(c.typer), app.AcceptNew})
 	if err != nil {
 		return nil, err
 	}
@@ -697,7 +700,7 @@ func makeImageStreamKey(ref kapi.ObjectReference) string {
 }
 
 // RunQuery executes the provided config and returns the result of the resolution.
-func (c *AppConfig) RunQuery(out, errOut io.Writer) (*QueryResult, error) {
+func (c *AppConfig) RunQuery() (*QueryResult, error) {
 	c.ensureDockerSearcher()
 	repositories, err := c.individualSourceRepositories()
 	if err != nil {
@@ -768,7 +771,7 @@ func (c *AppConfig) RunQuery(out, errOut io.Writer) (*QueryResult, error) {
 }
 
 // run executes the provided config applying provided acceptors.
-func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppResult, error) {
+func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	c.ensureDockerSearcher()
 	repositories, err := c.individualSourceRepositories()
 	if err != nil {
@@ -833,7 +836,7 @@ func (c *AppConfig) run(out, errOut io.Writer, acceptors app.Acceptors) (*AppRes
 		}
 		if p.Image != nil && p.Image.HasEmptyDir {
 			if _, ok := warned[p.Image.Name]; !ok {
-				fmt.Fprintf(errOut, "NOTICE: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
+				fmt.Fprintf(c.ErrOut, "WARNING: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
 				warned[p.Image.Name] = struct{}{}
 			}
 		}

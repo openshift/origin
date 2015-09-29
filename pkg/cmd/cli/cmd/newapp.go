@@ -158,12 +158,12 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 // RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
-	if err := setupAppConfig(f, c, args, config); err != nil {
+	if err := setupAppConfig(f, out, c, args, config); err != nil {
 		return err
 	}
 
 	if config.Querying() {
-		result, err := config.RunQuery(out, c.Out())
+		result, err := config.RunQuery()
 		if err != nil {
 			return handleRunError(c, err)
 		}
@@ -177,7 +177,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	if err := setAppConfigLabels(c, config); err != nil {
 		return err
 	}
-	result, err := config.RunAll(out, c.Out())
+	result, err := config.RunAll()
 	if err != nil {
 		return handleRunError(c, err)
 	}
@@ -218,7 +218,9 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			}
 		}
 	}
-	fmt.Fprintf(c.Out(), "Run '%s status' to view your app.\n", fullName)
+	if len(result.List.Items) > 0 {
+		fmt.Fprintf(c.Out(), "Run '%s %s' to view your app.\n", fullName, StatusRecommendedName)
+	}
 
 	return nil
 }
@@ -235,7 +237,7 @@ func setAppConfigLabels(c *cobra.Command, config *newcmd.AppConfig) error {
 	return nil
 }
 
-func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -256,6 +258,8 @@ func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, confi
 		return err
 	}
 	config.SetOpenShiftClient(osclient, namespace)
+	config.Out = out
+	config.ErrOut = c.Out()
 
 	unknown := config.AddArguments(args)
 	if len(unknown) != 0 {

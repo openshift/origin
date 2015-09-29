@@ -788,7 +788,8 @@ func TestRunAll(t *testing.T) {
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunAll(os.Stdout, os.Stderr)
+		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		res, err := test.config.RunAll()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -1001,7 +1002,8 @@ func TestRunBuild(t *testing.T) {
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunBuilds(os.Stdout, os.Stderr)
+		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		res, err := test.config.RunBuilds()
 		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
@@ -1079,7 +1081,8 @@ func TestNewBuildEnvVars(t *testing.T) {
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunBuilds(os.Stdout, os.Stderr)
+		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		res, err := test.config.RunBuilds()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -1134,7 +1137,8 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunAll(os.Stdout, os.Stderr)
+		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		res, err := test.config.RunAll()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
