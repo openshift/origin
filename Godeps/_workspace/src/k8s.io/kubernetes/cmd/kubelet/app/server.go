@@ -1,5 +1,5 @@
 /*
-Copyright 2014 The Kubernetes Authors All rights reserved.
+Copyright 2015 The Kubernetes Authors All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -142,8 +142,8 @@ type KubeletServer struct {
 type KubeletBootstrap interface {
 	BirthCry()
 	StartGarbageCollection()
-	ListenAndServe(net.IP, uint, *kubelet.TLSOptions, bool)
-	ListenAndServeReadOnly(net.IP, uint)
+	ListenAndServe(address net.IP, port uint, tlsOptions *kubelet.TLSOptions, auth kubelet.AuthInterface, enableDebuggingHandlers bool)
+	ListenAndServeReadOnly(address net.IP, port uint)
 	Run(<-chan kubelet.PodUpdate)
 	RunOnce(<-chan kubelet.PodUpdate) ([]kubelet.RunPodResult, error)
 }
@@ -208,7 +208,7 @@ func (s *KubeletServer) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&s.EnableServer, "enable-server", s.EnableServer, "Enable the Kubelet's server")
 	fs.IPVar(&s.Address, "address", s.Address, "The IP address for the Kubelet to serve on (set to 0.0.0.0 for all interfaces)")
 	fs.UintVar(&s.Port, "port", s.Port, "The port for the Kubelet to serve on. Note that \"kubectl logs\" will not work if you set this flag.") // see #9325
-	fs.UintVar(&s.ReadOnlyPort, "read-only-port", s.ReadOnlyPort, "The read-only port for the Kubelet to serve on (set to 0 to disable)")
+	fs.UintVar(&s.ReadOnlyPort, "read-only-port", s.ReadOnlyPort, "The read-only port for the Kubelet to serve on with no authentication/authorization (set to 0 to disable)")
 	fs.StringVar(&s.TLSCertFile, "tls-cert-file", s.TLSCertFile, ""+
 		"File containing x509 Certificate for HTTPS.  (CA cert, if any, concatenated after server cert). "+
 		"If --tls-cert-file and --tls-private-key-file are not provided, a self-signed certificate and key "+
@@ -270,9 +270,9 @@ func (s *KubeletServer) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&s.Containerized, "containerized", s.Containerized, "Experimental support for running kubelet in a container.  Intended for testing. [default=false]")
 }
 
-// KubeletConfig returns a KubeletConfig suitable for being run, or an error if the server setup
-// is not valid.  It will not start any background processes.
-func (s *KubeletServer) KubeletConfig() (*KubeletConfig, error) {
+// UnsecuredKubeletConfig returns a KubeletConfig suitable for being run, or an error if the server setup
+// is not valid.  It will not start any background processes, and does not include authentication/authorization
+func (s *KubeletServer) UnsecuredKubeletConfig() (*KubeletConfig, error) {
 	hostNetworkSources, err := kubelet.GetValidatedSources(strings.Split(s.HostNetworkSources, ","))
 	if err != nil {
 		return nil, err
@@ -323,6 +323,7 @@ func (s *KubeletServer) KubeletConfig() (*KubeletConfig, error) {
 		Address:                   s.Address,
 		AllowPrivileged:           s.AllowPrivileged,
 		CadvisorInterface:         nil, // launches background processes, not set here
+		Auth:                      nil, // default does not enforce auth[nz]
 		CgroupRoot:                s.CgroupRoot,
 		Cloud:                     nil, // cloud provider might start background processes
 		ClusterDNS:                s.ClusterDNS,
@@ -385,7 +386,7 @@ func (s *KubeletServer) KubeletConfig() (*KubeletConfig, error) {
 // will be ignored.
 func (s *KubeletServer) Run(kcfg *KubeletConfig) error {
 	if kcfg == nil {
-		cfg, err := s.KubeletConfig()
+		cfg, err := s.UnsecuredKubeletConfig()
 		if err != nil {
 			return err
 		}
@@ -708,7 +709,7 @@ func startKubelet(k KubeletBootstrap, podCfg *config.PodConfig, kc *KubeletConfi
 	// start the kubelet server
 	if kc.EnableServer {
 		go util.Until(func() {
-			k.ListenAndServe(kc.Address, kc.Port, kc.TLSOptions, kc.EnableDebuggingHandlers)
+			k.ListenAndServe(kc.Address, kc.Port, kc.TLSOptions, kc.Auth, kc.EnableDebuggingHandlers)
 		}, 0, util.NeverStop)
 	}
 	if kc.ReadOnlyPort > 0 {
@@ -749,6 +750,7 @@ type KubeletConfig struct {
 	Address                        net.IP
 	AllowPrivileged                bool
 	CadvisorInterface              cadvisor.Interface
+	Auth                           kubelet.AuthInterface
 	CgroupRoot                     string
 	Cloud                          cloudprovider.Interface
 	ClusterDNS                     net.IP
