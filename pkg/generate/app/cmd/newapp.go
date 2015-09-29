@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/template"
+	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
@@ -317,17 +318,13 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 			errs = append(errs, fmt.Errorf("source not detected for repository %q", repo))
 			continue
 		case info.Dockerfile != nil && (len(c.Strategy) == 0 || c.Strategy == "docker"):
-			df, err := info.Dockerfile.Dockerfile()
-			if err != nil {
-				// an unparseable docker file should not terminate the entire create - it may be valid to Docker but not to us
-				fmt.Fprintf(c.ErrOut, "WARNING: The Dockerfile for the repository %q could not be parsed - no image stream can be created for the FROM\n", info.Path)
+			node := info.Dockerfile.AST()
+			baseImage := dockerfileutil.LastBaseImage(node)
+			if baseImage == "" {
+				errs = append(errs, fmt.Errorf("the Dockerfile in the repository %q has no FROM instruction", info.Path))
 				continue
 			}
-			dockerFrom, ok := df.GetDirective("FROM")
-			if !ok || len(dockerFrom) > 1 {
-				errs = append(errs, fmt.Errorf("invalid FROM directive in Dockerfile in repository %q", repo))
-			}
-			refs := b.AddComponents(dockerFrom, func(input *app.ComponentInput) app.ComponentReference {
+			refs := b.AddComponents([]string{baseImage}, func(input *app.ComponentInput) app.ComponentReference {
 				resolver := app.PerfectMatchWeightedResolver{}
 				if c.imageStreamSearcher != nil {
 					resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamSearcher, Weight: 0.0})
@@ -531,18 +528,17 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 
 				// Append any exposed ports from Dockerfile to input image
 				if ref.Input().Uses.IsDockerBuild() {
-					if df, err := ref.Input().Uses.Info().Dockerfile.Dockerfile(); err == nil {
-						exposed, ok := df.GetDirective("EXPOSE")
-						if ok {
-							if input.Info == nil {
-								input.Info = &imageapi.DockerImage{
-									Config: &imageapi.DockerConfig{},
-								}
+					node := ref.Input().Uses.Info().Dockerfile.AST()
+					ports := dockerfileutil.LastExposedPorts(node)
+					if len(ports) > 0 {
+						if input.Info == nil {
+							input.Info = &imageapi.DockerImage{
+								Config: &imageapi.DockerConfig{},
 							}
-							input.Info.Config.ExposedPorts = map[string]struct{}{}
-							for _, p := range exposed {
-								input.Info.Config.ExposedPorts[p] = struct{}{}
-							}
+						}
+						input.Info.Config.ExposedPorts = map[string]struct{}{}
+						for _, p := range ports {
+							input.Info.Config.ExposedPorts[p] = struct{}{}
 						}
 					}
 				}

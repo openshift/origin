@@ -1,13 +1,14 @@
 package app
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/docker/docker/builder/parser"
 
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -20,7 +21,7 @@ var (
 )
 
 type Dockerfile interface {
-	Dockerfile() (dockerfile.Dockerfile, error)
+	AST() *parser.Node
 	Contents() string
 }
 
@@ -32,38 +33,31 @@ func NewDockerfileFromFile(path string) (Dockerfile, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("Dockerfile %q is empty", path)
 	}
-	df := dockerfileContents{
-		contents: string(data),
-	}
-	df.parsed, df.err = dockerfile.NewParser().Parse(bytes.NewBuffer(data))
-	return df, nil
+	return NewDockerfile(string(data))
 }
 
 func NewDockerfile(contents string) (Dockerfile, error) {
 	if len(contents) == 0 {
 		return nil, fmt.Errorf("Dockerfile is empty")
 	}
-	df := dockerfileContents{
-		contents: contents,
+	node, err := parser.Parse(strings.NewReader(contents))
+	if err != nil {
+		return nil, err
 	}
-	if parsed, err := dockerfile.NewParser().Parse(bytes.NewBufferString(contents)); err == nil {
-		df.parsed = parsed
-	}
-	return df, nil
+	return dockerfileContents{node, contents}, nil
 }
 
 type dockerfileContents struct {
-	parsed   dockerfile.Dockerfile
-	err      error
+	ast      *parser.Node
 	contents string
+}
+
+func (d dockerfileContents) AST() *parser.Node {
+	return d.ast
 }
 
 func (d dockerfileContents) Contents() string {
 	return d.contents
-}
-
-func (d dockerfileContents) Dockerfile() (dockerfile.Dockerfile, error) {
-	return d.parsed, d.err
 }
 
 // IsPossibleSourceRepository checks whether the provided string is a source repository or not

@@ -964,7 +964,7 @@ func TestRunAll(t *testing.T) {
 	}
 }
 
-func TestRunBuild(t *testing.T) {
+func TestRunBuilds(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
@@ -1059,6 +1059,20 @@ func TestRunBuild(t *testing.T) {
 			},
 			expectedErr: func(err error) bool {
 				return err.Error() == "when directly referencing a Dockerfile, the strategy must must be 'docker'"
+			},
+		},
+		{
+			name: "unsuccessful build from dockerfile due to missing FROM instruction",
+			config: &AppConfig{
+				Dockerfile: "USER foo",
+				Strategy:   "docker",
+
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expectedErr: func(err error) bool {
+				return err.Error() == "the Dockerfile in the repository \"\" has no FROM instruction"
 			},
 		},
 	}
@@ -1286,7 +1300,7 @@ tests:
 // Make sure that buildPipelines defaults DockerImage.Config if needed to
 // avoid a nil panic.
 func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
-	dockerFile, err := app.NewDockerfile("EXPOSE 1234\nEXPOSE 4567")
+	dockerFile, err := app.NewDockerfile("FROM centos\nEXPOSE 1234\nEXPOSE 4567")
 	if err != nil {
 		t.Fatal(err)
 	}

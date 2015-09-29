@@ -21,7 +21,6 @@ import (
 type BuildStrategyRefGenerator struct {
 	gitRepository     git.Repository
 	dockerfileFinder  dockerfile.Finder
-	dockerfileParser  dockerfile.Parser
 	sourceDetectors   source.Detectors
 	imageRefGenerator ImageRefGenerator
 }
@@ -31,7 +30,6 @@ func NewBuildStrategyRefGenerator(sourceDetectors source.Detectors) *BuildStrate
 	return &BuildStrategyRefGenerator{
 		gitRepository:     git.NewRepository(),
 		dockerfileFinder:  dockerfile.NewFinder(),
-		dockerfileParser:  dockerfile.NewParser(),
 		sourceDetectors:   sourceDetectors,
 		imageRefGenerator: NewImageRefGenerator(),
 	}

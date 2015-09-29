@@ -273,3 +273,287 @@ ENV PATH=/bin
 		}
 	}
 }
+
+// TestLastBaseImage tests calling LastBaseImage with multiple valid
+// combinations of input.
+func TestLastBaseImage(t *testing.T) {
+	testCases := map[string]struct {
+		in   string
+		want string
+	}{
+		"empty Dockerfile": {
+			in:   ``,
+			want: "",
+		},
+		"FROM missing argument": {
+			in:   `FROM`,
+			want: "",
+		},
+		"single FROM": {
+			in:   `FROM centos:7`,
+			want: "centos:7",
+		},
+		"multiple FROM": {
+			in: `FROM scratch
+COPY . /boot
+FROM centos:7`,
+			want: "centos:7",
+		},
+	}
+	for name, tc := range testCases {
+		node, err := parser.Parse(strings.NewReader(tc.in))
+		if err != nil {
+			t.Errorf("%s: parse error: %v", name, err)
+			continue
+		}
+		got := LastBaseImage(node)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("LastBaseImage: %s: got %#v; want %#v", name, got, tc.want)
+		}
+	}
+}
+
+// TestLastBaseImageNilNode tests calling LastBaseImage with a nil *parser.Node.
+func TestLastBaseImageNilNode(t *testing.T) {
+	want := ""
+	if got := LastBaseImage(nil); got != want {
+		t.Errorf("LastBaseImage(nil) = %#v; want %#v", got, want)
+	}
+}
+
+// TestBaseImages tests calling baseImages with multiple valid combinations of
+// input.
+func TestBaseImages(t *testing.T) {
+	testCases := map[string]struct {
+		in   string
+		want []string
+	}{
+		"empty Dockerfile": {
+			in:   ``,
+			want: nil,
+		},
+		"FROM missing argument": {
+			in:   `FROM`,
+			want: nil,
+		},
+		"single FROM": {
+			in:   `FROM centos:7`,
+			want: []string{"centos:7"},
+		},
+		"multiple FROM": {
+			in: `FROM scratch
+COPY . /boot
+FROM centos:7`,
+			want: []string{"scratch", "centos:7"},
+		},
+	}
+	for name, tc := range testCases {
+		node, err := parser.Parse(strings.NewReader(tc.in))
+		if err != nil {
+			t.Errorf("%s: parse error: %v", name, err)
+			continue
+		}
+		got := baseImages(node)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("baseImages: %s: got %#v; want %#v", name, got, tc.want)
+		}
+	}
+}
+
+// TestBaseImagesNilNode tests calling baseImages with a nil *parser.Node.
+func TestBaseImagesNilNode(t *testing.T) {
+	if got := baseImages(nil); got != nil {
+		t.Errorf("baseImages(nil) = %#v; want nil", got)
+	}
+}
+
+// TestLastExposedPorts tests calling LastExposedPorts with multiple valid
+// combinations of input.
+func TestLastExposedPorts(t *testing.T) {
+	testCases := map[string]struct {
+		in   string
+		want []string
+	}{
+		"empty Dockerfile": {
+			in:   ``,
+			want: nil,
+		},
+		"EXPOSE missing argument": {
+			in:   `EXPOSE`,
+			want: nil,
+		},
+		"EXPOSE no FROM": {
+			in:   `EXPOSE 8080`,
+			want: nil,
+		},
+		"single EXPOSE after FROM": {
+			in: `FROM centos:7
+		EXPOSE 8080`,
+			want: []string{"8080"},
+		},
+		"multiple EXPOSE and FROM": {
+			in: `# EXPOSE before FROM should be ignore
+EXPOSE 777
+FROM busybox
+EXPOSE 8080
+COPY . /boot
+FROM rhel
+# no EXPOSE instruction
+FROM centos:7
+EXPOSE 8000
+EXPOSE 9090 9091
+`,
+			want: []string{"8000", "9090", "9091"},
+		},
+	}
+	for name, tc := range testCases {
+		node, err := parser.Parse(strings.NewReader(tc.in))
+		if err != nil {
+			t.Errorf("%s: parse error: %v", name, err)
+			continue
+		}
+		got := LastExposedPorts(node)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("LastExposedPorts: %s: got %#v; want %#v", name, got, tc.want)
+		}
+	}
+}
+
+// TestLastExposedPortsNilNode tests calling LastExposedPorts with a nil
+// *parser.Node.
+func TestLastExposedPortsNilNode(t *testing.T) {
+	if got := LastExposedPorts(nil); got != nil {
+		t.Errorf("LastExposedPorts(nil) = %#v; want nil", got)
+	}
+}
+
+// TestExposedPorts tests calling exposedPorts with multiple valid combinations
+// of input.
+func TestExposedPorts(t *testing.T) {
+	testCases := map[string]struct {
+		in   string
+		want [][]string
+	}{
+		"empty Dockerfile": {
+			in:   ``,
+			want: nil,
+		},
+		"EXPOSE missing argument": {
+			in:   `EXPOSE`,
+			want: nil,
+		},
+		"EXPOSE no FROM": {
+			in:   `EXPOSE 8080`,
+			want: nil,
+		},
+		"single EXPOSE after FROM": {
+			in: `FROM centos:7
+		EXPOSE 8080`,
+			want: [][]string{{"8080"}},
+		},
+		"multiple EXPOSE and FROM": {
+			in: `# EXPOSE before FROM should be ignore
+EXPOSE 777
+FROM busybox
+EXPOSE 8080
+COPY . /boot
+FROM rhel
+# no EXPOSE instruction
+FROM centos:7
+EXPOSE 8000
+EXPOSE 9090 9091
+`,
+			want: [][]string{{"8080"}, nil, {"8000", "9090", "9091"}},
+		},
+	}
+	for name, tc := range testCases {
+		node, err := parser.Parse(strings.NewReader(tc.in))
+		if err != nil {
+			t.Errorf("%s: parse error: %v", name, err)
+			continue
+		}
+		got := exposedPorts(node)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("exposedPorts: %s: got %#v; want %#v", name, got, tc.want)
+		}
+	}
+}
+
+// TestExposedPortsNilNode tests calling exposedPorts with a nil *parser.Node.
+func TestExposedPortsNilNode(t *testing.T) {
+	if got := exposedPorts(nil); got != nil {
+		t.Errorf("exposedPorts(nil) = %#v; want nil", got)
+	}
+}
+
+// TestNextValues tests calling nextValues with multiple valid combinations of
+// input.
+func TestNextValues(t *testing.T) {
+	testCases := map[string][]string{
+		`FROM busybox:latest`:           {"busybox:latest"},
+		`MAINTAINER nobody@example.com`: {"nobody@example.com"},
+		`LABEL version=1.0`:             {"version", "1.0"},
+		`EXPOSE 8080`:                   {"8080"},
+		`VOLUME /var/run/www`:           {"/var/run/www"},
+		`ENV PATH=/bin`:                 {"PATH", "/bin"},
+		`ADD file /home/`:               {"file", "/home/"},
+		`COPY dir/ /tmp/`:               {"dir/", "/tmp/"},
+		`RUN echo "Hello world!"`:       {`echo "Hello world!"`},
+		`ENTRYPOINT /bin/sh`:            {"/bin/sh"},
+		`CMD ["-c", "env"]`:             {"-c", "env"},
+		`USER 1001`:                     {"1001"},
+		`WORKDIR /home`:                 {"/home"},
+	}
+	for original, want := range testCases {
+		node, err := parser.Parse(strings.NewReader(original))
+		if err != nil {
+			t.Fatalf("parse error: %s: %v", original, err)
+		}
+		if len(node.Children) != 1 {
+			t.Fatalf("unexpected number of children in test case: %s", original)
+		}
+		// The Docker parser always wrap instructions in a root node.
+		// Look at the node representing the first instruction, the one
+		// and only one in each test case.
+		node = node.Children[0]
+		if got := nextValues(node); !reflect.DeepEqual(got, want) {
+			t.Errorf("nextValues(%+v) = %#v; want %#v", node, got, want)
+		}
+	}
+}
+
+// TestNextValuesOnbuild tests calling nextValues with ONBUILD instructions as
+// input.
+func TestNextValuesOnbuild(t *testing.T) {
+	testCases := map[string][]string{
+		`ONBUILD ADD . /app/src`:             {".", "/app/src"},
+		`ONBUILD RUN echo "Hello universe!"`: {`echo "Hello universe!"`},
+	}
+	for original, want := range testCases {
+		node, err := parser.Parse(strings.NewReader(original))
+		if err != nil {
+			t.Fatalf("parse error: %s: %v", original, err)
+		}
+		if len(node.Children) != 1 {
+			t.Fatalf("unexpected number of children in test case: %s", original)
+		}
+		// The Docker parser always wrap instructions in a root node.
+		// Look at the node representing the instruction following
+		// ONBUILD, the one and only one in each test case.
+		node = node.Children[0].Next
+		if node == nil || len(node.Children) != 1 {
+			t.Fatalf("unexpected number of children in ONBUILD instruction of test case: %s", original)
+		}
+		node = node.Children[0]
+		if got := nextValues(node); !reflect.DeepEqual(got, want) {
+			t.Errorf("nextValues(%+v) = %#v; want %#v", node, got, want)
+		}
+	}
+}
+
+// TestNextValuesNilNode tests calling nextValues with a nil *parser.Node.
+func TestNextValuesNilNode(t *testing.T) {
+	if got := nextValues(nil); got != nil {
+		t.Errorf("nextValues(nil) = %#v; want nil", got)
+	}
+}
