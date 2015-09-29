@@ -149,6 +149,7 @@ func init() {
 			for _, curr := range *in {
 				r := newer.TagReference{
 					Annotations: curr.Annotations,
+					Reference:   curr.Reference,
 				}
 				if err := s.Convert(&curr.From, &r.From, 0); err != nil {
 					return err
@@ -169,6 +170,7 @@ func init() {
 				oldTagReference := NamedTagReference{
 					Name:        tag,
 					Annotations: newTagReference.Annotations,
+					Reference:   newTagReference.Reference,
 				}
 				if err := s.Convert(&newTagReference.From, &oldTagReference.From, 0); err != nil {
 					return err

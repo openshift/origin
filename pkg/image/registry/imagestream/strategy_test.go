@@ -347,6 +347,7 @@ func TestTagsChanged(t *testing.T) {
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream:t1",
 					},
+					Reference: true,
 				},
 			},
 			existingTagHistory: map[string]api.TagEventList{
@@ -399,12 +400,14 @@ func TestTagsChanged(t *testing.T) {
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream:t1",
 					},
+					Reference: true,
 				},
 				"t2": {
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
+					Reference: true,
 				},
 			},
 			existingTagHistory: make(map[string]api.TagEventList),
@@ -503,18 +506,21 @@ func TestTagsChanged(t *testing.T) {
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream:v1image1",
 					},
+					Reference: true,
 				},
 				"t2": {
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream:v1image1",
 					},
+					Reference: true,
 				},
 				"t3": {
 					From: &kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
+					Reference: true,
 				},
 			},
 			existingTagHistory: map[string]api.TagEventList{

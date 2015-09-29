@@ -1862,6 +1862,7 @@ func deepCopy_v1beta3_NamedTagReference(in imageapiv1beta3.NamedTagReference, ou
 	} else {
 		out.From = nil
 	}
+	out.Reference = in.Reference
 	return nil
 }
 

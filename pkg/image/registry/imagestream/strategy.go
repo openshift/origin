@@ -153,12 +153,14 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		}
 
 		if tagRef.From.Kind == "DockerImage" && len(tagRef.From.Name) > 0 {
-			event, err := tagReferenceToTagEvent(stream, tagRef, "")
-			if err != nil {
-				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from", tag), tagRef.From, err.Error()))
-				continue
+			if tagRef.Reference {
+				event, err := tagReferenceToTagEvent(stream, tagRef, "")
+				if err != nil {
+					errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from", tag), tagRef.From, err.Error()))
+					continue
+				}
+				api.AddTagEventToImageStream(stream, tag, *event)
 			}
-			api.AddTagEventToImageStream(stream, tag, *event)
 			continue
 		}
 
