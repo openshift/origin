@@ -505,6 +505,7 @@ func DeepCopy_api_ResourceAccessReviewResponse(in ResourceAccessReviewResponse, 
 	} else {
 		out.Groups = nil
 	}
+	out.EvaluationError = in.EvaluationError
 	return nil
 }
 
