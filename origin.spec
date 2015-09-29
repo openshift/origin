@@ -14,12 +14,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the rel-eng directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 92878fa84808be6f893d30d40901914cff419fc7
+%global commit d31dd1a5acfdc4c35c02394a2a9b98640d113543
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.1.901-132-g92878fa -X github.com/openshift/origin/pkg/version.commitFromGit 92878fa -X k8s.io/kubernetes/pkg/version.gitCommit 44c91b1 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-alpha.0-1605-g44c91b1
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.100-275-gd31dd1a -X github.com/openshift/origin/pkg/version.commitFromGit d31dd1a -X k8s.io/kubernetes/pkg/version.gitCommit 86b4e77 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-alpha.1-653-g86b4e77
 }
 
 %if "%{dist}" == ".el7aos"
@@ -33,7 +33,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the rel-eng directory of this project
-Version:        3.0.2.100
+Version:        3.0.2.900
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -390,6 +390,228 @@ fi
 
 
 %changelog
+* Tue Sep 29 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.900
+- OSE Docs URLs (sdodson@redhat.com)
+- Do not treat directories named Dockerfile as file (rhcarvalho@gmail.com)
+- Disable the pods per node test - it requires the kubelet stats
+  (ccoleman@redhat.com)
+- Set Build.Status.Pushspec to resolved pushspec (rhcarvalho@gmail.com)
+- Bug: 1266442 1266447 (jhadvig@redhat.com)
+- new-app: Better output in case of invalid Dockerfile (mkargaki@redhat.com)
+- Compatibility test for Volume Source (mkargaki@redhat.com)
+- Update UPGRADE.md about Metadata/Downward (mkargaki@redhat.com)
+- get local IP like the server would and add retries to build test watch
+  (pweil@redhat.com)
+- Interesting refactoring (mkargaki@redhat.com)
+- Fix verify-open-ports.sh to not fail on success (mkargaki@redhat.com)
+- Boring refactoring; code generations (mkargaki@redhat.com)
+- UPSTREAM: openshift-sdn: 167: plugins: Update Kube client imports
+  (mkargaki@redhat.com)
+- UPSTREAM: <carry>: Move to test pkg to avoid linking test flags in binaries
+  (pweil@redhat.com)
+- UPSTREAM: <carry>: Add etcd prefix (mkargaki@redhat.com)
+- UPSTREAM: 14664: fix testclient prepend (deads@redhat.com)
+- UPSTREAM: 14502: don't fatal on missing sorting flag (deads@redhat.com)
+- UPSTREAM: <drop>: hack experimental versions and client creation
+  (deads@redhat.com)
+- UPSTREAM: 14496: deep-copies: Structs cannot be nil (mkargaki@redhat.com)
+- UPSTREAM: <carry>: Back n forth downward/metadata conversions
+  (mkargaki@redhat.com)
+- UPSTREAM: 13728: Allow to replace os.Exit() with panic when CLI command fatal
+  (mfojtik@redhat.com)
+- UPSTREAM: 14291: add patch verb to APIRequestInfo (deads@redhat.com)
+- UPSTREAM: 13910: Fix resourcVersion = 0 in cacher (mkargaki@redhat.com)
+- UPSTREAM: 13864: Fix kubelet logs --follow bug (mkargaki@redhat.com)
+- UPSTREAM: 14063: enable system CAs (mkargaki@redhat.com)
+- UPSTREAM: 13756: expose: Avoid selector resolution if a selector is not
+  needed (mkargaki@redhat.com)
+- UPSTREAM: 13746: Fix field=metadata.name (ccoleman@redhat.com)
+- UPSTREAM: 9870: Allow Volume Plugins to be configurable (deads@redhat.com)
+- UPSTREAM: 11827: allow permissive SA secret ref limitting (deads@redhat.com)
+- UPSTREAM: 12221: Allow custom namespace creation in e2e framework
+  (mfojtik@redhat.com)
+- UPSTREAM: 12498: Re-add timeouts for kubelet which is not in the upstream PR.
+  (deads@redhat.com)
+- UPSTREAM: 9009: Retry service account update when adding token reference
+  (deads@redhat.com)
+- UPSTREAM: 9844: EmptyDir volume SELinux support (deads@redhat.com)
+- UPSTREAM: 7893: scc allocation interface methods (deads@redhat.com)
+- UPSTREAM: 7893: scc (pweil@redhat.com)
+- UPSTREAM: 8890: Allowing ActiveDeadlineSeconds to be updated for a pod
+  (deads@redhat.com)
+- UPSTREAM: <drop>: add back flag types to reduce noise during this rebase
+  (deads@redhat.com)
+- UPSTREAM: <none>: Hack date-time format on *util.Time (ccoleman@redhat.com)
+- UPSTREAM: <none>: Suppress aggressive output of warning (ccoleman@redhat.com)
+- UPSTREAM: <carry>: Disable --validate by default (mkargaki@redhat.com)
+- UPSTREAM: <carry>: update describer for dockercfg secrets (deads@redhat.com)
+- UPSTREAM: <carry>: reallow the ability to post across namespaces in api
+  (pweil@redhat.com)
+- UPSTREAM: <carry>: support pointing oc exec to old openshift server
+  (deads@redhat.com)
+- UPSTREAM: <carry>: Add deprecated fields to migrate 1.0.0 k8s v1 data
+  (jliggitt@redhat.com)
+- UPSTREAM: <carry>: Allow pod start to be delayed in Kubelet
+  (ccoleman@redhat.com)
+- UPSTREAM: <carry>: Disable UIs for Kubernetes and etcd (deads@redhat.com)
+- UPSTREAM: <carry>: v1beta3 (deads@redhat.com)
+- bump(github.com/emicklei/go-restful) 1f9a0ee00ff93717a275e15b30cf7df356255877
+  (mkargaki@redhat.com)
+- bump(k8s.io/kubernetes) 86b4e777e1947c1bc00e422306a3ca74cbd54dbe
+  (mkargaki@redhat.com)
+- Update java console (slewis@fusesource.com)
+- fix QueryForEntries API (deads@redhat.com)
+- added sync-groups command basics (skuznets@redhat.com)
+- add ldap groups sync (skuznets@redhat.com)
+- Remove templates.js from bindata and fix HTML minification
+  (spadgett@redhat.com)
+- fedora 21 Vagrant provisioning fixes (dcbw@redhat.com)
+- Issue 4795 - include ref and contextdir in github links (jforrest@redhat.com)
+- new-app: Actually use the Docker parser (mkargaki@redhat.com)
+- Update old references to _output/local/go/bin (rhcarvalho@gmail.com)
+- improved robustness of recycler script (mturansk@redhat.com)
+- Do not export test utility (rhcarvalho@gmail.com)
+- Change build-go to generate binaries to _output/local/bin/${platform}
+  (ccoleman@redhat.com)
+- Make deployment trigger logging quieter (ironcladlou@gmail.com)
+- bump(github.com/openshift/openshift-sdn)
+  669deb4de23ab7f79341a132786b198c7f272082 (rpenta@redhat.com)
+- Fix openshift-sdn imports in origin (rpenta@redhat.com)
+- Move plugins/osdn to Godeps/workspace/src/github.com/openshift/openshift-
+  sdn/plugins/osdn (rpenta@redhat.com)
+- Move sdn ovssubnet to pkg/ovssubnet dir (rpenta@redhat.com)
+- Reorganize web console create flow (spadgett@redhat.com)
+- Fix handle on watchObject. Set deletionTimestamp instead of deleted.
+  (jforrest@redhat.com)
+- Use direct CLI invocations rather than embedding CLI (ccoleman@redhat.com)
+- Next steps page (after creating stuff in console) (ffranz@redhat.com)
+- Disable parallelism for now (ccoleman@redhat.com)
+- Do not require the master components from test/util (ccoleman@redhat.com)
+- [userinterface_public_538] Create individual pages for all resources With
+  some changes from @sg00dwin and @spadgett (jforrest@redhat.com)
+- Fix some of the govet issues (mfojtik@redhat.com)
+- annotate builds on clone (bparees@redhat.com)
+- Make network fixup during provision conditional (marun@redhat.com)
+- Update roadmap url (dmcphers@redhat.com)
+- better error message for immutable edits to builds (bparees@redhat.com)
+- Default NetworkConfig.ServiceNetworkCIDR to
+  KubernetesMasterConfig.ServicesSubnet (jliggitt@redhat.com)
+- create SCCExecRestriction admission plugin (deads@redhat.com)
+- added oadm commands to validate node and master config (skuznets@redhat.com)
+- Add an e2e test for Dockerfile and review comments (ccoleman@redhat.com)
+- Add extended tests for start-build (mfojtik@redhat.com)
+- allow local access reviews while namespace is terminating (deads@redhat.com)
+- build oc, move to clients, move alt clients to redistributable
+  (tdawson@redhat.com)
+- Add --kubeconfig support for compat with kubectl (ccoleman@redhat.com)
+- assets: Filter topology correctly and refactor relations (stefw@redhat.com)
+- allow self SARs using old policy: (deads@redhat.com)
+- Capture panic in extended CLI and return them as Go errors
+  (mfojtik@redhat.com)
+- UPSTREAM: 13728: Allow to replace os.Exit() with panic when CLI command fatal
+  (mfojtik@redhat.com)
+- Take stdin on OpenShift CLI (ccoleman@redhat.com)
+- add extended tests for example repos (bparees@redhat.com)
+- added syntax highlighting to readme (skuznets@redhat.com)
+- Retry finalizer on conflict error (decarr@redhat.com)
+- Build from a Dockerfile directly (ccoleman@redhat.com)
+- fix backwards poll args (bparees@redhat.com)
+- Add missing rolling hook conversions (ironcladlou@gmail.com)
+- Fix potential race conditions during SDN setup (rpenta@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  0f9e6558e8dceb8c8317e3587d9c9c94ae07ecb8 (rpenta@redhat.com)
+- Add missing rolling hook conversions (ironcladlou@gmail.com)
+- Make "default" an admin namespace in multitenant (danw@redhat.com)
+- add patch to default roles (deads@redhat.com)
+- Exclude a few more tests (ccoleman@redhat.com)
+- Refactor setting and resetting HTTP proxies (rhcarvalho@gmail.com)
+- UPSTREAM: 14291: add patch verb to APIRequestInfo (deads@redhat.com)
+- Add --portal-net back to all-in-one args (danw@redhat.com)
+- Bump kubernetes-ui-label-selector to v0.0.10 - fixes js error
+  (jforrest@redhat.com)
+- Fix broken link in readme (mtayer@redhat.com)
+- add SA role bindings to auto-provisioned namespaces (deads@redhat.com)
+- diagnostics: fail gracefully on broken kubeconfig (lmeyer@redhat.com)
+- Improve systemd detection for diagnostics. (dgoodwin@redhat.com)
+- Refactor pkg/build/builder (rhcarvalho@gmail.com)
+- Set kubeconfig in extended tests (ccoleman@redhat.com)
+- Extended failure (ccoleman@redhat.com)
+- Only run k8s upstream tests that are passing (ccoleman@redhat.com)
+- Add example env vars (rhcarvalho@gmail.com)
+- Pass env vars defined in Docker build strategy (rhcarvalho@gmail.com)
+- [RPMs] Ease the upgrade to v1.0.6 (sdodson@redhat.com)
+- BZ1221441 - new filter that shows unique project name (rafabene@gmail.com)
+- Push F5 image (ccoleman@redhat.com)
+- Making the regex in ./test/cmd/admin.sh a little more flexible for downstream
+  (bleanhar@redhat.com)
+- Making the regex in ./test/cmd/admin.sh a little more flexible for downstream
+  (bleanhar@redhat.com)
+- Add generated-by annotation to CLI new-app and web console
+  (mfojtik@redhat.com)
+- disable go vet in make check-test (skuznets@redhat.com)
+- more comments (pweil@redhat.com)
+- add cluster roles to diagnostics (deads@redhat.com)
+- UPSTREAM: 14063: enable system CAs (deads@redhat.com)
+- Linux 386 cross compile (ccoleman@redhat.com)
+- Add X-Forwarded-* headers and the new Forwarded header for rfc7239 so that
+  the backend has info about the proxied request (and requestor).
+  (smitram@gmail.com)
+- switch to https for sample repo url (bparees@redhat.com)
+- Add SA secret checking to SA readiness test in integration tests
+  (cewong@redhat.com)
+- Adding source secret (jhadvig@redhat.com)
+- disable go vet in make check-test (skuznets@redhat.com)
+- Update bash-completion (nakayamakenjiro@gmail.com)
+- Allow metadata on images to be edited after creation (ccoleman@redhat.com)
+- Enable linux-386 (ccoleman@redhat.com)
+- .commit is a file, not a directory (ccoleman@redhat.com)
+- Retry deployment resource updates (ironcladlou@gmail.com)
+- Improve latest deployment output (ironcladlou@gmail.com)
+- Make release extraction a separate step for builds (ccoleman@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  0f9e6558e8dceb8c8317e3587d9c9c94ae07ecb8 (rpenta@redhat.com)
+- Fix potential race conditions during SDN setup (rpenta@redhat.com)
+- Fix casing of output (ironcladlou@gmail.com)
+- Adjust help templates to latest version of Cobra (ffranz@redhat.com)
+- Update generated completions (ffranz@redhat.com)
+- bump(github.com/spf13/cobra): 6d7031177028ad8c5b4b428ac9a2288fbc1c0649
+  (ffranz@redhat.com)
+- bump(github.com/spf13/pflag): 8e7dc108ab3a1ab6ce6d922bbaff5657b88e8e49
+  (ffranz@redhat.com)
+- Update to version 0.0.9 for kubernetes-label-selector. Fixes issue
+  https://github.com/openshift/origin/issues/3180 (sgoodwin@redhat.com)
+- UPSTREAM: 211: Allow listen only ipv4 (ccoleman@redhat.com)
+- UPSTREAM: Disable systemd activation for DNS (ccoleman@redhat.com)
+- bump(github.com/skynetservices/skydns):bb2ebadc9746f23e4a296e3cbdb8c01e956bae
+  e1 (jimmidyson@gmail.com)
+- Fixes #4494: Don't register skydns metrics on nodes (jimmidyson@gmail.com)
+- Move positional parameters before package lists (nagy.martin@gmail.com)
+- Simplify the readme to point to docs (ccoleman@redhat.com)
+- Normalize extended tests into test/extended/*.sh (ccoleman@redhat.com)
+- Improve deploy --cancel output (ironcladlou@gmail.com)
+- Bump min Docker version in docs (agoldste@redhat.com)
+- Normalize extended tests into test/extended/*.sh (ccoleman@redhat.com)
+- Return empty Config field in FromName to avoid nil pointer error
+  (nakayamakenjiro@gmail.com)
+- docs: Fixed broken links in openshift_model.md. (stevem@gnulinux.net)
+- Show corrent error message if passed json template is invalid
+  (prukner.jan@seznam.cz)
+- Clean up test directories (ccoleman@redhat.com)
+- hack/build-images.sh fails on vboxfs due to hardlink (ccoleman@redhat.com)
+- Fail with stack trace in test bash (ccoleman@redhat.com)
+- Make oc rsh behave more like ssh (ccoleman@redhat.com)
+- better error messages for parameter errors (bparees@redhat.com)
+- Simplify the release output, create a zip (ccoleman@redhat.com)
+- Cleaning useless colon (remy.binsztock@tech-angels.com)
+- app: Implement initial topology-graph based view (stefw@redhat.com)
+- app: Normalize kind property on retrieved items (stefw@redhat.com)
+- app: Toggle overview modes between tiles and topology (stefw@redhat.com)
+- Test for exposing external services (mkargaki@redhat.com)
+- UPSTREAM: 13756: expose: Avoid selector resolution if a selector is not
+  needed (mkargaki@redhat.com)
+- Add helper script to run kube e2e tests (marun@redhat.com)
+- Stop adding user to 'docker' group (marun@redhat.com)
+
 * Fri Sep 18 2015 Scott Dodson <sdodson@redhat.com> 0.2-9
 - Rename from openshift -> origin
 - Symlink /var/lib/origin to /var/lib/openshift if /var/lib/openshift exists
