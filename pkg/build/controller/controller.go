@@ -2,8 +2,9 @@ package controller
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"strings"
+
+	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	errors "k8s.io/kubernetes/pkg/api/errors"
@@ -115,61 +116,38 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		return nil
 	}
 
-	// lookup the destination from the referenced image repository
-	var spec string
-	if ref := build.Spec.Output.To; ref != nil && len(ref.Name) != 0 {
-		switch {
-		case ref.Kind == "DockerImage":
-			spec = ref.Name
-		case ref.Kind == "ImageStream" || ref.Kind == "ImageStreamTag":
-			// TODO: security, ensure that the reference image stream is actually visible
-			namespace := ref.Namespace
-			if len(namespace) == 0 {
-				namespace = build.Namespace
-			}
-
-			var tag string
-			streamName := ref.Name
-			if ref.Kind == "ImageStreamTag" {
-				bits := strings.Split(ref.Name, ":")
-				streamName = bits[0]
-				tag = ":" + bits[1]
-			}
-			stream, err := bc.ImageStreamClient.GetImageStream(namespace, streamName)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					return fmt.Errorf("the referenced output ImageStream %s/%s does not exist", namespace, streamName)
-				}
-				return fmt.Errorf("the referenced output ImageStream %s/%s could not be found by Build %s/%s: %v", namespace, streamName, build.Namespace, build.Name, err)
-			}
-			if len(stream.Status.DockerImageRepository) == 0 {
-				e := fmt.Errorf("the ImageStream %s/%s cannot be used as the output for Build %s/%s because the integrated Docker registry is not configured, or the user forgot to set a valid external registry", namespace, ref.Name, build.Namespace, build.Name)
-				bc.Recorder.Eventf(build, "invalidOutput", "Error starting build: %v", e)
-				return e
-			}
-			spec = fmt.Sprintf("%s%s", stream.Status.DockerImageRepository, tag)
-		}
+	// Set the output Docker image reference.
+	ref, err := bc.resolveOutputDockerImageReference(build)
+	if err != nil {
+		return err
 	}
+	build.Status.OutputDockerImageReference = ref
 
-	// set the expected build parameters, which will be saved if no error occurs
+	// Set the build phase, which will be persisted if no error occurs.
 	build.Status.Phase = buildapi.BuildPhasePending
 
-	// Make a copy to avoid mutating the build from this point on
+	// Make a copy to avoid mutating the build from this point on.
 	copy, err := kapi.Scheme.Copy(build)
 	if err != nil {
 		return fmt.Errorf("unable to copy Build: %v", err)
 	}
 	buildCopy := copy.(*buildapi.Build)
 
-	// override the Output to be a DockerImage type in the strategy for the copy we send to the build pod
+	// TODO(rhcarvalho)
+	// The S2I and Docker builders expect build.Spec.Output.To to contain a
+	// resolved reference to a Docker image. Since build.Spec is immutable, we
+	// change a copy (that is never persisted) and pass it to
+	// bc.BuildStrategy.CreateBuildPod. We should make the builders use
+	// build.Status.OutputDockerImageReference, what will make copying the build
+	// unnecessary.
 	if build.Spec.Output.To != nil && len(build.Spec.Output.To.Name) != 0 {
 		buildCopy.Spec.Output.To = &kapi.ObjectReference{
 			Kind: "DockerImage",
-			Name: spec,
+			Name: ref,
 		}
 	}
 
-	// invoke the strategy to get a build pod
+	// Invoke the strategy to get a build pod.
 	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
 	if err != nil {
 		return fmt.Errorf("the strategy failed to create a build pod for Build %s/%s: %v", build.Namespace, build.Name, err)
@@ -181,13 +159,55 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 			glog.V(4).Infof("Build pod already existed: %#v", podSpec)
 			return nil
 		}
-		// log an event if the pod is not created (most likely due to quota denial)
+		// Log an event if the pod is not created (most likely due to quota denial).
 		bc.Recorder.Eventf(build, "failedCreate", "Error creating: %v", err)
 		return fmt.Errorf("failed to create pod for Build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 
 	glog.V(4).Infof("Created pod for Build: %#v", podSpec)
 	return nil
+}
+
+// resolveOutputDockerImageReference returns a reference to a Docker image
+// computed from the buid.Spec.Output.To reference.
+func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Build) (string, error) {
+	outputTo := build.Spec.Output.To
+	if outputTo == nil || outputTo.Name == "" {
+		return "", nil
+	}
+	var ref string
+	switch outputTo.Kind {
+	case "DockerImage":
+		ref = outputTo.Name
+	case "ImageStream", "ImageStreamTag":
+		// TODO(smarterclayton): security, ensure that the reference image stream is actually visible
+		namespace := outputTo.Namespace
+		if len(namespace) == 0 {
+			namespace = build.Namespace
+		}
+
+		var tag string
+		streamName := outputTo.Name
+		if outputTo.Kind == "ImageStreamTag" {
+			bits := strings.Split(outputTo.Name, ":")
+			streamName = bits[0]
+			tag = ":" + bits[1]
+		}
+		stream, err := bc.ImageStreamClient.GetImageStream(namespace, streamName)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return "", fmt.Errorf("the referenced output ImageStream %s/%s does not exist", namespace, streamName)
+			}
+			return "", fmt.Errorf("the referenced output ImageStream %s/%s could not be found by Build %s/%s: %v", namespace, streamName, build.Namespace, build.Name, err)
+		}
+		if len(stream.Status.DockerImageRepository) == 0 {
+			e := fmt.Errorf("the ImageStream %s/%s cannot be used as the output for Build %s/%s because the integrated Docker registry is not configured and no external registry was defined", namespace, outputTo.Name, build.Namespace, build.Name)
+			bc.Recorder.Eventf(build, "invalidOutput", "Error starting build: %v", e)
+			return "", e
+		}
+		ref = fmt.Sprintf("%s%s", stream.Status.DockerImageRepository, tag)
+	}
+	return ref, nil
 }
 
 // BuildPodController watches pods running builds and manages the build state

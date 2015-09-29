@@ -395,6 +395,9 @@ func TestHandleBuild(t *testing.T) {
 			if build.Spec.Output.To.Name != tc.outputSpec {
 				t.Errorf("(%d) expected build sent to strategy to have docker spec %s, got %s", i, tc.outputSpec, build.Spec.Output.To.Name)
 			}
+			if build.Status.OutputDockerImageReference != tc.outputSpec {
+				t.Errorf("(%d) expected build status to have OutputDockerImageReference %s, got %s", i, tc.outputSpec, build.Status.OutputDockerImageReference)
+			}
 		}
 	}
 }
