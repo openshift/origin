@@ -8,7 +8,7 @@ import (
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	kmeta "k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
 
@@ -76,7 +76,7 @@ func InterfacesFor(version string) (*kmeta.VersionInterfaces, error) {
 }
 
 // originTypes are the hardcoded types defined by the OpenShift API.
-var originTypes = util.StringSet{}
+var originTypes = sets.String{}
 
 // UserResources are the resource names that apply to the primary, user facing resources used by
 // client tools. They are in deletion-first order - dependent resources should be last.
@@ -100,6 +100,7 @@ func init() {
 	versions := []string{"v1", "v1beta3"}
 
 	originMapper := kmeta.NewDefaultRESTMapper(
+		"",
 		versions,
 		func(version string) (*kmeta.VersionInterfaces, error) {
 			interfaces, err := InterfacesFor(version)

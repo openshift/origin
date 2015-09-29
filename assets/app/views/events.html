@@ -5,43 +5,43 @@
         <h1>Events</h1>
       </div>
       <alerts alerts="alerts"></alerts>
-      <div ng-if="(events | hashSize) === 0">
-        <div>
-          <em>{{emptyMessage}}</em>
-        </div>
-      </div>
-      <table ng-if="(events | hashSize) !== 0" class="table table-bordered table-condensed table-events">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th><span class="hidden-xs-inline visible-sm-inline visible-md-inline hidden-lg-inline">Kind and </span>Name</th>
-            <th class="hidden-sm hidden-md"><span class="visible-lg-inline">Kind</span></th>
-            <th class="hidden-sm hidden-md"><span class="visible-lg-inline">Reason</span></th>
-            <th><span class="hidden-xs-inline visible-sm-inline visible-md-inline hidden-lg-inline">Reason and </span>Message</th>
-          </tr>
-        </thead>
-        <tbody ng-repeat="event in events | toArray | orderBy:'-lastTimestamp'">
-          <tr>
-            <td data-title="Time" class="nowrap">{{event.lastTimestamp | date:'mediumTime'}}</td>
-            <td data-title="Name" class="event-time">
-              <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">
-              {{event.involvedObject.kind}}</div>
-              {{event.involvedObject.name}}</td>
-            <td class="hidden-sm hidden-md" data-title="Kind">
-              {{event.involvedObject.kind}}</td>
-            <td class="hidden-sm hidden-md" data-title="Reason">
-              {{event.reason}}</td>
-            <td data-title="Message" class="break-word">
-              <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">{{event.reason}}</div>
-              {{event.message}}
-              <span class="text-muted small" ng-if="event.count > 1">
-                ({{event.count}} times in the last
-                  {{event.firstTimestamp | duration:event.lastTimestamp:true}})
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+        <table class="table table-bordered table-condensed table-events table-hover">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th><span class="hidden-xs-inline visible-sm-inline visible-md-inline hidden-lg-inline">Kind and </span>Name</th>
+              <th class="hidden-sm hidden-md"><span class="visible-lg-inline">Kind</span></th>
+              <th class="hidden-sm hidden-md"><span class="visible-lg-inline">Reason</span></th>
+              <th><span class="hidden-xs-inline visible-sm-inline visible-md-inline hidden-lg-inline">Reason and </span>Message</th>
+            </tr>
+          </thead>
+          <tbody ng-if="(events | hashSize) === 0">
+            <tr><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
+          </tbody>
+          <tbody ng-repeat="event in events | toArray | orderBy:'-lastTimestamp'">
+            <tr>
+              <td data-title="Time" class="nowrap">{{event.lastTimestamp | date:'mediumTime'}}</td>
+              <td data-title="Name" class="event-time">
+                <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">
+                {{event.involvedObject.kind}}</div>
+                {{event.involvedObject.name}}</td>
+              <td class="hidden-sm hidden-md" data-title="Kind">
+                {{event.involvedObject.kind}}</td>
+              <td class="hidden-sm hidden-md" data-title="Reason">
+                {{event.reason}}</td>
+              <td data-title="Message" class="break-word">
+                <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">{{event.reason}}</div>
+                {{event.message}}
+                <span class="text-muted small" ng-if="event.count > 1">
+                  ({{event.count}} times in the last
+                    {{event.firstTimestamp | duration:event.lastTimestamp:true}})
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
     </div>
   </project-page>
 </div>

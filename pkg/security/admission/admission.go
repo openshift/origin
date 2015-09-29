@@ -9,14 +9,14 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	allocator "github.com/openshift/origin/pkg/security"
@@ -353,7 +353,7 @@ func requiresPreAllocatedSELinuxLevel(constraint *kapi.SecurityContextConstraint
 // deduplicateSecurityContextConstraints ensures we have a unique slice of constraints.
 func deduplicateSecurityContextConstraints(sccs []*kapi.SecurityContextConstraints) []*kapi.SecurityContextConstraints {
 	deDuped := []*kapi.SecurityContextConstraints{}
-	added := util.NewStringSet()
+	added := sets.NewString()
 
 	for _, s := range sccs {
 		if !added.Has(s.Name) {

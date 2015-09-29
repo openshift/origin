@@ -1,9 +1,9 @@
 package testclient
 
 import (
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
-	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )

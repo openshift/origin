@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/volume"
@@ -237,7 +237,8 @@ func TestNewBuilder(t *testing.T) {
 		o := testclient.NewObjects(api.Scheme, api.Scheme)
 		o.Add(item.pv)
 		o.Add(item.claim)
-		client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
+		client := &testclient.Fake{}
+		client.AddReactor("*", "*", testclient.ObjectReaction(o, api.RESTMapper))
 
 		plugMgr := volume.VolumePluginMgr{}
 		plugMgr.InitPlugins(testProbeVolumePlugins(), newTestHost(t, client))
@@ -291,7 +292,8 @@ func TestNewBuilderClaimNotBound(t *testing.T) {
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
 	o.Add(pv)
 	o.Add(claim)
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, api.RESTMapper)}
+	client := &testclient.Fake{}
+	client.AddReactor("*", "*", testclient.ObjectReaction(o, api.RESTMapper))
 
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(testProbeVolumePlugins(), newTestHost(t, client))

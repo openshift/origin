@@ -69,6 +69,7 @@ func writeTestFile(t *testing.T, dir, name string, contents string) *os.File {
 
 func TestReadPodsFromFile(t *testing.T) {
 	hostname := "random-test-hostname"
+	grace := int64(30)
 	var testCases = []struct {
 		desc     string
 		pod      runtime.Object
@@ -98,9 +99,10 @@ func TestReadPodsFromFile(t *testing.T) {
 					SelfLink:  getSelfLink("test-"+hostname, "mynamespace"),
 				},
 				Spec: api.PodSpec{
-					NodeName:      hostname,
-					RestartPolicy: api.RestartPolicyAlways,
-					DNSPolicy:     api.DNSClusterFirst,
+					NodeName:                      hostname,
+					RestartPolicy:                 api.RestartPolicyAlways,
+					DNSPolicy:                     api.DNSClusterFirst,
+					TerminationGracePeriodSeconds: &grace,
 					Containers: []api.Container{{
 						Name:  "image",
 						Image: "test/image",
@@ -115,11 +117,11 @@ func TestReadPodsFromFile(t *testing.T) {
 	for _, testCase := range testCases {
 		func() {
 			var versionedPod runtime.Object
-			err := testapi.Converter().Convert(&testCase.pod, &versionedPod)
+			err := testapi.Default.Converter().Convert(&testCase.pod, &versionedPod)
 			if err != nil {
 				t.Fatalf("%s: error in versioning the pod: %v", testCase.desc, err)
 			}
-			fileContents, err := testapi.Codec().Encode(versionedPod)
+			fileContents, err := testapi.Default.Codec().Encode(versionedPod)
 			if err != nil {
 				t.Fatalf("%s: error in encoding the pod: %v", testCase.desc, err)
 			}

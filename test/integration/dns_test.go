@@ -7,21 +7,32 @@ import (
 	"testing"
 	"time"
 
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/miekg/dns"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestDNS(t *testing.T) {
-	masterConfig, clientFile, err := testutil.StartTestMaster()
+	masterConfig, clientFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	localIP := net.ParseIP("127.0.0.1")
+	localAddr := ""
+	if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
+		localAddr = ip.String()
+	} else if err == cmdutil.ErrorNoDefaultIP {
+		localAddr = "127.0.0.1"
+	} else if err != nil {
+		t.Fatalf("Unable to find a local IP address: %v", err)
+	}
+
+	localIP := net.ParseIP(localAddr)
 	var masterIP net.IP
 	// verify service DNS entry is visible
 	stop := make(chan struct{})

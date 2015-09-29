@@ -10,11 +10,12 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/api/graph/graphview"
@@ -47,7 +48,7 @@ type ProjectStatusDescriber struct {
 	Server string
 }
 
-func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, util.StringSet, error) {
+func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, sets.String, error) {
 	g := osgraph.New()
 
 	loaders := []GraphLoader{
@@ -68,7 +69,7 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, uti
 		loadingFuncs = append(loadingFuncs, loader.Load)
 	}
 
-	forbiddenResources := util.StringSet{}
+	forbiddenResources := sets.String{}
 	if errs := parallel.Run(loadingFuncs...); len(errs) > 0 {
 		actualErrors := []error{}
 		for _, err := range errs {
@@ -222,7 +223,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	})
 }
 
-func createForbiddenMarkers(forbiddenResources util.StringSet) []osgraph.Marker {
+func createForbiddenMarkers(forbiddenResources sets.String) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 	for forbiddenResource := range forbiddenResources {
 		markers = append(markers, osgraph.Marker{
@@ -535,6 +536,8 @@ func buildTimestamp(build *buildapi.Build) util.Time {
 
 func describeSourceInPipeline(source *buildapi.BuildSource) (string, bool) {
 	switch source.Type {
+	case buildapi.BuildSourceDockerfile:
+		return "Dockerfile", true
 	case buildapi.BuildSourceGit:
 		if len(source.Git.Ref) == 0 {
 			return source.Git.URI, true

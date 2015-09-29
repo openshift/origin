@@ -21,7 +21,7 @@ import (
 // ReconcileClusterRolesRecommendedName is the recommended command name
 const ReconcileClusterRolesRecommendedName = "reconcile-cluster-roles"
 
-type reconcileClusterOptions struct {
+type ReconcileClusterRolesOptions struct {
 	Confirmed bool
 	Union     bool
 
@@ -41,19 +41,19 @@ any additional cluster role.
 
 You can see which cluster role have recommended changed by choosing an output type.`
 
-	reconcileExample = `  // Display the cluster roles that would be modified
+	reconcileExample = `  # Display the cluster roles that would be modified
   $ %[1]s
 
-  // Replace cluster roles that don't match the current defaults
+  # Replace cluster roles that don't match the current defaults
   $ %[1]s --confirm
 
-  // Display the union of the default and modified cluster roles
+  # Display the union of the default and modified cluster roles
   $ %[1]s --additive-only`
 )
 
 // NewCmdReconcileClusterRoles implements the OpenShift cli reconcile-cluster-roles command
 func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	o := &reconcileClusterOptions{Out: out}
+	o := &ReconcileClusterRolesOptions{Out: out}
 
 	cmd := &cobra.Command{
 		Use:     name,
@@ -84,7 +84,7 @@ func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, ou
 	return cmd
 }
 
-func (o *reconcileClusterOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	if len(args) != 0 {
 		return kcmdutil.UsageError(cmd, "no arguments are allowed")
 	}
@@ -100,7 +100,7 @@ func (o *reconcileClusterOptions) Complete(cmd *cobra.Command, f *clientcmd.Fact
 	return nil
 }
 
-func (o *reconcileClusterOptions) Validate() error {
+func (o *ReconcileClusterRolesOptions) Validate() error {
 	if o.RoleClient == nil {
 		return errors.New("a role client is required")
 	}
@@ -111,7 +111,7 @@ func (o *reconcileClusterOptions) Validate() error {
 }
 
 // RunReconcileClusterRoles contains all the necessary functionality for the OpenShift cli reconcile-cluster-roles command
-func (o *reconcileClusterOptions) RunReconcileClusterRoles(cmd *cobra.Command, f *clientcmd.Factory) error {
+func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Command, f *clientcmd.Factory) error {
 	changedClusterRoles, err := o.ChangedClusterRoles()
 	if err != nil {
 		return err
@@ -141,7 +141,7 @@ func (o *reconcileClusterOptions) RunReconcileClusterRoles(cmd *cobra.Command, f
 
 // ChangedClusterRoles returns the roles that must be created and/or updated to
 // match the recommended bootstrap policy
-func (o *reconcileClusterOptions) ChangedClusterRoles() ([]*authorizationapi.ClusterRole, error) {
+func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*authorizationapi.ClusterRole, error) {
 	changedRoles := []*authorizationapi.ClusterRole{}
 
 	bootstrapClusterRoles := bootstrappolicy.GetBootstrapClusterRoles()
@@ -170,7 +170,7 @@ func (o *reconcileClusterOptions) ChangedClusterRoles() ([]*authorizationapi.Clu
 }
 
 // ReplaceChangedRoles will reconcile all the changed roles back to the recommended bootstrap policy
-func (o *reconcileClusterOptions) ReplaceChangedRoles(changedRoles []*authorizationapi.ClusterRole) error {
+func (o *ReconcileClusterRolesOptions) ReplaceChangedRoles(changedRoles []*authorizationapi.ClusterRole) error {
 	for i := range changedRoles {
 		role, err := o.RoleClient.Get(changedRoles[i].Name)
 		if err != nil && !kapierrors.IsNotFound(err) {

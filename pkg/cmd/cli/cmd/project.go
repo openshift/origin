@@ -7,8 +7,8 @@ import (
 	"io"
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/fields"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -48,10 +48,10 @@ name, this command will accept that context name instead.
 For advanced configuration, or to manage the contents of your config file, use the 'config'
 command.`
 
-	projectExample = `  // Switch to 'myapp' project
+	projectExample = `  # Switch to 'myapp' project
   $ %[1]s myapp
 
-  // Display the project currently in use
+  # Display the project currently in use
   $ %[1]s`
 )
 

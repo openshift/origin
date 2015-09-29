@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -58,16 +58,16 @@ is another editor changing the resource on the server. When this occurs, you wil
 to apply your changes to the newer version of the resource, or update your temporary
 saved copy to include the latest resource version.`
 
-	editExample = `  // Edit the service named 'docker-registry':
+	editExample = `  # Edit the service named 'docker-registry':
   $ %[1]s edit svc/docker-registry
 
-  // Edit the DeploymentConfig named 'my-deployment':
+  # Edit the DeploymentConfig named 'my-deployment':
   $ %[1]s edit dc/my-deployment
 
-  // Use an alternative editor
+  # Use an alternative editor
   $ OC_EDITOR="nano" %[1]s edit dc/my-deployment
 
-  // Edit the service 'docker-registry' in JSON using the v1beta3 API format:
+  # Edit the service 'docker-registry' in JSON using the v1beta3 API format:
   $ %[1]s edit svc/docker-registry --output-version=v1beta3 -o json`
 )
 
@@ -91,9 +91,10 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 		},
 	}
 	usage := "Filename, directory, or URL to file to use to edit the resource"
-	kubectl.AddBoundJsonFilenameFlag(cmd, &options.filenames, usage)
+	kubectl.AddJsonFilenameFlag(cmd, &options.filenames, usage)
 	cmd.Flags().StringP("output", "o", "yaml", "Output format. One of: yaml|json.")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
+
 	return cmd
 }
 
@@ -236,7 +237,10 @@ func (o *EditOptions) RunEdit() error {
 			results.version = o.version
 		}
 
-		err = visitor.Visit(func(info *resource.Info) error {
+		err = visitor.Visit(func(info *resource.Info, err error) error {
+			if err != nil {
+				return err
+			}
 			data, err := info.Mapping.Codec.Encode(info.Object)
 			if err != nil {
 				return err

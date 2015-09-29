@@ -27,7 +27,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 type fakeRemoteAttach struct {
@@ -105,7 +105,7 @@ func TestPodAndContainerAttach(t *testing.T) {
 }
 
 func TestAttach(t *testing.T) {
-	version := testapi.Version()
+	version := testapi.Default.Version()
 	tests := []struct {
 		name, version, podPath, attachPath, container string
 		pod                                           *api.Pod

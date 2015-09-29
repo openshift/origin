@@ -7,7 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -40,7 +40,7 @@ func TestHandle_uncorrelatedPod(t *testing.T) {
 // TestHandle_orphanedPod ensures that deployer pods associated with a non-
 // existent deployment results in all deployer pods being deleted.
 func TestHandle_orphanedPod(t *testing.T) {
-	deleted := kutil.NewStringSet()
+	deleted := sets.NewString()
 	controller := &DeployerPodController{
 		deploymentClient: &deploymentClientImpl{
 			updateDeploymentFunc: func(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {

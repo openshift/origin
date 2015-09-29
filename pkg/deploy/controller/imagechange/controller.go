@@ -53,7 +53,7 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 			// Find the latest tag event for the trigger tag
 			latestEvent := imageapi.LatestTaggedImage(imageRepo, params.Tag)
 			if latestEvent == nil {
-				glog.V(2).Infof("Couldn't find latest tag event for tag %s in ImageStream %s", params.Tag, labelForRepo(imageRepo))
+				glog.V(5).Infof("Couldn't find latest tag event for tag %s in ImageStream %s", params.Tag, labelForRepo(imageRepo))
 				continue
 			}
 
@@ -75,15 +75,13 @@ func (c *ImageChangeController) Handle(imageRepo *imageapi.ImageStream) error {
 			glog.V(2).Infof("Couldn't regenerate DeploymentConfig %s: %s", deployutil.LabelForDeploymentConfig(config), err)
 			continue
 		}
-
-		glog.V(4).Infof("Regenerated DeploymentConfig %s in response to image change trigger", deployutil.LabelForDeploymentConfig(config))
 	}
 
 	if anyFailed {
 		return fatalError(fmt.Sprintf("couldn't update some DeploymentConfig for trigger on ImageStream %s", labelForRepo(imageRepo)))
 	}
 
-	glog.V(4).Infof("Updated all DeploymentConfigs for trigger on ImageStream %s", labelForRepo(imageRepo))
+	glog.V(5).Infof("Updated all DeploymentConfigs for trigger on ImageStream %s", labelForRepo(imageRepo))
 	return nil
 }
 
@@ -124,7 +122,7 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 
 	// No update occurred
 	if config.LatestVersion == newConfig.LatestVersion {
-		glog.V(4).Infof("No version difference for generated DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
+		glog.V(5).Infof("No version difference for generated DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
@@ -134,7 +132,7 @@ func (c *ImageChangeController) regenerate(config *deployapi.DeploymentConfig) e
 		return err
 	}
 
-	glog.Infof("Regenerated DeploymentConfig %s for image updates", deployutil.LabelForDeploymentConfig(config))
+	glog.V(4).Infof("Regenerated DeploymentConfig %s for image updates", deployutil.LabelForDeploymentConfig(config))
 	return nil
 }
 

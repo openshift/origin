@@ -15,8 +15,8 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -53,45 +53,45 @@ If you provide source code, you may need to run a build with 'start-build' after
 application is created.`
 
 	newAppExample = `
-  // List all local templates and image streams that can be used to create an app
+  # List all local templates and image streams that can be used to create an app
   $ %[1]s new-app --list
 
-  // Search all templates, image streams, and Docker images for the ones that match "ruby"
+  # Search all templates, image streams, and Docker images for the ones that match "ruby"
   $ %[1]s new-app --search ruby
 
-  // Create an application based on the source code in the current git repository (with a public remote) 
-  // and a Docker image
+  # Create an application based on the source code in the current git repository (with a public remote) 
+  # and a Docker image
   $ %[1]s new-app . --docker-image=repo/langimage
 
-  // Create a Ruby application based on the provided [image]~[source code] combination
+  # Create a Ruby application based on the provided [image]~[source code] combination
   $ %[1]s new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
 
-  // Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
+  # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
   $ %[1]s new-app mysql -l db=mysql
 
-  // Use a MySQL image in a private registry to create an app and override application artifacts' names
+  # Use a MySQL image in a private registry to create an app and override application artifacts' names
   $ %[1]s new-app --docker-image=myregistry.com/mycompany/mysql --name=private
 
-  // Create an application from a remote repository using its beta4 branch
+  # Create an application from a remote repository using its beta4 branch
   $ %[1]s new-app https://github.com/openshift/ruby-hello-world#beta4
 
-  // Create an application based on a stored template, explicitly setting a parameter value
+  # Create an application based on a stored template, explicitly setting a parameter value
   $ %[1]s new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
 
-  // Create an application from a remote repository and specify a context directory
+  # Create an application from a remote repository and specify a context directory
   $ %[1]s new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
  
-  // Create an application based on a template file, explicitly setting a parameter value
+  # Create an application based on a template file, explicitly setting a parameter value
   $ %[1]s new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
-  // Search for "mysql" in all image repositories and stored templates
+  # Search for "mysql" in all image repositories and stored templates
   $ %[1]s new-app --search mysql
 
-  // Search for "ruby", but only in stored templates (--template, --image and --docker-image
-  // can be used to filter search results)
+  # Search for "ruby", but only in stored templates (--template, --image and --docker-image
+  # can be used to filter search results)
   $ %[1]s new-app --search --template=ruby
 
-  // Search for "ruby" in stored templates and print the output as an YAML
+  # Search for "ruby" in stored templates and print the output as an YAML
   $ %[1]s new-app --search --template=ruby --output=yaml`
 
 	newAppNoInput = `You must specify one or more images, image streams, templates, or source code locations to create an application.
@@ -158,12 +158,12 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 // RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
-	if err := setupAppConfig(f, c, args, config); err != nil {
+	if err := setupAppConfig(f, out, c, args, config); err != nil {
 		return err
 	}
 
 	if config.Querying() {
-		result, err := config.RunQuery(out, c.Out())
+		result, err := config.RunQuery()
 		if err != nil {
 			return handleRunError(c, err)
 		}
@@ -177,13 +177,19 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	if err := setAppConfigLabels(c, config); err != nil {
 		return err
 	}
-	result, err := config.RunAll(out, c.Out())
+	result, err := config.RunAll()
 	if err != nil {
 		return handleRunError(c, err)
 	}
+
 	if err := setLabels(config.Labels, result); err != nil {
 		return err
 	}
+
+	if err := setAnnotations(map[string]string{newcmd.GeneratedByNamespace: newcmd.GeneratedByNewApp}, result); err != nil {
+		return err
+	}
+
 	if len(cmdutil.GetFlagString(c, "output")) != 0 {
 		return f.Factory.PrintObject(c, result.List, out)
 	}
@@ -212,7 +218,9 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			}
 		}
 	}
-	fmt.Fprintf(c.Out(), "Run '%s status' to view your app.\n", fullName)
+	if len(result.List.Items) > 0 {
+		fmt.Fprintf(c.Out(), "Run '%s %s' to view your app.\n", fullName, StatusRecommendedName)
+	}
 
 	return nil
 }
@@ -229,7 +237,7 @@ func setAppConfigLabels(c *cobra.Command, config *newcmd.AppConfig) error {
 	return nil
 }
 
-func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -250,12 +258,24 @@ func setupAppConfig(f *clientcmd.Factory, c *cobra.Command, args []string, confi
 		return err
 	}
 	config.SetOpenShiftClient(osclient, namespace)
+	config.Out = out
+	config.ErrOut = c.Out()
 
 	unknown := config.AddArguments(args)
 	if len(unknown) != 0 {
 		return cmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
 	}
 
+	return nil
+}
+
+func setAnnotations(annotations map[string]string, result *newcmd.AppResult) error {
+	for _, object := range result.List.Items {
+		err := util.AddObjectAnnotations(object, annotations)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -417,7 +437,7 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullNam
 			description := imageStream.ObjectMeta.Annotations["description"]
 			tags := "<none>"
 			if len(imageStream.Status.Tags) > 0 {
-				set := kutil.NewStringSet()
+				set := sets.NewString()
 				for tag := range imageStream.Status.Tags {
 					set.Insert(tag)
 				}

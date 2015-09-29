@@ -8,6 +8,8 @@ set -o pipefail
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
+source "${OS_ROOT}/hack/util.sh"
+os::log::install_errexit
 
 # Build the primary client/server for all platforms
 OS_BUILD_PLATFORMS=("${OS_CROSS_COMPILE_PLATFORMS[@]}")
@@ -22,12 +24,10 @@ CGO_ENABLED=0 OS_GOFLAGS="-a -installsuffix cgo" os::build::build_binaries "${OS
 
 # Make the primary client/server release.
 OS_RELEASE_ARCHIVE="openshift-origin"
-OS_RELEASE_PLATFORMS=("${OS_CROSS_COMPILE_PLATFORMS[@]}")
-OS_RELEASE_BINARIES=("${OS_CROSS_COMPILE_BINARIES[@]}")
-os::build::place_bins
+OS_BUILD_PLATFORMS=("${OS_CROSS_COMPILE_PLATFORMS[@]}")
+os::build::place_bins "${OS_CROSS_COMPILE_BINARIES[@]}"
 
 # Make the image binaries release.
 OS_RELEASE_ARCHIVE="openshift-origin-image"
-OS_RELEASE_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
-OS_RELEASE_BINARIES=("${OS_IMAGE_COMPILE_BINARIES[@]}")
-os::build::place_bins
+OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]-}")
+os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"

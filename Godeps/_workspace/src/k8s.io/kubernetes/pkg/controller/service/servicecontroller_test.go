@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testclient"
-	fake_cloud "k8s.io/kubernetes/pkg/cloudprovider/fake"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	fake_cloud "k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
 	"k8s.io/kubernetes/pkg/types"
 )
 
@@ -95,7 +95,7 @@ func TestCreateExternalLoadBalancer(t *testing.T) {
 		controller.init()
 		cloud.Calls = nil     // ignore any cloud calls made in init()
 		client.ClearActions() // ignore any client calls made in init()
-		err, _ := controller.createLoadBalancerIfNeeded(types.NamespacedName{"foo", "bar"}, item.service, nil)
+		err, _ := controller.createLoadBalancerIfNeeded(types.NamespacedName{Namespace: "foo", Name: "bar"}, item.service, nil)
 		if !item.expectErr && err != nil {
 			t.Errorf("unexpected error: %v", err)
 		} else if item.expectErr && err == nil {
@@ -110,12 +110,22 @@ func TestCreateExternalLoadBalancer(t *testing.T) {
 				t.Errorf("unexpected client actions: %v", actions)
 			}
 		} else {
-			if len(cloud.Balancers) != 1 {
-				t.Errorf("expected one load balancer to be created, got %v", cloud.Balancers)
-			} else if cloud.Balancers[0].Name != controller.loadBalancerName(item.service) ||
-				cloud.Balancers[0].Region != region ||
-				cloud.Balancers[0].Ports[0].Port != item.service.Spec.Ports[0].Port {
-				t.Errorf("created load balancer has incorrect parameters: %v", cloud.Balancers[0])
+			var balancer *fake_cloud.FakeBalancer
+			for k := range cloud.Balancers {
+				if balancer == nil {
+					b := cloud.Balancers[k]
+					balancer = &b
+				} else {
+					t.Errorf("expected one load balancer to be created, got %v", cloud.Balancers)
+					break
+				}
+			}
+			if balancer == nil {
+				t.Errorf("expected one load balancer to be created, got none")
+			} else if balancer.Name != controller.loadBalancerName(item.service) ||
+				balancer.Region != region ||
+				balancer.Ports[0].Port != item.service.Spec.Ports[0].Port {
+				t.Errorf("created load balancer has incorrect parameters: %v", balancer)
 			}
 			actionFound := false
 			for _, action := range actions {

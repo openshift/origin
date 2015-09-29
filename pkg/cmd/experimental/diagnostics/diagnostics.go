@@ -2,20 +2,22 @@ package diagnostics
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
 	"io"
 	"os"
 	"runtime/debug"
 
-	"github.com/openshift/origin/pkg/cmd/cli/config"
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
+
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/experimental/diagnostics/options"
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -126,13 +128,13 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 	warnings := []error{}
 	errors := []error{}
 	diagnostics := []types.Diagnostic{}
-	AvailableDiagnostics := util.NewStringSet()
+	AvailableDiagnostics := sets.NewString()
 	AvailableDiagnostics.Insert(availableClientDiagnostics.List()...)
 	AvailableDiagnostics.Insert(availableClusterDiagnostics.List()...)
 	AvailableDiagnostics.Insert(availableHostDiagnostics.List()...)
 	if len(o.RequestedDiagnostics) == 0 {
 		o.RequestedDiagnostics = AvailableDiagnostics.List()
-	} else if common := intersection(util.NewStringSet(o.RequestedDiagnostics...), AvailableDiagnostics); len(common) == 0 {
+	} else if common := intersection(sets.NewString(o.RequestedDiagnostics...), AvailableDiagnostics); len(common) == 0 {
 		o.Logger.Error("CED3012", log.EvalTemplate("CED3012", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
 			log.Hash{"requested": o.RequestedDiagnostics, "available": AvailableDiagnostics.List()}))
 		return false, fmt.Errorf("No requested diagnostics available"), 0, 1
@@ -165,14 +167,10 @@ The list of all possible is:
 		}
 		if !detected { // there just plain isn't any client config file available
 			o.Logger.Notice("CED3014", "No client configuration specified; skipping client and cluster diagnostics.")
-		} else if rawConfig, err := o.buildRawConfig(); rawConfig == nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
+		} else if rawConfig, err := o.buildRawConfig(); err != nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
 			o.Logger.Error("CED3015", fmt.Sprintf("Client configuration failed to load; skipping client and cluster diagnostics due to error: %s", err.Error()))
 			errors = append(errors, err)
 		} else {
-			if err != nil { // error encountered, proceed with caution
-				o.Logger.Error("CED3016", fmt.Sprintf("Client configuration loading encountered an error, but proceeding anyway. Error was:\n%s", err.Error()))
-				errors = append(errors, err)
-			}
 			clientDiags, ok, err := o.buildClientDiagnostics(rawConfig)
 			failed = failed || !ok
 			if ok {
@@ -250,8 +248,8 @@ func (o DiagnosticsOptions) Run(diagnostics []types.Diagnostic) (bool, error, in
 }
 
 // TODO move upstream
-func intersection(s1 util.StringSet, s2 util.StringSet) util.StringSet {
-	result := util.NewStringSet()
+func intersection(s1 sets.String, s2 sets.String) sets.String {
+	result := sets.NewString()
 	for key := range s1 {
 		if s2.Has(key) {
 			result.Insert(key)

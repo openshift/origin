@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"testing"
 
-	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestRootRedirect(t *testing.T) {
-	masterConfig, _, err := testutil.StartTestMaster()
+	masterConfig, _, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

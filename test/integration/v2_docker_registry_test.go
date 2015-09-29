@@ -16,11 +16,14 @@ import (
 	"github.com/docker/distribution/manifest"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/libtrust"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
-	kapi "k8s.io/kubernetes/pkg/api"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
@@ -74,7 +77,7 @@ func signedManifest(name string) ([]byte, digest.Digest, error) {
 }
 
 func TestV2RegistryGetTags(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
 	}
@@ -87,7 +90,7 @@ func TestV2RegistryGetTags(t *testing.T) {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
 	user := "admin"
-	adminClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, testutil.Namespace(), user)
+	adminClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, testutil.Namespace(), user)
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}

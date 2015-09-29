@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	kclient "k8s.io/kubernetes/pkg/client"
-	"k8s.io/kubernetes/pkg/client/clientcmd"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -57,7 +57,7 @@ func (fl *FeatureList) Delete(items ...string) {
 	if len(*fl) == 0 || len(items) == 0 {
 		return
 	}
-	toDelete := util.NewStringSet()
+	toDelete := sets.NewString()
 	for _, item := range items {
 		toDelete.Insert(strings.ToLower(item))
 	}
@@ -438,11 +438,11 @@ func IsOAuthIdentityProvider(provider IdentityProvider) bool {
 }
 
 func HasOpenShiftAPILevel(config MasterConfig, apiLevel string) bool {
-	apiLevelSet := util.NewStringSet(config.APILevels...)
+	apiLevelSet := sets.NewString(config.APILevels...)
 	return apiLevelSet.Has(apiLevel)
 }
 
 func HasKubernetesAPILevel(config KubernetesMasterConfig, apiLevel string) bool {
-	apiLevelSet := util.NewStringSet(config.APILevels...)
+	apiLevelSet := sets.NewString(config.APILevels...)
 	return apiLevelSet.Has(apiLevel)
 }

@@ -17,8 +17,8 @@ limitations under the License.
 package glusterfs
 
 import (
-	"math/rand"
 	"os"
+	"path"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
@@ -141,12 +141,12 @@ func (b *glusterfsBuilder) SetUp() error {
 }
 
 func (b *glusterfsBuilder) SetUpAt(dir string) error {
-	mountpoint, err := b.mounter.IsMountPoint(dir)
-	glog.V(4).Infof("Glusterfs: mount set up: %s %v %v", dir, mountpoint, err)
+	notMnt, err := b.mounter.IsLikelyNotMountPoint(dir)
+	glog.V(4).Infof("Glusterfs: mount set up: %s %v %v", dir, !notMnt, err)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if mountpoint {
+	if !notMnt {
 		return nil
 	}
 
@@ -186,12 +186,12 @@ func (c *glusterfsCleaner) TearDownAt(dir string) error {
 }
 
 func (c *glusterfsCleaner) cleanup(dir string) error {
-	mountpoint, err := c.mounter.IsMountPoint(dir)
+	notMnt, err := c.mounter.IsLikelyNotMountPoint(dir)
 	if err != nil {
-		glog.Errorf("Glusterfs: Error checking IsMountPoint: %v", err)
+		glog.Errorf("Glusterfs: Error checking IsLikelyNotMountPoint: %v", err)
 		return err
 	}
-	if !mountpoint {
+	if notMnt {
 		return os.RemoveAll(dir)
 	}
 
@@ -199,12 +199,12 @@ func (c *glusterfsCleaner) cleanup(dir string) error {
 		glog.Errorf("Glusterfs: Unmounting failed: %v", err)
 		return err
 	}
-	mountpoint, mntErr := c.mounter.IsMountPoint(dir)
+	notMnt, mntErr := c.mounter.IsLikelyNotMountPoint(dir)
 	if mntErr != nil {
-		glog.Errorf("Glusterfs: IsMountpoint check failed: %v", mntErr)
+		glog.Errorf("Glusterfs: IsLikelyNotMountPoint check failed: %v", mntErr)
 		return mntErr
 	}
-	if !mountpoint {
+	if notMnt {
 		if err := os.RemoveAll(dir); err != nil {
 			return err
 		}
@@ -221,12 +221,23 @@ func (b *glusterfsBuilder) setUpAtInternal(dir string) error {
 		options = append(options, "ro")
 	}
 
-	l := len(b.hosts.Subsets)
+	p := path.Join(b.glusterfs.plugin.host.GetPluginDir(glusterfsPluginName), b.glusterfs.volName)
+	if err := os.MkdirAll(p, 0750); err != nil {
+		return err
+	}
+	log := path.Join(p, "glusterfs.log")
+	options = append(options, "log-file="+log)
+
+	addr := make(map[string]struct{})
+	for _, s := range b.hosts.Subsets {
+		for _, a := range s.Addresses {
+			addr[a.IP] = struct{}{}
+		}
+	}
+
 	// Avoid mount storm, pick a host randomly.
-	start := rand.Int() % l
 	// Iterate all hosts until mount succeeds.
-	for i := start; i < start+l; i++ {
-		hostIP := b.hosts.Subsets[i%l].Addresses[0].IP
+	for hostIP := range addr {
 		errs = b.mounter.Mount(hostIP+":"+b.path, dir, "glusterfs", options)
 		if errs == nil {
 			return nil

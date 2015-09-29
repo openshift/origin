@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 func TestDescriptions(t *testing.T) {
@@ -68,7 +69,7 @@ func TestInternalJsonTags(t *testing.T) {
 
 // internalTypesWithAllowedJsonTags is the list of special structs that have a particular need to have json tags on their
 // internal types.  Do not add to this list without having you paperwork checked in triplicate.
-var internalTypesWithAllowedJsonTags = util.NewStringSet("DockerConfig", "DockerImage")
+var internalTypesWithAllowedJsonTags = sets.NewString("DockerConfig", "DockerImage")
 
 func checkJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t *testing.T) {
 	if _, exists := (*seen)[objType]; exists {

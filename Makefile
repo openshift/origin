@@ -142,8 +142,18 @@ clean:
 # Build an official release of OpenShift, including the official images.
 #
 # Example:
-#   make clean
+#   make release
 release: clean
 	hack/build-release.sh
 	hack/build-images.sh
+	hack/extract-release.sh
 .PHONY: release
+
+# Build only the release binaries for OpenShift
+#
+# Example:
+#   make release-binaries
+release-binaries: clean
+	hack/build-release.sh
+	hack/extract-release.sh
+.PHONY: release-binaries

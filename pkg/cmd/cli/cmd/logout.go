@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kclient "k8s.io/kubernetes/pkg/client"
-	kclientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -40,7 +40,7 @@ the local copy of that certificate or the record of your server login.
 After logging out, if you want to log back into the server use '%[1]s'.`
 
 	logoutExample = `
-  // Logout
+  # Logout
   $ %[1]s`
 )
 

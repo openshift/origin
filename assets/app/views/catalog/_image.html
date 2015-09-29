@@ -1,30 +1,38 @@
-<div class="tile tile-image tile-click label-tags" id="" title="">
-  <div class="tile-table">
-    <div class="tile-table-cell image-icon">
-      <custom-icon resource="imageRepo" kind="image" tag="imageTag" title="{{imageRepo.metadata.name}}:{{imageTag}}"></custom-icon>
+<div class="tile tile-compact tile-image tile-click label-tags" id="" ng-attr-title="{{imageStream | imageStreamTagAnnotation : 'description' : imageTag}}">
+  <div row cross-axis="center" class="tile-flex">
+    <div row main-axis="center" class="image-icon">
+      <custom-icon resource="imageStream" kind="image" tag="imageTag" title="{{imageStream.metadata.name}}:{{imageTag}}"></custom-icon>
     </div>
-    <div class="tile-table-cell">
+    <div flex>
       <h3>
-        <a class="tile-target" ng-href="{{imageRepo | createFromImageURL : imageTag : project : sourceUrl}}">{{imageRepo.metadata.name}}:{{imageTag}}</a>
+        <a class="tile-target" ng-href="{{imageStream | createFromImageURL : imageTag : project}}">{{imageStream.metadata.name}}:{{imageTag}}</a>
       </h3>
-      <p ng-if="imageRepo | imageStreamTagAnnotation : 'description' : imageTag">
-        <truncate-long-text content="imageRepo | imageStreamTagAnnotation : 'description' : imageTag" limit="256" use-word-boundary="true"></truncate-long-text>
-      </p>
-      <div ng-if="imageRepo | imageStreamTagAnnotation : 'provider' : imageTag">
+      <div ng-if="imageStream | imageStreamTagAnnotation : 'provider' : imageTag">
         <label style="margin-right: 5px;">Provider:</label>
-        {{imageRepo | imageStreamTagAnnotation : 'provider' : imageTag}}
+        {{imageStream | imageStreamTagAnnotation : 'provider' : imageTag}}
       </div>
-      <div>
+      <!-- Only show the namespace if it's not in the shared openshift namespace -->
+      <div ng-if="imageStream.metadata.namespace !== 'openshift'">
         <label style="margin-right: 5px;">Namespace:</label>
-        {{imageRepo.metadata.namespace}}
+        {{imageStream.metadata.namespace}}
       </div>
       <div ng-if="version && version !== imageTag">
         <label style="margin-right: 5px;">Version:</label>
         {{version}}
       </div>
-      <span ng-repeat="tag in (imageRepo | imageStreamTagTags : imageTag)" class="tag small text-muted">
+      <a href="" ng-click="filterTag(tag)" ng-repeat="tag in (imageStream | imageStreamTagTags : imageTag)" class="tag small">
         {{tag}}
-      </span>
+      </a>
+    </div>
+    <!-- Unset title attribute to prevent two tooltips. -->
+    <div title="" ng-if="isBuilder">
+      <i
+        class="fa fa-cube"
+        aria-hidden="true"
+        data-toggle="tooltip"
+        data-placement="bottom"
+        data-container="body"
+        data-original-title="This image can build source code."></i>
     </div>
   </div>
 </div>

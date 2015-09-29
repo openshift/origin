@@ -29,8 +29,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/client"
-	"k8s.io/kubernetes/pkg/util"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/project/cache"
@@ -49,10 +49,10 @@ type lifecycle struct {
 	client client.Interface
 
 	// creatableResources is a set of resources that can be created even if the namespace is terminating
-	creatableResources util.StringSet
+	creatableResources sets.String
 }
 
-var recommendedCreatableResources = util.NewStringSet("subjectaccessreviews", "resourceaccessreviews")
+var recommendedCreatableResources = sets.NewString("subjectaccessreviews", "resourceaccessreviews", "localsubjectaccessreviews", "localresourceaccessreviews")
 
 // Admit enforces that a namespace must exist in order to associate content with it.
 // Admit enforces that a namespace that is terminating cannot accept new content being associated with it.
@@ -134,6 +134,6 @@ func (e *lifecycle) Handles(operation admission.Operation) bool {
 	return true
 }
 
-func NewLifecycle(client client.Interface, creatableResources util.StringSet) (admission.Interface, error) {
+func NewLifecycle(client client.Interface, creatableResources sets.String) (admission.Interface, error) {
 	return &lifecycle{client: client, creatableResources: creatableResources}, nil
 }

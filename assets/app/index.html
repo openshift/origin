@@ -16,6 +16,7 @@
     <!-- bower:css -->
     <link rel="stylesheet" href="bower_components/messenger/build/css/messenger-theme-flat.css" />
     <link rel="stylesheet" href="bower_components/kubernetes-label-selector/labelFilter.css" />
+    <link rel="stylesheet" href="bower_components/kubernetes-topology-graph/dist/topology-graph.css" />
     <link rel="stylesheet" href="bower_components/layout.attrs/dist/layout.attrs.css" />
     <!-- endbower -->
     <!-- endbuild -->
@@ -117,6 +118,8 @@
     <script src="bower_components/messenger/build/js/messenger-theme-flat.js"></script>
     <script src="bower_components/kubernetes-label-selector/labelSelector.js"></script>
     <script src="bower_components/kubernetes-label-selector/labelFilter.js"></script>
+    <script src="bower_components/d3/d3.js"></script>
+    <script src="bower_components/kubernetes-topology-graph/dist/topology-graph.js"></script>
     <script src="bower_components/kubernetes-object-describer/dist/object-describer.js"></script>
     <script src="bower_components/openshift-object-describer/dist/object-describer.js"></script>
     <!-- endbower -->
@@ -140,16 +143,26 @@
         <script src="scripts/services/notification.js"></script>
         <script src="scripts/services/imageStreamResolver.js"></script>
         <script src="scripts/services/util.js"></script>
+        <script src="scripts/services/builds.js"></script>
+        <script src="scripts/services/deployments.js"></script>
         <script src="scripts/controllers/projects.js"></script>
         <script src="scripts/controllers/project.js"></script>
         <script src="scripts/controllers/pods.js"></script>
+        <script src="scripts/controllers/pod.js"></script>
         <script src="scripts/controllers/overview.js"></script>
         <script src="scripts/controllers/settings.js"></script>
         <script src="scripts/controllers/builds.js"></script>
+        <script src="scripts/controllers/buildConfig.js"></script>
+        <script src="scripts/controllers/build.js"></script>
         <script src="scripts/controllers/images.js"></script>
+        <script src="scripts/controllers/image.js"></script>
         <script src="scripts/controllers/deployments.js"></script>
+        <script src="scripts/controllers/deploymentConfig.js"></script>
+        <script src="scripts/controllers/deployment.js"></script>        
         <script src="scripts/controllers/services.js"></script>
+        <script src="scripts/controllers/service.js"></script>
         <script src="scripts/controllers/create/createFromImage.js"></script>
+        <script src="scripts/controllers/create/nextSteps.js"></script>
         <script src="scripts/controllers/newfromtemplate.js"></script>
         <script src="scripts/controllers/labels.js"></script>
         <script src="scripts/controllers/tasks.js"></script>

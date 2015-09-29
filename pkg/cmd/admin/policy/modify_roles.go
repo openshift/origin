@@ -166,8 +166,8 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <user> [user]...",
-		Short: "add users to a role for all projects in the cluster",
-		Long:  `add users to a role for all projects in the cluster`,
+		Short: "Add users to a role for all projects in the cluster",
+		Long:  `Add users to a role for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Users, "user", false); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -188,8 +188,8 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <group> [group]...",
-		Short: "remove group from role for all projects in the cluster",
-		Long:  `remove group from role for all projects in the cluster`,
+		Short: "Remove group from role for all projects in the cluster",
+		Long:  `Remove group from role for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Groups, "group", false); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -210,8 +210,8 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 
 	cmd := &cobra.Command{
 		Use:   name + " <role> <user> [user]...",
-		Short: "remove user from role for all projects in the cluster",
-		Long:  `remove user from role for all projects in the cluster`,
+		Short: "Remove user from role for all projects in the cluster",
+		Long:  `Remove user from role for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, &options.Users, "user", false); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
@@ -228,7 +228,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 
 func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args []string, saNames util.StringList) error {
 	if (len(args) < 2) && (len(saNames) == 0) {
-		return errors.New("You must specify at least two arguments: <role> <user> [user]...")
+		return errors.New("you must specify at least two arguments: <role> <user> [user]...")
 	}
 
 	o.RoleName = args[0]
@@ -256,7 +256,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args 
 
 func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, args []string, target *[]string, targetName string, isNamespaced bool) error {
 	if len(args) < 2 {
-		return fmt.Errorf("You must specify at least two arguments: <role> <%s> [%s]...", targetName, targetName)
+		return fmt.Errorf("you must specify at least two arguments: <role> <%s> [%s]...", targetName, targetName)
 	}
 
 	o.RoleName = args[0]

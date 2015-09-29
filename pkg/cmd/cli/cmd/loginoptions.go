@@ -9,15 +9,15 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
-	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
-	kclientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kubecmdconfig "k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -176,8 +176,8 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 }
 
 // getMatchingClusters examines the kubeconfig for all clusters that point to the same server
-func getMatchingClusters(clientConfig kclient.Config, kubeconfig clientcmdapi.Config) util.StringSet {
-	ret := util.StringSet{}
+func getMatchingClusters(clientConfig kclient.Config, kubeconfig clientcmdapi.Config) sets.String {
+	ret := sets.String{}
 
 	for key, cluster := range kubeconfig.Clusters {
 		if (cluster.Server == clientConfig.Host) && (cluster.InsecureSkipTLSVerify == clientConfig.Insecure) && (cluster.CertificateAuthority == clientConfig.CAFile) && (bytes.Compare(cluster.CertificateAuthorityData, clientConfig.CAData) == 0) {
@@ -322,7 +322,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		fmt.Fprintf(o.Out, "Using project %q.\n", o.Project)
 
 	default:
-		projects := util.StringSet{}
+		projects := sets.String{}
 		for _, project := range projectsItems {
 			projects.Insert(project.Name)
 		}

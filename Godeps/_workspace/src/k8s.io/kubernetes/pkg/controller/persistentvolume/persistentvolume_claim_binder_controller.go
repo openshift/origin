@@ -23,8 +23,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -234,7 +234,7 @@ func syncVolume(volumeIndex *persistentVolumeOrderedIndex, binderClient binderCl
 	// volumes are removed by processes external to this binder and must be removed from the cluster
 	case api.VolumeFailed:
 		if volume.Spec.ClaimRef == nil {
-			return fmt.Errorf("PersistentVolume[%s] expected to be bound but found nil claimRef: %+v", volume)
+			return fmt.Errorf("PersistentVolume[%s] expected to be bound but found nil claimRef: %+v", volume.Name, volume)
 		} else {
 			glog.V(5).Infof("PersistentVolume[%s] previously failed recycling.  Skipping.\n", volume.Name)
 		}

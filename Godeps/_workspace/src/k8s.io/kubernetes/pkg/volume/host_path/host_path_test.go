@@ -21,7 +21,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/volume"
 )
@@ -63,7 +63,8 @@ func TestGetAccessModes(t *testing.T) {
 
 func TestRecycler(t *testing.T) {
 	plugMgr := volume.VolumePluginMgr{}
-	plugMgr.InitPlugins([]volume.VolumePlugin{&hostPathPlugin{nil, newMockRecycler, volume.VolumeConfig{}}}, volume.NewFakeVolumeHost("/tmp/fake", nil, nil))
+	pluginHost := volume.NewFakeVolumeHost("/tmp/fake", nil, nil)
+	plugMgr.InitPlugins([]volume.VolumePlugin{&hostPathPlugin{nil, volume.NewFakeRecycler, volume.VolumeConfig{}}}, pluginHost)
 
 	spec := &volume.Spec{PersistentVolume: &api.PersistentVolume{Spec: api.PersistentVolumeSpec{PersistentVolumeSource: api.PersistentVolumeSource{HostPath: &api.HostPathVolumeSource{Path: "/foo"}}}}}
 	plug, err := plugMgr.FindRecyclablePluginBySpec(spec)
@@ -72,7 +73,7 @@ func TestRecycler(t *testing.T) {
 	}
 	recycler, err := plug.NewRecycler(spec)
 	if err != nil {
-		t.Error("Failed to make a new Recyler: %v", err)
+		t.Errorf("Failed to make a new Recyler: %v", err)
 	}
 	if recycler.GetPath() != spec.PersistentVolume.Spec.HostPath.Path {
 		t.Errorf("Expected %s but got %s", spec.PersistentVolume.Spec.HostPath.Path, recycler.GetPath())
@@ -80,26 +81,6 @@ func TestRecycler(t *testing.T) {
 	if err := recycler.Recycle(); err != nil {
 		t.Errorf("Mock Recycler expected to return nil but got %s", err)
 	}
-}
-
-func newMockRecycler(spec *volume.Spec, host volume.VolumeHost, config volume.VolumeConfig) (volume.Recycler, error) {
-	return &mockRecycler{
-		path: spec.PersistentVolume.Spec.HostPath.Path,
-	}, nil
-}
-
-type mockRecycler struct {
-	path string
-	host volume.VolumeHost
-}
-
-func (r *mockRecycler) GetPath() string {
-	return r.path
-}
-
-func (r *mockRecycler) Recycle() error {
-	// return nil means recycle passed
-	return nil
 }
 
 func TestPlugin(t *testing.T) {
@@ -112,7 +93,7 @@ func TestPlugin(t *testing.T) {
 	}
 	spec := &api.Volume{
 		Name:         "vol1",
-		VolumeSource: api.VolumeSource{HostPath: &api.HostPathVolumeSource{"/vol1"}},
+		VolumeSource: api.VolumeSource{HostPath: &api.HostPathVolumeSource{Path: "/vol1"}},
 	}
 	pod := &api.Pod{ObjectMeta: api.ObjectMeta{UID: types.UID("poduid")}}
 	builder, err := plug.NewBuilder(volume.NewSpecFromVolume(spec), pod, volume.VolumeOptions{}, nil)
@@ -152,7 +133,7 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 		},
 		Spec: api.PersistentVolumeSpec{
 			PersistentVolumeSource: api.PersistentVolumeSource{
-				HostPath: &api.HostPathVolumeSource{"foo"},
+				HostPath: &api.HostPathVolumeSource{Path: "foo"},
 			},
 			ClaimRef: &api.ObjectReference{
 				Name: "claimA",
@@ -176,7 +157,8 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
 	o.Add(pv)
 	o.Add(claim)
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+	client := &testclient.Fake{}
+	client.AddReactor("*", "*", testclient.ObjectReaction(o, latest.RESTMapper))
 
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(ProbeVolumePlugins(volume.VolumeConfig{}), volume.NewFakeVolumeHost("/tmp/fake", client, nil))

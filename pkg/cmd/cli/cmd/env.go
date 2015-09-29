@@ -13,6 +13,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -30,29 +31,29 @@ specified pods or pod templates, or just those that match a wildcard.
 If "--env -" is passed, environment variables can be read from STDIN using the standard env
 syntax.`
 
-	envExample = `  // Update deployment 'registry' with a new environment variable
+	envExample = `  # Update deployment 'registry' with a new environment variable
   $ %[1]s env dc/registry STORAGE_DIR=/local
 
-  // List the environment variables defined on a deployment config 'registry'
+  # List the environment variables defined on a deployment config 'registry'
   $ %[1]s env dc/registry --list
 
-  // List the environment variables defined on all pods
+  # List the environment variables defined on all pods
   $ %[1]s env pods --all --list
 
-  // Output modified deployment config in YAML, and does not alter the object on the server
+  # Output modified deployment config in YAML, and does not alter the object on the server
   $ %[1]s env dc/registry STORAGE_DIR=/data -o yaml
 
-  // Update all containers in all replication controllers in the project to have ENV=prod
+  # Update all containers in all replication controllers in the project to have ENV=prod
   $ %[1]s env rc --all ENV=prod
 
-  // Remove the environment variable ENV from container 'c1' in all deployment configs
+  # Remove the environment variable ENV from container 'c1' in all deployment configs
   $ %[1]s env dc --all --containers="c1" ENV-
 
-  // Remove the environment variable ENV from a deployment config definition on disk and
-  // update the deployment config on the server
+  # Remove the environment variable ENV from a deployment config definition on disk and
+  # update the deployment config on the server
   $ %[1]s env -f dc.json ENV-
 
-  // Set some of the local shell environment into a deployment config on the server
+  # Set some of the local shell environment into a deployment config on the server
   $ env | grep RAILS_ | %[1]s env -e - dc/registry`
 )
 
@@ -83,6 +84,9 @@ func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out io.Write
 	cmd.Flags().String("resource-version", "", "If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.")
 	cmd.Flags().StringP("output", "o", "", "Display the changed objects instead of updating them. One of: json|yaml.")
 	cmd.Flags().String("output-version", "", "Output the changed objects with the given version (default api-version).")
+
+	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
+
 	return cmd
 }
 
@@ -97,7 +101,7 @@ func validateNoOverwrites(meta *kapi.ObjectMeta, labels map[string]string) error
 
 func parseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, error) {
 	env := []kapi.EnvVar{}
-	exists := kutil.NewStringSet()
+	exists := sets.NewString()
 	var remove []string
 	for _, envSpec := range spec {
 		switch {
@@ -309,7 +313,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 
 func updateEnv(existing []kapi.EnvVar, env []kapi.EnvVar, remove []string) []kapi.EnvVar {
 	out := []kapi.EnvVar{}
-	covered := kutil.NewStringSet(remove...)
+	covered := sets.NewString(remove...)
 	for _, e := range existing {
 		if covered.Has(e.Name) {
 			continue

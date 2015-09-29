@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -44,8 +45,8 @@ func (a *testAuthorizer) Authorize(ctx kapi.Context, passedAttributes authorizer
 	}
 	return a.allowed, a.reason, errors.New(a.err)
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
-	return util.StringSet{}, util.StringSet{}, nil
+func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
+	return sets.String{}, sets.String{}, nil
 }
 
 func TestNoNamespace(t *testing.T) {
@@ -61,7 +62,7 @@ func TestNoNamespace(t *testing.T) {
 				Resource:  "pods",
 			},
 			User:   "foo",
-			Groups: util.NewStringSet(),
+			Groups: sets.NewString(),
 		},
 	}
 
@@ -79,7 +80,7 @@ func TestConflictingNamespace(t *testing.T) {
 			Resource:  "pods",
 		},
 		User:   "foo",
-		Groups: util.NewStringSet(),
+		Groups: sets.NewString(),
 	}
 
 	storage := NewREST(subjectaccessreview.NewRegistry(subjectaccessreview.NewREST(authorizer)))
@@ -106,7 +107,7 @@ func TestEmptyReturn(t *testing.T) {
 				Resource:  "pods",
 			},
 			User:   "foo",
-			Groups: util.NewStringSet(),
+			Groups: sets.NewString(),
 		},
 	}
 
@@ -125,7 +126,7 @@ func TestNoErrors(t *testing.T) {
 				Verb:      "delete",
 				Resource:  "deploymentConfigs",
 			},
-			Groups: util.NewStringSet("not-master"),
+			Groups: sets.NewString("not-master"),
 		},
 	}
 
@@ -144,7 +145,7 @@ func TestErrors(t *testing.T) {
 				Resource:  "pods",
 			},
 			User:   "foo",
-			Groups: util.NewStringSet("first", "second"),
+			Groups: sets.NewString("first", "second"),
 		},
 	}
 

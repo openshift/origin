@@ -141,6 +141,12 @@ type ObjectMeta struct {
 	// will send a hard termination signal to the container.
 	DeletionTimestamp *util.Time `json:"deletionTimestamp,omitempty" description:"RFC 3339 date and time at which the object will be deleted; populated by the system when a graceful deletion is requested, read-only; if not set, graceful deletion of the object has not been requested"`
 
+	// Number of seconds allowed for this object to gracefully terminate before
+	// it will be removed from the system. Only set when deletionTimestamp is also set.
+	// May only be shortened.
+	// Read-only.
+	DeletionGracePeriodSeconds *int64 `json:"deletionGracePeriodSeconds,omitempty"`
+
 	// Labels are key value pairs that may be used to scope and select individual resources.
 	// TODO: replace map[string]string with labels.LabelSet type
 	Labels map[string]string `json:"labels,omitempty" description:"map of string keys and values that can be used to organize and categorize objects; may match selectors of replication controllers and services"`
@@ -202,9 +208,15 @@ type VolumeSource struct {
 	PersistentVolumeClaim *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty" description:"a reference to a PersistentVolumeClaim in the same namespace"`
 	// RBD represents a Rados Block Device mount on the host that shares a pod's lifetime
 	RBD *RBDVolumeSource `json:"rbd,omitempty" description:"rados block volume that will be mounted on the host machine"`
+	// Cinder represents a cinder volume attached and mounted on kubelets host machine
+	// More info: http://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md
+	Cinder *CinderVolumeSource `json:"cinder,omitempty"`
 	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
 	CephFS *CephFSVolumeSource `json:"cephfs,omitempty" description:"Ceph filesystem that will be mounted on the host machine"`
+	// DownwardAPI represents metadata about the pod that should populate this volume
+	DownwardAPI *DownwardAPIVolumeSource `json:"downwardAPI,omitempty"`
 	// Metadata represents metadata about the pod that should populate this volume
+	// NOTE: Deprecated in favor of DownwardAPI
 	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description: "Metadata volume containing information about the pod"`
 }
 
@@ -240,6 +252,9 @@ type PersistentVolumeSource struct {
 	ISCSI *ISCSIVolumeSource `json:"iscsi,omitempty" description:"an iSCSI disk resource provisioned by an admin"`
 	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
 	CephFS *CephFSVolumeSource `json:"cephfs,omitempty" description:"Ceph filesystem that will be mounted on the host machine"`
+	// Cinder represents a cinder volume attached and mounted on kubelets host machine
+	// More info: http://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md
+	Cinder *CinderVolumeSource `json:"cinder,omitempty"`
 }
 
 type PersistentVolume struct {
@@ -399,13 +414,29 @@ type GlusterfsVolumeSource struct {
 	ReadOnly bool `json:"readOnly,omitempty" description:"glusterfs volume to be mounted with read-only permissions"`
 }
 
+// DownwardAPIVolumeSource represents a volume containing downward API info
+type DownwardAPIVolumeSource struct {
+	// Items is a list of DownwardAPIVolume file
+	Items []DownwardAPIVolumeFile `json:"items,omitempty"`
+}
+
+// DownwardAPIVolumeFile represents a single file containing information from the downward API
+type DownwardAPIVolumeFile struct {
+	// Required: Path is  the relative path name of the file to be created. Must not be absolute or contain the '..' path. Must be utf-8 encoded. The first item of the relative path must not start with '..'
+	Path string `json:"path"`
+	// Required: Selects a field of the pod: only annotations, labels, name and  namespace are supported.
+	FieldRef ObjectFieldSelector `json:"fieldRef"`
+}
+
 // MetadataVolumeSource represents a volume containing metadata about a pod.
+// NOTE: Deprecated in favor of DownwardAPIVolumeSource
 type MetadataVolumeSource struct {
 	// Items is a list of metadata file name
 	Items []MetadataFile `json:"items,omitempty" description:"list of metadata files"`
 }
 
 // MetadataFile expresses information about a file holding pod metadata.
+// NOTE: Deprecated in favor of DownwardAPIVolumeFile
 type MetadataFile struct {
 	// Required: Name is the name of the file
 	Name string `json:"name" description:"the name of the file to be created"`
@@ -438,6 +469,24 @@ type RBDVolumeSource struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty"  description:"rbd volume to be mounted with read-only permissions"`
+}
+
+// CinderVolumeSource represents a cinder volume resource in Openstack.
+// A Cinder volume must exist before mounting to a container.
+// The volume must also be in the same region as the kubelet.
+type CinderVolumeSource struct {
+	// volume id used to identify the volume in cinder
+	// More info: http://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md
+	VolumeID string `json:"volumeID"`
+	// Required: Filesystem type to mount.
+	// Must be a filesystem type supported by the host operating system.
+	// Only ext3 and ext4 are allowed
+	// More info: http://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md
+	FSType string `json:"fsType,omitempty"`
+	// Optional: Defaults to false (read/write). ReadOnly here will force
+	// the ReadOnly setting in VolumeMounts.
+	// More info: http://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md
+	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
 // CephFSVolumeSource represents a Ceph Filesystem Mount that lasts the lifetime of a pod
@@ -1809,6 +1858,10 @@ type LimitRangeItem struct {
 	Min ResourceList `json:"min,omitempty" description:"min usage constraints on this kind by resource name"`
 	// Default usage constraints on this kind by resource name
 	Default ResourceList `json:"default,omitempty" description:"default values on this kind by resource name if omitted"`
+	// DefaultRequest is the default resource requirement request value by resource name if resource request is omitted.
+	DefaultRequest ResourceList `json:"defaultRequest,omitempty"`
+	// MaxLimitRequestRatio if specified, the named resource must have a request and limit that are both non-zero where limit divided by request is less than or equal to the enumerated value; this represents the max burst for the named resource.
+	MaxLimitRequestRatio ResourceList `json:"maxLimitRequestRatio,omitempty"`
 }
 
 // LimitRangeSpec defines a min/max usage limit for resources that match on kind

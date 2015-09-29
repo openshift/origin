@@ -27,7 +27,7 @@ import (
 	etcderr "k8s.io/kubernetes/pkg/api/errors/etcd"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/capabilities"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
@@ -53,12 +53,28 @@ type PodStorage struct {
 
 // REST implements a RESTStorage for pods against etcd
 type REST struct {
-	etcdgeneric.Etcd
+	*etcdgeneric.Etcd
 }
 
 // NewStorage returns a RESTStorage object that will work against pods.
-func NewStorage(s storage.Interface, k client.ConnectionInfoGetter) PodStorage {
+func NewStorage(s storage.Interface, useCacher bool, k client.ConnectionInfoGetter) PodStorage {
 	prefix := "/pods"
+
+	storageInterface := s
+	if useCacher {
+		config := storage.CacherConfig{
+			CacheCapacity:  1000,
+			Storage:        s,
+			Type:           &api.Pod{},
+			ResourcePrefix: prefix,
+			KeyFunc: func(obj runtime.Object) (string, error) {
+				return storage.NamespaceKeyFunc(prefix, obj)
+			},
+			NewListFunc: func() runtime.Object { return &api.PodList{} },
+		}
+		storageInterface = storage.NewCacher(config)
+	}
+
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.Pod{} },
 		NewListFunc: func() runtime.Object { return &api.PodList{} },
@@ -76,19 +92,19 @@ func NewStorage(s storage.Interface, k client.ConnectionInfoGetter) PodStorage {
 		},
 		EndpointName: "pods",
 
-		Storage: s,
+		CreateStrategy:      pod.Strategy,
+		UpdateStrategy:      pod.Strategy,
+		DeleteStrategy:      pod.Strategy,
+		ReturnDeletedObject: true,
+
+		Storage: storageInterface,
 	}
 	statusStore := *store
-
-	store.CreateStrategy = pod.Strategy
-	store.UpdateStrategy = pod.Strategy
-	store.DeleteStrategy = pod.Strategy
-	store.ReturnDeletedObject = true
 
 	statusStore.UpdateStrategy = pod.StatusStrategy
 
 	return PodStorage{
-		Pod:         &REST{*store},
+		Pod:         &REST{store},
 		Binding:     &BindingREST{store: store},
 		Status:      &StatusREST{store: &statusStore},
 		Log:         &LogREST{store: store, kubeletConn: k},

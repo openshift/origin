@@ -149,6 +149,7 @@ func (c *NodeConfig) RunProxy() {
 	endpointsConfig := pconfig.NewEndpointsConfig()
 	loadBalancer := proxy.NewLoadBalancerRR()
 	endpointsConfig.RegisterHandler(loadBalancer)
+	syncPeriod := 5 * time.Second
 
 	host, _, err := net.SplitHostPort(c.BindAddress)
 	if err != nil {
@@ -165,7 +166,7 @@ func (c *NodeConfig) RunProxy() {
 	}
 
 	go util.Forever(func() {
-		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol), util.PortRange{})
+		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol), util.PortRange{}, syncPeriod)
 		if err != nil {
 			switch {
 			// conflicting use of iptables, retry

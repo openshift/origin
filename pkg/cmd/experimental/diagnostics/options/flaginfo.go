@@ -2,7 +2,7 @@ package options
 
 import (
 	"github.com/spf13/pflag"
-	kclientcmd "k8s.io/kubernetes/pkg/client/clientcmd"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kutil "k8s.io/kubernetes/pkg/util"
 	"strconv"
 )

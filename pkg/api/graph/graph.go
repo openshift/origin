@@ -10,7 +10,7 @@ import (
 	"github.com/gonum/graph/concrete"
 	"github.com/gonum/graph/encoding/dot"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 type Node struct {
@@ -78,14 +78,14 @@ type MutableUniqueGraph interface {
 
 type Edge struct {
 	concrete.Edge
-	kinds util.StringSet
+	kinds sets.String
 }
 
 func NewEdge(head, tail graph.Node, kinds ...string) Edge {
-	return Edge{concrete.Edge{head, tail}, util.NewStringSet(kinds...)}
+	return Edge{concrete.Edge{head, tail}, sets.NewString(kinds...)}
 }
 
-func (e Edge) Kinds() util.StringSet {
+func (e Edge) Kinds() sets.String {
 	return e.kinds
 }
 
@@ -102,7 +102,7 @@ type GraphDescriber interface {
 	Name(node graph.Node) string
 	Kind(node graph.Node) string
 	Object(node graph.Node) interface{}
-	EdgeKinds(edge graph.Edge) util.StringSet
+	EdgeKinds(edge graph.Edge) sets.String
 }
 
 type Interface interface {
@@ -200,7 +200,7 @@ func (g Graph) SyntheticNodes() []graph.Node {
 func (g Graph) NodesByKind(nodeKinds ...string) []graph.Node {
 	ret := []graph.Node{}
 
-	kinds := util.NewStringSet(nodeKinds...)
+	kinds := sets.NewString(nodeKinds...)
 	for _, node := range g.internal.Nodes() {
 		if kinds.Has(g.Kind(node)) {
 			ret = append(ret, node)
@@ -341,7 +341,7 @@ func (g Graph) AddEdge(head, tail graph.Node, edgeKind string) {
 		}
 	}
 
-	kinds := util.NewStringSet(edgeKind)
+	kinds := sets.NewString(edgeKind)
 	if existingEdge := g.Edge(head, tail); existingEdge != nil {
 		kinds.Insert(g.EdgeKinds(existingEdge).List()...)
 	}
@@ -381,7 +381,7 @@ func NodesOfKind(kinds ...string) NodeFunc {
 		}
 	}
 
-	allowedKinds := util.NewStringSet(kinds...)
+	allowedKinds := sets.NewString(kinds...)
 	return func(g Interface, n graph.Node) bool {
 		return allowedKinds.Has(g.Kind(n))
 	}
@@ -389,19 +389,19 @@ func NodesOfKind(kinds ...string) NodeFunc {
 
 // EdgeFunc is passed a new graph, an edge in the current graph, and should mutate
 // the new graph as needed. If true is returned, the existing edge will be added to the graph.
-type EdgeFunc func(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool
+type EdgeFunc func(g Interface, head, tail graph.Node, edgeKinds sets.String) bool
 
 // EdgesOfKind returns a new EdgeFunc accepting the provided kinds of edges
 // If no kinds are specified, the returned EdgeFunc will accept all edges
 func EdgesOfKind(kinds ...string) EdgeFunc {
 	if len(kinds) == 0 {
-		return func(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+		return func(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
 			return true
 		}
 	}
 
-	allowedKinds := util.NewStringSet(kinds...)
-	return func(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+	allowedKinds := sets.NewString(kinds...)
+	return func(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
 		return allowedKinds.HasAny(edgeKinds.List()...)
 	}
 }
@@ -409,7 +409,7 @@ func EdgesOfKind(kinds ...string) EdgeFunc {
 // RemoveInboundEdges returns a new EdgeFunc dismissing any inbound edges to
 // the provided set of nodes
 func RemoveInboundEdges(nodes []graph.Node) EdgeFunc {
-	return func(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+	return func(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
 		for _, node := range nodes {
 			if node == tail {
 				return false
@@ -471,19 +471,19 @@ func AllNodes(g Interface, node graph.Node) bool {
 // ExistingDirectEdge returns true if both head and tail already exist in the graph and the edge kind is
 // not ReferencedByEdgeKind (the generic reverse edge kind). This will purge the graph of any
 // edges created by AddReversedEdge.
-func ExistingDirectEdge(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+func ExistingDirectEdge(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
 	return !edgeKinds.Has(ReferencedByEdgeKind) && g.Has(head) && g.Has(tail)
 }
 
 // ReverseExistingDirectEdge reverses the order of the edge and drops the existing edge only if
 // both head and tail already exist in the graph and the edge kind is not ReferencedByEdgeKind
 // (the generic reverse edge kind).
-func ReverseExistingDirectEdge(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+func ReverseExistingDirectEdge(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
 	return ExistingDirectEdge(g, head, tail, edgeKinds) && ReverseGraphEdge(g, head, tail, edgeKinds)
 }
 
 // ReverseGraphEdge reverses the order of the edge and drops the existing edge.
-func ReverseGraphEdge(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+func ReverseGraphEdge(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
 	for edgeKind := range edgeKinds {
 		g.AddEdge(tail, head, edgeKind)
 	}
@@ -493,7 +493,7 @@ func ReverseGraphEdge(g Interface, head, tail graph.Node, edgeKinds util.StringS
 // AddReversedEdge adds a reversed edge for every passed edge and preserves the existing
 // edge. Used to convert a one directional edge into a bidirectional edge, but will
 // create duplicate edges if a bidirectional edge between two nodes already exists.
-func AddReversedEdge(g Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+func AddReversedEdge(g Interface, head, tail graph.Node, edgeKinds sets.String) bool {
 	g.AddEdge(tail, head, ReferencedByEdgeKind)
 	return true
 }
@@ -501,7 +501,7 @@ func AddReversedEdge(g Interface, head, tail graph.Node, edgeKinds util.StringSe
 // AddGraphEdgesTo returns an EdgeFunc that will add the selected edges to the passed
 // graph.
 func AddGraphEdgesTo(g Interface) EdgeFunc {
-	return func(_ Interface, head, tail graph.Node, edgeKinds util.StringSet) bool {
+	return func(_ Interface, head, tail graph.Node, edgeKinds sets.String) bool {
 		for edgeKind := range edgeKinds {
 			g.AddEdge(head, tail, edgeKind)
 		}
@@ -577,7 +577,7 @@ func (g typedGraph) Kind(node graph.Node) string {
 	return UnknownNodeKind
 }
 
-func (g typedGraph) EdgeKinds(edge graph.Edge) util.StringSet {
+func (g typedGraph) EdgeKinds(edge graph.Edge) sets.String {
 	var e Edge
 	switch t := edge.(type) {
 	case concrete.WeightedEdge:
@@ -585,7 +585,7 @@ func (g typedGraph) EdgeKinds(edge graph.Edge) util.StringSet {
 	case Edge:
 		e = t
 	default:
-		return util.NewStringSet(UnknownEdgeKind)
+		return sets.NewString(UnknownEdgeKind)
 	}
 	return e.Kinds()
 }

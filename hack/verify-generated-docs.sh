@@ -21,6 +21,7 @@ if ! output=`${OS_ROOT}/hack/update-generated-docs.sh ${TMP_GENERATED_DOCS_ROOT_
 then
 	echo "FAILURE: Generation of fresh docs failed:"
 	echo "$output"
+  exit 1
 fi
 
 echo "Diffing current docs against freshly generated docs"

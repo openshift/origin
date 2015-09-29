@@ -73,6 +73,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "rebuild_yum_cache" => false,
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
     "memory"            => ENV['OPENSHIFT_MEMORY'] || 2048,
+    "fixup_net_udev"    => ENV['OPENSHIFT_FIXUP_NET_UDEV'] || true,
     "sync_folders_type" => nil,
     "master_ip"         => ENV['OPENSHIFT_MASTER_IP'] || "10.245.2.2",
     "minion_ip_base"    => ENV['OPENSHIFT_MINION_IP_BASE'] || "10.245.2.",
@@ -152,11 +153,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     minion_ips = num_minion.times.collect { |n| minion_ip_base + "#{n+3}" }
     minion_ips_str = minion_ips.join(",")
 
+    fixup_net_udev = vagrant_openshift_config['fixup_net_udev']
+
     # OpenShift master
     config.vm.define "#{VM_NAME_PREFIX}master" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{ENV['OPENSHIFT_SDN']}"
+      config.vm.provision "shell", inline: "/vagrant/vagrant/provision-master.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{fixup_net_udev} #{ENV['OPENSHIFT_SDN']}"
       config.vm.network "private_network", ip: "#{master_ip}"
       config.vm.hostname = "openshift-master"
       config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
@@ -169,7 +172,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         minion_ip = minion_ips[n]
         minion.vm.box = kube_box[kube_os]["name"]
         minion.vm.box_url = kube_box[kube_os]["box_url"]
-        minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{minion_ip} #{minion_index}"
+        minion.vm.provision "shell", inline: "/vagrant/vagrant/provision-minion.sh #{master_ip} #{num_minion} #{minion_ips_str} #{instance_prefix} #{minion_ip} #{minion_index} #{fixup_net_udev}"
         minion.vm.network "private_network", ip: "#{minion_ip}"
         minion.vm.hostname = "openshift-minion-#{minion_index}"
         config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
@@ -236,6 +239,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.vm.box     = vagrant_openshift_config['libvirt']['box_name']
       override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
+      override.vm.synced_folder ".", "/vagrant", type: 'nfs'
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory'].to_i
       libvirt.cpus        = vagrant_openshift_config['cpus'].to_i

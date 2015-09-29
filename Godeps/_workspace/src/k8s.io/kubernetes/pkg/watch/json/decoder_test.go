@@ -33,16 +33,16 @@ func TestDecoder(t *testing.T) {
 
 	for _, eventType := range table {
 		out, in := io.Pipe()
-		decoder := NewDecoder(out, testapi.Codec())
+		decoder := NewDecoder(out, testapi.Default.Codec())
 
 		expect := &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}}
 		encoder := json.NewEncoder(in)
 		go func() {
-			data, err := testapi.Codec().Encode(expect)
+			data, err := testapi.Default.Codec().Encode(expect)
 			if err != nil {
 				t.Fatalf("Unexpected error %v", err)
 			}
-			if err := encoder.Encode(&WatchEvent{eventType, runtime.RawExtension{json.RawMessage(data)}}); err != nil {
+			if err := encoder.Encode(&WatchEvent{eventType, runtime.RawExtension{RawJSON: json.RawMessage(data)}}); err != nil {
 				t.Errorf("Unexpected error %v", err)
 			}
 			in.Close()
@@ -81,7 +81,7 @@ func TestDecoder(t *testing.T) {
 
 func TestDecoder_SourceClose(t *testing.T) {
 	out, in := io.Pipe()
-	decoder := NewDecoder(out, testapi.Codec())
+	decoder := NewDecoder(out, testapi.Default.Codec())
 
 	done := make(chan struct{})
 

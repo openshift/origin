@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	. "github.com/onsi/ginkgo"
@@ -49,7 +50,7 @@ var _ = Describe("Service endpoints latency", func() {
 			// get this much lower in the future. See issue
 			// #10436.
 			limitMedian = time.Second * 20
-			limitTail   = time.Second * 40
+			limitTail   = time.Second * 50
 
 			// Numbers chosen to make the test complete in a short amount
 			// of time. This sample size is not actually large enough to
@@ -70,7 +71,7 @@ var _ = Describe("Service endpoints latency", func() {
 		f.Client.RESTClient.Throttle = util.NewFakeRateLimiter()
 		defer func() { f.Client.RESTClient.Throttle = oldThrottle }()
 
-		failing := util.NewStringSet()
+		failing := sets.NewString()
 		d, err := runServiceLatencies(f, parallelTrials, totalTrials)
 		if err != nil {
 			failing.Insert(fmt.Sprintf("Not all RC/pod/service trials succeeded: %v", err))

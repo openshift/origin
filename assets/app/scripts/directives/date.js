@@ -5,9 +5,10 @@ angular.module('openshiftConsole')
     return {
       restrict: 'E',
       scope: {
-        timestamp: '='
+        timestamp: '=',
+        dropSuffix: '=?'
       },
-      template: '<span data-timestamp="{{timestamp}}" class="timestamp" title="{{timestamp | date : \'short\'}}">{{timestamp | dateRelative}}</span>'
+      template: '<span data-timestamp="{{timestamp}}" data-drop-suffix="{{dropSuffix}}" class="timestamp" title="{{timestamp | date : \'short\'}}">{{timestamp | dateRelative : dropSuffix}}</span>'
     };
   })
   .directive("durationUntilNow", function() {

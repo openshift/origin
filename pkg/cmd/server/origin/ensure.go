@@ -32,7 +32,10 @@ func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
 		_, err = c.KubeClient().Namespaces().Create(namespace)
 		if err != nil {
 			glog.Errorf("Error creating namespace: %v due to %v\n", namespace, err)
+			return
 		}
+
+		c.ensureNamespaceServiceAccountRoleBindings(namespace)
 	}
 }
 
@@ -41,7 +44,7 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 	ns := c.Options.PolicyConfig.OpenShiftInfrastructureNamespace
 
 	// Ensure namespace exists
-	_, err := c.KubeClient().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}})
+	namespace, err := c.KubeClient().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}})
 	if err != nil && !kapierror.IsAlreadyExists(err) {
 		glog.Errorf("Error creating namespace %s: %v", ns, err)
 	}
@@ -74,77 +77,69 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 			glog.V(2).Infof("Added %v subjects to the %v cluster role: %v\n", subjects, clusterRole, err)
 		}
 	}
-}
 
-// ensureComponentAuthorizationRules initializes the cluster policies
-func (c *MasterConfig) ensureComponentAuthorizationRules() {
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicystorage.NewStorage(c.EtcdHelper))
-	ctx := kapi.WithNamespace(kapi.NewContext(), "")
-
-	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
-		glog.Infof("No cluster policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
-
-		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
-			glog.Errorf("Error creating bootstrap policy: %v", err)
-		}
-
-	} else {
-		glog.V(2).Infof("Ignoring bootstrap policy file because cluster policy found")
-	}
+	c.ensureNamespaceServiceAccountRoleBindings(namespace)
 }
 
 // ensureDefaultNamespaceServiceAccountRoles initializes roles for service accounts in the default namespace
 func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
-	const ServiceAccountRolesInitializedAnnotation = "openshift.io/sa.initialized-roles"
-
 	// Wait for the default namespace
-	var defaultNamespace *kapi.Namespace
+	var namespace *kapi.Namespace
 	for i := 0; i < 30; i++ {
 		ns, err := c.KubeClient().Namespaces().Get(kapi.NamespaceDefault)
 		if err == nil {
-			defaultNamespace = ns
+			namespace = ns
 			break
 		}
 		if kapierror.IsNotFound(err) {
 			time.Sleep(time.Second)
 			continue
 		}
-		glog.Errorf("Error adding service account roles to default namespace: %v", err)
+		glog.Errorf("Error adding finding to %q namespace: %v", kapi.NamespaceDefault, err)
 		return
 	}
-	if defaultNamespace == nil {
-		glog.Errorf("Default namespace not found, could not initialize default service account roles")
+	if namespace == nil {
+		glog.Errorf("Namespace %q not found, could not initialize the %q namespace", kapi.NamespaceDefault, kapi.NamespaceDefault)
 		return
 	}
 
+	c.ensureNamespaceServiceAccountRoleBindings(namespace)
+}
+
+// ensureNamespaceServiceAccountRoleBindings initializes roles for service accounts in the namespace
+func (c *MasterConfig) ensureNamespaceServiceAccountRoleBindings(namespace *kapi.Namespace) {
+	const ServiceAccountRolesInitializedAnnotation = "openshift.io/sa.initialized-roles"
+
 	// Short-circuit if we're already initialized
-	if defaultNamespace.Annotations[ServiceAccountRolesInitializedAnnotation] == "true" {
+	if namespace.Annotations[ServiceAccountRolesInitializedAnnotation] == "true" {
 		return
 	}
 
 	hasErrors := false
-	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(kapi.NamespaceDefault) {
+	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(namespace.Name) {
 		addRole := &policy.RoleModificationOptions{
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,
-			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(kapi.NamespaceDefault, c.ServiceAccountRoleBindingClient()),
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace.Name, c.ServiceAccountRoleBindingClient()),
 			Subjects:            binding.Subjects,
 		}
 		if err := addRole.AddRole(); err != nil {
-			glog.Errorf("Could not add service accounts to the %v role in the %v namespace: %v\n", binding.RoleRef.Name, kapi.NamespaceDefault, err)
+			glog.Errorf("Could not add service accounts to the %v role in the %q namespace: %v\n", binding.RoleRef.Name, namespace.Name, err)
 			hasErrors = true
 		}
 	}
 
 	// If we had errors, don't register initialization so we can try again
-	if !hasErrors {
-		if defaultNamespace.Annotations == nil {
-			defaultNamespace.Annotations = map[string]string{}
-		}
-		defaultNamespace.Annotations[ServiceAccountRolesInitializedAnnotation] = "true"
-		if _, err := c.KubeClient().Namespaces().Update(defaultNamespace); err != nil {
-			glog.Errorf("Error recording adding service account roles to default namespace: %v", err)
-		}
+	if hasErrors {
+		return
+	}
+
+	if namespace.Annotations == nil {
+		namespace.Annotations = map[string]string{}
+	}
+	namespace.Annotations[ServiceAccountRolesInitializedAnnotation] = "true"
+	if _, err := c.KubeClient().Namespaces().Update(namespace); err != nil {
+		glog.Errorf("Error recording adding service account roles to %q namespace: %v", namespace.Name, err)
 	}
 }
 
@@ -166,6 +161,23 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 		if err != nil {
 			glog.Errorf("Unable to create default security context constraint %s.  Got error: %v", scc.Name, err)
 		}
+	}
+}
+
+// ensureComponentAuthorizationRules initializes the cluster policies
+func (c *MasterConfig) ensureComponentAuthorizationRules() {
+	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterpolicystorage.NewStorage(c.EtcdHelper))
+	ctx := kapi.WithNamespace(kapi.NewContext(), "")
+
+	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
+		glog.Infof("No cluster policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
+
+		if err := admin.OverwriteBootstrapPolicy(c.EtcdHelper, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
+			glog.Errorf("Error creating bootstrap policy: %v", err)
+		}
+
+	} else {
+		glog.V(2).Infof("Ignoring bootstrap policy file because cluster policy found")
 	}
 }
 

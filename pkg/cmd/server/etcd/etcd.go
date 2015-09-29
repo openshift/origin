@@ -9,7 +9,7 @@ import (
 	etcdclient "github.com/coreos/go-etcd/etcd"
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"

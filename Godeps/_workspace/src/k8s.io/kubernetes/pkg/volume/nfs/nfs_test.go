@@ -22,7 +22,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
@@ -73,7 +73,7 @@ func TestRecycler(t *testing.T) {
 	}
 	recycler, err := plug.NewRecycler(spec)
 	if err != nil {
-		t.Error("Failed to make a new Recyler: %v", err)
+		t.Errorf("Failed to make a new Recyler: %v", err)
 	}
 	if recycler.GetPath() != spec.PersistentVolume.Spec.NFS.Path {
 		t.Errorf("Expected %s but got %s", spec.PersistentVolume.Spec.NFS.Path, recycler.GetPath())
@@ -184,7 +184,7 @@ func doTestPlugin(t *testing.T, spec *volume.Spec) {
 func TestPluginVolume(t *testing.T) {
 	vol := &api.Volume{
 		Name:         "vol1",
-		VolumeSource: api.VolumeSource{NFS: &api.NFSVolumeSource{"localhost", "/tmp", false}},
+		VolumeSource: api.VolumeSource{NFS: &api.NFSVolumeSource{Server: "localhost", Path: "/tmp", ReadOnly: false}},
 	}
 	doTestPlugin(t, volume.NewSpecFromVolume(vol))
 }
@@ -196,7 +196,7 @@ func TestPluginPersistentVolume(t *testing.T) {
 		},
 		Spec: api.PersistentVolumeSpec{
 			PersistentVolumeSource: api.PersistentVolumeSource{
-				NFS: &api.NFSVolumeSource{"localhost", "/tmp", false},
+				NFS: &api.NFSVolumeSource{Server: "localhost", Path: "/tmp", ReadOnly: false},
 			},
 		},
 	}
@@ -235,7 +235,8 @@ func TestPersistentClaimReadOnlyFlag(t *testing.T) {
 	o := testclient.NewObjects(api.Scheme, api.Scheme)
 	o.Add(pv)
 	o.Add(claim)
-	client := &testclient.Fake{ReactFn: testclient.ObjectReaction(o, latest.RESTMapper)}
+	client := &testclient.Fake{}
+	client.AddReactor("*", "*", testclient.ObjectReaction(o, latest.RESTMapper))
 
 	plugMgr := volume.VolumePluginMgr{}
 	plugMgr.InitPlugins(ProbeVolumePlugins(volume.VolumeConfig{}), volume.NewFakeVolumeHost("/tmp/fake", client, nil))

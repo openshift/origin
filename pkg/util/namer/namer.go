@@ -11,7 +11,7 @@ import (
 // It will first attempt to join them with a dash. If the resulting name is longer
 // than maxLength: if the suffix is too long, it will truncate the base name and add
 // an 8-character hash of the [base]-[suffix] string.  If the suffix is not too long,
-// it wil truncate the base, add the hash of the base and return [base]-[hash]-[suffix]
+// it will truncate the base, add the hash of the base and return [base]-[hash]-[suffix]
 func GetName(base, suffix string, maxLength int) string {
 	name := fmt.Sprintf("%s-%s", base, suffix)
 	if len(name) > maxLength {

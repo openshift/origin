@@ -6,7 +6,7 @@ import (
 	"io"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/spf13/cobra"
 
@@ -22,10 +22,10 @@ Create a new group.
 
 This command will create a new group with an optional list of users.`
 
-	newExample = `  // Add a group with no users
+	newExample = `  # Add a group with no users
   $ %[1]s my-group
 
-  // Add a group with two users
+  # Add a group with two users
   $ %[1]s my-group user1 user2`
 )
 
@@ -79,7 +79,7 @@ func (o *NewGroupOptions) AddGroup() error {
 	group := &userapi.Group{}
 	group.Name = o.Group
 
-	usedNames := util.StringSet{}
+	usedNames := sets.String{}
 	for _, user := range o.Users {
 		if usedNames.Has(user) {
 			continue

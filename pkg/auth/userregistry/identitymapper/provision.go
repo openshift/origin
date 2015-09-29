@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/user"
@@ -157,7 +157,7 @@ func (p *provisioningIdentityMapper) getOrCreateUserForIdentity(ctx kapi.Context
 			return createdUser, nil
 		}
 
-		if util.NewStringSet(persistedUser.Identities...).Has(identity.Name) {
+		if sets.NewString(persistedUser.Identities...).Has(identity.Name) {
 			// If the existing user references our identity, we're done
 			return persistedUser, nil
 		}
@@ -178,7 +178,7 @@ func (p *provisioningIdentityMapper) getMapping(ctx kapi.Context, identity *user
 		glog.Errorf("identity.user.uid (%s) and user.uid (%s) do not match for identity %s", identity.User.UID, u.UID, identity.Name)
 		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
 	}
-	if !util.NewStringSet(u.Identities...).Has(identity.Name) {
+	if !sets.NewString(u.Identities...).Has(identity.Name) {
 		glog.Errorf("user.identities (%#v) does not include identity (%s)", u, identity.Name)
 		return nil, kerrs.NewNotFound("UserIdentityMapping", identity.Name)
 	}

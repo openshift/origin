@@ -58,7 +58,7 @@ func TestEventQueue_initialEventIsDelete(t *testing.T) {
 
 	q.Replace([]interface{}{
 		cacheable{"foo", 2},
-	})
+	}, "1")
 
 	q.Delete(cacheable{key: "foo"})
 
@@ -115,7 +115,7 @@ func TestEventQueue_compressTwoUpdates(t *testing.T) {
 
 	q.Replace([]interface{}{
 		cacheable{"foo", 2},
-	})
+	}, "1")
 
 	q.Update(cacheable{"foo", 3})
 	q.Update(cacheable{"foo", 4})
@@ -136,7 +136,7 @@ func TestEventQueue_compressUpdateDelete(t *testing.T) {
 
 	q.Replace([]interface{}{
 		cacheable{"foo", 2},
-	})
+	}, "1")
 
 	q.Update(cacheable{"foo", 3})
 	q.Delete(cacheable{key: "foo"})
@@ -157,7 +157,7 @@ func TestEventQueue_modifyEventsFromReplace(t *testing.T) {
 
 	q.Replace([]interface{}{
 		cacheable{"foo", 2},
-	})
+	}, "1")
 
 	q.Update(cacheable{"foo", 2})
 

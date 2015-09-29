@@ -44,9 +44,12 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	// the authorizer decided that a user could run an SAR against this namespace
 	if namespace := kapi.NamespaceValue(ctx); len(namespace) > 0 {
 		subjectAccessReview.Action.Namespace = namespace
-	}
-	if err := r.isAllowed(ctx, subjectAccessReview); err != nil {
+
+	} else if err := r.isAllowed(ctx, subjectAccessReview); err != nil {
+		// this check is mutually exclusive to the condition above.  localSAR and localRAR both clear the namespace before delegating their calls
+		// We only need to check if the SAR is allowed **again** if the authorizer didn't already approve the request for a legacy call.
 		return nil, err
+
 	}
 
 	var userToCheck user.Info

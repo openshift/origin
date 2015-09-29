@@ -6,8 +6,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -64,7 +64,7 @@ func (g *DeploymentConfigGenerator) Generate(ctx kapi.Context, name string) (*de
 
 		// Update containers
 		template := config.Template.ControllerTemplate.Template
-		names := util.NewStringSet(params.ContainerNames...)
+		names := sets.NewString(params.ContainerNames...)
 		containerChanged := false
 		for i := range template.Spec.Containers {
 			container := &template.Spec.Containers[i]

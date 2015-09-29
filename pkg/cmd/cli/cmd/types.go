@@ -183,16 +183,16 @@ var (
     %[1]sFor more, see https://docs.openshift.com
   `)
 
-	typesExample = `  // View all projects you have access to
+	typesExample = `  # View all projects you have access to
   $ %[1]s get projects
 
-  // See a list of all services in the current project
+  # See a list of all services in the current project
   $ %[1]s get svc
 
-  // Describe a deployment configuration in detail
+  # Describe a deployment configuration in detail
   $ %[1]s describe dc mydeploymentconfig
 
-  // Show the images tagged into an image stream
+  # Show the images tagged into an image stream
   $ %[1]s describe is ruby-centos7`
 )
 

@@ -39,7 +39,7 @@ OpenShift `Group`'s `Labels` will also be used to store metadata regarding the s
   * Populate new OpenShift `Group`'s `Users` from resulting OpenShift `UserIdentityMappings`, update OpenShift `Group` metadata fields tied to LDAP attributes, leave other OpenShift `Group` fields unchanged
 
 ##  Determining Ordered List of LDAP Groups To Sync
-An `LDAPGroupLister` determines what LDAP groups needs to be synced and outputs the result as a set of unique identifier strings (called "LDAP group UIDs" in this document). The other objects that take LDAP group UIDs need to understand the format of this string (e.g. these objects will be tightly coupled). For example, an `LDAPGroupLister` for schema 1 above cannot be used with a `LDAPGroupDataExtractor` for schema 2. The four `LDAPGroupLister` implementations that are necessary are:
+An `LDAPGroupLister` determines what LDAP groups needs to be synced and outputs the result as a set of unique identifier strings (called "LDAP group UIDs" in this document). The other objects that take LDAP group UIDs need to understand the format of this string (e.g. these objects will be tightly coupled). For example, an `LDAPGroupLister` for schema 1 above cannot be used with a `LDAPGroupMemberExtractor` for schema 2. The four `LDAPGroupLister` implementations that are necessary are:
 
 1. List LDAP group UIDs for all OpenShift `Groups` matching a `Label` selector identifying them as pertaining to the sync job, minus a blacklist
 * List LDAP group UIDs for some whitelist of OpenShift `Groups`
@@ -48,7 +48,7 @@ An `LDAPGroupLister` determines what LDAP groups needs to be synced and outputs 
 
 ```go
 // LDAPGroupLister lists the LDAP groups that need to be synced by a job. The LDAPGroupLister needs to
-// be paired with an LDAPGroupDataExtractor that understands the format of the unique identifiers
+// be paired with an LDAPGroupMemberExtractor that understands the format of the unique identifiers
 // returned to represent the LDAP groups to be synced.
 type LDAPGroupLister interface {
 	ListGroups() (groupUIDs []string, err error)
@@ -56,11 +56,11 @@ type LDAPGroupLister interface {
 ```
 
 ## Collecting LDAP Members and Metadata
-An `LDAPGroupDataExtractor` gathers information on an LDAP group based on an LDAP group UID. It may cache LDAP responses for responsivity. The approach to implementing this structure will vary with LDAP schema as well as sync job request.
+An `LDAPGroupMemberExtractor` gathers information on an LDAP group based on an LDAP group UID. It may cache LDAP responses for responsivity. The approach to implementing this structure will vary with LDAP schema as well as sync job request.
 
 ```go
-// LDAPGroupDataExtractor retrieves data about an LDAP group from the LDAP server.
-type LDAPGroupDataExtractor interface {
+// LDAPGroupMemberExtractor retrieves data about an LDAP group from the LDAP server.
+type LDAPGroupMemberExtractor interface {
 	// ExtractMembers returns the list of LDAP first-class user entries that are members of the LDAP
 	// group specified by the groupUID
 	ExtractMembers(groupUID string) (members []*ldap.Entry, err error)
@@ -68,7 +68,7 @@ type LDAPGroupDataExtractor interface {
 ```
 
 ## Determining OpenShift `User` Names for LDAP Members
-The mapping of a LDAP member entry to an OpenShift `User` Name will be deterministic and simple: whatever LDAP entry attribute is used for the OpenShift `User` Name field upon creation of OpenShift `Users` will be used as the OpenShift `User` Name. As long as the `DeterministicUserIdentityMapper` is used to introduce LDAP member entries to OpenShift `User` records and the `LDAPUserToIdentityMapping` used for the sync job and `DeterministicUserIdentityMapper` is the same, the mappings created by the `LDAPUserNameMapper` will be correct.
+The mapping of a LDAP member entry to an OpenShift `User` Name will be deterministic and simple: whatever LDAP entry attribute is used for the OpenShift `User` Name field upon creation of OpenShift `Users` will be used as the OpenShift `User` Name. As long as the `DeterministicUserIdentityMapper` is used to introduce LDAP member entries to OpenShift `User` records and the `LDAPUserAttributeDefiner` used for the sync job and `DeterministicUserIdentityMapper` is the same, the mappings created by the `LDAPUserNameMapper` will be correct.
 
 ```go
 // LDAPUserNameMapper maps an LDAP entry representing a user to the OpenShift User Name corresponding to it

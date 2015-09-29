@@ -5,10 +5,9 @@
 package server
 
 // etcd needs to be running on http://127.0.0.1:4001
-// running standalone tests fails, because metrics need to be enabled. TODO(miek)
-// See `if !metricsDone {` in TestMsgOverflow, should be added to more? TODO(miek)
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"sort"
 	"strconv"
@@ -26,8 +25,11 @@ import (
 
 // Keep global port counter that increments with 10 for each
 // new call to newTestServer. The dns server is started on port 'Port'.
-var Port = 9400
-var StrPort = "9400" // string equivalent of Port
+var (
+	Port        = 9400
+	StrPort     = "9400" // string equivalent of Port
+	metricsDone = false
+)
 
 func addService(t *testing.T, s *server, k string, ttl uint64, m *msg.Service) {
 	b, err := json.Marshal(m)
@@ -75,6 +77,14 @@ func newTestServer(t *testing.T, c bool) *server {
 	s.config.Ttl = 3600
 	s.config.Ndots = 2
 
+	prometheusPort = "12300"
+	prometheusSubsystem = "test"
+	prometheusNamespace = "test"
+	if !metricsDone {
+		metricsDone = true
+		Metrics()
+	}
+
 	s.dnsUDPclient = &dns.Client{Net: "udp", ReadTimeout: 2 * s.config.ReadTimeout, WriteTimeout: 2 * s.config.ReadTimeout, SingleInflight: true}
 	s.dnsTCPclient = &dns.Client{Net: "tcp", ReadTimeout: 2 * s.config.ReadTimeout, WriteTimeout: 2 * s.config.ReadTimeout, SingleInflight: true}
 
@@ -94,7 +104,7 @@ func newTestServerDNSSEC(t *testing.T, cache bool) *server {
 	s := newTestServer(t, cache)
 	s.config.PubKey = newDNSKEY("skydns.test. IN DNSKEY 256 3 5 AwEAAaXfO+DOBMJsQ5H4TfiabwSpqE4cGL0Qlvh5hrQumrjr9eNSdIOjIHJJKCe56qBU5mH+iBlXP29SVf6UiiMjIrAPDVhClLeWFe0PC+XlWseAyRgiLHdQ8r95+AfkhO5aZgnCwYf9FGGSaT0+CRYN+PyDbXBTLK5FN+j5b6bb7z+d")
 	s.config.KeyTag = s.config.PubKey.KeyTag()
-	s.config.PrivKey, err = s.config.PubKey.ReadPrivateKey(strings.NewReader(`Private-key-format: v1.3
+	privKey, err := s.config.PubKey.ReadPrivateKey(strings.NewReader(`Private-key-format: v1.3
 Algorithm: 5 (RSASHA1)
 Modulus: pd874M4EwmxDkfhN+JpvBKmoThwYvRCW+HmGtC6auOv141J0g6MgckkoJ7nqoFTmYf6IGVc/b1JV/pSKIyMisA8NWEKUt5YV7Q8L5eVax4DJGCIsd1Dyv3n4B+SE7lpmCcLBh/0UYZJpPT4JFg34/INtcFMsrkU36PlvptvvP50=
 PublicExponent: AQAB
@@ -105,6 +115,7 @@ Exponent1: wkdTngUcIiau67YMmSFBoFOq9Lldy9HvpVzK/R0e5vDsnS8ZKTb4QJJ7BaG2ADpno7pIS
 Exponent2: YrC8OglEXIGkV3tm2494vf9ozPL6+cBkFsPPg9dXbvVCyyuW0pGHDeplvfUqs4nZp87z8PsoUL+LAUqdldnwcQ==
 Coefficient: mMFr4+rDY5V24HZU3Oa5NEb55iQ56ZNa182GnNhWqX7UqWjcUUGjnkCy40BqeFAQ7lp52xKHvP5Zon56mwuQRw==
 `), "stdin")
+	s.config.PrivKey = privKey.(*rsa.PrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -562,7 +573,7 @@ type dnsTestCase struct {
 	Extra  []dns.RR
 }
 
-// Note the key is encoded as dns name, while in "reality" it is a Etcd path.
+// Note the key is encoded as DNS name, while in "reality" it is a etcd path.
 var services = []*msg.Service{
 	{Host: "server1", Port: 8080, Key: "100.server1.development.region1.skydns.test."},
 	{Host: "server2", Port: 80, Key: "101.server2.production.region1.skydns.test."},
@@ -613,7 +624,7 @@ var services = []*msg.Service{
 	{Host: "mx.miek.nl", Priority: 50, Mail: true, Key: "b.mail.skydns.test."},
 	{Host: "a.ipaddr.skydns.test", Priority: 30, Mail: true, Key: "a.mx.skydns.test."},
 
-	// Double CNAME, see issue #168
+	// double CNAME, see issue #168
 	{Host: "mx2.skydns.test", Priority: 50, Mail: true, Key: "a.mail2.skydns.test."},
 	{Host: "a.ipaddr.skydns.test", Mail: true, Key: "a.mx2.skydns.test."},
 	// Sometimes we *do* get back a.ipaddr.skydns.test, making this test flaky.
@@ -1156,35 +1167,59 @@ func TestDedup(t *testing.T) {
 	}
 }
 
-func TestCacheTruncated(t *testing.T) {
-	s := newTestServer(t, true)
-	m := &dns.Msg{}
-	m.SetQuestion("skydns.test.", dns.TypeSRV)
-	m.Truncated = true
-	s.rcache.InsertMessage(cache.QuestionKey(m.Question[0], false), m)
-
-	// Now asking for this should result in a non-truncated answer.
-	resp, _ := dns.Exchange(m, "127.0.0.1:"+StrPort)
-	if resp.Truncated {
-		t.Fatal("truncated bit should be false")
-	}
-}
-
-func TestMsgOverflow(t *testing.T) {
-	if testing.Short() {
-                t.Skip("skipping test in short mode.")
-        }
-
+func TestTargetStripAdditional(t *testing.T) {
 	s := newTestServer(t, false)
 	defer s.Stop()
 
 	c := new(dns.Client)
 	m := new(dns.Msg)
 
-	// TODO(miek): rethink how to enable metrics in tests.
-	if !metricsDone {
-		Metrics()
+	pre := "bliep."
+	expected := "blaat.skydns.test."
+	serv := &msg.Service{
+		Host: "199.43.132.53", Key: pre + expected, TargetStrip: 1, Text: "Text",
 	}
+	addService(t, s, serv.Key, 0, serv)
+	defer delService(t, s, serv.Key)
+
+	m.SetQuestion(pre+expected, dns.TypeSRV)
+	resp, _, err := c.Exchange(m, "127.0.0.1:"+StrPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("%s", resp.String())
+	if resp.Extra[0].Header().Name != expected {
+		t.Fatalf("expected %s, got %s for SRV with v4", expected, resp.Extra[0].Header().Name)
+	}
+
+	serv = &msg.Service{
+		Host: "2001::1", Key: pre + expected, TargetStrip: 1, Text: "Text",
+	}
+	delService(t, s, serv.Key)
+	// previous defer still stands
+	addService(t, s, serv.Key, 0, serv)
+
+	m.SetQuestion(pre+expected, dns.TypeSRV)
+	resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("%s", resp.String())
+	if resp.Extra[0].Header().Name != expected {
+		t.Fatalf("expected %s, got %s for SRV with v6", expected, resp.Extra[0].Header().Name)
+	}
+}
+
+func TestMsgOverflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
+	s := newTestServer(t, false)
+	defer s.Stop()
+
+	c := new(dns.Client)
+	m := new(dns.Msg)
 
 	for i := 0; i < 2000; i++ {
 		is := strconv.Itoa(i)
@@ -1201,7 +1236,7 @@ func TestMsgOverflow(t *testing.T) {
 	}
 	t.Logf("%s", resp)
 
-	if resp.Rcode != dns.RcodeServerFailure {
+	if resp.Rcode != dns.RcodeSuccess {
 		t.Fatalf("expecting server failure, got %d", resp.Rcode)
 	}
 }

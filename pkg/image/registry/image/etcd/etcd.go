@@ -39,6 +39,7 @@ func NewREST(s storage.Interface) *REST {
 		EndpointName: "image",
 
 		CreateStrategy: image.Strategy,
+		UpdateStrategy: image.Strategy,
 
 		ReturnDeletedObject: false,
 
@@ -78,6 +79,11 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 // Create creates an image based on a specification.
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	return r.store.Create(ctx, obj)
+}
+
+// Update alters an existing image.
+func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
 }
 
 // Delete deletes an existing image specified by its ID.

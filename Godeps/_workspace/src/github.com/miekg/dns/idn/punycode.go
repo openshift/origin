@@ -3,9 +3,11 @@ package idn
 
 import (
 	"bytes"
-	"github.com/miekg/dns"
 	"strings"
 	"unicode"
+	"unicode/utf8"
+
+	"github.com/miekg/dns"
 )
 
 // Implementation idea from RFC itself and from from IDNA::Punycode created by
@@ -26,9 +28,15 @@ const (
 )
 
 // ToPunycode converts unicode domain names to DNS-appropriate punycode names.
-// This function would return incorrect result for strings for non-canonical
-// unicode strings.
+// This function will return an empty string result for domain names with
+// invalid unicode strings. This function expects domain names in lowercase.
 func ToPunycode(s string) string {
+	// Early check to see if encoding is needed.
+	// This will prevent making heap allocations when not needed.
+	if !needToPunycode(s) {
+		return s
+	}
+
 	tokens := dns.SplitDomainName(s)
 	switch {
 	case s == "":
@@ -40,13 +48,24 @@ func ToPunycode(s string) string {
 	}
 
 	for i := range tokens {
-		tokens[i] = string(encode([]byte(tokens[i])))
+		t := encode([]byte(tokens[i]))
+		if t == nil {
+			return ""
+		}
+		tokens[i] = string(t)
 	}
 	return strings.Join(tokens, ".")
 }
 
 // FromPunycode returns unicode domain name from provided punycode string.
+// This function expects punycode strings in lowercase.
 func FromPunycode(s string) string {
+	// Early check to see if decoding is needed.
+	// This will prevent making heap allocations when not needed.
+	if !needFromPunycode(s) {
+		return s
+	}
+
 	tokens := dns.SplitDomainName(s)
 	switch {
 	case s == "":
@@ -119,7 +138,7 @@ func next(b []rune, boundary rune) rune {
 }
 
 // preprune converts unicode rune to lower case. At this time it's not
-// supporting all things described in RFCs
+// supporting all things described in RFCs.
 func preprune(r rune) rune {
 	if unicode.IsUpper(r) {
 		r = unicode.ToLower(r)
@@ -127,7 +146,7 @@ func preprune(r rune) rune {
 	return r
 }
 
-// tfunc is a function that helps calculate each character weight
+// tfunc is a function that helps calculate each character weight.
 func tfunc(k, bias rune) rune {
 	switch {
 	case k <= bias:
@@ -138,12 +157,63 @@ func tfunc(k, bias rune) rune {
 	return k - bias
 }
 
-// encode transforms Unicode input bytes (that represent DNS label) into punycode bytestream
+// needToPunycode returns true for strings that require punycode encoding
+// (contain unicode characters).
+func needToPunycode(s string) bool {
+	// This function is very similar to bytes.Runes. We don't use bytes.Runes
+	// because it makes a heap allocation that's not needed here.
+	for i := 0; len(s) > 0; i++ {
+		r, l := utf8.DecodeRuneInString(s)
+		if r > 0x7f {
+			return true
+		}
+		s = s[l:]
+	}
+	return false
+}
+
+// needFromPunycode returns true for strings that require punycode decoding.
+func needFromPunycode(s string) bool {
+	if s == "." {
+		return false
+	}
+
+	off := 0
+	end := false
+	pl := len(_PREFIX)
+	sl := len(s)
+
+	// If s starts with _PREFIX.
+	if sl > pl && s[off:off+pl] == _PREFIX {
+		return true
+	}
+
+	for {
+		// Find the part after the next ".".
+		off, end = dns.NextLabel(s, off)
+		if end {
+			return false
+		}
+		// If this parts starts with _PREFIX.
+		if sl-off > pl && s[off:off+pl] == _PREFIX {
+			return true
+		}
+	}
+	panic("dns: not reached")
+}
+
+// encode transforms Unicode input bytes (that represent DNS label) into
+// punycode bytestream. This function would return nil if there's an invalid
+// character in the label.
 func encode(input []byte) []byte {
 	n, bias := _N, _BIAS
 
 	b := bytes.Runes(input)
 	for i := range b {
+		if !isValidRune(b[i]) {
+			return nil
+		}
+
 		b[i] = preprune(b[i])
 	}
 
@@ -206,7 +276,7 @@ func encode(input []byte) []byte {
 	return out.Bytes()
 }
 
-// decode transforms punycode input bytes (that represent DNS label) into Unicode bytestream
+// decode transforms punycode input bytes (that represent DNS label) into Unicode bytestream.
 func decode(b []byte) []byte {
 	src := b // b would move and we need to keep it
 
@@ -243,6 +313,10 @@ func decode(b []byte) []byte {
 				return src
 			}
 			i += digit * w
+			if i < 0 {
+				// safety check for rune overflow
+				return src
+			}
 
 			t = tfunc(k, bias)
 			if digit < t {
@@ -266,4 +340,35 @@ func decode(b []byte) []byte {
 		ret.WriteRune(r)
 	}
 	return ret.Bytes()
+}
+
+// isValidRune checks if the character is valid. We will look for the
+// character property in the code points list. For now we aren't checking special
+// rules in case of contextual property
+func isValidRune(r rune) bool {
+	return findProperty(r) == propertyPVALID
+}
+
+// findProperty will try to check the code point property of the given
+// character. It will use a binary search algorithm as we have a slice of
+// ordered ranges (average case performance O(log n))
+func findProperty(r rune) property {
+	imin, imax := 0, len(codePoints)
+
+	for imax >= imin {
+		imid := (imin + imax) / 2
+
+		codePoint := codePoints[imid]
+		if (codePoint.start == r && codePoint.end == 0) || (codePoint.start <= r && codePoint.end >= r) {
+			return codePoint.state
+		}
+
+		if (codePoint.end > 0 && codePoint.end < r) || (codePoint.end == 0 && codePoint.start < r) {
+			imin = imid + 1
+		} else {
+			imax = imid - 1
+		}
+	}
+
+	return propertyUnknown
 }

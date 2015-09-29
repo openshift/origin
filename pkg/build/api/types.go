@@ -5,6 +5,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const (
@@ -14,6 +15,8 @@ const (
 	DeprecatedBuildLabel = "build"
 	// BuildNumberAnnotation is an annotation whose value is the sequential number for this Build
 	BuildNumberAnnotation = "openshift.io/build.number"
+	// BuildCloneAnnotation is an annotation whose value is the name of the build this build was cloned from
+	BuildCloneAnnotation = "openshift.io/build.clone-of"
 	// BuildLabel is the key of a Pod label whose value is the Name of a Build which is run.
 	BuildLabel = "openshift.io/build.name"
 	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
@@ -82,6 +85,12 @@ type BuildStatus struct {
 	// Duration contains time.Duration object describing build time.
 	Duration time.Duration
 
+	// OutputDockerImageReference contains a reference to the Docker image that
+	// will be built by this build. It's value is computed from
+	// Build.Spec.Output.To, and should include the registry address, so that
+	// it can be used to push and pull the image.
+	OutputDockerImageReference string
+
 	// Config is an ObjectReference to the BuildConfig this Build is based on.
 	Config *kapi.ObjectReference
 }
@@ -121,12 +130,22 @@ type BuildSourceType string
 const (
 	//BuildSourceGit is a Git SCM
 	BuildSourceGit BuildSourceType = "Git"
+	// bulidSourceDockerfile is an embedded dockerfile
+	BuildSourceDockerfile BuildSourceType = "Dockerfile"
 )
 
-// BuildSource is the SCM used for the build
+// BuildSource is the input used for the build
 type BuildSource struct {
-	// Type of source control management system
+	// Type of build inputsystem
 	Type BuildSourceType
+
+	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
+	// specified, the FROM may be modified based on your strategy base image and additional ENV
+	// stanzas from your strategy environment will be added after the FROM, but before the rest
+	// of your Dockerfile stanzas. The Dockerfile source type may be used with other options like
+	// git - in those cases the Git repo will have any innate Dockerfile replaced in the context
+	// dir.
+	Dockerfile *string
 
 	// Git contains optional information about git build source
 	Git *GitBuildSource
@@ -390,7 +409,7 @@ type BuildTriggerPolicy struct {
 type BuildTriggerType string
 
 //NOTE: Adding a new trigger type requires adding the type to KnownTriggerTypes
-var KnownTriggerTypes = util.NewStringSet(
+var KnownTriggerTypes = sets.NewString(
 	string(GitHubWebHookBuildTriggerType),
 	string(GenericWebHookBuildTriggerType),
 	string(ImageChangeBuildTriggerType),

@@ -11,10 +11,11 @@ import (
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestPolicyCommands(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -31,7 +32,7 @@ func TestPolicyCommands(t *testing.T) {
 
 	const projectName = "hammer-project"
 
-	haroldClient, err := testutil.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, "harold")
+	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/service/ipallocator"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -143,7 +144,7 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	// always include the all-in-one server's web console as an allowed CORS origin
 	// always include localhost as an allowed CORS origin
 	// always include master public address as an allowed CORS origin
-	corsAllowedOrigins := util.NewStringSet(args.CORSAllowedOrigins...)
+	corsAllowedOrigins := sets.NewString(args.CORSAllowedOrigins...)
 	corsAllowedOrigins.Insert(assetPublicAddr.Host, masterPublicAddr.Host, "localhost", "127.0.0.1")
 
 	etcdAddress, err := args.GetEtcdAddress()
@@ -429,7 +430,7 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 		masterIP = ip.String()
 	}
 
-	staticNodeList := util.NewStringSet(args.NodeList...)
+	staticNodeList := sets.NewString(args.NodeList...)
 	staticNodeList.Delete("")
 
 	config := &configapi.KubernetesMasterConfig{
@@ -470,7 +471,7 @@ func (args MasterArgs) Validate() error {
 }
 
 // GetServerCertHostnames returns the set of hostnames that any serving certificate for master needs to be valid for.
-func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
+func (args MasterArgs) GetServerCertHostnames() (sets.String, error) {
 	masterAddr, err := args.GetMasterAddress()
 	if err != nil {
 		return nil, err
@@ -484,7 +485,7 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		return nil, err
 	}
 
-	allHostnames := util.NewStringSet(
+	allHostnames := sets.NewString(
 		"localhost", "127.0.0.1",
 		"openshift.default.svc.cluster.local",
 		"openshift.default.svc",
@@ -514,7 +515,7 @@ func (args MasterArgs) GetServerCertHostnames() (util.StringSet, error) {
 		allHostnames.Insert(args.ListenArg.ListenAddr.Host)
 	}
 
-	certHostnames := util.StringSet{}
+	certHostnames := sets.String{}
 	for hostname := range allHostnames {
 		if host, _, err := net.SplitHostPort(hostname); err == nil {
 			// add the hostname without the port

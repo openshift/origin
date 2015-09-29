@@ -50,7 +50,7 @@ angular.module('openshiftConsole')
           client_id: _oauth_client_id,
           response_type: 'token',
           state: returnUri.toString(),
-          redirect_uri: _oauth_redirect_uri,
+          redirect_uri: _oauth_redirect_uri
         });
         authLogger.log("RedirectLoginService.login(), redirecting", uri.toString());
         window.location.href = uri.toString();
@@ -99,7 +99,7 @@ angular.module('openshiftConsole')
         // No token and no error is invalid
         return $q.reject({
           error: "invalid_request",
-          error_description: "No API token returned",
+          error_description: "No API token returned"
         });
       }
     };

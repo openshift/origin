@@ -26,7 +26,7 @@ import (
 func formatMap(m map[string]string) string {
 	var l string
 	for key, value := range m {
-		l += key + "=" + value + "\n"
+		l += key + "=" + fmt.Sprintf("%q", value) + "\n"
 	}
 	return l
 }

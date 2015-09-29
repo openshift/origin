@@ -1,6 +1,19 @@
 'use strict';
 
 angular.module('openshiftConsole')
+  // The HTML5 `autofocus` attribute does not work reliably with Angular,
+  // so define our own directive
+  .directive('takeFocus', function($timeout) {
+    return {
+      restrict: 'A',
+      link: function(scope, element) {
+        // Add a delay to allow other asynchronous components to load.
+        $timeout(function() {
+          $(element).focus();
+        }, 300);
+      }
+    };
+  })
   .directive('selectOnFocus', function() {
     return {
       restrict: 'A',
@@ -93,5 +106,23 @@ angular.module('openshiftConsole')
         }
       },
       templateUrl: 'views/directives/_custom-icon.html'
+    };
+  })
+  .directive('bottomOfWindow', function() {
+    return {
+      restrict:'A',
+      link: function(scope, element) {
+        function resized() {
+          var height = $(window).height() - element[0].getBoundingClientRect().top;
+          element.css('height', (height - 10) + "px");
+        }
+
+        $(window).on("resize", resized);
+        resized();
+
+        element.on("$destroy", function() {
+          $(window).off("resize", resized);
+        });
+      }
     };
   });
