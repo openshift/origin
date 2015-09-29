@@ -225,7 +225,7 @@ function wait_for_app() {
 function wait_for_build() {
 	echo "[INFO] Waiting for $1 namespace build to complete"
 	wait_for_command "oc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} finished"
   # TODO: fix
   set +e
@@ -259,7 +259,7 @@ export HOME="${FAKE_HOME_DIR}"
 mkdir -p ${FAKE_HOME_DIR}
 
 export KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
+CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
 
 if [[ "${API_SCHEME}" == "https" ]]; then
 	export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
@@ -311,7 +311,7 @@ echo "[INFO] Pulled ruby-20-centos7"
 
 echo "[INFO] Waiting for Docker registry pod to start"
 # TODO: simplify when #4702 is fixed upstream
-wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1beta3 --template="{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 # services can end up on any IP.	Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}:{{ with index .spec.ports 0 }}{{ .port }}{{ end }}" service docker-registry)
@@ -330,7 +330,7 @@ echo "[INFO] Logging in as a regular user (e2e-user:pass) with project 'test'...
 oc login -u e2e-user -p pass
 [ "$(oc whoami | grep 'e2e-user')" ]
 oc project cache
-token=$(oc config view --flatten -o template -t '{{with index .users 0}}{{.user.token}}{{end}}')
+token=$(oc config view --flatten -o template --template='{{with index .users 0}}{{.user.token}}{{end}}')
 [[ -n ${token} ]]
 
 echo "[INFO] Docker login as e2e-user to ${DOCKER_REGISTRY}"
@@ -388,14 +388,14 @@ oc project ${CLUSTER_ADMIN_CONTEXT}
 
 # ensure the router is started
 # TODO: simplify when #4702 is fixed upstream
-wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
+wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 --template="{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" || echo "0")" != "0" ]]' $((5*TIME_MIN))
 
 echo "[INFO] Validating routed app response..."
 validate_response "-s -k --resolve www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST} https://www.example.com" "Hello from OpenShift" 0.2 50
 
 # Remote command execution
 echo "[INFO] Validating exec"
-registry_pod=$(oc get pod -l deploymentconfig=docker-registry -t '{{(index .items 0).metadata.name}}')
+registry_pod=$(oc get pod -l deploymentconfig=docker-registry --template='{{(index .items 0).metadata.name}}')
 # when running as a restricted pod the registry will run with a pre-allocated
 # user in the neighborhood of 1000000+.  Look for a substring of the pre-allocated uid range
 oc exec -p ${registry_pod} id | grep 10

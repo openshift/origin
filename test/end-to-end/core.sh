@@ -184,7 +184,7 @@ wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 --templ
 
 # Check for privileged exec limitations.
 echo "[INFO] Validating privileged pod exec"
-router_pod=$(oc get pod -n default -l deploymentconfig=router -t '{{(index .items 0).metadata.name}}')
+router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 oc policy add-role-to-user admin e2e-default-admin
 # login as a user that can't run privileged pods
 oc login -u e2e-default-admin -p pass

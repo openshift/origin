@@ -255,7 +255,7 @@ echo "config files: ok"
 
 # from this point every command will use config from the KUBECONFIG env var
 export KUBECONFIG="${HOME}/.kube/non-default-config"
-export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
+export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
 
 
 # NOTE: Do not add tests here, add them to test/cmd/*.

@@ -102,7 +102,7 @@ IMAGE_WORKING_DIR=/var/lib/openshift
 docker cp origin:${IMAGE_WORKING_DIR}/openshift.local.config ${BASETMPDIR}
 
 export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template -t '{{index . "current-context"}}')
+export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
 sudo chmod -R a+rwX "${ADMIN_KUBECONFIG}"
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
