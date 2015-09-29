@@ -68,6 +68,8 @@ type NamedTagReference struct {
 	Annotations map[string]string `json:"annotations,omitempty" description:"annotations associated with images using this tag"`
 	// From is a reference to an image stream tag or image stream this tag should track
 	From *kapi.ObjectReference `json:"from,omitempty" description:"a reference to an image stream tag or image stream this tag should track"`
+	// Reference states if the tag will be imported. Default value is false, which means the tag will be imported.
+	Reference bool `json:"reference,omitempty" description:"if true consider this tag a reference only and do not attempt to import metadata about the image"`
 }
 
 // ImageStreamStatus contains information about the state of this image stream.
