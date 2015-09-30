@@ -40,6 +40,15 @@ func (c *FakeNetNamespace) Create(inObj *sdnapi.NetNamespace) (*sdnapi.NetNamesp
 	return obj.(*sdnapi.NetNamespace), err
 }
 
+func (c *FakeNetNamespace) Update(inObj *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootUpdateAction("netnamespaces", inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*sdnapi.NetNamespace), err
+}
+
 func (c *FakeNetNamespace) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("netnamespaces", name), &sdnapi.NetNamespace{})
 	return err
