@@ -34,7 +34,7 @@ func doTestsReference(t *testing.T, files []string, flag int) {
 	}()
 
 	for _, basename := range files {
-		filename := filepath.Join("upskirtref", basename+".text")
+		filename := filepath.Join("testdata", basename+".text")
 		inputBytes, err := ioutil.ReadFile(filename)
 		if err != nil {
 			t.Errorf("Couldn't open '%s', error: %v\n", filename, err)
@@ -42,7 +42,7 @@ func doTestsReference(t *testing.T, files []string, flag int) {
 		}
 		input := string(inputBytes)
 
-		filename = filepath.Join("upskirtref", basename+".html")
+		filename = filepath.Join("testdata", basename+".html")
 		expectedBytes, err := ioutil.ReadFile(filename)
 		if err != nil {
 			t.Errorf("Couldn't open '%s', error: %v\n", filename, err)

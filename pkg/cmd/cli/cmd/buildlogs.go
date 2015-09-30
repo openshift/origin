@@ -33,10 +33,11 @@ build completes or fails.`
 func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	opts := api.BuildLogOptions{}
 	cmd := &cobra.Command{
-		Use:     "build-logs BUILD",
-		Short:   "Show logs from a build",
-		Long:    buildLogsLong,
-		Example: fmt.Sprintf(buildLogsExample, fullName),
+		Use:        "build-logs BUILD",
+		Short:      "Show logs from a build",
+		Long:       buildLogsLong,
+		Example:    fmt.Sprintf(buildLogsExample, fullName),
+		SuggestFor: []string{"builds"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunBuildLogs(fullName, f, out, cmd, opts, args)
 

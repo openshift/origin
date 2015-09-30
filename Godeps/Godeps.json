@@ -764,8 +764,8 @@
 		},
 		{
 			"ImportPath": "github.com/russross/blackfriday",
-			"Comment": "v1.2-42-g77efab5",
-			"Rev": "77efab57b2f74dd3f9051c79752b2e8995c8b789"
+			"Comment": "v1.3",
+			"Rev": "8cec3a854e68dba10faabbe31c089abf4a3e57a6"
 		},
 		{
 			"ImportPath": "github.com/samuel/go-zookeeper/zk",
@@ -777,7 +777,7 @@
 		},
 		{
 			"ImportPath": "github.com/shurcooL/sanitized_anchor_name",
-			"Rev": "9a8b7d4e8f347bfa230879db9d7d4e4d9e19f962"
+			"Rev": "244f5ac324cb97e1987ef901a0081a77bfd8e845"
 		},
 		{
 			"ImportPath": "github.com/skynetservices/skydns/backends/etcd",
@@ -801,11 +801,11 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
-			"Rev": "6d7031177028ad8c5b4b428ac9a2288fbc1c0649"
+			"Rev": "046a67325286b5e4d7c95b1d501ea1cd5ba43600"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
-			"Rev": "8e7dc108ab3a1ab6ce6d922bbaff5657b88e8e49"
+			"Rev": "b084184666e02084b8ccb9b704bf0d79c466eb1d"
 		},
 		{
 			"ImportPath": "github.com/stretchr/objx",

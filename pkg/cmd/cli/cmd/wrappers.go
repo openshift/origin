@@ -50,6 +50,7 @@ func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 	cmd.Long = getLong
 	cmd.Example = fmt.Sprintf(getExample, fullName)
 	cmd.ValidArgs = validArgs
+	cmd.SuggestFor = []string{"list"}
 	return cmd
 }
 
@@ -126,6 +127,7 @@ func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd := kcmd.NewCmdDelete(f.Factory, out)
 	cmd.Long = deleteLong
 	cmd.Example = fmt.Sprintf(deleteExample, fullName)
+	cmd.SuggestFor = []string{"remove"}
 	return cmd
 }
 
@@ -349,6 +351,7 @@ func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 	cmd := kcmd.NewCmdRun(f.Factory, in, out, errout)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)
+	cmd.SuggestFor = []string{"image"}
 	cmd.Flags().Set("generator", "")
 	cmd.Flag("generator").Usage = "The name of the API generator to use.  Default is 'run/v1' if --restart=Always, otherwise the default is 'run-pod/v1'."
 	cmd.Flag("generator").DefValue = ""

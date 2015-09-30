@@ -34,10 +34,11 @@ the build and the time the build is terminated.`
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
 func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "cancel-build BUILD",
-		Short:   "Cancel a pending or running build",
-		Long:    cancelBuildLong,
-		Example: fmt.Sprintf(cancelBuildExample, fullName),
+		Use:        "cancel-build BUILD",
+		Short:      "Cancel a pending or running build",
+		Long:       cancelBuildLong,
+		Example:    fmt.Sprintf(cancelBuildExample, fullName),
+		SuggestFor: []string{"builds"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCancelBuild(f, out, cmd, args)
 			cmdutil.CheckErr(err)
