@@ -75,12 +75,7 @@ Teardown() {
 }
 
 Status() {
-    ipaddr=$(docker inspect --format "{{.NetworkSettings.IPAddress}}" ${net_container})
-    if [ -z "$ipaddr" ]; then
-	exit 1
-    fi
-
-    printf "{ \"kind\": \"PodNetworkStatus\", \"apiVersion\": \"v1beta1\", \"ip\": \"${ipaddr}\" }\n"
+    # do nothing, empty output will default to address as picked by docker
 }
 
 case "$action" in
