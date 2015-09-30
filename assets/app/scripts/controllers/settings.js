@@ -12,6 +12,7 @@ angular.module('openshiftConsole')
   .controller('SettingsController', function ($scope, DataService, AlertMessageService, $filter, $modal, $location, LabelFilter, $timeout, Logger) {
     $scope.quotas = {};
     $scope.limitRanges = {};
+    $scope.limitsByType = {};
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessageQuotas = "Loading...";
@@ -68,24 +69,32 @@ angular.module('openshiftConsole')
     DataService.list("limitranges", $scope, function(limitRanges) {
       $scope.limitRanges = limitRanges.by("metadata.name");
       $scope.emptyMessageLimitRanges = "There are no resource limits set on this project.";
-      // Make sure max and min have the same sets of keys so we can actually create a table
-      // cleanly from a view.
+      // Convert to a sane format for a view to a build a table with rows per resource type
       angular.forEach($scope.limitRanges, function(limitRange, name){
+        $scope.limitsByType[name] = {};
+
         angular.forEach(limitRange.spec.limits, function(limit) {
-          limit.min = limit.min || {};
-          limit.max = limit.max || {};
-          limit["default"] = limit["default"] || {};
+          // We have nested types, top level type is something like "Container"
+          var typeLimits = $scope.limitsByType[name][limit.type] = {};
           angular.forEach(limit.max, function(value, type) {
-            limit.min[type] = limit.min[type] || "";
-            limit["default"][type] = limit["default"][type] || "";
+            typeLimits[type] = typeLimits[type] || {};
+            typeLimits[type].max = value;
           });
           angular.forEach(limit.min, function(value, type) {
-            limit.max[type] = limit.max[type] || "";
-            limit["default"][type] = limit["default"][type] || "";
-          });
+            typeLimits[type] = typeLimits[type] || {};
+            typeLimits[type].min = value;
+          });          
           angular.forEach(limit["default"], function(value, type) {
-            limit.max[type] = limit.max[type] || "";
-            limit.min[type] = limit.min[type] || "";
+            typeLimits[type] = typeLimits[type] || {};
+            typeLimits[type]["default"] = value;
+          });
+          angular.forEach(limit.defaultRequest, function(value, type) {
+            typeLimits[type] = typeLimits[type] || {};
+            typeLimits[type].defaultRequest = value;
+          });          
+          angular.forEach(limit.maxLimitRequestRatio, function(value, type) {
+            typeLimits[type] = typeLimits[type] || {};
+            typeLimits[type].maxLimitRequestRatio = value;
           });
         });
       });
