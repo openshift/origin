@@ -18,6 +18,12 @@ var _ = g.Describe("images: Usage and SCL enablement of the S2I images", func() 
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("s2i-usage", exutil.KubeConfigPath())
 
+	g.JustBeforeEach(func() {
+		g.By("waiting for builder service account")
+		err := exutil.WaitForBuilderAccount(oc.KubeREST().ServiceAccounts(oc.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
 	for image, tcs := range GetTestCaseForImages(AllImages) {
 		for _, t := range tcs {
 			g.Describe("returning s2i usage when running the image", func() {
