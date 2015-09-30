@@ -43,6 +43,9 @@ output to the create command over STDIN (using the '-f -' option) or redirect it
   # Convert stored template into resource list
   $ %[1]s process foo
 
+  # Convert template stored in different namespace into a resource list
+  $ %[1]s process openshift//foo
+
   # Convert template.json into resource list
   $ cat template.json | %[1]s process -f -
 
@@ -79,13 +82,13 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 
 // RunProject contains all the necessary functionality for the OpenShift cli process command
 func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	storedTemplate := ""
+	templateName := ""
 	if len(args) > 0 {
-		storedTemplate = args[0]
+		templateName = args[0]
 	}
 
 	filename := kcmdutil.GetFlagString(cmd, "filename")
-	if len(storedTemplate) == 0 && len(filename) == 0 {
+	if len(templateName) == 0 && len(filename) == 0 {
 		return kcmdutil.UsageError(cmd, "Must pass a filename or name of stored template")
 	}
 
@@ -120,10 +123,25 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		return err
 	}
 
-	// When storedTemplate is not empty, then we fetch the template from the
+	// When templateName is not empty, then we fetch the template from the
 	// server, otherwise we require to set the `-f` parameter.
-	if len(storedTemplate) > 0 {
-		templateObj, err := client.Templates(namespace).Get(storedTemplate)
+	if len(templateName) > 0 {
+		var (
+			storedTemplate, rs string
+			sourceNamespace    string
+			ok                 bool
+		)
+		sourceNamespace, rs, storedTemplate, ok = parseNamespaceResourceName(templateName, namespace)
+		if !ok {
+			return fmt.Errorf("invalid argument %q", templateName)
+		}
+		if len(rs) > 0 && (rs != "template" && rs != "templates") {
+			return fmt.Errorf("unable to process invalid resource %q", rs)
+		}
+		if len(storedTemplate) == 0 {
+			return fmt.Errorf("invalid value syntax %q", templateName)
+		}
+		templateObj, err := client.Templates(sourceNamespace).Get(storedTemplate)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return fmt.Errorf("template %q could not be found", storedTemplate)
@@ -149,8 +167,8 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 		obj, ok := infos[i].Object.(*api.Template)
 		if !ok {
 			sourceName := filename
-			if len(storedTemplate) > 0 {
-				sourceName = namespace + "/" + storedTemplate
+			if len(templateName) > 0 {
+				sourceName = namespace + "/" + templateName
 			}
 			fmt.Fprintf(cmd.Out(), "unable to parse %q, not a valid Template but %s\n", sourceName, reflect.TypeOf(infos[i].Object))
 			continue
