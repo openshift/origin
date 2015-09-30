@@ -375,9 +375,9 @@ func (r *requestAttributeGetter) GetAttribs(req *http.Request) authorizer.Attrib
 		}
 	}
 
-	attribs.ReadOnly = IsReadOnlyReq(*req)
-
 	apiRequestInfo, _ := r.apiRequestInfoResolver.GetAPIRequestInfo(req)
+
+	attribs.Verb = apiRequestInfo.Verb
 
 	// If a path follows the conventions of the REST object store, then
 	// we can extract the resource.  Otherwise, not.
@@ -455,7 +455,8 @@ type APIRequestInfoResolver struct {
 // /api/{version}/*
 func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIRequestInfo, error) {
 	requestInfo := APIRequestInfo{
-		Raw: splitPath(req.URL.Path),
+		Raw:  splitPath(req.URL.Path),
+		Verb: strings.ToLower(req.Method),
 	}
 
 	currentParts := requestInfo.Raw
@@ -499,8 +500,9 @@ func (r *APIRequestInfoResolver) GetAPIRequestInfo(req *http.Request) (APIReques
 			requestInfo.Verb = "patch"
 		case "DELETE":
 			requestInfo.Verb = "delete"
+		default:
+			requestInfo.Verb = ""
 		}
-
 	}
 
 	// URL forms: /namespaces/{namespace}/{kind}/*, where parts are adjusted to be relative to kind
