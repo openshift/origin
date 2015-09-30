@@ -1,0 +1,10 @@
+<div>
+  <button class="btn btn-lg btn-primary" ngf-select="uploadFile($file);" accept=".json" ngf-pattern="'.json'">
+    <i class="fa fa-lg fa-upload"></i> Upload Template
+  </button>
+  <div style="max-width: 35%;margin-top:15px;">
+    <div ng-if="uploading">
+      <strong>Uploading template...</strong>
+    </div>
+  </div>
+</div> 

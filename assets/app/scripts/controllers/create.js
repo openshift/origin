@@ -8,7 +8,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('CreateController', function ($scope, DataService, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, Logger) {
+  .controller('CreateController', function ($scope, DataService, AuthService, Upload, tagsFilter, uidFilter, hashSizeFilter, imageStreamTagAnnotationFilter, descriptionFilter, LabelFilter, $filter, $location, Logger) {
     var projectImageStreams,
         openshiftImageStreams,
         projectTemplates,
@@ -16,6 +16,9 @@ angular.module('openshiftConsole')
         buildersByCategory = {},
         templatesByCategory = {},
         nonBuilderImages = [];
+
+    AuthService.withUser();
+    $scope.alerts = $scope.alerts || {};
 
     // The tags to use for categories in the order we want to display.
     $scope.categoryTags = [
@@ -78,17 +81,21 @@ angular.module('openshiftConsole')
     };
 
     // List templates in the project namespace as well as the shared `openshift` namespace.
-    DataService.list("templates", $scope, function(templates) {
-      projectTemplates = templates.by("metadata.name");
-      categorizeTemplates(projectTemplates);
-      updateState();
-    });
+    function loadTemplates() {
+      DataService.list("templates", $scope, function(templates) {
+        projectTemplates = templates.by("metadata.name");
+        categorizeTemplates(projectTemplates);
+        updateState();
+      });
 
-    DataService.list("templates", {namespace: "openshift"}, function(templates) {
-      openshiftTemplates = templates.by("metadata.name");
-      categorizeTemplates(openshiftTemplates);
-      updateState();
-    });
+      DataService.list("templates", {namespace: "openshift"}, function(templates) {
+        openshiftTemplates = templates.by("metadata.name");
+        categorizeTemplates(openshiftTemplates);
+        updateState();
+      });
+    }
+
+    loadTemplates();
 
     // List image streams in the project namespace as well as the shared `openshift` namespace.
     DataService.list("imagestreams", $scope, function(imageStreams) {
@@ -309,4 +316,8 @@ angular.module('openshiftConsole')
         Logger.info("non-builder images", nonBuilderImages);
       }
     }
+
+    $scope.$on('refreshList', function() {
+      loadTemplates();
+    });
   });

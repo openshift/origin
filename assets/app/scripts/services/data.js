@@ -2,7 +2,7 @@
 /* jshint eqeqeq: false, unused: false */
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger, $timeout) {
+.factory('DataService', function($http, $ws, $rootScope, $q, Upload, API_CFG, Notification, Logger, $timeout) {
 
   function Data(array) {
     this._data = {};
@@ -184,6 +184,40 @@ angular.module('openshiftConsole')
         data: object,
         url: self._urlForResource(resource, name, object.apiVersion, context, false, ns)
       }, opts.http || {}))
+      .success(function(data, status, headerFunc, config, statusText) {
+        deferred.resolve(data);
+      })
+      .error(function(data, status, headers, config) {
+        deferred.reject({
+          data: data,
+          status: status,
+          headers: headers,
+          config: config
+        });
+      });
+    });
+    return deferred.promise;
+  };
+
+  // resource:  API resource (e.g. "pods")
+  // file:      uploaded file
+  // context:   API context (e.g. {project: "..."})
+  // opts:      http - options to pass to the inner $http call
+  // Returns a promise resolved with response data or rejected with {data:..., status:..., headers:..., config:...} when the file upload call completes.
+  DataService.prototype.createFromUpload = function(resource, file, context, opts) {
+    resource = normalizeResource(resource);
+    opts = opts || {};
+    var deferred = $q.defer();
+    var self = this;
+    this._getNamespace(resource, context, opts).then(function(ns){
+      Upload.http({
+        method: 'POST',
+        headers: {
+          'Content-Type': file.type
+        },
+        data: file,
+        url: self._urlForResource(resource, null, null, context, false, ns)
+      })
       .success(function(data, status, headerFunc, config, statusText) {
         deferred.resolve(data);
       })
