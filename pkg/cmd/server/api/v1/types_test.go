@@ -17,6 +17,11 @@ const (
 	// - install: https://github.com/openshift/openshift-ansible/
 	expectedSerializedNodeConfig = `allowDisabledDocker: false
 apiVersion: v1
+authConfig:
+  authenticationCacheSize: 0
+  authenticationCacheTTL: ""
+  authorizationCacheSize: 0
+  authorizationCacheTTL: ""
 dnsDomain: ""
 dnsIP: ""
 dockerConfig:

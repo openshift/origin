@@ -90,13 +90,13 @@ var (
 		OpenshiftStatusGroupName: {"imagestreams/status", "routes/status"},
 
 		QuotaGroupName:         {"limitranges", "resourcequotas", "resourcequotausages"},
-		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},
+		KubeInternalsGroupName: {"minions", "nodes", NodeMetricsResource, NodeStatsResource, NodeLogResource, "bindings", "events", "namespaces"},
 		KubeExposedGroupName:   {"pods", "replicationcontrollers", "serviceaccounts", "services", "endpoints", "persistentvolumeclaims", "pods/log"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
 		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status"},
 
 		OpenshiftEscalatingViewableGroupName: {"oauthauthorizetokens", "oauthaccesstokens"},
-		KubeEscalatingViewableGroupName:      {"secrets"},
+		KubeEscalatingViewableGroupName:      {"secrets", NodeLogResource}, // consider NodeLogResource a potentially escalating resource since it proxies to /var/log on the nodes
 		EscalatingResourcesGroupName:         {OpenshiftEscalatingViewableGroupName, KubeEscalatingViewableGroupName},
 
 		NonEscalatingResourcesGroupName: {OpenshiftNonEscalatingViewableGroupName, KubeNonEscalatingViewableGroupName},

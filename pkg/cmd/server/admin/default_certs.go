@@ -47,7 +47,8 @@ func DefaultMasterKubeletClientCertInfo(certDir string) ClientCertInfo {
 			CertFile: path.Join(certDir, MasterFilePrefix+".kubelet-client.crt"),
 			KeyFile:  path.Join(certDir, MasterFilePrefix+".kubelet-client.key"),
 		},
-		User: "system:master",
+		User:   bootstrappolicy.MasterKubeletAdminClientUsername,
+		Groups: sets.NewString(bootstrappolicy.NodeAdminsGroup),
 	}
 }
 

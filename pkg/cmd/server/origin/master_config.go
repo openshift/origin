@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"net/http"
 	"path"
 
 	etcdclient "github.com/coreos/go-etcd/etcd"
@@ -15,7 +14,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapilatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/auth/user"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/master"
@@ -26,6 +24,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/auth/authenticator"
+	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
@@ -297,14 +296,11 @@ func newAuthenticator(config configapi.MasterConfig, etcdHelper storage.Interfac
 		authenticators = append(authenticators, certauth)
 	}
 
-	// TODO: make anonymous auth optional?
 	ret := &unionrequest.Authenticator{
 		FailOnError: true,
 		Handlers: []authenticator.Request{
 			group.NewGroupAdder(unionrequest.NewUnionAuthentication(authenticators...), []string{bootstrappolicy.AuthenticatedGroup}),
-			authenticator.RequestFunc(func(req *http.Request) (user.Info, bool, error) {
-				return &user.DefaultInfo{Name: unauthenticatedUsername, Groups: []string{bootstrappolicy.UnauthenticatedGroup}}, true, nil
-			}),
+			anonymous.NewAuthenticator(),
 		},
 	}
 

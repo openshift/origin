@@ -378,9 +378,53 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: NodeAdminRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// Allow read-only access to the API objects
+				{
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("nodes"),
+				},
+				// Allow all API calls to the nodes
+				{
+					Verbs:     sets.NewString("proxy"),
+					Resources: sets.NewString("nodes"),
+				},
+				{
+					Verbs:     sets.NewString(authorizationapi.VerbAll),
+					Resources: sets.NewString(authorizationapi.NodeMetricsResource, authorizationapi.NodeStatsResource, authorizationapi.NodeLogResource),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: NodeReaderRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// Allow read-only access to the API objects
+				{
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("nodes"),
+				},
+				// Allow read access to metrics and stats
+				// TODO: expose other things like /healthz on the node once we figure out non-resource URL policy across systems
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString(authorizationapi.NodeMetricsResource, authorizationapi.NodeStatsResource),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: NodeRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
+				{
+					// Needed to check API access.  These creates are non-mutating
+					Verbs:     sets.NewString("create"),
+					Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"),
+				},
 				{
 					// Needed to build serviceLister, to populate env vars for services
 					Verbs:     sets.NewString("get", "list", "watch"),
@@ -537,6 +581,19 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 				Name: MasterRoleName,
 			},
 			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: MastersGroup}},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: NodeAdminRoleBindingName,
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: NodeAdminRoleName,
+			},
+			Subjects: []kapi.ObjectReference{
+				// ensure the legacy username in the master's kubelet-client certificate is allowed
+				{Kind: authorizationapi.SystemUserKind, Name: LegacyMasterKubeletAdminClientUsername},
+				{Kind: authorizationapi.SystemGroupKind, Name: NodeAdminsGroup},
+			},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{

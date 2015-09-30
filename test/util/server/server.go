@@ -279,7 +279,7 @@ func StartConfiguredNode(nodeConfig *configapi.NodeConfig) error {
 	if err != nil {
 		return err
 	}
-	nodeTLS := false // TODO: set to configapi.UseTLS(nodeConfig.ServingInfo) once client cert auth isn't required to connect
+	nodeTLS := configapi.UseTLS(nodeConfig.ServingInfo)
 
 	if err := start.StartNode(*nodeConfig); err != nil {
 		return err
