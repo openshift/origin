@@ -13,6 +13,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
@@ -113,6 +114,11 @@ func WaitForBuilderAccount(c kclient.ServiceAccountsInterface) error {
 	waitFunc := func() (bool, error) {
 		sc, err := c.Get("builder")
 		if err != nil {
+			// If we can't access the service accounts, let's wait till the controller
+			// create it.
+			if errors.IsForbidden(err) {
+				return false, nil
+			}
 			return false, err
 		}
 		for _, s := range sc.Secrets {
