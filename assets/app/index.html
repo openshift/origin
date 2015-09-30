@@ -14,10 +14,10 @@
     <meta name="msapplication-TileImage" content="images/mstile-144x144.png">
     <!-- build:css(.) styles/vendor.css -->
     <!-- bower:css -->
-    <link rel="stylesheet" href="bower_components/messenger/build/css/messenger-theme-flat.css" />
     <link rel="stylesheet" href="bower_components/kubernetes-label-selector/labelFilter.css" />
     <link rel="stylesheet" href="bower_components/kubernetes-topology-graph/dist/topology-graph.css" />
     <link rel="stylesheet" href="bower_components/layout.attrs/dist/layout.attrs.css" />
+    <link rel="stylesheet" href="bower_components/messenger/build/css/messenger-theme-flat.css" />
     <!-- endbower -->
     <!-- endbuild -->
     <!-- build:css(.tmp) styles/main.css -->
@@ -91,37 +91,39 @@
     <!-- bower:js -->
     <script src="bower_components/jquery/dist/jquery.js"></script>
     <script src="bower_components/angular/angular.js"></script>
-    <script src="bower_components/angular-resource/angular-resource.js"></script>
-    <script src="bower_components/angular-cookies/angular-cookies.js"></script>
-    <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
     <script src="bower_components/angular-animate/angular-animate.js"></script>
-    <script src="bower_components/angular-touch/angular-touch.js"></script>
-    <script src="bower_components/angular-route/angular-route.js"></script>
     <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+    <script src="bower_components/angular-cookies/angular-cookies.js"></script>
+    <script src="bower_components/angular-resource/angular-resource.js"></script>
+    <script src="bower_components/angular-route/angular-route.js"></script>
+    <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
+    <script src="bower_components/angular-touch/angular-touch.js"></script>
+    <script src="bower_components/js-logger/src/logger.js"></script>
+    <script src="bower_components/hawtio-core/hawtio-core.js"></script>
+    <script src="bower_components/lodash/lodash.js"></script>
     <script src="bower_components/uri.js/src/URI.js"></script>
     <script src="bower_components/uri.js/src/URITemplate.js"></script>
     <script src="bower_components/uri.js/src/jquery.URI.js"></script>
     <script src="bower_components/uri.js/src/URI.fragmentURI.js"></script>
-    <script src="bower_components/moment/moment.js"></script>
-    <script src="bower_components/patternfly/components/bootstrap/dist/js/bootstrap.js"></script>
-    <script src="bower_components/patternfly/components/bootstrap-select/bootstrap-select.js"></script>
-    <script src="bower_components/js-logger/src/logger.js"></script>
-    <script src="bower_components/hawtio-core/hawtio-core.js"></script>
-    <script src="bower_components/lodash/lodash.js"></script>
     <script src="bower_components/hawtio-core-navigation/dist/hawtio-core-navigation.js"></script>
     <script src="bower_components/hawtio-extension-service/dist/hawtio-extension-service.js"></script>
     <script src="bower_components/sifter/sifter.js"></script>
     <script src="bower_components/microplugin/src/microplugin.js"></script>
     <script src="bower_components/selectize/dist/js/selectize.js"></script>
-    <script src="bower_components/zeroclipboard/dist/ZeroClipboard.js"></script>
-    <script src="bower_components/messenger/build/js/messenger.js"></script>
-    <script src="bower_components/messenger/build/js/messenger-theme-flat.js"></script>
     <script src="bower_components/kubernetes-label-selector/labelSelector.js"></script>
     <script src="bower_components/kubernetes-label-selector/labelFilter.js"></script>
     <script src="bower_components/d3/d3.js"></script>
     <script src="bower_components/kubernetes-topology-graph/dist/topology-graph.js"></script>
+    <script src="bower_components/messenger/build/js/messenger.js"></script>
+    <script src="bower_components/messenger/build/js/messenger-theme-flat.js"></script>
+    <script src="bower_components/moment/moment.js"></script>
+    <script src="bower_components/ng-file-upload/ng-file-upload.js"></script>
+    <script src="bower_components/ng-file-upload-shim/ng-file-upload-shim.js"></script>
     <script src="bower_components/kubernetes-object-describer/dist/object-describer.js"></script>
     <script src="bower_components/openshift-object-describer/dist/object-describer.js"></script>
+    <script src="bower_components/patternfly/components/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="bower_components/patternfly/components/bootstrap-select/bootstrap-select.js"></script>
+    <script src="bower_components/zeroclipboard/dist/ZeroClipboard.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
@@ -175,6 +177,7 @@
         <script src="scripts/controllers/createProject.js"></script>
         <script src="scripts/controllers/modals/deleteModal.js"></script>
         <script src="scripts/directives/date.js"></script>
+        <script src="scripts/directives/uploadButton.js"></script>
         <script src="scripts/directives/oscFileInput.js"></script>
         <script src="scripts/directives/oscFormSection.js"></script>
         <script src="scripts/directives/oscGitLink.js"></script>

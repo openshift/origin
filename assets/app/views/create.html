@@ -23,6 +23,9 @@
               <div><code>oc create -f &lt;filename&gt; -n {{projectName}}</code></div>
             </p>
 
+            <p>Or, upload a template.</p>
+            <upload-button alerts="alerts" resource-type="template" refresh="refresh"></upload-button>
+
             <p><a href="{{projectName | projectOverviewURL}}">Back to overview</a></p>
           </div>
 
@@ -32,6 +35,7 @@
 
           <div ng-show="!emptyCatalog">
             <h1>Select Image or Template</h1>
+            <alerts alerts="alerts"></alerts>
 
             <p>Choose from web frameworks, databases, and other components.</p>
 
@@ -62,6 +66,8 @@
                 Tagged with {{filter.tag}}.
                 <a href="" ng-click="filter.tag = ''">See all tags</a>
               </div>
+              <p>Or, upload a template.</p>
+              <upload-button alerts="alerts" resource-type="template" refresh="refresh"></upload-button>
             </div>
 
             <div ng-if="filteredCategoryTags.length === 0 && !emptyCatalog && loaded" style="margin-top: 5px;">
