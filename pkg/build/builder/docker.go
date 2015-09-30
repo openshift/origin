@@ -264,7 +264,10 @@ func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
 // consume.
 func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
 	labels := map[string]string{}
-	sourceInfo := d.git.GetInfo(dir)
+	sourceInfo := &s2iapi.SourceInfo{}
+	if d.build.Spec.Source.Git != nil {
+		sourceInfo = d.git.GetInfo(dir)
+	}
 	if len(d.build.Spec.Source.ContextDir) > 0 {
 		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
 	}
