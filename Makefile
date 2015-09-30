@@ -110,14 +110,12 @@ test: export KUBE_COVER= -cover -covermode=atomic
 test: export KUBE_RACE=  -race
 ifeq ($(SKIP_BUILD), true)
 $(info build is being skipped)
-test: check verify
+test: verify
 else
-test: build check verify
+test: build verify
 endif
 test:
-	hack/test-cmd.sh
-	KUBE_RACE=" " hack/test-integration-docker.sh
-	hack/test-end-to-end-docker.sh
+	hack/test-all.sh
 ifeq ($(EXTENDED),true)
 	hack/test-extended.sh
 endif
