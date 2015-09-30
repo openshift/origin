@@ -37,7 +37,7 @@
               <td>
                 <span ng-if="$first || deploymentConfigName == ''">
                   <a ng-if="deploymentConfigs[deploymentConfigName]" href="project/{{projectName}}/browse/deployments/{{deploymentConfigName}}">{{deploymentConfigName}}</a>
-                  <span ng-if="!deploymentConfigs[deploymentConfigName] && deploymentConfigName != ''">
+                  <span ng-if="deploymentConfigs && !deploymentConfigs[deploymentConfigName] && deploymentConfigName != ''">
                     {{deploymentConfigName}}
                     <span class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This deployment config no longer exists" style="cursor: help;">
                       <span class="pficon pficon-warning-triangle"></span>
