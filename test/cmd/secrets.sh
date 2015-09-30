@@ -15,7 +15,7 @@ oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-passwo
 oc describe secrets/dockercfg | grep "dockercfg:" | awk '{print $2}' > ${HOME}/dockerconfig
 oc secrets new from-file .dockercfg=${HOME}/dockerconfig
 # check to make sure the type was correctly auto-detected
-[ "$(oc get secret/from-file -t "{{ .type }}" | grep 'kubernetes.io/dockercfg')" ]
+[ "$(oc get secret/from-file --template="{{ .type }}" | grep 'kubernetes.io/dockercfg')" ]
 # make sure the -o works correctly
 [ "$(oc secrets new-dockercfg dockercfg --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org -o yaml | grep "kubernetes.io/dockercfg")" ]
 [ "$(oc secrets new from-file .dockercfg=${HOME}/dockerconfig -o yaml | grep "kubernetes.io/dockercfg")" ]
