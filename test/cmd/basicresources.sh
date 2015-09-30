@@ -56,7 +56,7 @@ echo "routes: ok"
 
 # Expose service as a route
 oc create -f test/integration/fixtures/test-service.json
-[ ! "$(oc expose service frontend --create-external-load-balancer)" ]
+[ ! "$(oc expose service frontend --type="LoadBalancer")" ]
 [ ! "$(oc expose service frontend --port=40 --type=NodePort)" ]
 oc expose service frontend
 [ "$(oc get route frontend | grep 'name=frontend')" ]
@@ -85,9 +85,9 @@ oc delete all -l name=mytemplate
 oc new-app https://github.com/openshift/ruby-hello-world
 [ "$(oc get dc/ruby-hello-world)" ]
 
-oc get dc/ruby-hello-world -t '{{ .spec.replicas }}' | grep -q 1
+oc get dc/ruby-hello-world --template='{{ .spec.replicas }}' | grep -q 1
 oc patch dc/ruby-hello-world -p '{"spec": {"replicas": 2}}'
-oc get dc/ruby-hello-world -t '{{ .spec.replicas }}' | grep -q 2
+oc get dc/ruby-hello-world --template='{{ .spec.replicas }}' | grep -q 2
 
 oc delete all -l app=ruby-hello-world
 [ ! "$(oc get dc/ruby-hello-world)" ]
