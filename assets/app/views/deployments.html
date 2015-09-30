@@ -18,7 +18,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr  ng-if="(deploymentConfigs | hashSize) === 0 && (deploymentsByDeploymentConfig | hashSize) === 0"><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
+            <!-- If there are no deployment configs, and if the only 'deployments' are just replication controllers -->
+            <tr  ng-if="(deploymentConfigs | hashSize) === 0 && ((deployments | hashSize) === (deploymentsByDeploymentConfig[''] | hashSize))"><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
             <!-- hidden tr to start the ng-repeat for the build config -->
             <tr ng-repeat-start="(deploymentConfigName, deploymentConfigDeployments) in deploymentsByDeploymentConfig" style="display: none;"></tr>
             <!-- Deployment config with no deployments-->
