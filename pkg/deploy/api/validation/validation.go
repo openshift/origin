@@ -149,6 +149,8 @@ func validateExecNewPod(hook *deployapi.ExecNewPodHook) fielderrors.ValidationEr
 		errs = append(errs, validateEnv(hook.Env).Prefix("env")...)
 	}
 
+	errs = append(errs, validateHookVolumes(hook.Volumes).Prefix("volumes")...)
+
 	return errs
 }
 
@@ -166,6 +168,18 @@ func validateEnv(vars []kapi.EnvVar) fielderrors.ValidationErrorList {
 		allErrs = append(allErrs, vErrs.PrefixIndex(i)...)
 	}
 	return allErrs
+}
+
+func validateHookVolumes(volumes []string) fielderrors.ValidationErrorList {
+	errs := fielderrors.ValidationErrorList{}
+	for i, vol := range volumes {
+		vErrs := fielderrors.ValidationErrorList{}
+		if len(vol) == 0 {
+			vErrs = append(vErrs, fielderrors.NewFieldInvalid("", "", "must not be empty"))
+		}
+		errs = append(errs, vErrs.PrefixIndex(i)...)
+	}
+	return errs
 }
 
 func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams) fielderrors.ValidationErrorList {

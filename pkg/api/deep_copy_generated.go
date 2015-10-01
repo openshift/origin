@@ -1436,6 +1436,14 @@ func deepCopy_api_ExecNewPodHook(in deployapi.ExecNewPodHook, out *deployapi.Exe
 		out.Env = nil
 	}
 	out.ContainerName = in.ContainerName
+	if in.Volumes != nil {
+		out.Volumes = make([]string, len(in.Volumes))
+		for i := range in.Volumes {
+			out.Volumes[i] = in.Volumes[i]
+		}
+	} else {
+		out.Volumes = nil
+	}
 	return nil
 }
 

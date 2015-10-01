@@ -140,6 +140,16 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 		restartPolicy = kapi.RestartPolicyOnFailure
 	}
 
+	// Transfer any requested volumes to the hook pod.
+	volumes := []kapi.Volume{}
+	for _, volume := range deployment.Spec.Template.Spec.Volumes {
+		for _, name := range exec.Volumes {
+			if volume.Name == name {
+				volumes = append(volumes, volume)
+			}
+		}
+	}
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: namer.GetPodName(deployment.Name, label),
@@ -161,6 +171,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 					Resources:  resources,
 				},
 			},
+			Volumes:               volumes,
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
 			// Setting the node selector on the hook pod so that it is created
 			// on the same set of nodes as the deployment pods.
