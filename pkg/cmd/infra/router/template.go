@@ -95,6 +95,7 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 	flag := cmd.Flags()
 	options.Config.Bind(flag)
 	options.TemplateRouter.Bind(flag)
+	options.RouterStats.Bind(flag)
 	options.RouterSelection.Bind(flag)
 
 	return cmd
