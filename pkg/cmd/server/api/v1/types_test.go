@@ -54,7 +54,10 @@ assetConfig:
   extensionDevelopment: false
   extensionScripts: null
   extensionStylesheets: null
-  extensions: null
+  extensions:
+  - html5Mode: false
+    name: ""
+    sourceDirectory: ""
   logoutURL: ""
   masterPublicURL: ""
   publicURL: ""
@@ -231,7 +234,8 @@ oauthConfig:
     sessionMaxAgeSeconds: 0
     sessionName: ""
     sessionSecretsFile: ""
-  templates: null
+  templates:
+    login: ""
   tokenConfig:
     accessTokenMaxAgeSeconds: 0
     authorizeTokenMaxAgeSeconds: 0
@@ -294,9 +298,12 @@ func TestMasterConfig(t *testing.T) {
 				{Provider: runtime.EmbeddedObject{Object: &internal.OpenIDIdentityProvider{}}},
 			},
 			SessionConfig: &internal.SessionConfig{},
+			Templates:     &internal.OAuthTemplates{},
 		},
-		AssetConfig: &internal.AssetConfig{},
-		DNSConfig:   &internal.DNSConfig{},
+		AssetConfig: &internal.AssetConfig{
+			Extensions: []internal.AssetExtensionsConfig{{}},
+		},
+		DNSConfig: &internal.DNSConfig{},
 	}
 	serializedConfig, err := writeYAML(config)
 	if err != nil {
