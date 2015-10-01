@@ -338,7 +338,7 @@ func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectReques
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{sets.NewString("api", "osapi", "oapi"), latest.RESTMapper})
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), RestMapper: latest.RESTMapper})
 	return authorizationAttributeBuilder
 }
 

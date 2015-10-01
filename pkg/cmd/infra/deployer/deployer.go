@@ -183,7 +183,7 @@ func (d *Deployer) Deploy(namespace, deploymentName string) error {
 		}
 		// Scale the deployment down to zero.
 		retryWaitParams := kubectl.NewRetryParams(1*time.Second, 120*time.Second)
-		if err := d.scaler.Scale(candidate.Namespace, candidate.Name, uint(0), &kubectl.ScalePrecondition{-1, ""}, retryWaitParams, retryWaitParams); err != nil {
+		if err := d.scaler.Scale(candidate.Namespace, candidate.Name, uint(0), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retryWaitParams, retryWaitParams); err != nil {
 			glog.Errorf("Couldn't scale down prior deployment %s: %v", deployutil.LabelForDeployment(&candidate), err)
 		} else {
 			glog.Infof("Scaled down prior deployment %s", deployutil.LabelForDeployment(&candidate))

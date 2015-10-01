@@ -61,8 +61,6 @@ func Finalize(kubeClient kclient.Interface, namespace *kapi.Namespace) (result *
 			return nil, err
 		}
 	}
-
-	return
 }
 
 // finalizeInternal will update the namespace finalizer list to either have or not have origin finalizer

@@ -239,7 +239,7 @@ func TestHandleRoute(t *testing.T) {
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute)
 
-	original := util.Time{time.Now()}
+	original := util.Time{Time: time.Now()}
 
 	//add
 	route := &routeapi.Route{

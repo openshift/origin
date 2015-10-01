@@ -30,7 +30,7 @@ type DeploymentConfigScaler struct {
 //  is not nil), and then optionally waits for it's replica count to reach the new value (if wait is not nil).
 func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint, preconditions *kubectl.ScalePrecondition, retry, waitForReplicas *kubectl.RetryParams) error {
 	if preconditions == nil {
-		preconditions = &kubectl.ScalePrecondition{-1, ""}
+		preconditions = &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}
 	}
 	if retry == nil {
 		// Make it try only once, immediately
@@ -64,7 +64,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 	const scaled = "scaled"
 	controller, err := scaler.c.GetReplicationController(namespace, name)
 	if err != nil {
-		return "", kubectl.ControllerScaleError{kubectl.ControllerScaleGetFailure, "Unknown", err}
+		return "", kubectl.ControllerScaleError{FailureType: kubectl.ControllerScaleGetFailure, ResourceVersion: "Unknown", ActualError: err}
 	}
 	if preconditions != nil {
 		if err := preconditions.Validate(controller); err != nil {
@@ -74,7 +74,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 	controller.Spec.Replicas = int(newSize)
 	// TODO: do retry on 409 errors here?
 	if _, err := scaler.c.UpdateReplicationController(namespace, controller); err != nil {
-		return "", kubectl.ControllerScaleError{kubectl.ControllerScaleUpdateFailure, controller.ResourceVersion, err}
+		return "", kubectl.ControllerScaleError{FailureType: kubectl.ControllerScaleUpdateFailure, ResourceVersion: controller.ResourceVersion, ActualError: err}
 	}
 	// TODO: do a better job of printing objects here.
 	return scaled, nil

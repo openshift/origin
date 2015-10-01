@@ -51,7 +51,7 @@ type Factory struct {
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
 func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
-	mapper := ShortcutExpander{kubectl.ShortcutExpander{latest.RESTMapper}}
+	mapper := ShortcutExpander{RESTMapper: kubectl.ShortcutExpander{RESTMapper: latest.RESTMapper}}
 
 	clients := &clientCache{
 		clients: make(map[string]*client.Client),
@@ -72,7 +72,7 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 
 	w.Object = func() (meta.RESTMapper, runtime.ObjectTyper) {
 		if cfg, err := clientConfig.ClientConfig(); err == nil {
-			return kubectl.OutputVersionMapper{mapper, cfg.Version}, api.Scheme
+			return kubectl.OutputVersionMapper{RESTMapper: mapper, OutputVersion: cfg.Version}, api.Scheme
 		}
 		return mapper, api.Scheme
 	}

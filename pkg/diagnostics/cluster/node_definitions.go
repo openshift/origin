@@ -72,9 +72,9 @@ func (d *NodeDefinitions) CanRun() (bool, error) {
 		Resource: "nodes",
 	})
 	if err != nil {
-		return false, types.DiagnosticError{"DClu0005", fmt.Sprintf(clientErrorGettingNodes, err), err}
+		return false, types.DiagnosticError{ID: "DClu0005", LogMessage: fmt.Sprintf(clientErrorGettingNodes, err), Cause: err}
 	} else if !can {
-		return false, types.DiagnosticError{"DClu0006", "Client does not have access to see node status", err}
+		return false, types.DiagnosticError{ID: "DClu0006", LogMessage: "Client does not have access to see node status", Cause: err}
 	}
 	return true, nil
 }
