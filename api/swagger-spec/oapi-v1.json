@@ -14704,6 +14704,7 @@
     "id": "v1.PolicyRule",
     "required": [
      "verbs",
+     "apiGroups",
      "resources"
     ],
     "properties": {
@@ -14717,6 +14718,13 @@
      "attributeRestrictions": {
       "type": "string",
       "description": "vary depending on what the authorizer supports.  If the authorizer does not recognize how to handle the specified value, it should report an error."
+     },
+     "apiGroups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "list of API groups this rule applies to.  * represents all API groups."
      },
      "resources": {
       "type": "array",
