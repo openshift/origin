@@ -1,0 +1,1 @@
+An ImageChangeTrigger allows builds to be triggered when an <<v1.ImageStream>> changes. The ImageChangeTrigger holds the last triggered image ID, which is used internally by the ImageChangeController to save the last used image ID for the <<v1.Build>>.

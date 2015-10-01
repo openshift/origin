@@ -1,0 +1,1 @@
+A ClusterRole is a logical grouping of <<v1.PolicyRule>> objects that can be referenced as a unit by a <<v1.ClusterRoleBinding>>.

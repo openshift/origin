@@ -1,0 +1,1 @@
+A ClusterRoleBindingList is a collection of <<v1.ClusterRoleBinding>> objects.

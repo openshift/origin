@@ -1,0 +1,1 @@
+A Policy is an object that holds all of the <<v1.Role>>s for a particular <<v1.Namespace>>. There is at most one Policy per namespace. The Policy records when it was last modified and all of the <<v1.Role>>s held by the Policy.

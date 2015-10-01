@@ -1,0 +1,1 @@
+An OAuthClientAuthorizationList is a collection of <<v1.OAuthClientAuthorization>> objects.

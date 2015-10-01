@@ -1,0 +1,5 @@
+A BuildTriggerPolicy describes a policy for a single trigger that results in a new <<v1.Build>>. The BuildTriggerPolicy holds a string type that defines the type of trigger that is. Currently supported build triggers are specified in `CamelCase` (while deprecated triggers were all lowercase). The supported build triggers are:
+* `GitHub` or `github` (deprecated), which represents a trigger that launches builds on GitHub webhook invocations
+* `Generic` or `generic` (deprecated), which represents a trigger that launches builds on generic webhook invocations
+* `ImageChange` or `imagechange` (deprecated), which represents a trigger that launches builds on availability of a new version of an image
+The BuildTriggerPolicy contains either a <<v1.WebHookTrigger>> containing the parameters of the GitHub webhook or generic webhook trigger, or an <<v1.ImageChangeTrigger>> containing parameters for an ImageChange trigger.

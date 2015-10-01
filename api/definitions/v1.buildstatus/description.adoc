@@ -1,0 +1,9 @@
+A BuildStatus contains the status of a <<v1.Build>>. The BuildStatus contains the build phase of the build, which is the point in the build lifecycle that the build is in. Possible phases are: 
+* `New`, which is automatically assigned to a newly created build.
+* `Pending`, which indicates that a pod name has been assigned and a build is about to start running.
+* `Running`, which indicates that a pod has been created and a build is running.
+* `Complete`, which indicates that a build has been successful.
+* `Failed`, which indicates that a build has executed and failed.
+* `Error`, which indicates that an error prevented the build from executing.
+* `Cancelled`, which indicates that a running/pending build was stopped from executing.
+The BuildStatus also contains a conditional variable that describes if a cancelling event was triggered for the build. The BuildStatus also contains a human-readable message indicating details about why the build has this status. The BuildStatus furthermore contains a timestamp representing the server time when this Build started running in a Pod. It is represented in RFC3339 form and is in UTC. The BuildStatus also contains a timestamp representing the server time when this Build was finished, whether that build failed or succeeded. It reflects the time at which the Pod running the Build terminated. It is represented in RFC3339 form and is in UTC. The BuildStatus also contains the time taken to complete the build, if the build has finished. The BuildConfig finally contains a reference to the <<v1.BuildConfig>> that the Build is based on.

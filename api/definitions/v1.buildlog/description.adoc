@@ -1,0 +1,1 @@
+A BuildLog is used to document the output of the REST call to retrieve the logs of a build. It is not a concrete type and is used only for documentation.

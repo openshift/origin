@@ -1,0 +1,2 @@
+A BuildRequest is the resource used to pass parameters to the build generator endpoint signalling that a new <<v1.Build>> is requested. The BuildRequest contains the (optional) revision information from the source repository used in the build as a <<v1.SourceRevision>>.
+and a reference to the <<v1.Image>> that triggered the build request.

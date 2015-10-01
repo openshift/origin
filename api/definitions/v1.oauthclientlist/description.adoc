@@ -1,0 +1,1 @@
+An OAuthClientList is a collection of <<v1.OAuthClient>> objects.

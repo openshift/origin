@@ -1,0 +1,1 @@
+An OAuthClient is an object representing an OAuth client, containing the unique secret associated with the client, whether the client wants authentication needed responses made in the form of challenges instead of redirects, and the valid redirection URIs associated with a client. 

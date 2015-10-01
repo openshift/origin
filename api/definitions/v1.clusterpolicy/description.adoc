@@ -1,0 +1,1 @@
+A ClusterPolicy is an object that holds all of the <<v1.ClusterRole>> objects for a particular namespace. There is at most one ClusterPolicy document per namespace. The ClusterPolicy records when it was last modified and all of the <<v1.ClusterRole>>s held by the ClusterPolicy.
