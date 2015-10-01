@@ -26,10 +26,7 @@
     </div>
     <div class="col-sm-3 create-button-container hidden-xs">
       <a href="project/{{project.metadata.name}}/create" ng-disabled="project.status.phase != 'Active'" class="btn btn-lg btn-primary">Add to Project</a>
-      <span ng-if="project.status.phase == 'Terminating'" class="pficon-layered" data-toggle="tooltip" data-placement="left" title="This project has been marked for deletion. No content may be created in this project." style="cursor: help; font-size: 32px; vertical-align: top; margin-left: 5px;">
-        <span class="pficon pficon-warning-triangle"></span>
-        <span class="pficon pficon-warning-exclamation"></span>
-      </span>
+      <span ng-if="project.status.phase == 'Terminating'" data-toggle="tooltip" data-placement="left" title="This project has been marked for deletion. No content may be created in this project." class="pficon pficon-warning-triangle-o" style="cursor: help; font-size: 32px; vertical-align: top; margin-left: 5px;"></span>
     </div>
   </div>
 </div>

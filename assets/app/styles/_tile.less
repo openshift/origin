@@ -28,6 +28,12 @@
       }
     }
   }
+  &:hover {
+    // give primary tile link hover state
+    a.tile-target {
+      color: @link-hover-color;
+    }
+  }
   .tile-table {
     display: table;
     width: 100%;
@@ -124,7 +130,7 @@
     .image-icon, .template-icon, div:nth-child(3n) .font-icon {
       opacity: .75;
     }
-    a {
+    a.tile-target {
       color: @link-hover-color;
     }
   }

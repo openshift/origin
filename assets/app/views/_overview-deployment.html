@@ -29,16 +29,10 @@
       <div class="component-label">
         <span>Deployment: </span>
         {{deploymentConfigId}}, #{{rc | annotation:'deploymentVersion'}}
-        <span class="pficon-layered" ng-if="deploymentConfigMissing" data-toggle="tooltip" data-placement="right"
-            title="The deployment config this deployment was created from no longer exists." style="cursor: help;">
-          <span class="pficon pficon-warning-triangle"></span>
-          <span class="pficon pficon-warning-exclamation"></span>
-        </span>
-        <span class="pficon-layered" ng-if="deploymentConfigDifferentService" data-toggle="tooltip" data-placement="right"
-            title="The deployment config this deployment was created from has changed. New deployments will not be included in this list." style="cursor: help;">
-          <span class="pficon pficon-warning-triangle"></span>
-          <span class="pficon pficon-warning-exclamation"></span>
-        </span>
+        <span ng-if="deploymentConfigMissing" data-toggle="tooltip" data-placement="right"
+            title="The deployment config this deployment was created from no longer exists." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
+        <span ng-if="deploymentConfigDifferentService" data-toggle="tooltip" data-placement="right"
+            title="The deployment config this deployment was created from has changed. New deployments will not be included in this list." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
       </div>
     </div>
 
