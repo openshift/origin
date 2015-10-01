@@ -40,6 +40,7 @@ Changing the restricted security context as shown above allows the Wordpress con
 OpenShift expects that storage volumes are provisioned by system administrator outside of OpenShift. As subsequent step, the system admin then tells OpenShift about these volumes by creating Persistent Volumes objects. Wearing your "system admin" hat, follow these guides to create Persistent Volumes named `pv001` and `pv002`.
 
 * [NFS](nfs/README.md)
+* [OpenStack Cinder](cinder/README.md)
 
 ## Persistent Volumes Claims
 Now that the "system admin" guy has deployed some Persistent Volumes, you can continue as an application developer and actually use these volumes to store some MySQL and Wordpress data. From now on, the guide does not depend on the underlying storage technology!
