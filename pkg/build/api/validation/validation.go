@@ -19,7 +19,6 @@ import (
 func ValidateBuild(build *buildapi.Build) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain).Prefix("metadata")...)
-
 	allErrs = append(allErrs, validateBuildSpec(&build.Spec).Prefix("spec")...)
 	return allErrs
 }
@@ -31,7 +30,7 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) fielderro
 	allErrs = append(allErrs, ValidateBuild(build)...)
 
 	if !kapi.Semantic.DeepEqual(build.Spec, older.Spec) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec", build.Spec, "spec is immutable"))
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("spec", "content of spec is not printed out, please refer to the \"details\"", "spec is immutable"))
 	}
 
 	return allErrs
@@ -110,15 +109,21 @@ func ValidateBuildRequest(request *buildapi.BuildRequest) fielderrors.Validation
 
 func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	isCustomBuild := spec.Strategy.Type == buildapi.CustomBuildStrategyType
-	// Validate 'source' and 'output' for all build types except Custom build
-	// where they are optional and validated only if present.
-	if !isCustomBuild || (isCustomBuild && len(spec.Source.Type) != 0) {
+	hasSourceType := len(spec.Source.Type) != 0
+	switch t := spec.Strategy.Type; {
+	// 'source' is optional for Custom builds
+	case t == buildapi.CustomBuildStrategyType && hasSourceType:
 		allErrs = append(allErrs, validateSource(&spec.Source).Prefix("source")...)
-
-		if spec.Revision != nil {
-			allErrs = append(allErrs, validateRevision(spec.Revision).Prefix("revision")...)
+	case t == buildapi.SourceBuildStrategyType:
+		allErrs = append(allErrs, validateSource(&spec.Source).Prefix("source")...)
+		if spec.Source.Type == buildapi.BuildSourceDockerfile {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("source.type", nil, "may not be type Dockerfile for source builds"))
 		}
+	case t == buildapi.DockerBuildStrategyType:
+		allErrs = append(allErrs, validateSource(&spec.Source).Prefix("source")...)
+	}
+	if spec.Revision != nil {
+		allErrs = append(allErrs, validateRevision(spec.Revision).Prefix("revision")...)
 	}
 
 	allErrs = append(allErrs, validateOutput(&spec.Output).Prefix("output")...)
@@ -128,15 +133,33 @@ func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList
 	return allErrs
 }
 
+const maxDockerfileLengthBytes = 60 * 1000
+
 func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
-	if input.Type != buildapi.BuildSourceGit {
+	switch input.Type {
+	case buildapi.BuildSourceGit:
+		if input.Git == nil {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("git"))
+		} else {
+			allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
+		}
+		if input.Dockerfile != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfile", "", "may not be set when type is Git"))
+		}
+	case buildapi.BuildSourceDockerfile:
+		if input.Dockerfile == nil {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("dockerfile"))
+		} else {
+			if len(*input.Dockerfile) > maxDockerfileLengthBytes {
+				allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfile", "", fmt.Sprintf("must be smaller than %d bytes", maxDockerfileLengthBytes)))
+			}
+		}
+		if input.Git != nil {
+			allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
+		}
+	case "":
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
-	}
-	if input.Git == nil {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("git"))
-	} else {
-		allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
 	}
 	allErrs = append(allErrs, validateSecretRef(input.SourceSecret).Prefix("sourceSecret")...)
 	return allErrs

@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -19,8 +20,8 @@ type resourceAccessTest struct {
 }
 
 type testAuthorizer struct {
-	users  util.StringSet
-	groups util.StringSet
+	users  sets.String
+	groups sets.String
 	err    string
 
 	actualAttributes authorizer.DefaultAuthorizationAttributes
@@ -34,7 +35,7 @@ func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Autho
 
 	return false, "", errors.New("Unsupported")
 }
-func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (util.StringSet, util.StringSet, error) {
+func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
 	attributes, ok := passedAttributes.(authorizer.DefaultAuthorizationAttributes)
 	if !ok {
 		return nil, nil, errors.New("unexpected type for test")
@@ -88,8 +89,8 @@ func TestConflictingNamespace(t *testing.T) {
 func TestEmptyReturn(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			users:  util.StringSet{},
-			groups: util.StringSet{},
+			users:  sets.String{},
+			groups: sets.String{},
 		},
 		reviewRequest: &authorizationapi.LocalResourceAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
@@ -106,33 +107,14 @@ func TestEmptyReturn(t *testing.T) {
 func TestNoErrors(t *testing.T) {
 	test := &resourceAccessTest{
 		authorizer: &testAuthorizer{
-			users:  util.NewStringSet("one", "two"),
-			groups: util.NewStringSet("three", "four"),
+			users:  sets.NewString("one", "two"),
+			groups: sets.NewString("three", "four"),
 		},
 		reviewRequest: &authorizationapi.LocalResourceAccessReview{
 			Action: authorizationapi.AuthorizationAttributes{
 				Namespace: "unittest",
 				Verb:      "delete",
 				Resource:  "deploymentConfig",
-			},
-		},
-	}
-
-	test.runTest(t)
-}
-
-func TestErrors(t *testing.T) {
-	test := &resourceAccessTest{
-		authorizer: &testAuthorizer{
-			users:  util.StringSet{},
-			groups: util.StringSet{},
-			err:    "some-random-failure",
-		},
-		reviewRequest: &authorizationapi.LocalResourceAccessReview{
-			Action: authorizationapi.AuthorizationAttributes{
-				Namespace: "unittest",
-				Verb:      "get",
-				Resource:  "pods",
 			},
 		},
 	}

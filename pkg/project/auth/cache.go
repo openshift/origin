@@ -7,13 +7,14 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/auth/user"
-	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	policyclient "github.com/openshift/origin/pkg/authorization/client"
@@ -28,7 +29,7 @@ type Lister interface {
 // subjectRecord is a cache record for the set of namespaces a subject can access
 type subjectRecord struct {
 	subject    string
-	namespaces util.StringSet
+	namespaces sets.String
 }
 
 // reviewRequest is the resource we want to review
@@ -114,8 +115,8 @@ type AuthorizationCache struct {
 	userSubjectRecordStore  cache.Store
 	groupSubjectRecordStore cache.Store
 
-	clusterBindingResourceVersions util.StringSet
-	clusterPolicyResourceVersions  util.StringSet
+	clusterBindingResourceVersions sets.String
+	clusterPolicyResourceVersions  sets.String
 
 	skip      skipSynchronizer
 	lastState string
@@ -132,8 +133,8 @@ func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kclient.Namespa
 		namespaceInterface:        namespaceInterface,
 		lastSyncResourceVersioner: &unchangingLastSyncResourceVersioner{},
 
-		clusterPolicyResourceVersions:  util.NewStringSet(),
-		clusterBindingResourceVersions: util.NewStringSet(),
+		clusterPolicyResourceVersions:  sets.NewString(),
+		clusterBindingResourceVersions: sets.NewString(),
 
 		policyClient: policyClient,
 
@@ -173,8 +174,8 @@ func (ac *AuthorizationCache) Run(period time.Duration) {
 }
 
 // synchronizeNamespaces synchronizes access over each namespace and returns a set of namespace names that were looked at in last sync
-func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) *util.StringSet {
-	namespaceSet := util.NewStringSet()
+func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) *sets.String {
+	namespaceSet := sets.NewString()
 	items := ac.namespaceStore.List()
 	for i := range items {
 		namespace := items[i].(*kapi.Namespace)
@@ -227,7 +228,7 @@ func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore c
 }
 
 // purgeDeletedNamespaces will remove all namespaces enumerated in a reviewRecordStore that are not in the namespace set
-func purgeDeletedNamespaces(namespaceSet *util.StringSet, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
+func purgeDeletedNamespaces(namespaceSet *sets.String, userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
 	reviewRecordItems := reviewRecordStore.List()
 	for i := range reviewRecordItems {
 		reviewRecord := reviewRecordItems[i].(*reviewRecord)
@@ -249,7 +250,7 @@ func (ac *AuthorizationCache) invalidateCache() bool {
 		return invalidateCache
 	}
 
-	temporaryVersions := util.NewStringSet()
+	temporaryVersions := sets.NewString()
 	for _, clusterPolicy := range clusterPolicyList.Items {
 		temporaryVersions.Insert(clusterPolicy.ResourceVersion)
 	}
@@ -331,8 +332,8 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 		return err
 	}
 
-	usersToRemove := util.NewStringSet()
-	groupsToRemove := util.NewStringSet()
+	usersToRemove := sets.NewString()
+	groupsToRemove := sets.NewString()
 	if lastKnownValue != nil {
 		usersToRemove.Insert(lastKnownValue.users...)
 		usersToRemove.Delete(review.Users()...)
@@ -350,7 +351,7 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 
 // List returns the set of namespace names the user has access to view
 func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, error) {
-	keys := util.StringSet{}
+	keys := sets.String{}
 	user := userInfo.GetName()
 	groups := userInfo.GetGroups()
 
@@ -448,7 +449,7 @@ func addSubjectsToNamespace(subjectRecordStore cache.Store, subjects []string, n
 		if exists {
 			item = obj.(*subjectRecord)
 		} else {
-			item = &subjectRecord{subject: subject, namespaces: util.NewStringSet()}
+			item = &subjectRecord{subject: subject, namespaces: sets.NewString()}
 			subjectRecordStore.Add(item)
 		}
 		item.namespaces.Insert(namespace)

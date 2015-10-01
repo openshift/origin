@@ -3,10 +3,10 @@ package graphview
 import (
 	"sort"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
-type IntSet map[int]util.Empty
+type IntSet map[int]sets.Empty
 
 // NewIntSet creates a IntSet from a list of values.
 func NewIntSet(items ...int) IntSet {
@@ -18,7 +18,7 @@ func NewIntSet(items ...int) IntSet {
 // Insert adds items to the set.
 func (s IntSet) Insert(items ...int) {
 	for _, item := range items {
-		s[item] = util.Empty{}
+		s[item] = sets.Empty{}
 	}
 }
 

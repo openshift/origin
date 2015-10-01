@@ -149,7 +149,10 @@ func OverwriteBootstrapPolicy(storage storage.Interface, policyFile, createBoots
 	clusterRoleRegistry := clusterroleregistry.NewRegistry(clusterRoleStorage)
 	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry)
 
-	return r.Visit(func(info *resource.Info) error {
+	return r.Visit(func(info *resource.Info, err error) error {
+		if err != nil {
+			return err
+		}
 		template, ok := info.Object.(*templateapi.Template)
 		if !ok {
 			return errors.New("policy must be contained in a template.  One can be created with '" + createBootstrapPolicyCommand + "'.")

@@ -4,68 +4,41 @@
       <div class="page-header page-header-bleed-right">
         <h1>Pods</h1>
       </div>
-      <alerts alerts="alerts"></alerts>      
-      <div ng-if="(pods | hashSize) == 0">
-        <div>
-          <em>{{emptyMessage}}</em>
-        </div>
-      </div>      
-      <div ng-repeat="pod in pods | orderObjectsByDate : true" class="tile pod-well">
-        <h2>{{pod.metadata.name}}</h2>
-        <div class="row">
-          <div class="col-md-6">
-              <div class="pod-detail">
-                <span class="pod-detail-label">Status:</span>
-                <span ng-switch="pod.status.phase">
+      <alerts alerts="alerts"></alerts>  
+      <div class="table-responsive">    
+        <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Containers Ready</th>
+            <th>Container Restarts</th>
+            <th>Age</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-if="(pods | hashSize) == 0"><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
+          <tr ng-repeat="pod in pods | orderObjectsByDate : true">
+            <td><a href="project/{{projectName}}/browse/pods/{{pod.metadata.name}}">{{pod.metadata.name}}</a></td>
+            <td>
+              <div row class="status">
+                <span ng-switch="pod.status.phase" class="status-icon">
                   <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true"></span>
                   <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
                   <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true"></span>
                   <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-                  <span ng-switch-when="Running" class="fa fa-refresh fa-spin" aria-hidden="true"></span>
+                  <span ng-switch-when="Running" class="fa fa-refresh" aria-hidden="true"></span>
                 </span>
-                {{pod.status.phase}}
+                <span flex>{{pod.status.phase}}</span>
               </div>
-            <div class="pod-detail">
-              <span class="pod-detail-label">Node:</span>{{pod.spec.nodeName || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.nodeName != pod.status.hostIP">({{pod.status.hostIP}})</span>
-            </div>
-            <div class="pod-detail">
-              <span class="pod-detail-label">IP on node:</span>{{pod.status.podIP || 'unknown'}}
-            </div>
-            <div class="pod-detail">
-              <span class="pod-detail-label">Restart policy:</span>
-              {{pod.spec.restartPolicy || 'Always'}}          
-            </div>
-            <div ng-if="pod.spec.volumes.length">
-              <span class="pod-detail-label">Volumes:</span>
-              <ul>
-                <li ng-repeat="volume in pod.spec.volumes">
-                  <div>{{volume.name}}</div>
-                  <div ng-if="volume.source.hostPath">
-                    <div>Type: host path</div>
-                    <div>Path: {{volume.source.hostPath.path}}</div>
-                  </div>
-                  <div ng-if="volume.source.emptyDir">Type: empty directory</div>
-                  <!-- TODO fill out GCE persistent disk details -->
-                  <div ng-if="volume.source.gcePersistentDisk">Type: GCE persistent disk</div>
-                  <div ng-if="volume.source.gitRepo">
-                    <div>Type: Git repository</div>
-                    <div>Repository: {{volume.source.gitRepo.repository}}</div>
-                    <div ng-if="volume.source.gitRepo.revision">Revision: {{volume.source.gitRepo.revision}}</div>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div><!-- /col -->
-          <div class="col-md-6">
-          <div>Pod template:</div>
-          <pod-template
-            pod-template="pod" 
-            images-by-docker-reference="imagesByDockerReference"
-            builds="builds">
-          </pod-template>
-          </div><!-- /col -->
-        </div><!-- /row -->
-      </div><!-- /tile -->
+            </td>
+            <td>{{pod | numContainersReady}}/{{pod.spec.containers.length}}</td>            
+            <td>{{pod | numContainerRestarts}}</td>
+            <td><relative-timestamp timestamp="pod.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
+          </tr>
+        </tbody>
+        </table>
+      </div>
     </div>
   </project-page>
 </div>

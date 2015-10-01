@@ -7,6 +7,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 os::log::install_errexit
@@ -21,7 +22,7 @@ function cleanup()
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
         echo
-        cat "${TEMP_DIR}/openshift.log"
+        cat "${LOG_DIR}/openshift.log"
         echo
         echo -------------------------------------
         echo
@@ -30,12 +31,14 @@ function cleanup()
           echo
           echo "pprof: top output"
           echo
-          go tool pprof -text ./_output/local/go/bin/openshift cpu.pprof
+          go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof
         fi
 
         echo
         echo "Complete"
     fi
+
+    ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
     exit $out
 }
 
@@ -50,41 +53,25 @@ function find_tests {
 }
 tests=( $(find_tests ${1:-test/cmd}) )
 
-# Prevent user environment from colliding with the test setup
-unset KUBECONFIG
+# Setup environment
 
-# Use either the latest release built images, or latest.
-if [[ -z "${USE_IMAGES-}" ]]; then
-  tag="latest"
-  if [[ -e "${OS_ROOT}/_output/local/releases/.commit" ]]; then
-    COMMIT="$(cat "${OS_ROOT}/_output/local/releases/.commit")"
-    tag="${COMMIT}"
-  fi
-  USE_IMAGES="openshift/origin-\${component}:${tag}"
-fi
-export USE_IMAGES
+# test-cmd specific defaults
+BASETMPDIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
+API_HOST=${API_HOST:-127.0.0.1}
+export API_PORT=${API_PORT:-28443}
+
+setup_env_vars
+mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${LOG_DIR}"
 
 ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 ETCD_PORT=${ETCD_PORT:-24001}
 ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
-API_SCHEME=${API_SCHEME:-https}
-export API_PORT=${API_PORT:-28443}
-API_HOST=${API_HOST:-127.0.0.1}
 MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
 PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
-KUBELET_SCHEME=${KUBELET_SCHEME:-https}
-KUBELET_HOST=${KUBELET_HOST:-127.0.0.1}
-KUBELET_PORT=${KUBELET_PORT:-10250}
 
-TEMP_DIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift-cmd/XXXX)}
-ETCD_DATA_DIR="${TEMP_DIR}/etcd"
-VOLUME_DIR="${TEMP_DIR}/volumes"
-FAKE_HOME_DIR="${TEMP_DIR}/openshift.local.home"
-SERVER_CONFIG_DIR="${TEMP_DIR}/openshift.local.config"
-MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
-NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
-CONFIG_DIR="${TEMP_DIR}/configs"
-mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${CONFIG_DIR}"
+# Prevent user environment from colliding with the test setup
+unset KUBECONFIG
+
 
 # handle profiling defaults
 profile="${OPENSHIFT_PROFILE-}"
@@ -98,10 +85,6 @@ if [[ -n "${profile}" ]]; then
 else
   export WEB_PROFILE=cpu
 fi
-
-# set path so OpenShift is available
-GO_OUT="${OS_ROOT}/_output/local/go/bin"
-export PATH="${GO_OUT}:${PATH}"
 
 # Check openshift version
 out=$(openshift version)
@@ -147,16 +130,28 @@ openshift start \
   --etcd-dir="${ETCD_DATA_DIR}" \
   --images="${USE_IMAGES}"
 
+# validate config that was generated
+[ "$(openshift ex validate master-config ${MASTER_CONFIG_DIR}/master-config.yaml 2>&1 | grep SUCCESS)" ]
+[ "$(openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml 2>&1 | grep SUCCESS)" ]
+# breaking the config fails the validation check
+cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
+sed -i '5,10d' ${BASETMPDIR}/master-config-broken.yaml
+[ "$(openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml 2>&1 | grep error)" ]
+
+cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml
+sed -i '5,10d' ${BASETMPDIR}/node-config-broken.yaml
+[ "$(openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml 2>&1 | grep ERROR)" ]
+echo "validation: ok"
 
 # Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
-sed -i "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
-sed -i "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+os::util::sed "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
 
 # Start openshift
 OPENSHIFT_ON_PANIC=crash openshift start master \
   --config=${MASTER_CONFIG_DIR}/master-config.yaml \
   --loglevel=4 \
-  1>&2 2>"${TEMP_DIR}/openshift.log" &
+  1>&2 2>"${LOG_DIR}/openshift.log" &
 OS_PID=$!
 
 if [[ "${API_SCHEME}" == "https" ]]; then
@@ -164,9 +159,6 @@ if [[ "${API_SCHEME}" == "https" ]]; then
     export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
     export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
 fi
-
-# set the home directory so we don't pick up the users .config
-export HOME="${FAKE_HOME_DIR}"
 
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
 wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
@@ -180,7 +172,7 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 
 # create master config as atomic-enterprise just to test it works
 atomic-enterprise start \
-  --write-config=$TEMP_DIR/atomic.local.config \
+  --write-config="${BASETMPDIR}/atomic.local.config" \
   --create-certs=true \
   --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
   --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
@@ -192,7 +184,7 @@ atomic-enterprise start \
 # ensure that DisabledFeatures aren't written to config files
 ! grep -i '\<disabledFeatures\>' \
 	"${MASTER_CONFIG_DIR}/master-config.yaml" \
-	"$TEMP_DIR/atomic.local.config/master/master-config.yaml" \
+	"${BASETMPDIR}/atomic.local.config/master/master-config.yaml" \
 	"${NODE_CONFIG_DIR}/node-config.yaml"
 
 # test client not configured

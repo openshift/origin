@@ -8,12 +8,12 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -140,6 +140,16 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 		restartPolicy = kapi.RestartPolicyOnFailure
 	}
 
+	// Transfer any requested volumes to the hook pod.
+	volumes := []kapi.Volume{}
+	for _, volume := range deployment.Spec.Template.Spec.Volumes {
+		for _, name := range exec.Volumes {
+			if volume.Name == name {
+				volumes = append(volumes, volume)
+			}
+		}
+	}
+
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: namer.GetPodName(deployment.Name, label),
@@ -161,6 +171,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, deployment *kapi.ReplicationCont
 					Resources:  resources,
 				},
 			},
+			Volumes:               volumes,
 			ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
 			// Setting the node selector on the hook pod so that it is created
 			// on the same set of nodes as the deployment pods.
@@ -222,7 +233,7 @@ func NewAcceptNewlyObservedReadyPods(kclient kclient.Interface, timeout time.Dur
 	return &AcceptNewlyObservedReadyPods{
 		timeout:      timeout,
 		interval:     interval,
-		acceptedPods: kutil.NewStringSet(),
+		acceptedPods: sets.NewString(),
 		getDeploymentPodStore: func(deployment *kapi.ReplicationController) (cache.Store, chan struct{}) {
 			selector := labels.Set(deployment.Spec.Selector).AsSelector()
 			store := cache.NewStore(cache.MetaNamespaceKeyFunc)
@@ -266,7 +277,7 @@ type AcceptNewlyObservedReadyPods struct {
 	interval time.Duration
 	// acceptedPods keeps track of pods which have been previously accepted for
 	// a deployment.
-	acceptedPods kutil.StringSet
+	acceptedPods sets.String
 }
 
 // Accept implements UpdateAcceptor.
@@ -279,7 +290,7 @@ func (c *AcceptNewlyObservedReadyPods) Accept(deployment *kapi.ReplicationContro
 	glog.V(0).Infof("Waiting %.f seconds for pods owned by deployment %q to become ready (checking every %.f seconds; %d pods previously accepted)", c.timeout.Seconds(), deployutil.LabelForDeployment(deployment), c.interval.Seconds(), c.acceptedPods.Len())
 	err := wait.Poll(c.interval, c.timeout, func() (done bool, err error) {
 		// Check for pod readiness.
-		unready := kutil.NewStringSet()
+		unready := sets.NewString()
 		for _, obj := range podStore.List() {
 			pod := obj.(*kapi.Pod)
 			// Skip previously accepted pods; we only want to verify newly observed

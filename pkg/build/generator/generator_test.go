@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -865,13 +865,93 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 		},
 	}
 
-	newBuild := generateBuildFromBuild(build)
+	newBuild := generateBuildFromBuild(build, nil)
 	if !reflect.DeepEqual(build.Spec, newBuild.Spec) {
 		t.Errorf("Build parameters does not match the original Build parameters")
 	}
 	if !reflect.DeepEqual(build.ObjectMeta.Labels, newBuild.ObjectMeta.Labels) {
 		t.Errorf("Build labels does not match the original Build labels")
 	}
+}
+
+func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {
+	source := mocks.MockSource()
+	strategy := mockDockerStrategyForImageRepository()
+	output := mocks.MockOutput()
+	annotatedBuild := &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "annotatedBuild",
+			Annotations: map[string]string{
+				buildapi.BuildCloneAnnotation: "sourceOfBuild",
+			},
+		},
+		Spec: buildapi.BuildSpec{
+			Source: source,
+			Revision: &buildapi.SourceRevision{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitSourceRevision{
+					Commit: "1234",
+				},
+			},
+			Strategy: strategy,
+			Output:   output,
+		},
+	}
+	nonAnnotatedBuild := &buildapi.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "nonAnnotatedBuild",
+		},
+		Spec: buildapi.BuildSpec{
+			Source: source,
+			Revision: &buildapi.SourceRevision{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitSourceRevision{
+					Commit: "1234",
+				},
+			},
+			Strategy: strategy,
+			Output:   output,
+		},
+	}
+
+	buildConfig := &buildapi.BuildConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "buildConfigName",
+		},
+		Status: buildapi.BuildConfigStatus{
+			LastVersion: 5,
+		},
+	}
+
+	newBuild := generateBuildFromBuild(annotatedBuild, buildConfig)
+	if !reflect.DeepEqual(annotatedBuild.Spec, newBuild.Spec) {
+		t.Errorf("Build parameters does not match the original Build parameters")
+	}
+	if !reflect.DeepEqual(annotatedBuild.ObjectMeta.Labels, newBuild.ObjectMeta.Labels) {
+		t.Errorf("Build labels does not match the original Build labels")
+	}
+	if newBuild.Annotations[buildapi.BuildNumberAnnotation] != "6" {
+		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildapi.BuildNumberAnnotation], "6")
+	}
+	if newBuild.Annotations[buildapi.BuildCloneAnnotation] != "annotatedBuild" {
+		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildapi.BuildCloneAnnotation], "annotatedBuild")
+	}
+
+	newBuild = generateBuildFromBuild(nonAnnotatedBuild, buildConfig)
+	if !reflect.DeepEqual(nonAnnotatedBuild.Spec, newBuild.Spec) {
+		t.Errorf("Build parameters does not match the original Build parameters")
+	}
+	if !reflect.DeepEqual(nonAnnotatedBuild.ObjectMeta.Labels, newBuild.ObjectMeta.Labels) {
+		t.Errorf("Build labels does not match the original Build labels")
+	}
+	// was incremented by previous test, so expect 7 now.
+	if newBuild.Annotations[buildapi.BuildNumberAnnotation] != "7" {
+		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildapi.BuildNumberAnnotation], "7")
+	}
+	if newBuild.Annotations[buildapi.BuildCloneAnnotation] != "nonAnnotatedBuild" {
+		t.Errorf("Build number annotation is %s expected %s", newBuild.Annotations[buildapi.BuildCloneAnnotation], "nonAnnotatedBuild")
+	}
+
 }
 
 func TestSubstituteImageCustomAllMatch(t *testing.T) {
@@ -1028,12 +1108,56 @@ func TestGetNextBuildNameFromBuild(t *testing.T) {
 		{"mybuild-1-1426794070-1-1426794070", `^mybuild-1-1426794070-1-\d+$`},
 		// 3
 		{"my-build-1", `^my-build-1-\d+$`},
+		// 4
+		{"mybuild-10-1426794070", `^mybuild-10-\d+$`},
 	}
 
 	for i, tc := range testCases {
-		buildName := getNextBuildNameFromBuild(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: tc.value}})
+		buildName := getNextBuildNameFromBuild(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: tc.value}}, nil)
 		if matched, err := regexp.MatchString(tc.expected, buildName); !matched || err != nil {
-			t.Errorf("(%d) Unexpected build name, got %s", i, buildName)
+			t.Errorf("(%d) Unexpected build name, got %s expected %s", i, buildName, tc.expected)
+		}
+	}
+}
+
+func TestGetNextBuildNameFromBuildWithBuildConfig(t *testing.T) {
+	testCases := []struct {
+		value       string
+		buildConfig *buildapi.BuildConfig
+		expected    string
+	}{
+		// 0
+		{
+			"mybuild-1",
+			&buildapi.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "buildConfigName",
+				},
+				Status: buildapi.BuildConfigStatus{
+					LastVersion: 5,
+				},
+			},
+			`^buildConfigName-6$`,
+		},
+		// 1
+		{
+			"mybuild-1-1426794070",
+			&buildapi.BuildConfig{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "buildConfigName",
+				},
+				Status: buildapi.BuildConfigStatus{
+					LastVersion: 5,
+				},
+			},
+			`^buildConfigName-6$`,
+		},
+	}
+
+	for i, tc := range testCases {
+		buildName := getNextBuildNameFromBuild(&buildapi.Build{ObjectMeta: kapi.ObjectMeta{Name: tc.value}}, tc.buildConfig)
+		if matched, err := regexp.MatchString(tc.expected, buildName); !matched || err != nil {
+			t.Errorf("(%d) Unexpected build name, got %s expected %s", i, buildName, tc.expected)
 		}
 	}
 }

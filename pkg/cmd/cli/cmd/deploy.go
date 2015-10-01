@@ -15,7 +15,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -68,17 +68,17 @@ of your config at the latest position.
 
 If no options are given, shows information about the latest deployment.`
 
-	deployExample = `  // Display the latest deployment for the 'database' deployment config
+	deployExample = `  # Display the latest deployment for the 'database' deployment config
   $ %[1]s deploy database
 
-  // Start a new deployment based on the 'database'
+  # Start a new deployment based on the 'database'
   $ %[1]s deploy database --latest
 
-  // Retry the latest failed deployment based on 'frontend'
-  // The deployer pod and any hook pods are deleted for the latest failed deployment
+  # Retry the latest failed deployment based on 'frontend'
+  # The deployer pod and any hook pods are deleted for the latest failed deployment
   $ %[1]s deploy frontend --retry
 
-  // Cancel the in-progress deployment based on 'frontend'
+  # Cancel the in-progress deployment based on 'frontend'
   $ %[1]s deploy frontend --cancel`
 )
 
@@ -89,10 +89,11 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	}
 
 	cmd := &cobra.Command{
-		Use:     "deploy DEPLOYMENTCONFIG",
-		Short:   "View, start, cancel, or retry a deployment",
-		Long:    deployLong,
-		Example: fmt.Sprintf(deployExample, fullName),
+		Use:        "deploy DEPLOYMENTCONFIG",
+		Short:      "View, start, cancel, or retry a deployment",
+		Long:       deployLong,
+		Example:    fmt.Sprintf(deployExample, fullName),
+		SuggestFor: []string{"deployment"},
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := options.Complete(f, args, out); err != nil {
 				cmdutil.CheckErr(err)

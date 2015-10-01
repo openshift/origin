@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -50,7 +51,7 @@ func main() {
 
 	outFile_osc := outDir + "oc"
 	out := os.Stdout
-	oc := cli.NewCommandCLI("oc", "openshift cli", out)
+	oc := cli.NewCommandCLI("oc", "openshift cli", &bytes.Buffer{}, out, ioutil.Discard)
 	oc.GenBashCompletionFile(outFile_osc)
 
 	outFile_osadm := outDir + "oadm"

@@ -24,6 +24,7 @@ import (
 	klatest "k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // InstallAPI adds handlers for serving static assets into the provided mux,
@@ -151,10 +152,10 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 	// Web console assets
 	mux.Handle(publicURL.Path, http.StripPrefix(publicURL.Path, assetHandler))
 
-	originResources := util.NewStringSet()
-	k8sResources := util.NewStringSet()
+	originResources := sets.NewString()
+	k8sResources := sets.NewString()
 
-	versions := util.NewStringSet()
+	versions := sets.NewString()
 	versions.Insert(latest.Versions...)
 	versions.Insert(klatest.Versions...)
 	for _, version := range versions.List() {
@@ -174,7 +175,7 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		}
 	}
 
-	commonResources := util.NewStringSet()
+	commonResources := sets.NewString()
 	for _, r := range originResources.List() {
 		if k8sResources.Has(r) {
 			commonResources.Insert(r)

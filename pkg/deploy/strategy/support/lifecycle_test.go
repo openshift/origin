@@ -3,6 +3,7 @@ package support
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -141,114 +143,155 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	t.Logf("got expected error: %s", err)
 }
 
-func TestHookExecutor_makeHookPodOk(t *testing.T) {
-	hook := &deployapi.LifecycleHook{
-		FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
-		ExecNewPod: &deployapi.ExecNewPodHook{
-			ContainerName: "container1",
-			Command:       []string{"overridden"},
-			Env: []kapi.EnvVar{
-				{
-					Name:  "name",
-					Value: "value",
+func TestHookExecutor_makeHookPod(t *testing.T) {
+	deploymentName := "deployment-1"
+	deploymentNamespace := "test"
+	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
+
+	tests := []struct {
+		name     string
+		hook     *deployapi.LifecycleHook
+		expected *kapi.Pod
+	}{
+		{
+			name: "overrides",
+			hook: &deployapi.LifecycleHook{
+				FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &deployapi.ExecNewPodHook{
+					ContainerName: "container1",
+					Command:       []string{"overridden"},
+					Env: []kapi.EnvVar{
+						{
+							Name:  "name",
+							Value: "value",
+						},
+						{
+							Name:  "ENV1",
+							Value: "overridden",
+						},
+					},
+					Volumes: []string{"volume-2"},
 				},
-				{
-					Name:  "ENV1",
-					Value: "overridden",
+			},
+			expected: &kapi.Pod{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: namer.GetPodName(deploymentName, "hook"),
+					Labels: map[string]string{
+						deployapi.DeployerPodForDeploymentLabel: deploymentName,
+					},
+					Annotations: map[string]string{
+						deployapi.DeploymentAnnotation: deploymentName,
+					},
+				},
+				Spec: kapi.PodSpec{
+					RestartPolicy: kapi.RestartPolicyNever,
+					Volumes: []kapi.Volume{
+						{
+							Name: "volume-2",
+						},
+					},
+					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
+					Containers: []kapi.Container{
+						{
+							Name:    "lifecycle",
+							Image:   "registry:8080/repo1:ref1",
+							Command: []string{"overridden"},
+							Env: []kapi.EnvVar{
+								{
+									Name:  "name",
+									Value: "value",
+								},
+								{
+									Name:  "ENV1",
+									Value: "overridden",
+								},
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAME",
+									Value: deploymentName,
+								},
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAMESPACE",
+									Value: deploymentNamespace,
+								},
+							},
+							Resources: kapi.ResourceRequirements{
+								Limits: kapi.ResourceList{
+									kapi.ResourceCPU:    resource.MustParse("10"),
+									kapi.ResourceMemory: resource.MustParse("10M"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "no overrides",
+			hook: &deployapi.LifecycleHook{
+				FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
+				ExecNewPod: &deployapi.ExecNewPodHook{
+					ContainerName: "container1",
+				},
+			},
+			expected: &kapi.Pod{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: namer.GetPodName(deploymentName, "hook"),
+					Labels: map[string]string{
+						deployapi.DeployerPodForDeploymentLabel: deploymentName,
+					},
+					Annotations: map[string]string{
+						deployapi.DeploymentAnnotation: deploymentName,
+					},
+				},
+				Spec: kapi.PodSpec{
+					RestartPolicy:         kapi.RestartPolicyNever,
+					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
+					Containers: []kapi.Container{
+						{
+							Name:  "lifecycle",
+							Image: "registry:8080/repo1:ref1",
+							Env: []kapi.EnvVar{
+								{
+									Name:  "ENV1",
+									Value: "VAL1",
+								},
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAME",
+									Value: deploymentName,
+								},
+								{
+									Name:  "OPENSHIFT_DEPLOYMENT_NAMESPACE",
+									Value: deploymentNamespace,
+								},
+							},
+							Resources: kapi.ResourceRequirements{
+								Limits: kapi.ResourceList{
+									kapi.ResourceCPU:    resource.MustParse("10"),
+									kapi.ResourceMemory: resource.MustParse("10M"),
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 	}
 
-	config := deploytest.OkDeploymentConfig(1)
-
-	cpuLimit := resource.MustParse("10")
-	memoryLimit := resource.MustParse("10M")
-	config.Template.ControllerTemplate.Template.Spec.Containers[0].Resources = kapi.ResourceRequirements{
-		Limits: kapi.ResourceList{
-			kapi.ResourceCPU:    cpuLimit,
-			kapi.ResourceMemory: memoryLimit,
-		},
-	}
-
-	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
-
-	pod, err := makeHookPod(hook, deployment, "hook")
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-
-	if e, a := namer.GetPodName(deployment.Name, "hook"), pod.Name; e != a {
-		t.Errorf("expected pod name %s, got %s", e, a)
-	}
-
-	if e, a := kapi.RestartPolicyNever, pod.Spec.RestartPolicy; e != a {
-		t.Errorf("expected pod restart policy %s, got %s", e, a)
-	}
-
-	gotContainer := pod.Spec.Containers[0]
-
-	// Verify the correct image was selected
-	if e, a := deployment.Spec.Template.Spec.Containers[0].Image, gotContainer.Image; e != a {
-		t.Fatalf("expected container image %s, got %s", e, a)
-	}
-
-	// Verify command overriding
-	if e, a := "overridden", gotContainer.Command[0]; e != a {
-		t.Fatalf("expected container command %s, got %s", e, a)
-	}
-
-	// Verify environment merging
-	expectedEnv := map[string]string{
-		"name": "value",
-		"ENV1": "overridden",
-		"OPENSHIFT_DEPLOYMENT_NAME":      deployment.Name,
-		"OPENSHIFT_DEPLOYMENT_NAMESPACE": deployment.Namespace,
-	}
-
-	for k, v := range expectedEnv {
-		found := false
-		for _, env := range gotContainer.Env {
-			if env.Name == k && env.Value == v {
-				found = true
-				break
-			}
+	for _, test := range tests {
+		t.Logf("evaluating test: %s", test.name)
+		pod, err := makeHookPod(test.hook, deployment("deployment", "test"), "hook")
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
 		}
-		if !found {
-			t.Errorf("expected to find %s=%s in pod environment", k, v)
+		for _, c := range pod.Spec.Containers {
+			sort.Sort(envByNameAsc(c.Env))
 		}
-	}
-
-	for _, env := range gotContainer.Env {
-		val, found := expectedEnv[env.Name]
-		if !found || val != env.Value {
-			t.Errorf("container has unexpected environment entry %s=%s", env.Name, env.Value)
+		for _, c := range test.expected.Spec.Containers {
+			sort.Sort(envByNameAsc(c.Env))
 		}
-	}
-
-	// Verify resource limit inheritance
-	if cpu := gotContainer.Resources.Limits.Cpu(); cpu.Value() != cpuLimit.Value() {
-		t.Errorf("expected cpu %v, got: %v", cpuLimit, cpu)
-	}
-	if memory := gotContainer.Resources.Limits.Memory(); memory.Value() != memoryLimit.Value() {
-		t.Errorf("expected memory %v, got: %v", memoryLimit, memory)
-	}
-
-	// Verify restart policy
-	if e, a := kapi.RestartPolicyNever, pod.Spec.RestartPolicy; e != a {
-		t.Fatalf("expected restart policy %s, got %s", e, a)
-	}
-
-	// Verify correlation stuff
-	if l, e, a := deployapi.DeployerPodForDeploymentLabel,
-		deployment.Name,
-		pod.Labels[deployapi.DeployerPodForDeploymentLabel]; e != a {
-		t.Errorf("expected label %s=%s, got %s", l, e, a)
-	}
-	if l, e, a := deployapi.DeploymentAnnotation,
-		deployment.Name,
-		pod.Annotations[deployapi.DeploymentAnnotation]; e != a {
-		t.Errorf("expected annotation %s=%s, got %s", l, e, a)
+		if !kapi.Semantic.DeepEqual(pod, test.expected) {
+			t.Errorf("unexpected pod diff: %v", kutil.ObjectDiff(pod, test.expected))
+		}
 	}
 }
 
@@ -347,7 +390,7 @@ func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
 		}
 
 		// Set up accepted pods for the scenario.
-		acceptedPods := kutil.NewStringSet()
+		acceptedPods := sets.NewString()
 		for _, podName := range s.acceptedPods {
 			acceptedPods.Insert(podName)
 		}
@@ -377,4 +420,85 @@ func TestAcceptNewlyObservedReadyPods_scenarios(t *testing.T) {
 			t.Logf("got expected error: %s", err)
 		}
 	}
+}
+
+func deployment(name, namespace string) *kapi.ReplicationController {
+	config := &deployapi.DeploymentConfig{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		LatestVersion: 1,
+		Template: deployapi.DeploymentTemplate{
+			Strategy: deployapi.DeploymentStrategy{
+				Type: deployapi.DeploymentStrategyTypeRecreate,
+				Resources: kapi.ResourceRequirements{
+					Limits: kapi.ResourceList{
+						kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
+						kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+					},
+				},
+			},
+			ControllerTemplate: kapi.ReplicationControllerSpec{
+				Replicas: 1,
+				Selector: map[string]string{"a": "b"},
+				Template: &kapi.PodTemplateSpec{
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{
+								Name:  "container1",
+								Image: "registry:8080/repo1:ref1",
+								Env: []kapi.EnvVar{
+									{
+										Name:  "ENV1",
+										Value: "VAL1",
+									},
+								},
+								ImagePullPolicy: kapi.PullIfNotPresent,
+								Resources: kapi.ResourceRequirements{
+									Limits: kapi.ResourceList{
+										kapi.ResourceCPU:    resource.MustParse("10"),
+										kapi.ResourceMemory: resource.MustParse("10M"),
+									},
+								},
+							},
+							{
+								Name:            "container2",
+								Image:           "registry:8080/repo1:ref2",
+								ImagePullPolicy: kapi.PullIfNotPresent,
+							},
+						},
+						Volumes: []kapi.Volume{
+							{
+								Name: "volume-1",
+							},
+							{
+								Name: "volume-2",
+							},
+						},
+						RestartPolicy: kapi.RestartPolicyAlways,
+						DNSPolicy:     kapi.DNSClusterFirst,
+					},
+					ObjectMeta: kapi.ObjectMeta{
+						Labels: map[string]string{"a": "b"},
+					},
+				},
+			},
+		},
+	}
+	deployment, _ := deployutil.MakeDeployment(config, kapi.Codec)
+	deployment.Namespace = namespace
+	return deployment
+}
+
+type envByNameAsc []kapi.EnvVar
+
+func (a envByNameAsc) Len() int {
+	return len(a)
+}
+func (a envByNameAsc) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+func (a envByNameAsc) Less(i, j int) bool {
+	return a[j].Name < a[i].Name
 }

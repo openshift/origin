@@ -197,13 +197,17 @@ html, body {
 }
 
 .breadcrumb {
-  margin-bottom: 0;
+  font-size: @font-size-base - 1;
+  strong {
+    font-weight: 600;
+  }
 }
 
 .empty-project {
   margin: 10px auto;
   max-width: 500px;
   padding: 30px;
+
   // Make sure icons are the same size so text aligns.
   .fa {
     width: 16px;
@@ -215,8 +219,7 @@ html, body {
   }
 }
 
-.empty-project-list {
-  .text-center;
+.empty-state-message {
   margin: @grid-gutter-width auto;
   max-width: 600px;
   padding: 0 (@grid-gutter-width / 2);
@@ -228,18 +231,55 @@ html, body {
   }
 }
 
+  .service-table {
+    border: 0;
+    margin: 10px 0 5px;
+    table {
+      .table;
+      .table-condensed;
+      .text-center;
+      .small;
+      margin-bottom: 0;
+      thead {
+        tr th {
+          .text-center;
+        }
+      }
+    }
+  }
+
 
 // Create App
 // --------------------------------------------------
 
- label.checkbox {
+label.checkbox {
   font-weight: normal;
 }
 
 // Make sure icons are the same size so headings align.
-.add-to-project h1 .fa {
-  width: 24px;
-  text-align: center;
+.add-to-project {
+  .filter-group {
+    line-height: 1.75;
+    .search-input, .btn-group {
+      display: inline-block;
+      margin-bottom: 10px;
+      vertical-align: top;
+    }
+    .search-input {
+      width: 100%;
+      @media (min-width: @screen-sm-min) {
+        width: 400px;
+      }
+    }
+    .filter-btn {
+      margin-right: 5px;
+    }
+    @media (min-width: @screen-sm-min) {
+      .filter-msg {
+        display: inline-block;
+      }
+    }
+  }
 }
 
 .create-from-template,
@@ -307,7 +347,32 @@ html, body {
   }
 }
 
+.next-steps {
+  .tile {
+    margin-bottom: 0;
+    &.tile-status {
+      margin-top: 0;
+    }
+  }
+}
+
+.catalog-col section {
+  margin-bottom: 10px;
+  > h3 {
+    margin-top: 0;
+    small {
+      font-size: @font-size-base;
+    }
+  }
+}
+@media (min-width:@screen-sm-min) {
+  .catalog-col-2 {
+    margin-left: 3%;
+  }
+}
+
 .tag {
+  color: #999999;
   text-transform: uppercase;
   margin-right: 10px;
 }
@@ -318,6 +383,18 @@ html, body {
   // Stack at mobile screen sizes
   .flex-direction(@direction: column);
 
+  .tile-template, .tile-image {
+    width: 100%;
+    a.tag {
+      text-decoration: none;
+      &:hover {
+        color: black;
+        background: #dfdfdf;
+        text-decoration: none;
+      }
+    }
+  }
+
   // Arrange in columns >767px
   @media (min-width: @screen-sm-min) {
     .flex-direction(@direction: row);
@@ -325,13 +402,18 @@ html, body {
     .justify-content(@justify: flex-start);
     .tile-template, .tile-image {
       .flex(@columns: 1 0 auto);
-      min-width: 150px;
-      max-width: 325px;
+      width: 100%;
       margin-right: (@grid-gutter-width / 2);
+    }
+    &.catalog-fluid {
+      .tile-template, .tile-image {
+        width: 375px;
+      }
     }
   }
 }
 
+@create-form-md-width: 44%;
 @media (min-width: 767px) {
   .create-from-template,
   .create-from-image {
@@ -342,10 +424,13 @@ html, body {
         text-align: right;
       }
     }
-    .form-group {
+    .form-control-md {
+      width: @create-form-md-width;
+    }
+    .labels .form-group {
       // Show name/value fields like labels and env vars side by side at wide screen sizes.
       // Align text fields with read-only values.
-      width: 44%;
+      width: @create-form-md-width;
       .form-control {
         width: 100%;
       }
@@ -404,6 +489,14 @@ code {
   white-space: normal;
 }
 
+pre {
+  &.code {
+    background-color: #fff;
+    border: none;
+    border-left: 2px solid rgb(204, 204, 204);
+  }  
+}
+
 // Fix to override the Firefox 40+ behavior to add text-decoration
 // No other browser does this.
 abbr[data-original-title], abbr[title] {
@@ -421,61 +514,6 @@ abbr[data-original-title], abbr[title] {
   }
   dd {
     &:extend(.clearfix all); // Including this here because it's not being set even though it's in /bootstrap/less/type.less dunno why?
-  }
-}
-
-.table-responsive {
-  overflow-x: auto; // remove when we update to latest patternfly with twbs 3.3.4
-}
-
-.table-events {
-  background-color: #fff;
-  > tbody {
-    + tbody {
-      border-top-width: 1px;
-    }
-  }
-  tr {
-    @media (min-width: @screen-md-min) {
-      td.event-time {
-        white-space: nowrap;
-      }
-    }
-  }
-}
-@media (max-width: @screen-xs-max) {
-  .table-events {
-    thead, tbody, th, td, tr {
-      display: block;
-    }
-    thead tr {
-      /* Hide table headers (but not display: none;, for accessibility) */
-      .sr-only();
-    }
-    > tbody {
-      > tr {
-        > td {
-           /* Behave like a row */
-          border: none;
-          border-bottom: 1px solid #eee;
-          padding: 3px 6px 2px 35%;
-          position: relative;
-          &:last-child {
-            border-bottom: none;
-          }
-          &:before {
-            /* Act as mobile table header */
-            content: attr(data-title);
-            position: absolute;
-            top: 3px;
-            left: 6px;
-            width: 35%; 
-            padding-right: 10px; 
-            white-space: nowrap;
-          }
-        }
-      }
-    }
   }
 }
 
@@ -575,5 +613,13 @@ select:invalid {
   }
   p {
     font-size: @font-size-large + 1;
+  }
+}
+
+.status {
+  .status-icon {
+    margin-right: 6px;
+    width: 13px;
+    text-align: center;
   }
 }

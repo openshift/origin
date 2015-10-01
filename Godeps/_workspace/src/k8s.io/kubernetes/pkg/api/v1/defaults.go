@@ -25,6 +25,11 @@ import (
 
 func addDefaultingFuncs() {
 	api.Scheme.AddDefaultingFuncs(
+		func(obj *APIVersion) {
+			if len(obj.APIGroup) == 0 {
+				obj.APIGroup = "experimental"
+			}
+		},
 		func(obj *ReplicationController) {
 			var labels map[string]string
 			if obj.Spec.Template != nil {
@@ -42,21 +47,6 @@ func addDefaultingFuncs() {
 			if obj.Spec.Replicas == nil {
 				obj.Spec.Replicas = new(int)
 				*obj.Spec.Replicas = 1
-			}
-		},
-		func(obj *Daemon) {
-			var labels map[string]string
-			if obj.Spec.Template != nil {
-				labels = obj.Spec.Template.Labels
-			}
-			// TODO: support templates defined elsewhere when we support them in the API
-			if labels != nil {
-				if len(obj.Spec.Selector) == 0 {
-					obj.Spec.Selector = labels
-				}
-				if len(obj.Labels) == 0 {
-					obj.Labels = labels
-				}
 			}
 		},
 		func(obj *Volume) {
@@ -144,6 +134,11 @@ func addDefaultingFuncs() {
 			if len(obj.NodeName) == 0 && len(obj.DeprecatedHost) > 0 {
 				obj.NodeName = obj.DeprecatedHost
 			}
+
+			if obj.TerminationGracePeriodSeconds == nil {
+				period := int64(DefaultTerminationGracePeriodSeconds)
+				obj.TerminationGracePeriodSeconds = &period
+			}
 		},
 		func(obj *Probe) {
 			if obj.TimeoutSeconds == 0 {
@@ -220,6 +215,37 @@ func addDefaultingFuncs() {
 				for key, value := range obj.Limits {
 					if _, exists := obj.Requests[key]; !exists {
 						obj.Requests[key] = *(value.Copy())
+					}
+				}
+			}
+		},
+		func(obj *LimitRangeItem) {
+			// for container limits, we apply default values
+			if obj.Type == LimitTypeContainer {
+
+				if obj.Default == nil {
+					obj.Default = make(ResourceList)
+				}
+				if obj.DefaultRequest == nil {
+					obj.DefaultRequest = make(ResourceList)
+				}
+
+				// If a default limit is unspecified, but the max is specified, default the limit to the max
+				for key, value := range obj.Max {
+					if _, exists := obj.Default[key]; !exists {
+						obj.Default[key] = *(value.Copy())
+					}
+				}
+				// If a default limit is specified, but the default request is not, default request to limit
+				for key, value := range obj.Default {
+					if _, exists := obj.DefaultRequest[key]; !exists {
+						obj.DefaultRequest[key] = *(value.Copy())
+					}
+				}
+				// If a default request is not specified, but the min is provided, default request to the min
+				for key, value := range obj.Min {
+					if _, exists := obj.DefaultRequest[key]; !exists {
+						obj.DefaultRequest[key] = *(value.Copy())
 					}
 				}
 			}

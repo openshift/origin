@@ -9,6 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -99,7 +100,7 @@ func (r *TestRouter) RemoveRoute(id string, route *routeapi.Route) {
 	}
 }
 
-func (r *TestRouter) FilterNamespaces(namespaces util.StringSet) {
+func (r *TestRouter) FilterNamespaces(namespaces sets.String) {
 	if len(namespaces) == 0 {
 		r.State = make(map[string]ServiceUnit)
 	}
@@ -388,7 +389,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute)
 
 	// no namespaces allowed
-	plugin.HandleNamespaces(util.StringSet{})
+	plugin.HandleNamespaces(sets.String{})
 
 	//add
 	route := &routeapi.Route{
@@ -410,7 +411,7 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	}
 
 	// allow non matching
-	plugin.HandleNamespaces(util.NewStringSet("bar"))
+	plugin.HandleNamespaces(sets.NewString("bar"))
 	for _, s := range []watch.EventType{watch.Added, watch.Modified, watch.Deleted} {
 		plugin.HandleRoute(s, route)
 		if _, ok := router.FindServiceUnit("foo/TestService"); ok || plugin.HostLen() != 0 {
@@ -419,14 +420,14 @@ func TestNamespaceScopingFromEmpty(t *testing.T) {
 	}
 
 	// allow foo
-	plugin.HandleNamespaces(util.NewStringSet("foo", "bar"))
+	plugin.HandleNamespaces(sets.NewString("foo", "bar"))
 	plugin.HandleRoute(watch.Added, route)
 	if _, ok := router.FindServiceUnit("foo/TestService"); !ok || plugin.HostLen() != 1 {
 		t.Errorf("unexpected router state %#v", router)
 	}
 
 	// forbid foo, and make sure it's cleared
-	plugin.HandleNamespaces(util.NewStringSet("bar"))
+	plugin.HandleNamespaces(sets.NewString("bar"))
 	if _, ok := router.FindServiceUnit("foo/TestService"); ok || plugin.HostLen() != 0 {
 		t.Errorf("unexpected router state %#v", router)
 	}

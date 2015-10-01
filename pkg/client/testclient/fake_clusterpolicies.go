@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
@@ -39,6 +39,5 @@ func (c *FakeClusterPolicies) Delete(name string) error {
 }
 
 func (c *FakeClusterPolicies) Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	c.Fake.Invokes(ktestclient.NewRootWatchAction("clusterpolicies", label, field, resourceVersion), nil)
-	return c.Fake.Watch, c.Fake.Err()
+	return c.Fake.InvokesWatch(ktestclient.NewRootWatchAction("clusterpolicies", label, field, resourceVersion))
 }

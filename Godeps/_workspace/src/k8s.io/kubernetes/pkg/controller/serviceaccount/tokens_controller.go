@@ -24,14 +24,14 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/secret"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 )
@@ -514,8 +514,8 @@ func serviceAccountNameAndUID(secret *api.Secret) (string, string) {
 	return secret.Annotations[api.ServiceAccountNameKey], secret.Annotations[api.ServiceAccountUIDKey]
 }
 
-func getSecretReferences(serviceAccount *api.ServiceAccount) util.StringSet {
-	references := util.NewStringSet()
+func getSecretReferences(serviceAccount *api.ServiceAccount) sets.String {
+	references := sets.NewString()
 	for _, secret := range serviceAccount.Secrets {
 		references.Insert(secret.Name)
 	}

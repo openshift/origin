@@ -2,11 +2,13 @@ package diagnostics
 
 import (
 	"fmt"
+	"os"
+
+	"k8s.io/kubernetes/pkg/util/sets"
+
 	hostdiags "github.com/openshift/origin/pkg/diagnostics/host"
 	systemddiags "github.com/openshift/origin/pkg/diagnostics/systemd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	"k8s.io/kubernetes/pkg/util"
-	"os"
 )
 
 const (
@@ -18,13 +20,13 @@ const (
 var (
 	// availableHostDiagnostics contains the names of host diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableHostDiagnostics = util.NewStringSet(systemddiags.AnalyzeLogsName, systemddiags.UnitStatusName, hostdiags.MasterConfigCheckName, hostdiags.NodeConfigCheckName)
+	availableHostDiagnostics = sets.NewString(systemddiags.AnalyzeLogsName, systemddiags.UnitStatusName, hostdiags.MasterConfigCheckName, hostdiags.NodeConfigCheckName)
 )
 
 // buildHostDiagnostics builds host Diagnostic objects based on the host environment.
 // Returns the Diagnostics built, "ok" bool for whether to proceed or abort, and an error if any was encountered during the building of diagnostics.) {
 func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool, error) {
-	requestedDiagnostics := intersection(util.NewStringSet(o.RequestedDiagnostics...), availableHostDiagnostics).List()
+	requestedDiagnostics := intersection(sets.NewString(o.RequestedDiagnostics...), availableHostDiagnostics).List()
 	if len(requestedDiagnostics) == 0 { // no diagnostics to run here
 		return nil, true, nil // don't waste time on discovery
 	}

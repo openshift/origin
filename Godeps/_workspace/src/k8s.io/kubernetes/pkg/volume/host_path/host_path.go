@@ -74,7 +74,7 @@ func (plugin *hostPathPlugin) Name() string {
 
 func (plugin *hostPathPlugin) CanSupport(spec *volume.Spec) bool {
 	return (spec.PersistentVolume != nil && spec.PersistentVolume.Spec.HostPath != nil) ||
-			(spec.Volume != nil && spec.Volume.HostPath != nil)
+		(spec.Volume != nil && spec.Volume.HostPath != nil)
 }
 
 func (plugin *hostPathPlugin) GetAccessModes() []api.PersistentVolumeAccessMode {
@@ -183,19 +183,18 @@ func (r *hostPathRecycler) GetPath() string {
 	return r.path
 }
 
-// Recycler provides methods to reclaim the volume resource.
-// A HostPath is recycled by scheduling a pod to run "rm -rf" on the contents of the volume.  This is meant for
-// development and testing in a single node cluster only.
+// Recycle recycles/scrubs clean a HostPath volume.
 // Recycle blocks until the pod has completed or any error occurs.
+// HostPath recycling only works in single node clusters and is meant for testing purposes only.
 func (r *hostPathRecycler) Recycle() error {
-	pod := r.config.RecyclerDefaultPod
+	pod := r.config.RecyclerPodTemplate
 	// overrides
 	pod.Spec.ActiveDeadlineSeconds = &r.timeout
-	pod.GenerateName = "pv-scrubber-hostpath-"
+	pod.GenerateName = "pv-recycler-hostpath-"
 	pod.Spec.Volumes[0].VolumeSource = api.VolumeSource{
 		HostPath: &api.HostPathVolumeSource{
 			Path: r.path,
 		},
 	}
-	return volume.ScrubPodVolumeAndWatchUntilCompletion(pod, r.host.GetKubeClient())
+	return volume.RecycleVolumeByWatchingPodUntilCompletion(pod, r.host.GetKubeClient())
 }

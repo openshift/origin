@@ -2,7 +2,7 @@ package test
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 type FakeDeploymentStore struct {
@@ -30,8 +30,8 @@ func (s FakeDeploymentStore) List() []interface{} {
 	return []interface{}{s.Deployment}
 }
 
-func (s FakeDeploymentStore) ContainedIDs() util.StringSet {
-	return util.NewStringSet()
+func (s FakeDeploymentStore) ContainedIDs() sets.String {
+	return sets.NewString()
 }
 
 func (s FakeDeploymentStore) Get(obj interface{}) (item interface{}, exists bool, err error) {

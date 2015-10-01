@@ -7,7 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/security"
@@ -18,12 +18,12 @@ import (
 
 func TestController(t *testing.T) {
 	var action testclient.Action
-	client := &testclient.Fake{
-		ReactFn: func(a testclient.Action) (runtime.Object, error) {
-			action = a
-			return (*kapi.Namespace)(nil), nil
-		},
-	}
+	client := &testclient.Fake{}
+	client.AddReactor("*", "*", func(a testclient.Action) (handled bool, ret runtime.Object, err error) {
+		action = a
+		return true, (*kapi.Namespace)(nil), nil
+	})
+
 	uidr, _ := uid.NewRange(10, 20, 2)
 	mcsr, _ := mcs.NewRange("s0:", 10, 2)
 	uida := uidallocator.NewInMemory(uidr)
@@ -69,11 +69,11 @@ func TestControllerError(t *testing.T) {
 		},
 		"conflict": {
 			actions: 4,
-			reactFn: func(a testclient.Action) (runtime.Object, error) {
+			reactFn: func(a testclient.Action) (bool, runtime.Object, error) {
 				if a.Matches("get", "namespaces") {
-					return &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: "test"}}, nil
+					return true, &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: "test"}}, nil
 				}
-				return (*kapi.Namespace)(nil), errors.NewConflict("namespace", "test", fmt.Errorf("test conflict"))
+				return true, (*kapi.Namespace)(nil), errors.NewConflict("namespace", "test", fmt.Errorf("test conflict"))
 			},
 			errFn: func(err error) bool {
 				return err != nil && strings.Contains(err.Error(), "unable to allocate security info")
@@ -82,12 +82,16 @@ func TestControllerError(t *testing.T) {
 	}
 
 	for s, testCase := range testCases {
-		client := &testclient.Fake{ReactFn: testCase.reactFn}
-		if client.ReactFn == nil {
-			client.ReactFn = func(a testclient.Action) (runtime.Object, error) {
-				return (*kapi.Namespace)(nil), testCase.err()
+		client := &testclient.Fake{}
+
+		if testCase.reactFn == nil {
+			testCase.reactFn = func(a testclient.Action) (bool, runtime.Object, error) {
+				return true, (*kapi.Namespace)(nil), testCase.err()
 			}
 		}
+
+		client.AddReactor("*", "*", testCase.reactFn)
+
 		uidr, _ := uid.NewRange(10, 19, 2)
 		mcsr, _ := mcs.NewRange("s0:", 10, 2)
 		uida := uidallocator.NewInMemory(uidr)

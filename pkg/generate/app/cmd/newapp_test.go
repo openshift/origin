@@ -13,10 +13,11 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
@@ -260,7 +261,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: app.MockSourceRepositories(),
+			repositories: MockSourceRepositories(t),
 			expectedErr:  "there are multiple code locations provided - use one of the following suggestions",
 		},
 		{
@@ -273,7 +274,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: true,
 				}),
 			},
-			repositories: app.MockSourceRepositories(),
+			repositories: MockSourceRepositories(t),
 			expectedErr:  "Use '[image]~[repo]' to declare which code goes with which image",
 		},
 		{
@@ -308,7 +309,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: []*app.SourceRepository{app.MockSourceRepositories()[0]},
+			repositories: MockSourceRepositories(t)[:1],
 			expectedErr:  "",
 		},
 		{
@@ -318,7 +319,7 @@ func TestEnsureHasSource(t *testing.T) {
 					ExpectToBuild: false,
 				}),
 			},
-			repositories: app.MockSourceRepositories(),
+			repositories: MockSourceRepositories(t),
 			expectedErr:  "",
 		},
 	}
@@ -412,7 +413,7 @@ func TestDetectSource(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
-	mocks := app.MockSourceRepositories()
+	mocks := MockSourceRepositories(t)
 	tests := []struct {
 		name         string
 		cfg          *AppConfig
@@ -477,7 +478,7 @@ func TestRunAll(t *testing.T) {
 		expected        map[string][]string
 		expectedName    string
 		expectedErr     error
-		expectInsecure  util.StringSet
+		expectInsecure  sets.String
 		expectedVolumes map[string]string
 		checkPort       string
 	}{
@@ -664,7 +665,7 @@ func TestRunAll(t *testing.T) {
 			expectedName:    "ruby-hello-world",
 			expectedErr:     nil,
 			expectedVolumes: nil,
-			expectInsecure:  util.NewStringSet("example"),
+			expectInsecure:  sets.NewString("example"),
 		},
 		{
 			name: "emptyDir volumes",
@@ -787,7 +788,8 @@ func TestRunAll(t *testing.T) {
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunAll(os.Stdout, os.Stderr)
+		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		res, err := test.config.RunAll()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -908,7 +910,7 @@ func TestRunBuild(t *testing.T) {
 		name        string
 		config      *AppConfig
 		expected    map[string][]string
-		expectedErr error
+		expectedErr func(error) bool
 	}{
 		{
 			name: "successful ruby app generation",
@@ -946,15 +948,67 @@ func TestRunBuild(t *testing.T) {
 				"buildConfig": {"ruby-hello-world"},
 				"imageStream": {"ruby-20-centos7"},
 			},
-			expectedErr: nil,
+		},
+		{
+			name: "successful build from dockerfile",
+			config: &AppConfig{
+				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"origin-base"},
+				"imageStream": {"origin-base"},
+			},
+		},
+		{
+			name: "unsuccessful build from dockerfile due to strategy conflict",
+			config: &AppConfig{
+				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+				Strategy:   "source",
+
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expectedErr: func(err error) bool {
+				return err.Error() == "when directly referencing a Dockerfile, the strategy must must be 'docker'"
+			},
 		},
 	}
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunBuilds(os.Stdout, os.Stderr)
-		if err != test.expectedErr {
-			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		res, err := test.config.RunBuilds()
+		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
+			t.Errorf("%s: unexpected error: %v", test.name, err)
+			continue
+		}
+		if err != nil {
 			continue
 		}
 		got := map[string][]string{}
@@ -1027,7 +1081,8 @@ func TestNewBuildEnvVars(t *testing.T) {
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunBuilds(os.Stdout, os.Stderr)
+		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		res, err := test.config.RunBuilds()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -1082,7 +1137,8 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 
 	for _, test := range tests {
 		test.config.refBuilder = &app.ReferenceBuilder{}
-		res, err := test.config.RunAll(os.Stdout, os.Stderr)
+		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
+		res, err := test.config.RunAll()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
@@ -1167,10 +1223,7 @@ tests:
 // Make sure that buildPipelines defaults DockerImage.Config if needed to
 // avoid a nil panic.
 func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
-	dockerParser := dockerfile.NewParser()
-
-	dockerFileInput := strings.NewReader("EXPOSE 1234\nEXPOSE 4567")
-	dockerFile, err := dockerParser.Parse(dockerFileInput)
+	dockerFile, err := app.NewDockerfile("EXPOSE 1234\nEXPOSE 4567")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1201,8 +1254,8 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 		t.Error(err)
 	}
 
-	expectedPorts := util.NewStringSet("1234", "4567")
-	actualPorts := util.NewStringSet()
+	expectedPorts := sets.NewString("1234", "4567")
+	actualPorts := sets.NewString()
 	for port := range group[0].InputImage.Info.Config.ExposedPorts {
 		actualPorts.Insert(port)
 	}
@@ -1272,20 +1325,17 @@ func dockerBuilderImage() *docker.Image {
 }
 
 func fakeImageStreamSearcher() app.Searcher {
-	client := &client.Fake{
-		ReactFn: func(action testclient.Action) (runtime.Object, error) {
-			if action.Matches("get", "imagestreams") {
-				return builderImageStream(), nil
-			}
-			if action.Matches("list", "imagestreams") {
-				return builderImageStreams(), nil
-			}
-			if action.Matches("get", "imagestreamimages") {
-				return builderImage(), nil
-			}
-			return nil, nil
-		},
-	}
+	client := &client.Fake{}
+	client.AddReactor("get", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, builderImageStream(), nil
+	})
+	client.AddReactor("list", "imagestreams", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, builderImageStreams(), nil
+	})
+	client.AddReactor("get", "imagestreamimages", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, builderImage(), nil
+	})
+
 	return app.ImageStreamSearcher{
 		Client:            client,
 		ImageStreamImages: client,
@@ -1294,27 +1344,28 @@ func fakeImageStreamSearcher() app.Searcher {
 }
 
 func fakeTemplateSearcher() app.Searcher {
-	client := &client.Fake{
-		ReactFn: func(action testclient.Action) (runtime.Object, error) {
-			if action.Matches("list", "templates") {
-				return &templateapi.TemplateList{
-					Items: []templateapi.Template{
-						{
-							Objects: []runtime.Object{},
-							ObjectMeta: kapi.ObjectMeta{
-								Name:      "first-stored-template",
-								Namespace: "default",
-							},
-						},
-					},
-				}, nil
-			}
-			return nil, nil
-		},
-	}
+	client := &client.Fake{}
+	client.AddReactor("list", "templates", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, templateList(), nil
+	})
+
 	return app.TemplateSearcher{
 		Client:     client,
 		Namespaces: []string{"default"},
+	}
+}
+
+func templateList() *templateapi.TemplateList {
+	return &templateapi.TemplateList{
+		Items: []templateapi.Template{
+			{
+				Objects: []runtime.Object{},
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "first-stored-template",
+					Namespace: "default",
+				},
+			},
+		},
 	}
 }
 
@@ -1340,4 +1391,22 @@ func fakeSimpleDockerSearcher() app.Searcher {
 			},
 		},
 	}
+}
+
+// MockSourceRepositories is a set of mocked source repositories used for
+// testing
+func MockSourceRepositories(t *testing.T) []*app.SourceRepository {
+	var b []*app.SourceRepository
+	for _, location := range []string{
+		"some/location.git",
+		"https://github.com/openshift/ruby-hello-world.git",
+		"another/location.git",
+	} {
+		s, err := app.NewSourceRepository(location)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b = append(b, s)
+	}
+	return b
 }

@@ -17,6 +17,7 @@ angular.module("openshiftConsole")
         }).toString();
         $location.url(redirect);
       },
+
       /**
        * Navigate and display the project overview page.
        * 
@@ -35,6 +36,16 @@ angular.module("openshiftConsole")
        */
       projectOverviewURL: function(projectName){
         return "project/" + encodeURIComponent(projectName) + "/overview";
+      },
+
+      /**
+       * Navigate and display the next steps after creation page.
+       * 
+       * @param {type} projectName  the project name
+       * @returns {undefined}
+       */
+      toNextSteps: function(name, projectName){
+        $location.path("project/" + encodeURIComponent(projectName) + "/create/next").search("name", name);
       }
     };
   });

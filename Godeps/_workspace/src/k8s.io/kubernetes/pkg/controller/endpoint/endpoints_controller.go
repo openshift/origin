@@ -26,13 +26,14 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/endpoints"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/cache"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/workqueue"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -141,8 +142,8 @@ func (e *EndpointController) Run(workers int, stopCh <-chan struct{}) {
 	e.queue.ShutDown()
 }
 
-func (e *EndpointController) getPodServiceMemberships(pod *api.Pod) (util.StringSet, error) {
-	set := util.StringSet{}
+func (e *EndpointController) getPodServiceMemberships(pod *api.Pod) (sets.String, error) {
+	set := sets.String{}
 	services, err := e.serviceStore.GetPodServices(pod)
 	if err != nil {
 		// don't log this error because this function makes pointless
@@ -310,7 +311,11 @@ func (e *EndpointController) syncService(key string) {
 				continue
 			}
 			if len(pod.Status.PodIP) == 0 {
-				glog.V(4).Infof("Failed to find an IP for pod %s/%s", pod.Namespace, pod.Name)
+				glog.V(5).Infof("Failed to find an IP for pod %s/%s", pod.Namespace, pod.Name)
+				continue
+			}
+			if pod.DeletionTimestamp != nil {
+				glog.V(5).Infof("Pod is being deleted %s/%s", pod.Namespace, pod.Name)
 				continue
 			}
 

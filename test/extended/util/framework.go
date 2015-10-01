@@ -5,16 +5,19 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
+	"k8s.io/kubernetes/pkg/api/resource"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e"
 
@@ -27,6 +30,8 @@ import (
 )
 
 var TestContext e2e.TestContextType
+
+const pvPrefix = "pv-"
 
 // WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
 // file.
@@ -169,7 +174,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 	name string,
 	isOK, isFailed func(*kapi.ReplicationController) bool) error {
 	for {
-		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, kutil.NewStringSet(name))
+		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, labels.EqualsOperator, sets.NewString(name))
 		if err != nil {
 			return fmt.Errorf("unexpected error generating label selector: %v", err)
 		}
@@ -224,6 +229,57 @@ var CheckDeploymentFailedFunc = func(d *kapi.ReplicationController) bool {
 	return d.Annotations[deployapi.DeploymentStatusAnnotation] == string(deployapi.DeploymentStatusFailed)
 }
 
+// GetPodNamesByFilter looks up pods that satisfy the predicate and returns their names.
+func GetPodNamesByFilter(c kclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool) (podNames []string, err error) {
+	podList, err := c.List(label, nil)
+	if err != nil {
+		return nil, err
+	}
+	for _, pod := range podList.Items {
+		if predicate(pod) {
+			podNames = append(podNames, pod.Name)
+		}
+	}
+	return podNames, nil
+}
+
+// WaitForPods waits until given number of pods that match the label selector and
+// satisfy the predicate are found
+func WaitForPods(c kclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool, count int, timeout time.Duration) ([]string, error) {
+	var podNames []string
+	err := wait.Poll(1*time.Second, timeout, func() (bool, error) {
+		p, e := GetPodNamesByFilter(c, label, predicate)
+		if e != nil {
+			return true, e
+		}
+		if len(p) != count {
+			return false, nil
+		}
+		podNames = p
+		return true, nil
+	})
+	return podNames, err
+}
+
+// CheckPodIsRunningFunc returns true if the pod is running
+var CheckPodIsRunningFunc = func(pod kapi.Pod) bool {
+	return pod.Status.Phase == kapi.PodRunning
+}
+
+// WaitUntilPodIsGone waits until the named Pod will disappear
+func WaitUntilPodIsGone(c kclient.PodInterface, podName string, timeout time.Duration) error {
+	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
+		_, err := c.Get(podName)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				return true, nil
+			}
+			return true, err
+		}
+		return false, nil
+	})
+}
+
 // GetDockerImageReference retrieves the full Docker pull spec from the given ImageStream
 // and tag
 func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (string, error) {
@@ -266,6 +322,80 @@ func CreatePodForImage(dockerImageReference string) *kapi.Pod {
 	}
 }
 
+// CreatePersistentVolume creates a HostPath Persistent Volume.
+func CreatePersistentVolume(name, capacity, hostPath string) *kapi.PersistentVolume {
+	return &kapi.PersistentVolume{
+		TypeMeta: kapi.TypeMeta{
+			Kind:       "PersistentVolume",
+			APIVersion: "v1",
+		},
+		ObjectMeta: kapi.ObjectMeta{
+			Name:   name,
+			Labels: map[string]string{"name": name},
+		},
+		Spec: kapi.PersistentVolumeSpec{
+			PersistentVolumeSource: kapi.PersistentVolumeSource{
+				HostPath: &kapi.HostPathVolumeSource{
+					Path: hostPath,
+				},
+			},
+			Capacity: kapi.ResourceList{
+				kapi.ResourceStorage: resource.MustParse(capacity),
+			},
+			AccessModes: []kapi.PersistentVolumeAccessMode{
+				kapi.ReadWriteOnce,
+				kapi.ReadOnlyMany,
+				kapi.ReadWriteMany,
+			},
+		},
+	}
+}
+
+// SetupHostPathVolumes will create multiple PersistentVolumes with given capacity
+func SetupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix, capacity string, count int) (volumes []*kapi.PersistentVolume, err error) {
+	rootDir, err := ioutil.TempDir(TestContext.OutputDir, "persistent-volumes")
+	if err != nil {
+		return volumes, err
+	}
+	for i := 0; i < count; i++ {
+		dir, err := ioutil.TempDir(rootDir, fmt.Sprintf("%0.4d", i))
+		if err != nil {
+			return volumes, err
+		}
+		if _, err = exec.LookPath("chcon"); err != nil {
+			err := exec.Command("chcon", "-t", "svirt_sandbox_file_t", dir).Run()
+			if err != nil {
+				return volumes, err
+			}
+		}
+		if err = os.Chmod(dir, 0777); err != nil {
+			return volumes, err
+		}
+		pv, err := c.Create(CreatePersistentVolume(fmt.Sprintf("%s%s-%0.4d", pvPrefix, prefix, i), capacity, dir))
+		if err != nil {
+			return volumes, err
+		}
+		volumes = append(volumes, pv)
+	}
+	return volumes, err
+}
+
+// CleanupHostPathVolumes removes all PersistentVolumes created by
+// SetupHostPathVolumes, with a given prefix
+func CleanupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix string) error {
+	pvs, err := c.List(labels.Everything(), nil)
+	if err != nil {
+		return err
+	}
+	prefix = fmt.Sprintf("%s%s-", pvPrefix, prefix)
+	for _, pv := range pvs.Items {
+		if strings.HasPrefix(pv.Name, prefix) {
+			c.Delete(pv.Name)
+		}
+	}
+	return nil
+}
+
 // KubeConfigPath returns the value of KUBECONFIG environment variable
 func KubeConfigPath() string {
 	return os.Getenv("KUBECONFIG")
@@ -303,4 +433,28 @@ func FetchURL(url string, retryTimeout time.Duration) (response string, err erro
 		return "", pollErr
 	}
 	return
+}
+
+// ParseLabelsOrDie turns the given string into a label selector or
+// panics; for tests or other cases where you know the string is valid.
+// TODO: Move this to the upstream labels package.
+func ParseLabelsOrDie(str string) labels.Selector {
+	ret, err := labels.Parse(str)
+	if err != nil {
+		panic(fmt.Sprintf("cannot parse '%v': %v", str, err))
+	}
+	return ret
+}
+
+// GetEndpointAddress will return an "ip:port" string for the endpoint.
+func GetEndpointAddress(oc *CLI, name string) (string, error) {
+	err := oc.KubeFramework().WaitForAnEndpoint(name)
+	if err != nil {
+		return "", err
+	}
+	endpoint, err := oc.KubeREST().Endpoints(oc.Namespace()).Get(name)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s:%d", endpoint.Subsets[0].Addresses[0].IP, endpoint.Subsets[0].Ports[0].Port), nil
 }

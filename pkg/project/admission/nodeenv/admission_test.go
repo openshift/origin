@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/testclient"
+	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/labelselector"

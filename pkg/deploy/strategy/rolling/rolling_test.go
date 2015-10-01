@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -65,16 +65,15 @@ func TestRolling_deployRolling(t *testing.T) {
 	deploymentUpdated := false
 
 	fake := &ktestclient.Fake{}
-	fake.ReactFn = func(action ktestclient.Action) (runtime.Object, error) {
-		switch a := action.(type) {
-		case ktestclient.GetAction:
-			return deployments[a.GetName()], nil
-		case ktestclient.UpdateAction:
-			deploymentUpdated = true
-			return a.GetObject().(*kapi.ReplicationController), nil
-		}
-		return nil, nil
-	}
+	fake.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(ktestclient.GetAction).GetName()
+		return true, deployments[name], nil
+	})
+	fake.AddReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updated := action.(ktestclient.UpdateAction).GetObject().(*kapi.ReplicationController)
+		deploymentUpdated = true
+		return true, updated, nil
+	})
 
 	var rollingConfig *kubectl.RollingUpdaterConfig
 	strategy := &RollingDeploymentStrategy{
@@ -148,15 +147,14 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	deployments := map[string]*kapi.ReplicationController{latest.Name: latest}
 
 	fake := &ktestclient.Fake{}
-	fake.ReactFn = func(action ktestclient.Action) (runtime.Object, error) {
-		switch a := action.(type) {
-		case ktestclient.GetAction:
-			return deployments[a.GetName()], nil
-		case ktestclient.UpdateAction:
-			return a.GetObject().(*kapi.ReplicationController), nil
-		}
-		return nil, nil
-	}
+	fake.AddReactor("get", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(ktestclient.GetAction).GetName()
+		return true, deployments[name], nil
+	})
+	fake.AddReactor("update", "replicationcontrollers", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updated := action.(ktestclient.UpdateAction).GetObject().(*kapi.ReplicationController)
+		return true, updated, nil
+	})
 
 	strategy := &RollingDeploymentStrategy{
 		codec:  api.Codec,

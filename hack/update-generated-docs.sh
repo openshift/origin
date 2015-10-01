@@ -12,9 +12,9 @@ source "${OS_ROOT}/hack/common.sh"
 "${OS_ROOT}/hack/build-go.sh" cmd/gendocs
 
 # Find binary
-gendocs=$( (ls -t _output/local/go/bin/gendocs) 2>/dev/null || true | head -1 )
+gendocs=$( (ls -t _output/local/bin/$(os::build::host_platform)/gendocs) 2>/dev/null || true | head -1 )
 
-if [[ ! "$gendocs" ]]; then
+if [[ -z "$gendocs" ]]; then
   {
     echo "It looks as if you don't have a compiled gendocs binary"
     echo

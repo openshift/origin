@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -60,7 +60,7 @@ func NewCmdCreateDockerConfigSecret(name, fullName string, f *cmdutil.Factory, o
 	o := &CreateDockerConfigOptions{Out: out}
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s SECRET_NAME --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL", name),
+		Use:     fmt.Sprintf("%s SECRET --docker-server=DOCKER_REGISTRY_SERVER --docker-username=DOCKER_USER --docker-password=DOCKER_PASSWORD --docker-email=DOCKER_EMAIL", name),
 		Short:   "Create a new dockercfg secret",
 		Long:    createDockercfgLong,
 		Example: fmt.Sprintf(createDockercfgExample, fullName, newSecretFullName, ocEditFullName),

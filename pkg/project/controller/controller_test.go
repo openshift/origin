@@ -6,7 +6,7 @@ import (
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/project/api"
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktestclient "k8s.io/kubernetes/pkg/client/testclient"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/util"
 )
 

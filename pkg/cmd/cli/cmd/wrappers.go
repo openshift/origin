@@ -28,28 +28,29 @@ const (
 
 Possible resources include builds, buildConfigs, services, pods, etc.`
 
-	getExample = `  // List all pods in ps output format.
+	getExample = `  # List all pods in ps output format.
   $ %[1]s get pods
 
-  // List a single replication controller with specified ID in ps output format.
+  # List a single replication controller with specified ID in ps output format.
   $ %[1]s get replicationController 1234-56-7890-234234-456456
 
-  // List a single pod in JSON output format.
+  # List a single pod in JSON output format.
   $ %[1]s get -o json pod 1234-56-7890-234234-456456
 
-  // Return only the status value of the specified pod.
+  # Return only the status value of the specified pod.
   $ %[1]s get -o template pod 1234-56-7890-234234-456456 --template={{.currentState.status}}`
 )
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	p := describe.NewHumanReadablePrinter(false, false, false, []string{})
+	p := describe.NewHumanReadablePrinter(false, false, false, false, []string{})
 	validArgs := p.HandledResources()
 
 	cmd := kcmd.NewCmdGet(f.Factory, out)
 	cmd.Long = getLong
 	cmd.Example = fmt.Sprintf(getExample, fullName)
 	cmd.ValidArgs = validArgs
+	cmd.SuggestFor = []string{"list"}
 	return cmd
 }
 
@@ -58,13 +59,13 @@ const (
 
 JSON and YAML formats are accepted.`
 
-	replaceExample = `  // Replace a pod using the data in pod.json.
+	replaceExample = `  # Replace a pod using the data in pod.json.
   $ %[1]s replace -f pod.json
 
-  // Replace a pod based on the JSON passed into stdin.
+  # Replace a pod based on the JSON passed into stdin.
   $ cat pod.json | %[1]s replace -f -
 
-  // Force replace, delete and then re-create the resource
+  # Force replace, delete and then re-create the resource
   $ %[1]s replace --force -f pod.json`
 )
 
@@ -81,7 +82,7 @@ const (
 
 JSON and YAML formats are accepted.`
 
-	patchExample = `  // Partially update a node using strategic merge patch
+	patchExample = `  # Partially update a node using strategic merge patch
   $ %[1]s patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'`
 )
 
@@ -105,19 +106,19 @@ Note that the delete command does NOT do resource version checks, so if someone
 submits an update to a resource right when you submit a delete, their update
 will be lost along with the rest of the resource.`
 
-	deleteExample = `  // Delete a pod using the type and ID specified in pod.json.
+	deleteExample = `  # Delete a pod using the type and ID specified in pod.json.
   $ %[1]s delete -f pod.json
 
-  // Delete a pod based on the type and ID in the JSON passed into stdin.
+  # Delete a pod based on the type and ID in the JSON passed into stdin.
   $ cat pod.json | %[1]s delete -f -
 
-  // Delete pods and services with label name=myLabel.
+  # Delete pods and services with label name=myLabel.
   $ %[1]s delete pods,services -l name=myLabel
 
-  // Delete a pod with ID 1234-56-7890-234234-456456.
+  # Delete a pod with ID 1234-56-7890-234234-456456.
   $ %[1]s delete pod 1234-56-7890-234234-456456
 
-  // Delete all pods
+  # Delete all pods
   $ %[1]s delete pods --all`
 )
 
@@ -126,6 +127,7 @@ func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd := kcmd.NewCmdDelete(f.Factory, out)
 	cmd.Long = deleteLong
 	cmd.Example = fmt.Sprintf(deleteExample, fullName)
+	cmd.SuggestFor = []string{"remove"}
 	return cmd
 }
 
@@ -135,10 +137,10 @@ Print the logs for a container in a pod
 
 If the pod has only one container, the container name is optional.`
 
-	logsExample = `  // Returns snapshot of ruby-container logs from pod 123456-7890.
+	logsExample = `  # Returns snapshot of ruby-container logs from pod 123456-7890.
   $ %[1]s logs 123456-7890 -c ruby-container
 
-  // Starts streaming of ruby-container logs from pod 123456-7890.
+  # Starts streaming of ruby-container logs from pod 123456-7890.
   $ %[1]s logs -f 123456-7890 -c ruby-container`
 )
 
@@ -155,10 +157,10 @@ const (
 
 JSON and YAML formats are accepted.`
 
-	createExample = `  // Create a pod using the data in pod.json.
+	createExample = `  # Create a pod using the data in pod.json.
   $ %[1]s create -f pod.json
 
-  // Create a pod based on the JSON passed into stdin.
+  # Create a pod based on the JSON passed into stdin.
   $ cat pod.json | %[1]s create -f -`
 )
 
@@ -173,10 +175,10 @@ func NewCmdCreate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 const (
 	execLong = `Execute a command in a container`
 
-	execExample = `  // Get output from running 'date' in ruby-container from pod 123456-7890
+	execExample = `  # Get output from running 'date' in ruby-container from pod 123456-7890
   $ %[1]s exec -p 123456-7890 -c ruby-container date
 
-  // Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
+  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780 and sends stdout/stderr from 'bash' back to the client
   $ %[1]s exec -p 123456-7890 -c ruby-container -i -t -- bash -il`
 )
 
@@ -191,16 +193,16 @@ func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, 
 const (
 	portForwardLong = `Forward 1 or more local ports to a pod`
 
-	portForwardExample = `  // Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
+	portForwardExample = `  # Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
   $ %[1]s port-forward -p mypod 5000 6000
 
-  // Listens on port 8888 locally, forwarding to 5000 in the pod
+  # Listens on port 8888 locally, forwarding to 5000 in the pod
   $ %[1]s port-forward -p mypod 8888:5000
 
-  // Listens on a random port locally, forwarding to 5000 in the pod
+  # Listens on a random port locally, forwarding to 5000 in the pod
   $ %[1]s port-forward -p mypod :5000
 
-  // Listens on a random port locally, forwarding to 5000 in the pod
+  # Listens on a random port locally, forwarding to 5000 in the pod
   $ %[1]s port-forward -p mypod 0:5000`
 )
 
@@ -218,10 +220,10 @@ const (
 This command joins many API calls together to form a detailed description of a
 given resource.`
 
-	describeExample = `  // Provide details about the ruby-20-centos7 image repository
+	describeExample = `  # Provide details about the ruby-20-centos7 image repository
   $ %[1]s describe imageRepository ruby-20-centos7
 
-  // Provide details about the ruby-sample-build build configuration
+  # Provide details about the ruby-sample-build build configuration
   $ %[1]s describe bc ruby-sample-build`
 )
 
@@ -237,11 +239,11 @@ func NewCmdDescribe(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 const (
 	proxyLong = `Run a proxy to the Kubernetes API server`
 
-	proxyExample = `  // Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
+	proxyExample = `  # Run a proxy to kubernetes apiserver on port 8011, serving static content from ./local/www/
   $ %[1]s proxy --port=8011 --www=./local/www/
 
-  // Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
-  // This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta3/pods/
+  # Run a proxy to kubernetes apiserver, changing the api prefix to k8s-api
+  # This makes e.g. the pods api available at localhost:8011/k8s-api/v1beta3/pods/
   $ %[1]s proxy --api-prefix=k8s-api`
 )
 
@@ -264,14 +266,14 @@ scale is sent to the server.
 Note that scaling a deployment configuration with no deployments will update the
 desired replicas in the configuration template.`
 
-	scaleExample = `  // Scale replication controller named 'foo' to 3.
+	scaleExample = `  # Scale replication controller named 'foo' to 3.
   $ %[1]s scale --replicas=3 replicationcontrollers foo
 
-  // If the replication controller named foo's current size is 2, scale foo to 3.
+  # If the replication controller named foo's current size is 2, scale foo to 3.
   $ %[1]s scale --current-replicas=2 --replicas=3 replicationcontrollers foo
 
-  // Scale the latest deployment of 'bar'. In case of no deployment, bar's template
-  // will be scaled instead.
+  # Scale the latest deployment of 'bar'. In case of no deployment, bar's template
+  # will be scaled instead.
   $ %[1]s scale --replicas=10 dc bar`
 )
 
@@ -290,16 +292,16 @@ const (
 The stop command is deprecated, all its functionalities are covered by the delete command.
 See '%[1]s delete --help' for more details.`
 
-	stopExample = `  // Shut down foo.
+	stopExample = `  # Shut down foo.
   $ %[1]s stop replicationcontroller foo
 
-  // Stop pods and services with label name=myLabel.
+  # Stop pods and services with label name=myLabel.
   $ %[1]s stop pods,services -l name=myLabel
 
-  // Shut down the service defined in service.json
+  # Shut down the service defined in service.json
   $ %[1]s stop -f service.json
 
-  // Shut down all resources in the path/to/resources directory
+  # Shut down all resources in the path/to/resources directory
   $ %[1]s stop -f path/to/resources`
 )
 
@@ -318,20 +320,20 @@ Creates a deployment config to manage the created container(s). You can choose t
 foreground for an interactive container execution.  You may pass 'run-controller/v1' to
 --generator to create a replication controller instead of a deployment config.`
 
-	runExample = `  // Starts a single instance of nginx.
+	runExample = `  # Starts a single instance of nginx.
   $ %[1]s run nginx --image=nginx
 
-  // Starts a replicated instance of nginx.
+  # Starts a replicated instance of nginx.
   $ %[1]s run nginx --image=nginx --replicas=5
 
-  // Dry run. Print the corresponding API objects without creating them.
+  # Dry run. Print the corresponding API objects without creating them.
   $ %[1]s run nginx --image=nginx --dry-run
 
-  // Start a single instance of nginx, but overload the spec of the replication
-  // controller with a partial set of values parsed from JSON.
+  # Start a single instance of nginx, but overload the spec of the replication
+  # controller with a partial set of values parsed from JSON.
   $ %[1]s run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
 
-  // Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
+  # Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
   $ %[1]s run -i -tty nginx --image=nginx --restart=Never`
 
 	// TODO: uncomment these when arguments are delivered upstream
@@ -349,6 +351,7 @@ func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 	cmd := kcmd.NewCmdRun(f.Factory, in, out, errout)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)
+	cmd.SuggestFor = []string{"image"}
 	cmd.Flags().Set("generator", "")
 	cmd.Flag("generator").Usage = "The name of the API generator to use.  Default is 'run/v1' if --restart=Always, otherwise the default is 'run-pod/v1'."
 	cmd.Flag("generator").DefValue = ""
@@ -361,14 +364,14 @@ const (
 Attach the current shell to a remote container, returning output or setting up a full
 terminal session. Can be used to debug containers and invoke interactive commands.`
 
-	attachExample = `  // get output from running pod 123456-7890, using the first container by default
+	attachExample = `  # Get output from running pod 123456-7890, using the first container by default
   $ %[1]s attach 123456-7890
 
-  // get output from ruby-container from pod 123456-7890
+  # Get output from ruby-container from pod 123456-7890
   $ %[1]s attach 123456-7890 -c ruby-container date
 
-  // switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
-  // and sends stdout/stderr from 'bash' back to the client
+  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
+  # and sends stdout/stderr from 'bash' back to the client
   $ %[1]s attach 123456-7890 -c ruby-container -i -t`
 )
 
@@ -393,22 +396,22 @@ otherwise the existing resource-version will be used.
 
 Run '%[1]s types' for a list of valid resources.`
 
-	annotateExample = `  // Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
-  // If the same annotation is set multiple times, only the last value will be applied
+	annotateExample = `  # Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
+  # If the same annotation is set multiple times, only the last value will be applied
   $ %[1]s annotate pods foo description='my frontend'
 
-  // Update pod 'foo' with the annotation 'description' and the value
-  // 'my frontend running nginx', overwriting any existing value.
+  # Update pod 'foo' with the annotation 'description' and the value
+  # 'my frontend running nginx', overwriting any existing value.
   $ %[1]s annotate --overwrite pods foo description='my frontend running nginx'
 
-  // Update all pods in the namespace
+  # Update all pods in the namespace
   $ %[1]s annotate pods --all description='my frontend running nginx'
 
-  // Update pod 'foo' only if the resource is unchanged from version 1.
+  # Update pod 'foo' only if the resource is unchanged from version 1.
   $ %[1]s annotate pods foo description='my frontend running nginx' --resource-version=1
 
-  // Update pod 'foo' by removing an annotation named 'description' if it exists.
-  // Does not require the --overwrite flag.
+  # Update pod 'foo' by removing an annotation named 'description' if it exists.
+  # Does not require the --overwrite flag.
   $ %[1]s annotate pods foo description-`
 )
 
@@ -429,20 +432,20 @@ attempting to overwrite a label will result in an error. If --resource-version i
 specified, then updates will use this resource version, otherwise the existing
 resource-version will be used.`
 
-	labelExample = `  // Update pod 'foo' with the label 'unhealthy' and the value 'true'.
+	labelExample = `  # Update pod 'foo' with the label 'unhealthy' and the value 'true'.
   $ %[1]s label pods foo unhealthy=true
 
-  // Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
+  # Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
   $ %[1]s label --overwrite pods foo status=unhealthy
 
-  // Update all pods in the namespace
+  # Update all pods in the namespace
   $ %[1]s label pods --all status=unhealthy
 
-  // Update pod 'foo' only if the resource is unchanged from version 1.
+  # Update pod 'foo' only if the resource is unchanged from version 1.
   $ %[1]s label pods foo status=unhealthy --resource-version=1
 
-  // Update pod 'foo' by removing a label named 'bar' if it exists.
-  // Does not require the --overwrite flag.
+  # Update pod 'foo' by removing a label named 'bar' if it exists.
+  # Does not require the --overwrite flag.
   $ %[1]s label pods foo bar-`
 )
 

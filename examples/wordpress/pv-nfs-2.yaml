@@ -7,6 +7,7 @@ spec:
     storage: 5Gi
   accessModes:
     - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
   nfs:
     server: localhost
     path: /home/data/pv0002

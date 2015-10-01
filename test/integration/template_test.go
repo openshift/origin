@@ -11,13 +11,14 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
 	testutil.RequireEtcd()
 }
 func TestTemplate(t *testing.T) {
-	_, path, err := testutil.StartTestMaster()
+	_, path, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

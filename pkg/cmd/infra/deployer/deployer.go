@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/api/latest"

@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 type fakeUser struct {
@@ -288,7 +289,7 @@ func TestTagVerifier(t *testing.T) {
 					ResourceName: "otherstream",
 				},
 				User:   "user",
-				Groups: util.NewStringSet("group1"),
+				Groups: sets.NewString("group1"),
 			}
 			if e, a := expectedSar, sar.request; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s: unexpected SAR request: %s", name, util.ObjectDiff(e, a))

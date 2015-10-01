@@ -67,7 +67,7 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 		},
 	}
 
-	// allow the master IP address to be overriden on a per process basis
+	// allow the master IP address to be overridden on a per process basis
 	masterAddr := flagtypes.Addr{
 		Value:         "127.0.0.1:8443",
 		DefaultScheme: "https",
@@ -75,7 +75,7 @@ func NewCommandStartMasterAPI(name, basename string, out io.Writer) (*cobra.Comm
 		AllowPrefix:   true,
 	}.Default()
 
-	// allow the listen address to be overriden on a per process basis
+	// allow the listen address to be overridden on a per process basis
 	listenArg := &ListenArg{
 		ListenAddr: flagtypes.Addr{
 			Value:         "127.0.0.1:8444",

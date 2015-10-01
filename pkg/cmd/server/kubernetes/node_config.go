@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang/glog"
 	kapp "k8s.io/kubernetes/cmd/kubelet/app"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/util"

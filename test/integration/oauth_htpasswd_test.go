@@ -7,13 +7,14 @@ import (
 	"os"
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestHTPasswd(t *testing.T) {
@@ -23,7 +24,7 @@ func TestHTPasswd(t *testing.T) {
 	}
 	defer os.Remove(htpasswdFile.Name())
 
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -39,7 +40,7 @@ func TestHTPasswd(t *testing.T) {
 		},
 	}
 
-	clusterAdminKubeConfig, err := testutil.StartConfiguredMaster(masterOptions)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

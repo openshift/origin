@@ -9,11 +9,12 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -248,24 +249,24 @@ func (o AddSecretOptions) getSecrets() ([]*kapi.Secret, error) {
 	return secrets, nil
 }
 
-func getSecretNames(secrets []*kapi.Secret) util.StringSet {
-	names := util.StringSet{}
+func getSecretNames(secrets []*kapi.Secret) sets.String {
+	names := sets.String{}
 	for _, secret := range secrets {
 		names.Insert(secret.Name)
 	}
 	return names
 }
 
-func getMountSecretNames(serviceaccount *kapi.ServiceAccount) util.StringSet {
-	names := util.StringSet{}
+func getMountSecretNames(serviceaccount *kapi.ServiceAccount) sets.String {
+	names := sets.String{}
 	for _, secret := range serviceaccount.Secrets {
 		names.Insert(secret.Name)
 	}
 	return names
 }
 
-func getPullSecretNames(serviceaccount *kapi.ServiceAccount) util.StringSet {
-	names := util.StringSet{}
+func getPullSecretNames(serviceaccount *kapi.ServiceAccount) sets.String {
+	names := sets.String{}
 	for _, secret := range serviceaccount.ImagePullSecrets {
 		names.Insert(secret.Name)
 	}

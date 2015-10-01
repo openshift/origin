@@ -8,6 +8,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -40,7 +41,7 @@ func TestMergeResolver(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Unexpected results %v", results)
 	}
-	expectedNames := util.NewStringSet("b", "d")
+	expectedNames := sets.NewString("b", "d")
 	for _, item := range results {
 		if !expectedNames.Has(item.Name) {
 			t.Errorf("Unexpected name %v", item.Name)
@@ -55,7 +56,7 @@ func TestOrphanDeploymentResolver(t *testing.T) {
 	deploymentConfigs := []*deployapi.DeploymentConfig{activeDeploymentConfig}
 	deployments := []*kapi.ReplicationController{}
 
-	expectedNames := util.StringSet{}
+	expectedNames := sets.String{}
 	deploymentStatusOptions := []deployapi.DeploymentStatus{
 		deployapi.DeploymentStatusComplete,
 		deployapi.DeploymentStatusFailed,
@@ -68,7 +69,7 @@ func TestOrphanDeploymentResolver(t *testing.T) {
 		deployapi.DeploymentStatusComplete,
 		deployapi.DeploymentStatusFailed,
 	}
-	deploymentStatusFilterSet := util.StringSet{}
+	deploymentStatusFilterSet := sets.String{}
 	for _, deploymentStatus := range deploymentStatusFilter {
 		deploymentStatusFilterSet.Insert(string(deploymentStatus))
 	}
@@ -89,7 +90,7 @@ func TestOrphanDeploymentResolver(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-	foundNames := util.StringSet{}
+	foundNames := sets.String{}
 	for _, result := range results {
 		foundNames.Insert(result.Name)
 	}
@@ -131,9 +132,9 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 	for keep := 0; keep < deploymentsPerStatus*2; keep++ {
 		dataSet := NewDataSet(deploymentConfigs, deployments)
 
-		expectedNames := util.StringSet{}
-		deploymentCompleteStatusFilterSet := util.NewStringSet(string(deployapi.DeploymentStatusComplete))
-		deploymentFailedStatusFilterSet := util.NewStringSet(string(deployapi.DeploymentStatusFailed))
+		expectedNames := sets.String{}
+		deploymentCompleteStatusFilterSet := sets.NewString(string(deployapi.DeploymentStatusComplete))
+		deploymentFailedStatusFilterSet := sets.NewString(string(deployapi.DeploymentStatusFailed))
 
 		for _, deploymentConfig := range deploymentConfigs {
 			deploymentItems, err := dataSet.ListDeploymentsByDeploymentConfig(deploymentConfig)
@@ -172,7 +173,7 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error %v", err)
 		}
-		foundNames := util.StringSet{}
+		foundNames := sets.String{}
 		for _, result := range results {
 			foundNames.Insert(result.Name)
 		}

@@ -38,10 +38,10 @@ create your own projects, contact your system administrator.
 
 After your project is created it will be made your default project in your config.`
 
-	requestProjectExample = `  // Create a new project with minimal information
+	requestProjectExample = `  # Create a new project with minimal information
   $ %[1]s web-team-dev
 
-  // Create a new project with a display name and description
+  # Create a new project with a display name and description
   $ %[1]s web-team-dev --display-name="Web Team Development" --description="Development project for the web team."`
 )
 

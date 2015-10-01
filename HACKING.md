@@ -138,7 +138,7 @@ The script launches an instance of etcd and then invokes the integration tests. 
 execute a subset of integration tests, run:
 
     $ hack/test-integration.sh <regex>
-    
+
 Where `<regex>` is some regular expression that matches the names of all of the tests you want to run.
 The regular expression is passed into `grep -E`, so ensure that the syntax or features you use are supported.
 The default regular expression used is `Test`, which matches all tests.
@@ -186,7 +186,8 @@ were properly reflected* in the Origin codebase.
 ### 1. Preparation
 
 Before you begin, make sure you have both [openshift/origin](https://github.com/openshift/origin) and
-[kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) in your $GOPATH:
+[kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) in your $GOPATH. You may want to work
+on a separate $GOPATH just for the rebase:
 
 ```
 $ go get github.com/openshift/origin
@@ -214,7 +215,6 @@ with rebasing the Kubernetes code using the script that automates this process.
 ```
 $ cd $GOPATH/src/github.com/openshift/origin
 $ hack/rebase-kube.sh
-$ hack/copy-kube-artifacts.sh
 ```
 
 Read over the changes with `git status` and make sure it looks reasonable. Check specially the
@@ -280,6 +280,9 @@ codebase to make sure the compilation is not broken, all tests pass and it's com
 refactorings, architectural changes or behavior changes introduced in Kubernetes. Make sure:
 
 1. `make clean ; hack/build-go.sh` compiles without errors and the standalone server starts correctly.
+1. all of our generated code is up to date by running all `hack/update-*` scripts.
+1. `hack/verify-open-ports.sh` runs without errors.
+1. `hack/copy-kube-artifacts.sh` so Kubernetes tests can be fully functional. The diff resulting from this script should be squashed into the Kube bump commit. 
 2. `TEST_KUBE=1 hack/test-go.sh` runs without errors.
 3. `hack/test-cmd.sh` runs without errors.
 3. `hack/test-integration.sh` runs without errors.
@@ -302,9 +305,11 @@ Place all your changes in a commit called "Refactor to match changes upstream".
 
 A typical pull request for your Kubernetes rebase will contain:
 
-1. One commit for the Godeps bump (`bump(k8s.io/kubernetes):<commit SHA>`).
-2. Zero, one or more cherry-picked commits tagged UPSTREAM.
-3. One commit "Refactor to match changes upstream".
+1. One commit for the Kuberentes Godeps bump (`bump(k8s.io/kubernetes):<commit SHA>`).
+2. Zero, one, or more bump commits for any **shared** dependencies between Origin and Kubernetes that have been bumped. Any transitive dependencies coming from Kubernetes should be squashed in the Kube bump commit.
+3. Zero, one, or more cherry-picked commits tagged UPSTREAM.
+4. One commit "Boring refactor to match changes upstream" that includes boring changes like imports rewriting, etc.
+5. One commit "Interesting refactor to match changes upstream" that includes interesting changes like new plugins or controller changes.
 
 ## Updating other Godeps from upstream
 
@@ -347,13 +352,13 @@ OpenShift integrates the go `pprof` tooling to make it easy to capture CPU and h
   * `mem` - generate a running heap dump that tracks allocations to `./mem.pprof`
   * `web` - start the pprof webserver in process at http://127.0.0.1:6060/debug/pprof (you can open this in a browser)
 
-In order to start the server in CPU profiling mode, run: 
+In order to start the server in CPU profiling mode, run:
 
-    $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/go/bin/openshift start
+    $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/bin/linux/amd64/openshift start
 
 To view profiles, you use [pprof] which is part of `go tool`.  You must pass the binary you are debugging (for symbols) and a captured pprof.  For instance, to view a `cpu` profile from above, you would run OpenShift to completion, and then run:
 
-    $ go tool pprof ./_output/local/go/bin/openshift cpu.pprof
+    $ go tool pprof ./_output/local/bin/linux/amd64/openshift cpu.pprof
 
 This will open the `pprof` shell, and you can then run:
 
@@ -375,18 +380,18 @@ to launch a web browser window showing you where CPU time is going.
 
 `pprof` supports CLI arguments for looking at profiles in different ways - memory profiles by default show allocated space:
 
-    $ go tool pprof ./_output/local/go/bin/openshift mem.pprof
+    $ go tool pprof ./_output/local/bin/linux/amd64/openshift mem.pprof
 
 but you can also see the allocated object counts:
 
-    $ go tool pprof --alloc_objects ./_output/local/go/bin/openshift mem.pprof
+    $ go tool pprof --alloc_objects ./_output/local/bin/linux/amd64/openshift mem.pprof
 
 Finally, when using the `web` profile mode, you can have the go tool directly fetch your profiles via HTTP:
 
     # for a 30s CPU trace
-    $ go tool pprof ./_output/local/go/bin/openshift http://127.0.0.1:6060/debug/pprof/profile
+    $ go tool pprof ./_output/local/bin/linux/amd64/openshift http://127.0.0.1:6060/debug/pprof/profile
 
     # for a snapshot heap dump at the current time, showing total allocations
-    $ go tool pprof --alloc_space ./_output/local/go/bin/openshift http://127.0.0.1:6060/debug/pprof/heap
+    $ go tool pprof --alloc_space ./_output/local/bin/linux/amd64/openshift http://127.0.0.1:6060/debug/pprof/heap
 
 See [debugging Go programs](https://golang.org/pkg/net/http/pprof/) for more info.  `pprof` has many modes and is very powerful (try `tree`) - you can pass a regex to many arguments to limit your results to only those samples that match the regex (basically the function name or the call stack).

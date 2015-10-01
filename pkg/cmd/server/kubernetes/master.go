@@ -10,8 +10,8 @@ import (
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
 	"k8s.io/kubernetes/pkg/client/record"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
@@ -57,7 +57,9 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 
 // RunNamespaceController starts the Kubernetes Namespace Manager
 func (c *MasterConfig) RunNamespaceController() {
-	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, c.ControllerManager.NamespaceSyncPeriod)
+	// TODO: Add OR c.ControllerManager.EnableDeploymentController once we have upstream deployments
+	experimentalMode := c.ControllerManager.EnableHorizontalPodAutoscaler
+	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, experimentalMode, c.ControllerManager.NamespaceSyncPeriod)
 	namespaceController.Run()
 }
 
@@ -68,7 +70,7 @@ func (c *MasterConfig) RunPersistentVolumeClaimBinder() {
 }
 
 func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string) {
-	defaultScrubPod := volume.GetDefaultPersistentVolumeRecyclerPod()
+	defaultScrubPod := volume.NewPersistentVolumeRecyclerPodTemplate()
 	defaultScrubPod.Spec.Containers[0].Image = recyclerImageName
 	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/share/openshift/scripts/volumes/recycler.sh"}
 	defaultScrubPod.Spec.Containers[0].Args = []string{"/scrub"}
@@ -76,12 +78,12 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 	hostPathConfig := volume.VolumeConfig{
 		RecyclerMinimumTimeout:   30,
 		RecyclerTimeoutIncrement: 30,
-		RecyclerDefaultPod:       defaultScrubPod,
+		RecyclerPodTemplate:      defaultScrubPod,
 	}
 	nfsConfig := volume.VolumeConfig{
 		RecyclerMinimumTimeout:   180,
 		RecyclerTimeoutIncrement: 30,
-		RecyclerDefaultPod:       defaultScrubPod,
+		RecyclerPodTemplate:      defaultScrubPod,
 	}
 
 	allPlugins := []volume.VolumePlugin{}
@@ -136,7 +138,7 @@ func (c *MasterConfig) RunNodeController() {
 		c.KubeClient,
 		s.PodEvictionTimeout,
 
-		nodecontroller.NewPodEvictor(util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst)),
+		util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst),
 
 		s.NodeMonitorGracePeriod,
 		s.NodeStartupGracePeriod,

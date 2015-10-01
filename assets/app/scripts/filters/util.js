@@ -124,8 +124,16 @@ angular.module('openshiftConsole')
   .filter('helpLink', function() {
     return function(type) {
       switch(type) {
+        case "cli":
+          return "https://docs.openshift.org/latest/cli_reference/overview.html";
+        case "get_started_cli":
+          return "https://docs.openshift.org/latest/cli_reference/get_started_cli.html";
+        case "basic_cli_operations":
+          return "https://docs.openshift.org/latest/cli_reference/basic_cli_operations.html";
         case "webhooks":
           return "http://docs.openshift.org/latest/dev_guide/builds.html#webhook-triggers";
+        case "new_app":
+          return "http://docs.openshift.org/latest/dev_guide/new_app.html";
         case "start-build":
           return "http://docs.openshift.org/latest/dev_guide/builds.html#starting-a-build";
         case "deployment-operations":
@@ -156,12 +164,25 @@ angular.module('openshiftConsole')
     };
   })
   .filter('githubLink', function() {
-    return function(link, commit) {
-      var m = link.match(/^(?:https?:\/\/|git:\/\/|git\+ssh:\/\/|git\+https:\/\/)?(?:[^@]+@)?github\.com[:\/]([^\/]+\/[^\/]+?)(?:\.git(#.*)?)?$/);
+    return function(link, ref, contextDir) {
+      var m = link.match(/^(?:https?:\/\/|git:\/\/|git\+ssh:\/\/|git\+https:\/\/)?(?:[^@]+@)?github\.com[:\/]([^\/]+\/[^\/]+?)(\/|(?:\.git(#.*)?))?$/);
       if (m) {
         link = "https://github.com/" + m[1];
-        if (commit) {
-          link += "/commit/" + commit;
+        // Remove leading / if there is one
+        if (contextDir && contextDir.charAt(0) === "/") {
+          contextDir = contextDir.substring(1);
+        }
+
+        // always use /tree for a generic ref instead of /commit or /blob, /tree will always resolve to the right thing.
+        if (contextDir) {
+          // Encode it in case there are funky characters in the folder names
+          contextDir = encodeURIComponent(contextDir);
+          // But then unencode the / characters
+          contextDir = contextDir.replace("%2F", "/");
+          link += "/tree/" + (encodeURIComponent(ref) || "master") + "/" + contextDir;
+        }
+        else if (ref && ref !== "master") {
+          link += "/tree/" + encodeURIComponent(ref);
         }
       }
       return link;
@@ -263,5 +284,16 @@ angular.module('openshiftConsole')
       }
 
       return "";
+    };
+  })
+  .filter('humanize', function() {
+    return function(kind) {
+      return kind
+          // insert a space between lower & upper
+          .replace(/([a-z])([A-Z])/g, '$1 $2')
+          // space before last upper in a sequence followed by lower
+          .replace(/\b([A-Z]+)([A-Z])([a-z])/, '$1 $2$3')
+          // uppercase the first character
+          .replace(/^./, function(str){ return str.toUpperCase(); });
     };
   });

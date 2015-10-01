@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-ldap/ldap"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -62,8 +62,8 @@ type LDAPUserAttributeDefiner struct {
 }
 
 // AllAttributes gets all attributes listed in the LDAPUserAttributeDefiner
-func (d *LDAPUserAttributeDefiner) AllAttributes() util.StringSet {
-	attrs := util.NewStringSet(d.attributeMapping.Email...)
+func (d *LDAPUserAttributeDefiner) AllAttributes() sets.String {
+	attrs := sets.NewString(d.attributeMapping.Email...)
 	attrs.Insert(d.attributeMapping.Name...)
 	attrs.Insert(d.attributeMapping.PreferredUsername...)
 	attrs.Insert(d.attributeMapping.ID...)
@@ -72,28 +72,28 @@ func (d *LDAPUserAttributeDefiner) AllAttributes() util.StringSet {
 
 // Email extracts the email value from an LDAP user entry
 func (d *LDAPUserAttributeDefiner) Email(user *ldap.Entry) string {
-	return getAttributeValue(user, d.attributeMapping.Email)
+	return GetAttributeValue(user, d.attributeMapping.Email)
 }
 
 // Name extracts the name value from an LDAP user entry
 func (d *LDAPUserAttributeDefiner) Name(user *ldap.Entry) string {
-	return getAttributeValue(user, d.attributeMapping.Name)
+	return GetAttributeValue(user, d.attributeMapping.Name)
 }
 
 // PreferredUsername extracts the preferred username value from an LDAP user entry
 func (d *LDAPUserAttributeDefiner) PreferredUsername(user *ldap.Entry) string {
-	return getAttributeValue(user, d.attributeMapping.PreferredUsername)
+	return GetAttributeValue(user, d.attributeMapping.PreferredUsername)
 }
 
 // ID extracts the ID value from an LDAP user entry
 func (d *LDAPUserAttributeDefiner) ID(user *ldap.Entry) string {
-	return getAttributeValue(user, d.attributeMapping.ID)
+	return GetAttributeValue(user, d.attributeMapping.ID)
 }
 
-// getAttributeValue finds the first attribute of those given that the LDAP entry has, and
-// returns it. getAttributeValue is able to query the DN as well as Attributes of the LDAP entry.
+// GetAttributeValue finds the first attribute of those given that the LDAP entry has, and
+// returns it. GetAttributeValue is able to query the DN as well as Attributes of the LDAP entry.
 // If no value is found, the empty string is returned.
-func getAttributeValue(entry *ldap.Entry, attributes []string) string {
+func GetAttributeValue(entry *ldap.Entry, attributes []string) string {
 	for _, k := range attributes {
 		// Ignore empty attributes
 		if len(k) == 0 {

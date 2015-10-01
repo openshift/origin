@@ -40,6 +40,8 @@ SKIP_TESTS=(
   Kibana                  # Not installed
   DNS                     # Can't depend on kube-dns
   kube-ui                 # Not installed by default
+  DaemonRestart           # Experimental mode not enabled yet
+  "Daemon set"            # Experimental mode not enabled yet
 
   # Need fixing
   "Cluster upgrade"       # panic because createNS not called, refactor framework?
@@ -57,6 +59,9 @@ SKIP_TESTS=(
   "should provide labels and annotations files" # the image can't read the files
   "Ask kubelet to report container resource usage" # container resource usage not exposed yet?
   "should provide Internet connection for containers" # DNS inside container failing!!!
+  "able to delete 10 pods per node" # Panic because stats port isn't exposed
+
+  "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
 
   # Needs triage to determine why it is failing
   "Addon update"          # TRIAGE
@@ -97,4 +102,4 @@ fi
 echo "[INFO] Running extended tests"
 
 # Run the tests
-TMPDIR=${BASETMPDIR} ginkgo -progress -stream -v -p "-skip=${SKIP}" "$@" ${OS_OUTPUT_BINPATH}/extended.test
+TMPDIR=${BASETMPDIR} ginkgo -progress -stream -v "-skip=${SKIP}" "$@" ${OS_OUTPUT_BINPATH}/extended.test

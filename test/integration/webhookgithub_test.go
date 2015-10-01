@@ -10,7 +10,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func init() {
@@ -25,7 +26,7 @@ func init() {
 }
 
 func TestWebhookGitHubPushWithImage(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -48,7 +49,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	checkErr(t, err)
 
-	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -122,7 +123,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 }
 
 func TestWebhookGitHubPushWithImageStream(t *testing.T) {
-	_, clusterAdminKubeConfig, err := testutil.StartTestMaster()
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -145,7 +146,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if err := testutil.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

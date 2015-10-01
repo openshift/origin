@@ -10,8 +10,11 @@ import (
 	"github.com/openshift/origin/pkg/route/api"
 )
 
-// RouteGenerator implements the kubectl.Generator interface for routes
+// RouteGenerator generates routes from a given set of parameters
 type RouteGenerator struct{}
+
+// RouteGenerator implements the kubectl.Generator interface for routes
+var _ kubectl.Generator = RouteGenerator{}
 
 // ParamNames returns the parameters required for generating a route
 func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
@@ -24,11 +27,20 @@ func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
 }
 
 // Generate accepts a set of parameters and maps them into a new route
-func (RouteGenerator) Generate(params map[string]string) (runtime.Object, error) {
+func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Object, error) {
 	var (
 		labels map[string]string
 		err    error
 	)
+
+	params := map[string]string{}
+	for key, value := range genericParams {
+		strVal, isString := value.(string)
+		if !isString {
+			return nil, fmt.Errorf("expected string, saw %v for '%s'", value, key)
+		}
+		params[key] = strVal
+	}
 
 	labelString, found := params["labels"]
 	if found && len(labelString) > 0 {
@@ -59,7 +71,3 @@ func (RouteGenerator) Generate(params map[string]string) (runtime.Object, error)
 		},
 	}, nil
 }
-
-// Useful pattern for validating that RouteGenerator implements
-// the Generator interface
-var _ kubectl.Generator = RouteGenerator{}

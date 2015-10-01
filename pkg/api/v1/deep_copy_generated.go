@@ -883,6 +883,12 @@ func deepCopy_v1_BuildRequest(in apiv1.BuildRequest, out *apiv1.BuildRequest, c 
 
 func deepCopy_v1_BuildSource(in apiv1.BuildSource, out *apiv1.BuildSource, c *conversion.Cloner) error {
 	out.Type = in.Type
+	if in.Dockerfile != nil {
+		out.Dockerfile = new(string)
+		*out.Dockerfile = *in.Dockerfile
+	} else {
+		out.Dockerfile = nil
+	}
 	if in.Git != nil {
 		out.Git = new(apiv1.GitBuildSource)
 		if err := deepCopy_v1_GitBuildSource(*in.Git, out.Git, c); err != nil {
@@ -954,6 +960,7 @@ func deepCopy_v1_BuildStatus(in apiv1.BuildStatus, out *apiv1.BuildStatus, c *co
 		out.CompletionTimestamp = nil
 	}
 	out.Duration = in.Duration
+	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
 		if newVal, err := c.DeepCopy(in.Config); err != nil {
 			return err
@@ -1374,6 +1381,8 @@ func deepCopy_v1_DeploymentDetails(in deployapiv1.DeploymentDetails, out *deploy
 		for i := range in.Causes {
 			if newVal, err := c.DeepCopy(in.Causes[i]); err != nil {
 				return err
+			} else if newVal == nil {
+				out.Causes[i] = nil
 			} else {
 				out.Causes[i] = newVal.(*deployapiv1.DeploymentCause)
 			}
@@ -1472,6 +1481,14 @@ func deepCopy_v1_ExecNewPodHook(in deployapiv1.ExecNewPodHook, out *deployapiv1.
 		out.Env = nil
 	}
 	out.ContainerName = in.ContainerName
+	if in.Volumes != nil {
+		out.Volumes = make([]string, len(in.Volumes))
+		for i := range in.Volumes {
+			out.Volumes[i] = in.Volumes[i]
+		}
+	} else {
+		out.Volumes = nil
+	}
 	return nil
 }
 

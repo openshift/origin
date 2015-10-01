@@ -28,6 +28,17 @@ func init() {
 			if len(obj.RoutingConfig.Subdomain) == 0 {
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
 			}
+
+			// Populate the new NetworkConfig.ServiceNetworkCIDR field from the KubernetesMasterConfig.ServicesSubnet field if needed
+			if len(obj.NetworkConfig.ServiceNetworkCIDR) == 0 {
+				if obj.KubernetesMasterConfig != nil && len(obj.KubernetesMasterConfig.ServicesSubnet) > 0 {
+					// if a subnet is set in the kubernetes master config, use that
+					obj.NetworkConfig.ServiceNetworkCIDR = obj.KubernetesMasterConfig.ServicesSubnet
+				} else {
+					// default ServiceClusterIPRange used by kubernetes if nothing is specified
+					obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
+				}
+			}
 		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {

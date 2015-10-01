@@ -82,9 +82,10 @@ var cmdDeprecated = &Command{
 }
 
 var cmdTimes = &Command{
-	Use:   "times [# times] [string to echo]",
-	Short: "Echo anything to the screen more times",
-	Long:  `a slightly useless command for testing.`,
+	Use:        "times [# times] [string to echo]",
+	SuggestFor: []string{"counts"},
+	Short:      "Echo anything to the screen more times",
+	Long:       `a slightly useless command for testing.`,
 	PersistentPreRun: func(cmd *Command, args []string) {
 		timesPersPre = args
 	},
@@ -416,8 +417,11 @@ func TestGrandChildSameName(t *testing.T) {
 }
 
 func TestFlagLong(t *testing.T) {
-	noRRSetupTest("echo --intone=13 something here")
+	noRRSetupTest("echo --intone=13 something -- here")
 
+	if cmdEcho.ArgsLenAtDash() != 1 {
+		t.Errorf("expected argsLenAtDash: %d but got %d", 1, cmdRootNoRun.ArgsLenAtDash())
+	}
 	if strings.Join(te, " ") != "something here" {
 		t.Errorf("flags didn't leave proper args remaining..%s given", te)
 	}
@@ -430,8 +434,11 @@ func TestFlagLong(t *testing.T) {
 }
 
 func TestFlagShort(t *testing.T) {
-	noRRSetupTest("echo -i13 something here")
+	noRRSetupTest("echo -i13 -- something here")
 
+	if cmdEcho.ArgsLenAtDash() != 0 {
+		t.Errorf("expected argsLenAtDash: %d but got %d", 0, cmdRootNoRun.ArgsLenAtDash())
+	}
 	if strings.Join(te, " ") != "something here" {
 		t.Errorf("flags didn't leave proper args remaining..%s given", te)
 	}
@@ -632,10 +639,10 @@ func TestNonRunChildHelp(t *testing.T) {
 }
 
 func TestRunnableRootCommand(t *testing.T) {
-	fullSetupTest("")
+	x := fullSetupTest("")
 
 	if rootcalled != true {
-		t.Errorf("Root Function was not called")
+		t.Errorf("Root Function was not called\n out:%v", x.Error)
 	}
 }
 
@@ -650,7 +657,10 @@ func TestRunnableRootCommandNilInput(t *testing.T) {
 	c.AddCommand(cmdPrint, cmdEcho)
 	c.SetArgs(empty_arg)
 
-	c.Execute()
+	err := c.Execute()
+	if err != nil {
+		t.Errorf("Execute() failed with %v", err)
+	}
 
 	if rootcalled != true {
 		t.Errorf("Root Function was not called")
@@ -807,22 +817,33 @@ func TestRootSuggestions(t *testing.T) {
 	cmd.AddCommand(cmdTimes)
 
 	tests := map[string]string{
-		"time":  "times",
-		"tiems": "times",
-		"timeS": "times",
-		"rimes": "times",
+		"time":     "times",
+		"tiems":    "times",
+		"tims":     "times",
+		"timeS":    "times",
+		"rimes":    "times",
+		"ti":       "times",
+		"t":        "times",
+		"timely":   "times",
+		"ri":       "",
+		"timezone": "",
+		"foo":      "",
+		"counts":   "times",
 	}
 
 	for typo, suggestion := range tests {
-		cmd.DisableSuggestions = false
-		result := simpleTester(cmd, typo)
-		if expected := fmt.Sprintf(outputWithSuggestions, typo, suggestion); result.Output != expected {
-			t.Errorf("Unexpected response.\nExpecting to be:\n %q\nGot:\n %q\n", expected, result.Output)
-		}
-		cmd.DisableSuggestions = true
-		result = simpleTester(cmd, typo)
-		if expected := fmt.Sprintf(outputWithoutSuggestions, typo); result.Output != expected {
-			t.Errorf("Unexpected response.\nExpecting to be:\n %q\nGot:\n %q\n", expected, result.Output)
+		for _, suggestionsDisabled := range []bool{false, true} {
+			cmd.DisableSuggestions = suggestionsDisabled
+			result := simpleTester(cmd, typo)
+			expected := ""
+			if len(suggestion) == 0 || suggestionsDisabled {
+				expected = fmt.Sprintf(outputWithoutSuggestions, typo)
+			} else {
+				expected = fmt.Sprintf(outputWithSuggestions, typo, suggestion)
+			}
+			if result.Output != expected {
+				t.Errorf("Unexpected response.\nExpecting to be:\n %q\nGot:\n %q\n", expected, result.Output)
+			}
 		}
 	}
 }

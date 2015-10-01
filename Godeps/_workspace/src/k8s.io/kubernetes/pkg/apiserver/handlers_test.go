@@ -31,7 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 type fakeRL bool
@@ -52,11 +52,11 @@ func expectHTTP(url string, code int, t *testing.T) {
 }
 
 func getPath(resource, namespace, name string) string {
-	return testapi.ResourcePath(resource, namespace, name)
+	return testapi.Default.ResourcePath(resource, namespace, name)
 }
 
 func pathWithPrefix(prefix, resource, namespace, name string) string {
-	return testapi.ResourcePathWithPrefix(prefix, resource, namespace, name)
+	return testapi.Default.ResourcePathWithPrefix(prefix, resource, namespace, name)
 }
 
 func TestMaxInFlight(t *testing.T) {
@@ -67,9 +67,16 @@ func TestMaxInFlight(t *testing.T) {
 
 	re := regexp.MustCompile("[.*\\/watch][^\\/proxy.*]")
 
+	// Calls verifies that the server is actually blocked up before running the rest of the test
+	calls := &sync.WaitGroup{}
+	calls.Add(Iterations * 3)
+
 	server := httptest.NewServer(MaxInFlightLimit(sem, re, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "dontwait") {
 			return
+		}
+		if calls != nil {
+			calls.Done()
 		}
 		block.Wait()
 	})))
@@ -82,6 +89,7 @@ func TestMaxInFlight(t *testing.T) {
 			expectHTTP(server.URL+"/foo/bar/watch", http.StatusOK, t)
 		}()
 	}
+
 	for i := 0; i < Iterations; i++ {
 		// These should hang waiting on block...
 		go func() {
@@ -96,15 +104,17 @@ func TestMaxInFlight(t *testing.T) {
 			expectHTTP(server.URL, http.StatusOK, t)
 		}()
 	}
-	// There's really no more elegant way to do this.  I could use a WaitGroup, but even then
-	// it'd still be racy.
-	time.Sleep(1 * time.Second)
-	expectHTTP(server.URL+"/dontwait/watch", http.StatusOK, t)
+	calls.Wait()
+	calls = nil
 
 	// Do this multiple times to show that it rate limit rejected requests don't block.
 	for i := 0; i < 2; i++ {
 		expectHTTP(server.URL, errors.StatusTooManyRequests, t)
 	}
+
+	// Validate that non-accounted URLs still work
+	expectHTTP(server.URL+"/dontwait/watch", http.StatusOK, t)
+
 	block.Done()
 
 	// Show that we recover from being blocked up.
@@ -231,22 +241,22 @@ func TestGetAPIRequestInfo(t *testing.T) {
 		{"GET", "/watch/namespaces/other/pods", "watch", "", "other", "pods", "", "Pod", "", []string{"pods"}},
 
 		// fully-qualified paths
-		{"GET", getPath("pods", "other", ""), "list", testapi.Version(), "other", "pods", "", "Pod", "", []string{"pods"}},
-		{"GET", getPath("pods", "other", "foo"), "get", testapi.Version(), "other", "pods", "", "Pod", "foo", []string{"pods", "foo"}},
-		{"GET", getPath("pods", "", ""), "list", testapi.Version(), api.NamespaceAll, "pods", "", "Pod", "", []string{"pods"}},
-		{"POST", getPath("pods", "", ""), "create", testapi.Version(), api.NamespaceAll, "pods", "", "Pod", "", []string{"pods"}},
-		{"GET", getPath("pods", "", "foo"), "get", testapi.Version(), api.NamespaceAll, "pods", "", "Pod", "foo", []string{"pods", "foo"}},
-		{"GET", pathWithPrefix("proxy", "pods", "", "foo"), "proxy", testapi.Version(), api.NamespaceAll, "pods", "", "Pod", "foo", []string{"pods", "foo"}},
-		{"GET", pathWithPrefix("watch", "pods", "", ""), "watch", testapi.Version(), api.NamespaceAll, "pods", "", "Pod", "", []string{"pods"}},
-		{"GET", pathWithPrefix("redirect", "pods", "", ""), "redirect", testapi.Version(), api.NamespaceAll, "pods", "", "Pod", "", []string{"pods"}},
-		{"GET", pathWithPrefix("watch", "pods", "other", ""), "watch", testapi.Version(), "other", "pods", "", "Pod", "", []string{"pods"}},
+		{"GET", getPath("pods", "other", ""), "list", testapi.Default.Version(), "other", "pods", "", "Pod", "", []string{"pods"}},
+		{"GET", getPath("pods", "other", "foo"), "get", testapi.Default.Version(), "other", "pods", "", "Pod", "foo", []string{"pods", "foo"}},
+		{"GET", getPath("pods", "", ""), "list", testapi.Default.Version(), api.NamespaceAll, "pods", "", "Pod", "", []string{"pods"}},
+		{"POST", getPath("pods", "", ""), "create", testapi.Default.Version(), api.NamespaceAll, "pods", "", "Pod", "", []string{"pods"}},
+		{"GET", getPath("pods", "", "foo"), "get", testapi.Default.Version(), api.NamespaceAll, "pods", "", "Pod", "foo", []string{"pods", "foo"}},
+		{"GET", pathWithPrefix("proxy", "pods", "", "foo"), "proxy", testapi.Default.Version(), api.NamespaceAll, "pods", "", "Pod", "foo", []string{"pods", "foo"}},
+		{"GET", pathWithPrefix("watch", "pods", "", ""), "watch", testapi.Default.Version(), api.NamespaceAll, "pods", "", "Pod", "", []string{"pods"}},
+		{"GET", pathWithPrefix("redirect", "pods", "", ""), "redirect", testapi.Default.Version(), api.NamespaceAll, "pods", "", "Pod", "", []string{"pods"}},
+		{"GET", pathWithPrefix("watch", "pods", "other", ""), "watch", testapi.Default.Version(), "other", "pods", "", "Pod", "", []string{"pods"}},
 
 		// subresource identification
 		{"GET", "/namespaces/other/pods/foo/status", "get", "", "other", "pods", "status", "Pod", "foo", []string{"pods", "foo", "status"}},
 		{"PUT", "/namespaces/other/finalize", "update", "", "other", "finalize", "", "", "", []string{"finalize"}},
 	}
 
-	apiRequestInfoResolver := &APIRequestInfoResolver{util.NewStringSet("api"), latest.RESTMapper}
+	apiRequestInfoResolver := &APIRequestInfoResolver{sets.NewString("api"), latest.RESTMapper}
 
 	for _, successCase := range successCases {
 		req, _ := http.NewRequest(successCase.method, successCase.url, nil)

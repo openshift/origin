@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -149,7 +150,7 @@ func TestPopulatedDataSet(t *testing.T) {
 			}
 		}
 	}
-	expectedNames := util.NewStringSet("deployment-1", "deployment-2")
+	expectedNames := sets.NewString("deployment-1", "deployment-2")
 	deploymentResults, err := dataSet.ListDeploymentsByDeploymentConfig(deploymentConfigs[0])
 	if err != nil {
 		t.Errorf("Unexpected result %v", err)

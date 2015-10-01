@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"regexp"
 	"strings"
 	"unicode"
@@ -33,19 +34,23 @@ type Dockerfile interface {
 
 // Parse parses an input Dockerfile
 func (_ *parser) Parse(input io.Reader) (Dockerfile, error) {
-	buf := bufio.NewReader(input)
-	bts, err := buf.Peek(buf.Buffered())
+	b, err := ioutil.ReadAll(input)
 	if err != nil {
 		return nil, err
 	}
-	parsedByDocker := bytes.NewBuffer(bts)
+	r := bytes.NewReader(b)
+
 	// Add one more level of validation by using the Docker parser
-	if _, err := dparser.Parse(parsedByDocker); err != nil {
+	if _, err := dparser.Parse(r); err != nil {
 		return nil, fmt.Errorf("cannot parse Dockerfile: %v", err)
 	}
 
+	if _, err = r.Seek(0, 0); err != nil {
+		return nil, err
+	}
+
 	d := dockerfile{}
-	scanner := bufio.NewScanner(input)
+	scanner := bufio.NewScanner(r)
 	for {
 		line, ok := nextLine(scanner, true)
 		if !ok {

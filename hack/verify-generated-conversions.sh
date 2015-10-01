@@ -20,7 +20,7 @@ else
   echo "$buildout" | sed 's/^/   /'
 fi
 
-genconversion="${OS_ROOT}/_output/local/go/bin/genconversion"
+genconversion="${OS_ROOT}/_output/local/bin/$(os::build::host_platform)/genconversion"
 
 echo "   Verifying genconversion binary..."
 if [[ ! -x "$genconversion" ]]; then

@@ -25,11 +25,11 @@ import (
 	"strings"
 )
 
-func TestScrubberSuccess(t *testing.T) {
-	client := &mockScrubberClient{}
-	scrubber := &api.Pod{
+func TestRecyclerSuccess(t *testing.T) {
+	client := &mockRecyclerClient{}
+	recycler := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
-			Name:      "scrubber-test",
+			Name:      "recycler-test",
 			Namespace: api.NamespaceDefault,
 		},
 		Status: api.PodStatus{
@@ -37,20 +37,20 @@ func TestScrubberSuccess(t *testing.T) {
 		},
 	}
 
-	err := internalScrubPodVolumeAndWatchUntilCompletion(scrubber, client)
+	err := internalRecycleVolumeByWatchingPodUntilCompletion(recycler, client)
 	if err != nil {
-		t.Errorf("Unexpected error watching scrubber pod: %+v", err)
+		t.Errorf("Unexpected error watching recycler pod: %+v", err)
 	}
 	if !client.deletedCalled {
-		t.Errorf("Expected deferred client.Delete to be called on scrubber pod")
+		t.Errorf("Expected deferred client.Delete to be called on recycler pod")
 	}
 }
 
-func TestScrubberFailure(t *testing.T) {
-	client := &mockScrubberClient{}
-	scrubber := &api.Pod{
+func TestRecyclerFailure(t *testing.T) {
+	client := &mockRecyclerClient{}
+	recycler := &api.Pod{
 		ObjectMeta: api.ObjectMeta{
-			Name:      "scrubber-test",
+			Name:      "recycler-test",
 			Namespace: api.NamespaceDefault,
 		},
 		Status: api.PodStatus{
@@ -59,31 +59,31 @@ func TestScrubberFailure(t *testing.T) {
 		},
 	}
 
-	err := internalScrubPodVolumeAndWatchUntilCompletion(scrubber, client)
+	err := internalRecycleVolumeByWatchingPodUntilCompletion(recycler, client)
 	if err == nil {
 		t.Fatalf("Expected pod failure but got nil error returned")
 	}
 	if err != nil {
 		if !strings.Contains(err.Error(), "foo") {
-			t.Errorf("Expected pod.Status.Message %s but got %s", scrubber.Status.Message, err)
+			t.Errorf("Expected pod.Status.Message %s but got %s", recycler.Status.Message, err)
 		}
 	}
 	if !client.deletedCalled {
-		t.Errorf("Expected deferred client.Delete to be called on scrubber pod")
+		t.Errorf("Expected deferred client.Delete to be called on recycler pod")
 	}
 }
 
-type mockScrubberClient struct {
+type mockRecyclerClient struct {
 	pod           *api.Pod
 	deletedCalled bool
 }
 
-func (c *mockScrubberClient) CreatePod(pod *api.Pod) (*api.Pod, error) {
+func (c *mockRecyclerClient) CreatePod(pod *api.Pod) (*api.Pod, error) {
 	c.pod = pod
 	return c.pod, nil
 }
 
-func (c *mockScrubberClient) GetPod(name, namespace string) (*api.Pod, error) {
+func (c *mockRecyclerClient) GetPod(name, namespace string) (*api.Pod, error) {
 	if c.pod != nil {
 		return c.pod, nil
 	} else {
@@ -91,12 +91,12 @@ func (c *mockScrubberClient) GetPod(name, namespace string) (*api.Pod, error) {
 	}
 }
 
-func (c *mockScrubberClient) DeletePod(name, namespace string) error {
+func (c *mockRecyclerClient) DeletePod(name, namespace string) error {
 	c.deletedCalled = true
 	return nil
 }
 
-func (c *mockScrubberClient) WatchPod(name, namespace, resourceVersion string, stopChannel chan struct{}) func() *api.Pod {
+func (c *mockRecyclerClient) WatchPod(name, namespace, resourceVersion string, stopChannel chan struct{}) func() *api.Pod {
 	return func() *api.Pod {
 		return c.pod
 	}

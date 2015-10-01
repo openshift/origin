@@ -7,15 +7,17 @@ import (
 	"reflect"
 	"testing"
 
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 
 	"github.com/vjeantet/ldapserver"
 )
@@ -51,7 +53,7 @@ func TestOAuthLDAP(t *testing.T) {
 	)
 
 	expectedAttributes := [][]byte{}
-	for _, attr := range kutil.NewStringSet(searchAttr, nameAttr1, nameAttr2, idAttr1, idAttr2, emailAttr1, emailAttr2, loginAttr1, loginAttr2).List() {
+	for _, attr := range sets.NewString(searchAttr, nameAttr1, nameAttr2, idAttr1, idAttr2, emailAttr1, emailAttr2, loginAttr1, loginAttr2).List() {
 		expectedAttributes = append(expectedAttributes, []byte(attr))
 	}
 	expectedSearchRequest := ldapserver.SearchRequest{
@@ -66,7 +68,7 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// Start LDAP server
-	ldapAddress, err := testutil.FindAvailableBindAddress(8389, 8400)
+	ldapAddress, err := testserver.FindAvailableBindAddress(8389, 8400)
 	if err != nil {
 		t.Fatalf("could not allocate LDAP bind address: %v", err)
 	}
@@ -75,7 +77,7 @@ func TestOAuthLDAP(t *testing.T) {
 	ldapServer.Start(ldapAddress)
 	defer ldapServer.Stop()
 
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -101,7 +103,7 @@ func TestOAuthLDAP(t *testing.T) {
 		},
 	}
 
-	clusterAdminKubeConfig, err := testutil.StartConfiguredMaster(masterOptions)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

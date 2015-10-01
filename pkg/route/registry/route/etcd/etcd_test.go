@@ -19,27 +19,19 @@ package etcd
 import (
 	"testing"
 
-	"github.com/coreos/go-etcd/etcd"
-
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest/resttest"
-	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/registry/registrytest"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
-	"k8s.io/kubernetes/pkg/tools/etcdtest"
 
 	_ "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/route/registry/route"
 )
 
-func newHelper(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
-	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.TestIndex = true
-	helper := etcdstorage.NewEtcdStorage(fakeClient, testapi.Codec(), etcdtest.PathPrefix())
-	return fakeClient, helper
+func newStorage(t *testing.T, allocator *testAllocator) (*REST, *tools.FakeEtcdClient) {
+	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "")
+	return NewREST(etcdStorage, allocator).Route, fakeClient
 }
 
 func validNewRoute(name string) *api.Route {
@@ -56,9 +48,8 @@ func validNewRoute(name string) *api.Route {
 }
 
 func TestCreate(t *testing.T) {
-	fakeClient, helper := newHelper(t)
-	storage := NewREST(helper, nil).Route
-	test := resttest.New(t, storage, fakeClient.SetError)
+	storage, fakeClient := newStorage(t, &testAllocator{})
+	test := registrytest.New(t, fakeClient, storage.Etcd)
 	validRoute := validNewRoute("foo")
 	test.TestCreate(
 		// valid
@@ -66,10 +57,6 @@ func TestCreate(t *testing.T) {
 		// invalid
 		&api.Route{
 			ObjectMeta: kapi.ObjectMeta{Name: "_-a123-a_"},
-		},
-		// no service
-		&api.Route{
-			ObjectMeta: kapi.ObjectMeta{Name: "test"},
 		},
 	)
 }
@@ -91,9 +78,8 @@ func (a *testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
 }
 
 func TestCreateWithAllocation(t *testing.T) {
-	_, helper := newHelper(t)
 	allocator := &testAllocator{Hostname: "bar"}
-	storage := NewREST(helper, allocator).Route
+	storage, _ := newStorage(t, allocator)
 
 	validRoute := validNewRoute("foo")
 	obj, err := storage.Create(kapi.NewDefaultContext(), validRoute)
@@ -113,68 +99,31 @@ func TestCreateWithAllocation(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	fakeClient, helper := newHelper(t)
-	storage := NewREST(helper, nil).Route
-	test := resttest.New(t, storage, fakeClient.SetError)
-	key, err := storage.KeyFunc(test.TestContext(), "foo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	key = etcdtest.AddPrefix(key)
-
-	fakeClient.ExpectNotFoundGet(key)
-	fakeClient.ChangeIndex = 2
-	route := validNewRoute("foo")
-	route.Namespace = test.TestNamespace()
-	existing := validNewRoute("exists")
-	existing.Namespace = test.TestNamespace()
-	obj, err := storage.Create(test.TestContext(), existing)
-	if err != nil {
-		t.Fatalf("unable to create object: %v", err)
-	}
-	older := obj.(*api.Route)
-	older.ResourceVersion = "1"
+	storage, fakeClient := newStorage(t, nil)
+	test := registrytest.New(t, fakeClient, storage.Etcd)
 
 	test.TestUpdate(
-		route,
-		existing,
-		older,
+		validNewRoute("foo"),
+		// valid update
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.Route)
+			if object.Annotations == nil {
+				object.Annotations = map[string]string{}
+			}
+			object.Annotations["updated"] = "true"
+			return object
+		},
+		// invalid update
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*api.Route)
+			object.Spec.Path = "invalid/path"
+			return object
+		},
 	)
 }
 
 func TestDelete(t *testing.T) {
-	fakeClient, helper := newHelper(t)
-	storage := NewREST(helper, nil).Route
-	test := resttest.New(t, storage, fakeClient.SetError)
-
-	ctx := kapi.NewDefaultContext()
-	validRoute := validNewRoute("test")
-	validRoute.Namespace = kapi.NamespaceDefault
-
-	key, _ := storage.KeyFunc(ctx, validRoute.Name)
-	key = etcdtest.AddPrefix(key)
-
-	createFn := func() runtime.Object {
-		obj := validRoute
-		obj.ResourceVersion = "1"
-		fakeClient.Data[key] = tools.EtcdResponseWithError{
-			R: &etcd.Response{
-				Node: &etcd.Node{
-					Value:         runtime.EncodeOrDie(testapi.Codec(), obj),
-					ModifiedIndex: 1,
-				},
-			},
-		}
-		return obj
-	}
-	gracefulSetFn := func() bool {
-		// If the controller is still around after trying to delete either the delete
-		// failed, or we're deleting it gracefully.
-		if fakeClient.Data[key].R.Node != nil {
-			return true
-		}
-		return false
-	}
-
-	test.TestDelete(createFn, gracefulSetFn)
+	storage, fakeClient := newStorage(t, nil)
+	test := registrytest.New(t, fakeClient, storage.Etcd)
+	test.TestDelete(validNewRoute("foo"))
 }

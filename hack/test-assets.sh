@@ -4,6 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 
@@ -57,3 +58,5 @@ pushd "${OS_ROOT}" > /dev/null
   fi
 
 popd > /dev/null
+
+ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

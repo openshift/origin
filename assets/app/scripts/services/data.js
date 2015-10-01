@@ -2,7 +2,7 @@
 /* jshint eqeqeq: false, unused: false */
 
 angular.module('openshiftConsole')
-.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger) {
+.factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger, $timeout) {
 
   function Data(array) {
     this._data = {};
@@ -90,6 +90,7 @@ angular.module('openshiftConsole')
   function DataService() {
     this._listCallbacksMap = {};
     this._watchCallbacksMap = {};
+    this._watchObjectCallbacksMap = {};
     this._watchOperationMap = {};
     this._listOperationMap = {};
     this._resourceVersionMap = {};
@@ -298,17 +299,19 @@ angular.module('openshiftConsole')
 
     // If this is a cached resource (immutable resources only), ignore the force parameter
     if (this._isResourceCached(resource) && existingData && existingData.by('metadata.name')[name]) {
-      deferred.resolve(existingData.by('metadata.name')[name]);
+      $timeout(function() {
+        deferred.resolve(existingData.by('metadata.name')[name]);
+      }, 0);
     }
     else if (!force && this._watchInFlight(resource, context) && this._resourceVersion(resource, context)) {
       var obj = existingData.by('metadata.name')[name];
       if (obj) {
-        $rootScope.$apply(function(){
+        $timeout(function() {
           deferred.resolve(obj);
-        });
+        }, 0);
       }
       else {
-        $rootScope.$apply(function(){
+        $timeout(function() {
           // simulation of API object not found
           deferred.reject({
             data: {},
@@ -316,7 +319,7 @@ angular.module('openshiftConsole')
             headers: function() { return null; },
             config: {}
           });
-        });
+        }, 0);
       }
     }
     else {
@@ -404,16 +407,22 @@ angular.module('openshiftConsole')
       this._watchOptions(resource, context, opts);
     }
 
+    var self = this;
+
     if (this._watchInFlight(resource, context) && this._resourceVersion(resource, context)) {
       if (callback) {
-        callback(this._data(resource, context));
+        $timeout(function() {
+          callback(self._data(resource, context));
+        }, 0);
       }
     }
     else {
       if (callback) {
         var existingData = this._data(resource, context);
         if (existingData) {
-          callback(existingData);
+          $timeout(function() {          
+            callback(existingData);
+          }, 0);
         }
       }
       if (!this._listInFlight(resource, context)) {
@@ -430,11 +439,74 @@ angular.module('openshiftConsole')
     };
   };
 
+// resource:  API resource (e.g. "pods")
+// name:      API name, the unique name for the object
+// context:   API context (e.g. {project: "..."})
+// callback:  optional function to be called with the initial list of the requested resource,
+//            and when updates are received, parameters passed to the callback:
+//            obj:    the requested object
+//            event:  specific event that caused this call ("ADDED", "MODIFIED",
+//                    "DELETED", or null) callbacks can optionally use this to
+//                    more efficiently process updates
+// opts:      options
+//            poll:   true | false - whether to poll the server instead of opening
+//                    a websocket. Default is false.
+//            pollInterval: in milliseconds, how long to wait between polling the server
+//                    only applies if poll=true.  Default is 5000.
+//
+// returns handle to the watch, needed to unwatch e.g.
+//        var handle = DataService.watch(resource,context,callback[,opts])
+//        DataService.unwatch(handle)
+  DataService.prototype.watchObject = function(resource, name, context, callback, opts) {
+    resource = normalizeResource(resource);
+    opts = opts || {};
+
+    var wrapperCallback;
+    if (callback) {
+      // If we were given a callback, add it
+      this._watchObjectCallbacks(resource, name, context).add(callback);
+      var self = this;
+      wrapperCallback = function(items, event, item) {
+        // If we got an event for a single item, only fire the callback if its the item we care about
+        if (item && item.metadata.name === name) {
+          self._watchObjectCallbacks(resource, name, context).fire(item, event);
+        }
+        else {
+          // Otherwise see if we can find the item we care about in the list
+          var itemsByName = items.by("metadata.name");
+          if (itemsByName[name]) {
+            self._watchObjectCallbacks(resource, name, context).fire(itemsByName[name], event);
+          }
+        }
+      };
+    }
+    else if (!this._watchObjectCallbacks(resource, name, context).has()) {
+      // This block may not be needed yet, don't expect this would get called without a callback currently...
+      return {};
+    }
+
+    // For now just watch the type, eventually we may want to do something more complicated
+    // and watch just the object if the type is not already being watched
+    var handle = this.watch(resource, context, wrapperCallback, opts);
+    handle.objectCallback = callback;
+    handle.objectName = name;
+    
+    return handle;
+  };
+
   DataService.prototype.unwatch = function(handle) {
     var resource = handle.resource;
+    var objectName = handle.objectName;
     var context = handle.context;
     var callback = handle.callback;
+    var objectCallback = handle.objectCallback;
     var opts = handle.opts;
+    
+    if (objectCallback && objectName) {
+      var objCallbacks = this._watchObjectCallbacks(resource, objectName, context);
+      objCallbacks.remove(objectCallback);
+    }
+
     var callbacks = this._watchCallbacks(resource, context);
     if (callback) {
       callbacks.remove(callback);
@@ -472,6 +544,14 @@ angular.module('openshiftConsole')
     }
     return this._watchCallbacksMap[key];
   };
+
+  DataService.prototype._watchObjectCallbacks = function(resource, name, context) {
+    var key = this._uniqueKeyForResourceContext(resource, context) + "/" + name;
+    if (!this._watchObjectCallbacksMap[key]) {
+      this._watchObjectCallbacksMap[key] = $.Callbacks();
+    }
+    return this._watchObjectCallbacksMap[key];
+  };  
 
   DataService.prototype._listCallbacks = function(resource, context) {
     var key = this._uniqueKeyForResourceContext(resource, context);
@@ -620,7 +700,18 @@ angular.module('openshiftConsole')
   DataService.prototype._uniqueKeyForResourceContext = function(resource, context) {
     // Note: when we start handling selecting multiple projects this
     // will change to include all relevant scope
-    return resource + "/" + context.projectName;
+    if (context.project && context.project.metadata) {
+      return resource + "/" + context.project.metadata.name;
+    }
+    else if (context.namespace) {
+      return resource + "/" + context.namespace; 
+    }
+    else if (context.projectName) {
+      return resource + "/" + context.projectName;      
+    }
+    else {
+      return resource;
+    }
   };
 
   DataService.prototype._startListOp = function(resource, context) {
@@ -755,16 +846,26 @@ angular.module('openshiftConsole')
         }
         return;
       }
+      else if (eventData.type === "DELETED") {
+        // Add this ourselves since the API doesn't add anything
+        // this way the views can use it to trigger special behaviors
+        if (eventData.object && eventData.object.metadata && !eventData.object.metadata.deletionTimestamp) {
+          eventData.object.metadata.deletionTimestamp = (new Date()).toISOString();
+        }
+      }
 
-      this._resourceVersion(resource, context, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
+      if (eventData.object) {
+        this._resourceVersion(resource, context, eventData.object.resourceVersion || eventData.object.metadata.resourceVersion);
+      }
       // TODO do we reset all the by() indices, or simply update them, since we should know what keys are there?
       // TODO let the data object handle its own update
       this._data(resource, context).update(eventData.object, eventData.type);
       var self = this;
-      // Wrap in $apply to mirror $http callback behavior
-      $rootScope.$apply(function() {
-        self._watchCallbacks(resource, context).fire(self._data(resource, context), eventData.resource, eventData.object);
-      });
+      // Wrap in a $timeout which will trigger an $apply to mirror $http callback behavior
+      // without timeout this is triggering a repeated digest loop
+      $timeout(function() {
+        self._watchCallbacks(resource, context).fire(self._data(resource, context), eventData.type, eventData.object);
+      }, 0);
     }
     catch (e) {
       // TODO: surface in the UI?
@@ -944,6 +1045,12 @@ angular.module('openshiftConsole')
       }
     }
     return null;
+  };
+
+  DataService.prototype.openshiftAPIBaseUrl = function() {
+    var protocol = window.location.protocol === "http:" ? "http" : "https";
+    var hostPort = API_CFG.openshift.hostPort;
+    return new URI({protocol: protocol, hostname: hostPort}).toString();
   };
 
   DataService.prototype.resourceInfo = function(resource, preferredAPIVersion) {

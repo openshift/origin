@@ -121,8 +121,29 @@ angular
       .when('/project/:project/browse/builds', {
         templateUrl: 'views/builds.html'
       })
+      .when('/project/:project/browse/builds/:buildconfig', {
+        templateUrl: 'views/browse/build-config.html'
+      })
+      .when('/project/:project/browse/builds/:buildconfig/:build', {
+        templateUrl: 'views/browse/build.html'
+      })
+      // For when a build is missing a buildconfig label
+      // Needs to still be prefixed with browse/builds so the secondary nav active state is correct
+      .when('/project/:project/browse/builds-noconfig/:build', {
+        templateUrl: 'views/browse/build.html'
+      })
       .when('/project/:project/browse/deployments', {
         templateUrl: 'views/deployments.html'
+      })
+      .when('/project/:project/browse/deployments/:deploymentconfig', {
+        templateUrl: 'views/browse/deployment-config.html'
+      })
+      .when('/project/:project/browse/deployments/:deploymentconfig/:deployment', {
+        templateUrl: 'views/browse/deployment.html'
+      })
+      // Needs to still be prefixed with browse/deployments so the secondary nav active state is correct
+      .when('/project/:project/browse/deployments-replicationcontrollers/:replicationcontroller', {
+        templateUrl: 'views/browse/deployment.html'
       })
       .when('/project/:project/browse/events', {
         templateUrl: 'views/events.html'
@@ -130,17 +151,20 @@ angular
       .when('/project/:project/browse/images', {
         templateUrl: 'views/images.html'
       })
+      .when('/project/:project/browse/images/:image', {
+        templateUrl: 'views/browse/image.html'
+      })
       .when('/project/:project/browse/pods', {
         templateUrl: 'views/pods.html'
+      })
+      .when('/project/:project/browse/pods/:pod', {
+        templateUrl: 'views/browse/pod.html'
       })
       .when('/project/:project/browse/services', {
         templateUrl: 'views/services.html'
       })
-      .when('/project/:project/catalog/templates', {
-        templateUrl: 'views/catalog/templates.html'
-      })
-      .when('/project/:project/catalog/images', {
-        templateUrl: 'views/catalog/images.html'
+      .when('/project/:project/browse/services/:service', {
+        templateUrl: 'views/browse/service.html'
       })
       .when('/project/:project/create', {
         templateUrl: 'views/create.html'
@@ -150,6 +174,9 @@ angular
       })
       .when('/project/:project/create/fromimage', {
         templateUrl: 'views/create/fromimage.html'
+      })
+      .when('/project/:project/create/next', {
+        templateUrl: 'views/create/nextSteps.html'
       })
       .when('/oauth', {
         templateUrl: 'views/util/oauth.html',
@@ -194,7 +221,7 @@ angular
     // Use setInterval instead of $interval because we're directly manipulating the DOM and don't want scope.$apply overhead
     setInterval(function() {
       $('.timestamp[data-timestamp]').text(function(i, existing) {
-        return dateRelativeFilter($(this).attr("data-timestamp")) || existing;
+        return dateRelativeFilter($(this).attr("data-timestamp"), $(this).attr("data-drop-suffix")) || existing;
       });
     }, 30 * 1000);
     setInterval(function() {

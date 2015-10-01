@@ -5,7 +5,7 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"github.com/openshift/origin/pkg/util/httpproxy"
 )

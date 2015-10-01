@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -64,11 +64,11 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 	return false, nil
 }
 
-func (a DefaultAuthorizationAttributes) verbMatches(verbs util.StringSet) bool {
+func (a DefaultAuthorizationAttributes) verbMatches(verbs sets.String) bool {
 	return verbs.Has(authorizationapi.VerbAll) || verbs.Has(strings.ToLower(a.GetVerb()))
 }
 
-func (a DefaultAuthorizationAttributes) resourceMatches(allowedResourceTypes util.StringSet) bool {
+func (a DefaultAuthorizationAttributes) resourceMatches(allowedResourceTypes sets.String) bool {
 	return allowedResourceTypes.Has(authorizationapi.ResourceAll) || allowedResourceTypes.Has(strings.ToLower(a.GetResource()))
 }
 
@@ -76,7 +76,7 @@ func (a DefaultAuthorizationAttributes) resourceMatches(allowedResourceTypes uti
 // An empty string in the whitelist should only match the action's resourceName if the resourceName itself is empty string.  This behavior allows for the
 // combination of a whitelist for gets in the same rule as a list that won't have a resourceName.  I don't recommend writing such a rule, but we do
 // handle it like you'd expect: white list is respected for gets while not preventing the list you explicitly asked for.
-func (a DefaultAuthorizationAttributes) nameMatches(allowedResourceNames util.StringSet) bool {
+func (a DefaultAuthorizationAttributes) nameMatches(allowedResourceNames sets.String) bool {
 	if len(allowedResourceNames) == 0 {
 		return true
 	}

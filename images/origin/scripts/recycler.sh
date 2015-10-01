@@ -1,43 +1,35 @@
 #!/bin/bash
 
-# 'recycle' performs an 'rm -rf' on a volume to scrub it clean before its reuse as a cluster resource.
-# this script is intended to be used in a pod that performs the scrub.
-# the container in the pod should succeed or fail based on the exit status of this script.
+# 'recycler' performs an 'rm -rf' on a volume to scrub it clean before it's
+# reused as a cluster resource. This script is intended to be used in a pod that
+# performs the scrub. The container in the pod should succeed or fail based on
+# the exit status of this script.
 
-set -o errexit
-set -o nounset
-set -o pipefail
+set -e -o pipefail
 
-function recycle(){
+shopt -s dotglob nullglob
 
-    # first and only arg is the directory to scrub
-    dir=$1
-
-    if [ -z "$dir" ]; then
-        echo "Usage:  scrub_directory some/path/to/scrub"
-        return 1
-    fi
-
-    if [ ! -e $dir ]; then
-        echo "scrub directory $dir does not exist"
-        return 1
-    fi
-
-    # remove everything but keep the directory for re-use as a volume
-    rm -rfv $dir/*
-
-    if [ -z "$(ls -A $dir)" ]; then
-        echo "scrub directory $dir is empty"
-        return 0
-    else
-        echo "scrub directory $dir is not empty"
-        return 1
-    fi
-}
-
-if recycle $1; then
-    echo "Scrub OK"
-    exit 0
-else
+if [[ $# -ne 1 ]]; then
+    echo >&2 "Usage: $0 some/path/to/scrub"
     exit 1
 fi
+
+# first and only arg is the directory to scrub
+dir=$1
+
+if [[ ! -d ${dir} ]]; then
+    echo >&2 "Error: scrub directory '${dir}' does not exist"
+    exit 1
+fi
+
+# shred all files
+find ${dir} -type f -exec shred -fuvz {} \;
+
+# remove everything that was left, keeping the directory for re-use as a volume
+if rm -rfv ${dir}/*; then
+    echo 'Scrub OK'
+    exit 0
+fi
+
+echo 'Scrub failed'
+exit 1

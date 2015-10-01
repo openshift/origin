@@ -21,23 +21,24 @@ Cancels a pending or running build
 This command requests a graceful shutdown of the running build. There may be a delay between requesting 
 the build and the time the build is terminated.`
 
-	cancelBuildExample = `  // Cancel the build with the given name
+	cancelBuildExample = `  # Cancel the build with the given name
   $ %[1]s cancel-build 1da32cvq
 
-  // Cancel the named build and print the build logs
+  # Cancel the named build and print the build logs
   $ %[1]s cancel-build 1da32cvq --dump-logs
 
-  // Cancel the named build and create a new one with the same parameters
+  # Cancel the named build and create a new one with the same parameters
   $ %[1]s cancel-build 1da32cvq --restart`
 )
 
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
 func NewCmdCancelBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "cancel-build BUILD",
-		Short:   "Cancel a pending or running build",
-		Long:    cancelBuildLong,
-		Example: fmt.Sprintf(cancelBuildExample, fullName),
+		Use:        "cancel-build BUILD",
+		Short:      "Cancel a pending or running build",
+		Long:       cancelBuildLong,
+		Example:    fmt.Sprintf(cancelBuildExample, fullName),
+		SuggestFor: []string{"builds"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCancelBuild(f, out, cmd, args)
 			cmdutil.CheckErr(err)

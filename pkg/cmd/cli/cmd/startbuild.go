@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/labels"
@@ -35,19 +35,19 @@ Start a build
 This command starts a build for the provided BuildConfig or re-runs an existing build using
 --from-build=<name>. You may pass the --follow flag to see output from the build.`
 
-	startBuildExample = `  // Starts build from BuildConfig matching the name "3bd2ug53b"
+	startBuildExample = `  # Starts build from BuildConfig matching the name "3bd2ug53b"
   $ %[1]s start-build sample-build
 
-  // Starts build from build matching the name "sample-build-1"
+  # Starts build from build matching the name "sample-build-1"
   $ %[1]s start-build --from-build=sample-build-1
 
-  // Starts build from BuildConfig matching the name "sample-build" and watches
-	// the logs until the build completes or fails
+  # Starts build from BuildConfig matching the name "sample-build" and watches
+	# the logs until the build completes or fails
   $ %[1]s start-build sample-build --follow
 
-  // Starts build from BuildConfig matching the name "sample-build" and wait until
-	// the build completes. It exits with a non-zero return code if the build
-	// fails. 
+  # Starts build from BuildConfig matching the name "sample-build" and wait until
+	# the build completes. It exits with a non-zero return code if the build
+	# fails. 
   $ %[1]s start-build sample-build --wait`
 )
 
@@ -57,10 +57,11 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	webhooks.Default("none")
 
 	cmd := &cobra.Command{
-		Use:     "start-build (BUILDCONFIG | --from-build=BUILD)",
-		Short:   "Starts a new build",
-		Long:    startBuildLong,
-		Example: fmt.Sprintf(startBuildExample, fullName),
+		Use:        "start-build (BUILDCONFIG | --from-build=BUILD)",
+		Short:      "Starts a new build",
+		Long:       startBuildLong,
+		Example:    fmt.Sprintf(startBuildExample, fullName),
+		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunStartBuild(f, out, cmd, args, webhooks)
 			cmdutil.CheckErr(err)
@@ -68,10 +69,13 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	}
 	cmd.Flags().String("from-build", "", "Specify the name of a build which should be re-run")
 	cmd.Flags().String("commit", "", "Specify the commit hash the build should be run from")
+
 	cmd.Flags().Bool("follow", false, "Start a build and watch its logs until it completes or fails")
 	cmd.Flags().Bool("wait", false, "Wait for a build to complete and exit with a non-zero return code if the build fails")
+
 	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified BuildConfig or build; accepts 'all', 'generic', or 'github'")
 	cmd.Flags().String("from-webhook", "", "Specify a webhook URL for an existing BuildConfig to trigger")
+
 	cmd.Flags().String("git-post-receive", "", "The contents of the post-receive hook to trigger a build")
 	cmd.Flags().String("git-repository", "", "The path to the git repository for post-receive; defaults to the current directory")
 	return cmd

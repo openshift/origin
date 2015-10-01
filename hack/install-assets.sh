@@ -2,8 +2,9 @@
 
 set -e
 
-OPENSHIFT_JVM_VERSION=v1.0.23
+OPENSHIFT_JVM_VERSION=v1.0.24
 
+STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/common.sh"
 
@@ -71,3 +72,5 @@ pushd ${OS_ROOT}/Godeps/_workspace > /dev/null
     GOPATH=$godep_path go install ./...
   popd > /dev/null
 popd > /dev/null
+
+ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

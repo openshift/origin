@@ -1,0 +1,147 @@
+<div ng-controller="DeploymentConfigController" class="content">
+  <project-page>
+    <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+    <alerts alerts="alerts"></alerts>
+    <div class="tile" ng-if="deploymentConfig">
+      <div> 
+        <h2>{{deploymentConfig.metadata.name}}</h2>
+        <dl class="dl-horizontal left indent">
+          <div>
+              <dt>Created:</dt>
+              <dd><relative-timestamp timestamp="deploymentConfig.metadata.creationTimestamp"></relative-timestamp></dd>
+          </div>
+          <div>
+              <dt>Labels:</dt><dd ng-if="!deploymentConfig.metadata.labels">none</dd>
+              <dd ng-repeat="(labelKey, labelValue) in deploymentConfig.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></dd>
+          </div>
+          <div>
+              <dt>Latest Version:</dt>
+              <dd>{{deploymentConfig.status.latestVersion}}</dd>
+          </div>
+          <div ng-if="deploymentConfig.spec.strategy.type">
+              <dt>Strategy:</dt>
+              <dd>{{deploymentConfig.spec.strategy.type}}</dd>
+              <!-- TODO: Surface the parameters for different strategies. -->
+          </div>
+
+          <div>
+            <h3>Template:</h3>
+            <dl class="dl-horizontal left indent">
+              <dt>Selectors:</dt><dd ng-if="!deploymentConfig.spec.selector">none</dd>
+              <dd ng-repeat="(selectorLabel, selectorValue) in deploymentConfig.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></dd>
+              <dt>Replicas:</dt>
+              <dd>
+                {{deploymentConfig.spec.replicas}}
+              </dd>
+            </dl>
+          </div>
+
+          <div>
+            <h3>Triggers:</h3>
+              <dl class="dl-horizontal left indent">
+              <dt>Manual:</dt>
+              <dd>
+                <span>
+                  <button class="btn btn-primary" ng-click="startLatestDeployment(deploymentConfig)" ng-disabled="deploymentConfig.metadata.deletionTimestamp || (deploymentConfigDeploymentsInProgress[deploymentConfig.metadata.name] | hashSize) > 0">Start Deployment</button>
+                </span>
+              </dd>
+            </dl>
+
+            <dl class="dl-horizontal left indent">
+              <dt>Manual (CLI):
+                <a href="{{'deployment-operations' | helpLink}}" target="_blank">
+                  <span class="learn-more-block">Learn more <i class="fa fa-external-link"> </i></span>
+                </a>
+              </dt>
+              <dd>
+                <code>oc deploy {{deploymentConfig.metadata.name}} --latest -n {{project.metadata.name}}</code>
+                <copy-to-clipboard-button clipboard-text="'oc deploy ' + deploymentConfig.metadata.name + ' --latest -n ' + project.metadata.name"></copy-to-clipboard-button>
+              </dd>
+            </dl>
+
+            <dl class="dl-horizontal left indent">
+              <div ng-repeat="trigger in deploymentConfig.spec.triggers">
+                <span ng-switch="trigger.type">
+                  <span ng-switch-default>{{trigger.type}}</span>
+                  <span ng-switch-when="ImageChange" ng-if="trigger.imageChangeParams.from">
+                    <dt>New image for:</dt>
+                    <dd>{{trigger.imageChangeParams.from | imageObjectRef : deploymentConfig.metadata.namespace}}</dd>
+                  </span>
+                  <span ng-switch-when="ConfigChange">  
+                    <dt>Change of:</dt>
+                    <dd>Config</dd>
+                  </span>
+                </span>
+              </div>
+            </dl>
+          </div>
+        </dl>
+      </div>     
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th>Deployment</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Trigger</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-if="(deploymentsByDeploymentConfig[deploymentConfig.metadata.name] | hashSize) == 0"><td colspan="4"><em>{{emptyMessage}}</em></td></tr>
+          <tr ng-repeat="deployment in deploymentsByDeploymentConfig[deploymentConfig.metadata.name] | orderObjectsByDate : true">
+            <td>
+              <!-- Deployment number and link -->
+              <span ng-if="deployment | annotation : 'deploymentVersion'">
+                <a ng-href="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfig.metadata.name}}/{{deployment.metadata.name}}">#{{deployment | annotation : 'deploymentVersion'}}</a>
+              </span>
+              <span ng-if="!(deployment | annotation : 'deploymentVersion')">
+                <a ng-href="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfig.metadata.name}}/{{deployment.metadata.name}}">{{deployment.metadata.name}}</a>
+              </span>
+            </td>
+            <td>
+              <div row class="status">
+                <!-- Deployment status -->
+                <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave status-icon">
+                  <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>              
+                  <span ng-switch-when="Deployed" class="fa fa-check text-success" aria-hidden="true"></span>
+                  <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
+                  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
+                  <span ng-switch-when="New" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
+                  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
+                  <span ng-switch-default class="fa fa-refresh" aria-hidden="true"></span>
+                </span>
+                <span flex>
+                  {{deployment | deploymentStatus}}<span ng-if="(deployment | deploymentStatus) == 'Deployed'">, 
+                  <span ng-if="deployment.spec.replicas !== deployment.status.replicas">{{deployment.status.replicas}}/</span>{{deployment.spec.replicas}} replica<span ng-if="deployment.spec.replicas != 1">s</span></span>
+                </span>
+                <!-- TODO would be nice to have the deploymentStatusReason in a popup, when there is one -->
+              </div>
+            </td>
+            <td>
+              <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
+              <span>- {{deployment.metadata.creationTimestamp | date : 'short'}}</span>            
+            </td>
+            <td>
+              <span ng-if="!deployment.causes.length">Unknown</span>
+              <span ng-if="deployment.causes.length">
+                <span ng-repeat="cause in deployment.causes">
+                  <span ng-switch="cause.type">
+                    <span ng-switch-when="ImageChange">
+                      <span ng-if="cause.imageTrigger.from">
+                        <abbr title="{{cause.imageTrigger.from | imageObjectRef : null : true}}">Image</abbr> change
+                      </span>
+                    </span>
+                    <span ng-switch-when="ConfigChange">Config change</span>
+                    <span ng-switch-default>{{cause.type}}</span>
+                  </span>
+                </span>
+              </span>              
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </project-page>
+</div>    

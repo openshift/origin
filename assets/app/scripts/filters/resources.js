@@ -133,6 +133,22 @@ angular.module('openshiftConsole')
       return imageTags.split(/\s*,\s*/);
     };
   })
+  .filter('imageStreamLastUpdated', function() {
+    return function(imageStream) {
+      var lastUpdated = imageStream.metadata.creationTimestamp;
+      var lastUpdatedMoment = moment(lastUpdated);
+      angular.forEach(imageStream.status.tags, function(tag) {
+        if (tag.items && tag.items.length > 0) {
+          var tagUpdatedMoment = moment(tag.items[0].created);
+          if (tagUpdatedMoment.isAfter(lastUpdatedMoment)) {
+            lastUpdatedMoment = tagUpdatedMoment;
+            lastUpdated = tag.items[0].created;
+          }
+        }
+      });
+      return lastUpdated;
+    };
+  })
   .filter('label', function() {
     return function(resource, key) {
       if (resource && resource.metadata && resource.metadata.labels) {
@@ -492,14 +508,13 @@ angular.module('openshiftConsole')
     };
   })
   .filter('createFromImageURL', function() {
-    return function(imageStream, imageTag, projectName, sourceURL) {
+    return function(imageStream, imageTag, projectName) {
       var createURI = URI.expand("project/{project}/create/fromimage{?q*}", {
         project: projectName,
         q: {
           imageName: imageStream.metadata.name,
           imageTag: imageTag,
-          namespace: imageStream.metadata.namespace,
-          sourceURL: sourceURL
+          namespace: imageStream.metadata.namespace
         }
       });
       return createURI.toString();
@@ -592,7 +607,7 @@ angular.module('openshiftConsole')
             return depConfig.details.causes;
           case "v1beta3":
           case "v1":
-            return  depConfig.status.details.causes;
+            return  depConfig.status.details ? depConfig.status.details.causes : [];
           default:
           // Unrecognized API version. Log an error.
           Logger.error('Unknown API version "' + depConfig.apiVersion +
@@ -646,5 +661,78 @@ angular.module('openshiftConsole')
         }
       });
       return podsForPhase;
+    };
+  })
+  .filter('numContainersReady', function() {
+    return function(pod) {
+      var numReady = 0;
+      angular.forEach(pod.status.containerStatuses, function(status) {
+        if (status.ready) {
+          numReady++;
+        }
+      });
+      return numReady;
+    };
+  })
+  .filter('numContainerRestarts', function() {
+    return function(pod) {
+      var numRestarts = 0;
+      angular.forEach(pod.status.containerStatuses, function(status) {
+        numRestarts += status.restartCount;
+      });
+      return numRestarts;
+    };
+  })
+  .filter('newestResource', function() {
+    return function(resources) {
+      var newest = null;
+      angular.forEach(resources, function(resource) {
+        if (!newest) {
+          if (resource.metadata.creationTimestamp) {
+            newest = resource;
+          }
+          else {
+            return;
+          }
+        }
+        else if (moment(newest.metadata.creationTimestamp).isBefore(resource.metadata.creationTimestamp)) {
+          newest = resource;
+        }
+      });
+      return newest;
+    };
+  })
+  .filter('deploymentIsLatest', function(annotationFilter) {
+    return function(deployment, deploymentConfig) {
+      if (!deploymentConfig || !deployment) {
+        return false;
+      }
+      var deploymentVersion = parseInt(annotationFilter(deployment, 'deploymentVersion'));
+      var deploymentConfigVersion = deploymentConfig.status.latestVersion;
+      return deploymentVersion === deploymentConfigVersion;
+    };
+  })
+  .filter('deploymentStatus', function(annotationFilter, isDeploymentFilter) {
+    return function(deployment) {
+      // We should show Cancelled as an actual status instead of showing Failed
+      if (annotationFilter(deployment, 'deploymentCancelled')) {
+        return "Cancelled";
+      }
+      var status = annotationFilter(deployment, 'deploymentStatus');
+      // If it is just an RC (non-deployment) or it is a deployment with more than 0 replicas
+      if (!isDeploymentFilter(deployment) || status === "Complete" && deployment.spec.replicas > 0) {
+        return "Deployed";
+      }
+      return status;
+    };
+  })
+  .filter('deploymentIsInProgress', function(deploymentStatusFilter) {
+    return function(deployment) {
+      return ['New', 'Pending', 'Running'].indexOf(deploymentStatusFilter(deployment)) > -1;
+    };
+  })
+  .filter('isDeployment', function(annotationFilter) {
+    return function(deployment) {
+      return (annotationFilter(deployment, 'deploymentConfig')) ? true : false;
     };
   });

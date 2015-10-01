@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
-	"k8s.io/kubernetes/pkg/client/clientcmd"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 )
 
 func DefaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {

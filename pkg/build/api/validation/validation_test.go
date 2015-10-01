@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -566,6 +567,8 @@ func TestValidateSource(t *testing.T) {
 }
 
 func TestValidateBuildSpec(t *testing.T) {
+	longString := strings.Repeat("1234567890", 100*61)
+	shortString := "FROM foo"
 	errorCases := []struct {
 		err string
 		*buildapi.BuildSpec
@@ -870,12 +873,42 @@ func TestValidateBuildSpec(t *testing.T) {
 				},
 			},
 		},
+		{
+			string(fielderrors.ValidationErrorTypeInvalid) + "source.dockerfile",
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type:       buildapi.BuildSourceDockerfile,
+					Dockerfile: &longString,
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+			},
+		},
+		{
+			string(fielderrors.ValidationErrorTypeInvalid) + "source.dockerfile",
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type:       buildapi.BuildSourceGit,
+					Dockerfile: &shortString,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type:           buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
+				},
+			},
+		},
 	}
 
 	for count, config := range errorCases {
 		errors := validateBuildSpec(config.BuildSpec)
 		if len(errors) != 1 {
 			t.Errorf("Test[%d] %s: Unexpected validation result: %v", count, config.err, errors)
+			continue
 		}
 		err := errors[0].(*fielderrors.ValidationError)
 		errDesc := string(err.Type) + err.Field
@@ -886,6 +919,7 @@ func TestValidateBuildSpec(t *testing.T) {
 }
 
 func TestValidateBuildSpecSuccess(t *testing.T) {
+	shortString := "FROM foo"
 	testCases := []struct {
 		*buildapi.BuildSpec
 	}{
@@ -967,6 +1001,33 @@ func TestValidateBuildSpecSuccess(t *testing.T) {
 			&buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
 					Type: buildapi.BuildSourceGit,
+					Git: &buildapi.GitBuildSource{
+						URI: "http://github.com/my/repository",
+					},
+				},
+				Strategy: buildapi.BuildStrategy{
+					Type: buildapi.DockerBuildStrategyType,
+					DockerStrategy: &buildapi.DockerBuildStrategy{
+						From: &kapi.ObjectReference{
+							Kind: "ImageStreamImage",
+							Name: "imagestreamimage",
+						},
+					},
+				},
+				Output: buildapi.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "DockerImage",
+						Name: "repository/data",
+					},
+				},
+			},
+		},
+		// 4
+		{
+			&buildapi.BuildSpec{
+				Source: buildapi.BuildSource{
+					Type:       buildapi.BuildSourceDockerfile,
+					Dockerfile: &shortString,
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},

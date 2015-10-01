@@ -28,8 +28,16 @@ open_ports=($(pgrep -f 'openshift|_output/local' | \
     done
   done | sort -n -u))
 
-if [[ "${expected_ports[@]}" == "${open_ports[@]}" ]]; then
-    echo "Found expected ports open (${expected_ports[@]})"
+if [[ "${#expected_ports[@]}" == "${#open_ports[@]}" ]]; then
+    for (( i=0; i<${#expected_ports[@]}-1; i++ )); do
+        if [[ "${expected_ports[i]}" != "${open_ports[i]}" ]]; then
+            echo "Expected: ${expected_ports[@]}"
+            echo "Open:     ${open_ports[@]}"
+            exit 1
+        fi
+    done
+    echo "Found expected ports open (${open_ports[@]})"
+    exit 0
 else
     echo "Expected: ${expected_ports[@]}"
     echo "Open:     ${open_ports[@]}"

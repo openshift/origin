@@ -41,13 +41,13 @@ any additional cluster role.
 
 You can see which cluster role have recommended changed by choosing an output type.`
 
-	reconcileExample = `  // Display the cluster roles that would be modified
+	reconcileExample = `  # Display the cluster roles that would be modified
   $ %[1]s
 
-  // Replace cluster roles that don't match the current defaults
+  # Replace cluster roles that don't match the current defaults
   $ %[1]s --confirm
 
-  // Display the union of the default and modified cluster roles
+  # Display the union of the default and modified cluster roles
   $ %[1]s --additive-only`
 )
 

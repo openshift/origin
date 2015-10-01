@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
+	testserver "github.com/openshift/origin/test/util/server"
 )
 
 const (
@@ -202,7 +203,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 	})
 
 	// Start remote server
-	remoteAddr, err := testutil.FindAvailableBindAddress(9443, 9999)
+	remoteAddr, err := testserver.FindAvailableBindAddress(9443, 9999)
 	if err != nil {
 		t.Fatalf("Couldn't get free address for test server: %v", err)
 	}
@@ -227,7 +228,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 	}()
 
 	// Build master config
-	masterOptions, err := testutil.DefaultMasterOptions()
+	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -251,7 +252,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 	}
 
 	// Start server
-	clusterAdminKubeConfig, err := testutil.StartConfiguredMaster(masterOptions)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

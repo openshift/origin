@@ -30,13 +30,14 @@ import (
 
 	cadvisor "github.com/google/cadvisor/info/v1"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/prometheus/client_golang/extraction"
 	"github.com/prometheus/client_golang/model"
@@ -66,7 +67,7 @@ func (a KubeletMetricByLatency) Less(i, j int) bool { return a[i].Latency > a[j]
 type kubeletMetricIngester []KubeletMetric
 
 func (k *kubeletMetricIngester) Ingest(samples model.Samples) error {
-	acceptedMethods := util.NewStringSet(
+	acceptedMethods := sets.NewString(
 		metrics.PodWorkerLatencyKey,
 		metrics.PodWorkerStartLatencyKey,
 		metrics.SyncPodsLatencyKey,
@@ -193,6 +194,10 @@ type containerResourceUsage struct {
 	MemoryWorkingSetInBytes int64
 	// The interval used to calculate CPUUsageInCores.
 	CPUInterval time.Duration
+}
+
+func (r *containerResourceUsage) isStrictlyGreaterThan(rhs *containerResourceUsage) bool {
+	return r.CPUUsageInCores > rhs.CPUUsageInCores && r.MemoryUsageInBytes > rhs.MemoryUsageInBytes && r.MemoryWorkingSetInBytes > rhs.MemoryWorkingSetInBytes
 }
 
 // getOneTimeResourceUsageOnNode queries the node's /stats/container endpoint

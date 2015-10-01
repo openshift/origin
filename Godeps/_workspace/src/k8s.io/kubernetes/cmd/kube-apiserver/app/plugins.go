@@ -21,18 +21,13 @@ package app
 // given binary target.
 import (
 	// Cloud providers
-	_ "k8s.io/kubernetes/pkg/cloudprovider/aws"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/gce"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/mesos"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/openstack"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/ovirt"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/rackspace"
-	_ "k8s.io/kubernetes/pkg/cloudprovider/vagrant"
+	_ "k8s.io/kubernetes/pkg/cloudprovider/providers"
 
 	// Admission policies
 	_ "k8s.io/kubernetes/plugin/pkg/admission/admit"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/deny"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/exec/denyprivileged"
+	_ "k8s.io/kubernetes/plugin/pkg/admission/initialresources"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/autoprovision"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/exists"

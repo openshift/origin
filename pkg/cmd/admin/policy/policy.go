@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -56,7 +57,7 @@ func getFlagString(cmd *cobra.Command, flag string) string {
 	return f.Value.String()
 }
 
-func getUniqueName(basename string, existingNames *util.StringSet) string {
+func getUniqueName(basename string, existingNames *sets.String) string {
 	if !existingNames.Has(basename) {
 		return basename
 	}
@@ -74,7 +75,7 @@ func getUniqueName(basename string, existingNames *util.StringSet) string {
 // RoleBindingAccessor is used by role modification commands to access and modify roles
 type RoleBindingAccessor interface {
 	GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error)
-	GetExistingRoleBindingNames() (*util.StringSet, error)
+	GetExistingRoleBindingNames() (*sets.String, error)
 	UpdateRoleBinding(binding *authorizationapi.RoleBinding) error
 	CreateRoleBinding(binding *authorizationapi.RoleBinding) error
 }
@@ -107,13 +108,13 @@ func (a LocalRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, 
 	return ret, nil
 }
 
-func (a LocalRoleBindingAccessor) GetExistingRoleBindingNames() (*util.StringSet, error) {
+func (a LocalRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
 	policyBindings, err := a.Client.PolicyBindings(a.BindingNamespace).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	ret := &util.StringSet{}
+	ret := &sets.String{}
 	for _, existingBindings := range policyBindings.Items {
 		for _, currBinding := range existingBindings.RoleBindings {
 			ret.Insert(currBinding.Name)
@@ -163,14 +164,14 @@ func (a ClusterRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace
 	return ret, nil
 }
 
-func (a ClusterRoleBindingAccessor) GetExistingRoleBindingNames() (*util.StringSet, error) {
+func (a ClusterRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
 	uncast, err := a.Client.ClusterPolicyBindings().List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return nil, err
 	}
 	policyBindings := authorizationapi.ToPolicyBindingList(uncast)
 
-	ret := &util.StringSet{}
+	ret := &sets.String{}
 	for _, existingBindings := range policyBindings.Items {
 		for _, currBinding := range existingBindings.RoleBindings {
 			ret.Insert(currBinding.Name)

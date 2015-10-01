@@ -13,7 +13,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -256,7 +256,7 @@ func (r *templateRouter) reloadRouter() error {
 	return nil
 }
 
-func (r *templateRouter) FilterNamespaces(namespaces util.StringSet) {
+func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 	if len(namespaces) == 0 {
 		r.state = make(map[string]ServiceUnit)
 	}

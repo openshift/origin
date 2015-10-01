@@ -28,8 +28,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/client/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/clientcmd/api"
+	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/util"
 )
 
@@ -577,13 +577,13 @@ func TestNewEmptyCluster(t *testing.T) {
 func TestAdditionalCluster(t *testing.T) {
 	expectedConfig := newRedFederalCowHammerConfig()
 	cluster := clientcmdapi.NewCluster()
-	cluster.APIVersion = testapi.Version()
+	cluster.APIVersion = testapi.Default.Version()
 	cluster.CertificateAuthority = "/ca-location"
 	cluster.InsecureSkipTLSVerify = false
 	cluster.Server = "serverlocation"
 	expectedConfig.Clusters["different-cluster"] = cluster
 	test := configCommandTest{
-		args:           []string{"set-cluster", "different-cluster", "--" + clientcmd.FlagAPIServer + "=serverlocation", "--" + clientcmd.FlagInsecure + "=false", "--" + clientcmd.FlagCAFile + "=/ca-location", "--" + clientcmd.FlagAPIVersion + "=" + testapi.Version()},
+		args:           []string{"set-cluster", "different-cluster", "--" + clientcmd.FlagAPIServer + "=serverlocation", "--" + clientcmd.FlagInsecure + "=false", "--" + clientcmd.FlagCAFile + "=/ca-location", "--" + clientcmd.FlagAPIVersion + "=" + testapi.Default.Version()},
 		startingConfig: newRedFederalCowHammerConfig(),
 		expectedConfig: expectedConfig,
 	}

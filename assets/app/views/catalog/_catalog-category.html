@@ -1,0 +1,29 @@
+<section column>
+  <h3>
+    {{categoryLabel}}
+
+    <small ng-show="itemLimit && (builders.length > itemLimit || templates.length > itemLimit)" class="pull-right">
+      <a href="" ng-click="itemLimit = undefined">See all</a>
+    </small>
+  </h3>
+  <div class="catalog">
+    <!-- Show builder images first. -->
+    <catalog-image
+      image-stream="builder.imageStream"
+      image-tag="builder.imageStreamTag"
+      project="{{project}}"
+      version="builder.version"
+      filter-tag="filterTag"
+      is-builder="true"
+      ng-repeat="builder in builders | orderBy : ['name', 'imageStream.metadata.namespace'] | limitToOrAll: itemLimit track by builderID(builder)">
+    </catalog-image>
+
+    <!-- Show any templates. -->
+    <catalog-template
+      template="template"
+      project="{{project}}"
+      filter-tag="filterTag"
+      ng-repeat="template in templates | orderBy : ['metadata.name', 'metadata.namespace'] | limitToOrAll: itemLimit track by (template | uid)">
+    </catalog-template>
+  </div>
+</section>

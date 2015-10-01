@@ -86,7 +86,7 @@ func ReadYAMLFile(filename string, obj runtime.Object) error {
 		return err
 	}
 	err = Codec.DecodeInto(data, obj)
-	return captureSurroundingJSONForError(fmt.Sprintf("could not load config file %q due to a error: ", filename), data, err)
+	return captureSurroundingJSONForError(fmt.Sprintf("could not load config file %q due to an error: ", filename), data, err)
 }
 
 // TODO: we ultimately want a better decoder for JSON that allows us exact line numbers and better

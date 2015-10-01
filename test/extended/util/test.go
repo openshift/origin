@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 	flag "github.com/spf13/pflag"
-	//"k8s.io/kubernetes/pkg/client/clientcmd"
+	// "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/test/e2e"
 )
 

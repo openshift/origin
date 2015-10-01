@@ -102,6 +102,9 @@ type ExecNewPodHook struct {
 	// ContainerName is the name of a container in the deployment pod template
 	// whose Docker image will be used for the hook pod's container.
 	ContainerName string
+	// Volumes is a list of named volumes from the pod template which should be
+	// copied to the hook pod.
+	Volumes []string
 }
 
 // RollingDeploymentStrategyParams are the input to the Rolling deployment

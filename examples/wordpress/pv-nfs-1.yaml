@@ -8,6 +8,7 @@ spec:
   accessModes:
     - ReadWriteOnce
     - ReadWriteMany
+  persistentVolumeReclaimPolicy: Recycle
   nfs:
     server: localhost
     path: /home/data/pv0001

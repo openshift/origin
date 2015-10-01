@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	kclient "k8s.io/kubernetes/pkg/client"
+	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/pkg/util"
 
@@ -259,8 +259,26 @@ func (g *BuildGenerator) Clone(ctx kapi.Context, request *buildapi.BuildRequest)
 	if err != nil {
 		return nil, err
 	}
-	newBuild := generateBuildFromBuild(build)
+
+	var buildConfig *buildapi.BuildConfig
+	if build.Status.Config != nil {
+		buildConfig, err = g.Client.GetBuildConfig(ctx, build.Status.Config.Name)
+		if err != nil && !errors.IsNotFound(err) {
+			return nil, err
+		}
+	}
+
+	newBuild := generateBuildFromBuild(build, buildConfig)
 	glog.V(4).Infof("Build %s/%s has been generated from Build %s/%s", newBuild.Namespace, newBuild.ObjectMeta.Name, build.Namespace, build.ObjectMeta.Name)
+
+	// need to update the BuildConfig because LastVersion changed
+	if buildConfig != nil {
+		if err := g.Client.UpdateBuildConfig(ctx, buildConfig); err != nil {
+			glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", buildConfig.Namespace, buildConfig.Name)
+			return nil, err
+		}
+	}
+
 	return g.createBuild(ctx, newBuild)
 }
 
@@ -508,9 +526,9 @@ func (g *BuildGenerator) resolveImageSecret(ctx kapi.Context, secrets []kapi.Sec
 }
 
 // getNextBuildName returns name of the next build and increments BuildConfig's LastVersion.
-func getNextBuildName(bc *buildapi.BuildConfig) string {
-	bc.Status.LastVersion++
-	return fmt.Sprintf("%s-%d", bc.Name, bc.Status.LastVersion)
+func getNextBuildName(buildConfig *buildapi.BuildConfig) string {
+	buildConfig.Status.LastVersion++
+	return fmt.Sprintf("%s-%d", buildConfig.Name, buildConfig.Status.LastVersion)
 }
 
 // For a custom build strategy, update base image env variable reference with the new image.
@@ -537,27 +555,46 @@ func updateCustomImageEnv(strategy *buildapi.CustomBuildStrategy, newImage strin
 }
 
 // generateBuildFromBuild creates a new build based on a given Build.
-func generateBuildFromBuild(build *buildapi.Build) *buildapi.Build {
+func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildConfig) *buildapi.Build {
 	obj, _ := kapi.Scheme.Copy(build)
 	buildCopy := obj.(*buildapi.Build)
-	// TODO: How do we want to handle buildapi.BuildNumberAnnotation for cloned builds?
-	return &buildapi.Build{
+
+	newBuild := &buildapi.Build{
 		Spec: buildCopy.Spec,
 		ObjectMeta: kapi.ObjectMeta{
-			Name:   getNextBuildNameFromBuild(buildCopy),
-			Labels: buildCopy.ObjectMeta.Labels,
+			Name:        getNextBuildNameFromBuild(buildCopy, buildConfig),
+			Labels:      buildCopy.ObjectMeta.Labels,
+			Annotations: buildCopy.ObjectMeta.Annotations,
 		},
 		Status: buildapi.BuildStatus{
 			Phase:  buildapi.BuildPhaseNew,
 			Config: buildCopy.Status.Config,
 		},
 	}
+	if newBuild.Annotations == nil {
+		newBuild.Annotations = make(map[string]string)
+	}
+	newBuild.Annotations[buildapi.BuildCloneAnnotation] = build.Name
+	if buildConfig != nil {
+		newBuild.Annotations[buildapi.BuildNumberAnnotation] = strconv.Itoa(buildConfig.Status.LastVersion)
+	} else {
+		// builds without a buildconfig don't have build numbers.
+		delete(newBuild.Annotations, buildapi.BuildNumberAnnotation)
+	}
+	return newBuild
 }
 
 // getNextBuildNameFromBuild returns name of the next build with random uuid added at the end
-func getNextBuildNameFromBuild(build *buildapi.Build) string {
-	buildName := build.Name
-	if matched, _ := regexp.MatchString(`^.+-\d-\d+$`, buildName); matched {
+func getNextBuildNameFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildConfig) string {
+	var buildName string
+	if buildConfig != nil {
+		return getNextBuildName(buildConfig)
+	}
+	// for builds created by hand, append a timestamp when cloning/rebuilding them
+	// because we don't have a sequence number to bump.
+	buildName = build.Name
+	// remove the old timestamp if we're cloning a build that is itself a clone.
+	if matched, _ := regexp.MatchString(`^.+-\d{10}$`, buildName); matched {
 		nameElems := strings.Split(buildName, "-")
 		buildName = strings.Join(nameElems[:len(nameElems)-1], "-")
 	}
@@ -566,6 +603,7 @@ func getNextBuildNameFromBuild(build *buildapi.Build) string {
 		suffix = suffix[len(suffix)-10:]
 	}
 	return namer.GetName(buildName, suffix, util.DNS1123SubdomainMaxLength)
+
 }
 
 // getStrategyImageChangeTrigger returns the ImageChangeTrigger that corresponds to the BuildConfig's strategy
