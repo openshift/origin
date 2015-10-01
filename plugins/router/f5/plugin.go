@@ -49,9 +49,8 @@ type F5PluginConfig struct {
 	// validation for connections to the F5 BIG-IP host.
 	Insecure bool
 
-	// PartitionPath specifies the F5 partition path to use, normally
-	// a partition is used to create an access control boundary for
-	// users and applications.
+	// PartitionPath specifies the F5 partition path to use. This is used
+	// to create an access control boundary for users and applications.
 	PartitionPath string
 }
 

@@ -68,7 +68,7 @@ type F5Router struct {
 	// validation for connections to the F5 BIG-IP host.
 	Insecure bool
 
-	// PartitionPath specifies the path to the F5 partition, this is
+	// PartitionPath specifies the path to the F5 partition. This is
 	// normally used to create access control boundaries for users
 	// and applications.
 	PartitionPath string
@@ -83,7 +83,7 @@ func (o *F5Router) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.HttpsVserver, "f5-https-vserver", util.Env("ROUTER_EXTERNAL_HOST_HTTPS_VSERVER", "https-ose-vserver"), "The F5 BIG-IP virtual server for HTTPS connections")
 	flag.StringVar(&o.PrivateKey, "f5-private-key", util.Env("ROUTER_EXTERNAL_HOST_PRIVKEY", ""), "The path to the F5 BIG-IP SSH private key file")
 	flag.BoolVar(&o.Insecure, "f5-insecure", util.Env("ROUTER_EXTERNAL_HOST_INSECURE", "") == "true", "Skip strict certificate verification")
-	flag.StringVar(&o.PartitionPath, "f5-partition-path", util.Env("ROUTER_EXTERNAL_HOST_PARTITION_PATH", f5plugin.F5DefaultPartitionPath), "The F5 BIG-IP partition path to use for syncing route configuration")
+	flag.StringVar(&o.PartitionPath, "f5-partition-path", util.Env("ROUTER_EXTERNAL_HOST_PARTITION_PATH", f5plugin.F5DefaultPartitionPath), "The F5 BIG-IP partition path to use")
 }
 
 // Validate verifies the required F5 flags are present

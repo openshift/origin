@@ -687,11 +687,6 @@ func (f5 *f5LTM) ensureVserverHasIRule(vserverName, iRuleName string) error {
 func (f5 *f5LTM) checkPartitionPathExists(pathName string) (bool, error) {
 	glog.V(4).Infof("Checking if partition path %q exists...", pathName)
 
-	// Ensure pathname is absolute.
-	if !path.IsAbs(pathName) {
-		pathName = path.Join("/", pathName)
-	}
-
 	// F5 iControl REST API expects / characters in the path to be
 	// escaped as ~.
 	uri := fmt.Sprintf("https://%s/mgmt/tm/sys/folder/%s",
@@ -745,29 +740,31 @@ func (f5 *f5LTM) ensurePartitionPathExists(pathName string) error {
 	}
 
 	if exists {
-		glog.V(4).Infof("Partition path %s already exists; nothing to do.", pathName)
 		return nil
 	}
 
-	// We have to loop thru the path heirarchy and add components
+	// We have to loop thru the path hierarchy and add components
 	// individually if they don't exist.
 
-	// Get path components - we need to remove the leading slash from
-	// the pathname (make it absolute if it is not already and remove
-	// the leading slash).
+	// Get path components - we need to remove the leading empty path
+	// component after splitting (make it absolute if it is not already
+	// and skip the first element).
+	// As an example, for a path named "/a/b/c", strings.Split returns
+	//   []string{"", "a", "b", "c"}
+	// and we skip the empty string.
 	p := "/"
 	pathComponents := strings.Split(path.Join("/", pathName)[1:], "/")
 	for _, v := range pathComponents {
 		p = path.Join(p, v)
 
-		if _, err := f5.checkPartitionPathExists(p); err != nil {
-			//  PartitionPath components exists, go to next.
-			continue
-		}
-
-		if _, err := f5.addPartitionPath(p); err != nil {
-			glog.Errorf("Error adding partition path %q: %v", p, err)
+		exists, err := f5.checkPartitionPathExists(p)
+		if err != nil {
 			return err
+		}
+		if !exists {
+			if _, err := f5.addPartitionPath(p); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -781,7 +778,12 @@ func (f5 *f5LTM) ensurePartitionPathExists(pathName string) error {
 // HTTPS traffic, as well as an iRule and data-groups for passthrough routes,
 // and associates these objects with the appropriate vservers, if necessary.
 func (f5 *f5LTM) Initialize() error {
-	err := f5.ensurePolicyExists(httpPolicyName)
+	err := f5.ensurePartitionPathExists(f5.partitionPath)
+	if err != nil {
+		return err
+	}
+
+	err = f5.ensurePolicyExists(httpPolicyName)
 	if err != nil {
 		return err
 	}
@@ -825,11 +827,6 @@ func (f5 *f5LTM) Initialize() error {
 		}
 	}
 
-	err = f5.ensurePartitionPathExists(f5.partitionPath)
-	if err != nil {
-		return err
-	}
-
 	glog.V(4).Infof("F5 initialization is complete.")
 
 	return nil
@@ -839,9 +836,12 @@ func (f5 *f5LTM) Initialize() error {
 func (f5 *f5LTM) CreatePool(poolname string) error {
 	url := fmt.Sprintf("https://%s/mgmt/tm/ltm/pool", f5.host)
 
+	// The http monitor is still used from the /Common partition.
+	// From @Miciah: In the future, we should allow the administrator
+	// to specify a different monitor to use.
 	payload := f5Pool{
 		Mode:    "round-robin",
-		Monitor: fmt.Sprintf("%s/http", f5.partitionPath),
+		Monitor: "/Common/http",
 		Name:    poolname,
 	}
 

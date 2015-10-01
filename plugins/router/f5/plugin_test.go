@@ -67,7 +67,7 @@ type (
 		// the mock F5 host.
 		vserverIRules map[string][]string
 
-		// partitionPaths represent the partitions that exist in
+		// partitionPaths represents the partitions that exist in
 		// the mock F5 host.
 		partitionPaths map[string]string
 
@@ -660,7 +660,7 @@ func getPartitionPath(f5state mockF5State) http.HandlerFunc {
 			return
 		}
 
-		fullPath := strings.Replace(partitionPath, "~", "/", -1)
+		fullPath := f5state.partitionPaths[partitionPath]
 		parts := strings.Split(fullPath, "/")
 		partitionName := parts[0]
 		if len(parts) > 1 {

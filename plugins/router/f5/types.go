@@ -286,7 +286,7 @@ type f5VserverProfilePayload struct {
 	Name string `json:"name"`
 }
 
-// f5AddPartitionPathPayload adds an folder to a F5 BIG-IP administrative
+// f5AddPartitionPathPayload adds a folder to an F5 BIG-IP administrative
 // partition. It describes the payload for a POST request which allows the
 // F5 router to create custom partition paths.
 type f5AddPartitionPathPayload struct {
