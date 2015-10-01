@@ -11,11 +11,11 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kutil "k8s.io/kubernetes/pkg/util"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -165,15 +165,9 @@ func newConnection(url url.URL, allowInsecure, enableV2 bool) *connection {
 
 	var transport http.RoundTripper
 	if allowInsecure {
-		transport = &http.Transport{
+		transport = kutil.SetTransportDefaults(&http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			Proxy:           http.ProxyFromEnvironment,
-			Dial: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 10 * time.Second,
-		}
+		})
 	} else {
 		transport = http.DefaultTransport
 	}
