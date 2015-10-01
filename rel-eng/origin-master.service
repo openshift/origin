@@ -15,6 +15,7 @@ LimitNOFILE=131072
 LimitCORE=infinity
 WorkingDirectory=/var/lib/origin/
 SyslogIdentifier=origin-master
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
