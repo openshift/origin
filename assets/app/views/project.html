@@ -94,7 +94,7 @@
                 <h2 ng-if="displayRouteByService[serviceId]" ng-init="otherRoutes = (routesByService[serviceId] | hashSize) - 1">
                   <span ng-if="(displayRouteByService[serviceId] | isWebRoute)">
                     <!-- "route" class is present for e2e tests to check -->
-                    <a href="{{displayRouteByService[serviceId] | routeWebURL}}" class="route">{{displayRouteByService[serviceId] | routeLabel}}</a>
+                    <a href="{{displayRouteByService[serviceId] | routeWebURL}}" class="route" target="_blank">{{displayRouteByService[serviceId] | routeLabel}}</a>
                   </span>
                   <!-- "route" class is present for e2e test -->
                   <span ng-if="!(displayRouteByService[serviceId] | isWebRoute)" class="route">
