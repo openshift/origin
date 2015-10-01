@@ -56,7 +56,7 @@ function docker_setup() {
     mkdir -p /run/openshift-sdn
     cat <<EOF > /run/openshift-sdn/docker-network
 # This file has been modified by openshift-sdn. Please modify the
-# DOCKER_NETWORK_OPTIONS variable in /etc/sysconfig/openshift-node if this
+# DOCKER_NETWORK_OPTIONS variable in /etc/sysconfig/atomic-openshift-node if this
 # is an integrated install or /etc/sysconfig/openshift-sdn-node if this is a
 # standalone install.
 
@@ -99,7 +99,7 @@ function setup() {
     # disable iptables for lbr0
     # for kernel version 3.18+, module br_netfilter needs to be loaded upfront
     # for older ones, br_netfilter may not exist, but is covered by bridge (bridge-utils)
-    modprobe br_netfilter || true 
+    modprobe br_netfilter || true
     sysctl -w net.bridge.bridge-nf-call-iptables=0
 
     # enable IP forwarding for ipv4 packets

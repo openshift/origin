@@ -5,7 +5,7 @@ MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
 LABEL Name="aos3/aos-master"
 LABEL Vendor="Red Hat" License=GPLv2+
 LABEL Version=v3.0.2.100
-LABEL Release="1"
+LABEL Release="2"
 LABEL BZComponent="aos3-master-docker"
 LABEL Architecture="x86_64"
 
@@ -15,13 +15,13 @@ RUN yum install -y atomic-openshift-master hostname && yum clean all
 COPY aos-master-run.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/aos-master-run.sh
 
-VOLUME [ "/etc/openshift", "/var/lib/openshift" ]
-WORKDIR /var/lib/openshift
+VOLUME [ "/etc/origin", "/var/lib/origin" ]
+WORKDIR /var/lib/origin
 
 ENV HOME /root
 ENV OPENSHIFT_CONTAINERIZED true
 
 CMD [ "/usr/local/bin/aos-master-run.sh" ]
 
-LABEL RUN docker run -d --name NAME --net=host --restart=always -v /etc/localtime:/etc/localtime:ro -v /etc/openshift-master:/etc/openshift:Z -v /var/lib/openshift:/var/lib/openshift:z -e HOST_HOSTNAME=$(hostname) -p 53:53 -p 53:53/udp -p 4001:4001 -p 7001:7001 -p 8443:8443 IMAGE
+LABEL RUN docker run -d --name NAME --net=host --restart=always -v /etc/localtime:/etc/localtime:ro -v /etc/origin-master/master:/etc/origin/master:Z -v /var/lib/origin:/var/lib/origin:z -e HOST_HOSTNAME=$(hostname) -p 53:53 -p 53:53/udp -p 4001:4001 -p 7001:7001 -p 8443:8443 IMAGE
 

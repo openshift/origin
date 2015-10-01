@@ -57,7 +57,7 @@ function docker_setup() {
     mkdir -p /run/openshift-sdn
     cat <<EOF > /run/openshift-sdn/docker-network
 # This file has been modified by openshift-sdn. Please modify the
-# DOCKER_NETWORK_OPTIONS variable in /etc/sysconfig/openshift-node if this
+# DOCKER_NETWORK_OPTIONS variable in /etc/sysconfig/atomic-openshift-node if this
 # is an integrated install or /etc/sysconfig/openshift-sdn-node if this is a
 # standalone install.
 

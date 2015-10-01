@@ -18,7 +18,7 @@ fi
 
 /usr/share/openvswitch/scripts/ovs-ctl start --system-id=random
 
-/usr/bin/openshift start node --config=/etc/openshift/node/node-config.yaml --loglevel=2 &
+/usr/bin/openshift start node --config=/etc/origin/node/node-config.yaml --loglevel=2 &
 
 while true; do sleep 5; done
 
