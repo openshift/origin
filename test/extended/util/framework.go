@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	o "github.com/onsi/gomega"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -41,6 +43,17 @@ func WriteObjectToFile(obj runtime.Object, filename string) error {
 		return err
 	}
 	return ioutil.WriteFile(filename, []byte(content), 0644)
+}
+
+// VarSubOnFile reads in srcFile, finds instances inf varToSub, changes it to var, and writes out to destFile
+func VarSubOnFile(srcFile, destFile, varToSub, val string) error {
+	srcData, err := ioutil.ReadFile(srcFile)
+	if err == nil {
+		srcString := string(srcData)
+		srcString = strings.Replace(srcString, varToSub, val, -1) // -1 means unlimited replacements
+		err = ioutil.WriteFile(destFile, []byte(srcString), 0644)
+	}
+	return err
 }
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions
@@ -398,12 +411,28 @@ func CleanupHostPathVolumes(c kclient.PersistentVolumeInterface, prefix string) 
 
 // KubeConfigPath returns the value of KUBECONFIG environment variable
 func KubeConfigPath() string {
+	// can't use gomega in this method since it is used outside of It()
 	return os.Getenv("KUBECONFIG")
 }
 
 // ExtendedTestPath returns absolute path to extended tests directory
 func ExtendedTestPath() string {
+	// can't use gomega in this method since it is used outside of It()
 	return os.Getenv("EXTENDED_TEST_PATH")
+}
+
+//ArtifactDirPath returns the value of ARTIFACT_DIR environment variable
+func ArtifactDirPath() string {
+	path := os.Getenv("ARTIFACT_DIR")
+	o.Expect(path).NotTo(o.BeNil())
+	o.Expect(path).NotTo(o.BeEmpty())
+	return path
+}
+
+//ArtifactPath returns the absolute path to the fix artifact file
+//The path is relative to ARTIFACT_DIR
+func ArtifactPath(elem ...string) string {
+	return filepath.Join(append([]string{ArtifactDirPath()}, elem...)...)
 }
 
 // FixturePath returns absolute path to given fixture file
