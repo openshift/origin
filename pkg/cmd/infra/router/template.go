@@ -145,6 +145,7 @@ func (o *TemplateRouterOptions) Run() error {
 		StatsUsername:      o.StatsUsername,
 		StatsPassword:      o.StatsPassword,
 		PeerService:        o.RouterService,
+		IncludeUDP:         o.RouterSelection.IncludeUDP,
 	}
 
 	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg)

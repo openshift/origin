@@ -2228,6 +2228,15 @@ func deepCopy_api_RouteList(in routeapi.RouteList, out *routeapi.RouteList, c *c
 	return nil
 }
 
+func deepCopy_api_RoutePort(in routeapi.RoutePort, out *routeapi.RoutePort, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TargetPort); err != nil {
+		return err
+	} else {
+		out.TargetPort = newVal.(util.IntOrString)
+	}
+	return nil
+}
+
 func deepCopy_api_RouteSpec(in routeapi.RouteSpec, out *routeapi.RouteSpec, c *conversion.Cloner) error {
 	out.Host = in.Host
 	out.Path = in.Path
@@ -2235,6 +2244,14 @@ func deepCopy_api_RouteSpec(in routeapi.RouteSpec, out *routeapi.RouteSpec, c *c
 		return err
 	} else {
 		out.To = newVal.(pkgapi.ObjectReference)
+	}
+	if in.Port != nil {
+		out.Port = new(routeapi.RoutePort)
+		if err := deepCopy_api_RoutePort(*in.Port, out.Port, c); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
 	}
 	if in.TLS != nil {
 		out.TLS = new(routeapi.TLSConfig)
@@ -2738,6 +2755,7 @@ func init() {
 		deepCopy_api_ProjectStatus,
 		deepCopy_api_Route,
 		deepCopy_api_RouteList,
+		deepCopy_api_RoutePort,
 		deepCopy_api_RouteSpec,
 		deepCopy_api_RouteStatus,
 		deepCopy_api_TLSConfig,
