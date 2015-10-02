@@ -145,6 +145,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().BoolVar(&config.InsecureRegistry, "insecure-registry", false, "If true, indicates that the referenced Docker images are on insecure registries and should bypass certificate checking")
 	cmd.Flags().BoolVarP(&config.AsList, "list", "L", false, "List all local templates and image streams that can be used to create.")
 	cmd.Flags().BoolVarP(&config.AsSearch, "search", "S", false, "Search all templates, image streams, and Docker images that match the arguments provided.")
+	cmd.Flags().BoolVar(&config.AllowMissing, "allow-missing", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 
 	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
 	// Need a better solution.
@@ -162,7 +163,6 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	if err := setupAppConfig(f, out, c, args, config); err != nil {
 		return err
 	}
-
 	if config.Querying() {
 		result, err := config.RunQuery()
 		if err != nil {
@@ -267,6 +267,9 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 		return cmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
 	}
 
+	if config.AllowMissing && config.AsSearch {
+		return cmdutil.UsageError(c, "--allow-missing and --search are mutually exclusive.")
+	}
 	return nil
 }
 
