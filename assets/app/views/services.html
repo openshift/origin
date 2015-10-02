@@ -45,44 +45,6 @@
           </tbody>
         </table>
       </div>
-      <h3>Routes</h3>
-      <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Hostname</th>
-              <th>Routes to</th>
-              <th>Age</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr ng-if="(routes | hashSize) == 0"><td colspan="6"><em>{{emptyMessageRoutes}}</em></td></tr>
-            <tr ng-repeat="route in routes | orderObjectsByDate : true">
-              <td>{{route.metadata.name}}</td>
-              <td>
-                <span ng-if="(route | isWebRoute)">
-                  <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
-                </span>
-                <span ng-if="!(route | isWebRoute)">
-                  {{route | routeLabel}}
-                </span>
-              </td>
-              <td>
-                <span>{{route.spec.to.kind}}: </span>
-                <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
-                <span ng-if="route.spec.to.kind == 'Service'"><a href="project/{{projectName}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></span>
-              </td>
-              <td><relative-timestamp timestamp="route.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div ng-if="routesByService['']" style="margin-bottom: 10px;">
-        <h3>No Service</h3>
-        <div>Routes: <span ng-repeat="(routeName, route) in routesByService['']">{{route.host}}<span ng-show="!$last">, </span></span></div>
-      </div>      
     </div>
   </project-page>
 </div>

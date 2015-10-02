@@ -3,75 +3,77 @@
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
     <div ng-if="service">
-      <div class="col-md-12">
-        <div class="tile">
-          <dl class="dl-horizontal left">
-            <dt>Name:</dt>
-            <dd>{{service.metadata.name}}</dd>
-            <dt>Labels:</dt>
-            <dd>
-              <span ng-if="!service.metadata.labels">none</span>
-              <span ng-repeat="(labelKey, labelValue) in service.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
-            </dd>
-            <dt>Selectors:</dt>
-            <dd>
-              <span ng-if="!service.spec.selector"><em>none</em></span>
-              <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector"> {{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>
-            </dd>
-            <dt>Type:</dt>
-            <dd>{{service.spec.type}}</dd>
-            <dt>IP:</dt>
-            <dd>{{service.spec.clusterIP}}</dd>
-            <dt>Session affinity:</dt>
-            <dd>{{service.spec.sessionAffinity}}</dd>
-            <dt ng-if="resource.status.loadBalancer.ingress.length">Ingress points</dt>
-            <dd ng-if="resource.status.loadBalancer.ingress.length">
-              <span ng-repeat="ingress in resource.status.loadBalancer.ingress"
-                >{{ingress.ip}}<span ng-if="!$last">, </span></span>
-            </dd>
-          </dl>
-          <div class="service-table table-responsive">
-            <table ng-if="service.spec.ports.length" style="max-width: 650px;">
-              <thead>
-                <tr>
-                  <th>Node Port</th>
-                  <th role="presentation"></th>
-                  <th>
-                    Service Port
-                    <!-- Show cluster IP in column header instead of table body at small screen widths to save space. -->
-                    <span class="visible-xs">({{service.spec.clusterIP}})</span>
-                  </th>
-                  <th role="presentation"></th>
-                  <th>Target Port</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr ng-repeat="portMapping in service.spec.ports | orderBy:'port'">
-                  <td>
-                    <span ng-if="portMapping.nodePort">{{portMapping.nodePort}}</span>
-                    <span ng-if="!portMapping.nodePort" class="text-muted">none</span>
-                  </td>
-                  <td role="presentation" class="text-muted">&#8594;</td>
-                  <td><span ng-if="service.spec.clusterIP && service.spec.clusterIP !== 'None'">
-                      <span class="hidden-xs">{{service.spec.clusterIP}}:</span></span>{{portMapping.port}}
-                      <span ng-if="portMapping.name">({{portMapping.name}})</span></td>
-                  <td role="presentation" class="text-muted">&#8594;</td>
-                  <td>{{portMapping.targetPort}}&nbsp;({{portMapping.protocol}})</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div>Routes:</div>
-          <div>
-            <span ng-if="!routesForService.length"><em>none</em></span>
-            <span ng-repeat="route in routesForService">
-                <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
-                <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
-                <span ng-show="!$last">, </span>
-            </span>
-          </div>
-        </div> <!-- /tile -->
-      </div> <!-- /col -->
+      <div class="row">
+        <div class="col-md-12">
+          <div class="tile">
+            <dl class="dl-horizontal left">
+              <dt>Name:</dt>
+              <dd>{{service.metadata.name}}</dd>
+              <dt>Labels:</dt>
+              <dd>
+                <span ng-if="!service.metadata.labels">none</span>
+                <span ng-repeat="(labelKey, labelValue) in service.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
+              </dd>
+              <dt>Selectors:</dt>
+              <dd>
+                <span ng-if="!service.spec.selector"><em>none</em></span>
+                <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector"> {{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>
+              </dd>
+              <dt>Type:</dt>
+              <dd>{{service.spec.type}}</dd>
+              <dt>IP:</dt>
+              <dd>{{service.spec.clusterIP}}</dd>
+              <dt>Session affinity:</dt>
+              <dd>{{service.spec.sessionAffinity}}</dd>
+              <dt ng-if="resource.status.loadBalancer.ingress.length">Ingress points</dt>
+              <dd ng-if="resource.status.loadBalancer.ingress.length">
+                <span ng-repeat="ingress in resource.status.loadBalancer.ingress"
+                  >{{ingress.ip}}<span ng-if="!$last">, </span></span>
+              </dd>
+            </dl>
+            <div class="service-table table-responsive">
+              <table ng-if="service.spec.ports.length" style="max-width: 650px;">
+                <thead>
+                  <tr>
+                    <th>Node Port</th>
+                    <th role="presentation"></th>
+                    <th>
+                      Service Port
+                      <!-- Show cluster IP in column header instead of table body at small screen widths to save space. -->
+                      <span class="visible-xs">({{service.spec.clusterIP}})</span>
+                    </th>
+                    <th role="presentation"></th>
+                    <th>Target Port</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="portMapping in service.spec.ports | orderBy:'port'">
+                    <td>
+                      <span ng-if="portMapping.nodePort">{{portMapping.nodePort}}</span>
+                      <span ng-if="!portMapping.nodePort" class="text-muted">none</span>
+                    </td>
+                    <td role="presentation" class="text-muted">&#8594;</td>
+                    <td><span ng-if="service.spec.clusterIP && service.spec.clusterIP !== 'None'">
+                        <span class="hidden-xs">{{service.spec.clusterIP}}:</span></span>{{portMapping.port}}
+                        <span ng-if="portMapping.name">({{portMapping.name}})</span></td>
+                    <td role="presentation" class="text-muted">&#8594;</td>
+                    <td>{{portMapping.targetPort}}&nbsp;({{portMapping.protocol}})</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div>Routes:</div>
+            <div>
+              <span ng-if="!routesForService.length"><em>none</em></span>
+              <span ng-repeat="route in routesForService">
+                  <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
+                  <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
+                  <span ng-show="!$last">, </span>
+              </span>
+            </div>
+          </div> <!-- /tile -->
+        </div> <!-- /col -->
+      </div> <!-- /row -->        
     </div>
   </project-page>
 </div>
