@@ -10,6 +10,7 @@ import (
 	stiapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
+	"github.com/openshift/source-to-image/pkg/build"
 	sti "github.com/openshift/source-to-image/pkg/build/strategies"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -17,24 +18,73 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 )
 
+// internal interface to decouple S2I-specific code from Origin builder code
+type stiBuilderFactory interface {
+	// retrieve S2I Builder based on S2I configuration
+	GetStrategy(config *stiapi.Config) (build.Builder, error)
+}
+
+// interval interface to decouple S2I-specific code from Origin builder code
+type stiConfigValidator interface {
+	ValidateConfig(config *stiapi.Config) []validation.ValidationError
+}
+
+// default implementation of stiBuilderFactory
+type runtimeBuilderFactory struct{}
+
+// default implementation of stiConfigValidator
+type runtimeConfigValidator struct{}
+
+// default implementation of stiBuildFactory.GetStrategy method. Just delegates to S2I-specific code
+func (_ runtimeBuilderFactory) GetStrategy(config *stiapi.Config) (build.Builder, error) {
+	return sti.GetStrategy(config)
+}
+
+// default implementation of stiConfigValidator.ValidateConfig method. Just delegates to S2I-specific code
+func (_ runtimeConfigValidator) ValidateConfig(config *stiapi.Config) []validation.ValidationError {
+	return validation.ValidateConfig(config)
+}
+
 // STIBuilder performs an STI build given the build object
 type STIBuilder struct {
-	dockerClient DockerClient
-	dockerSocket string
-	build        *api.Build
+	dockerClient    DockerClient
+	dockerSocket    string
+	build           *api.Build
+	builderFactory  stiBuilderFactory
+	configValidator stiConfigValidator
 }
 
 // NewSTIBuilder creates a new STIBuilder instance
 func NewSTIBuilder(client DockerClient, dockerSocket string, build *api.Build) *STIBuilder {
+	// delegate to internal implementation passing default implementation of stiBuilderFactory and stiConfigValidator
+	return newSTIBuilder(client, dockerSocket, build,
+		new(runtimeBuilderFactory), new(runtimeConfigValidator))
+
+}
+
+// internal factory function to create STIBuilder based on arameters. Used for testing.
+func newSTIBuilder(client DockerClient, dockerSocket string, build *api.Build,
+	builderFactory stiBuilderFactory, configValidator stiConfigValidator) *STIBuilder {
 	return &STIBuilder{
-		dockerClient: client,
-		dockerSocket: dockerSocket,
-		build:        build,
+		dockerClient:    client,
+		dockerSocket:    dockerSocket,
+		build:           build,
+		builderFactory:  builderFactory,
+		configValidator: configValidator,
 	}
 }
 
 // Build executes the STI build
 func (s *STIBuilder) Build() error {
+	// delegate to internal method
+	return internalBuild(s, s.builderFactory, s.configValidator)
+}
+
+// executes STI build based on configured builder, S2I builder factory and S2I config validator
+func internalBuild(s *STIBuilder,
+	builderFactory stiBuilderFactory,
+	configValidator stiConfigValidator) error {
+
 	var push bool
 
 	// if there is no output target, set one up so the docker build logic
@@ -79,7 +129,7 @@ func (s *STIBuilder) Build() error {
 		}
 	}
 
-	if errs := validation.ValidateConfig(config); len(errs) != 0 {
+	if errs := configValidator.ValidateConfig(config); len(errs) != 0 {
 		var buffer bytes.Buffer
 		for _, ve := range errs {
 			buffer.WriteString(ve.Error())
@@ -94,7 +144,7 @@ func (s *STIBuilder) Build() error {
 	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(tag, dockercfg.PushAuthType)
 
 	glog.V(2).Infof("Creating a new S2I builder with build config: %#v\n", describe.DescribeConfig(config))
-	builder, err := sti.GetStrategy(config)
+	builder, err := builderFactory.GetStrategy(config)
 	if err != nil {
 		return err
 	}
@@ -119,10 +169,25 @@ func (s *STIBuilder) Build() error {
 		)
 		if authPresent {
 			glog.Infof("Using provided push secret for pushing %s image", tag)
+		} else {
+			glog.Infof("No push secret provided")
 		}
 		glog.Infof("Pushing %s image ...", tag)
 		if err := pushImage(s.dockerClient, tag, pushAuthConfig); err != nil {
-			return fmt.Errorf("Failed to push image: %v", err)
+			// write extended error message to assist in problem resolution
+			msg := fmt.Sprintf("Failed to push image. Response from registry is: %v", err)
+			if authPresent {
+				glog.Infof("Registry server Address: %s", pushAuthConfig.ServerAddress)
+				glog.Infof("Registry server User Name: %s", pushAuthConfig.Username)
+				glog.Infof("Registry server Email: %s", pushAuthConfig.Email)
+				passwordPresent := "<<empty>>"
+				if len(pushAuthConfig.Password) > 0 {
+					passwordPresent = "<<non-empty>>"
+				}
+				glog.Infof("Registry server address: %s", passwordPresent)
+			}
+			//glog.Info("
+			return errors.New(msg)
 		}
 		glog.Infof("Successfully pushed %s", tag)
 		glog.Flush()
