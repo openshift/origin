@@ -46,6 +46,7 @@ func stringProximityScorer(s, query string) float32 {
 
 func partialScorer(a, b string, prefix bool, partial, none float32) (bool, float32) {
 	switch {
+	// If either one is empty, it's a partial match because the values do not conflict.
 	case len(a) == 0 && len(b) != 0, len(a) != 0 && len(b) == 0:
 		return true, partial
 	case a != b:

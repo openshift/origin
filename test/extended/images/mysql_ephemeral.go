@@ -9,7 +9,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("images: MySQL ephemeral template", func() {
+var _ = g.Describe("images: mysql: ephemeral template", func() {
 	defer g.GinkgoRecover()
 	var (
 		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mysql-ephemeral-template.json")

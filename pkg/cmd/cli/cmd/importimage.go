@@ -33,10 +33,11 @@ have tag and image information imported.`
 // NewCmdImportImage implements the OpenShift cli import-image command.
 func NewCmdImportImage(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "import-image IMAGESTREAM",
-		Short:   "Imports images from a Docker registry",
-		Long:    importImageLong,
-		Example: fmt.Sprintf(importImageExample, fullName),
+		Use:        "import-image IMAGESTREAM",
+		Short:      "Imports images from a Docker registry",
+		Long:       importImageLong,
+		Example:    fmt.Sprintf(importImageExample, fullName),
+		SuggestFor: []string{"image"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunImportImage(f, out, cmd, args)
 			cmdutil.CheckErr(err)

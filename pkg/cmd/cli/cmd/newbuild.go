@@ -52,10 +52,11 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	config := newcmd.NewAppConfig(typer, mapper, clientMapper)
 
 	cmd := &cobra.Command{
-		Use:     "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
-		Short:   "Create a new build configuration",
-		Long:    newBuildLong,
-		Example: fmt.Sprintf(newBuildExample, fullName),
+		Use:        "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
+		Short:      "Create a new build configuration",
+		Long:       newBuildLong,
+		Example:    fmt.Sprintf(newBuildExample, fullName),
+		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
 			config.AddEnvironmentToBuild = true
 			err := RunNewBuild(fullName, f, out, in, c, args, config)
@@ -75,6 +76,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
+	cmd.Flags().BoolVar(&config.AllowMissing, "allow-missing", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd

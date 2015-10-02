@@ -92,7 +92,7 @@ func (bc *BuildController) HandleBuild(build *buildapi.Build) error {
 	}
 
 	if err := bc.nextBuildPhase(build); err != nil {
-		return fmt.Errorf("Build failed with error %s/%s: %v", build.Namespace, build.Name, err)
+		return err
 	}
 
 	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
@@ -150,7 +150,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 	// Invoke the strategy to get a build pod.
 	podSpec, err := bc.BuildStrategy.CreateBuildPod(buildCopy)
 	if err != nil {
-		return fmt.Errorf("the strategy failed to create a build pod for Build %s/%s: %v", build.Namespace, build.Name, err)
+		return fmt.Errorf("failed to create a build pod spec with strategy %q: %v", build.Spec.Strategy.Type, err)
 	}
 	glog.V(4).Infof("Pod %s for Build %s/%s is about to be created", podSpec.Name, build.Namespace, build.Name)
 
@@ -161,7 +161,7 @@ func (bc *BuildController) nextBuildPhase(build *buildapi.Build) error {
 		}
 		// Log an event if the pod is not created (most likely due to quota denial).
 		bc.Recorder.Eventf(build, "failedCreate", "Error creating: %v", err)
-		return fmt.Errorf("failed to create pod for Build %s/%s: %v", build.Namespace, build.Name, err)
+		return fmt.Errorf("failed to create build pod: %v", err)
 	}
 
 	glog.V(4).Infof("Created pod for Build: %#v", podSpec)

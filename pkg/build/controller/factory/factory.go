@@ -93,7 +93,15 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			build := obj.(*buildapi.Build)
-			return buildController.HandleBuild(build)
+			err := buildController.HandleBuild(build)
+			if err != nil {
+				build.Status.Message = err.Error()
+				if err := buildController.BuildUpdater.Update(build.Namespace, build); err != nil {
+					glog.V(2).Infof("Failed to update status message of Build %s/%s: %v", build.Namespace, build.Name, err)
+				}
+				buildController.Recorder.Eventf(build, "HandleBuildError", "Build %s/%s has error: %v", build.Namespace, build.Name, err)
+			}
+			return err
 		},
 	}
 }

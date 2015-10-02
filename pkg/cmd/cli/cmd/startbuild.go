@@ -57,10 +57,11 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	webhooks.Default("none")
 
 	cmd := &cobra.Command{
-		Use:     "start-build (BUILDCONFIG | --from-build=BUILD)",
-		Short:   "Starts a new build",
-		Long:    startBuildLong,
-		Example: fmt.Sprintf(startBuildExample, fullName),
+		Use:        "start-build (BUILDCONFIG | --from-build=BUILD)",
+		Short:      "Starts a new build",
+		Long:       startBuildLong,
+		Example:    fmt.Sprintf(startBuildExample, fullName),
+		SuggestFor: []string{"build", "builds"},
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunStartBuild(f, out, cmd, args, webhooks)
 			cmdutil.CheckErr(err)
@@ -393,7 +394,7 @@ func WaitForBuildComplete(c osclient.BuildInterface, name string) error {
 				return nil
 			}
 			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
-				return fmt.Errorf("The build %s/%s status is %q", &list.Items[i].Namespace, list.Items[i].Name, &list.Items[i].Status.Phase)
+				return fmt.Errorf("the build %s/%s status is %q", list.Items[i].Namespace, list.Items[i].Name, &list.Items[i].Status.Phase)
 			}
 		}
 

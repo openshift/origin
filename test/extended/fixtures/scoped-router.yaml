@@ -48,6 +48,8 @@ items:
     host: first.example.com
     to:
       name: endpoints
+    ports:
+    - targetPort: 8080
 - apiVersion: v1
   kind: Route
   metadata:
@@ -59,6 +61,8 @@ items:
     host: second.example.com
     to:
       name: endpoints
+    ports:
+    - targetPort: http
 
 # a service to be routed to
 - apiVersion: v1
@@ -87,3 +91,6 @@ items:
       image: openshift/hello-openshift
       ports:
       - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP

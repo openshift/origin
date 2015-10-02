@@ -292,7 +292,7 @@ describe('', function() {
 
       it('should have access to the test project', function() {
         goToPage('/project/test');
-        waitForPresence('h1', 'Project test');
+        waitForPresence('h1', 'test');
         waitForPresence('.component .service', 'database');
         waitForPresence('.component .service', 'frontend');
         waitForPresence('.component .route', 'www.example.com');

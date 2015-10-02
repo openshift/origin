@@ -129,7 +129,7 @@ os::util::install-sdn() {
     popd > /dev/null
   else
     local osdn_base_path="${deployed_root}/Godeps/_workspace/src/github.com/openshift/openshift-sdn"
-    local osdn_controller_path="${osdn_base_path}/ovssubnet/controller"
+    local osdn_controller_path="${osdn_base_path}/pkg/ovssubnet/controller"
     pushd "${osdn_controller_path}" > /dev/null
       # The subnet plugin is discovered via the kube network plugin path.
       local kube_osdn_path="/usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet"

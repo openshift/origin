@@ -324,6 +324,29 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			fielderrors.ValidationErrorTypeRequired,
 			"template.strategy.recreateParams.pre.execNewPod.containerName",
 		},
+		"invalid template.strategy.recreateParams.pre.execNewPod.volumes": {
+			api.DeploymentConfig{
+				ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "bar"},
+				Template: api.DeploymentTemplate{
+					Strategy: api.DeploymentStrategy{
+						Type: api.DeploymentStrategyTypeRecreate,
+						RecreateParams: &api.RecreateDeploymentStrategyParams{
+							Pre: &api.LifecycleHook{
+								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+								ExecNewPod: &api.ExecNewPodHook{
+									ContainerName: "container",
+									Command:       []string{"cmd"},
+									Volumes:       []string{"good", ""},
+								},
+							},
+						},
+					},
+					ControllerTemplate: test.OkControllerTemplate(),
+				},
+			},
+			fielderrors.ValidationErrorTypeInvalid,
+			"template.strategy.recreateParams.pre.execNewPod.volumes[1]",
+		},
 		"invalid template.strategy.rollingParams.intervalSeconds": {
 			rollingConfig(-20, 1, 1),
 			fielderrors.ValidationErrorTypeInvalid,

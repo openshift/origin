@@ -7,6 +7,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+STARTTIME=$(date +%s)
 OS_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${OS_ROOT}/hack/util.sh"
 os::log::install_errexit
@@ -28,6 +29,7 @@ function cleanup()
 
 	cleanup_openshift
 	echo "[INFO] Exiting"
+	ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
 	exit $out
 }
 

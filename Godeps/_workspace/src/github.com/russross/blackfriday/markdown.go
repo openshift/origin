@@ -20,6 +20,7 @@ package blackfriday
 
 import (
 	"bytes"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -38,10 +39,12 @@ const (
 	EXTENSION_HARD_LINE_BREAK                        // translate newlines into line breaks
 	EXTENSION_TAB_SIZE_EIGHT                         // expand tabs to eight spaces instead of four
 	EXTENSION_FOOTNOTES                              // Pandoc-style footnotes
-	EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK             // No need to insert an empty line to start a (code, quote, order list, unorder list)block
+	EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK             // No need to insert an empty line to start a (code, quote, ordered list, unordered list) block
 	EXTENSION_HEADER_IDS                             // specify header IDs  with {#id}
 	EXTENSION_TITLEBLOCK                             // Titleblock ala pandoc
 	EXTENSION_AUTO_HEADER_IDS                        // Create the header ID from the text
+	EXTENSION_BACKSLASH_LINE_BREAK                   // translate trailing backslashes into line breaks
+	EXTENSION_DEFINITION_LISTS                       // render definition lists
 
 	commonHtmlFlags = 0 |
 		HTML_USE_XHTML |
@@ -56,7 +59,9 @@ const (
 		EXTENSION_AUTOLINK |
 		EXTENSION_STRIKETHROUGH |
 		EXTENSION_SPACE_HEADERS |
-		EXTENSION_HEADER_IDS
+		EXTENSION_HEADER_IDS |
+		EXTENSION_BACKSLASH_LINE_BREAK |
+		EXTENSION_DEFINITION_LISTS
 )
 
 // These are the possible flag values for the link renderer.
@@ -73,6 +78,8 @@ const (
 // These are mostly of interest if you are writing a new output format.
 const (
 	LIST_TYPE_ORDERED = 1 << iota
+	LIST_TYPE_DEFINITION
+	LIST_TYPE_TERM
 	LIST_ITEM_CONTAINS_BLOCK
 	LIST_ITEM_BEGINNING_OF_LIST
 	LIST_ITEM_END_OF_LIST
@@ -196,6 +203,7 @@ type inlineParser func(p *parser, out *bytes.Buffer, data []byte, offset int) in
 // This is constructed by the Markdown function.
 type parser struct {
 	r              Renderer
+	refOverride    ReferenceOverrideFunc
 	refs           map[string]*reference
 	inlineCallback [256]inlineParser
 	flags          int
@@ -209,11 +217,73 @@ type parser struct {
 	notes []*reference
 }
 
+func (p *parser) getRef(refid string) (ref *reference, found bool) {
+	if p.refOverride != nil {
+		r, overridden := p.refOverride(refid)
+		if overridden {
+			if r == nil {
+				return nil, false
+			}
+			return &reference{
+				link:     []byte(r.Link),
+				title:    []byte(r.Title),
+				noteId:   0,
+				hasBlock: false,
+				text:     []byte(r.Text)}, true
+		}
+	}
+	// refs are case insensitive
+	ref, found = p.refs[strings.ToLower(refid)]
+	return ref, found
+}
+
 //
 //
 // Public interface
 //
 //
+
+// Reference represents the details of a link.
+// See the documentation in Options for more details on use-case.
+type Reference struct {
+	// Link is usually the URL the reference points to.
+	Link string
+	// Title is the alternate text describing the link in more detail.
+	Title string
+	// Text is the optional text to override the ref with if the syntax used was
+	// [refid][]
+	Text string
+}
+
+// ReferenceOverrideFunc is expected to be called with a reference string and
+// return either a valid Reference type that the reference string maps to or
+// nil. If overridden is false, the default reference logic will be executed.
+// See the documentation in Options for more details on use-case.
+type ReferenceOverrideFunc func(reference string) (ref *Reference, overridden bool)
+
+// Options represents configurable overrides and callbacks (in addition to the
+// extension flag set) for configuring a Markdown parse.
+type Options struct {
+	// Extensions is a flag set of bit-wise ORed extension bits. See the
+	// EXTENSION_* flags defined in this package.
+	Extensions int
+
+	// ReferenceOverride is an optional function callback that is called every
+	// time a reference is resolved.
+	//
+	// In Markdown, the link reference syntax can be made to resolve a link to
+	// a reference instead of an inline URL, in one of the following ways:
+	//
+	//  * [link text][refid]
+	//  * [refid][]
+	//
+	// Usually, the refid is defined at the bottom of the Markdown document. If
+	// this override function is provided, the refid is passed to the override
+	// function first, before consulting the defined refids at the bottom. If
+	// the override function indicates an override did not occur, the refids at
+	// the bottom will be used to fill in the link details.
+	ReferenceOverride ReferenceOverrideFunc
+}
 
 // MarkdownBasic is a convenience function for simple rendering.
 // It processes markdown input with no extensions enabled.
@@ -223,9 +293,7 @@ func MarkdownBasic(input []byte) []byte {
 	renderer := HtmlRenderer(htmlFlags, "", "")
 
 	// set up the parser
-	extensions := 0
-
-	return Markdown(input, renderer, extensions)
+	return MarkdownOptions(input, renderer, Options{Extensions: 0})
 }
 
 // Call Markdown with most useful extensions enabled
@@ -250,7 +318,8 @@ func MarkdownBasic(input []byte) []byte {
 func MarkdownCommon(input []byte) []byte {
 	// set up the HTML renderer
 	renderer := HtmlRenderer(commonHtmlFlags, "", "")
-	return Markdown(input, renderer, commonExtensions)
+	return MarkdownOptions(input, renderer, Options{
+		Extensions: commonExtensions})
 }
 
 // Markdown is the main rendering function.
@@ -261,15 +330,25 @@ func MarkdownCommon(input []byte) []byte {
 // To use the supplied Html or LaTeX renderers, see HtmlRenderer and
 // LatexRenderer, respectively.
 func Markdown(input []byte, renderer Renderer, extensions int) []byte {
+	return MarkdownOptions(input, renderer, Options{
+		Extensions: extensions})
+}
+
+// MarkdownOptions is just like Markdown but takes additional options through
+// the Options struct.
+func MarkdownOptions(input []byte, renderer Renderer, opts Options) []byte {
 	// no point in parsing if we can't render
 	if renderer == nil {
 		return nil
 	}
 
+	extensions := opts.Extensions
+
 	// fill in the render structure
 	p := new(parser)
 	p.r = renderer
 	p.flags = extensions
+	p.refOverride = opts.ReferenceOverride
 	p.refs = make(map[string]*reference)
 	p.maxNesting = 16
 	p.insideLink = false
@@ -436,6 +515,7 @@ type reference struct {
 	title    []byte
 	noteId   int // 0 if not a footnote ref
 	hasBlock bool
+	text     []byte
 }
 
 // Check whether or not data starts with a reference link.
@@ -461,7 +541,7 @@ func isReference(p *parser, data []byte, tabSize int) int {
 	}
 	i++
 	if p.flags&EXTENSION_FOOTNOTES != 0 {
-		if data[i] == '^' {
+		if i < len(data) && data[i] == '^' {
 			// we can set it to anything here because the proper noteIds will
 			// be assigned later during the second pass. It just has to be != 0
 			noteId = 1
@@ -550,6 +630,9 @@ func scanLinkRef(p *parser, data []byte, i int) (linkOffset, linkEnd, titleOffse
 	linkOffset = i
 	for i < len(data) && data[i] != ' ' && data[i] != '\t' && data[i] != '\n' && data[i] != '\r' {
 		i++
+	}
+	if i == len(data) {
+		return
 	}
 	linkEnd = i
 	if data[linkOffset] == '<' && data[linkEnd-1] == '>' {

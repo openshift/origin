@@ -3,8 +3,10 @@ package validation
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/route/api"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
+
+	"github.com/openshift/origin/pkg/route/api"
 )
 
 // TestValidateRouteBad ensures not specifying a required field results in error and a fully specified
@@ -85,6 +87,44 @@ func TestValidateRoute(t *testing.T) {
 				},
 				Spec: api.RouteSpec{
 					Host: "host",
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Zero port",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+					Port: &api.RoutePort{
+						TargetPort: util.NewIntOrStringFromInt(0),
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Empty string port",
+			route: &api.Route{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Spec: api.RouteSpec{
+					Host: "www.example.com",
+					To: kapi.ObjectReference{
+						Name: "serviceName",
+					},
+					Port: &api.RoutePort{
+						TargetPort: util.NewIntOrStringFromString(""),
+					},
 				},
 			},
 			expectedErrors: 1,

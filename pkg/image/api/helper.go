@@ -157,12 +157,28 @@ func (r DockerImageReference) String() string {
 		registry += "/"
 	}
 
-	if len(r.Namespace) == 0 {
-		r.Namespace = DockerDefaultNamespace
+	namespace := r.Namespace
+	if len(namespace) == 0 {
+		namespace = DockerDefaultNamespace
 	}
-	r.Namespace += "/"
+	namespace += "/"
 
-	return fmt.Sprintf("%s%s%s", registry, r.Namespace, r.NameString())
+	return fmt.Sprintf("%s%s%s", registry, namespace, r.NameString())
+}
+
+// StringNoTag converts a DockerImageReference to a Docker pull spec with no tag.
+func (r DockerImageReference) StringNoTag() string {
+	registry := r.Registry
+	if len(registry) > 0 {
+		registry += "/"
+	}
+	namespace := r.Namespace
+	if len(namespace) == 0 {
+		namespace = DockerDefaultNamespace
+	}
+	namespace += "/"
+
+	return fmt.Sprintf("%s%s%s", registry, namespace, r.Name)
 }
 
 // SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.

@@ -140,6 +140,7 @@ var globalClusterAdminUsers = sets.NewString()
 var globalClusterAdminGroups = sets.NewString("system:cluster-admins", "system:masters")
 
 type resourceAccessReviewTest struct {
+	description     string
 	clientInterface client.ResourceAccessReviewInterface
 	review          *authorizationapi.ResourceAccessReview
 
@@ -148,25 +149,48 @@ type resourceAccessReviewTest struct {
 }
 
 func (test resourceAccessReviewTest) run(t *testing.T) {
-	actualResponse, err := test.clientInterface.Create(test.review)
-	if len(test.err) > 0 {
-		if err == nil {
-			t.Errorf("Expected error: %v", test.err)
-		} else if !strings.Contains(err.Error(), test.err) {
-			t.Errorf("expected %v, got %v", test.err, err)
+	failMessage := ""
+
+	// keep trying the test until you get a success or you timeout.  Every time you have a failure, set the fail message
+	// so that if you never have a success, we can call t.Errorf with a reasonable message
+	// exiting the poll with `failMessage=""` indicates success.
+	err := wait.Poll(testutil.PolicyCachePollInterval, testutil.PolicyCachePollTimeout, func() (bool, error) {
+		actualResponse, err := test.clientInterface.Create(test.review)
+		if len(test.err) > 0 {
+			if err == nil {
+				failMessage = fmt.Sprintf("%s: Expected error: %v", test.description, test.err)
+				return false, nil
+			} else if !strings.Contains(err.Error(), test.err) {
+				failMessage = fmt.Sprintf("%s: expected %v, got %v", test.description, test.err, err)
+				return false, nil
+			}
+		} else {
+			if err != nil {
+				failMessage = fmt.Sprintf("%s: unexpected error: %v", test.description, err)
+				return false, nil
+			}
 		}
-	} else {
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
+
+		if actualResponse.Namespace != test.response.Namespace || !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
+			failMessage = fmt.Sprintf("%s: %#v: expected %v, got %v", test.description, test.review, test.response, actualResponse)
+			return false, nil
 		}
+
+		failMessage = ""
+		return true, nil
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+	if len(failMessage) != 0 {
+		t.Error(failMessage)
 	}
 
-	if actualResponse.Namespace != test.response.Namespace || !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
-		t.Errorf("%#v: expected %v, got %v", test.review, test.response, actualResponse)
-	}
 }
 
 type localResourceAccessReviewTest struct {
+	description     string
 	clientInterface client.LocalResourceAccessReviewInterface
 	review          *authorizationapi.LocalResourceAccessReview
 
@@ -175,21 +199,42 @@ type localResourceAccessReviewTest struct {
 }
 
 func (test localResourceAccessReviewTest) run(t *testing.T) {
-	actualResponse, err := test.clientInterface.Create(test.review)
-	if len(test.err) > 0 {
-		if err == nil {
-			t.Errorf("Expected error: %v", test.err)
-		} else if !strings.Contains(err.Error(), test.err) {
-			t.Errorf("expected %v, got %v", test.err, err)
-		}
-	} else {
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-	}
+	failMessage := ""
 
-	if actualResponse.Namespace != test.response.Namespace || !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
-		t.Errorf("%#v: expected %v, got %v", test.review, test.response, actualResponse)
+	// keep trying the test until you get a success or you timeout.  Every time you have a failure, set the fail message
+	// so that if you never have a success, we can call t.Errorf with a reasonable message
+	// exiting the poll with `failMessage=""` indicates success.
+	err := wait.Poll(testutil.PolicyCachePollInterval, testutil.PolicyCachePollTimeout, func() (bool, error) {
+		actualResponse, err := test.clientInterface.Create(test.review)
+		if len(test.err) > 0 {
+			if err == nil {
+				failMessage = fmt.Sprintf("%s: Expected error: %v", test.description, test.err)
+				return false, nil
+			} else if !strings.Contains(err.Error(), test.err) {
+				failMessage = fmt.Sprintf("%s: expected %v, got %v", test.description, test.err, err)
+				return false, nil
+			}
+		} else {
+			if err != nil {
+				failMessage = fmt.Sprintf("%s: unexpected error: %v", test.description, err)
+				return false, nil
+			}
+		}
+
+		if actualResponse.Namespace != test.response.Namespace || !reflect.DeepEqual(actualResponse.Users.List(), test.response.Users.List()) || !reflect.DeepEqual(actualResponse.Groups.List(), test.response.Groups.List()) {
+			failMessage = fmt.Sprintf("%s: %#v: expected %v, got %v", test.description, test.review, test.response, actualResponse)
+			return false, nil
+		}
+
+		failMessage = ""
+		return true, nil
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+	if len(failMessage) != 0 {
+		t.Error(failMessage)
 	}
 }
 
@@ -249,6 +294,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 
 	{
 		test := localResourceAccessReviewTest{
+			description:     "who can view deployments in hammer by harold",
 			clientInterface: haroldClient.LocalResourceAccessReviews("hammer-project"),
 			review:          localRequestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
@@ -263,6 +309,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	}
 	{
 		test := localResourceAccessReviewTest{
+			description:     "who can view deployments in mallet by mark",
 			clientInterface: markClient.LocalResourceAccessReviews("mallet-project"),
 			review:          localRequestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
@@ -279,6 +326,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	// mark should not be able to make global access review requests
 	{
 		test := resourceAccessReviewTest{
+			description:     "who can view deployments in all by mark",
 			clientInterface: markClient.ResourceAccessReviews(),
 			review:          requestWhoCanViewDeployments,
 			err:             "cannot ",
@@ -289,6 +337,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	// a cluster-admin should be able to make global access review requests
 	{
 		test := resourceAccessReviewTest{
+			description:     "who can view deployments in all by cluster-admin",
 			clientInterface: clusterAdminClient.ResourceAccessReviews(),
 			review:          requestWhoCanViewDeployments,
 			response: authorizationapi.ResourceAccessReviewResponse{
@@ -296,6 +345,25 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 				Groups: globalClusterAdminGroups,
 			},
 		}
+		test.response.Groups.Insert("system:cluster-readers")
+		test.run(t)
+	}
+
+	{
+		if err := clusterAdminClient.ClusterRoles().Delete(bootstrappolicy.AdminRoleName); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+		test := localResourceAccessReviewTest{
+			description:     "who can view deployments in mallet by cluster-admin",
+			clientInterface: clusterAdminClient.LocalResourceAccessReviews("mallet-project"),
+			review:          localRequestWhoCanViewDeployments,
+			response: authorizationapi.ResourceAccessReviewResponse{
+				Users:     sets.NewString("edgar"),
+				Groups:    globalClusterAdminGroups,
+				Namespace: "mallet-project",
+			},
+		}
+		test.response.Users.Insert(globalClusterAdminUsers.List()...)
 		test.response.Groups.Insert("system:cluster-readers")
 		test.run(t)
 	}

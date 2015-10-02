@@ -9,11 +9,13 @@ Documentation=https://github.com/openshift/origin
 Type=notify
 EnvironmentFile=/etc/sysconfig/atomic-openshift-node
 Environment=GOTRACEBACK=crash
-ExecStart=/usr/bin/atomic-enterprise start node --config=${CONFIG_FILE} $OPTIONS
+ExecStart=/usr/bin/openshift start node --config=${CONFIG_FILE} $OPTIONS
 LimitNOFILE=65536
 LimitCORE=infinity
 WorkingDirectory=/var/lib/origin/
 SyslogIdentifier=atomic-openshift-node
+Restart=Always
+OOMScoreAdjust=-999
 
 [Install]
 WantedBy=multi-user.target

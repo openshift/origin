@@ -62,7 +62,7 @@
               <td>{{route.metadata.name}}</td>
               <td>
                 <span ng-if="(route | isWebRoute)">
-                  <a href="{{route | routeWebURL}}">{{route | routeLabel}}</a>
+                  <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
                 </span>
                 <span ng-if="!(route | isWebRoute)">
                   {{route | routeLabel}}

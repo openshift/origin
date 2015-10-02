@@ -2,6 +2,7 @@ package v1
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/util"
 )
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
@@ -39,24 +40,22 @@ type RouteSpec struct {
 	// be defaulted to Service.
 	To kapi.ObjectReference `json:"to" description:"an object the route points to.  only the service kind is allowed, and it will be defaulted to a service."`
 
+	// If specified, the port to be used by the router. Most routers will use all
+	// endpoints exposed by the service by default - set this value to instruct routers
+	// which port to use.
+	Port *RoutePort `json:"port,omitempty" description:"port that should be used by the router; this is a hint to control which pod endpoint port is used; if empty routers may use all endpoints and ports"`
+
 	// TLS provides the ability to configure certificates and termination for the route
 	TLS *TLSConfig `json:"tls,omitempty" description:"provides the ability to configure certificates and termination for the route"`
 }
 
-/*
+// RoutePort defines a port mapping from a router to an endpoint in the service endpoints.
 type RoutePort struct {
-	// Name is the name of the port that is used by the router. Routers may require
-	// this field be set. Routers may decide which names to expose.
-	Name string `json:"name"`
-
-	// TargetName is the name of the target endpoint port. Optional
-	TargetName string `json:"targetName"`
-
-	// TargetPort is the value of the target endpoint port to expose. May be omitted if
-	// name is set, and vice versa. Optional
-	TargetPort util.IntOrString `json:"targetPort"`
+	// The target port on pods selected by the service this route points to.
+	// If this is a string, it will be looked up as a named port in the target
+	// endpoints port list. Required
+	TargetPort util.IntOrString `json:"targetPort" description:"the target port on the endpoints for the service; if this is a string must match the named port, if an integer, must match the port number"`
 }
-*/
 
 // RouteStatus provides relevant info about the status of a route, including which routers
 // acknowledge it.

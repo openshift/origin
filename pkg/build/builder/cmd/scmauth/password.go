@@ -84,7 +84,7 @@ func (u UsernamePassword) Setup(baseDir string) error {
 	usernamePasswordURL := u.SourceURL
 	usernamePasswordURL.User = url.UserPassword(username, password)
 	fmt.Fprintf(gitconfig, UserPassGitConfig, gitcredentials.Name())
-	fmt.Fprintf(gitcredentials, usernamePasswordURL.String())
+	fmt.Fprintf(gitcredentials, "%s", usernamePasswordURL.String())
 
 	return ensureGitConfigIncludes(gitconfig.Name())
 }

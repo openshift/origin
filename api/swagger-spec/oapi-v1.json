@@ -14704,6 +14704,7 @@
     "id": "v1.PolicyRule",
     "required": [
      "verbs",
+     "apiGroups",
      "resources"
     ],
     "properties": {
@@ -14717,6 +14718,13 @@
      "attributeRestrictions": {
       "type": "string",
       "description": "vary depending on what the authorizer supports.  If the authorizer does not recognize how to handle the specified value, it should report an error."
+     },
+     "apiGroups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "list of API groups this rule applies to.  * represents all API groups."
      },
      "resources": {
       "type": "array",
@@ -15162,6 +15170,13 @@
      "containerName": {
       "type": "string",
       "description": "the name of a container from the pod template whose image will be used for the hook container"
+     },
+     "volumes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "the names of volumes from the pod template which should be included in the hook pod; an empty list means no volumes will be copied, and names not found in the pod spec will be ignored"
      }
     }
    },
@@ -17600,9 +17615,25 @@
       "$ref": "v1.ObjectReference",
       "description": "an object the route points to.  only the service kind is allowed, and it will be defaulted to a service."
      },
+     "port": {
+      "$ref": "v1.RoutePort",
+      "description": "port that should be used by the router; this is a hint to control which pod endpoint port is used; if empty routers may use all endpoints and ports"
+     },
      "tls": {
       "$ref": "v1.TLSConfig",
       "description": "provides the ability to configure certificates and termination for the route"
+     }
+    }
+   },
+   "v1.RoutePort": {
+    "id": "v1.RoutePort",
+    "required": [
+     "targetPort"
+    ],
+    "properties": {
+     "targetPort": {
+      "type": "string",
+      "description": "the target port on the endpoints for the service; if this is a string must match the named port, if an integer, must match the port number"
      }
     }
    },

@@ -51,7 +51,11 @@ check:
 #
 # Example:
 #   make verify
+ifeq ($(SKIP_BUILD), true)
+verify:
+else
 verify: build
+endif
 	hack/verify-gofmt.sh
 	#hack/verify-govet.sh disable until we can verify that the output is sane
 	hack/verify-generated-deep-copies.sh
@@ -61,6 +65,12 @@ verify: build
 	hack/verify-generated-swagger-spec.sh
 	hack/verify-api-descriptions.sh
 .PHONY: verify
+
+# check and verify can't run concurently because of strange concurrent build issues.
+check-verify:
+	# delegate to another make process that runs serially against the check and verify targets
+	$(MAKE) -j1 check verify
+.PHONY: check-verify
 
 # Install travis dependencies
 #
@@ -91,7 +101,7 @@ ifeq ($(TEST_ASSETS), true)
 check-test:
 	hack/test-assets.sh
 else
-check-test: verify check
+check-test: check-verify
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration.sh
 endif
@@ -109,26 +119,38 @@ endif
 test: export KUBE_COVER= -cover -covermode=atomic
 test: export KUBE_RACE=  -race
 ifeq ($(SKIP_BUILD), true)
-$(info build is being skipped)
-test: check verify
+test: check-verify test-int-plus
 else
-test: build check verify
+test: build check-verify test-int-plus
 endif
-test:
+.PHONY: test
+
+# Split out of `test`.  This allows `make -j --output-sync=recurse test` to parallelize as expected
+test-int-plus: export KUBE_COVER= -cover -covermode=atomic
+test-int-plus: export KUBE_RACE=  -race
+ifeq ($(SKIP_BUILD), true)
+test-int-plus: 
+else
+test-int-plus: build
+endif
+test-int-plus:
 	hack/test-cmd.sh
 	KUBE_RACE=" " hack/test-integration-docker.sh
 	hack/test-end-to-end-docker.sh
 ifeq ($(EXTENDED),true)
 	hack/test-extended.sh
 endif
-.PHONY: test
+.PHONY: test-int-plus
+
 
 # Run All-in-one OpenShift server.
 #
 # Example:
 #   make run
+OS_OUTPUT_BINPATH=$(shell bash -c 'source hack/common.sh; echo $${OS_OUTPUT_BINPATH}')
+PLATFORM=$(shell bash -c 'source hack/common.sh; os::build::host_platform')
 run: build
-	$(OUT_DIR)/local/go/bin/openshift start
+	$(OS_OUTPUT_BINPATH)/$(PLATFORM)/openshift start
 .PHONY: run
 
 # Remove all build artifacts.
