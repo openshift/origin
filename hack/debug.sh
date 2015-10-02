@@ -41,8 +41,8 @@ do_master () {
     logmaster=$logdir/master
     mkdir $logmaster
     echo_and_eval journalctl --boot >& $logmaster/journal-full
-    echo_and_eval journalctl -u openshift-master.service >& $logmaster/journal-openshift
-    echo_and_eval systemctl show openshift-master.service >& $logmaster/systemctl-show
+    echo_and_eval journalctl -u $aos_master_service >& $logmaster/journal-openshift
+    echo_and_eval systemctl show $aos_master_service >& $logmaster/systemctl-show
     echo_and_eval nmcli --nocheck -f all dev show >& $logmaster/nmcli-dev
     echo_and_eval nmcli --nocheck -f all con show >& $logmaster/nmcli-con
     echo_and_eval head -1000 /etc/sysconfig/network-scripts/ifcfg-* >& $logmaster/ifcfg
@@ -244,7 +244,7 @@ do_pod_service_connectivity_check () {
 }
 
 do_node () {
-    config=$(systemctl show -p ExecStart openshift-node.service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
+    config=$(systemctl show -p ExecStart $aos_node_service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
     if [ -z "$config" ]; then
 	die "Could not find node-config.yaml from systemctl status"
     fi
@@ -257,8 +257,8 @@ do_node () {
     lognode=$logdir/nodes/$node
     mkdir -p $lognode
     echo_and_eval journalctl --boot >& $lognode/journal-full
-    echo_and_eval journalctl -u openshift-node.service >& $lognode/journal-openshift
-    echo_and_eval systemctl show openshift-node.service >& $lognode/systemctl-show
+    echo_and_eval journalctl -u $aos_node_service >& $lognode/journal-openshift
+    echo_and_eval systemctl show $aos_node_service >& $lognode/systemctl-show
     echo_and_eval nmcli --nocheck -f all dev show >& $lognode/nmcli-dev
     echo_and_eval nmcli --nocheck -f all con show >& $lognode/nmcli-con
     echo_and_eval head -1000 /etc/sysconfig/network-scripts/ifcfg-* >& $lognode/ifcfg
@@ -458,6 +458,16 @@ do_master_and_nodes ()
 
 ########
 
+systemd_dir=/usr/lib/systemd/system/
+for name in openshift origin atomic-openshift; do
+    if [ -f $systemd_dir/$name-master.service ]; then
+	aos_master_service=$name-master.service
+    fi
+    if [ -f $systemd_dir/$name-node.service ]; then
+	aos_node_service=$name-node.service
+    fi
+done
+
 case "$1" in
     --node)
 	logdir=$(dirname $0)
@@ -472,7 +482,7 @@ case "$1" in
 	;;
 
     "")
-	if systemctl show -p LoadState openshift-master | grep -q 'not-found'; then
+	if [ -z "$aos_master_service" ]; then
 	    echo "Usage:"
 	    echo "  [from master]"
 	    echo "    $0"
