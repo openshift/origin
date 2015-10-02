@@ -389,6 +389,34 @@ _oadm_policy_reconcile-cluster-roles()
     must_have_one_noun=()
 }
 
+_oadm_policy_reconcile-cluster-role-bindings()
+{
+    last_command="oadm_policy_reconcile-cluster-role-bindings"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--additive-only")
+    flags+=("--confirm")
+    flags+=("--exclude-groups=")
+    flags+=("--exclude-users=")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oadm_policy()
 {
     last_command="oadm_policy"
@@ -405,6 +433,7 @@ _oadm_policy()
     commands+=("add-cluster-role-to-group")
     commands+=("remove-cluster-role-from-group")
     commands+=("reconcile-cluster-roles")
+    commands+=("reconcile-cluster-role-bindings")
 
     flags=()
     two_word_flags=()

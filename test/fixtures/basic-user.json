@@ -6,7 +6,13 @@
         "selfLink": "/osapi/v1beta3/clusterroles/basic-user",
         "uid": "86a5ce7c-3f44-11e5-a9a6-080027c5bfa9",
         "resourceVersion": "18",
-        "creationTimestamp": "2015-08-10T09:45:25Z"
+        "creationTimestamp": "2015-08-10T09:45:25Z",
+        "labels": {
+        	"custom-label":"value"
+        },
+        "annotations": {
+        	"custom-annotation":"value"
+        }
     },
     "rules": [
         {
