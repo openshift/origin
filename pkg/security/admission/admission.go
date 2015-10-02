@@ -29,20 +29,25 @@ import (
 
 func init() {
 	kadmission.RegisterPlugin("SecurityContextConstraint", func(client client.Interface, config io.Reader) (kadmission.Interface, error) {
-		return NewConstraint(client), nil
+		constraintAdmitter := NewConstraint(client)
+		constraintAdmitter.Run()
+		return constraintAdmitter, nil
 	})
 }
 
 type constraint struct {
 	*kadmission.Handler
 	client client.Interface
-	store  cache.Store
+
+	reflector *cache.Reflector
+	stopChan  chan struct{}
+	store     cache.Store
 }
 
 var _ kadmission.Interface = &constraint{}
 
 // NewConstraint creates a new SCC constraint admission plugin.
-func NewConstraint(kclient client.Interface) kadmission.Interface {
+func NewConstraint(kclient client.Interface) *constraint {
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
@@ -57,12 +62,26 @@ func NewConstraint(kclient client.Interface) kadmission.Interface {
 		store,
 		0,
 	)
-	reflector.Run()
 
 	return &constraint{
 		Handler: kadmission.NewHandler(kadmission.Create),
 		client:  kclient,
-		store:   store,
+
+		store:     store,
+		reflector: reflector,
+	}
+}
+
+func (a *constraint) Run() {
+	if a.stopChan == nil {
+		a.stopChan = make(chan struct{})
+		a.reflector.RunUntil(a.stopChan)
+	}
+}
+func (a *constraint) Stop() {
+	if a.stopChan != nil {
+		close(a.stopChan)
+		a.stopChan = nil
 	}
 }
 
