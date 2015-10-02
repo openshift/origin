@@ -3,7 +3,7 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 %global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
-%global sdn_import_path github.com/openshift/openshift-sdn
+%global sdn_import_path github.com/openshift/openshift-sdn/pkg
 
 # docker_version is the version of docker requires by packages
 %global docker_version 1.6.2
