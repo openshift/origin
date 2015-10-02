@@ -158,7 +158,8 @@ angular
         templateUrl: 'views/pods.html'
       })
       .when('/project/:project/browse/pods/:pod', {
-        templateUrl: 'views/browse/pod.html'
+        templateUrl: 'views/browse/pod.html',
+        controller: 'PodController'
       })
       .when('/project/:project/browse/services', {
         templateUrl: 'views/services.html'
