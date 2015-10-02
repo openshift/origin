@@ -51,8 +51,8 @@ func (m *EntryAttributeLDAPGroupNameMapper) GroupNameFor(ldapGroupUID string) (s
 	}
 	openShiftGroupName := ldaputil.GetAttributeValue(group, m.nameAttribute)
 	if len(openShiftGroupName) == 0 {
-		return "", fmt.Errorf("the group entry (%v) does not map to an OpenShift Group name with the given name attribute (%v)",
-			group, m.nameAttribute)
+		return "",
+			fmt.Errorf("the group entry (%v: %v) does not map to an OpenShift Group name with the given name attribute (%v)", group, group.Attributes, m.nameAttribute)
 	}
 	return openShiftGroupName, nil
 }

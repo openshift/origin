@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	kapi "k8s.io/kubernetes/pkg/api"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kerrs "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -105,6 +106,9 @@ type SyncGroupsOptions struct {
 	// will be synced again
 	SyncExisting bool
 
+	// Confirm determines whether not to write to openshift
+	Confirm bool
+
 	// GroupsInterface is the interface used to interact with OpenShift Group objects
 	GroupInterface osclient.GroupInterface
 
@@ -140,14 +144,26 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
 
-			err := options.Run()
+			err := options.Run(c, f)
+			if err != nil {
+				if aggregate, ok := err.(kerrs.Aggregate); ok {
+					for _, err := range aggregate.Errors() {
+						fmt.Printf("%s\n", err)
+					}
+					os.Exit(1)
+				}
+			}
 			cmdutil.CheckErr(err)
 		},
 	}
 
-	cmd.Flags().StringVar(&options.WhitelistSource, "whitelist", "", "The path to the group whitelist")
-	cmd.Flags().StringVar(&options.ConfigSource, "sync-config", "", "The path to the sync config")
-	cmd.Flags().BoolVar(&options.SyncExisting, "existing", false, "Sync only existing, previously-synced groups")
+	cmd.Flags().StringVar(&options.WhitelistSource, "whitelist", "", "path to the group whitelist")
+	cmd.Flags().StringVar(&options.ConfigSource, "sync-config", "", "path to the sync config")
+	cmd.Flags().BoolVar(&options.SyncExisting, "existing", false, "sync only existing, previously-synced groups")
+	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display groups")
+	cmdutil.AddPrinterFlags(cmd)
+	cmd.Flags().Lookup("output").DefValue = "yaml"
+	cmd.Flags().Lookup("output").Value.Set("yaml")
 
 	return cmd
 }
@@ -237,7 +253,8 @@ func (o *SyncGroupsOptions) Validate() error {
 }
 
 // Run creates the GroupSyncer specified and runs it to sync groups
-func (o *SyncGroupsOptions) Run() error {
+// the arguments are only here because its the only way to get the printer we need
+func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	// In order to create the GroupSyncer, we need to build its' parts:
 	// interpret user-provided configuration
 	clientConfig, err := ldaputil.NewLDAPClientConfig(
@@ -313,8 +330,22 @@ func (o *SyncGroupsOptions) Run() error {
 	}
 
 	// Now we run the Syncer and report any errors
-	syncErrors := syncer.Sync()
-	return kerrs.NewAggregate(syncErrors)
+	if o.Confirm {
+		syncErrors := syncer.Sync()
+		return kerrs.NewAggregate(syncErrors)
+	}
+
+	openshiftGroups, errors := syncer.GetResultingGroups()
+	list := &kapi.List{}
+	for _, item := range openshiftGroups {
+		list.Items = append(list.Items, item)
+	}
+	if err := f.Factory.PrintObject(cmd, list, o.Out); err != nil {
+		return err
+	}
+
+	return kerrs.NewAggregate(errors)
+
 }
 
 // getGroupLister returns an LDAPGroupLister. The GroupLister is created by taking into account

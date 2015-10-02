@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -103,7 +104,7 @@ func TestSync(t *testing.T) {
 	}
 	testHost := "test.host:port"
 
-	TestGroupSyncer := LDAPGroupSyncer{
+	testGroupSyncer := LDAPGroupSyncer{
 		GroupLister:          &testGroupLister,
 		GroupMemberExtractor: &testGroupMemberExtractor,
 		UserNameMapper:       &testUserNameMapper,
@@ -113,7 +114,7 @@ func TestSync(t *testing.T) {
 		SyncExisting:         false,
 	}
 
-	errs := TestGroupSyncer.Sync()
+	errs := testGroupSyncer.Sync()
 	for _, err := range errs {
 		t.Errorf("unexpected sync error: %v", err)
 	}
@@ -235,7 +236,7 @@ func (c *TestGroupClient) Update(group *userapi.Group) (*userapi.Group, error) {
 func (c *TestGroupClient) Get(name string) (*userapi.Group, error) {
 	group, exists := c.Storage[name]
 	if !exists {
-		return nil, fmt.Errorf("no group found for name: %s", name)
+		return nil, kapierrors.NewNotFound("Group", name)
 	}
 	return group, nil
 }

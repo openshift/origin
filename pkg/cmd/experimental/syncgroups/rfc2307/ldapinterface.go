@@ -1,10 +1,14 @@
 package rfc2307
 
 import (
+	"fmt"
+
 	"github.com/go-ldap/ldap"
+
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
+	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
@@ -17,6 +21,7 @@ func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
 	return LDAPInterface{
 		clientConfig:              clientConfig,
 		groupQuery:                groupQuery,
+		groupNameAttributes:       groupNameAttributes,
 		groupMembershipAttributes: groupMembershipAttributes,
 		userQuery:                 userQuery,
 		userNameAttributes:        userNameAttributes,
@@ -40,7 +45,7 @@ type LDAPInterface struct {
 	groupQuery ldaputil.LDAPQueryOnAttribute
 	// groupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for an OpenShift group
 	groupNameAttributes []string
-	// groupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted as its members
+	// groupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted as its members ldapUserUID
 	groupMembershipAttributes []string
 
 	// userQuery holds the information necessary to make an LDAP query for a specific
@@ -57,6 +62,10 @@ type LDAPInterface struct {
 	cachedUsers map[string]*ldap.Entry
 }
 
+func (e *LDAPInterface) String() string {
+	return fmt.Sprintf("%#v", e)
+}
+
 // ExtractMembers returns the LDAP member entries for a group specified with a ldapGroupUID
 func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, error) {
 	// get group entry from LDAP
@@ -67,7 +76,7 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, erro
 
 	// extract member UIDs from group entry
 	var ldapMemberUIDs []string
-	for _, attribute := range e.userNameAttributes {
+	for _, attribute := range e.groupMembershipAttributes {
 		ldapMemberUIDs = append(ldapMemberUIDs, group.GetAttributeValues(attribute)...)
 	}
 
@@ -76,7 +85,7 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, erro
 	for _, ldapMemberUID := range ldapMemberUIDs {
 		memberEntry, err := e.userEntryFor(ldapMemberUID)
 		if err != nil {
-			return nil, err
+			return nil, &ldapinterfaces.MemberLookupError{ldapGroupUID, ldapMemberUID, err}
 		}
 		members = append(members, memberEntry)
 	}
@@ -153,6 +162,9 @@ func (e *LDAPInterface) ListGroups() ([]string, error) {
 	for _, group := range groups {
 		// cache groups returned from the server for later
 		ldapGroupUID := ldaputil.GetAttributeValue(group, []string{e.groupQuery.QueryAttribute})
+		if len(ldapGroupUID) == 0 {
+			return nil, fmt.Errorf("unable to find LDAP group UID for %v", group)
+		}
 		e.cachedGroups[ldapGroupUID] = group
 		ldapGroupUIDs = append(ldapGroupUIDs, ldapGroupUID)
 	}

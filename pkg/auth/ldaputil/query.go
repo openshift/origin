@@ -148,8 +148,8 @@ func (o *LDAPQueryOnAttribute) buildDNQuery(dn string, attributes []string) *lda
 		int(o.DerefAliases),
 		0, // allowed return size - indicates no limit
 		o.TimeLimit,
-		false,           // not types only
-		"objectClass=*", // filter that returns all values
+		false,             // not types only
+		"(objectClass=*)", // filter that returns all values
 		attributes,
 		nil, // no controls
 	)
@@ -226,14 +226,14 @@ func QueryForEntries(clientConfig LDAPClientConfig, query *ldap.SearchRequest) (
 		return nil, fmt.Errorf("could not bind to the LDAP server: %v", err)
 	}
 
-	glog.V(4).Infof("searching LDAP server at dn=%q for %s", query.BaseDN, query.Filter)
+	glog.V(4).Infof("searching LDAP server %v://%v at dn=%q with scope %v for %s requesting %v", clientConfig.Scheme, clientConfig.Host, query.BaseDN, query.Scope, query.Filter, query.Attributes)
 	searchResult, err := connection.Search(query)
 	if err != nil {
-		return nil, fmt.Errorf("could not search the LDAP server: %v", err)
+		return nil, err
 	}
 
 	for _, entry := range searchResult.Entries {
-		glog.V(4).Infof("found dn=%q for %s", entry.DN, query.Filter)
+		glog.V(4).Infof("found dn=%q ", entry.DN)
 	}
 	return searchResult.Entries, nil
 }

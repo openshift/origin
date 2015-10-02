@@ -53,6 +53,10 @@ type LDAPClientConfig struct {
 	TLSConfig *tls.Config
 }
 
+func (l LDAPClientConfig) String() string {
+	return fmt.Sprintf("{Scheme: %v Host: %v BindDN: %v len(BindPassword: %v Insecure: %v}", l.Scheme, l.Host, l.BindDN, len(l.BindPassword), l.Insecure)
+}
+
 // Connect returns an established LDAP connection, or an error if the connection could not
 // be made (or successfully upgraded to TLS). If no error is returned, the caller is responsible for
 // closing the connection
