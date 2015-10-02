@@ -1,0 +1,39 @@
+FROM rhel7
+
+# Based on work by: Peter Schiffer <pschiffe@redhat.com>
+MAINTAINER Devan Goodwin <dgoodwin@redhat.com>
+LABEL Name="aos3/aos-node"
+LABEL Vendor="Red Hat" License=GPLv2+
+LABEL Version=v3.0.2.100
+LABEL Release="5"
+LABEL BZComponent="aos3-node-docker"
+LABEL Architecture="x86_64"
+
+RUN yum-config-manager --enable RH7-RHAOS-3.1 --enable rhel-7-server-extras-rpms
+# TODO: beta rpms being used here to get tuned versions to survive an install:
+#RUN rpm -e --nodeps systemd-container-libs systemd-container
+RUN yum install -y atomic-openshift-node atomic-openshift-sdn-ovs libmnl libnetfilter_conntrack \
+    libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
+    binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
+    && yum clean all
+
+COPY openshift-sdn-kube-subnet-setup.sh /usr/bin/
+RUN chmod +x /usr/bin/openshift-sdn-kube-subnet-setup.sh
+
+COPY openshift-sdn-multitenant-setup.sh /usr/bin/
+RUN chmod +x /usr/bin/openshift-sdn-multitenant-setup.sh
+
+COPY aos-node-run.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/aos-node-run.sh
+
+VOLUME [ "/etc/origin/node", "/var/lib/origin" ]
+WORKDIR /var/lib/origin
+
+ENV HOME /root
+ENV OPENSHIFT_CONTAINERIZED true
+ENV KUBECONFIG /etc/origin/node/node.kubeconfig
+
+CMD [ "/usr/local/bin/aos-node-run.sh" ]
+
+LABEL RUN docker run -d --name NAME --privileged --net=host --pid=host --restart=always -v /:/rootfs:ro -e HOST=/rootfs -v /etc/systemd/system:/host-etc/systemd/system -e HOST_ETC=/host-etc -v /etc/localtime:/etc/localtime:ro -v /etc/machine-id:/etc/machine-id:ro -v /lib/modules:/lib/modules -v /run:/run -v /sys:/sys:ro -v /usr/bin/docker:/usr/bin/docker:ro -v /var/lib/docker:/var/lib/docker -v /etc/origin/node:/etc/origin/node:z -v /etc/origin/openvswitch:/etc/openvswitch:Z -v /etc/origin/sdn:/etc/openshift-sdn:Z -v /var/lib/origin:/var/lib/origin:z IMAGE
+
