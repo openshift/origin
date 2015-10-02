@@ -76,6 +76,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
+	cmd.Flags().BoolVar(&config.AllowMissing, "allow-missing", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd
