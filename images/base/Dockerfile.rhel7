@@ -6,5 +6,5 @@
 #
 FROM rhel7
 
-RUN yum install -y git tar wget socat hostname sysvinit-tools util-linux && \
+RUN yum install -y git tar wget socat hostname sysvinit-tools util-linux ethtool && \
     yum clean all
