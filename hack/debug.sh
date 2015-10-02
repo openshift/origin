@@ -30,8 +30,12 @@ try_eval () {
 }
 
 do_master () {
-    if ! nodes=$(oc get nodes -t '{{range .items}}{{.spec.externalID}} {{end}}'); then
-	die "Could not get list of nodes"
+    if ! nodes=$(oc get nodes --template '{{range .items}}{{.spec.externalID}} {{end}}'); then
+	if [ -z "$KUBECONFIG" -o ! -f "$KUBECONFIG" ]; then
+	    die "KUBECONFIG is unset or incorrect"
+	else
+	    die "Could not get list of nodes"
+	fi
     fi
 
     logmaster=$logdir/master
