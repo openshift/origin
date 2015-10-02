@@ -31,6 +31,8 @@ type ServiceAliasConfig struct {
 	// includes the certificates and is not an indicator of being written to the underlying
 	// router implementation
 	Status ServiceAliasConfigStatus
+	// Indicates the port the user wishes to expose. If empty, a port will be selected for the service.
+	PreferPort string
 }
 
 type ServiceAliasConfigStatus string
@@ -55,6 +57,7 @@ type Endpoint struct {
 	IP         string
 	Port       string
 	TargetName string
+	PortName   string
 }
 
 // certificateManager provides the ability to write certificates for a ServiceAliasConfig

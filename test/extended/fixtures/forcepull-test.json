@@ -1,0 +1,202 @@
+{
+    "kind": "List",
+    "apiVersion": "v1",
+    "metadata": {},
+    "items": [
+	{
+	    "kind": "BuildConfig",
+	    "apiVersion": "v1",
+	    "metadata": {
+		"name": "ruby-sample-build-fc",
+		"creationTimestamp": null,
+		"labels": {
+		    "name": "ruby-sample-build-fc"
+		}
+	    },
+	    "spec": {
+		"triggers": [],
+		"source": {
+		    "type": "Git",
+		    "git": {
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
+		    }
+		},
+		"strategy": {
+		    "type": "Custom",
+		    "customStrategy": {
+			"from": {
+			    "kind": "DockerImage",
+			    "name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+			},
+			"env": [
+			    {
+				"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
+				"value": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+			    }
+			],
+			"exposeDockerSocket": true,
+			"forcePull":false
+		    }
+		}
+	    }
+	},
+	{
+	    "kind": "BuildConfig",
+	    "apiVersion": "v1",
+	    "metadata": {
+		"name": "ruby-sample-build-fd",
+		"creationTimestamp": null,
+		"labels": {
+		    "name": "ruby-sample-build-fd"
+		}
+	    },
+	    "spec": {
+		"triggers": [],
+		"source": {
+		    "type": "Git",
+		    "git": {
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
+		    }
+		},
+		"strategy": {
+		    "type": "Docker",
+		    "dockerStrategy": {
+			"from": {
+			    "kind": "DockerImage",
+			    "name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+			},
+			"forcePull": false
+		    }
+		}
+	    }
+	},
+	{
+	    "kind": "BuildConfig",
+	    "apiVersion": "v1",
+	    "metadata": {
+		"name": "ruby-sample-build-fs",
+		"creationTimestamp": null,
+		"labels": {
+		    "name": "ruby-sample-build-fs"
+		}
+	    },
+	    "spec": {
+		"triggers": [],
+		"source": {
+		    "type": "Git",
+		    "git": {
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
+		    }
+		},
+		"strategy": {
+		    "type": "Source",
+		    "sourceStrategy": {
+			"from": {
+			    "kind": "DockerImage",
+			    "name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+			},
+			"forcePull": false
+		    }
+		}
+	    }
+	},
+	{
+	    "kind": "BuildConfig",
+	    "apiVersion": "v1",
+	    "metadata": {
+		"name": "ruby-sample-build-tc",
+		"creationTimestamp": null,
+		"labels": {
+		    "name": "ruby-sample-build-tc"
+		}
+	    },
+	    "spec": {
+		"triggers": [],
+		"source": {
+		    "type": "Git",
+		    "git": {
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
+		    }
+		},
+		"strategy": {
+		    "type": "Custom",
+		    "customStrategy": {
+			"from": {
+			    "kind": "DockerImage",
+			    "name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+			},
+			"env": [
+			    {
+				"name": "OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE",
+				"value": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+			    }
+			],
+			"exposeDockerSocket": true,
+			"forcePull":true
+		    }
+		}
+	    }
+	},
+	{
+	    "kind": "BuildConfig",
+	    "apiVersion": "v1",
+	    "metadata": {
+		"name": "ruby-sample-build-td",
+		"creationTimestamp": null,
+		"labels": {
+		    "name": "ruby-sample-build-td"
+		}
+	    },
+	    "spec": {
+		"triggers": [],
+		"source": {
+		    "type": "Git",
+		    "git": {
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
+		    }
+		},
+		"strategy": {
+		    "type": "Docker",
+		    "dockerStrategy": {
+			"from": {
+			    "kind": "DockerImage",
+			    "name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+			},
+			"forcePull": true
+		    }
+		}
+	    }
+	},
+	{
+	    "kind": "BuildConfig",
+	    "apiVersion": "v1",
+	    "metadata": {
+		"name": "ruby-sample-build-ts",
+		"creationTimestamp": null,
+		"labels": {
+		    "name": "ruby-sample-build-ts"
+		}
+	    },
+	    "spec": {
+		"triggers": [],
+		"source": {
+		    "type": "Git",
+		    "git": {
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
+		    }
+		},
+		"strategy": {
+		    "type": "Source",
+		    "sourceStrategy": {
+			"from": {
+			    "kind": "DockerImage",
+			    "name": "SERVICE_REGISTRY_IP/forcepull-extended-test-builder"
+			},
+			"forcePull": true
+		    }
+		}
+	    }
+	}	
+
+    ]
+}

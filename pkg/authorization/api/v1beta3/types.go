@@ -21,6 +21,10 @@ type PolicyRule struct {
 	// AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
 	// If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
 	AttributeRestrictions kruntime.RawExtension `json:"attributeRestrictions,omitempty"`
+	// APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.
+	// That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request
+	// will be allowed
+	APIGroups []string `json:"apiGroups" description:"list of API groups this rule applies to.  * represents all API groups."`
 	// ResourceKinds is a list of resources this rule applies to.  ResourceAll represents all resources.
 	// DEPRECATED
 	ResourceKinds []string `json:"resourceKinds,omitempty"`

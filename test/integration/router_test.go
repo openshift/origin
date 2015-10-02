@@ -83,6 +83,10 @@ func TestRouter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Couldn't get https endpoint: %v", err)
 	}
+	alternateHttpEndpoint, err := getEndpoint(fakeMasterAndPod.AlternatePodHttpAddr)
+	if err != nil {
+		t.Fatalf("Couldn't get http endpoint: %v", err)
+	}
 
 	routeAddress := getRouteAddress()
 	routeTestAddress := fmt.Sprintf("%s/test", routeAddress)
@@ -102,6 +106,7 @@ func TestRouter(t *testing.T) {
 		expectedResponse  string
 		routeTLS          *routeapi.TLSConfig
 		routerUrl         string
+		preferredPort     *routeapi.RoutePort
 	}{
 		{
 			name:              "non-secure",
@@ -127,6 +132,19 @@ func TestRouter(t *testing.T) {
 			expectedResponse:  tr.HelloPodPath,
 			routeTLS:          nil,
 			routerUrl:         routeTestAddress,
+		},
+		{
+			name:              "preferred-port",
+			serviceName:       "example-preferred-port",
+			endpoints:         []kapi.EndpointSubset{alternateHttpEndpoint, httpEndpoint},
+			routeAlias:        "www.example-unsecure.com",
+			endpointEventType: watch.Added,
+			routeEventType:    watch.Added,
+			protocol:          "http",
+			expectedResponse:  tr.HelloPod,
+			routeTLS:          nil,
+			routerUrl:         routeAddress,
+			preferredPort:     &routeapi.RoutePort{TargetPort: util.NewIntOrStringFromInt(8888)},
 		},
 		{
 			name:              "edge termination",
@@ -305,6 +323,9 @@ func TestRouter(t *testing.T) {
 					TLS: tc.routeTLS,
 				},
 			},
+		}
+		if tc.preferredPort != nil {
+			routeEvent.Object.(*routeapi.Route).Spec.Port = tc.preferredPort
 		}
 
 		fakeMasterAndPod.EndpointChannel <- eventString(endpointEvent)

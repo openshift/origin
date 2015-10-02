@@ -14,7 +14,7 @@
       ng-show="expand"
       ng-init="paramID = 'param-' + $index">
     <label ng-attr-for="{{paramID}}" ng-attr-title="{{parameter.name}}" ng-class="{required: parameter.required}">{{parameter.displayName || parameter.name}}</label>
-    <span ng-class="{'has-error': (paramForm[paramID].$error.required && paramForm[paramID].$touched)}">
+    <span ng-class="{'has-error': (paramForm[paramID].$error.required && paramForm[paramID].$touched && !cleared), 'has-warning': isOnlyWhitespace(parameter.value)}">
       <input
           ng-attr-id="{{paramID}}"
           ng-attr-name="{{paramID}}"
@@ -22,11 +22,19 @@
           type="text"
           placeholder="{{ parameter | parameterPlaceholder }}"
           ng-model="parameter.value"
-          ng-required="parameter.required && !parameter.generate">
+          ng-required="parameter.required && !parameter.generate"
+          ng-blur="cleared = false"
+          ng-trim="false">
     </span>
     <div class="help-block" ng-if="parameter.description">{{parameter.description}}</div>
-    <div ng-show="paramForm[paramID].$error.required && paramForm[paramID].$touched" class="has-error">
-      <div class="help-block">{{parameter.name}} is required.</div>
+    <div ng-show="paramForm[paramID].$error.required && paramForm[paramID].$touched && !cleared" class="has-error">
+      <div class="help-block">{{parameter.displayName || parameter.name}} is required.</div>
+    </div>
+    <div ng-show="isOnlyWhitespace(parameter.value)" class="has-warning help-block">
+      The current value is "{{parameter.value}}", which is not empty.
+      <span ng-if="parameter.generate">This will prevent a value from being generated.</span>
+      If this isn't what you want,
+        <a href="" ng-click="parameter.value=''; cleared = true; focus(paramID)">clear the value</a>.
     </div>
   </div>
   <ul class="list-unstyled env-variable-list" ng-hide="expand">

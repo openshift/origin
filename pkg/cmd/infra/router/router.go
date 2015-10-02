@@ -33,6 +33,8 @@ type RouterSelection struct {
 
 	ProjectLabelSelector string
 	ProjectLabels        labels.Selector
+
+	IncludeUDP bool
 }
 
 // Bind sets the appropriate labels
@@ -42,6 +44,7 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.FieldSelector, "fields", cmdutil.Env("ROUTE_FIELDS", ""), "A field selector to apply to routes to watch")
 	flag.StringVar(&o.ProjectLabelSelector, "project-labels", cmdutil.Env("PROJECT_LABELS", ""), "A label selector to apply to projects to watch; if '*' watches all projects the client can access")
 	flag.StringVar(&o.NamespaceLabelSelector, "namespace-labels", cmdutil.Env("NAMESPACE_LABELS", ""), "A label selector to apply to namespaces to watch")
+	flag.BoolVar(&o.IncludeUDP, "include-udp-endpoints", false, "If true, UDP endpoints will be considered as candidates for routing")
 }
 
 // Complete converts string representations of field and label selectors to their parsed equivalent, or

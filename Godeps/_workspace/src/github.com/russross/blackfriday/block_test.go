@@ -132,6 +132,15 @@ func TestPrefixHeaderNoExtensions(t *testing.T) {
 		"*   List\n    * Nested list\n    # Nested header\n",
 		"<ul>\n<li><p>List</p>\n\n<ul>\n<li><p>Nested list</p>\n\n" +
 			"<h1>Nested header</h1></li>\n</ul></li>\n</ul>\n",
+
+		"#Header 1 \\#\n",
+		"<h1>Header 1 #</h1>\n",
+
+		"#Header 1 \\# foo\n",
+		"<h1>Header 1 # foo</h1>\n",
+
+		"#Header 1 #\\##\n",
+		"<h1>Header 1 ##</h1>\n",
 	}
 	doTestsBlock(t, tests, 0)
 }
@@ -790,6 +799,108 @@ func TestOrderedList(t *testing.T) {
 		"<ol>\n<li>numbers</li>\n<li>are ignored</li>\n</ol>\n",
 	}
 	doTestsBlock(t, tests, 0)
+}
+
+func TestDefinitionList(t *testing.T) {
+	var tests = []string{
+		"Term 1\n:   Definition a\n",
+		"<dl>\n<dt>Term 1</dt>\n<dd>Definition a</dd>\n</dl>\n",
+
+		"Term 1\n:   Definition a \n",
+		"<dl>\n<dt>Term 1</dt>\n<dd>Definition a</dd>\n</dl>\n",
+
+		"Term 1\n:   Definition a\n:   Definition b\n",
+		"<dl>\n<dt>Term 1</dt>\n<dd>Definition a</dd>\n<dd>Definition b</dd>\n</dl>\n",
+
+		"Term 1\n:   Definition a\n\nTerm 2\n:   Definition b\n",
+		"<dl>\n" +
+			"<dt>Term 1</dt>\n" +
+			"<dd>Definition a</dd>\n" +
+			"<dt>Term 2</dt>\n" +
+			"<dd>Definition b</dd>\n" +
+			"</dl>\n",
+
+		"Term 1\n:   Definition a\n\nTerm 2\n:   Definition b\n\nTerm 3\n:   Definition c\n",
+		"<dl>\n" +
+			"<dt>Term 1</dt>\n" +
+			"<dd>Definition a</dd>\n" +
+			"<dt>Term 2</dt>\n" +
+			"<dd>Definition b</dd>\n" +
+			"<dt>Term 3</dt>\n" +
+			"<dd>Definition c</dd>\n" +
+			"</dl>\n",
+
+		"Term 1\n:   Definition a\n:   Definition b\n\nTerm 2\n:   Definition c\n",
+		"<dl>\n" +
+			"<dt>Term 1</dt>\n" +
+			"<dd>Definition a</dd>\n" +
+			"<dd>Definition b</dd>\n" +
+			"<dt>Term 2</dt>\n" +
+			"<dd>Definition c</dd>\n" +
+			"</dl>\n",
+
+		"Term 1\n\n:   Definition a\n\nTerm 2\n\n:   Definition b\n",
+		"<dl>\n" +
+			"<dt>Term 1</dt>\n" +
+			"<dd><p>Definition a</p></dd>\n" +
+			"<dt>Term 2</dt>\n" +
+			"<dd><p>Definition b</p></dd>\n" +
+			"</dl>\n",
+
+		"Term 1\n\n:   Definition a\n\n:   Definition b\n\nTerm 2\n\n:   Definition c\n",
+		"<dl>\n" +
+			"<dt>Term 1</dt>\n" +
+			"<dd><p>Definition a</p></dd>\n" +
+			"<dd><p>Definition b</p></dd>\n" +
+			"<dt>Term 2</dt>\n" +
+			"<dd><p>Definition c</p></dd>\n" +
+			"</dl>\n",
+
+		"Term 1\n:   Definition a\nNext line\n",
+		"<dl>\n<dt>Term 1</dt>\n<dd>Definition a\nNext line</dd>\n</dl>\n",
+
+		"Term 1\n:   Definition a\n  Next line\n",
+		"<dl>\n<dt>Term 1</dt>\n<dd>Definition a\nNext line</dd>\n</dl>\n",
+
+		"Term 1\n:   Definition a \n  Next line \n",
+		"<dl>\n<dt>Term 1</dt>\n<dd>Definition a\nNext line</dd>\n</dl>\n",
+
+		"Term 1\n:   Definition a\nNext line\n\nTerm 2\n:   Definition b",
+		"<dl>\n" +
+			"<dt>Term 1</dt>\n" +
+			"<dd>Definition a\nNext line</dd>\n" +
+			"<dt>Term 2</dt>\n" +
+			"<dd>Definition b</dd>\n" +
+			"</dl>\n",
+
+		"Term 1\n: Definition a\n",
+		"<dl>\n<dt>Term 1</dt>\n<dd>Definition a</dd>\n</dl>\n",
+
+		"Term 1\n:Definition a\n",
+		"<p>Term 1\n:Definition a</p>\n",
+
+		"Term 1\n\n:   Definition a\n\nTerm 2\n\n:   Definition b\n\nText 1",
+		"<dl>\n" +
+			"<dt>Term 1</dt>\n" +
+			"<dd><p>Definition a</p></dd>\n" +
+			"<dt>Term 2</dt>\n" +
+			"<dd><p>Definition b</p></dd>\n" +
+			"</dl>\n" +
+			"\n<p>Text 1</p>\n",
+
+		"Term 1\n\n:   Definition a\n\nText 1\n\nTerm 2\n\n:   Definition b\n\nText 2",
+		"<dl>\n" +
+			"<dt>Term 1</dt>\n" +
+			"<dd><p>Definition a</p></dd>\n" +
+			"</dl>\n" +
+			"\n<p>Text 1</p>\n" +
+			"\n<dl>\n" +
+			"<dt>Term 2</dt>\n" +
+			"<dd><p>Definition b</p></dd>\n" +
+			"</dl>\n" +
+			"\n<p>Text 2</p>\n",
+	}
+	doTestsBlock(t, tests, EXTENSION_DEFINITION_LISTS)
 }
 
 func TestPreformattedHtml(t *testing.T) {

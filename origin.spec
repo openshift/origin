@@ -67,6 +67,7 @@ Requires:       tuned-profiles-%{name}-node = %{version}-%{release}
 Requires:       util-linux
 Requires:       socat
 Requires:       nfs-utils
+Requires:       ethtool
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd

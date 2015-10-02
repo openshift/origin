@@ -13,6 +13,7 @@ import (
 type DefaultAuthorizationAttributes struct {
 	Verb              string
 	APIVersion        string
+	APIGroup          string
 	Resource          string
 	ResourceName      string
 	RequestAttributes interface{}
@@ -42,26 +43,48 @@ func (a DefaultAuthorizationAttributes) RuleMatches(rule authorizationapi.Policy
 	}
 
 	if a.verbMatches(rule.Verbs) {
-		allowedResourceTypes := authorizationapi.ExpandResources(rule.Resources)
+		if a.apiGroupMatches(rule.APIGroups) {
 
-		if a.resourceMatches(allowedResourceTypes) {
-			if a.nameMatches(rule.ResourceNames) {
-				// this rule matches the request, so we should check the additional restrictions to be sure that it's allowed
-				if rule.AttributeRestrictions.Object != nil {
-					switch rule.AttributeRestrictions.Object.(type) {
-					case (*authorizationapi.IsPersonalSubjectAccessReview):
-						return IsPersonalAccessReview(a)
-					default:
-						return false, fmt.Errorf("unable to interpret: %#v", rule.AttributeRestrictions.Object)
+			allowedResourceTypes := authorizationapi.ExpandResources(rule.Resources)
+			if a.resourceMatches(allowedResourceTypes) {
+				if a.nameMatches(rule.ResourceNames) {
+					// this rule matches the request, so we should check the additional restrictions to be sure that it's allowed
+					if rule.AttributeRestrictions.Object != nil {
+						switch rule.AttributeRestrictions.Object.(type) {
+						case (*authorizationapi.IsPersonalSubjectAccessReview):
+							return IsPersonalAccessReview(a)
+						default:
+							return false, fmt.Errorf("unable to interpret: %#v", rule.AttributeRestrictions.Object)
+						}
 					}
-				}
 
-				return true, nil
+					return true, nil
+				}
 			}
 		}
 	}
 
 	return false, nil
+}
+
+func (a DefaultAuthorizationAttributes) apiGroupMatches(allowedGroups []string) bool {
+	// if no APIGroups are specified, then the default APIGroup of "" is assumed.
+	if len(allowedGroups) == 0 && len(a.GetAPIGroup()) == 0 {
+		return true
+	}
+
+	// allowedGroups is expected to be small, so I don't feel bad about this.
+	for _, allowedGroup := range allowedGroups {
+		if allowedGroup == authorizationapi.APIGroupAll {
+			return true
+		}
+
+		if strings.ToLower(allowedGroup) == strings.ToLower(a.GetAPIGroup()) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (a DefaultAuthorizationAttributes) verbMatches(verbs sets.String) bool {
@@ -118,6 +141,10 @@ func splitPath(thePath string) []string {
 
 func (a DefaultAuthorizationAttributes) GetAPIVersion() string {
 	return a.APIVersion
+}
+
+func (a DefaultAuthorizationAttributes) GetAPIGroup() string {
+	return a.APIGroup
 }
 
 func (a DefaultAuthorizationAttributes) GetResource() string {

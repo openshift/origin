@@ -429,6 +429,14 @@ func deepCopy_api_PolicyRule(in api.PolicyRule, out *api.PolicyRule, c *conversi
 	} else {
 		out.AttributeRestrictions = newVal.(runtime.EmbeddedObject)
 	}
+	if in.APIGroups != nil {
+		out.APIGroups = make([]string, len(in.APIGroups))
+		for i := range in.APIGroups {
+			out.APIGroups[i] = in.APIGroups[i]
+		}
+	} else {
+		out.APIGroups = nil
+	}
 	if in.Resources != nil {
 		out.Resources = make(sets.String)
 		for key, val := range in.Resources {
@@ -1436,6 +1444,14 @@ func deepCopy_api_ExecNewPodHook(in deployapi.ExecNewPodHook, out *deployapi.Exe
 		out.Env = nil
 	}
 	out.ContainerName = in.ContainerName
+	if in.Volumes != nil {
+		out.Volumes = make([]string, len(in.Volumes))
+		for i := range in.Volumes {
+			out.Volumes[i] = in.Volumes[i]
+		}
+	} else {
+		out.Volumes = nil
+	}
 	return nil
 }
 
@@ -2212,6 +2228,15 @@ func deepCopy_api_RouteList(in routeapi.RouteList, out *routeapi.RouteList, c *c
 	return nil
 }
 
+func deepCopy_api_RoutePort(in routeapi.RoutePort, out *routeapi.RoutePort, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TargetPort); err != nil {
+		return err
+	} else {
+		out.TargetPort = newVal.(util.IntOrString)
+	}
+	return nil
+}
+
 func deepCopy_api_RouteSpec(in routeapi.RouteSpec, out *routeapi.RouteSpec, c *conversion.Cloner) error {
 	out.Host = in.Host
 	out.Path = in.Path
@@ -2219,6 +2244,14 @@ func deepCopy_api_RouteSpec(in routeapi.RouteSpec, out *routeapi.RouteSpec, c *c
 		return err
 	} else {
 		out.To = newVal.(pkgapi.ObjectReference)
+	}
+	if in.Port != nil {
+		out.Port = new(routeapi.RoutePort)
+		if err := deepCopy_api_RoutePort(*in.Port, out.Port, c); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
 	}
 	if in.TLS != nil {
 		out.TLS = new(routeapi.TLSConfig)
@@ -2722,6 +2755,7 @@ func init() {
 		deepCopy_api_ProjectStatus,
 		deepCopy_api_Route,
 		deepCopy_api_RouteList,
+		deepCopy_api_RoutePort,
 		deepCopy_api_RouteSpec,
 		deepCopy_api_RouteStatus,
 		deepCopy_api_TLSConfig,

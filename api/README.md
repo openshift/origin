@@ -1,7 +1,7 @@
 OpenShift API Documentation
 ---------------------------
 
-This directory contains a Swagger API definition for the OpenShift and Kubernetes APIs.  The `swagger-spec` directory is generated automatically, and the other directories contain content that is used to generate the official docs.
+This directory contains a Swagger API definition for the OpenShift and Kubernetes APIs.  The `swagger-spec` directory is generated automatically, and the other directories contain content that is used to generate the official documentation.
 
 When you add a new object or field to the REST API, you should do the following:
 

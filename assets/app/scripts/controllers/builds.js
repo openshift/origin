@@ -11,7 +11,7 @@ angular.module('openshiftConsole')
   .controller('BuildsController', function ($scope, DataService, $filter, LabelFilter, Logger, $location, $anchorScroll, BuildsService) {
     $scope.builds = {};
     $scope.unfilteredBuilds = {};
-    $scope.buildConfigs = {};
+    $scope.buildConfigs = undefined;
     $scope.labelSuggestions = {};
     $scope.alerts = $scope.alerts || {};
     $scope.emptyMessage = "Loading...";

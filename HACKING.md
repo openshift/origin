@@ -186,7 +186,8 @@ were properly reflected* in the Origin codebase.
 ### 1. Preparation
 
 Before you begin, make sure you have both [openshift/origin](https://github.com/openshift/origin) and
-[kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) in your $GOPATH:
+[kubernetes/kubernetes](https://github.com/kubernetes/kubernetes) in your $GOPATH. You may want to work
+on a separate $GOPATH just for the rebase:
 
 ```
 $ go get github.com/openshift/origin
@@ -214,7 +215,6 @@ with rebasing the Kubernetes code using the script that automates this process.
 ```
 $ cd $GOPATH/src/github.com/openshift/origin
 $ hack/rebase-kube.sh
-$ hack/copy-kube-artifacts.sh
 ```
 
 Read over the changes with `git status` and make sure it looks reasonable. Check specially the
@@ -280,6 +280,9 @@ codebase to make sure the compilation is not broken, all tests pass and it's com
 refactorings, architectural changes or behavior changes introduced in Kubernetes. Make sure:
 
 1. `make clean ; hack/build-go.sh` compiles without errors and the standalone server starts correctly.
+1. all of our generated code is up to date by running all `hack/update-*` scripts.
+1. `hack/verify-open-ports.sh` runs without errors.
+1. `hack/copy-kube-artifacts.sh` so Kubernetes tests can be fully functional. The diff resulting from this script should be squashed into the Kube bump commit. 
 2. `TEST_KUBE=1 hack/test-go.sh` runs without errors.
 3. `hack/test-cmd.sh` runs without errors.
 3. `hack/test-integration.sh` runs without errors.
@@ -302,9 +305,11 @@ Place all your changes in a commit called "Refactor to match changes upstream".
 
 A typical pull request for your Kubernetes rebase will contain:
 
-1. One commit for the Godeps bump (`bump(k8s.io/kubernetes):<commit SHA>`).
-2. Zero, one or more cherry-picked commits tagged UPSTREAM.
-3. One commit "Refactor to match changes upstream".
+1. One commit for the Kuberentes Godeps bump (`bump(k8s.io/kubernetes):<commit SHA>`).
+2. Zero, one, or more bump commits for any **shared** dependencies between Origin and Kubernetes that have been bumped. Any transitive dependencies coming from Kubernetes should be squashed in the Kube bump commit.
+3. Zero, one, or more cherry-picked commits tagged UPSTREAM.
+4. One commit "Boring refactor to match changes upstream" that includes boring changes like imports rewriting, etc.
+5. One commit "Interesting refactor to match changes upstream" that includes interesting changes like new plugins or controller changes.
 
 ## Updating other Godeps from upstream
 

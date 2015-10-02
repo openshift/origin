@@ -72,24 +72,48 @@
       <h2>
         <span>Resource limits</span>
         <i style="margin-left: 5px; cursor: help;" class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
-          title="Resource limits define minimum and maximum values that can be created for each resource type."></i>
+          title="Resource limits define minimum and maximum constraints for compute resources."></i>
       </h2>
       <div ng-if="(limitRanges | hashSize) == 0"><em>{{emptyMessageLimitRanges}}</em></div>
       <table ng-if="(limitRanges | hashSize) > 0" class="table">
         <thead>
           <th>Resource type</th>
-          <th>Min</th>
-          <th>Max</th>
-          <th>Default</th>
+          <th>
+            Min
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="The minimum amount of this compute resource that can be requested."></i>
+          </th>
+          <th>
+            Max
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="The maximum amount of this compute resource that can be requested.  The limit must also be below the maximum value."></i>
+          </th>
+          <th>
+            Default Request
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="A container will default to request this amount of a compute resource if no request is specified. The system will guarantee the requested amount of compute resource when scheduling a container for execution. If a quota is enabled for this compute resource, the quota usage is incremented by the requested value."></i>
+          </th>
+          <th>
+            Default Limit
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="The default limit defines the maximum amount of compute resource the container may have access to during execution if no limit is specified. If no request is made for the compute resource on the container or via a Default Request value, the container will default to request the limit."></i>
+          </th>
+          <th>
+            Max Limit/Request Ratio
+            <i class="small pficon pficon-help" data-toggle="tooltip" data-placement="right"
+          title="If specified, the compute resource must have a request and limit that are both non-zero, where limit divided by request is less than or equal to the specified amount; this represents the max burst for the compute resource during execution."></i>
+          </th>
         </thead>
-        <tbody ng-repeat="limitRange in limitRanges">
+        <tbody ng-repeat="(limitRangeName, limitRange) in limitRanges">
           <tr ng-repeat-start="limit in limitRange.spec.limits"></tr>
-          <tr ng-repeat="(type, min) in limit.min">
+          <tr ng-repeat="(type, typeLimits) in limitsByType[limitRangeName][limit.type]">
             <!-- TODO prettify type -->
             <td>{{limit.type}} {{type}}</td>
-            <td>{{(min | usageWithUnits : type) || "&mdash;"}}</td>
-            <td>{{(limit.max[type] | usageWithUnits : type) || "&mdash;"}}</td>
-            <td>{{(limit["default"][type] | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(typeLimits.min | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(typeLimits.max | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(typeLimits.defaultRequest | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{(typeLimits["default"] | usageWithUnits : type) || "&mdash;"}}</td>
+            <td>{{typeLimits.maxLimitRequestRatio || "&mdash;"}}</td>
           </tr>
           <tr ng-repeat-end></tr>
         </tbody>

@@ -314,7 +314,7 @@ func TestSourceRefBuildSourceURI(t *testing.T) {
 	}
 }
 
-func ExampleGenerateSimpleDockerApp() {
+func TestGenerateSimpleDockerApp(t *testing.T) {
 	// TODO: determine if the repo is secured prior to fetching
 	// TODO: determine whether we want to clone this repo, or use it directly. Using it directly would require setting hooks
 	// if we have source, assume we are going to go into a build flow.

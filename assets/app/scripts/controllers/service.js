@@ -54,6 +54,18 @@ angular.module('openshiftConsole')
           };
         }
       );
+
+      watches.push(DataService.watch("routes", $scope, function(routes) {
+        $scope.routesForService = [];
+        angular.forEach(routes.by("metadata.name"), function(route) {
+          if (route.spec.to.kind === "Service" &&
+              route.spec.to.name === $routeParams.service) {
+            $scope.routesForService.push(route);
+          }
+        });
+
+        Logger.log("routes (subscribe)", $scope.routesByService);
+      }));
     });
 
     $scope.$on('$destroy', function(){

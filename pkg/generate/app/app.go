@@ -293,7 +293,7 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 		},
 	}
 	if !r.OutputImage {
-		stream.Spec.DockerImageRepository = r.String()
+		stream.Spec.DockerImageRepository = r.StringNoTag()
 		if r.Insecure {
 			stream.ObjectMeta.Annotations = map[string]string{
 				imageapi.InsecureRepositoryAnnotation: "true",

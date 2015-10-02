@@ -163,3 +163,34 @@ func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 		}
 	}
 }
+
+func TestSAR(t *testing.T) {
+	store := cache.NewStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
+	mockClient := &testclient.Fake{}
+	mockClient.AddReactor("get", "namespaces", func(action testclient.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, fmt.Errorf("shouldn't get here")
+	})
+	projectcache.FakeProjectCache(mockClient, store, "")
+	handler := &lifecycle{client: mockClient}
+
+	tests := map[string]struct {
+		kind     string
+		resource string
+	}{
+		"subject access review": {
+			kind:     "SubjectAccessReview",
+			resource: "subjectaccessreviews",
+		},
+		"local subject access review": {
+			kind:     "LocalSubjectAccessReview",
+			resource: "localsubjectaccessreviews",
+		},
+	}
+
+	for k, v := range tests {
+		err := handler.Admit(admission.NewAttributesRecord(nil, v.kind, "foo", "name", v.resource, "", "CREATE", nil))
+		if err != nil {
+			t.Errorf("Unexpected error for %s returned from admission handler: %v", k, err)
+		}
+	}
+}

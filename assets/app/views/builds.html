@@ -40,7 +40,7 @@
               <td>
                 <span ng-if="$first">
                   <a ng-if="buildConfigs[buildConfigName]" href="project/{{projectName}}/browse/builds/{{buildConfigName}}">{{buildConfigName}}</a>
-                  <span ng-if="!buildConfigs[buildConfigName] && buildConfigName != ''">
+                  <span ng-if="buildConfigs && !buildConfigs[buildConfigName] && buildConfigName != ''">
                     {{buildConfigName}}
                     <span class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;">
                       <span class="pficon pficon-warning-triangle"></span>

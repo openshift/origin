@@ -59,15 +59,21 @@ func (a *openshiftAuthorizer) Authorize(ctx kapi.Context, passedAttributes Autho
 	return false, denyReason, nil
 }
 
+// GetAllowedSubjects returns the subjects it knows can perform the action.
+// If we got an error, then the list of subjects may not be complete, but it does not contain any incorrect names.
+// This is done because policy rules are purely additive and policy determinations
+// can be made on the basis of those rules that are found.
 func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes AuthorizationAttributes) (sets.String, sets.String, error) {
+	errs := []error{}
+
 	masterContext := kapi.WithNamespace(ctx, kapi.NamespaceNone)
 	globalUsers, globalGroups, err := a.getAllowedSubjectsFromNamespaceBindings(masterContext, attributes)
 	if err != nil {
-		return nil, nil, err
+		errs = append(errs, err)
 	}
 	localUsers, localGroups, err := a.getAllowedSubjectsFromNamespaceBindings(ctx, attributes)
 	if err != nil {
-		return nil, nil, err
+		errs = append(errs, err)
 	}
 
 	users := sets.String{}
@@ -78,11 +84,13 @@ func (a *openshiftAuthorizer) GetAllowedSubjects(ctx kapi.Context, attributes Au
 	groups.Insert(globalGroups.List()...)
 	groups.Insert(localGroups.List()...)
 
-	return users, groups, nil
+	return users, groups, kerrors.NewAggregate(errs)
 }
 
 func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.Context, passedAttributes AuthorizationAttributes) (sets.String, sets.String, error) {
 	attributes := coerceToDefaultAuthorizationAttributes(passedAttributes)
+
+	errs := []error{}
 
 	roleBindings, err := a.ruleResolver.GetRoleBindings(ctx)
 	if err != nil {
@@ -94,13 +102,18 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.C
 	for _, roleBinding := range roleBindings {
 		role, err := a.ruleResolver.GetRole(roleBinding)
 		if err != nil {
-			return nil, nil, err
+			// If we got an error, then the list of subjects may not be complete, but it does not contain any incorrect names.
+			// This is done because policy rules are purely additive and policy determinations
+			// can be made on the basis of those rules that are found.
+			errs = append(errs, err)
+			continue
 		}
 
 		for _, rule := range role.Rules() {
 			matches, err := attributes.RuleMatches(rule)
 			if err != nil {
-				return nil, nil, err
+				errs = append(errs, err)
+				continue
 			}
 
 			if matches {
@@ -110,7 +123,7 @@ func (a *openshiftAuthorizer) getAllowedSubjectsFromNamespaceBindings(ctx kapi.C
 		}
 	}
 
-	return users, groups, nil
+	return users, groups, kerrors.NewAggregate(errs)
 }
 
 // authorizeWithNamespaceRules returns isAllowed, reason, and error.  If an error is returned, isAllowed and reason are still valid.  This seems strange
@@ -144,6 +157,7 @@ func coerceToDefaultAuthorizationAttributes(passedAttributes AuthorizationAttrib
 	attributes, ok := passedAttributes.(*DefaultAuthorizationAttributes)
 	if !ok {
 		attributes = &DefaultAuthorizationAttributes{
+			APIGroup:          passedAttributes.GetAPIGroup(),
 			Verb:              passedAttributes.GetVerb(),
 			RequestAttributes: passedAttributes.GetRequestAttributes(),
 			Resource:          passedAttributes.GetResource(),

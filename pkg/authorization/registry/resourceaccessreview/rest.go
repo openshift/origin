@@ -52,10 +52,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	requestContext := kapi.WithNamespace(ctx, resourceAccessReview.Action.Namespace)
 	attributes := authorizer.ToDefaultAuthorizationAttributes(resourceAccessReview.Action)
-	users, groups, err := r.authorizer.GetAllowedSubjects(requestContext, attributes)
-	if err != nil {
-		return nil, err
-	}
+	users, groups, _ := r.authorizer.GetAllowedSubjects(requestContext, attributes)
 
 	response := &authorizationapi.ResourceAccessReviewResponse{
 		Namespace: resourceAccessReview.Action.Namespace,

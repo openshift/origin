@@ -461,6 +461,14 @@ func deepCopy_v1_PolicyRule(in v1.PolicyRule, out *v1.PolicyRule, c *conversion.
 	} else {
 		out.AttributeRestrictions = newVal.(runtime.RawExtension)
 	}
+	if in.APIGroups != nil {
+		out.APIGroups = make([]string, len(in.APIGroups))
+		for i := range in.APIGroups {
+			out.APIGroups[i] = in.APIGroups[i]
+		}
+	} else {
+		out.APIGroups = nil
+	}
 	if in.Resources != nil {
 		out.Resources = make([]string, len(in.Resources))
 		for i := range in.Resources {
@@ -1481,6 +1489,14 @@ func deepCopy_v1_ExecNewPodHook(in deployapiv1.ExecNewPodHook, out *deployapiv1.
 		out.Env = nil
 	}
 	out.ContainerName = in.ContainerName
+	if in.Volumes != nil {
+		out.Volumes = make([]string, len(in.Volumes))
+		for i := range in.Volumes {
+			out.Volumes[i] = in.Volumes[i]
+		}
+	} else {
+		out.Volumes = nil
+	}
 	return nil
 }
 
@@ -2122,6 +2138,15 @@ func deepCopy_v1_RouteList(in routeapiv1.RouteList, out *routeapiv1.RouteList, c
 	return nil
 }
 
+func deepCopy_v1_RoutePort(in routeapiv1.RoutePort, out *routeapiv1.RoutePort, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TargetPort); err != nil {
+		return err
+	} else {
+		out.TargetPort = newVal.(util.IntOrString)
+	}
+	return nil
+}
+
 func deepCopy_v1_RouteSpec(in routeapiv1.RouteSpec, out *routeapiv1.RouteSpec, c *conversion.Cloner) error {
 	out.Host = in.Host
 	out.Path = in.Path
@@ -2129,6 +2154,14 @@ func deepCopy_v1_RouteSpec(in routeapiv1.RouteSpec, out *routeapiv1.RouteSpec, c
 		return err
 	} else {
 		out.To = newVal.(pkgapiv1.ObjectReference)
+	}
+	if in.Port != nil {
+		out.Port = new(routeapiv1.RoutePort)
+		if err := deepCopy_v1_RoutePort(*in.Port, out.Port, c); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
 	}
 	if in.TLS != nil {
 		out.TLS = new(routeapiv1.TLSConfig)
@@ -2633,6 +2666,7 @@ func init() {
 		deepCopy_v1_ProjectStatus,
 		deepCopy_v1_Route,
 		deepCopy_v1_RouteList,
+		deepCopy_v1_RoutePort,
 		deepCopy_v1_RouteSpec,
 		deepCopy_v1_RouteStatus,
 		deepCopy_v1_TLSConfig,

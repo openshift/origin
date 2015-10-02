@@ -59,6 +59,7 @@ type AppConfig struct {
 	Strategy         string
 	InsecureRegistry bool
 	OutputDocker     bool
+	AllowMissing     bool
 
 	AsSearch bool
 	AsList   bool
@@ -131,6 +132,7 @@ func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 		Client:           dockerclient,
 		RegistrySearcher: c.dockerRegistrySearcher(),
 		Insecure:         c.InsecureRegistry,
+		AllowMissing:     c.AllowMissing,
 	}
 }
 
@@ -392,7 +394,7 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 			continue
 		case input.ExpectToBuild && !input.ResolvedMatch.Builder && !input.Uses.IsDockerBuild():
 			if len(c.Strategy) == 0 {
-				errs = append(errs, fmt.Errorf("none of the images that match %q can build source code - check whether this is the image you want to use, then use --strategy=source to build using source or --strategy=docker to treat this as a Docker base image and set up a layered Docker build", ref))
+				errs = append(errs, fmt.Errorf("the resolved match %q for component %q cannot build source code - check whether this is the image you want to use, then use --strategy=source to build using source or --strategy=docker to treat this as a Docker base image and set up a layered Docker build", input.ResolvedMatch.Name, ref))
 				continue
 			}
 		}

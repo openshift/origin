@@ -52,12 +52,17 @@ type lifecycle struct {
 	creatableResources sets.String
 }
 
-var recommendedCreatableResources = sets.NewString("subjectaccessreviews", "resourceaccessreviews", "localsubjectaccessreviews", "localresourceaccessreviews")
+var recommendedCreatableResources = sets.NewString("resourceaccessreviews", "localresourceaccessreviews")
 
 // Admit enforces that a namespace must exist in order to associate content with it.
 // Admit enforces that a namespace that is terminating cannot accept new content being associated with it.
 func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	if len(a.GetNamespace()) == 0 {
+		return nil
+	}
+	// always allow a SAR request through, the SAR will return information about
+	// the ability to take action on the object, no need to verify it here.
+	if isSubjectAccessReview(a) {
 		return nil
 	}
 	defaultVersion, kind, err := latest.RESTMapper.VersionAndKindForResource(a.GetResource())
@@ -136,4 +141,9 @@ func (e *lifecycle) Handles(operation admission.Operation) bool {
 
 func NewLifecycle(client client.Interface, creatableResources sets.String) (admission.Interface, error) {
 	return &lifecycle{client: client, creatableResources: creatableResources}, nil
+}
+
+func isSubjectAccessReview(a admission.Attributes) bool {
+	return a.GetKind() == "SubjectAccessReview" ||
+		a.GetKind() == "LocalSubjectAccessReview"
 }

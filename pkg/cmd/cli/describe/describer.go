@@ -125,11 +125,6 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		if build.Status.Config != nil {
 			formatString(out, "Build Config", build.Status.Config.Name)
 		}
-		status := bold(build.Status.Phase)
-		if build.Status.Phase == buildapi.BuildPhaseFailed {
-			status += " (" + build.Status.Message + ")"
-		}
-		formatString(out, "Status", status)
 		if build.Status.StartTimestamp != nil {
 			formatString(out, "Started", build.Status.StartTimestamp.Time)
 		}
@@ -141,6 +136,11 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 		formatString(out, "Duration", describeBuildDuration(build))
 		formatString(out, "Build Pod", buildutil.GetBuildPodName(build))
 		describeBuildSpec(build.Spec, out)
+		status := bold(build.Status.Phase)
+		if build.Status.Message != "" {
+			status += " (" + build.Status.Message + ")"
+		}
+		formatString(out, "Status", status)
 		kctl.DescribeEvents(events, out)
 
 		return nil

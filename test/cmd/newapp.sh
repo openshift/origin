@@ -80,4 +80,21 @@ oc delete template ruby-helloworld-sample
 [ "$(oc new-app mysql --name=db | grep db)" ]
 oc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
 oc delete all -l app=ruby
+
+# allow use of non-existent image
+[ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep "no image or template matched")" ]
+[ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing)" ]
+
+# ensure a local-only image gets a proper imagestream created, it used to be getting a :tag appended to the end, incorrectly.
+tmp=$(mktemp -d)
+pushd $tmp
+cat <<EOF >> Dockerfile
+FROM scratch
+EXPOSE 80
+EOF
+docker build -t test/scratchimage .
+popd
+rm -rf $tmp
+[ "$(oc new-app  test/scratchimage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep -E "dockerImageRepository: test/scratchimage$")" ]
+
 echo "new-app: ok"

@@ -461,6 +461,14 @@ func deepCopy_v1beta3_PolicyRule(in v1beta3.PolicyRule, out *v1beta3.PolicyRule,
 	} else {
 		out.AttributeRestrictions = newVal.(runtime.RawExtension)
 	}
+	if in.APIGroups != nil {
+		out.APIGroups = make([]string, len(in.APIGroups))
+		for i := range in.APIGroups {
+			out.APIGroups[i] = in.APIGroups[i]
+		}
+	} else {
+		out.APIGroups = nil
+	}
 	if in.ResourceKinds != nil {
 		out.ResourceKinds = make([]string, len(in.ResourceKinds))
 		for i := range in.ResourceKinds {
@@ -1489,6 +1497,14 @@ func deepCopy_v1beta3_ExecNewPodHook(in deployapiv1beta3.ExecNewPodHook, out *de
 		out.Env = nil
 	}
 	out.ContainerName = in.ContainerName
+	if in.Volumes != nil {
+		out.Volumes = make([]string, len(in.Volumes))
+		for i := range in.Volumes {
+			out.Volumes[i] = in.Volumes[i]
+		}
+	} else {
+		out.Volumes = nil
+	}
 	return nil
 }
 
@@ -2112,6 +2128,15 @@ func deepCopy_v1beta3_RouteList(in routeapiv1beta3.RouteList, out *routeapiv1bet
 	return nil
 }
 
+func deepCopy_v1beta3_RoutePort(in routeapiv1beta3.RoutePort, out *routeapiv1beta3.RoutePort, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TargetPort); err != nil {
+		return err
+	} else {
+		out.TargetPort = newVal.(util.IntOrString)
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_RouteSpec(in routeapiv1beta3.RouteSpec, out *routeapiv1beta3.RouteSpec, c *conversion.Cloner) error {
 	out.Host = in.Host
 	out.Path = in.Path
@@ -2119,6 +2144,14 @@ func deepCopy_v1beta3_RouteSpec(in routeapiv1beta3.RouteSpec, out *routeapiv1bet
 		return err
 	} else {
 		out.To = newVal.(pkgapiv1beta3.ObjectReference)
+	}
+	if in.Port != nil {
+		out.Port = new(routeapiv1beta3.RoutePort)
+		if err := deepCopy_v1beta3_RoutePort(*in.Port, out.Port, c); err != nil {
+			return err
+		}
+	} else {
+		out.Port = nil
 	}
 	if in.TLS != nil {
 		out.TLS = new(routeapiv1beta3.TLSConfig)
@@ -2623,6 +2656,7 @@ func init() {
 		deepCopy_v1beta3_ProjectStatus,
 		deepCopy_v1beta3_Route,
 		deepCopy_v1beta3_RouteList,
+		deepCopy_v1beta3_RoutePort,
 		deepCopy_v1beta3_RouteSpec,
 		deepCopy_v1beta3_RouteStatus,
 		deepCopy_v1beta3_TLSConfig,

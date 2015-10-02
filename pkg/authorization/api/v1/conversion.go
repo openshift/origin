@@ -134,6 +134,8 @@ func convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRu
 		return err
 	}
 
+	out.APIGroups = in.APIGroups
+
 	out.Resources = sets.String{}
 	out.Resources.Insert(in.Resources...)
 
@@ -151,6 +153,8 @@ func convert_api_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRu
 	if err := s.Convert(&in.AttributeRestrictions, &out.AttributeRestrictions, 0); err != nil {
 		return err
 	}
+
+	out.APIGroups = in.APIGroups
 
 	out.Resources = []string{}
 	out.Resources = append(out.Resources, in.Resources.List()...)

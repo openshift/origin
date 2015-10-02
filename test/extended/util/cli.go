@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/openshift/origin/pkg/client"
@@ -15,11 +16,14 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	testutil "github.com/openshift/origin/test/util"
+	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/test/e2e"
 )
+
+var returnCodeRegex = regexp.MustCompile("@@@([0-9]+)@@@")
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // REST clients.
@@ -37,6 +41,7 @@ type CLI struct {
 	stdout          io.Writer
 	stderr          io.Writer
 	verbose         bool
+	cmd             *cobra.Command
 	kubeFramework   *e2e.Framework
 }
 
@@ -66,6 +71,13 @@ func (c *CLI) KubeFramework() *e2e.Framework {
 // for the current session, it returns 'admin'.
 func (c *CLI) Username() string {
 	return c.username
+}
+
+// AsAdmin changes current config file path to the admin config.
+func (c *CLI) AsAdmin() *CLI {
+	nc := *c
+	nc.configPath = c.adminConfigPath
+	return &nc
 }
 
 // ChangeUser changes the user used by the current CLI session.

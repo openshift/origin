@@ -40,6 +40,8 @@ SKIP_TESTS=(
   Kibana                  # Not installed
   DNS                     # Can't depend on kube-dns
   kube-ui                 # Not installed by default
+  DaemonRestart           # Experimental mode not enabled yet
+  "Daemon set"            # Experimental mode not enabled yet
 
   # Need fixing
   "Cluster upgrade"       # panic because createNS not called, refactor framework?
