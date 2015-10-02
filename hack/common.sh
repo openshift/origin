@@ -40,9 +40,6 @@ readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]##*/}"
 
 readonly OS_CROSS_COMPILE_PLATFORMS=(
   linux/amd64
-  darwin/amd64
-  windows/amd64
-  linux/386
 )
 readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
