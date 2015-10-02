@@ -3,7 +3,6 @@ package ovssubnet
 import (
 	"fmt"
 	"net"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -14,6 +13,9 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/kube"
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/multitenant"
+
+	kexec "k8s.io/kubernetes/pkg/util/exec"
+	"k8s.io/kubernetes/pkg/util/iptables"
 )
 
 const (
@@ -597,8 +599,9 @@ func SetupIptables(fw *firewalld.Interface, clusterNetworkCIDR string) error {
 			}
 		}
 	} else {
-		exec.Command("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE").Run()
-		err := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE").Run()
+		ipt := iptables.New(kexec.New(), iptables.ProtocolIpv4)
+
+		_, err := ipt.EnsureRule(iptables.Append, iptables.TableNAT, iptables.ChainPostrouting, "-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE")
 		if err != nil {
 			return err
 		}
