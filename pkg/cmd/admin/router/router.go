@@ -59,7 +59,9 @@ you have failover protection.`
   $ %[1]s %[2]s region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
 
   # Run the router with a hint to the underlying implementation to _not_ expose statistics.
-  $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0`
+  $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0
+  `
+
 	secretsVolumeName = "secret-volume"
 	secretsPath       = "/etc/secret-volume"
 

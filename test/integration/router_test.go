@@ -4,6 +4,7 @@ package integration
 
 import (
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,6 +38,10 @@ const (
 
 	dockerWaitSeconds = 1
 	dockerRetries     = 3
+
+	statsPort     = "1936"
+	statsUser     = "admin"
+	statsPassword = "e2e"
 )
 
 // init ensures docker exists for this test
@@ -339,7 +344,7 @@ func TestRouter(t *testing.T) {
 			time.Sleep(time.Second * tcWaitSeconds)
 
 			// Now verify the route with an HTTP client.
-			resp, err := getRoute(tc.routerUrl, tc.routeAlias, tc.protocol, tc.expectedResponse)
+			resp, err := getRoute(tc.routerUrl, tc.routeAlias, tc.protocol, nil, tc.expectedResponse)
 
 			if err != nil {
 				if i != 2 {
@@ -788,9 +793,48 @@ func TestRouterDuplications(t *testing.T) {
 	time.Sleep(time.Second * 5)
 }
 
+// TestRouterStatsPort tests that the router is listening on and
+// exposing statistics for the default haproxy router image.
+func TestRouterStatsPort(t *testing.T) {
+	fakeMasterAndPod := tr.NewTestHttpService()
+	err := fakeMasterAndPod.Start()
+	if err != nil {
+		t.Fatalf("Unable to start http server: %v", err)
+	}
+	defer fakeMasterAndPod.Stop()
+
+	validateServer(fakeMasterAndPod, t)
+
+	dockerCli, err := testutil.NewDockerClient()
+	if err != nil {
+		t.Fatalf("Unable to get docker client: %v", err)
+	}
+
+	routerId, err := createAndStartRouterContainer(dockerCli, fakeMasterAndPod.MasterHttpAddr)
+	if err != nil {
+		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
+	}
+	defer cleanUp(dockerCli, routerId)
+
+	statsHostPort := fmt.Sprintf("%s:%s", "127.0.0.1", statsPort)
+	creds := fmt.Sprintf("%s:%s", statsUser, statsPassword)
+	auth := fmt.Sprintf("Basic: %s", base64.StdEncoding.EncodeToString([]byte(creds)))
+	headers := map[string]string{"Authorization": auth}
+
+	resp, err := getRoute(statsHostPort, statsHostPort, "http", headers, "")
+
+	if err != nil {
+		t.Errorf("Unable to verify response: %v", err)
+	}
+
+	if len(resp) < 1 {
+		t.Errorf("TestRouterStatsPort failed! No Response body.")
+	}
+}
+
 // isValidRoute ensures that the route can be retrieved and matches the expected output
 func isValidRoute(url, host, scheme, expected string) (valid bool, response string) {
-	resp, err := getRoute(url, host, scheme, expected)
+	resp, err := getRoute(url, host, scheme, nil, expected)
 	if err != nil {
 		return false, err.Error()
 	}
@@ -826,7 +870,7 @@ func getEndpoint(hostport string) (kapi.EndpointSubset, error) {
 // the expectation that the route will echo back what it receives.  Note that
 // getRoute returns only the first len(expectedResponse) bytes of the actual
 // response.
-func getRoute(routerUrl string, hostName string, protocol string, expectedResponse string) (response string, err error) {
+func getRoute(routerUrl string, hostName string, protocol string, headers map[string]string, expectedResponse string) (response string, err error) {
 	url := protocol + "://" + routerUrl
 	var tlsConfig *tls.Config
 
@@ -847,6 +891,10 @@ func getRoute(routerUrl string, hostName string, protocol string, expectedRespon
 
 		if err != nil {
 			return "", err
+		}
+
+		for name, value := range headers {
+			req.Header.Set(name, value)
 		}
 
 		req.Host = hostName
@@ -904,7 +952,7 @@ func eventString(e *watch.Event) string {
 // createAndStartRouterContainer is responsible for deploying the router image in docker.  It assumes that all router images
 // will use a command line flag that can take --master which points to the master url
 func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp string) (containerId string, err error) {
-	ports := []string{"80", "443"}
+	ports := []string{"80", "443", statsPort}
 	portBindings := make(map[dockerClient.Port][]dockerClient.PortBinding)
 	exposedPorts := map[dockerClient.Port]struct{}{}
 
@@ -930,7 +978,11 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 		"ROUTER_EXTERNAL_HOST_PRIVKEY",
 	}
 
-	env := []string{}
+	env := []string{
+		fmt.Sprintf("STATS_PORT=%s", statsPort),
+		fmt.Sprintf("STATS_USERNAME=%s", statsUser),
+		fmt.Sprintf("STATS_PASSWORD=%s", statsPassword),
+	}
 
 	for _, name := range copyEnv {
 		val := os.Getenv(name)
