@@ -72,7 +72,7 @@ func NewMultitenantController(sub api.SubnetRegistry, hostname string, selfIP st
 func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
 	if selfIP == "" {
 		var err error
-		selfIP, err = GetNodeIP(hostname)
+		selfIP, err = netutils.GetNodeIP(hostname)
 		if err != nil {
 			return nil, err
 		}
@@ -712,27 +712,6 @@ func (oc *OvsController) watchCluster(ready chan<- bool, start <-chan string) {
 
 func (oc *OvsController) Stop() {
 	close(oc.sig)
-}
-
-func GetNodeIP(nodeName string) (string, error) {
-	ip := net.ParseIP(nodeName)
-	if ip == nil {
-		addrs, err := net.LookupIP(nodeName)
-		if err != nil {
-			log.Errorf("Failed to lookup IP address for node %s: %v", nodeName, err)
-			return "", err
-		}
-		for _, addr := range addrs {
-			if addr.String() != "127.0.0.1" {
-				ip = addr
-				break
-			}
-		}
-	}
-	if ip == nil || len(ip.String()) == 0 {
-		return "", fmt.Errorf("Failed to obtain IP address from node name: %s", nodeName)
-	}
-	return ip.String(), nil
 }
 
 // Wait for ready signal from Watch interface for the given resource

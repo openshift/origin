@@ -22,7 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
 
-	osdn "github.com/openshift/openshift-sdn/pkg/ovssubnet"
+	"github.com/openshift/openshift-sdn/pkg/netutils"
 	osdnapi "github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -194,7 +194,7 @@ func (registry *Registry) GetNodes() ([]osdnapi.Node, string, error) {
 			nodeIP = node.Status.Addresses[0].Address
 		} else {
 			var err error
-			nodeIP, err = osdn.GetNodeIP(node.ObjectMeta.Name)
+			nodeIP, err = netutils.GetNodeIP(node.ObjectMeta.Name)
 			if err != nil {
 				return nil, "", err
 			}
@@ -239,7 +239,7 @@ func (registry *Registry) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready c
 		if len(node.Status.Addresses) > 0 {
 			nodeIP = node.Status.Addresses[0].Address
 		} else {
-			nodeIP, err = osdn.GetNodeIP(node.ObjectMeta.Name)
+			nodeIP, err = netutils.GetNodeIP(node.ObjectMeta.Name)
 			if err != nil {
 				return err
 			}
