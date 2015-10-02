@@ -8,38 +8,6 @@ const (
 	Modified EventType = "MODIFIED"
 )
 
-type SubnetRegistry interface {
-	GetSubnets() ([]Subnet, string, error)
-	GetSubnet(nodeName string) (*Subnet, error)
-	DeleteSubnet(nodeName string) error
-	CreateSubnet(sn string, sub *Subnet) error
-	WatchSubnets(receiver chan<- *SubnetEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
-
-	GetNodes() ([]Node, string, error)
-	WatchNodes(receiver chan<- *NodeEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
-
-	WriteNetworkConfig(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
-	GetClusterNetworkCIDR() (string, error)
-
-	GetNamespaces() ([]string, string, error)
-	WatchNamespaces(receiver chan<- *NamespaceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
-
-	WatchNetNamespaces(receiver chan<- *NetNamespaceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
-	GetNetNamespaces() ([]NetNamespace, string, error)
-	GetNetNamespace(name string) (NetNamespace, error)
-	WriteNetNamespace(name string, id uint) error
-	DeleteNetNamespace(name string) error
-
-	GetServicesNetworkCIDR() (string, error)
-	GetServices() ([]Service, string, error)
-	WatchServices(receiver chan<- *ServiceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
-	GetServicesForNamespace(namespace string) ([]Service, error)
-
-	GetPods() ([]Pod, string, error)
-	WatchPods(ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
-	GetRunningPods(nodeName, namespace string) ([]Pod, error)
-}
-
 type Subnet struct {
 	NodeIP     string
 	SubnetCIDR string
