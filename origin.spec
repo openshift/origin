@@ -308,11 +308,7 @@ fi
 # Create master config and certs if both do not exist
 if [[ ! -e %{_sysconfdir}/origin/master/master-config.yaml &&
      ! -e %{_sysconfdir}/origin/master/ca.crt ]]; then
-%if "%{dist}" == ".el7aos"
-  %{_bindir}/atomic-enterprise start master --write-config=%{_sysconfdir}/origin/master
-%else
   %{_bindir}/openshift start master --write-config=%{_sysconfdir}/origin/master
-%endif
   # Create node configs if they do not already exist
   if ! find %{_sysconfdir}/origin/ -type f -name "node-config.yaml" | grep -E "node-config.yaml"; then
     %{_bindir}/oadm create-node-config --node-dir=%{_sysconfdir}/origin/node/ --node=localhost --hostnames=localhost,127.0.0.1 --node-client-certificate-authority=%{_sysconfdir}/origin/master/ca.crt --signer-cert=%{_sysconfdir}/origin/master/ca.crt --signer-key=%{_sysconfdir}/origin/master/ca.key --signer-serial=%{_sysconfdir}/origin/master/ca.serial.txt --certificate-authority=%{_sysconfdir}/origin/master/ca.crt

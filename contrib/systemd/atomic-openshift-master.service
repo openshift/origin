@@ -10,7 +10,7 @@ Requires=network.target
 Type=notify
 EnvironmentFile=/etc/sysconfig/atomic-openshift-master
 Environment=GOTRACEBACK=crash
-ExecStart=/usr/bin/atomic-enterprise start master --config=${CONFIG_FILE} $OPTIONS
+ExecStart=/usr/bin/openshift start master --config=${CONFIG_FILE} $OPTIONS
 LimitNOFILE=131072
 LimitCORE=infinity
 WorkingDirectory=/var/lib/origin/
