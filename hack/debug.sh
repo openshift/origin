@@ -55,7 +55,7 @@ do_master () {
     echo_and_eval oc get services --all-namespaces -o json >& $logmaster/services
 
     for node in $nodes; do
-	reg_ip=$(oc get node $node -t '{{range .status.addresses}}{{if eq .type "InternalIP"}}{{.address}}{{end}}{{end}}')
+	reg_ip=$(oc get node $node --template '{{range .status.addresses}}{{if eq .type "InternalIP"}}{{.address}}{{end}}{{end}}')
 	if [ -z "$reg_ip" ]; then
 	    echo "Node $node: no IP address in OpenShift"
 	    continue
@@ -76,12 +76,12 @@ do_master () {
 	try_eval ping -c1 -W2 $node
     done
 
-    oc get nodes -t '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}}:{{.address}} {{end}}{{end}}{{end}}' | tr ' :' '\012 ' > $logmaster/node-ips
+    oc get nodes --template '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}}:{{.address}} {{end}}{{end}}{{end}}' | tr ' :' '\012 ' > $logmaster/node-ips
 }
 
 # Returns a list of pods in the form "minion-1:mypod:namespace:10.1.0.2:e4f1d61b"
 get_pods () {
-    if ! pods=$(oc get pods --all-namespaces -t '{{range .items}}{{if .status.containerStatuses}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}'); then
+    if ! pods=$(oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}'); then
 	die "Could not get list of pods"
     fi
     echo $pods | sed -e 's/docker:\/\///g'
@@ -103,7 +103,7 @@ split_podspec () {
 
 # Returns a list of services in the form "myservice:namespace:172.30.0.99:tcp:5454"
 get_services () {
-    oc get services --all-namespaces -t '{{range .items}}{{if ne .spec.clusterIP "None"}}{{.metadata.name}}:{{.metadata.namespace}}:{{.spec.clusterIP}}:{{(index .spec.ports 0).protocol}}:{{(index .spec.ports 0).port}} {{end}}{{end}}' | sed -e 's/:TCP:/:tcp:/g' -e 's/:UDP:/:udp:/g'
+    oc get services --all-namespaces --template '{{range .items}}{{if ne .spec.clusterIP "None"}}{{.metadata.name}}:{{.metadata.namespace}}:{{.spec.clusterIP}}:{{(index .spec.ports 0).protocol}}:{{(index .spec.ports 0).port}} {{end}}{{end}}' | sed -e 's/:TCP:/:tcp:/g' -e 's/:UDP:/:udp:/g'
 }
 
 # Given the name of a variable containing a "servicespec" like
