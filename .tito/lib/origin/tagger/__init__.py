@@ -14,7 +14,7 @@ import sys
 from tito.common import (get_latest_commit, run_command,
         get_latest_tagged_version, increase_version, increase_zstream,
         get_spec_version_and_release, tag_exists_locally, tag_exists_remotely,
-        head_points_to_tag, undo_tag)
+        head_points_to_tag, undo_tag, tito_config_dir)
 #, get_spec_version_and_release
 from tito.compat import write
 from tito.tagger import VersionTagger
@@ -88,12 +88,12 @@ class OriginTagger(VersionTagger):
   def get_latest_tagged_version(package_name):
       """
       Return the latest git tag for this package in the current branch.
-      Uses the info in rel-eng/packages/package-name.
+      Uses the info in .tito/packages/package-name.
 
       Returns None if file does not exist.
       """
       git_root = find_git_root()
-      rel_eng_dir = os.path.join(git_root, "rel-eng")
+      rel_eng_dir = os.path.join(git_root, tito_config_dir())
       file_path = "%s/packages/%s" % (rel_eng_dir, package_name)
       debug("Getting latest package info from: %s" % file_path)
       if not os.path.exists(file_path):
