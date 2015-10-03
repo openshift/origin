@@ -26,6 +26,12 @@ oc get buildConfigs
 oc get bc
 oc get builds
 
+REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build -t '{{ .spec.output.to.name }}')
+oc patch bc/ruby-sample-build -p '{"spec":{"output":{"to":{"name":"different:tag1"}}}}'
+oc get bc/ruby-sample-build -t '{{ .spec.output.to.name }}' | grep 'different'
+oc patch bc/ruby-sample-build -p "{\"spec\":{\"output\":{\"to\":{\"name\":\"${REAL_OUTPUT_TO}\"}}}}"
+echo "patchAnonFields: ok"
+
 [ "$(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook GitHub" | grep -F "${url}/osapi/v1beta3/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/github")" ]
 [ "$(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook Generic" | grep -F "${url}/osapi/v1beta3/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/generic")" ]
 oc start-build --list-webhooks='all' ruby-sample-build
@@ -50,6 +56,7 @@ echo "start-build: ok"
 
 oc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
+
 oc delete is/ruby-20-centos7-buildcli
 oc delete bc/ruby-sample-build-validtag
 oc delete bc/ruby-sample-build-invalidtag
