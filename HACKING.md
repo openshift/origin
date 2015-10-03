@@ -176,6 +176,36 @@ OpenShift is checked into this repository.  To install `godep` locally run:
 
 If you are not updating packages you should not need godep installed.
 
+## Cherry-picking an upstream commit into Origin
+
+You can use `hack/cherry-pick.sh` to generate patches for Origin from upstream commits. To use
+this command, be sure to setup remote branches like https://gist.github.com/piscisaureus/3342247
+so that `git show origin/pr/<number>` displays information about your branch after a `git fetch`.
+You must also have the Kubernetes repository checked out in your GOPATH (visible as `../../../k8s.io/kubernetes`)
+and have no modified or uncommited files in either repository.
+
+To pull an upstream commit, run:
+
+    $ hack/cherry-pick.sh <pr_number>
+
+This will attempt to create a patch from the current Kube rebase version in Origin that contains
+the commits added in the PR. If the PR has already been merged to the Kube version, you'll get an
+error. If there are conflicts, you'll have to resolve them in the upstream repo, then hit ENTER
+to continue. The end result will be a single commit in your Origin repo that contains the changes.
+
+If you want to run without a rebase option, set `NO_REBASE=1` before the command is run. You can
+also specify a commit range directly with:
+
+    $ hack/cherry-pick.sh origin/master...<some_branch>
+
+All upstream commits should have a commit message where the first line is:
+
+    UPSTREAM: <PR number|drop|carry>: <short description>
+
+`drop` indicates the commit should be removed during the next rebase. `carry` means that the change
+cannot go into upstream, and we should continue to use it during the next rebase.
+
+
 ## Updating Kubernetes from upstream
 
 There are a few steps involved in rebasing Origin to a new version of Kubernetes. We need to make sure

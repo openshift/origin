@@ -510,6 +510,46 @@ os::build::ldflags() {
   )
 }
 
+# os::build::require_clean_tree exits if the current Git tree is not clean.
+os::build::require_clean_tree() {
+  if ! git diff-index --quiet HEAD -- || test $(git ls-files --exclude-standard --others | wc -l) != 0; then
+    echo "You can't have any staged or dirty files in $(pwd) for this command."
+    echo "Either commit them or unstage them to continue."
+    exit 1
+  fi
+}
+
+# os::build::commit_range takes one or two arguments - if the first argument is an
+# integer, it is assumed to be a pull request and the local origin/pr/# branch is
+# used to determine the common range with the second argument. If the first argument
+# is not an integer, it is assumed to be a Git commit range and output directly.
+os::build::commit_range() {
+  if [[ "$1" =~ ^-?[0-9]+$ ]]; then
+    local target
+    target="$(git rev-parse origin/pr/$1)"
+    if [[ $? -ne 0 ]]; then
+      echo "Branch does not exist, or you have not configured origin/pr/* style branches from GitHub" 1>&2
+      exit 1
+    fi
+
+    local base
+    base="$(git merge-base origin/pr/$1 $2)"
+    if [[ $? -ne 0 ]]; then
+      echo "Branch has no common commits with $2" 1>&2
+      exit 1
+    fi
+    if [[ "${base}" == "${target}" ]]; then
+      echo "Branch has already been merged to upstream master, use explicit range instead" 1>&2
+      exit 1
+    fi
+
+    echo "${base}...${target}"
+    exit 0
+  fi
+
+  echo "$1"
+}
+
 os::build::gen-docs() {
   local cmd="$1"
   local dest="$2"
