@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/golang/glog"
 
@@ -189,9 +188,12 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Bui
 		var tag string
 		streamName := outputTo.Name
 		if outputTo.Kind == "ImageStreamTag" {
-			bits := strings.Split(outputTo.Name, ":")
-			streamName = bits[0]
-			tag = ":" + bits[1]
+			var ok bool
+			streamName, tag, ok = imageapi.SplitImageStreamTag(streamName)
+			if !ok {
+				return "", fmt.Errorf("the referenced ImageStreamTag is invalid: %s", outputTo.Name)
+			}
+			tag = ":" + tag
 		}
 		stream, err := bc.ImageStreamClient.GetImageStream(namespace, streamName)
 		if err != nil {
