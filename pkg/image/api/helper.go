@@ -134,11 +134,20 @@ func (r DockerImageReference) Minimal() DockerImageReference {
 	return r
 }
 
+// AsRepository returns the reference without tags or IDs.
+func (r DockerImageReference) AsRepository() DockerImageReference {
+	r.Tag = ""
+	r.ID = ""
+	return r
+}
+
+// NameString returns the name of the reference with its tag or ID.
 func (r DockerImageReference) NameString() string {
-	var ref string
-	if len(r.Tag) > 0 {
-		ref = ":" + r.Tag
-	} else if len(r.ID) > 0 {
+	switch {
+	case len(r.Tag) > 0:
+		return r.Name + ":" + r.Tag
+	case len(r.ID) > 0:
+		var ref string
 		if _, err := digest.ParseDigest(r.ID); err == nil {
 			// if it parses as a digest, it's v2 pull by id
 			ref = "@" + r.ID
@@ -146,8 +155,10 @@ func (r DockerImageReference) NameString() string {
 			// if it doesn't parse as a digest, it's presumably a v1 registry by-id tag
 			ref = ":" + r.ID
 		}
+		return r.Name + ref
+	default:
+		return r.Name
 	}
-	return r.Name + ref
 }
 
 // String converts a DockerImageReference to a Docker pull spec.
@@ -164,21 +175,6 @@ func (r DockerImageReference) String() string {
 	namespace += "/"
 
 	return fmt.Sprintf("%s%s%s", registry, namespace, r.NameString())
-}
-
-// StringNoTag converts a DockerImageReference to a Docker pull spec with no tag.
-func (r DockerImageReference) StringNoTag() string {
-	registry := r.Registry
-	if len(registry) > 0 {
-		registry += "/"
-	}
-	namespace := r.Namespace
-	if len(namespace) == 0 {
-		namespace = DockerDefaultNamespace
-	}
-	namespace += "/"
-
-	return fmt.Sprintf("%s%s%s", registry, namespace, r.Name)
 }
 
 // SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.

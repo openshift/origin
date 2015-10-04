@@ -188,6 +188,47 @@ func TestParseDockerImageReference(t *testing.T) {
 	}
 }
 
+func TestDockerImageReferenceAsRepository(t *testing.T) {
+	testCases := []struct {
+		Registry, Namespace, Name, Tag, ID string
+		Expected                           string
+	}{
+		{
+			Namespace: "bar",
+			Name:      "foo",
+			Tag:       "tag",
+			Expected:  "bar/foo",
+		},
+		{
+			Namespace: "bar",
+			Name:      "foo",
+			ID:        "sha256:3c87c572822935df60f0f5d3665bd376841a7fcfeb806b5f212de6a00e9a7b25",
+			Expected:  "bar/foo",
+		},
+		{
+			Registry:  "bar",
+			Namespace: "foo",
+			Name:      "baz",
+			Expected:  "bar/foo/baz",
+		},
+	}
+
+	for i, testCase := range testCases {
+		ref := DockerImageReference{
+			Registry:  testCase.Registry,
+			Namespace: testCase.Namespace,
+			Name:      testCase.Name,
+			Tag:       testCase.Tag,
+			ID:        testCase.ID,
+		}
+		actual := ref.AsRepository().String()
+		if e, a := testCase.Expected, actual; e != a {
+			t.Errorf("%d: expected %q, got %q", i, e, a)
+		}
+	}
+
+}
+
 func TestDockerImageReferenceString(t *testing.T) {
 	testCases := []struct {
 		Registry, Namespace, Name, Tag, ID string
