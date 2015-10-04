@@ -147,6 +147,23 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			// successfully, the ImageStreamImage's ObjectMeta must match the Image's.
 			j.ObjectMeta = j.Image.ObjectMeta
 		},
+		func(j *image.ImageStreamSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			// if the generated fuzz value has a tag or image id, strip it
+			if strings.ContainsAny(j.DockerImageRepository, ":@") {
+				j.DockerImageRepository = ""
+			}
+			if j.Tags == nil {
+				j.Tags = make(map[string]image.TagReference)
+			}
+		},
+		func(j *image.ImageStreamStatus, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			// if the generated fuzz value has a tag or image id, strip it
+			if strings.ContainsAny(j.DockerImageRepository, ":@") {
+				j.DockerImageRepository = ""
+			}
+		},
 		func(j *image.ImageStreamTag, c fuzz.Continue) {
 			c.Fuzz(&j.Image)
 			// because we de-embedded Image from ImageStreamTag, in order to round trip
