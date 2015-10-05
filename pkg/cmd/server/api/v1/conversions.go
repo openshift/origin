@@ -62,6 +62,9 @@ func init() {
 			if obj.NetworkConfig.MTU == 0 {
 				obj.NetworkConfig.MTU = 1450
 			}
+			if len(obj.IPTablesSyncPeriod) == 0 {
+				obj.IPTablesSyncPeriod = "5s"
+			}
 		},
 		func(obj *EtcdStorageConfig) {
 			if len(obj.KubernetesStorageVersion) == 0 {

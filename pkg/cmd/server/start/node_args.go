@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/master/ports"
@@ -17,10 +18,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/spf13/cobra"
 )
 
-// NodeArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master
+// NodeArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting a node.
 // This object should hold the common set values, but not attempt to handle all cases.  The expected path is to use this object to create
 // a fully specified config later on.  If you need something not set here, then create a fully specified config file and pass that as argument
 // to starting the master.

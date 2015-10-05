@@ -24,6 +24,7 @@ dockerConfig:
 imageConfig:
   format: ""
   latest: false
+iptablesSyncPeriod: ""
 kind: NodeConfig
 masterKubeConfig: ""
 networkConfig:
