@@ -29,10 +29,10 @@ func (a alwaysAcceptPasswordAuthenticator) AuthenticatePassword(username, passwo
 
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 	user, err := a.identityMapper.UserFor(identity)
-	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
 	}
+	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 
 	return user, true, nil
 }

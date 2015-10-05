@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/util/fielderrors"
@@ -150,6 +151,9 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 		case (*api.LDAPPasswordIdentityProvider):
 			validationResults.Append(ValidateLDAPIdentityProvider(provider))
 
+		case (*api.KeystonePasswordIdentityProvider):
+			validationResults.Append(ValidateKeystoneIdentityProvider(provider, identityProvider).Prefix("provider"))
+
 		case (*api.GitHubIdentityProvider):
 			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
 
@@ -171,6 +175,24 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider) Va
 	// At least one attribute to use as the user id is required
 	if len(provider.Attributes.ID) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.attributes.id", "[]", "at least one id attribute is required (LDAP standard identity attribute is 'dn')"))
+	}
+
+	return validationResults
+}
+
+// RemoteConnection fields validated separately -- this is for keystone-specific validation
+func ValidateKeystoneIdentityProvider(provider *api.KeystonePasswordIdentityProvider, identityProvider api.IdentityProvider) ValidationResults {
+	validationResults := ValidationResults{}
+	validationResults.AddErrors(ValidateRemoteConnectionInfo(provider.RemoteConnectionInfo)...)
+
+	providerURL, err := url.Parse(provider.RemoteConnectionInfo.URL)
+	if err == nil {
+		if providerURL.Scheme != "https" {
+			validationResults.AddWarnings(fielderrors.NewFieldInvalid("url", provider.RemoteConnectionInfo.URL, "Auth URL should be secure and start with https"))
+		}
+	}
+	if len(provider.DomainName) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("domainName"))
 	}
 
 	return validationResults

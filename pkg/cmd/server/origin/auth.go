@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/authenticator/password/basicauthpassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/denypassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/htpasswd"
+	"github.com/openshift/origin/pkg/auth/authenticator/password/keystonepassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/password/ldappassword"
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/basicauthrequest"
@@ -525,6 +526,18 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 			return nil, fmt.Errorf("Error building BasicAuthPasswordIdentityProvider client: %v", err)
 		}
 		return basicauthpassword.New(identityProvider.Name, connectionInfo.URL, transport, identityMapper), nil
+
+	case (*configapi.KeystonePasswordIdentityProvider):
+		connectionInfo := provider.RemoteConnectionInfo
+		if len(connectionInfo.URL) == 0 {
+			return nil, fmt.Errorf("URL is required for KeystonePasswordIdentityProvider")
+		}
+		transport, err := cmdutil.TransportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("Error building KeystonePasswordIdentityProvider client: %v", err)
+		}
+
+		return keystonepassword.New(identityProvider.Name, connectionInfo.URL, transport, provider.DomainName, identityMapper), nil
 
 	default:
 		return nil, fmt.Errorf("No password auth found that matches %v.  The OAuth server cannot start!", identityProvider)

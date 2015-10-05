@@ -180,6 +180,11 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
 
+			case (*KeystonePasswordIdentityProvider):
+				refs = append(refs, &provider.RemoteConnectionInfo.CA)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
+
 			case (*OpenIDIdentityProvider):
 				refs = append(refs, &provider.CA)
 
@@ -446,7 +451,8 @@ func IsPasswordAuthenticator(provider IdentityProvider) bool {
 		(*AllowAllPasswordIdentityProvider),
 		(*DenyAllPasswordIdentityProvider),
 		(*HTPasswdPasswordIdentityProvider),
-		(*LDAPPasswordIdentityProvider):
+		(*LDAPPasswordIdentityProvider),
+		(*KeystonePasswordIdentityProvider):
 
 		return true
 	}
@@ -463,6 +469,7 @@ func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
 		(*DenyAllPasswordIdentityProvider),
 		(*HTPasswdPasswordIdentityProvider),
 		(*LDAPPasswordIdentityProvider),
+		(*KeystonePasswordIdentityProvider),
 		(*OpenIDIdentityProvider),
 		(*GitHubIdentityProvider),
 		(*GoogleIdentityProvider):
