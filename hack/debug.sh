@@ -30,15 +30,19 @@ try_eval () {
 }
 
 do_master () {
-    if ! nodes=$(oc get nodes -t '{{range .items}}{{.spec.externalID}} {{end}}'); then
-	die "Could not get list of nodes"
+    if ! nodes=$(oc get nodes --template '{{range .items}}{{.spec.externalID}} {{end}}'); then
+	if [ -z "$KUBECONFIG" -o ! -f "$KUBECONFIG" ]; then
+	    die "KUBECONFIG is unset or incorrect"
+	else
+	    die "Could not get list of nodes"
+	fi
     fi
 
     logmaster=$logdir/master
     mkdir $logmaster
     echo_and_eval journalctl --boot >& $logmaster/journal-full
-    echo_and_eval journalctl -u openshift-master.service >& $logmaster/journal-openshift
-    echo_and_eval systemctl show openshift-master.service >& $logmaster/systemctl-show
+    echo_and_eval journalctl -u $aos_master_service >& $logmaster/journal-openshift
+    echo_and_eval systemctl show $aos_master_service >& $logmaster/systemctl-show
     echo_and_eval nmcli --nocheck -f all dev show >& $logmaster/nmcli-dev
     echo_and_eval nmcli --nocheck -f all con show >& $logmaster/nmcli-con
     echo_and_eval head -1000 /etc/sysconfig/network-scripts/ifcfg-* >& $logmaster/ifcfg
@@ -51,7 +55,7 @@ do_master () {
     echo_and_eval oc get services --all-namespaces -o json >& $logmaster/services
 
     for node in $nodes; do
-	reg_ip=$(oc get node $node -t '{{range .status.addresses}}{{if eq .type "InternalIP"}}{{.address}}{{end}}{{end}}')
+	reg_ip=$(oc get node $node --template '{{range .status.addresses}}{{if eq .type "InternalIP"}}{{.address}}{{end}}{{end}}')
 	if [ -z "$reg_ip" ]; then
 	    echo "Node $node: no IP address in OpenShift"
 	    continue
@@ -72,12 +76,12 @@ do_master () {
 	try_eval ping -c1 -W2 $node
     done
 
-    oc get nodes -t '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}}:{{.address}} {{end}}{{end}}{{end}}' | tr ' :' '\012 ' > $logmaster/node-ips
+    oc get nodes --template '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}}:{{.address}} {{end}}{{end}}{{end}}' | tr ' :' '\012 ' > $logmaster/node-ips
 }
 
 # Returns a list of pods in the form "minion-1:mypod:namespace:10.1.0.2:e4f1d61b"
 get_pods () {
-    if ! pods=$(oc get pods --all-namespaces -t '{{range .items}}{{if .status.containerStatuses}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}'); then
+    if ! pods=$(oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}'); then
 	die "Could not get list of pods"
     fi
     echo $pods | sed -e 's/docker:\/\///g'
@@ -99,7 +103,7 @@ split_podspec () {
 
 # Returns a list of services in the form "myservice:namespace:172.30.0.99:tcp:5454"
 get_services () {
-    oc get services --all-namespaces -t '{{range .items}}{{if ne .spec.clusterIP "None"}}{{.metadata.name}}:{{.metadata.namespace}}:{{.spec.clusterIP}}:{{(index .spec.ports 0).protocol}}:{{(index .spec.ports 0).port}} {{end}}{{end}}' | sed -e 's/:TCP:/:tcp:/g' -e 's/:UDP:/:udp:/g'
+    oc get services --all-namespaces --template '{{range .items}}{{if ne .spec.clusterIP "None"}}{{.metadata.name}}:{{.metadata.namespace}}:{{.spec.clusterIP}}:{{(index .spec.ports 0).protocol}}:{{(index .spec.ports 0).port}} {{end}}{{end}}' | sed -e 's/:TCP:/:tcp:/g' -e 's/:UDP:/:udp:/g'
 }
 
 # Given the name of a variable containing a "servicespec" like
@@ -240,7 +244,7 @@ do_pod_service_connectivity_check () {
 }
 
 do_node () {
-    config=$(systemctl show -p ExecStart openshift-node.service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
+    config=$(systemctl show -p ExecStart $aos_node_service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
     if [ -z "$config" ]; then
 	die "Could not find node-config.yaml from systemctl status"
     fi
@@ -253,8 +257,8 @@ do_node () {
     lognode=$logdir/nodes/$node
     mkdir -p $lognode
     echo_and_eval journalctl --boot >& $lognode/journal-full
-    echo_and_eval journalctl -u openshift-node.service >& $lognode/journal-openshift
-    echo_and_eval systemctl show openshift-node.service >& $lognode/systemctl-show
+    echo_and_eval journalctl -u $aos_node_service >& $lognode/journal-openshift
+    echo_and_eval systemctl show $aos_node_service >& $lognode/systemctl-show
     echo_and_eval nmcli --nocheck -f all dev show >& $lognode/nmcli-dev
     echo_and_eval nmcli --nocheck -f all con show >& $lognode/nmcli-con
     echo_and_eval head -1000 /etc/sysconfig/network-scripts/ifcfg-* >& $lognode/ifcfg
@@ -454,6 +458,16 @@ do_master_and_nodes ()
 
 ########
 
+systemd_dir=/usr/lib/systemd/system/
+for name in openshift origin atomic-openshift; do
+    if [ -f $systemd_dir/$name-master.service ]; then
+	aos_master_service=$name-master.service
+    fi
+    if [ -f $systemd_dir/$name-node.service ]; then
+	aos_node_service=$name-node.service
+    fi
+done
+
 case "$1" in
     --node)
 	logdir=$(dirname $0)
@@ -468,7 +482,7 @@ case "$1" in
 	;;
 
     "")
-	if systemctl show -p LoadState openshift-master | grep -q 'not-found'; then
+	if [ -z "$aos_master_service" ]; then
 	    echo "Usage:"
 	    echo "  [from master]"
 	    echo "    $0"
