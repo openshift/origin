@@ -144,6 +144,6 @@ func NewLifecycle(client client.Interface, creatableResources sets.String) (admi
 }
 
 func isSubjectAccessReview(a admission.Attributes) bool {
-	return a.GetKind() == "SubjectAccessReview" ||
-		a.GetKind() == "LocalSubjectAccessReview"
+	return a.GetResource() == "subjectaccessreviews" ||
+		a.GetResource() == "localsubjectaccessreviews"
 }
