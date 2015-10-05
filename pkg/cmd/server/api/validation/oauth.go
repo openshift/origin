@@ -144,12 +144,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 }
 
 func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider) ValidationResults {
-	validationResults := ValidateLDAPClientConfig("provider",
-		provider.URL,
-		provider.BindDN,
-		provider.BindPassword,
-		provider.CA,
-		provider.Insecure)
+	validationResults := ValidateLDAPClientConfig(provider.URL, provider.BindDN, provider.BindPassword, provider.CA, provider.Insecure).Prefix("provider")
 
 	// At least one attribute to use as the user id is required
 	if len(provider.Attributes.ID) == 0 {
