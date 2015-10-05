@@ -611,7 +611,7 @@ var _ = Describe("Pods", func() {
 		podClient := framework.Client.Pods(framework.Namespace.Name)
 
 		By("creating the pod")
-		name := "pod-exec-websocket-" string(util.NewUUID())
+		name := "pod-exec-websocket-" + string(util.NewUUID())
 		pod := &api.Pod{
 			ObjectMeta: api.ObjectMeta{
 				Name: name,
