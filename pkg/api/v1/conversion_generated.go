@@ -1384,6 +1384,7 @@ func autoconvert_api_BuildStatus_To_v1_BuildStatus(in *buildapi.BuildStatus, out
 	}
 	out.Phase = apiv1.BuildPhase(in.Phase)
 	out.Cancelled = in.Cancelled
+	out.Reason = apiv1.StatusReason(in.Reason)
 	out.Message = in.Message
 	if in.StartTimestamp != nil {
 		if err := s.Convert(&in.StartTimestamp, &out.StartTimestamp, 0); err != nil {
@@ -2016,6 +2017,7 @@ func autoconvert_v1_BuildStatus_To_api_BuildStatus(in *apiv1.BuildStatus, out *b
 	}
 	out.Phase = buildapi.BuildPhase(in.Phase)
 	out.Cancelled = in.Cancelled
+	out.Reason = buildapi.StatusReason(in.Reason)
 	out.Message = in.Message
 	if in.StartTimestamp != nil {
 		if err := s.Convert(&in.StartTimestamp, &out.StartTimestamp, 0); err != nil {

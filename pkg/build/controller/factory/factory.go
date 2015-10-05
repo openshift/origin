@@ -39,6 +39,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 			return true
 		}
 		build.Status.Phase = buildapi.BuildPhaseFailed
+		build.Status.Reason = buildapi.StatusReasonExceededRetryTimeout
 		build.Status.Message = err.Error()
 		now := unversioned.Now()
 		build.Status.CompletionTimestamp = &now
@@ -98,6 +99,10 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 			if err != nil {
 				// Update the build status message only if it changed.
 				if msg := err.Error(); build.Status.Message != msg {
+					// Set default Reason.
+					if len(build.Status.Reason) == 0 {
+						build.Status.Reason = buildapi.StatusReasonError
+					}
 					build.Status.Message = msg
 					if err := buildController.BuildUpdater.Update(build.Namespace, build); err != nil {
 						glog.V(2).Infof("Failed to update status message of Build %s/%s: %v", build.Namespace, build.Name, err)

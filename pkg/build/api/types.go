@@ -71,7 +71,10 @@ type BuildStatus struct {
 	// Cancelled describes if a cancelling event was triggered for the build.
 	Cancelled bool
 
-	// Message is a human-readable message indicating details about why the build has this status
+	// Reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI.
+	Reason StatusReason
+
+	// Message is a human-readable message indicating details about why the build has this status.
 	Message string
 
 	// StartTimestamp is a timestamp representing the server time when this Build started
@@ -124,6 +127,41 @@ const (
 
 	// BuildPhaseCancelled indicates that a running/pending build was stopped from executing.
 	BuildPhaseCancelled BuildPhase = "Cancelled"
+)
+
+// StatusReason is a brief CamelCase string that describes a temporary or
+// permanent build error condition, meant for machine parsing and tidy display
+// in the CLI.
+type StatusReason string
+
+// These are the valid reasons of build statuses.
+const (
+	// StatusReasonError is a generic reason for a build error condition.
+	StatusReasonError StatusReason = "Error"
+
+	// StatusReasonCannotCreateBuildPodSpec is an error condition when the build
+	// strategy cannot create a build pod spec.
+	StatusReasonCannotCreateBuildPodSpec = "CannotCreateBuildPodSpec"
+
+	// StatusReasonCannotCreateBuildPod is an error condition when a build pod
+	// cannot be created.
+	StatusReasonCannotCreateBuildPod = "CannotCreateBuildPod"
+
+	// StatusReasonInvalidOutputReference is an error condition when the build
+	// output is an invalid reference.
+	StatusReasonInvalidOutputReference = "InvalidOutputReference"
+
+	// StatusReasonCancelBuildFailed is an error condition when cancelling a build
+	// fails.
+	StatusReasonCancelBuildFailed = "CancelBuildFailed"
+
+	// StatusReasonBuildPodDeleted is an error condition when the build pod is
+	// deleted before build completion.
+	StatusReasonBuildPodDeleted = "BuildPodDeleted"
+
+	// StatusReasonExceededRetryTimeout is an error condition when the build has
+	// not completed and retrying the build times out.
+	StatusReasonExceededRetryTimeout = "ExceededRetryTimeout"
 )
 
 // BuildSourceType is the type of SCM used.
