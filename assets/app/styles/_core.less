@@ -203,6 +203,25 @@ html, body {
   }
 }
 
+.nav-tabs {
+  font-size: @font-size-base;
+  a {
+    // ui.bootstrap.tabs doesn't set the href attr, so the cursor style is
+    // required or it's a vertical bar
+    cursor: pointer;
+  }
+  li.active {
+    a, a:hover {
+      // Remove when we update patternfly
+      background-color: #fff;
+    }
+  }
+}
+
+.nav-tabs, .tab-content {
+  margin-top: @grid-gutter-width / 2;
+}
+
 .empty-project {
   margin: 10px auto;
   max-width: 500px;
