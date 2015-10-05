@@ -12,12 +12,14 @@ function setup_env_vars {
 	GO_OUT="${OS_ROOT}/_output/local/bin/$(os::util::host_platform)"
 	export PATH="${GO_OUT}:${PATH}"
 
+	export ETCD_PORT="${ETCD_PORT:-4001}"
+	export ETCD_PEER_PORT="${ETCD_PEER_PORT:-7001}"
 	export API_HOST="${API_HOST:-$(openshift start --print-ip)}"
+	export API_PORT="${API_PORT:-8443}"
 	export LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 	export ETCD_DATA_DIR="${BASETMPDIR}/etcd"
 	export VOLUME_DIR="${BASETMPDIR}/volumes"
 	export FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
-	export API_PORT="${API_PORT:-8443}"
 	export API_SCHEME="${API_SCHEME:-https}"
 	export MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
 	export PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
@@ -28,6 +30,9 @@ function setup_env_vars {
 	export MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
 	export NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
 	export ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
+	if [ -z ${SUDO+x} ]; then
+		export SUDO="${SUDO:-1}"
+	fi
 
 	# Use either the latest release built images, or latest.
 	if [[ -z "${USE_IMAGES-}" ]]; then
@@ -105,10 +110,16 @@ function configure_os_server {
 	--images="${USE_IMAGES}"
 
 
+	# Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
+	os::util::sed "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+	os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+
+
 	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
 	export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 	export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
-	sudo chmod -R a+rwX "${ADMIN_KUBECONFIG}"
+	local sudo="${SUDO:+sudo}"
+	${sudo} chmod -R a+rwX "${ADMIN_KUBECONFIG}"
 	echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
 }
 
@@ -116,6 +127,8 @@ function configure_os_server {
 # start_os_server starts the OS server, exports the PID of the OS server
 # and waits until OS server endpoints are available
 function start_os_server {
+	local sudo="${SUDO:+sudo}"
+
 	echo "[INFO] `openshift version`"
 	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
 	echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
@@ -129,7 +142,7 @@ function start_os_server {
 	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
 	ps -ef | grep openshift
 	echo "[INFO] Starting OpenShift server"
-	sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
+	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
 	 --loglevel=4 \
@@ -137,7 +150,7 @@ function start_os_server {
 	export OS_PID=$!
 
 	echo "[INFO] OpenShift server start at: "
-	echo `date`
+	date
 	
 	wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
@@ -145,9 +158,41 @@ function start_os_server {
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 	
 	echo "[INFO] OpenShift server health checks done at: "
-	echo `date`
+	date
 }
 
+# start_os_master starts the OS server, exports the PID of the OS server
+# and waits until OS server endpoints are available
+function start_os_master {
+	local sudo="${SUDO:+sudo}"
+
+	echo "[INFO] `openshift version`"
+	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
+	echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
+	echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
+	echo "[INFO] Using images:              ${USE_IMAGES}"
+	echo "[INFO] MasterIP is:               ${MASTER_ADDR}"
+
+	mkdir -p ${LOG_DIR}
+
+	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
+	ps -ef | grep openshift
+	echo "[INFO] Starting OpenShift server"
+	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
+	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
+	 --loglevel=4 \
+	&> "${LOG_DIR}/openshift.log" &
+	export OS_PID=$!
+
+	echo "[INFO] OpenShift server start at: "
+	date
+	
+	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+	
+	echo "[INFO] OpenShift server health checks done at: "
+	date
+}
 # ensure_iptables_or_die tests if the testing machine has iptables available
 # and in PATH. Also test whether current user has sudo privileges.	
 function ensure_iptables_or_die {
@@ -371,12 +416,14 @@ function validate_response {
 # 
 # $1 expression for which the mounts should be checked 
 reset_tmp_dir() {
+	local sudo="${SUDO:+sudo}"
+
 	set +e
-	sudo rm -rf ${BASETMPDIR} &>/dev/null
+	${sudo} rm -rf ${BASETMPDIR} &>/dev/null
 	if [[ $? != 0 ]]; then
 		echo "[INFO] Unmounting previously used volumes ..."
-		findmnt -lo TARGET | grep ${BASETMPDIR} | xargs -r sudo umount
-		sudo rm -rf ${BASETMPDIR}
+		findmnt -lo TARGET | grep ${BASETMPDIR} | xargs -r ${sudo} umount
+		${sudo} rm -rf ${BASETMPDIR}
 	fi
 
 	mkdir -p ${BASETMPDIR} ${LOG_DIR} ${ARTIFACT_DIR} ${FAKE_HOME_DIR} ${VOLUME_DIR}
@@ -387,10 +434,7 @@ reset_tmp_dir() {
 # all processes created by the test script.
 function kill_all_processes()
 {
-	sudo=
-	if type sudo &> /dev/null; then
-		sudo=sudo
-	fi
+	local sudo="${SUDO:+sudo}"
 
 	pids=($(jobs -pr))
 	for i in ${pids[@]-}; do

@@ -60,14 +60,13 @@ BASETMPDIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift
 API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
 
+export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
+export ETCD_PORT=${ETCD_PORT:-24001}
+export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 setup_env_vars
+export SUDO=''
 mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${LOG_DIR}"
 
-ETCD_HOST=${ETCD_HOST:-127.0.0.1}
-ETCD_PORT=${ETCD_PORT:-24001}
-ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
-MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
-PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
