@@ -118,7 +118,7 @@ func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
 		if err != nil {
 			return nil, err
 		}
-		input.AsImageStream = true
+		input.AsImageStream = !match.LocalOnly
 		input.Info = match.Image
 		input.Insecure = match.Insecure
 		return input, nil

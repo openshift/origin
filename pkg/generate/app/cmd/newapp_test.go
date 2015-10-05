@@ -468,6 +468,25 @@ func mapContains(a, b map[string]string) bool {
 	return true
 }
 
+// ExactMatchDockerSearcher returns a match with the value that was passed in
+// and a march score of 0.0(exact)
+type ExactMatchDockerSearcher struct{}
+
+// Search always returns a match for every term passed in
+func (r *ExactMatchDockerSearcher) Search(terms ...string) (app.ComponentMatches, error) {
+	matches := app.ComponentMatches{}
+	for _, value := range terms {
+		matches = append(matches, &app.ComponentMatch{
+			Value:       value,
+			Name:        value,
+			Argument:    fmt.Sprintf("--docker-image=%q", value),
+			Description: fmt.Sprintf("Docker image %q", value),
+			Score:       0.0,
+		})
+	}
+	return matches, nil
+}
+
 func TestRunAll(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
@@ -634,7 +653,8 @@ func TestRunAll(t *testing.T) {
 						Images: []docker.APIImages{{RepoTags: []string{"myrepo:5000/myco/example"}}},
 						Image:  dockerBuilderImage(),
 					},
-					Insecure: true,
+					Insecure:         true,
+					RegistrySearcher: &ExactMatchDockerSearcher{},
 				},
 				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
@@ -715,7 +735,8 @@ func TestRunAll(t *testing.T) {
 						Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
 						Image:  dockerBuilderImage(),
 					},
-					Insecure: true,
+					Insecure:         true,
+					RegistrySearcher: &ExactMatchDockerSearcher{},
 				},
 				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
@@ -746,6 +767,46 @@ func TestRunAll(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
+			name: "Docker build with no registry image",
+			config: &AppConfig{
+				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+
+				dockerSearcher: app.DockerClientSearcher{
+					Client: &dockertools.FakeDockerClient{
+						Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
+						Image:  dockerBuilderImage(),
+					},
+					Insecure: true,
+				},
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"imageStream":      {"ruby-hello-world"},
+				"buildConfig":      {"ruby-hello-world"},
+				"deploymentConfig": {"ruby-hello-world"},
+				"service":          {"ruby-hello-world"},
+			},
+			expectedName: "ruby-hello-world",
+			expectedErr:  nil,
+		},
+		{
 			name: "custom name",
 			config: &AppConfig{
 				DockerImages: util.StringList([]string{"mysql"}),
@@ -760,6 +821,7 @@ func TestRunAll(t *testing.T) {
 							},
 						},
 					},
+					RegistrySearcher: &ExactMatchDockerSearcher{},
 				},
 				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
@@ -1376,7 +1438,8 @@ func fakeDockerSearcher() app.Searcher {
 			Images: []docker.APIImages{{RepoTags: []string{"library/ruby:latest"}}},
 			Image:  dockerBuilderImage(),
 		},
-		Insecure: true,
+		Insecure:         true,
+		RegistrySearcher: &ExactMatchDockerSearcher{},
 	}
 }
 
@@ -1391,6 +1454,7 @@ func fakeSimpleDockerSearcher() app.Searcher {
 				},
 			},
 		},
+		RegistrySearcher: &ExactMatchDockerSearcher{},
 	}
 }
 

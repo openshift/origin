@@ -85,7 +85,7 @@ oc delete all -l app=ruby
 [ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep "no image or template matched")" ]
 [ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing-images)" ]
 
-# ensure a local-only image gets a proper imagestream created, it used to be getting a :tag appended to the end, incorrectly.
+# ensure a local-only image gets a docker image(not imagestream) reference created.
 tmp=$(mktemp -d)
 pushd $tmp
 cat <<EOF >> Dockerfile
@@ -95,6 +95,6 @@ EOF
 docker build -t test/scratchimage .
 popd
 rm -rf $tmp
-[ "$(oc new-app  test/scratchimage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep -E "dockerImageRepository: test/scratchimage$")" ]
+[ "$(oc new-app  test/scratchimage~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml |& tr '\n' ' ' | grep -E "from:\s+kind:\s+DockerImage\s+name:\s+test/scratchimage:latest\s+")" ]
 
 echo "new-app: ok"
