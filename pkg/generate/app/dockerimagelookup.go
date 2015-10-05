@@ -33,9 +33,9 @@ type DockerClientSearcher struct {
 	// so that the image can be pulled properly
 	Insecure bool
 
-	// AllowingMissing will allow images that could not be found in the local or
+	// AllowingMissingImages will allow images that could not be found in the local or
 	// remote registry to be used anyway.
-	AllowMissing bool
+	AllowMissingImages bool
 }
 
 // Search searches all images in local docker server for images that match terms
@@ -112,7 +112,7 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 		}
 
 		componentMatches = append(componentMatches, termMatches...)
-		if len(componentMatches) == 0 && r.AllowMissing {
+		if len(componentMatches) == 0 && r.AllowMissingImages {
 			componentMatches = append(componentMatches, &ComponentMatch{
 				Value:   term,
 				Score:   0.0,
