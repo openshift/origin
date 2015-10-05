@@ -378,6 +378,12 @@ type AssetConfig struct {
 	// MasterPublicURL is how the web console can access the OpenShift api server
 	MasterPublicURL string
 
+	// LoggingPublicURL is the public endpoint for logging (optional)
+	LoggingPublicURL string
+
+	// MetricsPublicURL is the public endpoint for metrics (optional)
+	MetricsPublicURL string
+
 	// ExtensionScripts are file paths on the asset server files to load as scripts when the Web
 	// Console loads
 	ExtensionScripts []string

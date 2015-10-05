@@ -64,8 +64,10 @@ assetConfig:
   - html5Mode: false
     name: ""
     sourceDirectory: ""
+  loggingPublicURL: ""
   logoutURL: ""
   masterPublicURL: ""
+  metricsPublicURL: ""
   publicURL: ""
   servingInfo:
     bindAddress: ""
