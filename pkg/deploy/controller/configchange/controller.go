@@ -7,7 +7,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/record"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -23,8 +22,6 @@ type DeploymentConfigChangeController struct {
 	changeStrategy changeStrategy
 	// decodeConfig knows how to decode the deploymentConfig from a deployment's annotations.
 	decodeConfig func(deployment *kapi.ReplicationController) (*deployapi.DeploymentConfig, error)
-	// recorder records events.
-	recorder record.EventRecorder
 }
 
 // fatalError is an error which can't be retried.
@@ -36,15 +33,7 @@ func (e fatalError) Error() string {
 
 // Handle processes change triggers for config.
 func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentConfig) error {
-	hasChangeTrigger := false
-	for _, trigger := range config.Triggers {
-		if trigger.Type == deployapi.DeploymentTriggerOnConfigChange {
-			hasChangeTrigger = true
-			break
-		}
-	}
-
-	if !hasChangeTrigger {
+	if !deployutil.HasChangeTrigger(config) {
 		glog.V(5).Infof("Ignoring DeploymentConfig %s; no change triggers detected", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
@@ -55,10 +44,10 @@ func (c *DeploymentConfigChangeController) Handle(config *deployapi.DeploymentCo
 			if kerrors.IsConflict(err) {
 				return fatalError(fmt.Sprintf("DeploymentConfig %s updated since retrieval; aborting trigger: %v", deployutil.LabelForDeploymentConfig(config), err))
 			}
-			c.recorder.Eventf(config, "failedCreate", "Couldn't create initial deployment: %v", err)
+			glog.V(4).Infof("Couldn't create initial deployment for deploymentConfig %q: %v", deployutil.LabelForDeploymentConfig(config), err)
 			return nil
 		}
-		glog.V(4).Infof("Created initial Deployment for DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
+		glog.V(4).Infof("Created initial deployment for deploymentConfig %q", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 

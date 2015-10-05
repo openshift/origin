@@ -154,7 +154,7 @@ func (d *Deployer) Deploy(namespace, deploymentName string) error {
 	deployments := unsortedDeployments.Items
 
 	// Sort all the deployments by version.
-	sort.Sort(deployutil.DeploymentsByLatestVersionDesc(deployments))
+	sort.Sort(deployutil.ByLatestVersionDesc(deployments))
 
 	// Find any last completed deployment.
 	var from *kapi.ReplicationController

@@ -312,7 +312,7 @@ func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfi
 	if err != nil {
 		return nil, err
 	}
-	sort.Sort(deployutil.DeploymentsByLatestVersionDesc(deployments.Items))
+	sort.Sort(deployutil.ByLatestVersionDesc(deployments.Items))
 
 	// Find the target deployment for rollback. If a version was specified,
 	// use the version for a search. Otherwise, use the last completed
