@@ -1390,15 +1390,7 @@ func TestF5RouterPartition(t *testing.T) {
 			partition: "/Common",
 		},
 		{
-			name:      "Default partition redux",
-			partition: "/Common",
-		},
-		{
 			name:      "Custom partition",
-			partition: "/OSPartA",
-		},
-		{
-			name:      "Custom partition redux",
 			partition: "/OSPartA",
 		},
 		{
@@ -1413,6 +1405,7 @@ func TestF5RouterPartition(t *testing.T) {
 
 	for _, tc := range testCases {
 		_, mockF5, err := newTestRouter(tc.partition)
+		mockF5.close()
 		if err != nil {
 			t.Fatalf("Test case %q failed to initialize test router: %v", tc.name, err)
 		}
@@ -1422,6 +1415,7 @@ func TestF5RouterPartition(t *testing.T) {
 		if !ok {
 			t.Fatalf("Test case %q missing partition key %s", tc.name, name)
 		}
+		defer mockF5.close()
 	}
 }
 
