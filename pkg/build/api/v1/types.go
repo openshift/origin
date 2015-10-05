@@ -57,7 +57,10 @@ type BuildStatus struct {
 	// Cancelled describes if a cancelling event was triggered for the build.
 	Cancelled bool `json:"cancelled,omitempty" description:"describes if a canceling event was triggered for the build"`
 
-	// Message is a human-readable message indicating details about why the build has this status
+	// Reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI.
+	Reason StatusReason `json:"reason,omitempty" description:"brief CamelCase string describing a failure, meant for machine parsing and tidy display in the CLI"`
+
+	// Message is a human-readable message indicating details about why the build has this status.
 	Message string `json:"message,omitempty" description:"human-readable message indicating details about why the build has this status"`
 
 	// StartTimestamp is a timestamp representing the server time when this Build started
@@ -111,6 +114,11 @@ const (
 	// BuildPhaseCancelled indicates that a running/pending build was stopped from executing.
 	BuildPhaseCancelled BuildPhase = "Cancelled"
 )
+
+// StatusReason is a brief CamelCase string that describes a temporary or
+// permanent build error condition, meant for machine parsing and tidy display
+// in the CLI.
+type StatusReason string
 
 // BuildSourceType is the type of SCM used.
 type BuildSourceType string
