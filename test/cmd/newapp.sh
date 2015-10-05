@@ -83,7 +83,7 @@ oc delete all -l app=ruby
 
 # allow use of non-existent image
 [ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep "no image or template matched")" ]
-[ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing)" ]
+[ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing-images)" ]
 
 # ensure a local-only image gets a proper imagestream created, it used to be getting a :tag appended to the end, incorrectly.
 tmp=$(mktemp -d)

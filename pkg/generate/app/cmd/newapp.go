@@ -55,11 +55,11 @@ type AppConfig struct {
 
 	Dockerfile string
 
-	Name             string
-	Strategy         string
-	InsecureRegistry bool
-	OutputDocker     bool
-	AllowMissing     bool
+	Name               string
+	Strategy           string
+	InsecureRegistry   bool
+	OutputDocker       bool
+	AllowMissingImages bool
 
 	AsSearch bool
 	AsList   bool
@@ -129,10 +129,10 @@ func (c *AppConfig) ensureDockerSearcher() {
 // SetDockerClient sets the passed Docker client in the application configuration
 func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 	c.dockerSearcher = app.DockerClientSearcher{
-		Client:           dockerclient,
-		RegistrySearcher: c.dockerRegistrySearcher(),
-		Insecure:         c.InsecureRegistry,
-		AllowMissing:     c.AllowMissing,
+		Client:             dockerclient,
+		RegistrySearcher:   c.dockerRegistrySearcher(),
+		Insecure:           c.InsecureRegistry,
+		AllowMissingImages: c.AllowMissingImages,
 	}
 }
 
