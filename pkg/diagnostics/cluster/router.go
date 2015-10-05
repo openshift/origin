@@ -102,9 +102,9 @@ func (d *ClusterRouter) CanRun() (bool, error) {
 		ResourceName: routerName,
 	})
 	if err != nil {
-		return false, types.DiagnosticError{"DClu2010", fmt.Sprintf(clientAccessError, err), err}
+		return false, types.DiagnosticError{ID: "DClu2010", LogMessage: fmt.Sprintf(clientAccessError, err), Cause: err}
 	} else if !can {
-		return false, types.DiagnosticError{"DClu2011", "Client does not have cluster-admin access", err}
+		return false, types.DiagnosticError{ID: "DClu2011", LogMessage: "Client does not have cluster-admin access", Cause: err}
 	}
 	return true, nil
 }

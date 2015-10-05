@@ -23,10 +23,10 @@ type ReadOnlyCache interface {
 
 // readOnlyAuthorizationCache embeds four parallel caches for policies and bindings on both the project and cluster level
 type readOnlyAuthorizationCache struct {
-	readOnlyPolicyCache               readOnlyPolicyCache
-	readOnlyClusterPolicyCache        readOnlyClusterPolicyCache
-	readOnlyPolicyBindingCache        readOnlyPolicyBindingCache
-	readOnlyClusterPolicyBindingCache readOnlyClusterPolicyBindingCache
+	readOnlyPolicyCache               *readOnlyPolicyCache
+	readOnlyClusterPolicyCache        *readOnlyClusterPolicyCache
+	readOnlyPolicyBindingCache        *readOnlyPolicyBindingCache
+	readOnlyClusterPolicyBindingCache *readOnlyClusterPolicyBindingCache
 }
 
 // Run begins watching and synchronizing the cache

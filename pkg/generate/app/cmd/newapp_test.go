@@ -804,12 +804,13 @@ func TestRunAll(t *testing.T) {
 			case *kapi.Service:
 				if test.checkPort != "" {
 					if len(tp.Spec.Ports) == 0 {
-						t.Errorf("%s: did not get any ports in service")
+						t.Errorf("%s: did not get any ports in service", test.name)
 						break
 					}
 					expectedPort, _ := strconv.Atoi(test.checkPort)
 					if tp.Spec.Ports[0].Port != expectedPort {
-						t.Errorf("%s: did not get expected port in service. Expected: %d. Got %d\n", expectedPort, tp.Spec.Ports[0].Port)
+						t.Errorf("%s: did not get expected port in service. Expected: %d. Got %d\n",
+							test.name, expectedPort, tp.Spec.Ports[0].Port)
 					}
 				}
 				if test.config.Labels != nil {

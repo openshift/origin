@@ -34,7 +34,7 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 		switch diagnosticName {
 		case clientdiags.ConfigContextsName:
 			for contextName := range rawConfig.Contexts {
-				diagnostics = append(diagnostics, clientdiags.ConfigContext{rawConfig, contextName})
+				diagnostics = append(diagnostics, clientdiags.ConfigContext{RawConfig: rawConfig, ContextName: contextName})
 			}
 
 		default:

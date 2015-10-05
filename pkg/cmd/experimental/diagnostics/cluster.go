@@ -46,13 +46,13 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 		case clustdiags.NodeDefinitionsName:
-			diagnostics = append(diagnostics, &clustdiags.NodeDefinitions{kclusterClient, clusterClient})
+			diagnostics = append(diagnostics, &clustdiags.NodeDefinitions{KubeClient: kclusterClient, OsClient: clusterClient})
 		case clustdiags.ClusterRegistryName:
-			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{kclusterClient, clusterClient})
+			diagnostics = append(diagnostics, &clustdiags.ClusterRegistry{KubeClient: kclusterClient, OsClient: clusterClient})
 		case clustdiags.ClusterRouterName:
-			diagnostics = append(diagnostics, &clustdiags.ClusterRouter{kclusterClient, clusterClient})
+			diagnostics = append(diagnostics, &clustdiags.ClusterRouter{KubeClient: kclusterClient, OsClient: clusterClient})
 		case clustdiags.ClusterRolesName:
-			diagnostics = append(diagnostics, &clustdiags.ClusterRoles{clusterClient, clusterClient})
+			diagnostics = append(diagnostics, &clustdiags.ClusterRoles{ClusterRolesClient: clusterClient, SARClient: clusterClient})
 
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)

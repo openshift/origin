@@ -185,7 +185,7 @@ func TestNewSearchRequest(t *testing.T) {
 		case err != nil && !testCase.expectedError:
 			t.Errorf("%s: expected no error but got: %v", testCase.name, err)
 		case err == nil && testCase.expectedError:
-			t.Error("%s: expected an error but got none")
+			t.Errorf("%s: expected an error but got none", testCase.name)
 		}
 
 		if !reflect.DeepEqual(testCase.expectedRequest, request) {

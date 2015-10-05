@@ -14,7 +14,7 @@ import (
 	testregistry "github.com/openshift/origin/pkg/authorization/registry/test"
 )
 
-func beforeTestingSetup_readonlypolicycache() (testCache readOnlyPolicyCache, cacheChannel, testChannel chan struct{}) {
+func beforeTestingSetup_readonlypolicycache() (testCache *readOnlyPolicyCache, cacheChannel, testChannel chan struct{}) {
 	cacheChannel = make(chan struct{})
 
 	testRegistry := testregistry.NewPolicyRegistry(testPolicies, nil)

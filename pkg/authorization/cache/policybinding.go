@@ -19,12 +19,12 @@ import (
 type readOnlyPolicyBindingCache struct {
 	registry  bindingregistry.WatchingRegistry
 	indexer   cache.Indexer
-	reflector cache.Reflector
+	reflector *cache.Reflector
 
 	keyFunc cache.KeyFunc
 }
 
-func NewReadOnlyPolicyBindingCache(registry bindingregistry.WatchingRegistry) readOnlyPolicyBindingCache {
+func NewReadOnlyPolicyBindingCache(registry bindingregistry.WatchingRegistry) *readOnlyPolicyBindingCache {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
@@ -43,10 +43,10 @@ func NewReadOnlyPolicyBindingCache(registry bindingregistry.WatchingRegistry) re
 		2*time.Minute,
 	)
 
-	return readOnlyPolicyBindingCache{
+	return &readOnlyPolicyBindingCache{
 		registry:  registry,
 		indexer:   indexer,
-		reflector: *reflector,
+		reflector: reflector,
 
 		keyFunc: cache.MetaNamespaceKeyFunc,
 	}
@@ -120,7 +120,7 @@ type readOnlyPolicyBindings struct {
 
 func newReadOnlyPolicyBindings(cache readOnlyAuthorizationCache, namespace string) client.ReadOnlyPolicyBindingInterface {
 	return &readOnlyPolicyBindings{
-		readOnlyPolicyBindingCache: &cache.readOnlyPolicyBindingCache,
+		readOnlyPolicyBindingCache: cache.readOnlyPolicyBindingCache,
 		namespace:                  namespace,
 	}
 }

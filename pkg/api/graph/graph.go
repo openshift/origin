@@ -82,7 +82,7 @@ type Edge struct {
 }
 
 func NewEdge(head, tail graph.Node, kinds ...string) Edge {
-	return Edge{concrete.Edge{head, tail}, sets.NewString(kinds...)}
+	return Edge{concrete.Edge{F: head, T: tail}, sets.NewString(kinds...)}
 }
 
 func (e Edge) Kinds() sets.String {
@@ -650,7 +650,7 @@ func Fprint(out io.Writer, g Graph) {
 	}
 	for _, edge := range g.Edges() {
 		for _, edgeKind := range g.EdgeKinds(edge).List() {
-			fmt.Fprintf(out, "edge %d -> %d : %d\n", edge.From().ID(), edge.From().ID(), edgeKind)
+			fmt.Fprintf(out, "edge %d -> %d : %s\n", edge.From().ID(), edge.From().ID(), edgeKind)
 		}
 	}
 }

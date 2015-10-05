@@ -110,7 +110,7 @@ func (c *AssetConfig) buildAssetHandler() (http.Handler, error) {
 	assetFunc := assets.JoinAssetFuncs(assets.Asset, java.Asset)
 	assetDirFunc := assets.JoinAssetDirFuncs(assets.AssetDir, java.AssetDir)
 
-	handler := http.FileServer(&assetfs.AssetFS{assetFunc, assetDirFunc, ""})
+	handler := http.FileServer(&assetfs.AssetFS{Asset: assetFunc, AssetDir: assetDirFunc, Prefix: ""})
 
 	// Map of context roots (no leading or trailing slash) to the asset path to serve for requests to a missing asset
 	subcontextMap := map[string]string{
