@@ -98,7 +98,7 @@ type LDAPQueryOnAttribute struct {
 
 // NewLDAPQueryOnAttribute converts a user-provided LDAPQuery into a version we can use by parsing
 // the input and combining it with a set of name attributes
-func NewLDAPQueryOnAttribute(config api.LDAPQuery) (LDAPQueryOnAttribute, error) {
+func NewLDAPQueryOnAttribute(config api.LDAPQuery, attribute string) (LDAPQueryOnAttribute, error) {
 	scope, err := DetermineLDAPScope(config.Scope)
 	if err != nil {
 		return LDAPQueryOnAttribute{}, err
@@ -117,15 +117,13 @@ func NewLDAPQueryOnAttribute(config api.LDAPQuery) (LDAPQueryOnAttribute, error)
 			TimeLimit:    config.TimeLimit,
 			Filter:       config.Filter,
 		},
-		QueryAttribute: config.QueryAttribute,
+		QueryAttribute: attribute,
 	}, nil
 }
 
 // NewSearchRequest creates a new search request from the identifying query by internalizing the value of
 // the attribute to be filtered as well as any attributes that need to be recovered
-func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string,
-	attributes []string) (*ldap.SearchRequest, error) {
-
+func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string, attributes []string) (*ldap.SearchRequest, error) {
 	if strings.EqualFold(o.QueryAttribute, "dn") {
 		if !strings.Contains(attributeValue, o.BaseDN) {
 			return nil, &errQueryOutOfBounds{QueryDN: attributeValue, BaseDN: o.BaseDN}
@@ -134,6 +132,7 @@ func (o *LDAPQueryOnAttribute) NewSearchRequest(attributeValue string,
 			return nil, fmt.Errorf("could not search by dn, invalid dn value: %v", err)
 		}
 		return o.buildDNQuery(attributeValue, attributes), nil
+
 	} else {
 		return o.buildAttributeQuery(attributeValue, attributes), nil
 	}
@@ -149,8 +148,8 @@ func (o *LDAPQueryOnAttribute) buildDNQuery(dn string, attributes []string) *lda
 		int(o.DerefAliases),
 		0, // allowed return size - indicates no limit
 		o.TimeLimit,
-		false,           // not types only
-		"objectClass=*", // filter that returns all values
+		false,             // not types only
+		"(objectClass=*)", // filter that returns all values
 		attributes,
 		nil, // no controls
 	)
@@ -227,14 +226,14 @@ func QueryForEntries(clientConfig LDAPClientConfig, query *ldap.SearchRequest) (
 		return nil, fmt.Errorf("could not bind to the LDAP server: %v", err)
 	}
 
-	glog.V(4).Infof("searching LDAP server at dn=%q for %s", query.BaseDN, query.Filter)
+	glog.V(4).Infof("searching LDAP server %v://%v at dn=%q with scope %v for %s requesting %v", clientConfig.Scheme, clientConfig.Host, query.BaseDN, query.Scope, query.Filter, query.Attributes)
 	searchResult, err := connection.Search(query)
 	if err != nil {
-		return nil, fmt.Errorf("could not search the LDAP server: %v", err)
+		return nil, err
 	}
 
 	for _, entry := range searchResult.Entries {
-		glog.V(4).Infof("found dn=%q for %s", entry.DN, query.Filter)
+		glog.V(4).Infof("found dn=%q ", entry.DN)
 	}
 	return searchResult.Entries, nil
 }

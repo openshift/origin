@@ -702,105 +702,112 @@ type LDAPSyncConfig struct {
 	api.TypeMeta `json:",inline"`
 	// Host is the scheme, host and port of the LDAP server to connect to:
 	// scheme://host:port
-	Host string `json:"host" description:"scheme://host:port for the LDAP server"`
+	URL string `json:"url"`
 	// BindDN is an optional DN to bind to the LDAP server with
-	BindDN string `json:"bindDN,omitempty" description:"the optional DN to bind with"`
+	BindDN string `json:"bindDN"`
 	// BindPassword is an optional password to bind with during the search phase.
-	BindPassword string `json:"bindPassword,omitempty" description:"the optional password to bind with"`
+	BindPassword string `json:"bindPassword"`
 	// Insecure, if true, indicates the connection should not use TLS.
 	// Cannot be set to true with a URL scheme of "ldaps://"
 	// If false, "ldaps://" URLs connect using TLS, and "ldap://" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830
-	Insecure bool `json:"insecure" description:"specifies that the connection with the server should not use TLS"`
+	Insecure bool `json:"insecure"`
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
-	CA string `json:"CA,omitempty" description:"an optional trusted CA to use when making requests to the server"`
+	CA string `json:"ca"`
 
 	// LDAPGroupUIDToOpenShiftGroupNameMapping is an optional direct mapping of LDAP group UIDs to
 	// OpenShift Group names
-	LDAPGroupUIDToOpenShiftGroupNameMapping map[string]string
+	LDAPGroupUIDToOpenShiftGroupNameMapping map[string]string `json:"groupUIDNameMapping"`
 
-	// LDAPSchemaSpecificConfig holds the configuration for retrieving data from the LDAP server.
-	// This set of configuration varies with LDAP server schema.
-	LDAPSchemaSpecificConfig `json:"inline,omitempty" description:"schema-specific LDAP client configuration"`
-}
-
-// LDAPSchemaSpecificConfig holds the schema-specific configuration for data retrieval from the LDAP
-// server. Only one of the members can be specified.
-type LDAPSchemaSpecificConfig struct {
 	// RFC2307Config holds the configuration for extracting data from an LDAP server set up in a fashion
 	// similar to RFC2307: first-class group and user entries, with group membership determined by a
-	// multi-valued attribute on the group entry listing its' members
-	RFC2307Config *RFC2307Config `json:"RFC2307,omitempty" description:"schema-specific information for an RFC2307-like schema"`
+	// multi-valued attribute on the group entry listing its members
+	RFC2307Config *RFC2307Config `json:"rfc2307,omitempty"`
 
 	// ActiveDirectoryConfig holds the configuration for extracting data from an LDAP server set up in a
 	// fashion similar to that used in Active Directory: first-class user entries, with group membership
 	// determined by a multi-valued attribute on members listing groups they are a member of
-	ActiveDirectoryConfig *ActiveDirectoryConfig `json:"activeDirectory,omitempty" description:"schema-specific information for an Active Directory-like schema"`
+	ActiveDirectoryConfig *ActiveDirectoryConfig `json:"activeDirectory,omitempty"`
 
 	// AugmentedActiveDirectoryConfig holds the configuration for extracting data from an LDAP server
 	// set up in a fashion similar to that used in Active Directory as described above, with one addition:
 	// first-class group entries exist and are used to hold metadata but not group membership
-	AugmentedActiveDirectoryConfig *AugmentedActiveDirectoryConfig `json:"augmentedAD,omitempty" description:"schema-specific information for an Active Directory-like schema with group metadata entries"`
+	AugmentedActiveDirectoryConfig *AugmentedActiveDirectoryConfig `json:"augmentedActiveDirectory,omitempty"`
 }
 
 type RFC2307Config struct {
-	// GroupQuery holds the template for an LDAP query that returns group entries
-	GroupQuery LDAPQuery `json:"groupQuery" description:"the query for a group entry"`
+	// AllGroupsQuery holds the template for an LDAP query that returns group entries.
+	AllGroupsQuery LDAPQuery `json:"groupsQuery"`
 
-	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its' name
-	GroupNameAttributes []string `json:"groupName" description:"the group name attributes"`
+	// GroupUIDAttributes defines which attribute on an LDAP group entry will be interpreted as its unique identifier.
+	// (ldapGroupUID)
+	GroupUIDAttribute string `json:"groupUIDAttribute"`
 
-	// GroupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted
-	// as its' members
-	GroupMembershipAttributes []string `json:"groupMembership" description:"the group membership attributes"`
+	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for
+	// an OpenShift group
+	GroupNameAttributes []string `json:"groupNameAttributes"`
 
-	// UserQuery holds the template for an LDAP query that returns user entries
-	UserQuery LDAPQuery `json:"userQuery" description:"the query for a user entry"`
+	// GroupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted  as its members.
+	// The values contained in those attributes must be queryable by your UserUIDAttribute
+	GroupMembershipAttributes []string `json:"groupMembershipAttributes"`
 
-	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
-	UserNameAttributes []string `json:"userName" description:"the user name attributes"`
+	// AllUsersQuery holds the template for an LDAP query that returns user entries.
+	AllUsersQuery LDAPQuery `json:"usersQuery"`
+
+	// UserUIDAttribute defines which attribute on an LDAP user entry will be interpreted as its unique identifier.
+	// It must correspond to values that will be found from the GroupMembershipAttributes
+	UserUIDAttribute string `json:"userUIDAttribute"`
+
+	// UserNameAttributes defines which attributes on an LDAP user entry will be used, in order, as its OpenShift user name.
+	// The first attribute with a non-empty value is used. This should match your PreferredUsername setting for your LDAPPasswordIdentityProvider
+	UserNameAttributes []string `json:"userNameAttributes"`
 }
 
 type ActiveDirectoryConfig struct {
-	// UsersQuery holds the template for an LDAP query that returns all user entries that are members of a group
-	UsersQuery LDAPQuery `json:"userQuery" description:"the query for all user entries that are members of a group"`
+	// AllUsersQuery holds the template for an LDAP query that returns user entries.
+	AllUsersQuery LDAPQuery `json:"allUsersQuery"`
 
-	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
-	UserNameAttributes []string `json:"userName" description:"the user name attributes"`
+	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.
+	UserNameAttributes []string `json:"userNameAttributes"`
 
 	// GroupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted
 	// as the groups it is a member of
-	GroupMembershipAttributes []string `json:"groupMembership" description:"the group membership attributes"`
+	GroupMembershipAttributes []string `json:"groupMembershipAttributes"`
 }
 
 type AugmentedActiveDirectoryConfig struct {
-	// GroupQuery holds the template for an LDAP query that returns group entries
-	GroupQuery LDAPQuery `json:"groupQuery" description:"the query for a group entry"`
+	// AllUsersQuery holds the template for an LDAP query that returns user entries.
+	AllUsersQuery LDAPQuery `json:"allUsersQuery"`
 
-	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its' name
-	GroupNameAttributes []string `json:"groupName" description:"the group name attributes"`
-
-	// UserQuery holds the template for an LDAP query that returns user entries
-	UserQuery LDAPQuery `json:"userQuery" description:"the query for a user entry"`
-
-	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
-	UserNameAttributes []string `json:"userName" description:"the user name attributes"`
+	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.
+	UserNameAttributes []string `json:"userNameAttributes"`
 
 	// GroupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted
 	// as the groups it is a member of
-	GroupMembershipAttributes []string `json:"groupMembership" description:"the group membership attributes"`
+	GroupMembershipAttributes []string `json:"groupMembershipAttributes"`
+
+	// AllGroupsQuery holds the template for an LDAP query that returns group entries.
+	AllGroupsQuery LDAPQuery `json:"allGroupsQuery"`
+
+	// GroupUIDAttributes defines which attribute on an LDAP group entry will be interpreted as its unique identifier.
+	// (ldapGroupUID)
+	GroupUIDAttribute string `json:"groupUIDAttribute"`
+
+	// GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for
+	// an OpenShift group
+	GroupNameAttributes []string `json:"groupNameAttributes"`
 }
 
 type LDAPQuery struct {
 	// The DN of the branch of the directory where all searches should start from
-	BaseDN string `json:"baseDN" description:"the base DN for the search"`
+	BaseDN string `json:"baseDN"`
 
 	// The (optional) scope of the search. Can be:
 	// base: only the base object,
 	// one:  all object on the base level,
 	// sub:  the entire subtree
 	// Defaults to the entire subtree if not set
-	Scope string `json:"scope" description:"the scope of the search"`
+	Scope string `json:"scope"`
 
 	// The (optional) behavior of the search with regards to alisases. Can be:
 	// never:  never dereference aliases,
@@ -808,17 +815,12 @@ type LDAPQuery struct {
 	// base:   only dereference in finding the base object,
 	// always: always dereference
 	// Defaults to always dereferencing if not set
-	DerefAliases string `json:"derefAliases" description:"the alias dereferencing behavior"`
+	DerefAliases string `json:"derefAliases"`
 
 	// TimeLimit holds the limit of time in seconds that any request to the server can remain outstanding
 	// before the wait for a response is given up. If this is 0, no client-side limit is imposed
-	TimeLimit int `json:"timeout" description:"the time limit for the query"`
+	TimeLimit int `json:"timeout"`
 
 	// Filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN
-	Filter string `json:"filter" description:"a valid LDAP filter for the query"`
-
-	// QueryAttribute is the attribute for a filter that, when conjoined with the filter, retrieves the
-	// specific LDAP entry from the LDAP server. (e.g. "cn", when formatted with "aGroupName" and conjoined
-	// with "objectClass=groupOfNames", becomes (&(objectClass=groupOfNames)(cn=aGroupName))")
-	QueryAttribute string `json:"queryAttribute" description:"the attribute to query on"`
+	Filter string `json:"filter"`
 }

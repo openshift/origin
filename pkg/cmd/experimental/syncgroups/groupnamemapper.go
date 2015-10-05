@@ -30,8 +30,7 @@ func (m *UserDefinedLDAPGroupNameMapper) GroupNameFor(ldapGroupUID string) (stri
 }
 
 // NewEntryAttributeGroupNameMapper returns a new EntryAttributeLDAPGroupNameMapper
-func NewEntryAttributeGroupNameMapper(nameAttribute []string,
-	groupGetter interfaces.LDAPGroupGetter) interfaces.LDAPGroupNameMapper {
+func NewEntryAttributeGroupNameMapper(nameAttribute []string, groupGetter interfaces.LDAPGroupGetter) interfaces.LDAPGroupNameMapper {
 	return &EntryAttributeLDAPGroupNameMapper{
 		nameAttribute: nameAttribute,
 		groupGetter:   groupGetter,
@@ -52,8 +51,8 @@ func (m *EntryAttributeLDAPGroupNameMapper) GroupNameFor(ldapGroupUID string) (s
 	}
 	openShiftGroupName := ldaputil.GetAttributeValue(group, m.nameAttribute)
 	if len(openShiftGroupName) == 0 {
-		return "", fmt.Errorf("the group entry (%v) does not map to an OpenShift Group name with the given name attribute (%v)",
-			group, m.nameAttribute)
+		return "",
+			fmt.Errorf("the group entry (%v: %v) does not map to an OpenShift Group name with the given name attribute (%v)", group, group.Attributes, m.nameAttribute)
 	}
 	return openShiftGroupName, nil
 }

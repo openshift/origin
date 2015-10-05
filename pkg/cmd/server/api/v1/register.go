@@ -24,8 +24,12 @@ func init() {
 		&GoogleIdentityProvider{},
 		&OpenIDIdentityProvider{},
 		&GrantConfig{},
+
+		&LDAPSyncConfig{},
 	)
 }
+
+func (*LDAPSyncConfig) IsAnAPIObject() {}
 
 func (*IdentityProvider) IsAnAPIObject()                  {}
 func (*BasicAuthPasswordIdentityProvider) IsAnAPIObject() {}

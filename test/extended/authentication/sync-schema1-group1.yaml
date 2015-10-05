@@ -1,0 +1,20 @@
+test/extended/authentication/sync-schema1-group1.yamlkind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://LDAP_SERVICE_IP:389
+insecure: true
+rfc2307:
+    groupsQuery:
+        baseDN: "cn=group1,ou=groups,dc=example,dc=com"
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=groupOfNames)
+    groupUIDAttribute: dn
+    groupNameAttributes: [ cn ]
+    groupMembershipAttributes: [ member ]
+    usersQuery:
+        baseDN:
+        scope: sub
+        derefAliases: never
+        filter: (objectclass=organizationalPerson)
+    userUIDAttribute: dn
+    userNameAttributes: [ mail ]
