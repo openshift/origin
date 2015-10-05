@@ -485,29 +485,49 @@ KUBE_GIT_VERSION='${KUBE_GIT_VERSION-}'
 EOF
 }
 
+# golang 1.5 wants `-X key=val`, but golang 1.4- REQUIRES `-X key val`
+os::build::ldflag() {
+  local key=${1}
+  local val=${2}
+
+  GO_VERSION=($(go version))
+
+  if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.5') ]]; then
+    echo "-X ${OS_GO_PACKAGE}/pkg/version.${key} ${val}"
+  else
+    echo "-X ${OS_GO_PACKAGE}/pkg/version.${key}=${val}"
+  fi
+}
+
 # os::build::ldflags calculates the -ldflags argument for building OpenShift
 os::build::ldflags() {
-  (
-    # Run this in a subshell to prevent settings/variables from leaking.
-    set -o errexit
-    set -o nounset
-    set -o pipefail
+  # Run this in a subshell to prevent settings/variables from leaking.
+  set -o errexit
+  set -o nounset
+  set -o pipefail
 
-    cd "${OS_ROOT}"
+  cd "${OS_ROOT}"
 
-    os::build::get_version_vars
+  os::build::get_version_vars
 
-    declare -a ldflags=()
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}")
+  declare -a ldflags=()
+
+  ldflags+=($(os::build::ldflag "majorFromGit" "${OS_GIT_MAJOR}"))
+  ldflags+=($(os::build::ldflag "minorFromGit" "${OS_GIT_MINOR}"))
+  ldflags+=($(os::build::ldflag "versionFromGit" "${OS_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "commitFromGit" "${OS_GIT_COMMIT}"))
+
+  GO_VERSION=($(go version))
+  if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.5') ]]; then
     ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}")
     ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}")
+  else
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit=${KUBE_GIT_COMMIT}")
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion=${KUBE_GIT_VERSION}")
+  fi
 
-    # The -ldflags parameter takes a single string, so join the output.
-    echo "${ldflags[*]-}"
-  )
+  # The -ldflags parameter takes a single string, so join the output.
+  echo "${ldflags[*]-}"
 }
 
 # os::build::require_clean_tree exits if the current Git tree is not clean.

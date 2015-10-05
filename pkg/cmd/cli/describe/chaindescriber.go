@@ -8,7 +8,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/encoding/dot"
-	"github.com/gonum/graph/internal"
 	"github.com/gonum/graph/path"
 	kapi "k8s.io/kubernetes/pkg/api"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -205,7 +204,7 @@ func outputHelper(info, namespace string, singleNamespace bool) string {
 type DepthFirst struct {
 	EdgeFilter func(graph.Edge) bool
 	Visit      func(u, v graph.Node)
-	stack      internal.NodeStack
+	stack      NodeStack
 }
 
 // Walk performs a depth-first traversal of the graph g starting from the given node
@@ -247,3 +246,22 @@ func (d *DepthFirst) visited(id int) bool {
 	}
 	return false
 }
+
+// NodeStack implements a LIFO stack of graph.Node.
+// NodeStack is internal only in go 1.5.
+type NodeStack []graph.Node
+
+// Len returns the number of graph.Nodes on the stack.
+func (s *NodeStack) Len() int { return len(*s) }
+
+// Pop returns the last graph.Node on the stack and removes it
+// from the stack.
+func (s *NodeStack) Pop() graph.Node {
+	v := *s
+	v, n := v[:len(v)-1], v[len(v)-1]
+	*s = v
+	return n
+}
+
+// Push adds the node n to the stack at the last position.
+func (s *NodeStack) Push(n graph.Node) { *s = append(*s, n) }
