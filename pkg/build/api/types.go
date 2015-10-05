@@ -123,20 +123,20 @@ const (
 	BuildPhaseCancelled BuildPhase = "Cancelled"
 )
 
-// BuildSourceType is the type of SCM used
+// BuildSourceType is the type of SCM used.
 type BuildSourceType string
 
 // Valid values for BuildSourceType.
 const (
-	//BuildSourceGit is a Git SCM
+	// BuildSourceGit is a Git SCM.
 	BuildSourceGit BuildSourceType = "Git"
-	// bulidSourceDockerfile is an embedded dockerfile
+	// BuildSourceDockerfile is an embedded Dockerfile.
 	BuildSourceDockerfile BuildSourceType = "Dockerfile"
 )
 
-// BuildSource is the input used for the build
+// BuildSource is the input used for the build.
 type BuildSource struct {
-	// Type of build inputsystem
+	// Type of build input system.
 	Type BuildSourceType
 
 	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is

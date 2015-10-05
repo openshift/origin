@@ -107,26 +107,27 @@ const (
 	BuildPhaseCancelled BuildPhase = "Cancelled"
 )
 
-// BuildSourceType is the type of SCM used
+// BuildSourceType is the type of SCM used.
 type BuildSourceType string
 
 // Valid values for BuildSourceType.
 const (
-	//BuildSourceGit is a Git SCM
+	// BuildSourceGit is a Git SCM.
 	BuildSourceGit BuildSourceType = "Git"
-	// bulidSourceDockerfile is an embedded dockerfile
+	// BuildSourceDockerfile is an embedded Dockerfile.
 	BuildSourceDockerfile BuildSourceType = "Dockerfile"
 )
 
-// BuildSource is the SCM used for the build
+// BuildSource is the SCM used for the build.
 type BuildSource struct {
+	// Type of build input system.
 	Type BuildSourceType `json:"type"`
 
 	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
 	// specified, the From and Env on the Docker build strategy are applied on top of this file.
 	Dockerfile *string `json:"dockerfile,omitempty" description:"the contents of a Dockerfile to build; FROM and ENV may be overridden if you have specified 'from' and 'env' on the build strategy"`
 
-	// Git contains optional information about git build source
+	// Git contains optional information about git build source.
 	Git *GitBuildSource `json:"git,omitempty"`
 
 	// Specify the sub-directory where the source code for the application exists.
