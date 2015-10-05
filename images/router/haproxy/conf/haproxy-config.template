@@ -146,7 +146,7 @@ backend openshift_default
   # line below (server ... 127.0.0.1:8080) and point it to your custom
   # backend service or alternatively, you can send a custom 503 error.
   #server openshift_backend 127.0.0.1:8080
-  #errorfile 503 /path/to/custom-503-page.html
+  errorfile 503 /var/lib/haproxy/conf/error-page-503.html
 
 ##-------------- app level backends ----------------
 {{/*
