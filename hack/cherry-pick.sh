@@ -20,7 +20,7 @@ if [[ "$#" -ne 1 ]]; then
 fi
 os::build::require_clean_tree # Origin tree must be clean
 
-patch="${TMPDIR}/patch"
+patch="${TMPDIR:-/tmp}/patch"
 kubedir="../../../k8s.io/kubernetes"
 if [[ ! -d "${kubedir}" ]]; then
   echo "Expected ${kubedir} to exist" 1>&2
