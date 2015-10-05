@@ -90,7 +90,7 @@ angular.module('openshiftConsole')
   })  
   .directive('triggers', function() {
     var hideBuildKey = function(build) {
-      return 'hide/build/' + build.metadata.namespace + '/' + build.metadata.name;
+      return 'hide/build/' + build.metadata.uid;
     };
     return {
       restrict: 'E',
