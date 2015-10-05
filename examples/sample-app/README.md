@@ -357,7 +357,7 @@ the ip address shown below with the correct one for your environment.
 
             # You may either create a new SCC or use an existing SCC.  The following command will
             # display existing SCCs and if they support host network and host ports.
-            $ oc get scc -t "{{range .items}}{{.metadata.name}}: n={{.allowHostNetwork}},p={{.allowHostPorts}}; {{end}}"
+            $ oc get scc --template="{{range .items}}{{.metadata.name}}: n={{.allowHostNetwork}},p={{.allowHostPorts}}; {{end}}"
             privileged: n=true,p=true; restricted: n=false,p=false;
 
             # Edit your security context constraint to add the new service account in the users section

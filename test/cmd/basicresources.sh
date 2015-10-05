@@ -85,9 +85,9 @@ oc delete all -l name=mytemplate
 oc new-app https://github.com/openshift/ruby-hello-world
 [ "$(oc get dc/ruby-hello-world)" ]
 
-oc get dc/ruby-hello-world -t '{{ .spec.replicas }}' | grep -q 1
+oc get dc/ruby-hello-world --template='{{ .spec.replicas }}' | grep -q 1
 oc patch dc/ruby-hello-world -p '{"spec": {"replicas": 2}}'
-oc get dc/ruby-hello-world -t '{{ .spec.replicas }}' | grep -q 2
+oc get dc/ruby-hello-world --template='{{ .spec.replicas }}' | grep -q 2
 
 oc delete all -l app=ruby-hello-world
 [ ! "$(oc get dc/ruby-hello-world)" ]

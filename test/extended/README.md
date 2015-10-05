@@ -145,7 +145,7 @@ oc = oc.Run("get").Args("foo").Template("{{ .spec }}")
 ```
 is an equivalent to
 ```console
-$ oc get foo -o template -t '{{ .spec }}'
+$ oc get foo -o template --template='{{ .spec }}'
 ```
 
 To execute the command you will need to call either `Execute()`, which will execute the command and return any error that occurs, or `Output()`  which returns any error that occurs as well as the output.

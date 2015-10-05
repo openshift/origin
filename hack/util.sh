@@ -107,7 +107,7 @@ function configure_os_server {
 
 	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
 	export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-	export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template -t '{{index . "current-context"}}')
+	export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
 	sudo chmod -R a+rwX "${ADMIN_KUBECONFIG}"
 	echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
 }
@@ -512,7 +512,7 @@ function install_registry {
 }
 
 function wait_for_registry {
-	wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=${ADMIN_KUBECONFIG} || echo "0")" != "0" ]]' $((5*TIME_MIN))
+	wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 --template="{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=${ADMIN_KUBECONFIG} || echo "0")" != "0" ]]' $((5*TIME_MIN))
 }
 
 
@@ -521,7 +521,7 @@ function wait_for_registry {
 function os::build:wait_for_start() {
 	echo "[INFO] Waiting for $1 namespace build to start"
 	wait_for_command "oc get -n $1 builds | grep -i running" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`oc get -n $1 builds  --output-version=v1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	BUILD_ID=`oc get -n $1 builds  --output-version=v1 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} started"
 }
 
@@ -530,7 +530,7 @@ function os::build:wait_for_start() {
 function os::build:wait_for_end() {
 	echo "[INFO] Waiting for $1 namespace build to complete"
 	wait_for_command "oc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} finished"
 	# TODO: fix
 	set +e

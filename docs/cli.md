@@ -382,7 +382,7 @@ Available formats include:
 An example of using `-o template` to retrieve the *name* of the first build:
 
 ```bash
-$ oc get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"
+$ oc get builds -o template --template="{{with index .items 0}}{{.metadata.name}}{{end}}"
 ```
 
 #### Selectors
