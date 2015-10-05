@@ -126,46 +126,69 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
 4.  Bring up the VM  (If you are new to Vagrant, consider http://docs.vagrantup.com[Vagrant Docs] for help on items like provider selection.  Also consider the enablement of your hardware's virtualization extensions, such as https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/sect-Virtualization-Troubleshooting-Enabling_Intel_VT_and_AMD_V_virtualization_hardware_extensions_in_BIOS.html[RHEL] for example.).  Also note, for the `make clean build` in step 6 to work, a sufficient amount of memory needs to be allocated for the VM, where that amount of memory is not necessarily needed if you are not doing a compile, but simply running openshift (and hence is not set as the default):
 
-        $ export OPENSHIFT_MEMORY=2096
+        $ export OPENSHIFT_MEMORY=4192
         $ vagrant up
+
+TIP: To ensure you get the latest image first run `vagrant box remove fedora_inst`.  And if later on you employ a dev cluster, additionally run  `vagrant box remove fedora_deps`.
 
 5.  SSH in:
 
         $ vagrant ssh
 
-6.  Run a build in SSH:
+6.  Run a build:
 
         $ cd /data/src/github.com/openshift/origin
         $ make clean build
 
-7.  Now change into the directory with the OpenShift binaries, and start the OpenShift server:
+7.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.  At this point you may want to update your $PATH:
 
-        $ cd _output/local/bin/linux/amd64
-        $ sudo ./openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
+        # back to /home/vagrant
+        $ cd
+        # update path to include binaries for oc, oadm, etc
+        # this is temporary, to make it persistent add it to .bash_profile
+        $ export PATH=/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$PATH
+
+
+8.  Now start the OpenShift server:
+
+        # redirect the logs to  /home/vagrant/openshift.log for easier debugging
+        $ sudo `which openshift` start --public-master=localhost &> openshift.log &
 
 +
-NOTE: By default your origin directory will be mounted as a vagrant synced folder into `/data/src/github.com/openshift/origin`, but it is advised to use a different directory for volume storage than the one for the origin directory vagrant synced folder. Hence in the above example of the `openshift start` command invocation the `--volume-dir=</absolute/path>` option is supplied.
+NOTE: This will generate three directories in /home/vagrant (openshift.local.config, openshift.local.etcd, openshift.local.volumes) as well as create the openshift.log file.
 
-8.  On your host system, try browsing to: https://localhost:8443/console
++
+NOTE: By default your origin directory (on your host machine) will be mounted as a vagrant synced folder into `/data/src/github.com/openshift/origin`.
+
 
 9.  Deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
         $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ ./oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
 
-10.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
 
-11.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
+10.  At this point it may be helpful to load some image streams and templates.  These commands will make use of fixtures from the `openshift/origin/examples` dir:
 
-        $ sudo pkill openshift
-        $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
-        $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
-        $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
-        $ mount | grep < "\/absolute\/path", where that is the value passed to the `--volume-dir` argument on openshift start >  | awk '{ print $3}' | xargs -l -r sudo umount
-        $ sudo rm -rf < "\/absolute\/path", where again that is the  value passed to the `--volume-dir`argument >
+        # load image stream
+        $ oc create -f /data/src/github.com/openshift/origin/examples/image-streams/image-streams-centos7.json -n openshift --config=openshift.local.config/master/admin.kubeconfig
+        # load templates
+        $ oc create -f /data/src/github.com/openshift/origin/examples/sample-app/application-template-stibuild.json -n openshift --config=openshift.local.config/master/admin.kubeconfig
+        $ oc create -f /data/src/github.com/openshift/origin/examples/db-templates --config=openshift.local.config/master/admin.kubeconfig
 
-TIP: To ensure you get the latest image.  First run `vagrant box remove fedora_inst`.  And if later on you employ a dev cluster, additionally run  `vagrant box remove fedora_deps`.
+
+11. At this point you can open a browser on your host system and navigate to https://localhost:8443/console to view the web console.
+
+
+12.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
+
+	# shut down openshift
+	$ sudo pkill openshift
+	# stop the docker containers
+	$ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+	# deleting all the internal config files, etcd, etc and starting openshift fresh
+	sudo rm -rf openshift.local.*
+	# if you used the --volume-dir=/home/vagrant/volumes flag, then run these
 
 TIP: See https://github.com/openshift/vagrant-openshift for more advanced options
 
