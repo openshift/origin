@@ -154,7 +154,8 @@ func (o *EditOptions) RunEdit() error {
 	for {
 		obj, err := resource.AsVersionedObject(infos, false, o.version)
 		if err != nil {
-			return preservedFile(err, results.file, o.out)
+			notifyPreservedFile(results.file, o.out)
+			return err
 		}
 
 		// TODO: add an annotating YAML printer that can print inline comments on each field,
@@ -163,10 +164,12 @@ func (o *EditOptions) RunEdit() error {
 		// generate the file to edit
 		buf := &bytes.Buffer{}
 		if _, err := results.header.WriteTo(buf); err != nil {
-			return preservedFile(err, results.file, o.out)
+			notifyPreservedFile(results.file, o.out)
+			return err
 		}
 		if err := o.printer.PrintObj(obj, buf); err != nil {
-			return preservedFile(err, results.file, o.out)
+			notifyPreservedFile(results.file, o.out)
+			return err
 		}
 		original := buf.Bytes()
 
@@ -174,7 +177,8 @@ func (o *EditOptions) RunEdit() error {
 		edit := editor.NewDefaultEditor()
 		edited, file, err := edit.LaunchTempFile("oc-edit-", o.ext, buf)
 		if err != nil {
-			return preservedFile(err, results.file, o.out)
+			notifyPreservedFile(results.file, o.out)
+			return err
 		}
 
 		// cleanup any file from the previous pass
@@ -185,11 +189,12 @@ func (o *EditOptions) RunEdit() error {
 		glog.V(4).Infof("User edited:\n%s", string(edited))
 		lines, err := hasLines(bytes.NewBuffer(edited))
 		if err != nil {
-			return preservedFile(err, file, o.out)
+			notifyPreservedFile(file, o.out)
+			return err
 		}
 		if bytes.Equal(original, edited) {
 			if len(results.edit) > 0 {
-				preservedFile(nil, file, o.out)
+				notifyPreservedFile(file, o.out)
 			} else {
 				os.Remove(file)
 			}
@@ -198,7 +203,7 @@ func (o *EditOptions) RunEdit() error {
 		}
 		if !lines {
 			if len(results.edit) > 0 {
-				preservedFile(nil, file, o.out)
+				notifyPreservedFile(file, o.out)
 			} else {
 				os.Remove(file)
 			}
@@ -223,7 +228,8 @@ func (o *EditOptions) RunEdit() error {
 
 		// need to make sure the original namespace wasn't changed while editing
 		if err = visitor.Visit(resource.RequireNamespace(o.namespace)); err != nil {
-			return preservedFile(err, file, o.out)
+			notifyPreservedFile(file, o.out)
+			return err
 		}
 
 		// attempt to calculate a delta for merging conflicts
@@ -255,7 +261,8 @@ func (o *EditOptions) RunEdit() error {
 			return nil
 		})
 		if err != nil {
-			return preservedFile(err, file, o.out)
+			notifyPreservedFile(file, o.out)
+			return err
 		}
 
 		if results.retryable > 0 {
@@ -412,16 +419,14 @@ func applyPatch(delta *jsonmerge.Delta, info *resource.Info, version string) err
 	return nil
 }
 
-// preservedFile writes out a message about the provided file if it exists to the
-// provided output stream when an error happens. Used to notify the user where
-// their updates were preserved.
-func preservedFile(err error, path string, out io.Writer) error {
+// notifyPreservedFile writes out a message about the provided file if it exists to the
+// provided output stream. Used to notify the user where their updates were preserved.
+func notifyPreservedFile(path string, out io.Writer) {
 	if len(path) > 0 {
 		if _, err := os.Stat(path); !os.IsNotExist(err) {
 			fmt.Fprintf(out, "A copy of your changes has been stored to %q\n", path)
 		}
 	}
-	return err
 }
 
 // hasLines returns true if any line in the provided stream is non empty - has non-whitespace
