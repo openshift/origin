@@ -270,6 +270,30 @@ html, body {
     }
   }
 
+.pod-metrics {
+  .metrics-options {
+    .form-group {
+      margin-bottom: 0;
+    }
+    .select-container {
+      display: inline-block;
+    }
+    @media (min-width: @screen-sm-min) {
+      .form-group {
+        display: inline-block;
+      }
+      .select-container {
+        margin-right: 10px;
+      }
+    }
+  }
+  .metrics-chart {
+    // The utilization chart floats some elements, so this is needed for proper padding.
+    clear: both;
+    max-width: 800px;
+    padding-top: 5px;
+  }
+}
 
 // Create App
 // --------------------------------------------------

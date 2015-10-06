@@ -77,11 +77,15 @@
                 <annotations annotations="pod.metadata.annotations"></annotations>
               </tab>
 
-              <!--
-              <tab heading="Metrics" active="selectedTab.metrics">
-              Metrics content
+              <tab ng-if="metricsAvailable" heading="Metrics" active="selectedTab.metrics">
+                <!-- Use ng-if to remove the pod-metrics directive when the tab is not active so
+                     we don't update in the background. -->
+                <pod-metrics
+                  ng-if="selectedTab.metrics"
+                  pod="pod"
+                  alerts="alerts">
+                </pod-metrics>
               </tab>
-              -->
 
               <!--
               <tab heading="Logs" active="selectedTab.logs">

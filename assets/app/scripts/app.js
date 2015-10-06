@@ -20,6 +20,7 @@ angular
     'openshiftUI',
     'kubernetesUI',
     'ui.bootstrap',
+    'patternfly.charts',
     'openshiftConsoleTemplates'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value

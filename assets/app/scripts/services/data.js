@@ -150,6 +150,7 @@ angular.module('openshiftConsole')
     this._getNamespace(resource, context, opts).then(function(ns){
       $http(angular.extend({
         method: 'DELETE',
+        auth: {},
         url: self._urlForResource(resource, name, null, context, false, ns)
       }, opts.http || {}))
       .success(function(data, status, headerFunc, config, statusText) {
@@ -181,6 +182,7 @@ angular.module('openshiftConsole')
     this._getNamespace(resource, context, opts).then(function(ns){
       $http(angular.extend({
         method: 'PUT',
+        auth: {},
         data: object,
         url: self._urlForResource(resource, name, object.apiVersion, context, false, ns)
       }, opts.http || {}))
@@ -214,6 +216,7 @@ angular.module('openshiftConsole')
     this._getNamespace(resource, context, opts).then(function(ns){
       $http(angular.extend({
         method: 'POST',
+        auth: {},
         data: object,
         url: self._urlForResource(resource, name, object.apiVersion, context, false, ns)
       }, opts.http || {}))
@@ -327,6 +330,7 @@ angular.module('openshiftConsole')
       this._getNamespace(resource, context, opts).then(function(ns){
         $http(angular.extend({
           method: 'GET',
+          auth: {},
           url: self._urlForResource(resource, name, null, context, false, ns)
         }, opts.http || {}))
         .success(function(data, status, headerFunc, config, statusText) {
@@ -723,6 +727,7 @@ angular.module('openshiftConsole')
       context.projectPromise.done(function(project) {
         $http({
           method: 'GET',
+          auth: {},
           url: self._urlForResource(resource, null, null, context, false, {namespace: project.metadata.name})
         }).success(function(data, status, headerFunc, config, statusText) {
           self._listOpComplete(resource, context, data);
@@ -739,6 +744,7 @@ angular.module('openshiftConsole')
     else {
       $http({
         method: 'GET',
+        auth: {},
         url: this._urlForResource(resource, null, null, context),
       }).success(function(data, status, headerFunc, config, statusText) {
         self._listOpComplete(resource, context, data);
@@ -806,6 +812,7 @@ angular.module('openshiftConsole')
           $ws({
             method: "WATCH",
             url: self._urlForResource(resource, null, null, context, true, params),
+            auth:      {},
             onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
             onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
             onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context)
@@ -819,6 +826,7 @@ angular.module('openshiftConsole')
         $ws({
           method: "WATCH",
           url: self._urlForResource(resource, null, null, context, true, params),
+          auth:      {},
           onclose:   $.proxy(self, "_watchOpOnClose",   resource, context),
           onmessage: $.proxy(self, "_watchOpOnMessage", resource, context),
           onopen:    $.proxy(self, "_watchOpOnOpen",    resource, context)

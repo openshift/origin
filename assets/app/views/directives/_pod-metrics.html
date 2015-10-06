@@ -1,0 +1,57 @@
+<div class="pod-metrics">
+  <div ng-if="!pod.spec.containers.length">No containers</div>
+  <div ng-if="pod.spec.containers.length">
+    <div class="metrics-options">
+      <div class="form-group">
+        <label for="selectContainer">Container:</label>
+        <div class="select-container">
+          <span ng-show="pod.spec.containers.length === 1">
+            {{pod.spec.containers[0].name}}
+          </span>
+          <select id="selectContainer"
+                  ng-show="pod.spec.containers.length > 1"
+                  ng-init="options.selectedContainer = pod.spec.containers[0]"
+                  ng-model="options.selectedContainer"
+                  ng-options="container.name for container in pod.spec.containers track by container.name">
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="timeRange">Time Range:</label>
+          <select id="timeRange"
+                  ng-model="options.timeRange"
+                  ng-options="range.label for range in options.rangeOptions">
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div ng-if="!loaded">Loading...</div>
+    <div ng-if="loaded && (chartDataByMetric | hashSize) === 0">No metrics to display.</div>
+
+    <div ng-repeat="metric in metrics" ng-if="chartDataByMetric[metric.id]" class="metrics-chart">
+      <h3>{{metric.label}}</h3>
+      <!-- Show a utilization chart if there is a limit -->
+      <div ng-if="chartDataByMetric[metric.id].total"
+           pf-utilization-chart
+           chart-id="metric.chartId"
+           config="utilizationConfigByMetric[metric.id]"
+           donut-config="donutConfigByMetric[metric.id]"
+           sparkline-config="sparklineConfigByMetric[metric.id]"
+           chart-data="chartDataByMetric[metric.id]"
+           sparkline-chart-height="75"
+           show-sparkline-x-axis="true"
+           show-sparkline-y-axis="true">
+      </div>
+      <!-- Show a sparkline if there is no limit. -->
+      <div ng-if="!chartDataByMetric[metric.id].total"
+           pf-sparkline-chart
+           chart-id="metric.chartId"
+           config="sparklineConfigByMetric[metric.id]"
+           chart-height="150"
+           chart-data="chartDataByMetric[metric.id]"
+           show-x-axis="true"
+           show-y-axis="true">
+      </div>
+    </div>
+  </div>
+</div>
