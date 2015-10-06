@@ -147,8 +147,7 @@ window.OPENSHIFT_CONFIG = {
     openshift: {
       hostPort: "{{ .MasterAddr | js}}",
       prefixes: {
-        "v1beta3": "{{ .MasterLegacyPrefix | js}}",
-        "*":       "{{ .MasterPrefix | js}}"
+        "v1": "{{ .MasterPrefix | js}}"
       },
       resources: {
 {{range $i,$e := .MasterResources}}{{if $i}},
@@ -158,7 +157,7 @@ window.OPENSHIFT_CONFIG = {
     k8s: {
       hostPort: "{{ .KubernetesAddr | js}}",
       prefixes: {
-      	"*": "{{ .KubernetesPrefix | js}}"
+      	"v1": "{{ .KubernetesPrefix | js}}"
       },
       resources: {
 {{range $i,$e := .KubernetesResources}}{{if $i}},
@@ -182,8 +181,6 @@ type WebConsoleConfig struct {
 	MasterAddr string
 	// MasterPrefix is the OpenShift API context root
 	MasterPrefix string
-	// MasterLegacyPrefix is the OpenShift API context root for legacy API versions
-	MasterLegacyPrefix string
 	// MasterResources holds resource names for the OpenShift API
 	MasterResources []string
 	// KubernetesAddr is the host:port the UI should call the kubernetes API on. Scheme is derived from the scheme the UI is served on, so they must be the same.

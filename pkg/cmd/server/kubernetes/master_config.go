@@ -172,8 +172,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
 		AdmissionControl: admissionController,
 
-		EnableV1Beta3: configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1beta3"),
-		DisableV1:     !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
+		DisableV1: !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
 
 		// Set the TLS options for proxying to pods and services
 		// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)

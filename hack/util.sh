@@ -586,7 +586,7 @@ function os::build:wait_for_start() {
 function os::build:wait_for_end() {
 	echo "[INFO] Waiting for $1 namespace build to complete"
 	wait_for_command "oc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	BUILD_ID=`oc get -n $1 builds --output-version=v1 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} finished"
 	# TODO: fix
 	set +e

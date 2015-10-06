@@ -258,16 +258,10 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	}
 	if config.Version == "" {
 		// Clients default to the preferred code API version
-		// TODO: implement version negotiation (highest version supported by server)
 		config.Version = latest.Version
 	}
 	if config.Prefix == "" {
-		switch config.Version {
-		case "v1beta3":
-			config.Prefix = "/osapi"
-		default:
-			config.Prefix = "/oapi"
-		}
+		config.Prefix = "/oapi"
 	}
 	version := config.Version
 	versionInterfaces, err := latest.InterfacesFor(version)
