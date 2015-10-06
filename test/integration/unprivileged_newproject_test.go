@@ -128,8 +128,8 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := clusterAdminClient.Projects().Create(&projectapi.Project{ObjectMeta: kapi.ObjectMeta{Name: namespace}}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if _, createErr := clusterAdminClient.Projects().Create(&projectapi.Project{ObjectMeta: kapi.ObjectMeta{Name: namespace}}); createErr != nil {
+		t.Fatalf("unexpected error: %v", createErr)
 	}
 
 	template := projectrequeststorage.DefaultTemplate()
@@ -191,8 +191,8 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	role.Rules = []authorizationapi.PolicyRule{}
-	if _, err := clusterAdminClient.ClusterRoles().Update(role); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if _, updateErr := clusterAdminClient.ClusterRoles().Update(role); updateErr != nil {
+		t.Fatalf("unexpected error: %v", updateErr)
 	}
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)

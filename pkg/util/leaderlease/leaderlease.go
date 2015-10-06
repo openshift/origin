@@ -157,8 +157,8 @@ func (e *Etcd) tryHold(ttl, index uint64) error {
 	lost := make(chan struct{})
 	watchIndex := index
 	go util.Until(func() {
-		index, err := e.waitForExpiration(true, watchIndex, stop)
-		watchIndex = index
+		newWatchIndex, err := e.waitForExpiration(true, watchIndex, stop)
+		watchIndex = newWatchIndex
 		if err != nil {
 			util.HandleError(fmt.Errorf("error watching for lease expiration %s: %v", e.key, err))
 			return

@@ -68,8 +68,8 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 			},
 		},
 	}
-	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+	if _, createErr := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); createErr != nil {
+		t.Fatalf("Unexpected error: %v", createErr)
 	}
 
 	ism := &imageapi.ImageStreamMapping{
@@ -89,8 +89,8 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	// create buildconfig
 	buildConfig := mockBuildConfigImageParms("originalImage", "imageStream", "validTag")
 
-	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+	if _, createErr := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); createErr != nil {
+		t.Fatalf("Unexpected error: %v", createErr)
 	}
 
 	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")
@@ -165,8 +165,8 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 			},
 		},
 	}
-	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+	if _, createErr := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); createErr != nil {
+		t.Fatalf("Unexpected error: %v", createErr)
 	}
 
 	ism := &imageapi.ImageStreamMapping{
@@ -186,8 +186,8 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	// create buildconfig
 	buildConfig := mockBuildConfigImageStreamParms("originalImage", "image-stream", "validTag")
 
-	if _, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+	if _, createErr := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); createErr != nil {
+		t.Fatalf("Unexpected error: %v", createErr)
 	}
 
 	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(labels.Everything(), fields.Everything(), "0")

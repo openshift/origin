@@ -50,7 +50,7 @@ func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentit
 	identity, err := p.identity.GetIdentity(ctx, info.GetIdentityName())
 
 	if kerrs.IsNotFound(err) {
-		user, err := p.createIdentityAndMapping(ctx, info)
+		user, createErr := p.createIdentityAndMapping(ctx, info)
 		// Only retry for the following types of errors:
 		// AlreadyExists errors:
 		// * The same user was created by another identity provider with the same preferred username
@@ -58,10 +58,10 @@ func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentit
 		// * The same identity was created by another instance of this identity provider (e.g. double-clicked login button)
 		// Conflict errors:
 		// * The same user was updated be another identity provider to add identity info
-		if (kerrs.IsAlreadyExists(err) || kerrs.IsConflict(err)) && allowedRetries > 0 {
+		if (kerrs.IsAlreadyExists(createErr) || kerrs.IsConflict(createErr)) && allowedRetries > 0 {
 			return p.userForWithRetries(info, allowedRetries-1)
 		}
-		return user, err
+		return user, createErr
 	}
 
 	if err != nil {

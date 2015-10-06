@@ -66,8 +66,8 @@ func TestImageStreamCreate(t *testing.T) {
 
 	stream := mockImageStream()
 
-	if _, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(&imageapi.ImageStream{}); err == nil || !errors.IsInvalid(err) {
-		t.Fatalf("Unexpected error: %v", err)
+	if _, createErr := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(&imageapi.ImageStream{}); createErr == nil || !errors.IsInvalid(createErr) {
+		t.Fatalf("Unexpected error: %v", createErr)
 	}
 
 	expected, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Create(stream)
@@ -149,8 +149,8 @@ func TestImageStreamMappingCreate(t *testing.T) {
 			},
 		},
 	}
-	if _, err := clusterAdminClient.Images().Create(image); err == nil {
-		t.Error("unexpected non-error")
+	if _, createErr := clusterAdminClient.Images().Create(image); createErr == nil {
+		t.Error("expected error, got none")
 	}
 	image.DockerImageReference = "some/other/name" // can reuse references across multiple images
 	actual, err := clusterAdminClient.Images().Create(image)
