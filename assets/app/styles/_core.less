@@ -647,3 +647,44 @@ select:invalid {
 pre.clipped {
   display: inline-block;
 }
+
+.k8s-label {
+  white-space: nowrap;
+
+  .label-key {
+    background-color: #bee1f4;
+    color: #00659c;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    margin-left: 0;
+    font-size: 12px;
+  }
+  // if its a link
+  a.label-key {
+    &:hover, &:focus, &:active {
+      background-color: #00659c;
+      color: #FFFFFF;
+    }
+  }
+  .label-value {
+    background-color: #7dc3e8;
+    color: #FFFFFF;
+    margin-left: 0;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    font-size: 12px;
+  }
+  a.label-value {
+    &:hover, &:focus, &:active {
+      background-color: #00659c;
+    }
+  }
+
+  + .k8s-label {
+    margin-left: 5px;
+  }
+}
+
+labels + dl {
+  margin-top: 10px;
+}

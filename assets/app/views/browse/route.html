@@ -7,9 +7,9 @@
       <div class="row">
         <div class="col-md-12">
           <div class="tile">
+            <h1>{{route.metadata.name}}</h1>
+            <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}" limit="3"></labels>
             <dl class="dl-horizontal left">
-              <dt>Name:</dt>
-              <dd>{{route.metadata.name}}</dd>
               <dt>Labels:</dt>
               <dd>
                 <span ng-if="!route.metadata.labels">none</span>

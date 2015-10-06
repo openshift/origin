@@ -7,9 +7,10 @@
       <div class="row">
         <div class="col-md-12">
           <div class="tile">
+            <h1>{{deployment.metadata.name}}</h1>
+            <labels ng-if="deploymentConfigName" labels="deployment.metadata.labels" clickable="true" kind="deployments" title-kind="deployments for deployment config {{deploymentConfigName}}" project-name="{{deployment.metadata.namespace}}" limit="3" navigate-url="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfigName}}"></labels>
+            <labels ng-if="!deploymentConfigName" labels="deployment.metadata.labels" clickable="true" kind="deployments" project-name="{{deployment.metadata.namespace}}" limit="3"></labels>            
             <dl class="dl-horizontal left">
-              <dt>Name:</dt>
-              <dd>{{deployment.metadata.name}}</dd>
               <dt>Status:</dt>
               <dd>
                 <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave">

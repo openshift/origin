@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module("openshiftConsole")
-  .factory("DeploymentsService", function(DataService, $filter){
+  .factory("DeploymentsService", function(DataService, $filter, LabelFilter){
     function DeploymentsService() {}
 
     DeploymentsService.prototype.startLatestDeployment = function(deploymentConfig, $scope) {
@@ -192,14 +192,18 @@ angular.module("openshiftConsole")
       );
     };
 
-    //deploymentConfigs is optional
-    DeploymentsService.prototype.associateDeploymentsToDeploymentConfig = function(deployments, deploymentConfigs) {
+    // deploymentConfigs is optional
+    // filter will run the current label filter against any deployments whose DC is deleted, or any RCs
+    DeploymentsService.prototype.associateDeploymentsToDeploymentConfig = function(deployments, deploymentConfigs, filter) {
       var deploymentsByDeploymentConfig = {};
+      var labelSelector = LabelFilter.getLabelSelector();
       angular.forEach(deployments, function(deployment, deploymentName) {
         var deploymentConfigName = $filter('annotation')(deployment, 'deploymentConfig');
-        deploymentConfigName = deploymentConfigName || '';
-        deploymentsByDeploymentConfig[deploymentConfigName] = deploymentsByDeploymentConfig[deploymentConfigName] || {};
-        deploymentsByDeploymentConfig[deploymentConfigName][deploymentName] = deployment;
+        if (!filter || deploymentConfigs && deploymentConfigs[deploymentConfigName] || labelSelector.matches(deployment)) {
+          deploymentConfigName = deploymentConfigName || '';
+          deploymentsByDeploymentConfig[deploymentConfigName] = deploymentsByDeploymentConfig[deploymentConfigName] || {};
+          deploymentsByDeploymentConfig[deploymentConfigName][deploymentName] = deployment;
+        }
       });
       // Make sure there is an empty map for every dc we know about even if there is no deployment currently
       angular.forEach(deploymentConfigs, function(deploymentConfig, deploymentConfigName) {

@@ -17,7 +17,7 @@
             <th>Source</th>
           </tr>
         </thead>
-        <tbody ng-if="(builds | hashSize) == 0 && (buildConfigs | hashSize) == 0">
+        <tbody ng-if="((buildsByBuildConfig | hashSize) == 0)">
           <tr><td colspan="6" data-title="Name"><em>{{emptyMessage}}</em></td></tr>
         </tbody>
         <tbody ng-repeat="(buildConfigName, buildConfigBuilds) in buildsByBuildConfig">
@@ -34,7 +34,7 @@
           </tr>
           <!-- Build config with builds, or builds whose build config has since been deleted -->
           <!-- We only show the first build from a build config for now-->
-          <tr ng-repeat="build in buildConfigBuilds | orderObjectsByDate : true | limitTo : 1">
+          <tr ng-repeat="build in buildConfigBuilds | orderObjectsByDate : true | limitTo : 1" ng-if="buildConfigs[buildConfigName] || !unfilteredBuildConfigs[buildConfigName]">
             <td data-title="Name">
               <a ng-if="buildConfigs[buildConfigName]" href="project/{{projectName}}/browse/builds/{{buildConfigName}}">{{buildConfigName}}</a>
               <span ng-if="buildConfigs && !buildConfigs[buildConfigName] && buildConfigName != ''">
