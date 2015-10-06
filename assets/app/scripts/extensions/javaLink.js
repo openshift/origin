@@ -10,12 +10,10 @@
 angular.module('openshiftConsoleExtensions', ['openshiftConsole'])
   .factory("ProxyPod", function(DataService) {
     return function(namespace, podName, port) {
-      if (port) {
-        podName = podName + ':' + port;
-      }
       return new URI(DataService.url({
         resource: 'pods/proxy',
-        name: podName,
+        // always use https when connecting to jolokia in a pod
+        name: ['https', podName, port || ''].join(':'),
         namespace: namespace
       }));
     };
