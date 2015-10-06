@@ -227,6 +227,13 @@ func IsDeploymentCancelled(deployment *api.ReplicationController) bool {
 	return strings.EqualFold(value, deployapi.DeploymentCancelledAnnotationValue)
 }
 
+// IsTerminatedDeployment returns true if the passed deployment has terminated (either
+// complete or failed).
+func IsTerminatedDeployment(deployment *api.ReplicationController) bool {
+	current := DeploymentStatusFor(deployment)
+	return current == deployapi.DeploymentStatusComplete || current == deployapi.DeploymentStatusFailed
+}
+
 // annotationFor returns the annotation with key for obj.
 func annotationFor(obj runtime.Object, key string) string {
 	meta, err := api.ObjectMetaFor(obj)
