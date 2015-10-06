@@ -152,7 +152,7 @@ NOTE: By default your origin directory will be mounted as a vagrant synced folde
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
         $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ ./oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
 
 10.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
 
