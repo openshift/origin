@@ -21,6 +21,7 @@ import (
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/test/util"
@@ -67,6 +68,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 
 	basedir := util.GetBaseDir()
 
+	nodeArgs.NodeName = "127.0.0.1"
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
 	masterArgs.EtcdDir = path.Join(basedir, "etcd")
 	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
@@ -245,7 +247,7 @@ func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *c
 		return "", err
 	}
 
-	if err := start.StartNode(*nodeConfig); err != nil {
+	if err := StartConfiguredNode(nodeConfig); err != nil {
 		return "", err
 	}
 
@@ -268,6 +270,27 @@ type TestOptions struct {
 
 func DefaultTestOptions() TestOptions {
 	return TestOptions{true}
+}
+
+func StartConfiguredNode(nodeConfig *configapi.NodeConfig) error {
+	kubernetes.SetFakeCadvisorInterfaceForIntegrationTest()
+
+	_, nodePort, err := net.SplitHostPort(nodeConfig.ServingInfo.BindAddress)
+	if err != nil {
+		return err
+	}
+	nodeTLS := false // TODO: set to configapi.UseTLS(nodeConfig.ServingInfo) once client cert auth isn't required to connect
+
+	if err := start.StartNode(*nodeConfig); err != nil {
+		return err
+	}
+
+	// wait for the server to come up for 30 seconds (average time on desktop is 2 seconds, but Jenkins timed out at 10 seconds)
+	if err := cmdutil.WaitForSuccessfulDial(nodeTLS, "tcp", net.JoinHostPort(nodeConfig.NodeName, nodePort), 100*time.Millisecond, 1*time.Second, 30); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error) {
