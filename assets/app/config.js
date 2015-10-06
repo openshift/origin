@@ -6,8 +6,7 @@ window.OPENSHIFT_CONFIG = {
     openshift: {
       hostPort: "localhost:8443",
       prefixes: {
-        "v1beta3": "/osapi",
-        "*":       "/oapi"
+        "v1": "/oapi"
       },
       resources: {
         "buildconfigs": true,
@@ -60,7 +59,7 @@ window.OPENSHIFT_CONFIG = {
     k8s: {
       hostPort: "localhost:8443",
       prefixes: {
-      	"*": "/api"
+      	"v1": "/api"
       },
       resources: {
         "bindings": true,

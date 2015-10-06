@@ -3,8 +3,11 @@ package validation
 import (
 	"testing"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
+	"github.com/openshift/origin/pkg/cmd/server/api"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
@@ -125,5 +128,85 @@ func TestFailingControllerArgs(t *testing.T) {
 	}
 	if e, a := `is not a valid flag`, missingErr.Detail; e != a {
 		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+func TestValidate_ValidateEtcdStorageConfig(t *testing.T) {
+	osField := "openShiftStorageVersion"
+	kubeField := "kubernetesStorageVersion"
+	tests := []struct {
+		label                   string
+		kubeStorageVersion      string
+		openshiftStorageVersion string
+		name                    string
+		expected                fielderrors.ValidationErrorList
+	}{
+		{
+			label:                   "valid levels",
+			kubeStorageVersion:      "v1",
+			openshiftStorageVersion: "v1",
+			expected:                fielderrors.ValidationErrorList{},
+		},
+		{
+			label:                   "unknown openshift level",
+			kubeStorageVersion:      "v1",
+			openshiftStorageVersion: "bogus",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldValueNotSupported(osField, "bogus", []string{"v1"}),
+			},
+		},
+		{
+			label:                   "unsupported openshift level",
+			kubeStorageVersion:      "v1",
+			openshiftStorageVersion: "v1beta3",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldValueNotSupported(osField, "v1beta3", []string{"v1"}),
+			},
+		},
+		{
+			label:                   "missing openshift level",
+			kubeStorageVersion:      "v1",
+			openshiftStorageVersion: "",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldRequired(osField),
+			},
+		},
+		{
+			label:                   "unknown kube level",
+			kubeStorageVersion:      "bogus",
+			openshiftStorageVersion: "v1",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldValueNotSupported(kubeField, "bogus", []string{"v1"}),
+			},
+		},
+		{
+			label:                   "unsupported kube level",
+			kubeStorageVersion:      "v1beta3",
+			openshiftStorageVersion: "v1",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldValueNotSupported(kubeField, "v1beta3", []string{"v1"}),
+			},
+		},
+		{
+			label:                   "missing kube level",
+			kubeStorageVersion:      "",
+			openshiftStorageVersion: "v1",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldRequired(kubeField),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Logf("evaluating test: %s", test.label)
+		config := api.EtcdStorageConfig{
+			OpenShiftStorageVersion:  test.openshiftStorageVersion,
+			KubernetesStorageVersion: test.kubeStorageVersion,
+		}
+		results := ValidateEtcdStorageConfig(config)
+		if !kapi.Semantic.DeepEqual(test.expected, results) {
+			t.Errorf("unexpected validation results; diff:\n%v", util.ObjectDiff(test.expected, results))
+			return
+		}
 	}
 }
