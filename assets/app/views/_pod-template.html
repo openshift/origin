@@ -4,8 +4,8 @@
   imagesByDockerReference (optional)
   builds (optional)
  -->
-<div class="component-block pod-template-container">
-  <div class="component pod-template-block" ng-repeat="container in podTemplate.spec.containers">
+<div class="pod-template-container">
+  <div class="pod-template-block" ng-repeat="container in podTemplate.spec.containers">
     <div class="pod-template">
       <div class="component-label">Container: {{container.name}}</div>
       <div ng-if="container.image" class="pod-template-image">

@@ -144,15 +144,8 @@
 }
 
 .pod-template-block {
-  text-align: left;
-  display: inline-block;
-  .flex(@columns: 1 0 auto);
-  min-width: 150px;
-  max-width: 450px;
   border-radius: 3px;
   margin-bottom: 10px;
-  margin-right: 10px;
-  overflow: hidden;
   .pod-template {
     border: 1px dotted #ddd;
     border-radius: @border-radius-md;
@@ -164,6 +157,9 @@
       margin-right: 5px;
       // Make sure the icons are exactly the same width so the labels align.
       width: 13px;
+    }
+    .pod-template-build {
+      .word-break();
     }
   }
   .pod-template-ports {
