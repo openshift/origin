@@ -85,7 +85,7 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, erro
 	for _, ldapMemberUID := range ldapMemberUIDs {
 		memberEntry, err := e.userEntryFor(ldapMemberUID)
 		if err != nil {
-			return nil, &ldapinterfaces.MemberLookupError{ldapGroupUID, ldapMemberUID, err}
+			return nil, &ldapinterfaces.MemberLookupError{LDAPGroupUID: ldapGroupUID, LDAPUserUID: ldapMemberUID, CausedBy: err}
 		}
 		members = append(members, memberEntry)
 	}
