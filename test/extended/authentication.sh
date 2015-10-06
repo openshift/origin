@@ -81,5 +81,12 @@ cp test/extended/authentication/sync-schema1-group1.yaml ${BASETMPDIR}
 os::util::sed "s/LDAP_SERVICE_IP/${LDAP_SERVICE_IP}/g" ${BASETMPDIR}/sync-schema1-group1.yaml
 openshift ex sync-groups --sync-config=${BASETMPDIR}/sync-schema1-group1.yaml --confirm
 
+oc delete groups --all
+
+cp test/extended/authentication/sync-schema2-01.yaml ${BASETMPDIR}
+os::util::sed "s/LDAP_SERVICE_IP/${LDAP_SERVICE_IP}/g" ${BASETMPDIR}/sync-schema2-01.yaml
+openshift ex sync-groups --sync-config=${BASETMPDIR}/sync-schema2-01.yaml --confirm
+
+
 # Run the tests
 #LDAP_IP=${LDAP_SERVICE_IP} TMPDIR=${BASETMPDIR} ginkgo -progress -stream -v -focus="authentication: OpenLDAP" ${OS_OUTPUT_BINPATH}/extended.test

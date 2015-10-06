@@ -96,7 +96,7 @@ func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure boo
 func ValidateRFC2307Config(config *api.RFC2307Config) ValidationResults {
 	validationResults := ValidationResults{}
 
-	validationResults.Append(ValidateLDAPQuery("allGroupsQuery", config.AllGroupsQuery))
+	validationResults.Append(ValidateLDAPQuery(config.AllGroupsQuery).Prefix("groupsQuery"))
 	if len(config.GroupUIDAttribute) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldRequired("groupUIDAttribute"))
 	}
@@ -107,7 +107,7 @@ func ValidateRFC2307Config(config *api.RFC2307Config) ValidationResults {
 		validationResults.AddErrors(fielderrors.NewFieldRequired("groupMembershipAttributes"))
 	}
 
-	validationResults.Append(ValidateLDAPQuery("allUsersQuery", config.AllUsersQuery))
+	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery).Prefix("usersQuery"))
 	if len(config.UserUIDAttribute) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldRequired("userUIDAttribute"))
 	}
@@ -121,7 +121,7 @@ func ValidateRFC2307Config(config *api.RFC2307Config) ValidationResults {
 func ValidateActiveDirectoryConfig(config *api.ActiveDirectoryConfig) ValidationResults {
 	validationResults := ValidationResults{}
 
-	validationResults.Append(ValidateLDAPQuery("allUsersQuery", config.AllUsersQuery))
+	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery).Prefix("usersQuery"))
 	if len(config.UserNameAttributes) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldRequired("userNameAttributes"))
 	}
@@ -135,7 +135,7 @@ func ValidateActiveDirectoryConfig(config *api.ActiveDirectoryConfig) Validation
 func ValidateAugmentedActiveDirectoryConfig(config *api.AugmentedActiveDirectoryConfig) ValidationResults {
 	validationResults := ValidationResults{}
 
-	validationResults.Append(ValidateLDAPQuery("allUsersQuery", config.AllUsersQuery))
+	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery).Prefix("usersQuery"))
 	if len(config.UserNameAttributes) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldRequired("userNameAttributes"))
 	}
@@ -143,7 +143,7 @@ func ValidateAugmentedActiveDirectoryConfig(config *api.AugmentedActiveDirectory
 		validationResults.AddErrors(fielderrors.NewFieldRequired("groupMembershipAttributes"))
 	}
 
-	validationResults.Append(ValidateLDAPQuery("allGroupsQuery", config.AllGroupsQuery))
+	validationResults.Append(ValidateLDAPQuery(config.AllGroupsQuery).Prefix("groupsQuery"))
 	if len(config.GroupUIDAttribute) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldRequired("groupUIDAttribute"))
 	}
@@ -154,35 +154,35 @@ func ValidateAugmentedActiveDirectoryConfig(config *api.AugmentedActiveDirectory
 	return validationResults
 }
 
-func ValidateLDAPQuery(queryName string, query api.LDAPQuery) ValidationResults {
+func ValidateLDAPQuery(query api.LDAPQuery) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if _, err := ldap.ParseDN(query.BaseDN); err != nil {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid(queryName+".baseDN", query.BaseDN,
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("baseDN", query.BaseDN,
 			fmt.Sprintf("invalid base DN for search: %v", err)))
 	}
 
 	if len(query.Scope) > 0 {
 		if _, err := ldaputil.DetermineLDAPScope(query.Scope); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid(queryName+".scope", query.Scope,
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("scope", query.Scope,
 				"invalid LDAP search scope"))
 		}
 	}
 
 	if len(query.DerefAliases) > 0 {
 		if _, err := ldaputil.DetermineDerefAliasesBehavior(query.DerefAliases); err != nil {
-			validationResults.AddErrors(fielderrors.NewFieldInvalid(queryName+".derefAliases",
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("derefAliases",
 				query.DerefAliases, "LDAP alias dereferencing instruction invalid"))
 		}
 	}
 
 	if query.TimeLimit < 0 {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid(queryName+".timeout", query.TimeLimit,
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("timeout", query.TimeLimit,
 			"timeout must be equal to or greater than zero"))
 	}
 
 	if _, err := ldap.CompileFilter(query.Filter); err != nil {
-		validationResults.AddErrors(fielderrors.NewFieldInvalid(queryName+".filter", query.Filter,
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("filter", query.Filter,
 			fmt.Sprintf("invalid query filter: %v", err)))
 	}
 

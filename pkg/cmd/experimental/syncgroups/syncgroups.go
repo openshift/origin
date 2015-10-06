@@ -19,6 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/ad"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/rfc2307"
 	"github.com/openshift/origin/pkg/cmd/server/api"
@@ -322,7 +323,38 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 			&ldapInterface)
 
 	case o.Config.ActiveDirectoryConfig != nil:
-		fallthrough
+		syncer.UserNameMapper = NewUserNameMapper(o.Config.ActiveDirectoryConfig.UserNameAttributes)
+
+		// config values are internalized
+
+		userQuery, err := ldaputil.NewLDAPQueryOnAttribute(o.Config.ActiveDirectoryConfig.AllUsersQuery, "dn")
+		if err != nil {
+			return err
+		}
+
+		// the schema-specific ldapInterface is built from the config
+		ldapInterface := ad.NewLDAPInterface(clientConfig,
+			userQuery,
+			o.Config.ActiveDirectoryConfig.GroupMembershipAttributes,
+			o.Config.ActiveDirectoryConfig.UserNameAttributes)
+
+		// The LDAPInterface knows how to extract group members
+		syncer.GroupMemberExtractor = &ldapInterface
+
+		// In order to build the GroupNameMapper, we need to know if the user defined a hard mapping
+		// or one based on LDAP group entry attributes
+		if syncer.GroupNameMapper == nil {
+			syncer.GroupNameMapper = &DNLDAPGroupNameMapper{}
+		}
+
+		// In order to build the groupLister, we need to know about the group sync scope and source:
+		syncer.GroupLister = getGroupLister(o.Scope,
+			o.Source,
+			o.WhitelistContents,
+			o.GroupInterface,
+			clientConfig.Host,
+			&ldapInterface)
+
 	case o.Config.AugmentedActiveDirectoryConfig != nil:
 		fallthrough
 	default:
