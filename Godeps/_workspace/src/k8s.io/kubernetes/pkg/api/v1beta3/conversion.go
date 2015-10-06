@@ -507,6 +507,7 @@ func convert_v1beta3_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s con
 	out.ServiceAccountName = in.ServiceAccount
 	out.NodeName = in.Host
 	out.HostNetwork = in.HostNetwork
+	out.HostPID = in.HostPID
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -569,6 +570,7 @@ func convert_api_PodSpec_To_v1beta3_PodSpec(in *api.PodSpec, out *PodSpec, s con
 	out.ServiceAccount = in.ServiceAccountName
 	out.Host = in.NodeName
 	out.HostNetwork = in.HostNetwork
+	out.HostPID = in.HostPID
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {

@@ -1443,6 +1443,7 @@ func deepCopy_v1beta3_PodSpec(in PodSpec, out *PodSpec, c *conversion.Cloner) er
 	out.ServiceAccount = in.ServiceAccount
 	out.Host = in.Host
 	out.HostNetwork = in.HostNetwork
+	out.HostPID = in.HostPID
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
