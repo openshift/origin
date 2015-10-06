@@ -23,6 +23,7 @@ import (
 	"io"
 	"io/ioutil"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -129,7 +130,7 @@ func TestStreamClosedDuringRead(t *testing.T) {
 	if !reflect.DeepEqual(data, []byte(input)) {
 		t.Errorf("unexpected server read: %v", data)
 	}
-	if err == nil || err.Error() != "use of closed network connection" {
+	if err == nil || !strings.HasSuffix(err.Error(), "use of closed network connection") {
 		t.Fatal(err)
 	}
 }
