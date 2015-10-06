@@ -27,7 +27,8 @@ If you specify a source code URL, it will set up a build that takes your source 
 it into an image that can run inside of a pod. Local source must be in a git repository that has a
 remote repository that the server can see.
 
-Once the build configuration is created you may need to run a build with 'start-build'.`
+Once the build configuration is created a new build will be automatically triggered.
+You can use '%[1]s status' to check the progress.`
 
 	newBuildExample = `  # Create a build config based on the source code in the current git repository (with a public remote) and a Docker image
   $ %[1]s new-build . --docker-image=repo/langimage
@@ -54,7 +55,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd := &cobra.Command{
 		Use:        "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
 		Short:      "Create a new build configuration",
-		Long:       newBuildLong,
+		Long:       fmt.Sprintf(newBuildLong, fullName),
 		Example:    fmt.Sprintf(newBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
@@ -128,8 +129,11 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "A build configuration was created - you can run `%s start-build %s` to start it.\n", fullName, t.Name)
+			fmt.Fprintf(c.Out(), "Build configuration %q created and build triggered.\n", t.Name)
 		}
+	}
+	if len(result.List.Items) > 0 {
+		fmt.Fprintf(c.Out(), "Run '%s %s' to check the progress.\n", fullName, StatusRecommendedName)
 	}
 
 	return nil
