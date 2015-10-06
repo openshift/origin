@@ -1961,6 +1961,8 @@ func deepCopy_v1beta3_SecurityContextConstraints(in SecurityContextConstraints, 
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
+	out.AllowHostPID = in.AllowHostPID
+	out.AllowHostIPC = in.AllowHostIPC
 	if err := deepCopy_v1beta3_SELinuxContextStrategyOptions(in.SELinuxContext, &out.SELinuxContext, c); err != nil {
 		return err
 	}

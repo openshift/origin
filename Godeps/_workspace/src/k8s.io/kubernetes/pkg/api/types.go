@@ -2286,6 +2286,10 @@ type SecurityContextConstraints struct {
 	AllowHostNetwork bool
 	// AllowHostPorts determines if the policy allows host ports in the containers.
 	AllowHostPorts bool
+	// AllowHostPID determines if the policy allows host pid in the containers.
+	AllowHostPID bool
+	// AllowHostIPC determines if the policy allows host ipc in the containers.
+	AllowHostIPC bool
 	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
 	SELinuxContext SELinuxContextStrategyOptions
 	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
