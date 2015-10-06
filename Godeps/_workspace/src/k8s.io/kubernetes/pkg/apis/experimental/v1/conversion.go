@@ -100,6 +100,7 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *v1.PodSpec, s conve
 	out.DeprecatedServiceAccount = in.ServiceAccountName
 	out.NodeName = in.NodeName
 	out.HostNetwork = in.HostNetwork
+	out.HostPID = in.HostPID
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]v1.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -167,6 +168,7 @@ func convert_v1_PodSpec_To_api_PodSpec(in *v1.PodSpec, out *api.PodSpec, s conve
 	}
 	out.NodeName = in.NodeName
 	out.HostNetwork = in.HostNetwork
+	out.HostPID = in.HostPID
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
