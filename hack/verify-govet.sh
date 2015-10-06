@@ -23,7 +23,7 @@ FAILURE=false
 test_dirs=$(find_files | cut -d '/' -f 1-2 | sort -u)
 for test_dir in $test_dirs
 do
-  go tool vet -shadow=false $test_dir
+  go tool vet $test_dir
   if [ "$?" -ne 0 ]
   then 
     FAILURE=true
