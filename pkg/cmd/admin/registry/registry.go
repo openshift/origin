@@ -142,9 +142,9 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 		"docker-registry": "default",
 	}
 	if cfg.Labels != defaultLabel {
-		valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Labels, ","))
-		if err != nil {
-			return err
+		valid, remove, labelErr := app.LabelsFromSpec(strings.Split(cfg.Labels, ","))
+		if labelErr != nil {
+			return labelErr
 		}
 		if len(remove) > 0 {
 			return cmdutil.UsageError(cmd, "You may not pass negative labels in %q", cfg.Labels)
@@ -154,9 +154,9 @@ func RunCmdRegistry(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg
 
 	nodeSelector := map[string]string{}
 	if len(cfg.Selector) > 0 {
-		valid, remove, err := app.LabelsFromSpec(strings.Split(cfg.Selector, ","))
-		if err != nil {
-			return err
+		valid, remove, labelErr := app.LabelsFromSpec(strings.Split(cfg.Selector, ","))
+		if labelErr != nil {
+			return labelErr
 		}
 		if len(remove) > 0 {
 			return cmdutil.UsageError(cmd, "You may not pass negative labels in selector %q", cfg.Selector)

@@ -126,7 +126,7 @@ func TestOAuthLDAP(t *testing.T) {
 
 	// Make sure we can't authenticate as a missing user
 	ldapServer.ResetRequests()
-	if _, err := tokencmd.RequestToken(&anonConfig, nil, myUserUID, myUserPassword); err == nil {
+	if _, requestErr := tokencmd.RequestToken(&anonConfig, nil, myUserUID, myUserPassword); requestErr == nil {
 		t.Error("Expected error, got none")
 	}
 	if len(ldapServer.BindRequests) != 1 {
@@ -142,7 +142,7 @@ func TestOAuthLDAP(t *testing.T) {
 
 	// Make sure we can't authenticate with a bad password
 	ldapServer.ResetRequests()
-	if _, err := tokencmd.RequestToken(&anonConfig, nil, myUserUID, "badpassword"); err == nil {
+	if _, requestErr := tokencmd.RequestToken(&anonConfig, nil, myUserUID, "badpassword"); requestErr == nil {
 		t.Error("Expected error, got none")
 	}
 	if len(ldapServer.BindRequests) != 2 {

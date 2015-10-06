@@ -126,8 +126,8 @@ middleware:
 			Name:      "test",
 		},
 	}
-	if _, err := adminClient.ImageStreams(testutil.Namespace()).Create(&stream); err != nil {
-		t.Fatalf("error creating image stream: %s", err)
+	if _, createErr := adminClient.ImageStreams(testutil.Namespace()).Create(&stream); createErr != nil {
+		t.Fatalf("error creating image stream: %s", createErr)
 	}
 
 	tags, err := getTags(stream.Name, user, token)

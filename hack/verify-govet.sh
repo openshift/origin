@@ -5,7 +5,7 @@ set -o pipefail
 
 GO_VERSION=($(go version))
 
-if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.4') ]]; then
+if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.[45]') ]]; then
   echo "Unknown go version '${GO_VERSION}', skipping go vet."
   exit 0
 fi
@@ -23,7 +23,7 @@ FAILURE=false
 test_dirs=$(find_files | cut -d '/' -f 1-2 | sort -u)
 for test_dir in $test_dirs
 do
-  go tool vet $test_dir
+  go tool vet -all -shadow -shadowstrict $test_dir
   if [ "$?" -ne 0 ]
   then 
     FAILURE=true

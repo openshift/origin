@@ -132,12 +132,12 @@ func (eq *EventQueue) handleEvent(obj interface{}, newEventType watch.EventType)
 		eq.queue = append(eq.queue, key)
 		eq.cond.Broadcast()
 	case watchEventEffectCompress:
-		newEventType, ok := watchEventCompressionMatrix[queuedEventType][newEventType]
-		if !ok {
-			panic(fmt.Sprintf("Invalid state transition: %v -> %v", queuedEventType, newEventType))
+		newNewEventType, typeOk := watchEventCompressionMatrix[queuedEventType][newEventType]
+		if !typeOk {
+			panic(fmt.Sprintf("Invalid state transition: %v -> %v", queuedEventType, newNewEventType))
 		}
 
-		eq.events[key] = newEventType
+		eq.events[key] = newNewEventType
 	case watchEventEffectDelete:
 		delete(eq.events, key)
 		eq.queue = eq.queueWithout(key)

@@ -58,7 +58,7 @@ func TestOAuthHTPasswd(t *testing.T) {
 	anonConfig.CAData = clientConfig.CAData
 
 	// Make sure we can't authenticate
-	if _, err := tokencmd.RequestToken(&anonConfig, nil, "username", "password"); err == nil {
+	if _, requestErr := tokencmd.RequestToken(&anonConfig, nil, "username", "password"); requestErr == nil {
 		t.Error("Expected error, got none")
 	}
 

@@ -182,6 +182,7 @@ func (o DeployOptions) RunDeploy() error {
 	if err != nil {
 		return err
 	}
+
 	config, ok := resultObj.(*deployapi.DeploymentConfig)
 	if !ok {
 		return fmt.Errorf("%s is not a valid deploymentconfig", o.deploymentConfigName)
@@ -198,9 +199,9 @@ func (o DeployOptions) RunDeploy() error {
 		err = o.reenableTriggers(config, o.out)
 	default:
 		describer := describe.NewLatestDeploymentsDescriber(o.osClient, o.kubeClient, -1)
-		desc, err := describer.Describe(config.Namespace, config.Name)
-		if err != nil {
-			return err
+		desc, describeErr := describer.Describe(config.Namespace, config.Name)
+		if describeErr != nil {
+			return describeErr
 		}
 		fmt.Fprint(o.out, desc)
 	}

@@ -41,8 +41,8 @@ func (p *Processor) Process(template *api.Template) fielderrors.ValidationErrorL
 	for i, item := range template.Objects {
 		if obj, ok := item.(*runtime.Unknown); ok {
 			// TODO: use runtime.DecodeList when it returns ValidationErrorList
-			decodedObj, err := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
-			if err != nil {
+			decodedObj, decodeErr := runtime.UnstructuredJSONScheme.Decode(obj.RawJSON)
+			if decodeErr != nil {
 				util.ReportError(&templateErrors, i, *fielderrors.NewFieldInvalid("objects", obj, "unable to handle object"))
 				continue
 			}

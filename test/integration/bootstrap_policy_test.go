@@ -96,12 +96,12 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 
 	// after the policy is deleted, we must wait for it to be cleared from the policy cache
 	err = wait.Poll(10*time.Millisecond, 10*time.Second, func() (bool, error) {
-		_, err := client.ClusterPolicies().List(labels.Everything(), fields.Everything())
-		if err == nil {
+		_, listErr := client.ClusterPolicies().List(labels.Everything(), fields.Everything())
+		if listErr == nil {
 			return false, nil
 		}
-		if !kapierror.IsForbidden(err) {
-			t.Errorf("unexpected error: %v", err)
+		if !kapierror.IsForbidden(listErr) {
+			t.Errorf("unexpected error: %v", listErr)
 		}
 		return true, nil
 	})

@@ -252,8 +252,8 @@ func getJSONValue(data map[string]interface{}, keys ...string) (interface{}, boo
 
 	// Get the indexed value if an index is specified
 	if index >= 0 {
-		valueSlice, ok := value.([]interface{})
-		if !ok {
+		valueSlice, valueOk := value.([]interface{})
+		if !valueOk {
 			return nil, false, fmt.Errorf("Key %s did not hold a slice", key)
 		}
 		if index >= len(valueSlice) {

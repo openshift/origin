@@ -15,6 +15,7 @@ import (
 	"github.com/RangelReale/osincli"
 	"github.com/emicklei/go-restful"
 	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
@@ -253,8 +254,8 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 				}
 			}
 
-			if _, err := clientRegistry.UpdateClient(ctx, currClient); err != nil {
-				glog.Errorf("Error updating OAuthClient %v: %v", currClient.Name, err)
+			if _, updateErr := clientRegistry.UpdateClient(ctx, currClient); updateErr != nil {
+				glog.Errorf("Error updating OAuthClient %v: %v", currClient.Name, updateErr)
 			}
 		} else if kerrs.IsNotFound(err) {
 			if _, err = clientRegistry.CreateClient(ctx, currClient); err != nil {

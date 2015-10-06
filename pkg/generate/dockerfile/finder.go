@@ -55,9 +55,9 @@ func (f *finder) Find(dir string) ([]string, error) {
 		}
 		// Add relative path to Dockerfile.
 		if isDockerfile(info) {
-			relpath, err := filepath.Rel(dir, path)
-			if err != nil {
-				return err
+			relpath, relErr := filepath.Rel(dir, path)
+			if relErr != nil {
+				return relErr
 			}
 			dockerfiles = append(dockerfiles, relpath)
 		}

@@ -82,9 +82,9 @@ func RunCancelBuild(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, arg
 			NoWait: true,
 			Follow: false,
 		}
-		response, err := client.BuildLogs(namespace).Get(buildName, opts).Do().Raw()
-		if err != nil {
-			glog.Errorf("Could not fetch build logs for %s: %v", buildName, err)
+		response, doErr := client.BuildLogs(namespace).Get(buildName, opts).Do().Raw()
+		if doErr != nil {
+			glog.Errorf("Could not fetch build logs for %s: %v", buildName, doErr)
 		} else {
 			glog.Infof("Build logs for %s:\n%v", buildName, string(response))
 		}

@@ -174,9 +174,9 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 			streamRefNamespace = stream.Namespace
 		}
 		if streamRefNamespace != stream.Namespace || tagRefStreamName != stream.Name {
-			obj, err := s.ImageStreamGetter.Get(kapi.WithNamespace(kapi.NewContext(), streamRefNamespace), tagRefStreamName)
-			if err != nil {
-				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, fmt.Sprintf("error retrieving ImageStream %s/%s: %v", streamRefNamespace, tagRefStreamName, err)))
+			obj, getErr := s.ImageStreamGetter.Get(kapi.WithNamespace(kapi.NewContext(), streamRefNamespace), tagRefStreamName)
+			if getErr != nil {
+				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, fmt.Sprintf("error retrieving ImageStream %s/%s: %v", streamRefNamespace, tagRefStreamName, getErr)))
 				continue
 			}
 

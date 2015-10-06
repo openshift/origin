@@ -72,8 +72,8 @@ func TestAccessDisabledWebConsole(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	masterOptions.DisabledFeatures.Add(configapi.FeatureWebConsole)
-	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if _, startErr := testserver.StartConfiguredMaster(masterOptions); startErr != nil {
+		t.Fatalf("unexpected error: %v", startErr)
 	}
 
 	resp := tryAccessURL(t, masterOptions.AssetConfig.MasterPublicURL+"/", http.StatusOK, "")

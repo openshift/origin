@@ -187,8 +187,8 @@ func (o ProjectOptions) RunProject() error {
 					msg = fmt.Sprintf("A project named %q does not exist on %q.", argument, clientCfg.Host)
 				}
 
-				projects, err := getProjects(o.Client)
-				if err == nil {
+				projects, getErr := getProjects(o.Client)
+				if getErr == nil {
 					switch len(projects) {
 					case 0:
 						msg += "\nYou are not a member of any projects. You can request a project to be created with the 'new-project' command."

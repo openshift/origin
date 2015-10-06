@@ -211,9 +211,9 @@ func RunListBuildWebHooks(f *clientcmd.Factory, out, errOut io.Writer, name stri
 	}
 
 	if isBuild {
-		build, err := client.Builds(namespace).Get(name)
-		if err != nil {
-			return err
+		build, getErr := client.Builds(namespace).Get(name)
+		if getErr != nil {
+			return getErr
 		}
 		ref := build.Status.Config
 		if ref == nil {
@@ -278,8 +278,8 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 	// when using HTTPS, try to reuse the local config transport if possible to get a client cert
 	// TODO: search all configs
 	if hook.Scheme == "https" {
-		config, err := f.OpenShiftClientConfig.ClientConfig()
-		if err == nil {
+		config, clientErr := f.OpenShiftClientConfig.ClientConfig()
+		if clientErr == nil {
 			if url, err := client.DefaultServerURL(config.Host, "", "test", true); err == nil {
 				if url.Host == hook.Host && url.Scheme == hook.Scheme {
 					if rt, err := client.TransportFor(config); err == nil {
