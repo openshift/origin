@@ -294,6 +294,7 @@ func (s *APIServer) Run(_ []string) error {
 		PrivilegedSources: capabilities.PrivilegedSources{
 			HostNetworkSources: []string{},
 			HostPIDSources:     []string{},
+			HostIPCSources:     []string{},
 		},
 		PerConnectionBandwidthLimitBytesPerSec: s.MaxConnectionBytesPerSec,
 	})
