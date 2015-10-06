@@ -135,7 +135,7 @@ openshift start \
 # breaking the config fails the validation check
 cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
 os::util::sed '5,10d' ${BASETMPDIR}/master-config-broken.yaml
-[ "$(openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml 2>&1 | grep error)" ]
+[ "$(openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml 2>&1 | grep ERROR)" ]
 
 cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml
 os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
@@ -205,8 +205,8 @@ fi
 # must only accept one arg (server)
 [ "$(oc login https://server1 https://server2.com 2>&1 | grep 'Only the server URL may be specified')" ]
 # logs in with a valid certificate authority
-oc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1beta3
-grep -q "v1beta3" ${HOME}/.kube/config
+oc login ${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything --api-version=v1
+grep -q "v1" ${HOME}/.kube/config
 oc logout
 # logs in skipping certificate check
 oc login ${KUBERNETES_MASTER} --insecure-skip-tls-verify -u test-user -p anything

@@ -29,7 +29,6 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 			// TODO once we have a MuxHelper we will not need to hardcode this list of paths
 			object := unversioned.RootPaths{Paths: []string{
 				"/api",
-				"/api/v1beta3",
 				"/api/v1",
 				"/controllers",
 				"/healthz",
@@ -37,8 +36,6 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 				"/logs/",
 				"/metrics",
 				"/ready",
-				"/osapi",
-				"/osapi/v1beta3",
 				"/oapi",
 				"/oapi/v1",
 				"/swaggerapi/",

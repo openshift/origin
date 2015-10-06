@@ -198,18 +198,38 @@ func ValidateAPILevels(apiLevels []string, knownAPILevels, deadAPILevels []strin
 func ValidateEtcdStorageConfig(config api.EtcdStorageConfig) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 
-	if len(config.KubernetesStorageVersion) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("kubernetesStorageVersion"))
-	}
-	if len(config.OpenShiftStorageVersion) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("openShiftStorageVersion"))
-	}
+	allErrs = append(allErrs, ValidateStorageVersionLevel(
+		config.KubernetesStorageVersion,
+		api.KnownKubernetesStorageVersionLevels,
+		api.DeadKubernetesStorageVersionLevels,
+		"kubernetesStorageVersion")...)
+	allErrs = append(allErrs, ValidateStorageVersionLevel(
+		config.OpenShiftStorageVersion,
+		api.KnownOpenShiftStorageVersionLevels,
+		api.DeadOpenShiftStorageVersionLevels,
+		"openShiftStorageVersion")...)
 
 	if strings.ContainsRune(config.KubernetesStoragePrefix, '%') {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("kubernetesStoragePrefix", config.KubernetesStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
 	}
 	if strings.ContainsRune(config.OpenShiftStoragePrefix, '%') {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("openShiftStoragePrefix", config.OpenShiftStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
+	}
+
+	return allErrs
+}
+
+func ValidateStorageVersionLevel(level string, knownAPILevels, deadAPILevels []string, name string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(level) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired(name))
+		return allErrs
+	}
+	supportedLevels := sets.NewString(knownAPILevels...)
+	supportedLevels.Delete(deadAPILevels...)
+	if !supportedLevels.Has(level) {
+		allErrs = append(allErrs, fielderrors.NewFieldValueNotSupported(name, level, supportedLevels.List()))
 	}
 
 	return allErrs

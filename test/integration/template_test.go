@@ -5,7 +5,7 @@ package integration
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/v1beta3"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
@@ -22,7 +22,7 @@ func TestTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, version := range []string{"v1", "v1beta3"} {
+	for _, version := range []string{"v1"} {
 		config, err := testutil.GetClusterAdminClientConfig(path)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -42,13 +42,13 @@ func TestTemplate(t *testing.T) {
 				},
 			},
 			Objects: []runtime.Object{
-				&v1beta3.Service{
-					ObjectMeta: v1beta3.ObjectMeta{
+				&v1.Service{
+					ObjectMeta: v1.ObjectMeta{
 						Name:      "${NAME}-tester",
 						Namespace: "somevalue",
 					},
-					Spec: v1beta3.ServiceSpec{
-						PortalIP:        "1.2.3.4",
+					Spec: v1.ServiceSpec{
+						ClusterIP:       "1.2.3.4",
 						SessionAffinity: "some-bad-${VALUE}",
 					},
 				},
@@ -69,7 +69,7 @@ func TestTemplate(t *testing.T) {
 		spec := svc["spec"].(map[string]interface{})
 		meta := svc["metadata"].(map[string]interface{})
 		// keep existing values
-		if spec["portalIP"] != "1.2.3.4" {
+		if spec["clusterIP"] != "1.2.3.4" {
 			t.Fatalf("unexpected object: %#v", svc)
 		}
 		// replace a value

@@ -31,9 +31,8 @@ import (
 )
 
 const (
-	KubeAPIPrefix        = "/api"
-	KubeAPIPrefixV1Beta3 = "/api/v1beta3"
-	KubeAPIPrefixV1      = "/api/v1"
+	KubeAPIPrefix   = "/api"
+	KubeAPIPrefixV1 = "/api/v1"
 )
 
 // InstallAPI starts a Kubernetes master and registers the supported REST APIs
