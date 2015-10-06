@@ -2,7 +2,7 @@ language: go
 
 go:
   - 1.4
-  - 1.5
+  - 1.5.1
 
 env:
   - TEST_ASSETS=true
@@ -10,7 +10,7 @@ env:
 
 matrix:
   exclude:
-  - go: 1.5
+  - go: 1.5.1
     env: TEST_ASSETS=true
 
 install:
