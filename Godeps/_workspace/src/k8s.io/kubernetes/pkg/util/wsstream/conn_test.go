@@ -137,11 +137,12 @@ func TestBase64Conn(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(data, []byte("client")) {
-			t.Errorf("unexpected server read: %v", data)
+			t.Errorf("unexpected server read: %s", string(data))
 		}
 	}()
 
-	if n, err := client.Write(append([]byte{'0'}, []byte("client")...)); err != nil || n != 7 {
+	clientData := base64.StdEncoding.EncodeToString([]byte("client"))
+	if n, err := client.Write(append([]byte{'0'}, clientData...)); err != nil || n != len(clientData)+1 {
 		t.Fatalf("%d: %v", n, err)
 	}
 
