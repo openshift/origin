@@ -13,7 +13,8 @@ import (
 var (
 	// availableClientDiagnostics contains the names of client diagnostics that can be executed
 	// during a single run of diagnostics. Add more diagnostics to the list as they are defined.
-	availableClientDiagnostics = sets.NewString(clientdiags.ConfigContextsName)
+	availableClientDiagnostics = sets.NewString(clientdiags.ConfigContextsName,
+		clientdiags.LatestBuildsName)
 )
 
 // buildClientDiagnostics builds client Diagnostic objects based on the rawConfig passed in.
@@ -30,13 +31,15 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 
 	diagnostics := []types.Diagnostic{}
 	requestedDiagnostics := intersection(sets.NewString(o.RequestedDiagnostics...), available).List()
+
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 		case clientdiags.ConfigContextsName:
 			for contextName := range rawConfig.Contexts {
 				diagnostics = append(diagnostics, clientdiags.ConfigContext{RawConfig: rawConfig, ContextName: contextName})
 			}
-
+		case clientdiags.LatestBuildsName:
+			diagnostics = append(diagnostics, &clientdiags.LatestBuilds{RawConfig: rawConfig})
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}
