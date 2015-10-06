@@ -369,6 +369,8 @@ func (m *Master) Start() error {
 		AllowPrivileged: true,
 		PrivilegedSources: capabilities.PrivilegedSources{
 			HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
+			HostPIDSources:     []string{kubelet.ApiserverSource, kubelet.FileSource},
+			HostIPCSources:     []string{kubelet.ApiserverSource, kubelet.FileSource},
 		},
 	})
 

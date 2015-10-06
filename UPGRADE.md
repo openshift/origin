@@ -31,3 +31,6 @@ At that time, the openshift docker registry image must be upgraded in order to c
   removed  in Origin 1.1 (OSE 3.1).
 
 1. The `volume.metadata` field is deprecated as of Origin 1.0.6 in favor of `volume.downwardAPI`.
+
+1. New fields (`allowHostPID` and `allowHostIPC`) have been added to the default SCCs in Origin 1.0.7.  
+You may set these fields manually or [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints).

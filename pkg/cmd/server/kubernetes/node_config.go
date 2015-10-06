@@ -124,6 +124,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.ClusterDomain = options.DNSDomain
 	server.NetworkPluginName = options.NetworkConfig.NetworkPluginName
 	server.HostNetworkSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
+	server.HostPIDSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
+	server.HostIPCSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
 	server.HTTPCheckFrequency = 0 // no remote HTTP pod creation access
 	server.FileCheckFrequency = time.Duration(fileCheckInterval) * time.Second
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
