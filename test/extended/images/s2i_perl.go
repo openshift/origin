@@ -13,12 +13,12 @@ import (
 var _ = g.Describe("images: s2i: perl", func() {
 	defer g.GinkgoRecover()
 	var (
-		dancerTemplate  = "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json"
-		oc              = exutil.NewCLI("s2i-perl", exutil.KubeConfigPath())
-		modifyCommand   = []string{"sed", "-ie", `s/data => \$data\[0\]/data => "1337"/`, "lib/default.pm"}
-		pageCountFunc   = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
-		dcName          = "dancer-mysql-example-1"
-		dcLabel         = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
+		dancerTemplate = "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json"
+		oc             = exutil.NewCLI("s2i-perl", exutil.KubeConfigPath())
+		modifyCommand  = []string{"sed", "-ie", `s/data => \$data\[0\]/data => "1337"/`, "lib/default.pm"}
+		pageCountFunc  = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
+		dcName         = "dancer-mysql-example-1"
+		dcLabel        = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
 	)
 
 	g.Describe("Dancer example", func() {
