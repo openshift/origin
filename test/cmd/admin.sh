@@ -13,7 +13,8 @@ os::log::install_errexit
   set +e
   oc delete project/example project/ui-test-project project/recreated-project
   oc delete sa/router -n default
-  oadm policy reconcile-cluster-roles
+  oadm policy reconcile-cluster-roles --confirm
+  oadm policy reconcile-cluster-role-bindings --confirm
 ) 2>/dev/null 1>&2
 
 defaultimage="openshift/origin-\${component}:latest"
@@ -75,6 +76,7 @@ oadm policy add-cluster-role-to-group cluster-admin system:unauthenticated
 oadm policy remove-cluster-role-from-group cluster-admin system:unauthenticated
 oadm policy add-cluster-role-to-user cluster-admin system:no-user
 oadm policy remove-cluster-role-from-user cluster-admin system:no-user
+
 oc delete clusterrole/cluster-status
 [ ! "$(oc get clusterrole/cluster-status)" ]
 oadm policy reconcile-cluster-roles
@@ -82,10 +84,40 @@ oadm policy reconcile-cluster-roles
 oadm policy reconcile-cluster-roles --confirm
 oc get clusterrole/cluster-status
 oc replace --force -f ./test/fixtures/basic-user.json
+# display shows customized labels/annotations
+[ "$(oadm policy reconcile-cluster-roles | grep custom-label)" ]
+[ "$(oadm policy reconcile-cluster-roles | grep custom-annotation)" ]
 oadm policy reconcile-cluster-roles --additive-only --confirm
+# reconcile preserves added rules, labels, and annotations
+[ "$(oc get clusterroles/basic-user -o json | grep custom-label)" ]
+[ "$(oc get clusterroles/basic-user -o json | grep custom-annotation)" ]
 [ "$(oc get clusterroles/basic-user -o json | grep groups)" ]
 oadm policy reconcile-cluster-roles --confirm
 [ ! "$(oc get clusterroles/basic-user -o json | grep groups)" ]
+
+# Ensure a removed binding gets re-added
+oc delete clusterrolebinding/cluster-status-binding
+[ ! "$(oc get clusterrolebinding/cluster-status-binding)" ]
+oadm policy reconcile-cluster-role-bindings
+[ ! "$(oc get clusterrolebinding/cluster-status-binding)" ]
+oadm policy reconcile-cluster-role-bindings --confirm
+oc get clusterrolebinding/cluster-status-binding
+# Customize a binding
+oc replace --force -f ./test/fixtures/basic-users-binding.json
+# display shows customized labels/annotations
+[ "$(oadm policy reconcile-cluster-role-bindings | grep custom-label)" ]
+[ "$(oadm policy reconcile-cluster-role-bindings | grep custom-annotation)" ]
+oadm policy reconcile-cluster-role-bindings --confirm
+# Ensure a customized binding's subjects, labels, annotations are retained by default
+[ "$(oc get clusterrolebindings/basic-users -o json | grep custom-label)" ]
+[ "$(oc get clusterrolebindings/basic-users -o json | grep custom-annotation)" ]
+[ "$(oc get clusterrolebindings/basic-users -o json | grep custom-user)" ]
+# Ensure a customized binding's roleref is corrected
+[ ! "$(oc get clusterrolebindings/basic-users -o json | grep cluster-status)" ]
+# Ensure --additive-only=false removes customized users from the binding
+oadm policy reconcile-cluster-role-bindings --additive-only=false --confirm
+[ ! "$(oc get clusterrolebindings/basic-users -o json | grep custom-user)" ]
+
 echo "admin-policy: ok"
 
 # Test the commands the UI projects page tells users to run

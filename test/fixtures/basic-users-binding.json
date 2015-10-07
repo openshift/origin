@@ -1,0 +1,30 @@
+{
+    "kind": "ClusterRoleBinding",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "basic-users",
+        "selfLink": "/oapi/v1/clusterrolebindings/basic-users",
+        "uid": "8dcfc4cd-6917-11e5-8b72-3c970e4b7ffe",
+        "resourceVersion": "42",
+        "creationTimestamp": "2015-10-02T15:09:18Z",
+        "labels": {
+        	"custom-label":"value"
+        },
+        "annotations": {
+        	"custom-annotation":"value"
+        }
+    },
+    "subjects": [
+        {
+            "kind": "SystemGroup",
+            "name": "system:authenticated"
+        },
+        {
+            "kind": "User",
+            "name": "custom-user"
+        }
+    ],
+    "roleRef": {
+        "name": "cluster-status"
+    }
+}

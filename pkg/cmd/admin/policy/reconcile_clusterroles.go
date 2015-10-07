@@ -157,6 +157,12 @@ func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*authorizationap
 			return nil, err
 		}
 
+		// Copy any existing labels/annotations, so the displayed update is correct
+		// This assumes bootstrap roles will not set any labels/annotations
+		// These aren't actually used during update; the latest labels/annotations are pulled from the existing object again
+		expectedClusterRole.Labels = actualClusterRole.Labels
+		expectedClusterRole.Annotations = actualClusterRole.Annotations
+
 		if !kapi.Semantic.DeepEqual(expectedClusterRole.Rules, actualClusterRole.Rules) {
 			if o.Union {
 				_, missingRules := rulevalidation.Covers(expectedClusterRole.Rules, actualClusterRole.Rules)

@@ -201,6 +201,31 @@ Manage nodes - list pods, evacuate, or mark ready
 ====
 
 
+== oadm policy reconcile-cluster-role-bindings
+Replace cluster role bindings to match the recommended bootstrap policy
+
+====
+
+[options="nowrap"]
+----
+  # Display the cluster role bindings that would be modified
+  $ openshift admin policy reconcile-cluster-role-bindings
+
+  # Display the cluster role bindings that would be modified, removing any extra subjects
+  $ openshift admin policy reconcile-cluster-role-bindings --additive-only=false
+
+  # Update cluster role bindings that don't match the current defaults
+  $ openshift admin policy reconcile-cluster-role-bindings --confirm
+
+  # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
+  $ openshift admin policy reconcile-cluster-role-bindings --confirm --exclude-groups=system:authenticated
+
+  # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
+  $ openshift admin policy reconcile-cluster-role-bindings --confirm --additive-only=false
+----
+====
+
+
 == oadm policy reconcile-cluster-roles
 Replace cluster roles to match the recommended bootstrap policy
 
