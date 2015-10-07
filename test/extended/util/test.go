@@ -65,5 +65,7 @@ func ExecuteTest(t *testing.T, reportDir string) {
 		r = append(r, reporters.NewJUnitReporter(path.Join(reportDir, fmt.Sprintf("junit_%02d.xml", config.GinkgoConfig.ParallelNode))))
 	}
 
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "OpenShift extended tests suite", r)
+	r = append(r, NewSimpleReporter())
+
+	ginkgo.RunSpecsWithCustomReporters(t, "OpenShift extended tests suite", r)
 }
