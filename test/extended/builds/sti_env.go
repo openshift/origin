@@ -11,6 +11,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 var _ = g.Describe("builds: sti_env: STI build with .sti/environment file", func() {
@@ -53,8 +54,11 @@ var _ = g.Describe("builds: sti_env: STI build with .sti/environment file", func
 
 			g.By("writing the pod definition to a file")
 			outputPath := filepath.Join(exutil.TestContext.OutputDir, oc.Namespace()+"-sample-pod.json")
-			pod := exutil.CreatePodForImage(imageName)
-			err = exutil.WriteObjectToFile(pod, outputPath)
+			pod := exutil.GetPodForContainer(kapi.Container{
+				Image: imageName,
+				Name:  "test",
+			})
+			_, err = oc.KubeREST().Pods(oc.Namespace()).Create(pod)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("calling oc create -f %q", outputPath))
