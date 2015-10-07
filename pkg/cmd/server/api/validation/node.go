@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	kapp "k8s.io/kubernetes/cmd/kubelet/app"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
@@ -41,6 +42,10 @@ func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList 
 	allErrs = append(allErrs, ValidateDockerConfig(config.DockerConfig).Prefix("dockerConfig")...)
 
 	allErrs = append(allErrs, ValidateKubeletExtendedArguments(config.KubeletArguments).Prefix("kubeletArguments")...)
+
+	if _, err := time.ParseDuration(config.IPTablesSyncPeriod); err != nil {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("iptablesSyncPeriod", config.IPTablesSyncPeriod, fmt.Sprintf("unable to parse iptablesSyncPeriod: %v. Examples with correct format: '5s', '1m', '2h22m'", err)))
+	}
 
 	return allErrs
 }

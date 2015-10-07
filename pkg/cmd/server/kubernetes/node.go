@@ -149,7 +149,6 @@ func (c *NodeConfig) RunProxy() {
 	endpointsConfig := pconfig.NewEndpointsConfig()
 	loadBalancer := proxy.NewLoadBalancerRR()
 	endpointsConfig.RegisterHandler(loadBalancer)
-	syncPeriod := 5 * time.Second
 
 	host, _, err := net.SplitHostPort(c.BindAddress)
 	if err != nil {
@@ -163,6 +162,11 @@ func (c *NodeConfig) RunProxy() {
 	protocol := iptables.ProtocolIpv4
 	if ip.To4() == nil {
 		protocol = iptables.ProtocolIpv6
+	}
+
+	syncPeriod, err := time.ParseDuration(c.IPTablesSyncPeriod)
+	if err != nil {
+		glog.Fatalf("Cannot parse the provided ip-tables sync period (%s) : %v", c.IPTablesSyncPeriod, err)
 	}
 
 	go util.Forever(func() {

@@ -58,6 +58,9 @@ type NodeConfig struct {
 	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
 	// These values override other settings in NodeConfig which may cause invalid configurations.
 	KubeletArguments ExtendedArguments `json:"kubeletArguments,omitempty"`
+
+	// IPTablesSyncPeriod is how often iptable rules are refreshed
+	IPTablesSyncPeriod string `json:"iptablesSyncPeriod"`
 }
 
 // NodeNetworkConfig provides network options for the node

@@ -35,11 +35,12 @@ type NodeConfig struct {
 	Client *client.Client
 	// DockerClient is a client to connect to Docker
 	DockerClient dockertools.DockerInterface
-
 	// KubeletServer contains the KubeletServer configuration
 	KubeletServer *kapp.KubeletServer
 	// KubeletConfig is the configuration for the kubelet, fully initialized
 	KubeletConfig *kapp.KubeletConfig
+	// IPTablesSyncPeriod is how often iptable rules are refreshed
+	IPTablesSyncPeriod string
 }
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error) {
@@ -184,6 +185,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 
 		KubeletServer: server,
 		KubeletConfig: cfg,
+
+		IPTablesSyncPeriod: options.IPTablesSyncPeriod,
 	}
 
 	return config, nil
