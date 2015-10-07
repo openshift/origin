@@ -56,7 +56,11 @@ you have failover protection.`
   $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
 
   # Use a different router image and see the router configuration
-  $ %[1]s %[2]s region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag`
+  $ %[1]s %[2]s region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
+
+  # Run the router with a hint to the underlying implementation to _not_ expose statistics.
+  $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0
+  `
 
 	secretsVolumeName = "secret-volume"
 	secretsPath       = "/etc/secret-volume"
@@ -175,6 +179,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		Replicas: 1,
 
 		StatsUsername: "admin",
+		StatsPort:     1936,
 		HostNetwork:   true,
 	}
 
@@ -205,7 +210,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.")
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.")
 	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the router pod.")
-	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", 1936, "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
+	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", cfg.StatsPort, "If the underlying router implementation can provide statistics this is a hint to expose it on this port. Specify 0 if you want to turn off exposing the statistics.")
 	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.")
 	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth.")
 	cmd.Flags().BoolVar(&cfg.HostNetwork, "host-network", cfg.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack.")

@@ -285,6 +285,10 @@ Install a router
 
   # Use a different router image and see the router configuration
   $ openshift admin router region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
+
+  # Run the router with a hint to the underlying implementation to _not_ expose statistics.
+  $ openshift admin router router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0
+  
 ----
 ====
 
