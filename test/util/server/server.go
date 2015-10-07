@@ -76,7 +76,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	// don't wait for nodes to come up
 	masterAddr := os.Getenv("OS_MASTER_ADDR")
 	if len(masterAddr) == 0 {
-		if addr, err := FindAvailableBindAddress(8443, 8999); err != nil {
+		if addr, err := FindAvailableBindAddress(12000, 12999); err != nil {
 			glog.Fatalf("Couldn't find free address for master: %v", err)
 		} else {
 			masterAddr = addr
@@ -176,7 +176,7 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 	return nil
 }
 
-func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
+func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 	getSignerOptions := &admin.SignerCertOptions{
 		CertFile:   admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca"),
 		KeyFile:    admin.DefaultKeyFilename(nodeArgs.MasterCertDir, "ca"),
@@ -190,6 +190,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
 	createNodeConfig.NodeName = nodeArgs.NodeName
 	createNodeConfig.Hostnames = []string{nodeArgs.NodeName}
 	createNodeConfig.ListenAddr = nodeArgs.ListenArg.ListenAddr
+	createNodeConfig.APIServerURL = masterURL
 	createNodeConfig.APIServerCAFile = admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")
 	createNodeConfig.NodeClientCAFile = admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")
 
@@ -221,7 +222,7 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, e
 		return nil, nil, err
 	}
 
-	if err := CreateNodeCerts(startOptions.NodeArgs); err != nil {
+	if err := CreateNodeCerts(startOptions.NodeArgs, startOptions.MasterOptions.MasterArgs.MasterAddr.String()); err != nil {
 		return nil, nil, err
 	}
 
