@@ -488,7 +488,7 @@ Create a new application
   # Search all templates, image streams, and Docker images for the ones that match "ruby"
   $ openshift cli new-app --search ruby
 
-  # Create an application based on the source code in the current git repository (with a public remote) 
+  # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
   $ openshift cli new-app . --docker-image=repo/langimage
 
@@ -509,7 +509,7 @@ Create a new application
 
   # Create an application from a remote repository and specify a context directory
   $ openshift cli new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
- 
+
   # Create an application based on a template file, explicitly setting a parameter value
   $ openshift cli new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
