@@ -80,13 +80,16 @@ func (c *DeployerPodController) Handle(pod *kapi.Pod) error {
 
 	switch pod.Status.Phase {
 	case kapi.PodRunning:
-		nextStatus = deployapi.DeploymentStatusRunning
+		if !deployutil.IsTerminatedDeployment(deployment) {
+			nextStatus = deployapi.DeploymentStatusRunning
+		}
 	case kapi.PodSucceeded:
 		// Detect failure based on the container state
 		nextStatus = deployapi.DeploymentStatusComplete
 		for _, info := range pod.Status.ContainerStatuses {
 			if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
 				nextStatus = deployapi.DeploymentStatusFailed
+				break
 			}
 		}
 		if nextStatus == deployapi.DeploymentStatusComplete {
