@@ -447,7 +447,7 @@ func FetchURL(url string, retryTimeout time.Duration) (response string, err erro
 
 	waitFunc := func() (bool, error) {
 		r, err := http.Get(url)
-		if err != nil {
+		if err != nil || r.StatusCode != 200 {
 			// lie to the poller that we didn't get an error even though we did
 			// because otherwise it's going to give up.
 			return false, nil
