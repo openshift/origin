@@ -101,7 +101,7 @@ NOTE: Replace "linux/amd64" with the appropriate value for your platform/archite
 
 13.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
 
-        $ sudo killall openshift
+        $ sudo pkill -x openshift
         $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
         $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
         $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
