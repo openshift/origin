@@ -210,5 +210,16 @@ func getContainerVerbosity(containerEnv []kapi.EnvVar) (verbosity string) {
 
 // getPodLabels creates labels for the Build Pod
 func getPodLabels(build *buildapi.Build) map[string]string {
-	return map[string]string{buildapi.BuildLabel: build.Name}
+	labels := make(map[string]string)
+	labels[buildapi.BuildLabel] = build.Name
+	append(build.ObjectMeta.Labels, labels)
+
+	return labels
+}
+
+// append adds elements from one map to another
+func append(source *map[string]string, dest *map[string]string) {
+	for key, value := range source {
+		dest[key] = value
+	}
 }
