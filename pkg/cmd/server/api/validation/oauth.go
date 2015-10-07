@@ -18,8 +18,14 @@ import (
 func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 	validationResults := ValidationResults{}
 
+	if len(*config.MasterCA) > 0 {
+		validationResults.AddErrors(ValidateFile(*config.MasterCA, "masterCA")...)
+	}
+
 	if len(config.MasterURL) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldRequired("masterURL"))
+	} else if _, urlErrs := ValidateURL(config.MasterURL, "masterURL"); len(urlErrs) > 0 {
+		validationResults.AddErrors(urlErrs...)
 	}
 
 	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {

@@ -353,7 +353,10 @@ type AssetConfig struct {
 }
 
 type OAuthConfig struct {
-	// MasterURL is used for building valid client redirect URLs for external access
+	// MasterCA is the CA for verifying the TLS connection back to the MasterURL.
+	MasterCA *string `json:"masterCA"`
+
+	// MasterURL is used for making server-to-server calls to exchange authorization codes for access tokens
 	MasterURL string `json:"masterURL"`
 
 	// MasterPublicURL is used for building valid client redirect URLs for external access

@@ -134,6 +134,10 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 	if config.OAuthConfig != nil {
 
+		if config.OAuthConfig.MasterCA != nil {
+			refs = append(refs, config.OAuthConfig.MasterCA)
+		}
+
 		if config.OAuthConfig.SessionConfig != nil {
 			refs = append(refs, &config.OAuthConfig.SessionConfig.SessionSecretsFile)
 		}
@@ -324,15 +328,6 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	}
 
 	return roots, nil
-}
-
-// GetAPIServerCertCAPool returns the cert pool containing the roots for the API server cert
-func GetAPIServerCertCAPool(options MasterConfig) (*x509.CertPool, error) {
-	if !UseTLS(options.ServingInfo.ServingInfo) {
-		return x509.NewCertPool(), nil
-	}
-
-	return cmdutil.CertPoolFromFile(options.ServingInfo.ClientCA)
 }
 
 func getOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
