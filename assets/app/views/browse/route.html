@@ -1,0 +1,76 @@
+<div ng-controller="RouteController" class="content">
+  <project-page>
+    <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+    <alerts alerts="alerts"></alerts>
+    <div ng-if="route">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="tile">
+            <dl class="dl-horizontal left">
+              <dt>Name:</dt>
+              <dd>{{route.metadata.name}}</dd>
+              <dt>Labels:</dt>
+              <dd>
+                <span ng-if="!route.metadata.labels">none</span>
+                <span ng-repeat="(labelKey, labelValue) in route.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
+              </dd>
+              <dt>Hostname:</dt>
+              <dd>
+                <span ng-if="(route | isWebRoute)">
+                  <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
+                </span>
+                <span ng-if="!(route | isWebRoute)">
+                  {{route | routeLabel}}
+                </span>            
+              </dd>
+              <dt>Path:</dt>
+              <dd>
+                <span ng-if="route.spec.path">{{route.spec.path}}</span>
+                <span ng-if="!route.spec.path"><em>none</em></span>
+              </dd>
+              <dt>Routes to:</dt>
+              <dd>
+                <span>{{route.spec.to.kind}}: </span>
+                <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
+                <span ng-if="route.spec.to.kind == 'Service'"><a href="project/{{projectName}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></span>
+              </dd>
+              <dt>Port:</dt>
+              <dd>
+                <span ng-if="route.spec.port">{{route.spec.port.targetPort}}</span>
+                <span ng-if="!route.spec.port">any</span>
+              </dd>
+            </dl>
+            <div>
+              <h4>TLS Settings</h4>
+              <dl class="dl-horizontal left" ng-if="route.spec.tls">
+                <dt>Termination type:</dt>
+                <dd>{{route.spec.tls.termination}}</dd>
+                <dt>Certificate:</dt>
+                <dd>
+                  <span ng-if="route.spec.tls.certificate" click-to-reveal><pre class="clipped">{{route.spec.tls.certificate}}</pre></span>
+                  <span ng-if="!route.spec.tls.certificate"><em>none</em></span>
+                </dd>
+                <dt>Key:</dt>
+                <dd>
+                  <span ng-if="route.spec.tls.key" click-to-reveal><pre class="clipped">{{route.spec.tls.key}}</pre></span>
+                  <span ng-if="!route.spec.tls.key"><em>none</em></span>
+                </dd>
+                <dt>CA Certificate:</dt>
+                <dd>
+                  <span ng-if="route.spec.tls.caCertificate" click-to-reveal><pre class="clipped">{{route.spec.tls.caCertificate}}</pre></span>
+                  <span ng-if="!route.spec.tls.caCertificate"><em>none</em></span>
+                </dd>
+                <dt>Destination CA Cert:</dt>
+                <dd>
+                  <span ng-if="route.spec.tls.destinationCACertificate" click-to-reveal><pre class="clipped">{{route.spec.tls.destinationCACertificate}}</pre></span>
+                  <span ng-if="!route.spec.tls.destinationCACertificate"><em>none</em></span>
+                </dd>
+              </dl>
+              <div ng-if="!route.spec.tls"><em>TLS is not enabled for this route</em></div>
+            </div>
+          </div> <!-- /tile -->
+        </div> <!-- /col -->
+      </div> <!-- /row -->
+    </div>
+  </project-page>
+</div>
