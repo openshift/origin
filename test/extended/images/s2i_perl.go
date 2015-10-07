@@ -15,8 +15,7 @@ var _ = g.Describe("images: s2i: perl", func() {
 	var (
 		dancerTemplate  = "https://raw.githubusercontent.com/openshift/dancer-ex/master/openshift/templates/dancer-mysql.json"
 		oc              = exutil.NewCLI("s2i-perl", exutil.KubeConfigPath())
-		modifySedScript = `s/data => \$data\[0\]/data => "1337"/`
-		modifyFile      = "lib/default.pm"
+		modifyCommand   = []string{"sed", "-ie", `s/data => \$data\[0\]/data => "1337"/`, "lib/default.pm"}
 		pageCountFunc   = func(count int) string { return fmt.Sprintf(`<span class="code" id="count-value">%d</span>`, count) }
 		dcName          = "dancer-mysql-example-1"
 		dcLabel         = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
@@ -52,7 +51,7 @@ var _ = g.Describe("images: s2i: perl", func() {
 			assertPageCountIs(2)
 
 			g.By("modifying the source code with disabled hot deploy")
-			ModifySourceCode(oc, dcLabel, modifySedScript, modifyFile)
+			RunInPodContainer(oc, dcLabel, modifyCommand)
 			assertPageCountIs(3)
 
 			pods, err := oc.KubeREST().Pods(oc.Namespace()).List(dcLabel, nil)
@@ -70,7 +69,7 @@ var _ = g.Describe("images: s2i: perl", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("modifying the source code with enabled hot deploy")
-			ModifySourceCode(oc, dcLabel, modifySedScript, modifyFile)
+			RunInPodContainer(oc, dcLabel, modifyCommand)
 			assertPageCountIs(1337)
 		})
 	})
