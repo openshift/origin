@@ -42,20 +42,14 @@
         <tbody ng-repeat="quota in quotas">
           <tr ng-if='!quota.status.used' class="danger">
             <td colspan="5">
-              <span class="pficon-layered" data-toggle="tooltip" data-placement="right" title="Missing quota status" style="cursor: help;">
-                <span class="pficon pficon-error-octagon"></span>
-                <span class="pficon pficon-error-exclamation"></span>
-              </span>
+              <span data-toggle="tooltip" data-placement="right" title="Missing quota status" class="pficon pficon-error-circle-o" style="cursor: help;"></span>
               Status has not been reported on this quota usage record.  Any resources limited by this quota record can not be allocated.
             </td>
           </tr>
           <tr ng-class="{warning: (quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)}" ng-repeat="(resourceType, specMax) in quota.spec.hard">
             <!-- TODO prettify resourceType? -->
             <td>
-              <span ng-if="(quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="Quota limit reached" style="cursor: help;">
-                <span class="pficon pficon-warning-triangle"></span>
-                <span class="pficon pficon-warning-exclamation"></span>
-              </span>
+              <span ng-if="(quota.status.used[resourceType] | usageValue) >= (quota.status.hard[resourceType] | usageValue)" data-toggle="tooltip" data-placement="right" title="Quota limit reached" class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
               {{resourceType}}
             </td>
             <td>

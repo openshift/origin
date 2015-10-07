@@ -13,11 +13,8 @@
       <div ng-repeat="specTag in missingStatusTagsByImageStream[imageStream.metadata.name] | orderBy : 'name' track by specTag.name"
            style="margin-top: 10px;">
         <div ng-if="imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck'">
-          <span class="pficon-layered" style="margin-right: 5px;"
-                ng-attr-title="{{imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck'}}">
-            <span class="pficon pficon-warning-triangle"></span>
-            <span class="pficon pficon-warning-exclamation"></span>
-          </span>
+          <span class="pficon pficon-warning-triangle-o" style="margin-right: 5px;"
+                ng-attr-title="{{imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck'}}"></span>
           {{specTag.name}}
           &mdash;
           <span class="small">Tag could not be resolved.</span>

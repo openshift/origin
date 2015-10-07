@@ -14,7 +14,7 @@
     "angular-bootstrap": "0.11.2",
     "uri.js": "1.14.1",
     "moment": "2.8.4",
-    "patternfly": "1.1.2",
+    "patternfly": "2.2.0",
     "hawtio-core": "2.0.11",
     "hawtio-core-navigation": "2.0.48",
     "hawtio-extension-service": "2.0.2",
@@ -38,8 +38,11 @@
   "overrides": {
     "patternfly": {
       "main": [
+        "components/bootstrap-combobox/dist/js/bootstrap-combobox.js",
+        "components/bootstrap-datepicker/dist/js/bootstrap-datepicker.js",
         "components/bootstrap/dist/js/bootstrap.js",
-        "components/bootstrap-select/bootstrap-select.js"
+        "components/bootstrap-select/dist/js/bootstrap-select.js",
+        "components/bootstrap-treeview/dist/js/bootstrap-treeview.js"
       ]
     },
     "selectize": {
@@ -47,7 +50,7 @@
         "dist/js/selectize.js"
       ]
     },
-    "layout.attrs" : {
+    "layout.attrs": {
       "main": [
         "dist/layout.attrs.css"
       ]

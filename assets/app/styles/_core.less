@@ -85,7 +85,7 @@ html, body {
     font-weight: 400;
     margin: 8px 0 0 0;
   }
-  .bootstrap-select > .btn {
+  .bootstrap-select.btn-group .btn {
     width: 100%;
     padding: 7px 25px 7px 10px;
     font-size: @font-size-large;
@@ -94,19 +94,22 @@ html, body {
     font-weight: 400;
     background: @navbar-os-project-menu-bg;
     border: @navbar-os-project-menu-border;
+    transition: none;
+    &:hover, &:focus {
+      border-color: @input-border-hover;
+    }
     .caret {
       font-size: @font-size-large + 5;
+      margin-top: -4px;
     }
     .filter-option {
       text-overflow: ellipsis;
     }
   }
-  .dropdown-menu.open {
-    .dropdown-menu.inner.selectpicker {
-      li {
-        a {
-          padding: 5px 10px;
-        }
+  .bootstrap-select.btn-group {
+    .dropdown-menu {
+      li a {
+        padding: 10px;
       }
     }
   }

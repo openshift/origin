@@ -302,13 +302,8 @@
         }
 
         .pod-status-label {
-          &:after {
-            content: "\e608"; // pficon-error-exclamation
-            left: -16px;
-            top: 0;
-          }
           &:before {
-            content: "\e609"; // pficon-error-octagon
+            content: @pficon-var-error-circle-o;
             color: @brand-danger;
             left: -16px;
             top: 0;

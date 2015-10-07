@@ -34,7 +34,6 @@ angular.module('openshiftConsole')
           var project = $scope.project || {};
           var name = $scope.projectName;
           var isRealProject = project.metadata && project.metadata.name;
-          var projectsGroup, linksGroup;
 
           // If we don't have a name or a real project, nothing to do yet.
           if (!name && !isRealProject) {
@@ -65,15 +64,10 @@ angular.module('openshiftConsole')
                       .text($filter("uniqueDisplayName")(item, sortedProjects));
           });
 
-          // Use <optgroup> so bootstrap-select adds a divider.
-          projectsGroup = $('<optgroup label=""></optgroup>');
-          projectsGroup.append(options);
-          linksGroup = $('<optgroup label=""><option value="">View all projects</option></optgroup>');
-          // TODO: Add a create project link.
-
           select.empty();
-          select.append(projectsGroup);
-          select.append(linksGroup);
+          select.append(options);
+          select.append($('<option data-divider="true"></option>'));
+          select.append($('<option value="">View all projects</option>'));
           select.selectpicker('refresh');
         };
 

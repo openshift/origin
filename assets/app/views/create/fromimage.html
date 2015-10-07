@@ -113,8 +113,8 @@
                       </div>
                     </div>
                     <div ng-show="$parent.expand">
-                      <div class="form-group">
-                        <label class="checkbox-inline">
+                      <div class="form-group checkbox">
+                        <label>
                           <input type="checkbox" ng-model="routing.include">
                             Create a route to the application
                             <span class="help action-inline">
@@ -162,14 +162,14 @@
                     </div>
                     <div class="animate-drawer" ng-show="$parent.expand">
                       <h3>Autodeploy when</h3>
-                      <div>
-                        <label class="checkbox">
+                      <div class="checkbox">
+                        <label>
                           <input type="checkbox" ng-model="deploymentConfig.deployOnNewImage">
                           New image is available
                         </label>
                       </div>
-                      <div>
-                      <label class="checkbox">
+                      <div class="checkbox">
+                      <label>
                         <input type="checkbox" ng-model="deploymentConfig.deployOnConfigChange">
                         Deployment configuration changes
                       </label>
@@ -202,8 +202,8 @@
                     expand="true"
                     can-toggle="false"
                     >
-                    <div>
-                      <label class="checkbox">
+                    <div class="checkbox">
+                      <label>
                         <input type="checkbox" ng-model="buildConfig.buildOnSourceChange"/>
                         Configure a webhook build trigger
                         <span class="help action-inline">
@@ -214,8 +214,8 @@
                         </span>
                       </label>
                     </div>
-                    <div>
-                      <label class="checkbox">
+                    <div class="checkbox">
+                      <label>
                         <input type="checkbox" ng-model="buildConfig.buildOnImageChange"/>
                         Automatically build a new image when the builder image changes
                         <span class="help action-inline">
@@ -225,8 +225,8 @@
                         </span>
                       </label>
                     </div>
-                    <div>
-                      <label class="checkbox">
+                    <div class="checkbox">
+                      <label>
                         <input type="checkbox" ng-model="buildConfig.buildOnConfigChange"/>
                         Automatically build a new image when the build configuration changes
                       </label>

@@ -42,10 +42,7 @@
                   <a ng-if="buildConfigs[buildConfigName]" href="project/{{projectName}}/browse/builds/{{buildConfigName}}">{{buildConfigName}}</a>
                   <span ng-if="buildConfigs && !buildConfigs[buildConfigName] && buildConfigName != ''">
                     {{buildConfigName}}
-                    <span class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;">
-                      <span class="pficon pficon-warning-triangle"></span>
-                      <span class="pficon pficon-warning-exclamation"></span>
-                    </span>                    
+                    <span class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;"></span>                    
                   </span>
                   <span ng-if="buildConfigName == ''"><em>none</em></span>
                 </span>
