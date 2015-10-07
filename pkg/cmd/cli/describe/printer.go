@@ -61,6 +61,9 @@ var (
 	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK"}
 
 	podSecurityPolicyColumns = []string{"NAME", "PRIV", "CAPS", "VOLUMEPLUGINS", "SELINUX", "RUNASUSER"}
+
+	// TODO: deprecated - remove when api is no longer supported
+	securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "HOSTDIR", "SELINUX", "RUNASUSER"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -132,6 +135,10 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, showAll bool, 
 
 	p.Handler(podSecurityPolicyColumns, printPodSecurityPolicy)
 	p.Handler(podSecurityPolicyColumns, printPodSecurityPolicyList)
+
+	// TODO - deprecated, remove when api is no longer supported
+	p.Handler(securityContextConstraintsColumns, printSecurityContextConstraints)
+	p.Handler(securityContextConstraintsColumns, printSecurityContextConstraintsList)
 
 	return p
 }
@@ -788,6 +795,23 @@ func getAllowedVolumePlugins(item *sccapi.PodSecurityPolicy) []string {
 func printPodSecurityPolicyList(list *sccapi.PodSecurityPolicyList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
 	for _, item := range list.Items {
 		if err := printPodSecurityPolicy(&item, w, withNamespace, wide, showAll, columnLabels); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func printSecurityContextConstraints(item *sccapi.SecurityContextConstraints, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
+		item.AllowedCapabilities, item.AllowHostDirVolumePlugin, item.SELinuxContext.Type,
+		item.RunAsUser.Type)
+	return err
+}
+
+func printSecurityContextConstraintsList(list *sccapi.SecurityContextConstraintsList, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
+	for _, item := range list.Items {
+		if err := printSecurityContextConstraints(&item, w, withNamespace, wide, showAll, columnLabels); err != nil {
 			return err
 		}
 	}

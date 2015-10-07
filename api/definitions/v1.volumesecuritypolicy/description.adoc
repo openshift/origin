@@ -1,0 +1,1 @@
+VolumeSecurityPolicy controls whether a PodSecurityPolicy allows or disallows the use of specific volume plugins.

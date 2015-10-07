@@ -26,7 +26,7 @@ func TestValidatePodSecurityPolicy(t *testing.T) {
 				},
 			},
 			errorType:   errors.ValidationErrorTypeInvalid,
-			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
+			errorDetail: "invalid strategy type; valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
 		},
 		"no selinux options": {
 			scc: &api.PodSecurityPolicy{
@@ -38,7 +38,7 @@ func TestValidatePodSecurityPolicy(t *testing.T) {
 				},
 			},
 			errorType:   errors.ValidationErrorTypeInvalid,
-			errorDetail: "invalid strategy type.  Valid values are MustRunAs, RunAsAny",
+			errorDetail: "invalid strategy type; valid values are MustRunAs, RunAsAny",
 		},
 		"invalid user strategy type": {
 			scc: &api.PodSecurityPolicy{
@@ -53,7 +53,7 @@ func TestValidatePodSecurityPolicy(t *testing.T) {
 				},
 			},
 			errorType:   errors.ValidationErrorTypeInvalid,
-			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
+			errorDetail: "invalid strategy type; valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
 		},
 		"invalid selinux strategy type": {
 			scc: &api.PodSecurityPolicy{
@@ -68,7 +68,7 @@ func TestValidatePodSecurityPolicy(t *testing.T) {
 				},
 			},
 			errorType:   errors.ValidationErrorTypeInvalid,
-			errorDetail: "invalid strategy type.  Valid values are MustRunAs, RunAsAny",
+			errorDetail: "invalid strategy type; valid values are MustRunAs, RunAsAny",
 		},
 		"invalid uid": {
 			scc: &api.PodSecurityPolicy{

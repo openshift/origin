@@ -17518,7 +17518,7 @@
    "v1.PodSecurityPolicySpec": {
     "id": "v1.PodSecurityPolicySpec",
     "required": [
-     "allowHostPorts"
+     "hostPorts"
     ],
     "properties": {
      "privileged": {
@@ -17540,7 +17540,7 @@
       "type": "boolean",
       "description": "EXPERIMENTAL - allow the use of the hostNetwork in the pod spec"
      },
-     "allowHostPorts": {
+     "hostPorts": {
       "type": "array",
       "items": {
        "$ref": "v1.HostPortRange"

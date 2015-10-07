@@ -111,6 +111,8 @@ func init() {
 		},
 	)
 
+	deprecatedKubeMapper, _ := kubeMapper.(*kmeta.DefaultRESTMapper)
+
 	// the list of kinds that are scoped at the root of the api hierarchy
 	// if a kind is not enumerated here, it is assumed to have a namespace scope
 	kindToRootScope := map[string]bool{
@@ -146,6 +148,19 @@ func init() {
 		"SecurityContextConstraints": true,
 	}
 
+	// deprecatedKubeApi is used to indicate types that OpenShift is carrying but still must be accessible
+	// via the kube api rest mappings and the kube api prefix.  If you carry a deprecated kube api object in OpenShift code
+	// you need to do the following:
+	// 1.  register the type storage in master.go#installDeprecatedKubernetesAPI
+	// 2.  add the printer to OpenShift printer.go
+	// 3.  register any previous client shortcuts in the OpenShift factory.go#expandResourceShortcut
+	// 4.  register the type here (and in the root scope map if necessary) to have it added to the kube rest mapper
+	deprecatedKubeApi := map[string]bool{
+		// TODO: deprecated but maintained for backwards compatibility.  Remove when the api
+		// is no longer supported
+		"SecurityContextConstraints": true,
+	}
+
 	// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
 	for _, version := range versions {
 		for kind, t := range api.Scheme.KnownTypes(version) {
@@ -154,14 +169,25 @@ func init() {
 					continue
 				}
 			}
-			originTypes.Insert(kind)
+
+			_, isDeprecatedKube := deprecatedKubeApi[kind]
+			if !isDeprecatedKube {
+				originTypes.Insert(kind)
+			}
+
 			scope := kmeta.RESTScopeNamespace
 			_, found := kindToRootScope[kind]
 			if found || (strings.HasSuffix(kind, "List") && kindToRootScope[strings.TrimSuffix(kind, "List")]) {
 				scope = kmeta.RESTScopeRoot
 			}
-			glog.V(6).Infof("Registering %s %s %s", kind, version, scope.Name())
-			originMapper.Add(scope, kind, version, false)
+
+			if isDeprecatedKube {
+				glog.V(6).Infof("Registering %s %s %s as deprecated kube api", kind, version, scope.Name())
+				deprecatedKubeMapper.Add(scope, kind, version, false)
+			} else {
+				glog.V(6).Infof("Registering %s %s %s", kind, version, scope.Name())
+				originMapper.Add(scope, kind, version, false)
+			}
 		}
 	}
 

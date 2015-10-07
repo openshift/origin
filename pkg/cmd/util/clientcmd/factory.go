@@ -255,7 +255,7 @@ func expandResourceShortcut(resource string) string {
 		"psp":     "podSecurityPolicies",
 
 		// TODO: deprecated, this should be removed eventually
-		"scc": "podSecurityPolicies",
+		"scc": "securityContextConstraints",
 	}
 	if expanded, ok := shortForms[resource]; ok {
 		return expanded
