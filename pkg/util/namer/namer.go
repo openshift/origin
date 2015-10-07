@@ -37,6 +37,30 @@ func GetPodName(base, suffix string) string {
 	return GetName(base, suffix, util.DNS1123SubdomainMaxLength)
 }
 
+// LimitLength returns a string of at most maxLength characters based on name.
+// It returns name unchanged if it is short enough, otherwise it returns a
+// prefix of name plus a suffix computed from a hash of name.
+func LimitLength(name string, maxLength int) string {
+	if maxLength <= 0 {
+		return ""
+	}
+	if len(name) <= maxLength {
+		return name
+	}
+	suffix := hash(name)
+	prefix := name[:min(max(0, maxLength-len(suffix)), len(name))]
+	shortName := fmt.Sprintf("%s%s", prefix, suffix)[:maxLength]
+	return shortName
+}
+
+// max returns the greater of its 2 inputs
+func max(a, b int) int {
+	if b > a {
+		return b
+	}
+	return a
+}
+
 // min returns the lesser of its 2 inputs
 func min(a, b int) int {
 	if b < a {

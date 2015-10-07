@@ -77,6 +77,36 @@ func TestGetNameIsDifferent(t *testing.T) {
 	}
 }
 
+func TestLimitLength(t *testing.T) {
+	tests := []struct {
+		s      string
+		maxLen int
+		want   string
+	}{
+		{"helloworld", 0, ""},
+		{"helloworld", 3, "3b9"},         // only part of the hash
+		{"helloworld", 8, "3b9f5c61"},    // the whole hash
+		{"helloworld", 9, "h3b9f5c61"},   // first char + hash
+		{"helloworld", 10, "helloworld"}, // s fits in maxLen
+	}
+	for _, test := range tests {
+		got := LimitLength(test.s, test.maxLen)
+		if got != test.want {
+			t.Errorf("LimitLength(%q, %d) = %q; want %q", test.s, test.maxLen, got, test.want)
+		}
+	}
+}
+
+func TestLimitLengthReturnShortNames(t *testing.T) {
+	s := randSeq(32)
+	for i := 0; i < len(s)+2; i++ {
+		got := LimitLength(s, i)
+		if len(got) > i {
+			t.Errorf("len(LimitLength(%[1]q, %[2]d)) = len(%[3]q) = %[4]d; want %[2]d", s, i, got, len(got))
+		}
+	}
+}
+
 // From k8s.io/kubernetes/pkg/api/generator.go
 var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789-")
 
