@@ -8,10 +8,14 @@ import (
 
 	log "github.com/golang/glog"
 
+	"github.com/openshift/openshift-sdn/pkg/firewalld"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/api"
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/kube"
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/multitenant"
+
+	kexec "k8s.io/kubernetes/pkg/util/exec"
+	"k8s.io/kubernetes/pkg/util/iptables"
 )
 
 const (
@@ -309,6 +313,19 @@ func (oc *OvsController) StartNode(mtu uint) error {
 		return err
 	}
 
+	fw := firewalld.New()
+	err = SetupIptables(fw, clusterNetworkCIDR)
+	if err != nil {
+		return err
+	}
+
+	fw.AddReloadFunc(func() {
+		err := SetupIptables(fw, clusterNetworkCIDR)
+		if err != nil {
+			log.Errorf("Error reloading iptables: %v\n", err)
+		}
+	})
+
 	result, err := oc.watchAndGetResource("HostSubnet")
 	if err != nil {
 		return err
@@ -555,4 +572,40 @@ func (oc *OvsController) watchAndGetResource(resourceName string) (interface{}, 
 	start <- version
 
 	return getOutput, nil
+}
+
+type FirewallRule struct {
+	ipv      string
+	table    string
+	chain    string
+	priority int
+	args     []string
+}
+
+func SetupIptables(fw *firewalld.Interface, clusterNetworkCIDR string) error {
+	if fw.IsRunning() {
+		rules := []FirewallRule{
+			{firewalld.IPv4, "nat", "POSTROUTING", 0, []string{"-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE"}},
+			{firewalld.IPv4, "filter", "INPUT", 0, []string{"-p", "udp", "-m", "multiport", "--dports", "4789", "-m", "comment", "--comment", "001 vxlan incoming", "-j", "ACCEPT"}},
+			{firewalld.IPv4, "filter", "INPUT", 0, []string{"-i", "tun0", "-m", "comment", "--comment", "traffic from docker for internet", "-j", "ACCEPT"}},
+			{firewalld.IPv4, "filter", "FORWARD", 0, []string{"-d", clusterNetworkCIDR, "-j", "ACCEPT"}},
+			{firewalld.IPv4, "filter", "FORWARD", 0, []string{"-s", clusterNetworkCIDR, "-j", "ACCEPT"}},
+		}
+
+		for _, rule := range rules {
+			err := fw.EnsureRule(rule.ipv, rule.table, rule.chain, rule.priority, rule.args)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		ipt := iptables.New(kexec.New(), iptables.ProtocolIpv4)
+
+		_, err := ipt.EnsureRule(iptables.Append, iptables.TableNAT, iptables.ChainPostrouting, "-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
