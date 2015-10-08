@@ -16,6 +16,7 @@ angular.module('openshiftConsole')
     $scope.alerts = {};
     $scope.renderOptions = $scope.renderOptions || {};
     $scope.renderOptions.hideFilterWidget = true;
+    $scope.terminalTabWasSelected = false;
     $scope.breadcrumbs = [
       {
         title: "Pods",
@@ -124,6 +125,18 @@ angular.module('openshiftConsole')
       })();
 
     });
+
+    $scope.containersRunning = function(containerStatuses) {
+      var running = 0;
+      if (containerStatuses) {
+        containerStatuses.forEach(function(v) {
+          if (v.state && v.state.running) {
+            running++;
+          }
+        });
+      }
+      return running;
+    };
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
