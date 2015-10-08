@@ -3,6 +3,7 @@ package version
 import (
 	"fmt"
 
+	etcdversion "github.com/coreos/etcd/version"
 	"github.com/spf13/cobra"
 	kubeversion "k8s.io/kubernetes/pkg/version"
 )
@@ -58,6 +59,7 @@ func NewVersionCommand(basename string) *cobra.Command {
 		Run: func(c *cobra.Command, args []string) {
 			fmt.Printf("%s %v\n", basename, Get())
 			fmt.Printf("kubernetes %v\n", kubeversion.Get())
+			fmt.Printf("etcd %v\n", etcdversion.Version)
 		},
 	}
 }
