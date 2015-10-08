@@ -23,9 +23,8 @@ func GetImageLabels(c client.ImageStreamImageInterface, imageRepoName, imageRef 
 	return image.Image.DockerImageMetadata.Config.Labels, nil
 }
 
-// ModifySourceCode will modify source code in the pod of the application
-// according to the sed script.
-func ModifySourceCode(oc *exutil.CLI, selector labels.Selector, sedScript, file string) error {
+// RunInPodContainer will run provided command in the specified pod container.
+func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) error {
 	pods, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), selector, exutil.CheckPodIsRunningFunc, 1, 120*time.Second)
 	if err != nil {
 		return err
@@ -38,7 +37,9 @@ func ModifySourceCode(oc *exutil.CLI, selector labels.Selector, sedScript, file 
 	if err != nil {
 		return err
 	}
-	return oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "sed", "-ie", sedScript, file).Execute()
+	args := []string{pod.Name, "-c", pod.Spec.Containers[0].Name, "--"}
+	args = append(args, cmd...)
+	return oc.Run("exec").Args(args...).Execute()
 }
 
 // CheckPageContains makes a http request for an example application and checks

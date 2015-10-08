@@ -10,56 +10,55 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("images: s2i: python", func() {
+var _ = g.Describe("images: s2i: ruby", func() {
 	defer g.GinkgoRecover()
-
 	var (
-		oc               = exutil.NewCLI("s2i-python", exutil.KubeConfigPath())
-		djangoRepository = "https://github.com/openshift/django-ex.git"
-		modifyCommand    = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
-		pageCountFunc    = func(count int) string { return fmt.Sprintf("Page views: %d", count) }
-		dcName           = "django-ex-1"
-		dcLabel          = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
+		railsTemplate = "https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json"
+		oc            = exutil.NewCLI("s2i-php", exutil.KubeConfigPath())
+		modifyCommand = []string{"sed", "-ie", `s%render :file => 'public/index.html'%%`, "app/controllers/welcome_controller.rb"}
+		removeCommand = []string{"rm", "-f", "public/index.html"}
+		dcName        = "rails-postgresql-example-1"
+		dcLabel       = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
 	)
-	g.Describe("Django example", func() {
+	g.Describe("Rails example", func() {
 		g.It(fmt.Sprintf("should work with hot deploy"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
-			g.By(fmt.Sprintf("calling oc new-app %s", djangoRepository))
-			err := oc.Run("new-app").Args(djangoRepository, "--strategy=source").Execute()
+			g.By(fmt.Sprintf("calling oc new-app -f %q", railsTemplate))
+			err := oc.Run("new-app").Args("-f", railsTemplate).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), "django-ex-1", exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
+			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), dcName, exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
-			err = oc.KubeFramework().WaitForAnEndpoint("django-ex")
+			err = oc.KubeFramework().WaitForAnEndpoint("rails-postgresql-example")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			assertPageCountIs := func(i int) {
+			assertPageContent := func(content string) {
 				_, err := exutil.WaitForPods(oc.KubeREST().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFunc, 1, 120*time.Second)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				result, err := CheckPageContains(oc, "django-ex", "", pageCountFunc(i))
+				result, err := CheckPageContains(oc, "rails-postgresql-example", "", content)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(result).To(o.BeTrue())
 			}
 
-			g.By("checking page count")
-			assertPageCountIs(1)
-			assertPageCountIs(2)
-
+			g.By("testing application content")
+			assertPageContent("Welcome to your Rails application on OpenShift")
 			g.By("modifying the source code with disabled hot deploy")
 			RunInPodContainer(oc, dcLabel, modifyCommand)
-			assertPageCountIs(3)
+			RunInPodContainer(oc, dcLabel, removeCommand)
+			g.By("testing application content source modification")
+			assertPageContent("Welcome to your Rails application on OpenShift")
 
 			pods, err := oc.KubeREST().Pods(oc.Namespace()).List(dcLabel, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods.Items)).To(o.Equal(1))
 
 			g.By("turning on hot-deploy")
-			err = oc.Run("env").Args("rc", dcName, "APP_CONFIG=conf/reload.py").Execute()
+			err = oc.Run("env").Args("rc", dcName, "RAILS_ENV=development").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = oc.Run("scale").Args("rc", dcName, "--replicas=0").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -70,7 +69,8 @@ var _ = g.Describe("images: s2i: python", func() {
 
 			g.By("modifying the source code with enabled hot deploy")
 			RunInPodContainer(oc, dcLabel, modifyCommand)
-			assertPageCountIs(1337)
+			RunInPodContainer(oc, dcLabel, removeCommand)
+			assertPageContent("Hello, Rails!")
 		})
 	})
 })
