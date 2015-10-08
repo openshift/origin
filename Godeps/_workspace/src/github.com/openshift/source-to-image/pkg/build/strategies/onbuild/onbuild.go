@@ -52,12 +52,13 @@ func New(config *api.Config) (*OnBuild, error) {
 	// Use STI Prepare() and download the 'run' script optionally.
 	s, err := sti.New(config)
 	s.SetScripts([]string{}, []string{api.Assemble, api.Run})
-
-	b.source = onBuildSourceHandler{
-		scm.DownloaderForSource(config.Source),
-		s,
-		&ignore.DockerIgnorer{},
+	downloader, sourceUrl, err := scm.DownloaderForSource(config.Source)
+	if err != nil {
+		return nil, err
 	}
+	config.Source = sourceUrl
+
+	b.source = onBuildSourceHandler{downloader, s, &ignore.DockerIgnorer{}}
 	b.garbage = &build.DefaultCleaner{b.fs, b.docker}
 	return b, nil
 }

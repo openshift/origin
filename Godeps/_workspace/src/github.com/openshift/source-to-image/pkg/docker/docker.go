@@ -61,6 +61,7 @@ type Docker interface {
 	CheckAndPullImage(name string) (*docker.Image, error)
 	BuildImage(opts BuildImageOptions) error
 	GetImageUser(name string) (string, error)
+	GetLabels(name string) (map[string]string, error)
 }
 
 // Client contains all methods called on the go Docker
@@ -246,6 +247,17 @@ func (d *stiDocker) RemoveContainer(id string) error {
 		Force:         true,
 	}
 	return d.client.RemoveContainer(opts)
+}
+
+// GetLabels retrieves the labels of the given image.
+func (d *stiDocker) GetLabels(name string) (map[string]string, error) {
+	name = getImageName(name)
+	image, err := d.client.InspectImage(name)
+	if err != nil {
+		return nil, errors.NewInspectImageError(name, err)
+	}
+	return image.Config.Labels, nil
+
 }
 
 // getImageName checks the image name and adds DefaultTag if none is specified
