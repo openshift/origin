@@ -110,6 +110,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   dind_dev_cluster = vagrant_openshift_config['dind_dev_cluster']
   dev_cluster = vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
+  single_vm_cluster = ! (dind_dev_cluster or dev_cluster)
   if dind_dev_cluster
     config.vm.define "#{VM_NAME_PREFIX}dind-host" do |config|
       config.vm.box = kube_box[kube_os]["name"]
@@ -248,7 +249,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.vmx["memsize"]    = vagrant_openshift_config['memory'].to_s
       v.vmx["numvcpus"]   = vagrant_openshift_config['cpus'].to_s
       v.gui               = false
-      override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh"
+      if single_vm_cluster
+        override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh"
+      end
     end if vagrant_openshift_config['vmware']
 
     # ###############################
@@ -276,7 +279,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       os.image        = voc['image']          || creds['OSImage']    || /Fedora/         # Regex or String
       os.ssh_username = user = voc['ssh_user']|| creds['OSSshUser']  || "root"           # login for the VM instance
       os.server_name  = ENV['OS_HOSTNAME']    || vagrant_openshift_config['instance_name'] # name for the instance created
-      override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: user
+      if single_vm_cluster
+        override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: user
+      end
 
       # floating ip usually needed for accessing machines
       floating_ip     = creds['OSFloatingIP'] || ENV['OS_FLOATING_IP']
