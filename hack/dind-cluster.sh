@@ -210,11 +210,12 @@ function start() {
   ${DOCKER_CMD} exec -t "${master_cid}" bash -c \
     "${SCRIPT_ROOT}/provision-master.sh ${args} ${MASTER_NAME} ${NETWORK_PLUGIN}"
 
-  # Ensure that non-root users have read access to the configuration.
-  # Security shouldn't be a concern for dind since it will only be
-  # used for dev and test.
-  find "${CONFIG_ROOT}" -type d -exec sudo chmod ga+rx {} \;
-  find "${CONFIG_ROOT}" -type f -exec sudo chmod ga+r {} \;
+  # Ensure that all users (e.g. outside the container) have read-write
+  # access to the openshift configuration.  Security shouldn't be a
+  # concern for dind since it should only be used for dev and test.
+  local openshift_config_path="${CONFIG_ROOT}/openshift.local.config"
+  find "${openshift_config_path}" -exec sudo chmod ga+rw {} \;
+  find "${openshift_config_path}" -type d -exec sudo chmod ga+x {} \;
 
   for (( i=0; i < ${#node_cids[@]}; i++ )); do
     local cid="${node_cids[$i]}"
@@ -284,9 +285,10 @@ function test-net-e2e() {
   source ${ORIGIN_ROOT}/hack/util.sh
   source ${ORIGIN_ROOT}/hack/common.sh
 
-  ensure_ginkgo_or_die
+  go get github.com/onsi/ginkgo/ginkgo
 
-  os::build::extended
+  os::build::setup_env
+  go test -c ./test/extended/networking -o ${OS_OUTPUT_BINPATH}/networking.test
 
   os::util::run-net-extended-tests "${CONFIG_ROOT}" "${focus_regex}" \
     "${skip_regex}"
@@ -312,8 +314,8 @@ case "${1:-""}" in
     test-net-e2e
     ;;
   config-host)
-    os::util::set-oc-env "${CONFIG_ROOT}" "/root/.bash_profile"
-    os::util::set-oc-env "${CONFIG_ROOT}" "/home/vagrant/.bash_profile"
+    os::util::set-oc-env "${CONFIG_ROOT}" "/home/vagrant/.bashrc"
+    os::util::set-oc-env "${CONFIG_ROOT}" "/root/.bashrc"
     ;;
   *)
     echo "Usage: $0 {start|stop|restart|build-images|test-net-e2e|config-host}"

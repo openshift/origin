@@ -94,7 +94,10 @@ os::util::set-oc-env() {
   fi
 
   local path="${config_root}/openshift.local.config/master/admin.kubeconfig"
-  echo "export KUBECONFIG=${path}" >> "${target}"
+  local config_line="export KUBECONFIG=${path}"
+  if ! grep -q "${config_line}" "${target}" &> /dev/null; then
+    echo "export KUBECONFIG=${path}" >> "${target}"
+  fi
 }
 
 os::util::get-network-plugin() {

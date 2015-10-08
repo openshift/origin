@@ -604,15 +604,15 @@ SELINUX_DISABLED=0
 function enable-selinux {
   if [ "${SELINUX_DISABLED}" = "1" ]; then
     os::log::info "Re-enabling selinux enforcement"
-    setenforce 1
+    sudo setenforce 1
     SELINUX_DISABLED=0
   fi
 }
 
 function disable-selinux {
-  if selinuxenabled; then
+  if selinuxenabled && [ "$(getenforce)" = "Enforcing" ]; then
     os::log::info "Temporarily disabling selinux enforcement"
-    setenforce 0
+    sudo setenforce 0
     SELINUX_DISABLED=1
   fi
 }
@@ -729,8 +729,10 @@ os::util::run-extended-tests() {
   export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
   export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
-  local test_cmd="ginkgo -progress -stream -v -focus=\"${focus_regex}\" \
--skip=\"${skip_regex}\" ${OS_OUTPUT_BINPATH}/${binary_name}"
+  local ginkgo_cmd="${OS_ROOT}/_output/local/go/bin/ginkgo"
+  local test_cmd="${ginkgo_cmd} -progress -stream -v \
+-focus=\"${focus_regex}\" -skip=\"${skip_regex}\" \
+${OS_OUTPUT_BINPATH}/${binary_name}"
   if [ "${log_path}" != "" ]; then
     test_cmd="${test_cmd} | tee ${log_path}"
   fi
@@ -751,9 +753,10 @@ os::util::run-net-extended-tests() {
   if [ -z "${skip_regex}" ]; then
       # The intra-pod test is currently broken for origin.
       skip_regex='Networking.*intra-pod'
+      local conf_path="${config_root}/openshift.local.config"
       # Only the multitenant plugin can pass the isolation test
       if ! grep -q 'redhat/openshift-ovs-multitenant' \
-           $(find "${config_root}" -name 'node-config.yaml' | head -n 1); then
+           $(find "${conf_path}" -name 'node-config.yaml' | head -n 1); then
         skip_regex="(${skip_regex}|networking: isolation)"
       fi
   fi
