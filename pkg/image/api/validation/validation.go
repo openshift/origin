@@ -16,9 +16,6 @@ func ValidateImageStreamName(name string, prefix bool) (bool, string) {
 		return ok, reason
 	}
 
-	if len(name) < v2.RepositoryNameComponentMinLength {
-		return false, fmt.Sprintf("must be at least %d characters long", v2.RepositoryNameComponentMinLength)
-	}
 	if !v2.RepositoryNameComponentAnchoredRegexp.MatchString(name) {
 		return false, fmt.Sprintf("must match %q", v2.RepositoryNameComponentRegexp.String())
 	}
@@ -57,9 +54,6 @@ func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorLis
 	result = append(result, validation.ValidateObjectMeta(&stream.ObjectMeta, true, ValidateImageStreamName).Prefix("metadata")...)
 
 	// Ensure we can generate a valid docker image repository from namespace/name
-	if len(stream.Namespace) > 0 && len(stream.Namespace) < v2.RepositoryNameComponentMinLength {
-		result = append(result, fielderrors.NewFieldInvalid("metadata.namespace", stream.Namespace, fmt.Sprintf("must be at least %d characters long", v2.RepositoryNameComponentMinLength)))
-	}
 	if len(stream.Namespace+"/"+stream.Name) > v2.RepositoryNameTotalLengthMax {
 		result = append(result, fielderrors.NewFieldInvalid("metadata.name", stream.Name, fmt.Sprintf("'namespace/name' cannot be longer than %d characters", v2.RepositoryNameTotalLengthMax)))
 	}
