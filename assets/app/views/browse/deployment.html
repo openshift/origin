@@ -81,6 +81,7 @@
               <dd>
                 {{deployment.status.replicas}} current / {{deployment.spec.replicas}} desired
               </dd>
+              <annotations annotations="deployment.metadata.annotations"></annotations>              
             </dl>
             <div class="deployment-detail">
               <span>Pod template:</span>

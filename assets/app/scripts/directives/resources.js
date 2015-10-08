@@ -120,4 +120,19 @@ angular.module('openshiftConsole')
       },
       templateUrl: 'views/_deployment-config-metadata.html'
     };
+  })
+  .directive('annotations', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        annotations: '='
+      },
+      templateUrl: 'views/directives/annotations.html',
+      link: function(scope) {
+        scope.expandAnnotations = false;
+        scope.toggleAnnotations = function() {
+          scope.expandAnnotations = !scope.expandAnnotations;
+        };
+      }
+    };
   });

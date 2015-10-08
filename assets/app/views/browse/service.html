@@ -62,15 +62,18 @@
                 </tbody>
               </table>
             </div>
-            <div>Routes:</div>
-            <div>
-              <span ng-if="!routesForService.length"><em>none</em></span>
-              <span ng-repeat="route in routesForService">
-                  <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
-                  <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
-                  <span ng-show="!$last">, </span>
-              </span>
-            </div>
+            <dl class="dl-horizontal left">
+              <dt>Routes:</dt>
+              <dd>
+                <span ng-if="!routesForService.length"><em>none</em></span>
+                <span ng-repeat="route in routesForService">
+                    <span ng-if="route | isWebRoute"><a ng-href="{{route | routeWebURL}}">{{route | routeLabel}}</a></span>
+                    <span ng-if="!(route | isWebRoute)">{{route | routeLabel}}</span>
+                    <span ng-show="!$last">, </span>
+                </span>
+              </dd>
+            </dl>
+            <annotations annotations="service.metadata.annotations"></annotations>            
           </div> <!-- /tile -->
         </div> <!-- /col -->
       </div> <!-- /row -->        
