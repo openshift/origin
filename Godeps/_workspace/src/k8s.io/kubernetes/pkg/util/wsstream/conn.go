@@ -48,17 +48,16 @@ const channelWebSocketProtocol = "channel.k8s.io"
 
 // The Websocket subprotocol "base64.channel.k8s.io" base64 encodes each message with a character
 // indicating the channel number (zero indexed) the message was sent on. Messages in both directions
-// should prefix their messages with this channel byte. When used for remote execution, the channel
+// should prefix their messages with this channel char. When used for remote execution, the channel
 // numbers are by convention defined to match the POSIX file-descriptors assigned to STDIN, STDOUT,
-// and STDERR ('0', '1', and '2'). No other conversion beyond base64 encoding is performed on the raw
-// subprotocol - writes are sent as they are received by the server. Client input is not assumed to
-// be base64 encoded.
+// and STDERR ('0', '1', and '2'). The data received on the server is base64 decoded (and must be
+// be valid) and data written by the server to the client is base64 encoded.
 //
 // Example client session:
 //
-//    CONNECT http://server.com with subprotocol "channel.k8s.io"
-//    WRITE []byte{48, 102, 111, 111, 10} # send "foo\n" on channel '0' (STDIN)
-//    READ  []byte{49,  67, 103,  61, 61} # receive "\n" (base64: "Cg==") on channel '1' (STDOUT)
+//    CONNECT http://server.com with subprotocol "base64.channel.k8s.io"
+//    WRITE []byte{48, 90, 109, 57, 118, 67, 103, 111, 61} # send "foo\n" (base64: "Zm9vCgo=") on channel '0' (STDIN)
+//    READ  []byte{49, 67, 103, 61, 61} # receive "\n" (base64: "Cg==") on channel '1' (STDOUT)
 //    CLOSE
 //
 const base64ChannelWebSocketProtocol = "base64.channel.k8s.io"
@@ -237,7 +236,7 @@ func (conn *Conn) handle(ws *websocket.Conn) {
 			continue
 		}
 		if _, err := conn.channels[channel].DataFromSocket(data); err != nil {
-			glog.Errorf("Unable to write frame to %d: %v", channel, err)
+			glog.Errorf("Unable to write frame to %d: %v\n%s", channel, err, string(data))
 			continue
 		}
 	}
@@ -294,7 +293,19 @@ func (p *websocketChannel) DataFromSocket(data []byte) (int, error) {
 	if !p.read {
 		return len(data), nil
 	}
-	return p.w.Write(data)
+
+	switch p.conn.codec {
+	case rawCodec:
+		return p.w.Write(data)
+	case base64Codec:
+		dst := make([]byte, len(data))
+		n, err := base64.StdEncoding.Decode(dst, data)
+		if err != nil {
+			return 0, err
+		}
+		return p.w.Write(dst[:n])
+	}
+	return 0, nil
 }
 
 func (p *websocketChannel) Read(data []byte) (int, error) {
