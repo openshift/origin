@@ -722,14 +722,15 @@ find_files() {
 os::util::run-extended-tests() {
   local config_root=$1
   local focus_regex=$2
-  local skip_regex=${3:-}
-  local log_path=${4:-}
+  local binary_name=${3:-extended.test}
+  local skip_regex=${4:-}
+  local log_path=${5:-}
 
   export KUBECONFIG="${config_root}/openshift.local.config/master/admin.kubeconfig"
   export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
   local test_cmd="ginkgo -progress -stream -v -focus=\"${focus_regex}\" \
--skip=\"${skip_regex}\" ${OS_OUTPUT_BINPATH}/extended.test"
+-skip=\"${skip_regex}\" ${OS_OUTPUT_BINPATH}/${binary_name}"
   if [ "${log_path}" != "" ]; then
     test_cmd="${test_cmd} | tee ${log_path}"
   fi
@@ -758,7 +759,7 @@ os::util::run-net-extended-tests() {
   fi
 
   os::util::run-extended-tests "${config_root}" "${focus_regex}" \
-    "${skip_regex}" "${log_path}"
+    networking.test "${skip_regex}" "${log_path}"
 }
 
 # Asks golang what it thinks the host platform is.  The go tool chain does some
