@@ -54,30 +54,17 @@ groups from the LDAP server returned by the LDAP query templates.
 `
 )
 
-// GroupSyncScope determines the scope of the group sync operation
-type GroupSyncScope string
-
-const (
-	// GroupSyncScopeAll determines that all groups from the source should be synced
-	GroupSyncScopeAll GroupSyncScope = "All"
-	// GroupSyncScopeWhitelist determines that a whitelist of groups from the source should be synced
-	GroupSyncScopeWhitelist GroupSyncScope = "Whitelist"
-)
-
-func ValidateScope(scope GroupSyncScope) bool {
-	knownScopes := sets.NewString(string(GroupSyncScopeAll), string(GroupSyncScopeWhitelist))
-	return knownScopes.Has(string(scope))
-}
-
 // GroupSyncSource determines the source of the groups to be synced
 type GroupSyncSource string
 
 const (
 	// GroupSyncSourceLDAP determines that the groups to be synced are determined from an LDAP record
-	GroupSyncSourceLDAP GroupSyncSource = "LDAP"
+	GroupSyncSourceLDAP GroupSyncSource = "ldap"
 	// GroupSyncSourceOpenShift determines that the groups to be synced are determined from OpenShift records
-	GroupSyncSourceOpenShift GroupSyncSource = "OpenShift"
+	GroupSyncSourceOpenShift GroupSyncSource = "openshift"
 )
+
+var AllowedSourceTypes = []string{string(GroupSyncSourceLDAP), string(GroupSyncSourceOpenShift)}
 
 func ValidateSource(source GroupSyncSource) bool {
 	knownSources := sets.NewString(string(GroupSyncSourceLDAP), string(GroupSyncSourceOpenShift))
@@ -88,24 +75,11 @@ type SyncGroupsOptions struct {
 	// Source determines the source of the list of groups to sync
 	Source GroupSyncSource
 
-	// Scope determines the scope of the group sync
-	Scope GroupSyncScope
-
-	// ConfigSource is the path to the sync config
-	ConfigSource string
-
 	// Config is the LDAP sync config read from file
 	Config api.LDAPSyncConfig
 
-	// WhitelistSource is the path to the whitelist file, if provided
-	WhitelistSource string
-
 	// WhitelistContents are the contents of the whitelist: names of OpenShift group or LDAP group UIDs
 	WhitelistContents []string
-
-	// SyncExisting determines that only groups in OpenShift previously synced with this LDAP server
-	// will be synced again
-	SyncExisting bool
 
 	// Confirm determines whether not to write to openshift
 	Confirm bool
@@ -131,13 +105,17 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 	options := NewSyncGroupsOptions()
 	options.Out = out
 
+	typeArg := string(GroupSyncSourceLDAP)
+	whitelistFile := ""
+	configFile := ""
+
 	cmd := &cobra.Command{
 		Use:     fmt.Sprintf("%s [SOURCE SCOPE WHITELIST --whitelist=WHITELIST-FILE] --sync-config=CONFIG-SOURCE", name),
-		Short:   "Sync OpenShift Groups with records from an external provider.",
+		Short:   "Sync OpenShift groups with records from an external provider.",
 		Long:    syncGroupsLong,
 		Example: fmt.Sprintf(syncGroupsExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			if err := options.Complete(args, f); err != nil {
+			if err := options.Complete(typeArg, whitelistFile, configFile, args, f); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
 
@@ -158,9 +136,9 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 		},
 	}
 
-	cmd.Flags().StringVar(&options.WhitelistSource, "whitelist", "", "path to the group whitelist")
-	cmd.Flags().StringVar(&options.ConfigSource, "sync-config", "", "path to the sync config")
-	cmd.Flags().BoolVar(&options.SyncExisting, "existing", false, "sync only existing, previously-synced groups")
+	cmd.Flags().StringVar(&whitelistFile, "whitelist", whitelistFile, "path to the group whitelist")
+	cmd.Flags().StringVar(&configFile, "sync-config", configFile, "path to the sync config")
+	cmd.Flags().StringVar(&typeArg, "type", typeArg, "type of group used to locate LDAP group UIDs: "+strings.Join(AllowedSourceTypes, ","))
 	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display groups")
 	cmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
@@ -169,40 +147,38 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 	return cmd
 }
 
-func (o *SyncGroupsOptions) Complete(args []string, f *clientcmd.Factory) error {
-	if o.SyncExisting {
-		o.Source = GroupSyncSourceOpenShift
-	} else {
+func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, configFile string, args []string, f *clientcmd.Factory) error {
+	switch typeArg {
+	case string(GroupSyncSourceLDAP):
 		o.Source = GroupSyncSourceLDAP
-	}
+	case string(GroupSyncSourceOpenShift):
+		o.Source = GroupSyncSourceOpenShift
 
-	// if no scope argument is given, use default
-	if len(args) == 0 {
-		o.Scope = GroupSyncScopeAll
+	default:
+		return fmt.Errorf("unrecognized --type %q; allowed types %v", typeArg, strings.Join(AllowedSourceTypes, ","))
 	}
 
 	// if args are given, they are OpenShift Group names forming a whitelist
 	if len(args) > 0 {
-		o.Scope = GroupSyncScopeWhitelist
 		o.WhitelistContents = append(o.WhitelistContents, args[0:]...)
 	}
 
 	// unpack whitelist file from source
-	if len(o.WhitelistSource) != 0 {
-		if whitelistData, err := readLines(o.WhitelistSource); err != nil {
+	if len(whitelistFile) != 0 {
+		whitelistData, err := readLines(whitelistFile)
+		if err != nil {
 			return err
-		} else {
-			o.WhitelistContents = append(o.WhitelistContents, whitelistData...)
 		}
+		o.WhitelistContents = append(o.WhitelistContents, whitelistData...)
 	}
 
-	yamlConfig, err := ioutil.ReadFile(o.ConfigSource)
+	yamlConfig, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		return fmt.Errorf("could not read file %s: %v", o.ConfigSource, err)
+		return fmt.Errorf("could not read file %s: %v", configFile, err)
 	}
 	jsonConfig, err := kyaml.ToJSON(yamlConfig)
 	if err != nil {
-		return fmt.Errorf("could not parse file %s: %v", o.ConfigSource, err)
+		return fmt.Errorf("could not parse file %s: %v", configFile, err)
 	}
 	if err := configapilatest.Codec.DecodeInto(jsonConfig, &o.Config); err != nil {
 		return err
@@ -235,14 +211,7 @@ func readLines(path string) ([]string, error) {
 
 func (o *SyncGroupsOptions) Validate() error {
 	if !ValidateSource(o.Source) {
-		return fmt.Errorf("sync source must be one of the following: %v", []GroupSyncSource{GroupSyncSourceLDAP, GroupSyncSourceOpenShift})
-	}
-	if !ValidateScope(o.Scope) {
-		return fmt.Errorf("sync scope must be one of the following: %v", []GroupSyncScope{GroupSyncScopeAll, GroupSyncScopeWhitelist})
-	}
-	// If the scope is a whitelist, a list of whitelist contents must be provided
-	if o.Scope == GroupSyncScopeWhitelist && len(o.WhitelistContents) == 0 {
-		return fmt.Errorf("a list of unique group identifiers is required for sync scope %s", o.Scope)
+		return fmt.Errorf("sync source must be one of the following: %v", strings.Join(AllowedSourceTypes, ","))
 	}
 
 	results := validation.ValidateLDAPSyncConfig(o.Config)
@@ -258,22 +227,16 @@ func (o *SyncGroupsOptions) Validate() error {
 func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 	// In order to create the GroupSyncer, we need to build its' parts:
 	// interpret user-provided configuration
-	clientConfig, err := ldaputil.NewLDAPClientConfig(
-		o.Config.URL,
-		o.Config.BindDN,
-		o.Config.BindPassword,
-		o.Config.CA,
-		o.Config.Insecure)
+	clientConfig, err := ldaputil.NewLDAPClientConfig(o.Config.URL, o.Config.BindDN, o.Config.BindPassword, o.Config.CA, o.Config.Insecure)
 	if err != nil {
 		return fmt.Errorf("could not determine LDAP client configuration: %v", err)
 	}
 
 	// populate schema-independent syncer fields
 	syncer := LDAPGroupSyncer{
-		Host:         clientConfig.Host,
-		GroupClient:  o.GroupInterface,
-		SyncExisting: o.SyncExisting,
-		DryRun:       !o.Confirm,
+		Host:        clientConfig.Host,
+		GroupClient: o.GroupInterface,
+		DryRun:      !o.Confirm,
 
 		Out: o.Out,
 		Err: os.Stderr,
@@ -319,12 +282,7 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		}
 
 		// In order to build the groupLister, we need to know about the group sync scope and source:
-		syncer.GroupLister = getGroupLister(o.Scope,
-			o.Source,
-			o.WhitelistContents,
-			o.GroupInterface,
-			clientConfig.Host,
-			&ldapInterface)
+		syncer.GroupLister = getGroupLister(o.Source, o.WhitelistContents, o.GroupInterface, clientConfig.Host, &ldapInterface)
 
 	case o.Config.ActiveDirectoryConfig != nil:
 		syncer.UserNameMapper = NewUserNameMapper(o.Config.ActiveDirectoryConfig.UserNameAttributes)
@@ -352,12 +310,7 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		}
 
 		// In order to build the groupLister, we need to know about the group sync scope and source:
-		syncer.GroupLister = getGroupLister(o.Scope,
-			o.Source,
-			o.WhitelistContents,
-			o.GroupInterface,
-			clientConfig.Host,
-			&ldapInterface)
+		syncer.GroupLister = getGroupLister(o.Source, o.WhitelistContents, o.GroupInterface, clientConfig.Host, &ldapInterface)
 
 	case o.Config.AugmentedActiveDirectoryConfig != nil:
 		fallthrough
@@ -389,27 +342,19 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 //   - Syncing a whitelist of OpenShift groups will require a LocalGroupLister
 //   - Syncing all LDAP groups will require us to use the ldapInterface as the lister
 //   - Syncing all OpenShift groups will require a AllLocalGroupLister
-func getGroupLister(scope GroupSyncScope,
-	source GroupSyncSource,
-	whitelist []string,
-	client osclient.GroupInterface,
-	host string,
-	groupLister interfaces.LDAPGroupLister) interfaces.LDAPGroupLister {
-	switch scope {
-	case GroupSyncScopeWhitelist:
-		switch source {
-		case GroupSyncSourceLDAP:
-			return NewLDAPWhitelistGroupLister(whitelist)
-		case GroupSyncSourceOpenShift:
-			return NewOpenShiftWhitelistGroupLister(whitelist, client)
-		}
-	case GroupSyncScopeAll:
-		switch source {
-		case GroupSyncSourceLDAP:
-			return groupLister
-		case GroupSyncSourceOpenShift:
+
+func getGroupLister(source GroupSyncSource, whitelist []string, client osclient.GroupInterface, host string, groupLister interfaces.LDAPGroupLister) interfaces.LDAPGroupLister {
+	if len(whitelist) == 0 {
+		if source == GroupSyncSourceOpenShift {
 			return NewAllOpenShiftGroupLister(host, client)
 		}
+
+		return groupLister
 	}
-	return nil
+
+	if source == GroupSyncSourceOpenShift {
+		return NewOpenShiftWhitelistGroupLister(whitelist, client)
+	}
+
+	return NewLDAPWhitelistGroupLister(whitelist)
 }

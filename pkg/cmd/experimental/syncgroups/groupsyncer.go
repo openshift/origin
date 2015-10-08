@@ -35,8 +35,6 @@ type LDAPGroupSyncer struct {
 	GroupClient client.GroupInterface
 	// Host stores the address:port of the LDAP server
 	Host string
-	// SyncExisting determines if the sync job will only sync groups that already exist
-	SyncExisting bool
 	// DryRun indicates that no changes should be made.
 	DryRun bool
 
