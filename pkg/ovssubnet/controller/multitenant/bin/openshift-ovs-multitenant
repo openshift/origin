@@ -76,6 +76,7 @@ Teardown() {
 
 Status() {
     # do nothing, empty output will default to address as picked by docker
+    true
 }
 
 case "$action" in
