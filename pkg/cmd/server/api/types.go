@@ -66,6 +66,9 @@ type NodeConfig struct {
 	// create pods based from a manifest file(s) placed locally on the node
 	PodManifestConfig *PodManifestConfig
 
+	// AuthConfig holds authn/authz configuration options
+	AuthConfig NodeAuthConfig
+
 	// DockerConfig holds Docker related configuration options.
 	DockerConfig DockerConfig
 
@@ -84,6 +87,23 @@ type NodeNetworkConfig struct {
 	NetworkPluginName string
 	// Maximum transmission unit for the network packets
 	MTU uint
+}
+
+// NodeAuthConfig holds authn/authz configuration options
+type NodeAuthConfig struct {
+	// AuthenticationCacheTTL indicates how long an authentication result should be cached.
+	// It takes a valid time duration string (e.g. "5m"). If empty, you get the default timeout. If zero (e.g. "0m"), caching is disabled
+	AuthenticationCacheTTL string
+
+	// AuthenticationCacheSize indicates how many authentication results should be cached. If 0, the default cache size is used.
+	AuthenticationCacheSize int
+
+	// AuthorizationCacheTTL indicates how long an authorization result should be cached.
+	// It takes a valid time duration string (e.g. "5m"). If empty, you get the default timeout. If zero (e.g. "0m"), caching is disabled
+	AuthorizationCacheTTL string
+
+	// AuthorizationCacheSize indicates how many authorization results should be cached. If 0, the default cache size is used.
+	AuthorizationCacheSize int
 }
 
 // DockerConfig holds Docker related configuration options.

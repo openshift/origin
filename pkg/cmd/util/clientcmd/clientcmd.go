@@ -44,6 +44,18 @@ func NewConfig() *Config {
 	}
 }
 
+// AnonymousClientConfig returns a copy of the given config with all user credentials (cert/key, bearer token, and username/password) removed
+func AnonymousClientConfig(config kclient.Config) kclient.Config {
+	config.BearerToken = ""
+	config.CertData = nil
+	config.CertFile = ""
+	config.KeyData = nil
+	config.KeyFile = ""
+	config.Username = ""
+	config.Password = ""
+	return config
+}
+
 // BindClientConfigSecurityFlags adds flags for the supplied client config
 func BindClientConfigSecurityFlags(config *kclient.Config, flags *pflag.FlagSet) {
 	flags.BoolVar(&config.Insecure, "insecure-skip-tls-verify", config.Insecure, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")

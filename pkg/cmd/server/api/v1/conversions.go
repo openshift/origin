@@ -65,6 +65,20 @@ func init() {
 			if len(obj.IPTablesSyncPeriod) == 0 {
 				obj.IPTablesSyncPeriod = "5s"
 			}
+
+			// Auth cache defaults
+			if len(obj.AuthConfig.AuthenticationCacheTTL) == 0 {
+				obj.AuthConfig.AuthenticationCacheTTL = "5m"
+			}
+			if obj.AuthConfig.AuthenticationCacheSize == 0 {
+				obj.AuthConfig.AuthenticationCacheSize = 1000
+			}
+			if len(obj.AuthConfig.AuthorizationCacheTTL) == 0 {
+				obj.AuthConfig.AuthorizationCacheTTL = "5m"
+			}
+			if obj.AuthConfig.AuthorizationCacheSize == 0 {
+				obj.AuthConfig.AuthorizationCacheSize = 1000
+			}
 		},
 		func(obj *EtcdStorageConfig) {
 			if len(obj.KubernetesStorageVersion) == 0 {

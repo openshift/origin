@@ -51,6 +51,9 @@ type NodeConfig struct {
 	// create pods based from a manifest file(s) placed locally on the node
 	PodManifestConfig *PodManifestConfig `json:"podManifestConfig"`
 
+	// AuthConfig holds authn/authz configuration options
+	AuthConfig NodeAuthConfig `json:"authConfig"`
+
 	// DockerConfig holds Docker related configuration options.
 	DockerConfig DockerConfig `json:"dockerConfig"`
 
@@ -61,6 +64,23 @@ type NodeConfig struct {
 
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string `json:"iptablesSyncPeriod"`
+}
+
+// NodeAuthConfig holds authn/authz configuration options
+type NodeAuthConfig struct {
+	// AuthenticationCacheTTL indicates how long an authentication result should be cached.
+	// It takes a valid time duration string (e.g. "5m"). If empty, you get the default timeout. If zero (e.g. "0m"), caching is disabled
+	AuthenticationCacheTTL string `json:"authenticationCacheTTL"`
+
+	// AuthenticationCacheSize indicates how many authentication results should be cached. If 0, the default cache size is used.
+	AuthenticationCacheSize int `json:"authenticationCacheSize"`
+
+	// AuthorizationCacheTTL indicates how long an authorization result should be cached.
+	// It takes a valid time duration string (e.g. "5m"). If empty, you get the default timeout. If zero (e.g. "0m"), caching is disabled
+	AuthorizationCacheTTL string `json:"authorizationCacheTTL"`
+
+	// AuthorizationCacheSize indicates how many authorization results should be cached. If 0, the default cache size is used.
+	AuthorizationCacheSize int `json:"authorizationCacheSize"`
 }
 
 // NodeNetworkConfig provides network options for the node
