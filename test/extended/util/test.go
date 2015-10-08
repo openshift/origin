@@ -22,10 +22,10 @@ import (
 // KUBECONFIG - Path to kubeconfig containing embedded authinfo
 func InitTest() {
 	// Turn on verbose by default to get spec names
-	config.DefaultReporterConfig.Verbose = true
+	config.DefaultReporterConfig.Verbose = false
 
 	// Turn on EmitSpecProgress to get spec progress (especially on interrupt)
-	config.GinkgoConfig.EmitSpecProgress = true
+	config.GinkgoConfig.EmitSpecProgress = false
 
 	// Randomize specs as well as suites
 	config.GinkgoConfig.RandomizeAllSpecs = false
