@@ -47,9 +47,7 @@ func (c *Fake) AddReactor(verb, resource string, reaction ktestclient.ReactionFu
 
 // PrependReactor adds a reactor to the beginning of the chain
 func (c *Fake) PrependReactor(verb, resource string, reaction ktestclient.ReactionFunc) {
-	newChain := make([]ktestclient.Reactor, 0, len(c.ReactionChain)+1)
-	newChain[0] = &ktestclient.SimpleReactor{verb, resource, reaction}
-	newChain = append(newChain, c.ReactionChain...)
+	c.ReactionChain = append([]ktestclient.Reactor{&ktestclient.SimpleReactor{verb, resource, reaction}}, c.ReactionChain...)
 }
 
 // AddWatchReactor appends a reactor to the end of the chain

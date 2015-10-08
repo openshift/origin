@@ -2,6 +2,7 @@ package syncgroups
 
 import (
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"testing"
 
@@ -112,9 +113,11 @@ func TestSync(t *testing.T) {
 		GroupClient:          &testGroupClient,
 		Host:                 testHost,
 		SyncExisting:         false,
+		Out:                  ioutil.Discard,
+		Err:                  ioutil.Discard,
 	}
 
-	errs := testGroupSyncer.Sync()
+	_, errs := testGroupSyncer.Sync()
 	for _, err := range errs {
 		t.Errorf("unexpected sync error: %v", err)
 	}

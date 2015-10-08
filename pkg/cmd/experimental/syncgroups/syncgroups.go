@@ -273,6 +273,10 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		Host:         clientConfig.Host,
 		GroupClient:  o.GroupInterface,
 		SyncExisting: o.SyncExisting,
+		DryRun:       !o.Confirm,
+
+		Out: o.Out,
+		Err: os.Stderr,
 	}
 
 	if len(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping) > 0 {
@@ -362,12 +366,11 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 	}
 
 	// Now we run the Syncer and report any errors
+	openshiftGroups, syncErrors := syncer.Sync()
 	if o.Confirm {
-		syncErrors := syncer.Sync()
 		return kerrs.NewAggregate(syncErrors)
 	}
 
-	openshiftGroups, errors := syncer.GetResultingGroups()
 	list := &kapi.List{}
 	for _, item := range openshiftGroups {
 		list.Items = append(list.Items, item)
@@ -376,7 +379,7 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		return err
 	}
 
-	return kerrs.NewAggregate(errors)
+	return kerrs.NewAggregate(syncErrors)
 
 }
 
