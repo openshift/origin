@@ -811,6 +811,10 @@
 			"Rev": "b084184666e02084b8ccb9b704bf0d79c466eb1d"
 		},
 		{
+			"ImportPath": "github.com/stevvooe/resumable",
+			"Rev": "51ad44105773cafcbe91927f70ac68e1bf78f8b4"
+		},
+		{
 			"ImportPath": "github.com/stretchr/objx",
 			"Rev": "d40df0cc104c06eae2dfe03d7dddb83802d52f9a"
 		},
