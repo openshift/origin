@@ -501,7 +501,19 @@ function install_router {
 	echo "[INFO] Installing the router"
 	echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f - --config="${ADMIN_KUBECONFIG}"
 	oc get scc privileged -o json --config="${ADMIN_KUBECONFIG}" | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f - --config="${ADMIN_KUBECONFIG}"
-	openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
+        # Create a TLS certificate for the router
+        if [[ -n "${CREATE_ROUTER_CERT-}" ]]; then
+            echo "[INFO] Generating router TLS certificate"
+            oadm ca create-server-cert --signer-cert=${MASTER_CONFIG_DIR}/ca.crt \
+                 --signer-key=${MASTER_CONFIG_DIR}/ca.key \
+                 --signer-serial=${MASTER_CONFIG_DIR}/ca.serial.txt \
+                 --hostnames="*.${API_HOST}.xip.io" \
+                 --cert=${MASTER_CONFIG_DIR}/router.crt --key=${MASTER_CONFIG_DIR}/router.key
+            cat ${MASTER_CONFIG_DIR}/router.crt ${MASTER_CONFIG_DIR}/router.key \
+                ${MASTER_CONFIG_DIR}/ca.crt > ${MASTER_CONFIG_DIR}/router.pem
+            ROUTER_DEFAULT_CERT="--default-cert=${MASTER_CONFIG_DIR}/router.pem"
+        fi
+        openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router ${ROUTER_DEFAULT_CERT-}
 }
 
 # install registry for the extended tests
