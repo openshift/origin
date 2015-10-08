@@ -27,7 +27,7 @@ func (d *ClusterRoleBindings) Name() string {
 }
 
 func (d *ClusterRoleBindings) Description() string {
-	return "Check that the ClusterRoleBindings are up-to-date"
+	return "Check that the default ClusterRoleBindings are present and contain the expected subjects"
 }
 
 func (d *ClusterRoleBindings) CanRun() (bool, error) {
@@ -57,6 +57,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 	changedClusterRoleBindings, err := reconcileOptions.ChangedClusterRoleBindings()
 	if err != nil {
 		r.Error("CRBD1000", err, fmt.Sprintf("Error inspecting ClusterRoleBindings: %v", err))
+		return r
 	}
 
 	// success
@@ -74,14 +75,14 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 			r.Error("CRBD1002", err, fmt.Sprintf("Unable to get clusterrolebinding/%s: %v", changedClusterRoleBinding.Name, err))
 		}
 
-		missingSubjects, extraSubjects := policycmd.Diff(changedClusterRoleBinding.Subjects, actualClusterRole.Subjects)
+		missingSubjects, extraSubjects := policycmd.DiffObjectReferenceLists(changedClusterRoleBinding.Subjects, actualClusterRole.Subjects)
 		switch {
 		case len(missingSubjects) > 0:
 			// Only a warning, because they can remove things like self-provisioner role from system:unauthenticated, and it's not an error
-			r.Warn("CRBD1003", nil, fmt.Sprintf("clusterrolebinding/%s is missing expected subjects.\n\nUse the `oadm policy reconcile-cluster-role bindings` command to update the role binding to include expected subjects.", changedClusterRoleBinding.Name))
+			r.Warn("CRBD1003", nil, fmt.Sprintf("clusterrolebinding/%s is missing expected subjects.\n\nUse the `oadm policy reconcile-cluster-role-bindings` command to update the role binding to include expected subjects.", changedClusterRoleBinding.Name))
 		case len(extraSubjects) > 0:
 			// Only info, because it is normal to use policy to grant cluster roles to users
-			r.Info("CRBD1004", fmt.Sprintf("clusterrolebinding/%s has more subjects than expected.\n\nUse the `oadm policy reconcile-cluster-role bindings` command to update the role binding to remove extra subjects.", changedClusterRoleBinding.Name))
+			r.Info("CRBD1004", fmt.Sprintf("clusterrolebinding/%s has more subjects than expected.\n\nUse the `oadm policy reconcile-cluster-role-bindings` command to update the role binding to remove extra subjects.", changedClusterRoleBinding.Name))
 		}
 
 		for _, missingSubject := range missingSubjects {
