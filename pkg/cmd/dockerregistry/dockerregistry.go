@@ -12,8 +12,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/digest"
-	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/filesystem"
@@ -40,7 +38,7 @@ func Execute(configFile io.Reader) {
 	log.Infof("version=%s", version.Version)
 	ctx := context.Background()
 
-	app := handlers.NewApp(ctx, *config)
+	app := handlers.NewApp(ctx, config)
 
 	// register OpenShift routes
 	// TODO: change this to an anonymous Access record
@@ -61,34 +59,12 @@ func Execute(configFile io.Reader) {
 	}
 
 	app.RegisterRoute(
-		// DELETE /admin/blobs/<digest>
-		adminRouter.Path("/blobs/{digest:"+digest.DigestRegexp.String()+"}").Methods("DELETE"),
+		// POST /admin/prune
+		adminRouter.Path("/prune").Methods("POST"),
 		// handler
-		server.BlobDispatcher,
+		server.PruneHandler,
 		// repo name not required in url
 		handlers.NameNotRequired,
-		// custom access records
-		pruneAccessRecords,
-	)
-
-	app.RegisterRoute(
-		// DELETE /admin/<repo>/manifests/<digest>
-		adminRouter.Path("/{name:"+v2.RepositoryNameRegexp.String()+"}/manifests/{digest:"+digest.DigestRegexp.String()+"}").Methods("DELETE"),
-		// handler
-		server.ManifestDispatcher,
-		// repo name required in url
-		handlers.NameRequired,
-		// custom access records
-		pruneAccessRecords,
-	)
-
-	app.RegisterRoute(
-		// DELETE /admin/<repo>/layers/<digest>
-		adminRouter.Path("/{name:"+v2.RepositoryNameRegexp.String()+"}/layers/{digest:"+digest.DigestRegexp.String()+"}").Methods("DELETE"),
-		// handler
-		server.LayerDispatcher,
-		// repo name required in url
-		handlers.NameRequired,
 		// custom access records
 		pruneAccessRecords,
 	)
