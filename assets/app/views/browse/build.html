@@ -83,6 +83,7 @@
               <dt ng-if="build.spec.output.pushSecret.name">Push secret:</dt>
               <dd ng-if="build.spec.output.pushSecret.name">{{build.spec.output.pushSecret.name}}</dd>
             </dl>
+            <annotations annotations="build.metadata.annotations"></annotations>            
           </div>
         </div>
       </div><!-- /.row -->

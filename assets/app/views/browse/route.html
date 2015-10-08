@@ -40,7 +40,7 @@
                 <span ng-if="!route.spec.port">any</span>
               </dd>
             </dl>
-            <div>
+            <div style="margin-bottom: 10px;">
               <h4>TLS Settings</h4>
               <dl class="dl-horizontal left" ng-if="route.spec.tls">
                 <dt>Termination type:</dt>
@@ -68,6 +68,7 @@
               </dl>
               <div ng-if="!route.spec.tls"><em>TLS is not enabled for this route</em></div>
             </div>
+            <annotations annotations="route.metadata.annotations"></annotations>              
           </div> <!-- /tile -->
         </div> <!-- /col -->
       </div> <!-- /row -->

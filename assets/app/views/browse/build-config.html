@@ -6,47 +6,46 @@
       <div>
         <h2>{{buildConfig.metadata.name}}</h2>
         <dl class="dl-horizontal left indent">
-        <div>
-          <dt>Build strategy:</dt>
-          <dd>{{buildConfig.spec.strategy.type}}</dd>
-        </div>
-        <div ng-switch="buildConfig.spec.strategy.type">
-          <div ng-switch-when="Source">
-            <div ng-if="buildConfig.spec.strategy.sourceStrategy.from">
-              <dt>Builder image:</dt>
-              <dd>{{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
+          <div>
+            <dt>Build strategy:</dt>
+            <dd>{{buildConfig.spec.strategy.type}}</dd>
+          </div>
+          <div ng-switch="buildConfig.spec.strategy.type">
+            <div ng-switch-when="Source">
+              <div ng-if="buildConfig.spec.strategy.sourceStrategy.from">
+                <dt>Builder image:</dt>
+                <dd>{{buildConfig.spec.strategy.sourceStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
+              </div>
+            </div>
+            <div ng-switch-when="Docker">
+              <div ng-if="buildConfig.spec.strategy.dockerStrategy.from">
+                <dt>Builder image stream:</dt>
+                <dd>{{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
+              </div>
+            </div>
+            <div ng-switch-when="Custom">
+              <div ng-if="buildConfig.spec.strategy.customStrategy.from">
+                <dt>Builder image stream:</dt>
+                <dd>{{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
+                </dd>
+              </div>
             </div>
           </div>
-          <div ng-switch-when="Docker">
-            <div ng-if="buildConfig.spec.strategy.dockerStrategy.from">
-              <dt>Builder image stream:</dt>
-              <dd>{{buildConfig.spec.strategy.dockerStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}</dd>
+          <div ng-if="buildConfig.spec.source">
+            <div ng-if="buildConfig.spec.source.type == 'Git'">
+              <dt>Source repo:</dt>
+              <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink : buildConfig.spec.source.git.ref : buildConfig.spec.source.contextDir | linky'></dd>
+              <dt ng-if="buildConfig.spec.source.git.ref">Source ref:</dt>
+              <dd ng-if="buildConfig.spec.source.git.ref">{{buildConfig.spec.source.git.ref}}</dd>
+              <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
+              <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>            
             </div>
           </div>
-          <div ng-switch-when="Custom">
-            <div ng-if="buildConfig.spec.strategy.customStrategy.from">
-              <dt>Builder image stream:</dt>
-              <dd>{{buildConfig.spec.strategy.customStrategy.from | imageObjectRef : buildConfig.metadata.namespace}}
-              </dd>
-            </div>
+          <div ng-if="buildConfig.spec.output.to">
+            <dt>Output to:</dt>
+            <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
           </div>
-        </div>
-        <div ng-if="buildConfig.spec.source">
-          <div ng-if="buildConfig.spec.source.type == 'Git'">
-            <dt>Source repo:</dt>
-            <dd ng-bind-html='buildConfig.spec.source.git.uri | githubLink : buildConfig.spec.source.git.ref : buildConfig.spec.source.contextDir | linky'></dd>
-            <dt ng-if="buildConfig.spec.source.git.ref">Source ref:</dt>
-            <dd ng-if="buildConfig.spec.source.git.ref">{{buildConfig.spec.source.git.ref}}</dd>
-            <dt ng-if="buildConfig.spec.source.contextDir">Source context dir:</dt>
-            <dd ng-if="buildConfig.spec.source.contextDir">{{buildConfig.spec.source.contextDir}}</dd>            
-          </div>
-        </div>
-        <div ng-if="buildConfig.spec.output.to">
-          <dt>Output to:</dt>
-          <dd>{{buildConfig.spec.output.to | imageObjectRef : buildConfig.metadata.namespace}}</dd>
-        </div>
         </dl>
-
         <div>
           <h3>Triggers:</h3>
           <dl class="dl-horizontal left indent">
@@ -133,6 +132,7 @@
             </dd>
 
           </dl>
+          <annotations annotations="buildConfig.metadata.annotations"></annotations>
         </div>
       </div>
     </div><!-- /buildConfig .tile -->
