@@ -12,6 +12,7 @@ import (
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	proxy "k8s.io/kubernetes/pkg/proxy/userspace"
@@ -137,9 +138,21 @@ func (c *NodeConfig) RunKubelet() {
 	// updated by NodeConfig.EnsureVolumeDir
 	c.KubeletConfig.RootDirectory = c.VolumeDir
 
+	// hook for overriding the cadvisor interface for integration tests
+	c.KubeletConfig.CadvisorInterface = defaultCadvisorInterface
+
 	go func() {
 		glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
 	}()
+}
+
+// defaultCadvisorInterface holds the overridden default interface
+// exists only to allow stubbing integration tests, should always be nil in production
+var defaultCadvisorInterface cadvisor.Interface = nil
+
+// SetFakeCadvisorInterfaceForIntegrationTest sets a fake cadvisor implementation to allow the node to run in integration tests
+func SetFakeCadvisorInterfaceForIntegrationTest() {
+	defaultCadvisorInterface = &cadvisor.Fake{}
 }
 
 // RunProxy starts the proxy
