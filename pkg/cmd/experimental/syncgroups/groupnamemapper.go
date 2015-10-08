@@ -56,3 +56,10 @@ func (m *EntryAttributeLDAPGroupNameMapper) GroupNameFor(ldapGroupUID string) (s
 	}
 	return openShiftGroupName, nil
 }
+
+// DNLDAPGroupNameMapper passes through the ldapGroupUID as the OpenShift group name
+type DNLDAPGroupNameMapper struct{}
+
+func (m *DNLDAPGroupNameMapper) GroupNameFor(ldapGroupUID string) (string, error) {
+	return ldapGroupUID, nil
+}

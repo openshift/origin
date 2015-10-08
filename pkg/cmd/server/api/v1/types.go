@@ -791,7 +791,7 @@ type RFC2307Config struct {
 
 type ActiveDirectoryConfig struct {
 	// AllUsersQuery holds the template for an LDAP query that returns user entries.
-	AllUsersQuery LDAPQuery `json:"allUsersQuery"`
+	AllUsersQuery LDAPQuery `json:"usersQuery"`
 
 	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.
 	UserNameAttributes []string `json:"userNameAttributes"`
@@ -803,7 +803,7 @@ type ActiveDirectoryConfig struct {
 
 type AugmentedActiveDirectoryConfig struct {
 	// AllUsersQuery holds the template for an LDAP query that returns user entries.
-	AllUsersQuery LDAPQuery `json:"allUsersQuery"`
+	AllUsersQuery LDAPQuery `json:"usersQuery"`
 
 	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.
 	UserNameAttributes []string `json:"userNameAttributes"`
@@ -813,7 +813,7 @@ type AugmentedActiveDirectoryConfig struct {
 	GroupMembershipAttributes []string `json:"groupMembershipAttributes"`
 
 	// AllGroupsQuery holds the template for an LDAP query that returns group entries.
-	AllGroupsQuery LDAPQuery `json:"allGroupsQuery"`
+	AllGroupsQuery LDAPQuery `json:"groupsQuery"`
 
 	// GroupUIDAttributes defines which attribute on an LDAP group entry will be interpreted as its unique identifier.
 	// (ldapGroupUID)

@@ -62,6 +62,10 @@ type LDAPInterface struct {
 	cachedUsers map[string]*ldap.Entry
 }
 
+var _ ldapinterfaces.LDAPMemberExtractor = &LDAPInterface{}
+var _ ldapinterfaces.LDAPGroupGetter = &LDAPInterface{}
+var _ ldapinterfaces.LDAPGroupLister = &LDAPInterface{}
+
 func (e *LDAPInterface) String() string {
 	return fmt.Sprintf("%#v", e)
 }
