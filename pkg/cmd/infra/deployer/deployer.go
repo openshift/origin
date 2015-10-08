@@ -66,7 +66,7 @@ func NewCommandDeployer(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name))
+	cmd.AddCommand(version.NewVersionCommand(name, false))
 
 	flag := cmd.Flags()
 	cfg.Config.Bind(flag)

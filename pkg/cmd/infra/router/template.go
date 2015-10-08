@@ -90,7 +90,7 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name))
+	cmd.AddCommand(version.NewVersionCommand(name, false))
 
 	flag := cmd.Flags()
 	options.Config.Bind(flag)

@@ -37,7 +37,7 @@ func NewCommand(name, fullName string, out io.Writer) *cobra.Command {
 	cmds.AddCommand(NewProxyCommand("proxy", fullName+" proxy", out))
 	cmds.AddCommand(NewSchedulerCommand("scheduler", fullName+" scheduler", out))
 	if "hyperkube" == fullName {
-		cmds.AddCommand(version.NewVersionCommand(fullName))
+		cmds.AddCommand(version.NewVersionCommand(fullName, false))
 	}
 
 	return cmds
