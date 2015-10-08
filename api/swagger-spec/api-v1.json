@@ -14509,6 +14509,14 @@
       "$ref": "v1.RunAsUserStrategyOptions",
       "description": "strategy used to generate RunAsUser"
      },
+     "supplementalGroups": {
+      "$ref": "v1.SupplementalGroupsStrategyOptions",
+      "description": "strategy used to generate supplemental groups"
+     },
+     "fsGroup": {
+      "$ref": "v1.FSGroupStrategyOptions",
+      "description": "strategy used to generate fsGroup"
+     },
      "users": {
       "type": "array",
       "items": {
@@ -14559,6 +14567,53 @@
       "type": "integer",
       "format": "int64",
       "description": "max value for range based allocators"
+     }
+    }
+   },
+   "v1.SupplementalGroupsStrategyOptions": {
+    "id": "v1.SupplementalGroupsStrategyOptions",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "strategy used to generate supplemental groups"
+     },
+     "ranges": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.IDRange"
+      },
+      "description": "ranges of allowable IDs for supplemental groups"
+     }
+    }
+   },
+   "v1.IDRange": {
+    "id": "v1.IDRange",
+    "properties": {
+     "min": {
+      "type": "integer",
+      "format": "int64",
+      "description": "min value for the range"
+     },
+     "max": {
+      "type": "integer",
+      "format": "int64",
+      "description": "min value for the range"
+     }
+    }
+   },
+   "v1.FSGroupStrategyOptions": {
+    "id": "v1.FSGroupStrategyOptions",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "strategy used to generate fsGroup"
+     },
+     "ranges": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.IDRange"
+      },
+      "description": "ranges of allowable IDs for fsGroup"
      }
     }
    },
