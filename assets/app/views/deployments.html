@@ -9,12 +9,11 @@
         <table class="table table-bordered table-hover">
           <thead>
             <tr>
-              <th>Deployment Config</th>
-              <th>Deployment</th>
+              <th>Name</th>
+              <th>Last Deployment</th>
               <th>Status</th>
               <th>Created</th>
               <th>Trigger</th>
-              <th>History</th>
             </tr>
           </thead>
           <tbody>
@@ -34,14 +33,12 @@
               <td>&nbsp;</td>
             </tr>
             <!-- Deployment config with deployments, or deployments from a deployment config which has since been deleted -->
-            <tr ng-repeat="deployment in deploymentConfigDeployments | orderObjectsByDate : true" ng-if="deploymentConfigName != '' && ($first || expandedDeploymentConfigRow[deploymentConfigName])">
+            <tr ng-repeat="deployment in deploymentConfigDeployments | orderObjectsByDate : true | limitTo : 1" ng-if="deploymentConfigName != ''">
               <td>
-                <span ng-if="$first || deploymentConfigName == ''">
-                  <a ng-if="deploymentConfigs[deploymentConfigName]" href="project/{{projectName}}/browse/deployments/{{deploymentConfigName}}">{{deploymentConfigName}}</a>
-                  <span ng-if="deploymentConfigs && !deploymentConfigs[deploymentConfigName] && deploymentConfigName != ''">
-                    {{deploymentConfigName}}
-                    <span class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This deployment config no longer exists" style="cursor: help;"></span>                    
-                  </span>
+                <a ng-if="deploymentConfigs[deploymentConfigName]" href="project/{{projectName}}/browse/deployments/{{deploymentConfigName}}">{{deploymentConfigName}}</a>
+                <span ng-if="deploymentConfigs && !deploymentConfigs[deploymentConfigName] && deploymentConfigName != ''">
+                  {{deploymentConfigName}}
+                  <span class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This deployment config no longer exists" style="cursor: help;"></span>                    
                 </span>
               </td>
               <td>
@@ -66,7 +63,7 @@
                     <span ng-switch-default class="fa fa-refresh" aria-hidden="true"></span>
                   </span>
                   <span flex>
-                    {{deployment | deploymentStatus}}<span ng-if="(deployment | deploymentStatus) == 'Deployed'">, 
+                    {{deployment | deploymentStatus}}<span ng-if="(deployment | deploymentStatus) == 'Deployed' || (deployment | deploymentStatus) == 'Running'">, 
                     <span ng-if="deployment.spec.replicas !== deployment.status.replicas">{{deployment.status.replicas}}/</span>{{deployment.spec.replicas}} replica<span ng-if="deployment.spec.replicas != 1">s</span></span>
                   </span>
                 </div>
@@ -91,12 +88,6 @@
                     </span>
                   </span>
                 </span>              
-              </td>
-              <td>
-                <span ng-if="$first && !$last">
-                  <a href="" ng-click="expandedDeploymentConfigRow[deploymentConfigName] = true" ng-if="!expandedDeploymentConfigRow[deploymentConfigName]">Show</a>
-                  <a href="" ng-click="expandedDeploymentConfigRow[deploymentConfigName] = false" ng-if="expandedDeploymentConfigRow[deploymentConfigName]">Hide</a>              
-                </span>
               </td>
             </tr>
             <tr ng-repeat-end style="display: none;"></tr> <!-- hidden tr to stop the ng-repeat for the build config -->
