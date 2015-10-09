@@ -21,10 +21,10 @@ Isolate project network
 
 Allows projects to isolate their network from other projects when using the %[1]s network plugin.`
 
-	isolateProjectsNetworkExample = `	// Provide isolation for project p1
+	isolateProjectsNetworkExample = `	# Provide isolation for project p1
 	$ %[1]s <p1>
 
-	// Allow all projects with label name=top-secret to have their own isolated project network
+	# Allow all projects with label name=top-secret to have their own isolated project network
 	$ %[1]s --selector='name=top-secret'`
 )
 
