@@ -11,12 +11,13 @@ import (
 	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 )
 
-// NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
-func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
+// NewADLDAPInterface builds a new ADLDAPInterface using a schema-appropriate config
+func NewADLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
 	userQuery ldaputil.LDAPQueryOnAttribute,
 	groupMembershipAttributes []string,
-	userNameAttributes []string) LDAPInterface {
-	return LDAPInterface{
+	userNameAttributes []string) ADLDAPInterface {
+
+	return ADLDAPInterface{
 		clientConfig:              clientConfig,
 		userQuery:                 userQuery,
 		userNameAttributes:        userNameAttributes,
@@ -25,12 +26,12 @@ func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
 	}
 }
 
-// LDAPInterface extracts the member list of an LDAP group entry from an LDAP server
-// with first-class LDAP entries for user only. The LDAPInterface is *NOT* thread-safe.
-// The LDAPInterface satisfies:
+// ADLDAPInterface extracts the member list of an LDAP group entry from an LDAP server
+// with first-class LDAP entries for user only. The ADLDAPInterface is *NOT* thread-safe.
+// The ADLDAPInterface satisfies:
 // - LDAPMemberExtractor
 // - LDAPGroupLister
-type LDAPInterface struct {
+type ADLDAPInterface struct {
 	// clientConfig holds LDAP connection information
 	clientConfig ldaputil.LDAPClientConfig
 
@@ -46,11 +47,11 @@ type LDAPInterface struct {
 	ldapGroupToLDAPMembers map[string][]*ldap.Entry
 }
 
-var _ ldapinterfaces.LDAPMemberExtractor = &LDAPInterface{}
-var _ ldapinterfaces.LDAPGroupLister = &LDAPInterface{}
+var _ ldapinterfaces.LDAPMemberExtractor = &ADLDAPInterface{}
+var _ ldapinterfaces.LDAPGroupLister = &ADLDAPInterface{}
 
 // ExtractMembers returns the LDAP member entries for a group specified with a ldapGroupUID
-func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, error) {
+func (e *ADLDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, error) {
 	// if we already have it cached, return the cached value
 	if members, present := e.ldapGroupToLDAPMembers[ldapGroupUID]; present {
 		return members, nil
@@ -90,7 +91,7 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, erro
 
 // ListGroups queries for all groups as configured with the common group filter and returns their
 // LDAP group UIDs. This also satisfies the LDAPGroupLister interface
-func (e *LDAPInterface) ListGroups() ([]string, error) {
+func (e *ADLDAPInterface) ListGroups() ([]string, error) {
 	if err := e.populateCache(); err != nil {
 		return nil, err
 	}
@@ -100,7 +101,7 @@ func (e *LDAPInterface) ListGroups() ([]string, error) {
 
 // populateCache queries all users to build a map of all the groups.  If the cache has already been
 // populated, this is a no-op.
-func (e *LDAPInterface) populateCache() error {
+func (e *ADLDAPInterface) populateCache() error {
 	if e.cachePopulated {
 		return nil
 	}
@@ -145,7 +146,7 @@ func isEntryPresent(haystack []*ldap.Entry, needle *ldap.Entry) bool {
 	return false
 }
 
-func (e *LDAPInterface) requiredUserAttributes() []string {
+func (e *ADLDAPInterface) requiredUserAttributes() []string {
 	attributes := sets.NewString(e.groupMembershipAttributes...)
 	attributes.Insert(e.userNameAttributes...)
 

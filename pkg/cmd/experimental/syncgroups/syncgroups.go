@@ -244,6 +244,7 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		Err: os.Stderr,
 	}
 
+	syncer.GroupNameMapper = &DNLDAPGroupNameMapper{}
 	if len(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping) > 0 {
 		syncer.GroupNameMapper = NewUserDefinedGroupNameMapper(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
 	}
@@ -297,7 +298,7 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		}
 
 		// the schema-specific ldapInterface is built from the config
-		ldapInterface := ad.NewLDAPInterface(clientConfig,
+		ldapInterface := ad.NewADLDAPInterface(clientConfig,
 			userQuery,
 			o.Config.ActiveDirectoryConfig.GroupMembershipAttributes,
 			o.Config.ActiveDirectoryConfig.UserNameAttributes)
@@ -305,17 +306,51 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		// The LDAPInterface knows how to extract group members
 		syncer.GroupMemberExtractor = &ldapInterface
 
+		// In order to build the groupLister, we need to know about the group sync scope and source:
+		syncer.GroupLister = getGroupLister(o.Scope,
+			o.Source,
+			o.WhitelistContents,
+			o.GroupInterface,
+			clientConfig.Host,
+			&ldapInterface)
+
+	case o.Config.AugmentedActiveDirectoryConfig != nil:
+		syncer.UserNameMapper = NewUserNameMapper(o.Config.AugmentedActiveDirectoryConfig.UserNameAttributes)
+
+		userQuery, err := ldaputil.NewLDAPQueryOnAttribute(o.Config.AugmentedActiveDirectoryConfig.AllUsersQuery, "dn")
+		if err != nil {
+			return err
+		}
+
+		groupQuery, err := ldaputil.NewLDAPQueryOnAttribute(o.Config.AugmentedActiveDirectoryConfig.AllGroupsQuery, o.Config.RFC2307Config.GroupUIDAttribute)
+		if err != nil {
+			return err
+		}
+
+		// the schema-specific ldapInterface is built from the config
+		ldapInterface := ad.NewEnhancedADLDAPInterface(clientConfig,
+			userQuery,
+			o.Config.AugmentedActiveDirectoryConfig.GroupMembershipAttributes,
+			o.Config.AugmentedActiveDirectoryConfig.UserNameAttributes,
+			groupQuery,
+			o.Config.AugmentedActiveDirectoryConfig.GroupNameAttributes,
+		)
+
+		// The LDAPInterface knows how to extract group members
+		syncer.GroupMemberExtractor = &ldapInterface
+
 		// In order to build the GroupNameMapper, we need to know if the user defined a hard mapping
 		// or one based on LDAP group entry attributes
 		if syncer.GroupNameMapper == nil {
-			syncer.GroupNameMapper = &DNLDAPGroupNameMapper{}
+			if o.Config.AugmentedActiveDirectoryConfig.GroupNameAttributes == nil {
+				return errors.New("not enough information to build a group name mapper")
+			}
+			syncer.GroupNameMapper = NewEntryAttributeGroupNameMapper(o.Config.AugmentedActiveDirectoryConfig.GroupNameAttributes, &ldapInterface)
 		}
 
 		// In order to build the groupLister, we need to know about the group sync scope and source:
 		syncer.GroupLister = getGroupLister(o.Source, o.WhitelistContents, o.GroupInterface, clientConfig.Host, &ldapInterface)
 
-	case o.Config.AugmentedActiveDirectoryConfig != nil:
-		fallthrough
 	default:
 		return fmt.Errorf("invalid schema-specific query template type: %v", o.Config.RFC2307Config)
 	}

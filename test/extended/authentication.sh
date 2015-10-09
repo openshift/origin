@@ -112,7 +112,7 @@ oc login -u system:admin -n default
 
 echo "[INFO] Running extended tests"
 
-schema=('rfc2307' 'ad')
+schema=('rfc2307' 'ad' 'augmented-ad')
 
 for (( i=0; i<${#schema[@]}; i++ )); do
 	current_schema=${schema[$i]}
