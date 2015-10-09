@@ -10,6 +10,7 @@ import (
 )
 
 func TestUnpushableBuild(t *testing.T) {
+	// Unconfigured internal registry
 	g, _, err := osgraphtest.BuildGraph("../../../api/graph/test/unpushable-build.yaml")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -21,6 +22,10 @@ func TestUnpushableBuild(t *testing.T) {
 	markers := FindUnpushableBuildConfigs(g)
 	if e, a := 1, len(markers); e != a {
 		t.Fatalf("expected %v, got %v", e, a)
+	}
+
+	if got, expected := markers[0].Key, MissingRequiredRegistryWarning; got != expected {
+		t.Fatalf("expected marker key %q, got %q", expected, got)
 	}
 
 	actualBC := osgraph.GetTopLevelContainerNode(g, markers[0].Node)
@@ -35,6 +40,22 @@ func TestUnpushableBuild(t *testing.T) {
 		t.Errorf("expected %v, got %v: \n%v", e, a, g)
 	}
 
+	// Missing image stream
+	g, _, err = osgraphtest.BuildGraph("../../../api/graph/test/unpushable-build-2.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	buildedges.AddAllInputOutputEdges(g)
+	imageedges.AddAllImageStreamRefEdges(g)
+
+	markers = FindUnpushableBuildConfigs(g)
+	if e, a := 1, len(markers); e != a {
+		t.Fatalf("expected %v, got %v", e, a)
+	}
+
+	if got, expected := markers[0].Key, MissingImageStreamWarning; got != expected {
+		t.Fatalf("expected marker key %q, got %q", expected, got)
+	}
 }
 
 func TestPushableBuild(t *testing.T) {
