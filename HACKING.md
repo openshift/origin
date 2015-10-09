@@ -109,7 +109,7 @@ focus on ensuring that naturally related components work correctly.  They should
 testing branches or error conditions inside packages (that's what unit tests do), but they should
 validate that important success and error paths work across layers (especially when errors are being
 converted from lower level errors). Integration tests should not be testing details of the
-intercomponent connections - API tests should not test that the JSON serialized to the wire is
+inter-component connections - API tests should not test that the JSON serialized to the wire is
 correctly converted back and forth (unit test responsibility), but they should test that those
 connections have the expected outcomes. The underlying goal of integration tests is to wire together
 the most important components in isolation. Integration tests should be as fast as possible in order
@@ -128,7 +128,7 @@ their own files so we can selectively build them.
 All integration tests are located under `test/integration/*`. All integration tests must set the
 `integration` build tag at the top of their source file, and also declare whether they need etcd
 with the `etcd` build tag and whether they need Docker with the `docker` build tag. For
-special function sets please create subdirectories like `test/integration/deployimages`.
+special function sets please create sub directories like `test/integration/deployimages`.
 
 Run the integration tests with:
 
@@ -182,7 +182,7 @@ You can use `hack/cherry-pick.sh` to generate patches for Origin from upstream c
 this command, be sure to setup remote branches like https://gist.github.com/piscisaureus/3342247
 so that `git show origin/pr/<number>` displays information about your branch after a `git fetch`.
 You must also have the Kubernetes repository checked out in your GOPATH (visible as `../../../k8s.io/kubernetes`)
-and have no modified or uncommited files in either repository.
+and have no modified or uncommitted files in either repository.
 
 To pull an upstream commit, run:
 
