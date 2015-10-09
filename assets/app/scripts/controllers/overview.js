@@ -491,7 +491,7 @@ angular.module('openshiftConsole')
       angular.forEach($scope.deployments, function(deployment, deploymentName) {
 	var deploymentConfig, annotations = deployment.metadata.annotations || {};
 	var deploymentConfigName = annotations["openshift.io/deployment-config.name"] || deploymentName;
-	if (deploymentConfigName) {
+	if (deploymentConfigName && $scope.deploymentConfigs) {
           deploymentConfig = $scope.deploymentConfigs[deploymentConfigName];
           if (deploymentConfig) {
             topologyRelations.push({ source: makeId(deploymentConfig), target: makeId(deployment) });
