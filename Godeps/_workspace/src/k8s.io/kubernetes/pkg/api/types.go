@@ -2284,6 +2284,10 @@ type SecurityContextConstraints struct {
 	SELinuxContext SELinuxContextStrategyOptions
 	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
 	RunAsUser RunAsUserStrategyOptions
+	// SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
+	SupplementalGroups SupplementalGroupsStrategyOptions
+	// FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.
+	FSGroup FSGroupStrategyOptions
 
 	// The users who have permissions to use this security context constraints
 	Users []string
@@ -2312,6 +2316,33 @@ type RunAsUserStrategyOptions struct {
 	UIDRangeMax *int64
 }
 
+// FSGroupStrategyOptions defines the strategy type and options used to create the strategy.
+type FSGroupStrategyOptions struct {
+	// Type is the strategy that will dictate what FSGroup is used in the SecurityContext.
+	Type FSGroupStrategyType
+	// Ranges are the allowed ranges of fs groups.  If you would like to force a single
+	// fs group then supply a single range with the same start and end.
+	Ranges []IDRange
+}
+
+// SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.
+type SupplementalGroupsStrategyOptions struct {
+	// Type is the strategy that will dictate what supplemental groups is used in the SecurityContext.
+	Type SupplementalGroupsStrategyType
+	// Ranges are the allowed ranges of supplemental groups.  If you would like to force a single
+	// supplemental group then supply a single range with the same start and end.
+	Ranges []IDRange
+}
+
+// IDRange provides a min/max of an allowed range of IDs.
+// TODO: this could be reused for UIDs.
+type IDRange struct {
+	// Min is the start of the range, inclusive.
+	Min int64
+	// Max is the end of the range, inclusive.
+	Max int64
+}
+
 // SELinuxContextStrategyType denotes strategy types for generating SELinux options for a
 // SecurityContext
 type SELinuxContextStrategyType string
@@ -2319,6 +2350,14 @@ type SELinuxContextStrategyType string
 // RunAsUserStrategyType denotes strategy types for generating RunAsUser values for a
 // SecurityContext
 type RunAsUserStrategyType string
+
+// SupplementalGroupsStrategyType denotes strategy types for determining valid supplemental
+// groups for a SecurityContext.
+type SupplementalGroupsStrategyType string
+
+// FSGroupStrategyType denotes strategy types for generating FSGroup values for a
+// SecurityContext
+type FSGroupStrategyType string
 
 const (
 	// container must have SELinux labels of X applied.
@@ -2334,6 +2373,16 @@ const (
 	RunAsUserStrategyMustRunAsNonRoot RunAsUserStrategyType = "MustRunAsNonRoot"
 	// container may make requests for any uid.
 	RunAsUserStrategyRunAsAny RunAsUserStrategyType = "RunAsAny"
+
+	// container must have FSGroup of X applied.
+	FSGroupStrategyMustRunAs FSGroupStrategyType = "MustRunAs"
+	// container may make requests for any FSGroup labels.
+	FSGroupStrategyRunAsAny FSGroupStrategyType = "RunAsAny"
+
+	// container must run as a particular gid.
+	SupplementalGroupsStrategyMustRunAs SupplementalGroupsStrategyType = "MustRunAs"
+	// container may make requests for any gid.
+	SupplementalGroupsrStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
 )
 
 // SecurityContextConstraintsList is a list of SecurityContextConstraints objects

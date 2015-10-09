@@ -1806,6 +1806,42 @@ func deepCopy_api_SELinuxOptions(in SELinuxOptions, out *SELinuxOptions, c *conv
 	return nil
 }
 
+func deepCopy_api_SupplementalGroupsStrategyOptions(in SupplementalGroupsStrategyOptions, out *SupplementalGroupsStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.Ranges != nil {
+		out.Ranges = make([]IDRange, len(in.Ranges))
+		for i := range in.Ranges {
+			if err := deepCopy_api_IDRange(in.Ranges[i], &out.Ranges[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ranges = nil
+	}
+	return nil
+}
+
+func deepCopy_api_FSGroupStrategyOptions(in FSGroupStrategyOptions, out *FSGroupStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.Ranges != nil {
+		out.Ranges = make([]IDRange, len(in.Ranges))
+		for i := range in.Ranges {
+			if err := deepCopy_api_IDRange(in.Ranges[i], &out.Ranges[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ranges = nil
+	}
+	return nil
+}
+
+func deepCopy_api_IDRange(in IDRange, out *IDRange, c *conversion.Cloner) error {
+	out.Max = in.Max
+	out.Min = in.Min
+	return nil
+}
+
 func deepCopy_api_Secret(in Secret, out *Secret, c *conversion.Cloner) error {
 	if err := deepCopy_api_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
@@ -1910,6 +1946,12 @@ func deepCopy_api_SecurityContextConstraints(in SecurityContextConstraints, out 
 		return err
 	}
 	if err := deepCopy_api_RunAsUserStrategyOptions(in.RunAsUser, &out.RunAsUser, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_FSGroupStrategyOptions(in.FSGroup, &out.FSGroup, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_SupplementalGroupsStrategyOptions(in.SupplementalGroups, &out.SupplementalGroups, c); err != nil {
 		return err
 	}
 	if in.Users != nil {
@@ -2353,12 +2395,14 @@ func init() {
 		deepCopy_api_EventList,
 		deepCopy_api_EventSource,
 		deepCopy_api_ExecAction,
+		deepCopy_api_FSGroupStrategyOptions,
 		deepCopy_api_GCEPersistentDiskVolumeSource,
 		deepCopy_api_GitRepoVolumeSource,
 		deepCopy_api_GlusterfsVolumeSource,
 		deepCopy_api_HTTPGetAction,
 		deepCopy_api_Handler,
 		deepCopy_api_HostPathVolumeSource,
+		deepCopy_api_IDRange,
 		deepCopy_api_ISCSIVolumeSource,
 		deepCopy_api_Lifecycle,
 		deepCopy_api_LimitRange,
@@ -2441,6 +2485,7 @@ func init() {
 		deepCopy_api_Status,
 		deepCopy_api_StatusCause,
 		deepCopy_api_StatusDetails,
+		deepCopy_api_SupplementalGroupsStrategyOptions,
 		deepCopy_api_TCPSocketAction,
 		deepCopy_api_TypeMeta,
 		deepCopy_api_Volume,
