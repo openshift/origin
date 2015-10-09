@@ -459,7 +459,7 @@ End the current server session
 
 
 == oc logs
-Print the logs for a container in a pod.
+Print the logs for a resource.
 
 ====
 
@@ -470,6 +470,9 @@ Print the logs for a container in a pod.
 
   # Starts streaming of ruby-container logs from pod 123456-7890.
   $ openshift cli logs -f 123456-7890 -c ruby-container
+
+  # Starts streaming the logs of the most recent build of the openldap BuildConfig.
+  $ openshift cli logs -f bc/openldap
 ----
 ====
 

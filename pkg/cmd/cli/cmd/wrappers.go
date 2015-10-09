@@ -132,27 +132,6 @@ func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 }
 
 const (
-	logsLong = `
-Print the logs for a container in a pod
-
-If the pod has only one container, the container name is optional.`
-
-	logsExample = `  # Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ %[1]s logs 123456-7890 -c ruby-container
-
-  # Starts streaming of ruby-container logs from pod 123456-7890.
-  $ %[1]s logs -f 123456-7890 -c ruby-container`
-)
-
-// NewCmdLogs is a wrapper for the Kubernetes cli logs command
-func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdLog(f.Factory, out)
-	cmd.Long = logsLong
-	cmd.Example = fmt.Sprintf(logsExample, fullName)
-	return cmd
-}
-
-const (
 	createLong = `Create a resource by filename or stdin
 
 JSON and YAML formats are accepted.`

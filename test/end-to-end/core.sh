@@ -140,6 +140,16 @@ os::build:wait_for_start "test"
 os::build:wait_for_end "test"
 wait_for_app "test"
 
+# logs can't be tested without a node, so has to be in e2e
+BUILD_NAME=`oc get builds -o name -n test | head -n 1`
+oc logs ${BUILD_NAME} --loglevel=6
+oc logs ${BUILD_NAME} --loglevel=6
+oc logs bc/ruby-sample-build --loglevel=6
+oc logs buildconfigs/ruby-sample-build --loglevel=6
+oc logs buildconfig/ruby-sample-build --loglevel=6
+echo "build-logs: ok"
+
+
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} with non-existing commit..."
 set +e
 oc start-build test --commit=fffffff --wait && echo "The build was supposed to fail, but it succeeded." && exit 1
