@@ -2,6 +2,8 @@ package osdn
 
 import (
 	"fmt"
+	"github.com/golang/glog"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +16,7 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/watch"
@@ -29,10 +32,29 @@ import (
 type OsdnRegistryInterface struct {
 	oClient osclient.Interface
 	kClient kclient.Interface
+
+	baseEndpointsHandler pconfig.EndpointsConfigHandler
+	serviceNetwork       *net.IPNet
+	clusterNetwork       *net.IPNet
+	namespaceOfPodIP     map[string]string
 }
 
 func NewOsdnRegistryInterface(osClient *osclient.Client, kClient *kclient.Client) *OsdnRegistryInterface {
-	return &OsdnRegistryInterface{osClient, kClient}
+	var clusterNetwork, serviceNetwork *net.IPNet
+	cn, err := osClient.ClusterNetwork().Get("default")
+	if err == nil {
+		_, clusterNetwork, _ = net.ParseCIDR(cn.Network)
+		_, serviceNetwork, _ = net.ParseCIDR(cn.ServiceNetwork)
+	}
+	// else the same error will occur again later and be reported
+
+	return &OsdnRegistryInterface{
+		oClient:          osClient,
+		kClient:          kClient,
+		serviceNetwork:   serviceNetwork,
+		clusterNetwork:   clusterNetwork,
+		namespaceOfPodIP: make(map[string]string),
+	}
 }
 
 func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, string, error) {
@@ -92,6 +114,55 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan<- *osdnapi.SubnetEve
 	}
 }
 
+func newSDNPod(kPod *kapi.Pod) osdnapi.Pod {
+	containerID := ""
+	if len(kPod.Status.ContainerStatuses) > 0 {
+		// Extract only container ID, pod.Status.ContainerStatuses[0].ContainerID is of the format: docker://<containerID>
+		containerID = strings.Split(kPod.Status.ContainerStatuses[0].ContainerID, "://")[1]
+	}
+	return osdnapi.Pod{
+		Name:        kPod.ObjectMeta.Name,
+		Namespace:   kPod.ObjectMeta.Namespace,
+		ContainerID: containerID,
+	}
+}
+
+func (oi *OsdnRegistryInterface) GetPods() ([]osdnapi.Pod, string, error) {
+	kPodList, err := oi.kClient.Pods(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return nil, "", err
+	}
+
+	oPodList := make([]osdnapi.Pod, 0, len(kPodList.Items))
+	for _, kPod := range kPodList.Items {
+		if kPod.Status.PodIP != "" {
+			oi.namespaceOfPodIP[kPod.Status.PodIP] = kPod.ObjectMeta.Namespace
+		}
+		oPodList = append(oPodList, newSDNPod(&kPod))
+	}
+	return oPodList, kPodList.ListMeta.ResourceVersion, nil
+}
+
+func (oi *OsdnRegistryInterface) WatchPods(ready chan<- bool, start <-chan string, stop <-chan bool) error {
+	eventQueue, startVersion := oi.createAndRunEventQueue("Pod", ready, start)
+
+	checkCondition := true
+	for {
+		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
+		if err != nil {
+			return err
+		}
+		kPod := obj.(*kapi.Pod)
+
+		switch eventType {
+		case watch.Added, watch.Modified:
+			oi.namespaceOfPodIP[kPod.Status.PodIP] = kPod.ObjectMeta.Namespace
+		case watch.Deleted:
+			delete(oi.namespaceOfPodIP, kPod.Status.PodIP)
+		}
+	}
+}
+
 func (oi *OsdnRegistryInterface) GetRunningPods(nodeName, namespace string) ([]osdnapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.host": nodeName}.AsSelector()
 	podList, err := oi.kClient.Pods(namespace).List(labels.Everything(), fieldSelector)
@@ -102,15 +173,9 @@ func (oi *OsdnRegistryInterface) GetRunningPods(nodeName, namespace string) ([]o
 	// Filter running pods and convert kapi.Pod to osdnapi.Pod
 	pods := make([]osdnapi.Pod, 0, len(podList.Items))
 	for _, pod := range podList.Items {
-		if pod.Status.Phase != kapi.PodRunning {
-			continue
+		if pod.Status.Phase == kapi.PodRunning {
+			pods = append(pods, newSDNPod(&pod))
 		}
-		containerID := ""
-		if len(pod.Status.ContainerStatuses) > 0 {
-			// Extract only container ID, pod.Status.ContainerStatuses[0].ContainerID is of the format: docker://<containerID>
-			containerID = strings.Split(pod.Status.ContainerStatuses[0].ContainerID, "://")[1]
-		}
-		pods = append(pods, osdnapi.Pod{Name: pod.ObjectMeta.Name, Namespace: pod.ObjectMeta.Namespace, ContainerID: containerID})
 	}
 	return pods, nil
 }
@@ -438,6 +503,14 @@ func (oi *OsdnRegistryInterface) runEventQueue(resourceName string) (*oscache.Ev
 		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
 			return oi.kClient.Services(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		}
+	case "pod":
+		expectedType = &kapi.Pod{}
+		lw.ListFunc = func() (runtime.Object, error) {
+			return oi.kClient.Pods(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+		}
+		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
+			return oi.kClient.Pods(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+		}
 	default:
 		log.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
 	}
@@ -522,4 +595,40 @@ func getEvent(eventQueue *oscache.EventQueue, startVersion uint64, checkConditio
 	} else {
 		return eventQueue.Pop()
 	}
+}
+
+// FilteringEndpointsConfigHandler implementation
+func (oi *OsdnRegistryInterface) SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler) {
+	oi.baseEndpointsHandler = base
+}
+
+func (oi *OsdnRegistryInterface) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
+	filteredEndpoints := make([]kapi.Endpoints, 0, len(allEndpoints))
+EndpointLoop:
+	for _, ep := range allEndpoints {
+		ns := ep.ObjectMeta.Namespace
+		for _, ss := range ep.Subsets {
+			for _, addr := range ss.Addresses {
+				IP := net.ParseIP(addr.IP)
+				if oi.serviceNetwork.Contains(IP) {
+					glog.Warningf("Service '%s' in namespace '%s' has an Endpoint inside the service network (%s)", ep.ObjectMeta.Name, ns, addr.IP)
+					continue EndpointLoop
+				}
+				if oi.clusterNetwork.Contains(IP) {
+					podNamespace, ok := oi.namespaceOfPodIP[addr.IP]
+					if !ok {
+						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to non-existent pod (%s)", ep.ObjectMeta.Name, ns, addr.IP)
+						continue EndpointLoop
+					}
+					if podNamespace != ns {
+						glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to pod %s in namespace '%s'", ep.ObjectMeta.Name, ns, addr.IP, podNamespace)
+						continue EndpointLoop
+					}
+				}
+			}
+		}
+		filteredEndpoints = append(filteredEndpoints, ep)
+	}
+
+	oi.baseEndpointsHandler.OnEndpointsUpdate(filteredEndpoints)
 }
