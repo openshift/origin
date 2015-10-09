@@ -72,6 +72,21 @@ func DefaultMasterEtcdClientCertInfo(certDir string) ClientCertInfo {
 	}
 }
 
+func DefaultProxyClientCerts(certDir string) []ClientCertInfo {
+	return []ClientCertInfo{
+		DefaultProxyClientCertInfo(certDir),
+	}
+}
+func DefaultProxyClientCertInfo(certDir string) ClientCertInfo {
+	return ClientCertInfo{
+		CertLocation: configapi.CertInfo{
+			CertFile: path.Join(certDir, MasterFilePrefix+".proxy-client.crt"),
+			KeyFile:  path.Join(certDir, MasterFilePrefix+".proxy-client.key"),
+		},
+		User: bootstrappolicy.MasterProxyUsername,
+	}
+}
+
 func DefaultAPIClientCAFile(certDir string) string {
 	return DefaultRootCAFile(certDir)
 }

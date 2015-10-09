@@ -373,6 +373,11 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) Validati
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("masterCount", config.MasterCount, "must be a positive integer or -1"))
 	}
 
+	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false).Prefix("proxyClientInfo")...)
+	if len(config.ProxyClientInfo.CertFile) == 0 && len(config.ProxyClientInfo.KeyFile) == 0 {
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("proxyClientInfo", "", "if no client certificate is specified, TLS pods and services cannot validate requests came from the proxy"))
+	}
+
 	if len(config.ServicesSubnet) > 0 {
 		if _, _, err := net.ParseCIDR(strings.TrimSpace(config.ServicesSubnet)); err != nil {
 			validationResults.AddErrors(fielderrors.NewFieldInvalid("servicesSubnet", config.ServicesSubnet, "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16)"))

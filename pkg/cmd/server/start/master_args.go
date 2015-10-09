@@ -415,6 +415,7 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 		ServicesSubnet:      args.NetworkArgs.ServiceNetworkCIDR,
 		StaticNodeNames:     staticNodeList.List(),
 		SchedulerConfigFile: args.SchedulerConfigFile,
+		ProxyClientInfo:     admin.DefaultProxyClientCertInfo(args.ConfigDir.Value()).CertLocation,
 	}
 
 	return config, nil
