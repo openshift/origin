@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/flatsdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
@@ -244,18 +245,19 @@ func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeCo
 	if err != nil {
 		glog.Fatal("Failed to get kube client for SDN")
 	}
+	registry := osdn.NewOsdnRegistryInterface(oclient, config.Client)
 
 	switch nodeConfig.NetworkConfig.NetworkPluginName {
 	case flatsdn.NetworkPluginName():
 		ch := make(chan struct{})
 		config.KubeletConfig.StartUpdates = ch
-		go flatsdn.Node(oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch, nodeConfig.NetworkConfig.MTU)
+		go flatsdn.Node(registry, nodeConfig.NodeName, nodeConfig.NodeIP, ch, nodeConfig.NetworkConfig.MTU)
 	case multitenant.NetworkPluginName():
 		ch := make(chan struct{})
 		config.KubeletConfig.StartUpdates = ch
 		plugin := multitenant.GetKubeNetworkPlugin()
 		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, plugin)
-		go multitenant.Node(oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch, plugin, nodeConfig.NetworkConfig.MTU)
+		go multitenant.Node(registry, nodeConfig.NodeName, nodeConfig.NodeIP, ch, plugin, nodeConfig.NetworkConfig.MTU)
 	}
 }
 
