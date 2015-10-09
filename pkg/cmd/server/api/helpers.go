@@ -18,6 +18,7 @@ import (
 )
 
 var (
+	// Maps lower-cased feature flag names and aliases to their canonical names.
 	knownOpenShiftFeatureSet map[string]string
 )
 
@@ -26,6 +27,19 @@ func init() {
 	for _, feature := range KnownOpenShiftFeatures {
 		knownOpenShiftFeatureSet[strings.ToLower(feature)] = feature
 	}
+	for alias, feature := range FeatureAliases {
+		knownOpenShiftFeatureSet[strings.ToLower(alias)] = feature
+	}
+}
+
+// NormalizeOpenShiftFeature returns canonical name for given OpenShift feature
+// flag or an alias if known. Otherwise lower-cased name is returned.
+func NormalizeOpenShiftFeature(name string) (string, bool) {
+	name = strings.ToLower(name)
+	if feature, ok := knownOpenShiftFeatureSet[name]; ok {
+		return feature, true
+	}
+	return name, false
 }
 
 // Add extends feature list with given valid items. They are appended
@@ -34,8 +48,8 @@ func (fl *FeatureList) Add(items ...string) error {
 	unknown := []string{}
 	toAppend := make([]string, 0, len(items))
 	for _, item := range items {
-		feature, exists := knownOpenShiftFeatureSet[strings.ToLower(item)]
-		if !exists {
+		feature, known := NormalizeOpenShiftFeature(item)
+		if !known {
 			unknown = append(unknown, item)
 			continue
 		}
@@ -54,16 +68,10 @@ func (fl *FeatureList) Add(items ...string) error {
 // Delete removes given items from feature list while keeping its original
 // order.
 func (fl *FeatureList) Delete(items ...string) {
-	if len(*fl) == 0 || len(items) == 0 {
-		return
-	}
-	toDelete := sets.NewString()
-	for _, item := range items {
-		toDelete.Insert(strings.ToLower(item))
-	}
+	toDelete := FeatureList(items)
 	newList := []string{}
 	for _, item := range *fl {
-		if !toDelete.Has(strings.ToLower(item)) {
+		if !toDelete.Has(item) {
 			newList = append(newList, item)
 		}
 	}
@@ -73,9 +81,10 @@ func (fl *FeatureList) Delete(items ...string) {
 // Has returns true if given feature exists in feature list. The check is
 // case-insensitive.
 func (fl FeatureList) Has(feature string) bool {
-	lowerCased := strings.ToLower(feature)
+	normalized, _ := NormalizeOpenShiftFeature(feature)
 	for _, item := range fl {
-		if strings.ToLower(item) == lowerCased {
+		itemNormalized, _ := NormalizeOpenShiftFeature(item)
+		if normalized == itemNormalized {
 			return true
 		}
 	}

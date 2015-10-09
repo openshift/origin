@@ -6,10 +6,11 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
+// A new entry shall be added to FeatureAliases for every change to following values.
 const (
 	FeatureBuilder    = `Builder`
-	FeatureS2I        = `S2I Builder`
-	FeatureWebConsole = `Web Console`
+	FeatureS2I        = `S2IBuilder`
+	FeatureWebConsole = `WebConsole`
 )
 
 var (
@@ -20,6 +21,12 @@ var (
 	DeadKubernetesAPILevels    = []string{"v1beta1", "v1beta2"}
 	DeadOpenShiftAPILevels     = []string{"v1beta1"}
 
+	// FeatureAliases maps deprecated names of feature flag to their canonical
+	// names. Aliases must be lower-cased for O(1) lookup.
+	FeatureAliases = map[string]string{
+		"s2i builder": FeatureS2I,
+		"web console": FeatureWebConsole,
+	}
 	KnownOpenShiftFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
 	AtomicDisabledFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
 )

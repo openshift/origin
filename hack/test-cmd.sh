@@ -49,7 +49,7 @@ set -e
 
 function find_tests {
   cd "${OS_ROOT}"
-  find "${1}" -name '*.sh' -print0 | sort -u | xargs -0 -n1 printf "%s\n"
+  find "${1}" -name '*.sh' | sort -u
 }
 tests=( $(find_tests ${1:-test/cmd}) )
 
