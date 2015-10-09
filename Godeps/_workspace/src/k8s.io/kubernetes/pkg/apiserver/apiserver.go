@@ -99,7 +99,6 @@ type APIGroupVersion struct {
 	Admit   admission.Interface
 	Context api.RequestContextMapper
 
-	ProxyDialerFn     ProxyDialerFunc
 	MinRequestTimeout time.Duration
 }
 
@@ -125,7 +124,6 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container) error {
 		info:              info,
 		prefix:            prefix,
 		minRequestTimeout: g.MinRequestTimeout,
-		proxyDialerFn:     g.ProxyDialerFn,
 	}
 	ws, registrationErrors := installer.Install()
 	container.Add(ws)
