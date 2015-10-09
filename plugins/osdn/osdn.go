@@ -31,8 +31,8 @@ type OsdnRegistryInterface struct {
 	kClient kclient.Interface
 }
 
-func NewOsdnRegistryInterface(osClient *osclient.Client, kClient *kclient.Client) OsdnRegistryInterface {
-	return OsdnRegistryInterface{osClient, kClient}
+func NewOsdnRegistryInterface(osClient *osclient.Client, kClient *kclient.Client) *OsdnRegistryInterface {
+	return &OsdnRegistryInterface{osClient, kClient}
 }
 
 func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, string, error) {
