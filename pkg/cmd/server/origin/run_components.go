@@ -195,7 +195,7 @@ func (c *MasterConfig) RunBuildController() {
 		glog.Fatalf("Unable to load storage version %s: %v", storageVersion, err)
 	}
 
-	admissionControl := admission.NewFromPlugins(c.PrivilegedLoopbackKubernetesClient, []string{"SecurityContextConstraint"}, "")
+	admissionControl := admission.NewFromPlugins(c.AdmissionControlClient(), []string{"PodSecurityPolicy"}, "")
 
 	osclient, kclient := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{

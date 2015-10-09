@@ -57,6 +57,7 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 		"User":                 &UserDescriber{c},
 		"Group":                &GroupDescriber{c.Groups()},
 		"UserIdentityMapping":  &UserIdentityMappingDescriber{c},
+		"PodSecurityPolicy":    &PodSecurityPolicyDescriber{c},
 	}
 	return m
 }
@@ -544,6 +545,29 @@ func (d *ImageStreamDescriber) Describe(namespace, name string) (string, error) 
 		formatMeta(out, imageStream.ObjectMeta)
 		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
 		formatImageStreamTags(out, imageStream)
+		return nil
+	})
+}
+
+type PodSecurityPolicyDescriber struct {
+	client.Interface
+}
+
+func (d *PodSecurityPolicyDescriber) Describe(namespace, name string) (string, error) {
+	psp, err := d.PodSecurityPolicies().Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out *tabwriter.Writer) error {
+		spec := psp.Spec
+		formatMeta(out, psp.ObjectMeta)
+		formatString(out, "Privileged", spec.Privileged)
+		formatString(out, "HostPorts", spec.HostPorts)
+		formatString(out, "HostNetwork", spec.HostNetwork)
+		formatString(out, "VolumePlugins", getAllowedVolumePlugins(psp))
+		formatString(out, "Capabilities", spec.Capabilities)
+		formatString(out, "RunAsUser", spec.RunAsUser.Type)
+		formatString(out, "SELinuxContext", spec.SELinuxContext.Type)
 		return nil
 	})
 }

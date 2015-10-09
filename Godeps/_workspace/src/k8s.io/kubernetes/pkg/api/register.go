@@ -70,8 +70,6 @@ func init() {
 		&ThirdPartyResource{},
 		&ThirdPartyResourceList{},
 		&ThirdPartyResourceData{},
-		&SecurityContextConstraints{},
-		&SecurityContextConstraintsList{},
 	)
 	// Legacy names are supported
 	Scheme.AddKnownTypeWithName("", "Minion", &Node{})
@@ -123,5 +121,3 @@ func (*RangeAllocation) IsAnAPIObject()                {}
 func (*ThirdPartyResource) IsAnAPIObject()             {}
 func (*ThirdPartyResourceList) IsAnAPIObject()         {}
 func (*ThirdPartyResourceData) IsAnAPIObject()         {}
-func (*SecurityContextConstraints) IsAnAPIObject()     {}
-func (*SecurityContextConstraintsList) IsAnAPIObject() {}

@@ -10,6 +10,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	policyapi "github.com/openshift/origin/pkg/security/policy/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	pkgapi "k8s.io/kubernetes/pkg/api"
@@ -2399,6 +2400,230 @@ func deepCopy_api_NetNamespaceList(in sdnapi.NetNamespaceList, out *sdnapi.NetNa
 	return nil
 }
 
+func deepCopy_api_HostPortRange(in policyapi.HostPortRange, out *policyapi.HostPortRange, c *conversion.Cloner) error {
+	out.Start = in.Start
+	out.End = in.End
+	return nil
+}
+
+func deepCopy_api_PodSecurityPolicy(in policyapi.PodSecurityPolicy, out *policyapi.PodSecurityPolicy, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapi.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
+		return err
+	} else {
+		out.ObjectMeta = newVal.(pkgapi.ObjectMeta)
+	}
+	if err := deepCopy_api_PodSecurityPolicySpec(in.Spec, &out.Spec, c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deepCopy_api_PodSecurityPolicyList(in policyapi.PodSecurityPolicyList, out *policyapi.PodSecurityPolicyList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapi.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(pkgapi.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]policyapi.PodSecurityPolicy, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_api_PodSecurityPolicy(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func deepCopy_api_PodSecurityPolicySpec(in policyapi.PodSecurityPolicySpec, out *policyapi.PodSecurityPolicySpec, c *conversion.Cloner) error {
+	out.Privileged = in.Privileged
+	if in.Capabilities != nil {
+		out.Capabilities = make([]pkgapi.Capability, len(in.Capabilities))
+		for i := range in.Capabilities {
+			out.Capabilities[i] = in.Capabilities[i]
+		}
+	} else {
+		out.Capabilities = nil
+	}
+	if err := deepCopy_api_VolumeSecurityPolicy(in.Volumes, &out.Volumes, c); err != nil {
+		return err
+	}
+	out.HostNetwork = in.HostNetwork
+	if in.HostPorts != nil {
+		out.HostPorts = make([]policyapi.HostPortRange, len(in.HostPorts))
+		for i := range in.HostPorts {
+			if err := deepCopy_api_HostPortRange(in.HostPorts[i], &out.HostPorts[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.HostPorts = nil
+	}
+	if err := deepCopy_api_SELinuxContextStrategyOptions(in.SELinuxContext, &out.SELinuxContext, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_RunAsUserStrategyOptions(in.RunAsUser, &out.RunAsUser, c); err != nil {
+		return err
+	}
+	if in.Users != nil {
+		out.Users = make([]string, len(in.Users))
+		for i := range in.Users {
+			out.Users[i] = in.Users[i]
+		}
+	} else {
+		out.Users = nil
+	}
+	if in.Groups != nil {
+		out.Groups = make([]string, len(in.Groups))
+		for i := range in.Groups {
+			out.Groups[i] = in.Groups[i]
+		}
+	} else {
+		out.Groups = nil
+	}
+	return nil
+}
+
+func deepCopy_api_RunAsUserStrategyOptions(in policyapi.RunAsUserStrategyOptions, out *policyapi.RunAsUserStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.UID != nil {
+		out.UID = new(int64)
+		*out.UID = *in.UID
+	} else {
+		out.UID = nil
+	}
+	if in.UIDRangeMin != nil {
+		out.UIDRangeMin = new(int64)
+		*out.UIDRangeMin = *in.UIDRangeMin
+	} else {
+		out.UIDRangeMin = nil
+	}
+	if in.UIDRangeMax != nil {
+		out.UIDRangeMax = new(int64)
+		*out.UIDRangeMax = *in.UIDRangeMax
+	} else {
+		out.UIDRangeMax = nil
+	}
+	return nil
+}
+
+func deepCopy_api_SELinuxContextStrategyOptions(in policyapi.SELinuxContextStrategyOptions, out *policyapi.SELinuxContextStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.SELinuxOptions != nil {
+		if newVal, err := c.DeepCopy(in.SELinuxOptions); err != nil {
+			return err
+		} else {
+			out.SELinuxOptions = newVal.(*pkgapi.SELinuxOptions)
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	return nil
+}
+
+func deepCopy_api_SecurityContextConstraints(in policyapi.SecurityContextConstraints, out *policyapi.SecurityContextConstraints, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapi.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
+		return err
+	} else {
+		out.ObjectMeta = newVal.(pkgapi.ObjectMeta)
+	}
+	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
+	if in.AllowedCapabilities != nil {
+		out.AllowedCapabilities = make([]pkgapi.Capability, len(in.AllowedCapabilities))
+		for i := range in.AllowedCapabilities {
+			out.AllowedCapabilities[i] = in.AllowedCapabilities[i]
+		}
+	} else {
+		out.AllowedCapabilities = nil
+	}
+	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
+	out.AllowHostNetwork = in.AllowHostNetwork
+	out.AllowHostPorts = in.AllowHostPorts
+	if err := deepCopy_api_SELinuxContextStrategyOptions(in.SELinuxContext, &out.SELinuxContext, c); err != nil {
+		return err
+	}
+	if err := deepCopy_api_RunAsUserStrategyOptions(in.RunAsUser, &out.RunAsUser, c); err != nil {
+		return err
+	}
+	if in.Users != nil {
+		out.Users = make([]string, len(in.Users))
+		for i := range in.Users {
+			out.Users[i] = in.Users[i]
+		}
+	} else {
+		out.Users = nil
+	}
+	if in.Groups != nil {
+		out.Groups = make([]string, len(in.Groups))
+		for i := range in.Groups {
+			out.Groups[i] = in.Groups[i]
+		}
+	} else {
+		out.Groups = nil
+	}
+	return nil
+}
+
+func deepCopy_api_SecurityContextConstraintsList(in policyapi.SecurityContextConstraintsList, out *policyapi.SecurityContextConstraintsList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapi.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(pkgapi.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]policyapi.SecurityContextConstraints, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_api_SecurityContextConstraints(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func deepCopy_api_VolumeSecurityPolicy(in policyapi.VolumeSecurityPolicy, out *policyapi.VolumeSecurityPolicy, c *conversion.Cloner) error {
+	out.HostPath = in.HostPath
+	out.EmptyDir = in.EmptyDir
+	out.GCEPersistentDisk = in.GCEPersistentDisk
+	out.AWSElasticBlockStore = in.AWSElasticBlockStore
+	out.GitRepo = in.GitRepo
+	out.Secret = in.Secret
+	out.NFS = in.NFS
+	out.ISCSI = in.ISCSI
+	out.Glusterfs = in.Glusterfs
+	out.PersistentVolumeClaim = in.PersistentVolumeClaim
+	out.RBD = in.RBD
+	out.Cinder = in.Cinder
+	out.CephFS = in.CephFS
+	out.DownwardAPI = in.DownwardAPI
+	out.FC = in.FC
+	return nil
+}
+
 func deepCopy_api_Parameter(in templateapi.Parameter, out *templateapi.Parameter, c *conversion.Cloner) error {
 	out.Name = in.Name
 	out.DisplayName = in.DisplayName
@@ -2765,6 +2990,15 @@ func init() {
 		deepCopy_api_HostSubnetList,
 		deepCopy_api_NetNamespace,
 		deepCopy_api_NetNamespaceList,
+		deepCopy_api_HostPortRange,
+		deepCopy_api_PodSecurityPolicy,
+		deepCopy_api_PodSecurityPolicyList,
+		deepCopy_api_PodSecurityPolicySpec,
+		deepCopy_api_RunAsUserStrategyOptions,
+		deepCopy_api_SELinuxContextStrategyOptions,
+		deepCopy_api_SecurityContextConstraints,
+		deepCopy_api_SecurityContextConstraintsList,
+		deepCopy_api_VolumeSecurityPolicy,
 		deepCopy_api_Parameter,
 		deepCopy_api_Template,
 		deepCopy_api_TemplateList,

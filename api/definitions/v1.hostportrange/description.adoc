@@ -1,0 +1,1 @@
+HostPortRange defines a start and stop value for a range of host ports.

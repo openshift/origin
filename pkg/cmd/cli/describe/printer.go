@@ -21,6 +21,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sccapi "github.com/openshift/origin/pkg/security/policy/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -58,6 +59,11 @@ var (
 	hostSubnetColumns     = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
 	netNamespaceColumns   = []string{"NAME", "NETID"}
 	clusterNetworkColumns = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK"}
+
+	podSecurityPolicyColumns = []string{"NAME", "PRIV", "CAPS", "VOLUMEPLUGINS", "SELINUX", "RUNASUSER"}
+
+	// TODO: deprecated - remove when api is no longer supported
+	securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "HOSTDIR", "SELINUX", "RUNASUSER"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -126,6 +132,13 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, showAll bool, 
 	p.Handler(netNamespaceColumns, printNetNamespace)
 	p.Handler(clusterNetworkColumns, printClusterNetwork)
 	p.Handler(clusterNetworkColumns, printClusterNetworkList)
+
+	p.Handler(podSecurityPolicyColumns, printPodSecurityPolicy)
+	p.Handler(podSecurityPolicyColumns, printPodSecurityPolicyList)
+
+	// TODO - deprecated, remove when api is no longer supported
+	p.Handler(securityContextConstraintsColumns, printSecurityContextConstraints)
+	p.Handler(securityContextConstraintsColumns, printSecurityContextConstraintsList)
 
 	return p
 }
@@ -718,5 +731,90 @@ func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer, withN
 			return err
 		}
 	}
+	return nil
+}
+
+func printPodSecurityPolicy(item *sccapi.PodSecurityPolicy, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%v\t%s\t%s\n", item.Name, item.Spec.Privileged,
+		item.Spec.Capabilities, getAllowedVolumePlugins(item), item.Spec.SELinuxContext.Type,
+		item.Spec.RunAsUser.Type)
+	return err
+}
+
+// getAllowedVolumePlugins returns the allowed volume plugin settings as a string array.
+func getAllowedVolumePlugins(item *sccapi.PodSecurityPolicy) []string {
+	allowedVolumePlugins := []string{}
+	if item.Spec.Volumes.AWSElasticBlockStore {
+		allowedVolumePlugins = append(allowedVolumePlugins, "AWSElasticBlockStore")
+	}
+	if item.Spec.Volumes.CephFS {
+		allowedVolumePlugins = append(allowedVolumePlugins, "CephFS")
+	}
+	if item.Spec.Volumes.Cinder {
+		allowedVolumePlugins = append(allowedVolumePlugins, "Cinder")
+	}
+	if item.Spec.Volumes.DownwardAPI {
+		allowedVolumePlugins = append(allowedVolumePlugins, "DownwardAPI")
+	}
+	if item.Spec.Volumes.EmptyDir {
+		allowedVolumePlugins = append(allowedVolumePlugins, "EmptyDir")
+	}
+	if item.Spec.Volumes.FC {
+		allowedVolumePlugins = append(allowedVolumePlugins, "FC")
+	}
+	if item.Spec.Volumes.GCEPersistentDisk {
+		allowedVolumePlugins = append(allowedVolumePlugins, "GCEPersistentDisk")
+	}
+	if item.Spec.Volumes.GitRepo {
+		allowedVolumePlugins = append(allowedVolumePlugins, "GitRepo")
+	}
+	if item.Spec.Volumes.Glusterfs {
+		allowedVolumePlugins = append(allowedVolumePlugins, "Glusterfs")
+	}
+	if item.Spec.Volumes.HostPath {
+		allowedVolumePlugins = append(allowedVolumePlugins, "HostPath")
+	}
+	if item.Spec.Volumes.ISCSI {
+		allowedVolumePlugins = append(allowedVolumePlugins, "ISCSI")
+	}
+	if item.Spec.Volumes.NFS {
+		allowedVolumePlugins = append(allowedVolumePlugins, "NFS")
+	}
+	if item.Spec.Volumes.PersistentVolumeClaim {
+		allowedVolumePlugins = append(allowedVolumePlugins, "PersistentVolumeClaim")
+	}
+	if item.Spec.Volumes.RBD {
+		allowedVolumePlugins = append(allowedVolumePlugins, "RBD")
+	}
+	if item.Spec.Volumes.Secret {
+		allowedVolumePlugins = append(allowedVolumePlugins, "Secret")
+	}
+	return allowedVolumePlugins
+}
+
+func printPodSecurityPolicyList(list *sccapi.PodSecurityPolicyList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+	for _, item := range list.Items {
+		if err := printPodSecurityPolicy(&item, w, withNamespace, wide, showAll, columnLabels); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func printSecurityContextConstraints(item *sccapi.SecurityContextConstraints, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
+		item.AllowedCapabilities, item.AllowHostDirVolumePlugin, item.SELinuxContext.Type,
+		item.RunAsUser.Type)
+	return err
+}
+
+func printSecurityContextConstraintsList(list *sccapi.SecurityContextConstraintsList, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
+	for _, item := range list.Items {
+		if err := printSecurityContextConstraints(&item, w, withNamespace, wide, showAll, columnLabels); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

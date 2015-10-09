@@ -17,14 +17,17 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	pspapi "github.com/openshift/origin/pkg/security/policy/api"
 )
 
 // PrinterCoverageExceptions is the list of API types that do NOT have corresponding printers
 // If you add something to this list, explain why it doesn't need validation.  waaaa is not a valid
 // reason.
 var PrinterCoverageExceptions = []reflect.Type{
-	reflect.TypeOf(&imageapi.DockerImage{}), // not a top level resource
-	reflect.TypeOf(&buildapi.BuildLog{}),    // just a marker type
+	reflect.TypeOf(&imageapi.DockerImage{}),                  // not a top level resource
+	reflect.TypeOf(&buildapi.BuildLog{}),                     // just a marker type
+	reflect.TypeOf(&pspapi.SecurityContextConstraints{}),     // always converted to PodSecurityPolicy and backed by proxy storage
+	reflect.TypeOf(&pspapi.SecurityContextConstraintsList{}), // always converted to PodSecurityPolicy and backed by proxy storage
 
 	// these resources can't be "GET"ed, so we probably don't need a printer for them
 	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),

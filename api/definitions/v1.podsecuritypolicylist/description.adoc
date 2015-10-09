@@ -1,0 +1,1 @@
+PodSecurityPolicyList contains a list of PodSecurityPolicy objects.

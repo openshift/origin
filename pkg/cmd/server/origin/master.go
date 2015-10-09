@@ -16,6 +16,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapiv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/apiserver"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kmaster "k8s.io/kubernetes/pkg/master"
@@ -89,6 +91,9 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	routeplugin "github.com/openshift/origin/plugins/route/allocation/simple"
+
+	pspetcd "github.com/openshift/origin/pkg/security/policy/registry/podsecuritypolicy/etcd"
+	sccstorage "github.com/openshift/origin/pkg/security/policy/registry/securitycontextconstraint"
 )
 
 const (
@@ -250,8 +255,8 @@ func (c *MasterConfig) serve(handler http.Handler, extra []string) {
 func (c *MasterConfig) InitializeObjects() {
 	// Create required policy rules if needed
 	c.ensureComponentAuthorizationRules()
-	// Ensure the default SCCs are created
-	c.ensureDefaultSecurityContextConstraints()
+	// Ensure the default PodSecurityPolicies are created
+	c.ensureDefaultPodSecurityPolicy()
 	// Bind default roles for service accounts in the default namespace if needed
 	c.ensureDefaultNamespaceServiceAccountRoles()
 	// Create the infra namespace
@@ -282,6 +287,11 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		}
 		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1))
 		currentAPIVersions = append(currentAPIVersions, OpenShiftAPIV1)
+	}
+
+	err := c.installDeprecatedKubernetesAPI(container)
+	if err != nil {
+		glog.Fatalf("Unable to install deprecated api: %v", err)
 	}
 
 	var root *restful.WebService
@@ -476,6 +486,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"clusterPolicyBindings": clusterPolicyBindingStorage,
 		"clusterRoleBindings":   clusterRoleBindingStorage,
 		"clusterRoles":          clusterRoleStorage,
+
+		"podSecurityPolicies": pspetcd.NewStorage(c.EtcdHelper),
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {
@@ -559,6 +571,39 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Admit:   c.AdmissionControl,
 		Context: c.getRequestContextMapper(),
 	}
+}
+
+func (c *MasterConfig) installDeprecatedKubernetesAPI(container *restful.Container) error {
+	storage := make(map[string]rest.Storage)
+	// this is registered under the deprecated name to create the old endpoint for backwards compatibility.
+	storage["securitycontextconstraints"] = sccstorage.NewREST(c.PodSecurityPolicyClient().PodSecurityPolicies())
+
+	if configapi.HasKubernetesAPILevel(*c.Options.KubernetesMasterConfig, "v1beta3") {
+		//install the rest storage
+		version := c.defaultAPIGroupVersion()
+		version.Root = KubernetesAPIPrefix
+		version.Storage = storage
+		version.Version = "v1beta3"
+		version.Codec = kapiv1beta3.Codec
+		if err := version.UpdateREST(container); err != nil {
+			return err
+		}
+	}
+
+	if configapi.HasKubernetesAPILevel(*c.Options.KubernetesMasterConfig, "v1") {
+		//install the rest storage
+		version := c.defaultAPIGroupVersion()
+		version.Root = KubernetesAPIPrefix
+		version.Storage = storage
+		version.Version = "v1"
+		version.Codec = kapiv1.Codec
+
+		if err := version.UpdateREST(container); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // api_v1beta3 returns the resources and codec for API version v1beta3.

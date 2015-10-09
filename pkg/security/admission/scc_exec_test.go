@@ -87,7 +87,7 @@ func TestExecAdmit(t *testing.T) {
 		tc.AddWatchReactor("*", testclient.DefaultWatchReactor(watch.NewFake(), nil))
 
 		// create the admission plugin
-		p := NewSCCExecRestrictions(tc)
+		p := NewSCCExecRestrictions(tc, nil)
 
 		attrs := kadmission.NewAttributesRecord(v.pod, "Pod", "namespace", "pod-name", v.resource, v.subresource, v.operation, &user.DefaultInfo{})
 		err := p.Admit(attrs)

@@ -1,0 +1,1 @@
+PodSecurityPolicySpec defines a set of constraints that are granted to a user or group that control the actions that a pod can perform and what it has the ability to access as well as the default values if no settings are specifically requested on the pod or container.

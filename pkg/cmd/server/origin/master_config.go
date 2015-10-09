@@ -353,6 +353,23 @@ func (c *MasterConfig) KubeClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
 }
 
+// OpenShiftClient returns the openshift client object
+func (c *MasterConfig) OpenShiftClient() *osclient.Client {
+	return c.PrivilegedLoopbackOpenShiftClient
+}
+
+func (c *MasterConfig) AdmissionControlClient() kclient.Interface {
+	return admissionControlClient(c.KubeClient(), c.OpenShiftClient())
+}
+
+// PodSecurityPolicyClient returns a client object used to query all SecurityContextConstraints
+// within the cluster.
+// It must have the following capabilities:
+// create, list all SecurityContextConstraints
+func (c *MasterConfig) PodSecurityPolicyClient() *osclient.Client {
+	return c.PrivilegedLoopbackOpenShiftClient
+}
+
 // PolicyClient returns the policy client object
 // It must have the following capabilities:
 //  list, watch all policyBindings in all namespaces

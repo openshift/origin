@@ -7,6 +7,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
@@ -15,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
@@ -149,6 +151,12 @@ func TestCreatesAllowedDuringNamespaceDeletion(t *testing.T) {
 	config := &origin.MasterConfig{
 		KubeletClientConfig: &kclient.KubeletConfig{},
 		EtcdHelper:          etcdstorage.NewEtcdStorage(nil, nil, ""),
+		Options: configapi.MasterConfig{
+			EtcdStorageConfig: configapi.EtcdStorageConfig{
+				KubernetesStorageVersion: latest.Version,
+				KubernetesStoragePrefix:  "foo",
+			},
+		},
 	}
 	storageMap := config.GetRestStorage()
 	resources := sets.String{}

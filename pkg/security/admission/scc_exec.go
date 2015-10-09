@@ -17,15 +17,23 @@ limitations under the License.
 package admission
 
 import (
+	"errors"
 	"io"
 
 	"k8s.io/kubernetes/pkg/admission"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+
+	osclient "github.com/openshift/origin/pkg/client"
 )
 
 func init() {
-	admission.RegisterPlugin("SCCExecRestrictions", func(client client.Interface, config io.Reader) (admission.Interface, error) {
-		execAdmitter := NewSCCExecRestrictions(client)
+	admission.RegisterPlugin("SCCExecRestrictions", func(kclient client.Interface, config io.Reader) (admission.Interface, error) {
+		osClient, ok := kclient.(osclient.Interface)
+		if !ok {
+			return nil, errors.New("client is not an Origin client")
+		}
+
+		execAdmitter := NewSCCExecRestrictions(kclient, osClient)
 		execAdmitter.constraintAdmission.Run()
 		return execAdmitter, nil
 	})
@@ -67,10 +75,10 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 }
 
 // NewSCCExecRestrictions creates a new admission controller that denies an exec operation on a privileged pod
-func NewSCCExecRestrictions(client client.Interface) *sccExecRestrictions {
+func NewSCCExecRestrictions(kclient client.Interface, osClient osclient.Interface) *sccExecRestrictions {
 	return &sccExecRestrictions{
 		Handler:             admission.NewHandler(admission.Connect),
-		constraintAdmission: NewConstraint(client),
-		client:              client,
+		constraintAdmission: NewConstraint(kclient, osClient),
+		client:              kclient,
 	}
 }

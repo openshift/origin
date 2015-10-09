@@ -51,6 +51,12 @@ type Interface interface {
 	ClusterPolicyBindingsInterface
 	ClusterRolesInterface
 	ClusterRoleBindingsInterface
+	PodSecurityPoliciesInterface
+}
+
+// SecurityContextConstraints provides a REST client for SecurityContextConstraints.
+func (c *Client) PodSecurityPolicies() PodSecurityPolicyInterface {
+	return newPodSecurityPolicy(c)
 }
 
 // Builds provides a REST client for Builds
