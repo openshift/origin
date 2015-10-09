@@ -964,7 +964,7 @@ func TestRunAll(t *testing.T) {
 	}
 }
 
-func TestRunBuilds(t *testing.T) {
+func TestRunBuild(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
@@ -1044,43 +1044,7 @@ func TestRunBuilds(t *testing.T) {
 			},
 			expected: map[string][]string{
 				"buildConfig": {"origin-base"},
-				"imageStream": {"origin-base", "origin-base-app"},
-			},
-		},
-		{
-			name: "successful build from dockerfile with custom name",
-			config: &AppConfig{
-				Dockerfile: "FROM openshift/origin-base\nUSER foo",
-
-				dockerSearcher: dockerSearcher,
-				imageStreamSearcher: app.ImageStreamSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
-					Client:            &client.Fake{},
-					ImageStreamImages: &client.Fake{},
-					Namespaces:        []string{"default"},
-				},
-				templateSearcher: app.TemplateSearcher{
-					Client: &client.Fake{},
-					TemplateConfigsNamespacer: &client.Fake{},
-					Namespaces:                []string{"openshift", "default"},
-				},
-
-				detector: app.SourceRepositoryEnumerator{
-					Detectors: source.DefaultDetectors,
-					Tester:    dockerfile.NewTester(),
-				},
-				typer:           kapi.Scheme,
-				osclient:        &client.Fake{},
-				originNamespace: "default",
-				Name:            "foobar",
-			},
-			expected: map[string][]string{
-				"buildConfig": {"foobar"},
-				"imageStream": {"origin-base", "foobar"},
+				"imageStream": {"origin-base"},
 			},
 		},
 		{
