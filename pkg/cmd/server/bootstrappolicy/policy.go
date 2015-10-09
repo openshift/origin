@@ -299,8 +299,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
 				{
-					Verbs:     sets.NewString("get", "update"),
+					Verbs:     sets.NewString("get"),
 					Resources: sets.NewString("replicationcontrollers"),
+				},
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("replicationcontrollers/status"),
 				},
 				// ReplicationManager.podController.ListWatch
 				{
