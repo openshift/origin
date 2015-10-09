@@ -23,8 +23,6 @@ import (
 	"k8s.io/kubernetes/test/e2e"
 )
 
-var returnCodeRegex = regexp.MustCompile("@@@([0-9]+)@@@")
-
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // REST clients.
 type CLI struct {
