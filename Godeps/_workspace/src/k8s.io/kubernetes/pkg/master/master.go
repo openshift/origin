@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"k8s.io/kubernetes/pkg/admission"
@@ -175,6 +176,8 @@ type Config struct {
 
 	// Used to start and monitor tunneling
 	Tunneler Tunneler
+
+	KubernetesServiceNodePort int
 }
 
 type InstallSSHKey func(user string, data []byte) error
@@ -243,6 +246,12 @@ type Master struct {
 
 	// storage for third party objects
 	thirdPartyStorage storage.Interface
+
+	// map from api path to storage for those objects
+	thirdPartyResources map[string]*thirdpartyresourcedataetcd.REST
+	// protects the map
+	thirdPartyResourcesLock   sync.RWMutex
+	KubernetesServiceNodePort int
 }
 
 // NewEtcdStorage returns a storage.Interface for the provided arguments or an error if the version
@@ -377,6 +386,8 @@ func New(c *Config) *Master {
 		serviceReadWritePort: 443,
 
 		tunneler: c.Tunneler,
+
+		KubernetesServiceNodePort: c.KubernetesServiceNodePort,
 	}
 
 	var handlerContainer *restful.Container
@@ -657,9 +668,10 @@ func (m *Master) NewBootstrapController() *Controller {
 
 		PublicIP: m.clusterIP,
 
-		ServiceIP:         m.serviceReadWriteIP,
-		ServicePort:       m.serviceReadWritePort,
-		PublicServicePort: m.publicReadWritePort,
+		ServiceIP:                 m.serviceReadWriteIP,
+		ServicePort:               m.serviceReadWritePort,
+		PublicServicePort:         m.publicReadWritePort,
+		KubernetesServiceNodePort: m.KubernetesServiceNodePort,
 	}
 }
 
