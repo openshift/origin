@@ -47,12 +47,6 @@ trap "cleanup" EXIT
 
 set -e
 
-function find_tests {
-  cd "${OS_ROOT}"
-  find "${1}" -name '*.sh' -print0 | sort -u | xargs -0 -n1 printf "%s\n"
-}
-tests=( $(find_tests ${1:-test/cmd}) )
-
 # Setup environment
 
 # test-cmd specific defaults
@@ -257,6 +251,27 @@ echo "config files: ok"
 export KUBECONFIG="${HOME}/.kube/non-default-config"
 export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
 
+pushd "$OS_ROOT" > /dev/null
+  # Save the current settings for globstar and nullglob
+  restore_globstar=$(shopt -p globstar) || true
+  restore_nullglob=$(shopt -p nullglob) || true
+
+  # Set globstar so that ** performs recursion.
+  shopt -s globstar
+
+  # Set nullglob so that test/cmd/**/*.sh expands to nothing instead of to the
+  # literal string test/cmd/**/*.sh if the glob does not match anything.
+  shopt -s nullglob
+
+  # Assign to tests an array of every .sh file under test/cmd/, or under $1 if
+  # specified (which may be relative to $OS_ROOT or an absolute pathname),
+  # searching recursively.
+  tests=( "${1:-test/cmd}"/**/*.sh )
+
+  # Restore the previously saved setting for globstar and nullglob.
+  $restore_globstar
+  $restore_nullglob
+popd > /dev/null
 
 # NOTE: Do not add tests here, add them to test/cmd/*.
 # Tests should assume they run in an empty project, and should be reentrant if possible
