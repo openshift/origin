@@ -240,7 +240,7 @@ func (o NodeOptions) IsRunFromConfig() bool {
 	return (len(o.ConfigFile) > 0)
 }
 
-func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeConfig) {
+func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeConfig) kubernetes.FilteringEndpointsConfigHandler {
 	oclient, _, err := configapi.GetOpenShiftClient(nodeConfig.MasterKubeConfig)
 	if err != nil {
 		glog.Fatal("Failed to get kube client for SDN")
@@ -258,7 +258,9 @@ func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeCo
 		plugin := multitenant.GetKubeNetworkPlugin()
 		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, plugin)
 		go multitenant.Node(registry, nodeConfig.NodeName, nodeConfig.NodeIP, ch, plugin, nodeConfig.NetworkConfig.MTU)
+		return registry
 	}
+	return nil
 }
 
 func StartNode(nodeConfig configapi.NodeConfig) error {
@@ -268,10 +270,10 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 	}
 	glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 
-	RunSDNController(config, nodeConfig)
+	endpointFilter := RunSDNController(config, nodeConfig)
 	config.EnsureVolumeDir()
 	config.EnsureDocker(docker.NewHelper())
-	config.RunProxy()
+	config.RunProxy(endpointFilter)
 	config.RunKubelet()
 
 	return nil
