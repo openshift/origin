@@ -428,9 +428,9 @@ function delete_large_and_empty_logs()
 {
 	# clean up zero byte log files
 	# Clean up large log files so they don't end up on jenkins
-	find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
+	find ${ARTIFACT_DIR} -name *.log -size +20M -exec -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size +20M -exec -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size 0 -exec rm -f {} \;
 }
 
 ######
@@ -459,16 +459,16 @@ function cleanup_openshift {
 
 	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
 	set_curl_args 0 1
-	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
+	curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
 	echo
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
 		echo "[INFO] Tearing down test"
 		kill_all_processes
 
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
 		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
+			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm >/dev/null
 		fi
 		set -u
 	fi
