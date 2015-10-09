@@ -6,11 +6,11 @@ set -o pipefail
 
 ORIGIN_ROOT=$(
   unset CDPATH
-  origin_root=$(dirname "${BASH_SOURCE}")/..
+  origin_root=$(dirname "${BASH_SOURCE}")/../..
   cd "${origin_root}"
   pwd
 )
-source ${ORIGIN_ROOT}/vagrant/provision-util.sh
+source ${ORIGIN_ROOT}/contrib/vagrant/provision-util.sh
 
 # Passed as arguments to provisioning from Vagrantfile
 MASTER_IP=${1:-""}
