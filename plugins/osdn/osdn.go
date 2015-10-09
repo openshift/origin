@@ -307,7 +307,7 @@ func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, string, error
 		return nil, "", err
 	}
 
-	oServList := make([]osdnapi.Service, len(kServList.Items))
+	oServList := make([]osdnapi.Service, 0)
 	for _, kService := range kServList.Items {
 		if kService.Spec.ClusterIP == "None" {
 			continue
