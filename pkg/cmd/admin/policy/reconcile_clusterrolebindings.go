@@ -170,7 +170,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*a
 		actualClusterRoleBinding, err := o.RoleBindingClient.Get(expectedClusterRoleBinding.Name)
 		if kapierrors.IsNotFound(err) {
 			// Remove excluded subjects from the new role binding
-			expectedClusterRoleBinding.Subjects, _ = diff(expectedClusterRoleBinding.Subjects, o.ExcludeSubjects)
+			expectedClusterRoleBinding.Subjects, _ = DiffObjectReferenceLists(expectedClusterRoleBinding.Subjects, o.ExcludeSubjects)
 			changedRoleBindings = append(changedRoleBindings, expectedClusterRoleBinding)
 			continue
 		}
@@ -249,11 +249,11 @@ func computeUpdatedBinding(expected authorizationapi.ClusterRoleBinding, actual 
 	}
 
 	// compute the list of subjects we should not add roles for (existing subjects in the exclude list should be preserved)
-	doNotAddSubjects, _ := diff(excludeSubjects, actual.Subjects)
+	doNotAddSubjects, _ := DiffObjectReferenceLists(excludeSubjects, actual.Subjects)
 	// remove any excluded subjects that do not exist from our expected subject list (so we don't add them)
-	expectedSubjects, _ := diff(expected.Subjects, doNotAddSubjects)
+	expectedSubjects, _ := DiffObjectReferenceLists(expected.Subjects, doNotAddSubjects)
 
-	missingSubjects, extraSubjects := diff(expectedSubjects, actual.Subjects)
+	missingSubjects, extraSubjects := DiffObjectReferenceLists(expectedSubjects, actual.Subjects)
 	// Always add missing expected subjects
 	if len(missingSubjects) > 0 {
 		needsUpdating = true
@@ -284,11 +284,11 @@ func contains(list []kapi.ObjectReference, item kapi.ObjectReference) bool {
 	return false
 }
 
-// diff returns lists containing the items unique to each provided list:
+// DiffObjectReferenceLists returns lists containing the items unique to each provided list:
 //   list1Only = list1 - list2
 //   list2Only = list2 - list1
 // if both returned lists are empty, the provided lists are equal
-func diff(list1 []kapi.ObjectReference, list2 []kapi.ObjectReference) (list1Only []kapi.ObjectReference, list2Only []kapi.ObjectReference) {
+func DiffObjectReferenceLists(list1 []kapi.ObjectReference, list2 []kapi.ObjectReference) (list1Only []kapi.ObjectReference, list2Only []kapi.ObjectReference) {
 	for _, list1Item := range list1 {
 		if !contains(list2, list1Item) {
 			if !contains(list1Only, list1Item) {

@@ -24,7 +24,7 @@ func refs(names ...string) []kapi.ObjectReference {
 	return r
 }
 
-func TestDiff(t *testing.T) {
+func TestDiffObjectReferenceLists(t *testing.T) {
 	tests := map[string]struct {
 		A             []kapi.ObjectReference
 		B             []kapi.ObjectReference
@@ -61,7 +61,7 @@ func TestDiff(t *testing.T) {
 	}
 
 	for k, tc := range tests {
-		onlyA, onlyB := diff(tc.A, tc.B)
+		onlyA, onlyB := DiffObjectReferenceLists(tc.A, tc.B)
 		if !kapi.Semantic.DeepEqual(onlyA, tc.ExpectedOnlyA) {
 			t.Errorf("%s: Expected %#v, got %#v", k, tc.ExpectedOnlyA, onlyA)
 		}
