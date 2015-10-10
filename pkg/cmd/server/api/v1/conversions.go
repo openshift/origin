@@ -39,6 +39,14 @@ func init() {
 					obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
 				}
 			}
+
+			// Historically, the clientCA was incorrectly used as the master's server cert CA bundle
+			// If missing from the config, migrate the ClientCA into that field
+			if obj.OAuthConfig != nil && obj.OAuthConfig.MasterCA == nil {
+				s := obj.ServingInfo.ClientCA
+				// The final value of OAuthConfig.MasterCA should never be nil
+				obj.OAuthConfig.MasterCA = &s
+			}
 		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {

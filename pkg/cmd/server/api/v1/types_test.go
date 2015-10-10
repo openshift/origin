@@ -234,7 +234,7 @@ oauthConfig:
         authorize: ""
         token: ""
         userInfo: ""
-  masterCA: ""
+  masterCA: null
   masterPublicURL: ""
   masterURL: ""
   sessionConfig:

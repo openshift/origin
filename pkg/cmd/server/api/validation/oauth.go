@@ -18,7 +18,9 @@ import (
 func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 	validationResults := ValidationResults{}
 
-	if len(*config.MasterCA) > 0 {
+	if config.MasterCA == nil {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("masterCA", config.MasterCA, "a filename or empty string is required"))
+	} else if len(*config.MasterCA) > 0 {
 		validationResults.AddErrors(ValidateFile(*config.MasterCA, "masterCA")...)
 	}
 
