@@ -136,7 +136,7 @@ func (o *OpenShiftLogsOptions) RunLog() error {
 	resourceType = strings.ToLower(resourceType)
 
 	// if we're requesting a pod, delegate directly to kubectl logs
-	if (tokens[0] == "pods") || (tokens[0] == "pod") || len(o.ContainerName) > 0 {
+	if (resourceType == "pods") || (resourceType == "pod") || len(o.ContainerName) > 0 {
 		kLogsOptions.PodName = resourceName
 		return kLogsOptions.RunLog()
 	}
@@ -164,7 +164,7 @@ func (o *OpenShiftLogsOptions) RunLog() error {
 		return o.runLogsForBuild(build)
 
 	default:
-		return fmt.Errorf("unknown resource type %v", resourceType)
+		return fmt.Errorf("cannot display logs for resource type %v", resourceType)
 	}
 }
 
