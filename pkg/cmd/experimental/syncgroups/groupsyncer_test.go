@@ -1,21 +1,114 @@
 package syncgroups
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/go-ldap/ldap"
 	"github.com/openshift/origin/pkg/auth/ldaputil"
-	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
+
+func TestMakeOpenShiftGroup(t *testing.T) {
+	syncer := &LDAPGroupSyncer{
+		Out:  ioutil.Discard,
+		Err:  ioutil.Discard,
+		Host: "test-host",
+		GroupNameMapper: &TestGroupNameMapper{
+			NameMapping: map[string]string{
+				"alfa": "zulu",
+			},
+		},
+	}
+
+	tcs := map[string]struct {
+		ldapGroupUID   string
+		usernames      []string
+		startingGroups []runtime.Object
+		expectedGroup  *userapi.Group
+		expectedErr    string
+	}{
+		"bad ldapGroupUID": {
+			ldapGroupUID: "bravo",
+			expectedErr:  "no name found for group: bravo",
+		},
+		"good": {
+			ldapGroupUID: "alfa",
+			usernames:    []string{"valerie"},
+			expectedGroup: &userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
+				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host", ldaputil.LDAPUIDAnnotation: "alfa"}},
+				Users: []string{"valerie"}},
+		},
+		"replaced good": {
+			ldapGroupUID: "alfa",
+			usernames:    []string{"valerie"},
+			expectedGroup: &userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
+				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host", ldaputil.LDAPUIDAnnotation: "alfa"}},
+				Users: []string{"valerie"}},
+			startingGroups: []runtime.Object{
+				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
+					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host", ldaputil.LDAPUIDAnnotation: "alfa"}},
+					Users: []string{"other-user"}},
+			},
+		},
+		"conflicting uid": {
+			ldapGroupUID: "alfa",
+			usernames:    []string{"valerie"},
+			startingGroups: []runtime.Object{
+				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
+					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host", ldaputil.LDAPUIDAnnotation: "bravo"}},
+					Users: []string{"other-user"}},
+			},
+			expectedErr: `group "zulu": openshift.io/ldap.uid annotation did not match LDAP UID: wanted alfa, got bravo`,
+		},
+		"conflicting host": {
+			ldapGroupUID: "alfa",
+			usernames:    []string{"valerie"},
+			startingGroups: []runtime.Object{
+				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
+					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "bad-host", ldaputil.LDAPUIDAnnotation: "alfa"}},
+					Users: []string{"other-user"}},
+			},
+			expectedErr: `group "zulu": openshift.io/ldap.url annotation did not match sync host: wanted test-host, got bad-host`,
+		},
+	}
+
+	for name, tc := range tcs {
+		fakeClient := testclient.NewSimpleFake(tc.startingGroups...)
+		syncer.GroupClient = fakeClient.Groups()
+
+		actualGroup, err := syncer.makeOpenShiftGroup(tc.ldapGroupUID, tc.usernames)
+		if err != nil && len(tc.expectedErr) == 0 {
+			t.Errorf("%s: unexpected error %v", name, err)
+
+		} else if err == nil && len(tc.expectedErr) != 0 {
+			t.Errorf("%s: expected %v, got nil", name, tc.expectedErr)
+
+		} else if err != nil {
+			if e, a := tc.expectedErr, err.Error(); e != a {
+				t.Errorf("%s: expected %v, got %v", name, e, a)
+			}
+		}
+
+		if actualGroup != nil {
+			delete(actualGroup.Annotations, ldaputil.LDAPSyncTimeAnnotation)
+		}
+
+		if !reflect.DeepEqual(tc.expectedGroup, actualGroup) {
+			t.Errorf("%s: expected %v, got %v", name, tc.expectedGroup, actualGroup)
+		}
+	}
+
+}
 
 const (
 	Group1UID string = "group1"
@@ -77,8 +170,134 @@ var Group1Members []*ldap.Entry = []*ldap.Entry{Member1, Member2}
 var Group2Members []*ldap.Entry = []*ldap.Entry{Member2, Member3}
 var Group3Members []*ldap.Entry = []*ldap.Entry{Member3, Member4}
 
-// TestSync ensures that data is exchanged and rearranged correctly during the sync process.
-func TestSync(t *testing.T) {
+// TestGoodSync ensures that data is exchanged and rearranged correctly during the sync process.
+func TestGoodSync(t *testing.T) {
+	testGroupSyncer, tc := newTestSyncer()
+	_, errs := testGroupSyncer.Sync()
+	for _, err := range errs {
+		t.Errorf("unexpected sync error: %v", err)
+	}
+
+	checkClientForGroups(tc, newDefaultOpenShiftGroups(testGroupSyncer.Host), t)
+}
+
+func TestListFails(t *testing.T) {
+	testGroupSyncer, _ := newTestSyncer()
+	testGroupSyncer.GroupLister.(*TestGroupLister).err = errors.New("error during listing")
+
+	groups, errs := testGroupSyncer.Sync()
+	if len(errs) != 1 {
+		t.Errorf("unexpected sync error: %v", errs)
+
+	} else if errs[0] != testGroupSyncer.GroupLister.(*TestGroupLister).err {
+		t.Errorf("unexpected sync error: %v", errs)
+	}
+
+	if groups != nil {
+		t.Errorf("unexpected groups %v", groups)
+	}
+}
+
+func TestMissingLDAPGroupUIDMapping(t *testing.T) {
+	testGroupSyncer, tc := newTestSyncer()
+	testGroupSyncer.GroupLister.(*TestGroupLister).GroupUIDs = append(testGroupSyncer.GroupLister.(*TestGroupLister).GroupUIDs, "ldapgroupwithnouid")
+
+	_, errs := testGroupSyncer.Sync()
+	if len(errs) != 1 {
+		t.Errorf("unexpected sync error: %v", errs)
+
+	} else if e, a := "no members found for group: ldapgroupwithnouid", errs[0].Error(); e != a {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+
+	checkClientForGroups(tc, newDefaultOpenShiftGroups(testGroupSyncer.Host), t)
+}
+
+func checkClientForGroups(tc *testclient.Fake, expectedGroups []*userapi.Group, t *testing.T) {
+	actualGroups := extractActualGroups(tc)
+
+	for _, expectedGroup := range expectedGroups {
+		if !groupExists(actualGroups, expectedGroup) {
+			t.Errorf("did not find %v, got %v", expectedGroup, actualGroups)
+		}
+	}
+}
+
+func groupExists(haystack []*userapi.Group, needle *userapi.Group) bool {
+	for _, actual := range haystack {
+		t, _ := kapi.Scheme.DeepCopy(actual)
+		actualGroup := t.(*userapi.Group)
+		delete(actualGroup.Annotations, ldaputil.LDAPSyncTimeAnnotation)
+
+		if reflect.DeepEqual(needle, actualGroup) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func extractActualGroups(tc *testclient.Fake) []*userapi.Group {
+	ret := []*userapi.Group{}
+	for _, genericAction := range tc.Actions() {
+		switch action := genericAction.(type) {
+		case ktestclient.CreateAction:
+			ret = append(ret, action.GetObject().(*userapi.Group))
+		case ktestclient.UpdateAction:
+			ret = append(ret, action.GetObject().(*userapi.Group))
+		}
+	}
+
+	return ret
+}
+
+func newDefaultOpenShiftGroups(host string) []*userapi.Group {
+	return []*userapi.Group{
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "os" + Group1UID,
+				Annotations: map[string]string{
+					ldaputil.LDAPURLAnnotation: host,
+					ldaputil.LDAPUIDAnnotation: Group1UID,
+				},
+			},
+			Users: []string{Member1UID, Member2UID},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "os" + Group2UID,
+				Annotations: map[string]string{
+					ldaputil.LDAPURLAnnotation: host,
+					ldaputil.LDAPUIDAnnotation: Group2UID,
+				},
+			},
+			Users: []string{Member2UID, Member3UID},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: "os" + Group3UID,
+				Annotations: map[string]string{
+					ldaputil.LDAPURLAnnotation: host,
+					ldaputil.LDAPUIDAnnotation: Group3UID,
+				},
+			},
+			Users: []string{Member3UID, Member4UID},
+		},
+	}
+
+}
+
+func newTestSyncer() (*LDAPGroupSyncer, *testclient.Fake) {
+	tc := testclient.NewSimpleFake()
+	tc.PrependReactor("create", "groups", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		createAction := action.(ktestclient.CreateAction)
+		return true, createAction.GetObject(), nil
+	})
+	tc.PrependReactor("update", "groups", func(action ktestclient.Action) (handled bool, ret runtime.Object, err error) {
+		updateAction := action.(ktestclient.UpdateAction)
+		return true, updateAction.GetObject(), nil
+	})
+
 	testGroupLister := TestGroupLister{
 		GroupUIDs: []string{Group1UID, Group2UID, Group3UID},
 	}
@@ -99,73 +318,19 @@ func TestSync(t *testing.T) {
 			Group3UID: "os" + Group3UID,
 		},
 	}
-	testGroupClient := TestGroupClient{
-		Storage: make(map[string]*userapi.Group),
-	}
 	testHost := "test.host:port"
 
-	testGroupSyncer := LDAPGroupSyncer{
+	return &LDAPGroupSyncer{
 		GroupLister:          &testGroupLister,
 		GroupMemberExtractor: &testGroupMemberExtractor,
 		UserNameMapper:       &testUserNameMapper,
 		GroupNameMapper:      &testGroupNameMapper,
-		GroupClient:          &testGroupClient,
+		GroupClient:          tc.Groups(),
 		Host:                 testHost,
-		SyncExisting:         false,
-	}
+		Out:                  ioutil.Discard,
+		Err:                  ioutil.Discard,
+	}, tc
 
-	errs := testGroupSyncer.Sync()
-	for _, err := range errs {
-		t.Errorf("unexpected sync error: %v", err)
-	}
-
-	expectedGroups := []*userapi.Group{
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: "os" + Group1UID,
-				Annotations: map[string]string{
-					ldaputil.LDAPURLAnnotation: testHost,
-					ldaputil.LDAPUIDAnnotation: Group1UID,
-				},
-			},
-			Users: []string{Member1UID, Member2UID},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: "os" + Group2UID,
-				Annotations: map[string]string{
-					ldaputil.LDAPURLAnnotation: testHost,
-					ldaputil.LDAPUIDAnnotation: Group2UID,
-				},
-			},
-			Users: []string{Member2UID, Member3UID},
-		},
-		{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: "os" + Group3UID,
-				Annotations: map[string]string{
-					ldaputil.LDAPURLAnnotation: testHost,
-					ldaputil.LDAPUIDAnnotation: Group3UID,
-				},
-			},
-			Users: []string{Member3UID, Member4UID},
-		},
-	}
-
-	for _, expectedGroup := range expectedGroups {
-		group, err := (&testGroupClient).Get(expectedGroup.Name)
-		if err != nil {
-			t.Errorf("group did not exist after sync job:\n\texpected:\n%#v\n\t", expectedGroup)
-		} else {
-			if _, exists := group.Annotations[ldaputil.LDAPSyncTimeAnnotation]; !exists {
-				t.Errorf("sycned group did not have %s annotation: %#v", ldaputil.LDAPSyncTimeAnnotation, group)
-			}
-			delete(group.Annotations, ldaputil.LDAPSyncTimeAnnotation)
-			if !reflect.DeepEqual(expectedGroup, group) {
-				t.Errorf("group was not synced correctly:\n\texpected:\n%#v\n\tgot:\n%#v", expectedGroup, group)
-			}
-		}
-	}
 }
 
 // The following stub implementations allow us to build a test LDAPGroupSyncer
@@ -174,13 +339,16 @@ var _ interfaces.LDAPGroupLister = &TestGroupLister{}
 var _ interfaces.LDAPMemberExtractor = &TestGroupMemberExtractor{}
 var _ interfaces.LDAPUserNameMapper = &TestUserNameMapper{}
 var _ interfaces.LDAPGroupNameMapper = &TestGroupNameMapper{}
-var _ client.GroupInterface = &TestGroupClient{}
 
 type TestGroupLister struct {
 	GroupUIDs []string
+	err       error
 }
 
 func (l *TestGroupLister) ListGroups() ([]string, error) {
+	if l.err != nil {
+		return nil, l.err
+	}
 	return l.GroupUIDs, nil
 }
 
@@ -219,38 +387,4 @@ func (m *TestGroupNameMapper) GroupNameFor(ldapGroupUID string) (string, error) 
 		return "", fmt.Errorf("no name found for group: %s", ldapGroupUID)
 	}
 	return name, nil
-}
-
-type TestGroupClient struct {
-	Storage map[string]*userapi.Group
-}
-
-func (c *TestGroupClient) Update(group *userapi.Group) (*userapi.Group, error) {
-	if _, exists := c.Storage[group.Name]; !exists {
-		return nil, fmt.Errorf("cannot update group that does not exist: %v", group)
-	}
-	c.Storage[group.Name] = group
-	return group, nil
-}
-
-func (c *TestGroupClient) Get(name string) (*userapi.Group, error) {
-	group, exists := c.Storage[name]
-	if !exists {
-		return nil, kapierrors.NewNotFound("Group", name)
-	}
-	return group, nil
-}
-
-func (c *TestGroupClient) Create(group *userapi.Group) (*userapi.Group, error) {
-	c.Storage[group.Name] = group
-	return group, nil
-}
-
-// The following functions are not used during a sync and therefore have no implementation
-func (c *TestGroupClient) List(_ labels.Selector, _ fields.Selector) (*userapi.GroupList, error) {
-	return nil, nil
-}
-
-func (c *TestGroupClient) Delete(_ string) error {
-	return nil
 }
