@@ -141,13 +141,17 @@ os::build:wait_for_end "test"
 wait_for_app "test"
 
 # logs can't be tested without a node, so has to be in e2e
+POD_NAME=`oc get pods -o name -n test | head -n 1`
+oc logs ${POD_NAME} --loglevel=6
+POD_NAME_NO_KIND=`oc get pods -o name -n test | head -n 1 | cut -d '/' -f 2`
+oc logs ${POD_NAME_NO_KIND} --loglevel=6
 BUILD_NAME=`oc get builds -o name -n test | head -n 1`
 oc logs ${BUILD_NAME} --loglevel=6
 oc logs ${BUILD_NAME} --loglevel=6
 oc logs bc/ruby-sample-build --loglevel=6
 oc logs buildconfigs/ruby-sample-build --loglevel=6
 oc logs buildconfig/ruby-sample-build --loglevel=6
-echo "build-logs: ok"
+echo "logs: ok"
 
 
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} with non-existing commit..."
