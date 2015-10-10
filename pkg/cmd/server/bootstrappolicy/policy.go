@@ -59,6 +59,17 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     sets.NewString("create"),
 					Resources: sets.NewString("resourceaccessreviews", "subjectaccessreviews"),
 				},
+				// Allow read access to node metrics
+				{
+					Verbs:     sets.NewString("get"),
+					Resources: sets.NewString(authorizationapi.NodeMetricsResource),
+				},
+				// Allow read access to stats
+				// Node stats requests are submitted as POSTs.  These creates are non-mutating
+				{
+					Verbs:     sets.NewString("get", "create"),
+					Resources: sets.NewString(authorizationapi.NodeStatsResource),
+				},
 				{
 					Verbs:           sets.NewString("get"),
 					NonResourceURLs: sets.NewString(authorizationapi.NonResourceAll),
@@ -407,12 +418,18 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString("nodes"),
 				},
-				// Allow read access to metrics and stats
-				// TODO: expose other things like /healthz on the node once we figure out non-resource URL policy across systems
+				// Allow read access to node metrics
 				{
 					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString(authorizationapi.NodeMetricsResource, authorizationapi.NodeStatsResource),
+					Resources: sets.NewString(authorizationapi.NodeMetricsResource),
 				},
+				// Allow read access to stats
+				// Node stats requests are submitted as POSTs.  These creates are non-mutating
+				{
+					Verbs:     sets.NewString("get", "create"),
+					Resources: sets.NewString(authorizationapi.NodeStatsResource),
+				},
+				// TODO: expose other things like /healthz on the node once we figure out non-resource URL policy across systems
 			},
 		},
 		{

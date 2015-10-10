@@ -178,15 +178,18 @@ func TestNodeAuth(t *testing.T) {
 			// Responses to invalid paths are the same for all users
 			{"GET", "/", http.StatusNotFound},
 			{"GET", "/stats", http.StatusMovedPermanently}, // ServeMux redirects to the directory
+			{"GET", "/logs", http.StatusMovedPermanently},  // ServeMux redirects to the directory
 			{"GET", "/invalid", http.StatusNotFound},
 
 			// viewer requests
 			{"GET", "/metrics", viewResult},
 			{"GET", "/stats/", viewResult},
+			{"POST", "/stats/", viewResult}, // stats requests can be POSTs which contain query options
 
 			// successful admin requests
 			{"GET", "/healthz", adminResultOK},
 			{"GET", "/pods", adminResultOK},
+			{"GET", "/logs/", adminResultOK},
 
 			// not found admin requests
 			{"GET", "/containerLogs/mynamespace/mypod/mycontainer", adminResultMissing},
