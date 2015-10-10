@@ -4,7 +4,7 @@ url: ldap://LDAP_SERVICE_IP:389
 insecure: true
 activeDirectory:
     usersQuery:
-        baseDN: "dc=example,dc=com"
+        baseDN: "ou=people,ou=ad,dc=example,dc=com"
         scope: sub
         derefAliases: never
         filter: (objectclass=organizationalPerson)
