@@ -206,6 +206,8 @@ angular
   })
   .constant("API_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).api))
   .constant("AUTH_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).auth))
+  .constant("LOGGING_URL", (window.OPENSHIFT_CONFIG || {}).loggingURL)
+  .constant("METRICS_URL", (window.OPENSHIFT_CONFIG || {}).metricsURL)
   .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG) {
     $httpProvider.interceptors.push('AuthInterceptor');
 

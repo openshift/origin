@@ -198,6 +198,8 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		OAuthRedirectBase:   c.Options.PublicURL,
 		OAuthClientID:       OpenShiftWebConsoleClientID,
 		LogoutURI:           c.Options.LogoutURL,
+		LoggingURL:          c.Options.LoggingPublicURL,
+		MetricsURL:          c.Options.MetricsPublicURL,
 	}
 	configPath := path.Join(publicURL.Path, "config.js")
 	configHandler, err := assets.GeneratedConfigHandler(config)
