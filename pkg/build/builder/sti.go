@@ -18,30 +18,30 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 )
 
-// internal interface to decouple S2I-specific code from Origin builder code
+// stiBuilderFactory is the internal interface to decouple S2I-specific code from Origin builder code
 type stiBuilderFactory interface {
 	// Create S2I Builder based on S2I configuration
 	GetStrategy(config *stiapi.Config) (build.Builder, error)
 }
 
-// interval interface to decouple S2I-specific code from Origin builder code
+// stiConfigValidator is the interval interface to decouple S2I-specific code from Origin builder code
 type stiConfigValidator interface {
 	// Perform validation of S2I configuration, returns slice of validation errors
 	ValidateConfig(config *stiapi.Config) []validation.ValidationError
 }
 
-// default implementation of stiBuilderFactory
+// runtimeBuilderFactory is the default implementation of stiBuilderFactory
 type runtimeBuilderFactory struct{}
 
-// default implementation of stiConfigValidator
+// runtimeConfigValidator is the default implementation of stiConfigValidator
 type runtimeConfigValidator struct{}
 
-// default implementation of stiBuildFactory.GetStrategy method. Just delegates to S2I-specific code
+// GetStrategy delegates execution to S2I-specific code
 func (_ runtimeBuilderFactory) GetStrategy(config *stiapi.Config) (build.Builder, error) {
 	return sti.GetStrategy(config)
 }
 
-// default implementation of stiConfigValidator.ValidateConfig method. Just delegates to S2I-specific code
+// ValidateConfig delegates execution to S2I-specific code
 func (_ runtimeConfigValidator) ValidateConfig(config *stiapi.Config) []validation.ValidationError {
 	return validation.ValidateConfig(config)
 }
@@ -58,12 +58,10 @@ type STIBuilder struct {
 // NewSTIBuilder creates a new STIBuilder instance
 func NewSTIBuilder(client DockerClient, dockerSocket string, build *api.Build) *STIBuilder {
 	// delegate to internal implementation passing default implementation of stiBuilderFactory and stiConfigValidator
-	return newSTIBuilder(client, dockerSocket, build,
-		new(runtimeBuilderFactory), new(runtimeConfigValidator))
-
+	return newSTIBuilder(client, dockerSocket, build, runtimeBuilderFactory{}, runtimeConfigValidator{})
 }
 
-// internal factory function to create STIBuilder based on arameters. Used for testing.
+// newSTIBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
 func newSTIBuilder(client DockerClient, dockerSocket string, build *api.Build,
 	builderFactory stiBuilderFactory, configValidator stiConfigValidator) *STIBuilder {
 	// just create instance
@@ -76,9 +74,8 @@ func newSTIBuilder(client DockerClient, dockerSocket string, build *api.Build,
 	}
 }
 
-// executes STI build based on configured builder, S2I builder factory and S2I config validator
+// Build executes STI build based on configured builder, S2I builder factory and S2I config validator
 func (s *STIBuilder) Build() error {
-
 	var push bool
 
 	// if there is no output target, set one up so the docker build logic
@@ -178,7 +175,7 @@ func (s *STIBuilder) Build() error {
 				if len(pushAuthConfig.Password) > 0 {
 					passwordPresent = "<<non-empty>>"
 				}
-				glog.Infof("Registry server address: %s", passwordPresent)
+				glog.Infof("Registry server Password: %s", passwordPresent)
 			}
 			return errors.New(msg)
 		}
