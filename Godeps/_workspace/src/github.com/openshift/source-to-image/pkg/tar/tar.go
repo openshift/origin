@@ -26,10 +26,18 @@ var defaultExclusionPattern = regexp.MustCompile("((^\\.git\\/)|(\\/.git\\/)|(\\
 
 // Tar can create and extract tar files used in an STI build
 type Tar interface {
+	// SetExclusionPattern sets the exclusion pattern for tar
+	// creation
+	SetExclusionPattern(*regexp.Regexp)
+
 	// CreateTarFile creates a tar file in the base directory
 	// using the contents of dir directory
 	// The name of the new tar file is returned if successful
 	CreateTarFile(base, dir string) (string, error)
+
+	// CreateTarStream creates a tar from the given directory
+	// and streams it to the given writer
+	CreateTarStream(dir string, includeDirInPath bool, writer io.Writer) error
 
 	// ExtractTarStream extracts files from a given tar stream.
 	// Times out if reading from the stream for any given file
@@ -47,8 +55,14 @@ func New() Tar {
 
 // stiTar is an implementation of the Tar interface
 type stiTar struct {
-	timeout time.Duration
-	exclude *regexp.Regexp
+	timeout          time.Duration
+	exclude          *regexp.Regexp
+	includeDirInPath bool
+}
+
+// SetExclusionPattern sets the exclusion pattern for tar creation
+func (t *stiTar) SetExclusionPattern(p *regexp.Regexp) {
+	t.exclude = p
 }
 
 // CreateTarFile creates a tar file from the given directory
@@ -60,7 +74,7 @@ func (t *stiTar) CreateTarFile(base, dir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err = t.CreateTarStream(dir, tarFile); err != nil {
+	if err = t.CreateTarStream(dir, false, tarFile); err != nil {
 		return "", err
 	}
 	return tarFile.Name(), nil
@@ -73,14 +87,14 @@ func (t *stiTar) shouldExclude(path string) bool {
 // CreateTarStream creates a tar stream on the given writer from
 // the given directory while excluding files that match the given
 // exclusion pattern.
-func (t *stiTar) CreateTarStream(dir string, writer io.Writer) error {
+func (t *stiTar) CreateTarStream(dir string, includeDirInPath bool, writer io.Writer) error {
 	tarWriter := tar.NewWriter(writer)
 	defer tarWriter.Close()
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() && !t.shouldExclude(path) {
 			// if file is a link just writing header info is enough
 			if info.Mode()&os.ModeSymlink != 0 {
-				if err := t.writeTarHeader(tarWriter, dir, path, info); err != nil {
+				if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath); err != nil {
 					glog.Errorf("	Error writing header for %s: %v", info.Name(), err)
 				}
 				return nil
@@ -93,7 +107,7 @@ func (t *stiTar) CreateTarStream(dir string, writer io.Writer) error {
 				return nil
 			}
 			defer file.Close()
-			if err := t.writeTarHeader(tarWriter, dir, path, info); err != nil {
+			if err := t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath); err != nil {
 				glog.Errorf("Error writing header for %s: %v", info.Name(), err)
 				return nil
 			}
@@ -114,7 +128,7 @@ func (t *stiTar) CreateTarStream(dir string, writer io.Writer) error {
 }
 
 // writeTarHeader writes tar header for given file, returns error if operation fails
-func (t *stiTar) writeTarHeader(tarWriter *tar.Writer, dir string, path string, info os.FileInfo) error {
+func (t *stiTar) writeTarHeader(tarWriter *tar.Writer, dir string, path string, info os.FileInfo, includeDirInPath bool) error {
 	var (
 		link string
 		err  error
@@ -129,7 +143,11 @@ func (t *stiTar) writeTarHeader(tarWriter *tar.Writer, dir string, path string, 
 	if err != nil {
 		return err
 	}
-	header.Name = path[1+len(dir):]
+	prefix := dir
+	if includeDirInPath {
+		prefix = filepath.Dir(prefix)
+	}
+	header.Name = filepath.ToSlash(path[1+len(prefix):])
 	glog.V(3).Infof("Adding to tar: %s as %s", path, header.Name)
 	if err = tarWriter.WriteHeader(header); err != nil {
 		return err

@@ -721,6 +721,20 @@ Start a shell session in a pod
 ====
 
 
+== oc rsync
+Copy local files to a pod
+
+====
+
+[options="nowrap"]
+----
+
+  # Synchronize a local directory with a pod directory
+  $ openshift cli rsync ./local/dir/ POD:/remote/dir
+----
+====
+
+
 == oc run
 Run a particular image on the cluster.
 

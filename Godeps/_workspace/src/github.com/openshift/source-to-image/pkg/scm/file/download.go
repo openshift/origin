@@ -1,7 +1,6 @@
 package file
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -18,9 +17,6 @@ type File struct {
 
 func (f *File) Download(config *api.Config) (*api.SourceInfo, error) {
 	targetSourceDir := filepath.Join(config.WorkingDir, api.Source)
-	if !strings.HasPrefix(config.Source, "file://") {
-		return nil, fmt.Errorf("File downloader can be used only for file:// protocol")
-	}
 	sourceDir := strings.TrimPrefix(config.Source, "file://")
 	config.WorkingSourceDir = targetSourceDir
 
