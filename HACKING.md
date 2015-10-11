@@ -386,9 +386,15 @@ In order to start the server in CPU profiling mode, run:
 
     $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/bin/linux/amd64/openshift start
 
-To view profiles, you use [pprof] which is part of `go tool`.  You must pass the binary you are debugging (for symbols) and a captured pprof.  For instance, to view a `cpu` profile from above, you would run OpenShift to completion, and then run:
+Or, if running OpenShift under systemd, append this to /etc/sysconfig/openshift-master
+
+    OPENSHIFT_PROFILE=cpu
+
+To view profiles, you use [pprof](http://goog-perftools.sourceforge.net/doc/cpu_profiler.html) which is part of `go tool`.  You must pass the binary you are debugging (for symbols) and a captured pprof.  For instance, to view a `cpu` profile from above, you would run OpenShift to completion, and then run:
 
     $ go tool pprof ./_output/local/bin/linux/amd64/openshift cpu.pprof
+    or
+    $ go tool pprof /bin/openshift /var/lib/openshift/cpu.pprof
 
 This will open the `pprof` shell, and you can then run:
 
