@@ -40,6 +40,7 @@ angular.module('openshiftConsole')
       DataService.get("deploymentconfigs", $routeParams.deploymentconfig, $scope).then(
         // success
         function(deploymentConfig) {
+          $scope.loaded = true;
           $scope.deploymentConfig = deploymentConfig;
 
           // If we found the item successfully, watch for changes on it
@@ -55,6 +56,7 @@ angular.module('openshiftConsole')
         },
         // failure
         function(e) {
+          $scope.loaded = true;
           $scope.alerts["load"] = {
             type: "error",
             message: "The deployment configuration details could not be loaded.",

@@ -42,6 +42,7 @@ angular.module('openshiftConsole')
       DataService.get("pods", $routeParams.pod, $scope).then(
         // success
         function(pod) {
+          $scope.loaded = true;
           $scope.pod = pod;
           var pods = {};
           pods[pod.metadata.name] = pod;
@@ -60,6 +61,7 @@ angular.module('openshiftConsole')
         },
         // failure
         function(e) {
+          $scope.loaded = true;
           $scope.alerts["load"] = {
             type: "error",
             message: "The pod details could not be loaded.",

@@ -32,6 +32,7 @@ angular.module('openshiftConsole')
       DataService.get("services", $routeParams.service, $scope).then(
         // success
         function(service) {
+          $scope.loaded = true;
           $scope.service = service;
 
           // If we found the item successfully, watch for changes on it
@@ -47,6 +48,7 @@ angular.module('openshiftConsole')
         },
         // failure
         function(e) {
+          $scope.loaded = true;
           $scope.alerts["load"] = {
             type: "error",
             message: "The service details could not be loaded.",
