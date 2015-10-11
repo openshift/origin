@@ -88,9 +88,6 @@ server_ready_template=$(IFS=$""; echo "${server_ready_template[*]}") # re-format
 # wait for LDAP server to be ready
 wait_for_command 'oc get pods -l deploymentconfig=openldap-server --template="${server_ready_template}" | grep "ReadyTrue "' $((60*TIME_SEC))
 
-# TODO(skuznets): readiness check is premature
-sleep 10
-
 oc login -u system:admin -n openldap
 
 
