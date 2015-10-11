@@ -114,12 +114,21 @@ __custom_func() {
    * replicationcontrollers (aka 'rc')
    * daemonsets (aka 'ds')
    * services (aka 'svc')
+   * deploymentconfigs (aka 'dc')
+   * buildconfigs (aka 'bc')
+   * builds
+   * routes
+   * replicationcontrollers (aka 'rc')
    * events (aka 'ev')
-   * nodes (aka 'no')
-   * namespaces (aka 'ns')
+   * projects
    * secrets
+   * imagestreams (aka 'is')
+   * imagestreamtags (aka 'istag')
+   * imagestreamimages (aka 'isimage')
    * persistentvolumes (aka 'pv')
    * persistentvolumeclaims (aka 'pvc')
+   * policies
+   * rolebindings
    * limitranges (aka 'limits')
    * resourcequotas (aka 'quota')
    * componentstatuses (aka 'cs')
@@ -127,6 +136,10 @@ __custom_func() {
    * quota
    * horizontalpodautoscalers (aka 'hpa')
    * serviceaccounts
+   * nodes (aka 'no')
+   * namespaces (aka 'ns')
+   * users
+   * groups
 `
 )
 
