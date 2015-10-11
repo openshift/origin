@@ -43,13 +43,9 @@ Possible resources include builds, buildConfigs, services, pods, etc.`
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	p := describe.NewHumanReadablePrinter(false, false, false, false, []string{})
-	validArgs := p.HandledResources()
-
 	cmd := kcmd.NewCmdGet(f.Factory, out)
 	cmd.Long = getLong
 	cmd.Example = fmt.Sprintf(getExample, fullName)
-	cmd.ValidArgs = validArgs
 	cmd.SuggestFor = []string{"list"}
 	return cmd
 }

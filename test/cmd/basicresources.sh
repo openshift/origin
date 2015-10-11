@@ -10,6 +10,9 @@ os::log::install_errexit
 
 # This test validates basic resource retrieval and command interaction
 
+[ "$(oc types | grep 'Deployment Configuration')" ]
+[ "$(oc get 2>&1 | grep 'deploymentconfig')" ]
+
 # Test resource builder filtering of files with expected extensions inside directories, and individual files without expected extensions
 [ "$(oc create -f test/fixtures/resource-builder/directory -f test/fixtures/resource-builder/json-no-extension -f test/fixtures/resource-builder/yml-no-extension 2>&1)" ]
 # Explicitly specified extensionless files
