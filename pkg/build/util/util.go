@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/labels"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/util/namer"
@@ -83,4 +84,10 @@ func GetBuildLabel(pod *kapi.Pod) (string, bool) {
 		value, exists = pod.Labels[buildapi.DeprecatedBuildLabel]
 	}
 	return value, exists
+}
+
+// ConfigSelector returns a label Selector which can be used to find all
+// builds for a BuildConfig.
+func ConfigSelector(name string) labels.Selector {
+	return labels.Set{buildapi.BuildConfigLabel: name}.AsSelector()
 }

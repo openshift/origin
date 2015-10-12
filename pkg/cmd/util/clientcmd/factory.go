@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	buildreaper "github.com/openshift/origin/pkg/build/reaper"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -130,8 +131,11 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			return nil, err
 		}
 
-		if mapping.Kind == "DeploymentConfig" {
+		switch mapping.Kind {
+		case "DeploymentConfig":
 			return deployreaper.NewDeploymentConfigReaper(oc, kc), nil
+		case "BuildConfig":
+			return buildreaper.NewBuildConfigReaper(oc), nil
 		}
 		return kReaperFunc(mapping)
 	}
