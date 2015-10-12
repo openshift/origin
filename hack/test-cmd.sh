@@ -218,17 +218,20 @@ oc logout
 # properly parse server port
 [ "$(oc login https://server1:844333 2>&1 | grep 'Not a valid port')" ]
 # properly handle trailing slash
-oc login --server=${KUBERNETES_MASTER}/ --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 # create a new project
 oc new-project project-foo --display-name="my project" --description="boring project description"
 [ "$(oc project | grep 'Using project "project-foo"')" ]
+# new user should get default context
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u new-and-unknown-user -p anything
+[ "$(oc config view | grep current-context | grep /${API_HOST}:${API_PORT}/new-and-unknown-user)" ]
 # denies access after logging out
 oc logout
 [ -z "$(oc get pods | grep 'system:anonymous')" ]
 
 # log in as an image-pruner and test that oadm prune images works against the atomic binary
 oadm policy add-cluster-role-to-user system:image-pruner pruner --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-oc login --server=${KUBERNETES_MASTER}/ --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u pruner -p anything
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u pruner -p anything
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 oadm prune images
 
@@ -236,6 +239,7 @@ oadm prune images
 oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 oc get projects
 oc project project-foo
+[ "$(oc config view | grep current-context | grep project-foo/${API_HOST}:${API_PORT}/test-user)" ]
 [ "$(oc whoami | grep 'test-user')" ]
 [ -n "$(oc whoami -t)" ]
 [ -n "$(oc whoami -c)" ]
