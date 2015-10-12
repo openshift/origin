@@ -22,6 +22,24 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
+// GeneratorFatalError represents a fatal error while generating a build.
+// An operation that fails because of a fatal error should not be retried.
+type GeneratorFatalError struct {
+	// Reason the fatal error occurred
+	Reason string
+}
+
+// Error returns the error string for this fatal error
+func (e GeneratorFatalError) Error() string {
+	return fmt.Sprintf("fatal error generating Build from BuildConfig: %s", e.Reason)
+}
+
+// IsFatal returns true if err is a fatal error
+func IsFatal(err error) bool {
+	_, isFatal := err.(GeneratorFatalError)
+	return isFatal
+}
+
 // BuildGenerator is a central place responsible for generating new Build objects
 // from BuildConfigs and other Builds.
 type BuildGenerator struct {
@@ -197,6 +215,10 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 	bc, err := g.Client.GetBuildConfig(ctx, request.Name)
 	if err != nil {
 		return nil, err
+	}
+
+	if strings.ToLower(bc.Annotations[buildapi.BuildConfigPausedAnnotation]) == "true" {
+		return nil, &GeneratorFatalError{fmt.Sprintf("can't instantiate from BuildConfig %s/%s: BuildConfig is paused", bc.Namespace, bc.Name)}
 	}
 
 	if err := g.checkLastVersion(bc, request.LastVersion); err != nil {

@@ -411,6 +411,9 @@ const (
 	// BuildConfigLabelDeprecated was used as BuildConfigLabel before adding namespaces.
 	// We keep it for backward compatibility.
 	BuildConfigLabelDeprecated = "buildconfig"
+	// BuildConfigPausedAnnotation is an annotation that marks a BuildConfig as paused.
+	// New Builds cannot be instantiated from a paused BuildConfig.
+	BuildConfigPausedAnnotation = "openshift.io/build-config.paused"
 )
 
 // BuildConfig is a template which can be used to create new builds.

@@ -10,7 +10,26 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 )
+
+// ConfigControllerFatalError represents a fatal error while generating a build.
+// An operation that fails because of a fatal error should not be retried.
+type ConfigControllerFatalError struct {
+	// Reason the fatal error occurred
+	Reason string
+}
+
+// Error returns the error string for this fatal error
+func (e ConfigControllerFatalError) Error() string {
+	return fmt.Sprintf("fatal error processing BuildConfig: %s", e.Reason)
+}
+
+// IsFatal returns true if err is a fatal error
+func IsFatal(err error) bool {
+	_, isFatal := err.(ConfigControllerFatalError)
+	return isFatal
+}
 
 type BuildConfigController struct {
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
@@ -50,6 +69,8 @@ func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) erro
 		if kerrors.IsConflict(err) {
 			instantiateErr = fmt.Errorf("unable to instantiate Build for BuildConfig %s/%s due to a conflicting update: %v", bc.Namespace, bc.Name, err)
 			util.HandleError(instantiateErr)
+		} else if buildgenerator.IsFatal(err) {
+			return &ConfigControllerFatalError{err.Error()}
 		} else {
 			instantiateErr = fmt.Errorf("error instantiating Build from BuildConfig %s/%s: %v", bc.Namespace, bc.Name, err)
 			util.HandleError(instantiateErr)

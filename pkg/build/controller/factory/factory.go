@@ -322,7 +322,7 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 		RetryManager: controller.NewQueueRetryManager(
 			queue,
 			cache.MetaNamespaceKeyFunc,
-			retryFunc("BuildConfig", nil),
+			retryFunc("BuildConfig", buildcontroller.IsFatal),
 			kutil.NewTokenBucketRateLimiter(1, 10)),
 		Handle: func(obj interface{}) error {
 			bc := obj.(*buildapi.BuildConfig)

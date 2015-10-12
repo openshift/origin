@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildreaper "github.com/openshift/origin/pkg/build/reaper"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -226,6 +227,8 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 				client.RoleBindingsNamespacer(oc),
 				kclient.SecurityContextConstraintsInterface(kc),
 			), nil
+		case "BuildConfig":
+			return buildreaper.NewBuildConfigReaper(oc), nil
 		}
 		return kReaperFunc(mapping)
 	}
