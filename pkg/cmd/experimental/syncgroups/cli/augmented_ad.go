@@ -46,7 +46,7 @@ func (b *AugmentedADSyncBuilder) getAugmentedADLDAPInterface() (*ad.AugmentedADL
 		return b.augmentedADLDAPInterface, nil
 	}
 
-	userQuery, err := ldaputil.NewLDAPQueryOnAttribute(b.Config.AllUsersQuery, "dn")
+	userQuery, err := ldaputil.NewLDAPQuery(b.Config.AllUsersQuery)
 	if err != nil {
 		return nil, err
 	}

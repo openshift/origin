@@ -38,7 +38,7 @@ func (b *ADSyncBuilder) getADLDAPInterface() (*ad.ADLDAPInterface, error) {
 		return b.adLDAPInterface, nil
 	}
 
-	userQuery, err := ldaputil.NewLDAPQueryOnAttribute(b.Config.AllUsersQuery, "dn")
+	userQuery, err := ldaputil.NewLDAPQuery(b.Config.AllUsersQuery)
 	if err != nil {
 		return nil, err
 	}

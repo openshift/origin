@@ -13,7 +13,7 @@ import (
 
 // NewADLDAPInterface builds a new ADLDAPInterface using a schema-appropriate config
 func NewADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
-	userQuery ldaputil.LDAPQueryOnAttribute,
+	userQuery ldaputil.LDAPQuery,
 	groupMembershipAttributes []string,
 	userNameAttributes []string) *ADLDAPInterface {
 
@@ -35,9 +35,8 @@ type ADLDAPInterface struct {
 	// clientConfig holds LDAP connection information
 	clientConfig *ldaputil.LDAPClientConfig
 
-	// userQuery holds the information necessary to make an LDAP query for a specific
-	// first-class user entry on the LDAP server
-	userQuery ldaputil.LDAPQueryOnAttribute
+	// userQuery holds the information necessary to make an LDAP query for all first-class user entries on the LDAP server
+	userQuery ldaputil.LDAPQuery
 	// groupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted as its ldapGroupUID
 	groupMembershipAttributes []string
 	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its name
@@ -62,8 +61,7 @@ func (e *ADLDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, er
 
 	// check for all users with ldapGroupUID in any of the allowed member attributes
 	for _, currAttribute := range e.groupMembershipAttributes {
-		currQuery := e.userQuery
-		currQuery.QueryAttribute = currAttribute
+		currQuery := ldaputil.LDAPQueryOnAttribute{LDAPQuery: e.userQuery, QueryAttribute: currAttribute}
 
 		searchRequest, err := currQuery.NewSearchRequest(ldapGroupUID, e.requiredUserAttributes())
 		if err != nil {
@@ -106,7 +104,7 @@ func (e *ADLDAPInterface) populateCache() error {
 		return nil
 	}
 
-	searchRequest := e.userQuery.LDAPQuery.NewSearchRequest(e.requiredUserAttributes())
+	searchRequest := e.userQuery.NewSearchRequest(e.requiredUserAttributes())
 
 	userEntries, err := ldaputil.QueryForEntries(e.clientConfig, searchRequest)
 	if err != nil {
@@ -147,8 +145,8 @@ func isEntryPresent(haystack []*ldap.Entry, needle *ldap.Entry) bool {
 }
 
 func (e *ADLDAPInterface) requiredUserAttributes() []string {
-	attributes := sets.NewString(e.groupMembershipAttributes...)
-	attributes.Insert(e.userNameAttributes...)
+	allAttributes := sets.NewString(e.userNameAttributes...)
+	allAttributes.Insert(e.groupMembershipAttributes...)
 
-	return attributes.List()
+	return allAttributes.List()
 }

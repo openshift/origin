@@ -11,7 +11,7 @@ import (
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
 func NewAugmentedADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
-	userQuery ldaputil.LDAPQueryOnAttribute,
+	userQuery ldaputil.LDAPQuery,
 	groupMembershipAttributes []string,
 	userNameAttributes []string,
 	groupQuery ldaputil.LDAPQueryOnAttribute,
