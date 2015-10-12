@@ -58,6 +58,16 @@
       .component-label-details {
         text-transform: none;
       }
+      a.subtle-link {
+        color: @gray-light;
+        border-bottom: 1px dotted #BBB;
+
+        &:hover, &:active, &:focus {
+          color: @link-hover-color;
+          border-bottom: 1px dotted @link-hover-color;
+          text-decoration: none;
+        }
+      }
     }
     .component-block {
       .flex-display(@display: flex);

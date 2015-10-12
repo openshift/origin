@@ -28,7 +28,7 @@
     <div class="component">
       <div class="component-label">
         <span>Deployment: </span>
-        {{deploymentConfigId}}, #{{rc | annotation:'deploymentVersion'}}
+        <a class="subtle-link" ng-href="{{deploymentConfigId | navigateResourceURL : 'DeploymentConfig' : rc.metadata.namespace}}">{{deploymentConfigId}}</a>, <a class="subtle-link" ng-href="{{rc | navigateResourceURL}}">#{{rc | annotation:'deploymentVersion'}}</a>
         <span ng-if="deploymentConfigMissing" data-toggle="tooltip" data-placement="right"
             title="The deployment config this deployment was created from no longer exists." class="pficon pficon-warning-triangle-o" style="cursor: help;"></span>
         <span ng-if="deploymentConfigDifferentService" data-toggle="tooltip" data-placement="right"
@@ -59,7 +59,7 @@
   <!-- Header for replication controllers. Name and timestamp only. -->
   <div class="component-block component-meta" ng-if="!isDeployment">
     <div class="component">
-      <div class="component-label">Replication Controller: {{rc.metadata.name}}</div>
+      <div class="component-label">Replication Controller: <a class="subtle-link" ng-href="{{rc | navigateResourceURL}}">{{rc.metadata.name}}</a></div>
     </div>
 
     <div class="component meta-data">
