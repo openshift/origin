@@ -1,12 +1,9 @@
 package prune
 
 import (
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -14,7 +11,6 @@ import (
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/labels"
@@ -41,9 +37,6 @@ type PruneImagesOptions struct {
 	Confirm          bool
 	KeepYoungerThan  time.Duration
 	KeepTagRevisions int
-
-	CABundle            string
-	RegistryUrlOverride string
 }
 
 // NewCmdPruneImages implements the OpenShift cli prune images command
@@ -77,8 +70,6 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "Specify that image pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
 	cmd.Flags().DurationVar(&opts.KeepYoungerThan, "keep-younger-than", opts.KeepYoungerThan, "Specify the minimum age of an image for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(&opts.KeepTagRevisions, "keep-tag-revisions", opts.KeepTagRevisions, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
-	cmd.Flags().StringVar(&opts.CABundle, "certificate-authority", opts.CABundle, "The path to a certificate authority bundle to use when communicating with the managed Docker registries. Defaults to the certificate authority data from the current user's config file.")
-	cmd.Flags().StringVar(&opts.RegistryUrlOverride, "registry-url", opts.RegistryUrlOverride, "The address to use when contacting the registry, instead of using the default value. This is useful if you can't resolve or reach the registry (e.g.; the default is a cluster-internal URL) but you do have an alternative route that works.")
 
 	return cmd
 }
@@ -91,10 +82,18 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, args []string, out i
 
 	o.Out = out
 
-	osClient, kClient, _, err := getClients(f, o.CABundle)
+	clientConfig, err := f.OpenShiftClientConfig.ClientConfig()
 	if err != nil {
 		return err
 	}
+	if len(clientConfig.BearerToken) > 0 {
+		return errors.New("You must use a client config with a token")
+	}
+	osClient, kClient, err := f.Clients()
+	if err != nil {
+		return err
+	}
+
 	o.Client = osClient
 
 	allImages, err := osClient.Images().List(labels.Everything(), fields.Everything())
@@ -247,83 +246,4 @@ func (p *describingImagePruner) PruneImage(image *imageapi.Image) error {
 	}
 
 	return err
-}
-
-// getClients returns a Kube client, OpenShift client, and registry client.
-func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient.Client, *http.Client, error) {
-	clientConfig, err := f.OpenShiftClientConfig.ClientConfig()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	var (
-		token          string
-		osClient       *client.Client
-		kClient        *kclient.Client
-		registryClient *http.Client
-	)
-
-	switch {
-	case len(clientConfig.BearerToken) > 0:
-		osClient, kClient, err = f.Clients()
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		token = clientConfig.BearerToken
-	default:
-		err = errors.New("You must use a client config with a token")
-		return nil, nil, nil, err
-	}
-
-	// copy the config
-	registryClientConfig := *clientConfig
-
-	// zero out everything we don't want to use
-	registryClientConfig.BearerToken = ""
-	registryClientConfig.CertFile = ""
-	registryClientConfig.CertData = []byte{}
-	registryClientConfig.KeyFile = ""
-	registryClientConfig.KeyData = []byte{}
-
-	// we have to set a username to something for the Docker login
-	// but it's not actually used
-	registryClientConfig.Username = "unused"
-
-	// set the "password" to be the token
-	registryClientConfig.Password = token
-
-	tlsConfig, err := kclient.TLSConfigFor(&registryClientConfig)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	// if the user specified a CA on the command line, add it to the
-	// client config's CA roots
-	if len(caBundle) > 0 {
-		data, err := ioutil.ReadFile(caBundle)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		if tlsConfig.RootCAs == nil {
-			tlsConfig.RootCAs = x509.NewCertPool()
-		}
-
-		tlsConfig.RootCAs.AppendCertsFromPEM(data)
-	}
-
-	transport := http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
-
-	wrappedTransport, err := kclient.HTTPWrappersForConfig(&registryClientConfig, &transport)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	registryClient = &http.Client{
-		Transport: wrappedTransport,
-	}
-
-	return osClient, kClient, registryClient, nil
 }

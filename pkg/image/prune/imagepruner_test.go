@@ -2,10 +2,8 @@ package prune
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"net/http"
 	"reflect"
 	"testing"
 	"time"
@@ -350,37 +348,6 @@ type fakeBlobPruner struct {
 	err         error
 }
 
-var _ BlobPruner = &fakeBlobPruner{}
-
-func (p *fakeBlobPruner) PruneBlob(registryClient *http.Client, registryURL, blob string) error {
-	p.invocations.Insert(fmt.Sprintf("%s|%s", registryURL, blob))
-	return p.err
-}
-
-type fakeLayerPruner struct {
-	invocations sets.String
-	err         error
-}
-
-var _ LayerPruner = &fakeLayerPruner{}
-
-func (p *fakeLayerPruner) PruneLayer(registryClient *http.Client, registryURL, repo, layer string) error {
-	p.invocations.Insert(fmt.Sprintf("%s|%s|%s", registryURL, repo, layer))
-	return p.err
-}
-
-type fakeManifestPruner struct {
-	invocations sets.String
-	err         error
-}
-
-var _ ManifestPruner = &fakeManifestPruner{}
-
-func (p *fakeManifestPruner) PruneManifest(registryClient *http.Client, registryURL, repo, manifest string) error {
-	p.invocations.Insert(fmt.Sprintf("%s|%s|%s", registryURL, repo, manifest))
-	return p.err
-}
-
 var logLevel = flag.Int("loglevel", 0, "")
 var testCase = flag.String("testcase", "", "")
 
@@ -682,15 +649,11 @@ func TestImagePruning(t *testing.T) {
 			DCs:              &test.dcs,
 		}
 		p := NewImageRegistryPruner(options)
-		p.(*imageRegistryPruner).registryPinger = &fakeRegistryPinger{}
 
 		imagePruner := &fakeImagePruner{invocations: sets.NewString()}
 		streamPruner := &fakeImageStreamPruner{invocations: sets.NewString()}
-		layerPruner := &fakeLayerPruner{invocations: sets.NewString()}
-		blobPruner := &fakeBlobPruner{invocations: sets.NewString()}
-		manifestPruner := &fakeManifestPruner{invocations: sets.NewString()}
 
-		p.Prune(imagePruner, streamPruner, layerPruner, blobPruner, manifestPruner)
+		p.Prune(imagePruner, streamPruner)
 
 		expectedDeletions := sets.NewString(test.expectedDeletions...)
 		if !reflect.DeepEqual(expectedDeletions, imagePruner.invocations) {
@@ -747,10 +710,7 @@ func TestRegistryPruning(t *testing.T) {
 	tests := map[string]struct {
 		images                    imageapi.ImageList
 		streams                   imageapi.ImageStreamList
-		expectedLayerDeletions    sets.String
-		expectedBlobDeletions     sets.String
 		expectedManifestDeletions sets.String
-		pingErr                   error
 	}{
 		"layers unique to id1 pruned": {
 			images: imageList(
@@ -770,17 +730,6 @@ func TestRegistryPruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedLayerDeletions: sets.NewString(
-				"registry1|foo/bar|layer1",
-				"registry1|foo/bar|layer2",
-			),
-			expectedBlobDeletions: sets.NewString(
-				"registry1|layer1",
-				"registry1|layer2",
-			),
-			expectedManifestDeletions: sets.NewString(
-				"registry1|foo/bar|id1",
-			),
 		},
 		"no pruning when no images are pruned": {
 			images: imageList(
@@ -793,8 +742,6 @@ func TestRegistryPruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedLayerDeletions:    sets.NewString(),
-			expectedBlobDeletions:     sets.NewString(),
 			expectedManifestDeletions: sets.NewString(),
 		},
 		"blobs pruned when streams have already been deleted": {
@@ -802,16 +749,6 @@ func TestRegistryPruning(t *testing.T) {
 				imageWithLayers("id1", "registry1/foo/bar@id1", "layer1", "layer2", "layer3", "layer4"),
 				imageWithLayers("id2", "registry1/foo/bar@id2", "layer3", "layer4", "layer5", "layer6"),
 			),
-			expectedLayerDeletions: sets.NewString(),
-			expectedBlobDeletions: sets.NewString(
-				"registry1|layer1",
-				"registry1|layer2",
-				"registry1|layer3",
-				"registry1|layer4",
-				"registry1|layer5",
-				"registry1|layer6",
-			),
-			expectedManifestDeletions: sets.NewString(),
 		},
 		"ping error": {
 			images: imageList(
@@ -831,10 +768,6 @@ func TestRegistryPruning(t *testing.T) {
 					),
 				)),
 			),
-			expectedLayerDeletions:    sets.NewString(),
-			expectedBlobDeletions:     sets.NewString(),
-			expectedManifestDeletions: sets.NewString(),
-			pingErr:                   errors.New("foo"),
 		},
 	}
 
@@ -858,24 +791,10 @@ func TestRegistryPruning(t *testing.T) {
 			DCs:              &deployapi.DeploymentConfigList{},
 		}
 		p := NewImageRegistryPruner(options)
-		p.(*imageRegistryPruner).registryPinger = &fakeRegistryPinger{err: test.pingErr}
 
 		imagePruner := &fakeImagePruner{invocations: sets.NewString()}
 		streamPruner := &fakeImageStreamPruner{invocations: sets.NewString()}
-		layerPruner := &fakeLayerPruner{invocations: sets.NewString()}
-		blobPruner := &fakeBlobPruner{invocations: sets.NewString()}
-		manifestPruner := &fakeManifestPruner{invocations: sets.NewString()}
 
-		p.Prune(imagePruner, streamPruner, layerPruner, blobPruner, manifestPruner)
-
-		if !reflect.DeepEqual(test.expectedLayerDeletions, layerPruner.invocations) {
-			t.Errorf("%s: expected layer deletions %#v, got %#v", name, test.expectedLayerDeletions, layerPruner.invocations)
-		}
-		if !reflect.DeepEqual(test.expectedBlobDeletions, blobPruner.invocations) {
-			t.Errorf("%s: expected blob deletions %#v, got %#v", name, test.expectedBlobDeletions, blobPruner.invocations)
-		}
-		if !reflect.DeepEqual(test.expectedManifestDeletions, manifestPruner.invocations) {
-			t.Errorf("%s: expected manifest deletions %#v, got %#v", name, test.expectedManifestDeletions, manifestPruner.invocations)
-		}
+		p.Prune(imagePruner, streamPruner)
 	}
 }

@@ -1,7 +1,6 @@
 package prune
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -35,14 +34,10 @@ const (
 	// an ImageNode, with weak indicating that this particular edge does
 	// not keep an ImageNode from being a candidate for pruning.
 	WeakReferencedImageEdgeKind = "WeakReferencedImage"
-
-	// ReferencedImageLayerEdgeKind defines an edge from an ImageStreamNode or an
-	// ImageNode to an ImageLayerNode.
-	ReferencedImageLayerEdgeKind = "ReferencedImageLayer"
 )
 
 // pruneAlgorithm contains the various settings to use when evaluating images
-// and layers for pruning.
+// for pruning.
 type pruneAlgorithm struct {
 	keepYoungerThan  time.Duration
 	keepTagRevisions int
@@ -95,7 +90,7 @@ type ImageRegistryPrunerOptions struct {
 	DryRun bool
 }
 
-// ImageRegistryPruner knows how to prune images and layers.
+// ImageRegistryPruner knows how to prune images.
 type ImageRegistryPruner interface {
 	// Prune uses imagePruner and streamPruner to remove images that have been
 	// identified as candidates for pruning based on the ImageRegistryPruner's
@@ -146,9 +141,6 @@ minutes ago and is *not* currently referenced by:
 
 When removing an image, remove all references to the image from all
 ImageStreams having a reference to the image in `status.tags`.
-
-Also automatically remove any image layer that is no longer referenced by any
-images.
 */
 func NewImageRegistryPruner(options ImageRegistryPrunerOptions) ImageRegistryPruner {
 	g := graph.New()
@@ -176,8 +168,7 @@ func NewImageRegistryPruner(options ImageRegistryPrunerOptions) ImageRegistryPru
 
 // addImagesToGraph adds all images to the graph that belong to one of the
 // registries in the algorithm and are at least as old as the minimum age
-// threshold as specified by the algorithm. It also adds all the images' layers
-// to the graph.
+// threshold as specified by the algorithm.
 func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm pruneAlgorithm) {
 	for i := range images.Items {
 		image := &images.Items[i]
@@ -204,19 +195,7 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 		}
 
 		glog.V(4).Infof("Adding image %q to graph", image.Name)
-		imageNode := imagegraph.EnsureImageNode(g, image)
-
-		manifest := imageapi.DockerImageManifest{}
-		if err := json.Unmarshal([]byte(image.DockerImageManifest), &manifest); err != nil {
-			util.HandleError(fmt.Errorf("unable to extract manifest from image: %v. This image's layers won't be pruned if the image is pruned now.", err))
-			continue
-		}
-
-		for _, layer := range manifest.FSLayers {
-			glog.V(4).Infof("Adding image layer %q to graph", layer.DockerBlobSum)
-			layerNode := imagegraph.EnsureImageLayerNode(g, layer.DockerBlobSum)
-			g.AddEdge(imageNode, layerNode, ReferencedImageLayerEdgeKind)
-		}
+		imagegraph.EnsureImageNode(g, image)
 	}
 }
 
@@ -226,9 +205,6 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 // for pruning.  if the image stream's age is at least as old as the minimum
 // threshold in algorithm.  Otherwise, if the image stream is younger than the
 // threshold, all image revisions for that stream are ineligible for pruning.
-//
-// addImageStreamsToGraph also adds references from each stream to all the
-// layers it references (via each image a stream references).
 func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, algorithm pruneAlgorithm) {
 	for i := range streams.Items {
 		stream := &streams.Items[i]
@@ -274,16 +250,6 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, al
 
 				glog.V(4).Infof("Adding edge (kind=%d) from %q to %q", kind, imageStreamNode.UniqueName.UniqueName(), imageNode.UniqueName.UniqueName())
 				g.AddEdge(imageStreamNode, imageNode, kind)
-
-				glog.V(4).Infof("Adding stream->layer references")
-				// add stream -> layer references so we can prune them later
-				for _, s := range g.From(imageNode) {
-					if g.Kind(s) != imagegraph.ImageLayerNodeKind {
-						continue
-					}
-					glog.V(4).Infof("Adding reference from stream %q to layer %q", stream.Name, s.(*imagegraph.ImageLayerNode).Layer)
-					g.AddEdge(imageStreamNode, s, ReferencedImageLayerEdgeKind)
-				}
 			}
 		}
 	}
@@ -469,7 +435,7 @@ func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
 	return kinds.Has(desiredKind)
 }
 
-// imageIsPrunable returns true iff the image node only has weak references
+// imageIsPrunable returns true if the image node only has weak references
 // from its predecessors to it. A weak reference to an image is a reference
 // from an image stream to an image where the image is not the current image
 // for a tag and the image stream is at least as old as the minimum pruning
@@ -507,47 +473,6 @@ func calculatePrunableImages(g graph.Graph, imageNodes []*imagegraph.ImageNode) 
 	}
 
 	return prunable, ids
-}
-
-// subgraphWithoutPrunableImages creates a subgraph from g with prunable image
-// nodes excluded.
-func subgraphWithoutPrunableImages(g graph.Graph, prunableImageIDs graph.NodeSet) graph.Graph {
-	return g.Subgraph(
-		func(g graph.Interface, node gonum.Node) bool {
-			return !prunableImageIDs.Has(node.ID())
-		},
-		func(g graph.Interface, head, tail gonum.Node, edgeKinds sets.String) bool {
-			if prunableImageIDs.Has(head.ID()) {
-				return false
-			}
-			if prunableImageIDs.Has(tail.ID()) {
-				return false
-			}
-			return true
-		},
-	)
-}
-
-// calculatePrunableLayers returns the list of prunable layers.
-func calculatePrunableLayers(g graph.Graph) []*imagegraph.ImageLayerNode {
-	prunable := []*imagegraph.ImageLayerNode{}
-
-	nodes := g.Nodes()
-	for i := range nodes {
-		layerNode, ok := nodes[i].(*imagegraph.ImageLayerNode)
-		if !ok {
-			continue
-		}
-
-		glog.V(4).Infof("Examining layer %q", layerNode.Layer)
-
-		if layerIsPrunable(g, layerNode) {
-			glog.V(4).Infof("Layer %q is prunable", layerNode.Layer)
-			prunable = append(prunable, layerNode)
-		}
-	}
-
-	return prunable
 }
 
 // pruneStreams removes references from all image streams' status.tags entries
@@ -614,7 +539,8 @@ func pruneImages(g graph.Graph, imageNodes []*imagegraph.ImageNode, imagePruner 
 	return errs
 }
 
-// Prune identifies images eligible for pruning and prunes them
+// Run identifies images eligible for pruning, invoking imagePruneFunc for each
+// image.
 func (p *imageRegistryPruner) Prune(imagePruner ImagePruner, streamPruner ImageStreamPruner) error {
 	imageNodes := getImageNodes(p.g.Nodes())
 	if len(imageNodes) == 0 {
@@ -634,35 +560,6 @@ func (p *imageRegistryPruner) Prune(imagePruner ImagePruner, streamPruner ImageS
 
 	errs = append(errs, pruneImages(p.g, prunableImageNodes, imagePruner)...)
 	return kerrors.NewAggregate(errs)
-}
-
-// layerIsPrunable returns true if the layer is not referenced by any images.
-func layerIsPrunable(g graph.Graph, layerNode *imagegraph.ImageLayerNode) bool {
-	for _, predecessor := range g.To(layerNode) {
-		glog.V(4).Infof("Examining layer predecessor %#v", predecessor)
-		if g.Kind(predecessor) == imagegraph.ImageNodeKind {
-			glog.V(4).Infof("Layer has an image predecessor")
-			return false
-		}
-	}
-
-	return true
-}
-
-// streamLayerReferences returns a list of ImageStreamNodes that reference a
-// given ImageLayerNode.
-func streamLayerReferences(g graph.Graph, layerNode *imagegraph.ImageLayerNode) []*imagegraph.ImageStreamNode {
-	ret := []*imagegraph.ImageStreamNode{}
-
-	for _, predecessor := range g.To(layerNode) {
-		if g.Kind(predecessor) != imagegraph.ImageStreamNodeKind {
-			continue
-		}
-
-		ret = append(ret, predecessor.(*imagegraph.ImageStreamNode))
-	}
-
-	return ret
 }
 
 // deletingImagePruner deletes an image from OpenShift.
