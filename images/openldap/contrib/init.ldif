@@ -208,6 +208,7 @@ dn: cn=Person4,ou=people,ou=adextended,dc=example,dc=com
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
+objectClass: testPerson
 sn: Smith
 cn: Person4
 displayName: person4smith
@@ -233,18 +234,21 @@ description: Group entries with metadata
 
 dn: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
 objectClass: groupOfNames
-cn: group1
+cn: extended-group1
 owner: cn=Person1,ou=people,ou=adextended,dc=example,dc=com
 description: Person1's Group
+member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
 
 dn: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
 objectClass: groupOfNames
-cn: group2
+cn: extended-group2
 owner: cn=Person2,ou=people,ou=adextended,dc=example,dc=com
 description: Person2's Group
+member: cn=fake
 
 dn: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
 objectClass: groupOfNames
-cn: group3
+cn: extended-group3
 owner: cn=Person3,ou=people,ou=adextended,dc=example,dc=com
 description: Person3's Group
+member: cn=fake
