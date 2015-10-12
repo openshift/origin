@@ -22,10 +22,10 @@ Join project network
 
 Allows projects to join existing project network when using the %[1]s network plugin.`
 
-	joinProjectsNetworkExample = `	// Allow project p2 to use project p1 network
+	joinProjectsNetworkExample = `	# Allow project p2 to use project p1 network
 	$ %[1]s --to=<p1> <p2>
 
-	// Allow all projects with label name=top-secret to use project p1 network
+	# Allow all projects with label name=top-secret to use project p1 network
 	$ %[1]s --to=<p1> --selector='name=top-secret'`
 )
 
