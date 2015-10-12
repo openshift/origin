@@ -10,13 +10,12 @@
         <table class="table table-bordered table-hover">
           <thead>
             <tr>
-              <th>Build Config</th>
-              <th>Build</th>
+              <th>Name</th>
+              <th>Last Build</th>
               <th>Status</th>
               <th>Started</th>
               <th>Type</th>
               <th>Source</th>
-              <th>History</th>
             </tr>
           </thead>
           <tbody>
@@ -36,16 +35,15 @@
               <td>&nbsp;</td>
             </tr>
             <!-- Build config with builds, or builds whose build config has since been deleted -->
-            <tr ng-repeat="build in buildConfigBuilds | orderObjectsByDate : true" ng-if="$first || expandedBuildConfigRow[buildConfigName]">
+            <!-- We only show the first build from a build config for now-->
+            <tr ng-repeat="build in buildConfigBuilds | orderObjectsByDate : true | limitTo : 1">
               <td>
-                <span ng-if="$first">
-                  <a ng-if="buildConfigs[buildConfigName]" href="project/{{projectName}}/browse/builds/{{buildConfigName}}">{{buildConfigName}}</a>
-                  <span ng-if="buildConfigs && !buildConfigs[buildConfigName] && buildConfigName != ''">
-                    {{buildConfigName}}
-                    <span class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;"></span>                    
-                  </span>
-                  <span ng-if="buildConfigName == ''"><em>none</em></span>
+                <a ng-if="buildConfigs[buildConfigName]" href="project/{{projectName}}/browse/builds/{{buildConfigName}}">{{buildConfigName}}</a>
+                <span ng-if="buildConfigs && !buildConfigs[buildConfigName] && buildConfigName != ''">
+                  {{buildConfigName}}
+                  <span class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This build config no longer exists" style="cursor: help;"></span>                    
                 </span>
+                <span ng-if="buildConfigName == ''"><em>none</em></span>
               </td>
               <td>
                 <!-- Build number and link -->
@@ -96,12 +94,6 @@
               <td>
                 <span ng-if="build.spec.source">
                   <span ng-if="build.spec.source.type == 'Git'" ng-bind-html='build.spec.source.git.uri | githubLink : build.spec.source.git.ref : build.spec.source.contextDir | linky'></span>
-                </span>
-              </td>
-              <td>
-                <span ng-if="$first && !$last">
-                  <a href="" ng-click="expandedBuildConfigRow[buildConfigName] = true" ng-if="!expandedBuildConfigRow[buildConfigName]">Show</a>
-                  <a href="" ng-click="expandedBuildConfigRow[buildConfigName] = false" ng-if="expandedBuildConfigRow[buildConfigName]">Hide</a>              
                 </span>
               </td>
             </tr>
