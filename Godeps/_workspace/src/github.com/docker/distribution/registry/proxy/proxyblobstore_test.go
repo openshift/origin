@@ -30,6 +30,11 @@ func (sbs statsBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, 
 	return sbs.blobs.Get(ctx, dgst)
 }
 
+func (sbs statsBlobStore) Enumerate(ctx context.Context) ([]digest.Digest, error) {
+	sbs.stats["enumerate"]++
+	return sbs.blobs.Enumerate(ctx)
+}
+
 func (sbs statsBlobStore) Create(ctx context.Context) (distribution.BlobWriter, error) {
 	sbs.stats["create"]++
 	return sbs.blobs.Create(ctx)

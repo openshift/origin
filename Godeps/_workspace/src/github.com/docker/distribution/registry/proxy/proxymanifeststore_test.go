@@ -62,6 +62,11 @@ func (sm statsManifest) GetByTag(tag string, options ...distribution.ManifestSer
 	return sm.manifests.GetByTag(tag, options...)
 }
 
+func (sm statsManifest) Enumerate() ([]digest.Digest, error) {
+	sm.stats["enumerate"]++
+	return sm.manifests.Enumerate()
+}
+
 func (sm statsManifest) Put(manifest *schema1.SignedManifest) error {
 	sm.stats["put"]++
 	return sm.manifests.Put(manifest)

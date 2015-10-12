@@ -75,6 +75,11 @@ type BlobDeleter interface {
 	Delete(ctx context.Context, dgst digest.Digest) error
 }
 
+// BlobEnumerator allows to list blobs in storage.
+type BlobEnumerator interface {
+	Enumerate(ctx context.Context) ([]digest.Digest, error)
+}
+
 // BlobDescriptorService manages metadata about a blob by digest. Most
 // implementations will not expose such an interface explicitly. Such mappings
 // should be maintained by interacting with the BlobIngester. Hence, this is
@@ -185,6 +190,16 @@ type BlobWriter interface {
 	Reader() (io.ReadCloser, error)
 }
 
+// BlobKeeper combines the operations needed for registry's upkeeping such as
+// blob access, read, enumeration and delete. Can be used to prune unnecessary
+// objects.
+type BlobKeeper interface {
+	BlobProvider
+	BlobStatter
+	BlobEnumerator
+	BlobDeleter
+}
+
 // BlobService combines the operations to access, read and write blobs. This
 // can be used to describe remote blob services.
 type BlobService interface {
@@ -194,9 +209,10 @@ type BlobService interface {
 }
 
 // BlobStore represent the entire suite of blob related operations. Such an
-// implementation can access, read, write, delete and serve blobs.
+// implementation can access, enumerate, read, write, delete and serve blobs.
 type BlobStore interface {
 	BlobService
 	BlobServer
+	BlobEnumerator
 	BlobDeleter
 }

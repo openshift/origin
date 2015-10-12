@@ -105,6 +105,11 @@ loop:
 	return signatures, err
 }
 
+// Enumerate returns an array of digests of manifest signatures.
+func (s *signatureStore) Enumerate(manifestReference digest.Digest) ([]digest.Digest, error) {
+	return s.linkedBlobStore(s.ctx, manifestReference).Enumerate(s.ctx)
+}
+
 func (s *signatureStore) Put(dgst digest.Digest, signatures ...[]byte) error {
 	bs := s.linkedBlobStore(s.ctx, dgst)
 	for _, signature := range signatures {
@@ -113,6 +118,12 @@ func (s *signatureStore) Put(dgst digest.Digest, signatures ...[]byte) error {
 		}
 	}
 	return nil
+}
+
+// Delete removes a signature's link of given manifest revision identied by
+// digest.
+func (s *signatureStore) Delete(revision, dgst digest.Digest) error {
+	return s.linkedBlobStore(s.ctx, revision).Delete(s.ctx, dgst)
 }
 
 // linkedBlobStore returns the namedBlobStore of the signatures for the
@@ -125,7 +136,12 @@ func (s *signatureStore) linkedBlobStore(ctx context.Context, revision digest.Di
 			revision:  revision,
 			signature: dgst,
 		})
-
+	}
+	linkRootPath := func(name string) (string, error) {
+		return pathFor(manifestSignaturesPathSpec{
+			name:     name,
+			revision: revision,
+		})
 	}
 
 	return &linkedBlobStore{
@@ -133,10 +149,12 @@ func (s *signatureStore) linkedBlobStore(ctx context.Context, revision digest.Di
 		repository: s.repository,
 		blobStore:  s.blobStore,
 		blobAccessController: &linkedBlobStatter{
-			blobStore:   s.blobStore,
-			repository:  s.repository,
-			linkPathFns: []linkPathFunc{linkpath},
+			blobStore:            s.blobStore,
+			repository:           s.repository,
+			linkPathFns:          []linkPathFunc{linkpath},
+			removeParentOnDelete: true,
 		},
-		linkPathFns: []linkPathFunc{linkpath},
+		linkPathFns:      []linkPathFunc{linkpath},
+		blobsRootPathFns: []blobsRootPathFunc{linkRootPath},
 	}
 }

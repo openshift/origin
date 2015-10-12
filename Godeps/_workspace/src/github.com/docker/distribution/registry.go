@@ -78,6 +78,9 @@ type ManifestService interface {
 	// Get retrieves the identified by the digest, if it exists.
 	Get(dgst digest.Digest) (*schema1.SignedManifest, error)
 
+	// Enumerate returns an array of manifest revisions in repository.
+	Enumerate() ([]digest.Digest, error)
+
 	// Delete removes the manifest, if it exists.
 	Delete(dgst digest.Digest) error
 
@@ -115,6 +118,14 @@ type SignatureService interface {
 	// Get retrieves all of the signature blobs for the specified digest.
 	Get(dgst digest.Digest) ([][]byte, error)
 
+	// Enumerate retrieves all signature digests for given manifest revision,
+	// if it exists.
+	Enumerate(dgst digest.Digest) ([]digest.Digest, error)
+
 	// Put stores the signature for the provided digest.
 	Put(dgst digest.Digest, signatures ...[]byte) error
+
+	// Delete removes a signature link from particular manifest revision, if
+	// it exists.
+	Delete(revision, dgst digest.Digest) error
 }
