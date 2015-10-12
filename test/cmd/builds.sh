@@ -17,7 +17,7 @@ oc new-build openshift/ruby-20-centos7 https://github.com/openshift/ruby-hello-w
 oc get bc/ruby-hello-world
 cat "${OS_ROOT}/Dockerfile" | oc new-build -D - --name=test
 oc get bc/test
-oc new-build --dockerfile=$'FROM centos\nRUN yum install -y apache'
+oc new-build --dockerfile=$'FROM centos:7\nRUN yum install -y httpd'
 oc get bc/centos
 oc delete all --all
 
@@ -60,4 +60,3 @@ echo "cancel-build: ok"
 oc delete is/ruby-20-centos7-buildcli
 oc delete bc/ruby-sample-build-validtag
 oc delete bc/ruby-sample-build-invalidtag
-
