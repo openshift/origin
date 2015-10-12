@@ -34,6 +34,8 @@ type SubnetRegistry interface {
 	WatchServices(receiver chan<- *ServiceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 	GetServicesForNamespace(namespace string) ([]Service, error)
 
+	GetPods() ([]Pod, string, error)
+	WatchPods(ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 	GetRunningPods(nodeName, namespace string) ([]Pod, error)
 }
 
