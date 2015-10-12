@@ -7,8 +7,10 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('ImageController', function ($scope, $routeParams, DataService, project, $filter) {
+  .controller('ImageController', function ($scope, $routeParams, DataService, project, $filter, ImageStreamsService) {
     $scope.imageStream = null;
+    $scope.tagsByName = {};
+    $scope.tagShowOlder = {};
     $scope.alerts = {};
     $scope.renderOptions = $scope.renderOptions || {};    
     $scope.renderOptions.hideFilterWidget = true;    
@@ -44,6 +46,7 @@ angular.module('openshiftConsole')
               }; 
             }
             $scope.imageStream = imageStream;
+            $scope.tagsByName = ImageStreamsService.tagsByName($scope.imageStream);
           }));          
         },
         // failure
