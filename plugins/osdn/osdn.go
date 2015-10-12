@@ -92,6 +92,29 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan<- *osdnapi.SubnetEve
 	}
 }
 
+func (oi *OsdnRegistryInterface) GetRunningPods(nodeName, namespace string) ([]osdnapi.Pod, error) {
+	fieldSelector := fields.Set{"spec.host": nodeName}.AsSelector()
+	podList, err := oi.kClient.Pods(namespace).List(labels.Everything(), fieldSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter running pods and convert kapi.Pod to osdnapi.Pod
+	pods := make([]osdnapi.Pod, 0, len(podList.Items))
+	for _, pod := range podList.Items {
+		if pod.Status.Phase != kapi.PodRunning {
+			continue
+		}
+		containerID := ""
+		if len(pod.Status.ContainerStatuses) > 0 {
+			// Extract only container ID, pod.Status.ContainerStatuses[0].ContainerID is of the format: docker://<containerID>
+			containerID = strings.Split(pod.Status.ContainerStatuses[0].ContainerID, "://")[1]
+		}
+		pods = append(pods, osdnapi.Pod{Name: pod.ObjectMeta.Name, Namespace: pod.ObjectMeta.Namespace, ContainerID: containerID})
+	}
+	return pods, nil
+}
+
 func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, string, error) {
 	knodes, err := oi.kClient.Nodes().List(labels.Everything(), fields.Everything())
 	if err != nil {
@@ -255,12 +278,10 @@ func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan<- *osdnapi.Net
 		netns := obj.(*api.NetNamespace)
 
 		switch eventType {
-		case watch.Added:
+		case watch.Added, watch.Modified:
 			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Added, Name: netns.NetName, NetID: netns.NetID}
 		case watch.Deleted:
 			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Deleted, Name: netns.NetName}
-		case watch.Modified:
-			// Ignore, we don't need to update SDN in case of network namespace updates
 		}
 	}
 }
@@ -301,13 +322,22 @@ func (oi *OsdnRegistryInterface) DeleteNetNamespace(name string) error {
 	return oi.oClient.NetNamespaces().Delete(name)
 }
 
+func (oi *OsdnRegistryInterface) GetServicesForNamespace(namespace string) ([]osdnapi.Service, error) {
+	services, _, err := oi.getServices(namespace)
+	return services, err
+}
+
 func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, string, error) {
-	kServList, err := oi.kClient.Services(kapi.NamespaceAll).List(labels.Everything())
+	return oi.getServices(kapi.NamespaceAll)
+}
+
+func (oi *OsdnRegistryInterface) getServices(namespace string) ([]osdnapi.Service, string, error) {
+	kServList, err := oi.kClient.Services(namespace).List(labels.Everything())
 	if err != nil {
 		return nil, "", err
 	}
 
-	oServList := make([]osdnapi.Service, 0)
+	oServList := make([]osdnapi.Service, 0, len(kServList.Items))
 	for _, kService := range kServList.Items {
 		if kService.Spec.ClusterIP == "None" {
 			continue

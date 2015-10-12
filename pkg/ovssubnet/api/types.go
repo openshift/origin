@@ -32,6 +32,9 @@ type SubnetRegistry interface {
 	GetServicesNetworkCIDR() (string, error)
 	GetServices() ([]Service, string, error)
 	WatchServices(receiver chan<- *ServiceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
+	GetServicesForNamespace(namespace string) ([]Service, error)
+
+	GetRunningPods(nodeName, namespace string) ([]Pod, error)
 }
 
 type Subnet struct {
@@ -89,4 +92,10 @@ type Service struct {
 type ServiceEvent struct {
 	Type    EventType
 	Service Service
+}
+
+type Pod struct {
+	Name        string
+	Namespace   string
+	ContainerID string
 }
