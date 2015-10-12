@@ -6,19 +6,10 @@ import (
 	"strings"
 )
 
-// TODO(stevvooe): Move these definitions back to an exported package. While
-// they are used with v2 definitions, their relevance expands beyond.
-// "distribution/names" is a candidate package.
+// TODO(stevvooe): Move these definitions to the future "reference" package.
+// While they are used with v2 definitions, their relevance expands beyond.
 
 const (
-	// RepositoryNameComponentMinLength is the minimum number of characters in a
-	// single repository name slash-delimited component
-	RepositoryNameComponentMinLength = 2
-
-	// RepositoryNameMinComponents is the minimum number of slash-delimited
-	// components that a repository name must have
-	RepositoryNameMinComponents = 1
-
 	// RepositoryNameTotalLengthMax is the maximum total number of characters in
 	// a repository name
 	RepositoryNameTotalLengthMax = 255
@@ -40,17 +31,13 @@ var RepositoryNameRegexp = regexp.MustCompile(`(?:` + RepositoryNameComponentReg
 // TagNameRegexp matches valid tag names. From docker/docker:graph/tags.go.
 var TagNameRegexp = regexp.MustCompile(`[\w][\w.-]{0,127}`)
 
-// TODO(stevvooe): Contribute these exports back to core, so they are shared.
+// TagNameAnchoredRegexp matches valid tag names, anchored at the start and
+// end of the matched string.
+var TagNameAnchoredRegexp = regexp.MustCompile("^" + TagNameRegexp.String() + "$")
 
 var (
-	// ErrRepositoryNameComponentShort is returned when a repository name
-	// contains a component which is shorter than
-	// RepositoryNameComponentMinLength
-	ErrRepositoryNameComponentShort = fmt.Errorf("respository name component must be %v or more characters", RepositoryNameComponentMinLength)
-
-	// ErrRepositoryNameMissingComponents is returned when a repository name
-	// contains fewer than RepositoryNameMinComponents components
-	ErrRepositoryNameMissingComponents = fmt.Errorf("repository name must have at least %v components", RepositoryNameMinComponents)
+	// ErrRepositoryNameEmpty is returned for empty, invalid repository names.
+	ErrRepositoryNameEmpty = fmt.Errorf("repository name must have at least one component")
 
 	// ErrRepositoryNameLong is returned when a repository name is longer than
 	// RepositoryNameTotalLengthMax
@@ -61,7 +48,7 @@ var (
 	ErrRepositoryNameComponentInvalid = fmt.Errorf("repository name component must match %q", RepositoryNameComponentRegexp.String())
 )
 
-// ValidateRespositoryName ensures the repository name is valid for use in the
+// ValidateRepositoryName ensures the repository name is valid for use in the
 // registry. This function accepts a superset of what might be accepted by
 // docker core or docker hub. If the name does not pass validation, an error,
 // describing the conditions, is returned.
@@ -75,22 +62,18 @@ var (
 //
 // The result of the production, known as the "namespace", should be limited
 // to 255 characters.
-func ValidateRespositoryName(name string) error {
+func ValidateRepositoryName(name string) error {
+	if name == "" {
+		return ErrRepositoryNameEmpty
+	}
+
 	if len(name) > RepositoryNameTotalLengthMax {
 		return ErrRepositoryNameLong
 	}
 
 	components := strings.Split(name, "/")
 
-	if len(components) < RepositoryNameMinComponents {
-		return ErrRepositoryNameMissingComponents
-	}
-
 	for _, component := range components {
-		if len(component) < RepositoryNameComponentMinLength {
-			return ErrRepositoryNameComponentShort
-		}
-
 		if !RepositoryNameComponentAnchoredRegexp.MatchString(component) {
 			return ErrRepositoryNameComponentInvalid
 		}

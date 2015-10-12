@@ -330,8 +330,7 @@
 		},
 		{
 			"ImportPath": "github.com/docker/distribution",
-			"Comment": "v2.0.1",
-			"Rev": "1341222284b3a6b4e77fb64571ad423ed58b0d34"
+			"Rev": "89bedf1e7fdda9f7e8814e4d53947d8116b7a36f"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/builder/command",

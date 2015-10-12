@@ -4,93 +4,113 @@ import (
 	"fmt"
 
 	"github.com/docker/distribution"
-	ctxu "github.com/docker/distribution/context"
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
-	"github.com/docker/distribution/manifest"
+	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/libtrust"
-	"golang.org/x/net/context"
 )
 
 type manifestStore struct {
-	repository *repository
-
-	revisionStore *revisionStore
-	tagStore      *tagStore
+	repository                 *repository
+	revisionStore              *revisionStore
+	tagStore                   *tagStore
+	ctx                        context.Context
+	skipDependencyVerification bool
 }
 
 var _ distribution.ManifestService = &manifestStore{}
 
-func (ms *manifestStore) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
-	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Exists")
-	return ms.revisionStore.exists(dgst)
+func (ms *manifestStore) Exists(dgst digest.Digest) (bool, error) {
+	context.GetLogger(ms.ctx).Debug("(*manifestStore).Exists")
+
+	_, err := ms.revisionStore.blobStore.Stat(ms.ctx, dgst)
+	if err != nil {
+		if err == distribution.ErrBlobUnknown {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }
 
-func (ms *manifestStore) Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error) {
-	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Get")
-	return ms.revisionStore.get(dgst)
+func (ms *manifestStore) Get(dgst digest.Digest) (*schema1.SignedManifest, error) {
+	context.GetLogger(ms.ctx).Debug("(*manifestStore).Get")
+	return ms.revisionStore.get(ms.ctx, dgst)
 }
 
-func (ms *manifestStore) Put(ctx context.Context, manifest *manifest.SignedManifest) error {
-	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Put")
+// SkipLayerVerification allows a manifest to be Put before it's
+// layers are on the filesystem
+func SkipLayerVerification(ms distribution.ManifestService) error {
+	if ms, ok := ms.(*manifestStore); ok {
+		ms.skipDependencyVerification = true
+		return nil
+	}
+	return fmt.Errorf("skip layer verification only valid for manifeststore")
+}
 
-	// TODO(stevvooe): Add check here to see if the revision is already
-	// present in the repository. If it is, we should merge the signatures, do
-	// a shallow verify (or a full one, doesn't matter) and return an error
-	// indicating what happened.
+func (ms *manifestStore) Put(manifest *schema1.SignedManifest) error {
+	context.GetLogger(ms.ctx).Debug("(*manifestStore).Put")
 
-	// Verify the manifest.
-	if err := ms.verifyManifest(manifest); err != nil {
+	if err := ms.verifyManifest(ms.ctx, manifest); err != nil {
 		return err
 	}
 
 	// Store the revision of the manifest
-	revision, err := ms.revisionStore.put(manifest)
+	revision, err := ms.revisionStore.put(ms.ctx, manifest)
 	if err != nil {
 		return err
 	}
 
 	// Now, tag the manifest
-	return ms.tagStore.tag(manifest.Tag, revision)
+	return ms.tagStore.tag(manifest.Tag, revision.Digest)
 }
 
 // Delete removes the revision of the specified manfiest.
-func (ms *manifestStore) Delete(ctx context.Context, dgst digest.Digest) error {
-	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Delete")
-	return ms.revisionStore.delete(dgst)
+func (ms *manifestStore) Delete(dgst digest.Digest) error {
+	context.GetLogger(ms.ctx).Debug("(*manifestStore).Delete")
+	return ms.revisionStore.delete(ms.ctx, dgst)
 }
 
-func (ms *manifestStore) Tags(ctx context.Context) ([]string, error) {
-	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).Tags")
+func (ms *manifestStore) Tags() ([]string, error) {
+	context.GetLogger(ms.ctx).Debug("(*manifestStore).Tags")
 	return ms.tagStore.tags()
 }
 
-func (ms *manifestStore) ExistsByTag(ctx context.Context, tag string) (bool, error) {
-	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).ExistsByTag")
+func (ms *manifestStore) ExistsByTag(tag string) (bool, error) {
+	context.GetLogger(ms.ctx).Debug("(*manifestStore).ExistsByTag")
 	return ms.tagStore.exists(tag)
 }
 
-func (ms *manifestStore) GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error) {
-	ctxu.GetLogger(ms.repository.ctx).Debug("(*manifestStore).GetByTag")
+func (ms *manifestStore) GetByTag(tag string, options ...distribution.ManifestServiceOption) (*schema1.SignedManifest, error) {
+	for _, option := range options {
+		err := option(ms)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	context.GetLogger(ms.ctx).Debug("(*manifestStore).GetByTag")
 	dgst, err := ms.tagStore.resolve(tag)
 	if err != nil {
 		return nil, err
 	}
 
-	return ms.revisionStore.get(dgst)
+	return ms.revisionStore.get(ms.ctx, dgst)
 }
 
 // verifyManifest ensures that the manifest content is valid from the
 // perspective of the registry. It ensures that the signature is valid for the
 // enclosed payload. As a policy, the registry only tries to store valid
 // content, leaving trust policies of that content up to consumers.
-func (ms *manifestStore) verifyManifest(mnfst *manifest.SignedManifest) error {
+func (ms *manifestStore) verifyManifest(ctx context.Context, mnfst *schema1.SignedManifest) error {
 	var errs distribution.ErrManifestVerification
 	if mnfst.Name != ms.repository.Name() {
-		// TODO(stevvooe): This needs to be an exported error
 		errs = append(errs, fmt.Errorf("repository name does not match manifest name"))
 	}
 
-	if _, err := manifest.Verify(mnfst); err != nil {
+	if _, err := schema1.Verify(mnfst); err != nil {
 		switch err {
 		case libtrust.ErrMissingSignatureKey, libtrust.ErrInvalidJSONContent, libtrust.ErrMissingSignatureKey:
 			errs = append(errs, distribution.ErrManifestUnverified{})
@@ -103,19 +123,20 @@ func (ms *manifestStore) verifyManifest(mnfst *manifest.SignedManifest) error {
 		}
 	}
 
-	for _, fsLayer := range mnfst.FSLayers {
-		exists, err := ms.repository.Layers().Exists(fsLayer.BlobSum)
-		if err != nil {
-			errs = append(errs, err)
-		}
+	if !ms.skipDependencyVerification {
+		for _, fsLayer := range mnfst.FSLayers {
+			_, err := ms.repository.Blobs(ctx).Stat(ctx, fsLayer.BlobSum)
+			if err != nil {
+				if err != distribution.ErrBlobUnknown {
+					errs = append(errs, err)
+				}
 
-		if !exists {
-			errs = append(errs, distribution.ErrUnknownLayer{FSLayer: fsLayer})
+				// On error here, we always append unknown blob errors.
+				errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: fsLayer.BlobSum})
+			}
 		}
 	}
-
 	if len(errs) != 0 {
-		// TODO(stevvooe): These need to be recoverable by a caller.
 		return errs
 	}
 

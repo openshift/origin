@@ -1,0 +1,11 @@
+--- notifications/listener_test.go	2015-05-07 01:37:30.000000000 +0200
++++ home/miminar/wsp/rh/openshift-origin/Godeps/_workspace/src/github.com/docker/distribution/notifications/listener_test.go	2015-10-06 15:06:40.262175831 +0200
+@@ -144,7 +144,7 @@
+ 
+ 	manifests := repository.Manifests()
+ 
+-	if err := manifests.Put(sm); err != nil {
++	if err := manifests.Put(ctx, sm); err != nil {
+ 		t.Fatalf("unexpected error putting the manifest: %v", err)
+ 	}
+ 

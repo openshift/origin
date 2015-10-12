@@ -1,0 +1,14 @@
+--- registry/handlers/images.go	2015-05-07 01:37:30.000000000 +0200
++++ home/miminar/wsp/rh/openshift-origin/Godeps/_workspace/src/github.com/docker/distribution/registry/handlers/images.go	2015-10-06 15:06:40.264175818 +0200
+@@ -57,9 +57,9 @@
+ 	)
+ 
+ 	if imh.Tag != "" {
+-		sm, err = manifests.GetByTag(imh.Tag)
++		sm, err = manifests.GetByTag(imh.Context, imh.Tag)
+ 	} else {
+-		sm, err = manifests.Get(imh.Digest)
++		sm, err = manifests.Get(imh.Context, imh.Digest)
+ 	}
+ 
+ 	if err != nil {

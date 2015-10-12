@@ -1,0 +1,68 @@
+--- registry.go	2015-05-07 01:37:30.000000000 +0200
++++ home/miminar/wsp/rh/openshift-origin/Godeps/_workspace/src/github.com/docker/distribution/registry.go	2015-10-06 15:06:40.263175824 +0200
+@@ -39,6 +39,8 @@
+ 	// registry may or may not have the repository but should always return a
+ 	// reference.
+ 	Repository(ctx context.Context, name string) (Repository, error)
++
++	Blobs() BlobService
+ }
+ 
+ // Repository is a named collection of manifests and layers.
+@@ -63,28 +65,28 @@
+ // ManifestService provides operations on image manifests.
+ type ManifestService interface {
+ 	// Exists returns true if the manifest exists.
+-	Exists(dgst digest.Digest) (bool, error)
++	Exists(ctx context.Context, dgst digest.Digest) (bool, error)
+ 
+ 	// Get retrieves the identified by the digest, if it exists.
+-	Get(dgst digest.Digest) (*manifest.SignedManifest, error)
++	Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error)
+ 
+ 	// Delete removes the manifest, if it exists.
+-	Delete(dgst digest.Digest) error
++	Delete(ctx context.Context, dgst digest.Digest) error
+ 
+ 	// Put creates or updates the manifest.
+-	Put(manifest *manifest.SignedManifest) error
++	Put(ctx context.Context, manifest *manifest.SignedManifest) error
+ 
+ 	// TODO(stevvooe): The methods after this message should be moved to a
+ 	// discrete TagService, per active proposals.
+ 
+ 	// Tags lists the tags under the named repository.
+-	Tags() ([]string, error)
++	Tags(ctx context.Context) ([]string, error)
+ 
+ 	// ExistsByTag returns true if the manifest exists.
+-	ExistsByTag(tag string) (bool, error)
++	ExistsByTag(ctx context.Context, tag string) (bool, error)
+ 
+ 	// GetByTag retrieves the named manifest, if it exists.
+-	GetByTag(tag string) (*manifest.SignedManifest, error)
++	GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error)
+ 
+ 	// TODO(stevvooe): There are several changes that need to be done to this
+ 	// interface:
+@@ -108,6 +110,9 @@
+ 	// Fetch the layer identifed by TarSum.
+ 	Fetch(digest digest.Digest) (Layer, error)
+ 
++	// Delete unlinks the layer from a Repository.
++	Delete(dgst digest.Digest) error
++
+ 	// Upload begins a layer upload to repository identified by name,
+ 	// returning a handle.
+ 	Upload() (LayerUpload, error)
+@@ -173,6 +178,10 @@
+ 	Put(dgst digest.Digest, signatures ...[]byte) error
+ }
+ 
++type BlobService interface {
++	Delete(dgst digest.Digest) error
++}
++
+ // Descriptor describes targeted content. Used in conjunction with a blob
+ // store, a descriptor can be used to fetch, store and target any kind of
+ // blob. The struct also describes the wire protocol format. Fields should

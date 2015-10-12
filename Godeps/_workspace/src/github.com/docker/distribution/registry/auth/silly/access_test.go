@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/registry/auth"
-	"golang.org/x/net/context"
 )
 
 func TestSillyAccessController(t *testing.T) {
@@ -21,7 +21,8 @@ func TestSillyAccessController(t *testing.T) {
 		if err != nil {
 			switch err := err.(type) {
 			case auth.Challenge:
-				err.ServeHTTP(w, r)
+				err.SetHeaders(w)
+				w.WriteHeader(http.StatusUnauthorized)
 				return
 			default:
 				t.Fatalf("unexpected error authorizing request: %v", err)
