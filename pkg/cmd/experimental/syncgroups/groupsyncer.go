@@ -63,7 +63,7 @@ func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
 		// get membership data
 		memberEntries, err := s.GroupMemberExtractor.ExtractMembers(ldapGroupUID)
 		if err != nil {
-			fmt.Fprintf(s.Err, "Error determining LDAP group membership for %q: %v.  Continuing with the next LDAP group.", ldapGroupUID, err)
+			fmt.Fprintf(s.Err, "Error determining LDAP group membership for %q: %v.  Continuing with the next LDAP group.\n", ldapGroupUID, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -71,7 +71,7 @@ func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
 		// determine OpenShift Users' usernames for LDAP group members
 		usernames, err := s.determineUsernames(memberEntries)
 		if err != nil {
-			fmt.Fprintf(s.Err, "Error determining usernames LDAP group %q: %v.  Continuing with the next LDAP group.", ldapGroupUID, err)
+			fmt.Fprintf(s.Err, "Error determining usernames LDAP group %q: %v.  Continuing with the next LDAP group.\n", ldapGroupUID, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -80,7 +80,7 @@ func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
 		// update the OpenShift Group corresponding to this record
 		openshiftGroup, err := s.makeOpenShiftGroup(ldapGroupUID, usernames)
 		if err != nil {
-			fmt.Fprintf(s.Err, "Error building OpenShift group for LDAP group %q: %v.  Continuing with the next LDAP group.", ldapGroupUID, err)
+			fmt.Fprintf(s.Err, "Error building OpenShift group for LDAP group %q: %v.  Continuing with the next LDAP group.\n", ldapGroupUID, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -89,7 +89,7 @@ func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
 		if !s.DryRun {
 			fmt.Fprintf(s.Out, "group/%s\n", openshiftGroup.Name)
 			if err := s.updateOpenShiftGroup(openshiftGroup); err != nil {
-				fmt.Fprintf(s.Err, "Error updating OpenShift group %q for LDAP group %q: %v.  Continuing with the next LDAP group.", openshiftGroup.Name, ldapGroupUID, err)
+				fmt.Fprintf(s.Err, "Error updating OpenShift group %q for LDAP group %q: %v.  Continuing with the next LDAP group.\n", openshiftGroup.Name, ldapGroupUID, err)
 				errors = append(errors, err)
 				continue
 			}

@@ -204,7 +204,9 @@ func readLines(path string) ([]string, error) {
 	rawLines := strings.Split(string(bytes), "\n")
 	var trimmedLines []string
 	for _, line := range rawLines {
-		trimmedLines = append(trimmedLines, strings.TrimSpace(line))
+		if len(strings.TrimSpace(line)) > 0 {
+			trimmedLines = append(trimmedLines, strings.TrimSpace(line))
+		}
 	}
 	return trimmedLines, nil
 }
