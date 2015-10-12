@@ -986,14 +986,17 @@ Tag existing images into image streams
 
 [options="nowrap"]
 ----
-  # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip':
+  # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip'.
   $ openshift cli tag openshift/ruby:2.0 yourproject/ruby:tip
 
-  # Tag a specific image:
+  # Tag a specific image.
   $ openshift cli tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
 
-  # Tag an external Docker image:
+  # Tag an external Docker image.
   $ openshift cli tag --source=docker openshift/origin:latest yourproject/ruby:tip
+
+  # Remove the specified spec tag from an image stream.
+  $ openshift cli tag openshift/origin:latest -d
 ----
 ====
 
