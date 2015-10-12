@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
+	syncgroupscli "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/cli"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -32,15 +32,15 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 
 			var testCases = []struct {
 				name       string
-				options    syncgroups.SyncGroupsOptions
+				options    syncgroupscli.SyncGroupsOptions
 				expected   []string
 				seedGroups []userapi.Group //allows for groups to exist prior to the sync
 				preSync    bool            //determines whether a sync should be performed before the sync to be tested
 			}{
 				{
 					name: "schema 1 all ldap",
-					options: syncgroups.SyncGroupsOptions{
-						Source: syncgroups.GroupSyncSourceLDAP,
+					options: syncgroupscli.SyncGroupsOptions{
+						Source: syncgroupscli.GroupSyncSourceLDAP,
 					},
 					expected:   []string{GroupName1, GroupName2, GroupName3},
 					seedGroups: []userapi.Group{},
@@ -48,8 +48,8 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 whitelist LDAP",
-					options: syncgroups.SyncGroupsOptions{
-						Source:            syncgroups.GroupSyncSourceLDAP,
+					options: syncgroupscli.SyncGroupsOptions{
+						Source:            syncgroupscli.GroupSyncSourceLDAP,
 						WhitelistContents: []string{GroupName1, GroupName2},
 					},
 					expected:   []string{GroupName1, GroupName2},
@@ -58,8 +58,8 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 all openshift no previous sync",
-					options: syncgroups.SyncGroupsOptions{
-						Source: syncgroups.GroupSyncSourceOpenShift,
+					options: syncgroupscli.SyncGroupsOptions{
+						Source: syncgroupscli.GroupSyncSourceOpenShift,
 					},
 					expected:   []string{}, // cant sync OpenShift groups that haven't been linked to an LDAP entry
 					seedGroups: []userapi.Group{},
@@ -67,8 +67,8 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 all openshift with previous sync",
-					options: syncgroups.SyncGroupsOptions{
-						Source: syncgroups.GroupSyncSourceOpenShift,
+					options: syncgroupscli.SyncGroupsOptions{
+						Source: syncgroupscli.GroupSyncSourceOpenShift,
 					},
 					expected:   []string{GroupName1, GroupName2, GroupName3},
 					seedGroups: []userapi.Group{},
@@ -76,8 +76,8 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 whitelist openshift no previous sync",
-					options: syncgroups.SyncGroupsOptions{
-						Source:            syncgroups.GroupSyncSourceOpenShift,
+					options: syncgroupscli.SyncGroupsOptions{
+						Source:            syncgroupscli.GroupSyncSourceOpenShift,
 						WhitelistContents: []string{GroupName1, GroupName2},
 					},
 					expected:   []string{}, // cant sync OpenShift groups that haven't been linked to an LDAP entry
@@ -86,8 +86,8 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 whitelist openshift with previous sync",
-					options: syncgroups.SyncGroupsOptions{
-						Source:            syncgroups.GroupSyncSourceOpenShift,
+					options: syncgroupscli.SyncGroupsOptions{
+						Source:            syncgroupscli.GroupSyncSourceOpenShift,
 						WhitelistContents: []string{GroupName1, GroupName2},
 					},
 					expected:   []string{GroupName1, GroupName2},

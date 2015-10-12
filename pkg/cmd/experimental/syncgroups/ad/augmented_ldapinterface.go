@@ -10,24 +10,14 @@ import (
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
-<<<<<<< HEAD:pkg/cmd/experimental/syncgroups/ad/enhanced_ldapinterface.go
-func NewEnhancedADLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
-=======
 func NewAugmentedADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
->>>>>>> d67cc33... main:pkg/cmd/experimental/syncgroups/ad/augmented_ldapinterface.go
 	userQuery ldaputil.LDAPQueryOnAttribute,
 	groupMembershipAttributes []string,
 	userNameAttributes []string,
 	groupQuery ldaputil.LDAPQueryOnAttribute,
-<<<<<<< HEAD:pkg/cmd/experimental/syncgroups/ad/enhanced_ldapinterface.go
-	groupNameAttributes []string) EnhancedADLDAPInterface {
-
-	return EnhancedADLDAPInterface{
-=======
 	groupNameAttributes []string) *AugmentedADLDAPInterface {
 
 	return &AugmentedADLDAPInterface{
->>>>>>> d67cc33... main:pkg/cmd/experimental/syncgroups/ad/augmented_ldapinterface.go
 		ADLDAPInterface:     NewADLDAPInterface(clientConfig, userQuery, groupMembershipAttributes, userNameAttributes),
 		groupQuery:          groupQuery,
 		groupNameAttributes: groupNameAttributes,
@@ -41,13 +31,8 @@ func NewAugmentedADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
 // - LDAPMemberExtractor
 // - LDAPGroupGetter
 // - LDAPGroupLister
-<<<<<<< HEAD:pkg/cmd/experimental/syncgroups/ad/enhanced_ldapinterface.go
-type EnhancedADLDAPInterface struct {
-	ADLDAPInterface
-=======
 type AugmentedADLDAPInterface struct {
 	*ADLDAPInterface
->>>>>>> d67cc33... main:pkg/cmd/experimental/syncgroups/ad/augmented_ldapinterface.go
 
 	// groupQuery holds the information necessary to make an LDAP query for a specific
 	// first-class group entry on the LDAP server

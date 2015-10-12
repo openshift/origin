@@ -12,12 +12,12 @@ import (
 )
 
 // NewADLDAPInterface builds a new ADLDAPInterface using a schema-appropriate config
-func NewADLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
+func NewADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
 	userQuery ldaputil.LDAPQueryOnAttribute,
 	groupMembershipAttributes []string,
-	userNameAttributes []string) ADLDAPInterface {
+	userNameAttributes []string) *ADLDAPInterface {
 
-	return ADLDAPInterface{
+	return &ADLDAPInterface{
 		clientConfig:              clientConfig,
 		userQuery:                 userQuery,
 		userNameAttributes:        userNameAttributes,
@@ -33,7 +33,7 @@ func NewADLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
 // - LDAPGroupLister
 type ADLDAPInterface struct {
 	// clientConfig holds LDAP connection information
-	clientConfig ldaputil.LDAPClientConfig
+	clientConfig *ldaputil.LDAPClientConfig
 
 	// userQuery holds the information necessary to make an LDAP query for a specific
 	// first-class user entry on the LDAP server

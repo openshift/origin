@@ -180,7 +180,7 @@ func (o *LDAPQueryOnAttribute) buildAttributeQuery(attributeValue string,
 
 // QueryForUniqueEntry queries for an LDAP entry with the given searchRequest. The query is expected
 // to return one unqiue result. If this is not the case, errors are raised
-func QueryForUniqueEntry(clientConfig LDAPClientConfig, query *ldap.SearchRequest) (*ldap.Entry, error) {
+func QueryForUniqueEntry(clientConfig *LDAPClientConfig, query *ldap.SearchRequest) (*ldap.Entry, error) {
 	result, err := QueryForEntries(clientConfig, query)
 	if err != nil {
 		return nil, err
@@ -215,7 +215,7 @@ func formatResult(results []*ldap.Entry) string {
 }
 
 // QueryForEntries queries for LDAP with the given searchRequest
-func QueryForEntries(clientConfig LDAPClientConfig, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
+func QueryForEntries(clientConfig *LDAPClientConfig, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
 	connection, err := clientConfig.Connect()
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to the LDAP server: %v", err)
