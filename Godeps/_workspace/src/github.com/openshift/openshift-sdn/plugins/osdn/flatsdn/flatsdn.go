@@ -20,7 +20,7 @@ func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetworkCI
 	osdnInterface := osdn.NewOsdnRegistryInterface(osClient, kClient)
 
 	// get hostname from the gateway
-	output, err := exec.New().Command("hostname", "-f").CombinedOutput()
+	output, err := exec.New().Command("uname", "-n").CombinedOutput()
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
@@ -30,7 +30,7 @@ func Master(osClient *osclient.Client, kClient *kclient.Client, clusterNetworkCI
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
-	err = kc.StartMaster(false, clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR)
+	err = kc.StartMaster(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
@@ -42,7 +42,7 @@ func Node(osClient *osclient.Client, kClient *kclient.Client, hostname string, p
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
-	err = kc.StartNode(false, false, mtu)
+	err = kc.StartNode(mtu)
 	if err != nil {
 		glog.Fatalf("SDN Node failed: %v", err)
 	}

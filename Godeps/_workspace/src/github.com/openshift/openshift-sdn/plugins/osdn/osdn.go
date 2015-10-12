@@ -35,10 +35,6 @@ func NewOsdnRegistryInterface(osClient *osclient.Client, kClient *kclient.Client
 	return OsdnRegistryInterface{osClient, kClient}
 }
 
-func (oi *OsdnRegistryInterface) InitSubnets() error {
-	return nil
-}
-
 func (oi *OsdnRegistryInterface) GetSubnets() ([]osdnapi.Subnet, string, error) {
 	hostSubnetList, err := oi.oClient.HostSubnets().List()
 	if err != nil {
@@ -77,7 +73,7 @@ func (oi *OsdnRegistryInterface) CreateSubnet(nodeName string, sub *osdnapi.Subn
 }
 
 func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan<- *osdnapi.SubnetEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := oi.createAndRunEventQueue("HostSubnet", nil, ready, start)
+	eventQueue, startVersion := oi.createAndRunEventQueue("HostSubnet", ready, start)
 
 	checkCondition := true
 	for {
@@ -96,9 +92,27 @@ func (oi *OsdnRegistryInterface) WatchSubnets(receiver chan<- *osdnapi.SubnetEve
 	}
 }
 
-func (oi *OsdnRegistryInterface) InitNodes() error {
-	// return no error, as this gets initialized by apiserver
-	return nil
+func (oi *OsdnRegistryInterface) GetRunningPods(nodeName, namespace string) ([]osdnapi.Pod, error) {
+	fieldSelector := fields.Set{"spec.host": nodeName}.AsSelector()
+	podList, err := oi.kClient.Pods(namespace).List(labels.Everything(), fieldSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter running pods and convert kapi.Pod to osdnapi.Pod
+	pods := make([]osdnapi.Pod, 0, len(podList.Items))
+	for _, pod := range podList.Items {
+		if pod.Status.Phase != kapi.PodRunning {
+			continue
+		}
+		containerID := ""
+		if len(pod.Status.ContainerStatuses) > 0 {
+			// Extract only container ID, pod.Status.ContainerStatuses[0].ContainerID is of the format: docker://<containerID>
+			containerID = strings.Split(pod.Status.ContainerStatuses[0].ContainerID, "://")[1]
+		}
+		pods = append(pods, osdnapi.Pod{Name: pod.ObjectMeta.Name, Namespace: pod.ObjectMeta.Namespace, ContainerID: containerID})
+	}
+	return pods, nil
 }
 
 func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, string, error) {
@@ -124,10 +138,6 @@ func (oi *OsdnRegistryInterface) GetNodes() ([]osdnapi.Node, string, error) {
 	return nodes, knodes.ListMeta.ResourceVersion, nil
 }
 
-func (oi *OsdnRegistryInterface) CreateNode(nodeName string, data string) error {
-	return fmt.Errorf("Feature not supported in native mode. SDN cannot create/register nodes.")
-}
-
 func (oi *OsdnRegistryInterface) getNodeAddressMap() (map[types.UID]string, error) {
 	nodeAddressMap := map[types.UID]string{}
 
@@ -144,7 +154,7 @@ func (oi *OsdnRegistryInterface) getNodeAddressMap() (map[types.UID]string, erro
 }
 
 func (oi *OsdnRegistryInterface) WatchNodes(receiver chan<- *osdnapi.NodeEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := oi.createAndRunEventQueue("Node", nil, ready, start)
+	eventQueue, startVersion := oi.createAndRunEventQueue("Node", ready, start)
 
 	nodeAddressMap, err := oi.getNodeAddressMap()
 	if err != nil {
@@ -222,11 +232,6 @@ func (oi *OsdnRegistryInterface) GetServicesNetworkCIDR() (string, error) {
 	return cn.ServiceNetwork, err
 }
 
-func (oi *OsdnRegistryInterface) CheckEtcdIsAlive(seconds uint64) bool {
-	// always assumed to be true as we run through the apiserver
-	return true
-}
-
 func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, string, error) {
 	namespaceList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
 	if err != nil {
@@ -240,7 +245,7 @@ func (oi *OsdnRegistryInterface) GetNamespaces() ([]string, string, error) {
 }
 
 func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan<- *osdnapi.NamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := oi.createAndRunEventQueue("Namespace", nil, ready, start)
+	eventQueue, startVersion := oi.createAndRunEventQueue("Namespace", ready, start)
 
 	checkCondition := true
 	for {
@@ -262,7 +267,7 @@ func (oi *OsdnRegistryInterface) WatchNamespaces(receiver chan<- *osdnapi.Namesp
 }
 
 func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan<- *osdnapi.NetNamespaceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	eventQueue, startVersion := oi.createAndRunEventQueue("NetNamespace", nil, ready, start)
+	eventQueue, startVersion := oi.createAndRunEventQueue("NetNamespace", ready, start)
 
 	checkCondition := true
 	for {
@@ -273,12 +278,10 @@ func (oi *OsdnRegistryInterface) WatchNetNamespaces(receiver chan<- *osdnapi.Net
 		netns := obj.(*api.NetNamespace)
 
 		switch eventType {
-		case watch.Added:
+		case watch.Added, watch.Modified:
 			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Added, Name: netns.NetName, NetID: netns.NetID}
 		case watch.Deleted:
 			receiver <- &osdnapi.NetNamespaceEvent{Type: osdnapi.Deleted, Name: netns.NetName}
-		case watch.Modified:
-			// Ignore, we don't need to update SDN in case of network namespace updates
 		}
 	}
 }
@@ -319,84 +322,44 @@ func (oi *OsdnRegistryInterface) DeleteNetNamespace(name string) error {
 	return oi.oClient.NetNamespaces().Delete(name)
 }
 
-func (oi *OsdnRegistryInterface) InitServices() error {
-	return nil
+func (oi *OsdnRegistryInterface) GetServicesForNamespace(namespace string) ([]osdnapi.Service, error) {
+	services, _, err := oi.getServices(namespace)
+	return services, err
 }
 
 func (oi *OsdnRegistryInterface) GetServices() ([]osdnapi.Service, string, error) {
-	kNsList, err := oi.kClient.Namespaces().List(labels.Everything(), fields.Everything())
+	return oi.getServices(kapi.NamespaceAll)
+}
+
+func (oi *OsdnRegistryInterface) getServices(namespace string) ([]osdnapi.Service, string, error) {
+	kServList, err := oi.kClient.Services(namespace).List(labels.Everything())
 	if err != nil {
 		return nil, "", err
 	}
-	oServList := make([]osdnapi.Service, 0)
-	for _, ns := range kNsList.Items {
-		kServList, err := oi.kClient.Services(ns.Name).List(labels.Everything())
-		if err != nil {
-			return nil, "", err
-		}
 
-		// convert kube ServiceList into []osdnapi.Service
-		for _, kService := range kServList.Items {
-			if kService.Spec.ClusterIP == "None" {
-				continue
-			}
-			for _, port := range kService.Spec.Ports {
-				oServList = append(oServList, newSDNService(&kService, ns.Name, port))
-			}
+	oServList := make([]osdnapi.Service, 0, len(kServList.Items))
+	for _, kService := range kServList.Items {
+		if kService.Spec.ClusterIP == "None" {
+			continue
+		}
+		for _, port := range kService.Spec.Ports {
+			oServList = append(oServList, newSDNService(&kService, port))
 		}
 	}
-	return oServList, kNsList.ListMeta.ResourceVersion, nil
+	return oServList, kServList.ListMeta.ResourceVersion, nil
 }
 
 func (oi *OsdnRegistryInterface) WatchServices(receiver chan<- *osdnapi.ServiceEvent, ready chan<- bool, start <-chan string, stop <-chan bool) error {
-	// watch for namespaces, and launch a go func for each namespace that is new
-	// kill the watch for each namespace that is deleted
-	nsevent := make(chan *osdnapi.NamespaceEvent)
-	namespaceTable := make(map[string]chan bool)
-	go oi.WatchNamespaces(nsevent, ready, start, stop)
-	for {
-		select {
-		case ev := <-nsevent:
-			switch ev.Type {
-			case osdnapi.Added:
-				stopChannel := make(chan bool)
-				namespaceTable[ev.Name] = stopChannel
-				go oi.watchServicesForNamespace(ev.Name, receiver, stopChannel)
-			case osdnapi.Deleted:
-				stopChannel, ok := namespaceTable[ev.Name]
-				if ok {
-					close(stopChannel)
-					delete(namespaceTable, ev.Name)
-				}
-			}
-		case <-stop:
-			// call stop on all namespace watching
-			for _, stopChannel := range namespaceTable {
-				close(stopChannel)
-			}
-			return nil
-		}
-	}
-}
+	eventQueue, startVersion := oi.createAndRunEventQueue("Service", ready, start)
 
-func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, receiver chan<- *osdnapi.ServiceEvent, stop chan bool) error {
-	serviceEventQueue, _ := oi.runEventQueue("Service", namespace)
-	go func() {
-		select {
-		case <-stop:
-			serviceEventQueue.Cancel()
-		}
-	}()
-
+	checkCondition := true
 	for {
-		eventType, obj, err := serviceEventQueue.Pop()
+		eventType, obj, err := getEvent(eventQueue, startVersion, &checkCondition)
 		if err != nil {
-			if _, ok := err.(oscache.EventQueueStopped); ok {
-				return nil
-			}
 			return err
 		}
 		kServ := obj.(*kapi.Service)
+
 		// Ignore headless services
 		if kServ.Spec.ClusterIP == "None" {
 			continue
@@ -405,30 +368,24 @@ func (oi *OsdnRegistryInterface) watchServicesForNamespace(namespace string, rec
 		switch eventType {
 		case watch.Added:
 			for _, port := range kServ.Spec.Ports {
-				oServ := newSDNService(kServ, namespace, port)
+				oServ := newSDNService(kServ, port)
 				receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Added, Service: oServ}
 			}
 		case watch.Deleted:
 			for _, port := range kServ.Spec.Ports {
-				oServ := newSDNService(kServ, namespace, port)
+				oServ := newSDNService(kServ, port)
 				receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Deleted, Service: oServ}
 			}
 		case watch.Modified:
 			// Ignore, we don't need to update SDN in case of service updates
-		case watch.Error:
-			// Check if the namespace is dead, if so quit
-			_, err = oi.kClient.Namespaces().Get(namespace)
-			if err != nil {
-				break
-			}
 		}
 	}
 }
 
-func newSDNService(kServ *kapi.Service, namespace string, port kapi.ServicePort) osdnapi.Service {
+func newSDNService(kServ *kapi.Service, port kapi.ServicePort) osdnapi.Service {
 	return osdnapi.Service{
 		Name:      kServ.ObjectMeta.Name,
-		Namespace: namespace,
+		Namespace: kServ.ObjectMeta.Namespace,
 		IP:        kServ.Spec.ClusterIP,
 		Protocol:  osdnapi.ServiceProtocol(port.Protocol),
 		Port:      uint(port.Port),
@@ -436,7 +393,7 @@ func newSDNService(kServ *kapi.Service, namespace string, port kapi.ServicePort)
 }
 
 // Run event queue for the given resource
-func (oi *OsdnRegistryInterface) runEventQueue(resourceName string, args interface{}) (*oscache.EventQueue, *cache.Reflector) {
+func (oi *OsdnRegistryInterface) runEventQueue(resourceName string) (*oscache.EventQueue, *cache.Reflector) {
 	eventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	lw := &cache.ListWatch{}
 	var expectedType interface{}
@@ -475,12 +432,11 @@ func (oi *OsdnRegistryInterface) runEventQueue(resourceName string, args interfa
 		}
 	case "service":
 		expectedType = &kapi.Service{}
-		namespace := args.(string)
 		lw.ListFunc = func() (runtime.Object, error) {
-			return oi.kClient.Services(namespace).List(labels.Everything())
+			return oi.kClient.Services(kapi.NamespaceAll).List(labels.Everything())
 		}
 		lw.WatchFunc = func(resourceVersion string) (watch.Interface, error) {
-			return oi.kClient.Services(namespace).Watch(labels.Everything(), fields.Everything(), resourceVersion)
+			return oi.kClient.Services(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
 		}
 	default:
 		log.Fatalf("Unknown resource %s during initialization of event queue", resourceName)
@@ -531,8 +487,8 @@ func getStartVersion(start <-chan string, resourceName string) uint64 {
 }
 
 // createAndRunEventQueue will create and run event queue and also returns start version for watching any new changes
-func (oi *OsdnRegistryInterface) createAndRunEventQueue(resourceName string, args interface{}, ready chan<- bool, start <-chan string) (*oscache.EventQueue, uint64) {
-	eventQueue, reflector := oi.runEventQueue(resourceName, args)
+func (oi *OsdnRegistryInterface) createAndRunEventQueue(resourceName string, ready chan<- bool, start <-chan string) (*oscache.EventQueue, uint64) {
+	eventQueue, reflector := oi.runEventQueue(resourceName)
 	sendWatchReadiness(reflector, ready)
 	startVersion := getStartVersion(start, resourceName)
 	return eventQueue, startVersion
