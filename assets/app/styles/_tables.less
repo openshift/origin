@@ -15,7 +15,7 @@
 
     &.table-bordered-columns {
       > thead >tr > th, > tbody > tr > td {
-        border: 1px solid #d1d1d1
+        border: 1px solid @table-border-color;
       }    
     }
   }
@@ -30,7 +30,7 @@
   }
 }
 
-.table-events {
+.table {
   > tbody {
     + tbody {
       border-top-width: 1px;
@@ -45,7 +45,8 @@
   }
 }
 @media (max-width: @screen-xs-max) {
-  .table-events {
+  .table-mobile {
+    border-top: 2px solid @table-border-color;
     thead, tbody, th, td, tr {
       display: block;
     }
@@ -54,11 +55,14 @@
       .sr-only();
     }
     > tbody {
+      + tbody {
+        border-top-width: 2px;
+      }
       > tr {
         > td {
            /* Behave like a row */
           border: none;
-          border-bottom: 1px solid #eee;
+          border-bottom: 1px solid lighten(@table-border-color, 5%);
           padding: 3px 6px 2px 35%;
           position: relative;
           &:last-child {

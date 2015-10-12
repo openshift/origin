@@ -5,36 +5,36 @@
         <h1>Image Streams</h1>
       </div>
       <alerts alerts="alerts"></alerts>
-      <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Docker repo</th>
-              <th>Tags</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr ng-if="(imageStreams | hashSize) == 0"><td colspan="4"><em>{{emptyMessage}}</em></td></tr>
-            <tr ng-repeat="imageStream in imageStreams | orderObjectsByDate : true">
-              <td><a href="project/{{projectName}}/browse/images/{{imageStream.metadata.name}}">{{imageStream.metadata.name}}</a></td>
-              <td>
-                <span ng-if="!imageStream.status.dockerImageRepository && !imageStream.spec.dockerImageRepository"><em>unknown</em></span>
-                <span ng-if="imageStream.status.dockerImageRepository || imageStream.spec.dockerImageRepository">{{imageStream.status.dockerImageRepository || imageStream.spec.dockerImageRepository}}</span>
-              </td>
-              <td>
-                <span ng-if="!imageStream.status.tags.length"><em>none</em></span>
-                <span ng-repeat="tag in imageStream.status.tags | limitTo: 4">{{tag.tag}}<span ng-if="!$last">,
-                </span></span><span ng-if="imageStream.status.tags.length === 5">,
-                  {{imageStream.status.tags[4].tag}}</span><span ng-if="imageStream.status.tags.length > 5">,
-                  and {{imageStream.status.tags.length - 4}} others</span>
-              </td>
-              <td><relative-timestamp timestamp="imageStream | imageStreamLastUpdated"></relative-timestamp></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <table class="table table-bordered table-hover table-mobile">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Docker Repo</th>
+            <th>Tags</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody ng-if="(imageStreams | hashSize) == 0">
+          <tr><td colspan="4"><em>{{emptyMessage}}</em></td></tr>
+        </tbody>
+        <tbody ng-repeat="imageStream in imageStreams | orderObjectsByDate : true">
+          <tr>
+            <td data-title="Name"><a href="project/{{projectName}}/browse/images/{{imageStream.metadata.name}}">{{imageStream.metadata.name}}</a></td>
+            <td data-title="Docker Repo">
+              <span ng-if="!imageStream.status.dockerImageRepository && !imageStream.spec.dockerImageRepository"><em>unknown</em></span>
+              <span ng-if="imageStream.status.dockerImageRepository || imageStream.spec.dockerImageRepository" class="word-break">{{imageStream.status.dockerImageRepository || imageStream.spec.dockerImageRepository}}</span>
+            </td>
+            <td data-title="Tags">
+              <span ng-if="!imageStream.status.tags.length"><em>none</em></span>
+              <span ng-repeat="tag in imageStream.status.tags | limitTo: 4">{{tag.tag}}<span ng-if="!$last">,
+              </span></span><span ng-if="imageStream.status.tags.length === 5">,
+                {{imageStream.status.tags[4].tag}}</span><span ng-if="imageStream.status.tags.length > 5">,
+                and {{imageStream.status.tags.length - 4}} others</span>
+            </td>
+            <td data-title="Updated"><relative-timestamp timestamp="imageStream | imageStreamLastUpdated"></relative-timestamp></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </project-page>
 </div>

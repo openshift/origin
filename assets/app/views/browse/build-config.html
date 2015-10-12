@@ -137,8 +137,8 @@
         </div>
       </div>
     </div><!-- /buildConfig .tile -->
-    <div class="table-responsive" ng-if="loaded">
-      <table class="table table-bordered table-hover">
+    <div ng-if="loaded">
+      <table class="table table-bordered table-hover table-mobile">
         <thead>
           <tr>
             <th>Build</th>
@@ -146,10 +146,12 @@
             <th>Started</th>
           </tr>
         </thead>
-        <tbody>
-          <tr ng-if="(builds | hashSize) == 0"><td colspan="4"><em>{{emptyMessage}}</em></td></tr>
-          <tr ng-repeat="build in builds | orderObjectsByDate : true">
-            <td>
+        <tbody ng-if="(builds | hashSize) == 0">
+          <tr><td colspan="4" data-title="Build"><em>{{emptyMessage}}</em></td></tr>
+        </tbody>
+        <tbody ng-repeat="build in builds | orderObjectsByDate : true">
+          <tr>
+            <td data-title="Build">
               <!-- Build number and link -->
               <span ng-if="build | annotation : 'buildNumber'">
                 <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfig.metadata.name}}/{{build.metadata.name}}">#{{build | annotation : 'buildNumber'}}</a>
@@ -158,7 +160,7 @@
                 <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfig.metadata.name}}/{{build.metadata.name}}">{{build.metadata.name}}</a>
               </span>
             </td>
-            <td>
+            <td data-title="Status">
               <div row class="status">
                 <!-- Build status -->
                 <span ng-switch="build.status.phase" class="hide-ng-leave status-icon">
@@ -187,7 +189,7 @@
                 </span>
               </div>
             </td>
-            <td>
+            <td data-title="Started">
               <relative-timestamp timestamp="build.status.startTimestamp || build.metadata.creationTimestamp"></relative-timestamp>
               <span>- {{(build.status.startTimestamp || build.metadata.creationTimestamp) | date : 'short'}}</span>
             </td>

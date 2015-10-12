@@ -5,8 +5,7 @@
         <h1>Pods</h1>
       </div>
       <alerts alerts="alerts"></alerts>  
-      <div class="table-responsive">    
-        <table class="table table-bordered table-hover">
+      <table class="table table-bordered table-hover table-mobile">
         <thead>
           <tr>
             <th>Name</th>
@@ -16,11 +15,13 @@
             <th>Age</th>
           </tr>
         </thead>
-        <tbody>
-          <tr ng-if="(pods | hashSize) == 0"><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
-          <tr ng-repeat="pod in pods | orderObjectsByDate : true">
-            <td><a href="project/{{projectName}}/browse/pods/{{pod.metadata.name}}">{{pod.metadata.name}}</a></td>
-            <td>
+        <tbody ng-if="(pods | hashSize) == 0">
+          <tr><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
+        </tbody>
+        <tbody ng-repeat="pod in pods | orderObjectsByDate : true">
+          <tr>
+            <td data-title="Name"><a href="project/{{projectName}}/browse/pods/{{pod.metadata.name}}">{{pod.metadata.name}}</a></td>
+            <td data-title="Status">
               <div row class="status">
                 <span ng-switch="pod.status.phase" class="status-icon">
                   <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true"></span>
@@ -32,13 +33,12 @@
                 <span flex>{{pod.status.phase}}</span>
               </div>
             </td>
-            <td>{{pod | numContainersReady}}/{{pod.spec.containers.length}}</td>            
-            <td>{{pod | numContainerRestarts}}</td>
-            <td><relative-timestamp timestamp="pod.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
+            <td data-title="Ready">{{pod | numContainersReady}}/{{pod.spec.containers.length}}</td>            
+            <td data-title="Restarts">{{pod | numContainerRestarts}}</td>
+            <td data-title="Age"><relative-timestamp timestamp="pod.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
           </tr>
         </tbody>
-        </table>
-      </div>
+      </table>
     </div>
   </project-page>
 </div>
