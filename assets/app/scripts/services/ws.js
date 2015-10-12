@@ -36,10 +36,10 @@ angular.module('openshiftConsole')
       authLogger.log("$ws (pre-intercept)", config.url.toString());
       var serverRequest = function(config) {
         authLogger.log("$ws (post-intercept)", config.url.toString());
-        var ws = new WebSocket(config.url);
-        if (config.onclose)   { ws.onclose   = config.onclose;   }
-        if (config.onmessage) { ws.onmessage = config.onmessage; }
-        if (config.onopen)    { ws.onopen    = config.onopen;    }
+        var ws = new WebSocket(config.url, config.protocols);
+        ws.onclose = config.onclose || _.noop;
+        ws.onmessage = config.onmessage || _.noop;
+        ws.onopen = config.onopen || _.noop;
         return ws;
       };
 

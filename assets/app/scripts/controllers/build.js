@@ -12,8 +12,8 @@ angular.module('openshiftConsole')
     $scope.buildConfigName = $routeParams.buildconfig;
     $scope.builds = {};
     $scope.alerts = {};
-    $scope.renderOptions = $scope.renderOptions || {};    
-    $scope.renderOptions.hideFilterWidget = true;    
+    $scope.renderOptions = $scope.renderOptions || {};
+    $scope.renderOptions.hideFilterWidget = true;
     $scope.breadcrumbs = [
       {
         title: "Builds",
@@ -54,7 +54,7 @@ angular.module('openshiftConsole')
               $scope.alerts["deleted"] = {
                 type: "warning",
                 message: "This build has been deleted."
-              }; 
+              };
             }
             $scope.build = build;
           }));
@@ -99,8 +99,34 @@ angular.module('openshiftConsole')
           if (!$filter('isIncompleteBuild')(build)){
             delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
           }
-        }        
+        }
       }));
+
+      (function initLogs() {
+        angular.extend($scope, {
+          logs: [],
+          logsLoading: true,
+          canShowDownload: false,
+          initLogs: initLogs
+        });
+
+        DataService.watchLogStream("builds/log", $routeParams.build, $scope, function(line) {
+          $scope.$apply(function() {
+            $scope.logs.push({text: line});
+          });
+        }, function() {
+          $scope.$apply(function() {
+            $scope.logsLoading = false;
+            $scope.canShowDownload = true;
+          });
+        })
+        .then(function(ws) {
+          $scope.$on("$destroy", function() {
+            DataService.unwatchLogStream(ws);
+          });
+        });
+      })();
+
     });
 
     $scope.startBuild = function(buildConfigName) {

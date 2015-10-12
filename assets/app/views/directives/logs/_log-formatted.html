@@ -1,0 +1,56 @@
+<div>
+  <a
+    name="logTop"
+    id="logTop"></a>
+
+  <div class="log-view">
+    <div
+      ng-show="logs.length > 25"
+      class="log-scroll log-scroll-top"
+      affix
+      offset-top="285"
+      offset-bottom="90">
+      <a ng-click="scrollBottom()">
+        Go to end of log
+      </a>
+    </div>
+    <div layout flex column class="log-view-output">
+      <div
+        layout row
+        class="log-line"
+        ng-repeat="logLine in logs  | filter:logSearch"
+        ng-class-odd="'odd'"
+        ng-class-even="'even'">
+        <a
+          name="line_{{::$index+1}}"
+          id="line_{{::$index+1}}"></a>
+        <!-- not supporting click to line # yet
+        <a class="log-line-number"
+          ng-click="scrollTo('line_'+($index+1), $event)">
+          <span layout flex main-axis="end">
+          {{:: $index+1 }}
+          </span>
+        </a>
+        -->
+        <span class="log-line-number">
+          <span layout flex main-axis="end">
+          {{:: $index+1 }}
+          </span>
+        </span>
+
+        <span flex class="log-line-text">
+        {{::logLine.text}}
+        </span>
+      </div>
+      <div class="spinner spinner-inverse" ng-show="loading"></div>
+    </div>
+    <div
+      ng-show="logs.length > 25"
+      class="log-scroll log-scroll-bottom">
+      <a ng-click="scrollTop()">Go to start of log</a>
+    </div>
+  </div>
+  <a
+    id="logBottom"
+    name="logBottom"></a>
+</div>
