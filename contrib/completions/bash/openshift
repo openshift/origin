@@ -1416,6 +1416,56 @@ _openshift_admin_create-api-client-config()
     must_have_one_noun=()
 }
 
+_openshift_admin_pod-network_join-projects()
+{
+    last_command="openshift_admin_pod-network_join-projects"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--selector=")
+    flags+=("--to=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_pod-network_unisolate-projects()
+{
+    last_command="openshift_admin_pod-network_unisolate-projects"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--selector=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_openshift_admin_pod-network()
+{
+    last_command="openshift_admin_pod-network"
+    commands=()
+    commands+=("join-projects")
+    commands+=("unisolate-projects")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _openshift_admin_create-bootstrap-project-template()
 {
     last_command="openshift_admin_create-bootstrap-project-template"
@@ -1709,6 +1759,7 @@ _openshift_admin()
     commands+=("config")
     commands+=("create-kubeconfig")
     commands+=("create-api-client-config")
+    commands+=("pod-network")
     commands+=("create-bootstrap-project-template")
     commands+=("create-bootstrap-policy-file")
     commands+=("create-login-template")
