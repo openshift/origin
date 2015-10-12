@@ -19,6 +19,8 @@ import (
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
+	routeapi "github.com/openshift/origin/pkg/route/api"
+	routegraph "github.com/openshift/origin/pkg/route/graph/nodes"
 )
 
 // typeToEnsureMethod stores types to Ensure*Node methods
@@ -53,6 +55,9 @@ func init() {
 		panic(err)
 	}
 	if err := RegisterEnsureNode(&kapi.ReplicationController{}, kubegraph.EnsureReplicationControllerNode); err != nil {
+		panic(err)
+	}
+	if err := RegisterEnsureNode(&routeapi.Route{}, routegraph.EnsureRouteNode); err != nil {
 		panic(err)
 	}
 }

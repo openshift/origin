@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Route
+metadata:
+  creationTimestamp: 2015-10-13T10:13:11Z
+  labels:
+    route: lonely
+  name: lonely-route
+  resourceVersion: "260"
+  uid: 025407f7-7193-11e5-b84d-080027c5bfa9
+spec:
+  host: www.example.com
+  to:
+    kind: Service
+    name: frontend
+status: {}
