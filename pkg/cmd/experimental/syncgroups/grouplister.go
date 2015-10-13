@@ -2,6 +2,7 @@ package syncgroups
 
 import (
 	"fmt"
+	"strings"
 
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -24,27 +25,30 @@ func NewAllOpenShiftGroupLister(ldapURL string, groupClient osclient.GroupInterf
 // have been marked with an LDAP URL annotation as a result of a previous sync.
 type AllLocalGroupLister struct {
 	client osclient.GroupInterface
-	// ldapURL is the host:port of the LDAP server, used to identify if an OpenShift Group has
-	// been synced with a specific server in order to isolate sync jobs between different servers
+	// ldapURL is the host:port of the LDAP server, used to identify if an OpenShift Group has been synced
+	// with a specific server in order to isolate sync jobs between different servers
 	ldapURL string
 }
 
 func (l *AllLocalGroupLister) ListGroups() ([]string, error) {
-	allGroups, err := l.client.List(labels.Everything(), fields.Everything())
+	host := strings.Split(l.ldapURL, ":")[0] // we only want to select on the host, not the port
+	hostSelector := labels.Set(map[string]string{ldaputil.LDAPHostLabel: host}).AsSelector()
+	potentialGroups, err := l.client.List(hostSelector, fields.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	var potentialGroups []ouserapi.Group
-	for _, group := range allGroups.Items {
-		val, exists := group.Annotations[ldaputil.LDAPURLAnnotation]
-		if exists && (val == l.ldapURL) {
-			potentialGroups = append(potentialGroups, group)
-		}
-	}
-
 	var ldapGroupUIDs []string
-	for _, group := range potentialGroups {
+	for _, group := range potentialGroups.Items {
+		url, exists := group.Annotations[ldaputil.LDAPURLAnnotation]
+		if !exists {
+			return nil, fmt.Errorf("group %q: %s annotation expected: wanted %s",
+				group.Name, ldaputil.LDAPURLAnnotation, l.ldapURL)
+		}
+		if url != l.ldapURL {
+			// this group was created by another LDAP endpoint on the same server, skip it
+			continue
+		}
 		if err := validateGroupAnnotations(group); err != nil {
 			return nil, err
 		}
@@ -55,10 +59,8 @@ func (l *AllLocalGroupLister) ListGroups() ([]string, error) {
 
 // validateGroupAnnotations determines if the appropriate and annotations exist on a group
 func validateGroupAnnotations(group ouserapi.Group) error {
-	_, exists := group.Annotations[ldaputil.LDAPUIDAnnotation]
-	if !exists {
-		return fmt.Errorf("an OpenShift Group marked as having been synced did not have a %s annotation: %v",
-			ldaputil.LDAPUIDAnnotation, group)
+	if _, exists := group.Annotations[ldaputil.LDAPUIDAnnotation]; !exists {
+		return fmt.Errorf("group %q: %s annotation expected", group.Name, ldaputil.LDAPUIDAnnotation)
 	}
 	return nil
 }

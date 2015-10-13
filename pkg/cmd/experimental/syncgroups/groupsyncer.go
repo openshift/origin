@@ -3,6 +3,7 @@ package syncgroups
 import (
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/go-ldap/ldap"
@@ -140,12 +141,19 @@ func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []st
 			ldaputil.LDAPURLAnnotation: s.Host,
 			ldaputil.LDAPUIDAnnotation: ldapGroupUID,
 		}
+		group.Labels = map[string]string{
+			ldaputil.LDAPHostLabel: strings.Split(s.Host, ":")[0],
+		}
 
 	} else if err != nil {
 		return nil, err
 	}
 
 	// make sure we aren't taking over an OpenShift group that is already related to a different LDAP group
+	if host, exists := group.Labels[ldaputil.LDAPHostLabel]; !exists || (host != strings.Split(s.Host, ":")[0]) {
+		return nil, fmt.Errorf("group %q: %s label did not match sync host: wanted %s, got %s",
+			group.Name, ldaputil.LDAPHostLabel, strings.Split(s.Host, ":")[0], host)
+	}
 	if url, exists := group.Annotations[ldaputil.LDAPURLAnnotation]; !exists || (url != s.Host) {
 		return nil, fmt.Errorf("group %q: %s annotation did not match sync host: wanted %s, got %s",
 			group.Name, ldaputil.LDAPURLAnnotation, s.Host, url)
