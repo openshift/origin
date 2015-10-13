@@ -40,13 +40,33 @@ func CapacityFromMachineInfo(info *cadvisorApi.MachineInfo) api.ResourceList {
 
 // Check whether we have the capabilities to run the specified pod.
 func canRunPod(pod *api.Pod) error {
-	if pod.Spec.HostNetwork {
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
 		allowed, err := allowHostNetwork(pod)
 		if err != nil {
 			return err
 		}
 		if !allowed {
 			return fmt.Errorf("pod with UID %q specified host networking, but is disallowed", pod.UID)
+		}
+	}
+
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostPID {
+		allowed, err := allowHostPID(pod)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return fmt.Errorf("pod with UID %q specified host PID, but is disallowed", pod.UID)
+		}
+	}
+
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostIPC {
+		allowed, err := allowHostIPC(pod)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return fmt.Errorf("pod with UID %q specified host ipc, but is disallowed", pod.UID)
 		}
 	}
 
@@ -67,6 +87,34 @@ func allowHostNetwork(pod *api.Pod) (bool, error) {
 		return false, err
 	}
 	for _, source := range capabilities.Get().PrivilegedSources.HostNetworkSources {
+		if source == podSource {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// Determined whether the specified pod is allowed to use host networking
+func allowHostPID(pod *api.Pod) (bool, error) {
+	podSource, err := getPodSource(pod)
+	if err != nil {
+		return false, err
+	}
+	for _, source := range capabilities.Get().PrivilegedSources.HostPIDSources {
+		if source == podSource {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// Determined whether the specified pod is allowed to use host ipc
+func allowHostIPC(pod *api.Pod) (bool, error) {
+	podSource, err := getPodSource(pod)
+	if err != nil {
+		return false, err
+	}
+	for _, source := range capabilities.Get().PrivilegedSources.HostIPCSources {
 		if source == podSource {
 			return true, nil
 		}

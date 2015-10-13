@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
@@ -48,7 +49,7 @@ func TestCloseWatchChannelOnError(t *testing.T) {
 			return fw, nil
 		},
 		ListFunc: func() (runtime.Object, error) {
-			return &api.PodList{ListMeta: api.ListMeta{ResourceVersion: "1"}}, nil
+			return &api.PodList{ListMeta: unversioned.ListMeta{ResourceVersion: "1"}}, nil
 		},
 	}
 	go r.ListAndWatch(util.NeverStop)
@@ -58,8 +59,8 @@ func TestCloseWatchChannelOnError(t *testing.T) {
 		if ok {
 			t.Errorf("Watch channel left open after cancellation")
 		}
-	case <-time.After(100 * time.Millisecond):
-		t.Errorf("the cancellation is at least 99 milliseconds late")
+	case <-time.After(util.ForeverTestTimeout):
+		t.Errorf("the cancellation is at least %s late", util.ForeverTestTimeout.String())
 		break
 	}
 }
@@ -74,7 +75,7 @@ func TestRunUntil(t *testing.T) {
 			return fw, nil
 		},
 		ListFunc: func() (runtime.Object, error) {
-			return &api.PodList{ListMeta: api.ListMeta{ResourceVersion: "1"}}, nil
+			return &api.PodList{ListMeta: unversioned.ListMeta{ResourceVersion: "1"}}, nil
 		},
 	}
 	r.RunUntil(stopCh)
@@ -87,8 +88,8 @@ func TestRunUntil(t *testing.T) {
 		if ok {
 			t.Errorf("Watch channel left open after stopping the watch")
 		}
-	case <-time.After(100 * time.Millisecond):
-		t.Errorf("the cancellation is at least 99 milliseconds late")
+	case <-time.After(util.ForeverTestTimeout):
+		t.Errorf("the cancellation is at least %s late", util.ForeverTestTimeout.String())
 		break
 	}
 }
@@ -97,7 +98,7 @@ func TestReflector_resyncChan(t *testing.T) {
 	s := NewStore(MetaNamespaceKeyFunc)
 	g := NewReflector(&testLW{}, &api.Pod{}, s, time.Millisecond)
 	a, _ := g.resyncChan()
-	b := time.After(100 * time.Millisecond)
+	b := time.After(util.ForeverTestTimeout)
 	select {
 	case <-a:
 		t.Logf("got timeout as expected")
@@ -234,7 +235,7 @@ func TestReflector_ListAndWatch(t *testing.T) {
 			return fw, nil
 		},
 		ListFunc: func() (runtime.Object, error) {
-			return &api.PodList{ListMeta: api.ListMeta{ResourceVersion: "1"}}, nil
+			return &api.PodList{ListMeta: unversioned.ListMeta{ResourceVersion: "1"}}, nil
 		},
 	}
 	s := NewFIFO(MetaNamespaceKeyFunc)
@@ -277,7 +278,7 @@ func TestReflector_ListAndWatchWithErrors(t *testing.T) {
 		return &api.Pod{ObjectMeta: api.ObjectMeta{Name: id, ResourceVersion: rv}}
 	}
 	mkList := func(rv string, pods ...*api.Pod) *api.PodList {
-		list := &api.PodList{ListMeta: api.ListMeta{ResourceVersion: rv}}
+		list := &api.PodList{ListMeta: unversioned.ListMeta{ResourceVersion: rv}}
 		for _, pod := range pods {
 			list.Items = append(list.Items, *pod)
 		}

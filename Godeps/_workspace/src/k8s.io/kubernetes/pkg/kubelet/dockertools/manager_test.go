@@ -17,7 +17,6 @@ limitations under the License.
 package dockertools
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -32,13 +31,14 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	cadvisorApi "github.com/google/cadvisor/info/v1"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/record"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/network"
-	kubeprober "k8s.io/kubernetes/pkg/kubelet/prober"
-	"k8s.io/kubernetes/pkg/probe"
+	"k8s.io/kubernetes/pkg/kubelet/prober"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	uexec "k8s.io/kubernetes/pkg/util/exec"
@@ -77,14 +77,13 @@ func (*fakeOptionGenerator) GenerateRunContainerOptions(pod *api.Pod, container 
 func newTestDockerManagerWithHTTPClient(fakeHTTPClient *fakeHTTP) (*DockerManager, *FakeDockerClient) {
 	fakeDocker := &FakeDockerClient{VersionInfo: docker.Env{"Version=1.1.3", "ApiVersion=1.15"}, Errors: make(map[string]error), RemovedImages: sets.String{}}
 	fakeRecorder := &record.FakeRecorder{}
-	readinessManager := kubecontainer.NewReadinessManager()
 	containerRefManager := kubecontainer.NewRefManager()
 	networkPlugin, _ := network.InitNetworkPlugin([]network.NetworkPlugin{}, "", network.NewFakeHost(nil))
 	optionGenerator := &fakeOptionGenerator{}
 	dockerManager := NewFakeDockerManager(
 		fakeDocker,
 		fakeRecorder,
-		readinessManager,
+		prober.FakeProber{},
 		containerRefManager,
 		&cadvisorApi.MachineInfo{},
 		PodInfraContainerImage,
@@ -92,7 +91,8 @@ func newTestDockerManagerWithHTTPClient(fakeHTTPClient *fakeHTTP) (*DockerManage
 		kubecontainer.FakeOS{},
 		networkPlugin,
 		optionGenerator,
-		fakeHTTPClient)
+		fakeHTTPClient,
+		util.NewBackOff(time.Second, 300*time.Second))
 
 	return dockerManager, fakeDocker
 }
@@ -349,7 +349,7 @@ func apiContainerToContainer(c docker.APIContainers) kubecontainer.Container {
 		return kubecontainer.Container{}
 	}
 	return kubecontainer.Container{
-		ID:   types.UID(c.ID),
+		ID:   kubecontainer.ContainerID{"docker", c.ID},
 		Name: dockerName.ContainerName,
 		Hash: hash,
 	}
@@ -363,7 +363,7 @@ func dockerContainersToPod(containers DockerContainers) kubecontainer.Pod {
 			continue
 		}
 		pod.Containers = append(pod.Containers, &kubecontainer.Container{
-			ID:    types.UID(c.ID),
+			ID:    kubecontainer.ContainerID{"docker", c.ID},
 			Name:  dockerName.ContainerName,
 			Hash:  hash,
 			Image: c.Image,
@@ -401,25 +401,17 @@ func TestKillContainerInPod(t *testing.T) {
 	containerToKill := &containers[0]
 	containerToSpare := &containers[1]
 	fakeDocker.ContainerList = containers
-	// Set all containers to ready.
-	for _, c := range fakeDocker.ContainerList {
-		manager.readinessManager.SetReadiness(c.ID, true)
-	}
 
-	if err := manager.KillContainerInPod("", &pod.Spec.Containers[0], pod); err != nil {
+	if err := manager.KillContainerInPod(kubecontainer.ContainerID{}, &pod.Spec.Containers[0], pod); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	// Assert the container has been stopped.
 	if err := fakeDocker.AssertStopped([]string{containerToKill.ID}); err != nil {
 		t.Errorf("container was not stopped correctly: %v", err)
 	}
-
-	// Verify that the readiness has been removed for the stopped container.
-	if ready := manager.readinessManager.GetReadiness(containerToKill.ID); ready {
-		t.Errorf("exepcted container entry ID '%v' to not be found. states: %+v", containerToKill.ID, ready)
-	}
-	if ready := manager.readinessManager.GetReadiness(containerToSpare.ID); !ready {
-		t.Errorf("exepcted container entry ID '%v' to be found. states: %+v", containerToSpare.ID, ready)
+	// Assert the container has been spared.
+	if err := fakeDocker.AssertStopped([]string{containerToSpare.ID}); err == nil {
+		t.Errorf("container unexpectedly stopped: %v", containerToSpare.ID)
 	}
 }
 
@@ -474,12 +466,8 @@ func TestKillContainerInPodWithPreStop(t *testing.T) {
 			},
 		},
 	}
-	// Set all containers to ready.
-	for _, c := range fakeDocker.ContainerList {
-		manager.readinessManager.SetReadiness(c.ID, true)
-	}
 
-	if err := manager.KillContainerInPod("", &pod.Spec.Containers[0], pod); err != nil {
+	if err := manager.KillContainerInPod(kubecontainer.ContainerID{}, &pod.Spec.Containers[0], pod); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	// Assert the container has been stopped.
@@ -513,307 +501,11 @@ func TestKillContainerInPodWithError(t *testing.T) {
 			Names: []string{"/k8s_bar_qux_new_1234_42"},
 		},
 	}
-	containerToKill := &containers[0]
-	containerToSpare := &containers[1]
 	fakeDocker.ContainerList = containers
 	fakeDocker.Errors["stop"] = fmt.Errorf("sample error")
 
-	// Set all containers to ready.
-	for _, c := range fakeDocker.ContainerList {
-		manager.readinessManager.SetReadiness(c.ID, true)
-	}
-
-	if err := manager.KillContainerInPod("", &pod.Spec.Containers[0], pod); err == nil {
+	if err := manager.KillContainerInPod(kubecontainer.ContainerID{}, &pod.Spec.Containers[0], pod); err == nil {
 		t.Errorf("expected error, found nil")
-	}
-
-	// Verify that the readiness has been removed even though the stop failed.
-	if ready := manager.readinessManager.GetReadiness(containerToKill.ID); ready {
-		t.Errorf("exepcted container entry ID '%v' to not be found. states: %+v", containerToKill.ID, ready)
-	}
-	if ready := manager.readinessManager.GetReadiness(containerToSpare.ID); !ready {
-		t.Errorf("exepcted container entry ID '%v' to be found. states: %+v", containerToSpare.ID, ready)
-	}
-}
-
-type fakeExecProber struct {
-	result probe.Result
-	output string
-	err    error
-}
-
-func (p fakeExecProber) Probe(_ uexec.Cmd) (probe.Result, string, error) {
-	return p.result, p.output, p.err
-}
-
-func replaceProber(dm *DockerManager, result probe.Result, err error) {
-	fakeExec := fakeExecProber{
-		result: result,
-		err:    err,
-	}
-
-	dm.prober = kubeprober.NewTestProber(fakeExec, dm.readinessManager, dm.containerRefManager, &record.FakeRecorder{})
-	return
-}
-
-// TestProbeContainer tests the functionality of probeContainer.
-// Test cases are:
-//
-// No probe.
-// Only LivenessProbe.
-// Only ReadinessProbe.
-// Both probes.
-//
-// Also, for each probe, there will be several cases covering whether the initial
-// delay has passed, whether the probe handler will return Success, Failure,
-// Unknown or error.
-//
-// PLEASE READ THE PROBE DOCS BEFORE CHANGING THIS TEST IF YOU ARE UNSURE HOW PROBES ARE SUPPOSED TO WORK:
-// (See https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/pod-states.md#pod-conditions)
-func TestProbeContainer(t *testing.T) {
-	manager, _ := newTestDockerManager()
-	dc := &docker.APIContainers{
-		ID:      "foobar",
-		Created: time.Now().Unix(),
-	}
-	tests := []struct {
-		testContainer     api.Container
-		expectError       bool
-		expectedResult    probe.Result
-		expectedReadiness bool
-	}{
-		// No probes.
-		{
-			testContainer:     api.Container{},
-			expectedResult:    probe.Success,
-			expectedReadiness: true,
-		},
-		// Only LivenessProbe. expectedReadiness should always be true here.
-		{
-			testContainer: api.Container{
-				LivenessProbe: &api.Probe{InitialDelaySeconds: 100},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: true,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe: &api.Probe{InitialDelaySeconds: -100},
-			},
-			expectedResult:    probe.Unknown,
-			expectedReadiness: true,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectedResult:    probe.Failure,
-			expectedReadiness: true,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: true,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectedResult:    probe.Unknown,
-			expectedReadiness: true,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectError:       true,
-			expectedResult:    probe.Unknown,
-			expectedReadiness: true,
-		},
-		// // Only ReadinessProbe. expectedResult should always be probe.Success here.
-		{
-			testContainer: api.Container{
-				ReadinessProbe: &api.Probe{InitialDelaySeconds: 100},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: false,
-		},
-		{
-			testContainer: api.Container{
-				ReadinessProbe: &api.Probe{InitialDelaySeconds: -100},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: false,
-		},
-		{
-			testContainer: api.Container{
-				ReadinessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: true,
-		},
-		{
-			testContainer: api.Container{
-				ReadinessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: true,
-		},
-		{
-			testContainer: api.Container{
-				ReadinessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: true,
-		},
-		{
-			testContainer: api.Container{
-				ReadinessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectError:       false,
-			expectedResult:    probe.Success,
-			expectedReadiness: true,
-		},
-		// Both LivenessProbe and ReadinessProbe.
-		{
-			testContainer: api.Container{
-				LivenessProbe:  &api.Probe{InitialDelaySeconds: 100},
-				ReadinessProbe: &api.Probe{InitialDelaySeconds: 100},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: false,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe:  &api.Probe{InitialDelaySeconds: 100},
-				ReadinessProbe: &api.Probe{InitialDelaySeconds: -100},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: false,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe:  &api.Probe{InitialDelaySeconds: -100},
-				ReadinessProbe: &api.Probe{InitialDelaySeconds: 100},
-			},
-			expectedResult:    probe.Unknown,
-			expectedReadiness: false,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe:  &api.Probe{InitialDelaySeconds: -100},
-				ReadinessProbe: &api.Probe{InitialDelaySeconds: -100},
-			},
-			expectedResult:    probe.Unknown,
-			expectedReadiness: false,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-				ReadinessProbe: &api.Probe{InitialDelaySeconds: -100},
-			},
-			expectedResult:    probe.Unknown,
-			expectedReadiness: false,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-				ReadinessProbe: &api.Probe{InitialDelaySeconds: -100},
-			},
-			expectedResult:    probe.Failure,
-			expectedReadiness: false,
-		},
-		{
-			testContainer: api.Container{
-				LivenessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-				ReadinessProbe: &api.Probe{
-					InitialDelaySeconds: -100,
-					Handler: api.Handler{
-						Exec: &api.ExecAction{},
-					},
-				},
-			},
-			expectedResult:    probe.Success,
-			expectedReadiness: true,
-		},
-	}
-
-	for i, test := range tests {
-		if test.expectError {
-			replaceProber(manager, test.expectedResult, errors.New("error"))
-		} else {
-			replaceProber(manager, test.expectedResult, nil)
-		}
-		result, err := manager.prober.Probe(&api.Pod{}, api.PodStatus{}, test.testContainer, dc.ID, dc.Created)
-		if test.expectError && err == nil {
-			t.Errorf("[%d] Expected error but no error was returned.", i)
-		}
-		if !test.expectError && err != nil {
-			t.Errorf("[%d] Didn't expect error but got: %v", i, err)
-		}
-		if test.expectedResult != result {
-			t.Errorf("[%d] Expected result to be %v but was %v", i, test.expectedResult, result)
-		}
-		if test.expectedReadiness != manager.readinessManager.GetReadiness(dc.ID) {
-			t.Errorf("[%d] Expected readiness to be %v but was %v", i, test.expectedReadiness, manager.readinessManager.GetReadiness(dc.ID))
-		}
 	}
 }
 
@@ -828,7 +520,7 @@ func TestIsAExitError(t *testing.T) {
 
 func generatePodInfraContainerHash(pod *api.Pod) uint64 {
 	var ports []api.ContainerPort
-	if !pod.Spec.HostNetwork {
+	if pod.Spec.SecurityContext == nil || !pod.Spec.SecurityContext.HostNetwork {
 		for _, container := range pod.Spec.Containers {
 			ports = append(ports, container.Ports...)
 		}
@@ -889,7 +581,6 @@ func TestSyncPodCreateNetAndContainer(t *testing.T) {
 		// Create container.
 		"create", "start", "inspect_container",
 	})
-
 	fakeDocker.Lock()
 
 	found := false
@@ -1288,60 +979,48 @@ func TestSyncPodWithPullPolicy(t *testing.T) {
 		Spec: api.PodSpec{
 			Containers: []api.Container{
 				{Name: "bar", Image: "pull_always_image", ImagePullPolicy: api.PullAlways},
-				{Name: "bar1", Image: "pull_never_image", ImagePullPolicy: api.PullNever},
 				{Name: "bar2", Image: "pull_if_not_present_image", ImagePullPolicy: api.PullIfNotPresent},
 				{Name: "bar3", Image: "existing_one", ImagePullPolicy: api.PullIfNotPresent},
 				{Name: "bar4", Image: "want:latest", ImagePullPolicy: api.PullIfNotPresent},
+				{Name: "bar5", Image: "pull_never_image", ImagePullPolicy: api.PullNever},
 			},
 		},
 	}
 
-	runSyncPod(t, dm, fakeDocker, pod, nil)
-
-	fakeDocker.Lock()
-
-	eventSet := []string{
-		`Pulling Pulling image "pod_infra_image"`,
-		`Pulled Successfully pulled image "pod_infra_image"`,
-		`Pulling Pulling image "pull_always_image"`,
-		`Pulled Successfully pulled image "pull_always_image"`,
-		`Pulling Pulling image "pull_if_not_present_image"`,
-		`Pulled Successfully pulled image "pull_if_not_present_image"`,
-		`Pulled Container image "existing_one" already present on machine`,
-		`Pulled Container image "want:latest" already present on machine`,
+	expectedStatusMap := map[string]api.ContainerState{
+		"bar":  {Running: &api.ContainerStateRunning{unversioned.Now()}},
+		"bar2": {Running: &api.ContainerStateRunning{unversioned.Now()}},
+		"bar3": {Running: &api.ContainerStateRunning{unversioned.Now()}},
+		"bar4": {Running: &api.ContainerStateRunning{unversioned.Now()}},
+		"bar5": {Waiting: &api.ContainerStateWaiting{Reason: kubecontainer.ErrImageNeverPull.Error(),
+			Message: "Container image \"pull_never_image\" is not present with pull policy of Never"}},
 	}
 
-	recorder := dm.recorder.(*record.FakeRecorder)
-
-	var actualEvents []string
-	for _, ev := range recorder.Events {
-		if strings.HasPrefix(ev, "Pull") {
-			actualEvents = append(actualEvents, ev)
+	runSyncPod(t, dm, fakeDocker, pod, nil)
+	statuses, err := dm.GetPodStatus(pod)
+	if err != nil {
+		t.Errorf("unable to get pod status")
+	}
+	for _, c := range pod.Spec.Containers {
+		if containerStatus, ok := api.GetContainerStatus(statuses.ContainerStatuses, c.Name); ok {
+			// copy the StartedAt time, to make the structs match
+			if containerStatus.State.Running != nil && expectedStatusMap[c.Name].Running != nil {
+				expectedStatusMap[c.Name].Running.StartedAt = containerStatus.State.Running.StartedAt
+			}
+			assert.Equal(t, containerStatus.State, expectedStatusMap[c.Name], "for container %s", c.Name)
 		}
 	}
-	sort.StringSlice(actualEvents).Sort()
-	sort.StringSlice(eventSet).Sort()
-	if !reflect.DeepEqual(actualEvents, eventSet) {
-		t.Errorf("Expected: %#v, Actual: %#v", eventSet, actualEvents)
-	}
 
-	pulledImageSet := make(map[string]empty)
-	for v := range puller.ImagesPulled {
-		pulledImageSet[puller.ImagesPulled[v]] = empty{}
-	}
+	fakeDocker.Lock()
+	defer fakeDocker.Unlock()
 
-	if !reflect.DeepEqual(pulledImageSet, map[string]empty{
-		"pod_infra_image":           {},
-		"pull_always_image":         {},
-		"pull_if_not_present_image": {},
-	}) {
-		t.Errorf("Unexpected pulled containers: %v", puller.ImagesPulled)
-	}
+	pulledImageSorted := puller.ImagesPulled[:]
+	sort.Strings(pulledImageSorted)
+	assert.Equal(t, []string{"pod_infra_image", "pull_always_image", "pull_if_not_present_image"}, pulledImageSorted)
 
-	if len(fakeDocker.Created) != 6 {
+	if len(fakeDocker.Created) != 5 {
 		t.Errorf("Unexpected containers created %v", fakeDocker.Created)
 	}
-	fakeDocker.Unlock()
 }
 
 func TestSyncPodWithRestartPolicy(t *testing.T) {
@@ -1728,7 +1407,7 @@ func TestGetPodCreationFailureReason(t *testing.T) {
 	dm, fakeDocker := newTestDockerManager()
 
 	// Inject the creation failure error to docker.
-	failureReason := "creation failure"
+	failureReason := "RunContainerError"
 	fakeDocker.Errors = map[string]error{
 		"create": fmt.Errorf("%s", failureReason),
 	}
@@ -1786,7 +1465,7 @@ func TestGetPodPullImageFailureReason(t *testing.T) {
 	puller := dm.dockerPuller.(*FakeDockerPuller)
 	puller.HasImages = []string{}
 	// Inject the pull image failure error.
-	failureReason := "pull image faiulre"
+	failureReason := kubecontainer.ErrImagePull.Error()
 	puller.ErrorsToInject = []error{fmt.Errorf("%s", failureReason)}
 
 	pod := &api.Pod{
@@ -2047,6 +1726,12 @@ func TestSyncPodEventHandlerFails(t *testing.T) {
 	}
 }
 
+type fakeReadWriteCloser struct{}
+
+func (*fakeReadWriteCloser) Read([]byte) (int, error)  { return 0, nil }
+func (*fakeReadWriteCloser) Write([]byte) (int, error) { return 0, nil }
+func (*fakeReadWriteCloser) Close() error              { return nil }
+
 func TestPortForwardNoSuchContainer(t *testing.T) {
 	dm, _ := newTestDockerManager()
 
@@ -2059,7 +1744,8 @@ func TestPortForwardNoSuchContainer(t *testing.T) {
 			Containers: nil,
 		},
 		5000,
-		nil,
+		// need a valid io.ReadWriteCloser here
+		&fakeReadWriteCloser{},
 	)
 	if err == nil {
 		t.Fatal("unexpected non-error")
@@ -2124,7 +1810,9 @@ func TestSyncPodWithHostNetwork(t *testing.T) {
 			Containers: []api.Container{
 				{Name: "bar"},
 			},
-			HostNetwork: true,
+			SecurityContext: &api.PodSecurityContext{
+				HostNetwork: true,
+			},
 		},
 	}
 
@@ -2333,5 +2021,41 @@ func TestGetUidFromUser(t *testing.T) {
 		if actual != v.expect {
 			t.Errorf("%s failed.  Expected %s but got %s", k, v.expect, actual)
 		}
+	}
+}
+
+func TestGetPidMode(t *testing.T) {
+	// test false
+	pod := &api.Pod{}
+	pidMode := getPidMode(pod)
+
+	if pidMode != "" {
+		t.Errorf("expected empty pid mode for pod but got %v", pidMode)
+	}
+
+	// test true
+	pod.Spec.SecurityContext = &api.PodSecurityContext{}
+	pod.Spec.SecurityContext.HostPID = true
+	pidMode = getPidMode(pod)
+	if pidMode != "host" {
+		t.Errorf("expected host pid mode for pod but got %v", pidMode)
+	}
+}
+
+func TestGetIPCMode(t *testing.T) {
+	// test false
+	pod := &api.Pod{}
+	ipcMode := getIPCMode(pod)
+
+	if ipcMode != "" {
+		t.Errorf("expected empty ipc mode for pod but got %v", ipcMode)
+	}
+
+	// test true
+	pod.Spec.SecurityContext = &api.PodSecurityContext{}
+	pod.Spec.SecurityContext.HostIPC = true
+	ipcMode = getIPCMode(pod)
+	if ipcMode != "host" {
+		t.Errorf("expected host ipc mode for pod but got %v", ipcMode)
 	}
 }

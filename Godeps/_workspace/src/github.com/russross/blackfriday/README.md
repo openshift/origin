@@ -10,7 +10,7 @@ punctuation substitutions, etc.), and it is safe for all utf-8
 HTML output is currently supported, along with Smartypants
 extensions. An experimental LaTeX output engine is also included.
 
-It started as a translation from C of [Sundown][3].
+It started as a translation from C of [upskirt][3].
 
 
 Installation
@@ -97,7 +97,7 @@ dependencies and library versions.
 Features
 --------
 
-All features of Sundown are supported, including:
+All features of upskirt are supported, including:
 
 *   **Compatibility**. The Markdown v1.0.3 test suite passes with
     the `--tidy` option.  Without `--tidy`, the differences are
@@ -203,7 +203,7 @@ Other renderers
 Blackfriday is structured to allow alternative rendering engines. Here
 are a few of note:
 
-*   [github_flavored_markdown](https://godoc.org/github.com/shurcooL/github_flavored_markdown):
+*   [github_flavored_markdown](https://godoc.org/github.com/shurcooL/go/github_flavored_markdown):
     provides a GitHub Flavored Markdown renderer with fenced code block
     highlighting, clickable header anchor links.
 
@@ -243,4 +243,4 @@ License
 
    [1]: http://daringfireball.net/projects/markdown/ "Markdown"
    [2]: http://golang.org/ "Go Language"
-   [3]: https://github.com/vmg/sundown "Sundown"
+   [3]: http://github.com/tanoku/upskirt "Upskirt"

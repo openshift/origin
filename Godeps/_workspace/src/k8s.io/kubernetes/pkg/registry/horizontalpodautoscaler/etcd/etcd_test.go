@@ -22,8 +22,8 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/experimental"
-	// Ensure that experimental/v1 package is initialized.
-	_ "k8s.io/kubernetes/pkg/apis/experimental/v1"
+	// Ensure that experimental/v1alpha1 package is initialized.
+	_ "k8s.io/kubernetes/pkg/apis/experimental/v1alpha1"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
@@ -46,9 +46,9 @@ func validNewHorizontalPodAutoscaler(name string) *experimental.HorizontalPodAut
 			ScaleRef: &experimental.SubresourceReference{
 				Subresource: "scale",
 			},
-			MinCount: 1,
-			MaxCount: 5,
-			Target:   experimental.ResourceConsumption{Resource: api.ResourceCPU, Quantity: resource.MustParse("0.8")},
+			MinReplicas: 1,
+			MaxReplicas: 5,
+			Target:      experimental.ResourceConsumption{Resource: api.ResourceCPU, Quantity: resource.MustParse("0.8")},
 		},
 	}
 }
@@ -75,7 +75,7 @@ func TestUpdate(t *testing.T) {
 		// updateFunc
 		func(obj runtime.Object) runtime.Object {
 			object := obj.(*experimental.HorizontalPodAutoscaler)
-			object.Spec.MaxCount = object.Spec.MaxCount + 1
+			object.Spec.MaxReplicas = object.Spec.MaxReplicas + 1
 			return object
 		},
 	)

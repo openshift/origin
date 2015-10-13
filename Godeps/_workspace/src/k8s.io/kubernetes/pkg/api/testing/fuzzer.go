@@ -27,6 +27,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/registered"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/experimental"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -54,7 +55,7 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			j.APIVersion = ""
 			j.Kind = ""
 		},
-		func(j *api.TypeMeta, c fuzz.Continue) {
+		func(j *unversioned.TypeMeta, c fuzz.Continue) {
 			// We have to customize the randomization of TypeMetas because their
 			// APIVersion and Kind must remain blank in memory.
 			j.APIVersion = ""
@@ -70,7 +71,7 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			var sec, nsec int64
 			c.Fuzz(&sec)
 			c.Fuzz(&nsec)
-			j.CreationTimestamp = util.Unix(sec, nsec).Rfc3339Copy()
+			j.CreationTimestamp = unversioned.Unix(sec, nsec).Rfc3339Copy()
 		},
 		func(j *api.ObjectReference, c fuzz.Continue) {
 			// We have to customize the randomization of TypeMetas because their
@@ -82,7 +83,7 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 			j.FieldPath = c.RandString()
 		},
-		func(j *api.ListMeta, c fuzz.Continue) {
+		func(j *unversioned.ListMeta, c fuzz.Continue) {
 			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 			j.SelfLink = c.RandString()
 		},
@@ -91,14 +92,18 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			j.LabelSelector, _ = labels.Parse("a=b")
 			j.FieldSelector, _ = fields.ParseSelector("a=b")
 		},
-		func(j *api.PodSpec, c fuzz.Continue) {
-			c.FuzzNoCustom(j)
+		func(s *api.PodSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(s)
 			// has a default value
 			ttl := int64(30)
 			if c.RandBool() {
 				ttl = int64(c.Uint32())
 			}
-			j.TerminationGracePeriodSeconds = &ttl
+			s.TerminationGracePeriodSeconds = &ttl
+
+			if s.SecurityContext == nil {
+				s.SecurityContext = &api.PodSecurityContext{}
+			}
 		},
 		func(j *api.PodPhase, c fuzz.Continue) {
 			statuses := []api.PodPhase{api.PodPending, api.PodRunning, api.PodFailed, api.PodUnknown}
@@ -124,9 +129,9 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 		func(j *experimental.DeploymentStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
 			// Ensure that strategyType is one of valid values.
-			strategyTypes := []experimental.DeploymentType{experimental.DeploymentRecreate, experimental.DeploymentRollingUpdate}
+			strategyTypes := []experimental.DeploymentStrategyType{experimental.RecreateDeploymentStrategyType, experimental.RollingUpdateDeploymentStrategyType}
 			j.Type = strategyTypes[c.Rand.Intn(len(strategyTypes))]
-			if j.Type != experimental.DeploymentRollingUpdate {
+			if j.Type != experimental.RollingUpdateDeploymentStrategyType {
 				j.RollingUpdate = nil
 			} else {
 				rollingUpdate := experimental.RollingUpdateDeployment{}
@@ -138,6 +143,13 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 				}
 				j.RollingUpdate = &rollingUpdate
 			}
+		},
+		func(j *experimental.JobSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(j) // fuzz self without calling this function again
+			completions := c.Rand.Int()
+			parallelism := c.Rand.Int()
+			j.Completions = &completions
+			j.Parallelism = &parallelism
 		},
 		func(j *api.List, c fuzz.Continue) {
 			c.FuzzNoCustom(j) // fuzz self without calling this function again
@@ -362,10 +374,6 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			scc.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
 			seLinuxTypes := []api.SELinuxContextStrategyType{api.SELinuxStrategyRunAsAny, api.SELinuxStrategyMustRunAs}
 			scc.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
-			supGroupTypes := []api.SupplementalGroupsStrategyType{api.SupplementalGroupsStrategyMustRunAs, api.SupplementalGroupsStrategyMustRunAs}
-			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
-			fsGroupTypes := []api.FSGroupStrategyType{api.FSGroupStrategyMustRunAs, api.FSGroupStrategyRunAsAny}
-			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]
 		},
 	)
 	return f

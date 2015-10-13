@@ -38,7 +38,9 @@ type ContainerStorage struct {
 }
 
 func NewStorage(s storage.Interface) ContainerStorage {
-	rcRegistry := controller.NewRegistry(etcd.NewREST(s))
+	// scale does not set status, only updates spec so we ignore the status
+	controllerREST, _ := etcd.NewREST(s)
+	rcRegistry := controller.NewRegistry(controllerREST)
 
 	return ContainerStorage{
 		ReplicationController: &RcREST{},
@@ -50,7 +52,7 @@ type ScaleREST struct {
 	registry *controller.Registry
 }
 
-// LogREST implements GetterWithOptions
+// ScaleREST implements Patcher
 var _ = rest.Patcher(&ScaleREST{})
 
 // New creates a new Scale object

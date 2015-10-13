@@ -17,14 +17,9 @@ limitations under the License.
 package e2e
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"strconv"
-	"strings"
 	"time"
-
-	"golang.org/x/net/websocket"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -40,7 +35,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func runLivenessTest(c *client.Client, ns string, podDescr *api.Pod, expectNumRestarts int) {
+const (
+	defaultObservationTimeout = time.Minute * 2
+)
+
+func runLivenessTest(c *client.Client, ns string, podDescr *api.Pod, expectNumRestarts int, timeout time.Duration) {
 	By(fmt.Sprintf("Creating pod %s in namespace %s", podDescr.Name, ns))
 	_, err := c.Pods(ns).Create(podDescr)
 	expectNoError(err, fmt.Sprintf("creating pod %s", podDescr.Name))
@@ -66,7 +65,7 @@ func runLivenessTest(c *client.Client, ns string, podDescr *api.Pod, expectNumRe
 	By(fmt.Sprintf("Initial restart count of pod %s is %d", podDescr.Name, initialRestartCount))
 
 	// Wait for the restart state to be as desired.
-	deadline := time.Now().Add(2 * time.Minute)
+	deadline := time.Now().Add(timeout)
 	lastRestartCount := initialRestartCount
 	observedRestarts := 0
 	for start := time.Now(); time.Now().Before(deadline); time.Sleep(2 * time.Second) {
@@ -487,7 +486,7 @@ var _ = Describe("Pods", func() {
 					},
 				},
 			},
-		}, 1)
+		}, 1, defaultObservationTimeout)
 	})
 
 	It("should *not* be restarted with a docker exec \"cat /tmp/health\" liveness probe", func() {
@@ -513,7 +512,7 @@ var _ = Describe("Pods", func() {
 					},
 				},
 			},
-		}, 0)
+		}, 0, defaultObservationTimeout)
 	})
 
 	It("should be restarted with a /healthz http liveness probe", func() {
@@ -540,10 +539,10 @@ var _ = Describe("Pods", func() {
 					},
 				},
 			},
-		}, 1)
+		}, 1, defaultObservationTimeout)
 	})
 
-	PIt("should have monotonically increasing restart count", func() {
+	It("should have monotonically increasing restart count", func() {
 		runLivenessTest(framework.Client, framework.Namespace.Name, &api.Pod{
 			ObjectMeta: api.ObjectMeta{
 				Name:   "liveness-http",
@@ -567,7 +566,7 @@ var _ = Describe("Pods", func() {
 					},
 				},
 			},
-		}, 8)
+		}, 5, time.Minute*5)
 	})
 
 	It("should *not* be restarted with a /healthz http liveness probe", func() {
@@ -600,157 +599,8 @@ var _ = Describe("Pods", func() {
 					},
 				},
 			},
-		}, 0)
+		}, 0, defaultObservationTimeout)
 	})
-
-	It("should support remote command execution over websockets", func() {
-		config, err := loadConfig()
-		if err != nil {
-			Failf("Unable to get base config: %v", err)
-		}
-		podClient := framework.Client.Pods(framework.Namespace.Name)
-
-		By("creating the pod")
-		name := "pod-exec-websocket-" + string(util.NewUUID())
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
-				Name: name,
-			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
-					{
-						Name:    "main",
-						Image:   "gcr.io/google_containers/busybox",
-						Command: []string{"/bin/sh", "-c", "echo container is alive; sleep 600"},
-					},
-				},
-			},
-		}
-
-		By("submitting the pod to kubernetes")
-		defer func() {
-			By("deleting the pod")
-			podClient.Delete(pod.Name, api.NewDeleteOptions(0))
-		}()
-		pod, err = podClient.Create(pod)
-		if err != nil {
-			Failf("Failed to create pod: %v", err)
-		}
-
-		expectNoError(framework.WaitForPodRunning(pod.Name))
-
-		req := framework.Client.Get().
-			Namespace(framework.Namespace.Name).
-			Resource("pods").
-			Name(pod.Name).
-			Suffix("exec").
-			Param("stderr", "1").
-			Param("stdout", "1").
-			Param("container", pod.Spec.Containers[0].Name).
-			Param("command", "cat").
-			Param("command", "/etc/resolv.conf")
-
-		url := req.URL()
-		ws, err := OpenWebSocketForURL(url, config, []string{"channel.k8s.io"})
-		if err != nil {
-			Failf("Failed to open websocket to %s: %v", url.String(), err)
-		}
-		defer ws.Close()
-
-		buf := &bytes.Buffer{}
-		for {
-			var msg []byte
-			if err := websocket.Message.Receive(ws, &msg); err != nil {
-				if err == io.EOF {
-					break
-				}
-				Failf("Failed to read completely from websocket %s: %v", url.String(), err)
-			}
-			if len(msg) == 0 {
-				continue
-			}
-			if msg[0] != 1 {
-				Failf("Got message from server that didn't start with channel 1 (STDOUT): %v", msg)
-			}
-			buf.Write(msg[1:])
-		}
-		if buf.Len() == 0 {
-			Failf("Unexpected output from server")
-		}
-		if !strings.Contains(buf.String(), "nameserver") {
-			Failf("Expected to find 'nameserver' in %q", buf.String())
-		}
-	})
-
-	It("should support retrieving logs from the container over websockets", func() {
-		config, err := loadConfig()
-		if err != nil {
-			Failf("Unable to get base config: %v", err)
-		}
-		podClient := framework.Client.Pods(framework.Namespace.Name)
-
-		By("creating the pod")
-		name := "pod-logs-websocket-" + string(util.NewUUID())
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
-				Name: name,
-			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
-					{
-						Name:    "main",
-						Image:   "gcr.io/google_containers/busybox",
-						Command: []string{"/bin/sh", "-c", "echo container is alive; sleep 600"},
-					},
-				},
-			},
-		}
-
-		By("submitting the pod to kubernetes")
-		defer func() {
-			By("deleting the pod")
-			podClient.Delete(pod.Name, api.NewDeleteOptions(0))
-		}()
-		pod, err = podClient.Create(pod)
-		if err != nil {
-			Failf("Failed to create pod: %v", err)
-		}
-
-		expectNoError(framework.WaitForPodRunning(pod.Name))
-
-		req := framework.Client.Get().
-			Namespace(framework.Namespace.Name).
-			Resource("pods").
-			Name(pod.Name).
-			Suffix("log").
-			Param("container", pod.Spec.Containers[0].Name)
-
-		url := req.URL()
-
-		ws, err := OpenWebSocketForURL(url, config, []string{"binary.k8s.io"})
-		if err != nil {
-			Failf("Failed to open websocket to %s: %v", url.String(), err)
-		}
-		defer ws.Close()
-		buf := &bytes.Buffer{}
-		for {
-			var msg []byte
-			if err := websocket.Message.Receive(ws, &msg); err != nil {
-				if err == io.EOF {
-					break
-				}
-				Failf("Failed to read completely from websocket %s: %v", url.String(), err)
-			}
-			if len(msg) == 0 {
-				continue
-			}
-			buf.Write(msg)
-		}
-		if buf.String() != "container is alive\n" {
-			Failf("Unexpected websocket logs:\n%s", buf.String())
-		}
-	})
-
 
 	// The following tests for remote command execution and port forwarding are
 	// commented out because the GCE environment does not currently have nsenter
@@ -814,7 +664,7 @@ var _ = Describe("Pods", func() {
 				pod.Status.Host, pod.Name, pod.Spec.Containers[0].Name))
 			req := framework.Client.Get().
 				Prefix("proxy").
-				Resource("minions").
+				Resource("nodes").
 				Name(pod.Status.Host).
 				Suffix("exec", framework.Namespace.Name, pod.Name, pod.Spec.Containers[0].Name)
 
@@ -888,7 +738,7 @@ var _ = Describe("Pods", func() {
 
 			req := framework.Client.Get().
 				Prefix("proxy").
-				Resource("minions").
+				Resource("nodes").
 				Name(pod.Status.Host).
 				Suffix("portForward", framework.Namespace.Name, pod.Name)
 

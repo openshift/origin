@@ -36,7 +36,7 @@ type PluginFactoryArgs struct {
 	algorithm.PodLister
 	algorithm.ServiceLister
 	algorithm.ControllerLister
-	NodeLister algorithm.MinionLister
+	NodeLister algorithm.NodeLister
 	NodeInfo   predicates.NodeInfo
 }
 
@@ -271,7 +271,7 @@ var validName = regexp.MustCompile("^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])$")
 
 func validateAlgorithmNameOrDie(name string) {
 	if !validName.MatchString(name) {
-		glog.Fatalf("algorithm name %v does not match the name validation regexp \"%v\".", name, validName)
+		glog.Fatalf("Algorithm name %v does not match the name validation regexp \"%v\".", name, validName)
 	}
 }
 
@@ -285,7 +285,7 @@ func validatePredicateOrDie(predicate schedulerapi.PredicatePolicy) {
 			numArgs++
 		}
 		if numArgs != 1 {
-			glog.Fatalf("Exactly 1 predicate argument is required")
+			glog.Fatalf("Exactly 1 predicate argument is required, numArgs: %v", numArgs)
 		}
 	}
 }

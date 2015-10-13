@@ -28,6 +28,8 @@ func init() {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes() {
 	api.Scheme.AddKnownTypes("",
+		&ClusterAutoscaler{},
+		&ClusterAutoscalerList{},
 		&Deployment{},
 		&DeploymentList{},
 		&HorizontalPodAutoscaler{},
@@ -42,9 +44,13 @@ func addKnownTypes() {
 		&DaemonSet{},
 		&ThirdPartyResourceData{},
 		&ThirdPartyResourceDataList{},
+		&Ingress{},
+		&IngressList{},
 	)
 }
 
+func (*ClusterAutoscaler) IsAnAPIObject()           {}
+func (*ClusterAutoscalerList) IsAnAPIObject()       {}
 func (*Deployment) IsAnAPIObject()                  {}
 func (*DeploymentList) IsAnAPIObject()              {}
 func (*HorizontalPodAutoscaler) IsAnAPIObject()     {}
@@ -59,3 +65,5 @@ func (*DaemonSet) IsAnAPIObject()                   {}
 func (*DaemonSetList) IsAnAPIObject()               {}
 func (*ThirdPartyResourceData) IsAnAPIObject()      {}
 func (*ThirdPartyResourceDataList) IsAnAPIObject()  {}
+func (*Ingress) IsAnAPIObject()                     {}
+func (*IngressList) IsAnAPIObject()                 {}

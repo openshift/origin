@@ -28,7 +28,7 @@ import (
 
 func init() {
 	factory.RegisterAlgorithmProvider(factory.DefaultProvider, defaultPredicates(), defaultPriorities())
-	// EqualPriority is a prioritizer function that gives an equal weight of one to all minions
+	// EqualPriority is a prioritizer function that gives an equal weight of one to all nodes
 	// Register the priority function so that its available
 	// but do not include it as part of the default priorities
 	factory.RegisterPriorityFunction("EqualPriority", scheduler.EqualPriority, 1)
@@ -46,12 +46,15 @@ func init() {
 			Weight: 1,
 		},
 	)
+	// PodFitsPorts has been replaced by PodFitsHostPorts for better user understanding.
+	// For backwards compatibility with 1.0, PodFitsPorts is regitered as well.
+	factory.RegisterFitPredicate("PodFitsPorts", predicates.PodFitsHostPorts)
 }
 
 func defaultPredicates() sets.String {
 	return sets.NewString(
 		// Fit is defined based on the absence of port conflicts.
-		factory.RegisterFitPredicate("PodFitsPorts", predicates.PodFitsPorts),
+		factory.RegisterFitPredicate("PodFitsHostPorts", predicates.PodFitsHostPorts),
 		// Fit is determined by resource availability.
 		factory.RegisterFitPredicateFactory(
 			"PodFitsResources",

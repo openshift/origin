@@ -28,12 +28,14 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/apis/experimental"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fieldpath"
 	"k8s.io/kubernetes/pkg/fields"
 	qosutil "k8s.io/kubernetes/pkg/kubelet/qos/util"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/types"
+	deploymentUtil "k8s.io/kubernetes/pkg/util/deployment"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -85,6 +87,9 @@ func describerMap(c *client.Client) map[string]Describer {
 func expDescriberMap(c *client.Client) map[string]Describer {
 	return map[string]Describer{
 		"HorizontalPodAutoscaler": &HorizontalPodAutoscalerDescriber{c},
+		"DaemonSet":               &DaemonSetDescriber{c},
+		"Job":                     &JobDescriber{c},
+		"Deployment":              &DeploymentDescriber{c},
 	}
 }
 
@@ -106,7 +111,7 @@ func DescriberFor(group string, kind string, c *client.Client) (Describer, bool)
 	var ok bool
 
 	switch group {
-	case "api":
+	case "":
 		f, ok = describerMap(c)[kind]
 	case "experimental":
 		f, ok = expDescriberMap(c)[kind]
@@ -126,6 +131,7 @@ func init() {
 		describePod,
 		describeService,
 		describeReplicationController,
+		describeDaemonSet,
 		describeNode,
 		describeNamespace,
 	)
@@ -467,14 +473,18 @@ func describePod(pod *api.Pod, rcs []api.ReplicationController, events *api.Even
 		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(pod.Labels))
 		if pod.DeletionTimestamp != nil {
 			fmt.Fprintf(out, "Status:\tTerminating (expires %s)\n", pod.DeletionTimestamp.Time.Format(time.RFC1123Z))
-			fmt.Fprintf(out, "Termination Grace Period:\t%ds\n", pod.DeletionGracePeriodSeconds)
+			fmt.Fprintf(out, "Termination Grace Period:\t%ds\n", *pod.DeletionGracePeriodSeconds)
 		} else {
 			fmt.Fprintf(out, "Status:\t%s\n", string(pod.Status.Phase))
 		}
 		fmt.Fprintf(out, "Reason:\t%s\n", pod.Status.Reason)
 		fmt.Fprintf(out, "Message:\t%s\n", pod.Status.Message)
 		fmt.Fprintf(out, "IP:\t%s\n", pod.Status.PodIP)
-		fmt.Fprintf(out, "Replication Controllers:\t%s\n", printReplicationControllersByLabels(rcs))
+		var matchingRCs []*api.ReplicationController
+		for _, rc := range rcs {
+			matchingRCs = append(matchingRCs, &rc)
+		}
+		fmt.Fprintf(out, "Replication Controllers:\t%s\n", printReplicationControllersByLabels(matchingRCs))
 		fmt.Fprintf(out, "Containers:\n")
 		describeContainers(pod, out)
 		if len(pod.Status.Conditions) > 0 {
@@ -821,7 +831,7 @@ func (d *ReplicationControllerDescriber) Describe(namespace, name string) (strin
 		return "", err
 	}
 
-	running, waiting, succeeded, failed, err := getPodStatusForReplicationController(pc, controller)
+	running, waiting, succeeded, failed, err := getPodStatusForController(pc, controller.Spec.Selector)
 	if err != nil {
 		return "", err
 	}
@@ -847,6 +857,92 @@ func describeReplicationController(controller *api.ReplicationController, events
 		if controller.Spec.Template != nil {
 			describeVolumes(controller.Spec.Template.Spec.Volumes, out)
 		}
+		if events != nil {
+			DescribeEvents(events, out)
+		}
+		return nil
+	})
+}
+
+// JobDescriber generates information about a job and the pods it has created.
+type JobDescriber struct {
+	client *client.Client
+}
+
+func (d *JobDescriber) Describe(namespace, name string) (string, error) {
+	job, err := d.client.Experimental().Jobs(namespace).Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	events, _ := d.client.Events(namespace).Search(job)
+
+	return describeJob(job, events)
+}
+
+func describeJob(job *experimental.Job, events *api.EventList) (string, error) {
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", job.Name)
+		fmt.Fprintf(out, "Namespace:\t%s\n", job.Namespace)
+		if job.Spec.Template != nil {
+			fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&job.Spec.Template.Spec))
+		} else {
+			fmt.Fprintf(out, "Image(s):\t%s\n", "<no template>")
+		}
+		fmt.Fprintf(out, "Selector:\t%s\n", labels.FormatLabels(job.Spec.Selector))
+		fmt.Fprintf(out, "Parallelism:\t%d\n", *job.Spec.Parallelism)
+		fmt.Fprintf(out, "Completions:\t%d\n", *job.Spec.Completions)
+		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(job.Labels))
+		fmt.Fprintf(out, "Pods Statuses:\t%d Running / %d Succeeded / %d Failed\n", job.Status.Active, job.Status.Succeeded, job.Status.Failed)
+		if job.Spec.Template != nil {
+			describeVolumes(job.Spec.Template.Spec.Volumes, out)
+		}
+		if events != nil {
+			DescribeEvents(events, out)
+		}
+		return nil
+	})
+}
+
+// DaemonSetDescriber generates information about a daemon set and the pods it has created.
+type DaemonSetDescriber struct {
+	client.Interface
+}
+
+func (d *DaemonSetDescriber) Describe(namespace, name string) (string, error) {
+	dc := d.Experimental().DaemonSets(namespace)
+	pc := d.Pods(namespace)
+
+	daemon, err := dc.Get(name)
+	if err != nil {
+		return "", err
+	}
+
+	running, waiting, succeeded, failed, err := getPodStatusForController(pc, daemon.Spec.Selector)
+	if err != nil {
+		return "", err
+	}
+
+	events, _ := d.Events(namespace).Search(daemon)
+
+	return describeDaemonSet(daemon, events, running, waiting, succeeded, failed)
+}
+
+func describeDaemonSet(daemon *experimental.DaemonSet, events *api.EventList, running, waiting, succeeded, failed int) (string, error) {
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", daemon.Name)
+		if daemon.Spec.Template != nil {
+			fmt.Fprintf(out, "Image(s):\t%s\n", makeImageList(&daemon.Spec.Template.Spec))
+		} else {
+			fmt.Fprintf(out, "Image(s):\t%s\n", "<no template>")
+		}
+		fmt.Fprintf(out, "Selector:\t%s\n", labels.FormatLabels(daemon.Spec.Selector))
+		fmt.Fprintf(out, "Node-Selector:\t%s\n", labels.FormatLabels(daemon.Spec.Template.Spec.NodeSelector))
+		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(daemon.Labels))
+		fmt.Fprintf(out, "Desired Number of Nodes Scheduled: %d\n", daemon.Status.DesiredNumberScheduled)
+		fmt.Fprintf(out, "Current Number of Nodes Scheduled: %d\n", daemon.Status.CurrentNumberScheduled)
+		fmt.Fprintf(out, "Number of Nodes Misscheduled: %d\n", daemon.Status.NumberMisscheduled)
+		fmt.Fprintf(out, "Pods Status:\t%d Running / %d Waiting / %d Succeeded / %d Failed\n", running, waiting, succeeded, failed)
 		if events != nil {
 			DescribeEvents(events, out)
 		}
@@ -1165,15 +1261,15 @@ func (d *HorizontalPodAutoscalerDescriber) Describe(namespace, name string) (str
 			hpa.Spec.Target.Resource)
 		fmt.Fprintf(out, "Current resource consumption:\t")
 
-		if hpa.Status != nil && hpa.Status.CurrentConsumption != nil {
+		if hpa.Status.CurrentConsumption != nil {
 			fmt.Fprintf(out, "%s %s\n",
 				hpa.Status.CurrentConsumption.Quantity.String(),
 				hpa.Status.CurrentConsumption.Resource)
 		} else {
 			fmt.Fprintf(out, "<not available>\n")
 		}
-		fmt.Fprintf(out, "Min pods:\t%d\n", hpa.Spec.MinCount)
-		fmt.Fprintf(out, "Max pods:\t%d\n", hpa.Spec.MaxCount)
+		fmt.Fprintf(out, "Min pods:\t%d\n", hpa.Spec.MinReplicas)
+		fmt.Fprintf(out, "Max pods:\t%d\n", hpa.Spec.MaxReplicas)
 
 		// TODO: switch to scale subresource once the required code is submitted.
 		if strings.ToLower(hpa.Spec.ScaleRef.Kind) == "replicationcontroller" {
@@ -1306,6 +1402,72 @@ func DescribeEvents(el *api.EventList, w io.Writer) {
 	}
 }
 
+// DeploymentDescriber generates information about a deployment.
+type DeploymentDescriber struct {
+	client.Interface
+}
+
+func (dd *DeploymentDescriber) Describe(namespace, name string) (string, error) {
+	d, err := dd.Experimental().Deployments(namespace).Get(name)
+	if err != nil {
+		return "", err
+	}
+	return tabbedString(func(out io.Writer) error {
+		fmt.Fprintf(out, "Name:\t%s\n", d.ObjectMeta.Name)
+		fmt.Fprintf(out, "Namespace:\t%s\n", d.ObjectMeta.Namespace)
+		fmt.Fprintf(out, "CreationTimestamp:\t%s\n", d.CreationTimestamp.Time.Format(time.RFC1123Z))
+		fmt.Fprintf(out, "Labels:\t%s\n", labels.FormatLabels(d.Labels))
+		fmt.Fprintf(out, "Selector:\t%s\n", labels.FormatLabels(d.Spec.Selector))
+		fmt.Fprintf(out, "Replicas:\t%d updated / %d total\n", d.Status.UpdatedReplicas, d.Spec.Replicas)
+		fmt.Fprintf(out, "StrategyType:\t%s\n", d.Spec.Strategy.Type)
+		if d.Spec.Strategy.RollingUpdate != nil {
+			ru := d.Spec.Strategy.RollingUpdate
+			fmt.Fprintf(out, "RollingUpdateStrategy:\t%s max unavailable, %s max surge, %d min ready seconds\n", ru.MaxUnavailable.String(), ru.MaxSurge.String(), ru.MinReadySeconds)
+		}
+		oldRCs, err := deploymentUtil.GetOldRCs(*d, dd)
+		if err == nil {
+			fmt.Fprintf(out, "OldReplicationControllers:\t%s\n", printReplicationControllersByLabels(oldRCs))
+		}
+		newRC, err := deploymentUtil.GetNewRC(*d, dd)
+		if err == nil {
+			var newRCs []*api.ReplicationController
+			if newRC != nil {
+				newRCs = append(newRCs, newRC)
+			}
+			fmt.Fprintf(out, "NewReplicationController:\t%s\n", printReplicationControllersByLabels(newRCs))
+		}
+		events, err := dd.Events(namespace).Search(d)
+		if err == nil && events != nil {
+			DescribeEvents(events, out)
+		}
+		return nil
+	})
+}
+
+// Get all daemon set whose selectors would match a given set of labels.
+// TODO: Move this to pkg/client and ideally implement it server-side (instead
+// of getting all DS's and searching through them manually).
+// TODO: write an interface for controllers and fuse getReplicationControllersForLabels
+// and getDaemonSetsForLabels.
+func getDaemonSetsForLabels(c client.DaemonSetInterface, labelsToMatch labels.Labels) ([]experimental.DaemonSet, error) {
+	// Get all daemon sets
+	// TODO: this needs a namespace scope as argument
+	dss, err := c.List(labels.Everything())
+	if err != nil {
+		return nil, fmt.Errorf("error getting daemon set: %v", err)
+	}
+
+	// Find the ones that match labelsToMatch.
+	var matchingDaemonSets []experimental.DaemonSet
+	for _, ds := range dss.Items {
+		selector := labels.SelectorFromSet(ds.Spec.Selector)
+		if selector.Matches(labelsToMatch) {
+			matchingDaemonSets = append(matchingDaemonSets, ds)
+		}
+	}
+	return matchingDaemonSets, nil
+}
+
 // Get all replication controllers whose selectors would match a given set of
 // labels.
 // TODO Move this to pkg/client and ideally implement it server-side (instead
@@ -1329,7 +1491,7 @@ func getReplicationControllersForLabels(c client.ReplicationControllerInterface,
 	return matchingRCs, nil
 }
 
-func printReplicationControllersByLabels(matchingRCs []api.ReplicationController) string {
+func printReplicationControllersByLabels(matchingRCs []*api.ReplicationController) string {
 	// Format the matching RC's into strings.
 	var rcStrings []string
 	for _, controller := range matchingRCs {
@@ -1343,8 +1505,8 @@ func printReplicationControllersByLabels(matchingRCs []api.ReplicationController
 	return list
 }
 
-func getPodStatusForReplicationController(c client.PodInterface, controller *api.ReplicationController) (running, waiting, succeeded, failed int, err error) {
-	rcPods, err := c.List(labels.SelectorFromSet(controller.Spec.Selector), fields.Everything())
+func getPodStatusForController(c client.PodInterface, selector map[string]string) (running, waiting, succeeded, failed int, err error) {
+	rcPods, err := c.List(labels.SelectorFromSet(selector), fields.Everything())
 	if err != nil {
 		return
 	}

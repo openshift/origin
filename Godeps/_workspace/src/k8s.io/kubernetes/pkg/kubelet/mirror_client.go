@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 // Mirror client is used to create/delete a mirror pod.
@@ -47,9 +48,16 @@ func (mc *basicMirrorClient) CreateMirrorPod(pod *api.Pod) error {
 	if mc.apiserverClient == nil {
 		return nil
 	}
-	pod.Annotations[ConfigMirrorAnnotationKey] = MirrorType
+	// Make a copy of the pod.
+	copyPod := *pod
+	copyPod.Annotations = make(map[string]string)
 
-	_, err := mc.apiserverClient.Pods(pod.Namespace).Create(pod)
+	for k, v := range pod.Annotations {
+		copyPod.Annotations[k] = v
+	}
+	copyPod.Annotations[kubetypes.ConfigMirrorAnnotationKey] = kubetypes.MirrorType
+
+	_, err := mc.apiserverClient.Pods(copyPod.Namespace).Create(&copyPod)
 	return err
 }
 
@@ -73,7 +81,7 @@ func (mc *basicMirrorClient) DeleteMirrorPod(podFullName string) error {
 // Helper functions.
 func getPodSource(pod *api.Pod) (string, error) {
 	if pod.Annotations != nil {
-		if source, ok := pod.Annotations[ConfigSourceAnnotationKey]; ok {
+		if source, ok := pod.Annotations[kubetypes.ConfigSourceAnnotationKey]; ok {
 			return source, nil
 		}
 	}
@@ -82,13 +90,13 @@ func getPodSource(pod *api.Pod) (string, error) {
 
 func isStaticPod(pod *api.Pod) bool {
 	source, err := getPodSource(pod)
-	return err == nil && source != ApiserverSource
+	return err == nil && source != kubetypes.ApiserverSource
 }
 
 func isMirrorPod(pod *api.Pod) bool {
-	if value, ok := pod.Annotations[ConfigMirrorAnnotationKey]; !ok {
+	if value, ok := pod.Annotations[kubetypes.ConfigMirrorAnnotationKey]; !ok {
 		return false
 	} else {
-		return value == MirrorType
+		return value == kubetypes.MirrorType
 	}
 }

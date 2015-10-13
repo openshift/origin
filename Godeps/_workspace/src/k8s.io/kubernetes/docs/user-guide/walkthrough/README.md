@@ -35,7 +35,7 @@ Documentation for other releases can be found at
 
 For Kubernetes 101, we will cover kubectl, pods, volumes, and multiple containers
 
-In order for the kubectl usage examples to work, make sure you have an examples directory locally, either from [a release](https://k8s.io/kubernetes/releases) or [the source](https://k8s.io/kubernetes).
+In order for the kubectl usage examples to work, make sure you have an examples directory locally, either from [a release](https://github.com/kubernetes/kubernetes/releases) or [the source](https://github.com/kubernetes/kubernetes).
 
 **Table of Contents**
 <!-- BEGIN MUNGE: GENERATED_TOC -->
@@ -86,7 +86,7 @@ spec:
 
 A pod definition is a declaration of a _desired state_.  Desired state is a very important concept in the Kubernetes model.  Many things present a desired state to the system, and it is Kubernetes' responsibility to make sure that the current state matches the desired state.  For example, when you create a Pod, you declare that you want the containers in it to be running.  If the containers happen to not be running (e.g. program failure, ...), Kubernetes will continue to (re-)create them for you in order to drive them to the desired state. This process continues until the Pod is deleted.
 
-See the [design document](../../../DESIGN.md) for more details.
+See the [design document](../../design/README.md) for more details.
 
 
 #### Pod Management
@@ -108,7 +108,7 @@ On most providers, the pod IPs are not externally accessible. The easiest way to
 Provided the pod IP is accessible, you should be able to access its http endpoint with curl on port 80:
 
 ```sh
-$ curl http://$(kubectl get pod nginx -o=template -t={{.status.podIP}})
+$ curl http://$(kubectl get pod nginx -o go-template={{.status.podIP}})
 ```
 
 Delete the pod by name:
@@ -165,16 +165,16 @@ spec:
     emptyDir: {}
 ```
 
-[Download example](pod-redis.yaml)
+[Download example](pod-redis.yaml?raw=true)
 <!-- END MUNGE: EXAMPLE pod-redis.yaml -->
 
 Notes:
-- The volume mount name is a reference to a specific empty dir volume.
-- The volume mount path is the path to mount the empty dir volume within the container.
+- The `volumeMounts` `name` is a reference to a specific  `volumes` `name`.
+- The `volumeMounts` `mountPath` is the path to mount the volume within the container.
 
 ##### Volume Types
 
-- **EmptyDir**: Creates a new directory that will persist across container failures and restarts.
+- **EmptyDir**: Creates a new directory that will exist as long as the Pod is running on the node, but it can persist across container failures and restarts.
 - **HostPath**: Mounts an existing directory on the node's file system (e.g. `/var/logs`).
 
 See [volumes](../../../docs/user-guide/volumes.md) for more details.

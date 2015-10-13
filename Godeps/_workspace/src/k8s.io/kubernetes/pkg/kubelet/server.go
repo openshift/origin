@@ -35,18 +35,24 @@ import (
 	"github.com/golang/glog"
 	cadvisorApi "github.com/google/cadvisor/info/v1"
 	"github.com/prometheus/client_golang/prometheus"
+
 	"k8s.io/kubernetes/pkg/api"
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/healthz"
 	"k8s.io/kubernetes/pkg/httplog"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/flushwriter"
 	"k8s.io/kubernetes/pkg/util/httpstream"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
-	"k8s.io/kubernetes/pkg/util/wsstream"
+	"k8s.io/kubernetes/pkg/util/limitwriter"
 )
 
 // Server is a http.Handler which exposes kubelet functionality over HTTP.
@@ -144,7 +150,7 @@ type HostInterface interface {
 	RunInContainer(name string, uid types.UID, container string, cmd []string) ([]byte, error)
 	ExecInContainer(name string, uid types.UID, container string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool) error
 	AttachContainer(name string, uid types.UID, container string, in io.Reader, out, err io.WriteCloser, tty bool) error
-	GetKubeletContainerLogs(podFullName, containerName, tail string, follow, previous bool, stdout, stderr io.Writer) error
+	GetKubeletContainerLogs(podFullName, containerName string, logOptions *api.PodLogOptions, stdout, stderr io.Writer) error
 	ServeLogs(w http.ResponseWriter, req *http.Request)
 	PortForward(name string, uid types.UID, port uint16, stream io.ReadWriteCloser) error
 	StreamingConnectionIdleTimeout() time.Duration
@@ -253,13 +259,7 @@ func (s *Server) InstallDebuggingHandlers() {
 	ws = new(restful.WebService)
 	ws.
 		Path("/exec")
-	ws.Route(ws.GET("/{podNamespace}/{podID}/{containerName}").
-		To(s.getExec).
-		Operation("getExec"))
 	ws.Route(ws.POST("/{podNamespace}/{podID}/{containerName}").
-		To(s.getExec).
-		Operation("getExec"))
-	ws.Route(ws.GET("/{podNamespace}/{podID}/{uid}/{containerName}").
 		To(s.getExec).
 		Operation("getExec"))
 	ws.Route(ws.POST("/{podNamespace}/{podID}/{uid}/{containerName}").
@@ -270,13 +270,7 @@ func (s *Server) InstallDebuggingHandlers() {
 	ws = new(restful.WebService)
 	ws.
 		Path("/attach")
-	ws.Route(ws.GET("/{podNamespace}/{podID}/{containerName}").
-		To(s.getAttach).
-		Operation("getAttach"))
 	ws.Route(ws.POST("/{podNamespace}/{podID}/{containerName}").
-		To(s.getAttach).
-		Operation("getAttach"))
-	ws.Route(ws.GET("/{podNamespace}/{podID}/{uid}/{containerName}").
 		To(s.getAttach).
 		Operation("getAttach"))
 	ws.Route(ws.POST("/{podNamespace}/{podID}/{uid}/{containerName}").
@@ -396,6 +390,7 @@ func (s *Server) getContainerLogs(request *restful.Request, response *restful.Re
 
 	if len(podID) == 0 {
 		// TODO: Why return JSON when the rest return plaintext errors?
+		// TODO: Why return plaintext errors?
 		response.WriteError(http.StatusBadRequest, fmt.Errorf(`{"message": "Missing podID."}`))
 		return
 	}
@@ -410,9 +405,32 @@ func (s *Server) getContainerLogs(request *restful.Request, response *restful.Re
 		return
 	}
 
-	follow, _ := strconv.ParseBool(request.QueryParameter("follow"))
-	previous, _ := strconv.ParseBool(request.QueryParameter("previous"))
-	tail := request.QueryParameter("tail")
+	query := request.Request.URL.Query()
+	// backwards compatibility for the "tail" query parameter
+	if tail := request.QueryParameter("tail"); len(tail) > 0 {
+		query["tailLines"] = []string{tail}
+		// "all" is the same as omitting tail
+		if tail == "all" {
+			delete(query, "tailLines")
+		}
+	}
+	// container logs on the kubelet are locked to v1
+	versioned := &v1.PodLogOptions{}
+	if err := api.Scheme.Convert(&query, versioned); err != nil {
+		response.WriteError(http.StatusBadRequest, fmt.Errorf(`{"message": "Unable to decode query."}`))
+		return
+	}
+	out, err := api.Scheme.ConvertToVersion(versioned, "")
+	if err != nil {
+		response.WriteError(http.StatusBadRequest, fmt.Errorf(`{"message": "Unable to convert request query."}`))
+		return
+	}
+	logOptions := out.(*api.PodLogOptions)
+	logOptions.TypeMeta = unversioned.TypeMeta{}
+	if errs := validation.ValidatePodLogOptions(logOptions); len(errs) > 0 {
+		response.WriteError(apierrs.StatusUnprocessableEntity, fmt.Errorf(`{"message": "Invalid request."}`))
+		return
+	}
 
 	pod, ok := s.host.GetPodByName(podNamespace, podID)
 	if !ok {
@@ -436,11 +454,15 @@ func (s *Server) getContainerLogs(request *restful.Request, response *restful.Re
 		return
 	}
 	fw := flushwriter.Wrap(response.ResponseWriter)
+	if logOptions.LimitBytes != nil {
+		fw = limitwriter.New(fw, *logOptions.LimitBytes)
+	}
 	response.Header().Set("Transfer-Encoding", "chunked")
 	response.WriteHeader(http.StatusOK)
-	err := s.host.GetKubeletContainerLogs(kubecontainer.GetPodFullName(pod), containerName, tail, follow, previous, fw, fw)
-	if err != nil {
-		response.WriteError(http.StatusInternalServerError, err)
+	if err := s.host.GetKubeletContainerLogs(kubecontainer.GetPodFullName(pod), containerName, logOptions, fw, fw); err != nil {
+		if err != limitwriter.ErrMaximumWrite {
+			response.WriteError(http.StatusInternalServerError, err)
+		}
 		return
 	}
 }
@@ -452,7 +474,7 @@ func encodePods(pods []*api.Pod) (data []byte, err error) {
 	for _, pod := range pods {
 		podList.Items = append(podList.Items, *pod)
 	}
-	return latest.Codec.Encode(podList)
+	return latest.GroupOrDie("").Codec.Encode(podList)
 }
 
 // getPods returns a list of pods bound to the Kubelet and their spec.
@@ -513,11 +535,7 @@ func getContainerCoordinates(request *restful.Request) (namespace, pod string, u
 	return
 }
 
-const streamCreationTimeout = 30 * time.Second
-
-type Closer interface {
-	Close() error
-}
+const defaultStreamCreationTimeout = 30 * time.Second
 
 func (s *Server) getAttach(request *restful.Request, response *restful.Response) {
 	podNamespace, podID, uid, container := getContainerCoordinates(request)
@@ -586,72 +604,23 @@ func (s *Server) getExec(request *restful.Request, response *restful.Response) {
 	}
 }
 
-// standardShellChannels returns the standard channel types for a shell connection (STDIN 0, STDOUT 1, STDERR 2)
-// along with the approprxate duplex value
-func standardShellChannels(stdin, stdout, stderr bool) []wsstream.ChannelType {
-	// open three half-duplex channels
-	channels := []wsstream.ChannelType{wsstream.ReadChannel, wsstream.WriteChannel, wsstream.WriteChannel}
-	if !stdin {
-		channels[0] = wsstream.IgnoreChannel
-	}
-	if !stdout {
-		channels[1] = wsstream.IgnoreChannel
-	}
-	if !stderr {
-		channels[2] = wsstream.IgnoreChannel
-	}
-	return channels
-}
-
-func (s *Server) createStreams(request *restful.Request, response *restful.Response) (io.Reader, io.WriteCloser, io.WriteCloser, io.WriteCloser, Closer, bool, bool) {
-	tty := request.QueryParameter(api.ExecTTYParam) == "1"
-	stdin := request.QueryParameter(api.ExecStdinParam) == "1"
-	stdout := request.QueryParameter(api.ExecStdoutParam) == "1"
-	stderr := request.QueryParameter(api.ExecStderrParam) == "1"
-	if tty && stderr {
-		// TODO: make this an error before we reach this method
-		glog.V(4).Infof("Access to exec with tty and stderr is not supported, bypassing stderr")
-		stderr = false
-	}
-
-	// count the streams client asked for, starting with 1
+func (s *Server) createStreams(request *restful.Request, response *restful.Response) (io.Reader, io.WriteCloser, io.WriteCloser, io.WriteCloser, httpstream.Connection, bool, bool) {
+	// start at 1 for error stream
 	expectedStreams := 1
-	if stdin {
+	if request.QueryParameter(api.ExecStdinParam) == "1" {
 		expectedStreams++
 	}
-	if stdout {
+	if request.QueryParameter(api.ExecStdoutParam) == "1" {
 		expectedStreams++
 	}
-	if stderr {
+	tty := request.QueryParameter(api.ExecTTYParam) == "1"
+	if !tty && request.QueryParameter(api.ExecStderrParam) == "1" {
 		expectedStreams++
 	}
 
 	if expectedStreams == 1 {
 		response.WriteError(http.StatusBadRequest, fmt.Errorf("you must specify at least 1 of stdin, stdout, stderr"))
 		return nil, nil, nil, nil, nil, false, false
-	}
-
-	if wsstream.IsWebSocketRequest(request.Request) {
-		// open the requested channels, and always open the error channel
-		channels := append(standardShellChannels(stdin, stdout, stderr), wsstream.WriteChannel)
-		conn := wsstream.NewConn(channels...)
-		conn.SetIdleTimeout(s.host.StreamingConnectionIdleTimeout())
-		streams, err := conn.Open(httplog.Unlogged(response.ResponseWriter), request.Request)
-		if err != nil {
-			glog.Errorf("Unable to upgrade websocket connection: %v", err)
-			return nil, nil, nil, nil, nil, false, false
-		}
-		// Send an empty message to the lowest writable channel to notify the client the connection is established
-		// TODO: make generic to SDPY and WebSockets and do it outside of this method?
-		switch {
-		case stdout:
-			streams[1].Write([]byte{})
-		case stderr:
-			streams[2].Write([]byte{})
-		default:
-			streams[3].Write([]byte{})
-		}
-		return streams[0], streams[1], streams[2], streams[3], conn, tty, true
 	}
 
 	streamCh := make(chan httpstream.Stream)
@@ -672,7 +641,7 @@ func (s *Server) createStreams(request *restful.Request, response *restful.Respo
 	conn.SetIdleTimeout(s.host.StreamingConnectionIdleTimeout())
 
 	// TODO make it configurable?
-	expired := time.NewTimer(streamCreationTimeout)
+	expired := time.NewTimer(defaultStreamCreationTimeout)
 
 	var errorStream, stdinStream, stdoutStream, stderrStream httpstream.Stream
 	receivedStreams := 0
@@ -720,6 +689,15 @@ func getPodCoordinates(request *restful.Request) (namespace, pod string, uid typ
 	return
 }
 
+// PortForwarder knows how to forward content from a data stream to/from a port
+// in a pod.
+type PortForwarder interface {
+	// PortForwarder copies data between a data stream and a port in a pod.
+	PortForward(name string, uid types.UID, port uint16, stream io.ReadWriteCloser) error
+}
+
+// getPortForward handles a new restful port forward request. It determines the
+// pod name and uid and then calls ServePortForward.
 func (s *Server) getPortForward(request *restful.Request, response *restful.Response) {
 	podNamespace, podID, uid := getPodCoordinates(request)
 	pod, ok := s.host.GetPodByName(podNamespace, podID)
@@ -728,80 +706,280 @@ func (s *Server) getPortForward(request *restful.Request, response *restful.Resp
 		return
 	}
 
+	podName := kubecontainer.GetPodFullName(pod)
+
+	ServePortForward(response.ResponseWriter, request.Request, s.host, podName, uid, s.host.StreamingConnectionIdleTimeout(), defaultStreamCreationTimeout)
+}
+
+// ServePortForward handles a port forwarding request.  A single request is
+// kept alive as long as the client is still alive and the connection has not
+// been timed out due to idleness. This function handles multiple forwarded
+// connections; i.e., multiple `curl http://localhost:8888/` requests will be
+// handled by a single invocation of ServePortForward.
+func ServePortForward(w http.ResponseWriter, req *http.Request, portForwarder PortForwarder, podName string, uid types.UID, idleTimeout time.Duration, streamCreationTimeout time.Duration) {
 	streamChan := make(chan httpstream.Stream, 1)
+
+	glog.V(5).Infof("Upgrading port forward response")
 	upgrader := spdy.NewResponseUpgrader()
-	conn := upgrader.UpgradeResponse(response.ResponseWriter, request.Request, func(stream httpstream.Stream) error {
-		portString := stream.Headers().Get(api.PortHeader)
-		port, err := strconv.ParseUint(portString, 10, 16)
-		if err != nil {
-			return fmt.Errorf("Unable to parse '%s' as a port: %v", portString, err)
-		}
-		if port < 1 {
-			return fmt.Errorf("Port '%d' must be greater than 0", port)
-		}
-		streamChan <- stream
-		return nil
-	})
+	conn := upgrader.UpgradeResponse(w, req, portForwardStreamReceived(streamChan))
 	if conn == nil {
 		return
 	}
 	defer conn.Close()
-	conn.SetIdleTimeout(s.host.StreamingConnectionIdleTimeout())
 
-	var dataStreamLock sync.Mutex
-	dataStreamChans := make(map[string]chan httpstream.Stream)
+	glog.V(5).Infof("(conn=%p) setting port forwarding streaming connection idle timeout to %v", conn, idleTimeout)
+	conn.SetIdleTimeout(idleTimeout)
 
+	h := &portForwardStreamHandler{
+		conn:                  conn,
+		streamChan:            streamChan,
+		streamPairs:           make(map[string]*portForwardStreamPair),
+		streamCreationTimeout: streamCreationTimeout,
+		pod:       podName,
+		uid:       uid,
+		forwarder: portForwarder,
+	}
+	h.run()
+}
+
+// portForwardStreamReceived is the httpstream.NewStreamHandler for port
+// forward streams. It checks each stream's port and stream type headers,
+// rejecting any streams that with missing or invalid values. Each valid
+// stream is sent to the streams channel.
+func portForwardStreamReceived(streams chan httpstream.Stream) func(httpstream.Stream) error {
+	return func(stream httpstream.Stream) error {
+		// make sure it has a valid port header
+		portString := stream.Headers().Get(api.PortHeader)
+		if len(portString) == 0 {
+			return fmt.Errorf("%q header is required", api.PortHeader)
+		}
+		port, err := strconv.ParseUint(portString, 10, 16)
+		if err != nil {
+			return fmt.Errorf("unable to parse %q as a port: %v", portString, err)
+		}
+		if port < 1 {
+			return fmt.Errorf("port %q must be > 0", portString)
+		}
+
+		// make sure it has a valid stream type header
+		streamType := stream.Headers().Get(api.StreamType)
+		if len(streamType) == 0 {
+			return fmt.Errorf("%q header is required", api.StreamType)
+		}
+		if streamType != api.StreamTypeError && streamType != api.StreamTypeData {
+			return fmt.Errorf("invalid stream type %q", streamType)
+		}
+
+		streams <- stream
+		return nil
+	}
+}
+
+// portForwardStreamHandler is capable of processing multiple port forward
+// requests over a single httpstream.Connection.
+type portForwardStreamHandler struct {
+	conn                  httpstream.Connection
+	streamChan            chan httpstream.Stream
+	streamPairsLock       sync.RWMutex
+	streamPairs           map[string]*portForwardStreamPair
+	streamCreationTimeout time.Duration
+	pod                   string
+	uid                   types.UID
+	forwarder             PortForwarder
+}
+
+// getStreamPair returns a portForwardStreamPair for requestID. This creates a
+// new pair if one does not yet exist for the requestID. The returned bool is
+// true if the pair was created.
+func (h *portForwardStreamHandler) getStreamPair(requestID string) (*portForwardStreamPair, bool) {
+	h.streamPairsLock.Lock()
+	defer h.streamPairsLock.Unlock()
+
+	if p, ok := h.streamPairs[requestID]; ok {
+		glog.V(5).Infof("(conn=%p, request=%s) found existing stream pair", h.conn, requestID)
+		return p, false
+	}
+
+	glog.V(5).Infof("(conn=%p, request=%s) creating new stream pair", h.conn, requestID)
+
+	p := newPortForwardPair(requestID)
+	h.streamPairs[requestID] = p
+
+	return p, true
+}
+
+// monitorStreamPair waits for the pair to receive both its error and data
+// streams, or for the timeout to expire (whichever happens first), and then
+// removes the pair.
+func (h *portForwardStreamHandler) monitorStreamPair(p *portForwardStreamPair, timeout <-chan time.Time) {
+	select {
+	case <-timeout:
+		err := fmt.Errorf("(conn=%p, request=%s) timed out waiting for streams", h.conn, p.requestID)
+		util.HandleError(err)
+		p.printError(err.Error())
+	case <-p.complete:
+		glog.V(5).Infof("(conn=%p, request=%s) successfully received error and data streams", h.conn, p.requestID)
+	}
+	h.removeStreamPair(p.requestID)
+}
+
+// hasStreamPair returns a bool indicating if a stream pair for requestID
+// exists.
+func (h *portForwardStreamHandler) hasStreamPair(requestID string) bool {
+	h.streamPairsLock.RLock()
+	defer h.streamPairsLock.RUnlock()
+
+	_, ok := h.streamPairs[requestID]
+	return ok
+}
+
+// removeStreamPair removes the stream pair identified by requestID from streamPairs.
+func (h *portForwardStreamHandler) removeStreamPair(requestID string) {
+	h.streamPairsLock.Lock()
+	defer h.streamPairsLock.Unlock()
+
+	delete(h.streamPairs, requestID)
+}
+
+// requestID returns the request id for stream.
+func (h *portForwardStreamHandler) requestID(stream httpstream.Stream) string {
+	requestID := stream.Headers().Get(api.PortForwardRequestIDHeader)
+	if len(requestID) == 0 {
+		glog.V(5).Infof("(conn=%p) stream received without %s header", h.conn, api.PortForwardRequestIDHeader)
+		// If we get here, it's because the connection came from an older client
+		// that isn't generating the request id header
+		// (https://github.com/kubernetes/kubernetes/blob/843134885e7e0b360eb5441e85b1410a8b1a7a0c/pkg/client/unversioned/portforward/portforward.go#L258-L287)
+		//
+		// This is a best-effort attempt at supporting older clients.
+		//
+		// When there aren't concurrent new forwarded connections, each connection
+		// will have a pair of streams (data, error), and the stream IDs will be
+		// consecutive odd numbers, e.g. 1 and 3 for the first connection. Convert
+		// the stream ID into a pseudo-request id by taking the stream type and
+		// using id = stream.Identifier() when the stream type is error,
+		// and id = stream.Identifier() - 2 when it's data.
+		//
+		// NOTE: this only works when there are not concurrent new streams from
+		// multiple forwarded connections; it's a best-effort attempt at supporting
+		// old clients that don't generate request ids.  If there are concurrent
+		// new connections, it's possible that 1 connection gets streams whose IDs
+		// are not consecutive (e.g. 5 and 9 instead of 5 and 7).
+		streamType := stream.Headers().Get(api.StreamType)
+		switch streamType {
+		case api.StreamTypeError:
+			requestID = strconv.Itoa(int(stream.Identifier()))
+		case api.StreamTypeData:
+			requestID = strconv.Itoa(int(stream.Identifier()) - 2)
+		}
+
+		glog.V(5).Infof("(conn=%p) automatically assigning request ID=%q from stream type=%s, stream ID=%d", h.conn, requestID, streamType, stream.Identifier())
+	}
+	return requestID
+}
+
+// run is the main loop for the portForwardStreamHandler. It processes new
+// streams, invoking portForward for each complete stream pair. The loop exits
+// when the httpstream.Connection is closed.
+func (h *portForwardStreamHandler) run() {
+	glog.V(5).Infof("(conn=%p) waiting for port forward streams", h.conn)
 Loop:
 	for {
 		select {
-		case <-conn.CloseChan():
+		case <-h.conn.CloseChan():
+			glog.V(5).Infof("(conn=%p) upgraded connection closed", h.conn)
 			break Loop
-		case stream := <-streamChan:
+		case stream := <-h.streamChan:
+			requestID := h.requestID(stream)
 			streamType := stream.Headers().Get(api.StreamType)
-			port := stream.Headers().Get(api.PortHeader)
-			dataStreamLock.Lock()
-			switch streamType {
-			case "error":
-				ch := make(chan httpstream.Stream)
-				dataStreamChans[port] = ch
-				go waitForPortForwardDataStreamAndRun(kubecontainer.GetPodFullName(pod), uid, stream, ch, s.host)
-			case "data":
-				ch, ok := dataStreamChans[port]
-				if ok {
-					ch <- stream
-					delete(dataStreamChans, port)
-				} else {
-					glog.Errorf("Unable to locate data stream channel for port %s", port)
-				}
-			default:
-				glog.Errorf("streamType header must be 'error' or 'data', got: '%s'", streamType)
-				stream.Reset()
+			glog.V(5).Infof("(conn=%p, request=%s) received new stream of type %s", h.conn, requestID, streamType)
+
+			p, created := h.getStreamPair(requestID)
+			if created {
+				go h.monitorStreamPair(p, time.After(h.streamCreationTimeout))
 			}
-			dataStreamLock.Unlock()
+			if complete, err := p.add(stream); err != nil {
+				msg := fmt.Sprintf("error processing stream for request %s: %v", requestID, err)
+				util.HandleError(errors.New(msg))
+				p.printError(msg)
+			} else if complete {
+				go h.portForward(p)
+			}
 		}
 	}
 }
 
-func waitForPortForwardDataStreamAndRun(pod string, uid types.UID, errorStream httpstream.Stream, dataStreamChan chan httpstream.Stream, host HostInterface) {
-	defer errorStream.Reset()
+// portForward invokes the portForwardStreamHandler's forwarder.PortForward
+// function for the given stream pair.
+func (h *portForwardStreamHandler) portForward(p *portForwardStreamPair) {
+	defer p.dataStream.Close()
+	defer p.errorStream.Close()
 
-	var dataStream httpstream.Stream
+	portString := p.dataStream.Headers().Get(api.PortHeader)
+	port, _ := strconv.ParseUint(portString, 10, 16)
 
-	select {
-	case dataStream = <-dataStreamChan:
-	case <-time.After(streamCreationTimeout):
-		errorStream.Write([]byte("Timed out waiting for data stream"))
-		//TODO delete from dataStreamChans[port]
-		return
+	glog.V(5).Infof("(conn=%p, request=%s) invoking forwarder.PortForward for port %s", h.conn, p.requestID, portString)
+	err := h.forwarder.PortForward(h.pod, h.uid, uint16(port), p.dataStream)
+	glog.V(5).Infof("(conn=%p, request=%s) done invoking forwarder.PortForward for port %s", h.conn, p.requestID, portString)
+
+	if err != nil {
+		msg := fmt.Errorf("error forwarding port %d to pod %s, uid %v: %v", port, h.pod, h.uid, err)
+		util.HandleError(msg)
+		fmt.Fprint(p.errorStream, msg.Error())
+	}
+}
+
+// portForwardStreamPair represents the error and data streams for a port
+// forwarding request.
+type portForwardStreamPair struct {
+	lock        sync.RWMutex
+	requestID   string
+	dataStream  httpstream.Stream
+	errorStream httpstream.Stream
+	complete    chan struct{}
+}
+
+// newPortForwardPair creates a new portForwardStreamPair.
+func newPortForwardPair(requestID string) *portForwardStreamPair {
+	return &portForwardStreamPair{
+		requestID: requestID,
+		complete:  make(chan struct{}),
+	}
+}
+
+// add adds the stream to the portForwardStreamPair. If the pair already
+// contains a stream for the new stream's type, an error is returned. add
+// returns true if both the data and error streams for this pair have been
+// received.
+func (p *portForwardStreamPair) add(stream httpstream.Stream) (bool, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	switch stream.Headers().Get(api.StreamType) {
+	case api.StreamTypeError:
+		if p.errorStream != nil {
+			return false, errors.New("error stream already assigned")
+		}
+		p.errorStream = stream
+	case api.StreamTypeData:
+		if p.dataStream != nil {
+			return false, errors.New("data stream already assigned")
+		}
+		p.dataStream = stream
 	}
 
-	portString := dataStream.Headers().Get(api.PortHeader)
-	port, _ := strconv.ParseUint(portString, 10, 16)
-	err := host.PortForward(pod, uid, uint16(port), dataStream)
-	if err != nil {
-		msg := fmt.Errorf("Error forwarding port %d to pod %s, uid %v: %v", port, pod, uid, err)
-		glog.Error(msg)
-		errorStream.Write([]byte(msg.Error()))
+	complete := p.errorStream != nil && p.dataStream != nil
+	if complete {
+		close(p.complete)
+	}
+	return complete, nil
+}
+
+// printError writes s to p.errorStream if p.errorStream has been set.
+func (p *portForwardStreamPair) printError(s string) {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	if p.errorStream != nil {
+		fmt.Fprint(p.errorStream, s)
 	}
 }
 

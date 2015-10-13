@@ -28,7 +28,9 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/fake"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
@@ -537,7 +539,7 @@ Scaling foo-v1 down to 0
 				down{oldReady: 10, newReady: 20, to: 0},
 			},
 			output: `Created foo-v2
-Scaling up foo-v2 from 0 to 20, scaling down foo-v1 from 10 to 0 (keep 10 pods available, don't exceed 40 pods)
+Scaling up foo-v2 from 0 to 20, scaling down foo-v1 from 10 to 0 (keep 10 pods available, don't exceed 70 pods)
 Scaling foo-v2 up to 20
 Scaling foo-v1 down to 0
 `,
@@ -816,7 +818,7 @@ func TestRollingUpdater_cleanupWithClients(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if len(fake.Actions()) != len(test.expected) {
-			t.Fatalf("%s: unexpected actions: %v, expected %v", test.name, fake.Actions, test.expected)
+			t.Fatalf("%s: unexpected actions: %v, expected %v", test.name, fake.Actions(), test.expected)
 		}
 		for j, action := range fake.Actions() {
 			if e, a := test.expected[j], action.GetVerb(); e != a {
@@ -1010,7 +1012,6 @@ func TestUpdateExistingReplicationController(t *testing.T) {
 
 func TestUpdateWithRetries(t *testing.T) {
 	codec := testapi.Default.Codec()
-	grace := int64(30)
 	rc := &api.ReplicationController{
 		ObjectMeta: api.ObjectMeta{Name: "rc",
 			Labels: map[string]string{
@@ -1027,11 +1028,7 @@ func TestUpdateWithRetries(t *testing.T) {
 						"foo": "bar",
 					},
 				},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec: apitesting.DeepEqualSafePodSpec(),
 			},
 		},
 	}
@@ -1052,9 +1049,9 @@ func TestUpdateWithRetries(t *testing.T) {
 		{StatusCode: 500, Body: objBody(codec, &api.ReplicationController{})},
 		{StatusCode: 200, Body: objBody(codec, rc)},
 	}
-	fakeClient := &client.FakeRESTClient{
+	fakeClient := &fake.RESTClient{
 		Codec: codec,
-		Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+		Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
 			case p == testapi.Default.ResourcePath("replicationcontrollers", "default", "rc") && m == "PUT":
 				update := updates[0]
@@ -1143,9 +1140,9 @@ func TestAddDeploymentHash(t *testing.T) {
 
 	seen := sets.String{}
 	updatedRc := false
-	fakeClient := &client.FakeRESTClient{
+	fakeClient := &fake.RESTClient{
 		Codec: codec,
-		Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+		Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
 			case p == testapi.Default.ResourcePath("pods", "default", "") && m == "GET":
 				if req.URL.RawQuery != "labelSelector=foo%3Dbar" {

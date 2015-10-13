@@ -26,6 +26,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	etcderr "k8s.io/kubernetes/pkg/api/errors/etcd"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/capabilities"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
@@ -147,12 +149,12 @@ func (r *BindingREST) Create(ctx api.Context, obj runtime.Object) (out runtime.O
 		return nil, errors.NewInvalid("binding", binding.Name, fielderrors.ValidationErrorList{fielderrors.NewFieldRequired("to.name")})
 	}
 	err = r.assignPod(ctx, binding.Name, binding.Target.Name, binding.Annotations)
-	out = &api.Status{Status: api.StatusSuccess}
+	out = &unversioned.Status{Status: unversioned.StatusSuccess}
 	return
 }
 
-// setPodHostAndAnnotations sets the given pod's host to 'machine' iff it was previously 'oldMachine' and merges
-// the provided annotations with those of the pod.
+// setPodHostAndAnnotations sets the given pod's host to 'machine' if and only if it was
+// previously 'oldMachine' and merges the provided annotations with those of the pod.
 // Returns the current state of the pod, or an error.
 func (r *BindingREST) setPodHostAndAnnotations(ctx api.Context, podID, oldMachine, machine string, annotations map[string]string) (finalPod *api.Pod, err error) {
 	podKey, err := r.store.KeyFunc(ctx, podID)
@@ -211,6 +213,7 @@ func (r *StatusREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object
 }
 
 // LogREST implements the log endpoint for a Pod
+// TODO: move me into pod/rest - I'm generic to store type via ResourceGetter
 type LogREST struct {
 	store       *etcdgeneric.Etcd
 	kubeletConn client.ConnectionInfoGetter
@@ -231,6 +234,9 @@ func (r *LogREST) Get(ctx api.Context, name string, opts runtime.Object) (runtim
 	if !ok {
 		return nil, fmt.Errorf("Invalid options object: %#v", opts)
 	}
+	if errs := validation.ValidatePodLogOptions(logOpts); len(errs) > 0 {
+		return nil, errors.NewInvalid("podlogs", name, errs)
+	}
 	location, transport, err := pod.LogLocation(r.store, r.kubeletConn, ctx, name, logOpts)
 	if err != nil {
 		return nil, err
@@ -249,6 +255,7 @@ func (r *LogREST) NewGetOptions() (runtime.Object, bool, string) {
 }
 
 // ProxyREST implements the proxy subresource for a Pod
+// TODO: move me into pod/rest - I'm generic to store type via ResourceGetter
 type ProxyREST struct {
 	store          *etcdgeneric.Etcd
 	proxyTransport http.RoundTripper
@@ -289,10 +296,11 @@ func (r *ProxyREST) Connect(ctx api.Context, id string, opts runtime.Object) (re
 	return newThrottledUpgradeAwareProxyHandler(location, transport, true, false), nil
 }
 
-// Support both GET and POST methods. We must support GET for browsers that want to use WebSockets.
+// Support both GET and POST methods. Over time, we want to move all clients to start using POST and then stop supporting GET.
 var upgradeableMethods = []string{"GET", "POST"}
 
 // AttachREST implements the attach subresource for a Pod
+// TODO: move me into pod/rest - I'm generic to store type via ResourceGetter
 type AttachREST struct {
 	store       *etcdgeneric.Etcd
 	kubeletConn client.ConnectionInfoGetter
@@ -330,6 +338,7 @@ func (r *AttachREST) ConnectMethods() []string {
 }
 
 // ExecREST implements the exec subresource for a Pod
+// TODO: move me into pod/rest - I'm generic to store type via ResourceGetter
 type ExecREST struct {
 	store       *etcdgeneric.Etcd
 	kubeletConn client.ConnectionInfoGetter
@@ -367,6 +376,7 @@ func (r *ExecREST) ConnectMethods() []string {
 }
 
 // PortForwardREST implements the portforward subresource for a Pod
+// TODO: move me into pod/rest - I'm generic to store type via ResourceGetter
 type PortForwardREST struct {
 	store       *etcdgeneric.Etcd
 	kubeletConn client.ConnectionInfoGetter

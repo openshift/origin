@@ -46,7 +46,7 @@ for a number of reasons:
   - User accounts are for humans.  Service accounts are for processes, which
     run in pods.
   - User accounts are intended to be global. Names must be unique across all
-    namespaces of a cluster, future user resource will not be namespaced).
+    namespaces of a cluster, future user resource will not be namespaced.
     Service accounts are namespaced.
   - Typically, a cluster's User accounts might be synced from a corporate
     database, where new user account creation requires special privileges and
@@ -84,7 +84,7 @@ TokenController runs as part of controller-manager. It acts asynchronously. It:
 - observes serviceAccount creation and creates a corresponding Secret to allow API access.
 - observes serviceAccount deletion and deletes all corresponding ServiceAccountToken Secrets
 - observes secret addition, and ensures the referenced ServiceAccount exists, and adds a token to the secret if needed
-- observes secret deleteion and removes a reference from the corresponding ServiceAccount if needed
+- observes secret deletion and removes a reference from the corresponding ServiceAccount if needed
 
 #### To create additional API tokens
 
@@ -96,14 +96,15 @@ account, and the controller will update it with a generated token:
 ```json
 secret.json:
 {
-	"kind": "Secret",
-	"metadata": {
-		"name": "mysecretname",
-		"annotations": {
-			"kubernetes.io/service-account.name": "myserviceaccount"
-		}
-	}
-	"type": "kubernetes.io/service-account-token"
+    "kind": "Secret",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "mysecretname",
+        "annotations": {
+            "kubernetes.io/service-account.name": "myserviceaccount"
+        }
+    },
+    "type": "kubernetes.io/service-account-token"
 }
 ```
 
@@ -117,6 +118,11 @@ kubectl describe secret mysecretname
 ```sh
 kubectl delete secret mysecretname
 ```
+
+### Service Account Controller
+
+Service Account Controller manages ServiceAccount inside namespaces, and ensures
+a ServiceAccount named "default" exists in every active namespace.
 
 
 <!-- BEGIN MUNGE: GENERATED_ANALYTICS -->
