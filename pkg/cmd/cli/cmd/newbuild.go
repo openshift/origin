@@ -40,7 +40,7 @@ You can use '%[1]s status' to check the progress.`
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world#beta2
 
   # Create a build config using a Dockerfile specified as an argument
-  $ %[1]s new-build -D $'FROM centos7\nRUN yum install -y apache'
+  $ %[1]s new-build -D $'FROM centos:7\nRUN yum install -y httpd'
 
   # Create a build config from a remote repository and add custom environment variables into resulting image
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development`
