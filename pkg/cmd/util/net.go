@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
+
+	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
 )
@@ -140,4 +143,57 @@ func TransportFor(ca string, certFile string, keyFile string) (http.RoundTripper
 	}
 
 	return &transport, nil
+}
+
+// GetCertificateFunc returns a function that can be used in tls.Config#GetCertificate
+// Returns nil if len(certs) == 0
+func GetCertificateFunc(certs map[string]*tls.Certificate) func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	if len(certs) == 0 {
+		return nil
+	}
+	// Replica of tls.Config#getCertificate logic
+	return func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		if clientHello == nil {
+			return nil, nil
+		}
+
+		name := clientHello.ServerName
+		name = strings.ToLower(name)
+		name = strings.TrimRight(name, ".")
+		for _, candidate := range HostnameMatchSpecCandidates(name) {
+			if cert, ok := certs[candidate]; ok {
+				return cert, nil
+			}
+		}
+		return nil, nil
+	}
+}
+
+// HostnameMatchSpecCandidates returns a list of match specs that would match the provided hostname
+// Returns nil if len(hostname) == 0
+func HostnameMatchSpecCandidates(hostname string) []string {
+	if len(hostname) == 0 {
+		return nil
+	}
+
+	// Exact match has priority
+	candidates := []string{hostname}
+
+	// Replace successive labels in the name with wildcards, to require an exact match on number of
+	// path segments, because certificates cannot wildcard multiple levels of subdomains
+	//
+	// This is primarily to be consistent with tls.Config#getCertificate implementation
+	//
+	// It using a cert signed for *.foo.example.com and *.bar.example.com by specifying the name *.*.example.com
+	labels := strings.Split(hostname, ".")
+	for i := range labels {
+		labels[i] = "*"
+		candidates = append(candidates, strings.Join(labels, "."))
+	}
+	return candidates
+}
+
+// HostnameMatches returns true if the given hostname is matched by the given matchSpec
+func HostnameMatches(hostname string, matchSpec string) bool {
+	return sets.NewString(HostnameMatchSpecCandidates(hostname)...).Has(matchSpec)
 }

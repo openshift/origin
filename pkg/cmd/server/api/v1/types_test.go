@@ -46,6 +46,7 @@ servingInfo:
   certFile: ""
   clientCA: ""
   keyFile: ""
+  namedCertificates: null
 volumeDirectory: ""
 `
 
@@ -76,6 +77,7 @@ assetConfig:
     clientCA: ""
     keyFile: ""
     maxRequestsInFlight: 0
+    namedCertificates: null
     requestTimeoutSeconds: 0
 controllerLeaseTTL: 0
 controllers: ""
@@ -98,12 +100,14 @@ etcdConfig:
     certFile: ""
     clientCA: ""
     keyFile: ""
+    namedCertificates: null
   servingInfo:
     bindAddress: ""
     bindNetwork: ""
     certFile: ""
     clientCA: ""
     keyFile: ""
+    namedCertificates: null
   storageDirectory: ""
 etcdStorageConfig:
   kubernetesStoragePrefix: ""
@@ -276,6 +280,10 @@ servingInfo:
   clientCA: ""
   keyFile: ""
   maxRequestsInFlight: 0
+  namedCertificates:
+  - certFile: ""
+    keyFile: ""
+    names: null
   requestTimeoutSeconds: 0
 `
 )
@@ -295,6 +303,11 @@ func TestNodeConfig(t *testing.T) {
 
 func TestMasterConfig(t *testing.T) {
 	config := &internal.MasterConfig{
+		ServingInfo: internal.HTTPServingInfo{
+			ServingInfo: internal.ServingInfo{
+				NamedCertificates: []internal.NamedCertificate{{}},
+			},
+		},
 		KubernetesMasterConfig: &internal.KubernetesMasterConfig{},
 		EtcdConfig:             &internal.EtcdConfig{},
 		OAuthConfig: &internal.OAuthConfig{

@@ -9,7 +9,7 @@ func ValidateAllInOneConfig(master *api.MasterConfig, node *api.NodeConfig) Vali
 
 	validationResults.Append(ValidateMasterConfig(master).Prefix("masterConfig"))
 
-	validationResults.AddErrors(ValidateNodeConfig(node).Prefix("nodeConfig")...)
+	validationResults.Append(ValidateNodeConfig(node).Prefix("nodeConfig"))
 
 	// Validation between the configs
 
