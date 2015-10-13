@@ -96,14 +96,18 @@ wait_for_command 'oc get pods -l deploymentconfig=openldap-server --template="${
 # TODO(skuznets): readiness check is premature
 sleep 10
 
+oc login -u system:admin -n openldap
+
+
 LDAP_SERVICE_IP=$(oc get --output-version=v1beta3 --template="{{ .spec.portalIP }}" service openldap-server)
 
 function compare_and_cleanup() {
 	validation_file=$1
-	oc get groups --no-headers -o name | sort | xargs -I{} oc export {} -o yaml >> ${WORKINGDIR}/tmp.txt
-	os::util::sed '/sync-time/d' ${WORKINGDIR}/tmp.txt
-	diff ${validation_file} ${WORKINGDIR}/tmp.txt
-	rm ${WORKINGDIR}/tmp.txt
+	actual_file=actual-${validation_file}.yaml
+	rm -f ${WORKINGDIR}/${actual_file} 
+	oc get groups --no-headers -o name | sort | xargs -I{} oc export {} -o yaml >> ${WORKINGDIR}/${actual_file}
+	os::util::sed '/sync-time/d' ${WORKINGDIR}/${actual_file}
+	diff ${validation_file} ${WORKINGDIR}/${actual_file}
 	oc delete groups --all
 	echo -e "\tSUCCESS"
 }
@@ -117,6 +121,8 @@ schema=('rfc2307' 'ad' 'augmented-ad')
 for (( i=0; i<${#schema[@]}; i++ )); do
 	current_schema=${schema[$i]}
 	echo "[INFO] Testing schema: ${current_schema}"
+
+	oc delete groups --all
 
 	WORKINGDIR=${BASETMPDIR}/${current_schema}
 	mkdir ${WORKINGDIR}
@@ -133,7 +139,7 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 
 	group1_osuid=$(awk 'NR == 1 {print $0}' osgroupuids.txt)
 	group2_osuid=$(awk 'NR == 2 {print $0}' osgroupuids.txt)
-	group3_osuid=$(awk 'NR == 2 {print $0}' osgroupuids.txt)
+	group3_osuid=$(awk 'NR == 3 {print $0}' osgroupuids.txt)
 
 	# update sync-configs and validation files with the LDAP server's IP
 	config_files=sync-config*.yaml
@@ -148,6 +154,8 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	openshift ex sync-groups --sync-config=sync-config.yaml --confirm || true 
 	compare_and_cleanup valid_all_ldap_sync.txt
 
+
+	# WHITELISTS
 	echo -e "\tTEST: Sync subset of LDAP groups from LDAP server using whitelist file"
 	openshift ex sync-groups --whitelist=whitelist_ldap.txt --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_whitelist_sync.txt
@@ -181,6 +189,29 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	openshift ex sync-groups --type=openshift ${group2_osuid} --whitelist=whitelist_openshift.txt --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_whitelist_union_sync.txt
 	
+
+	# BLACKLISTS
+	echo -e "\tTEST: Sync subset of LDAP groups from LDAP server using whitelist and blacklist file"
+	# openshift ex sync-groups --whitelist=ldapgroupuids.txt --blacklist=blacklist_ldap.txt --blacklist-group="${group1_ldapuid}" --sync-config=sync-config.yaml --confirm
+	openshift ex sync-groups --whitelist=ldapgroupuids.txt --blacklist=blacklist_ldap.txt --sync-config=sync-config.yaml --confirm
+	compare_and_cleanup valid_all_blacklist_sync.txt
+
+	echo -e "\tTEST: Sync subset of LDAP groups from LDAP server using blacklist"
+	# openshift ex sync-groups --blacklist=blacklist_ldap.txt --blacklist-group=${group1_ldapuid} --sync-config=sync-config.yaml --confirm
+	openshift ex sync-groups --blacklist=blacklist_ldap.txt --sync-config=sync-config.yaml --confirm
+	compare_and_cleanup valid_all_blacklist_sync.txt
+
+	echo -e "\tTEST: Sync subset of OpenShift groups from LDAP server using whitelist and blacklist file"
+	openshift ex sync-groups --sync-config=sync-config.yaml --confirm || true
+	oc patch group ${group1_osuid} -p 'users: []'
+	oc patch group ${group2_osuid} -p 'users: []'
+	oc patch group ${group3_osuid} -p 'users: []' || true
+	# openshift ex sync-groups --type=openshift --whitelist=osgroupuids.txt --blacklist=blacklist_openshift.txt --blacklist-group=${group1_osuid} --sync-config=sync-config.yaml --confirm
+	openshift ex sync-groups --type=openshift --whitelist=osgroupuids.txt --blacklist=blacklist_openshift.txt --sync-config=sync-config.yaml --confirm
+	compare_and_cleanup valid_all_openshift_blacklist_sync.txt
+	
+
+	# MAPPINGS
 	echo -e "\tTEST: Sync all LDAP groups from LDAP server using a user-defined mapping"
 	openshift ex sync-groups --sync-config=sync-config-user-defined.yaml --confirm || true
 	compare_and_cleanup valid_all_ldap_sync_user_defined.txt
