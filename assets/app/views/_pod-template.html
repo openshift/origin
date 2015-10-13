@@ -4,22 +4,27 @@
   imagesByDockerReference (optional)
   builds (optional)
  -->
-<div class="component-block pod-template-container">
-  <div class="component pod-template-block" ng-repeat="container in podTemplate.spec.containers">
+<div class="pod-template-container">
+  <div class="pod-template-block" ng-repeat="container in podTemplate.spec.containers">
     <div class="pod-template">
       <div class="component-label">Container: {{container.name}}</div>
-      <div ng-if="container.image" class="pod-template-image">
-        <span class="fa fa-cube" aria-hidden="true"></span>
-        Image: {{container.image | imageStreamName}}
-        <span ng-if="imagesByDockerReference[container.image]">
-          (<span class="small" title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name | stripSHAPrefix | limitTo: 7}}</span>)
-        </span>
+      <div row ng-if="container.image" class="pod-template-image icon-row">
+        <div>
+          <span class="pficon pficon-image" aria-hidden="true"></span> 
+        </div>
+        <div flex>
+          Image: {{container.image | imageStreamName}}
+          <span ng-if="imagesByDockerReference[container.image]">
+            (<span title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name | stripSHAPrefix | limitTo: 7}}</span>)
+          </span>
+        </div>
       </div>
       <div ng-if="imagesByDockerReference && container.image && (image = imagesByDockerReference[container.image])" class="pod-template-build">
-        <div ng-if="build = (image | buildForImage : builds)">
+        <div row class="icon-row" ng-if="build = (image | buildForImage : builds)">
           <div>
             <span class="fa fa-refresh" aria-hidden="true"></span>
-            Build:
+          </div> 
+          <div flex>Build:
             <span ng-if="(build | annotation : 'buildNumber') && build.metadata.labels.buildconfig">
               <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{build.metadata.labels.buildconfig}}/{{build.metadata.name}}">#{{build | annotation : 'buildNumber'}}</a>
             </span>
@@ -31,7 +36,7 @@
             </span>  
             <span ng-if="build.spec.source">
               from
-              <span class="fa fa-code" aria-hidden="true" style="margin-right: 0;"></span>
+              <span class="fa fa-code" aria-hidden="true"></span>
               <span>
                 <span ng-switch="build.spec.source.type">
                   <span ng-switch-when="Git">
@@ -54,21 +59,20 @@
                 </span>
               </span>
             </span>
-          </div>            
+          </div>         
         </div>
       </div>
 
-      <div ng-if="container.ports.length > 0" class="pod-template-ports">
-        <div class="font-icon-block">
-          <!-- TODO figure out why the font-icon-block does not align correctly when the class names are used instead
-               of the data-icons
-           -->
-          <span data-icon="" aria-hidden="true" class="font-icon"></span>
-          <span data-icon="" aria-hidden="true" class="font-icon"></span>
-        </div>Ports:
-        <span ng-repeat="port in container.ports | orderBy: 'containerPort'">
-          <span class="nowrap">{{port.containerPort}}&thinsp;({{port.protocol}})<span ng-if="port.hostPort">&thinsp;<span class="port-icon">&#8594;</span>&thinsp;{{port.hostPort}}</span></span><span ng-if="!$last">, </span>
-        </span>
+      <div row ng-if="container.ports.length > 0" class="pod-template-ports icon-row">
+        <div>
+          <span data-icon="" aria-hidden="true" style="font-size:16px;line-height:normal"></span>
+        </div>
+        <div flex>
+          Ports:
+          <span ng-repeat="port in container.ports | orderBy: 'containerPort'">
+            <span class="nowrap">{{port.containerPort}}&thinsp;({{port.protocol}})<span ng-if="port.hostPort">&thinsp;<span class="port-icon">&#8594;</span>&thinsp;{{port.hostPort}}</span></span><span ng-if="!$last">, </span>
+          </span>
+        </div>
       </div> 
 
       <div hawtio-extension name="container-links"></div>
