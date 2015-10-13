@@ -318,9 +318,21 @@ func (o *SyncGroupsOptions) GetGroupLister(syncBuilder SyncBuilder, clientConfig
 }
 
 func (o *SyncGroupsOptions) GetGroupNameMapper(syncBuilder SyncBuilder) (interfaces.LDAPGroupNameMapper, error) {
-	if len(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping) > 0 {
-		return syncgroups.NewUserDefinedGroupNameMapper(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping), nil
+	syncNameMapper, err := syncBuilder.GetGroupNameMapper()
+	if err != nil {
+		return nil, err
 	}
 
-	return syncBuilder.GetGroupNameMapper()
+	// if the mapping is specified, union the specified mapping with the default mapping.  The specified mapping is checked first
+	if len(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping) > 0 {
+		userDefinedMapper := syncgroups.NewUserDefinedGroupNameMapper(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
+
+		if syncNameMapper == nil {
+			return userDefinedMapper, nil
+		}
+
+		return &syncgroups.UnionGroupNameMapper{GroupNameMappers: []interfaces.LDAPGroupNameMapper{userDefinedMapper, syncNameMapper}}, nil
+	}
+
+	return syncNameMapper, nil
 }
