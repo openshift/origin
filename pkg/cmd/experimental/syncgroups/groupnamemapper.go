@@ -1,7 +1,10 @@
 package syncgroups
 
 import (
+	"errors"
 	"fmt"
+
+	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
@@ -62,4 +65,26 @@ type DNLDAPGroupNameMapper struct{}
 
 func (m *DNLDAPGroupNameMapper) GroupNameFor(ldapGroupUID string) (string, error) {
 	return ldapGroupUID, nil
+}
+
+type UnionGroupNameMapper struct {
+	GroupNameMappers []interfaces.LDAPGroupNameMapper
+}
+
+func (m *UnionGroupNameMapper) GroupNameFor(ldapGroupUID string) (string, error) {
+	if len(m.GroupNameMappers) == 0 {
+		return "", errors.New("no group name mappers defined")
+	}
+
+	errs := []error{}
+	for _, currMapper := range m.GroupNameMappers {
+		ret, err := currMapper.GroupNameFor(ldapGroupUID)
+		if err == nil {
+			return ret, nil
+		}
+
+		errs = append(errs, err)
+	}
+
+	return "", kutilerrors.NewAggregate(errs)
 }
