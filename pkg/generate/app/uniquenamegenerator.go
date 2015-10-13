@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
-// the opposite of kuval.DNS1123LabelFmt
+// the opposite of kvalidation.DNS1123LabelFmt
 var invalidNameCharactersRegexp = regexp.MustCompile("[^-a-z0-9]")
 
 // A UniqueNameGenerator is able to generate unique names from a given original

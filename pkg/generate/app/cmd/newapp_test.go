@@ -995,6 +995,7 @@ func TestRunBuilds(t *testing.T) {
 		config      *AppConfig
 		expected    map[string][]string
 		expectedErr func(error) bool
+		checkResult func(*AppResult) error
 	}{
 		{
 			name: "successful ruby app generation",
@@ -1038,7 +1039,7 @@ func TestRunBuilds(t *testing.T) {
 		{
 			name: "successful build from dockerfile",
 			config: &AppConfig{
-				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+				Dockerfile: "FROM openshift/origin:v1.0.6\nUSER foo",
 
 				dockerSearcher: dockerSearcher,
 				imageStreamSearcher: app.ImageStreamSearcher{
@@ -1066,8 +1067,138 @@ func TestRunBuilds(t *testing.T) {
 				originNamespace: "default",
 			},
 			expected: map[string][]string{
-				"buildConfig": {"origin-base"},
+				"buildConfig": {"origin"},
+				// There's a single image stream, but different tags: input from
+				// openshift/origin:v1.0.6, output to openshift/origin:latest.
+				"imageStream": {"origin"},
+			},
+		},
+		{
+			name: "successful build from dockerfile with custom name",
+			config: &AppConfig{
+				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+				Name:       "foobar",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"foobar"},
+				"imageStream": {"origin-base", "foobar"},
+			},
+		},
+		{
+			name: "successful build from dockerfile with --to",
+			config: &AppConfig{
+				Dockerfile: "FROM openshift/origin-base\nUSER foo",
+				Name:       "foobar",
+				To:         "destination/reference:tag",
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"foobar"},
+				"imageStream": {"origin-base", "reference"},
+			},
+		},
+		{
+			name: "successful build from dockerfile with --to and --to-docker=true",
+			config: &AppConfig{
+				Dockerfile:   "FROM openshift/origin-base\nUSER foo",
+				Name:         "foobar",
+				To:           "destination/reference:tag",
+				OutputDocker: true,
+
+				dockerSearcher: dockerSearcher,
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: &app.ImageStreamByAnnotationSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"buildConfig": {"foobar"},
 				"imageStream": {"origin-base"},
+			},
+			checkResult: func(res *AppResult) error {
+				for _, item := range res.List.Items {
+					switch t := item.(type) {
+					case *buildapi.BuildConfig:
+						got := t.Spec.Output.To
+						want := &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "destination/reference:tag",
+						}
+						if !reflect.DeepEqual(got, want) {
+							return fmt.Errorf("build.Spec.Output.To = %v; want %v", got, want)
+						}
+						return nil
+					}
+				}
+				return fmt.Errorf("BuildConfig not found; got %v", res.List.Items)
 			},
 		},
 		{
@@ -1139,6 +1270,12 @@ func TestRunBuilds(t *testing.T) {
 			if !reflect.DeepEqual(g, exp) {
 				t.Errorf("%s: Resource names mismatch! Expected %v, got %v", test.name, exp, g)
 				continue
+			}
+		}
+
+		if test.checkResult != nil {
+			if err := test.checkResult(res); err != nil {
+				t.Error(err)
 			}
 		}
 	}

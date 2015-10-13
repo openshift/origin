@@ -21,6 +21,8 @@ import (
 
 // A PipelineBuilder creates Pipeline instances.
 type PipelineBuilder interface {
+	To(string) PipelineBuilder
+
 	NewBuildPipeline(string, *ComponentMatch, *SourceRepository) (*Pipeline, error)
 	NewImagePipeline(string, *ComponentMatch) (*Pipeline, error)
 }
@@ -32,13 +34,23 @@ type PipelineBuilder interface {
 // environment. The boolean outputDocker controls whether builds will output to
 // an image stream tag or docker image reference.
 func NewPipelineBuilder(name string, environment Environment, outputDocker bool) PipelineBuilder {
-	return &pipelineBuilder{NewUniqueNameGenerator(name), environment, outputDocker}
+	return &pipelineBuilder{
+		nameGenerator: NewUniqueNameGenerator(name),
+		environment:   environment,
+		outputDocker:  outputDocker,
+	}
 }
 
 type pipelineBuilder struct {
 	nameGenerator UniqueNameGenerator
 	environment   Environment
 	outputDocker  bool
+	to            string
+}
+
+func (pb *pipelineBuilder) To(name string) PipelineBuilder {
+	pb.to = name
+	return pb
 }
 
 // NewBuildPipeline creates a new pipeline with components that are expected to
@@ -58,9 +70,30 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, resolvedMatch *Componen
 		return nil, fmt.Errorf("can't build %q: %v", from, err)
 	}
 
-	name, err := pb.nameGenerator.Generate(NameSuggestions{source, input})
-	if err != nil {
-		return nil, err
+	var name string
+	output := &ImageRef{
+		OutputImage:   true,
+		AsImageStream: !pb.outputDocker,
+	}
+	if len(pb.to) > 0 {
+		outputImageRef, err := image.ParseDockerImageReference(pb.to)
+		if err != nil {
+			return nil, err
+		}
+		output.Reference = outputImageRef
+		name, err = pb.nameGenerator.Generate(NameSuggestions{source, output, input})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		name, err = pb.nameGenerator.Generate(NameSuggestions{source, input})
+		if err != nil {
+			return nil, err
+		}
+		output.Reference = image.DockerImageReference{
+			Name: name,
+			Tag:  image.DefaultImageTag,
+		}
 	}
 	source.Name = name
 
@@ -81,14 +114,6 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, resolvedMatch *Componen
 		}
 	}
 
-	output := &ImageRef{
-		Reference: image.DockerImageReference{
-			Name: name,
-			Tag:  image.DefaultImageTag,
-		},
-		OutputImage:   true,
-		AsImageStream: !pb.outputDocker,
-	}
 	if input != nil {
 		// TODO: assumes that build doesn't change the image metadata. In the future
 		// we could get away with deferred generation possibly.
