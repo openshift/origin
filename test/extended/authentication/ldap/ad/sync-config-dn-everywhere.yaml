@@ -7,6 +7,6 @@ activeDirectory:
         baseDN: "ou=people,ou=ad,dc=example,dc=com"
         scope: sub
         derefAliases: never
-        filter: (objectclass=organizationalPerson)
-    groupMembershipAttributes: [ memberOf ]
-    userNameAttributes: [ mail ]
+        filter: (objectclass=inetOrgPerson)
+    groupMembershipAttributes: [ testMemberOf ]
+    userNameAttributes: [ dn ]
