@@ -195,6 +195,9 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 	if config.KubernetesMasterConfig != nil {
 		refs = append(refs, &config.KubernetesMasterConfig.SchedulerConfigFile)
+
+		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.CertFile)
+		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
 	}
 
 	refs = append(refs, &config.ServiceAccountConfig.MasterCA)

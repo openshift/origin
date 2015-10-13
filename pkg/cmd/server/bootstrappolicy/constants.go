@@ -24,6 +24,11 @@ const (
 	RouterUsername   = "system:" + RouterUnqualifiedUsername
 	RegistryUsername = "system:" + RegistryUnqualifiedUsername
 
+	// Not granted any API permissions, just an identity for a client certificate for the API proxy to use
+	// Should not be changed without considering impact to pods that may be verifying this identity by default
+	MasterProxyUnqualifiedUsername = "master-proxy"
+	MasterProxyUsername            = "system:" + MasterProxyUnqualifiedUsername
+
 	// Previous versions used this as the username for the master to connect to the kubelet
 	// This should remain in the default role bindings for the NodeAdmin role
 	LegacyMasterKubeletAdminClientUsername = "system:master"

@@ -126,6 +126,9 @@ kubernetesMasterConfig:
   masterCount: 0
   masterIP: ""
   podEvictionTimeout: ""
+  proxyClientInfo:
+    certFile: ""
+    keyFile: ""
   schedulerConfigFile: ""
   servicesNodePortRange: ""
   servicesSubnet: ""
