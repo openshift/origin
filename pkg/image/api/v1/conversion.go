@@ -5,8 +5,10 @@ import (
 	"sort"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/conversion"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -30,7 +32,11 @@ func convert_api_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Sco
 	out.DockerImageMetadata.RawJSON = data
 	out.DockerImageMetadataVersion = version
 
-	return nil
+	out.Finalizers = make([]kapiv1.FinalizerName, 0, 1)
+	if err := s.Convert(&in.Finalizers, &out.Finalizers, 0); err != nil {
+		return err
+	}
+	return s.Convert(&in.Status, &out.Status, 0)
 }
 
 func convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Scope) error {
@@ -60,6 +66,45 @@ func convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Sco
 	}
 	out.DockerImageMetadataVersion = version
 
+	out.Finalizers = make([]kapi.FinalizerName, 0, 1)
+	if err := s.Convert(&in.Finalizers, &out.Finalizers, 0); err != nil {
+		return err
+	}
+
+	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+		return err
+	}
+
+	if out.DeletionTimestamp == nil {
+		// make sure that finalizers contain origin
+		hasOriginFinalizer := false
+		for _, finalizer := range out.Finalizers {
+			if finalizer == oapi.FinalizerOrigin {
+				hasOriginFinalizer = true
+				break
+			}
+		}
+		if !hasOriginFinalizer {
+			out.Finalizers = append(out.Finalizers, oapi.FinalizerOrigin)
+		}
+		// phase need to match DeletionTimestamp
+		out.Status.Phase = newer.ImageAvailable
+	} else {
+		out.Status.Phase = newer.ImagePurging
+	}
+	return nil
+}
+
+func convert_api_ImageStatus_To_v1_ImageStatus(in *newer.ImageStatus, out *ImageStatus, s conversion.Scope) error {
+	out.Phase = in.Phase
+	return nil
+}
+
+func convert_v1_ImageStatus_To_api_ImageStatus(in *ImageStatus, out *newer.ImageStatus, s conversion.Scope) error {
+	out.Phase = in.Phase
+	if out.Phase == "" {
+		out.Phase = newer.ImageAvailable
+	}
 	return nil
 }
 
@@ -188,6 +233,8 @@ func init() {
 
 		convert_api_Image_To_v1_Image,
 		convert_v1_Image_To_api_Image,
+		convert_api_ImageStatus_To_v1_ImageStatus,
+		convert_v1_ImageStatus_To_api_ImageStatus,
 		convert_v1_ImageStreamSpec_To_api_ImageStreamSpec,
 		convert_api_ImageStreamSpec_To_v1_ImageStreamSpec,
 		convert_v1_ImageStreamStatus_To_api_ImageStreamStatus,

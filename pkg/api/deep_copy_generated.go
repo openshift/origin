@@ -1707,6 +1707,17 @@ func deepCopy_api_Image(in imageapi.Image, out *imageapi.Image, c *conversion.Cl
 	}
 	out.DockerImageMetadataVersion = in.DockerImageMetadataVersion
 	out.DockerImageManifest = in.DockerImageManifest
+	if in.Finalizers != nil {
+		out.Finalizers = make([]pkgapi.FinalizerName, len(in.Finalizers))
+		for i := range in.Finalizers {
+			out.Finalizers[i] = in.Finalizers[i]
+		}
+	} else {
+		out.Finalizers = nil
+	}
+	if err := deepCopy_api_ImageStatus(in.Status, &out.Status, c); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1731,6 +1742,11 @@ func deepCopy_api_ImageList(in imageapi.ImageList, out *imageapi.ImageList, c *c
 	} else {
 		out.Items = nil
 	}
+	return nil
+}
+
+func deepCopy_api_ImageStatus(in imageapi.ImageStatus, out *imageapi.ImageStatus, c *conversion.Cloner) error {
+	out.Phase = in.Phase
 	return nil
 }
 
@@ -2774,6 +2790,7 @@ func init() {
 		deepCopy_api_DockerImage,
 		deepCopy_api_Image,
 		deepCopy_api_ImageList,
+		deepCopy_api_ImageStatus,
 		deepCopy_api_ImageStream,
 		deepCopy_api_ImageStreamDeletion,
 		deepCopy_api_ImageStreamDeletionList,

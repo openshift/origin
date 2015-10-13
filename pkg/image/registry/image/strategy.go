@@ -32,6 +32,10 @@ func (imageStrategy) NamespaceScoped() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (imageStrategy) PrepareForCreate(obj runtime.Object) {
+	image := obj.(*api.Image)
+	image.Status = api.ImageStatus{
+		Phase: api.ImageAvailable,
+	}
 }
 
 // Validate validates a new image.
@@ -57,11 +61,54 @@ func (imageStrategy) PrepareForUpdate(obj, old runtime.Object) {
 	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
 	newImage.DockerImageManifest = oldImage.DockerImageManifest
 	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
+	newImage.Finalizers = oldImage.Finalizers
+	newImage.Status = newImage.Status
 }
 
 // ValidateUpdate is the default update validation for an end user.
 func (imageStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) errs.ValidationErrorList {
 	return validation.ValidateImageUpdate(old.(*api.Image), obj.(*api.Image))
+}
+
+type imageStatusStrategy struct {
+	imageStrategy
+}
+
+var StatusStrategy = imageStatusStrategy{Strategy}
+
+func (imageStatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newImage := obj.(*api.Image)
+	oldImage := old.(*api.Image)
+	newImage.DockerImageReference = oldImage.DockerImageReference
+	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
+	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
+	newImage.DockerImageManifest = oldImage.DockerImageManifest
+	newImage.Finalizers = oldImage.Finalizers
+}
+
+func (imageStatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+	return validation.ValidateImageStatusUpdate(obj.(*api.Image), old.(*api.Image))
+}
+
+type imageFinalizeStrategy struct {
+	imageStrategy
+}
+
+var FinalizeStrategy = imageFinalizeStrategy{Strategy}
+
+func (imageFinalizeStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+	return validation.ValidateImageFinalizeUpdate(obj.(*api.Image), old.(*api.Image))
+}
+
+// PrepareForUpdate clears fields that are not allowed to be set by end users on update.
+func (imageFinalizeStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newImage := obj.(*api.Image)
+	oldImage := old.(*api.Image)
+	newImage.DockerImageReference = oldImage.DockerImageReference
+	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
+	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
+	newImage.DockerImageManifest = oldImage.DockerImageManifest
+	newImage.Status = oldImage.Status
 }
 
 // MatchImage returns a generic matcher for a given label and field selector.
@@ -79,6 +126,7 @@ func MatchImage(label labels.Selector, field fields.Selector) generic.Matcher {
 // ImageToSelectableFields returns a label set that represents the object.
 func ImageToSelectableFields(image *api.Image) labels.Set {
 	return labels.Set{
-		"name": image.Name,
+		"name":         image.Name,
+		"status.phase": image.Status.Phase,
 	}
 }

@@ -136,9 +136,16 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			j.DockerImageMetadata.Kind = ""
 			j.DockerImageMetadataVersion = []string{"pre012", "1.0"}[c.Rand.Intn(2)]
 			j.DockerImageReference = c.RandString()
+			if j.DeletionTimestamp == nil {
+				j.Status.Phase = image.ImageAvailable
+				j.Finalizers = append(j.Finalizers, osapi.FinalizerOrigin)
+			} else {
+				j.Status.Phase = image.ImagePurging
+			}
 		},
 		func(j *image.ImageStreamMapping, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
+			c.Fuzz(&j.Image)
 			j.DockerImageRepository = ""
 		},
 		func(j *image.ImageStreamImage, c fuzz.Continue) {

@@ -11,11 +11,6 @@ type ProjectList struct {
 	Items []Project
 }
 
-const (
-	// These are internal finalizer values to Origin
-	FinalizerOrigin kapi.FinalizerName = "openshift.io/origin"
-)
-
 // ProjectSpec describes the attributes on a Project
 type ProjectSpec struct {
 	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage

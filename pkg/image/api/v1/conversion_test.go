@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/util"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	_ "github.com/openshift/origin/pkg/api/latest"
 	newer "github.com/openshift/origin/pkg/image/api"
 )
@@ -24,6 +25,10 @@ func TestRoundTripVersionedObject(t *testing.T) {
 
 		DockerImageMetadata:  *d,
 		DockerImageReference: "foo/bar/baz",
+		Finalizers:           []kapi.FinalizerName{oapi.FinalizerOrigin},
+		Status: newer.ImageStatus{
+			Phase: newer.ImageAvailable,
+		},
 	}
 
 	data, err := kapi.Scheme.EncodeToVersion(i, "v1")

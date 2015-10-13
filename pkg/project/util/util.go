@@ -6,13 +6,13 @@ import (
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/project/api"
+	oapi "github.com/openshift/origin/pkg/api"
 )
 
 // Associated returns true if the spec.finalizers contains the origin finalizer
 func Associated(namespace *kapi.Namespace) bool {
 	for i := range namespace.Spec.Finalizers {
-		if api.FinalizerOrigin == namespace.Spec.Finalizers[i] {
+		if oapi.FinalizerOrigin == namespace.Spec.Finalizers[i] {
 			return true
 		}
 	}
@@ -30,7 +30,7 @@ func Associate(kubeClient kclient.Interface, namespace *kapi.Namespace) (*kapi.N
 // Finalized returns true if the spec.finalizers does not contain the origin finalizer
 func Finalized(namespace *kapi.Namespace) bool {
 	for i := range namespace.Spec.Finalizers {
-		if api.FinalizerOrigin == namespace.Spec.Finalizers[i] {
+		if oapi.FinalizerOrigin == namespace.Spec.Finalizers[i] {
 			return false
 		}
 	}
@@ -75,9 +75,9 @@ func finalizeInternal(kubeClient kclient.Interface, namespace *kapi.Namespace, w
 	}
 
 	if withOrigin {
-		finalizerSet.Insert(string(api.FinalizerOrigin))
+		finalizerSet.Insert(string(oapi.FinalizerOrigin))
 	} else {
-		finalizerSet.Delete(string(api.FinalizerOrigin))
+		finalizerSet.Delete(string(oapi.FinalizerOrigin))
 	}
 
 	namespaceFinalize.Spec.Finalizers = make([]kapi.FinalizerName, 0, len(finalizerSet))

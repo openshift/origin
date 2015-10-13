@@ -49,3 +49,33 @@ func (c *FakeImages) Delete(name string) error {
 	_, err := c.Fake.Invokes(ktestclient.NewRootDeleteAction("images", name), &imageapi.Image{})
 	return err
 }
+
+func (c *FakeImages) UpdateStatus(inObj *imageapi.Image) (result *imageapi.Image, err error) {
+	action := ktestclient.CreateActionImpl{}
+	action.Verb = "update"
+	action.Resource = "images"
+	action.Subresource = "status"
+	action.Object = inObj
+
+	obj, err := c.Fake.Invokes(action, inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*imageapi.Image), err
+}
+
+func (c *FakeImages) Finalize(inObj *imageapi.Image) (*imageapi.Image, error) {
+	action := ktestclient.CreateActionImpl{}
+	action.Verb = "create"
+	action.Resource = "images"
+	action.Subresource = "finalize"
+	action.Object = inObj
+
+	obj, err := c.Fake.Invokes(action, inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*imageapi.Image), err
+}

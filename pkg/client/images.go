@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -18,6 +19,8 @@ type ImageInterface interface {
 	Get(name string) (*imageapi.Image, error)
 	Create(image *imageapi.Image) (*imageapi.Image, error)
 	Delete(name string) error
+	UpdateStatus(image *imageapi.Image) (*imageapi.Image, error)
+	Finalize(item *imageapi.Image) (*imageapi.Image, error)
 }
 
 // images implements ImagesInterface.
@@ -61,5 +64,23 @@ func (c *images) Create(image *imageapi.Image) (result *imageapi.Image, err erro
 // Delete deletes an image, returns error if one occurs.
 func (c *images) Delete(name string) (err error) {
 	err = c.r.Delete().Resource("images").Name(name).Do().Error()
+	return
+}
+
+// UpdateStatus updates the image's status. Returns the server's representation of the image, and an error, if it occurs.
+func (c *images) UpdateStatus(image *imageapi.Image) (result *imageapi.Image, err error) {
+	result = &imageapi.Image{}
+	err = c.r.Put().Resource("images").Name(image.Name).SubResource("status").Body(image).Do().Into(result)
+	return
+}
+
+// Finalize takes the representation of a image to update.  Returns the server's representation of the image, and an error, if it occurs.
+func (c *images) Finalize(image *imageapi.Image) (result *imageapi.Image, err error) {
+	result = &imageapi.Image{}
+	if len(image.ResourceVersion) == 0 {
+		err = fmt.Errorf("invalid update object, missing resource version: %v", image)
+		return
+	}
+	err = c.r.Put().Resource("images").Name(image.Name).SubResource("finalize").Body(image).Do().Into(result)
 	return
 }

@@ -48,14 +48,6 @@ func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
 	return fakeEtcdClient, helper, storage
 }
 
-func validImageStream() *api.ImageStream {
-	return &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: "test",
-		},
-	}
-}
-
 func validNewMappingWithName() *api.ImageStreamMapping {
 	return &api.ImageStreamMapping{
 		ObjectMeta: kapi.ObjectMeta{
@@ -76,6 +68,10 @@ func validNewMappingWithName() *api.ImageStreamMapping {
 					CPUShares:    99,
 					WorkingDir:   "/workingDir",
 				},
+			},
+			Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin},
+			Status: api.ImageStatus{
+				Phase: api.ImageAvailable,
 			},
 		},
 		Tag: "latest",

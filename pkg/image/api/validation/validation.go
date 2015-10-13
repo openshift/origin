@@ -2,14 +2,19 @@ package validation
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/docker/distribution/registry/api/v2"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/image/api"
 )
+
+var qualifiedNameErrorMsg string = fmt.Sprintf(`must be a qualified name (at most %d characters, matching regex %s), with an optional DNS subdomain prefix (at most %d characters, matching regex %s) and slash (/): e.g. "MyName" or "example.com/MyName"`, util.QualifiedNameMaxLength, util.QualifiedNameFmt, util.DNS1123SubdomainMaxLength, util.DNS1123SubdomainFmt)
 
 func ValidateImageStreamName(name string, prefix bool) (bool, string) {
 	if ok, reason := oapi.MinimalNameRequirements(name, prefix); !ok {
@@ -35,10 +40,18 @@ func ValidateImage(image *api.Image) fielderrors.ValidationErrorList {
 			result = append(result, fielderrors.NewFieldInvalid("dockerImageReference", image.DockerImageReference, err.Error()))
 		}
 	}
+	if image.Status.Phase != api.ImageAvailable && image.Status.Phase != api.ImagePurging {
+		result = append(result, fielderrors.NewFieldInvalid("status.phase", image.Status.Phase, fmt.Sprintf("phase is not one of valid phases (%s, %s)", api.ImageAvailable, api.ImagePurging)))
+	}
+	if image.DeletionTimestamp == nil && image.Status.Phase == api.ImagePurging {
+		result = append(result, fielderrors.NewFieldInvalid("status.phase", image.Status.Phase, fmt.Sprintf("%s phase is valid  only when DeletionTimestamp is set", api.ImagePurging)))
+
+	}
 
 	return result
 }
 
+// ValidateImageUpdate validates an update of image
 func ValidateImageUpdate(newImage, oldImage *api.Image) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 
@@ -46,6 +59,58 @@ func ValidateImageUpdate(newImage, oldImage *api.Image) fielderrors.ValidationEr
 	result = append(result, ValidateImage(newImage)...)
 
 	return result
+}
+
+// ValidateImageStatusUpdate tests required fields for an Image status update.
+func ValidateImageStatusUpdate(newImage, oldImage *api.Image) fielderrors.ValidationErrorList {
+	result := fielderrors.ValidationErrorList{}
+	result = append(result, validation.ValidateObjectMetaUpdate(&newImage.ObjectMeta, &oldImage.ObjectMeta).Prefix("metadata")...)
+	if newImage.Status.Phase != api.ImageAvailable && newImage.Status.Phase != api.ImagePurging {
+		result = append(result, fielderrors.NewFieldInvalid("status.phase", newImage.Status.Phase, fmt.Sprintf("phase is not one of valid phases (%s, %s)", api.ImageAvailable, api.ImagePurging)))
+	}
+	if newImage.DeletionTimestamp == nil && newImage.Status.Phase == api.ImagePurging {
+		result = append(result, fielderrors.NewFieldInvalid("status.phase", newImage.Status.Phase, fmt.Sprintf("%s phase is valid only when DeletionTimestamp is set", api.ImagePurging)))
+
+	}
+
+	newImage.DockerImageReference = oldImage.DockerImageReference
+	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
+	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
+	newImage.DockerImageManifest = oldImage.DockerImageManifest
+	newImage.Finalizers = oldImage.Finalizers
+	return result
+}
+
+// ValidateImageFinalizeUpdate tests to see if the update is legal for an end user to make.
+// newImage is updated with fields that cannot be changed.
+func ValidateImageFinalizeUpdate(newImage, oldImage *api.Image) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newImage.ObjectMeta, &oldImage.ObjectMeta).Prefix("metadata")...)
+	for i := range newImage.Finalizers {
+		allErrs = append(allErrs, validateFinalizerName(string(newImage.Finalizers[i]))...)
+	}
+	newImage.DockerImageReference = oldImage.DockerImageReference
+	newImage.DockerImageMetadata = oldImage.DockerImageMetadata
+	newImage.DockerImageMetadataVersion = oldImage.DockerImageMetadataVersion
+	newImage.DockerImageManifest = oldImage.DockerImageManifest
+	newImage.Status = oldImage.Status
+	return allErrs
+}
+
+// validateFinalizerName validates finalizer names
+func validateFinalizerName(stringValue string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if !util.IsQualifiedName(stringValue) {
+		return append(allErrs, fielderrors.NewFieldInvalid("finalizers", stringValue, qualifiedNameErrorMsg))
+	}
+
+	if strings.Index(stringValue, "/") < 0 && !kapi.IsStandardFinalizerName(stringValue) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("finalizers", stringValue, fmt.Sprintf("finalizer name is neither a standard finalizer name nor is it fully qualified")))
+	} else if strings.Index(stringValue, "/") >= 0 && stringValue != string(oapi.FinalizerOrigin) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("finalizers", stringValue, fmt.Sprintf("is fully qualified and doesn't match %s", oapi.FinalizerOrigin)))
+	}
+
+	return allErrs
 }
 
 // ValidateImageStream tests required fields for an ImageStream.

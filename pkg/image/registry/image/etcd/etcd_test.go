@@ -18,13 +18,14 @@ import (
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
-	"k8s.io/kubernetes/pkg/util"
+	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/image"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we
@@ -69,15 +70,15 @@ func newHelper(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	return fakeEtcdClient, helper
 }
 
-func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
+func newStorage(t *testing.T) (*REST, *StatusREST, *FinalizeREST, *tools.FakeEtcdClient) {
 	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "")
-	return NewREST(etcdStorage), fakeClient
+	rest, statusRest, finalizeRest := NewREST(etcdStorage)
+	return rest, statusRest, finalizeRest, fakeClient
 }
 
 func TestStorage(t *testing.T) {
 	_, helper := newHelper(t)
-	storage := NewREST(helper)
-	image.NewRegistry(storage)
+	image.NewRegistry(NewREST(helper))
 }
 
 func validNewImage() *api.Image {
@@ -86,11 +87,13 @@ func validNewImage() *api.Image {
 			Name: "foo",
 		},
 		DockerImageReference: "openshift/origin",
+		Finalizers:           []kapi.FinalizerName{oapi.FinalizerOrigin},
+		Status:               api.ImageStatus{Phase: api.ImageAvailable},
 	}
 }
 
 func TestCreate(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.store).ClusterScope()
 	image := validNewImage()
 	image.ObjectMeta = kapi.ObjectMeta{GenerateName: "foo"}
@@ -105,7 +108,7 @@ func TestCreate(t *testing.T) {
 func TestCreateRegistryError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("test error")
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	image := validNewImage()
 	_, err := storage.Create(kapi.NewDefaultContext(), image)
@@ -118,7 +121,7 @@ func TestCreateAlreadyExists(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.TestIndex = true
 
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	existingImage := &api.Image{
 		ObjectMeta: kapi.ObjectMeta{
@@ -154,7 +157,7 @@ func TestCreateAlreadyExists(t *testing.T) {
 func TestListError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("test error")
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 	images, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != fakeEtcdClient.Err {
 		t.Fatalf("Expected %#v, Got %#v", fakeEtcdClient.Err, err)
@@ -171,7 +174,7 @@ func TestListEmptyList(t *testing.T) {
 		R: &etcd.Response{},
 		E: fakeEtcdClient.NewError(tools.EtcdErrorCodeNotFound),
 	}
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 	images, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
@@ -199,7 +202,7 @@ func TestListPopulatedList(t *testing.T) {
 		},
 	}
 
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	list, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
@@ -241,7 +244,7 @@ func TestListFiltered(t *testing.T) {
 		},
 		E: nil,
 	}
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 	list, err := storage.List(kapi.NewDefaultContext(), labels.SelectorFromSet(labels.Set{"env": "dev"}), fields.Everything())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -255,7 +258,7 @@ func TestListFiltered(t *testing.T) {
 
 func TestCreateMissingID(t *testing.T) {
 	_, helper := newHelper(t)
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	obj, err := storage.Create(kapi.NewDefaultContext(), &api.Image{})
 	if obj != nil {
@@ -268,7 +271,7 @@ func TestCreateMissingID(t *testing.T) {
 
 func TestCreateOK(t *testing.T) {
 	_, helper := newHelper(t)
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	obj, err := storage.Create(kapi.NewDefaultContext(), &api.Image{
 		ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
@@ -293,7 +296,7 @@ func TestCreateOK(t *testing.T) {
 func TestGetError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("bad")
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	image, err := storage.Get(kapi.NewDefaultContext(), "foo")
 	if image != nil {
@@ -306,7 +309,7 @@ func TestGetError(t *testing.T) {
 
 func TestGetNotFound(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 	fakeEtcdClient.Data["/images/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: nil,
@@ -336,7 +339,7 @@ func TestGetOK(t *testing.T) {
 			},
 		},
 	}
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	image, err := storage.Get(kapi.NewDefaultContext(), "foo")
 	if image == nil {
@@ -355,27 +358,114 @@ func TestDelete(t *testing.T) {
 	fakeEtcdClient.Data["/images/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.Image{}),
+				Value: runtime.EncodeOrDie(latest.Codec, validNewImage()),
 			},
 		},
 	}
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
+	if obj == nil {
+		t.Error("Unexpected nil obj")
+	}
+	if err != nil {
+		t.Fatalf("Unexpected non-nil error: %#v", err)
+	}
 
+	_, ok := obj.(*api.Image)
+	if !ok {
+		t.Fatalf("Expected image type, got: %#v", obj)
+	}
+
+	// try to delete it second time
+	obj, err = storage.Delete(kapi.NewDefaultContext(), "foo", nil)
+	if obj != nil {
+		t.Errorf("Unexpected non-nil obj: %#v", obj)
+	}
+	if err == nil {
+		t.Errorf("Unexpected non error")
+	}
+	if !errors.IsNotFound(err) {
+		t.Errorf("Expected 'not found' error, got %#v", err)
+	}
+
+	if len(fakeEtcdClient.DeletedKeys) != 1 {
+		t.Errorf("Expected 1 delete, found %#v", fakeEtcdClient.DeletedKeys)
+	} else if key := "/images/foo"; fakeEtcdClient.DeletedKeys[0] != key {
+		t.Errorf("Unexpected key: %s, expected %s", fakeEtcdClient.DeletedKeys[0], key)
+	}
+}
+
+func TestDeleteInternallyManagedImage(t *testing.T) {
+	fakeEtcdClient, helper := newHelper(t)
+	img := validNewImage()
+	img.Annotations = map[string]string{api.ManagedByOpenShiftAnnotation: "true"}
+	fakeEtcdClient.Data["/images/foo"] = tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{
+				Value:         runtime.EncodeOrDie(latest.Codec, img),
+				ModifiedIndex: 2,
+			},
+		},
+	}
+	storage, _, finalizeStorage := NewREST(helper)
+
+	// first delete - causes just an update of image's status
+	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
 	if obj == nil {
 		t.Error("Unexpected nil obj")
 	}
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}
-
-	status, ok := obj.(*kapi.Status)
+	image, ok := obj.(*api.Image)
 	if !ok {
-		t.Fatalf("Expected status type, got: %#v", obj)
+		t.Fatalf("Expected image type, got: %#v", obj)
 	}
-	if status.Status != kapi.StatusSuccess {
-		t.Errorf("Expected status=success, got: %#v", status)
+
+	// second delete without finalization shall result in conflict
+	obj, err = storage.Delete(kapi.NewDefaultContext(), "foo", nil)
+	if obj != nil {
+		t.Error("Unexpected non-nil obj")
+	}
+	if err == nil {
+		t.Fatalf("Unexpected nil error")
+	}
+	if !errors.IsConflict(err) {
+		t.Fatalf("Expected conflict error, got: %#v", err)
+	}
+
+	// finalize the image
+	if util.ImageFinalized(image) {
+		t.Fatalf("Expected image to have incomplete finalizers")
+	}
+	image.Finalizers = nil
+	obj, _, err = finalizeStorage.Update(kapi.NewDefaultContext(), image)
+	if obj == nil {
+		t.Error("Unexpected nil obj")
+	}
+	if err != nil {
+		t.Fatalf("Unexpected non-nil error: %#v", err)
+	}
+	image, ok = obj.(*api.Image)
+	if !ok {
+		t.Fatalf("Expected image type, got: %#v", obj)
+	}
+	if !util.ImageFinalized(image) {
+		t.Fatalf("Expected image to be finalized")
+	}
+
+	// delete after finalization shall succeed
+	obj, err = storage.Delete(kapi.NewDefaultContext(), "foo", nil)
+	if obj == nil {
+		t.Error("Unexpected nil obj")
+	}
+	if err != nil {
+		t.Fatalf("Unexpected non-nil error: %#v", err)
+	}
+	_, ok = obj.(*api.Image)
+	if !ok {
+		t.Fatalf("Expected image type, got: %#v", obj)
 	}
 	if len(fakeEtcdClient.DeletedKeys) != 1 {
 		t.Errorf("Expected 1 delete, found %#v", fakeEtcdClient.DeletedKeys)
@@ -387,7 +477,7 @@ func TestDelete(t *testing.T) {
 func TestDeleteNotFound(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = tools.EtcdErrorNotFound
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 	_, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
 	if err == nil {
 		t.Error("Unexpected non-error")
@@ -400,7 +490,7 @@ func TestDeleteNotFound(t *testing.T) {
 func TestDeleteImageError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("Some error")
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 	_, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
 	if err == nil {
 		t.Error("Unexpected non-error")
@@ -409,7 +499,7 @@ func TestDeleteImageError(t *testing.T) {
 
 func TestWatchErrorWithFieldSet(t *testing.T) {
 	_, helper := newHelper(t)
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	_, err := storage.Watch(kapi.NewDefaultContext(), labels.Everything(), fields.SelectorFromSet(fields.Set{"foo": "bar"}), "1")
 	if err == nil {
@@ -422,7 +512,7 @@ func TestWatchErrorWithFieldSet(t *testing.T) {
 
 func TestWatchOK(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 
 	var tests = []struct {
 		label    labels.Selector
@@ -432,9 +522,9 @@ func TestWatchOK(t *testing.T) {
 		{
 			labels.Everything(),
 			[]*api.Image{
-				{ObjectMeta: kapi.ObjectMeta{Name: "a"}, DockerImageMetadata: api.DockerImage{}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "b"}, DockerImageMetadata: api.DockerImage{}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "c"}, DockerImageMetadata: api.DockerImage{}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "a"}, DockerImageMetadata: api.DockerImage{}, Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin}, Status: api.ImageStatus{Phase: api.ImageAvailable}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b"}, DockerImageMetadata: api.DockerImage{}, Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin}, Status: api.ImageStatus{Phase: api.ImageAvailable}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c"}, DockerImageMetadata: api.DockerImage{}, Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin}, Status: api.ImageStatus{Phase: api.ImageAvailable}},
 			},
 			[]bool{
 				true,
@@ -445,9 +535,9 @@ func TestWatchOK(t *testing.T) {
 		{
 			labels.SelectorFromSet(labels.Set{"color": "blue"}),
 			[]*api.Image{
-				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: api.DockerImage{}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "b", Labels: map[string]string{"color": "green"}}, DockerImageMetadata: api.DockerImage{}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: api.DockerImage{}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "a", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: api.DockerImage{}, Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin}, Status: api.ImageStatus{Phase: api.ImageAvailable}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "b", Labels: map[string]string{"color": "green"}}, DockerImageMetadata: api.DockerImage{}, Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin}, Status: api.ImageStatus{Phase: api.ImageAvailable}},
+				{ObjectMeta: kapi.ObjectMeta{Name: "c", Labels: map[string]string{"color": "blue"}}, DockerImageMetadata: api.DockerImage{}, Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin}, Status: api.ImageStatus{Phase: api.ImageAvailable}},
 			},
 			[]bool{
 				true,
@@ -485,7 +575,7 @@ func TestWatchOK(t *testing.T) {
 				}
 				image.DockerImageMetadataVersion = "1.0"
 				if e, a := image, event.Object; !reflect.DeepEqual(e, a) {
-					t.Errorf("Objects did not match: %s", util.ObjectDiff(e, a))
+					t.Errorf("Objects did not match: %s", kutil.ObjectDiff(e, a))
 				}
 			case <-time.After(50 * time.Millisecond):
 				if tt.expected[testIndex] {
@@ -522,7 +612,7 @@ func (fakeStrategy) PrepareForCreate(obj runtime.Object) {
 
 func TestStrategyPrepareMethods(t *testing.T) {
 	_, helper := newHelper(t)
-	storage := NewREST(helper)
+	storage, _, _ := NewREST(helper)
 	img := validNewImage()
 	strategy := fakeStrategy{image.Strategy}
 

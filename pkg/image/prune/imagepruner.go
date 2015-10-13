@@ -280,6 +280,10 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 			glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", image.Name, image.DockerImageReference)
 			continue
 		}
+		if image.Status.Phase == imageapi.ImagePurging {
+			glog.V(4).Infof("Image %q with DockerImageReference %q already marked for deletion", image.Name, image.DockerImageReference)
+			continue
+		}
 
 		age := util.Now().Sub(image.CreationTimestamp.Time)
 		if age < algorithm.keepYoungerThan {
@@ -869,7 +873,7 @@ func NewDeletingImagePruner(images client.ImageInterface) ImagePruner {
 }
 
 func (p *deletingImagePruner) PruneImage(image *imageapi.Image) error {
-	glog.V(4).Infof("Deleting image %q", image.Name)
+	glog.V(4).Infof("Marking image %q for deletion", image.Name)
 	return p.images.Delete(image.Name)
 }
 

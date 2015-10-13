@@ -5,6 +5,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/project/api/validation"
 )
@@ -29,16 +30,16 @@ func (projectStrategy) PrepareForCreate(obj runtime.Object) {
 	project := obj.(*api.Project)
 	hasProjectFinalizer := false
 	for i := range project.Spec.Finalizers {
-		if project.Spec.Finalizers[i] == api.FinalizerOrigin {
+		if project.Spec.Finalizers[i] == oapi.FinalizerOrigin {
 			hasProjectFinalizer = true
 			break
 		}
 	}
 	if !hasProjectFinalizer {
 		if len(project.Spec.Finalizers) == 0 {
-			project.Spec.Finalizers = []kapi.FinalizerName{api.FinalizerOrigin}
+			project.Spec.Finalizers = []kapi.FinalizerName{oapi.FinalizerOrigin}
 		} else {
-			project.Spec.Finalizers = append(project.Spec.Finalizers, api.FinalizerOrigin)
+			project.Spec.Finalizers = append(project.Spec.Finalizers, oapi.FinalizerOrigin)
 		}
 	}
 }

@@ -375,8 +375,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
-	imageStorage := imageetcd.NewREST(c.EtcdHelper)
-	imageRegistry := image.NewRegistry(imageStorage)
+	imageStorage, imageStatusStorage, imageFinalizeStorage := imageetcd.NewREST(c.EtcdHelper)
+	imageRegistry := image.NewRegistry(imageStorage, imageStatusStorage, imageFinalizeStorage)
 	imageStreamStorage, imageStreamStatusStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
@@ -437,6 +437,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	storage := map[string]rest.Storage{
 		"images":               imageStorage,
+		"images/status":        imageStatusStorage,
+		"images/finalize":      imageStreamFinalizeStorage,
 		"imageStreams":         imageStreamStorage,
 		"imageStreams/status":  imageStreamStatusStorage,
 		"imageStreamImages":    imageStreamImageStorage,

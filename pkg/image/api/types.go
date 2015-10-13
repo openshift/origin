@@ -29,6 +29,20 @@ const (
 	DefaultImageTag = "latest"
 )
 
+// ImageStatus is information about the current status of an Image.
+type ImageStatus struct {
+	// Phase is the current lifecycle phase of the image.
+	Phase string
+}
+
+// These are the valid phases of an image.
+const (
+	// ImageActive means the image is available for use in the system
+	ImageAvailable string = "Available"
+	// ImagePurging means the image is going to be deleted during next run of registry's pruner
+	ImagePurging string = "Purging"
+)
+
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
 	kapi.TypeMeta
@@ -42,6 +56,10 @@ type Image struct {
 	DockerImageMetadataVersion string
 	// The raw JSON of the manifest
 	DockerImageManifest string
+	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage
+	Finalizers []kapi.FinalizerName
+	// Status describes the current status of an Image
+	Status ImageStatus
 }
 
 // ImageStreamList is a list of ImageStream objects.

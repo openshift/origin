@@ -15,6 +15,9 @@ func TestValidateImageOK(t *testing.T) {
 	errs := ValidateImage(&api.Image{
 		ObjectMeta:           kapi.ObjectMeta{Name: "foo"},
 		DockerImageReference: "openshift/ruby-19-centos",
+		Status: api.ImageStatus{
+			Phase: api.ImageAvailable,
+		},
 	})
 	if len(errs) > 0 {
 		t.Errorf("Unexpected non-empty error list: %#v", errs)

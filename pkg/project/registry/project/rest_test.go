@@ -21,6 +21,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
 )
 
@@ -36,7 +37,7 @@ func TestProjectStrategy(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Name: "foo", ResourceVersion: "10"},
 	}
 	Strategy.PrepareForCreate(project)
-	if len(project.Spec.Finalizers) != 1 || project.Spec.Finalizers[0] != api.FinalizerOrigin {
+	if len(project.Spec.Finalizers) != 1 || project.Spec.Finalizers[0] != oapi.FinalizerOrigin {
 		t.Errorf("Prepare For Create should have added project finalizer")
 	}
 	errs := Strategy.Validate(ctx, project)
@@ -48,7 +49,7 @@ func TestProjectStrategy(t *testing.T) {
 	}
 	// ensure we copy spec.finalizers from old to new
 	Strategy.PrepareForUpdate(invalidProject, project)
-	if len(invalidProject.Spec.Finalizers) != 1 || invalidProject.Spec.Finalizers[0] != api.FinalizerOrigin {
+	if len(invalidProject.Spec.Finalizers) != 1 || invalidProject.Spec.Finalizers[0] != oapi.FinalizerOrigin {
 		t.Errorf("PrepareForUpdate should have preserved old.spec.finalizers")
 	}
 	errs = Strategy.ValidateUpdate(ctx, invalidProject, project)

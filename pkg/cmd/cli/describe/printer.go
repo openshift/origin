@@ -28,7 +28,7 @@ import (
 var (
 	buildColumns            = []string{"NAME", "TYPE", "FROM", "STATUS", "STARTED"}
 	buildConfigColumns      = []string{"NAME", "TYPE", "FROM", "LATEST"}
-	imageColumns            = []string{"NAME", "DOCKER REF"}
+	imageColumns            = []string{"NAME", "DOCKER REF", "STATUS"}
 	imageStreamTagColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
@@ -282,7 +282,7 @@ func printBuildConfigList(buildList *buildapi.BuildConfigList, w io.Writer, with
 }
 
 func printImage(image *imageapi.Image, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
-	_, err := fmt.Fprintf(w, "%s\t%s\n", image.Name, image.DockerImageReference)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\n", image.Name, image.DockerImageReference, image.Status.Phase)
 	return err
 }
 

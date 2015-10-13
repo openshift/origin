@@ -15,6 +15,20 @@ type ImageList struct {
 	Items []Image `json:"items" description:"list of image objects"`
 }
 
+// ImageStatus is an information about the current status of an Image.
+type ImageStatus struct {
+	// Phase is the current lifecycle phase of the image.
+	Phase string `json:"phase,omitempty" description:"current lifecycle phase of the image"`
+}
+
+// These are the valid phases of an image.
+const (
+	// ImageActive means the image is available for use in the system
+	ImageAvailable string = "Available"
+	// ImagePurging means the image is going to be deleted during next run of registry's pruner
+	ImagePurging string = "Purging"
+)
+
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
 	kapi.TypeMeta   `json:",inline"`
@@ -28,6 +42,10 @@ type Image struct {
 	DockerImageMetadataVersion string `json:"dockerImageMetadataVersion,omitempty" description:"conveys version of the object, if empty defaults to '1.0'"`
 	// DockerImageManifest is the raw JSON of the manifest
 	DockerImageManifest string `json:"dockerImageManifest,omitempty" description:"raw JSON of the manifest"`
+	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage
+	Finalizers []kapi.FinalizerName `json:"finalizers,omitempty" description:"opaque list of values that must be empty to permanently remove object from storage"`
+	// Status describes the current status of an Image
+	Status ImageStatus `json:"status,omitempty" description:"current status of an Image"`
 }
 
 // ImageStreamList is a list of ImageStream objects.

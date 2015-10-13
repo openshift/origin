@@ -2,25 +2,30 @@ package etcd
 
 import (
 	"errors"
+	"fmt"
 
-	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/registry/image"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	etcdgeneric "k8s.io/kubernetes/pkg/registry/generic/etcd"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
+
+	"github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/registry/image"
 )
 
 // REST implements a RESTStorage for images against etcd.
 type REST struct {
-	store *etcdgeneric.Etcd
+	store  *etcdgeneric.Etcd
+	status *etcdgeneric.Etcd
 }
 
 // NewREST returns a new REST.
-func NewREST(s storage.Interface) *REST {
+func NewREST(s storage.Interface) (*REST, *StatusREST, *FinalizeREST) {
 	prefix := "/images"
 	store := &etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.Image{} },
@@ -41,11 +46,18 @@ func NewREST(s storage.Interface) *REST {
 		CreateStrategy: image.Strategy,
 		UpdateStrategy: image.Strategy,
 
-		ReturnDeletedObject: false,
+		ReturnDeletedObject: true,
 
 		Storage: s,
 	}
-	return &REST{store: store}
+
+	statusStore := *store
+	statusStore.UpdateStrategy = image.StatusStrategy
+
+	finalizeStore := *store
+	finalizeStore.UpdateStrategy = image.FinalizeStrategy
+
+	return &REST{store: store, status: &statusStore}, &StatusREST{store: &statusStore}, &FinalizeREST{store: &finalizeStore}
 }
 
 // New returns a new object
@@ -88,5 +100,64 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 
 // Delete deletes an existing image specified by its ID.
 func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
-	return r.store.Delete(ctx, name, options)
+	imgObj, err := r.Get(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	img := imgObj.(*api.Image)
+	// TODO: don't treat external images differently here -- take care of them with image controller
+	isExternal := false
+	if img.Annotations == nil {
+		isExternal = true
+	} else if value, ok := img.Annotations[api.ManagedByOpenShiftAnnotation]; !ok || value != "true" {
+		isExternal = true
+	}
+	if isExternal {
+		return r.store.Delete(ctx, name, nil)
+	}
+
+	// upon first request to delete an internally managed image, we switch the phase to start image termination
+	if img.DeletionTimestamp.IsZero() {
+		now := util.Now()
+		img.DeletionTimestamp = &now
+		img.Status.Phase = api.ImagePurging
+		result, _, err := r.status.Update(ctx, img)
+		return result, err
+	}
+
+	// prior to final deletion, we must ensure that finalizers is empty
+	if len(img.Finalizers) != 0 {
+		err = kapierrors.NewConflict("Image", img.Name, fmt.Errorf("The system is deleting image layers. Upon completion, this image will automatically be purged."))
+		return nil, err
+	}
+	return r.store.Delete(ctx, name, nil)
+}
+
+// StatusREST implements the REST endpoint for changing the status of an image.
+type StatusREST struct {
+	store *etcdgeneric.Etcd
+}
+
+func (r *StatusREST) New() runtime.Object {
+	return r.store.New()
+}
+
+// Update alters the status subset of an object.
+func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
+}
+
+// FinalizeREST implements the REST endpoint for finalizing an image.
+type FinalizeREST struct {
+	store *etcdgeneric.Etcd
+}
+
+func (r *FinalizeREST) New() runtime.Object {
+	return r.store.New()
+}
+
+// Update alters the status finalizers subset of an object.
+func (r *FinalizeREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
 }
