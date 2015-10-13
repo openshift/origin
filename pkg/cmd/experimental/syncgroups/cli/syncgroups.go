@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -281,9 +282,29 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		Err: os.Stderr,
 	}
 
-	syncer.GroupLister, err = o.GetGroupLister(syncBuilder, clientConfig)
-	if err != nil {
-		return err
+	switch o.Source {
+	case GroupSyncSourceOpenShift:
+		// when your source of ldapGroupUIDs is from an openshift group, the mapping of ldapGroupUID to openshift group name is logically
+		// pinned by the existing mapping.
+		listerMapper, err := o.GetOpenShiftGroupListerMapper(syncBuilder, clientConfig)
+		if err != nil {
+			return err
+		}
+		syncer.GroupLister = listerMapper
+		syncer.GroupNameMapper = listerMapper
+
+	case GroupSyncSourceLDAP:
+		syncer.GroupLister, err = o.GetLDAPGroupLister(syncBuilder)
+		if err != nil {
+			return err
+		}
+		syncer.GroupNameMapper, err = o.GetGroupNameMapper(syncBuilder)
+		if err != nil {
+			return err
+		}
+
+	default:
+		return fmt.Errorf("invalid group source: %v", o.Source)
 	}
 
 	syncer.GroupMemberExtractor, err = syncBuilder.GetGroupMemberExtractor()
@@ -292,11 +313,6 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 	}
 
 	syncer.UserNameMapper, err = syncBuilder.GetUserNameMapper()
-	if err != nil {
-		return err
-	}
-
-	syncer.GroupNameMapper, err = o.GetGroupNameMapper(syncBuilder)
 	if err != nil {
 		return err
 	}
@@ -319,23 +335,29 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 
 }
 
-func (o *SyncGroupsOptions) GetGroupLister(syncBuilder SyncBuilder, clientConfig *ldaputil.LDAPClientConfig) (interfaces.LDAPGroupLister, error) {
-	// if we have a whitelist, it trumps alls
-	if len(o.Whitelist) != 0 {
-		if o.Source == GroupSyncSourceOpenShift {
-			return syncgroups.NewOpenShiftGroupLister(o.Whitelist, o.Blacklist, clientConfig.Host, o.GroupInterface), nil
-		}
+func (o *SyncGroupsOptions) GetOpenShiftGroupListerMapper(syncBuilder SyncBuilder, clientConfig *ldaputil.LDAPClientConfig) (interfaces.LDAPGroupListerNameMapper, error) {
+	if o.Source != GroupSyncSourceOpenShift {
+		return nil, errors.New("openshift is not a valid group source for this config")
+	}
 
+	if len(o.Whitelist) != 0 {
+		return syncgroups.NewOpenShiftGroupLister(o.Whitelist, o.Blacklist, clientConfig.Host, o.GroupInterface), nil
+	}
+
+	return syncgroups.NewAllOpenShiftGroupLister(clientConfig.Host, o.GroupInterface, o.Blacklist), nil
+}
+
+func (o *SyncGroupsOptions) GetLDAPGroupLister(syncBuilder SyncBuilder) (interfaces.LDAPGroupLister, error) {
+	if o.Source != GroupSyncSourceLDAP {
+		return nil, errors.New("ldap is not a valid group source for this config")
+	}
+
+	if len(o.Whitelist) != 0 {
 		ldapWhitelist := syncgroups.NewLDAPWhitelistGroupLister(o.Whitelist)
 		if len(o.Blacklist) == 0 {
 			return ldapWhitelist, nil
 		}
 		return syncgroups.NewLDAPBlacklistGroupLister(o.Blacklist, ldapWhitelist), nil
-	}
-
-	// openshift as a listing source works the same for all schemas
-	if o.Source == GroupSyncSourceOpenShift {
-		return syncgroups.NewAllOpenShiftGroupLister(clientConfig.Host, o.GroupInterface, o.Blacklist), nil
 	}
 
 	syncLister, err := syncBuilder.GetGroupLister()

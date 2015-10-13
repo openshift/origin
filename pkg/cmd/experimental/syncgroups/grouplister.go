@@ -14,11 +14,12 @@ import (
 )
 
 // NewAllOpenShiftGroupLister returns a new allOpenShiftGroupLister
-func NewAllOpenShiftGroupLister(ldapURL string, groupClient osclient.GroupInterface, blacklist []string) interfaces.LDAPGroupLister {
+func NewAllOpenShiftGroupLister(ldapURL string, groupClient osclient.GroupInterface, blacklist []string) interfaces.LDAPGroupListerNameMapper {
 	return &allOpenShiftGroupLister{
 		blacklist: sets.NewString(blacklist...),
 		client:    groupClient,
 		ldapURL:   ldapURL,
+		ldapGroupUIDToOpenShiftGroupName: map[string]string{},
 	}
 }
 
@@ -27,10 +28,10 @@ func NewAllOpenShiftGroupLister(ldapURL string, groupClient osclient.GroupInterf
 type allOpenShiftGroupLister struct {
 	blacklist sets.String
 
-	client osclient.GroupInterface
-	// ldapURL is the host:port of the LDAP server, used to identify if an OpenShift Group has
-	// been synced with a specific server in order to isolate sync jobs between different servers
+	client  osclient.GroupInterface
 	ldapURL string
+
+	ldapGroupUIDToOpenShiftGroupName map[string]string
 }
 
 func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
@@ -39,7 +40,7 @@ func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
 		return nil, err
 	}
 
-	var ldapldapGroupUIDs []string
+	var ldapGroupUIDs []string
 	for _, group := range allGroups.Items {
 		if l.blacklist.Has(group.Name) {
 			continue
@@ -53,10 +54,28 @@ func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
 			continue
 		}
 
-		ldapldapGroupUIDs = append(ldapldapGroupUIDs, group.Annotations[ldaputil.LDAPUIDAnnotation])
+		ldapGroupUID := group.Annotations[ldaputil.LDAPUIDAnnotation]
+		l.ldapGroupUIDToOpenShiftGroupName[ldapGroupUID] = group.Name
+		ldapGroupUIDs = append(ldapGroupUIDs, ldapGroupUID)
 	}
 
-	return ldapldapGroupUIDs, nil
+	return ldapGroupUIDs, nil
+}
+
+func (l *allOpenShiftGroupLister) GroupNameFor(ldapGroupUID string) (string, error) {
+	// we probabably haven't been initialized.  This would be really weird
+	if len(l.ldapGroupUIDToOpenShiftGroupName) == 0 {
+		_, err := l.ListGroups()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	openshiftGroupName, exists := l.ldapGroupUIDToOpenShiftGroupName[ldapGroupUID]
+	if !exists {
+		return "", fmt.Errorf("no mapping found for %q", ldapGroupUID)
+	}
+	return openshiftGroupName, nil
 }
 
 // validateGroupAnnotations determines if the group matches and errors if the annotations are missing
@@ -75,12 +94,13 @@ func validateGroupAnnotations(ldapURL string, group ouserapi.Group) (bool, error
 
 // NewOpenShiftGroupLister returns a new openshiftGroupLister that divulges the LDAP group unique identifier for
 // each entry in the given whitelist of OpenShift Group names
-func NewOpenShiftGroupLister(whitelist []string, blacklist []string, ldapURL string, client osclient.GroupInterface) interfaces.LDAPGroupLister {
+func NewOpenShiftGroupLister(whitelist []string, blacklist []string, ldapURL string, client osclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
 	return &openshiftGroupLister{
 		whitelist: whitelist,
 		blacklist: sets.NewString(blacklist...),
 		client:    client,
 		ldapURL:   ldapURL,
+		ldapGroupUIDToOpenShiftGroupName: map[string]string{},
 	}
 }
 
@@ -92,6 +112,8 @@ type openshiftGroupLister struct {
 
 	client  osclient.GroupInterface
 	ldapURL string
+
+	ldapGroupUIDToOpenShiftGroupName map[string]string
 }
 
 func (l *openshiftGroupLister) ListGroups() ([]string, error) {
@@ -108,7 +130,7 @@ func (l *openshiftGroupLister) ListGroups() ([]string, error) {
 		groups = append(groups, *group)
 	}
 
-	var ldapldapGroupUIDs []string
+	var ldapGroupUIDs []string
 	for _, group := range groups {
 		matches, err := validateGroupAnnotations(l.ldapURL, group)
 		if err != nil {
@@ -118,9 +140,27 @@ func (l *openshiftGroupLister) ListGroups() ([]string, error) {
 			return nil, fmt.Errorf("%s was not synchronized from: %s", group.Name, l.ldapURL)
 		}
 
-		ldapldapGroupUIDs = append(ldapldapGroupUIDs, group.Annotations[ldaputil.LDAPUIDAnnotation])
+		ldapGroupUID := group.Annotations[ldaputil.LDAPUIDAnnotation]
+		l.ldapGroupUIDToOpenShiftGroupName[ldapGroupUID] = group.Name
+		ldapGroupUIDs = append(ldapGroupUIDs, ldapGroupUID)
 	}
-	return ldapldapGroupUIDs, nil
+	return ldapGroupUIDs, nil
+}
+
+func (l *openshiftGroupLister) GroupNameFor(ldapGroupUID string) (string, error) {
+	// we probabably haven't been initialized.  This would be really weird
+	if len(l.ldapGroupUIDToOpenShiftGroupName) == 0 {
+		_, err := l.ListGroups()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	openshiftGroupName, exists := l.ldapGroupUIDToOpenShiftGroupName[ldapGroupUID]
+	if !exists {
+		return "", fmt.Errorf("no mapping found for %q", ldapGroupUID)
+	}
+	return openshiftGroupName, nil
 }
 
 // NewLDAPWhitelistGroupLister returns a new whitelistLDAPGroupLister that divulges the given whitelist

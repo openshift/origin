@@ -220,6 +220,14 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	openshift ex sync-groups --sync-config=sync-config-partially-user-defined.yaml --confirm || true
 	compare_and_cleanup valid_all_ldap_sync_partially_user_defined.txt
 
+	echo -e "\tTEST: Sync based on OpenShift groups respecting OpenShift mappings"
+	openshift ex sync-groups --sync-config=sync-config-user-defined.yaml --confirm || true
+	oc get group -o name --no-headers | xargs -n 1 oc patch -p 'users: []'
+	openshift ex sync-groups --type=openshift --sync-config=sync-config.yaml --confirm
+	compare_and_cleanup valid_all_ldap_sync_user_defined.txt
+
+
+
 	echo -e "\tTEST: Sync all LDAP groups from LDAP server using DN as attribute whenever possible"
     openshift ex sync-groups --sync-config=sync-config-dn-everywhere.yaml --confirm || true
 	compare_and_cleanup valid_all_ldap_sync_dn_everywhere.txt
