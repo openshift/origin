@@ -112,6 +112,7 @@ type APIServer struct {
 	SSHUser                    string
 	SSHKeyfile                 string
 	MaxConnectionBytesPerSec   int64
+	KubernetesServiceNodePort  int
 }
 
 // NewAPIServer creates a new APIServer object with default parameters
@@ -233,6 +234,8 @@ func (s *APIServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.KubeletConfig.CertFile, "kubelet-client-certificate", s.KubeletConfig.CertFile, "Path to a client cert file for TLS.")
 	fs.StringVar(&s.KubeletConfig.KeyFile, "kubelet-client-key", s.KubeletConfig.KeyFile, "Path to a client key file for TLS.")
 	fs.StringVar(&s.KubeletConfig.CAFile, "kubelet-certificate-authority", s.KubeletConfig.CAFile, "Path to a cert. file for the certificate authority.")
+	//See #14282 for details on how to test/try this option out.  TODO remove this comment once this option is tested in CI.
+	fs.IntVar(&s.KubernetesServiceNodePort, "kubernetes-service-node-port", 0, "If non-zero, the Kubernetes master service (which apiserver creates/maintains) will be of type NodePort, using this as the value of the port. If zero, the Kubernetes master service will be of type ClusterIP.")
 }
 
 // TODO: Longer term we should read this from some config store, rather than a flag.
@@ -286,6 +289,10 @@ func (s *APIServer) Run(_ []string) error {
 
 	if (s.EtcdConfigFile != "" && len(s.EtcdServerList) != 0) || (s.EtcdConfigFile == "" && len(s.EtcdServerList) == 0) {
 		glog.Fatalf("specify either --etcd-servers or --etcd-config")
+	}
+
+	if s.KubernetesServiceNodePort > 0 && !s.ServiceNodePortRange.Contains(s.KubernetesServiceNodePort) {
+		glog.Fatalf("Kubernetes service port range %v doesn't contain %v", s.ServiceNodePortRange, (s.KubernetesServiceNodePort))
 	}
 
 	capabilities.Initialize(capabilities.Capabilities{
@@ -438,32 +445,33 @@ func (s *APIServer) Run(_ []string) error {
 		DatabaseStorage:    etcdStorage,
 		ExpDatabaseStorage: expEtcdStorage,
 
-		EventTTL:               s.EventTTL,
-		KubeletClient:          kubeletClient,
-		ServiceClusterIPRange:  &n,
-		EnableCoreControllers:  true,
-		EnableLogsSupport:      s.EnableLogsSupport,
-		EnableUISupport:        true,
-		EnableSwaggerSupport:   true,
-		EnableProfiling:        s.EnableProfiling,
-		EnableWatchCache:       s.EnableWatchCache,
-		EnableIndex:            true,
-		APIPrefix:              s.APIPrefix,
-		ExpAPIPrefix:           s.ExpAPIPrefix,
-		CorsAllowedOriginList:  s.CorsAllowedOriginList,
-		ReadWritePort:          s.SecurePort,
-		PublicAddress:          s.AdvertiseAddress,
-		Authenticator:          authenticator,
-		SupportsBasicAuth:      len(s.BasicAuthFile) > 0,
-		Authorizer:             authorizer,
-		AdmissionControl:       admissionController,
-		DisableV1:              disableV1,
-		EnableExp:              enableExp,
-		MasterServiceNamespace: s.MasterServiceNamespace,
-		ClusterName:            s.ClusterName,
-		ExternalHost:           s.ExternalHost,
-		MinRequestTimeout:      s.MinRequestTimeout,
-		ServiceNodePortRange:   s.ServiceNodePortRange,
+		EventTTL:                  s.EventTTL,
+		KubeletClient:             kubeletClient,
+		ServiceClusterIPRange:     &n,
+		EnableCoreControllers:     true,
+		EnableLogsSupport:         s.EnableLogsSupport,
+		EnableUISupport:           true,
+		EnableSwaggerSupport:      true,
+		EnableProfiling:           s.EnableProfiling,
+		EnableWatchCache:          s.EnableWatchCache,
+		EnableIndex:               true,
+		APIPrefix:                 s.APIPrefix,
+		ExpAPIPrefix:              s.ExpAPIPrefix,
+		CorsAllowedOriginList:     s.CorsAllowedOriginList,
+		ReadWritePort:             s.SecurePort,
+		PublicAddress:             s.AdvertiseAddress,
+		Authenticator:             authenticator,
+		SupportsBasicAuth:         len(s.BasicAuthFile) > 0,
+		Authorizer:                authorizer,
+		AdmissionControl:          admissionController,
+		DisableV1:                 disableV1,
+		EnableExp:                 enableExp,
+		MasterServiceNamespace:    s.MasterServiceNamespace,
+		ClusterName:               s.ClusterName,
+		ExternalHost:              s.ExternalHost,
+		MinRequestTimeout:         s.MinRequestTimeout,
+		ServiceNodePortRange:      s.ServiceNodePortRange,
+		KubernetesServiceNodePort: s.KubernetesServiceNodePort,
 		ProxyDialer:               proxyDialerFn,
 		ProxyTLSClientConfig:      proxyTLSClientConfig,
 		Tunneler:                  tunneler,
