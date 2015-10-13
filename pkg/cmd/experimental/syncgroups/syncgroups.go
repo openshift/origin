@@ -38,19 +38,20 @@ to sync and where their records live. For instance, all or some groups may be se
 stored in OpenShift that have been synced previously, or similarly all or some groups may be selected from those 
 stored on an LDAP server. The path to a sync configuration file is required in order to describe how data is 
 requested from the external record store and migrated to OpenShift records. Default behavior is to sync all 
-groups from the LDAP server returned by the LDAP query templates.
+groups from the LDAP server returned by the LDAP query templates. The sync job defaults to a dry run, and will 
+only commit changes if the --confirm flag is present.
 `
 	syncGroupsExamples = `  // Sync all groups from an LDAP server
-  $ %[1]s --sync-config=/path/to/ldap-sync-config.yaml
+  $ %[1]s --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   // Sync specific groups specified in a whitelist file with an LDAP server 
-  $ %[1]s --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml
+  $ %[1]s --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml --confirm
 
   // Sync all OpenShift Groups that have been synced previously with an LDAP server
-  $ %[1]s --existing --sync-config=/path/to/ldap-sync-config.yaml
+  $ %[1]s --type=openshift --sync-config=/path/to/ldap-sync-config.yaml --confirm
 
   // Sync specific OpenShift Groups if they have been synced previously with an LDAP server
-  $ %[1]s groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml
+  $ %[1]s groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml --confirm
 `
 )
 
@@ -110,7 +111,7 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 	configFile := ""
 
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s [SOURCE SCOPE WHITELIST --whitelist=WHITELIST-FILE] --sync-config=CONFIG-SOURCE", name),
+		Use:     fmt.Sprintf("%s [--type=TYPE] [WHITELIST] [--whitelist=WHITELIST-FILE] --sync-config=CONFIG-FILE [--confirm]", name),
 		Short:   "Sync OpenShift groups with records from an external provider.",
 		Long:    syncGroupsLong,
 		Example: fmt.Sprintf(syncGroupsExamples, fullName),
@@ -138,8 +139,8 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 
 	cmd.Flags().StringVar(&whitelistFile, "whitelist", whitelistFile, "path to the group whitelist")
 	cmd.Flags().StringVar(&configFile, "sync-config", configFile, "path to the sync config")
-	cmd.Flags().StringVar(&typeArg, "type", typeArg, "type of group used to locate LDAP group UIDs: "+strings.Join(AllowedSourceTypes, ","))
-	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display groups")
+	cmd.Flags().StringVar(&typeArg, "type", typeArg, "which groups whitelist entries refer to: "+strings.Join(AllowedSourceTypes, ","))
+	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display results of a dry-run")
 	cmdutil.AddPrinterFlags(cmd)
 	cmd.Flags().Lookup("output").DefValue = "yaml"
 	cmd.Flags().Lookup("output").Value.Set("yaml")
@@ -153,7 +154,6 @@ func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, configFile string, 
 		o.Source = GroupSyncSourceLDAP
 	case string(GroupSyncSourceOpenShift):
 		o.Source = GroupSyncSourceOpenShift
-
 	default:
 		return fmt.Errorf("unrecognized --type %q; allowed types %v", typeArg, strings.Join(AllowedSourceTypes, ","))
 	}
@@ -344,19 +344,15 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 //   - Syncing a whitelist of OpenShift groups will require a LocalGroupLister
 //   - Syncing all LDAP groups will require us to use the ldapInterface as the lister
 //   - Syncing all OpenShift groups will require a AllLocalGroupLister
-
 func getGroupLister(source GroupSyncSource, whitelist []string, client osclient.GroupInterface, host string, groupLister interfaces.LDAPGroupLister) interfaces.LDAPGroupLister {
 	if len(whitelist) == 0 {
 		if source == GroupSyncSourceOpenShift {
 			return NewAllOpenShiftGroupLister(host, client)
 		}
-
 		return groupLister
 	}
-
 	if source == GroupSyncSourceOpenShift {
 		return NewOpenShiftWhitelistGroupLister(whitelist, client)
 	}
-
 	return NewLDAPWhitelistGroupLister(whitelist)
 }
