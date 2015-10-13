@@ -29,9 +29,11 @@ import (
 	"golang.org/x/net/websocket"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
 )
 
@@ -361,7 +363,7 @@ func TestWatchHTTPTimeout(t *testing.T) {
 	req, _ := http.NewRequest("GET", dest.String(), nil)
 	client := http.Client{}
 	resp, err := client.Do(req)
-	watcher.Add(&Simple{TypeMeta: api.TypeMeta{APIVersion: newVersion}})
+	watcher.Add(&Simple{TypeMeta: unversioned.TypeMeta{APIVersion: newVersion}})
 
 	// Make sure we can actually watch an endpoint
 	decoder := json.NewDecoder(resp.Body)
@@ -378,8 +380,8 @@ func TestWatchHTTPTimeout(t *testing.T) {
 		if !watcher.Stopped {
 			t.Errorf("Leaked watch on timeout")
 		}
-	case <-time.After(100 * time.Millisecond):
-		t.Errorf("Failed to stop watcher after 100ms of timeout signal")
+	case <-time.After(util.ForeverTestTimeout):
+		t.Errorf("Failed to stop watcher after %s of timeout signal", util.ForeverTestTimeout.String())
 	}
 
 	// Make sure we can't receive any more events through the timeout watch

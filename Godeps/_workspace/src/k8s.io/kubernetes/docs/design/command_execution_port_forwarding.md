@@ -44,9 +44,9 @@ This describes an approach for providing support for:
 
 There are several related issues/PRs:
 
-- [Support attach](https://k8s.io/kubernetes/issues/1521)
-- [Real container ssh](https://k8s.io/kubernetes/issues/1513)
-- [Provide easy debug network access to services](https://k8s.io/kubernetes/issues/1863)
+- [Support attach](http://issue.k8s.io/1521)
+- [Real container ssh](http://issue.k8s.io/1513)
+- [Provide easy debug network access to services](http://issue.k8s.io/1863)
 - [OpenShift container command execution proposal](https://github.com/openshift/origin/pull/576)
 
 ## Motivation

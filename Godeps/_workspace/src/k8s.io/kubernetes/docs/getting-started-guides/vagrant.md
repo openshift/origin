@@ -44,6 +44,7 @@ Running Kubernetes with Vagrant (and VirtualBox) is an easy way to run/test/deve
 - [Running containers](#running-containers)
 - [Troubleshooting](#troubleshooting)
     - [I keep downloading the same (large) box all the time!](#i-keep-downloading-the-same-large-box-all-the-time)
+    - [I am getting timeouts when trying to curl the master from my host!](#i-am-getting-timeouts-when-trying-to-curl-the-master-from-my-host)
     - [I just created the cluster, but I am getting authorization errors!](#i-just-created-the-cluster-but-i-am-getting-authorization-errors)
     - [I just created the cluster, but I do not see my container running!](#i-just-created-the-cluster-but-i-do-not-see-my-container-running)
     - [I want to make changes to Kubernetes code!](#i-want-to-make-changes-to-kubernetes-code)
@@ -57,7 +58,7 @@ Running Kubernetes with Vagrant (and VirtualBox) is an easy way to run/test/deve
 
 1. Install latest version >= 1.6.2 of vagrant from http://www.vagrantup.com/downloads.html
 2. Install one of:
-   1. Version 4.3.28 of Virtual Box from https://www.virtualbox.org/wiki/Download_Old_Builds_4_3
+   1. The latest version of Virtual Box from https://www.virtualbox.org/wiki/Downloads
    2. [VMWare Fusion](https://www.vmware.com/products/fusion/) version 5 or greater as well as the appropriate [Vagrant VMWare Fusion provider](https://www.vagrantup.com/vmware)
    3. [VMWare Workstation](https://www.vmware.com/products/workstation/) version 9 or greater as well as the [Vagrant VMWare Workstation provider](https://www.vagrantup.com/vmware)
    4. [Parallels Desktop](https://www.parallels.com/products/desktop/) version 9 or greater as well as the [Vagrant Parallels provider](https://parallels.github.io/vagrant-parallels/)
@@ -72,7 +73,7 @@ export KUBERNETES_PROVIDER=vagrant
 curl -sS https://get.k8s.io | bash
 ```
 
-Alternatively, you can download [Kubernetes release](https://k8s.io/kubernetes/releases) and extract the archive. To start your local cluster, open a shell and run:
+Alternatively, you can download [Kubernetes release](https://github.com/kubernetes/kubernetes/releases) and extract the archive. To start your local cluster, open a shell and run:
 
 ```sh
 cd kubernetes
@@ -227,7 +228,7 @@ $ ./cluster/kubectl.sh get pods
 NAME        READY     STATUS    RESTARTS   AGE
 
 $ ./cluster/kubectl.sh get services
-NAME   LABELS   SELECTOR   IP(S)   PORT(S)
+NAME              CLUSTER_IP       EXTERNAL_IP       PORT(S)       SELECTOR               AGE
 
 $ ./cluster/kubectl.sh get replicationcontrollers
 CONTROLLER   CONTAINER(S)   IMAGE(S)   SELECTOR   REPLICAS
@@ -282,11 +283,8 @@ my-nginx-gr3hh   1/1       Running   0          1m
 my-nginx-xql4j   1/1       Running   0          1m
 
 $ ./cluster/kubectl.sh get services
-NAME   LABELS   SELECTOR   IP(S)   PORT(S)
-
-$ ./cluster/kubectl.sh get replicationcontrollers
-CONTROLLER   CONTAINER(S)   IMAGE(S)   SELECTOR       REPLICAS
-my-nginx     my-nginx       nginx      run=my-nginx   3
+NAME              CLUSTER_IP       EXTERNAL_IP       PORT(S)       SELECTOR               AGE
+my-nginx          10.0.0.1         <none>            80/TCP        run=my-nginx           1h
 ```
 
 We did not start any services, hence there are none listed. But we see three replicas displayed properly.
@@ -315,6 +313,43 @@ export KUBERNETES_BOX_URL=path_of_your_kuber_box
 export KUBERNETES_PROVIDER=vagrant
 ./cluster/kube-up.sh
 ```
+
+#### I am getting timeouts when trying to curl the master from my host!
+
+During provision of the cluster, you may see the following message:
+
+```sh
+Validating minion-1
+.............
+Waiting for each minion to be registered with cloud provider
+error: couldn't read version from server: Get https://10.245.1.2/api: dial tcp 10.245.1.2:443: i/o timeout
+```
+
+Some users have reported VPNs may prevent traffic from being routed to the host machine into the virtual machine network.
+
+To debug, first verify that the master is binding to the proper IP address:
+
+```
+$ vagrant ssh master
+$ ifconfig | grep eth1 -C 2
+eth1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST> mtu 1500 inet 10.245.1.2 netmask
+   255.255.255.0 broadcast 10.245.1.255
+```
+
+Then verify that your host machine has a network connection to a bridge that can serve that address:
+
+```sh
+$ ifconfig | grep 10.245.1 -C 2
+
+vboxnet5: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.245.1.1  netmask 255.255.255.0  broadcast 10.245.1.255
+        inet6 fe80::800:27ff:fe00:5  prefixlen 64  scopeid 0x20<link>
+        ether 0a:00:27:00:00:05  txqueuelen 1000  (Ethernet)
+```
+
+If you do not see a response on your host machine, you will most likely need to connect your host to the virtual network created by the virtualization provider.
+
+If you do see a network, but are still unable to ping the machine, check if your VPN is blocking the request.
 
 #### I just created the cluster, but I am getting authorization errors!
 

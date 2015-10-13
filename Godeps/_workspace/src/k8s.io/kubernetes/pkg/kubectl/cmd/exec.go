@@ -27,7 +27,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -40,7 +39,7 @@ $ kubectl exec 123456-7890 date
 # Get output from running 'date' in ruby-container from pod 123456-7890
 $ kubectl exec 123456-7890 -c ruby-container date
 
-# Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
+# Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-7890
 # and sends stdout/stderr from 'bash' back to the client
 $ kubectl exec 123456-7890 -c ruby-container -i -t -- bash -il`
 )
@@ -222,30 +221,5 @@ func (p *ExecOptions) Run() error {
 		SubResource("exec").
 		Param("container", containerName)
 
-	postErr := p.Executor.Execute(req, p.Config, p.Command, stdin, p.Out, p.Err, tty)
-
-	// if we don't have an error, return.  If we did get an error, try a GET because v3.0.0 shipped with exec running as a GET.
-	if postErr == nil {
-		return nil
-	}
-
-	// only try the get if the error is either a forbidden or method not supported, otherwise trying with a GET probably won't help
-	if !apierrors.IsForbidden(postErr) && !apierrors.IsMethodNotSupported(postErr) {
-		return postErr
-	}
-
-	getReq := p.Client.RESTClient.Get().
-		Resource("pods").
-		Name(pod.Name).
-		Namespace(pod.Namespace).
-		SubResource("exec").
-		Param("container", containerName)
-
-	getErr := p.Executor.Execute(getReq, p.Config, p.Command, stdin, p.Out, p.Err, tty)
-	if getErr == nil {
-		return nil
-	}
-
-	// if we got a getErr, return the postErr because it's more likely to be correct.  GET is legacy
-	return postErr
+	return p.Executor.Execute(req, p.Config, p.Command, stdin, p.Out, p.Err, tty)
 }

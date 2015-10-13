@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -124,27 +124,22 @@ func PredicateTwo(pod *api.Pod, existingPods []*api.Pod, node string) (bool, err
 	return true, nil
 }
 
-func PriorityOne(pod *api.Pod, podLister algorithm.PodLister, minionLister algorithm.MinionLister) (algorithm.HostPriorityList, error) {
+func PriorityOne(pod *api.Pod, podLister algorithm.PodLister, nodeLister algorithm.NodeLister) (algorithm.HostPriorityList, error) {
 	return []algorithm.HostPriority{}, nil
 }
 
-func PriorityTwo(pod *api.Pod, podLister algorithm.PodLister, minionLister algorithm.MinionLister) (algorithm.HostPriorityList, error) {
+func PriorityTwo(pod *api.Pod, podLister algorithm.PodLister, nodeLister algorithm.NodeLister) (algorithm.HostPriorityList, error) {
 	return []algorithm.HostPriority{}, nil
 }
 
 func TestDefaultErrorFunc(t *testing.T) {
-	grace := int64(30)
 	testPod := &api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Spec: api.PodSpec{
-			RestartPolicy:                 api.RestartPolicyAlways,
-			DNSPolicy:                     api.DNSClusterFirst,
-			TerminationGracePeriodSeconds: &grace,
-		},
+		Spec:       apitesting.DeepEqualSafePodSpec(),
 	}
 	handler := util.FakeHandler{
 		StatusCode:   200,
-		ResponseBody: runtime.EncodeOrDie(latest.Codec, testPod),
+		ResponseBody: runtime.EncodeOrDie(testapi.Default.Codec(), testPod),
 		T:            t,
 	}
 	mux := http.NewServeMux()
@@ -181,7 +176,7 @@ func TestDefaultErrorFunc(t *testing.T) {
 	}
 }
 
-func TestMinionEnumerator(t *testing.T) {
+func TestNodeEnumerator(t *testing.T) {
 	testList := &api.NodeList{
 		Items: []api.Node{
 			{ObjectMeta: api.ObjectMeta{Name: "foo"}},

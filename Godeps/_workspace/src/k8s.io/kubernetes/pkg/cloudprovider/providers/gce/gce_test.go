@@ -17,8 +17,67 @@ limitations under the License.
 package gce_cloud
 
 import (
+	"net"
 	"testing"
+
+	compute "google.golang.org/api/compute/v1"
 )
+
+func TestOwnsAddress(t *testing.T) {
+	tests := []struct {
+		ip        net.IP
+		addrs     []*compute.Address
+		expectOwn bool
+	}{
+		{
+			ip:        net.ParseIP("1.2.3.4"),
+			addrs:     []*compute.Address{},
+			expectOwn: false,
+		},
+		{
+			ip: net.ParseIP("1.2.3.4"),
+			addrs: []*compute.Address{
+				{Address: "2.3.4.5"},
+				{Address: "2.3.4.6"},
+				{Address: "2.3.4.7"},
+			},
+			expectOwn: false,
+		},
+		{
+			ip: net.ParseIP("2.3.4.5"),
+			addrs: []*compute.Address{
+				{Address: "2.3.4.5"},
+				{Address: "2.3.4.6"},
+				{Address: "2.3.4.7"},
+			},
+			expectOwn: true,
+		},
+		{
+			ip: net.ParseIP("2.3.4.6"),
+			addrs: []*compute.Address{
+				{Address: "2.3.4.5"},
+				{Address: "2.3.4.6"},
+				{Address: "2.3.4.7"},
+			},
+			expectOwn: true,
+		},
+		{
+			ip: net.ParseIP("2.3.4.7"),
+			addrs: []*compute.Address{
+				{Address: "2.3.4.5"},
+				{Address: "2.3.4.6"},
+				{Address: "2.3.4.7"},
+			},
+			expectOwn: true,
+		},
+	}
+	for _, test := range tests {
+		own := ownsAddress(test.ip, test.addrs)
+		if own != test.expectOwn {
+			t.Errorf("expected: %v, got %v for %v", test.expectOwn, own, test)
+		}
+	}
+}
 
 func TestGetRegion(t *testing.T) {
 	gce := &GCECloud{
@@ -34,34 +93,6 @@ func TestGetRegion(t *testing.T) {
 	}
 	if zone.Region != "us-central1" {
 		t.Errorf("Unexpected region: %s", zone.Region)
-	}
-}
-
-func TestGetHostTag(t *testing.T) {
-	tests := []struct {
-		host     string
-		expected string
-	}{
-		{
-			host:     "kubernetes-minion-559o",
-			expected: "kubernetes-minion",
-		},
-		{
-			host:     "gke-test-ea6e8c80-node-8ytk",
-			expected: "gke-test-ea6e8c80-node",
-		},
-		{
-			host:     "kubernetes-minion-559o.c.PROJECT_NAME.internal",
-			expected: "kubernetes-minion",
-		},
-	}
-
-	gce := &GCECloud{}
-	for _, test := range tests {
-		hostTag := gce.computeHostTag(test.host)
-		if hostTag != test.expected {
-			t.Errorf("expected: %s, saw: %s for %s", test.expected, hostTag, test.host)
-		}
 	}
 }
 

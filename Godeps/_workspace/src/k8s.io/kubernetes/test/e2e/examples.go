@@ -34,10 +34,9 @@ import (
 )
 
 const (
-	podListTimeout          = time.Minute
-	serverStartTimeout      = podStartTimeout + 3*time.Minute
-	dnsReadyTimeout         = time.Minute
-	endpointRegisterTimeout = time.Minute
+	podListTimeout     = time.Minute
+	serverStartTimeout = podStartTimeout + 3*time.Minute
+	dnsReadyTimeout    = time.Minute
 )
 
 const queryDnsPythonTemplate string = `
@@ -63,7 +62,7 @@ var _ = Describe("Examples e2e", func() {
 
 	AfterEach(func() {
 		By(fmt.Sprintf("Destroying namespace for this suite %v", ns))
-		if err := deleteNS(c, ns); err != nil {
+		if err := deleteNS(c, ns, 5*time.Minute /* namespace deletion timeout */); err != nil {
 			Failf("Couldn't delete ns %s", err)
 		}
 	})
@@ -149,6 +148,9 @@ var _ = Describe("Examples e2e", func() {
 				_, err := lookForStringInLog(ns, pod.Name, "rabbitmq", "Server startup complete", serverStartTimeout)
 				Expect(err).NotTo(HaveOccurred())
 			})
+			err := waitForEndpoint(c, ns, "rabbitmq-service")
+			Expect(err).NotTo(HaveOccurred())
+
 			By("starting celery")
 			runKubectl("create", "-f", celeryControllerYaml, nsFlag)
 			forEachPod(c, ns, "component", "celery", func(pod api.Pod) {
@@ -192,6 +194,10 @@ var _ = Describe("Examples e2e", func() {
 			_, err = lookForStringInLog(ns, "spark-driver", "spark-driver", "Use kubectl exec", serverStartTimeout)
 			Expect(err).NotTo(HaveOccurred())
 
+			By("waiting for master endpoint")
+			err = waitForEndpoint(c, ns, "spark-master")
+			Expect(err).NotTo(HaveOccurred())
+
 			By("starting workers")
 			runKubectl("create", "-f", workerControllerJson, nsFlag)
 			ScaleRC(c, ns, "spark-worker-controller", 2, true)
@@ -219,6 +225,9 @@ var _ = Describe("Examples e2e", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = lookForStringInLog(ns, "cassandra", "cassandra", "Listening for thrift clients", serverStartTimeout)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = waitForEndpoint(c, ns, "cassandra")
 			Expect(err).NotTo(HaveOccurred())
 
 			By("create and scale rc")
@@ -263,11 +272,16 @@ var _ = Describe("Examples e2e", func() {
 			By("checking if zookeeper is up and running")
 			_, err = lookForStringInLog(ns, zookeeperPod, "zookeeper", "binding to port", serverStartTimeout)
 			Expect(err).NotTo(HaveOccurred())
+			err = waitForEndpoint(c, ns, "zookeeper")
+			Expect(err).NotTo(HaveOccurred())
 
 			By("starting Nimbus")
 			runKubectl("create", "-f", nimbusPodJson, nsFlag)
 			runKubectl("create", "-f", nimbusServiceJson, nsFlag)
 			err = waitForPodRunningInNamespace(c, "nimbus", ns)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = waitForEndpoint(c, ns, "nimbus")
 			Expect(err).NotTo(HaveOccurred())
 
 			By("starting workers")
@@ -382,6 +396,8 @@ var _ = Describe("Examples e2e", func() {
 				})
 			}
 			checkDbInstances()
+			err := waitForEndpoint(c, ns, "rethinkdb-driver")
+			Expect(err).NotTo(HaveOccurred())
 
 			By("scaling rethinkdb")
 			ScaleRC(c, ns, "rethinkdb-rc", 2, true)
@@ -390,7 +406,7 @@ var _ = Describe("Examples e2e", func() {
 			By("starting admin")
 			runKubectl("create", "-f", adminServiceYaml, nsFlag)
 			runKubectl("create", "-f", adminPodYaml, nsFlag)
-			err := waitForPodRunningInNamespace(c, "rethinkdb-admin", ns)
+			err = waitForPodRunningInNamespace(c, "rethinkdb-admin", ns)
 			Expect(err).NotTo(HaveOccurred())
 			checkDbInstances()
 			content, err := makeHttpRequestToService(c, ns, "rethinkdb-admin", "/", endpointRegisterTimeout)
@@ -419,6 +435,9 @@ var _ = Describe("Examples e2e", func() {
 				_, err = lookForStringInLog(ns, pod.Name, "hazelcast", "is STARTED", serverStartTimeout)
 				Expect(err).NotTo(HaveOccurred())
 			})
+
+			err := waitForEndpoint(c, ns, "hazelcast")
+			Expect(err).NotTo(HaveOccurred())
 
 			By("scaling hazelcast")
 			ScaleRC(c, ns, "hazelcast", 2, true)
@@ -458,7 +477,7 @@ var _ = Describe("Examples e2e", func() {
 				var err error
 				namespaces[i], err = createTestingNS(fmt.Sprintf("dnsexample%d", i), c)
 				if namespaces[i] != nil {
-					defer deleteNS(c, namespaces[i].Name)
+					defer deleteNS(c, namespaces[i].Name, 5*time.Minute /* namespace deletion timeout */)
 				}
 				Expect(err).NotTo(HaveOccurred())
 			}
@@ -562,22 +581,26 @@ func prepareResourceWithReplacedString(inputFile, old, new string) string {
 }
 
 func forEachPod(c *client.Client, ns, selectorKey, selectorValue string, fn func(api.Pod)) {
-	var pods *api.PodList
-	var err error
+	pods := []*api.Pod{}
 	for t := time.Now(); time.Since(t) < podListTimeout; time.Sleep(poll) {
-		pods, err = c.Pods(ns).List(labels.SelectorFromSet(labels.Set(map[string]string{selectorKey: selectorValue})), fields.Everything())
+		podList, err := c.Pods(ns).List(labels.SelectorFromSet(labels.Set(map[string]string{selectorKey: selectorValue})), fields.Everything())
 		Expect(err).NotTo(HaveOccurred())
-		if len(pods.Items) > 0 {
+		for _, pod := range podList.Items {
+			if pod.Status.Phase == api.PodPending || pod.Status.Phase == api.PodRunning {
+				pods = append(pods, &pod)
+			}
+		}
+		if len(pods) > 0 {
 			break
 		}
 	}
-	if pods == nil || len(pods.Items) == 0 {
+	if pods == nil || len(pods) == 0 {
 		Failf("No pods found")
 	}
-	for _, pod := range pods.Items {
-		err = waitForPodRunningInNamespace(c, pod.Name, ns)
+	for _, pod := range pods {
+		err := waitForPodRunningInNamespace(c, pod.Name, ns)
 		Expect(err).NotTo(HaveOccurred())
-		fn(pod)
+		fn(*pod)
 	}
 }
 

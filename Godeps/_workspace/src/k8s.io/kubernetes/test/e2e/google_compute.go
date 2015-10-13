@@ -18,10 +18,11 @@ package e2e
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 func createGCEStaticIP(name string) (string, error) {
@@ -35,6 +36,8 @@ func createGCEStaticIP(name string) (string, error) {
 		name, "--project", testContext.CloudConfig.ProjectID,
 		"--region", "us-central1", "-q").CombinedOutput()
 	if err != nil {
+		glog.Errorf("Creating static IP with name:%s in project: %s", name, testContext.CloudConfig.ProjectID)
+		glog.Errorf("output: %s", output)
 		return "", err
 	}
 	glog.Errorf("Creating static IP with name:%s in project: %s", name, testContext.CloudConfig.ProjectID)

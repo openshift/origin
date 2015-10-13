@@ -167,17 +167,12 @@ func lineBreak(p *parser, out *bytes.Buffer, data []byte, offset int) int {
 	out.Truncate(eol)
 
 	precededByTwoSpaces := offset >= 2 && data[offset-2] == ' ' && data[offset-1] == ' '
-	precededByBackslash := offset >= 1 && data[offset-1] == '\\' // see http://spec.commonmark.org/0.18/#example-527
-	precededByBackslash = precededByBackslash && p.flags&EXTENSION_BACKSLASH_LINE_BREAK != 0
 
 	// should there be a hard line break here?
-	if p.flags&EXTENSION_HARD_LINE_BREAK == 0 && !precededByTwoSpaces && !precededByBackslash {
+	if p.flags&EXTENSION_HARD_LINE_BREAK == 0 && !precededByTwoSpaces {
 		return 0
 	}
 
-	if precededByBackslash && eol > 0 {
-		out.Truncate(eol - 1)
-	}
 	p.r.LineBreak(out)
 	return 1
 }
@@ -216,10 +211,10 @@ func link(p *parser, out *bytes.Buffer, data []byte, offset int) int {
 	data = data[offset:]
 
 	var (
-		i                       = 1
-		noteId                  int
-		title, link, altContent []byte
-		textHasNl               = false
+		i           = 1
+		noteId      int
+		title, link []byte
+		textHasNl   = false
 	)
 
 	if t == linkDeferredFootnote {
@@ -353,9 +348,8 @@ func link(p *parser, out *bytes.Buffer, data []byte, offset int) int {
 		i++
 
 	// reference style link
-	case i < len(data)-1 && data[i] == '[' && data[i+1] != '^':
+	case i < len(data) && data[i] == '[':
 		var id []byte
-		altContentConsidered := false
 
 		// look for the id
 		i++
@@ -385,14 +379,14 @@ func link(p *parser, out *bytes.Buffer, data []byte, offset int) int {
 				id = b.Bytes()
 			} else {
 				id = data[1:txtE]
-				altContentConsidered = true
 			}
 		} else {
 			id = data[linkB:linkE]
 		}
 
-		// find the reference with matching id
-		lr, ok := p.getRef(string(id))
+		// find the reference with matching id (ids are case-insensitive)
+		key := string(bytes.ToLower(id))
+		lr, ok := p.refs[key]
 		if !ok {
 			return 0
 
@@ -401,9 +395,6 @@ func link(p *parser, out *bytes.Buffer, data []byte, offset int) int {
 		// keep link and title from reference
 		link = lr.link
 		title = lr.title
-		if altContentConsidered {
-			altContent = lr.text
-		}
 		i++
 
 	// shortcut reference style link or reference or inline footnote
@@ -432,6 +423,7 @@ func link(p *parser, out *bytes.Buffer, data []byte, offset int) int {
 			}
 		}
 
+		key := string(bytes.ToLower(id))
 		if t == linkInlineFootnote {
 			// create a new reference
 			noteId = len(p.notes) + 1
@@ -461,7 +453,7 @@ func link(p *parser, out *bytes.Buffer, data []byte, offset int) int {
 			title = ref.title
 		} else {
 			// find the reference with matching id
-			lr, ok := p.getRef(string(id))
+			lr, ok := p.refs[key]
 			if !ok {
 				return 0
 			}
@@ -513,11 +505,7 @@ func link(p *parser, out *bytes.Buffer, data []byte, offset int) int {
 	// call the relevant rendering function
 	switch t {
 	case linkNormal:
-		if len(altContent) > 0 {
-			p.r.Link(out, uLink, title, altContent)
-		} else {
-			p.r.Link(out, uLink, title, content.Bytes())
-		}
+		p.r.Link(out, uLink, title, content.Bytes())
 
 	case linkImg:
 		outSize := out.Len()
@@ -769,20 +757,9 @@ func isEndOfLink(char byte) bool {
 	return isspace(char) || char == '<'
 }
 
-var validUris = [][]byte{[]byte("http://"), []byte("https://"), []byte("ftp://"), []byte("mailto://")}
-var validPaths = [][]byte{[]byte("/"), []byte("./"), []byte("../")}
+var validUris = [][]byte{[]byte("http://"), []byte("https://"), []byte("ftp://"), []byte("mailto://"), []byte("/")}
 
 func isSafeLink(link []byte) bool {
-	for _, path := range validPaths {
-		if len(link) >= len(path) && bytes.Equal(link[:len(path)], path) {
-			if len(link) == len(path) {
-				return true
-			} else if isalnum(link[len(path)]) {
-				return true
-			}
-		}
-	}
-
 	for _, prefix := range validUris {
 		// TODO: handle unicode here
 		// case-insensitive prefix test

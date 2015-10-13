@@ -33,6 +33,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/metrics"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -308,51 +309,19 @@ type versionToResourceToFieldMapping map[string]resourceTypeToFieldMapping
 func (v versionToResourceToFieldMapping) filterField(apiVersion, resourceType, field, value string) (newField, newValue string, err error) {
 	rMapping, ok := v[apiVersion]
 	if !ok {
+		glog.Warningf("Field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	newField, newValue, err = rMapping.filterField(resourceType, field, value)
 	if err != nil {
 		// This is only a warning until we find and fix all of the client's usages.
+		glog.Warningf("Field selector: %v - %v - %v - %v: need to check if this is versioned correctly.", apiVersion, resourceType, field, value)
 		return field, value, nil
 	}
 	return newField, newValue, nil
 }
 
 var fieldMappings = versionToResourceToFieldMapping{
-	"v1beta3": resourceTypeToFieldMapping{
-		"nodes": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "metadata.name",
-			NodeUnschedulable: "spec.unschedulable",
-		},
-		"minions": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:   "metadata.name",
-			NodeUnschedulable: "spec.unschedulable",
-		},
-		"pods": clientFieldNameToAPIVersionFieldName{
-			PodHost: "spec.host",
-		},
-		"secrets": clientFieldNameToAPIVersionFieldName{
-			SecretType: "type",
-		},
-		"serviceAccounts": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField: "metadata.name",
-		},
-		"endpoints": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField: "metadata.name",
-		},
-		"events": clientFieldNameToAPIVersionFieldName{
-			ObjectNameField:              "metadata.name",
-			EventReason:                  "reason",
-			EventSource:                  "source",
-			EventInvolvedKind:            "involvedObject.kind",
-			EventInvolvedNamespace:       "involvedObject.namespace",
-			EventInvolvedName:            "involvedObject.name",
-			EventInvolvedUID:             "involvedObject.uid",
-			EventInvolvedAPIVersion:      "involvedObject.apiVersion",
-			EventInvolvedResourceVersion: "involvedObject.resourceVersion",
-			EventInvolvedFieldPath:       "involvedObject.fieldPath",
-		},
-	},
 	"v1": resourceTypeToFieldMapping{
 		"nodes": clientFieldNameToAPIVersionFieldName{
 			ObjectNameField:   "metadata.name",
@@ -789,7 +758,7 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 
 	// Did the server give us a status response?
 	isStatusResponse := false
-	var status api.Status
+	var status unversioned.Status
 	if err := r.codec.DecodeInto(body, &status); err == nil && status.Status != "" {
 		isStatusResponse = true
 	}
@@ -806,7 +775,7 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 
 	// If the server gave us a status back, look at what it was.
 	success := resp.StatusCode >= http.StatusOK && resp.StatusCode <= http.StatusPartialContent
-	if isStatusResponse && (status.Status != api.StatusSuccess && !success) {
+	if isStatusResponse && (status.Status != unversioned.StatusSuccess && !success) {
 		// "Failed" requests are clearly just an error and it makes sense to return them as such.
 		return Result{err: errors.FromObject(&status)}
 	}

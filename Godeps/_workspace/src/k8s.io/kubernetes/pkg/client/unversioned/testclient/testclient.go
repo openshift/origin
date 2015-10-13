@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/emicklei/go-restful/swagger"
+
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/registered"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -39,7 +40,7 @@ func NewSimpleFake(objects ...runtime.Object) *Fake {
 	}
 
 	fakeClient := &Fake{}
-	fakeClient.AddReactor("*", "*", ObjectReaction(o, latest.RESTMapper))
+	fakeClient.AddReactor("*", "*", ObjectReaction(o, api.RESTMapper))
 
 	fakeClient.AddWatchReactor("*", DefaultWatchReactor(watch.NewFake(), nil))
 
@@ -56,6 +57,8 @@ type Fake struct {
 	ReactionChain []Reactor
 	// WatchReactionChain is the list of watch reactors that will be attempted for every request in the order they are tried
 	WatchReactionChain []WatchReactor
+	// ProxyReactionChain is the list of proxy reactors that will be attempted for every request in the order they are tried
+	ProxyReactionChain []ProxyReactor
 }
 
 // Reactor is an interface to allow the composition of reaction functions.
@@ -74,6 +77,14 @@ type WatchReactor interface {
 	React(action Action) (handled bool, ret watch.Interface, err error)
 }
 
+// ProxyReactor is an interface to allow the composition of proxy get functions.
+type ProxyReactor interface {
+	// Handles indicates whether or not this Reactor deals with a given action
+	Handles(action Action) bool
+	// React handles a watch action and returns results.  It may choose to delegate by indicated handled=false
+	React(action Action) (handled bool, ret client.ResponseWrapper, err error)
+}
+
 // ReactionFunc is a function that returns an object or error for a given Action.  If "handled" is false,
 // then the test client will continue ignore the results and continue to the next ReactionFunc
 type ReactionFunc func(action Action) (handled bool, ret runtime.Object, err error)
@@ -82,6 +93,10 @@ type ReactionFunc func(action Action) (handled bool, ret runtime.Object, err err
 // then the test client will continue ignore the results and continue to the next ReactionFunc
 type WatchReactionFunc func(action Action) (handled bool, ret watch.Interface, err error)
 
+// ProxyReactionFunc is a function that returns a ResponseWrapper interface for a given Action.  If "handled" is false,
+// then the test client will continue ignore the results and continue to the next ProxyReactionFunc
+type ProxyReactionFunc func(action Action) (handled bool, ret client.ResponseWrapper, err error)
+
 // AddReactor appends a reactor to the end of the chain
 func (c *Fake) AddReactor(verb, resource string, reaction ReactionFunc) {
 	c.ReactionChain = append(c.ReactionChain, &SimpleReactor{verb, resource, reaction})
@@ -89,10 +104,7 @@ func (c *Fake) AddReactor(verb, resource string, reaction ReactionFunc) {
 
 // PrependReactor adds a reactor to the beginning of the chain
 func (c *Fake) PrependReactor(verb, resource string, reaction ReactionFunc) {
-	newChain := make([]Reactor, 0, len(c.ReactionChain)+1)
-	newChain = append(newChain, &SimpleReactor{verb, resource, reaction})
-	newChain = append(newChain, c.ReactionChain...)
-	c.ReactionChain = newChain
+	c.ReactionChain = append([]Reactor{&SimpleReactor{verb, resource, reaction}}, c.ReactionChain...)
 }
 
 // AddWatchReactor appends a reactor to the end of the chain
@@ -102,10 +114,17 @@ func (c *Fake) AddWatchReactor(resource string, reaction WatchReactionFunc) {
 
 // PrependWatchReactor adds a reactor to the beginning of the chain
 func (c *Fake) PrependWatchReactor(resource string, reaction WatchReactionFunc) {
-	newChain := make([]WatchReactor, 0, len(c.WatchReactionChain)+1)
-	newChain = append(newChain, &SimpleWatchReactor{resource, reaction})
-	newChain = append(newChain, c.WatchReactionChain...)
-	c.WatchReactionChain = newChain
+	c.WatchReactionChain = append([]WatchReactor{&SimpleWatchReactor{resource, reaction}}, c.WatchReactionChain...)
+}
+
+// AddProxyReactor appends a reactor to the end of the chain
+func (c *Fake) AddProxyReactor(resource string, reaction ProxyReactionFunc) {
+	c.ProxyReactionChain = append(c.ProxyReactionChain, &SimpleProxyReactor{resource, reaction})
+}
+
+// PrependProxyReactor adds a reactor to the beginning of the chain
+func (c *Fake) PrependProxyReactor(resource string, reaction ProxyReactionFunc) {
+	c.ProxyReactionChain = append([]ProxyReactor{&SimpleProxyReactor{resource, reaction}}, c.ProxyReactionChain...)
 }
 
 // Invokes records the provided Action and then invokes the ReactFn (if provided).
@@ -153,6 +172,28 @@ func (c *Fake) InvokesWatch(action Action) (watch.Interface, error) {
 	return nil, fmt.Errorf("unhandled watch: %#v", action)
 }
 
+// InvokesProxy records the provided Action and then invokes the ReactFn (if provided).
+func (c *Fake) InvokesProxy(action Action) client.ResponseWrapper {
+	c.Lock()
+	defer c.Unlock()
+
+	c.actions = append(c.actions, action)
+	for _, reactor := range c.ProxyReactionChain {
+		if !reactor.Handles(action) {
+			continue
+		}
+
+		handled, ret, err := reactor.React(action)
+		if !handled || err != nil {
+			continue
+		}
+
+		return ret
+	}
+
+	return nil
+}
+
 // ClearActions clears the history of actions called on the fake client
 func (c *Fake) ClearActions() {
 	c.Lock()
@@ -184,10 +225,6 @@ func (c *Fake) ReplicationControllers(namespace string) client.ReplicationContro
 
 func (c *Fake) Nodes() client.NodeInterface {
 	return &FakeNodes{Fake: c}
-}
-
-func (c *Fake) SecurityContextConstraints() client.SecurityContextConstraintInterface {
-	return &FakeSecurityContextConstraints{Fake: c}
 }
 
 func (c *Fake) Events(namespace string) client.EventInterface {
@@ -257,6 +294,16 @@ func (c *Fake) ComponentStatuses() client.ComponentStatusInterface {
 	return &FakeComponentStatuses{Fake: c}
 }
 
+// SwaggerSchema returns an empty swagger.ApiDeclaration for testing
+func (c *Fake) SwaggerSchema(version string) (*swagger.ApiDeclaration, error) {
+	action := ActionImpl{}
+	action.Verb = "get"
+	action.Resource = "/swaggerapi/api/" + version
+
+	c.Invokes(action, nil)
+	return &swagger.ApiDeclaration{}, nil
+}
+
 type FakeExperimental struct {
 	*Fake
 }
@@ -275,4 +322,12 @@ func (c *FakeExperimental) Deployments(namespace string) client.DeploymentInterf
 
 func (c *FakeExperimental) Scales(namespace string) client.ScaleInterface {
 	return &FakeScales{Fake: c, Namespace: namespace}
+}
+
+func (c *FakeExperimental) Jobs(namespace string) client.JobInterface {
+	return &FakeJobs{Fake: c, Namespace: namespace}
+}
+
+func (c *FakeExperimental) Ingress(namespace string) client.IngressInterface {
+	return &FakeIngress{Fake: c, Namespace: namespace}
 }

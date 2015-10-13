@@ -30,7 +30,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -297,7 +296,10 @@ func RunRollingUpdate(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, arg
 		MaxSurge:       util.NewIntOrStringFromInt(1),
 	}
 	if cmdutil.GetFlagBool(cmd, "rollback") {
-		kubectl.AbortRollingUpdate(config)
+		err = kubectl.AbortRollingUpdate(config)
+		if err != nil {
+			return err
+		}
 		client.ReplicationControllers(config.NewRc.Namespace).Update(config.NewRc)
 	}
 	err = updater.Update(config)
@@ -344,10 +346,6 @@ func isReplicasDefaulted(info *resource.Info) bool {
 		return false
 	}
 	switch info.Mapping.APIVersion {
-	case "v1beta3":
-		if rc, ok := info.VersionedObject.(*v1beta3.ReplicationController); ok {
-			return rc.Spec.Replicas == nil
-		}
 	case "v1":
 		if rc, ok := info.VersionedObject.(*v1.ReplicationController); ok {
 			return rc.Spec.Replicas == nil

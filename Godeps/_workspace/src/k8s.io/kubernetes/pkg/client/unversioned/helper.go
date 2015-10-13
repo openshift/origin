@@ -143,10 +143,11 @@ func New(c *Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if _, err := latest.Group("experimental"); err != nil {
+		return &Client{RESTClient: client, ExperimentalClient: nil}, nil
+	}
 	experimentalConfig := *c
-	// clearing Version from the config so that the --api-version flag will work.  This may or may not be unborked after the next rebase
-	// but they are working on the issue in: https://github.com/kubernetes/kubernetes/pull/14383
-	experimentalConfig.Version = ""
 	experimentalClient, err := NewExperimental(&experimentalConfig)
 	if err != nil {
 		return nil, err
@@ -230,9 +231,11 @@ func NegotiateVersion(client *Client, c *Config, version string, clientRegistere
 		if serverVersions.Has(clientVersion) {
 			// Version was not explicitly requested in command config (--api-version).
 			// Ok to fall back to a supported version with a warning.
-			if len(version) != 0 {
-				glog.Warningf("Server does not support API version '%s'. Falling back to '%s'.", version, clientVersion)
-			}
+			// TODO: caesarxuchao: enable the warning message when we have
+			// proper fix. Please refer to issue #14895.
+			// if len(version) != 0 {
+			// 	glog.Warningf("Server does not support API version '%s'. Falling back to '%s'.", version, clientVersion)
+			// }
 			return clientVersion, nil
 		}
 	}
@@ -261,7 +264,7 @@ func InClusterConfig() (*Config, error) {
 	tlsClientConfig := TLSClientConfig{}
 	rootCAFile := "/var/run/secrets/kubernetes.io/serviceaccount/" + api.ServiceAccountRootCAKey
 	if _, err := util.CertPoolFromFile(rootCAFile); err != nil {
-		glog.Errorf("expected to load root CA config from %s, but got err: %v", rootCAFile, err)
+		glog.Errorf("Expected to load root CA config from %s, but got err: %v", rootCAFile, err)
 	} else {
 		tlsClientConfig.CAFile = rootCAFile
 	}
@@ -285,6 +288,7 @@ func NewInCluster() (*Client, error) {
 
 // SetKubernetesDefaults sets default values on the provided client config for accessing the
 // Kubernetes API or returns an error if any of the defaults are impossible or invalid.
+// TODO: this method needs to be split into one that sets defaults per group, expected to be fix in PR "Refactoring clientcache.go and helper.go #14592"
 func SetKubernetesDefaults(config *Config) error {
 	if config.Prefix == "" {
 		config.Prefix = "/api"
@@ -296,9 +300,9 @@ func SetKubernetesDefaults(config *Config) error {
 		config.Version = defaultVersionFor(config)
 	}
 	version := config.Version
-	versionInterfaces, err := latest.InterfacesFor(version)
+	versionInterfaces, err := latest.GroupOrDie("").InterfacesFor(version)
 	if err != nil {
-		return fmt.Errorf("API version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.Versions, ", "))
+		return fmt.Errorf("API version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.GroupOrDie("").Versions, ", "))
 	}
 	if config.Codec == nil {
 		config.Codec = versionInterfaces.Codec
@@ -380,15 +384,9 @@ func tlsTransportFor(config *Config) (http.RoundTripper, error) {
 	}
 
 	// Cache a single transport for these options
-	tlsTransports[key] = &http.Transport{
+	tlsTransports[key] = util.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: tlsConfig,
-		Proxy:           http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
-		TLSHandshakeTimeout: 10 * time.Second,
-	}
+	})
 	return tlsTransports[key], nil
 }
 
@@ -510,7 +508,7 @@ func DefaultServerURL(host, prefix, version string, defaultTLS bool) (*url.URL, 
 	return hostURL, nil
 }
 
-// IsConfigTransportTLS returns true iff the provided config will result in a protected
+// IsConfigTransportTLS returns true if and only if the provided config will result in a protected
 // connection to the server when it is passed to client.New() or client.RESTClientFor().
 // Use to determine when to send credentials over the wire.
 //
@@ -549,7 +547,7 @@ func defaultVersionFor(config *Config) string {
 	if version == "" {
 		// Clients default to the preferred code API version
 		// TODO: implement version negotiation (highest version supported by server)
-		version = latest.Version
+		version = latest.GroupOrDie("").Version
 	}
 	return version
 }

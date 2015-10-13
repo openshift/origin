@@ -23,7 +23,6 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/securitycontext"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/mount"
@@ -70,8 +69,8 @@ func (plugin *emptyDirPlugin) CanSupport(spec *volume.Spec) bool {
 	return false
 }
 
-func (plugin *emptyDirPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions, mounter mount.Interface) (volume.Builder, error) {
-	return plugin.newBuilderInternal(spec, pod, mounter, &realMountDetector{mounter}, opts, newChconRunner())
+func (plugin *emptyDirPlugin) NewBuilder(spec *volume.Spec, pod *api.Pod, opts volume.VolumeOptions) (volume.Builder, error) {
+	return plugin.newBuilderInternal(spec, pod, plugin.host.GetMounter(), &realMountDetector{plugin.host.GetMounter()}, opts, newChconRunner())
 }
 
 func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod, mounter mount.Interface, mountDetector mountDetector, opts volume.VolumeOptions, chconRunner chconRunner) (volume.Builder, error) {
@@ -91,9 +90,9 @@ func (plugin *emptyDirPlugin) newBuilderInternal(spec *volume.Spec, pod *api.Pod
 	}, nil
 }
 
-func (plugin *emptyDirPlugin) NewCleaner(volName string, podUID types.UID, mounter mount.Interface) (volume.Cleaner, error) {
+func (plugin *emptyDirPlugin) NewCleaner(volName string, podUID types.UID) (volume.Cleaner, error) {
 	// Inject real implementations here, test through the internal function.
-	return plugin.newCleanerInternal(volName, podUID, mounter, &realMountDetector{mounter})
+	return plugin.newCleanerInternal(volName, podUID, plugin.host.GetMounter(), &realMountDetector{plugin.host.GetMounter()})
 }
 
 func (plugin *emptyDirPlugin) newCleanerInternal(volName string, podUID types.UID, mounter mount.Interface, mountDetector mountDetector) (volume.Cleaner, error) {
@@ -167,10 +166,7 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	// Determine the effective SELinuxOptions to use for this volume.
 	securityContext := ""
 	if selinuxEnabled() {
-		securityContext, err = ed.determineEffectiveSELinuxOptions()
-		if err != nil {
-			return err
-		}
+		securityContext = ed.rootContext
 	}
 
 	switch ed.medium {
@@ -187,45 +183,6 @@ func (ed *emptyDir) SetUpAt(dir string) error {
 	}
 
 	return err
-}
-
-// determineEffectiveSELinuxOptions determines the effective SELinux options
-// that should be used for a particular plugin.
-func (ed *emptyDir) determineEffectiveSELinuxOptions() (string, error) {
-	glog.V(4).Infof("Determining effective SELinux context for pod %v/%v", ed.pod.Namespace, ed.pod.Name)
-	var opts *api.SELinuxOptions
-	if ed.pod != nil {
-		// Use the security context, if defined, of the first
-		// container in the pod to mount this volume
-		for _, container := range ed.pod.Spec.Containers {
-			if !volumeutil.ContainerHasVolumeMountForName(&container, ed.volName) {
-				continue
-			}
-
-			if container.SecurityContext != nil &&
-				container.SecurityContext.SELinuxOptions != nil {
-				opts = container.SecurityContext.SELinuxOptions
-				break
-			}
-		}
-	}
-
-	if opts == nil {
-		return ed.rootContext, nil
-	}
-
-	glog.V(4).Infof("Specified security context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(opts))
-
-	rootContextOpts, err := securitycontext.ParseSELinuxOptions(ed.rootContext)
-	if err != nil {
-		return "", err
-	}
-
-	effectiveOpts := securitycontext.ProjectSELinuxOptions(opts, rootContextOpts)
-
-	glog.V(4).Infof("Effective SELinux context for pod %v/%v: %v", ed.pod.Namespace, ed.pod.Name, securitycontext.SELinuxOptionsString(effectiveOpts))
-
-	return securitycontext.SELinuxOptionsString(effectiveOpts), nil
 }
 
 func (ed *emptyDir) IsReadOnly() bool {

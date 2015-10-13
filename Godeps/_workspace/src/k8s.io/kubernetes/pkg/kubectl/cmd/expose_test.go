@@ -23,7 +23,8 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/fake"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 )
@@ -135,7 +136,7 @@ func TestRunExposeService(t *testing.T) {
 			status:   200,
 		},
 		{
-			name: "expose-external-service",
+			name: "expose-service",
 			args: []string{"service", "baz"},
 			ns:   "test",
 			calls: map[string]string{
@@ -167,7 +168,7 @@ func TestRunExposeService(t *testing.T) {
 			status:   200,
 		},
 		{
-			name: "expose-external-affinity-service",
+			name: "expose-affinity-service",
 			args: []string{"service", "baz"},
 			ns:   "test",
 			calls: map[string]string{
@@ -225,9 +226,38 @@ func TestRunExposeService(t *testing.T) {
 							TargetPort: util.NewIntOrStringFromInt(90),
 						},
 					},
+					Selector: map[string]string{"svc": "fromexternal"},
 				},
 			},
 			expected: "service \"frombaz\" exposed",
+			status:   200,
+		},
+		{
+			name: "truncate-name",
+			args: []string{"pod", "a-name-that-is-toooo-big-for-a-service"},
+			ns:   "test",
+			calls: map[string]string{
+				"GET":  "/namespaces/test/pods/a-name-that-is-toooo-big-for-a-service",
+				"POST": "/namespaces/test/services",
+			},
+			input: &api.Pod{
+				ObjectMeta: api.ObjectMeta{Name: "baz", Namespace: "test", ResourceVersion: "12"},
+			},
+			flags: map[string]string{"selector": "svc=frompod", "port": "90", "labels": "svc=frompod", "generator": "service/v2"},
+			output: &api.Service{
+				ObjectMeta: api.ObjectMeta{Name: "a-name-that-is-toooo-big", Namespace: "", Labels: map[string]string{"svc": "frompod"}},
+				Spec: api.ServiceSpec{
+					Ports: []api.ServicePort{
+						{
+							Protocol:   api.ProtocolTCP,
+							Port:       90,
+							TargetPort: util.NewIntOrStringFromInt(90),
+						},
+					},
+					Selector: map[string]string{"svc": "frompod"},
+				},
+			},
+			expected: "service \"a-name-that-is-toooo-big\" exposed",
 			status:   200,
 		},
 	}
@@ -235,9 +265,9 @@ func TestRunExposeService(t *testing.T) {
 	for _, test := range tests {
 		f, tf, codec := NewAPIFactory()
 		tf.Printer = &testPrinter{}
-		tf.Client = &client.FakeRESTClient{
+		tf.Client = &fake.RESTClient{
 			Codec: codec,
-			Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {
 				case p == test.calls[m] && m == "GET":
 					return &http.Response{StatusCode: test.status, Body: objBody(codec, test.input)}, nil
@@ -281,7 +311,7 @@ func TestRunExposeServiceFromFile(t *testing.T) {
 		},
 		input: &api.Service{
 			ObjectMeta: api.ObjectMeta{Name: "baz", Namespace: "test", ResourceVersion: "12"},
-			TypeMeta:   api.TypeMeta{Kind: "Service", APIVersion: "v1"},
+			TypeMeta:   unversioned.TypeMeta{Kind: "Service", APIVersion: "v1"},
 			Spec: api.ServiceSpec{
 				Selector: map[string]string{"app": "go"},
 			},
@@ -289,7 +319,7 @@ func TestRunExposeServiceFromFile(t *testing.T) {
 		flags: map[string]string{"selector": "func=stream", "protocol": "UDP", "port": "14", "name": "foo", "labels": "svc=test"},
 		output: &api.Service{
 			ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "test", ResourceVersion: "12", Labels: map[string]string{"svc": "test"}},
-			TypeMeta:   api.TypeMeta{Kind: "Service", APIVersion: "v1"},
+			TypeMeta:   unversioned.TypeMeta{Kind: "Service", APIVersion: "v1"},
 			Spec: api.ServiceSpec{
 				Ports: []api.ServicePort{
 					{
@@ -306,9 +336,9 @@ func TestRunExposeServiceFromFile(t *testing.T) {
 
 	f, tf, codec := NewAPIFactory()
 	tf.Printer = &testPrinter{}
-	tf.Client = &client.FakeRESTClient{
+	tf.Client = &fake.RESTClient{
 		Codec: codec,
-		Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+		Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 			switch p, m := req.URL.Path, req.Method; {
 			case p == test.calls[m] && m == "GET":
 				return &http.Response{StatusCode: test.status, Body: objBody(codec, test.input)}, nil

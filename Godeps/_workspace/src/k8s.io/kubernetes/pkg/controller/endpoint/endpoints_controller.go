@@ -28,6 +28,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -45,11 +46,6 @@ const (
 	// often. Higher numbers = lower CPU/network load; lower numbers =
 	// shorter amount of time before a mistaken endpoint is corrected.
 	FullServiceResyncPeriod = 30 * time.Second
-
-	// We'll keep pod watches open up to this long. In the unlikely case
-	// that a watch misdelivers info about a pod, it'll take this long for
-	// that mistake to be rectified.
-	PodRelistPeriod = 5 * time.Minute
 )
 
 var (
@@ -57,7 +53,7 @@ var (
 )
 
 // NewEndpointController returns a new *EndpointController.
-func NewEndpointController(client *client.Client) *EndpointController {
+func NewEndpointController(client *client.Client, resyncPeriod controller.ResyncPeriodFunc) *EndpointController {
 	e := &EndpointController{
 		client: client,
 		queue:  workqueue.New(),
@@ -73,6 +69,7 @@ func NewEndpointController(client *client.Client) *EndpointController {
 			},
 		},
 		&api.Service{},
+		// TODO: Can we have much longer period here?
 		FullServiceResyncPeriod,
 		framework.ResourceEventHandlerFuncs{
 			AddFunc: e.enqueueService,
@@ -93,7 +90,7 @@ func NewEndpointController(client *client.Client) *EndpointController {
 			},
 		},
 		&api.Pod{},
-		PodRelistPeriod,
+		resyncPeriod(),
 		framework.ResourceEventHandlerFuncs{
 			AddFunc:    e.addPod,
 			UpdateFunc: e.updatePod,
@@ -319,11 +316,6 @@ func (e *EndpointController) syncService(key string) {
 				continue
 			}
 
-			if !api.IsPodReady(pod) {
-				glog.V(5).Infof("Pod is out of service: %v/%v", pod.Namespace, pod.Name)
-				continue
-			}
-
 			epp := api.EndpointPort{Name: portName, Port: portNum, Protocol: portProto}
 			epa := api.EndpointAddress{IP: pod.Status.PodIP, TargetRef: &api.ObjectReference{
 				Kind:            "Pod",
@@ -332,7 +324,18 @@ func (e *EndpointController) syncService(key string) {
 				UID:             pod.ObjectMeta.UID,
 				ResourceVersion: pod.ObjectMeta.ResourceVersion,
 			}}
-			subsets = append(subsets, api.EndpointSubset{Addresses: []api.EndpointAddress{epa}, Ports: []api.EndpointPort{epp}})
+			if api.IsPodReady(pod) {
+				subsets = append(subsets, api.EndpointSubset{
+					Addresses: []api.EndpointAddress{epa},
+					Ports:     []api.EndpointPort{epp},
+				})
+			} else {
+				glog.V(5).Infof("Pod is out of service: %v/%v", pod.Namespace, pod.Name)
+				subsets = append(subsets, api.EndpointSubset{
+					NotReadyAddresses: []api.EndpointAddress{epa},
+					Ports:             []api.EndpointPort{epp},
+				})
+			}
 		}
 	}
 	subsets = endpoints.RepackSubsets(subsets)

@@ -64,6 +64,7 @@ func validNewPod() *api.Pod {
 					SecurityContext:        securitycontext.ValidSecurityContextWithContainerDefaults(),
 				},
 			},
+			SecurityContext: &api.PodSecurityContext{},
 		},
 	}
 }
@@ -617,6 +618,7 @@ func TestEtcdUpdateScheduled(t *testing.T) {
 					SecurityContext: securitycontext.ValidSecurityContextWithContainerDefaults(),
 				},
 			},
+			SecurityContext: &api.PodSecurityContext{},
 		},
 	}), 1)
 
@@ -631,19 +633,18 @@ func TestEtcdUpdateScheduled(t *testing.T) {
 		},
 		Spec: api.PodSpec{
 			NodeName: "machine",
-			Containers: []api.Container{
-				{
-					Name:                   "foobar",
-					Image:                  "foo:v2",
-					ImagePullPolicy:        api.PullIfNotPresent,
-					TerminationMessagePath: api.TerminationMessagePathDefault,
-					SecurityContext:        securitycontext.ValidSecurityContextWithContainerDefaults(),
-				},
-			},
+			Containers: []api.Container{{
+				Name:                   "foobar",
+				Image:                  "foo:v2",
+				ImagePullPolicy:        api.PullIfNotPresent,
+				TerminationMessagePath: api.TerminationMessagePathDefault,
+				SecurityContext:        securitycontext.ValidSecurityContextWithContainerDefaults(),
+			}},
 			RestartPolicy: api.RestartPolicyAlways,
 			DNSPolicy:     api.DNSClusterFirst,
 
 			TerminationGracePeriodSeconds: &grace,
+			SecurityContext:               &api.PodSecurityContext{},
 		},
 	}
 	_, _, err := storage.Update(ctx, &podIn)
@@ -682,6 +683,7 @@ func TestEtcdUpdateStatus(t *testing.T) {
 					SecurityContext: securitycontext.ValidSecurityContextWithContainerDefaults(),
 				},
 			},
+			SecurityContext: &api.PodSecurityContext{},
 		},
 	}
 	fakeClient.Set(key, runtime.EncodeOrDie(testapi.Default.Codec(), &podStart), 0)
@@ -703,6 +705,7 @@ func TestEtcdUpdateStatus(t *testing.T) {
 					TerminationMessagePath: api.TerminationMessagePathDefault,
 				},
 			},
+			SecurityContext: &api.PodSecurityContext{},
 		},
 		Status: api.PodStatus{
 			Phase:   api.PodRunning,
@@ -732,5 +735,23 @@ func TestEtcdUpdateStatus(t *testing.T) {
 	}
 	if !api.Semantic.DeepEqual(&expected, podOut) {
 		t.Errorf("unexpected object: %s", util.ObjectDiff(&expected, podOut))
+	}
+}
+
+func TestPodLogValidates(t *testing.T) {
+	etcdStorage, _ := registrytest.NewEtcdStorage(t, "")
+	storage := NewStorage(etcdStorage, false, nil)
+
+	negativeOne := int64(-1)
+	testCases := []*api.PodLogOptions{
+		{SinceSeconds: &negativeOne},
+		{TailLines: &negativeOne},
+	}
+
+	for _, tc := range testCases {
+		_, err := storage.Log.Get(api.NewDefaultContext(), "test", tc)
+		if !errors.IsInvalid(err) {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	}
 }

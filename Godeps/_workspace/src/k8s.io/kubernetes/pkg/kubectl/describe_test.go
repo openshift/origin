@@ -26,9 +26,10 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apis/experimental"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/util"
 )
 
 type describeClient struct {
@@ -85,22 +86,22 @@ func TestPodDescribeResultsSorted(t *testing.T) {
 			{
 				Source:         api.EventSource{Component: "kubelet"},
 				Message:        "Item 1",
-				FirstTimestamp: util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
-				LastTimestamp:  util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				FirstTimestamp: unversioned.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  unversioned.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
 			},
 			{
 				Source:         api.EventSource{Component: "scheduler"},
 				Message:        "Item 2",
-				FirstTimestamp: util.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
-				LastTimestamp:  util.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
+				FirstTimestamp: unversioned.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  unversioned.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
 			},
 			{
 				Source:         api.EventSource{Component: "kubelet"},
 				Message:        "Item 3",
-				FirstTimestamp: util.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
-				LastTimestamp:  util.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
+				FirstTimestamp: unversioned.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  unversioned.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
 			},
 		},
@@ -131,7 +132,7 @@ func TestDescribeContainers(t *testing.T) {
 				Name: "test",
 				State: api.ContainerState{
 					Running: &api.ContainerStateRunning{
-						StartedAt: util.NewTime(time.Now()),
+						StartedAt: unversioned.NewTime(time.Now()),
 					},
 				},
 				Ready:        true,
@@ -161,8 +162,8 @@ func TestDescribeContainers(t *testing.T) {
 				Name: "test",
 				State: api.ContainerState{
 					Terminated: &api.ContainerStateTerminated{
-						StartedAt:  util.NewTime(time.Now()),
-						FinishedAt: util.NewTime(time.Now()),
+						StartedAt:  unversioned.NewTime(time.Now()),
+						FinishedAt: unversioned.NewTime(time.Now()),
 						Reason:     "potato",
 						ExitCode:   2,
 					},
@@ -179,13 +180,13 @@ func TestDescribeContainers(t *testing.T) {
 				Name: "test",
 				State: api.ContainerState{
 					Running: &api.ContainerStateRunning{
-						StartedAt: util.NewTime(time.Now()),
+						StartedAt: unversioned.NewTime(time.Now()),
 					},
 				},
 				LastTerminationState: api.ContainerState{
 					Terminated: &api.ContainerStateTerminated{
-						StartedAt:  util.NewTime(time.Now().Add(time.Second * 3)),
-						FinishedAt: util.NewTime(time.Now()),
+						StartedAt:  unversioned.NewTime(time.Now().Add(time.Second * 3)),
+						FinishedAt: unversioned.NewTime(time.Now()),
 						Reason:     "crashing",
 						ExitCode:   3,
 					},
@@ -476,6 +477,26 @@ func TestPersistentVolumeDescriber(t *testing.T) {
 		if str == "" {
 			t.Errorf("Unexpected empty string for test %s.  Expected PV Describer output", name)
 		}
+	}
+}
 
+func TestDescribeDeployment(t *testing.T) {
+	fake := testclient.NewSimpleFake(&experimental.Deployment{
+		ObjectMeta: api.ObjectMeta{
+			Name:      "bar",
+			Namespace: "foo",
+		},
+		Spec: experimental.DeploymentSpec{
+			Template: &api.PodTemplateSpec{},
+		},
+	})
+	c := &describeClient{T: t, Namespace: "foo", Interface: fake}
+	d := DeploymentDescriber{c}
+	out, err := d.Describe("foo", "bar")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "bar") || !strings.Contains(out, "foo") {
+		t.Errorf("unexpected out: %s", out)
 	}
 }

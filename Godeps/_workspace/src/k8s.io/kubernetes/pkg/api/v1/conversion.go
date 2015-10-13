@@ -29,10 +29,10 @@ func addConversionFuncs() {
 	err := api.Scheme.AddConversionFuncs(
 		convert_api_PodSpec_To_v1_PodSpec,
 		convert_api_ReplicationControllerSpec_To_v1_ReplicationControllerSpec,
-		convert_api_VolumeSource_To_v1_VolumeSource,
+		convert_api_ServiceSpec_To_v1_ServiceSpec,
 		convert_v1_PodSpec_To_api_PodSpec,
 		convert_v1_ReplicationControllerSpec_To_api_ReplicationControllerSpec,
-		convert_v1_VolumeSource_To_api_VolumeSource,
+		convert_v1_ServiceSpec_To_api_ServiceSpec,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
@@ -283,7 +283,16 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conversi
 	// DeprecatedServiceAccount is an alias for ServiceAccountName.
 	out.DeprecatedServiceAccount = in.ServiceAccountName
 	out.NodeName = in.NodeName
-	out.HostNetwork = in.HostNetwork
+	if in.SecurityContext != nil {
+		out.SecurityContext = new(PodSecurityContext)
+		if err := convert_api_PodSecurityContext_To_v1_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+			return err
+		}
+
+		out.HostPID = in.SecurityContext.HostPID
+		out.HostNetwork = in.SecurityContext.HostNetwork
+		out.HostIPC = in.SecurityContext.HostIPC
+	}
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -294,10 +303,6 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conversi
 	} else {
 		out.ImagePullSecrets = nil
 	}
-
-	// carry conversion
-	out.DeprecatedHost = in.NodeName
-
 	return nil
 }
 
@@ -354,13 +359,18 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conversi
 		out.ServiceAccountName = in.DeprecatedServiceAccount
 	}
 	out.NodeName = in.NodeName
-
-	// carry conversion
-	if in.NodeName == "" {
-		out.NodeName = in.DeprecatedHost
+	if in.SecurityContext != nil {
+		out.SecurityContext = new(api.PodSecurityContext)
+		if err := convert_v1_PodSecurityContext_To_api_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+			return err
+		}
 	}
-
-	out.HostNetwork = in.HostNetwork
+	if out.SecurityContext == nil {
+		out.SecurityContext = new(api.PodSecurityContext)
+	}
+	out.SecurityContext.HostNetwork = in.HostNetwork
+	out.SecurityContext.HostPID = in.HostPID
+	out.SecurityContext.HostIPC = in.HostIPC
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -374,96 +384,41 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conversi
 	return nil
 }
 
-// This will convert our internal represantation of VolumeSource to its v1 representation
-// Used for keeping backwards compatibility for the Metadata field
-func convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.VolumeSource))(in)
-	}
-
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+func convert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *ServiceSpec, s conversion.Scope) error {
+	if err := autoconvert_api_ServiceSpec_To_v1_ServiceSpec(in, out, s); err != nil {
 		return err
 	}
+	// Publish both externalIPs and deprecatedPublicIPs fields in v1.
+	for _, ip := range in.ExternalIPs {
+		out.DeprecatedPublicIPs = append(out.DeprecatedPublicIPs, ip)
+	}
+	return nil
+}
 
-	if in.DownwardAPI != nil {
-		out.Metadata = new(MetadataVolumeSource)
-		if err := convert_api_DownwardAPIVolumeSource_To_v1_MetadataVolumeSource(in.DownwardAPI, out.Metadata, s); err != nil {
-			return err
+func convert_v1_ServiceSpec_To_api_ServiceSpec(in *ServiceSpec, out *api.ServiceSpec, s conversion.Scope) error {
+	if err := autoconvert_v1_ServiceSpec_To_api_ServiceSpec(in, out, s); err != nil {
+		return err
+	}
+	// Prefer the legacy deprecatedPublicIPs field, if provided.
+	if len(in.DeprecatedPublicIPs) > 0 {
+		out.ExternalIPs = nil
+		for _, ip := range in.DeprecatedPublicIPs {
+			out.ExternalIPs = append(out.ExternalIPs, ip)
 		}
 	}
 	return nil
 }
 
-// downward -> metadata (api -> v1)
-func convert_api_DownwardAPIVolumeSource_To_v1_MetadataVolumeSource(in *api.DownwardAPIVolumeSource, out *MetadataVolumeSource, s conversion.Scope) error {
+func convert_api_PodSecurityContext_To_v1_PodSecurityContext(in *api.PodSecurityContext, out *PodSecurityContext, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.DownwardAPIVolumeSource))(in)
-	}
-	if in.Items != nil {
-		out.Items = make([]MetadataFile, len(in.Items))
-		for i := range in.Items {
-			if err := convert_api_DownwardAPIVolumeFile_To_v1_MetadataFile(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
+		defaulting.(func(*api.PodSecurityContext))(in)
 	}
 	return nil
 }
 
-func convert_api_DownwardAPIVolumeFile_To_v1_MetadataFile(in *api.DownwardAPIVolumeFile, out *MetadataFile, s conversion.Scope) error {
+func convert_v1_PodSecurityContext_To_api_PodSecurityContext(in *PodSecurityContext, out *api.PodSecurityContext, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.DownwardAPIVolumeFile))(in)
-	}
-	out.Name = in.Path
-	if err := convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// This will convert the v1 representation of VolumeSource to our internal representation
-// Used for keeping backwards compatibility for the Metadata field
-func convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*VolumeSource))(in)
-	}
-
-	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
-		return err
-	}
-
-	if in.Metadata != nil {
-		out.DownwardAPI = new(api.DownwardAPIVolumeSource)
-		if err := convert_v1_MetadataVolumeSource_To_api_DownwardAPIVolumeSource(in.Metadata, out.DownwardAPI, s); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// metadata -> downward (v1 -> api)
-func convert_v1_MetadataVolumeSource_To_api_DownwardAPIVolumeSource(in *MetadataVolumeSource, out *api.DownwardAPIVolumeSource, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*MetadataVolumeSource))(in)
-	}
-	if in.Items != nil {
-		out.Items = make([]api.DownwardAPIVolumeFile, len(in.Items))
-		for i := range in.Items {
-			if err := convert_v1_MetadataFile_To_api_DownwardAPIVolumeFile(&in.Items[i], &out.Items[i], s); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func convert_v1_MetadataFile_To_api_DownwardAPIVolumeFile(in *MetadataFile, out *api.DownwardAPIVolumeFile, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*MetadataFile))(in)
-	}
-	out.Path = in.Name
-	if err := convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
-		return err
+		defaulting.(func(*PodSecurityContext))(in)
 	}
 	return nil
 }
