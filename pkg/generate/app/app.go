@@ -205,13 +205,13 @@ func (r *ImageRef) ObjectReference() kapi.ObjectReference {
 	case r.Stream != nil:
 		return kapi.ObjectReference{
 			Kind:      "ImageStreamTag",
-			Name:      imageapi.NameAndTag(r.Stream.Name, r.Tag),
+			Name:      imageapi.JoinImageStreamTag(r.Stream.Name, r.Tag),
 			Namespace: r.Stream.Namespace,
 		}
 	case r.AsImageStream:
 		return kapi.ObjectReference{
 			Kind: "ImageStreamTag",
-			Name: imageapi.NameAndTag(r.Name, r.Tag),
+			Name: imageapi.JoinImageStreamTag(r.Name, r.Tag),
 		}
 	default:
 		return kapi.ObjectReference{
@@ -258,7 +258,7 @@ func (r *ImageRef) BuildOutput() (*buildapi.BuildOutput, error) {
 	return &buildapi.BuildOutput{
 		To: &kapi.ObjectReference{
 			Kind: kind,
-			Name: imageapi.NameAndTag(imageRepo.Name, r.Tag),
+			Name: imageapi.JoinImageStreamTag(imageRepo.Name, r.Tag),
 		},
 	}, nil
 }

@@ -897,11 +897,11 @@ func TestUpdateTrackingTags(t *testing.T) {
 	}
 }
 
-func TestNameAndTag(t *testing.T) {
-	if e, a := "foo:bar", NameAndTag("foo", "bar"); e != a {
+func TestJoinImageStreamTag(t *testing.T) {
+	if e, a := "foo:bar", JoinImageStreamTag("foo", "bar"); e != a {
 		t.Errorf("Unexpected value: %s", a)
 	}
-	if e, a := "foo:"+DefaultImageTag, NameAndTag("foo", ""); e != a {
+	if e, a := "foo:"+DefaultImageTag, JoinImageStreamTag("foo", ""); e != a {
 		t.Errorf("Unexpected value: %s", a)
 	}
 }

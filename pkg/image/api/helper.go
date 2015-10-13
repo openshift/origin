@@ -376,15 +376,6 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 	}
 }
 
-// NameAndTag returns an image name with a tag. If the tag is blank then
-// DefaultImageTag is used.
-func NameAndTag(name, tag string) string {
-	if len(tag) == 0 {
-		tag = DefaultImageTag
-	}
-	return fmt.Sprintf("%s:%s", name, tag)
-}
-
 // ResolveImageID returns a sets.String of all the image IDs in stream that start with imageID.
 func ResolveImageID(stream *ImageStream, imageID string) sets.String {
 	set := sets.NewString()
