@@ -2,6 +2,7 @@ package syncgroups
 
 import (
 	"fmt"
+	"net"
 
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -14,7 +15,7 @@ import (
 )
 
 // NewAllOpenShiftGroupLister returns a new allOpenShiftGroupLister
-func NewAllOpenShiftGroupLister(ldapURL string, groupClient osclient.GroupInterface, blacklist []string) interfaces.LDAPGroupLister {
+func NewAllOpenShiftGroupLister(blacklist []string, ldapURL string, groupClient osclient.GroupInterface) interfaces.LDAPGroupLister {
 	return &allOpenShiftGroupLister{
 		blacklist: sets.NewString(blacklist...),
 		client:    groupClient,
@@ -28,54 +29,57 @@ type allOpenShiftGroupLister struct {
 	blacklist sets.String
 
 	client osclient.GroupInterface
-	// ldapURL is the host:port of the LDAP server, used to identify if an OpenShift Group has
-	// been synced with a specific server in order to isolate sync jobs between different servers
+	// ldapURL is the host:port of the LDAP server, used to identify if an OpenShift Group has been synced
+	// with a specific server in order to isolate sync jobs between different servers
 	ldapURL string
 }
 
 func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
-	allGroups, err := l.client.List(labels.Everything(), fields.Everything())
+	host, _, err := net.SplitHostPort(l.ldapURL)
+	if err != nil {
+		return nil, err
+	}
+	hostSelector := labels.Set(map[string]string{ldaputil.LDAPHostLabel: host}).AsSelector()
+	potentialGroups, err := l.client.List(hostSelector, fields.Everything())
 	if err != nil {
 		return nil, err
 	}
 
-	var ldapldapGroupUIDs []string
-	for _, group := range allGroups.Items {
-		if l.blacklist.Has(group.Name) {
-			continue
+	var ldapGroupUIDs []string
+	for _, group := range potentialGroups.Items {
+		if !l.blacklist.Has(group.Name) {
+			matches, err := validateGroupAnnotations(l.ldapURL, group)
+			if err != nil {
+				return nil, err
+			}
+			if matches {
+				ldapGroupUIDs = append(ldapGroupUIDs, group.Annotations[ldaputil.LDAPUIDAnnotation])
+			}
 		}
-
-		matches, err := validateGroupAnnotations(l.ldapURL, group)
-		if err != nil {
-			return nil, err
-		}
-		if !matches {
-			continue
-		}
-
-		ldapldapGroupUIDs = append(ldapldapGroupUIDs, group.Annotations[ldaputil.LDAPUIDAnnotation])
 	}
 
-	return ldapldapGroupUIDs, nil
+	return ldapGroupUIDs, nil
 }
 
 // validateGroupAnnotations determines if the group matches and errors if the annotations are missing
 func validateGroupAnnotations(ldapURL string, group ouserapi.Group) (bool, error) {
 	if actualURL, exists := group.Annotations[ldaputil.LDAPURLAnnotation]; !exists {
-		return false, fmt.Errorf("an OpenShift Group marked as having been synced did not have a %s annotation: %v", ldaputil.LDAPURLAnnotation, group)
+		return false, fmt.Errorf("group %q marked as having been synced did not have an %s annotation",
+			group.Name, ldaputil.LDAPURLAnnotation)
 	} else if actualURL != ldapURL {
 		return false, nil
 	}
 
 	if _, exists := group.Annotations[ldaputil.LDAPUIDAnnotation]; !exists {
-		return false, fmt.Errorf("an OpenShift Group marked as having been synced did not have a %s annotation: %v", ldaputil.LDAPUIDAnnotation, group)
+		return false, fmt.Errorf("group %q marked as having been synced did not have an %s annotation",
+			group.Name, ldaputil.LDAPUIDAnnotation)
 	}
 	return true, nil
 }
 
 // NewOpenShiftGroupLister returns a new openshiftGroupLister that divulges the LDAP group unique identifier for
 // each entry in the given whitelist of OpenShift Group names
-func NewOpenShiftGroupLister(whitelist []string, blacklist []string, ldapURL string, client osclient.GroupInterface) interfaces.LDAPGroupLister {
+func NewOpenShiftGroupLister(whitelist, blacklist []string, ldapURL string, client osclient.GroupInterface) interfaces.LDAPGroupLister {
 	return &openshiftGroupLister{
 		whitelist: whitelist,
 		blacklist: sets.NewString(blacklist...),
@@ -97,30 +101,32 @@ type openshiftGroupLister struct {
 func (l *openshiftGroupLister) ListGroups() ([]string, error) {
 	var groups []ouserapi.Group
 	for _, name := range l.whitelist {
-		if l.blacklist.Has(name) {
-			continue
+		fmt.Printf("looking at: %v\n", name)
+		if !l.blacklist.Has(name) {
+			fmt.Printf("getting at: %v\n", name)
+			group, err := l.client.Get(name)
+			if err != nil {
+				return nil, err
+			}
+			fmt.Printf("adding %v\n", group)
+			groups = append(groups, *group)
 		}
 
-		group, err := l.client.Get(name)
-		if err != nil {
-			return nil, err
-		}
-		groups = append(groups, *group)
 	}
 
-	var ldapldapGroupUIDs []string
+	var ldapGroupUIDs []string
 	for _, group := range groups {
 		matches, err := validateGroupAnnotations(l.ldapURL, group)
 		if err != nil {
 			return nil, err
 		}
-		if !matches {
-			return nil, fmt.Errorf("%s was not synchronized from: %s", group.Name, l.ldapURL)
+		if matches {
+			ldapGroupUIDs = append(ldapGroupUIDs, group.Annotations[ldaputil.LDAPUIDAnnotation])
+		} else {
+			return nil, fmt.Errorf("group %q was not synchronized from: %s", group.Name, l.ldapURL)
 		}
-
-		ldapldapGroupUIDs = append(ldapldapGroupUIDs, group.Annotations[ldaputil.LDAPUIDAnnotation])
 	}
-	return ldapldapGroupUIDs, nil
+	return ldapGroupUIDs, nil
 }
 
 // NewLDAPWhitelistGroupLister returns a new whitelistLDAPGroupLister that divulges the given whitelist
@@ -161,7 +167,7 @@ func (l *blacklistLDAPGroupLister) ListGroups() ([]string, error) {
 		return nil, err
 	}
 
-	// iterate through instead of  "Difference" to preserve ordering
+	// iterate through to preserve ordering
 	ret := []string{}
 	for _, name := range allNames {
 		if l.blacklist.Has(name) {

@@ -319,7 +319,7 @@ func (o *SyncGroupsOptions) GetGroupLister(syncBuilder SyncBuilder, clientConfig
 	// if we have a whitelist, it trumps alls
 	if len(o.Whitelist) != 0 {
 		if o.Source == GroupSyncSourceOpenShift {
-			return syncgroups.NewOpenShiftGroupLister(o.Whitelist, o.Blacklist, o.GroupInterface), nil
+			return syncgroups.NewOpenShiftGroupLister(o.Whitelist, o.Blacklist, clientConfig.Host, o.GroupInterface), nil
 		}
 
 		ldapWhitelist := syncgroups.NewLDAPWhitelistGroupLister(o.Whitelist)
@@ -331,7 +331,7 @@ func (o *SyncGroupsOptions) GetGroupLister(syncBuilder SyncBuilder, clientConfig
 
 	// openshift as a listing source works the same for all schemas
 	if o.Source == GroupSyncSourceOpenShift {
-		return syncgroups.NewAllOpenShiftGroupLister(clientConfig.Host, o.GroupInterface, o.Blacklist), nil
+		return syncgroups.NewAllOpenShiftGroupLister(o.Blacklist, clientConfig.Host, o.GroupInterface), nil
 	}
 
 	syncLister, err := syncBuilder.GetGroupLister()
