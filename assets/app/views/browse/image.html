@@ -2,6 +2,7 @@
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
+    <div ng-if="!loaded">Loading...</div>
     <div class="tile" ng-if="imageStream">
       <h2>
         {{imageStream.metadata.name}}

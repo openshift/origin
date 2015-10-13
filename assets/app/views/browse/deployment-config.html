@@ -2,6 +2,7 @@
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
+    <div ng-if="!loaded">Loading...</div>
     <div class="tile" ng-if="deploymentConfig">
       <div> 
         <h2>{{deploymentConfig.metadata.name}}</h2>
@@ -79,7 +80,7 @@
         <annotations annotations="deploymentConfig.metadata.annotations"></annotations>
       </div>     
     </div>
-    <div class="table-responsive">
+    <div class="table-responsive" ng-if="loaded">
       <table class="table table-bordered table-hover">
         <thead>
           <tr>
