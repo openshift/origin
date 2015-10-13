@@ -23,7 +23,7 @@ metadata:
   creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
-  name: secondgroup
+  name: group2
 users:
 - person1smith@example.com
 - 'person2mith@example.com '
