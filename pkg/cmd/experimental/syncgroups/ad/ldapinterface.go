@@ -11,12 +11,13 @@ import (
 	ldapinterfaces "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
 )
 
-// NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
-func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
-	userQuery ldaputil.LDAPQueryOnAttribute,
+// NewADLDAPInterface builds a new ADLDAPInterface using a schema-appropriate config
+func NewADLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
+	userQuery ldaputil.LDAPQuery,
 	groupMembershipAttributes []string,
-	userNameAttributes []string) LDAPInterface {
-	return LDAPInterface{
+	userNameAttributes []string) *ADLDAPInterface {
+
+	return &ADLDAPInterface{
 		clientConfig:              clientConfig,
 		userQuery:                 userQuery,
 		userNameAttributes:        userNameAttributes,
@@ -25,18 +26,17 @@ func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
 	}
 }
 
-// LDAPInterface extracts the member list of an LDAP group entry from an LDAP server
-// with first-class LDAP entries for user only. The LDAPInterface is *NOT* thread-safe.
-// The LDAPInterface satisfies:
+// ADLDAPInterface extracts the member list of an LDAP group entry from an LDAP server
+// with first-class LDAP entries for user only. The ADLDAPInterface is *NOT* thread-safe.
+// The ADLDAPInterface satisfies:
 // - LDAPMemberExtractor
 // - LDAPGroupLister
-type LDAPInterface struct {
+type ADLDAPInterface struct {
 	// clientConfig holds LDAP connection information
-	clientConfig ldaputil.LDAPClientConfig
+	clientConfig *ldaputil.LDAPClientConfig
 
-	// userQuery holds the information necessary to make an LDAP query for a specific
-	// first-class user entry on the LDAP server
-	userQuery ldaputil.LDAPQueryOnAttribute
+	// userQuery holds the information necessary to make an LDAP query for all first-class user entries on the LDAP server
+	userQuery ldaputil.LDAPQuery
 	// groupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted as its ldapGroupUID
 	groupMembershipAttributes []string
 	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its name
@@ -46,11 +46,11 @@ type LDAPInterface struct {
 	ldapGroupToLDAPMembers map[string][]*ldap.Entry
 }
 
-var _ ldapinterfaces.LDAPMemberExtractor = &LDAPInterface{}
-var _ ldapinterfaces.LDAPGroupLister = &LDAPInterface{}
+var _ ldapinterfaces.LDAPMemberExtractor = &ADLDAPInterface{}
+var _ ldapinterfaces.LDAPGroupLister = &ADLDAPInterface{}
 
 // ExtractMembers returns the LDAP member entries for a group specified with a ldapGroupUID
-func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, error) {
+func (e *ADLDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, error) {
 	// if we already have it cached, return the cached value
 	if members, present := e.ldapGroupToLDAPMembers[ldapGroupUID]; present {
 		return members, nil
@@ -61,8 +61,7 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, erro
 
 	// check for all users with ldapGroupUID in any of the allowed member attributes
 	for _, currAttribute := range e.groupMembershipAttributes {
-		currQuery := e.userQuery
-		currQuery.QueryAttribute = currAttribute
+		currQuery := ldaputil.LDAPQueryOnAttribute{LDAPQuery: e.userQuery, QueryAttribute: currAttribute}
 
 		searchRequest, err := currQuery.NewSearchRequest(ldapGroupUID, e.requiredUserAttributes())
 		if err != nil {
@@ -90,7 +89,7 @@ func (e *LDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, erro
 
 // ListGroups queries for all groups as configured with the common group filter and returns their
 // LDAP group UIDs. This also satisfies the LDAPGroupLister interface
-func (e *LDAPInterface) ListGroups() ([]string, error) {
+func (e *ADLDAPInterface) ListGroups() ([]string, error) {
 	if err := e.populateCache(); err != nil {
 		return nil, err
 	}
@@ -100,12 +99,12 @@ func (e *LDAPInterface) ListGroups() ([]string, error) {
 
 // populateCache queries all users to build a map of all the groups.  If the cache has already been
 // populated, this is a no-op.
-func (e *LDAPInterface) populateCache() error {
+func (e *ADLDAPInterface) populateCache() error {
 	if e.cachePopulated {
 		return nil
 	}
 
-	searchRequest := e.userQuery.LDAPQuery.NewSearchRequest(e.requiredUserAttributes())
+	searchRequest := e.userQuery.NewSearchRequest(e.requiredUserAttributes())
 
 	userEntries, err := ldaputil.QueryForEntries(e.clientConfig, searchRequest)
 	if err != nil {
@@ -145,9 +144,9 @@ func isEntryPresent(haystack []*ldap.Entry, needle *ldap.Entry) bool {
 	return false
 }
 
-func (e *LDAPInterface) requiredUserAttributes() []string {
-	attributes := sets.NewString(e.groupMembershipAttributes...)
-	attributes.Insert(e.userNameAttributes...)
+func (e *ADLDAPInterface) requiredUserAttributes() []string {
+	allAttributes := sets.NewString(e.userNameAttributes...)
+	allAttributes.Insert(e.groupMembershipAttributes...)
 
-	return attributes.List()
+	return allAttributes.List()
 }

@@ -12,13 +12,14 @@ import (
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
-func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
+func NewLDAPInterface(clientConfig *ldaputil.LDAPClientConfig,
 	groupQuery ldaputil.LDAPQueryOnAttribute,
 	groupNameAttributes []string,
 	groupMembershipAttributes []string,
 	userQuery ldaputil.LDAPQueryOnAttribute,
-	userNameAttributes []string) LDAPInterface {
-	return LDAPInterface{
+	userNameAttributes []string) *LDAPInterface {
+
+	return &LDAPInterface{
 		clientConfig:              clientConfig,
 		groupQuery:                groupQuery,
 		groupNameAttributes:       groupNameAttributes,
@@ -38,7 +39,7 @@ func NewLDAPInterface(clientConfig ldaputil.LDAPClientConfig,
 // - LDAPGroupLister
 type LDAPInterface struct {
 	// clientConfig holds LDAP connection information
-	clientConfig ldaputil.LDAPClientConfig
+	clientConfig *ldaputil.LDAPClientConfig
 
 	// groupQuery holds the information necessary to make an LDAP query for a specific
 	// first-class group entry on the LDAP server

@@ -96,27 +96,37 @@ type LDAPQueryOnAttribute struct {
 	QueryAttribute string
 }
 
-// NewLDAPQueryOnAttribute converts a user-provided LDAPQuery into a version we can use by parsing
-// the input and combining it with a set of name attributes
-func NewLDAPQueryOnAttribute(config api.LDAPQuery, attribute string) (LDAPQueryOnAttribute, error) {
+// NewLDAPQuery converts a user-provided LDAPQuery into a version we can use
+func NewLDAPQuery(config api.LDAPQuery) (LDAPQuery, error) {
 	scope, err := DetermineLDAPScope(config.Scope)
 	if err != nil {
-		return LDAPQueryOnAttribute{}, err
+		return LDAPQuery{}, err
 	}
 
 	derefAliases, err := DetermineDerefAliasesBehavior(config.DerefAliases)
+	if err != nil {
+		return LDAPQuery{}, err
+	}
+
+	return LDAPQuery{
+		BaseDN:       config.BaseDN,
+		Scope:        scope,
+		DerefAliases: derefAliases,
+		TimeLimit:    config.TimeLimit,
+		Filter:       config.Filter,
+	}, nil
+}
+
+// NewLDAPQueryOnAttribute converts a user-provided LDAPQuery into a version we can use by parsing
+// the input and combining it with a set of name attributes
+func NewLDAPQueryOnAttribute(config api.LDAPQuery, attribute string) (LDAPQueryOnAttribute, error) {
+	ldapQuery, err := NewLDAPQuery(config)
 	if err != nil {
 		return LDAPQueryOnAttribute{}, err
 	}
 
 	return LDAPQueryOnAttribute{
-		LDAPQuery: LDAPQuery{
-			BaseDN:       config.BaseDN,
-			Scope:        scope,
-			DerefAliases: derefAliases,
-			TimeLimit:    config.TimeLimit,
-			Filter:       config.Filter,
-		},
+		LDAPQuery:      ldapQuery,
 		QueryAttribute: attribute,
 	}, nil
 }
@@ -180,7 +190,7 @@ func (o *LDAPQueryOnAttribute) buildAttributeQuery(attributeValue string,
 
 // QueryForUniqueEntry queries for an LDAP entry with the given searchRequest. The query is expected
 // to return one unqiue result. If this is not the case, errors are raised
-func QueryForUniqueEntry(clientConfig LDAPClientConfig, query *ldap.SearchRequest) (*ldap.Entry, error) {
+func QueryForUniqueEntry(clientConfig *LDAPClientConfig, query *ldap.SearchRequest) (*ldap.Entry, error) {
 	result, err := QueryForEntries(clientConfig, query)
 	if err != nil {
 		return nil, err
@@ -215,7 +225,7 @@ func formatResult(results []*ldap.Entry) string {
 }
 
 // QueryForEntries queries for LDAP with the given searchRequest
-func QueryForEntries(clientConfig LDAPClientConfig, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
+func QueryForEntries(clientConfig *LDAPClientConfig, query *ldap.SearchRequest) ([]*ldap.Entry, error) {
 	connection, err := clientConfig.Connect()
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to the LDAP server: %v", err)

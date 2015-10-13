@@ -1,7 +1,6 @@
-package syncgroups
+package cli
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,9 +18,8 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/ad"
+	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/rfc2307"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -147,6 +145,13 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 	return cmd
 }
 
+type SyncBuilder interface {
+	GetGroupLister() (interfaces.LDAPGroupLister, error)
+	GetGroupNameMapper() (interfaces.LDAPGroupNameMapper, error)
+	GetUserNameMapper() (interfaces.LDAPUserNameMapper, error)
+	GetGroupMemberExtractor() (interfaces.LDAPMemberExtractor, error)
+}
+
 func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, configFile string, args []string, f *clientcmd.Factory) error {
 	switch typeArg {
 	case string(GroupSyncSourceLDAP):
@@ -227,15 +232,28 @@ func (o *SyncGroupsOptions) Validate() error {
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
 func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
-	// In order to create the GroupSyncer, we need to build its' parts:
-	// interpret user-provided configuration
 	clientConfig, err := ldaputil.NewLDAPClientConfig(o.Config.URL, o.Config.BindDN, o.Config.BindPassword, o.Config.CA, o.Config.Insecure)
 	if err != nil {
 		return fmt.Errorf("could not determine LDAP client configuration: %v", err)
 	}
 
+	var syncBuilder SyncBuilder
+	switch {
+	case o.Config.RFC2307Config != nil:
+		syncBuilder = &RFC2307SyncBuilder{ClientConfig: clientConfig, Config: o.Config.RFC2307Config}
+
+	case o.Config.ActiveDirectoryConfig != nil:
+		syncBuilder = &ADSyncBuilder{ClientConfig: clientConfig, Config: o.Config.ActiveDirectoryConfig}
+
+	case o.Config.AugmentedActiveDirectoryConfig != nil:
+		syncBuilder = &AugmentedADSyncBuilder{ClientConfig: clientConfig, Config: o.Config.AugmentedActiveDirectoryConfig}
+
+	default:
+		return fmt.Errorf("invalid sync config type: %v", o.Config)
+	}
+
 	// populate schema-independent syncer fields
-	syncer := LDAPGroupSyncer{
+	syncer := &syncgroups.LDAPGroupSyncer{
 		Host:        clientConfig.Host,
 		GroupClient: o.GroupInterface,
 		DryRun:      !o.Confirm,
@@ -244,80 +262,24 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		Err: os.Stderr,
 	}
 
-	if len(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping) > 0 {
-		syncer.GroupNameMapper = NewUserDefinedGroupNameMapper(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
+	syncer.GroupLister, err = o.GetGroupLister(syncBuilder, clientConfig)
+	if err != nil {
+		return err
 	}
 
-	switch {
-	case o.Config.RFC2307Config != nil:
-		syncer.UserNameMapper = NewUserNameMapper(o.Config.RFC2307Config.UserNameAttributes)
+	syncer.GroupMemberExtractor, err = syncBuilder.GetGroupMemberExtractor()
+	if err != nil {
+		return err
+	}
 
-		// config values are internalized
-		groupQuery, err := ldaputil.NewLDAPQueryOnAttribute(o.Config.RFC2307Config.AllGroupsQuery, o.Config.RFC2307Config.GroupUIDAttribute)
-		if err != nil {
-			return err
-		}
+	syncer.UserNameMapper, err = syncBuilder.GetUserNameMapper()
+	if err != nil {
+		return err
+	}
 
-		userQuery, err := ldaputil.NewLDAPQueryOnAttribute(o.Config.RFC2307Config.AllUsersQuery, o.Config.RFC2307Config.UserUIDAttribute)
-		if err != nil {
-			return err
-		}
-
-		// the schema-specific ldapInterface is built from the config
-		ldapInterface := rfc2307.NewLDAPInterface(clientConfig,
-			groupQuery,
-			o.Config.RFC2307Config.GroupNameAttributes,
-			o.Config.RFC2307Config.GroupMembershipAttributes,
-			userQuery,
-			o.Config.RFC2307Config.UserNameAttributes)
-
-		// The LDAPInterface knows how to extract group members
-		syncer.GroupMemberExtractor = &ldapInterface
-
-		// In order to build the GroupNameMapper, we need to know if the user defined a hard mapping
-		// or one based on LDAP group entry attributes
-		if syncer.GroupNameMapper == nil {
-			if o.Config.RFC2307Config.GroupNameAttributes == nil {
-				return errors.New("not enough information to build a group name mapper")
-			}
-			syncer.GroupNameMapper = NewEntryAttributeGroupNameMapper(o.Config.RFC2307Config.GroupNameAttributes, &ldapInterface)
-		}
-
-		// In order to build the groupLister, we need to know about the group sync scope and source:
-		syncer.GroupLister = getGroupLister(o.Source, o.WhitelistContents, o.GroupInterface, clientConfig.Host, &ldapInterface)
-
-	case o.Config.ActiveDirectoryConfig != nil:
-		syncer.UserNameMapper = NewUserNameMapper(o.Config.ActiveDirectoryConfig.UserNameAttributes)
-
-		// config values are internalized
-
-		userQuery, err := ldaputil.NewLDAPQueryOnAttribute(o.Config.ActiveDirectoryConfig.AllUsersQuery, "dn")
-		if err != nil {
-			return err
-		}
-
-		// the schema-specific ldapInterface is built from the config
-		ldapInterface := ad.NewLDAPInterface(clientConfig,
-			userQuery,
-			o.Config.ActiveDirectoryConfig.GroupMembershipAttributes,
-			o.Config.ActiveDirectoryConfig.UserNameAttributes)
-
-		// The LDAPInterface knows how to extract group members
-		syncer.GroupMemberExtractor = &ldapInterface
-
-		// In order to build the GroupNameMapper, we need to know if the user defined a hard mapping
-		// or one based on LDAP group entry attributes
-		if syncer.GroupNameMapper == nil {
-			syncer.GroupNameMapper = &DNLDAPGroupNameMapper{}
-		}
-
-		// In order to build the groupLister, we need to know about the group sync scope and source:
-		syncer.GroupLister = getGroupLister(o.Source, o.WhitelistContents, o.GroupInterface, clientConfig.Host, &ldapInterface)
-
-	case o.Config.AugmentedActiveDirectoryConfig != nil:
-		fallthrough
-	default:
-		return fmt.Errorf("invalid schema-specific query template type: %v", o.Config.RFC2307Config)
+	syncer.GroupNameMapper, err = o.GetGroupNameMapper(syncBuilder)
+	if err != nil {
+		return err
 	}
 
 	// Now we run the Syncer and report any errors
@@ -338,25 +300,27 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 
 }
 
-// getGroupLister returns an LDAPGroupLister. The GroupLister is created by taking into account
-// both the scope and the source of the search.
-//   - Syncing a whitelist of LDAP groups will require a WhitelistLDAPGroupLister
-//   - Syncing a whitelist of OpenShift groups will require a LocalGroupLister
-//   - Syncing all LDAP groups will require us to use the ldapInterface as the lister
-//   - Syncing all OpenShift groups will require a AllLocalGroupLister
-
-func getGroupLister(source GroupSyncSource, whitelist []string, client osclient.GroupInterface, host string, groupLister interfaces.LDAPGroupLister) interfaces.LDAPGroupLister {
-	if len(whitelist) == 0 {
-		if source == GroupSyncSourceOpenShift {
-			return NewAllOpenShiftGroupLister(host, client)
+func (o *SyncGroupsOptions) GetGroupLister(syncBuilder SyncBuilder, clientConfig *ldaputil.LDAPClientConfig) (interfaces.LDAPGroupLister, error) {
+	// if we have a whitelist, it trumps alls
+	if len(o.WhitelistContents) != 0 {
+		if o.Source == GroupSyncSourceOpenShift {
+			return syncgroups.NewOpenShiftWhitelistGroupLister(o.WhitelistContents, o.GroupInterface), nil
 		}
-
-		return groupLister
+		return syncgroups.NewLDAPWhitelistGroupLister(o.WhitelistContents), nil
 	}
 
-	if source == GroupSyncSourceOpenShift {
-		return NewOpenShiftWhitelistGroupLister(whitelist, client)
+	// openshift as a listing source works the same for all schemas
+	if o.Source == GroupSyncSourceOpenShift {
+		return syncgroups.NewAllOpenShiftGroupLister(clientConfig.Host, o.GroupInterface), nil
 	}
 
-	return NewLDAPWhitelistGroupLister(whitelist)
+	return syncBuilder.GetGroupLister()
+}
+
+func (o *SyncGroupsOptions) GetGroupNameMapper(syncBuilder SyncBuilder) (interfaces.LDAPGroupNameMapper, error) {
+	if len(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping) > 0 {
+		return syncgroups.NewUserDefinedGroupNameMapper(o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping), nil
+	}
+
+	return syncBuilder.GetGroupNameMapper()
 }

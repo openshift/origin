@@ -11,22 +11,22 @@ import (
 )
 
 // NewLDAPClientConfig returns a new LDAPClientConfig
-func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (LDAPClientConfig, error) {
+func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (*LDAPClientConfig, error) {
 	url, err := ParseURL(URL)
 	if err != nil {
-		return LDAPClientConfig{}, fmt.Errorf("Error parsing URL: %v", err)
+		return nil, fmt.Errorf("Error parsing URL: %v", err)
 	}
 
 	tlsConfig := &tls.Config{}
 	if len(CA) > 0 {
 		roots, err := util.CertPoolFromFile(CA)
 		if err != nil {
-			return LDAPClientConfig{}, fmt.Errorf("error loading cert pool from ca file %s: %v", CA, err)
+			return nil, fmt.Errorf("error loading cert pool from ca file %s: %v", CA, err)
 		}
 		tlsConfig.RootCAs = roots
 	}
 
-	return LDAPClientConfig{
+	return &LDAPClientConfig{
 		Scheme:       url.Scheme,
 		Host:         url.Host,
 		BindDN:       bindDN,
