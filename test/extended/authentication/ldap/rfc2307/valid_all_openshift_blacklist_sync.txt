@@ -5,6 +5,8 @@ metadata:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
   creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
 users: []
 apiVersion: v1
@@ -14,6 +16,8 @@ metadata:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
   creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
 users:
 - person1smith@example.com

@@ -3,6 +3,7 @@ package syncgroups
 import (
 	"fmt"
 	"io"
+	"net"
 	"time"
 
 	"github.com/go-ldap/ldap"
@@ -127,6 +128,10 @@ func (s *LDAPGroupSyncer) updateOpenShiftGroup(openshiftGroup *userapi.Group) er
 
 // makeOpenShiftGroup creates the OpenShift Group object that needs to be updated, updates its data
 func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []string) (*userapi.Group, error) {
+	hostIP, _, err := net.SplitHostPort(s.Host)
+	if err != nil {
+		return nil, err
+	}
 	groupName, err := s.GroupNameMapper.GroupNameFor(ldapGroupUID)
 	if err != nil {
 		return nil, err
@@ -140,12 +145,19 @@ func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []st
 			ldaputil.LDAPURLAnnotation: s.Host,
 			ldaputil.LDAPUIDAnnotation: ldapGroupUID,
 		}
+		group.Labels = map[string]string{
+			ldaputil.LDAPHostLabel: hostIP,
+		}
 
 	} else if err != nil {
 		return nil, err
 	}
 
 	// make sure we aren't taking over an OpenShift group that is already related to a different LDAP group
+	if host, exists := group.Labels[ldaputil.LDAPHostLabel]; !exists || (host != hostIP) {
+		return nil, fmt.Errorf("group %q: %s label did not match sync host: wanted %s, got %s",
+			group.Name, ldaputil.LDAPHostLabel, hostIP, host)
+	}
 	if url, exists := group.Annotations[ldaputil.LDAPURLAnnotation]; !exists || (url != s.Host) {
 		return nil, fmt.Errorf("group %q: %s annotation did not match sync host: wanted %s, got %s",
 			group.Name, ldaputil.LDAPURLAnnotation, s.Host, url)

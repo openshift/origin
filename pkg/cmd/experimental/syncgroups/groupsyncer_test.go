@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
+	"strings"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -22,7 +23,7 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 	syncer := &LDAPGroupSyncer{
 		Out:  ioutil.Discard,
 		Err:  ioutil.Discard,
-		Host: "test-host",
+		Host: "test-host:port",
 		GroupNameMapper: &TestGroupNameMapper{
 			NameMapping: map[string]string{
 				"alfa": "zulu",
@@ -45,18 +46,21 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			ldapGroupUID: "alfa",
 			usernames:    []string{"valerie"},
 			expectedGroup: &userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
-				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host", ldaputil.LDAPUIDAnnotation: "alfa"}},
+				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
+				Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
 				Users: []string{"valerie"}},
 		},
 		"replaced good": {
 			ldapGroupUID: "alfa",
 			usernames:    []string{"valerie"},
 			expectedGroup: &userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
-				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host", ldaputil.LDAPUIDAnnotation: "alfa"}},
+				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
+				Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
 				Users: []string{"valerie"}},
 			startingGroups: []runtime.Object{
 				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
-					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host", ldaputil.LDAPUIDAnnotation: "alfa"}},
+					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
+					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
 					Users: []string{"other-user"}},
 			},
 		},
@@ -65,7 +69,8 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			usernames:    []string{"valerie"},
 			startingGroups: []runtime.Object{
 				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
-					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host", ldaputil.LDAPUIDAnnotation: "bravo"}},
+					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "bravo"},
+					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
 					Users: []string{"other-user"}},
 			},
 			expectedErr: `group "zulu": openshift.io/ldap.uid annotation did not match LDAP UID: wanted alfa, got bravo`,
@@ -75,10 +80,22 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			usernames:    []string{"valerie"},
 			startingGroups: []runtime.Object{
 				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
-					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "bad-host", ldaputil.LDAPUIDAnnotation: "alfa"}},
+					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "bad-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
+					Labels:      map[string]string{ldaputil.LDAPHostLabel: "bad-host"}},
 					Users: []string{"other-user"}},
 			},
-			expectedErr: `group "zulu": openshift.io/ldap.url annotation did not match sync host: wanted test-host, got bad-host`,
+			expectedErr: `group "zulu": openshift.io/ldap.host label did not match sync host: wanted test-host, got bad-host`,
+		},
+		"conflicting port": {
+			ldapGroupUID: "alfa",
+			usernames:    []string{"valerie"},
+			startingGroups: []runtime.Object{
+				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "zulu",
+					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port2", ldaputil.LDAPUIDAnnotation: "alfa"},
+					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
+					Users: []string{"other-user"}},
+			},
+			expectedErr: `group "zulu": openshift.io/ldap.url annotation did not match sync host: wanted test-host:port, got test-host:port2`,
 		},
 	}
 
@@ -260,6 +277,9 @@ func newDefaultOpenShiftGroups(host string) []*userapi.Group {
 					ldaputil.LDAPURLAnnotation: host,
 					ldaputil.LDAPUIDAnnotation: Group1UID,
 				},
+				Labels: map[string]string{
+					ldaputil.LDAPHostLabel: strings.Split(host, ":")[0],
+				},
 			},
 			Users: []string{Member1UID, Member2UID},
 		},
@@ -270,6 +290,9 @@ func newDefaultOpenShiftGroups(host string) []*userapi.Group {
 					ldaputil.LDAPURLAnnotation: host,
 					ldaputil.LDAPUIDAnnotation: Group2UID,
 				},
+				Labels: map[string]string{
+					ldaputil.LDAPHostLabel: strings.Split(host, ":")[0],
+				},
 			},
 			Users: []string{Member2UID, Member3UID},
 		},
@@ -279,6 +302,9 @@ func newDefaultOpenShiftGroups(host string) []*userapi.Group {
 				Annotations: map[string]string{
 					ldaputil.LDAPURLAnnotation: host,
 					ldaputil.LDAPUIDAnnotation: Group3UID,
+				},
+				Labels: map[string]string{
+					ldaputil.LDAPHostLabel: strings.Split(host, ":")[0],
 				},
 			},
 			Users: []string{Member3UID, Member4UID},

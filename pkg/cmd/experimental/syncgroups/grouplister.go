@@ -2,6 +2,7 @@ package syncgroups
 
 import (
 	"fmt"
+	"net"
 
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -14,7 +15,7 @@ import (
 )
 
 // NewAllOpenShiftGroupLister returns a new allOpenShiftGroupLister
-func NewAllOpenShiftGroupLister(ldapURL string, groupClient osclient.GroupInterface, blacklist []string) interfaces.LDAPGroupListerNameMapper {
+func NewAllOpenShiftGroupLister(blacklist []string, ldapURL string, groupClient osclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
 	return &allOpenShiftGroupLister{
 		blacklist: sets.NewString(blacklist...),
 		client:    groupClient,
@@ -35,7 +36,12 @@ type allOpenShiftGroupLister struct {
 }
 
 func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
-	allGroups, err := l.client.List(labels.Everything(), fields.Everything())
+	host, _, err := net.SplitHostPort(l.ldapURL)
+	if err != nil {
+		return nil, err
+	}
+	hostSelector := labels.Set(map[string]string{ldaputil.LDAPHostLabel: host}).AsSelector()
+	allGroups, err := l.client.List(hostSelector, fields.Everything())
 	if err != nil {
 		return nil, err
 	}
@@ -81,20 +87,22 @@ func (l *allOpenShiftGroupLister) GroupNameFor(ldapGroupUID string) (string, err
 // validateGroupAnnotations determines if the group matches and errors if the annotations are missing
 func validateGroupAnnotations(ldapURL string, group ouserapi.Group) (bool, error) {
 	if actualURL, exists := group.Annotations[ldaputil.LDAPURLAnnotation]; !exists {
-		return false, fmt.Errorf("an OpenShift Group marked as having been synced did not have a %s annotation: %v", ldaputil.LDAPURLAnnotation, group)
+		return false, fmt.Errorf("group %q marked as having been synced did not have an %s annotation", group.Name, ldaputil.LDAPURLAnnotation)
+
 	} else if actualURL != ldapURL {
 		return false, nil
 	}
 
 	if _, exists := group.Annotations[ldaputil.LDAPUIDAnnotation]; !exists {
-		return false, fmt.Errorf("an OpenShift Group marked as having been synced did not have a %s annotation: %v", ldaputil.LDAPUIDAnnotation, group)
+		return false, fmt.Errorf("group %q marked as having been synced did not have an %s annotation", group.Name, ldaputil.LDAPUIDAnnotation)
 	}
+
 	return true, nil
 }
 
 // NewOpenShiftGroupLister returns a new openshiftGroupLister that divulges the LDAP group unique identifier for
 // each entry in the given whitelist of OpenShift Group names
-func NewOpenShiftGroupLister(whitelist []string, blacklist []string, ldapURL string, client osclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
+func NewOpenShiftGroupLister(whitelist, blacklist []string, ldapURL string, client osclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
 	return &openshiftGroupLister{
 		whitelist: whitelist,
 		blacklist: sets.NewString(blacklist...),
@@ -137,7 +145,7 @@ func (l *openshiftGroupLister) ListGroups() ([]string, error) {
 			return nil, err
 		}
 		if !matches {
-			return nil, fmt.Errorf("%s was not synchronized from: %s", group.Name, l.ldapURL)
+			return nil, fmt.Errorf("group %q was not synchronized from: %s", group.Name, l.ldapURL)
 		}
 
 		ldapGroupUID := group.Annotations[ldaputil.LDAPUIDAnnotation]

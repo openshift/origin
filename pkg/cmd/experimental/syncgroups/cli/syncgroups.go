@@ -344,7 +344,7 @@ func (o *SyncGroupsOptions) GetOpenShiftGroupListerMapper(syncBuilder SyncBuilde
 		return syncgroups.NewOpenShiftGroupLister(o.Whitelist, o.Blacklist, clientConfig.Host, o.GroupInterface), nil
 	}
 
-	return syncgroups.NewAllOpenShiftGroupLister(clientConfig.Host, o.GroupInterface, o.Blacklist), nil
+	return syncgroups.NewAllOpenShiftGroupLister(o.Blacklist, clientConfig.Host, o.GroupInterface), nil
 }
 
 func (o *SyncGroupsOptions) GetLDAPGroupLister(syncBuilder SyncBuilder) (interfaces.LDAPGroupLister, error) {

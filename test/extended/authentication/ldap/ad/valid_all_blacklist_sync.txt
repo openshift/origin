@@ -5,6 +5,8 @@ metadata:
     openshift.io/ldap.uid: group2
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
   creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
 users:
 - person1smith@example.com
