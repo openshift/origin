@@ -125,18 +125,6 @@ function setup() {
     ip link set ${TUN} up
     ip route add ${cluster_network_cidr} dev ${TUN} proto kernel scope link
 
-    ## iptables
-    iptables -t nat -D POSTROUTING -s ${cluster_network_cidr} ! -d ${cluster_network_cidr} -j MASQUERADE || true
-    iptables -t nat -A POSTROUTING -s ${cluster_network_cidr} ! -d ${cluster_network_cidr} -j MASQUERADE
-    iptables -D INPUT -p udp -m multiport --dports 4789 -m comment --comment "001 vxlan incoming" -j ACCEPT || true
-    iptables -D INPUT -i ${TUN} -m comment --comment "traffic from docker for internet" -j ACCEPT || true
-    lineno=$(iptables -nvL INPUT --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}')
-    iptables -I INPUT $lineno -p udp -m multiport --dports 4789 -m comment --comment "001 vxlan incoming" -j ACCEPT
-    iptables -I INPUT $((lineno+1)) -i ${TUN} -m comment --comment "traffic from docker for internet" -j ACCEPT
-    fwd_lineno=$(iptables -nvL FORWARD --line-numbers | grep "reject-with icmp-host-prohibited" | tail -n 1 | awk '{print $1}')
-    iptables -I FORWARD $fwd_lineno -d ${cluster_network_cidr} -j ACCEPT
-    iptables -I FORWARD $fwd_lineno -s ${cluster_network_cidr} -j ACCEPT
-
     ## docker
     docker_network_config update
 

@@ -8,21 +8,17 @@ const (
 )
 
 type SubnetRegistry interface {
-	InitSubnets() error
 	GetSubnets() ([]Subnet, string, error)
 	GetSubnet(nodeName string) (*Subnet, error)
 	DeleteSubnet(nodeName string) error
 	CreateSubnet(sn string, sub *Subnet) error
 	WatchSubnets(receiver chan<- *SubnetEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
-	InitNodes() error
 	GetNodes() ([]Node, string, error)
-	CreateNode(nodeName string, data string) error
 	WatchNodes(receiver chan<- *NodeEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
 
 	WriteNetworkConfig(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error
 	GetClusterNetworkCIDR() (string, error)
-	CheckEtcdIsAlive(seconds uint64) bool
 
 	GetNamespaces() ([]string, string, error)
 	WatchNamespaces(receiver chan<- *NamespaceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
@@ -36,6 +32,9 @@ type SubnetRegistry interface {
 	GetServicesNetworkCIDR() (string, error)
 	GetServices() ([]Service, string, error)
 	WatchServices(receiver chan<- *ServiceEvent, ready chan<- bool, startVersion <-chan string, stop <-chan bool) error
+	GetServicesForNamespace(namespace string) ([]Service, error)
+
+	GetRunningPods(nodeName, namespace string) ([]Pod, error)
 }
 
 type Subnet struct {
@@ -93,4 +92,10 @@ type Service struct {
 type ServiceEvent struct {
 	Type    EventType
 	Service Service
+}
+
+type Pod struct {
+	Name        string
+	Namespace   string
+	ContainerID string
 }

@@ -88,10 +88,5 @@ func ValidateNetNamespace(netnamespace *sdnapi.NetNamespace) fielderrors.Validat
 func ValidateNetNamespaceUpdate(obj *sdnapi.NetNamespace, old *sdnapi.NetNamespace) fielderrors.ValidationErrorList {
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta).Prefix("metadata")...)
-
-	if obj.NetID != old.NetID {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("netid", obj.NetID, "cannot change the NetID midflight."))
-	}
-
 	return allErrs
 }

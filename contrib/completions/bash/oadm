@@ -986,6 +986,56 @@ _oadm_create-api-client-config()
     must_have_one_noun=()
 }
 
+_oadm_pod-network_join-projects()
+{
+    last_command="oadm_pod-network_join-projects"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--selector=")
+    flags+=("--to=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_pod-network_unisolate-projects()
+{
+    last_command="oadm_pod-network_unisolate-projects"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--selector=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_pod-network()
+{
+    last_command="oadm_pod-network"
+    commands=()
+    commands+=("join-projects")
+    commands+=("unisolate-projects")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oadm_create-bootstrap-project-template()
 {
     last_command="oadm_create-bootstrap-project-template"
@@ -1279,6 +1329,7 @@ _oadm()
     commands+=("config")
     commands+=("create-kubeconfig")
     commands+=("create-api-client-config")
+    commands+=("pod-network")
     commands+=("create-bootstrap-project-template")
     commands+=("create-bootstrap-policy-file")
     commands+=("create-login-template")
