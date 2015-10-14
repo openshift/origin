@@ -14,35 +14,38 @@ os::log::install_errexit
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
+repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
+package="${UPSTREAM_PACKAGE:-pkg/api}"
+
 if [[ "$#" -ne 1 ]]; then
-  echo "You must supply a pull request by number or a Git range in the upstream Kube project" 1>&2
+  echo "You must supply a pull request by number or a Git range in the upstream ${repo} project" 1>&2
   exit 1
 fi
 os::build::require_clean_tree # Origin tree must be clean
 
 patch="${TMPDIR:-/tmp}/patch"
-kubedir="../../../k8s.io/kubernetes"
-if [[ ! -d "${kubedir}" ]]; then
-  echo "Expected ${kubedir} to exist" 1>&2
+relativedir="../../../${repo}"
+if [[ ! -d "${relativedir}" ]]; then
+  echo "Expected ${relativedir} to exist" 1>&2
   exit 1
 fi
 
 if [[ -z "${NO_REBASE-}" ]]; then
-  lastkube="$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json k8s.io/kubernetes/pkg/api)"
+  lastrev="$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
 fi
 
-pushd "${kubedir}" > /dev/null
+pushd "${relativedir}" > /dev/null
 os::build::require_clean_tree
 git fetch
 
 selector="$(os::build::commit_range $1 origin/master)"
 
 if [[ -z "${NO_REBASE-}" ]]; then
-  echo "++ Generating patch for ${selector} onto ${lastkube} ..." 2>&1
-  if git rev-parse kube_rebaser_branch > /dev/null 2>&1; then
-    git branch -d kube_rebaser_branch
+  echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1
+  if git rev-parse last_upstream_branch > /dev/null 2>&1; then
+    git branch -d last_upstream_branch
   fi
-  git checkout -b kube_rebaser_branch "${lastkube}"
+  git checkout -b last_upstream_branch "${lastrev}"
   git diff -p --raw "${selector}" > "${patch}"
   if ! git apply -3 "${patch}"; then
     git rerere # record pre state
@@ -54,14 +57,14 @@ if [[ -z "${NO_REBASE-}" ]]; then
   # stage any new files
   git add . > /dev/null
   # construct a new patch
-  git diff --cached -p --raw --{src,dst}-prefix=a/Godeps/_workspace/src/k8s.io/kubernetes/ > "${patch}"
+  git diff --cached -p --raw --{src,dst}-prefix=a/Godeps/_workspace/src/${repo}/ > "${patch}"
   # cleanup the current state
   git reset HEAD --hard > /dev/null
   git checkout master > /dev/null
-  git branch -d kube_rebaser_branch > /dev/null
+  git branch -d last_upstream_branch > /dev/null
 else
   echo "++ Generating patch for ${selector} without rebasing ..." 2>&1
-  git diff -p --raw --{src,dst}-prefix=a/Godeps/_workspace/src/k8s.io/kubernetes/ "${selector}" > "${patch}"
+  git diff -p --raw --{src,dst}-prefix=a/Godeps/_workspace/src/${repo}/ "${selector}" > "${patch}"
 fi
 
 popd > /dev/null

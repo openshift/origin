@@ -14,15 +14,18 @@ os::log::install_errexit
 # Go to the top of the tree.
 cd "${OS_ROOT}"
 
+repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
+package="${UPSTREAM_PACKAGE:-pkg/api}"
+
 patch="${TMPDIR}/patch"
-kubedir="../../../k8s.io/kubernetes"
-if [[ ! -d "${kubedir}" ]]; then
-  echo "Expected ${kubedir} to exist" 1>&2
+relativedir="../../../${repo}"
+if [[ ! -d "${relativedir}" ]]; then
+  echo "Expected ${relativedir} to exist" 1>&2
   exit 1
 fi
 
 if [[ -z "${NO_REBASE-}" ]]; then
-  lastkube="$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json k8s.io/kubernetes/pkg/api)"
+  lastrev="$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
 fi
 
 branch="$(git rev-parse --abbrev-ref HEAD)"
@@ -31,14 +34,14 @@ if [[ -n "${1-}" ]]; then
   selector="$1"
 fi
 
-echo "++ Generating patch for ${selector} onto ${lastkube} ..." 2>&1
-git diff -p --raw --relative=Godeps/_workspace/src/k8s.io/kubernetes/ "${selector}" -- Godeps/_workspace/src/k8s.io/kubernetes/ > "${patch}"
+echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1
+git diff -p --raw --relative=Godeps/_workspace/src/${repo}/ "${selector}" -- Godeps/_workspace/src/${repo}/ > "${patch}"
 
-pushd "${kubedir}" > /dev/null
+pushd "${relativedir}" > /dev/null
 os::build::require_clean_tree
 
 # create a new branch
-git checkout -b "${branch}" "${lastkube}"
+git checkout -b "${branch}" "${lastrev}"
 
 # apply the changes
 if ! git apply --reject "${patch}"; then
