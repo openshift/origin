@@ -155,13 +155,23 @@ func SetFakeCadvisorInterfaceForIntegrationTest() {
 	defaultCadvisorInterface = &cadvisor.Fake{}
 }
 
+type FilteringEndpointsConfigHandler interface {
+	pconfig.EndpointsConfigHandler
+	SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler)
+}
+
 // RunProxy starts the proxy
-func (c *NodeConfig) RunProxy() {
+func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler) {
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
 	endpointsConfig := pconfig.NewEndpointsConfig()
 	loadBalancer := proxy.NewLoadBalancerRR()
-	endpointsConfig.RegisterHandler(loadBalancer)
+	if endpointsFilterer == nil {
+		endpointsConfig.RegisterHandler(loadBalancer)
+	} else {
+		endpointsFilterer.SetBaseEndpointsHandler(loadBalancer)
+		endpointsConfig.RegisterHandler(endpointsFilterer)
+	}
 
 	host, _, err := net.SplitHostPort(c.BindAddress)
 	if err != nil {

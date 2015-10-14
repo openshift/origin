@@ -208,10 +208,10 @@ Join project network
 
 [options="nowrap"]
 ----
-	// Allow project p2 to use project p1 network
+	# Allow project p2 to use project p1 network
 	$ openshift admin pod-network join-projects --to=<p1> <p2>
 
-	// Allow all projects with label name=top-secret to use project p1 network
+	# Allow all projects with label name=top-secret to use project p1 network
 	$ openshift admin pod-network join-projects --to=<p1> --selector='name=top-secret'
 ----
 ====
@@ -224,10 +224,10 @@ UnIsolate project network
 
 [options="nowrap"]
 ----
-	// Allow project p1 to access all pods in the cluster and vice versa
+	# Allow project p1 to access all pods in the cluster and vice versa
 	$ openshift admin pod-network unisolate-projects <p1>
 
-	// Allow all projects with label name=share to access all pods in the cluster and vice versa
+	# Allow all projects with label name=share to access all pods in the cluster and vice versa
 	$ openshift admin pod-network unisolate-projects --selector='name=share'
 ----
 ====

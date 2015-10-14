@@ -22,10 +22,10 @@ UnIsolate project network
 
 Allows projects to access all pods in the cluster and vice versa when using the %[1]s network plugin.`
 
-	unIsolateProjectsNetworkExample = `	// Allow project p1 to access all pods in the cluster and vice versa
+	unIsolateProjectsNetworkExample = `	# Allow project p1 to access all pods in the cluster and vice versa
 	$ %[1]s <p1>
 
-	// Allow all projects with label name=share to access all pods in the cluster and vice versa
+	# Allow all projects with label name=share to access all pods in the cluster and vice versa
 	$ %[1]s --selector='name=share'`
 )
 
