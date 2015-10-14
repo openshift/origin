@@ -4809,6 +4809,7 @@ _openshift_ex_sync-groups()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--blacklist=")
     flags+=("--confirm")
     flags+=("--no-headers")
     flags+=("--output=")
