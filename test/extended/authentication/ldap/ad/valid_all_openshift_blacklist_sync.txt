@@ -8,12 +8,7 @@ metadata:
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
-users:
-- cn=Person1,ou=people,ou=ad,dc=example,dc=com
-- cn=Person2,ou=people,ou=ad,dc=example,dc=com
-- cn=Person3,ou=people,ou=ad,dc=example,dc=com
-- cn=Person4,ou=people,ou=ad,dc=example,dc=com
-- cn=Person5,ou=people,ou=ad,dc=example,dc=com
+users: []
 apiVersion: v1
 kind: Group
 metadata:
@@ -25,9 +20,9 @@ metadata:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
 users:
-- cn=Person1,ou=people,ou=ad,dc=example,dc=com
-- cn=Person2,ou=people,ou=ad,dc=example,dc=com
-- cn=Person3,ou=people,ou=ad,dc=example,dc=com
+- person1smith@example.com
+- 'person2mith@example.com '
+- person3smith@example.com
 apiVersion: v1
 kind: Group
 metadata:
@@ -38,6 +33,4 @@ metadata:
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
-users:
-- cn=Person1,ou=people,ou=ad,dc=example,dc=com
-- cn=Person5,ou=people,ou=ad,dc=example,dc=com
+users: []

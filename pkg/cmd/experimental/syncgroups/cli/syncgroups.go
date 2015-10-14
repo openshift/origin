@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,16 +39,19 @@ stored on an LDAP server. The path to a sync configuration file is required in o
 requested from the external record store and migrated to OpenShift records. Default behavior is to sync all 
 groups from the LDAP server returned by the LDAP query templates.
 `
-	syncGroupsExamples = `  // Sync all groups from an LDAP server
+	syncGroupsExamples = `  # Sync all groups from an LDAP server
   $ %[1]s --sync-config=/path/to/ldap-sync-config.yaml
 
-  // Sync specific groups specified in a whitelist file with an LDAP server 
+  # Sync all groups except the ones from the blacklist file from an LDAP server
+  $ %[1]s --blacklist=/path/to/blacklist.txt --sync-config=/path/to/ldap-sync-config.yaml
+
+  # Sync specific groups specified in a whitelist file with an LDAP server 
   $ %[1]s --whitelist=/path/to/whitelist.txt --sync-config=/path/to/sync-config.yaml
 
-  // Sync all OpenShift Groups that have been synced previously with an LDAP server
+  # Sync all OpenShift Groups that have been synced previously with an LDAP server
   $ %[1]s --existing --sync-config=/path/to/ldap-sync-config.yaml
 
-  // Sync specific OpenShift Groups if they have been synced previously with an LDAP server
+  # Sync specific OpenShift Groups if they have been synced previously with an LDAP server
   $ %[1]s groups/group1 groups/group2 groups/group3 --sync-config=/path/to/sync-config.yaml
 `
 )
@@ -76,8 +80,11 @@ type SyncGroupsOptions struct {
 	// Config is the LDAP sync config read from file
 	Config api.LDAPSyncConfig
 
-	// WhitelistContents are the contents of the whitelist: names of OpenShift group or LDAP group UIDs
-	WhitelistContents []string
+	// Whitelist are the names of OpenShift group or LDAP group UIDs to use for syncing
+	Whitelist []string
+
+	// Blacklist are the names of OpenShift group or LDAP group UIDs to exclude
+	Blacklist []string
 
 	// Confirm determines whether not to write to openshift
 	Confirm bool
@@ -94,8 +101,8 @@ type SyncGroupsOptions struct {
 
 func NewSyncGroupsOptions() *SyncGroupsOptions {
 	return &SyncGroupsOptions{
-		Stderr:            os.Stderr,
-		WhitelistContents: []string{},
+		Stderr:    os.Stderr,
+		Whitelist: []string{},
 	}
 }
 
@@ -105,6 +112,7 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 
 	typeArg := string(GroupSyncSourceLDAP)
 	whitelistFile := ""
+	blacklistFile := ""
 	configFile := ""
 
 	cmd := &cobra.Command{
@@ -113,7 +121,7 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 		Long:    syncGroupsLong,
 		Example: fmt.Sprintf(syncGroupsExamples, fullName),
 		Run: func(c *cobra.Command, args []string) {
-			if err := options.Complete(typeArg, whitelistFile, configFile, args, f); err != nil {
+			if err := options.Complete(typeArg, whitelistFile, blacklistFile, configFile, args, f); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
 
@@ -134,7 +142,10 @@ func NewCmdSyncGroups(name, fullName string, f *clientcmd.Factory, out io.Writer
 		},
 	}
 
-	cmd.Flags().StringVar(&whitelistFile, "whitelist", whitelistFile, "path to the group whitelist")
+	cmd.Flags().StringVar(&whitelistFile, "whitelist", whitelistFile, "path to the group whitelist file")
+	cmd.Flags().StringVar(&blacklistFile, "blacklist", whitelistFile, "path to the group blacklist file")
+	// TODO enable this we're able to support string slice elements that have commas
+	// cmd.Flags().StringSliceVar(&options.Blacklist, "blacklist-group", options.Blacklist, "group to blacklist")
 	cmd.Flags().StringVar(&configFile, "sync-config", configFile, "path to the sync config")
 	cmd.Flags().StringVar(&typeArg, "type", typeArg, "type of group used to locate LDAP group UIDs: "+strings.Join(AllowedSourceTypes, ","))
 	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display groups")
@@ -152,7 +163,7 @@ type SyncBuilder interface {
 	GetGroupMemberExtractor() (interfaces.LDAPMemberExtractor, error)
 }
 
-func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, configFile string, args []string, f *clientcmd.Factory) error {
+func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile string, args []string, f *clientcmd.Factory) error {
 	switch typeArg {
 	case string(GroupSyncSourceLDAP):
 		o.Source = GroupSyncSourceLDAP
@@ -165,7 +176,7 @@ func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, configFile string, 
 
 	// if args are given, they are OpenShift Group names forming a whitelist
 	if len(args) > 0 {
-		o.WhitelistContents = append(o.WhitelistContents, args[0:]...)
+		o.Whitelist = append(o.Whitelist, args...)
 	}
 
 	// unpack whitelist file from source
@@ -174,7 +185,16 @@ func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, configFile string, 
 		if err != nil {
 			return err
 		}
-		o.WhitelistContents = append(o.WhitelistContents, whitelistData...)
+		o.Whitelist = append(o.Whitelist, whitelistData...)
+	}
+
+	// unpack blacklist file from source
+	if len(blacklistFile) != 0 {
+		blacklistData, err := readLines(blacklistFile)
+		if err != nil {
+			return err
+		}
+		o.Blacklist = append(o.Blacklist, blacklistData...)
 	}
 
 	yamlConfig, err := ioutil.ReadFile(configFile)
@@ -262,9 +282,29 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 		Err: os.Stderr,
 	}
 
-	syncer.GroupLister, err = o.GetGroupLister(syncBuilder, clientConfig)
-	if err != nil {
-		return err
+	switch o.Source {
+	case GroupSyncSourceOpenShift:
+		// when your source of ldapGroupUIDs is from an openshift group, the mapping of ldapGroupUID to openshift group name is logically
+		// pinned by the existing mapping.
+		listerMapper, err := o.GetOpenShiftGroupListerMapper(syncBuilder, clientConfig)
+		if err != nil {
+			return err
+		}
+		syncer.GroupLister = listerMapper
+		syncer.GroupNameMapper = listerMapper
+
+	case GroupSyncSourceLDAP:
+		syncer.GroupLister, err = o.GetLDAPGroupLister(syncBuilder)
+		if err != nil {
+			return err
+		}
+		syncer.GroupNameMapper, err = o.GetGroupNameMapper(syncBuilder)
+		if err != nil {
+			return err
+		}
+
+	default:
+		return fmt.Errorf("invalid group source: %v", o.Source)
 	}
 
 	syncer.GroupMemberExtractor, err = syncBuilder.GetGroupMemberExtractor()
@@ -273,11 +313,6 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 	}
 
 	syncer.UserNameMapper, err = syncBuilder.GetUserNameMapper()
-	if err != nil {
-		return err
-	}
-
-	syncer.GroupNameMapper, err = o.GetGroupNameMapper(syncBuilder)
 	if err != nil {
 		return err
 	}
@@ -300,21 +335,40 @@ func (o *SyncGroupsOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error 
 
 }
 
-func (o *SyncGroupsOptions) GetGroupLister(syncBuilder SyncBuilder, clientConfig *ldaputil.LDAPClientConfig) (interfaces.LDAPGroupLister, error) {
-	// if we have a whitelist, it trumps alls
-	if len(o.WhitelistContents) != 0 {
-		if o.Source == GroupSyncSourceOpenShift {
-			return syncgroups.NewOpenShiftWhitelistGroupLister(o.WhitelistContents, o.GroupInterface), nil
+func (o *SyncGroupsOptions) GetOpenShiftGroupListerMapper(syncBuilder SyncBuilder, clientConfig *ldaputil.LDAPClientConfig) (interfaces.LDAPGroupListerNameMapper, error) {
+	if o.Source != GroupSyncSourceOpenShift {
+		return nil, errors.New("openshift is not a valid group source for this config")
+	}
+
+	if len(o.Whitelist) != 0 {
+		return syncgroups.NewOpenShiftGroupLister(o.Whitelist, o.Blacklist, clientConfig.Host, o.GroupInterface), nil
+	}
+
+	return syncgroups.NewAllOpenShiftGroupLister(o.Blacklist, clientConfig.Host, o.GroupInterface), nil
+}
+
+func (o *SyncGroupsOptions) GetLDAPGroupLister(syncBuilder SyncBuilder) (interfaces.LDAPGroupLister, error) {
+	if o.Source != GroupSyncSourceLDAP {
+		return nil, errors.New("ldap is not a valid group source for this config")
+	}
+
+	if len(o.Whitelist) != 0 {
+		ldapWhitelist := syncgroups.NewLDAPWhitelistGroupLister(o.Whitelist)
+		if len(o.Blacklist) == 0 {
+			return ldapWhitelist, nil
 		}
-		return syncgroups.NewLDAPWhitelistGroupLister(o.WhitelistContents), nil
+		return syncgroups.NewLDAPBlacklistGroupLister(o.Blacklist, ldapWhitelist), nil
 	}
 
-	// openshift as a listing source works the same for all schemas
-	if o.Source == GroupSyncSourceOpenShift {
-		return syncgroups.NewAllOpenShiftGroupLister(clientConfig.Host, o.GroupInterface), nil
+	syncLister, err := syncBuilder.GetGroupLister()
+	if err != nil {
+		return nil, err
+	}
+	if len(o.Blacklist) == 0 {
+		return syncLister, nil
 	}
 
-	return syncBuilder.GetGroupLister()
+	return syncgroups.NewLDAPBlacklistGroupLister(o.Blacklist, syncLister), nil
 }
 
 func (o *SyncGroupsOptions) GetGroupNameMapper(syncBuilder SyncBuilder) (interfaces.LDAPGroupNameMapper, error) {
