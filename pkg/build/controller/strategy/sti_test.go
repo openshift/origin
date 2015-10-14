@@ -96,6 +96,9 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if len(actual.Spec.Volumes) != 4 {
 		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
+	if *actual.Spec.ActiveDeadlineSeconds != 60 {
+		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
+	}
 	if !kapi.Semantic.DeepEqual(container.Resources, expected.Spec.Resources) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, expected.Spec.Resources)
 	}
@@ -137,6 +140,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 }
 
 func mockSTIBuild() *buildapi.Build {
+	timeout := int64(60)
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "stiBuild",
@@ -184,6 +188,7 @@ func mockSTIBuild() *buildapi.Build {
 					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
 				},
 			},
+			CompletionDeadlineSeconds: &timeout,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: buildapi.BuildPhaseNew,

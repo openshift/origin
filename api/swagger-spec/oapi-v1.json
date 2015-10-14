@@ -13819,6 +13819,11 @@
      "resources": {
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
+     },
+     "completionDeadlineSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "optional duration in seconds the build may be active on a node before the system will actively try to mark it failed and kill associated containers; value must be a positive integer"
      }
     }
    },
@@ -14481,6 +14486,11 @@
      "resources": {
       "$ref": "v1.ResourceRequirements",
       "description": "the desired compute resources the build should have"
+     },
+     "completionDeadlineSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "optional duration in seconds the build may be active on a node before the system will actively try to mark it failed and kill associated containers; value must be a positive integer"
      }
     }
    },

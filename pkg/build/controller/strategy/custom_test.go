@@ -51,6 +51,9 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if len(container.VolumeMounts) != 3 {
 		t.Fatalf("Expected 3 volumes in container, got %d", len(container.VolumeMounts))
 	}
+	if *actual.Spec.ActiveDeadlineSeconds != 60 {
+		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
+	}
 	for i, expected := range []string{dockerSocketPath, DockerPushSecretMountPath, sourceSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
@@ -83,19 +86,26 @@ func TestCustomCreateBuildPod(t *testing.T) {
 			t.Errorf("Expected %s variable to be set", name)
 		}
 	}
+}
 
-	expectedForcePull := mockCustomBuild(true)
-	actualForcePull, fperr := strategy.CreateBuildPod(expectedForcePull)
+func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
+	strategy := CustomBuildStrategy{
+		Codec: latest.Codec,
+	}
+
+	expected := mockCustomBuild(true)
+	actual, fperr := strategy.CreateBuildPod(expected)
 	if fperr != nil {
 		t.Fatalf("Unexpected error: %v", fperr)
 	}
-	containerForcePull := actualForcePull.Spec.Containers[0]
-	if containerForcePull.ImagePullPolicy != kapi.PullAlways {
+	container := actual.Spec.Containers[0]
+	if container.ImagePullPolicy != kapi.PullAlways {
 		t.Errorf("Expected %v, got %v", kapi.PullAlways, container.ImagePullPolicy)
 	}
 }
 
 func mockCustomBuild(forcePull bool) *buildapi.Build {
+	timeout := int64(60)
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "customBuild",
@@ -143,6 +153,7 @@ func mockCustomBuild(forcePull bool) *buildapi.Build {
 					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
 				},
 			},
+			CompletionDeadlineSeconds: &timeout,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: buildapi.BuildPhaseNew,
