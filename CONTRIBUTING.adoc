@@ -55,8 +55,12 @@ $ mkdir $HOME/go
 +
 ----
 export GOPATH=$HOME/go
-export PATH=$PATH:$GOPATH/bin
+export PATH=$GOPATH/src/github.com/openshift/origin/_output/local/bin/linux/amd64:$GOPATH/bin:$PATH
 ----
+
++
+NOTE: Replace "linux/amd64" with the appropriate value for your platform/architecture.
+
 4. Open up a new terminal or source the changes in your current terminal.  Then clone this repo:
 
         $ mkdir -p $GOPATH/src/github.com/openshift
@@ -86,13 +90,10 @@ export PATH=$PATH:$GOPATH/bin
         $ cd _output/local/bin/linux/amd64
         $ sudo ./openshift start
 
-+
-NOTE: Replace "linux/amd64" with the appropriate value for your platform/architecture.
-
 10.  Launch another terminal, change into the same directory you started OpenShift, and deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
+        $ sudo chmod a+rw openshift.local.config/master/admin.kubeconfig
         $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
 
 11.  If it is not there already, add the current directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
@@ -135,13 +136,11 @@ To facilitate rapid development we've put together a Vagrantfile you can use to 
 
 6.  Run a build in SSH:
 
-        $ cd /data/src/github.com/openshift/origin
         $ make clean build
 
-7.  Now change into the directory with the OpenShift binaries, and start the OpenShift server:
+7.  Now start the OpenShift server:
 
-        $ cd _output/local/bin/linux/amd64
-        $ sudo ./openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
+        $ sudo openshift start --public-master=localhost --volume-dir=</absolute/path> &> openshift.log &
 
 +
 NOTE: By default your origin directory will be mounted as a vagrant synced folder into `/data/src/github.com/openshift/origin`, but it is advised to use a different directory for volume storage than the one for the origin directory vagrant synced folder. Hence in the above example of the `openshift start` command invocation the `--volume-dir=</absolute/path>` option is supplied.
@@ -151,8 +150,8 @@ NOTE: By default your origin directory will be mounted as a vagrant synced folde
 9.  Deploy the private docker registry within OpenShift with the following commands (note, the --credentials option allows secure communication between the internal OpenShift Docker registry and the OpenShift server, and the --config option provides your identity (in this case, cluster-admin) to the OpenShift server):
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
-        $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ ./oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ sudo chmod a+rw openshift.local.config/master/admin.kubeconfig
+        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
 
 10.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
 

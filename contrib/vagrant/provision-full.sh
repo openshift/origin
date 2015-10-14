@@ -3,8 +3,9 @@ set -euo pipefail
 IFS=$'\n\t'
 USERNAME="${1:-vagrant}"
 
-yum update -y
-yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg bind-utils which
+#yum update for fedora provider in vagrant breaks vboxfs 
+#yum update -y
+yum install -y docker-io git vim golang e2fsprogs tmux httpie ctags hg bind-utils which ethtool
 
 if [[ ! -d /data/src/github.com/openshift/origin ]]; then
   mkdir -p /data/src/github.com/openshift/origin
@@ -26,7 +27,7 @@ function set_env {
     touch $USER_DIR/.bash_profile
     echo "export GOPATH=/data" >> $USER_DIR/.bash_profile
     echo "export PATH=\$GOPATH/src/github.com/openshift/origin/_output/local/bin/linux/amd64:\$GOPATH/bin:\$PATH" >> $USER_DIR/.bash_profile
-    echo "cd \$GOPATH/src/github.com/openshift/origin" >> $USER_DIR/.bash_profile
+    #echo "cd \$GOPATH/src/github.com/openshift/origin" >> $USER_DIR/.bash_profile
 
     echo "bind '\"\e[A\":history-search-backward'" >> $USER_DIR/.bashrc
     echo "bind '\"\e[B\":history-search-forward'" >> $USER_DIR/.bashrc
