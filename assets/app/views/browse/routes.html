@@ -5,38 +5,38 @@
         <h1>Routes</h1>
       </div>
       <alerts alerts="alerts"></alerts>
-      <div class="table-responsive">
-        <table class="table table-bordered table-hover">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Hostname</th>
-              <th>Routes to</th>
-              <th>Age</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr ng-if="(routes | hashSize) == 0"><td colspan="6"><em>{{emptyMessage}}</em></td></tr>
-            <tr ng-repeat="route in routes | orderObjectsByDate : true">
-              <td><a href="project/{{projectName}}/browse/routes/{{route.metadata.name}}">{{route.metadata.name}}</a></td>
-              <td>
-                <span ng-if="(route | isWebRoute)">
-                  <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
-                </span>
-                <span ng-if="!(route | isWebRoute)">
-                  {{route | routeLabel}}
-                </span>
-              </td>
-              <td>
-                <span>{{route.spec.to.kind}}: </span>
-                <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
-                <span ng-if="route.spec.to.kind == 'Service'"><a href="project/{{projectName}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></span>
-              </td>
-              <td><relative-timestamp timestamp="route.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <table class="table table-bordered table-hover table-mobile">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Hostname</th>
+            <th>Routes to</th>
+            <th>Age</th>
+          </tr>
+        </thead>
+        <tbody ng-if="(routes | hashSize) == 0">
+          <tr><td colspan="6"><em>{{emptyMessage}}</em></td></tr>
+        </tbody>
+        <tbody ng-repeat="route in routes | orderObjectsByDate : true">
+          <tr>
+            <td data-title="Name"><a href="project/{{projectName}}/browse/routes/{{route.metadata.name}}">{{route.metadata.name}}</a></td>
+            <td data-title="Hostname">
+              <div ng-if="(route | isWebRoute)" class="word-break">
+                <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
+              </div>
+              <div ng-if="!(route | isWebRoute)" class="word-break">
+                {{route | routeLabel}}
+              </div>
+            </td>
+            <td data-title="Routes to">
+              <div>{{route.spec.to.kind}}: </div>
+              <div ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</div>
+              <div ng-if="route.spec.to.kind == 'Service'"><a href="project/{{projectName}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></div>
+            </td>
+            <td data-title="Age"><relative-timestamp timestamp="route.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </project-page>
 </div>

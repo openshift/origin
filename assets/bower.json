@@ -38,11 +38,11 @@
   "overrides": {
     "patternfly": {
       "main": [
-        "components/bootstrap-combobox/dist/js/bootstrap-combobox.js",
+        "components/bootstrap-combobox/js/bootstrap-combobox.js",
         "components/bootstrap-datepicker/dist/js/bootstrap-datepicker.js",
         "components/bootstrap/dist/js/bootstrap.js",
         "components/bootstrap-select/dist/js/bootstrap-select.js",
-        "components/bootstrap-treeview/dist/js/bootstrap-treeview.js"
+        "components/bootstrap-treeview/dist/bootstrap-treeview.min.js"
       ]
     },
     "selectize": {

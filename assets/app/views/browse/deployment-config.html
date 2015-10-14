@@ -80,8 +80,8 @@
         <annotations annotations="deploymentConfig.metadata.annotations"></annotations>
       </div>     
     </div>
-    <div class="table-responsive" ng-if="loaded">
-      <table class="table table-bordered table-hover">
+    <div ng-if="loaded">
+      <table class="table table-bordered table-hover table-mobile">
         <thead>
           <tr>
             <th>Deployment</th>
@@ -90,19 +90,22 @@
             <th>Trigger</th>
           </tr>
         </thead>
-        <tbody>
-          <tr ng-if="(deploymentsByDeploymentConfig[deploymentConfig.metadata.name] | hashSize) == 0"><td colspan="4"><em>{{emptyMessage}}</em></td></tr>
-          <tr ng-repeat="deployment in deploymentsByDeploymentConfig[deploymentConfig.metadata.name] | orderObjectsByDate : true">
-            <td>
+        <tbody ng-if="(deploymentsByDeploymentConfig[deploymentConfig.metadata.name] | hashSize) == 0">
+          <tr><td colspan="4" data-title="Deployment"><em>{{emptyMessage}}</em></td></tr>
+        </tbody>
+        <tbody ng-repeat="deployment in deploymentsByDeploymentConfig[deploymentConfig.metadata.name] | orderObjectsByDate : true">
+          <tr>
+            <td data-title="Deployment">
               <!-- Deployment number and link -->
               <span ng-if="deployment | annotation : 'deploymentVersion'">
                 <a ng-href="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfig.metadata.name}}/{{deployment.metadata.name}}">#{{deployment | annotation : 'deploymentVersion'}}</a>
               </span>
-              <span ng-if="!(deployment | annotation : 'deploymentVersion')">
-                <a ng-href="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfig.metadata.name}}/{{deployment.metadata.name}}">{{deployment.metadata.name}}</a>
+              <span flex>
+                {{deployment | deploymentStatus}}<span ng-if="(deployment | deploymentStatus) == 'Deployed'">, 
+                <span ng-if="deployment.spec.replicas !== deployment.status.replicas">{{deployment.status.replicas}}/</span>{{deployment.spec.replicas}} replica<span ng-if="deployment.spec.replicas != 1">s</span></span>
               </span>
             </td>
-            <td>
+            <td data-title="Status">
               <div row class="status">
                 <!-- Deployment status -->
                 <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave status-icon">
@@ -121,11 +124,11 @@
                 <!-- TODO would be nice to have the deploymentStatusReason in a popup, when there is one -->
               </div>
             </td>
-            <td>
+            <td data-title="Createed">
               <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
               <span>- {{deployment.metadata.creationTimestamp | date : 'short'}}</span>            
             </td>
-            <td>
+            <td data-title="Trigger">
               <span ng-if="!deployment.causes.length">Unknown</span>
               <span ng-if="deployment.causes.length">
                 <span ng-repeat="cause in deployment.causes">
@@ -140,9 +143,9 @@
                   </span>
                 </span>
               </span>              
-            </td>
-          </tr>
-        </tbody>
+          </td>
+        </tr>
+      </tbody>
       </table>
     </div>
   </project-page>
