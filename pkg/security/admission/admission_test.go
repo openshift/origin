@@ -127,6 +127,12 @@ func TestAdmit(t *testing.T) {
 	requestsHostNetwork := goodPod()
 	requestsHostNetwork.Spec.HostNetwork = true
 
+	requestsHostPID := goodPod()
+	requestsHostPID.Spec.HostPID = true
+
+	requestsHostIPC := goodPod()
+	requestsHostIPC.Spec.HostIPC = true
+
 	requestsHostPorts := goodPod()
 	requestsHostPorts.Spec.Containers[0].Ports = []kapi.ContainerPort{{HostPort: 1}}
 
@@ -169,6 +175,14 @@ func TestAdmit(t *testing.T) {
 			pod:         requestsHostPorts,
 			shouldAdmit: false,
 		},
+		"requestsHostPID": {
+			pod:         requestsHostPID,
+			shouldAdmit: false,
+		},
+		"requestsHostIPC": {
+			pod:         requestsHostIPC,
+			shouldAdmit: false,
+		},
 	}
 
 	for k, v := range testCases {
@@ -208,6 +222,8 @@ func TestAdmit(t *testing.T) {
 		AllowPrivilegedContainer: true,
 		AllowHostNetwork:         true,
 		AllowHostPorts:           true,
+		AllowHostPID:             true,
+		AllowHostIPC:             true,
 		RunAsUser: kapi.RunAsUserStrategyOptions{
 			Type: kapi.RunAsUserStrategyRunAsAny,
 		},

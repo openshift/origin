@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package denyprivileged
+package exec
 
 import (
 	"fmt"
@@ -28,19 +28,55 @@ import (
 )
 
 func init() {
+	admission.RegisterPlugin("DenyEscalatingExec", func(client client.Interface, config io.Reader) (admission.Interface, error) {
+		return NewDenyEscalatingExec(client), nil
+	})
+
+	// This is for legacy support of the DenyExecOnPrivileged admission controller.  Most
+	// of the time DenyEscalatingExec should be preferred.
 	admission.RegisterPlugin("DenyExecOnPrivileged", func(client client.Interface, config io.Reader) (admission.Interface, error) {
 		return NewDenyExecOnPrivileged(client), nil
 	})
 }
 
-// denyExecOnPrivileged is an implementation of admission.Interface which says no to a pod/exec on
-// a privileged pod
-type denyExecOnPrivileged struct {
+// denyExec is an implementation of admission.Interface which says no to a pod/exec on
+// a pod using host based configurations.
+type denyExec struct {
 	*admission.Handler
 	client client.Interface
+
+	// these flags control which items will be checked to deny exec/attach
+	hostIPC    bool
+	hostPID    bool
+	privileged bool
 }
 
-func (d *denyExecOnPrivileged) Admit(a admission.Attributes) (err error) {
+// NewDenyEscalatingExec creates a new admission controller that denies an exec operation on a pod
+// using host based configurations.
+func NewDenyEscalatingExec(client client.Interface) admission.Interface {
+	return &denyExec{
+		Handler:    admission.NewHandler(admission.Connect),
+		client:     client,
+		hostIPC:    true,
+		hostPID:    true,
+		privileged: true,
+	}
+}
+
+// NewDenyExecOnPrivileged creates a new admission controller that is only checking the privileged
+// option.  This is for legacy support of the DenyExecOnPrivileged admission controller.  Most
+// of the time NewDenyEscalatingExec should be preferred.
+func NewDenyExecOnPrivileged(client client.Interface) admission.Interface {
+	return &denyExec{
+		Handler:    admission.NewHandler(admission.Connect),
+		client:     client,
+		hostIPC:    false,
+		hostPID:    false,
+		privileged: true,
+	}
+}
+
+func (d *denyExec) Admit(a admission.Attributes) (err error) {
 	connectRequest, ok := a.GetObject().(*rest.ConnectRequest)
 	if !ok {
 		return errors.NewBadRequest("a connect request was received, but could not convert the request object.")
@@ -53,9 +89,19 @@ func (d *denyExecOnPrivileged) Admit(a admission.Attributes) (err error) {
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
-	if isPrivileged(pod) {
+
+	if d.hostPID && pod.Spec.HostPID {
+		return admission.NewForbidden(a, fmt.Errorf("Cannot exec into or attach to a container using host pid"))
+	}
+
+	if d.hostIPC && pod.Spec.HostIPC {
+		return admission.NewForbidden(a, fmt.Errorf("Cannot exec into or attach to a container using host ipc"))
+	}
+
+	if d.privileged && isPrivileged(pod) {
 		return admission.NewForbidden(a, fmt.Errorf("Cannot exec into or attach to a privileged container"))
 	}
+
 	return nil
 }
 
@@ -70,12 +116,4 @@ func isPrivileged(pod *api.Pod) bool {
 		}
 	}
 	return false
-}
-
-// NewDenyExecOnPrivileged creates a new admission controller that denies an exec operation on a privileged pod
-func NewDenyExecOnPrivileged(client client.Interface) admission.Interface {
-	return &denyExecOnPrivileged{
-		Handler: admission.NewHandler(admission.Connect),
-		client:  client,
-	}
 }

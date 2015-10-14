@@ -593,6 +593,9 @@ func (r *runtime) preparePod(pod *api.Pod, pullSecrets []api.Secret) (string, *k
 		runPrepared = fmt.Sprintf("%s run-prepared --mds-register=false --private-net %s", r.rktBinAbsPath, uuid)
 	}
 
+	// TODO handle pod.Spec.HostPID
+	// TODO handle pod.Spec.HostIPC
+
 	units := []*unit.UnitOption{
 		newUnitOption(unitKubernetesSection, unitRktID, uuid),
 		newUnitOption(unitKubernetesSection, unitPodName, string(b)),

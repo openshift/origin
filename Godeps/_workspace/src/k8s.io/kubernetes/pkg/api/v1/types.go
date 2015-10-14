@@ -1231,10 +1231,16 @@ type PodSpec struct {
 	// the scheduler simply schedules this pod onto that node, assuming that it fits resource
 	// requirements.
 	NodeName string `json:"nodeName,omitempty"`
-	// Host networking requested for this pod. Uses the host's network namespace.
+	// Host networking requested for this pod. Use the host's network namespace.
 	// If this option is set, the ports that will be used must be specified.
 	// Default to false.
 	HostNetwork bool `json:"hostNetwork,omitempty"`
+	// Use the host's pid namespace.
+	// Optional: Default to false.
+	HostPID bool `json:"hostPID,omitempty"`
+	// Use the host's ipc namespace.
+	// Optional: Default to false.
+	HostIPC bool `json:"hostIPC,omitempty"`
 	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec.
 	// If specified, these secrets will be passed to individual puller implementations for them to use. For example,
 	// in the case of docker, only DockerConfig type secrets are honored.
@@ -2699,6 +2705,10 @@ type SecurityContextConstraints struct {
 	AllowHostNetwork bool `json:"allowHostNetwork" description:"allow the use of the hostNetwork in the pod spec"`
 	// AllowHostPorts determines if the policy allows host ports in the containers.
 	AllowHostPorts bool `json:"allowHostPorts" description:"allow the use of the host ports in the containers"`
+	// AllowHostPID determines if the policy allows host pid in the containers.
+	AllowHostPID bool `json:"allowHostPID" description:"allow the use of the host pid in the containers"`
+	// AllowHostIPC determines if the policy allows host ipc in the containers.
+	AllowHostIPC bool `json:"allowHostIPC" description:"allow the use of the host ipc in the containers"`
 	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
 	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" description:"strategy used to generate SELinuxOptions"`
 	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
