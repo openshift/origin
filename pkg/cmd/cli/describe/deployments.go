@@ -138,7 +138,9 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string) (string, er
 		formatString(out, "Strategy", deploymentConfig.Template.Strategy.Type)
 		printStrategy(deploymentConfig.Template.Strategy, out)
 		printReplicationControllerSpec(deploymentConfig.Template.ControllerTemplate, out)
-
+		if deploymentConfig.Details != nil && len(deploymentConfig.Details.Message) > 0 {
+			fmt.Fprintf(out, "Warning:\t%s\n", deploymentConfig.Details.Message)
+		}
 		deploymentName := deployutil.LatestDeploymentNameForConfig(deploymentConfig)
 		deployment, err := d.client.getDeployment(namespace, deploymentName)
 		if err != nil {

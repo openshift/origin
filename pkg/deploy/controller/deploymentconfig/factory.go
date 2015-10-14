@@ -64,10 +64,10 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
 			},
 		},
+		osClient: factory.Client,
 		makeDeployment: func(config *deployapi.DeploymentConfig) (*kapi.ReplicationController, error) {
 			return deployutil.MakeDeployment(config, factory.Codec)
 		},
-		recorder: eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployer"}),
 	}
 
 	return &controller.RetryController{

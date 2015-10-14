@@ -140,7 +140,7 @@ func (c *DeployerPodController) cleanupFailedDeployment(deployment *kapi.Replica
 	}
 
 	if ok && len(existingDeployments.Items) > 0 {
-		sort.Sort(deployutil.DeploymentsByLatestVersionDesc(existingDeployments.Items))
+		sort.Sort(deployutil.ByLatestVersionDesc(existingDeployments.Items))
 		for index, existing := range existingDeployments.Items {
 			// if a newer deployment exists:
 			// - set the replicas for the current failed deployment to 0

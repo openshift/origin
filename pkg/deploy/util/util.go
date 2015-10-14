@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -17,6 +18,17 @@ import (
 // LatestDeploymentNameForConfig returns a stable identifier for config based on its version.
 func LatestDeploymentNameForConfig(config *deployapi.DeploymentConfig) string {
 	return fmt.Sprintf("%s-%d", config.Name, config.LatestVersion)
+}
+
+// LatestDeploymentInfo returns info about the latest deployment for a config,
+// if it exists and its current status
+func LatestDeploymentInfo(config *deployapi.DeploymentConfig, deployments *api.ReplicationControllerList) (bool, deployapi.DeploymentStatus) {
+	if config.LatestVersion == 0 || len(deployments.Items) == 0 {
+		return false, deployapi.DeploymentStatus("")
+	}
+	sort.Sort(ByLatestVersionDesc(deployments.Items))
+	candidate := &deployments.Items[0]
+	return DeploymentVersionFor(candidate) == config.LatestVersion, DeploymentStatusFor(candidate)
 }
 
 // DeployerPodSuffix is the suffix added to pods created from a deployment
@@ -58,6 +70,17 @@ func DeployerPodSelector(name string) labels.Selector {
 func AnyDeployerPodSelector() labels.Selector {
 	sel, _ := labels.Parse(deployapi.DeployerPodForDeploymentLabel)
 	return sel
+}
+
+// HasChangeTrigger returns whether the provided deployment configuration has
+// a config change trigger or not
+func HasChangeTrigger(config *deployapi.DeploymentConfig) bool {
+	for _, trigger := range config.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnConfigChange {
+			return true
+		}
+	}
+	return false
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned
@@ -243,29 +266,20 @@ func annotationFor(obj runtime.Object, key string) string {
 	return meta.Annotations[key]
 }
 
-// DeploymentsByLatestVersionAsc sorts deployments by LatestVersion ascending.
-type DeploymentsByLatestVersionAsc []api.ReplicationController
+// ByLatestVersionAsc sorts deployments by LatestVersion ascending.
+type ByLatestVersionAsc []api.ReplicationController
 
-func (d DeploymentsByLatestVersionAsc) Len() int {
-	return len(d)
-}
-func (d DeploymentsByLatestVersionAsc) Swap(i, j int) {
-	d[i], d[j] = d[j], d[i]
-}
-func (d DeploymentsByLatestVersionAsc) Less(i, j int) bool {
+func (d ByLatestVersionAsc) Len() int      { return len(d) }
+func (d ByLatestVersionAsc) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
+func (d ByLatestVersionAsc) Less(i, j int) bool {
 	return DeploymentVersionFor(&d[i]) < DeploymentVersionFor(&d[j])
 }
 
-// DeploymentsByLatestVersionAsc sorts deployments by LatestVersion
-// descending.
-type DeploymentsByLatestVersionDesc []api.ReplicationController
+// ByLatestVersionDesc sorts deployments by LatestVersion descending.
+type ByLatestVersionDesc []api.ReplicationController
 
-func (d DeploymentsByLatestVersionDesc) Len() int {
-	return len(d)
-}
-func (d DeploymentsByLatestVersionDesc) Swap(i, j int) {
-	d[i], d[j] = d[j], d[i]
-}
-func (d DeploymentsByLatestVersionDesc) Less(i, j int) bool {
+func (d ByLatestVersionDesc) Len() int      { return len(d) }
+func (d ByLatestVersionDesc) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
+func (d ByLatestVersionDesc) Less(i, j int) bool {
 	return DeploymentVersionFor(&d[j]) < DeploymentVersionFor(&d[i])
 }

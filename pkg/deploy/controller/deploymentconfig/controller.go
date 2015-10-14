@@ -4,16 +4,20 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/record"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 
+	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // DeploymentConfigController is responsible for creating a new deployment when:
@@ -31,9 +35,10 @@ import (
 type DeploymentConfigController struct {
 	// deploymentClient provides access to deployments.
 	deploymentClient deploymentClient
+	// osClient provides access to Origin resources
+	osClient osclient.Interface
 	// makeDeployment knows how to make a deployment from a config.
 	makeDeployment func(*deployapi.DeploymentConfig) (*kapi.ReplicationController, error)
-	recorder       record.EventRecorder
 }
 
 // fatalError is an error which can't be retried.
@@ -43,33 +48,32 @@ type fatalError string
 type transientError string
 
 func (e fatalError) Error() string {
-	return fmt.Sprintf("fatal error handling DeploymentConfig: %s", string(e))
+	return fmt.Sprintf("fatal error handling deployment config: %s", string(e))
 }
 func (e transientError) Error() string {
-	return "transient error handling DeploymentConfig: " + string(e)
+	return "transient error handling deployment config: " + string(e)
 }
 
 // Handle processes config and creates a new deployment if necessary.
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
+	// Inspect a deployment configuration every time the controller reconciles it
+	details, existingDeployments, latestDeploymentExists, err := c.findDetails(config)
+	if err != nil {
+		return err
+	}
+	config, err = c.updateDetails(config, details)
+	if err != nil {
+		return transientError(err.Error())
+	}
+
 	// Only deploy when the version has advanced past 0.
 	if config.LatestVersion == 0 {
 		glog.V(5).Infof("Waiting for first version of %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	}
 
-	// Check if any existing inflight deployments (any non-terminal state).
-	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
-	if err != nil {
-		return fmt.Errorf("couldn't list Deployments for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
-	}
 	var inflightDeployment *kapi.ReplicationController
-	latestDeploymentExists := false
 	for _, deployment := range existingDeployments.Items {
-		// check if this is the latest deployment
-		// we'll return after we've dealt with the multiple-active-deployments case
-		if deployutil.DeploymentVersionFor(&deployment) == config.LatestVersion {
-			latestDeploymentExists = true
-		}
 
 		deploymentStatus := deployutil.DeploymentStatusFor(&deployment)
 		switch deploymentStatus {
@@ -93,9 +97,9 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			deploymentForCancellation.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 			deploymentForCancellation.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
 			if _, err := c.deploymentClient.updateDeployment(deploymentForCancellation.Namespace, deploymentForCancellation); err != nil {
-				util.HandleError(fmt.Errorf("couldn't cancel Deployment %s: %v", deployutil.LabelForDeployment(deploymentForCancellation), err))
+				util.HandleError(fmt.Errorf("couldn't cancel deployment %s: %v", deployutil.LabelForDeployment(deploymentForCancellation), err))
 			}
-			glog.V(4).Infof("Cancelled Deployment %s for DeploymentConfig %s", deployutil.LabelForDeployment(deploymentForCancellation), deployutil.LabelForDeploymentConfig(config))
+			glog.V(4).Infof("Cancelled deployment %s for deployment config %s", deployutil.LabelForDeployment(deploymentForCancellation), deployutil.LabelForDeploymentConfig(config))
 		}
 	}
 
@@ -107,14 +111,14 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// check to see if there are inflight deployments
 	if inflightDeployment != nil {
 		// raise a transientError so that the deployment config can be re-queued
-		glog.V(4).Infof("Found previous inflight Deployment for %s - will requeue", deployutil.LabelForDeploymentConfig(config))
-		return transientError(fmt.Sprintf("found previous inflight Deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config)))
+		glog.V(4).Infof("Found previous inflight deployment for %s - will requeue", deployutil.LabelForDeploymentConfig(config))
+		return transientError(fmt.Sprintf("found previous inflight deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config)))
 	}
 
 	// Try and build a deployment for the config.
 	deployment, err := c.makeDeployment(config)
 	if err != nil {
-		return fatalError(fmt.Sprintf("couldn't make Deployment from (potentially invalid) DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err))
+		return fatalError(fmt.Sprintf("couldn't make deployment from (potentially invalid) deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err))
 	}
 
 	// Compute the desired replicas for the deployment. Use the last completed
@@ -122,7 +126,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	// prior completed deployment available.
 	desiredReplicas := config.Template.ControllerTemplate.Replicas
 	if len(existingDeployments.Items) > 0 {
-		sort.Sort(deployutil.DeploymentsByLatestVersionDesc(existingDeployments.Items))
+		sort.Sort(deployutil.ByLatestVersionDesc(existingDeployments.Items))
 		for _, existing := range existingDeployments.Items {
 			if deployutil.DeploymentStatusFor(&existing) == deployapi.DeploymentStatusComplete {
 				desiredReplicas = existing.Spec.Replicas
@@ -135,19 +139,18 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 
 	// Create the deployment.
 	if _, err := c.deploymentClient.createDeployment(config.Namespace, deployment); err == nil {
-		glog.V(4).Infof("Created Deployment for DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
+		glog.V(4).Infof("Created deployment for deployment config %s", deployutil.LabelForDeploymentConfig(config))
 		return nil
 	} else {
 		// If the deployment was already created, just move on. The cache could be stale, or another
 		// process could have already handled this update.
 		if errors.IsAlreadyExists(err) {
-			glog.V(4).Infof("Deployment already exists for DeploymentConfig %s", deployutil.LabelForDeploymentConfig(config))
+			glog.V(4).Infof("Deployment already exists for deployment config %s", deployutil.LabelForDeploymentConfig(config))
 			return nil
 		}
 
-		// log an event if the deployment could not be created that the user can discover
-		c.recorder.Eventf(config, "failedCreate", "Error creating: %v", err)
-		return fmt.Errorf("couldn't create Deployment for DeploymentConfig %s: %v", deployutil.LabelForDeploymentConfig(config), err)
+		glog.Warningf("Cannot create latest deployment for deployment config %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
 }
 
@@ -177,4 +180,113 @@ func (i *deploymentClientImpl) listDeploymentsForConfig(namespace, configName st
 
 func (i *deploymentClientImpl) updateDeployment(namespace string, deployment *kapi.ReplicationController) (*kapi.ReplicationController, error) {
 	return i.updateDeploymentFunc(namespace, deployment)
+}
+
+// findDetails inspects the given deployment configuration for any failure causes
+// and returns any found details about it
+func (c *DeploymentConfigController) findDetails(config *deployapi.DeploymentConfig) (string, *kapi.ReplicationControllerList, bool, error) {
+	// Check if any existing inflight deployments (any non-terminal state).
+	existingDeployments, err := c.deploymentClient.listDeploymentsForConfig(config.Namespace, config.Name)
+	if err != nil {
+		return "", nil, false, fmt.Errorf("couldn't list deployments for deployment config %q: %v", deployutil.LabelForDeploymentConfig(config), err)
+	}
+	// check if the latest deployment exists
+	// we'll return after we've dealt with the multiple-active-deployments case
+	latestDeploymentExists, latestDeploymentStatus := deployutil.LatestDeploymentInfo(config, existingDeployments)
+	if latestDeploymentExists && latestDeploymentStatus != deployapi.DeploymentStatusFailed {
+		// If the latest deployment exists and is not failed, clear the dc message
+		return "", existingDeployments, latestDeploymentExists, nil
+	}
+
+	// Rest of the code will handle non-existing or failed latest deployment causes
+	// TODO: Inspect pod logs in case of failed latest
+
+	details := ""
+	allDetails := []string{}
+	willHaveImage, hasImageChangeTrigger := false, false
+	if config.Details != nil && len(config.Details.Message) > 0 {
+		// Populate details with the previous message so that in case we stumble upon
+		// an unexpected client error, the message won't be overwritten
+		details = config.Details.Message
+	}
+	// Look into image change triggers and find out possible deployment failures such as
+	// missing image stream tags with or without build configurations pointing at them
+	for _, trigger := range config.Triggers {
+		if trigger.Type != deployapi.DeploymentTriggerOnImageChange || trigger.ImageChangeParams == nil || !trigger.ImageChangeParams.Automatic {
+			continue
+		}
+		hasImageChangeTrigger = true
+		name := trigger.ImageChangeParams.From.Name
+		tag := trigger.ImageChangeParams.Tag
+		istag := imageapi.JoinImageStreamTag(name, tag)
+
+		// Check if the image stream tag pointed by the trigger exists
+		if _, err := c.osClient.ImageStreamTags(config.Namespace).Get(name, tag); err != nil {
+			if !errors.IsNotFound(err) {
+				glog.V(2).Infof("Error while trying to get image stream tag %q: %v", istag, err)
+				return details, existingDeployments, latestDeploymentExists, nil
+			}
+			// In case the image stream tag was not found, then it either doesn't exist or doesn't exist yet
+			// (a build configuration output points to it so it's going to be populated at some point in the
+			// future)
+			details = fmt.Sprintf("The image trigger for image stream tag %s will have no effect because image stream tag %s does not exist.", istag, istag)
+			bcList, err := c.osClient.BuildConfigs(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
+			if err != nil {
+				glog.V(2).Infof("Error while trying to list build configs: %v", err)
+				return details, existingDeployments, latestDeploymentExists, nil
+			}
+
+			for _, bc := range bcList.Items {
+				if bc.Spec.Output.To != nil && bc.Spec.Output.To.Kind == "ImageStreamTag" {
+					parts := strings.Split(bc.Spec.Output.To.Name, ":")
+					if len(parts) != 2 {
+						glog.V(2).Infof("Invalid image stream tag: %q", bc.Spec.Output.To.Name)
+						return details, existingDeployments, latestDeploymentExists, nil
+					}
+					if parts[0] == name && parts[1] == tag {
+						details = fmt.Sprintf("The image trigger for image stream tag %s will have no effect because image stream tag %s does not exist. If image stream tag %s is expected, check buildconfig %s which produces image stream tag %s.", istag, istag, istag, bc.Name, istag)
+						break
+					}
+				}
+			}
+			// Try to see if the image stream exists, if not then the build will never be able to update the
+			// tag in question
+			if _, err := c.osClient.ImageStreams(config.Namespace).Get(name); err != nil {
+				glog.V(2).Infof("Error while trying to get image stream %q: %v", name, err)
+				if errors.IsNotFound(err) {
+					details = fmt.Sprintf("The image trigger for image stream tag %s will have no effect because image stream %s does not exist.", istag, name)
+				}
+			}
+		} else {
+			willHaveImage = true
+		}
+		allDetails = append(allDetails, details)
+	}
+
+	if len(allDetails) > 1 {
+		for i := range allDetails {
+			allDetails[i] = fmt.Sprintf("* %s", allDetails[i])
+		}
+		// Prepend multiple errors warning
+		multipleErrWarning := fmt.Sprintf("Deployment config %q blocked by multiple errors:\n", config.Name)
+		allDetails = append([]string{multipleErrWarning}, allDetails...)
+	}
+
+	if hasImageChangeTrigger && !willHaveImage {
+		allDetails = append(allDetails, fmt.Sprintf("Deployment config %q will never have an image.", config.Name))
+	}
+
+	return strings.Join(allDetails, "\n"), existingDeployments, latestDeploymentExists, nil
+}
+
+// updateDetails updates a deployment configuration with the provided details
+func (c *DeploymentConfigController) updateDetails(config *deployapi.DeploymentConfig, details string) (*deployapi.DeploymentConfig, error) {
+	if config.Details == nil {
+		config.Details = new(deployapi.DeploymentDetails)
+	}
+	if details != config.Details.Message {
+		config.Details.Message = details
+		return c.osClient.DeploymentConfigs(config.Namespace).Update(config)
+	}
+	return config, nil
 }
