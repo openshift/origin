@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -90,6 +91,21 @@ the "%s" service indicated unknown errors.
 This could result in problems with builds or deployments.
 Please examine the log entries to determine if there might be
 any related problems:
+%s`
+
+	clRegSelinuxErr = `
+The pod logs for the "%s" pod belonging to
+the "%s" service indicated the registry is unable to write to disk.
+This may indicate an SELinux denial, or problems with volume
+ownership/permissions.
+
+For volume permission problems please consult the Persistent Storage section
+of the Administrator's Guide.
+
+In the case of SELinux this may be resolved on the node by running:
+
+    sudo chcon -R -t svirt_sandbox_file_t [PATH_TO]/openshift.local.volumes
+
 %s`
 
 	clRegNoEP = `
@@ -221,8 +237,15 @@ func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r types.DiagnosticRes
 	}
 	defer readCloser.Close()
 
+	// Indicator that selinux is blocking the registry from writing to disk:
+	selinuxErrorRegex, _ := regexp.Compile(".*level=error.*mkdir.*permission denied.*")
+	// If seen after the above error regex, we know the problem has since been fixed:
+	selinuxSuccessRegex, _ := regexp.Compile(".*level=info.*response completed.*http.request.method=PUT.*")
+
 	clientError := ""
 	registryError := ""
+	selinuxError := ""
+
 	scanner := bufio.NewScanner(readCloser)
 	for scanner.Scan() {
 		logLine := scanner.Text()
@@ -230,6 +253,12 @@ func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r types.DiagnosticRes
 		// https://github.com/kubernetes/kubernetes/issues/12447
 		if strings.Contains(logLine, `level=error msg="client error:`) {
 			clientError = logLine // end up showing only the most recent client error
+		} else if selinuxErrorRegex.MatchString(logLine) {
+			selinuxError = logLine
+		} else if selinuxSuccessRegex.MatchString(logLine) {
+			// Check for a successful registry push, if this occurs after a selinux error
+			// we can safely clear it, the problem has already been fixed.
+			selinuxError = ""
 		} else if strings.Contains(logLine, "level=error msg=") {
 			registryError += "\n" + logLine // gather generic errors
 		}
@@ -237,10 +266,12 @@ func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r types.DiagnosticRes
 	if clientError != "" {
 		r.Error("DClu1011", nil, fmt.Sprintf(clRegPodConn, pod.ObjectMeta.Name, registryName, clientError))
 	}
+	if selinuxError != "" {
+		r.Error("DClu1020", nil, fmt.Sprintf(clRegSelinuxErr, pod.ObjectMeta.Name, registryName, selinuxError))
+	}
 	if registryError != "" {
 		r.Warn("DClu1012", nil, fmt.Sprintf(clRegPodErr, pod.ObjectMeta.Name, registryName, registryError))
 	}
-
 }
 
 func (d *ClusterRegistry) checkRegistryEndpoints(pods []*kapi.Pod, r types.DiagnosticResult) bool {
