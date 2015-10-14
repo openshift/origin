@@ -20,15 +20,6 @@ BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-e2e-containerized}"
 setup_env_vars
 reset_tmp_dir
 
-# when selinux is enforcing, the volume dir selinux label needs to be
-# svirt_sandbox_file_t
-#
-# TODO: fix the selinux policy to either allow openshift_var_lib_dir_t
-# or to default the volume dir to svirt_sandbox_file_t.
-if selinuxenabled; then
-	sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
-fi
-
 function cleanup()
 {
 	out=$?
