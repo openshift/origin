@@ -36,6 +36,10 @@ angular.module('openshiftConsole')
       title: $routeParams.deployment || $routeParams.replicationcontroller
     });
 
+    $scope.replicas = {
+      editing: false
+    };
+
     var watches = [];
 
     project.get($routeParams.project).then(function(resp) {
@@ -168,6 +172,28 @@ angular.module('openshiftConsole')
 
     $scope.cancelRunningDeployment = function(deployment) {
       DeploymentsService.cancelRunningDeployment(deployment, $scope);
+    };
+
+    $scope.scale = function() {
+      if ($scope.replicas.form.$valid) {
+        DeploymentsService.scale($scope.deployment, $scope.replicas.desired).then(
+          // success, no need for a message since the UI updates immediately
+          _.noop,
+          // failure
+          function(result) {
+            $scope.alerts["scale"] =
+              {
+                type: "error",
+                message: "An error occurred scaling the deployment.",
+                details: $filter('getErrorDetails')(result)
+              };
+          });
+        $scope.replicas.editing = false;
+      }
+    };
+
+    $scope.cancelScale = function() {
+      $scope.replicas.editing = false;
     };
 
     $scope.$on('$destroy', function(){

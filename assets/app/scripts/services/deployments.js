@@ -226,5 +226,13 @@ angular.module("openshiftConsole")
       return deploymentConfigDeploymentsInProgress;
     };
 
+    DeploymentsService.prototype.scale = function(deployment, replicas) {
+      var req = angular.copy(deployment);
+      req.spec.replicas = replicas;
+      return DataService.update("replicationcontrollers", deployment.metadata.name, req, {
+        namespace: deployment.metadata.namespace
+      });
+    };
+
     return new DeploymentsService();
   });

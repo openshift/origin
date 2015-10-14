@@ -3,7 +3,7 @@
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
     <div ng-if="!loaded">Loading...</div>
-    <div ng-if="deployment">
+    <div ng-if="deployment" class="deployment">
       <div class="row">
         <div class="col-md-12">
           <div class="tile">
@@ -81,9 +81,49 @@
               </dd>
               <dt>Replicas:</dt>
               <dd>
-                {{deployment.status.replicas}} current / {{deployment.spec.replicas}} desired
+                <div ng-show="!replicas.editing">
+                  {{deployment.status.replicas}} current / {{deployment.spec.replicas}} desired
+                  <a href="" title="Edit" class="action-button" ng-click="replicas.desired = deployment.spec.replicas; replicas.editing = true">
+                    <i class="icon icon-pencil" style="margin-left: 5px;"></i>
+                    <span class="sr-only">Edit</span>
+                  </a>
+                </div>
+                <div ng-show="replicas.editing">
+                  <form name="replicas.form" ng-submit="scale()" class="replicas-form">
+                    <span ng-class="{'has-error': replicas.form.$invalid}">
+                      <input type="number"
+                             name="desired"
+                             ng-model="replicas.desired"
+                             ng-required="true"
+                             min="0"
+                             ng-pattern="/^\-?\d+$/"
+                             focus-when="{{replicas.editing}}"
+                             select-on-focus
+                             class="form-control input-number">
+                    </span>
+                    <a href="" title="Scale" class="action-button" ng-click="scale()">
+                      <i class="icon icon-ok action-button" style="margin-left: 5px;"></i>
+                      <span class="sr-only">Scale</span>
+                    </a>
+                    <a href="" title="Cancel" class="action-button" ng-click="cancelScale()">
+                      <i class="icon icon-remove action-button" style="margin-left: 5px;"></i>
+                      <span class="sr-only">Cancel</span>
+                    </a>
+                    <div ng-if="replicas.form.$invalid" class="has-error">
+                      <div ng-if="replicas.form.desired.$error.required" class="help-block">
+                        A value for replicas is required.
+                      </div>
+                      <div ng-if="replicas.form.desired.$error.pattern" class="help-block">
+                        Replicas must be a whole number.
+                      </div>
+                      <div ng-if="replicas.form.desired.$error.min" class="help-block">
+                        Replicas can't be negative.
+                      </div>
+                    </div>
+                  </form>
+                </div>
               </dd>
-              <annotations annotations="deployment.metadata.annotations"></annotations>              
+              <annotations annotations="deployment.metadata.annotations"></annotations>
             </dl>
             <div class="deployment-detail">
               <span>Pod template:</span>
