@@ -205,6 +205,41 @@ All upstream commits should have a commit message where the first line is:
 `drop` indicates the commit should be removed during the next rebase. `carry` means that the change
 cannot go into upstream, and we should continue to use it during the next rebase.
 
+You can also target repositories other than Kube by setting `UPSTREAM_REPO` and `UPSTREAM_PACKAGE`
+env vars.  `UPSTREAM_REPO` should be the full name of the Git repo as Go sees it, i.e.
+`github.com/coreos/etcd`, and `UPSTREAM_PACKAGE` must be a package inside that repo that is
+currently part of the Godeps.json file.  Example:
+
+    $ UPSTREAM_REPO=github.com/coreos/etcd UPSTREAM_PACKAGE=store hack/cherry-pick.sh <pr_number>
+
+## Moving a commit you developed in Origin to an upstream
+
+The `hack/move-upstream.sh` script takes the current feature branch, finds any changes to the
+requested upstream project (as defined by `UPSTREAM_REPO` and `UPSTREAM_PACKAGE`) that differ
+from `origin/master`, and then creates a new commit in that upstream project on a branch with
+the same name as your current branch.
+
+For example, to upstream a commit to OpenShift source-to-image while working from Origin:
+
+    $ git checkout my_feature_branch_in_origin
+    $ git log --oneline
+    70ffe7e Docker and STI builder support binary extraction
+    75a22de UPSTREAM: <sti>: Allow prepared directories to be passed to STI
+    86eefdd UPSTREAM: 14618: Refactor exec to allow reuse from server
+
+    # we want to move our STI changes to upstream
+    $ UPSTREAM_REPO=github.com/openshift/source-to-image UPSTREAM_PACKAGE=pkg/api hack/move-upstream.sh
+    ...
+
+    # All changes to source-to-image in Godeps/. are now in a commit UPSTREAMED in s2i repo
+
+    $ cd ../source-to-image
+    $ git log --oneline
+    c0029f6 UPSTREAMED
+    ... # older commits
+
+The default is to work against Kube.
+
 
 ## Updating Kubernetes from upstream
 
