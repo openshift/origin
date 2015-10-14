@@ -1,7 +1,7 @@
 "use strict";
 
 angular.module("openshiftConsole")
-  .service("Navigate", function($location){
+  .service("Navigate", function($location, annotationFilter){
     return {
       /**
        * Navigate and display the error page.
@@ -46,6 +46,67 @@ angular.module("openshiftConsole")
        */
       toNextSteps: function(name, projectName){
         $location.path("project/" + encodeURIComponent(projectName) + "/create/next").search("name", name);
+      },
+
+      // Resource is either a resource object, or a name.  If resource is a name, kind and namespace must be specified
+      // Note that builds and deployments can only have their URL built correctly (including their config in the URL)
+      // if resource is an object, otherwise they will fall back to the non-nested URL.
+      // TODO - if we do ever need to create a build URL without the build object but with a known build (deployment) 
+      // name and buildConfig (deploymentConfig) name, then we will need either a specialized method for that, or an
+      // additional opts param for extra opts.
+      resourceURL: function(resource, kind, namespace) {
+        if (!resource || (!resource.metadata && (!kind || !namespace))) {
+          return null;
+        }
+
+        // normalize based on the kind of args we got
+        if (!kind) {
+          kind = resource.kind;
+        }
+        if (!namespace) {
+          namespace = resource.metadata.namespace; 
+        }
+        var encodedNamespace = encodeURIComponent(namespace);
+
+        var name = resource;
+        if (resource.metadata) {
+          name = resource.metadata.name;
+        }
+
+        var encodedName = encodeURIComponent(name);
+
+        var url = "project/" + encodedNamespace + "/browse/";
+        switch(kind) {
+          case "Build":
+            if (resource.metadata && resource.metadata.labels && resource.metadata.labels.buildconfig) {
+              url += "builds/" + encodeURIComponent(resource.metadata.labels.buildconfig) + "/" + encodedName;
+            }
+            else {
+              url += "builds-noconfig/" + encodedName;
+            }
+            break;
+          case "BuildConfig":
+            url += "builds/" + encodedName;
+            break;
+          case "DeploymentConfig":
+            url += "deployments/" + encodedName;
+            break;
+          case "ReplicationController":
+            var depConfig = resource.metadata ? annotationFilter(resource, 'deploymentConfig') : null;
+            if (depConfig) {
+              url += "deployments/" + encodeURIComponent(depConfig) + "/" + encodedName;
+            }
+            else {
+              url += "deployments-replicationcontrollers/" + encodedName;
+            }
+            break;  
+          case "ImageStream":
+            url += "images/" + encodedName;
+            break;
+          default:
+            url += kind.toLowerCase() + "s/" + encodedName;
+        }
+        return url;
       }
     };
   });

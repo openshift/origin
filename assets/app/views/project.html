@@ -87,7 +87,7 @@
               <div class="component">
                 <div ng-attr-title="{{service | serviceImplicitDNSName}}" class="component-label">
                   <!-- "service" class is present for e2e tests to check   -->
-                  Service <span ng-if="displayRouteByService[serviceId]">: <span class="service">{{serviceId}}</span></span>
+                  Service <span ng-if="displayRouteByService[serviceId]">: <a class="subtle-link service" href="project/{{service.metadata.namespace}}/browse/services/{{serviceId}}">{{serviceId}}</a></span>
                 </div>
 
                 <!-- Show the route if present -->
@@ -110,8 +110,8 @@
 
                 <!-- If no route is present, show the service name large -->
                 <!-- "service" class is present for e2e tests to check   -->
-                <h2 class="service" ng-if="!displayRouteByService[serviceId]">
-                  {{serviceId}}
+                <h2 ng-if="!displayRouteByService[serviceId]">
+                  <a class="service" href="project/{{service.metadata.namespace}}/browse/services/{{serviceId}}">{{serviceId}}</a>
                 </h2>
               </div>
 

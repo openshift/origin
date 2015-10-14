@@ -13,8 +13,10 @@
           <span class="pficon pficon-image" aria-hidden="true"></span> 
         </div>
         <div flex>
-          Image: {{container.image | imageStreamName}}
+          Image: 
+          <span ng-if="!imagesByDockerReference[container.image]">{{container.image | imageStreamName}}</span>
           <span ng-if="imagesByDockerReference[container.image]">
+            <a ng-href="{{imagesByDockerReference[container.image].imageStreamName | navigateResourceURL : 'ImageStream' : imagesByDockerReference[container.image].imageStreamNamespace}}">{{container.image | imageStreamName}}</a>
             (<span title="{{imagesByDockerReference[container.image].metadata.name}}">{{imagesByDockerReference[container.image].metadata.name | stripSHAPrefix | limitTo: 7}}</span>)
           </span>
         </div>
@@ -25,15 +27,10 @@
             <span class="fa fa-refresh" aria-hidden="true"></span>
           </div> 
           <div flex>Build:
-            <span ng-if="(build | annotation : 'buildNumber') && build.metadata.labels.buildconfig">
-              <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{build.metadata.labels.buildconfig}}/{{build.metadata.name}}">#{{build | annotation : 'buildNumber'}}</a>
-            </span>
-            <span ng-if="!(build | annotation : 'buildNumber') && build.metadata.labels.buildconfig">
-              <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{build.metadata.labels.buildconfig}}/{{build.metadata.name}}">{{build.metadata.name}}</a>
-            </span>
-            <span ng-if="!build.metadata.labels.buildconfig">
-              <a ng-href="project/{{build.metadata.namespace}}/browse/builds-noconfig/{{build.metadata.name}}">{{build.metadata.name}}</a>
-            </span>  
+            <a ng-href="{{build | navigateResourceURL}}">
+              <span ng-if="(build | annotation : 'buildNumber')">#{{build | annotation : 'buildNumber'}}</span>
+              <span ng-if="!(build | annotation : 'buildNumber')">{{build.metadata.name}}</span>
+            </a>
             <span ng-if="build.spec.source">
               from
               <span class="fa fa-code" aria-hidden="true"></span>

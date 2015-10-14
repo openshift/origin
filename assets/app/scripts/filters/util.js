@@ -331,4 +331,12 @@ angular.module('openshiftConsole')
         return json;
       }
     };
+  })
+  // Resource is either a resource object, or a name.  If resource is a name, kind and namespace must be specified
+  // Note that builds and deployments can only have their URL built correctly (including their config in the URL)
+  // if resource is an object
+  .filter('navigateResourceURL', function(Navigate) {
+    return function(resource, kind, namespace) {
+      return Navigate.resourceURL(resource, kind, namespace);
+    };
   });
