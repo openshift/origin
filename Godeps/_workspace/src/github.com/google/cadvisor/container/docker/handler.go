@@ -156,7 +156,7 @@ func (self *dockerContainerHandler) ContainerReference() (info.ContainerReferenc
 func (self *dockerContainerHandler) readLibcontainerConfig() (*libcontainerConfigs.Config, error) {
 	config, err := containerLibcontainer.ReadConfig(*dockerRootDir, *dockerRunDir, self.id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read libcontainer config: %v", err)
+		return nil, fmt.Errorf("failed to read libcontainer config from (%v/%v): %v", *dockerRunDir, self.id, err)
 	}
 
 	// Replace cgroup parent and name with our own since we may be running in a different context.
