@@ -12,6 +12,11 @@ global
   crt-base /etc/ssl
   stats socket /var/lib/haproxy/run/haproxy.sock mode 600 level admin
   stats timeout 2m
+  
+  # Default ciphers to use on SSL-enabled listening sockets.
+  # For more information, see ciphers(1SSL).
+  ssl-default-bind-ciphers kEECDH+aRSA+AES:kRSA+AES:+AES256:!kEDH:!LOW:!EXP:!MD5:!aNULL:!eNULL
+  ssl-default-bind-options no-sslv3
 
 defaults
   # maxconn 4096
