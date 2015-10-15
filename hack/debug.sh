@@ -39,7 +39,7 @@ do_master () {
     fi
 
     logmaster=$logdir/master
-    mkdir $logmaster
+    mkdir -p $logmaster
     echo_and_eval journalctl --boot >& $logmaster/journal-full
     echo_and_eval journalctl -u $aos_master_service >& $logmaster/journal-openshift
     echo_and_eval systemctl show $aos_master_service >& $logmaster/systemctl-show
@@ -63,7 +63,7 @@ do_master () {
 
 	resolv_ip=$(awk '/\s'$node'$/ { print $1; exit; }' /etc/hosts)
 	if [ -z "$resolv_ip" ]; then
-	    resolv_ip=$(host $node 2>/dev/null)
+	    resolv_ip=$(host $node 2>/dev/null | sed -ne 's/.*has address //p' | head -1)
 	    if [ -z "$resolv_ip" ]; then
 		echo "Node $node: no IP address in either DNS or /etc/hosts"
 	    fi
@@ -400,34 +400,38 @@ do_node () {
 }
 
 run_self_via_ssh () {
-    host=$1
-    args=$2
+    args=$1
+    host=$2
+    remote_logdir=$3
 
     if ! try_eval ssh -o PasswordAuthentication=no root@$host /bin/true; then
-	return
+	return 1
     fi
 
-    if ! try_eval ssh root@$host mkdir -m 0700 $logdir; then
-	return
+    if ! try_eval ssh root@$host mkdir -m 0700 -p $logdir; then
+	return 1
     fi
 
     if ! try_eval scp $self root@$host:$logdir/debug.sh; then
-	return
+	return 1
     fi
 
     extra_env=""
     if ! try_eval ssh root@$host oc get pods; then
 	if [ -z "$KUBECONFIG" ]; then
-	    return
+	    if [ ! -f "$HOME/.kube/config" ]; then
+		return 1
+	    fi
+	    KUBECONFIG="$HOME/.kube/config"
 	fi
 
 	echo "Retrying with local kubeconfig"
 	if ! try_eval scp $KUBECONFIG root@$host:$logdir/.kubeconfig; then
-	    return
+	    return 1
 	fi
 	extra_env="env KUBECONFIG=$logdir/.kubeconfig"
 	if ! try_eval ssh root@$host $extra_env oc get pods; then
-	    return
+	    return 1
 	fi
     fi
 
@@ -443,16 +447,16 @@ do_master_and_nodes ()
     if [ -z "$master" ]; then
 	do_master
     else
-	run_self_via_ssh $master --master
-	try_eval scp -pr root@$master:$logdir/master $logdir/
+	run_self_via_ssh --master $master $logdir/master && \
+	    try_eval scp -pr root@$master:$logdir/master $logdir
     fi
 
     while read name addr; do
 	echo ""
 	echo "Analyzing $name ($addr)"
 
-	run_self_via_ssh $addr --node < /dev/null
-	try_eval scp -pr root@$addr:$logdir/nodes $logdir/
+	run_self_via_ssh --node $addr $logdir/nodes < /dev/null && \
+	    try_eval scp -pr root@$addr:$logdir/nodes $logdir
     done < $logdir/master/node-ips
 }
 
@@ -509,6 +513,8 @@ case "$0" in
 esac
 
 logdir=$(mktemp --tmpdir -d openshift-sdn-debug-XXXXXXXXX)
+mkdir $logdir/master
+mkdir $logdir/nodes
 do_master_and_nodes "$1" |& tee $logdir/log
 
 dumpname=openshift-sdn-debug-$(date --iso-8601).tgz
