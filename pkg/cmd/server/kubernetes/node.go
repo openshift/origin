@@ -217,7 +217,7 @@ func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler)
 
 		pconfig.NewSourceAPI(
 			c.Client,
-			30*time.Second,
+			10*time.Minute,
 			serviceConfig.Channel("api"),
 			endpointsConfig.Channel("api"))
 
