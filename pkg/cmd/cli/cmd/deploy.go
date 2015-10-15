@@ -89,7 +89,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	}
 
 	cmd := &cobra.Command{
-		Use:        "deploy DEPLOYMENTCONFIG",
+		Use:        "deploy DEPLOYMENTCONFIG [--latest|--retry|--cancel|--enable-triggers]",
 		Short:      "View, start, cancel, or retry a deployment",
 		Long:       deployLong,
 		Example:    fmt.Sprintf(deployExample, fullName),
@@ -99,7 +99,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 				cmdutil.CheckErr(err)
 			}
 
-			if err := options.Validate(args); err != nil {
+			if err := options.Validate(); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -118,6 +118,9 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 }
 
 func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+	if len(args) > 1 {
+		return errors.New("only one deploymentConfig name is supported as argument.")
+	}
 	var err error
 
 	o.osClient, o.kubeClient, err = f.Clients()
@@ -145,12 +148,9 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	return nil
 }
 
-func (o *DeployOptions) Validate(args []string) error {
-	if len(args) == 0 || len(args[0]) == 0 {
-		return errors.New("a DeploymentConfig name is required.")
-	}
-	if len(args) > 1 {
-		return errors.New("only one DeploymentConfig name is supported as argument.")
+func (o DeployOptions) Validate() error {
+	if len(o.deploymentConfigName) == 0 {
+		return errors.New("a deploymentConfig name is required.")
 	}
 	numOptions := 0
 	if o.deployLatest {
@@ -171,7 +171,7 @@ func (o *DeployOptions) Validate(args []string) error {
 	return nil
 }
 
-func (o *DeployOptions) RunDeploy() error {
+func (o DeployOptions) RunDeploy() error {
 	r := o.builder.
 		NamespaceParam(o.namespace).
 		ResourceTypeOrNameArgs(false, o.deploymentConfigName).
@@ -209,7 +209,7 @@ func (o *DeployOptions) RunDeploy() error {
 
 // deploy launches a new deployment unless there's already a deployment
 // process in progress for config.
-func (o *DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer) error {
+func (o DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer) error {
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err == nil {
@@ -235,7 +235,7 @@ func (o *DeployOptions) deploy(config *deployapi.DeploymentConfig, out io.Writer
 // retry resets the status of the latest deployment to New, which will cause
 // the deployment to be retried. An error is returned if the deployment is not
 // currently in a failed state.
-func (o *DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) error {
+func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) error {
 	if config.LatestVersion == 0 {
 		return fmt.Errorf("no deployments found for %s/%s", config.Namespace, config.Name)
 	}
@@ -283,7 +283,7 @@ func (o *DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer)
 }
 
 // cancel cancels any deployment process in progress for config.
-func (o *DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer) error {
+func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer) error {
 	deployments, err := o.kubeClient.ReplicationControllers(config.Namespace).List(deployutil.ConfigSelector(config.Name))
 	if err != nil {
 		return err
@@ -333,7 +333,7 @@ func (o *DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer
 }
 
 // reenableTriggers enables all image triggers and then persists config.
-func (o *DeployOptions) reenableTriggers(config *deployapi.DeploymentConfig, out io.Writer) error {
+func (o DeployOptions) reenableTriggers(config *deployapi.DeploymentConfig, out io.Writer) error {
 	enabled := []string{}
 	for _, trigger := range config.Triggers {
 		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
