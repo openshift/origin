@@ -79,8 +79,11 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 			if publicURL.Path == "/" {
 				validationResults.AddErrors(fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
 			}
-			if !reflect.DeepEqual(config.AssetConfig.ServingInfo, config.ServingInfo) {
-				validationResults.AddWarnings(fielderrors.NewFieldInvalid("assetConfig.servingInfo", "<not displayed>", "assetConfig.servingInfo is ignored when colocated with master API"))
+
+			// Warn if they have customized the asset certificates in ways that will be ignored
+			if !reflect.DeepEqual(config.AssetConfig.ServingInfo.ServerCert, config.ServingInfo.ServerCert) ||
+				!reflect.DeepEqual(config.AssetConfig.ServingInfo.NamedCertificates, config.ServingInfo.NamedCertificates) {
+				validationResults.AddWarnings(fielderrors.NewFieldInvalid("assetConfig.servingInfo", "<not displayed>", "changes to assetConfig certificate configuration are not used when colocated with master API"))
 			}
 		}
 
