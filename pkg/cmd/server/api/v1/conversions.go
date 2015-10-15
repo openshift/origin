@@ -128,6 +128,14 @@ func init() {
 				obj.MCSLabelsPerProject = 5
 			}
 		},
+		func(obj *IdentityProvider) {
+			if len(obj.MappingMethod) == 0 {
+				// By default, only let one identity provider authenticate a particular user
+				// If multiple identity providers collide, the second one in will fail to auth
+				// The admin can set this to "add" if they want to allow new identities to join existing users
+				obj.MappingMethod = "claim"
+			}
+		},
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

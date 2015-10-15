@@ -153,6 +153,7 @@ oauthConfig:
   identityProviders:
   - challenge: false
     login: false
+    mappingMethod: ""
     name: ""
     provider:
       apiVersion: v1
@@ -163,18 +164,21 @@ oauthConfig:
       url: ""
   - challenge: false
     login: false
+    mappingMethod: ""
     name: ""
     provider:
       apiVersion: v1
       kind: AllowAllPasswordIdentityProvider
   - challenge: false
     login: false
+    mappingMethod: ""
     name: ""
     provider:
       apiVersion: v1
       kind: DenyAllPasswordIdentityProvider
   - challenge: false
     login: false
+    mappingMethod: ""
     name: ""
     provider:
       apiVersion: v1
@@ -182,6 +186,7 @@ oauthConfig:
       kind: HTPasswdPasswordIdentityProvider
   - challenge: false
     login: false
+    mappingMethod: ""
     name: ""
     provider:
       apiVersion: v1
@@ -198,6 +203,7 @@ oauthConfig:
       url: ""
   - challenge: false
     login: false
+    mappingMethod: ""
     name: ""
     provider:
       apiVersion: v1
@@ -208,6 +214,7 @@ oauthConfig:
       loginURL: ""
   - challenge: false
     login: false
+    mappingMethod: ""
     name: ""
     provider:
       apiVersion: v1
@@ -216,6 +223,7 @@ oauthConfig:
       kind: GitHubIdentityProvider
   - challenge: false
     login: false
+    mappingMethod: ""
     name: ""
     provider:
       apiVersion: v1
@@ -225,6 +233,7 @@ oauthConfig:
       kind: GoogleIdentityProvider
   - challenge: false
     login: false
+    mappingMethod: ""
     name: ""
     provider:
       apiVersion: v1

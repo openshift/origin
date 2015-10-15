@@ -327,7 +327,10 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 	redirectors := map[string]handlers.AuthenticationRedirector{}
 
 	for _, identityProvider := range c.Options.IdentityProviders {
-		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
+		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+		if err != nil {
+			return nil, err
+		}
 
 		// TODO: refactor handler building per type
 		if configapi.IsPasswordAuthenticator(identityProvider) {
@@ -467,7 +470,10 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 }
 
 func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.IdentityProvider) (authenticator.Password, error) {
-	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
+	identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+	if err != nil {
+		return nil, err
+	}
 
 	switch provider := identityProvider.Provider.Object.(type) {
 	case (*configapi.AllowAllPasswordIdentityProvider):
@@ -534,7 +540,10 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 	}
 
 	for _, identityProvider := range c.Options.IdentityProviders {
-		identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(c.IdentityRegistry, c.UserRegistry)
+		identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityRegistry, c.UserRegistry, identitymapper.MappingMethodType(identityProvider.MappingMethod))
+		if err != nil {
+			return nil, err
+		}
 
 		if configapi.IsPasswordAuthenticator(identityProvider) {
 			passwordAuthenticator, err := c.getPasswordAuthenticator(identityProvider)

@@ -9,14 +9,12 @@ import (
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 )
 
+var _ = authapi.UserIdentityMapper(&lookupIdentityMapper{})
+
+// lookupIdentityMapper does not provision a new identity or user, it only allows identities already associated with users
 type lookupIdentityMapper struct {
 	mappings useridentitymapping.Registry
 	users    user.Registry
-}
-
-// NewLookupIdentityMapper returns a mapper that will look up existing mappings for identities
-func NewLookupIdentityMapper(mappings useridentitymapping.Registry, users user.Registry) authapi.UserIdentityMapper {
-	return &lookupIdentityMapper{mappings, users}
 }
 
 // UserFor returns info about the user for whom identity info has been provided

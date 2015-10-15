@@ -493,6 +493,8 @@ type IdentityProvider struct {
 	UseAsChallenger bool `json:"challenge"`
 	// UseAsLogin indicates whether to use this identity provider for unauthenticated browsers to login against
 	UseAsLogin bool `json:"login"`
+	// MappingMethod determines how identities from this provider are mapped to users
+	MappingMethod string `json:"mappingMethod"`
 	// Provider contains the information about how to set up a specific identity provider
 	Provider runtime.RawExtension `json:"provider"`
 }

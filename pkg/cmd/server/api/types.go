@@ -514,6 +514,8 @@ type IdentityProvider struct {
 	UseAsChallenger bool
 	// UseAsLogin indicates whether to use this identity provider for unauthenticated browsers to login against
 	UseAsLogin bool
+	// MappingMethod determines how identities from this provider are mapped to users
+	MappingMethod string
 	// Provider contains the information about how to set up a specific identity provider
 	Provider runtime.EmbeddedObject
 }

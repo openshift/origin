@@ -237,6 +237,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		Name:            "basicauth",
 		UseAsChallenger: true,
 		UseAsLogin:      true,
+		MappingMethod:   "claim",
 		Provider: runtime.EmbeddedObject{
 			Object: &configapi.BasicAuthPasswordIdentityProvider{
 				RemoteConnectionInfo: configapi.RemoteConnectionInfo{
