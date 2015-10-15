@@ -908,9 +908,9 @@ func (dm *DockerManager) podInfraContainerChanged(pod *api.Pod, podInfraContaine
 	if dockerPodInfraContainer.HostConfig != nil {
 		networkMode = dockerPodInfraContainer.HostConfig.NetworkMode
 	}
-	if pod.Spec.HostNetwork {
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
 		if networkMode != "host" {
-			glog.V(4).Infof("host: %v, %v", pod.Spec.HostNetwork, networkMode)
+			glog.V(4).Infof("host: %v, %v", pod.Spec.SecurityContext.HostNetwork, networkMode)
 			return true, nil
 		}
 	} else {
@@ -1387,7 +1387,7 @@ func (dm *DockerManager) runContainerInPod(pod *api.Pod, container *api.Containe
 	}
 
 	utsMode := ""
-	if pod.Spec.HostNetwork {
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
 		utsMode = "host"
 	}
 	id, err := dm.runContainer(pod, container, opts, ref, netMode, ipcMode, utsMode, pidMode)
@@ -1500,7 +1500,7 @@ func (dm *DockerManager) createPodInfraContainer(pod *api.Pod) (kubeletTypes.Doc
 	netNamespace := ""
 	var ports []api.ContainerPort
 
-	if pod.Spec.HostNetwork {
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
 		netNamespace = "host"
 	} else {
 		// Docker only exports ports from the pod infra container.  Let's
@@ -1899,7 +1899,7 @@ func (dm *DockerManager) doBackOff(pod *api.Pod, container *api.Container, podSt
 // getPidMode returns the pid mode to use on the docker container based on pod.Spec.HostPID.
 func getPidMode(pod *api.Pod) string {
 	pidMode := ""
-	if pod.Spec.HostPID {
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostPID {
 		pidMode = "host"
 	}
 	return pidMode
@@ -1908,7 +1908,7 @@ func getPidMode(pod *api.Pod) string {
 // getIPCMode returns the ipc mode to use on the docker container based on pod.Spec.HostIPC.
 func getIPCMode(pod *api.Pod) string {
 	ipcMode := ""
-	if pod.Spec.HostIPC {
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostIPC {
 		ipcMode = "host"
 	}
 	return ipcMode
