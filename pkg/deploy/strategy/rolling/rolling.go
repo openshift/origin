@@ -87,7 +87,7 @@ func NewRollingDeploymentStrategy(namespace string, client kclient.Interface, co
 			updater := kubectl.NewRollingUpdater(namespace, client)
 			return updater.Update(config)
 		},
-		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout),
+		hookExecutor: stratsupport.NewHookExecutor(client, os.Stdout, codec),
 		getUpdateAcceptor: func(timeout time.Duration) strat.UpdateAcceptor {
 			return stratsupport.NewAcceptNewlyObservedReadyPods(client, timeout, AcceptorInterval)
 		},

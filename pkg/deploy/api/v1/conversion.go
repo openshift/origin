@@ -82,6 +82,12 @@ func convert_v1_DeploymentStrategy_To_api_DeploymentStrategy(in *DeploymentStrat
 	if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
 		return err
 	}
+	if err := s.Convert(&in.Labels, &out.Labels, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.Annotations, &out.Annotations, 0); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -99,6 +105,12 @@ func convert_api_DeploymentStrategy_To_v1_DeploymentStrategy(in *newer.Deploymen
 		return err
 	}
 	if err := s.Convert(&in.Resources, &out.Resources, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.Labels, &out.Labels, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.Annotations, &out.Annotations, 0); err != nil {
 		return err
 	}
 	return nil

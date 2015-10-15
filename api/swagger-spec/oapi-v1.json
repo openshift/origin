@@ -15836,6 +15836,14 @@
      "resources": {
       "$ref": "v1.ResourceRequirements",
       "description": "resource requirements to execute the deployment"
+     },
+     "labels": {
+      "type": "any",
+      "description": "labels for deployer and hook pods"
+     },
+     "annotations": {
+      "type": "any",
+      "description": "annotations for deployer and hook pods"
      }
     }
    },
