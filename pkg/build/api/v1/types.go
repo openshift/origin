@@ -3,15 +3,15 @@ package v1
 import (
 	"time"
 
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/util"
 )
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Spec is all the inputs used to execute the build.
 	Spec BuildSpec `json:"spec,omitempty" description:"specification of the desired behavior for a build"`
@@ -63,13 +63,13 @@ type BuildStatus struct {
 	// StartTimestamp is a timestamp representing the server time when this Build started
 	// running in a Pod.
 	// It is represented in RFC3339 form and is in UTC.
-	StartTimestamp *util.Time `json:"startTimestamp,omitempty" description:"server time when this build started running in a pod"`
+	StartTimestamp *unversioned.Time `json:"startTimestamp,omitempty" description:"server time when this build started running in a pod"`
 
 	// CompletionTimestamp is a timestamp representing the server time when this Build was
 	// finished, whether that build failed or succeeded.  It reflects the time at which
 	// the Pod running the Build terminated.
 	// It is represented in RFC3339 form and is in UTC.
-	CompletionTimestamp *util.Time `json:"completionTimestamp,omitempty" description:"server time when the pod running this build stopped running"`
+	CompletionTimestamp *unversioned.Time `json:"completionTimestamp,omitempty" description:"server time when the pod running this build stopped running"`
 
 	// Duration contains time.Duration object describing build time.
 	Duration time.Duration `json:"duration,omitempty" description:"amount of time the build has been running"`
@@ -328,8 +328,8 @@ const BuildConfigLabel = "buildconfig"
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Spec holds all the input necessary to produce a new build, and the conditions when
 	// to trigger them.
@@ -414,8 +414,8 @@ const (
 
 // BuildList is a collection of Builds.
 type BuildList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of builds
 	Items []Build `json:"items" description:"list of builds"`
@@ -423,8 +423,8 @@ type BuildList struct {
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of build configs
 	Items []BuildConfig `json:"items" description:"list of build configs"`
@@ -447,14 +447,14 @@ type GitInfo struct {
 
 // BuildLog is the (unused) resource associated with the build log redirector
 type BuildLog struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
 }
 
 // BuildRequest is the resource used to pass parameters to build generator
 type BuildRequest struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Revision is the information from the source for a specific repo snapshot.
 	Revision *SourceRevision `json:"revision,omitempty" description:"information from the source for a specific repo snapshot"`
@@ -473,7 +473,7 @@ type BuildRequest struct {
 
 // BuildLogOptions is the REST options for a build log
 type BuildLogOptions struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 
 	// Follow if true indicates that the build log should be streamed until
 	// the build terminates.

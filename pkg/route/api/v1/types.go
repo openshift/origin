@@ -1,14 +1,15 @@
 package v1
 
 import (
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/util"
 )
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
 type Route struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Spec is the desired state of the route
 	Spec RouteSpec `json:"spec" description:"desired state of the route"`
@@ -18,8 +19,8 @@ type Route struct {
 
 // RouteList is a collection of Routes.
 type RouteList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of routes
 	Items []Route `json:"items" description:"list of routes"`

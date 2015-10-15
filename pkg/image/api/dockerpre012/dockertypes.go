@@ -1,26 +1,25 @@
 package dockerpre012
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // DockerImage is for earlier versions of the Docker API (pre-012 to be specific). It is also the
 // version of metadata that the Docker registry uses to persist metadata.
 type DockerImage struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 
-	ID              string        `json:"id"`
-	Parent          string        `json:"parent,omitempty"`
-	Comment         string        `json:"comment,omitempty"`
-	Created         util.Time     `json:"created"`
-	Container       string        `json:"container,omitempty"`
-	ContainerConfig DockerConfig  `json:"container_config,omitempty"`
-	DockerVersion   string        `json:"docker_version,omitempty"`
-	Author          string        `json:"author,omitempty"`
-	Config          *DockerConfig `json:"config,omitempty"`
-	Architecture    string        `json:"architecture,omitempty"`
-	Size            int64         `json:"size,omitempty"`
+	ID              string           `json:"id"`
+	Parent          string           `json:"parent,omitempty"`
+	Comment         string           `json:"comment,omitempty"`
+	Created         unversioned.Time `json:"created"`
+	Container       string           `json:"container,omitempty"`
+	ContainerConfig DockerConfig     `json:"container_config,omitempty"`
+	DockerVersion   string           `json:"docker_version,omitempty"`
+	Author          string           `json:"author,omitempty"`
+	Config          *DockerConfig    `json:"config,omitempty"`
+	Architecture    string           `json:"architecture,omitempty"`
+	Size            int64            `json:"size,omitempty"`
 }
 
 // DockerConfig is the list of configuration options used when creating a container.

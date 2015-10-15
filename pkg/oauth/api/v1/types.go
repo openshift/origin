@@ -1,12 +1,13 @@
 package v1
 
 import (
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 type OAuthAccessToken struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// ClientName references the client that created this token.
 	ClientName string `json:"clientName,omitempty" description:"references the client that created this token"`
@@ -34,8 +35,8 @@ type OAuthAccessToken struct {
 }
 
 type OAuthAuthorizeToken struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// ClientName references the client that created this token.
 	ClientName string `json:"clientName,omitempty" description:"references the client that created this token"`
@@ -61,8 +62,8 @@ type OAuthAuthorizeToken struct {
 }
 
 type OAuthClient struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Secret is the unique secret associated with a client
 	Secret string `json:"secret,omitempty" description:"unique secret associated with a client"`
@@ -75,8 +76,8 @@ type OAuthClient struct {
 }
 
 type OAuthClientAuthorization struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// ClientName references the client that created this authorization
 	ClientName string `json:"clientName,omitempty" description:"references the client that created this authorization"`
@@ -93,25 +94,25 @@ type OAuthClientAuthorization struct {
 }
 
 type OAuthAccessTokenList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []OAuthAccessToken `json:"items" description:"list of oauth access tokens"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []OAuthAccessToken `json:"items" description:"list of oauth access tokens"`
 }
 
 type OAuthAuthorizeTokenList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []OAuthAuthorizeToken `json:"items" description:"list of oauth authorization tokens"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []OAuthAuthorizeToken `json:"items" description:"list of oauth authorization tokens"`
 }
 
 type OAuthClientList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []OAuthClient `json:"items" description:"list of oauth clients"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []OAuthClient `json:"items" description:"list of oauth clients"`
 }
 
 type OAuthClientAuthorizationList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []OAuthClientAuthorization `json:"items" description:"list of oauth client authorizations"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []OAuthClientAuthorization `json:"items" description:"list of oauth client authorizations"`
 }
