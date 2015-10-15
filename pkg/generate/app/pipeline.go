@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"math/rand"
 	"regexp"
 	"sort"
 	"strings"
@@ -43,7 +42,7 @@ func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy *BuildStrategyRef, env Environment, source *SourceRef) (*Pipeline, error) {
 	name, ok := NameSuggestions{source, input}.SuggestName()
 	if !ok {
-		name = fmt.Sprintf("app%d", rand.Intn(10000))
+		return nil, ErrNameRequired
 	}
 
 	output := &ImageRef{
@@ -51,7 +50,6 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 			Name: name,
 			Tag:  image.DefaultImageTag,
 		},
-
 		OutputImage:   true,
 		AsImageStream: !outputDocker,
 	}
