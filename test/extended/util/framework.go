@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -320,7 +321,7 @@ func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (s
 func GetPodForContainer(container kapi.Container) *kapi.Pod {
 	name := namer.GetPodName("test-pod", string(kutil.NewUUID()))
 	return &kapi.Pod{
-		TypeMeta: kapi.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
@@ -338,7 +339,7 @@ func GetPodForContainer(container kapi.Container) *kapi.Pod {
 // CreatePersistentVolume creates a HostPath Persistent Volume.
 func CreatePersistentVolume(name, capacity, hostPath string) *kapi.PersistentVolume {
 	return &kapi.PersistentVolume{
-		TypeMeta: kapi.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "PersistentVolume",
 			APIVersion: "v1",
 		},

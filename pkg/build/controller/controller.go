@@ -7,9 +7,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	errors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/record"
-	"k8s.io/kubernetes/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -63,7 +63,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 	}
 
 	build.Status.Phase = buildapi.BuildPhaseCancelled
-	now := util.Now()
+	now := unversioned.Now()
 	build.Status.CompletionTimestamp = &now
 	if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 		return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
@@ -262,11 +262,11 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
 		build.Status.Phase = nextStatus
 		if buildutil.IsBuildComplete(build) {
-			now := util.Now()
+			now := unversioned.Now()
 			build.Status.CompletionTimestamp = &now
 		}
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
-			now := util.Now()
+			now := unversioned.Now()
 			build.Status.StartTimestamp = &now
 		}
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
@@ -318,7 +318,7 @@ func (bc *BuildPodDeleteController) HandleBuildPodDeletion(pod *kapi.Pod) error 
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s", build.Namespace, build.Name, build.Status.Phase, nextStatus)
 		build.Status.Phase = nextStatus
 		build.Status.Message = "The pod for this build was deleted before the build completed."
-		now := util.Now()
+		now := unversioned.Now()
 		build.Status.CompletionTimestamp = &now
 		if err := bc.BuildUpdater.Update(build.Namespace, build); err != nil {
 			return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)

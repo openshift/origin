@@ -407,14 +407,14 @@ func TestHandlePod(t *testing.T) {
 		matchID             bool
 		inStatus            buildapi.BuildPhase
 		outStatus           buildapi.BuildPhase
-		startTimestamp      *util.Time
-		completionTimestamp *util.Time
+		startTimestamp      *unversioned.Time
+		completionTimestamp *unversioned.Time
 		podStatus           kapi.PodPhase
 		exitCode            int
 		buildUpdater        buildclient.BuildUpdater
 		podManager          podManager
 	}
-	dummy := util.Now()
+	dummy := unversioned.Now()
 	curtime := &dummy
 	tests := []handlePodTest{
 		{ // 0
@@ -529,10 +529,10 @@ func TestCancelBuild(t *testing.T) {
 		exitCode            int
 		buildUpdater        buildclient.BuildUpdater
 		podManager          podManager
-		startTimestamp      *util.Time
-		completionTimestamp *util.Time
+		startTimestamp      *unversioned.Time
+		completionTimestamp *unversioned.Time
 	}
-	dummy := util.Now()
+	dummy := unversioned.Now()
 	curtime := &dummy
 
 	tests := []handleCancelBuildTest{

@@ -93,7 +93,7 @@ oadm policy reconcile-cluster-roles --additive-only --confirm
 [ "$(oc get clusterroles/basic-user -o json | grep custom-annotation)" ]
 [ "$(oc get clusterroles/basic-user -o json | grep groups)" ]
 oadm policy reconcile-cluster-roles --confirm
-[ ! "$(oc get clusterroles/basic-user -o json | grep groups)" ]
+[ ! "$(oc get clusterroles/basic-user -o yaml | grep -v "kubectl.kubernetes.io/last-applied-configuration" | grep groups)" ]
 
 # Ensure a removed binding gets re-added
 oc delete clusterrolebinding/cluster-status-binding
@@ -113,10 +113,10 @@ oadm policy reconcile-cluster-role-bindings --confirm
 [ "$(oc get clusterrolebindings/basic-users -o json | grep custom-annotation)" ]
 [ "$(oc get clusterrolebindings/basic-users -o json | grep custom-user)" ]
 # Ensure a customized binding's roleref is corrected
-[ ! "$(oc get clusterrolebindings/basic-users -o json | grep cluster-status)" ]
+[ ! "$(oc get clusterrolebindings/basic-users -o json | grep -v "kubectl.kubernetes.io/last-applied-configuration" | grep cluster-status)" ]
 # Ensure --additive-only=false removes customized users from the binding
 oadm policy reconcile-cluster-role-bindings --additive-only=false --confirm
-[ ! "$(oc get clusterrolebindings/basic-users -o json | grep custom-user)" ]
+[ ! "$(oc get clusterrolebindings/basic-users -o json | grep -v "kubectl.kubernetes.io/last-applied-configuration" | grep custom-user)" ]
 
 echo "admin-policy: ok"
 

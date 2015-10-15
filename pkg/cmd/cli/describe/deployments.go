@@ -101,7 +101,7 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(selector)
+				return kclient.ReplicationControllers(namespace).List(selector, fields.Everything())
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 				return kclient.Pods(namespace).List(selector, fields.Everything())
@@ -324,7 +324,7 @@ func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Inte
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(selector)
+				return kclient.ReplicationControllers(namespace).List(selector, fields.Everything())
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 				return kclient.Pods(namespace).List(selector, fields.Everything())

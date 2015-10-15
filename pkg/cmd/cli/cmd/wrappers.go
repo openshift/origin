@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	kutil "k8s.io/kubernetes/pkg/util"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -427,7 +427,78 @@ resource-version will be used.`
 // NewCmdLabel is a wrapper for the Kubernetes cli label command
 func NewCmdLabel(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdLabel(f.Factory, out)
-	cmd.Long = fmt.Sprintf(labelLong, kutil.LabelValueMaxLength)
+	cmd.Long = fmt.Sprintf(labelLong, kvalidation.LabelValueMaxLength)
 	cmd.Example = fmt.Sprintf(labelExample, fullName)
+	return cmd
+}
+
+const (
+	applyLong = `Apply a configuration to a resource by filename or stdin.
+
+JSON and YAML formats are accepted.`
+
+	applyExample = `# Apply the configuration in pod.json to a pod.
+$ %[1]s apply -f ./pod.json
+
+# Apply the JSON passed into stdin to a pod.
+$ cat pod.json | %[1]s apply -f -`
+)
+
+func NewCmdApply(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdApply(f.Factory, out)
+	cmd.Long = applyLong
+	cmd.Example = fmt.Sprintf(applyExample, fullName)
+	return cmd
+}
+
+const (
+	explainLong = `Documentation of resources.
+
+Possible resource types include: pods (po), services (svc),
+replicationcontrollers (rc), nodes (no), events (ev), componentstatuses (cs),
+limitranges (limits), persistentvolumes (pv), persistentvolumeclaims (pvc),
+resourcequotas (quota), namespaces (ns) or endpoints (ep).`
+
+	explainExample = `# Get the documentation of the resource and its fields
+$ %[1]s explain pods
+
+# Get the documentation of a specific field of a resource
+$ %[1]s explain pods.spec.containers`
+)
+
+func NewCmdExplain(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdExplain(f.Factory, out)
+	cmd.Long = explainLong
+	cmd.Example = fmt.Sprintf(explainExample, fullName)
+	return cmd
+}
+
+const (
+	convertLong = `Convert config files between different API versions. Both YAML
+and JSON formats are accepted.
+
+The command takes filename, directory, or URL as input, and convert it into format
+of version specified by --output-version flag. If target version is not specified or
+not supported, convert to latest version.
+
+The default output will be printed to stdout in YAML format. One can use -o option
+to change to output destination.
+`
+	convertExample = `# Convert 'pod.yaml' to latest version and print to stdout.
+$ %[1]s convert -f pod.yaml
+
+# Convert the live state of the resource specified by 'pod.yaml' to the latest version
+# and print to stdout in json format.
+$ %[1]s convert -f pod.yaml --local -o json
+
+# Convert all files under current directory to latest version and create them all.
+$ %[1]s convert -f . | kubectl create -f -
+`
+)
+
+func NewCmdConvert(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdConvert(f.Factory, out)
+	cmd.Long = convertLong
+	cmd.Example = fmt.Sprintf(convertExample, fullName)
 	return cmd
 }

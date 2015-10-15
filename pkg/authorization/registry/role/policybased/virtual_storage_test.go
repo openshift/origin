@@ -76,7 +76,7 @@ func TestCreateValid(t *testing.T) {
 	}
 
 	switch r := obj.(type) {
-	case *kapi.Status:
+	case *unversioned.Status:
 		t.Errorf("Got back unexpected status: %#v", r)
 	case *authorizationapi.Role:
 		// expected case
@@ -103,7 +103,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	switch obj.(type) {
-	case *kapi.Status:
+	case *unversioned.Status:
 		t.Errorf("Unexpected operation error: %v", obj)
 
 	case *authorizationapi.Role:
@@ -161,7 +161,7 @@ func TestDeleteValid(t *testing.T) {
 	}
 
 	switch r := obj.(type) {
-	case *kapi.Status:
+	case *unversioned.Status:
 		if r.Status != "Success" {
 			t.Fatalf("Got back non-success status: %#v", r)
 		}

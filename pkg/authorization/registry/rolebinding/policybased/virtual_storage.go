@@ -7,10 +7,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -101,13 +101,13 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.Del
 	}
 
 	delete(owningPolicyBinding.RoleBindings, name)
-	owningPolicyBinding.LastModified = util.Now()
+	owningPolicyBinding.LastModified = unversioned.Now()
 
 	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding); err != nil {
 		return nil, err
 	}
 
-	return &kapi.Status{Status: kapi.StatusSuccess}, nil
+	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 }
 
 func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
@@ -146,7 +146,7 @@ func (m *VirtualStorage) createRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 	roleBinding.ResourceVersion = policyBinding.ResourceVersion
 	policyBinding.RoleBindings[roleBinding.Name] = roleBinding
-	policyBinding.LastModified = util.Now()
+	policyBinding.LastModified = unversioned.Now()
 
 	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
 		return nil, err
@@ -201,7 +201,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx kapi.Context, obj runtime.Object,
 
 	roleBinding.ResourceVersion = policyBinding.ResourceVersion
 	policyBinding.RoleBindings[roleBinding.Name] = roleBinding
-	policyBinding.LastModified = util.Now()
+	policyBinding.LastModified = unversioned.Now()
 
 	if err := m.BindingRegistry.UpdatePolicyBinding(ctx, policyBinding); err != nil {
 		return nil, false, err

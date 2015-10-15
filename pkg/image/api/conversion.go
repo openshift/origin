@@ -4,8 +4,8 @@ import (
 	"github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/util"
 )
 
 func init() {
@@ -21,7 +21,7 @@ func init() {
 			out.ID = in.ID
 			out.Parent = in.Parent
 			out.Comment = in.Comment
-			out.Created = util.NewTime(in.Created)
+			out.Created = unversioned.NewTime(in.Created)
 			out.Container = in.Container
 			out.DockerVersion = in.DockerVersion
 			out.Author = in.Author

@@ -51,7 +51,7 @@ func newStorage() (*rest.WebHook, *buildConfigInstantiator, *test.BuildConfigReg
 
 func TestNewWebHook(t *testing.T) {
 	hook, _, _ := newStorage()
-	if out, ok := hook.New().(*kapi.Status); !ok {
+	if out, ok := hook.New().(*unversioned.Status); !ok {
 		t.Errorf("unexpected new: %#v", out)
 	}
 }

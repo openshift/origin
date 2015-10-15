@@ -17,7 +17,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		KubeClient: mockKubeClient,
 		Client:     mockOriginClient,
 	}
-	now := util.Now()
+	now := unversioned.Now()
 	testNamespace := &kapi.Namespace{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              "test",

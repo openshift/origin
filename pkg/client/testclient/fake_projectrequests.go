@@ -15,13 +15,13 @@ type FakeProjectRequests struct {
 	Fake *Fake
 }
 
-func (c *FakeProjectRequests) List(label labels.Selector, field fields.Selector) (*kapi.Status, error) {
-	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("newprojects", label, field), &kapi.Status{})
+func (c *FakeProjectRequests) List(label labels.Selector, field fields.Selector) (*unversioned.Status, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewRootListAction("newprojects", label, field), &unversioned.Status{})
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*kapi.Status), err
+	return obj.(*unversioned.Status), err
 }
 
 func (c *FakeProjectRequests) Create(inObj *projectapi.ProjectRequest) (*projectapi.Project, error) {

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"regexp"
+	"strings"
 	"testing"
 
 	_ "k8s.io/kubernetes/pkg/api/latest"
@@ -164,8 +165,9 @@ func TestProcessValueEscape(t *testing.T) {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
 	expect := `{"kind":"Template","apiVersion":"v1beta3","metadata":{"creationTimestamp":null},"objects":[{"apiVersion":"v1beta31","kind":"Service","metadata":{"labels":{"key1":"1","key2":"$1"}}}],"parameters":[{"name":"VALUE","value":"1"}]}`
-	if expect != string(result) {
-		t.Errorf("unexpected output: %s", util.StringDiff(expect, string(result)))
+	stringResult := strings.TrimSpace(string(result))
+	if expect != stringResult {
+		t.Errorf("unexpected output: %s", util.StringDiff(expect, stringResult))
 	}
 }
 
@@ -322,8 +324,9 @@ func TestEvaluateLabels(t *testing.T) {
 		}
 		expect := testCase.Output
 		expect = trailingWhitespace.ReplaceAllString(expect, "")
-		if expect != string(result) {
-			t.Errorf("%s: unexpected output: %s", k, util.StringDiff(expect, string(result)))
+		stringResult := strings.TrimSpace(string(result))
+		if expect != stringResult {
+			t.Errorf("%s: unexpected output: %s", k, util.StringDiff(expect, stringResult))
 			continue
 		}
 	}

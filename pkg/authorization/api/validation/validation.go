@@ -5,8 +5,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -240,7 +240,7 @@ func ValidateRoleBinding(roleBinding *authorizationapi.RoleBinding, isNamespaced
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&roleBinding.ObjectMeta, isNamespaced, oapi.MinimalNameRequirements).Prefix("metadata")...)
 
 	// roleRef namespace is empty when referring to global policy.
-	if (len(roleBinding.RoleRef.Namespace) > 0) && !util.IsDNS1123Subdomain(roleBinding.RoleRef.Namespace) {
+	if (len(roleBinding.RoleRef.Namespace) > 0) && !kvalidation.IsDNS1123Subdomain(roleBinding.RoleRef.Namespace) {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("roleRef.namespace", roleBinding.RoleRef.Namespace, "roleRef.namespace must be a valid subdomain"))
 	}
 

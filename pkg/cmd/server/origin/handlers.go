@@ -14,10 +14,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	klatest "k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
@@ -27,7 +27,7 @@ func indexAPIPaths(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/" {
 			// TODO once we have a MuxHelper we will not need to hardcode this list of paths
-			object := kapi.RootPaths{Paths: []string{
+			object := unversioned.RootPaths{Paths: []string{
 				"/api",
 				"/api/v1beta3",
 				"/api/v1",
@@ -94,7 +94,7 @@ func (c *MasterConfig) authorizationFilter(handler http.Handler) http.Handler {
 func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w http.ResponseWriter, req *http.Request) {
 	kind := ""
 	name := ""
-	apiVersion := klatest.Version
+	apiVersion := klatest.DefaultVersionForLegacyGroup()
 	// the attributes can be empty for two basic reasons:
 	// 1. malformed API request
 	// 2. not an API request at all
@@ -114,8 +114,8 @@ func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w h
 
 	// Not all API versions in valid API requests will have a matching codec in kubernetes.  If we can't find one,
 	// just default to the latest kube codec.
-	codec := klatest.Codec
-	if requestedCodec, err := klatest.InterfacesFor(apiVersion); err == nil {
+	codec := klatest.CodecForLegacyGroup()
+	if requestedCodec, err := klatest.InterfacesForLegacyGroup(apiVersion); err == nil {
 		codec = requestedCodec
 	}
 
@@ -143,7 +143,7 @@ func cacheControlFilter(handler http.Handler, value string) http.Handler {
 // namespacingFilter adds a filter that adds the namespace of the request to the context.  Not all requests will have namespaces,
 // but any that do will have the appropriate value added.
 func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
-	infoResolver := &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), RestMapper: latest.RESTMapper}
+	infoResolver := &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, ok := contextMapper.Get(req)

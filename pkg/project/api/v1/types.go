@@ -1,14 +1,15 @@
 package v1
 
 import (
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // ProjectList is a list of Project objects.
 type ProjectList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Project `json:"items" description:"list of projects"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []Project `json:"items" description:"list of projects"`
 }
 
 const (
@@ -29,8 +30,8 @@ type ProjectStatus struct {
 
 // Project is a logical top-level container for a set of origin resources
 type Project struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Spec defines the behavior of the Namespace.
 	Spec ProjectSpec `json:"spec,omitempty" description:"spec defines the behavior of the Project"`
@@ -40,8 +41,8 @@ type Project struct {
 }
 
 type ProjectRequest struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
-	DisplayName     string `json:"displayName,omitempty" description:"display name to apply to a project"`
-	Description     string `json:"description,omitempty" description:"description to apply to a project"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	DisplayName          string `json:"displayName,omitempty" description:"display name to apply to a project"`
+	Description          string `json:"description,omitempty" description:"description to apply to a project"`
 }

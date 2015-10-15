@@ -1,9 +1,9 @@
 package v1beta3
 
 import (
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
 )
 
 // Authorization is calculated against
@@ -39,13 +39,13 @@ type PolicyRule struct {
 
 // IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
 type IsPersonalSubjectAccessReview struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Rules holds all the PolicyRules for this Role
 	Rules []PolicyRule `json:"rules"`
@@ -55,8 +55,8 @@ type Role struct {
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given
 // namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 type RoleBinding struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// UserNames holds all the usernames directly bound to the role
 	UserNames []string `json:"userNames"`
@@ -74,11 +74,11 @@ type RoleBinding struct {
 // Policy is a object that holds all the Roles for a particular namespace.  There is at most
 // one Policy document per namespace.
 type Policy struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// LastModified is the last time that any part of the Policy was created, updated, or deleted
-	LastModified kutil.Time `json:"lastModified"`
+	LastModified unversioned.Time `json:"lastModified"`
 
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
 	Roles []NamedRole `json:"roles"`
@@ -87,11 +87,11 @@ type Policy struct {
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
 type PolicyBinding struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
-	LastModified kutil.Time `json:"lastModified"`
+	LastModified unversioned.Time `json:"lastModified"`
 
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference `json:"policyRef"`
@@ -111,7 +111,7 @@ type NamedRoleBinding struct {
 
 // ResourceAccessReviewResponse describes who can perform the action
 type ResourceAccessReviewResponse struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 
 	// Namespace is the namespace used for the access review
 	Namespace string `json:"namespace,omitempty"`
@@ -124,7 +124,7 @@ type ResourceAccessReviewResponse struct {
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
 // action specified by spec
 type ResourceAccessReview struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 
 	// AuthorizationAttributes describes the action being tested
 	AuthorizationAttributes `json:",inline"`
@@ -132,7 +132,7 @@ type ResourceAccessReview struct {
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action
 type SubjectAccessReviewResponse struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 
 	// Namespace is the namespace used for the access review
 	Namespace string `json:"namespace,omitempty"`
@@ -144,7 +144,7 @@ type SubjectAccessReviewResponse struct {
 
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
 type SubjectAccessReview struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 
 	// AuthorizationAttributes describes the action being tested
 	AuthorizationAttributes `json:",inline"`
@@ -156,7 +156,7 @@ type SubjectAccessReview struct {
 
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
 type LocalResourceAccessReview struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 
 	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
 	AuthorizationAttributes `json:",inline"`
@@ -164,7 +164,7 @@ type LocalResourceAccessReview struct {
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
 type LocalSubjectAccessReview struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 
 	// AuthorizationAttributes describes the action being tested.  The Namespace element is FORCED to the current namespace.
 	AuthorizationAttributes `json:",inline"`
@@ -189,36 +189,36 @@ type AuthorizationAttributes struct {
 
 // PolicyList is a collection of Policies
 type PolicyList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Policy `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []Policy `json:"items"`
 }
 
 // PolicyBindingList is a collection of PolicyBindings
 type PolicyBindingList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []PolicyBinding `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []PolicyBinding `json:"items"`
 }
 
 // RoleBindingList is a collection of RoleBindings
 type RoleBindingList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []RoleBinding `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []RoleBinding `json:"items"`
 }
 
 // RoleList is a collection of Roles
 type RoleList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Role `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []Role `json:"items"`
 }
 
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
 type ClusterRole struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Rules holds all the PolicyRules for this ClusterRole
 	Rules []PolicyRule `json:"rules"`
@@ -228,8 +228,8 @@ type ClusterRole struct {
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given
 // namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 type ClusterRoleBinding struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// UserNames holds all the usernames directly bound to the role
 	UserNames []string `json:"userNames"`
@@ -247,11 +247,11 @@ type ClusterRoleBinding struct {
 // ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
 // one ClusterPolicy document per namespace.
 type ClusterPolicy struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
-	LastModified kutil.Time `json:"lastModified"`
+	LastModified unversioned.Time `json:"lastModified"`
 
 	// ClusterRoles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name
 	Roles []NamedClusterRole `json:"roles"`
@@ -260,11 +260,11 @@ type ClusterPolicy struct {
 // ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace
 type ClusterPolicyBinding struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
-	LastModified kutil.Time `json:"lastModified"`
+	LastModified unversioned.Time `json:"lastModified"`
 
 	// PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference `json:"policyRef"`
@@ -284,28 +284,28 @@ type NamedClusterRoleBinding struct {
 
 // ClusterPolicyList is a collection of ClusterPolicies
 type ClusterPolicyList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []ClusterPolicy `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []ClusterPolicy `json:"items"`
 }
 
 // ClusterPolicyBindingList is a collection of ClusterPolicyBindings
 type ClusterPolicyBindingList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []ClusterPolicyBinding `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []ClusterPolicyBinding `json:"items"`
 }
 
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
 type ClusterRoleBindingList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []ClusterRoleBinding `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []ClusterRoleBinding `json:"items"`
 }
 
 // ClusterRoleList is a collection of ClusterRoles
 type ClusterRoleList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []ClusterRole `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []ClusterRole `json:"items"`
 }

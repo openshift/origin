@@ -6,6 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -158,7 +159,7 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 // done marks the stream as being processed due to an error or failure condition
 func (c *ImportController) done(stream *api.ImageStream, reason string, retry int) error {
 	if len(reason) == 0 {
-		reason = util.Now().UTC().Format(time.RFC3339)
+		reason = unversioned.Now().UTC().Format(time.RFC3339)
 	}
 	if stream.Annotations == nil {
 		stream.Annotations = make(map[string]string)

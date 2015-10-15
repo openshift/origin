@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
 
@@ -119,14 +120,14 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.Address = kubeAddress
 	server.Port = uint(kubePort)
 	server.ReadOnlyPort = 0 // no read only access
-	server.CadvisorPort = 0 // no unsecured cadvisor access
+	server.CAdvisorPort = 0 // no unsecured cadvisor access
 	server.HealthzPort = 0  // no unsecured healthz access
 	server.ClusterDNS = dnsIP
 	server.ClusterDomain = options.DNSDomain
 	server.NetworkPluginName = options.NetworkConfig.NetworkPluginName
-	server.HostNetworkSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
-	server.HostPIDSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
-	server.HostIPCSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
+	server.HostNetworkSources = strings.Join([]string{kubelettypes.ApiserverSource, kubelettypes.FileSource}, ",")
+	server.HostPIDSources = strings.Join([]string{kubelettypes.ApiserverSource, kubelettypes.FileSource}, ",")
+	server.HostIPCSources = strings.Join([]string{kubelettypes.ApiserverSource, kubelettypes.FileSource}, ",")
 	server.HTTPCheckFrequency = 0 // no remote HTTP pod creation access
 	server.FileCheckFrequency = time.Duration(fileCheckInterval) * time.Second
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")

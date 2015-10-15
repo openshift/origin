@@ -176,7 +176,7 @@ func validateFlags(cmd *cobra.Command, generator string) error {
 		if len(cmdutil.GetFlagString(cmd, "external-ip")) != 0 {
 			invalidFlags = append(invalidFlags, "--external-ip")
 		}
-		if cmdutil.GetFlagInt(cmd, "port") != -1 {
+		if len(cmdutil.GetFlagString(cmd, "port")) != 0 {
 			invalidFlags = append(invalidFlags, "--port")
 		}
 		if cmdutil.GetFlagBool(cmd, "create-external-load-balancer") {

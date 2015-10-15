@@ -252,7 +252,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdcl
 		tokenGetter = serviceaccount.NewGetterFromClient(kubeClient)
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
-		ketcdHelper, err := master.NewEtcdStorage(client, kapilatest.InterfacesFor, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		ketcdHelper, err := master.NewEtcdStorage(client, kapilatest.InterfacesForLegacyGroup, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		if err != nil {
 			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
@@ -334,7 +334,7 @@ func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectReques
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), RestMapper: latest.RESTMapper})
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")})
 	return authorizationAttributeBuilder
 }
 

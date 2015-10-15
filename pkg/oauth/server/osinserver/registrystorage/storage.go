@@ -7,7 +7,7 @@ import (
 	"github.com/RangelReale/osin"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
@@ -158,7 +158,7 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthA
 	token := &api.OAuthAuthorizeToken{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              data.Code,
-			CreationTimestamp: util.Time{Time: data.CreatedAt},
+			CreationTimestamp: unversioned.Time{Time: data.CreatedAt},
 		},
 		ClientName:  data.Client.GetId(),
 		ExpiresIn:   int64(data.ExpiresIn),
@@ -198,7 +198,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.OAuthAccessT
 	token := &api.OAuthAccessToken{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              data.AccessToken,
-			CreationTimestamp: util.Time{Time: data.CreatedAt},
+			CreationTimestamp: unversioned.Time{Time: data.CreatedAt},
 		},
 		ExpiresIn:    int64(data.ExpiresIn),
 		RefreshToken: data.RefreshToken,

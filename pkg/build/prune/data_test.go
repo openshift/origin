@@ -16,7 +16,7 @@ func mockBuildConfig(namespace, name string) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{ObjectMeta: kapi.ObjectMeta{Namespace: namespace, Name: name}}
 }
 
-func withCreated(build *buildapi.Build, creationTimestamp util.Time) *buildapi.Build {
+func withCreated(build *buildapi.Build, creationTimestamp unversioned.Time) *buildapi.Build {
 	build.CreationTimestamp = creationTimestamp
 	return build
 }
@@ -68,8 +68,8 @@ func TestBuildByBuildConfigIndexFunc(t *testing.T) {
 
 func TestFilterBeforePredicate(t *testing.T) {
 	youngerThan := time.Hour
-	now := util.Now()
-	old := util.NewTime(now.Time.Add(-1 * youngerThan))
+	now := unversioned.Now()
+	old := unversioned.NewTime(now.Time.Add(-1 * youngerThan))
 	builds := []*buildapi.Build{
 		{
 			ObjectMeta: kapi.ObjectMeta{

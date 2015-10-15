@@ -288,7 +288,7 @@ func TestAuthenticateTokenExpired(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.OAuthAccessToken{
-			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{Time: time.Now().Add(-1 * time.Hour)}},
+			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: unversioned.Time{Time: time.Now().Add(-1 * time.Hour)}},
 			ExpiresIn:  600, // 10 minutes
 		},
 	}
@@ -310,7 +310,7 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 	tokenRegistry := &test.AccessTokenRegistry{
 		Err: nil,
 		AccessToken: &oapi.OAuthAccessToken{
-			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: util.Time{Time: time.Now()}},
+			ObjectMeta: kapi.ObjectMeta{CreationTimestamp: unversioned.Time{Time: time.Now()}},
 			ExpiresIn:  600, // 10 minutes
 			UserName:   "foo",
 			UserUID:    string("bar"),

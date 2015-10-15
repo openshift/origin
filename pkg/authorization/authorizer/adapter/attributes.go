@@ -40,10 +40,10 @@ func OriginAuthorizerAttributes(kattrs kauthorizer.Attributes) (kapi.Context, oa
 	oattrs := &oauthorizer.DefaultAuthorizationAttributes{
 		Verb:     kattrs.GetVerb(),
 		Resource: kattrs.GetResource(),
+		APIGroup: kattrs.GetAPIGroup(),
 
 		// TODO: add to kube authorizer attributes
 		// APIVersion        string
-		// APIGroup          string
 		// ResourceName      string
 		// RequestAttributes interface{}
 		// NonResourceURL    bool

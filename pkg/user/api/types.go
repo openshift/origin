@@ -1,12 +1,15 @@
 package api
 
-import kapi "k8s.io/kubernetes/pkg/api"
+import (
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+)
 
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
 type User struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	FullName string
@@ -17,13 +20,13 @@ type User struct {
 }
 
 type UserList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 	Items []User
 }
 
 type Identity struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// ProviderName is the source of identity information
@@ -40,13 +43,13 @@ type Identity struct {
 }
 
 type IdentityList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 	Items []Identity
 }
 
 type UserIdentityMapping struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	Identity kapi.ObjectReference
@@ -55,15 +58,15 @@ type UserIdentityMapping struct {
 
 // Group represents a referenceable set of Users
 type Group struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	Users []string
 }
 
 type GroupList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 	Items []Group
 }
 

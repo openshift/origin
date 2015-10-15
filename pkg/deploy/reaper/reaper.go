@@ -8,6 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/client"
@@ -46,7 +47,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	}
 
 	// Clean up deployments related to the config.
-	rcList, err := reaper.kc.ReplicationControllers(namespace).List(util.ConfigSelector(name))
+	rcList, err := reaper.kc.ReplicationControllers(namespace).List(util.ConfigSelector(name), fields.Everything())
 	if err != nil {
 		return "", err
 	}

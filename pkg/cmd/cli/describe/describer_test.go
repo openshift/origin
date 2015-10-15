@@ -217,7 +217,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 
 	creation := kutil.Date(2015, time.April, 9, 6, 0, 0, 0, time.Local)
 	// now a minute ago
-	minuteAgo := kutil.Unix(kutil.Now().Rfc3339Copy().Time.Unix()-60, 0)
+	minuteAgo := kutil.Unix(unversioned.Now().Rfc3339Copy().Time.Unix()-60, 0)
 	start := kutil.Date(2015, time.April, 9, 6, 1, 0, 0, time.Local)
 	completion := kutil.Date(2015, time.April, 9, 6, 2, 0, 0, time.Local)
 	duration := completion.Rfc3339Copy().Time.Sub(start.Rfc3339Copy().Time)

@@ -53,8 +53,8 @@ func TestPruneTask(t *testing.T) {
 		for _, deploymentStatusOption := range deploymentStatusOptions {
 			keepYoungerThan := time.Hour
 
-			now := util.Now()
-			old := util.NewTime(now.Time.Add(-1 * keepYoungerThan))
+			now := unversioned.Now()
+			old := unversioned.NewTime(now.Time.Add(-1 * keepYoungerThan))
 
 			deploymentConfigs := []*deployapi.DeploymentConfig{}
 			deployments := []*kapi.ReplicationController{}

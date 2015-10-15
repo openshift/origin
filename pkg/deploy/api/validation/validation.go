@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -162,8 +163,8 @@ func validateEnv(vars []kapi.EnvVar) fielderrors.ValidationErrorList {
 		if len(ev.Name) == 0 {
 			vErrs = append(vErrs, fielderrors.NewFieldRequired("name"))
 		}
-		if !util.IsCIdentifier(ev.Name) {
-			vErrs = append(vErrs, fielderrors.NewFieldInvalid("name", ev.Name, "must match regex "+util.CIdentifierFmt))
+		if !kvalidation.IsCIdentifier(ev.Name) {
+			vErrs = append(vErrs, fielderrors.NewFieldInvalid("name", ev.Name, "must match regex "+kvalidation.CIdentifierFmt))
 		}
 		allErrs = append(allErrs, vErrs.PrefixIndex(i)...)
 	}
@@ -256,10 +257,10 @@ func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangePar
 			errs = append(errs, fielderrors.NewFieldInvalid("from.kind", params.From.Kind, msg))
 		}
 
-		if !util.IsDNS1123Subdomain(params.From.Name) {
+		if !kvalidation.IsDNS1123Subdomain(params.From.Name) {
 			errs = append(errs, fielderrors.NewFieldInvalid("from.name", params.From.Name, "name must be a valid subdomain"))
 		}
-		if len(params.From.Namespace) != 0 && !util.IsDNS1123Subdomain(params.From.Namespace) {
+		if len(params.From.Namespace) != 0 && !kvalidation.IsDNS1123Subdomain(params.From.Namespace) {
 			errs = append(errs, fielderrors.NewFieldInvalid("from.namespace", params.From.Namespace, "namespace must be a valid subdomain"))
 		}
 

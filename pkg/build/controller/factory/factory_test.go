@@ -27,7 +27,7 @@ func TestLimitedLogAndRetryFinish(t *testing.T) {
 	updater := &buildUpdater{}
 	err := errors.New("funky error")
 
-	now := kutil.Now()
+	now := unversioned.Now()
 	retry := controller.Retry{
 		Count:          0,
 		StartTimestamp: kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-31, now.Second(), now.Nanosecond(), now.Location()),
@@ -53,7 +53,7 @@ func TestLimitedLogAndRetryProcessing(t *testing.T) {
 	updater := &buildUpdater{}
 	err := errors.New("funky error")
 
-	now := kutil.Now()
+	now := unversioned.Now()
 	retry := controller.Retry{
 		Count:          0,
 		StartTimestamp: kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-10, now.Second(), now.Nanosecond(), now.Location()),

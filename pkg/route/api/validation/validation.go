@@ -8,6 +8,7 @@ import (
 	kval "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -22,7 +23,7 @@ func ValidateRoute(route *routeapi.Route) fielderrors.ValidationErrorList {
 
 	//host is not required but if it is set ensure it meets DNS requirements
 	if len(route.Spec.Host) > 0 {
-		if !util.IsDNS1123Subdomain(route.Spec.Host) {
+		if !kvalidation.IsDNS1123Subdomain(route.Spec.Host) {
 			result = append(result, fielderrors.NewFieldInvalid("host", route.Spec.Host, "host must conform to DNS 952 subdomain conventions"))
 		}
 	}

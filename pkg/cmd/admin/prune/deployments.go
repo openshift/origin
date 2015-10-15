@@ -60,7 +60,7 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 				cmdutil.CheckErr(err)
 			}
 
-			deploymentList, err := kclient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
+			deploymentList, err := kclient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 			if err != nil {
 				cmdutil.CheckErr(err)
 			}

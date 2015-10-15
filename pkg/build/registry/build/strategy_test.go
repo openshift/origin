@@ -87,8 +87,8 @@ func TestBuildDecorator(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	now := util.Now()
-	startTime := util.NewTime(now.Time.Add(-1 * time.Minute))
+	now := unversioned.Now()
+	startTime := unversioned.NewTime(now.Time.Add(-1 * time.Minute))
 	build.Status.StartTimestamp = &startTime
 	err := Decorator(build)
 	if err != nil {

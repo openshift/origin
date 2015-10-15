@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -469,9 +470,9 @@ func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 	if len(name) < 2 {
 		return "", fmt.Errorf("invalid name: %s", name)
 	}
-	if len(name) > util.DNS1123SubdomainMaxLength {
-		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, util.DNS1123SubdomainMaxLength)
-		name = name[:util.DNS1123SubdomainMaxLength]
+	if len(name) > kvalidation.DNS1123SubdomainMaxLength {
+		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, kvalidation.DNS1123SubdomainMaxLength)
+		name = name[:kvalidation.DNS1123SubdomainMaxLength]
 	}
 
 	// Make all names lowercase
@@ -484,7 +485,7 @@ func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 	}
 	count++
 	names[name] = count
-	newName := namer.GetName(name, strconv.Itoa(count), util.DNS1123SubdomainMaxLength)
+	newName := namer.GetName(name, strconv.Itoa(count), kvalidation.DNS1123SubdomainMaxLength)
 	return newName, nil
 }
 

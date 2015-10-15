@@ -163,7 +163,7 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 
 	versions := sets.NewString()
 	versions.Insert(latest.Versions...)
-	versions.Insert(klatest.Versions...)
+	versions.Insert(klatest.VersionsForLegacyGroup()...)
 	for _, version := range versions.List() {
 		for kind, t := range api.Scheme.KnownTypes(version) {
 			if strings.Contains(t.PkgPath(), "kubernetes/pkg/expapi") {

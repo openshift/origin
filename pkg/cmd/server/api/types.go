@@ -1,7 +1,7 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
@@ -35,7 +35,7 @@ type ExtendedArguments map[string][]string
 
 // NodeConfig is the fully specified config starting an OpenShift node
 type NodeConfig struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// NodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname.
 	// If you're describing a set of static nodes to the master, this value must match one of the values in the list
@@ -137,7 +137,7 @@ const (
 type FeatureList []string
 
 type MasterConfig struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// ServingInfo describes how to start serving
 	ServingInfo HTTPServingInfo
@@ -492,7 +492,7 @@ type SessionConfig struct {
 
 // SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.
 type SessionSecrets struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// Secrets is a list of secrets
 	// New sessions are signed and encrypted using the first secret.
@@ -521,29 +521,29 @@ type IdentityProvider struct {
 }
 
 type BasicAuthPasswordIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// RemoteConnectionInfo contains information about how to connect to the external basic auth server
 	RemoteConnectionInfo RemoteConnectionInfo
 }
 
 type AllowAllPasswordIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 }
 
 type DenyAllPasswordIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 }
 
 type HTPasswdPasswordIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// File is a reference to your htpasswd file
 	File string
 }
 
 type LDAPPasswordIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 	// URL is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is
 	//    ldap://host:port/basedn?attribute?scope?filter
 	URL string
@@ -579,7 +579,7 @@ type LDAPAttributeMapping struct {
 }
 
 type KeystonePasswordIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 	// RemoteConnectionInfo contains information about how to connect to the keystone server
 	RemoteConnectionInfo RemoteConnectionInfo
 	// Domain Name is required for keystone v3
@@ -587,7 +587,7 @@ type KeystonePasswordIdentityProvider struct {
 }
 
 type RequestHeaderIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// LoginURL is a URL to redirect unauthenticated /authorize requests to
 	// Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here
@@ -612,7 +612,7 @@ type RequestHeaderIdentityProvider struct {
 }
 
 type GitHubIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// ClientID is the oauth client ID
 	ClientID string
@@ -621,7 +621,7 @@ type GitHubIdentityProvider struct {
 }
 
 type GoogleIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// ClientID is the oauth client ID
 	ClientID string
@@ -633,7 +633,7 @@ type GoogleIdentityProvider struct {
 }
 
 type OpenIDIdentityProvider struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// CA is the optional trusted certificate authority bundle to use when making requests to the server
 	// If empty, the default system roots are used
@@ -779,7 +779,7 @@ type AssetExtensionsConfig struct {
 }
 
 type LDAPSyncConfig struct {
-	api.TypeMeta
+	unversioned.TypeMeta
 
 	// URL is the scheme, host and port of the LDAP server to connect to: scheme://host:port
 	URL string

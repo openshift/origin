@@ -43,7 +43,7 @@ type RecreateDeploymentStrategy struct {
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
 func NewRecreateDeploymentStrategy(client kclient.Interface, codec runtime.Codec) *RecreateDeploymentStrategy {
-	scaler, _ := kubectl.ScalerFor("ReplicationController", kubectl.NewScalerClient(client))
+	scaler, _ := kubectl.ScalerFor("ReplicationController", client)
 	return &RecreateDeploymentStrategy{
 		getReplicationController: func(namespace, name string) (*kapi.ReplicationController, error) {
 			return client.ReplicationControllers(namespace).Get(name)

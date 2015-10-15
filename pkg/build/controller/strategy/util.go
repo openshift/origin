@@ -8,7 +8,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 )
 
 const (
@@ -77,7 +77,7 @@ func setupBuildEnv(build *buildapi.Build, pod *kapi.Pod) error {
 // mountSecretVolume is a helper method responsible for actual mounting secret
 // volumes into a pod.
 func mountSecretVolume(pod *kapi.Pod, secretName, mountPath, volumePrefix string) {
-	volumeName := namer.GetName(secretName, volumePrefix, util.DNS1123SubdomainMaxLength)
+	volumeName := namer.GetName(secretName, volumePrefix, kvalidation.DNS1123SubdomainMaxLength)
 	volume := kapi.Volume{
 		Name: volumeName,
 		VolumeSource: kapi.VolumeSource{

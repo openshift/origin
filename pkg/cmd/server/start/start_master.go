@@ -18,7 +18,7 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubelet"
+	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -368,9 +368,9 @@ func (m *Master) Start() error {
 	capabilities.Initialize(capabilities.Capabilities{
 		AllowPrivileged: true,
 		PrivilegedSources: capabilities.PrivilegedSources{
-			HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
-			HostPIDSources:     []string{kubelet.ApiserverSource, kubelet.FileSource},
-			HostIPCSources:     []string{kubelet.ApiserverSource, kubelet.FileSource},
+			HostNetworkSources: []string{kubelettypes.ApiserverSource, kubelettypes.FileSource},
+			HostPIDSources:     []string{kubelettypes.ApiserverSource, kubelettypes.FileSource},
+			HostIPCSources:     []string{kubelettypes.ApiserverSource, kubelettypes.FileSource},
 		},
 	})
 

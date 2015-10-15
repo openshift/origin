@@ -163,7 +163,7 @@ func TestGraph(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name:              "build1-1-abc",
 				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
-				CreationTimestamp: util.NewTime(now.Add(-10 * time.Second)),
+				CreationTimestamp: unversioned.NewTime(now.Add(-10 * time.Second)),
 			},
 			Status: buildapi.BuildStatus{
 				Phase: buildapi.BuildPhaseFailed,
@@ -173,7 +173,7 @@ func TestGraph(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name:              "build1-2-abc",
 				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
-				CreationTimestamp: util.NewTime(now.Add(-5 * time.Second)),
+				CreationTimestamp: unversioned.NewTime(now.Add(-5 * time.Second)),
 			},
 			Status: buildapi.BuildStatus{
 				Phase: buildapi.BuildPhaseComplete,
@@ -183,7 +183,7 @@ func TestGraph(t *testing.T) {
 			ObjectMeta: kapi.ObjectMeta{
 				Name:              "build1-3-abc",
 				Labels:            map[string]string{buildapi.BuildConfigLabel: "build1"},
-				CreationTimestamp: util.NewTime(now.Add(-15 * time.Second)),
+				CreationTimestamp: unversioned.NewTime(now.Add(-15 * time.Second)),
 			},
 			Status: buildapi.BuildStatus{
 				Phase: buildapi.BuildPhasePending,

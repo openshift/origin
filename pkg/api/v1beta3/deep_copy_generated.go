@@ -13,6 +13,7 @@ import (
 	templateapiv1beta3 "github.com/openshift/origin/pkg/template/api/v1beta3"
 	userapiv1beta3 "github.com/openshift/origin/pkg/user/api/v1beta3"
 	api "k8s.io/kubernetes/pkg/api"
+	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	pkgapiv1beta3 "k8s.io/kubernetes/pkg/api/v1beta3"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
@@ -36,7 +37,7 @@ func deepCopy_v1beta3_ClusterPolicy(in v1beta3.ClusterPolicy, out *v1beta3.Clust
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -46,7 +47,7 @@ func deepCopy_v1beta3_ClusterPolicy(in v1beta3.ClusterPolicy, out *v1beta3.Clust
 	if newVal, err := c.DeepCopy(in.LastModified); err != nil {
 		return err
 	} else {
-		out.LastModified = newVal.(util.Time)
+		out.LastModified = newVal.(unversioned.Time)
 	}
 	if in.Roles != nil {
 		out.Roles = make([]v1beta3.NamedClusterRole, len(in.Roles))
@@ -65,7 +66,7 @@ func deepCopy_v1beta3_ClusterPolicyBinding(in v1beta3.ClusterPolicyBinding, out 
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -75,7 +76,7 @@ func deepCopy_v1beta3_ClusterPolicyBinding(in v1beta3.ClusterPolicyBinding, out 
 	if newVal, err := c.DeepCopy(in.LastModified); err != nil {
 		return err
 	} else {
-		out.LastModified = newVal.(util.Time)
+		out.LastModified = newVal.(unversioned.Time)
 	}
 	if newVal, err := c.DeepCopy(in.PolicyRef); err != nil {
 		return err
@@ -99,12 +100,12 @@ func deepCopy_v1beta3_ClusterPolicyBindingList(in v1beta3.ClusterPolicyBindingLi
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]v1beta3.ClusterPolicyBinding, len(in.Items))
@@ -123,12 +124,12 @@ func deepCopy_v1beta3_ClusterPolicyList(in v1beta3.ClusterPolicyList, out *v1bet
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]v1beta3.ClusterPolicy, len(in.Items))
@@ -147,7 +148,7 @@ func deepCopy_v1beta3_ClusterRole(in v1beta3.ClusterRole, out *v1beta3.ClusterRo
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -171,7 +172,7 @@ func deepCopy_v1beta3_ClusterRoleBinding(in v1beta3.ClusterRoleBinding, out *v1b
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -218,12 +219,12 @@ func deepCopy_v1beta3_ClusterRoleBindingList(in v1beta3.ClusterRoleBindingList, 
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]v1beta3.ClusterRoleBinding, len(in.Items))
@@ -242,12 +243,12 @@ func deepCopy_v1beta3_ClusterRoleList(in v1beta3.ClusterRoleList, out *v1beta3.C
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]v1beta3.ClusterRole, len(in.Items))
@@ -266,7 +267,7 @@ func deepCopy_v1beta3_IsPersonalSubjectAccessReview(in v1beta3.IsPersonalSubject
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	return nil
 }
@@ -275,7 +276,7 @@ func deepCopy_v1beta3_LocalResourceAccessReview(in v1beta3.LocalResourceAccessRe
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if err := deepCopy_v1beta3_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
 		return err
@@ -287,7 +288,7 @@ func deepCopy_v1beta3_LocalSubjectAccessReview(in v1beta3.LocalSubjectAccessRevi
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if err := deepCopy_v1beta3_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
 		return err
@@ -340,7 +341,7 @@ func deepCopy_v1beta3_Policy(in v1beta3.Policy, out *v1beta3.Policy, c *conversi
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -350,7 +351,7 @@ func deepCopy_v1beta3_Policy(in v1beta3.Policy, out *v1beta3.Policy, c *conversi
 	if newVal, err := c.DeepCopy(in.LastModified); err != nil {
 		return err
 	} else {
-		out.LastModified = newVal.(util.Time)
+		out.LastModified = newVal.(unversioned.Time)
 	}
 	if in.Roles != nil {
 		out.Roles = make([]v1beta3.NamedRole, len(in.Roles))
@@ -369,7 +370,7 @@ func deepCopy_v1beta3_PolicyBinding(in v1beta3.PolicyBinding, out *v1beta3.Polic
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -379,7 +380,7 @@ func deepCopy_v1beta3_PolicyBinding(in v1beta3.PolicyBinding, out *v1beta3.Polic
 	if newVal, err := c.DeepCopy(in.LastModified); err != nil {
 		return err
 	} else {
-		out.LastModified = newVal.(util.Time)
+		out.LastModified = newVal.(unversioned.Time)
 	}
 	if newVal, err := c.DeepCopy(in.PolicyRef); err != nil {
 		return err
@@ -403,12 +404,12 @@ func deepCopy_v1beta3_PolicyBindingList(in v1beta3.PolicyBindingList, out *v1bet
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]v1beta3.PolicyBinding, len(in.Items))
@@ -427,12 +428,12 @@ func deepCopy_v1beta3_PolicyList(in v1beta3.PolicyList, out *v1beta3.PolicyList,
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]v1beta3.Policy, len(in.Items))
@@ -508,7 +509,7 @@ func deepCopy_v1beta3_ResourceAccessReview(in v1beta3.ResourceAccessReview, out 
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if err := deepCopy_v1beta3_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
 		return err
@@ -520,7 +521,7 @@ func deepCopy_v1beta3_ResourceAccessReviewResponse(in v1beta3.ResourceAccessRevi
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	out.Namespace = in.Namespace
 	if in.UsersSlice != nil {
@@ -546,7 +547,7 @@ func deepCopy_v1beta3_Role(in v1beta3.Role, out *v1beta3.Role, c *conversion.Clo
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -570,7 +571,7 @@ func deepCopy_v1beta3_RoleBinding(in v1beta3.RoleBinding, out *v1beta3.RoleBindi
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -617,12 +618,12 @@ func deepCopy_v1beta3_RoleBindingList(in v1beta3.RoleBindingList, out *v1beta3.R
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]v1beta3.RoleBinding, len(in.Items))
@@ -641,12 +642,12 @@ func deepCopy_v1beta3_RoleList(in v1beta3.RoleList, out *v1beta3.RoleList, c *co
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]v1beta3.Role, len(in.Items))
@@ -665,7 +666,7 @@ func deepCopy_v1beta3_SubjectAccessReview(in v1beta3.SubjectAccessReview, out *v
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if err := deepCopy_v1beta3_AuthorizationAttributes(in.AuthorizationAttributes, &out.AuthorizationAttributes, c); err != nil {
 		return err
@@ -686,7 +687,7 @@ func deepCopy_v1beta3_SubjectAccessReviewResponse(in v1beta3.SubjectAccessReview
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	out.Namespace = in.Namespace
 	out.Allowed = in.Allowed
@@ -698,7 +699,7 @@ func deepCopy_v1beta3_Build(in apiv1beta3.Build, out *apiv1beta3.Build, c *conve
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -718,7 +719,7 @@ func deepCopy_v1beta3_BuildConfig(in apiv1beta3.BuildConfig, out *apiv1beta3.Bui
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -738,12 +739,12 @@ func deepCopy_v1beta3_BuildConfigList(in apiv1beta3.BuildConfigList, out *apiv1b
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]apiv1beta3.BuildConfig, len(in.Items))
@@ -784,12 +785,12 @@ func deepCopy_v1beta3_BuildList(in apiv1beta3.BuildList, out *apiv1beta3.BuildLi
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]apiv1beta3.Build, len(in.Items))
@@ -808,12 +809,12 @@ func deepCopy_v1beta3_BuildLog(in apiv1beta3.BuildLog, out *apiv1beta3.BuildLog,
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	return nil
 }
@@ -822,7 +823,7 @@ func deepCopy_v1beta3_BuildLogOptions(in apiv1beta3.BuildLogOptions, out *apiv1b
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	out.Follow = in.Follow
 	out.NoWait = in.NoWait
@@ -855,7 +856,7 @@ func deepCopy_v1beta3_BuildRequest(in apiv1beta3.BuildRequest, out *apiv1beta3.B
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -967,7 +968,7 @@ func deepCopy_v1beta3_BuildStatus(in apiv1beta3.BuildStatus, out *apiv1beta3.Bui
 		if newVal, err := c.DeepCopy(in.StartTimestamp); err != nil {
 			return err
 		} else {
-			out.StartTimestamp = newVal.(*util.Time)
+			out.StartTimestamp = newVal.(*unversioned.Time)
 		}
 	} else {
 		out.StartTimestamp = nil
@@ -976,7 +977,7 @@ func deepCopy_v1beta3_BuildStatus(in apiv1beta3.BuildStatus, out *apiv1beta3.Bui
 		if newVal, err := c.DeepCopy(in.CompletionTimestamp); err != nil {
 			return err
 		} else {
-			out.CompletionTimestamp = newVal.(*util.Time)
+			out.CompletionTimestamp = newVal.(*unversioned.Time)
 		}
 	} else {
 		out.CompletionTimestamp = nil
@@ -1283,7 +1284,7 @@ func deepCopy_v1beta3_DeploymentConfig(in deployapiv1beta3.DeploymentConfig, out
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -1303,12 +1304,12 @@ func deepCopy_v1beta3_DeploymentConfigList(in deployapiv1beta3.DeploymentConfigL
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]deployapiv1beta3.DeploymentConfig, len(in.Items))
@@ -1327,7 +1328,7 @@ func deepCopy_v1beta3_DeploymentConfigRollback(in deployapiv1beta3.DeploymentCon
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if err := deepCopy_v1beta3_DeploymentConfigRollbackSpec(in.Spec, &out.Spec, c); err != nil {
 		return err
@@ -1613,7 +1614,7 @@ func deepCopy_v1beta3_Image(in imageapiv1beta3.Image, out *imageapiv1beta3.Image
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -1635,12 +1636,12 @@ func deepCopy_v1beta3_ImageList(in imageapiv1beta3.ImageList, out *imageapiv1bet
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]imageapiv1beta3.Image, len(in.Items))
@@ -1659,7 +1660,7 @@ func deepCopy_v1beta3_ImageStream(in imageapiv1beta3.ImageStream, out *imageapiv
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -1687,12 +1688,12 @@ func deepCopy_v1beta3_ImageStreamList(in imageapiv1beta3.ImageStreamList, out *i
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]imageapiv1beta3.ImageStream, len(in.Items))
@@ -1711,7 +1712,7 @@ func deepCopy_v1beta3_ImageStreamMapping(in imageapiv1beta3.ImageStreamMapping, 
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -1804,7 +1805,7 @@ func deepCopy_v1beta3_TagEvent(in imageapiv1beta3.TagEvent, out *imageapiv1beta3
 	if newVal, err := c.DeepCopy(in.Created); err != nil {
 		return err
 	} else {
-		out.Created = newVal.(util.Time)
+		out.Created = newVal.(unversioned.Time)
 	}
 	out.DockerImageReference = in.DockerImageReference
 	out.Image = in.Image
@@ -1815,7 +1816,7 @@ func deepCopy_v1beta3_OAuthAccessToken(in oauthapiv1beta3.OAuthAccessToken, out 
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -1844,12 +1845,12 @@ func deepCopy_v1beta3_OAuthAccessTokenList(in oauthapiv1beta3.OAuthAccessTokenLi
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]oauthapiv1beta3.OAuthAccessToken, len(in.Items))
@@ -1868,7 +1869,7 @@ func deepCopy_v1beta3_OAuthAuthorizeToken(in oauthapiv1beta3.OAuthAuthorizeToken
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -1896,12 +1897,12 @@ func deepCopy_v1beta3_OAuthAuthorizeTokenList(in oauthapiv1beta3.OAuthAuthorizeT
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]oauthapiv1beta3.OAuthAuthorizeToken, len(in.Items))
@@ -1920,7 +1921,7 @@ func deepCopy_v1beta3_OAuthClient(in oauthapiv1beta3.OAuthClient, out *oauthapiv
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -1944,7 +1945,7 @@ func deepCopy_v1beta3_OAuthClientAuthorization(in oauthapiv1beta3.OAuthClientAut
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -1969,12 +1970,12 @@ func deepCopy_v1beta3_OAuthClientAuthorizationList(in oauthapiv1beta3.OAuthClien
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]oauthapiv1beta3.OAuthClientAuthorization, len(in.Items))
@@ -1993,12 +1994,12 @@ func deepCopy_v1beta3_OAuthClientList(in oauthapiv1beta3.OAuthClientList, out *o
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]oauthapiv1beta3.OAuthClient, len(in.Items))
@@ -2017,7 +2018,7 @@ func deepCopy_v1beta3_Project(in projectapiv1beta3.Project, out *projectapiv1bet
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2037,12 +2038,12 @@ func deepCopy_v1beta3_ProjectList(in projectapiv1beta3.ProjectList, out *project
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]projectapiv1beta3.Project, len(in.Items))
@@ -2061,7 +2062,7 @@ func deepCopy_v1beta3_ProjectRequest(in projectapiv1beta3.ProjectRequest, out *p
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2094,7 +2095,7 @@ func deepCopy_v1beta3_Route(in routeapiv1beta3.Route, out *routeapiv1beta3.Route
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2114,12 +2115,12 @@ func deepCopy_v1beta3_RouteList(in routeapiv1beta3.RouteList, out *routeapiv1bet
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]routeapiv1beta3.Route, len(in.Items))
@@ -2187,7 +2188,7 @@ func deepCopy_v1beta3_ClusterNetwork(in sdnapiv1beta3.ClusterNetwork, out *sdnap
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2204,12 +2205,12 @@ func deepCopy_v1beta3_ClusterNetworkList(in sdnapiv1beta3.ClusterNetworkList, ou
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]sdnapiv1beta3.ClusterNetwork, len(in.Items))
@@ -2228,7 +2229,7 @@ func deepCopy_v1beta3_HostSubnet(in sdnapiv1beta3.HostSubnet, out *sdnapiv1beta3
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2245,12 +2246,12 @@ func deepCopy_v1beta3_HostSubnetList(in sdnapiv1beta3.HostSubnetList, out *sdnap
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]sdnapiv1beta3.HostSubnet, len(in.Items))
@@ -2269,7 +2270,7 @@ func deepCopy_v1beta3_NetNamespace(in sdnapiv1beta3.NetNamespace, out *sdnapiv1b
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2285,12 +2286,12 @@ func deepCopy_v1beta3_NetNamespaceList(in sdnapiv1beta3.NetNamespaceList, out *s
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]sdnapiv1beta3.NetNamespace, len(in.Items))
@@ -2320,7 +2321,7 @@ func deepCopy_v1beta3_Template(in templateapiv1beta3.Template, out *templateapiv
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2364,12 +2365,12 @@ func deepCopy_v1beta3_TemplateList(in templateapiv1beta3.TemplateList, out *temp
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]templateapiv1beta3.Template, len(in.Items))
@@ -2388,7 +2389,7 @@ func deepCopy_v1beta3_Group(in userapiv1beta3.Group, out *userapiv1beta3.Group, 
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2410,12 +2411,12 @@ func deepCopy_v1beta3_GroupList(in userapiv1beta3.GroupList, out *userapiv1beta3
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]userapiv1beta3.Group, len(in.Items))
@@ -2434,7 +2435,7 @@ func deepCopy_v1beta3_Identity(in userapiv1beta3.Identity, out *userapiv1beta3.I
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2463,12 +2464,12 @@ func deepCopy_v1beta3_IdentityList(in userapiv1beta3.IdentityList, out *userapiv
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]userapiv1beta3.Identity, len(in.Items))
@@ -2487,7 +2488,7 @@ func deepCopy_v1beta3_User(in userapiv1beta3.User, out *userapiv1beta3.User, c *
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2518,7 +2519,7 @@ func deepCopy_v1beta3_UserIdentityMapping(in userapiv1beta3.UserIdentityMapping,
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
 		return err
@@ -2542,12 +2543,12 @@ func deepCopy_v1beta3_UserList(in userapiv1beta3.UserList, out *userapiv1beta3.U
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
 	} else {
-		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
 	}
 	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
 		return err
 	} else {
-		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+		out.ListMeta = newVal.(unversioned.ListMeta)
 	}
 	if in.Items != nil {
 		out.Items = make([]userapiv1beta3.User, len(in.Items))

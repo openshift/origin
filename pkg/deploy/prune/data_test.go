@@ -22,7 +22,7 @@ func withSize(item *kapi.ReplicationController, replicas int) *kapi.ReplicationC
 	return item
 }
 
-func withCreated(item *kapi.ReplicationController, creationTimestamp util.Time) *kapi.ReplicationController {
+func withCreated(item *kapi.ReplicationController, creationTimestamp unversioned.Time) *kapi.ReplicationController {
 	item.CreationTimestamp = creationTimestamp
 	return item
 }
@@ -65,8 +65,8 @@ func TestDeploymentByDeploymentConfigIndexFunc(t *testing.T) {
 
 func TestFilterBeforePredicate(t *testing.T) {
 	youngerThan := time.Hour
-	now := util.Now()
-	old := util.NewTime(now.Time.Add(-1 * youngerThan))
+	now := unversioned.Now()
+	old := unversioned.NewTime(now.Time.Add(-1 * youngerThan))
 	items := []*kapi.ReplicationController{}
 	items = append(items, withCreated(mockDeployment("a", "old", nil), old))
 	items = append(items, withCreated(mockDeployment("a", "new", nil), now))

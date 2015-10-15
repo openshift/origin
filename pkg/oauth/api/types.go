@@ -2,10 +2,11 @@ package api
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 type OAuthAccessToken struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// ClientName references the client that created this token.
@@ -34,7 +35,7 @@ type OAuthAccessToken struct {
 }
 
 type OAuthAuthorizeToken struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// ClientName references the client that created this token.
@@ -61,7 +62,7 @@ type OAuthAuthorizeToken struct {
 }
 
 type OAuthClient struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// Secret is the unique secret associated with a client
@@ -75,7 +76,7 @@ type OAuthClient struct {
 }
 
 type OAuthClientAuthorization struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// ClientName references the client that created this authorization
@@ -93,25 +94,25 @@ type OAuthClientAuthorization struct {
 }
 
 type OAuthAccessTokenList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 	Items []OAuthAccessToken
 }
 
 type OAuthAuthorizeTokenList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 	Items []OAuthAuthorizeToken
 }
 
 type OAuthClientList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 	Items []OAuthClient
 }
 
 type OAuthClientAuthorizationList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 	Items []OAuthClientAuthorization
 }

@@ -56,8 +56,8 @@ func TestPruneTask(t *testing.T) {
 		for _, BuildPhaseOption := range BuildPhaseOptions {
 			keepYoungerThan := time.Hour
 
-			now := util.Now()
-			old := util.NewTime(now.Time.Add(-1 * keepYoungerThan))
+			now := unversioned.Now()
+			old := unversioned.NewTime(now.Time.Add(-1 * keepYoungerThan))
 
 			buildConfigs := []*buildapi.BuildConfig{}
 			builds := []*buildapi.Build{}

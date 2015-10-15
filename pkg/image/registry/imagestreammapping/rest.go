@@ -4,9 +4,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -85,14 +85,14 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	next := api.TagEvent{
-		Created:              util.Now(),
+		Created:              unversioned.Now(),
 		DockerImageReference: image.DockerImageReference,
 		Image:                image.Name,
 	}
 
 	if !api.AddTagEventToImageStream(stream, tag, next) {
 		// nothing actually changed
-		return &kapi.Status{Status: kapi.StatusSuccess}, nil
+		return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 	}
 
 	api.UpdateTrackingTags(stream, tag, next)
@@ -101,7 +101,7 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, err
 	}
 
-	return &kapi.Status{Status: kapi.StatusSuccess}, nil
+	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 }
 
 // findStreamForMapping retrieves an ImageStream whose DockerImageRepository matches dockerRepo.
