@@ -22,6 +22,9 @@
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.0.1 -X github.com/openshift/origin/pkg/version.commitFromGit 86b5e46 -X k8s.io/kubernetes/pkg/version.gitCommit 6241a21 -X k8s.io/kubernetes/pkg/version.gitVersion v0.11.0-330-g6241a21
 }
 
+# Uncomment this to insert buildid into package name
+# %define buildid .bz00000000
+
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
 %global product_name Atomic OpenShift
@@ -34,7 +37,7 @@ Name:           %{package_name}
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        0.0.1
-Release:        0%{?dist}
+Release:        0%{?dist}%{?buildid}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -44,6 +47,9 @@ BuildRequires:  systemd
 BuildRequires:  golang >= 1.4
 Requires:       %{name}-clients = %{version}-%{release}
 Obsoletes:      openshift < 1.0.6
+
+# facilitate testing of patches
+Patch999999: openshift-test.patch
 
 %description
 %{summary}
@@ -126,7 +132,43 @@ Obsoletes:        openshift-sdn-ovs < 1.0.6
 %{summary}
 
 %prep
+
+ApplyPatch()
+{
+  local patch=$1
+  shift
+  if [ ! -f $RPM_SOURCE_DIR/$patch ]; then
+    exit 1
+  fi
+  if ! grep -E "^Patch[0-9]+: $patch\$" %{_specdir}/${RPM_PACKAGE_NAME%%%%%{?variant}}.spec ; then
+    if [ "${patch:0:8}" != "patch-3." ] ; then
+      echo "ERROR: Patch  $patch  not listed as a source patch in specfile"
+      exit 1
+    fi
+  fi 2>/dev/null
+  case "$patch" in
+  *.bz2) bunzip2 < "$RPM_SOURCE_DIR/$patch" | $patch_command ${1+"$@"} ;;
+  *.gz) gunzip < "$RPM_SOURCE_DIR/$patch" | $patch_command ${1+"$@"} ;;
+  *) $patch_command ${1+"$@"} < "$RPM_SOURCE_DIR/$patch" ;;
+  esac
+}
+
+# don't apply patch if it's empty
+ApplyOptionalPatch()
+{
+  local patch=$1
+  shift
+  if [ ! -f $RPM_SOURCE_DIR/$patch ]; then
+    exit 1
+  fi
+  local C=$(wc -l $RPM_SOURCE_DIR/$patch | awk '{print $1}')
+  if [ "$C" -gt 9 ]; then
+    ApplyPatch $patch ${1+"$@"}
+  fi
+}
+
 %setup -q
+ApplyOptionalPatch openshift-test.patch
 
 %build
 
