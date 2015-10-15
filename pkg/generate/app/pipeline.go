@@ -18,7 +18,7 @@ import (
 	route "github.com/openshift/origin/pkg/route/api"
 )
 
-// Pipeline holds components
+// Pipeline holds components.
 type Pipeline struct {
 	From string
 
@@ -29,8 +29,8 @@ type Pipeline struct {
 	Labels     map[string]string
 }
 
-// NewImagePipeline creates a new pipeline with components that are not
-// expected to be built
+// NewImagePipeline creates a new pipeline with components that are not expected
+// to be built.
 func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 	return &Pipeline{
 		From:  from,
@@ -38,8 +38,8 @@ func NewImagePipeline(from string, image *ImageRef) (*Pipeline, error) {
 	}, nil
 }
 
-// NewBuildPipeline creates a new pipeline with components that are
-// expected to be built
+// NewBuildPipeline creates a new pipeline with components that are expected to
+// be built.
 func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy *BuildStrategyRef, env Environment, source *SourceRef) (*Pipeline, error) {
 	name, ok := NameSuggestions{source, input}.SuggestName()
 	if !ok {
@@ -77,7 +77,7 @@ func NewBuildPipeline(from string, input *ImageRef, outputDocker bool, strategy 
 	}, nil
 }
 
-// NeedsDeployment sets the pipeline for deployment
+// NeedsDeployment sets the pipeline for deployment.
 func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, name string) error {
 	if p.Deployment != nil {
 		return nil
@@ -93,7 +93,7 @@ func (p *Pipeline) NeedsDeployment(env Environment, labels map[string]string, na
 	return nil
 }
 
-// Objects converts all the components in the pipeline into runtime objects
+// Objects converts all the components in the pipeline into runtime objects.
 func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 	objects := Objects{}
 	if p.InputImage != nil && p.InputImage.AsImageStream && accept.Accept(p.InputImage) {
@@ -135,10 +135,10 @@ func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 	return objects, nil
 }
 
-// PipelineGroup is a group of Pipelines
+// PipelineGroup is a group of Pipelines.
 type PipelineGroup []*Pipeline
 
-// Reduce squashes all common components from the pipelines
+// Reduce squashes all common components from the pipelines.
 func (g PipelineGroup) Reduce() error {
 	var deployment *DeploymentConfigRef
 	for _, p := range g {
@@ -194,7 +194,8 @@ func (s sortablePorts) Swap(i, j int) {
 	s[j] = p
 }
 
-// portName returns a unique key for the given port and protocol which can be used as a service port name
+// portName returns a unique key for the given port and protocol which can be
+// used as a service port name.
 func portName(port int, protocol kapi.Protocol) string {
 	if protocol == "" {
 		protocol = kapi.ProtocolTCP
@@ -202,7 +203,7 @@ func portName(port int, protocol kapi.Protocol) string {
 	return strings.ToLower(fmt.Sprintf("%d-%s", port, protocol))
 }
 
-// AddServices sets up services for the provided objects
+// AddServices sets up services for the provided objects.
 func AddServices(objects Objects, firstPortOnly bool) Objects {
 	svcs := []runtime.Object{}
 	for _, o := range objects {
@@ -252,7 +253,7 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 	return append(objects, svcs...)
 }
 
-// AddRoutes sets up routes for the provided objects
+// AddRoutes sets up routes for the provided objects.
 func AddRoutes(objects Objects) Objects {
 	routes := []runtime.Object{}
 	for _, o := range objects {
@@ -279,7 +280,7 @@ type acceptNew struct{}
 // AcceptNew only accepts runtime.Objects with an empty resource version.
 var AcceptNew Acceptor = acceptNew{}
 
-// Accept accepts any kind of object
+// Accept accepts any kind of object.
 func (acceptNew) Accept(from interface{}) bool {
 	_, meta, err := objectMetaData(from)
 	if err != nil {
@@ -296,7 +297,7 @@ type acceptUnique struct {
 	objects map[string]struct{}
 }
 
-// Accept accepts any kind of object it hasn't accepted before
+// Accept accepts any kind of object it hasn't accepted before.
 func (a *acceptUnique) Accept(from interface{}) bool {
 	obj, meta, err := objectMetaData(from)
 	if err != nil {
@@ -315,8 +316,8 @@ func (a *acceptUnique) Accept(from interface{}) bool {
 	return true
 }
 
-// NewAcceptUnique creates an acceptor that only accepts unique objects
-// by kind and name
+// NewAcceptUnique creates an acceptor that only accepts unique objects by kind
+// and name.
 func NewAcceptUnique(typer runtime.ObjectTyper) Acceptor {
 	return &acceptUnique{
 		typer:   typer,
@@ -340,7 +341,7 @@ type acceptBuildConfigs struct {
 	typer runtime.ObjectTyper
 }
 
-// Accept accepts BuildConfigs and ImageStreams
+// Accept accepts BuildConfigs and ImageStreams.
 func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 	obj, _, err := objectMetaData(from)
 	if err != nil {
@@ -366,7 +367,7 @@ func NewAcceptBuildConfigs(typer runtime.ObjectTyper) Acceptor {
 type Acceptors []Acceptor
 
 // Accept iterates through all acceptors and determines whether the object
-// should be accepted
+// should be accepted.
 func (aa Acceptors) Accept(from interface{}) bool {
 	for _, a := range aa {
 		if !a.Accept(from) {
@@ -378,18 +379,18 @@ func (aa Acceptors) Accept(from interface{}) bool {
 
 type acceptAll struct{}
 
-// AcceptAll accepts all objects
+// AcceptAll accepts all objects.
 var AcceptAll Acceptor = acceptAll{}
 
-// Accept accepts everything
+// Accept accepts everything.
 func (acceptAll) Accept(_ interface{}) bool {
 	return true
 }
 
-// Objects is a set of runtime objects
+// Objects is a set of runtime objects.
 type Objects []runtime.Object
 
-// Acceptor is an interface for accepting objects
+// Acceptor is an interface for accepting objects.
 type Acceptor interface {
 	Accept(from interface{}) bool
 }
@@ -398,12 +399,12 @@ type acceptFirst struct {
 	handled map[interface{}]struct{}
 }
 
-// NewAcceptFirst returns a new Acceptor
+// NewAcceptFirst returns a new Acceptor.
 func NewAcceptFirst() Acceptor {
 	return &acceptFirst{make(map[interface{}]struct{})}
 }
 
-// Accept accepts any object it hasn't accepted before
+// Accept accepts any object it hasn't accepted before.
 func (s *acceptFirst) Accept(from interface{}) bool {
 	if _, ok := s.handled[from]; ok {
 		return false
