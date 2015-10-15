@@ -11,6 +11,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/labels"
@@ -178,7 +179,7 @@ func (p *ProjectOptions) CreateOrUpdateNetNamespace(name string, id uint) error 
 
 func newNetNamespace(name string, id uint) *sdnapi.NetNamespace {
 	return &sdnapi.NetNamespace{
-		TypeMeta:   kapi.TypeMeta{Kind: "NetNamespace"},
+		TypeMeta:   unversioned.TypeMeta{Kind: "NetNamespace"},
 		ObjectMeta: kapi.ObjectMeta{Name: name},
 		NetName:    name,
 		NetID:      id,
