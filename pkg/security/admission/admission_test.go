@@ -91,6 +91,7 @@ func TestAdmit(t *testing.T) {
 		return &kapi.Pod{
 			Spec: kapi.PodSpec{
 				ServiceAccountName: "default",
+				SecurityContext:    &kapi.PodSecurityContext{},
 				Containers: []kapi.Container{
 					{
 						SecurityContext: &kapi.SecurityContext{},
@@ -125,13 +126,13 @@ func TestAdmit(t *testing.T) {
 	}
 
 	requestsHostNetwork := goodPod()
-	requestsHostNetwork.Spec.HostNetwork = true
+	requestsHostNetwork.Spec.SecurityContext.HostNetwork = true
 
 	requestsHostPID := goodPod()
-	requestsHostPID.Spec.HostPID = true
+	requestsHostPID.Spec.SecurityContext.HostPID = true
 
 	requestsHostIPC := goodPod()
-	requestsHostIPC.Spec.HostIPC = true
+	requestsHostIPC.Spec.SecurityContext.HostIPC = true
 
 	requestsHostPorts := goodPod()
 	requestsHostPorts.Spec.Containers[0].Ports = []kapi.ContainerPort{{HostPort: 1}}
