@@ -26,8 +26,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/emicklei/go-restful/swagger"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -90,9 +93,9 @@ func (c *testClient) Setup(t *testing.T) *testClient {
 		// We will fix this by supporting multiple group versions in Config
 		version = c.Version
 		if len(version) == 0 {
-			version = testapi.Experimental.Version()
+			version = testapi.Extensions.Version()
 		}
-		c.ExperimentalClient = NewExperimentalOrDie(&Config{
+		c.ExtensionsClient = NewExtensionsOrDie(&Config{
 			Host:    c.server.URL,
 			Version: version,
 		})
@@ -147,9 +150,9 @@ func (c *testClient) ValidateCommon(t *testing.T, err error) {
 		validator, ok := c.QueryValidator[key]
 		if !ok {
 			switch key {
-			case api.LabelSelectorQueryParam(testapi.Default.Version()):
+			case unversioned.LabelSelectorQueryParam(testapi.Default.Version()):
 				validator = validateLabels
-			case api.FieldSelectorQueryParam(testapi.Default.Version()):
+			case unversioned.FieldSelectorQueryParam(testapi.Default.Version()):
 				validator = validateFields
 			default:
 				validator = func(a, b string) bool { return a == b }
@@ -227,8 +230,8 @@ func body(t *testing.T, obj runtime.Object, raw *string) *string {
 			if err != nil {
 				t.Errorf("unexpected encoding error: %v", err)
 			}
-		} else if api.Scheme.Recognizes(testapi.Experimental.GroupAndVersion(), kind) {
-			bs, err = testapi.Experimental.Codec().Encode(obj)
+		} else if api.Scheme.Recognizes(testapi.Extensions.GroupAndVersion(), kind) {
+			bs, err = testapi.Extensions.Codec().Encode(obj)
 			if err != nil {
 				t.Errorf("unexpected encoding error: %v", err)
 			}
@@ -270,7 +273,7 @@ func TestGetServerVersion(t *testing.T) {
 
 func TestGetServerAPIVersions(t *testing.T) {
 	versions := []string{"v1", "v2", "v3"}
-	expect := api.APIVersions{Versions: versions}
+	expect := unversioned.APIVersions{Versions: versions}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		output, err := json.Marshal(expect)
 		if err != nil {
@@ -288,5 +291,65 @@ func TestGetServerAPIVersions(t *testing.T) {
 	}
 	if e, a := expect, *got; !reflect.DeepEqual(e, a) {
 		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+func swaggerSchemaFakeServer() (*httptest.Server, error) {
+	request := 1
+	var sErr error
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var resp interface{}
+		if request == 1 {
+			resp = unversioned.APIVersions{Versions: []string{"v1", "v2", "v3"}}
+			request++
+		} else {
+			resp = swagger.ApiDeclaration{}
+		}
+		output, err := json.Marshal(resp)
+		if err != nil {
+			sErr = err
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(output)
+	}))
+	return server, sErr
+}
+
+func TestGetSwaggerSchema(t *testing.T) {
+	expect := swagger.ApiDeclaration{}
+
+	server, err := swaggerSchemaFakeServer()
+	if err != nil {
+		t.Errorf("unexpected encoding error: %v", err)
+	}
+
+	client := NewOrDie(&Config{Host: server.URL})
+	got, err := client.SwaggerSchema("v1")
+	if err != nil {
+		t.Fatalf("unexpected encoding error: %v", err)
+	}
+	if e, a := expect, *got; !reflect.DeepEqual(e, a) {
+		t.Errorf("expected %v, got %v", e, a)
+	}
+}
+
+func TestGetSwaggerSchemaFail(t *testing.T) {
+	expErr := "API version: v4 is not supported by the server. Use one of: [v1 v2 v3]"
+
+	server, err := swaggerSchemaFakeServer()
+	if err != nil {
+		t.Errorf("unexpected encoding error: %v", err)
+	}
+
+	client := NewOrDie(&Config{Host: server.URL})
+	got, err := client.SwaggerSchema("v4")
+	if got != nil {
+		t.Fatalf("unexpected response: %v", got)
+	}
+	if err.Error() != expErr {
+		t.Errorf("expected an error, got %v", err)
 	}
 }

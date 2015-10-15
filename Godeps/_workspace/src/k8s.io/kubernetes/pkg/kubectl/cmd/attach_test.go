@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -28,15 +29,18 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/fake"
 )
 
 type fakeRemoteAttach struct {
-	req       *client.Request
+	method    string
+	url       *url.URL
 	attachErr error
 }
 
-func (f *fakeRemoteAttach) Attach(req *client.Request, config *client.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
-	f.req = req
+func (f *fakeRemoteAttach) Attach(method string, url *url.URL, config *client.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
+	f.method = method
+	f.url = url
 	return f.attachErr
 }
 
@@ -76,9 +80,9 @@ func TestPodAndContainerAttach(t *testing.T) {
 	}
 	for _, test := range tests {
 		f, tf, codec := NewAPIFactory()
-		tf.Client = &client.FakeRESTClient{
+		tf.Client = &fake.RESTClient{
 			Codec:  codec,
-			Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) { return nil, nil }),
+			Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) { return nil, nil }),
 		}
 		tf.Namespace = "test"
 		tf.ClientConfig = &client.Config{}
@@ -129,9 +133,9 @@ func TestAttach(t *testing.T) {
 	}
 	for _, test := range tests {
 		f, tf, codec := NewAPIFactory()
-		tf.Client = &client.FakeRESTClient{
+		tf.Client = &fake.RESTClient{
 			Codec: codec,
-			Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {
 				case p == test.podPath && m == "GET":
 					body := objBody(codec, test.pod)
@@ -172,9 +176,15 @@ func TestAttach(t *testing.T) {
 			t.Errorf("%s: Unexpected error: %v", test.name, err)
 			continue
 		}
-		if !test.attachErr && ex.req.URL().Path != test.attachPath {
+		if test.attachErr {
+			continue
+		}
+		if ex.url.Path != test.attachPath {
 			t.Errorf("%s: Did not get expected path for exec request", test.name)
 			continue
+		}
+		if ex.method != "POST" {
+			t.Errorf("%s: Did not get method for attach request: %s", test.name, ex.method)
 		}
 	}
 }

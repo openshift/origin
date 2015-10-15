@@ -17,15 +17,16 @@ limitations under the License.
 package cmd
 
 import (
+	"net/url"
 	"os"
 	"os/signal"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/portforward"
+	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -61,13 +62,17 @@ func NewCmdPortForward(f *cmdutil.Factory) *cobra.Command {
 }
 
 type portForwarder interface {
-	ForwardPorts(req *client.Request, config *client.Config, ports []string, stopChan <-chan struct{}) error
+	ForwardPorts(method string, url *url.URL, config *client.Config, ports []string, stopChan <-chan struct{}) error
 }
 
 type defaultPortForwarder struct{}
 
-func (*defaultPortForwarder) ForwardPorts(req *client.Request, config *client.Config, ports []string, stopChan <-chan struct{}) error {
-	fw, err := portforward.New(req, config, ports, stopChan)
+func (*defaultPortForwarder) ForwardPorts(method string, url *url.URL, config *client.Config, ports []string, stopChan <-chan struct{}) error {
+	dialer, err := remotecommand.NewExecutor(config, method, url)
+	if err != nil {
+		return err
+	}
+	fw, err := portforward.New(dialer, ports, stopChan)
 	if err != nil {
 		return err
 	}
@@ -131,28 +136,5 @@ func RunPortForward(f *cmdutil.Factory, cmd *cobra.Command, args []string, fw po
 		Name(pod.Name).
 		SubResource("portforward")
 
-	postErr := fw.ForwardPorts(req, config, args, stopCh)
-
-	// if we don't have an error, return.  If we did get an error, try a GET because v3.0.0 shipped with port-forward running as a GET.
-	if postErr == nil {
-		return nil
-	}
-
-	// only try the get if the error is either a forbidden or method not supported, otherwise trying with a GET probably won't help
-	if !apierrors.IsForbidden(postErr) && !apierrors.IsMethodNotSupported(postErr) {
-		return postErr
-	}
-
-	getReq := client.RESTClient.Get().
-		Resource("pods").
-		Namespace(namespace).
-		Name(pod.Name).
-		SubResource("portforward")
-	getErr := fw.ForwardPorts(getReq, config, args, stopCh)
-	if getErr == nil {
-		return nil
-	}
-
-	// if we got a getErr, return the postErr because it's more likely to be correct.  GET is legacy
-	return postErr
+	return fw.ForwardPorts("POST", req.URL(), config, args, stopCh)
 }

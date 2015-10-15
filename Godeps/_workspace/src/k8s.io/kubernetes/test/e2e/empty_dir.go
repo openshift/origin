@@ -18,10 +18,12 @@ package e2e
 
 import (
 	"fmt"
+	"path"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util"
-	"path"
 
 	. "github.com/onsi/ginkgo"
 )
@@ -35,59 +37,59 @@ var _ = Describe("EmptyDir volumes", func() {
 
 	f := NewFramework("emptydir")
 
-	It("volume on tmpfs should have the correct mode", func() {
+	It("volume on tmpfs should have the correct mode [Conformance]", func() {
 		doTestVolumeMode(f, testImageRootUid, api.StorageMediumMemory)
 	})
 
-	It("should support (root,0644,tmpfs)", func() {
+	It("should support (root,0644,tmpfs) [Conformance]", func() {
 		doTest0644(f, testImageRootUid, api.StorageMediumMemory)
 	})
 
-	It("should support (root,0666,tmpfs)", func() {
+	It("should support (root,0666,tmpfs) [Conformance]", func() {
 		doTest0666(f, testImageRootUid, api.StorageMediumMemory)
 	})
 
-	It("should support (root,0777,tmpfs)", func() {
+	It("should support (root,0777,tmpfs) [Conformance]", func() {
 		doTest0777(f, testImageRootUid, api.StorageMediumMemory)
 	})
 
-	It("should support (non-root,0644,tmpfs)", func() {
+	It("should support (non-root,0644,tmpfs) [Conformance]", func() {
 		doTest0644(f, testImageNonRootUid, api.StorageMediumMemory)
 	})
 
-	It("should support (non-root,0666,tmpfs)", func() {
+	It("should support (non-root,0666,tmpfs) [Conformance]", func() {
 		doTest0666(f, testImageNonRootUid, api.StorageMediumMemory)
 	})
 
-	It("should support (non-root,0777,tmpfs)", func() {
+	It("should support (non-root,0777,tmpfs) [Conformance]", func() {
 		doTest0777(f, testImageNonRootUid, api.StorageMediumMemory)
 	})
 
-	It("volume on default medium should have the correct mode", func() {
+	It("volume on default medium should have the correct mode [Conformance]", func() {
 		doTestVolumeMode(f, testImageRootUid, api.StorageMediumDefault)
 	})
 
-	It("should support (root,0644,default)", func() {
+	It("should support (root,0644,default) [Conformance]", func() {
 		doTest0644(f, testImageRootUid, api.StorageMediumDefault)
 	})
 
-	It("should support (root,0666,default)", func() {
+	It("should support (root,0666,default) [Conformance]", func() {
 		doTest0666(f, testImageRootUid, api.StorageMediumDefault)
 	})
 
-	It("should support (root,0777,default)", func() {
+	It("should support (root,0777,default) [Conformance]", func() {
 		doTest0777(f, testImageRootUid, api.StorageMediumDefault)
 	})
 
-	It("should support (non-root,0644,default)", func() {
+	It("should support (non-root,0644,default) [Conformance]", func() {
 		doTest0644(f, testImageNonRootUid, api.StorageMediumDefault)
 	})
 
-	It("should support (non-root,0666,default)", func() {
+	It("should support (non-root,0666,default) [Conformance]", func() {
 		doTest0666(f, testImageNonRootUid, api.StorageMediumDefault)
 	})
 
-	It("should support (non-root,0777,default)", func() {
+	It("should support (non-root,0777,default) [Conformance]", func() {
 		doTest0777(f, testImageNonRootUid, api.StorageMediumDefault)
 	})
 })
@@ -205,9 +207,9 @@ func formatMedium(medium api.StorageMedium) string {
 func testPodWithVolume(image, path string, source *api.EmptyDirVolumeSource) *api.Pod {
 	podName := "pod-" + string(util.NewUUID())
 	return &api.Pod{
-		TypeMeta: api.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",
-			APIVersion: latest.Version,
+			APIVersion: latest.GroupOrDie("").Version,
 		},
 		ObjectMeta: api.ObjectMeta{
 			Name: podName,

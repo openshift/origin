@@ -36,25 +36,16 @@ import (
 type Framework struct {
 	BaseName string
 
-	Namespace *api.Namespace
-	Client    *client.Client
-
-	// Allows to override the initialization of the namespace
-	nsCreateFunc func(string, *client.Client) (*api.Namespace, error)
+	Namespace                *api.Namespace
+	Client                   *client.Client
+	NamespaceDeletionTimeout time.Duration
 }
 
 // NewFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
 func NewFramework(baseName string) *Framework {
-	return InitializeFramework(baseName, createTestingNS)
-}
-
-// InitializeFramework initialize the framework by allowing to pass a custom
-// namespace creation function.
-func InitializeFramework(baseName string, nsCreateFunc func(string, *client.Client) (*api.Namespace, error)) *Framework {
 	f := &Framework{
-		BaseName:     baseName,
-		nsCreateFunc: nsCreateFunc,
+		BaseName: baseName,
 	}
 
 	BeforeEach(f.beforeEach)
@@ -72,14 +63,18 @@ func (f *Framework) beforeEach() {
 	f.Client = c
 
 	By("Building a namespace api object")
-	namespace, err := f.nsCreateFunc(f.BaseName, f.Client)
+	namespace, err := createTestingNS(f.BaseName, f.Client)
 	Expect(err).NotTo(HaveOccurred())
 
 	f.Namespace = namespace
 
-	By("Waiting for a default service account to be provisioned in namespace")
-	err = waitForDefaultServiceAccountInNamespace(c, namespace.Name)
-	Expect(err).NotTo(HaveOccurred())
+	if testContext.VerifyServiceAccount {
+		By("Waiting for a default service account to be provisioned in namespace")
+		err = waitForDefaultServiceAccountInNamespace(c, namespace.Name)
+		Expect(err).NotTo(HaveOccurred())
+	} else {
+		Logf("Skipping waiting for service account")
+	}
 }
 
 // afterEach deletes the namespace, after reading its events.
@@ -107,7 +102,11 @@ func (f *Framework) afterEach() {
 
 	By(fmt.Sprintf("Destroying namespace %q for this suite.", f.Namespace.Name))
 
-	if err := deleteNS(f.Client, f.Namespace.Name); err != nil {
+	timeout := 5 * time.Minute
+	if f.NamespaceDeletionTimeout != 0 {
+		timeout = f.NamespaceDeletionTimeout
+	}
+	if err := deleteNS(f.Client, f.Namespace.Name, timeout); err != nil {
 		Failf("Couldn't delete ns %q: %s", f.Namespace.Name, err)
 	}
 	// Paranoia-- prevent reuse!
@@ -122,7 +121,12 @@ func (f *Framework) WaitForPodRunning(podName string) error {
 
 // Runs the given pod and verifies that the output of exact container matches the desired output.
 func (f *Framework) TestContainerOutput(scenarioName string, pod *api.Pod, containerIndex int, expectedOutput []string) {
-	testContainerOutputInNamespace(scenarioName, f.Client, pod, containerIndex, expectedOutput, f.Namespace.Name)
+	testContainerOutput(scenarioName, f.Client, pod, containerIndex, expectedOutput, f.Namespace.Name)
+}
+
+// Runs the given pod and verifies that the output of exact container matches the desired regexps.
+func (f *Framework) TestContainerOutputRegexp(scenarioName string, pod *api.Pod, containerIndex int, expectedOutput []string) {
+	testContainerOutputRegexp(scenarioName, f.Client, pod, containerIndex, expectedOutput, f.Namespace.Name)
 }
 
 // WaitForAnEndpoint waits for at least one endpoint to become available in the

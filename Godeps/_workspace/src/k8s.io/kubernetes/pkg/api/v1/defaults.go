@@ -25,11 +25,6 @@ import (
 
 func addDefaultingFuncs() {
 	api.Scheme.AddDefaultingFuncs(
-		func(obj *APIVersion) {
-			if len(obj.APIGroup) == 0 {
-				obj.APIGroup = "experimental"
-			}
-		},
 		func(obj *ReplicationController) {
 			var labels map[string]string
 			if obj.Spec.Template != nil {
@@ -59,14 +54,6 @@ func addDefaultingFuncs() {
 		func(obj *ContainerPort) {
 			if obj.Protocol == "" {
 				obj.Protocol = ProtocolTCP
-			}
-
-			// Carry conversion to make port case valid
-			switch strings.ToUpper(string(obj.Protocol)) {
-			case string(ProtocolTCP):
-				obj.Protocol = ProtocolTCP
-			case string(ProtocolUDP):
-				obj.Protocol = ProtocolUDP
 			}
 		},
 		func(obj *Container) {
@@ -100,19 +87,23 @@ func addDefaultingFuncs() {
 					sp.TargetPort = util.NewIntOrStringFromInt(sp.Port)
 				}
 			}
-
-			// Carry conversion
-			if len(obj.ClusterIP) == 0 && len(obj.DeprecatedPortalIP) > 0 {
-				obj.ClusterIP = obj.DeprecatedPortalIP
-			}
 		},
-		func(obj *ServicePort) {
-			// Carry conversion to make port case valid
-			switch strings.ToUpper(string(obj.Protocol)) {
-			case string(ProtocolTCP):
-				obj.Protocol = ProtocolTCP
-			case string(ProtocolUDP):
-				obj.Protocol = ProtocolUDP
+		func(obj *Pod) {
+			// If limits are specified, but requests are not, default requests to limits
+			// This is done here rather than a more specific defaulting pass on ResourceRequirements
+			// because we only want this defaulting semantic to take place on a Pod and not a PodTemplate
+			for i := range obj.Spec.Containers {
+				// set requests to limits if requests are not specified, but limits are
+				if obj.Spec.Containers[i].Resources.Limits != nil {
+					if obj.Spec.Containers[i].Resources.Requests == nil {
+						obj.Spec.Containers[i].Resources.Requests = make(ResourceList)
+					}
+					for key, value := range obj.Spec.Containers[i].Resources.Limits {
+						if _, exists := obj.Spec.Containers[i].Resources.Requests[key]; !exists {
+							obj.Spec.Containers[i].Resources.Requests[key] = *(value.Copy())
+						}
+					}
+				}
 			}
 		},
 		func(obj *PodSpec) {
@@ -125,16 +116,9 @@ func addDefaultingFuncs() {
 			if obj.HostNetwork {
 				defaultHostNetworkPorts(&obj.Containers)
 			}
-
-			// Carry migration from serviceAccount to serviceAccountName
-			if len(obj.ServiceAccountName) == 0 && len(obj.DeprecatedServiceAccount) > 0 {
-				obj.ServiceAccountName = obj.DeprecatedServiceAccount
+			if obj.SecurityContext == nil {
+				obj.SecurityContext = &PodSecurityContext{}
 			}
-			// Carry migration from host to nodeName
-			if len(obj.NodeName) == 0 && len(obj.DeprecatedHost) > 0 {
-				obj.NodeName = obj.DeprecatedHost
-			}
-
 			if obj.TerminationGracePeriodSeconds == nil {
 				period := int64(DefaultTerminationGracePeriodSeconds)
 				obj.TerminationGracePeriodSeconds = &period
@@ -174,15 +158,6 @@ func addDefaultingFuncs() {
 				}
 			}
 		},
-		func(obj *EndpointPort) {
-			// Carry conversion to make port case valid
-			switch strings.ToUpper(string(obj.Protocol)) {
-			case string(ProtocolTCP):
-				obj.Protocol = ProtocolTCP
-			case string(ProtocolUDP):
-				obj.Protocol = ProtocolUDP
-			}
-		},
 		func(obj *HTTPGetAction) {
 			if obj.Path == "" {
 				obj.Path = "/"
@@ -204,19 +179,6 @@ func addDefaultingFuncs() {
 		func(obj *ObjectFieldSelector) {
 			if obj.APIVersion == "" {
 				obj.APIVersion = "v1"
-			}
-		},
-		func(obj *ResourceRequirements) {
-			// Set requests to limits if requests are not specified (but limits are).
-			if obj.Limits != nil {
-				if obj.Requests == nil {
-					obj.Requests = make(ResourceList)
-				}
-				for key, value := range obj.Limits {
-					if _, exists := obj.Requests[key]; !exists {
-						obj.Requests[key] = *(value.Copy())
-					}
-				}
 			}
 		},
 		func(obj *LimitRangeItem) {

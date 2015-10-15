@@ -35,14 +35,22 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apis/experimental"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/jsonpath"
 	"k8s.io/kubernetes/pkg/util/sets"
+)
+
+const (
+	tabwriterMinWidth = 10
+	tabwriterWidth    = 4
+	tabwriterPadding  = 3
+	tabwriterPadChar  = ' '
+	tabwriterFlags    = 0
 )
 
 // GetPrinter takes a format type, an optional format argument. It will return true
@@ -213,7 +221,7 @@ func (p *NamePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 				if err != nil {
 					return err
 				}
-				tpmeta := api.TypeMeta{
+				tpmeta := unversioned.TypeMeta{
 					APIVersion: version,
 					Kind:       kind,
 				}
@@ -380,9 +388,12 @@ func (h *HumanReadablePrinter) HandledResources() []string {
 var podColumns = []string{"NAME", "READY", "STATUS", "RESTARTS", "AGE"}
 var podTemplateColumns = []string{"TEMPLATE", "CONTAINER(S)", "IMAGE(S)", "PODLABELS"}
 var replicationControllerColumns = []string{"CONTROLLER", "CONTAINER(S)", "IMAGE(S)", "SELECTOR", "REPLICAS", "AGE"}
+var jobColumns = []string{"JOB", "CONTAINER(S)", "IMAGE(S)", "SELECTOR", "SUCCESSFUL"}
 var serviceColumns = []string{"NAME", "CLUSTER_IP", "EXTERNAL_IP", "PORT(S)", "SELECTOR", "AGE"}
+var ingressColumns = []string{"NAME", "RULE", "BACKEND", "ADDRESS"}
 var endpointColumns = []string{"NAME", "ENDPOINTS", "AGE"}
 var nodeColumns = []string{"NAME", "LABELS", "STATUS", "AGE"}
+var daemonSetColumns = []string{"NAME", "CONTAINER(S)", "IMAGE(S)", "SELECTOR", "NODE-SELECTOR"}
 var eventColumns = []string{"FIRSTSEEN", "LASTSEEN", "COUNT", "NAME", "KIND", "SUBOBJECT", "REASON", "SOURCE", "MESSAGE"}
 var limitRangeColumns = []string{"NAME", "AGE"}
 var resourceQuotaColumns = []string{"NAME", "AGE"}
@@ -396,7 +407,6 @@ var thirdPartyResourceColumns = []string{"NAME", "DESCRIPTION", "VERSION(S)"}
 var horizontalPodAutoscalerColumns = []string{"NAME", "REFERENCE", "TARGET", "CURRENT", "MINPODS", "MAXPODS", "AGE"}
 var withNamespacePrefixColumns = []string{"NAMESPACE"} // TODO(erictune): print cluster name too.
 var deploymentColumns = []string{"NAME", "UPDATEDREPLICAS", "AGE"}
-var securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "HOSTDIR", "SELINUX", "RUNASUSER"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -406,8 +416,14 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(podTemplateColumns, printPodTemplateList)
 	h.Handler(replicationControllerColumns, printReplicationController)
 	h.Handler(replicationControllerColumns, printReplicationControllerList)
+	h.Handler(daemonSetColumns, printDaemonSet)
+	h.Handler(daemonSetColumns, printDaemonSetList)
+	h.Handler(jobColumns, printJob)
+	h.Handler(jobColumns, printJobList)
 	h.Handler(serviceColumns, printService)
 	h.Handler(serviceColumns, printServiceList)
+	h.Handler(ingressColumns, printIngress)
+	h.Handler(ingressColumns, printIngressList)
 	h.Handler(endpointColumns, printEndpoints)
 	h.Handler(endpointColumns, printEndpointsList)
 	h.Handler(nodeColumns, printNode)
@@ -436,8 +452,6 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(deploymentColumns, printDeploymentList)
 	h.Handler(horizontalPodAutoscalerColumns, printHorizontalPodAutoscaler)
 	h.Handler(horizontalPodAutoscalerColumns, printHorizontalPodAutoscalerList)
-	h.Handler(securityContextConstraintsColumns, printSecurityContextConstraints)
-	h.Handler(securityContextConstraintsColumns, printSecurityContextConstraintsList)
 }
 
 func (h *HumanReadablePrinter) unknown(data []byte, w io.Writer) error {
@@ -514,7 +528,7 @@ func shortHumanDuration(d time.Duration) string {
 
 // translateTimestamp returns the elapsed time since timestamp in
 // human-readable approximation.
-func translateTimestamp(timestamp util.Time) string {
+func translateTimestamp(timestamp unversioned.Time) string {
 	if timestamp.IsZero() {
 		return "<unknown>"
 	}
@@ -658,7 +672,6 @@ func printPodTemplateList(podList *api.PodTemplateList, w io.Writer, withNamespa
 func printReplicationController(controller *api.ReplicationController, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
 	name := controller.Name
 	namespace := controller.Namespace
-
 	containers := controller.Spec.Template.Spec.Containers
 	var firstContainer api.Container
 	if len(containers) > 0 {
@@ -710,6 +723,70 @@ func printReplicationControllerList(list *api.ReplicationControllerList, w io.Wr
 	return nil
 }
 
+func printJob(job *extensions.Job, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+	name := job.Name
+	namespace := job.Namespace
+	containers := job.Spec.Template.Spec.Containers
+	var firstContainer api.Container
+	if len(containers) > 0 {
+		firstContainer, containers = containers[0], containers[1:]
+	}
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", namespace); err != nil {
+			return err
+		}
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n",
+		name,
+		firstContainer.Name,
+		firstContainer.Image,
+		labels.FormatLabels(job.Spec.Selector),
+		job.Status.Succeeded)
+	if err != nil {
+		return err
+	}
+	if _, err := fmt.Fprint(w, appendLabels(job.Labels, columnLabels)); err != nil {
+		return err
+	}
+
+	// Lay out all the other containers on separate lines.
+	extraLinePrefix := "\t"
+	if withNamespace {
+		extraLinePrefix = "\t\t"
+	}
+	for _, container := range containers {
+		_, err := fmt.Fprintf(w, "%s%s\t%s\t%s\t%s", extraLinePrefix, container.Name, container.Image, "", "")
+		if err != nil {
+			return err
+		}
+		if _, err := fmt.Fprint(w, appendLabelTabs(columnLabels)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printJobList(list *extensions.JobList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+	for _, job := range list.Items {
+		if err := printJob(&job, w, withNamespace, wide, showAll, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// loadBalancerStatusStringer behaves just like a string interface and converts the given status to a string.
+func loadBalancerStatusStringer(s api.LoadBalancerStatus) string {
+	ingress := s.Ingress
+	result := []string{}
+	for i := range ingress {
+		if ingress[i].IP != "" {
+			result = append(result, ingress[i].IP)
+		}
+	}
+	return strings.Join(result, ",")
+}
+
 func getServiceExternalIP(svc *api.Service) string {
 	switch svc.Spec.Type {
 	case api.ServiceTypeClusterIP:
@@ -723,17 +800,12 @@ func getServiceExternalIP(svc *api.Service) string {
 		}
 		return "nodes"
 	case api.ServiceTypeLoadBalancer:
-		ingress := svc.Status.LoadBalancer.Ingress
-		result := []string{}
-		for i := range ingress {
-			if ingress[i].IP != "" {
-				result = append(result, ingress[i].IP)
-			}
-		}
+		lbIps := loadBalancerStatusStringer(svc.Status.LoadBalancer)
 		if len(svc.Spec.ExternalIPs) > 0 {
-			result = append(result, svc.Spec.ExternalIPs...)
+			result := append(strings.Split(lbIps, ","), svc.Spec.ExternalIPs...)
+			return strings.Join(result, ",")
 		}
-		return strings.Join(result, ",")
+		return lbIps
 	}
 	return "unknown"
 }
@@ -778,6 +850,125 @@ func printService(svc *api.Service, w io.Writer, withNamespace bool, wide bool, 
 func printServiceList(list *api.ServiceList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
 	for _, svc := range list.Items {
 		if err := printService(&svc, w, withNamespace, wide, showAll, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// backendStringer behaves just like a string interface and converts the given backend to a string.
+func backendStringer(backend *extensions.IngressBackend) string {
+	if backend == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v:%v", backend.ServiceName, backend.ServicePort.String())
+}
+
+func printIngress(ingress *extensions.Ingress, w io.Writer, withNamespace, wide bool, showAll bool, columnLabels []string) error {
+	name := ingress.Name
+	namespace := ingress.Namespace
+
+	hostRules := ingress.Spec.Rules
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", namespace); err != nil {
+			return err
+		}
+	}
+
+	if _, err := fmt.Fprintf(w, "%s\t%v\t%v\t%v\n",
+		name,
+		"-",
+		backendStringer(ingress.Spec.Backend),
+		loadBalancerStatusStringer(ingress.Status.LoadBalancer)); err != nil {
+		return err
+	}
+
+	// Lay out all the rules on separate lines.
+	extraLinePrefix := ""
+	if withNamespace {
+		extraLinePrefix = "\t"
+	}
+	for _, rules := range hostRules {
+		if rules.HTTP == nil {
+			continue
+		}
+		_, err := fmt.Fprintf(w, "%s\t%v\t", extraLinePrefix, rules.Host)
+		if err != nil {
+			return err
+		}
+		if _, err := fmt.Fprint(w, appendLabelTabs(columnLabels)); err != nil {
+			return err
+		}
+		for _, rule := range rules.HTTP.Paths {
+			_, err := fmt.Fprintf(w, "%s\t%v\t%v", extraLinePrefix, rule.Path, backendStringer(&rule.Backend))
+			if err != nil {
+				return err
+			}
+			if _, err := fmt.Fprint(w, appendLabelTabs(columnLabels)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func printIngressList(ingressList *extensions.IngressList, w io.Writer, withNamespace, wide bool, showAll bool, columnLabels []string) error {
+	for _, ingress := range ingressList.Items {
+		if err := printIngress(&ingress, w, withNamespace, wide, true, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printDaemonSet(ds *extensions.DaemonSet, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+	name := ds.Name
+	namespace := ds.Namespace
+
+	containers := ds.Spec.Template.Spec.Containers
+	var firstContainer api.Container
+	if len(containers) > 0 {
+		firstContainer, containers = containers[0], containers[1:]
+	}
+
+	if withNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", namespace); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s",
+		name,
+		firstContainer.Name,
+		firstContainer.Image,
+		labels.FormatLabels(ds.Spec.Selector),
+		labels.FormatLabels(ds.Spec.Template.Spec.NodeSelector),
+	); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprint(w, appendLabels(ds.Labels, columnLabels)); err != nil {
+		return err
+	}
+
+	// Lay out all the other containers on separate lines.
+	extraLinePrefix := "\t"
+	if withNamespace {
+		extraLinePrefix = "\t\t"
+	}
+	for _, container := range containers {
+		_, err := fmt.Fprintf(w, "%s%s\t%s\t%s\t%s", extraLinePrefix, container.Name, container.Image, "", "")
+		if err != nil {
+			return err
+		}
+		if _, err := fmt.Fprint(w, appendLabelTabs(columnLabels)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printDaemonSetList(list *extensions.DaemonSetList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+	for _, ds := range list.Items {
+		if err := printDaemonSet(&ds, w, withNamespace, wide, showAll, columnLabels); err != nil {
 			return err
 		}
 	}
@@ -1139,7 +1330,7 @@ func printComponentStatusList(list *api.ComponentStatusList, w io.Writer, withNa
 	return nil
 }
 
-func printThirdPartyResource(rsrc *experimental.ThirdPartyResource, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+func printThirdPartyResource(rsrc *extensions.ThirdPartyResource, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
 	versions := make([]string, len(rsrc.Versions))
 	for ix := range rsrc.Versions {
 		version := &rsrc.Versions[ix]
@@ -1152,7 +1343,7 @@ func printThirdPartyResource(rsrc *experimental.ThirdPartyResource, w io.Writer,
 	return nil
 }
 
-func printThirdPartyResourceList(list *experimental.ThirdPartyResourceList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+func printThirdPartyResourceList(list *extensions.ThirdPartyResourceList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
 	for _, item := range list.Items {
 		if err := printThirdPartyResource(&item, w, withNamespace, wide, showAll, columnLabels); err != nil {
 			return err
@@ -1162,7 +1353,7 @@ func printThirdPartyResourceList(list *experimental.ThirdPartyResourceList, w io
 	return nil
 }
 
-func printDeployment(deployment *experimental.Deployment, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+func printDeployment(deployment *extensions.Deployment, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
 	if withNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", deployment.Namespace); err != nil {
 			return err
@@ -1178,7 +1369,7 @@ func printDeployment(deployment *experimental.Deployment, w io.Writer, withNames
 	return err
 }
 
-func printDeploymentList(list *experimental.DeploymentList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+func printDeploymentList(list *extensions.DeploymentList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
 	for _, item := range list.Items {
 		if err := printDeployment(&item, w, withNamespace, wide, showAll, columnLabels); err != nil {
 			return err
@@ -1187,7 +1378,7 @@ func printDeploymentList(list *experimental.DeploymentList, w io.Writer, withNam
 	return nil
 }
 
-func printHorizontalPodAutoscaler(hpa *experimental.HorizontalPodAutoscaler, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+func printHorizontalPodAutoscaler(hpa *extensions.HorizontalPodAutoscaler, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
 	namespace := hpa.Namespace
 	name := hpa.Name
 	reference := fmt.Sprintf("%s/%s/%s/%s",
@@ -1198,11 +1389,11 @@ func printHorizontalPodAutoscaler(hpa *experimental.HorizontalPodAutoscaler, w i
 	target := fmt.Sprintf("%s %v", hpa.Spec.Target.Quantity.String(), hpa.Spec.Target.Resource)
 
 	current := "<waiting>"
-	if hpa.Status != nil && hpa.Status.CurrentConsumption != nil {
+	if hpa.Status.CurrentConsumption != nil {
 		current = fmt.Sprintf("%s %v", hpa.Status.CurrentConsumption.Quantity.String(), hpa.Status.CurrentConsumption.Resource)
 	}
-	minPods := hpa.Spec.MinCount
-	maxPods := hpa.Spec.MaxCount
+	minPods := hpa.Spec.MinReplicas
+	maxPods := hpa.Spec.MaxReplicas
 	if withNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", namespace); err != nil {
 			return err
@@ -1224,29 +1415,12 @@ func printHorizontalPodAutoscaler(hpa *experimental.HorizontalPodAutoscaler, w i
 	return err
 }
 
-func printHorizontalPodAutoscalerList(list *experimental.HorizontalPodAutoscalerList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
+func printHorizontalPodAutoscalerList(list *extensions.HorizontalPodAutoscalerList, w io.Writer, withNamespace bool, wide bool, showAll bool, columnLabels []string) error {
 	for i := range list.Items {
 		if err := printHorizontalPodAutoscaler(&list.Items[i], w, withNamespace, wide, showAll, columnLabels); err != nil {
 			return err
 		}
 	}
-	return nil
-}
-
-func printSecurityContextConstraints(item *api.SecurityContextConstraints, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
-	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
-		item.AllowedCapabilities, item.AllowHostDirVolumePlugin, item.SELinuxContext.Type,
-		item.RunAsUser.Type)
-	return err
-}
-
-func printSecurityContextConstraintsList(list *api.SecurityContextConstraintsList, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
-	for _, item := range list.Items {
-		if err := printSecurityContextConstraints(&item, w, withNamespace, wide, showAll, columnLabels); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -1301,10 +1475,19 @@ func formatWideHeaders(wide bool, t reflect.Type) []string {
 	return nil
 }
 
+// GetNewTabWriter returns a tabwriter that translates tabbed columns in input into properly aligned text.
+func GetNewTabWriter(output io.Writer) *tabwriter.Writer {
+	return tabwriter.NewWriter(output, tabwriterMinWidth, tabwriterWidth, tabwriterPadding, tabwriterPadChar, tabwriterFlags)
+}
+
 // PrintObj prints the obj in a human-friendly format according to the type of the obj.
 func (h *HumanReadablePrinter) PrintObj(obj runtime.Object, output io.Writer) error {
-	w := tabwriter.NewWriter(output, 10, 4, 3, ' ', 0)
-	defer w.Flush()
+	// if output is a tabwriter (when it's called by kubectl get), we use it; create a new tabwriter otherwise
+	w, found := output.(*tabwriter.Writer)
+	if !found {
+		w = GetNewTabWriter(output)
+		defer w.Flush()
+	}
 	t := reflect.TypeOf(obj)
 	if handler := h.handlerMap[t]; handler != nil {
 		if !h.noHeaders && t != h.lastType {

@@ -25,9 +25,7 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"path"
 	"reflect"
 	"strconv"
 	"strings"
@@ -43,6 +41,7 @@ import (
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	"k8s.io/kubernetes/pkg/util/slice"
+	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
 )
 
 // iptablesMinVersion is the minimum version of iptables for which we will use the Proxier
@@ -66,7 +65,7 @@ const iptablesMasqueradeMark = "0x4d415351"
 // ShouldUseIptablesProxier returns true if we should use the iptables Proxier
 // instead of the "classic" userspace Proxier.  This is determined by checking
 // the iptables version and for the existence of kernel features. It may return
-// an error if it fails to get the itpables version without error, in which
+// an error if it fails to get the iptables version without error, in which
 // case it will also return false.
 func ShouldUseIptablesProxier() (bool, error) {
 	exec := utilexec.New()
@@ -90,7 +89,7 @@ func ShouldUseIptablesProxier() (bool, error) {
 	// Check for the required sysctls.  We don't care about the value, just
 	// that it exists.  If this Proxier is chosen, we'll iniialize it as we
 	// need.
-	_, err = getSysctl(sysctlRouteLocalnet)
+	_, err = utilsysctl.GetSysctl(sysctlRouteLocalnet)
 	if err != nil {
 		return false, err
 	}
@@ -98,25 +97,8 @@ func ShouldUseIptablesProxier() (bool, error) {
 	return true, nil
 }
 
-const sysctlBase = "/proc/sys"
 const sysctlRouteLocalnet = "net/ipv4/conf/all/route_localnet"
 const sysctlBridgeCallIptables = "net/bridge/bridge-nf-call-iptables"
-
-func getSysctl(sysctl string) (int, error) {
-	data, err := ioutil.ReadFile(path.Join(sysctlBase, sysctl))
-	if err != nil {
-		return -1, err
-	}
-	val, err := strconv.Atoi(strings.Trim(string(data), " \n"))
-	if err != nil {
-		return -1, err
-	}
-	return val, nil
-}
-
-func setSysctl(sysctl string, newVal int) error {
-	return ioutil.WriteFile(path.Join(sysctlBase, sysctl), []byte(strconv.Itoa(newVal)), 0640)
-}
 
 // internal struct for string service information
 type serviceInfo struct {
@@ -127,7 +109,6 @@ type serviceInfo struct {
 	loadBalancerStatus  api.LoadBalancerStatus
 	sessionAffinityType api.ServiceAffinity
 	stickyMaxAgeSeconds int
-	endpoints           []string
 	// Deprecated, but required for back-compat (including e2e)
 	externalIPs []string
 }
@@ -145,6 +126,7 @@ func newServiceInfo(service proxy.ServicePortName) *serviceInfo {
 type Proxier struct {
 	mu                          sync.Mutex // protects the following fields
 	serviceMap                  map[proxy.ServicePortName]*serviceInfo
+	endpointsMap                map[proxy.ServicePortName][]string
 	portsMap                    map[localPort]closeable
 	haveReceivedServiceUpdate   bool // true once we've seen an OnServiceUpdate event
 	haveReceivedEndpointsUpdate bool // true once we've seen an OnEndpointsUpdate event
@@ -180,7 +162,7 @@ var _ proxy.ProxyProvider = &Proxier{}
 // will not terminate if a particular iptables call fails.
 func NewProxier(ipt utiliptables.Interface, exec utilexec.Interface, syncPeriod time.Duration, masqueradeAll bool) (*Proxier, error) {
 	// Set the route_localnet sysctl we need for
-	if err := setSysctl(sysctlRouteLocalnet, 1); err != nil {
+	if err := utilsysctl.SetSysctl(sysctlRouteLocalnet, 1); err != nil {
 		return nil, fmt.Errorf("can't set sysctl %s: %v", sysctlRouteLocalnet, err)
 	}
 
@@ -188,12 +170,13 @@ func NewProxier(ipt utiliptables.Interface, exec utilexec.Interface, syncPeriod 
 	// because we'll catch the error on the sysctl, which is what we actually
 	// care about.
 	exec.Command("modprobe", "br-netfilter").CombinedOutput()
-	if err := setSysctl(sysctlBridgeCallIptables, 1); err != nil {
-		return nil, fmt.Errorf("can't set sysctl %s: %v", sysctlBridgeCallIptables, err)
+	if err := utilsysctl.SetSysctl(sysctlBridgeCallIptables, 1); err != nil {
+		glog.Warningf("can't set sysctl %s: %v", sysctlBridgeCallIptables, err)
 	}
 
 	return &Proxier{
 		serviceMap:    make(map[proxy.ServicePortName]*serviceInfo),
+		endpointsMap:  make(map[proxy.ServicePortName][]string),
 		portsMap:      make(map[localPort]closeable),
 		syncPeriod:    syncPeriod,
 		iptables:      ipt,
@@ -248,6 +231,13 @@ func ipsEqual(lhs, rhs []string) bool {
 	return true
 }
 
+// Sync is called to immediately synchronize the proxier state to iptables
+func (proxier *Proxier) Sync() {
+	proxier.mu.Lock()
+	defer proxier.mu.Unlock()
+	proxier.syncProxyRules()
+}
+
 // SyncLoop runs periodic work.  This is expected to run as a goroutine or as the main loop of the app.  It does not return.
 func (proxier *Proxier) SyncLoop() {
 	t := time.NewTicker(proxier.syncPeriod)
@@ -255,11 +245,7 @@ func (proxier *Proxier) SyncLoop() {
 	for {
 		<-t.C
 		glog.V(6).Infof("Periodic sync")
-		func() {
-			proxier.mu.Lock()
-			defer proxier.mu.Unlock()
-			proxier.syncProxyRules()
-		}()
+		proxier.Sync()
 	}
 }
 
@@ -299,7 +285,7 @@ func (proxier *Proxier) OnServiceUpdate(allServices []api.Service) {
 				continue
 			}
 			if exists {
-				//Something changed.
+				// Something changed.
 				glog.V(3).Infof("Something changed for service %q: removing it", serviceName)
 				delete(proxier.serviceMap, serviceName)
 			}
@@ -321,10 +307,9 @@ func (proxier *Proxier) OnServiceUpdate(allServices []api.Service) {
 		}
 	}
 
-	for name, info := range proxier.serviceMap {
-		// Check for servicePorts that were not in this update and have no endpoints.
-		// This helps prevent unnecessarily removing and adding services.
-		if !activeServices[name] && info.endpoints == nil {
+	// Remove services missing from the update.
+	for name := range proxier.serviceMap {
+		if !activeServices[name] {
 			glog.V(1).Infof("Removing service %q", name)
 			delete(proxier.serviceMap, name)
 		}
@@ -339,7 +324,7 @@ func (proxier *Proxier) OnEndpointsUpdate(allEndpoints []api.Endpoints) {
 	defer proxier.mu.Unlock()
 	proxier.haveReceivedEndpointsUpdate = true
 
-	registeredEndpoints := make(map[proxy.ServicePortName]bool) // use a map as a set
+	activeEndpoints := make(map[proxy.ServicePortName]bool) // use a map as a set
 
 	// Update endpoints for services.
 	for i := range allEndpoints {
@@ -361,33 +346,21 @@ func (proxier *Proxier) OnEndpointsUpdate(allEndpoints []api.Endpoints) {
 
 		for portname := range portsToEndpoints {
 			svcPort := proxy.ServicePortName{NamespacedName: types.NamespacedName{Namespace: svcEndpoints.Namespace, Name: svcEndpoints.Name}, Port: portname}
-			state, exists := proxier.serviceMap[svcPort]
-			if !exists || state == nil {
-				state = newServiceInfo(svcPort)
-				proxier.serviceMap[svcPort] = state
-			}
-			curEndpoints := []string{}
-			if state != nil {
-				curEndpoints = state.endpoints
-			}
+			curEndpoints := proxier.endpointsMap[svcPort]
 			newEndpoints := flattenValidEndpoints(portsToEndpoints[portname])
-
 			if len(curEndpoints) != len(newEndpoints) || !slicesEquiv(slice.CopyStrings(curEndpoints), newEndpoints) {
-				glog.V(1).Infof("Setting endpoints for %s to %+v", svcPort, newEndpoints)
-				state.endpoints = newEndpoints
+				glog.V(1).Infof("Setting endpoints for %q to %+v", svcPort, newEndpoints)
+				proxier.endpointsMap[svcPort] = newEndpoints
 			}
-			registeredEndpoints[svcPort] = true
+			activeEndpoints[svcPort] = true
 		}
 	}
+
 	// Remove endpoints missing from the update.
-	for service, info := range proxier.serviceMap {
-		// if missing from update and not already set by previous endpoints event
-		if _, exists := registeredEndpoints[service]; !exists && info.endpoints != nil {
-			glog.V(2).Infof("Removing endpoints for %s", service)
-			// Set the endpoints to nil, we will check for this in OnServiceUpdate so that we
-			// only remove ServicePorts that have no endpoints and were not in the service update,
-			// that way we only remove ServicePorts that were not in both.
-			proxier.serviceMap[service].endpoints = nil
+	for name := range proxier.endpointsMap {
+		if !activeEndpoints[name] {
+			glog.V(2).Infof("Removing endpoints for %q", name)
+			delete(proxier.endpointsMap, name)
 		}
 	}
 
@@ -488,7 +461,7 @@ func (proxier *Proxier) syncProxyRules() {
 	existingChains := make(map[utiliptables.Chain]string)
 	iptablesSaveRaw, err := proxier.iptables.Save(utiliptables.TableNAT)
 	if err != nil { // if we failed to get any rules
-		glog.Errorf("Failed to execute iptable-save, syncing all rules. %s", err.Error())
+		glog.Errorf("Failed to execute iptables-save, syncing all rules. %s", err.Error())
 	} else { // otherwise parse the output
 		existingChains = getChainLines(utiliptables.TableNAT, iptablesSaveRaw)
 	}
@@ -658,7 +631,7 @@ func (proxier *Proxier) syncProxyRules() {
 		// can group rules together.
 		endpoints := make([]string, 0)
 		endpointChains := make([]utiliptables.Chain, 0)
-		for _, ep := range svcInfo.endpoints {
+		for _, ep := range proxier.endpointsMap[svcName] {
 			endpoints = append(endpoints, ep)
 			endpointChain := servicePortEndpointChainName(svcName, protocol, ep)
 			endpointChains = append(endpointChains, endpointChain)

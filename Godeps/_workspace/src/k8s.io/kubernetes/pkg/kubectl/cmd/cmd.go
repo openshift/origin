@@ -111,28 +111,17 @@ __custom_func() {
 `
 	valid_resources = `Valid resource types include:
    * pods (aka 'po')
-   * services (aka 'svc')
-   * deploymentconfigs (aka 'dc')
-   * buildconfigs (aka 'bc')
-   * builds
-   * routes
    * replicationcontrollers (aka 'rc')
+   * daemonsets (aka 'ds')
+   * services (aka 'svc')
    * events (aka 'ev')
-   * projects
-   * secrets
-   * imagestraams (aka 'is')
-   * imagestreamtags (aka 'istag')
-   * imagestreamimages (aka 'isimage')
-   * persistentvolumes (aka 'pv')
-   * persistentvolumeclaims (aka 'pvc')
-   * policies
-   * rolebindings
-   * limitranges (aka 'limits')
-   * resourcequotas (aka 'quota')
    * nodes (aka 'no')
    * namespaces (aka 'ns')
-   * users
-   * groups
+   * secrets
+   * persistentvolumes (aka 'pv')
+   * persistentvolumeclaims (aka 'pvc')
+   * limitranges (aka 'limits')
+   * resourcequotas (aka 'quota')
 `
 )
 
@@ -160,6 +149,8 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.AddCommand(NewCmdReplace(f, out))
 	cmds.AddCommand(NewCmdPatch(f, out))
 	cmds.AddCommand(NewCmdDelete(f, out))
+	cmds.AddCommand(NewCmdEdit(f, out))
+	cmds.AddCommand(NewCmdApply(f, out))
 
 	cmds.AddCommand(NewCmdNamespace(out))
 	cmds.AddCommand(NewCmdLog(f, out))
@@ -182,6 +173,8 @@ Find more information at https://github.com/kubernetes/kubernetes.`,
 	cmds.AddCommand(NewCmdClusterInfo(f, out))
 	cmds.AddCommand(NewCmdApiVersions(f, out))
 	cmds.AddCommand(NewCmdVersion(f, out))
+	cmds.AddCommand(NewCmdExplain(f, out))
+	cmds.AddCommand(NewCmdConvert(f, out))
 
 	return cmds
 }

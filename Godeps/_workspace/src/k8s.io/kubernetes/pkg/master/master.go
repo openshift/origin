@@ -33,10 +33,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	apiutil "k8s.io/kubernetes/pkg/api/util"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/api/v1beta3"
-	"k8s.io/kubernetes/pkg/apis/experimental"
-	explatest "k8s.io/kubernetes/pkg/apis/experimental/latest"
+	expapi "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/auth/authenticator"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
@@ -53,6 +53,7 @@ import (
 	endpointsetcd "k8s.io/kubernetes/pkg/registry/endpoint/etcd"
 	eventetcd "k8s.io/kubernetes/pkg/registry/event/etcd"
 	expcontrolleretcd "k8s.io/kubernetes/pkg/registry/experimental/controller/etcd"
+	ingressetcd "k8s.io/kubernetes/pkg/registry/ingress/etcd"
 	jobetcd "k8s.io/kubernetes/pkg/registry/job/etcd"
 	limitrangeetcd "k8s.io/kubernetes/pkg/registry/limitrange/etcd"
 	"k8s.io/kubernetes/pkg/registry/namespace"
@@ -65,7 +66,6 @@ import (
 	podtemplateetcd "k8s.io/kubernetes/pkg/registry/podtemplate/etcd"
 	resourcequotaetcd "k8s.io/kubernetes/pkg/registry/resourcequota/etcd"
 	secretetcd "k8s.io/kubernetes/pkg/registry/secret/etcd"
-	sccetcd "k8s.io/kubernetes/pkg/registry/securitycontextconstraints/etcd"
 	"k8s.io/kubernetes/pkg/registry/service"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	serviceetcd "k8s.io/kubernetes/pkg/registry/service/etcd"
@@ -77,7 +77,7 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
-	//"k8s.io/kubernetes/pkg/ui"
+	"k8s.io/kubernetes/pkg/ui"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -88,6 +88,7 @@ import (
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/net/context"
 	"k8s.io/kubernetes/pkg/registry/service/allocator"
 	"k8s.io/kubernetes/pkg/registry/service/portallocator"
 )
@@ -96,21 +97,89 @@ const (
 	DefaultEtcdPathPrefix = "/registry"
 )
 
+// StorageDestinations is a mapping from API group & resource to
+// the underlying storage interfaces.
+type StorageDestinations struct {
+	APIGroups map[string]*StorageDestinationsForAPIGroup
+}
+
+type StorageDestinationsForAPIGroup struct {
+	Default   storage.Interface
+	Overrides map[string]storage.Interface
+}
+
+func NewStorageDestinations() StorageDestinations {
+	return StorageDestinations{
+		APIGroups: map[string]*StorageDestinationsForAPIGroup{},
+	}
+}
+
+func (s *StorageDestinations) AddAPIGroup(group string, defaultStorage storage.Interface) {
+	s.APIGroups[group] = &StorageDestinationsForAPIGroup{
+		Default:   defaultStorage,
+		Overrides: map[string]storage.Interface{},
+	}
+}
+
+func (s *StorageDestinations) AddStorageOverride(group, resource string, override storage.Interface) {
+	if _, ok := s.APIGroups[group]; !ok {
+		s.AddAPIGroup(group, nil)
+	}
+	if s.APIGroups[group].Overrides == nil {
+		s.APIGroups[group].Overrides = map[string]storage.Interface{}
+	}
+	s.APIGroups[group].Overrides[resource] = override
+}
+
+func (s *StorageDestinations) get(group, resource string) storage.Interface {
+	apigroup, ok := s.APIGroups[group]
+	if !ok {
+		glog.Errorf("No storage defined for API group: '%s'", apigroup)
+		return nil
+	}
+	if apigroup.Overrides != nil {
+		if client, exists := apigroup.Overrides[resource]; exists {
+			return client
+		}
+	}
+	return apigroup.Default
+}
+
+// Get all backends for all registered storage destinations.
+// Used for getting all instances for health validations.
+func (s *StorageDestinations) backends() []string {
+	backends := sets.String{}
+	for _, group := range s.APIGroups {
+		if group.Default != nil {
+			for _, backend := range group.Default.Backends(context.TODO()) {
+				backends.Insert(backend)
+			}
+		}
+		if group.Overrides != nil {
+			for _, storage := range group.Overrides {
+				for _, backend := range storage.Backends(context.TODO()) {
+					backends.Insert(backend)
+				}
+			}
+		}
+	}
+	return backends.List()
+}
+
 // Config is a structure used to configure a Master.
 type Config struct {
-	DatabaseStorage    storage.Interface
-	ExpDatabaseStorage storage.Interface
-	EventTTL           time.Duration
-	NodeRegexp         string
-	KubeletClient      client.KubeletClient
+	StorageDestinations StorageDestinations
+	// StorageVersions is a map between groups and their storage versions
+	StorageVersions map[string]string
+	EventTTL        time.Duration
+	NodeRegexp      string
+	KubeletClient   client.KubeletClient
 	// allow downstream consumers to disable the core controller loops
 	EnableCoreControllers bool
 	EnableLogsSupport     bool
 	EnableUISupport       bool
 	// allow downstream consumers to disable swagger
 	EnableSwaggerSupport bool
-	// allow v1beta3 to be conditionally enabled
-	EnableV1Beta3 bool
 	// allow api versions to be conditionally disabled
 	DisableV1 bool
 	EnableExp bool
@@ -119,7 +188,7 @@ type Config struct {
 	EnableProfiling       bool
 	EnableWatchCache      bool
 	APIPrefix             string
-	ExpAPIPrefix          string
+	APIGroupPrefix        string
 	CorsAllowedOriginList []string
 	Authenticator         authenticator.Request
 	// TODO(roberthbailey): Remove once the server no longer supports http basic auth.
@@ -213,13 +282,12 @@ type Master struct {
 	enableProfiling       bool
 	enableWatchCache      bool
 	apiPrefix             string
-	expAPIPrefix          string
+	apiGroupPrefix        string
 	corsAllowedOriginList []string
 	authenticator         authenticator.Request
 	authorizer            authorizer.Authorizer
 	admissionControl      admission.Interface
 	masterCount           int
-	v1beta3               bool
 	v1                    bool
 	exp                   bool
 	requestContextMapper  api.RequestContextMapper
@@ -260,7 +328,6 @@ type Master struct {
 
 	// storage for third party objects
 	thirdPartyStorage storage.Interface
-
 	// map from api path to storage for those objects
 	thirdPartyResources map[string]*thirdpartyresourcedataetcd.REST
 	// protects the map
@@ -378,12 +445,11 @@ func New(c *Config) *Master {
 		enableProfiling:       c.EnableProfiling,
 		enableWatchCache:      c.EnableWatchCache,
 		apiPrefix:             c.APIPrefix,
-		expAPIPrefix:          c.ExpAPIPrefix,
+		apiGroupPrefix:        c.APIGroupPrefix,
 		corsAllowedOriginList: c.CorsAllowedOriginList,
 		authenticator:         c.Authenticator,
 		authorizer:            c.Authorizer,
 		admissionControl:      c.AdmissionControl,
-		v1beta3:               c.EnableV1Beta3,
 		v1:                    !c.DisableV1,
 		exp:                   c.EnableExp,
 		requestContextMapper:  c.RequestContextMapper,
@@ -463,37 +529,37 @@ func (m *Master) init(c *Config) {
 	}
 
 	healthzChecks := []healthz.HealthzChecker{}
-	podStorage := podetcd.NewStorage(c.DatabaseStorage, c.EnableWatchCache, c.KubeletClient, m.proxyTransport)
 
-	podTemplateStorage := podtemplateetcd.NewREST(c.DatabaseStorage)
+	dbClient := func(resource string) storage.Interface { return c.StorageDestinations.get("", resource) }
+	podStorage := podetcd.NewStorage(dbClient("pods"), c.EnableWatchCache, c.KubeletClient, m.proxyTransport)
 
-	eventStorage := eventetcd.NewREST(c.DatabaseStorage, uint64(c.EventTTL.Seconds()))
-	limitRangeStorage := limitrangeetcd.NewREST(c.DatabaseStorage)
+	podTemplateStorage := podtemplateetcd.NewREST(dbClient("podTemplates"))
 
-	resourceQuotaStorage, resourceQuotaStatusStorage := resourcequotaetcd.NewREST(c.DatabaseStorage)
-	secretStorage := secretetcd.NewREST(c.DatabaseStorage)
-	serviceAccountStorage := serviceaccountetcd.NewREST(c.DatabaseStorage)
-	persistentVolumeStorage, persistentVolumeStatusStorage := pvetcd.NewREST(c.DatabaseStorage)
-	persistentVolumeClaimStorage, persistentVolumeClaimStatusStorage := pvcetcd.NewREST(c.DatabaseStorage)
+	eventStorage := eventetcd.NewREST(dbClient("events"), uint64(c.EventTTL.Seconds()))
+	limitRangeStorage := limitrangeetcd.NewREST(dbClient("limitRanges"))
 
-	namespaceStorage, namespaceStatusStorage, namespaceFinalizeStorage := namespaceetcd.NewREST(c.DatabaseStorage)
+	resourceQuotaStorage, resourceQuotaStatusStorage := resourcequotaetcd.NewREST(dbClient("resourceQuotas"))
+	secretStorage := secretetcd.NewREST(dbClient("secrets"))
+	serviceAccountStorage := serviceaccountetcd.NewREST(dbClient("serviceAccounts"))
+	persistentVolumeStorage, persistentVolumeStatusStorage := pvetcd.NewREST(dbClient("persistentVolumes"))
+	persistentVolumeClaimStorage, persistentVolumeClaimStatusStorage := pvcetcd.NewREST(dbClient("persistentVolumeClaims"))
+
+	namespaceStorage, namespaceStatusStorage, namespaceFinalizeStorage := namespaceetcd.NewREST(dbClient("namespaces"))
 	m.namespaceRegistry = namespace.NewRegistry(namespaceStorage)
 
-	endpointsStorage := endpointsetcd.NewREST(c.DatabaseStorage, c.EnableWatchCache)
+	endpointsStorage := endpointsetcd.NewREST(dbClient("endpoints"), c.EnableWatchCache)
 	m.endpointRegistry = endpoint.NewRegistry(endpointsStorage)
 
-	securityContextConstraintsStorage := sccetcd.NewStorage(c.DatabaseStorage)
-
-	nodeStorage, nodeStatusStorage := nodeetcd.NewREST(c.DatabaseStorage, c.EnableWatchCache, c.KubeletClient, m.proxyTransport)
+	nodeStorage, nodeStatusStorage := nodeetcd.NewREST(dbClient("nodes"), c.EnableWatchCache, c.KubeletClient, m.proxyTransport)
 	m.nodeRegistry = node.NewRegistry(nodeStorage)
 
-	serviceStorage := serviceetcd.NewREST(c.DatabaseStorage)
+	serviceStorage := serviceetcd.NewREST(dbClient("services"))
 	m.serviceRegistry = service.NewRegistry(serviceStorage)
 
 	var serviceClusterIPRegistry service.RangeRegistry
 	serviceClusterIPAllocator := ipallocator.NewAllocatorCIDRRange(m.serviceClusterIPRange, func(max int, rangeSpec string) allocator.Interface {
 		mem := allocator.NewAllocationMap(max, rangeSpec)
-		etcd := etcdallocator.NewEtcd(mem, "/ranges/serviceips", "serviceipallocation", c.DatabaseStorage)
+		etcd := etcdallocator.NewEtcd(mem, "/ranges/serviceips", "serviceipallocation", dbClient("services"))
 		serviceClusterIPRegistry = etcd
 		return etcd
 	})
@@ -502,13 +568,13 @@ func (m *Master) init(c *Config) {
 	var serviceNodePortRegistry service.RangeRegistry
 	serviceNodePortAllocator := portallocator.NewPortAllocatorCustom(m.serviceNodePortRange, func(max int, rangeSpec string) allocator.Interface {
 		mem := allocator.NewAllocationMap(max, rangeSpec)
-		etcd := etcdallocator.NewEtcd(mem, "/ranges/servicenodeports", "servicenodeportallocation", c.DatabaseStorage)
+		etcd := etcdallocator.NewEtcd(mem, "/ranges/servicenodeports", "servicenodeportallocation", dbClient("services"))
 		serviceNodePortRegistry = etcd
 		return etcd
 	})
 	m.serviceNodePortAllocator = serviceNodePortRegistry
 
-	controllerStorage := controlleretcd.NewREST(c.DatabaseStorage)
+	controllerStorage, controllerStatusStorage := controlleretcd.NewREST(dbClient("replicationControllers"))
 
 	// TODO: Factor out the core API registration
 	m.storage = map[string]rest.Storage{
@@ -524,12 +590,13 @@ func (m *Master) init(c *Config) {
 
 		"podTemplates": podTemplateStorage,
 
-		"replicationControllers": controllerStorage,
-		"services":               service.NewStorage(m.serviceRegistry, m.endpointRegistry, serviceClusterIPAllocator, serviceNodePortAllocator, m.proxyTransport),
-		"endpoints":              endpointsStorage,
-		"nodes":                  nodeStorage,
-		"nodes/status":           nodeStatusStorage,
-		"events":                 eventStorage,
+		"replicationControllers":        controllerStorage,
+		"replicationControllers/status": controllerStatusStorage,
+		"services":                      service.NewStorage(m.serviceRegistry, m.endpointRegistry, serviceClusterIPAllocator, serviceNodePortAllocator, m.proxyTransport),
+		"endpoints":                     endpointsStorage,
+		"nodes":                         nodeStorage,
+		"nodes/status":                  nodeStatusStorage,
+		"events":                        eventStorage,
 
 		"limitRanges":                   limitRangeStorage,
 		"resourceQuotas":                resourceQuotaStorage,
@@ -539,7 +606,6 @@ func (m *Master) init(c *Config) {
 		"namespaces/finalize":           namespaceFinalizeStorage,
 		"secrets":                       secretStorage,
 		"serviceAccounts":               serviceAccountStorage,
-		"securityContextConstraints":    securityContextConstraintsStorage,
 		"persistentVolumes":             persistentVolumeStorage,
 		"persistentVolumes/status":      persistentVolumeStatusStorage,
 		"persistentVolumeClaims":        persistentVolumeClaimStorage,
@@ -558,12 +624,6 @@ func (m *Master) init(c *Config) {
 	}
 
 	apiVersions := []string{}
-	if m.v1beta3 {
-		if err := m.api_v1beta3().InstallREST(m.handlerContainer); err != nil {
-			glog.Fatalf("Unable to setup API v1beta3: %v", err)
-		}
-		apiVersions = append(apiVersions, "v1beta3")
-	}
 	if m.v1 {
 		if err := m.api_v1().InstallREST(m.handlerContainer); err != nil {
 			glog.Fatalf("Unable to setup API v1: %v", err)
@@ -573,19 +633,46 @@ func (m *Master) init(c *Config) {
 
 	apiserver.InstallSupport(m.muxHelper, m.rootWebService, c.EnableProfiling, healthzChecks...)
 	apiserver.AddApiWebService(m.handlerContainer, c.APIPrefix, apiVersions)
-	defaultVersion := m.defaultAPIGroupVersion()
-	requestInfoResolver := &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString(strings.TrimPrefix(defaultVersion.Root, "/")), RestMapper: defaultVersion.Mapper}
-	apiserver.InstallServiceErrorHandler(m.handlerContainer, requestInfoResolver, apiVersions)
+	apiserver.InstallServiceErrorHandler(m.handlerContainer, m.newAPIRequestInfoResolver(), apiVersions)
 
+	// allGroups records all supported groups at /apis
+	allGroups := []unversioned.APIGroup{}
 	if m.exp {
+		m.thirdPartyStorage = c.StorageDestinations.APIGroups["extensions"].Default
+		m.thirdPartyResources = map[string]*thirdpartyresourcedataetcd.REST{}
+
 		expVersion := m.experimental(c)
+
 		if err := expVersion.InstallREST(m.handlerContainer); err != nil {
 			glog.Fatalf("Unable to setup experimental api: %v", err)
 		}
-		apiserver.AddApiWebService(m.handlerContainer, c.ExpAPIPrefix, []string{expVersion.Version})
-		expRequestInfoResolver := &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString(strings.TrimPrefix(expVersion.Root, "/")), RestMapper: expVersion.Mapper}
-		apiserver.InstallServiceErrorHandler(m.handlerContainer, expRequestInfoResolver, []string{expVersion.Version})
+		g, err := latest.Group("extensions")
+		if err != nil {
+			glog.Fatalf("Unable to setup experimental api: %v", err)
+		}
+		expAPIVersions := []unversioned.GroupVersion{
+			{
+				GroupVersion: expVersion.Version,
+				Version:      apiutil.GetVersion(expVersion.Version),
+			},
+		}
+		storageVersion, found := c.StorageVersions[g.Group]
+		if !found {
+			glog.Fatalf("Couldn't find storage version of group %v", g.Group)
+		}
+		group := unversioned.APIGroup{
+			Name:             g.Group,
+			Versions:         expAPIVersions,
+			PreferredVersion: unversioned.GroupVersion{GroupVersion: storageVersion, Version: apiutil.GetVersion(storageVersion)},
+		}
+		apiserver.AddGroupWebService(m.handlerContainer, c.APIGroupPrefix+"/"+latest.GroupOrDie("extensions").Group+"/", group)
+		allGroups = append(allGroups, group)
+		apiserver.InstallServiceErrorHandler(m.handlerContainer, m.newAPIRequestInfoResolver(), []string{expVersion.Version})
 	}
+
+	// This should be done after all groups are registered
+	// TODO: replace the hardcoded "apis".
+	apiserver.AddApisWebService(m.handlerContainer, "/apis", allGroups)
 
 	// Register root handler.
 	// We do not register this using restful Webservice since we do not want to surface this in api docs.
@@ -597,9 +684,9 @@ func (m *Master) init(c *Config) {
 	if c.EnableLogsSupport {
 		apiserver.InstallLogsSupport(m.muxHelper)
 	}
-	/*if c.EnableUISupport {
-		ui.InstallSupport(m.mux)
-	}*/
+	if c.EnableUISupport {
+		ui.InstallSupport(m.muxHelper, m.enableSwaggerSupport)
+	}
 
 	if c.EnableProfiling {
 		m.mux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -623,7 +710,7 @@ func (m *Master) init(c *Config) {
 
 	m.InsecureHandler = handler
 
-	attributeGetter := apiserver.NewRequestAttributeGetter(m.requestContextMapper, latest.RESTMapper, "api")
+	attributeGetter := apiserver.NewRequestAttributeGetter(m.requestContextMapper, m.newAPIRequestInfoResolver())
 	handler = apiserver.WithAuthorizationCheck(handler, attributeGetter, m.authorizer)
 
 	// Install Authenticator
@@ -727,7 +814,8 @@ func (m *Master) getServersToValidate(c *Config) map[string]apiserver.Server {
 		"controller-manager": {Addr: "127.0.0.1", Port: ports.ControllerManagerPort, Path: "/healthz"},
 		"scheduler":          {Addr: "127.0.0.1", Port: ports.SchedulerPort, Path: "/healthz"},
 	}
-	for ix, machine := range c.DatabaseStorage.Backends() {
+
+	for ix, machine := range c.StorageDestinations.backends() {
 		etcdUrl, err := url.Parse(machine)
 		if err != nil {
 			glog.Errorf("Failed to parse etcd url for validation: %v", err)
@@ -752,38 +840,30 @@ func (m *Master) getServersToValidate(c *Config) map[string]apiserver.Server {
 	return serversToValidate
 }
 
+func (m *Master) newAPIRequestInfoResolver() *apiserver.APIRequestInfoResolver {
+	return &apiserver.APIRequestInfoResolver{
+		sets.NewString(strings.Trim(m.apiPrefix, "/"), strings.Trim(thirdpartyprefix, "/")), // all possible API prefixes
+		sets.NewString(strings.Trim(m.apiPrefix, "/")),                                      // APIPrefixes that won't have groups (legacy)
+	}
+}
+
 func (m *Master) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	return &apiserver.APIGroupVersion{
 		Root: m.apiPrefix,
+		APIRequestInfoResolver: m.newAPIRequestInfoResolver(),
 
-		Mapper: latest.RESTMapper,
+		Mapper: latest.GroupOrDie("").RESTMapper,
 
 		Creater:   api.Scheme,
 		Convertor: api.Scheme,
 		Typer:     api.Scheme,
-		Linker:    latest.SelfLinker,
+		Linker:    latest.GroupOrDie("").SelfLinker,
 
 		Admit:   m.admissionControl,
 		Context: m.requestContextMapper,
 
 		MinRequestTimeout: m.minRequestTimeout,
 	}
-}
-
-// api_v1beta3 returns the resources and codec for API version v1beta3.
-func (m *Master) api_v1beta3() *apiserver.APIGroupVersion {
-	storage := make(map[string]rest.Storage)
-	for k, v := range m.storage {
-		if k == "minions" || k == "minions/status" {
-			continue
-		}
-		storage[strings.ToLower(k)] = v
-	}
-	version := m.defaultAPIGroupVersion()
-	version.Storage = storage
-	version.Version = "v1beta3"
-	version.Codec = v1beta3.Codec
-	return version
 }
 
 // api_v1 returns the resources and codec for API version v1.
@@ -799,7 +879,95 @@ func (m *Master) api_v1() *apiserver.APIGroupVersion {
 	return version
 }
 
-func (m *Master) InstallThirdPartyAPI(rsrc *experimental.ThirdPartyResource) error {
+// HasThirdPartyResource returns true if a particular third party resource currently installed.
+func (m *Master) HasThirdPartyResource(rsrc *expapi.ThirdPartyResource) (bool, error) {
+	_, group, err := thirdpartyresourcedata.ExtractApiGroupAndKind(rsrc)
+	if err != nil {
+		return false, err
+	}
+	path := makeThirdPartyPath(group)
+	services := m.handlerContainer.RegisteredWebServices()
+	for ix := range services {
+		if services[ix].RootPath() == path {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (m *Master) removeThirdPartyStorage(path string) error {
+	m.thirdPartyResourcesLock.Lock()
+	defer m.thirdPartyResourcesLock.Unlock()
+	storage, found := m.thirdPartyResources[path]
+	if found {
+		if err := m.removeAllThirdPartyResources(storage); err != nil {
+			return err
+		}
+		delete(m.thirdPartyResources, path)
+	}
+	return nil
+}
+
+// RemoveThirdPartyResource removes all resources matching `path`.  Also deletes any stored data
+func (m *Master) RemoveThirdPartyResource(path string) error {
+	if err := m.removeThirdPartyStorage(path); err != nil {
+		return err
+	}
+
+	services := m.handlerContainer.RegisteredWebServices()
+	for ix := range services {
+		root := services[ix].RootPath()
+		if root == path || strings.HasPrefix(root, path+"/") {
+			m.handlerContainer.Remove(services[ix])
+		}
+	}
+	return nil
+}
+
+func (m *Master) removeAllThirdPartyResources(registry *thirdpartyresourcedataetcd.REST) error {
+	ctx := api.NewDefaultContext()
+	existingData, err := registry.List(ctx, labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+	list, ok := existingData.(*expapi.ThirdPartyResourceDataList)
+	if !ok {
+		return fmt.Errorf("expected a *ThirdPartyResourceDataList, got %#v", list)
+	}
+	for ix := range list.Items {
+		item := &list.Items[ix]
+		if _, err := registry.Delete(ctx, item.Name, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ListThirdPartyResources lists all currently installed third party resources
+func (m *Master) ListThirdPartyResources() []string {
+	m.thirdPartyResourcesLock.RLock()
+	defer m.thirdPartyResourcesLock.RUnlock()
+	result := []string{}
+	for key := range m.thirdPartyResources {
+		result = append(result, key)
+	}
+	return result
+}
+
+func (m *Master) addThirdPartyResourceStorage(path string, storage *thirdpartyresourcedataetcd.REST) {
+	m.thirdPartyResourcesLock.Lock()
+	defer m.thirdPartyResourcesLock.Unlock()
+	m.thirdPartyResources[path] = storage
+}
+
+// InstallThirdPartyResource installs a third party resource specified by 'rsrc'.  When a resource is
+// installed a corresponding RESTful resource is added as a valid path in the web service provided by
+// the master.
+//
+// For example, if you install a resource ThirdPartyResource{ Name: "foo.company.com", Versions: {"v1"} }
+// then the following RESTful resource is created on the server:
+//   http://<host>/apis/company.com/v1/foos/...
+func (m *Master) InstallThirdPartyResource(rsrc *expapi.ThirdPartyResource) error {
 	kind, group, err := thirdpartyresourcedata.ExtractApiGroupAndKind(rsrc)
 	if err != nil {
 		return err
@@ -808,36 +976,45 @@ func (m *Master) InstallThirdPartyAPI(rsrc *experimental.ThirdPartyResource) err
 	if err := thirdparty.InstallREST(m.handlerContainer); err != nil {
 		glog.Fatalf("Unable to setup thirdparty api: %v", err)
 	}
-	thirdPartyPrefix := "/thirdparty/" + group + "/"
-	apiserver.AddApiWebService(m.handlerContainer, thirdPartyPrefix, []string{rsrc.Versions[0].Name})
-	thirdPartyRequestInfoResolver := &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString(strings.TrimPrefix(group, "/")), RestMapper: thirdparty.Mapper}
-	apiserver.InstallServiceErrorHandler(m.handlerContainer, thirdPartyRequestInfoResolver, []string{thirdparty.Version})
+	path := makeThirdPartyPath(group)
+	groupVersion := unversioned.GroupVersion{
+		GroupVersion: group + "/" + rsrc.Versions[0].Name,
+		Version:      rsrc.Versions[0].Name,
+	}
+	apiGroup := unversioned.APIGroup{
+		Name:     group,
+		Versions: []unversioned.GroupVersion{groupVersion},
+	}
+	apiserver.AddGroupWebService(m.handlerContainer, path, apiGroup)
+	m.addThirdPartyResourceStorage(path, thirdparty.Storage[strings.ToLower(kind)+"s"].(*thirdpartyresourcedataetcd.REST))
+	apiserver.InstallServiceErrorHandler(m.handlerContainer, m.newAPIRequestInfoResolver(), []string{thirdparty.Version})
 	return nil
 }
 
 func (m *Master) thirdpartyapi(group, kind, version string) *apiserver.APIGroupVersion {
 	resourceStorage := thirdpartyresourcedataetcd.NewREST(m.thirdPartyStorage, group, kind)
 
-	apiRoot := "/thirdparty/" + group + "/"
+	apiRoot := makeThirdPartyPath("")
 
 	storage := map[string]rest.Storage{
 		strings.ToLower(kind) + "s": resourceStorage,
 	}
 
 	return &apiserver.APIGroupVersion{
-		Root: apiRoot,
+		Root:                   apiRoot,
+		Version:                apiutil.GetGroupVersion(group, version),
+		APIRequestInfoResolver: m.newAPIRequestInfoResolver(),
 
-		Creater:   thirdpartyresourcedata.NewObjectCreator(version, api.Scheme),
+		Creater:   thirdpartyresourcedata.NewObjectCreator(group, version, api.Scheme),
 		Convertor: api.Scheme,
 		Typer:     api.Scheme,
 
-		Mapper:  thirdpartyresourcedata.NewMapper(explatest.RESTMapper, kind, version),
-		Codec:   explatest.Codec,
-		Linker:  explatest.SelfLinker,
-		Storage: storage,
-		Version: version,
+		Mapper:        thirdpartyresourcedata.NewMapper(latest.GroupOrDie("extensions").RESTMapper, kind, version, group),
+		Codec:         thirdpartyresourcedata.NewCodec(latest.GroupOrDie("extensions").Codec, kind),
+		Linker:        latest.GroupOrDie("extensions").SelfLinker,
+		Storage:       storage,
+		ServerVersion: latest.GroupOrDie("").GroupVersion,
 
-		Admit:   m.admissionControl,
 		Context: m.requestContextMapper,
 
 		MinRequestTimeout: m.minRequestTimeout,
@@ -846,35 +1023,59 @@ func (m *Master) thirdpartyapi(group, kind, version string) *apiserver.APIGroupV
 
 // experimental returns the resources and codec for the experimental api
 func (m *Master) experimental(c *Config) *apiserver.APIGroupVersion {
-	controllerStorage := expcontrolleretcd.NewStorage(c.ExpDatabaseStorage)
-	autoscalerStorage := horizontalpodautoscaleretcd.NewREST(c.ExpDatabaseStorage)
-	thirdPartyResourceStorage := thirdpartyresourceetcd.NewREST(c.ExpDatabaseStorage)
-	daemonSetStorage := daemonetcd.NewREST(c.ExpDatabaseStorage)
-	deploymentStorage := deploymentetcd.NewREST(c.ExpDatabaseStorage)
-	jobStorage := jobetcd.NewREST(c.ExpDatabaseStorage)
+	controllerStorage := expcontrolleretcd.NewStorage(c.StorageDestinations.get("", "replicationControllers"))
+	dbClient := func(resource string) storage.Interface {
+		return c.StorageDestinations.get("extensions", resource)
+	}
+	autoscalerStorage, autoscalerStatusStorage := horizontalpodautoscaleretcd.NewREST(dbClient("horizonalpodautoscalers"))
+	thirdPartyResourceStorage := thirdpartyresourceetcd.NewREST(dbClient("thirdpartyresources"))
+	daemonSetStorage, daemonSetStatusStorage := daemonetcd.NewREST(dbClient("daemonsets"))
+	deploymentStorage := deploymentetcd.NewStorage(dbClient("deployments"))
+	jobStorage, jobStatusStorage := jobetcd.NewREST(dbClient("jobs"))
+	ingressStorage := ingressetcd.NewREST(dbClient("ingress"))
 
+	thirdPartyControl := ThirdPartyController{
+		master: m,
+		thirdPartyResourceRegistry: thirdPartyResourceStorage,
+	}
+	go func() {
+		util.Forever(func() {
+			if err := thirdPartyControl.SyncResources(); err != nil {
+				glog.Warningf("third party resource sync failed: %v", err)
+			}
+		}, 10*time.Second)
+	}()
 	storage := map[string]rest.Storage{
-		strings.ToLower("replicationControllers"):       controllerStorage.ReplicationController,
-		strings.ToLower("replicationControllers/scale"): controllerStorage.Scale,
-		strings.ToLower("horizontalpodautoscalers"):     autoscalerStorage,
-		strings.ToLower("thirdpartyresources"):          thirdPartyResourceStorage,
-		strings.ToLower("daemonsets"):                   daemonSetStorage,
-		strings.ToLower("deployments"):                  deploymentStorage,
-		strings.ToLower("jobs"):                         jobStorage,
+		strings.ToLower("replicationControllers"):          controllerStorage.ReplicationController,
+		strings.ToLower("replicationControllers/scale"):    controllerStorage.Scale,
+		strings.ToLower("horizontalpodautoscalers"):        autoscalerStorage,
+		strings.ToLower("horizontalpodautoscalers/status"): autoscalerStatusStorage,
+		strings.ToLower("thirdpartyresources"):             thirdPartyResourceStorage,
+		strings.ToLower("daemonsets"):                      daemonSetStorage,
+		strings.ToLower("daemonsets/status"):               daemonSetStatusStorage,
+		strings.ToLower("deployments"):                     deploymentStorage.Deployment,
+		strings.ToLower("deployments/scale"):               deploymentStorage.Scale,
+		strings.ToLower("jobs"):                            jobStorage,
+		strings.ToLower("jobs/status"):                     jobStatusStorage,
+		strings.ToLower("ingress"):                         ingressStorage,
 	}
 
+	expMeta := latest.GroupOrDie("extensions")
+
 	return &apiserver.APIGroupVersion{
-		Root: m.expAPIPrefix,
+		Root: m.apiGroupPrefix,
+		APIRequestInfoResolver: m.newAPIRequestInfoResolver(),
 
 		Creater:   api.Scheme,
 		Convertor: api.Scheme,
 		Typer:     api.Scheme,
 
-		Mapper:  explatest.RESTMapper,
-		Codec:   explatest.Codec,
-		Linker:  explatest.SelfLinker,
-		Storage: storage,
-		Version: explatest.Version,
+		Mapper:        expMeta.RESTMapper,
+		Codec:         expMeta.Codec,
+		Linker:        expMeta.SelfLinker,
+		Storage:       storage,
+		Version:       expMeta.GroupVersion,
+		ServerVersion: latest.GroupOrDie("").GroupVersion,
 
 		Admit:   m.admissionControl,
 		Context: m.requestContextMapper,

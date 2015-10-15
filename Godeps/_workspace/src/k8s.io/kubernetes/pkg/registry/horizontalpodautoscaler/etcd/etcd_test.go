@@ -21,9 +21,9 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/apis/experimental"
-	// Ensure that experimental/v1 package is initialized.
-	_ "k8s.io/kubernetes/pkg/apis/experimental/v1"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	// Ensure that extensions/v1beta1 package is initialized.
+	_ "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
@@ -31,30 +31,31 @@ import (
 	"k8s.io/kubernetes/pkg/tools"
 )
 
-func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
-	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "experimental")
-	return NewREST(etcdStorage), fakeClient
+func newStorage(t *testing.T) (*REST, *StatusREST, *tools.FakeEtcdClient) {
+	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "extensions")
+	storage, statusStorage := NewREST(etcdStorage)
+	return storage, statusStorage, fakeClient
 }
 
-func validNewHorizontalPodAutoscaler(name string) *experimental.HorizontalPodAutoscaler {
-	return &experimental.HorizontalPodAutoscaler{
+func validNewHorizontalPodAutoscaler(name string) *extensions.HorizontalPodAutoscaler {
+	return &extensions.HorizontalPodAutoscaler{
 		ObjectMeta: api.ObjectMeta{
 			Name:      name,
 			Namespace: api.NamespaceDefault,
 		},
-		Spec: experimental.HorizontalPodAutoscalerSpec{
-			ScaleRef: &experimental.SubresourceReference{
+		Spec: extensions.HorizontalPodAutoscalerSpec{
+			ScaleRef: &extensions.SubresourceReference{
 				Subresource: "scale",
 			},
-			MinCount: 1,
-			MaxCount: 5,
-			Target:   experimental.ResourceConsumption{Resource: api.ResourceCPU, Quantity: resource.MustParse("0.8")},
+			MinReplicas: 1,
+			MaxReplicas: 5,
+			Target:      extensions.ResourceConsumption{Resource: api.ResourceCPU, Quantity: resource.MustParse("0.8")},
 		},
 	}
 }
 
 func TestCreate(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	autoscaler := validNewHorizontalPodAutoscaler("foo")
 	autoscaler.ObjectMeta = api.ObjectMeta{}
@@ -62,45 +63,45 @@ func TestCreate(t *testing.T) {
 		// valid
 		autoscaler,
 		// invalid
-		&experimental.HorizontalPodAutoscaler{},
+		&extensions.HorizontalPodAutoscaler{},
 	)
 }
 
 func TestUpdate(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	test.TestUpdate(
 		// valid
 		validNewHorizontalPodAutoscaler("foo"),
 		// updateFunc
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*experimental.HorizontalPodAutoscaler)
-			object.Spec.MaxCount = object.Spec.MaxCount + 1
+			object := obj.(*extensions.HorizontalPodAutoscaler)
+			object.Spec.MaxReplicas = object.Spec.MaxReplicas + 1
 			return object
 		},
 	)
 }
 
 func TestDelete(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	test.TestDelete(validNewHorizontalPodAutoscaler("foo"))
 }
 
 func TestGet(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	test.TestGet(validNewHorizontalPodAutoscaler("foo"))
 }
 
 func TestList(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	test.TestList(validNewHorizontalPodAutoscaler("foo"))
 }
 
 func TestWatch(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	test.TestWatch(
 		validNewHorizontalPodAutoscaler("foo"),
@@ -119,3 +120,5 @@ func TestWatch(t *testing.T) {
 		},
 	)
 }
+
+// TODO TestUpdateStatus
