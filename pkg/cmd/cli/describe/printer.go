@@ -348,7 +348,11 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, withNamespace, 
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.Name, stream.Status.DockerImageRepository, tags, latestTime)
+	repo := stream.Spec.DockerImageRepository
+	if len(repo) == 0 {
+		repo = stream.Status.DockerImageRepository
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.Name, repo, tags, latestTime)
 	return err
 }
 
