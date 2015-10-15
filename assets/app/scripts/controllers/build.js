@@ -42,6 +42,7 @@ angular.module('openshiftConsole')
       DataService.get("builds", $routeParams.build, $scope).then(
         // success
         function(build) {
+          $scope.loaded = true;
           $scope.build = build;
           var buildNumber = $filter("annotation")(build, "buildNumber");
           if (buildNumber) {
@@ -61,6 +62,7 @@ angular.module('openshiftConsole')
         },
         // failure
         function(e) {
+          $scope.loaded = true;
           $scope.alerts["load"] = {
             type: "error",
             message: "The build details could not be loaded.",

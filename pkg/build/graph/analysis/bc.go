@@ -16,6 +16,7 @@ import (
 
 const (
 	MissingRequiredRegistryWarning = "MissingRequiredRegistry"
+	MissingImageStreamWarning      = "MissingImageStream"
 	CyclicBuildConfigWarning       = "CyclicBuildConfig"
 )
 
@@ -28,6 +29,20 @@ bc:
 		for _, istNode := range g.SuccessorNodesByEdgeKind(bcNode, buildedges.BuildOutputEdgeKind) {
 			for _, uncastImageStreamNode := range g.SuccessorNodesByEdgeKind(istNode, imageedges.ReferencedImageStreamGraphEdgeKind) {
 				imageStreamNode := uncastImageStreamNode.(*imagegraph.ImageStreamNode)
+
+				if !imageStreamNode.IsFound {
+					markers = append(markers, osgraph.Marker{
+						Node:         bcNode,
+						RelatedNodes: []graph.Node{istNode},
+
+						Severity: osgraph.WarningSeverity,
+						Key:      MissingImageStreamWarning,
+						Message: fmt.Sprintf("%s is pushing to %s that is using %s, but that image stream does not exist.",
+							bcNode.(*buildgraph.BuildConfigNode).ResourceString(), istNode.(*imagegraph.ImageStreamTagNode).ResourceString(), imageStreamNode.ResourceString()),
+					})
+
+					continue
+				}
 
 				if len(imageStreamNode.Status.DockerImageRepository) == 0 {
 					markers = append(markers, osgraph.Marker{

@@ -56,7 +56,11 @@ you have failover protection.`
   $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --replicas=2
 
   # Use a different router image and see the router configuration
-  $ %[1]s %[2]s region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag`
+  $ %[1]s %[2]s region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
+
+  # Run the router with a hint to the underlying implementation to _not_ expose statistics.
+  $ %[1]s %[2]s router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0
+  `
 
 	secretsVolumeName = "secret-volume"
 	secretsPath       = "/etc/secret-volume"
@@ -149,6 +153,11 @@ type RouterConfig struct {
 	// ExternalHostInsecure specifies that the router should skip strict
 	// certificate verification when connecting to the external host.
 	ExternalHostInsecure bool
+
+	// ExternalHostPartitionPath specifies the partition path to use.
+	// This is used by some routers to create access access control
+	// boundaries for users and applications.
+	ExternalHostPartitionPath string
 }
 
 var errExit = fmt.Errorf("exit")
@@ -170,6 +179,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		Replicas: 1,
 
 		StatsUsername: "admin",
+		StatsPort:     1936,
 		HostNetwork:   true,
 	}
 
@@ -200,7 +210,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.DefaultCertificate, "default-cert", cfg.DefaultCertificate, "Optional path to a certificate file that be used as the default certificate.  The file should contain the cert, key, and any CA certs necessary for the router to serve the certificate.")
 	cmd.Flags().StringVar(&cfg.Selector, "selector", cfg.Selector, "Selector used to filter nodes on deployment. Used to run routers on a specific set of nodes.")
 	cmd.Flags().StringVar(&cfg.ServiceAccount, "service-account", cfg.ServiceAccount, "Name of the service account to use to run the router pod.")
-	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", 1936, "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
+	cmd.Flags().IntVar(&cfg.StatsPort, "stats-port", cfg.StatsPort, "If the underlying router implementation can provide statistics this is a hint to expose it on this port. Specify 0 if you want to turn off exposing the statistics.")
 	cmd.Flags().StringVar(&cfg.StatsPassword, "stats-password", cfg.StatsPassword, "If the underlying router implementation can provide statistics this is the requested password for auth.  If not set a password will be generated.")
 	cmd.Flags().StringVar(&cfg.StatsUsername, "stats-user", cfg.StatsUsername, "If the underlying router implementation can provide statistics this is the requested username for auth.")
 	cmd.Flags().BoolVar(&cfg.HostNetwork, "host-network", cfg.HostNetwork, "If true (the default), then use host networking rather than using a separate container network stack.")
@@ -211,6 +221,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.ExternalHostHttpsVserver, "external-host-https-vserver", cfg.ExternalHostHttpsVserver, "If the underlying router implementation uses virtual servers, this is the name of the virtual server for HTTPS connections.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPrivateKey, "external-host-private-key", cfg.ExternalHostPrivateKey, "If the underlying router implementation requires an SSH private key, this is the path to the private key file.")
 	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
+	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
 
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
 
@@ -465,24 +476,25 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		}
 
 		env := app.Environment{
-			"OPENSHIFT_MASTER":                   config.Host,
-			"OPENSHIFT_CA_DATA":                  string(config.CAData),
-			"OPENSHIFT_KEY_DATA":                 string(config.KeyData),
-			"OPENSHIFT_CERT_DATA":                string(config.CertData),
-			"OPENSHIFT_INSECURE":                 insecure,
-			"DEFAULT_CERTIFICATE":                defaultCert,
-			"ROUTER_SERVICE_NAME":                name,
-			"ROUTER_SERVICE_NAMESPACE":           namespace,
-			"ROUTER_EXTERNAL_HOST_HOSTNAME":      cfg.ExternalHost,
-			"ROUTER_EXTERNAL_HOST_USERNAME":      cfg.ExternalHostUsername,
-			"ROUTER_EXTERNAL_HOST_PASSWORD":      cfg.ExternalHostPassword,
-			"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":  cfg.ExternalHostHttpVserver,
-			"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER": cfg.ExternalHostHttpsVserver,
-			"ROUTER_EXTERNAL_HOST_INSECURE":      strconv.FormatBool(cfg.ExternalHostInsecure),
-			"ROUTER_EXTERNAL_HOST_PRIVKEY":       privkeyPath,
-			"STATS_PORT":                         strconv.Itoa(cfg.StatsPort),
-			"STATS_USERNAME":                     cfg.StatsUsername,
-			"STATS_PASSWORD":                     cfg.StatsPassword,
+			"OPENSHIFT_MASTER":                    config.Host,
+			"OPENSHIFT_CA_DATA":                   string(config.CAData),
+			"OPENSHIFT_KEY_DATA":                  string(config.KeyData),
+			"OPENSHIFT_CERT_DATA":                 string(config.CertData),
+			"OPENSHIFT_INSECURE":                  insecure,
+			"DEFAULT_CERTIFICATE":                 defaultCert,
+			"ROUTER_SERVICE_NAME":                 name,
+			"ROUTER_SERVICE_NAMESPACE":            namespace,
+			"ROUTER_EXTERNAL_HOST_HOSTNAME":       cfg.ExternalHost,
+			"ROUTER_EXTERNAL_HOST_USERNAME":       cfg.ExternalHostUsername,
+			"ROUTER_EXTERNAL_HOST_PASSWORD":       cfg.ExternalHostPassword,
+			"ROUTER_EXTERNAL_HOST_HTTP_VSERVER":   cfg.ExternalHostHttpVserver,
+			"ROUTER_EXTERNAL_HOST_HTTPS_VSERVER":  cfg.ExternalHostHttpsVserver,
+			"ROUTER_EXTERNAL_HOST_INSECURE":       strconv.FormatBool(cfg.ExternalHostInsecure),
+			"ROUTER_EXTERNAL_HOST_PARTITION_PATH": cfg.ExternalHostPartitionPath,
+			"ROUTER_EXTERNAL_HOST_PRIVKEY":        privkeyPath,
+			"STATS_PORT":                          strconv.Itoa(cfg.StatsPort),
+			"STATS_USERNAME":                      cfg.StatsUsername,
+			"STATS_PASSWORD":                      cfg.StatsPassword,
 		}
 
 		updatePercent := int(-25)

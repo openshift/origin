@@ -18,8 +18,16 @@ import (
 func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 	validationResults := ValidationResults{}
 
+	if config.MasterCA == nil {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("masterCA", config.MasterCA, "a filename or empty string is required"))
+	} else if len(*config.MasterCA) > 0 {
+		validationResults.AddErrors(ValidateFile(*config.MasterCA, "masterCA")...)
+	}
+
 	if len(config.MasterURL) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldRequired("masterURL"))
+	} else if _, urlErrs := ValidateURL(config.MasterURL, "masterURL"); len(urlErrs) > 0 {
+		validationResults.AddErrors(urlErrs...)
 	}
 
 	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
@@ -144,12 +152,7 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 }
 
 func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider) ValidationResults {
-	validationResults := ValidateLDAPClientConfig("provider",
-		provider.URL,
-		provider.BindDN,
-		provider.BindPassword,
-		provider.CA,
-		provider.Insecure)
+	validationResults := ValidateLDAPClientConfig(provider.URL, provider.BindDN, provider.BindPassword, provider.CA, provider.Insecure).Prefix("provider")
 
 	// At least one attribute to use as the user id is required
 	if len(provider.Attributes.ID) == 0 {

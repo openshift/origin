@@ -140,6 +140,20 @@ os::build:wait_for_start "test"
 os::build:wait_for_end "test"
 wait_for_app "test"
 
+# logs can't be tested without a node, so has to be in e2e
+POD_NAME=`oc get pods -o name -n test | head -n 1`
+oc logs ${POD_NAME} --loglevel=6
+POD_NAME_NO_KIND=`oc get pods -o name -n test | head -n 1 | cut -d '/' -f 2`
+oc logs ${POD_NAME_NO_KIND} --loglevel=6
+BUILD_NAME=`oc get builds -o name -n test | head -n 1`
+oc logs ${BUILD_NAME} --loglevel=6
+oc logs ${BUILD_NAME} --loglevel=6
+oc logs bc/ruby-sample-build --loglevel=6
+oc logs buildconfigs/ruby-sample-build --loglevel=6
+oc logs buildconfig/ruby-sample-build --loglevel=6
+echo "logs: ok"
+
+
 echo "[INFO] Starting build from ${STI_CONFIG_FILE} with non-existing commit..."
 set +e
 oc start-build test --commit=fffffff --wait && echo "The build was supposed to fail, but it succeeded." && exit 1
@@ -159,7 +173,10 @@ echo "[INFO] Validating port-forward"
 oc port-forward -p ${frontend_pod} 10080:8080  &> "${LOG_DIR}/port-forward.log" &
 wait_for_url_timed "http://localhost:10080" "[INFO] Frontend says: " $((10*TIME_SEC))
 
-
+# Rsync
+echo "[INFO] Validating rsync"
+oc rsync examples/sample-app ${frontend_pod}:/tmp
+[ "$(oc rsh ${frontend_pod} ls /tmp/sample-app | grep "application-template-stibuild")" ]
 
 #echo "[INFO] Applying Docker application config"
 #oc create -n docker -f "${DOCKER_CONFIG_FILE}"
@@ -184,7 +201,7 @@ wait_for_command '[[ "$(oc get endpoints router --output-version=v1beta3 --templ
 
 # Check for privileged exec limitations.
 echo "[INFO] Validating privileged pod exec"
-router_pod=$(oc get pod -n default -l deploymentconfig=router -t '{{(index .items 0).metadata.name}}')
+router_pod=$(oc get pod -n default -l deploymentconfig=router --template='{{(index .items 0).metadata.name}}')
 oc policy add-role-to-user admin e2e-default-admin
 # login as a user that can't run privileged pods
 oc login -u e2e-default-admin -p pass

@@ -2,16 +2,19 @@ package syncgroups
 
 import (
 	"fmt"
+	"io"
+	"net"
 	"time"
 
 	"github.com/go-ldap/ldap"
+	"github.com/golang/glog"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups/interfaces"
-	ouserapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 // GroupSyncer runs a Sync job on Groups
@@ -33,24 +36,35 @@ type LDAPGroupSyncer struct {
 	GroupClient client.GroupInterface
 	// Host stores the address:port of the LDAP server
 	Host string
-	// SyncExisting determines if the sync job will only sync groups that already exist
-	SyncExisting bool
+	// DryRun indicates that no changes should be made.
+	DryRun bool
+
+	// Out is used to provide output while the sync job is happening
+	Out io.Writer
+	Err io.Writer
 }
 
 // Sync allows the LDAPGroupSyncer to be a GroupSyncer
-func (s *LDAPGroupSyncer) Sync() []error {
+func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
+	openshiftGroups := []*userapi.Group{}
 	var errors []error
+
 	// determine what to sync
+	glog.V(1).Infof("Listing with %v", s.GroupLister)
 	ldapGroupUIDs, err := s.GroupLister.ListGroups()
 	if err != nil {
 		errors = append(errors, err)
-		return errors
+		return nil, errors
 	}
+	glog.V(1).Infof("Sync ldapGroupUIDs %v", ldapGroupUIDs)
 
 	for _, ldapGroupUID := range ldapGroupUIDs {
+		glog.V(1).Infof("Checking LDAP group %v", ldapGroupUID)
+
 		// get membership data
 		memberEntries, err := s.GroupMemberExtractor.ExtractMembers(ldapGroupUID)
 		if err != nil {
+			fmt.Fprintf(s.Err, "Error determining LDAP group membership for %q: %v.\n", ldapGroupUID, err)
 			errors = append(errors, err)
 			continue
 		}
@@ -58,18 +72,32 @@ func (s *LDAPGroupSyncer) Sync() []error {
 		// determine OpenShift Users' usernames for LDAP group members
 		usernames, err := s.determineUsernames(memberEntries)
 		if err != nil {
+			fmt.Fprintf(s.Err, "Error determining usernames LDAP group %q: %v.\n", ldapGroupUID, err)
 			errors = append(errors, err)
 			continue
 		}
+		glog.V(1).Infof("Has OpenShift users %v", usernames)
 
 		// update the OpenShift Group corresponding to this record
-		err = s.updateGroup(ldapGroupUID, usernames)
+		openshiftGroup, err := s.makeOpenShiftGroup(ldapGroupUID, usernames)
 		if err != nil {
+			fmt.Fprintf(s.Err, "Error building OpenShift group for LDAP group %q: %v.\n", ldapGroupUID, err)
 			errors = append(errors, err)
+			continue
 		}
+		openshiftGroups = append(openshiftGroups, openshiftGroup)
 
+		if !s.DryRun {
+			fmt.Fprintf(s.Out, "group/%s\n", openshiftGroup.Name)
+			if err := s.updateOpenShiftGroup(openshiftGroup); err != nil {
+				fmt.Fprintf(s.Err, "Error updating OpenShift group %q for LDAP group %q: %v.\n", openshiftGroup.Name, ldapGroupUID, err)
+				errors = append(errors, err)
+				continue
+			}
+		}
 	}
-	return errors
+
+	return openshiftGroups, errors
 }
 
 // determineUsers determines the OpenShift Users that correspond to a list of LDAP member entries
@@ -80,72 +108,69 @@ func (s *LDAPGroupSyncer) determineUsernames(members []*ldap.Entry) ([]string, e
 		if err != nil {
 			return nil, err
 		}
+		glog.V(2).Infof("Found OpenShift username %q for LDAP user for %v", username, member)
+
 		usernames = append(usernames, username)
 	}
 	return usernames, nil
 }
 
-// updateGroup finds or creates the OpenShift Group that needs to be updated, updates its' data, then
-// uses the GroupClient to update the Group record
-func (s *LDAPGroupSyncer) updateGroup(ldapGroupUID string, usernames []string) error {
-	// find OpenShift Group to update
-	group, err := s.findGroup(ldapGroupUID)
-	if err != nil {
+// updateOpenShiftGroup creates the OpenShift Group in etcd
+func (s *LDAPGroupSyncer) updateOpenShiftGroup(openshiftGroup *userapi.Group) error {
+	if len(openshiftGroup.UID) > 0 {
+		_, err := s.GroupClient.Update(openshiftGroup)
 		return err
 	}
 
-	// overwrite Group Users data
-	group.Users = usernames
-
-	// add LDAP-sync-specific annotations
-	group.Annotations[ldaputil.LDAPUIDAnnotation] = ldapGroupUID
-	group.Annotations[ldaputil.LDAPSyncTimeAnnotation] = ISO8601(time.Now())
-	group.Annotations[ldaputil.LDAPURLAnnotation] = s.Host
-
-	_, err = s.GroupClient.Update(group)
+	_, err := s.GroupClient.Create(openshiftGroup)
 	return err
 }
 
-// findGroup finds the OpenShift Group for the LDAP group UID and ensures that the OpenShift Group found
-// was created as a result of a previous LDAP sync from the same LDAP group.
-func (s *LDAPGroupSyncer) findGroup(ldapGroupUID string) (*ouserapi.Group, error) {
+// makeOpenShiftGroup creates the OpenShift Group object that needs to be updated, updates its data
+func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []string) (*userapi.Group, error) {
+	hostIP, _, err := net.SplitHostPort(s.Host)
+	if err != nil {
+		return nil, err
+	}
 	groupName, err := s.GroupNameMapper.GroupNameFor(ldapGroupUID)
 	if err != nil {
 		return nil, err
 	}
 
 	group, err := s.GroupClient.Get(groupName)
-	if err != nil {
-		if s.SyncExisting {
-			return nil, fmt.Errorf("could not get group for name: %s", groupName)
-		} else {
-			newGroup := &ouserapi.Group{
-				ObjectMeta: kapi.ObjectMeta{
-					Name: groupName,
-					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: s.Host,
-						ldaputil.LDAPUIDAnnotation: ldapGroupUID,
-					},
-				},
-			}
-
-			group, err = s.GroupClient.Create(newGroup)
-			if err != nil {
-				return nil, fmt.Errorf("could not create new group for name %s: %v", groupName, err)
-			}
+	if kapierrors.IsNotFound(err) {
+		group = &userapi.Group{}
+		group.Name = groupName
+		group.Annotations = map[string]string{
+			ldaputil.LDAPURLAnnotation: s.Host,
+			ldaputil.LDAPUIDAnnotation: ldapGroupUID,
 		}
+		group.Labels = map[string]string{
+			ldaputil.LDAPHostLabel: hostIP,
+		}
+
+	} else if err != nil {
+		return nil, err
 	}
 
-	url, exists := group.Annotations[ldaputil.LDAPURLAnnotation]
-	if !exists || url != s.Host {
-		return nil, fmt.Errorf("group %s's %s annotation did not match sync host: wanted %s, got %s",
+	// make sure we aren't taking over an OpenShift group that is already related to a different LDAP group
+	if host, exists := group.Labels[ldaputil.LDAPHostLabel]; !exists || (host != hostIP) {
+		return nil, fmt.Errorf("group %q: %s label did not match sync host: wanted %s, got %s",
+			group.Name, ldaputil.LDAPHostLabel, hostIP, host)
+	}
+	if url, exists := group.Annotations[ldaputil.LDAPURLAnnotation]; !exists || (url != s.Host) {
+		return nil, fmt.Errorf("group %q: %s annotation did not match sync host: wanted %s, got %s",
 			group.Name, ldaputil.LDAPURLAnnotation, s.Host, url)
 	}
-	uid, exists := group.Annotations[ldaputil.LDAPUIDAnnotation]
-	if !exists || uid != ldapGroupUID {
-		return nil, fmt.Errorf("group %s's %s annotation did not match LDAP UID: wanted %s, got %s",
+	if uid, exists := group.Annotations[ldaputil.LDAPUIDAnnotation]; !exists || (uid != ldapGroupUID) {
+		return nil, fmt.Errorf("group %q: %s annotation did not match LDAP UID: wanted %s, got %s",
 			group.Name, ldaputil.LDAPUIDAnnotation, ldapGroupUID, uid)
 	}
+
+	// overwrite Group Users data
+	group.Users = usernames
+	group.Annotations[ldaputil.LDAPSyncTimeAnnotation] = ISO8601(time.Now())
+
 	return group, nil
 }
 

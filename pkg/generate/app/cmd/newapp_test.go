@@ -468,6 +468,25 @@ func mapContains(a, b map[string]string) bool {
 	return true
 }
 
+// ExactMatchDockerSearcher returns a match with the value that was passed in
+// and a march score of 0.0(exact)
+type ExactMatchDockerSearcher struct{}
+
+// Search always returns a match for every term passed in
+func (r *ExactMatchDockerSearcher) Search(terms ...string) (app.ComponentMatches, error) {
+	matches := app.ComponentMatches{}
+	for _, value := range terms {
+		matches = append(matches, &app.ComponentMatch{
+			Value:       value,
+			Name:        value,
+			Argument:    fmt.Sprintf("--docker-image=%q", value),
+			Description: fmt.Sprintf("Docker image %q", value),
+			Score:       0.0,
+		})
+	}
+	return matches, nil
+}
+
 func TestRunAll(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
@@ -634,7 +653,8 @@ func TestRunAll(t *testing.T) {
 						Images: []docker.APIImages{{RepoTags: []string{"myrepo:5000/myco/example"}}},
 						Image:  dockerBuilderImage(),
 					},
-					Insecure: true,
+					Insecure:         true,
+					RegistrySearcher: &ExactMatchDockerSearcher{},
 				},
 				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
@@ -715,7 +735,8 @@ func TestRunAll(t *testing.T) {
 						Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
 						Image:  dockerBuilderImage(),
 					},
-					Insecure: true,
+					Insecure:         true,
+					RegistrySearcher: &ExactMatchDockerSearcher{},
 				},
 				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
@@ -746,6 +767,46 @@ func TestRunAll(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
+			name: "Docker build with no registry image",
+			config: &AppConfig{
+				SourceRepositories: util.StringList([]string{"https://github.com/openshift/ruby-hello-world"}),
+
+				dockerSearcher: app.DockerClientSearcher{
+					Client: &dockertools.FakeDockerClient{
+						Images: []docker.APIImages{{RepoTags: []string{"openshift/ruby-20-centos7"}}},
+						Image:  dockerBuilderImage(),
+					},
+					Insecure: true,
+				},
+				imageStreamSearcher: app.ImageStreamSearcher{
+					Client:            &client.Fake{},
+					ImageStreamImages: &client.Fake{},
+					Namespaces:        []string{"default"},
+				},
+				imageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+				templateSearcher: app.TemplateSearcher{
+					Client: &client.Fake{},
+					TemplateConfigsNamespacer: &client.Fake{},
+					Namespaces:                []string{"openshift", "default"},
+				},
+				detector: app.SourceRepositoryEnumerator{
+					Detectors: source.DefaultDetectors,
+					Tester:    dockerfile.NewTester(),
+				},
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expected: map[string][]string{
+				"imageStream":      {"ruby-hello-world"},
+				"buildConfig":      {"ruby-hello-world"},
+				"deploymentConfig": {"ruby-hello-world"},
+				"service":          {"ruby-hello-world"},
+			},
+			expectedName: "ruby-hello-world",
+			expectedErr:  nil,
+		},
+		{
 			name: "custom name",
 			config: &AppConfig{
 				DockerImages: util.StringList([]string{"mysql"}),
@@ -760,6 +821,7 @@ func TestRunAll(t *testing.T) {
 							},
 						},
 					},
+					RegistrySearcher: &ExactMatchDockerSearcher{},
 				},
 				imageStreamSearcher: app.ImageStreamSearcher{
 					Client:            &client.Fake{},
@@ -804,12 +866,13 @@ func TestRunAll(t *testing.T) {
 			case *kapi.Service:
 				if test.checkPort != "" {
 					if len(tp.Spec.Ports) == 0 {
-						t.Errorf("%s: did not get any ports in service")
+						t.Errorf("%s: did not get any ports in service", test.name)
 						break
 					}
 					expectedPort, _ := strconv.Atoi(test.checkPort)
 					if tp.Spec.Ports[0].Port != expectedPort {
-						t.Errorf("%s: did not get expected port in service. Expected: %d. Got %d\n", expectedPort, tp.Spec.Ports[0].Port)
+						t.Errorf("%s: did not get expected port in service. Expected: %d. Got %d\n",
+							test.name, expectedPort, tp.Spec.Ports[0].Port)
 					}
 				}
 				if test.config.Labels != nil {
@@ -901,7 +964,7 @@ func TestRunAll(t *testing.T) {
 	}
 }
 
-func TestRunBuild(t *testing.T) {
+func TestRunBuilds(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
@@ -996,6 +1059,20 @@ func TestRunBuild(t *testing.T) {
 			},
 			expectedErr: func(err error) bool {
 				return err.Error() == "when directly referencing a Dockerfile, the strategy must must be 'docker'"
+			},
+		},
+		{
+			name: "unsuccessful build from dockerfile due to missing FROM instruction",
+			config: &AppConfig{
+				Dockerfile: "USER foo",
+				Strategy:   "docker",
+
+				typer:           kapi.Scheme,
+				osclient:        &client.Fake{},
+				originNamespace: "default",
+			},
+			expectedErr: func(err error) bool {
+				return err.Error() == "the Dockerfile in the repository \"\" has no FROM instruction"
 			},
 		},
 	}
@@ -1223,7 +1300,7 @@ tests:
 // Make sure that buildPipelines defaults DockerImage.Config if needed to
 // avoid a nil panic.
 func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
-	dockerFile, err := app.NewDockerfile("EXPOSE 1234\nEXPOSE 4567")
+	dockerFile, err := app.NewDockerfile("FROM centos\nEXPOSE 1234\nEXPOSE 4567")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1375,7 +1452,8 @@ func fakeDockerSearcher() app.Searcher {
 			Images: []docker.APIImages{{RepoTags: []string{"library/ruby:latest"}}},
 			Image:  dockerBuilderImage(),
 		},
-		Insecure: true,
+		Insecure:         true,
+		RegistrySearcher: &ExactMatchDockerSearcher{},
 	}
 }
 
@@ -1390,6 +1468,7 @@ func fakeSimpleDockerSearcher() app.Searcher {
 				},
 			},
 		},
+		RegistrySearcher: &ExactMatchDockerSearcher{},
 	}
 }
 

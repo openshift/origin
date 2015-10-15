@@ -171,7 +171,9 @@ window.OPENSHIFT_CONFIG = {
   	oauth_redirect_base: "{{ .OAuthRedirectBase | js}}",
   	oauth_client_id: "{{ .OAuthClientID | js}}",
   	logout_uri: "{{ .LogoutURI | js}}"
-  }
+  },
+  loggingURL: "{{ .LoggingURL | js}}",
+  metricsURL: "{{ .MetricsURL | js}}"
 };
 `))
 
@@ -199,6 +201,10 @@ type WebConsoleConfig struct {
 	OAuthClientID string
 	// LogoutURI is an optional (absolute) URI to redirect to after completing a logout. If not specified, the built-in logout page is shown.
 	LogoutURI string
+	// LoggingURL is the endpoint for logging (optional)
+	LoggingURL string
+	// MetricsURL is the endpoint for metrics (optional)
+	MetricsURL string
 }
 
 func GeneratedConfigHandler(config WebConsoleConfig) (http.Handler, error) {

@@ -24,6 +24,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,6 +54,7 @@ import (
 	"github.com/prometheus/client_golang/extraction"
 	"github.com/prometheus/client_golang/model"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/net/websocket"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -2056,4 +2058,59 @@ func waitForClusterSize(c *client.Client, size int, timeout time.Duration) error
 		Logf("Waiting for cluster size %d, current size %d, not ready nodes %d", size, numNodes, numNodes-numReady)
 	}
 	return fmt.Errorf("timeout waiting %v for cluster size to be %d", timeout, size)
+}
+
+type extractRT struct {
+	http.Header
+}
+
+func (rt *extractRT) RoundTrip(req *http.Request) (*http.Response, error) {
+	rt.Header = req.Header
+	return nil, nil
+}
+
+// headersForConfig extracts any http client logic necessary for the provided
+// config.
+func headersForConfig(c *client.Config) (http.Header, error) {
+	extract := &extractRT{}
+	rt, err := client.HTTPWrappersForConfig(c, extract)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := rt.RoundTrip(&http.Request{}); err != nil {
+		return nil, err
+	}
+	return extract.Header, nil
+}
+
+// OpenWebSocketForURL constructs a websocket connection to the provided URL, using the client
+// config, with the specified protocols.
+func OpenWebSocketForURL(url *url.URL, config *client.Config, protocols []string) (*websocket.Conn, error) {
+	tlsConfig, err := client.TLSConfigFor(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tls config: %v", err)
+	}
+	if tlsConfig != nil {
+		url.Scheme = "wss"
+		if !strings.Contains(url.Host, ":") {
+			url.Host += ":443"
+		}
+	} else {
+		url.Scheme = "ws"
+		if !strings.Contains(url.Host, ":") {
+			url.Host += ":80"
+		}
+	}
+	headers, err := headersForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load http headers: %v", err)
+	}
+	cfg, err := websocket.NewConfig(url.String(), "http://localhost")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create websocket config: %v", err)
+	}
+	cfg.Header = headers
+	cfg.TlsConfig = tlsConfig
+	cfg.Protocol = protocols
+	return websocket.DialConfig(cfg)
 }

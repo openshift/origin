@@ -250,6 +250,22 @@ func TestValidateImageStream(t *testing.T) {
 				fielderrors.NewFieldInvalid("spec.dockerImageRepository", "a-|///bbb", "the docker pull spec \"a-|///bbb\" must be two or three segments separated by slashes"),
 			},
 		},
+		"invalid dockerImageRepository with tag": {
+			namespace: "namespace",
+			name:      "foo",
+			dockerImageRepository: "a/b:tag",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("spec.dockerImageRepository", "a/b:tag", "the repository name may not contain a tag"),
+			},
+		},
+		"invalid dockerImageRepository with ID": {
+			namespace: "namespace",
+			name:      "foo",
+			dockerImageRepository: "a/b@sha256:something",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("spec.dockerImageRepository", "a/b@sha256:something", "the repository name may not contain an ID"),
+			},
+		},
 		"status tag missing dockerImageReference": {
 			namespace: "namespace",
 			name:      "foo",

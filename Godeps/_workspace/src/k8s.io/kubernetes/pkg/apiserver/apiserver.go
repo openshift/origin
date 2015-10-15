@@ -43,6 +43,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/flushwriter"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wsstream"
 	"k8s.io/kubernetes/pkg/version"
 
 	"github.com/emicklei/go-restful"
@@ -98,7 +99,6 @@ type APIGroupVersion struct {
 	Admit   admission.Interface
 	Context api.RequestContextMapper
 
-	ProxyDialerFn     ProxyDialerFunc
 	MinRequestTimeout time.Duration
 }
 
@@ -124,7 +124,6 @@ func (g *APIGroupVersion) InstallREST(container *restful.Container) error {
 		info:              info,
 		prefix:            prefix,
 		minRequestTimeout: g.MinRequestTimeout,
-		proxyDialerFn:     g.ProxyDialerFn,
 	}
 	ws, registrationErrors := installer.Install()
 	container.Add(ws)
@@ -251,6 +250,15 @@ func write(statusCode int, apiVersion string, codec runtime.Codec, object runtim
 			return
 		}
 		defer out.Close()
+
+		if wsstream.IsWebSocketRequest(req) {
+			r := wsstream.NewReader(out, true)
+			if err := r.Copy(w, req); err != nil {
+				util.HandleError(fmt.Errorf("error encountered while streaming results via websocket: %v", err))
+			}
+			return
+		}
+
 		if len(contentType) == 0 {
 			contentType = "application/octet-stream"
 		}

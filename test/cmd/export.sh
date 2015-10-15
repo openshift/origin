@@ -17,7 +17,7 @@ oc export all --all-namespaces
 # make sure the deprecated flag doesn't fail
 oc export all --all
 
-[ "$(oc export svc -t '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | wc -l)" -ne 0 ]
+[ "$(oc export svc --template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | wc -l)" -ne 0 ]
 [ "$(oc export svc --as-template=template | grep 'kind: Template')" ]
 [ ! "$(oc export svc | grep 'clusterIP')" ]
 [ ! "$(oc export svc --exact | grep 'clusterIP: ""')" ]

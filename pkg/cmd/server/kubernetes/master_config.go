@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -130,6 +131,18 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	}
 	admissionController := admission.NewChainHandler(plugins...)
 
+	var proxyClientCerts []tls.Certificate
+	if len(options.KubernetesMasterConfig.ProxyClientInfo.CertFile) > 0 {
+		clientCert, err := tls.LoadX509KeyPair(
+			options.KubernetesMasterConfig.ProxyClientInfo.CertFile,
+			options.KubernetesMasterConfig.ProxyClientInfo.KeyFile,
+		)
+		if err != nil {
+			return nil, err
+		}
+		proxyClientCerts = append(proxyClientCerts, clientCert)
+	}
+
 	m := &master.Config{
 		PublicAddress: net.ParseIP(options.KubernetesMasterConfig.MasterIP),
 		ReadWritePort: port,
@@ -157,6 +170,14 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 
 		EnableV1Beta3: configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1beta3"),
 		DisableV1:     !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
+
+		// Set the TLS options for proxying to pods and services
+		// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)
+		ProxyTLSClientConfig: &tls.Config{
+			// Proxying to pods and services cannot verify hostnames, since they are contacted on randomly allocated IPs
+			InsecureSkipVerify: true,
+			Certificates:       proxyClientCerts,
+		},
 	}
 
 	kmaster := &MasterConfig{

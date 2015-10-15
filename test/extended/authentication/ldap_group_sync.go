@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"regexp"
-	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -16,7 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/experimental/syncgroups"
+	syncgroupscli "github.com/openshift/origin/pkg/cmd/experimental/syncgroups/cli"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -25,80 +23,24 @@ import (
 var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 	defer g.GinkgoRecover()
 	var (
-		imageStreamFixture       = exutil.FixturePath("fixtures", "ldap", "ldapserver-imagestream.json")
-		imageStreamTargetFixture = exutil.FixturePath("fixtures", "ldap", "ldapserver-imagestream-testenv.json")
-		buildConfigFixture       = exutil.FixturePath("fixtures", "ldap", "ldapserver-buildconfig.json")
-		deploymentConfigFixture  = exutil.FixturePath("fixtures", "ldap", "ldapserver-deploymentconfig.json")
-		serviceConfigFixture     = exutil.FixturePath("fixtures", "ldap", "ldapserver-service.json")
-		oc                       = exutil.NewCLI("openldap", exutil.KubeConfigPath())
+		oc = exutil.NewCLI("openldap", exutil.KubeConfigPath())
 	)
 
 	g.Describe("Building and deploying an OpenLDAP server", func() {
-		g.It(fmt.Sprintf("should create a image from %s template and run it in a pod", buildConfigFixture), func() {
-			nameRegex := regexp.MustCompile(`"[A-Za-z0-9\-]+"`)
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
-
-			g.By(fmt.Sprintf("calling oc create -f %s", imageStreamFixture))
-			imageStreamMessage, err := oc.Run("create").Args("-f", imageStreamFixture).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			imageStreamName := strings.Trim(nameRegex.FindString(imageStreamMessage), `"`)
-			g.By("expecting the imagestream to fetch and tag the latest image")
-			err = exutil.WaitForAnImageStream(oc.REST().ImageStreams(oc.Namespace()), imageStreamName,
-				exutil.CheckImageStreamLatestTagPopulatedFunc, exutil.CheckImageStreamTagNotFoundFunc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("calling oc create -f %s", imageStreamTargetFixture))
-			err = oc.Run("create").Args("-f", imageStreamTargetFixture).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("calling oc create -f %s", buildConfigFixture))
-			buildConfigMessage, err := oc.Run("create").Args("-f", buildConfigFixture).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			buildConfigName := strings.Trim(nameRegex.FindString(buildConfigMessage), `"`)
-			g.By(fmt.Sprintf("calling oc start-build %s", buildConfigName))
-			buildName, err := oc.Run("start-build").Args(buildConfigName).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("expecting the build to be in Complete phase")
-			err = exutil.WaitForABuild(oc.REST().Builds(oc.Namespace()), buildName,
-				exutil.CheckBuildSuccessFunc, exutil.CheckBuildFailedFunc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("calling oc create -f %s", deploymentConfigFixture))
-			deploymentConfigMessage, err := oc.Run("create").Args("-f", deploymentConfigFixture).Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			deploymentConfigName := strings.Trim(nameRegex.FindString(deploymentConfigMessage), `"`)
-			g.By(fmt.Sprintf("calling oc deploy %s", deploymentConfigName))
-			err = oc.Run("deploy").Args(deploymentConfigName).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("expecting the deployment to be in Complete phase")
-			err = exutil.WaitForADeployment(oc.KubeREST().ReplicationControllers(oc.Namespace()), deploymentConfigName,
-				exutil.CheckDeploymentCompletedFunc, exutil.CheckDeploymentFailedFunc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("calling oc create -f %s", serviceConfigFixture))
-			err = oc.Run("create").Args("-f", serviceConfigFixture).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			client := oc.KubeREST().Services(oc.Namespace())
-			ldapService, err := client.Get("openldap-server")
+		g.It("sync first-class groups, first-class users, membership on groups", func() {
+			ldapIP := os.Getenv("LDAP_IP")
 
 			var testCases = []struct {
 				name       string
-				options    syncgroups.SyncGroupsOptions
+				options    syncgroupscli.SyncGroupsOptions
 				expected   []string
 				seedGroups []userapi.Group //allows for groups to exist prior to the sync
 				preSync    bool            //determines whether a sync should be performed before the sync to be tested
 			}{
 				{
 					name: "schema 1 all ldap",
-					options: syncgroups.SyncGroupsOptions{
-						Source: syncgroups.GroupSyncSourceLDAP,
-						Scope:  syncgroups.GroupSyncScopeAll,
+					options: syncgroupscli.SyncGroupsOptions{
+						Source: syncgroupscli.GroupSyncSourceLDAP,
 					},
 					expected:   []string{GroupName1, GroupName2, GroupName3},
 					seedGroups: []userapi.Group{},
@@ -106,10 +48,9 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 whitelist LDAP",
-					options: syncgroups.SyncGroupsOptions{
-						Source:            syncgroups.GroupSyncSourceLDAP,
-						Scope:             syncgroups.GroupSyncScopeWhitelist,
-						WhitelistContents: []string{GroupName1, GroupName2},
+					options: syncgroupscli.SyncGroupsOptions{
+						Source:    syncgroupscli.GroupSyncSourceLDAP,
+						Whitelist: []string{GroupName1, GroupName2},
 					},
 					expected:   []string{GroupName1, GroupName2},
 					seedGroups: []userapi.Group{},
@@ -117,9 +58,8 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 all openshift no previous sync",
-					options: syncgroups.SyncGroupsOptions{
-						Source: syncgroups.GroupSyncSourceOpenShift,
-						Scope:  syncgroups.GroupSyncScopeAll,
+					options: syncgroupscli.SyncGroupsOptions{
+						Source: syncgroupscli.GroupSyncSourceOpenShift,
 					},
 					expected:   []string{}, // cant sync OpenShift groups that haven't been linked to an LDAP entry
 					seedGroups: []userapi.Group{},
@@ -127,9 +67,8 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 all openshift with previous sync",
-					options: syncgroups.SyncGroupsOptions{
-						Source: syncgroups.GroupSyncSourceOpenShift,
-						Scope:  syncgroups.GroupSyncScopeAll,
+					options: syncgroupscli.SyncGroupsOptions{
+						Source: syncgroupscli.GroupSyncSourceOpenShift,
 					},
 					expected:   []string{GroupName1, GroupName2, GroupName3},
 					seedGroups: []userapi.Group{},
@@ -137,10 +76,9 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 whitelist openshift no previous sync",
-					options: syncgroups.SyncGroupsOptions{
-						Source:            syncgroups.GroupSyncSourceOpenShift,
-						Scope:             syncgroups.GroupSyncScopeWhitelist,
-						WhitelistContents: []string{GroupName1, GroupName2},
+					options: syncgroupscli.SyncGroupsOptions{
+						Source:    syncgroupscli.GroupSyncSourceOpenShift,
+						Whitelist: []string{GroupName1, GroupName2},
 					},
 					expected:   []string{}, // cant sync OpenShift groups that haven't been linked to an LDAP entry
 					seedGroups: []userapi.Group{},
@@ -148,10 +86,9 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 				},
 				{
 					name: "schema 1 whitelist openshift with previous sync",
-					options: syncgroups.SyncGroupsOptions{
-						Source:            syncgroups.GroupSyncSourceOpenShift,
-						Scope:             syncgroups.GroupSyncScopeWhitelist,
-						WhitelistContents: []string{GroupName1, GroupName2},
+					options: syncgroupscli.SyncGroupsOptions{
+						Source:    syncgroupscli.GroupSyncSourceOpenShift,
+						Whitelist: []string{GroupName1, GroupName2},
 					},
 					expected:   []string{GroupName1, GroupName2},
 					seedGroups: []userapi.Group{},
@@ -163,7 +100,7 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 			for _, testCase := range testCases {
 				g.By(fmt.Sprintf("Running test case: %s", testCase.name))
 				// determine LDAP server host:port
-				host := ldapService.Spec.ClusterIP + ":389"
+				host := ldapIP + ":389"
 
 				// determine expected groups
 				expectedGroups := makeGroups(host, testCase.expected)
@@ -206,7 +143,7 @@ var _ = g.Describe("authentication: OpenLDAP build and deployment", func() {
 
 				// Perform sync job
 				g.By("Performing the sync job")
-				errs := testCase.options.Run()
+				errs := testCase.options.Run(nil, nil)
 				o.Expect(errs).NotTo(o.HaveOccurred())
 
 				// Check that the results are what we expected
@@ -331,7 +268,7 @@ func makeGroups(host string, which []string) []userapi.Group {
 func makeConfig(host string) configapi.LDAPSyncConfig {
 	// hard-coded config until config-file parsing is hashed out
 	return configapi.LDAPSyncConfig{
-		Host:         "ldap://" + host + "/",
+		URL:          "ldap://" + host + "/",
 		BindDN:       "",
 		BindPassword: "",
 		Insecure:     true,
@@ -339,28 +276,26 @@ func makeConfig(host string) configapi.LDAPSyncConfig {
 
 		LDAPGroupUIDToOpenShiftGroupNameMapping: make(map[string]string),
 
-		LDAPSchemaSpecificConfig: configapi.LDAPSchemaSpecificConfig{
-			RFC2307Config: &configapi.RFC2307Config{
-				GroupQuery: configapi.LDAPQuery{
-					BaseDN:         GroupBaseDN,
-					Scope:          LDAPScopeWholeSubtree,
-					DerefAliases:   LDAPNeverDerefAliases,
-					TimeLimit:      LDAPQueryTimeout,
-					Filter:         GroupFilter,
-					QueryAttribute: GroupQueryAttribute,
-				},
-				GroupNameAttributes:       []string{GroupNameAttribute1, GroupNameAttribute2},
-				GroupMembershipAttributes: []string{GroupMembershipAttribute},
-				UserQuery: configapi.LDAPQuery{
-					BaseDN:         UserBaseDN,
-					Scope:          LDAPScopeWholeSubtree,
-					DerefAliases:   LDAPNeverDerefAliases,
-					TimeLimit:      LDAPQueryTimeout,
-					Filter:         UserFilter,
-					QueryAttribute: UserQueryAttribute,
-				},
-				UserNameAttributes: []string{UserNameAttribute1, UserNameAttribute2, UserNameAttribute3},
+		RFC2307Config: &configapi.RFC2307Config{
+			AllGroupsQuery: configapi.LDAPQuery{
+				BaseDN:       GroupBaseDN,
+				Scope:        LDAPScopeWholeSubtree,
+				DerefAliases: LDAPNeverDerefAliases,
+				TimeLimit:    LDAPQueryTimeout,
+				Filter:       GroupFilter,
 			},
+			GroupUIDAttribute:         GroupQueryAttribute,
+			GroupNameAttributes:       []string{GroupNameAttribute1, GroupNameAttribute2},
+			GroupMembershipAttributes: []string{GroupMembershipAttribute},
+			AllUsersQuery: configapi.LDAPQuery{
+				BaseDN:       UserBaseDN,
+				Scope:        LDAPScopeWholeSubtree,
+				DerefAliases: LDAPNeverDerefAliases,
+				TimeLimit:    LDAPQueryTimeout,
+				Filter:       UserFilter,
+			},
+			UserUIDAttribute:   UserQueryAttribute,
+			UserNameAttributes: []string{UserNameAttribute1, UserNameAttribute2, UserNameAttribute3},
 		},
 	}
 }

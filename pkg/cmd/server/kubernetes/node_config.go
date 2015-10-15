@@ -18,6 +18,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
@@ -35,11 +36,12 @@ type NodeConfig struct {
 	Client *client.Client
 	// DockerClient is a client to connect to Docker
 	DockerClient dockertools.DockerInterface
-
 	// KubeletServer contains the KubeletServer configuration
 	KubeletServer *kapp.KubeletServer
 	// KubeletConfig is the configuration for the kubelet, fully initialized
 	KubeletConfig *kapp.KubeletConfig
+	// IPTablesSyncPeriod is how often iptable rules are refreshed
+	IPTablesSyncPeriod string
 }
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error) {
@@ -122,6 +124,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.ClusterDomain = options.DNSDomain
 	server.NetworkPluginName = options.NetworkConfig.NetworkPluginName
 	server.HostNetworkSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
+	server.HostPIDSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
+	server.HostIPCSources = strings.Join([]string{kubelet.ApiserverSource, kubelet.FileSource}, ",")
 	server.HTTPCheckFrequency = 0 // no remote HTTP pod creation access
 	server.FileCheckFrequency = time.Duration(fileCheckInterval) * time.Second
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
@@ -141,7 +145,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 		return nil, errors.NewAggregate(err)
 	}
 
-	cfg, err := server.KubeletConfig()
+	cfg, err := server.UnsecuredKubeletConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +155,36 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	cfg.StreamingConnectionIdleTimeout = 5 * time.Minute // TODO: should be set
 	cfg.KubeClient = kubeClient
 	cfg.DockerExecHandler = dockerExecHandler
+
+	// Setup auth
+	osClient, osClientConfig, err := configapi.GetOpenShiftClient(options.MasterKubeConfig)
+	if err != nil {
+		return nil, err
+	}
+	authnTTL, err := time.ParseDuration(options.AuthConfig.AuthenticationCacheTTL)
+	if err != nil {
+		return nil, err
+	}
+	authn, err := newAuthenticator(clientCAs, clientcmd.AnonymousClientConfig(*osClientConfig), authnTTL, options.AuthConfig.AuthenticationCacheSize)
+	if err != nil {
+		return nil, err
+	}
+
+	authzAttr, err := newAuthorizerAttributesGetter(options.NodeName)
+	if err != nil {
+		return nil, err
+	}
+
+	authzTTL, err := time.ParseDuration(options.AuthConfig.AuthorizationCacheTTL)
+	if err != nil {
+		return nil, err
+	}
+	authz, err := newAuthorizer(osClient, authzTTL, options.AuthConfig.AuthorizationCacheSize)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.Auth = kubelet.NewKubeletAuth(authn, authzAttr, authz)
 
 	// Make sure the node doesn't think it is in standalone mode
 	// This is required for the node to enforce nodeSelectors on pods, to set hostIP on pod status updates, etc
@@ -162,8 +196,9 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 			Config: &tls.Config{
 				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
 				MinVersion: tls.VersionTLS10,
-				// RequireAndVerifyClientCert lets us limit requests to ones with a valid client certificate
-				ClientAuth: tls.RequireAndVerifyClientCert,
+				// RequestClientCert lets us request certs, but allow requests without client certs
+				// Verification is done by the authn layer
+				ClientAuth: tls.RequestClientCert,
 				ClientCAs:  clientCAs,
 			},
 			CertFile: options.ServingInfo.ServerCert.CertFile,
@@ -184,6 +219,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 
 		KubeletServer: server,
 		KubeletConfig: cfg,
+
+		IPTablesSyncPeriod: options.IPTablesSyncPeriod,
 	}
 
 	return config, nil

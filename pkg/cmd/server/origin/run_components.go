@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
 
+	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/flatsdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -329,12 +330,12 @@ func (c *MasterConfig) RunDeploymentImageChangeTriggerController() {
 
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
-	osclient, kclient := c.SDNControllerClients()
+	registry := osdn.NewOsdnRegistryInterface(c.SDNControllerClients())
 	switch c.Options.NetworkConfig.NetworkPluginName {
 	case flatsdn.NetworkPluginName():
-		flatsdn.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
+		flatsdn.Master(registry, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
 	case multitenant.NetworkPluginName():
-		multitenant.Master(osclient, kclient, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
+		multitenant.Master(registry, c.Options.NetworkConfig.ClusterNetworkCIDR, c.Options.NetworkConfig.HostSubnetLength, c.Options.NetworkConfig.ServiceNetworkCIDR)
 	}
 }
 

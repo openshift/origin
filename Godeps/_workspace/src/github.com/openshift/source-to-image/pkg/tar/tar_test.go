@@ -121,6 +121,36 @@ func verifyTarFile(t *testing.T, filename string, files []fileDesc, links []link
 	}
 }
 
+func TestCreateTarStreamIncludeParentDir(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", "testtar")
+	defer os.RemoveAll(tempDir)
+	if err != nil {
+		t.Fatalf("Cannot create temp directory for test: %v", err)
+	}
+	modificationDate := time.Date(2011, time.March, 5, 23, 30, 1, 0, time.UTC)
+	testFiles := []fileDesc{
+		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false},
+		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false},
+		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false},
+		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true},
+	}
+	if err := createTestFiles(tempDir, testFiles); err != nil {
+		t.Fatalf("Cannot create test files: %v", err)
+	}
+	th := New()
+	tarFile, err := ioutil.TempFile("", "testtarout")
+	err = th.CreateTarStream(tempDir, true, tarFile)
+	if err != nil {
+		t.Fatalf("Unable to create tar file %v", err)
+	}
+	tarFile.Close()
+	for i := range testFiles {
+		testFiles[i].name = filepath.Join(filepath.Base(tempDir), testFiles[i].name)
+	}
+	verifyTarFile(t, tarFile.Name(), testFiles, []linkDesc{})
+
+}
+
 func TestCreateTar(t *testing.T) {
 	th := New()
 	tempDir, err := ioutil.TempDir("", "testtar")

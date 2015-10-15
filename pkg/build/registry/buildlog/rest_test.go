@@ -159,13 +159,6 @@ func TestWaitForBuildTimeout(t *testing.T) {
 		BuildRegistry: registry,
 		Timeout:       100 * time.Millisecond,
 	}
-	go func() {
-		time.Sleep(500 * time.Millisecond)
-		ch <- watch.Event{
-			Type:   watch.Modified,
-			Object: mockBuild(api.BuildPhaseRunning, "running"),
-		}
-	}()
 	err := storage.waitForBuild(ctx, build)
 	if err == nil || !strings.Contains(err.Error(), "timed out") {
 		t.Errorf("Unexpected error result from waitForBuild: %v\n", err)

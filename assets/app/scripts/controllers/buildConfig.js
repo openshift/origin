@@ -34,6 +34,7 @@ angular.module('openshiftConsole')
       DataService.get("buildconfigs", $routeParams.buildconfig, $scope).then(
         // success
         function(buildConfig) {
+          $scope.loaded = true;
           $scope.buildConfig = buildConfig;
 
           // If we found the item successfully, watch for changes on it
@@ -49,6 +50,7 @@ angular.module('openshiftConsole')
         },
         // failure
         function(e) {
+          $scope.loaded = true;
           $scope.alerts["load"] = {
             type: "error",
             message: "The build configuration details could not be loaded.",

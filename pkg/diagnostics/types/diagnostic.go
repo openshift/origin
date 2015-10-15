@@ -2,9 +2,10 @@ package types
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"runtime"
 	"strings"
+
+	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
 )
@@ -122,7 +123,7 @@ func (r *diagnosticResultImpl) caller(depth int) string {
 	return "diagnostic " + r.origin
 }
 func (r *diagnosticResultImpl) logError(id string, err error, msg string) {
-	r.appendLogs(2, log.Entry{id, r.caller(2), log.ErrorLevel, msg})
+	r.appendLogs(2, log.Entry{ID: id, Origin: r.caller(2), Level: log.ErrorLevel, Message: msg})
 	if de, ok := err.(DiagnosticError); ok {
 		r.appendErrors(de)
 	} else {
@@ -130,7 +131,7 @@ func (r *diagnosticResultImpl) logError(id string, err error, msg string) {
 	}
 }
 func (r *diagnosticResultImpl) logWarning(id string, err error, msg string) {
-	r.appendLogs(2, log.Entry{id, r.caller(2), log.WarnLevel, msg})
+	r.appendLogs(2, log.Entry{ID: id, Origin: r.caller(2), Level: log.WarnLevel, Message: msg})
 	if de, ok := err.(DiagnosticError); ok {
 		r.appendWarnings(de)
 	} else {
@@ -138,7 +139,7 @@ func (r *diagnosticResultImpl) logWarning(id string, err error, msg string) {
 	}
 }
 func (r *diagnosticResultImpl) logMessage(id string, level log.Level, msg string) {
-	r.appendLogs(2, log.Entry{id, r.caller(2), level, msg})
+	r.appendLogs(2, log.Entry{ID: id, Origin: r.caller(2), Level: level, Message: msg})
 }
 
 // Public ingress functions

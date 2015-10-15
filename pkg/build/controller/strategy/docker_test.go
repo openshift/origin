@@ -49,6 +49,9 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
 	}
+	if *actual.Spec.ActiveDeadlineSeconds != 60 {
+		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
+	}
 	for i, expected := range []string{dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath, sourceSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
@@ -89,6 +92,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 }
 
 func mockDockerBuild() *buildapi.Build {
+	timeout := int64(60)
 	return &buildapi.Build{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "dockerBuild",
@@ -131,6 +135,7 @@ func mockDockerBuild() *buildapi.Build {
 					kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
 				},
 			},
+			CompletionDeadlineSeconds: &timeout,
 		},
 		Status: buildapi.BuildStatus{
 			Phase: buildapi.BuildPhaseNew,

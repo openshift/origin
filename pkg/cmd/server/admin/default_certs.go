@@ -47,7 +47,8 @@ func DefaultMasterKubeletClientCertInfo(certDir string) ClientCertInfo {
 			CertFile: path.Join(certDir, MasterFilePrefix+".kubelet-client.crt"),
 			KeyFile:  path.Join(certDir, MasterFilePrefix+".kubelet-client.key"),
 		},
-		User: "system:master",
+		User:   bootstrappolicy.MasterKubeletAdminClientUsername,
+		Groups: sets.NewString(bootstrappolicy.NodeAdminsGroup),
 	}
 }
 
@@ -68,6 +69,21 @@ func DefaultMasterEtcdClientCertInfo(certDir string) ClientCertInfo {
 			KeyFile:  path.Join(certDir, MasterFilePrefix+".etcd-client.key"),
 		},
 		User: "system:master",
+	}
+}
+
+func DefaultProxyClientCerts(certDir string) []ClientCertInfo {
+	return []ClientCertInfo{
+		DefaultProxyClientCertInfo(certDir),
+	}
+}
+func DefaultProxyClientCertInfo(certDir string) ClientCertInfo {
+	return ClientCertInfo{
+		CertLocation: configapi.CertInfo{
+			CertFile: path.Join(certDir, MasterFilePrefix+".proxy-client.crt"),
+			KeyFile:  path.Join(certDir, MasterFilePrefix+".proxy-client.key"),
+		},
+		User: bootstrappolicy.MasterProxyUsername,
 	}
 }
 

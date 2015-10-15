@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/openshift/origin/pkg/client"
@@ -22,8 +21,6 @@ import (
 	clientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/test/e2e"
 )
-
-var returnCodeRegex = regexp.MustCompile("@@@([0-9]+)@@@")
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // REST clients.
@@ -227,7 +224,7 @@ func (c *CLI) Run(verb string) *CLI {
 }
 
 // Template sets a Go template for the OpenShift CLI command.
-// This is equivalent of running "oc get foo -o template -t '{{ .spec }}'"
+// This is equivalent of running "oc get foo -o template --template='{{ .spec }}'"
 func (c *CLI) Template(t string) *CLI {
 	if c.verb != "get" {
 		FatalErr("Cannot use Template() for non-get verbs.")

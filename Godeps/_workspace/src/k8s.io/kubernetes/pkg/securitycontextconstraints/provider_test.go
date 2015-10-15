@@ -160,6 +160,12 @@ func TestValidateFailures(t *testing.T) {
 	failHostNetworkPod := defaultPod()
 	failHostNetworkPod.Spec.HostNetwork = true
 
+	failHostPIDPod := defaultPod()
+	failHostPIDPod.Spec.HostPID = true
+
+	failHostIPCPod := defaultPod()
+	failHostIPCPod.Spec.HostIPC = true
+
 	failHostPortPod := defaultPod()
 	failHostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
 
@@ -202,6 +208,16 @@ func TestValidateFailures(t *testing.T) {
 			pod:           failHostPortPod,
 			scc:           defaultSCC(),
 			expectedError: "Host ports are not allowed to be used",
+		},
+		"failHostPIDSCC": {
+			pod:           failHostPIDPod,
+			scc:           defaultSCC(),
+			expectedError: "Host PID is not allowed to be used",
+		},
+		"failHostIPCSCC": {
+			pod:           failHostIPCPod,
+			scc:           defaultSCC(),
+			expectedError: "Host IPC is not allowed to be used",
 		},
 	}
 
@@ -306,6 +322,16 @@ func TestValidateSuccess(t *testing.T) {
 	hostNetworkPod := defaultPod()
 	hostNetworkPod.Spec.HostNetwork = true
 
+	hostPIDSCC := defaultSCC()
+	hostPIDSCC.AllowHostPID = true
+	hostPIDPod := defaultPod()
+	hostPIDPod.Spec.HostPID = true
+
+	hostIPCSCC := defaultSCC()
+	hostIPCSCC.AllowHostIPC = true
+	hostIPCPod := defaultPod()
+	hostIPCPod.Spec.HostIPC = true
+
 	hostPortSCC := defaultSCC()
 	hostPortSCC.AllowHostPorts = true
 	hostPortPod := defaultPod()
@@ -342,6 +368,14 @@ func TestValidateSuccess(t *testing.T) {
 		"pass hostPort validating SCC": {
 			pod: hostPortPod,
 			scc: hostPortSCC,
+		},
+		"pass hostPID validating SCC": {
+			pod: hostPIDPod,
+			scc: hostPIDSCC,
+		},
+		"pass hostIPC validating SCC": {
+			pod: hostIPCPod,
+			scc: hostIPCSCC,
 		},
 	}
 

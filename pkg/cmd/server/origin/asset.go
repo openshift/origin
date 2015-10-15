@@ -110,7 +110,7 @@ func (c *AssetConfig) buildAssetHandler() (http.Handler, error) {
 	assetFunc := assets.JoinAssetFuncs(assets.Asset, java.Asset)
 	assetDirFunc := assets.JoinAssetDirFuncs(assets.AssetDir, java.AssetDir)
 
-	handler := http.FileServer(&assetfs.AssetFS{assetFunc, assetDirFunc, ""})
+	handler := http.FileServer(&assetfs.AssetFS{Asset: assetFunc, AssetDir: assetDirFunc, Prefix: ""})
 
 	// Map of context roots (no leading or trailing slash) to the asset path to serve for requests to a missing asset
 	subcontextMap := map[string]string{
@@ -198,6 +198,8 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 		OAuthRedirectBase:   c.Options.PublicURL,
 		OAuthClientID:       OpenShiftWebConsoleClientID,
 		LogoutURI:           c.Options.LogoutURL,
+		LoggingURL:          c.Options.LoggingPublicURL,
+		MetricsURL:          c.Options.MetricsPublicURL,
 	}
 	configPath := path.Join(publicURL.Path, "config.js")
 	configHandler, err := assets.GeneratedConfigHandler(config)

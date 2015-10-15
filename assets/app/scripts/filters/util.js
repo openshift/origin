@@ -296,4 +296,47 @@ angular.module('openshiftConsole')
           // uppercase the first character
           .replace(/^./, function(str){ return str.toUpperCase(); });
     };
+  })
+  .filter('parseJSON', function() {
+    return function(json) {
+      // return original value if its null or undefined
+      if (!json) {
+        return null;
+      }
+
+      // return the parsed obj if its valid
+      try {
+        var jsonObj = JSON.parse(json);
+        if (typeof jsonObj === "object") {
+          return jsonObj;
+        }
+        else {
+          return null;
+        }
+      }
+      catch (e) {
+        // it wasn't valid json
+        return null;
+      }      
+    };
+  })
+  .filter('prettifyJSON', function(parseJSONFilter) {
+    return function(json) {
+      var jsonObj = parseJSONFilter(json);
+      if (jsonObj) {
+        return JSON.stringify(jsonObj, null, 4);
+      }
+      else {
+        // it wasn't a json object, return the original value
+        return json;
+      }
+    };
+  })
+  // Resource is either a resource object, or a name.  If resource is a name, kind and namespace must be specified
+  // Note that builds and deployments can only have their URL built correctly (including their config in the URL)
+  // if resource is an object
+  .filter('navigateResourceURL', function(Navigate) {
+    return function(resource, kind, namespace) {
+      return Navigate.resourceURL(resource, kind, namespace);
+    };
   });

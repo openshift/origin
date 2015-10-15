@@ -382,7 +382,7 @@ Available formats include:
 An example of using `-o template` to retrieve the *name* of the first build:
 
 ```bash
-$ oc get builds -o template -t "{{with index .items 0}}{{.metadata.name}}{{end}}"
+$ oc get builds -o template --template="{{with index .items 0}}{{.metadata.name}}{{end}}"
 ```
 
 #### Selectors
@@ -672,14 +672,14 @@ The options are:
 |:----------------------|:-------------------------------------------------|
 |`-f` *filename*        | Write to *filename* instead of standard output.  |
 |`--as-template` *name* | Output in template format with name *name*.      |
-|`--all`                | Select all objects with given *resource-type*.   |
+|`--all-namespace`      | If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace. |
 |`--exact`              | Preserve fields that may be cluster specific, such as service `portalIP`s or generated names. |
 |`--raw`                | Do not alter the resources in any way after they are loaded. |
 
 The following example exports all services to a template with name `test`.
 
 ```bash
-$ oc export service --all --as-template=test
+$ oc export service --as-template=test
 ```
 
 ## Settings Commands

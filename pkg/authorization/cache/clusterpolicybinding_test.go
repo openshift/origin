@@ -14,7 +14,7 @@ import (
 	testregistry "github.com/openshift/origin/pkg/authorization/registry/test"
 )
 
-func beforeTestingSetup_readonlyclusterpolicybindingcache() (testCache readOnlyClusterPolicyBindingCache, cacheChannel, testChannel chan struct{}) {
+func beforeTestingSetup_readonlyclusterpolicybindingcache() (testCache *readOnlyClusterPolicyBindingCache, cacheChannel, testChannel chan struct{}) {
 	cacheChannel = make(chan struct{})
 
 	testRegistry := testregistry.NewClusterPolicyBindingRegistry(testClusterPolicyBindings, nil)

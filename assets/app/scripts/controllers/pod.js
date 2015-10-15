@@ -26,6 +26,12 @@ angular.module('openshiftConsole')
       }
     ];
 
+    // Check for a ?tab=<name> query param to allow linking directly to a tab.
+    if ($routeParams.tab) {
+      $scope.selectedTab = {};
+      $scope.selectedTab[$routeParams.tab] = true;
+    }
+
     var watches = [];
 
     project.get($routeParams.project).then(function(resp) {
@@ -36,6 +42,7 @@ angular.module('openshiftConsole')
       DataService.get("pods", $routeParams.pod, $scope).then(
         // success
         function(pod) {
+          $scope.loaded = true;
           $scope.pod = pod;
           var pods = {};
           pods[pod.metadata.name] = pod;
@@ -54,6 +61,7 @@ angular.module('openshiftConsole')
         },
         // failure
         function(e) {
+          $scope.loaded = true;
           $scope.alerts["load"] = {
             type: "error",
             message: "The pod details could not be loaded.",

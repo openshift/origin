@@ -14,10 +14,7 @@ pods - a hash of pod objects by id
     <div class="pod pod-warning pod-multiple osc-object osc-object-stacked" ng-repeat-end  ng-if="(expandedPhase != phase || !warningsExpanded) && (phasePods = (pods | podsForPhase : phase)).length && (troublePods = (phasePods | troubledPods)).length" ng-click="expandPhase(phase, true, $event)" title="Expand to see individual pods">
       <div style="font-size:24px; line-height: 19px;">
         <span>{{troublePods.length}}</span>
-        <span class="pficon-layered" ng-if="troublePods.length" data-content="These pods are having problems, view a pod to see more details." style="font-size: 14px; margin-right: -24px" data-toggle="popover" data-placement="right" data-trigger="hover">
-          <span class="pficon pficon-warning-triangle"></span>
-          <span class="pficon pficon-warning-exclamation"></span>
-        </span>
+        <span ng-if="troublePods.length" data-content="These pods are having problems, view a pod to see more details." class="pficon pficon-warning-triangle-o" style="font-size: 14px; margin-right: -24px" data-toggle="popover" data-placement="right" data-trigger="hover"></span>
       </div>
       <div class="pod-text">{{phase}}</div>
       <i class="fa fa-ellipsis-h"></i>

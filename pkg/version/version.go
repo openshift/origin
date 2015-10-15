@@ -3,6 +3,7 @@ package version
 import (
 	"fmt"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	kubeversion "k8s.io/kubernetes/pkg/version"
 )
@@ -60,4 +61,17 @@ func NewVersionCommand(basename string) *cobra.Command {
 			fmt.Printf("kubernetes %v\n", kubeversion.Get())
 		},
 	}
+}
+
+func init() {
+	buildInfo := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "openshift_build_info",
+			Help: "A metric with a constant '1' value labeled by major, minor, git commit & git version from which OpenShift was built.",
+		},
+		[]string{"major", "minor", "gitCommit", "gitVersion"},
+	)
+	buildInfo.WithLabelValues(majorFromGit, minorFromGit, commitFromGit, versionFromGit).Set(1)
+
+	prometheus.MustRegister(buildInfo)
 }

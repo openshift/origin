@@ -43,13 +43,9 @@ Possible resources include builds, buildConfigs, services, pods, etc.`
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	p := describe.NewHumanReadablePrinter(false, false, false, false, []string{})
-	validArgs := p.HandledResources()
-
 	cmd := kcmd.NewCmdGet(f.Factory, out)
 	cmd.Long = getLong
 	cmd.Example = fmt.Sprintf(getExample, fullName)
-	cmd.ValidArgs = validArgs
 	cmd.SuggestFor = []string{"list"}
 	return cmd
 }
@@ -128,27 +124,6 @@ func NewCmdDelete(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	cmd.Long = deleteLong
 	cmd.Example = fmt.Sprintf(deleteExample, fullName)
 	cmd.SuggestFor = []string{"remove"}
-	return cmd
-}
-
-const (
-	logsLong = `
-Print the logs for a container in a pod
-
-If the pod has only one container, the container name is optional.`
-
-	logsExample = `  # Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ %[1]s logs 123456-7890 -c ruby-container
-
-  # Starts streaming of ruby-container logs from pod 123456-7890.
-  $ %[1]s logs -f 123456-7890 -c ruby-container`
-)
-
-// NewCmdLogs is a wrapper for the Kubernetes cli logs command
-func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdLog(f.Factory, out)
-	cmd.Long = logsLong
-	cmd.Example = fmt.Sprintf(logsExample, fullName)
 	return cmd
 }
 

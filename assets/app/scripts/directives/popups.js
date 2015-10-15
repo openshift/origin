@@ -32,7 +32,7 @@ angular.module('openshiftConsole')
         angular.forEach(warnings, function(warning) {
           content += warning.message + "<br>";
         });       
-        $('.pficon-layered', element)
+        $('.pficon-warning-triangle-o', element)
           .attr("data-content", content)
           .popover("destroy")
           .popover();

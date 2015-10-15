@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/openshift/origin/pkg/generate/dockerfile"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/util/docker/dockerfile"
+
+	"github.com/docker/docker/builder/parser"
 )
 
 // ImageRefGenerator is an interface for generating ImageRefs
@@ -22,15 +23,11 @@ type ImageRefGenerator interface {
 	FromDockerfile(name string, dir string, context string) (*ImageRef, error)
 }
 
-type imageRefGenerator struct {
-	dockerParser dockerfile.Parser
-}
+type imageRefGenerator struct{}
 
 // NewImageRefGenerator creates a new ImageRefGenerator
 func NewImageRefGenerator() ImageRefGenerator {
-	return &imageRefGenerator{
-		dockerParser: dockerfile.NewParser(),
-	}
+	return &imageRefGenerator{}
 }
 
 // FromName generates an ImageRef from a given name
@@ -78,20 +75,12 @@ func (g *imageRefGenerator) FromDockerfile(name string, dir string, context stri
 		return nil, err
 	}
 
-	dockerFile, err := g.dockerParser.Parse(file)
+	node, err := parser.Parse(file)
 	if err != nil {
 		return nil, err
 	}
+	ports := dockerfile.LastExposedPorts(node)
 
-	expose, ok := dockerFile.GetDirective("EXPOSE")
-	if !ok {
-		return nil, err
-	}
-	ports := []string{}
-	for _, e := range expose {
-		ps := strings.Split(e, " ")
-		ports = append(ports, ps...)
-	}
 	return g.FromNameAndPorts(name, ports)
 }
 

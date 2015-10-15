@@ -394,7 +394,7 @@ func WaitForBuildComplete(c osclient.BuildInterface, name string) error {
 				return nil
 			}
 			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
-				return fmt.Errorf("the build %s/%s status is %q", list.Items[i].Namespace, list.Items[i].Name, &list.Items[i].Status.Phase)
+				return fmt.Errorf("the build %s/%s status is %q", list.Items[i].Namespace, list.Items[i].Name, list.Items[i].Status.Phase)
 			}
 		}
 

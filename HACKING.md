@@ -109,7 +109,7 @@ focus on ensuring that naturally related components work correctly.  They should
 testing branches or error conditions inside packages (that's what unit tests do), but they should
 validate that important success and error paths work across layers (especially when errors are being
 converted from lower level errors). Integration tests should not be testing details of the
-intercomponent connections - API tests should not test that the JSON serialized to the wire is
+inter-component connections - API tests should not test that the JSON serialized to the wire is
 correctly converted back and forth (unit test responsibility), but they should test that those
 connections have the expected outcomes. The underlying goal of integration tests is to wire together
 the most important components in isolation. Integration tests should be as fast as possible in order
@@ -128,7 +128,7 @@ their own files so we can selectively build them.
 All integration tests are located under `test/integration/*`. All integration tests must set the
 `integration` build tag at the top of their source file, and also declare whether they need etcd
 with the `etcd` build tag and whether they need Docker with the `docker` build tag. For
-special function sets please create subdirectories like `test/integration/deployimages`.
+special function sets please create sub directories like `test/integration/deployimages`.
 
 Run the integration tests with:
 
@@ -175,6 +175,71 @@ OpenShift is checked into this repository.  To install `godep` locally run:
     $ go get github.com/tools/godep
 
 If you are not updating packages you should not need godep installed.
+
+## Cherry-picking an upstream commit into Origin
+
+You can use `hack/cherry-pick.sh` to generate patches for Origin from upstream commits. To use
+this command, be sure to setup remote branches like https://gist.github.com/piscisaureus/3342247
+so that `git show origin/pr/<number>` displays information about your branch after a `git fetch`.
+You must also have the Kubernetes repository checked out in your GOPATH (visible as `../../../k8s.io/kubernetes`)
+and have no modified or uncommitted files in either repository.
+
+To pull an upstream commit, run:
+
+    $ hack/cherry-pick.sh <pr_number>
+
+This will attempt to create a patch from the current Kube rebase version in Origin that contains
+the commits added in the PR. If the PR has already been merged to the Kube version, you'll get an
+error. If there are conflicts, you'll have to resolve them in the upstream repo, then hit ENTER
+to continue. The end result will be a single commit in your Origin repo that contains the changes.
+
+If you want to run without a rebase option, set `NO_REBASE=1` before the command is run. You can
+also specify a commit range directly with:
+
+    $ hack/cherry-pick.sh origin/master...<some_branch>
+
+All upstream commits should have a commit message where the first line is:
+
+    UPSTREAM: <PR number|drop|carry>: <short description>
+
+`drop` indicates the commit should be removed during the next rebase. `carry` means that the change
+cannot go into upstream, and we should continue to use it during the next rebase.
+
+You can also target repositories other than Kube by setting `UPSTREAM_REPO` and `UPSTREAM_PACKAGE`
+env vars.  `UPSTREAM_REPO` should be the full name of the Git repo as Go sees it, i.e.
+`github.com/coreos/etcd`, and `UPSTREAM_PACKAGE` must be a package inside that repo that is
+currently part of the Godeps.json file.  Example:
+
+    $ UPSTREAM_REPO=github.com/coreos/etcd UPSTREAM_PACKAGE=store hack/cherry-pick.sh <pr_number>
+
+## Moving a commit you developed in Origin to an upstream
+
+The `hack/move-upstream.sh` script takes the current feature branch, finds any changes to the
+requested upstream project (as defined by `UPSTREAM_REPO` and `UPSTREAM_PACKAGE`) that differ
+from `origin/master`, and then creates a new commit in that upstream project on a branch with
+the same name as your current branch.
+
+For example, to upstream a commit to OpenShift source-to-image while working from Origin:
+
+    $ git checkout my_feature_branch_in_origin
+    $ git log --oneline
+    70ffe7e Docker and STI builder support binary extraction
+    75a22de UPSTREAM: <sti>: Allow prepared directories to be passed to STI
+    86eefdd UPSTREAM: 14618: Refactor exec to allow reuse from server
+
+    # we want to move our STI changes to upstream
+    $ UPSTREAM_REPO=github.com/openshift/source-to-image UPSTREAM_PACKAGE=pkg/api hack/move-upstream.sh
+    ...
+
+    # All changes to source-to-image in Godeps/. are now in a commit UPSTREAMED in s2i repo
+
+    $ cd ../source-to-image
+    $ git log --oneline
+    c0029f6 UPSTREAMED
+    ... # older commits
+
+The default is to work against Kube.
+
 
 ## Updating Kubernetes from upstream
 

@@ -30,3 +30,8 @@ type LDAPUserNameMapper interface {
 type LDAPGroupGetter interface {
 	GroupEntryFor(ldapGroupUID string) (group *ldap.Entry, err error)
 }
+
+type LDAPGroupListerNameMapper interface {
+	LDAPGroupLister
+	LDAPGroupNameMapper
+}

@@ -48,14 +48,25 @@
     position: relative;
     .osc-object-highlight();
     .component-label {
-      text-transform: uppercase;
-      font-size: 11px;
       color: @gray-light;
+      font-size: @component-label;
+      line-height: @line-height-base;
+      text-transform: uppercase;
       + span {
         margin-left: 5px;
       }
       .component-label-details {
         text-transform: none;
+      }
+      a.subtle-link {
+        color: @gray-light;
+        border-bottom: 1px dotted #BBB;
+
+        &:hover, &:active, &:focus {
+          color: @link-hover-color;
+          border-bottom: 1px dotted @link-hover-color;
+          text-decoration: none;
+        }
       }
     }
     .component-block {
@@ -69,9 +80,6 @@
       &.pod-container {
         .flex-direction(@direction: row);
       }
-      &.pod-template-container {
-        margin-top: 5px;
-      }
       &.component-meta {
         margin: 4px 0 6px;
       }
@@ -82,18 +90,16 @@
         }
         h2,h3 {
           margin: 0 0 5px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          line-height: 1.3;
-          white-space: nowrap;
+          .truncate();
         }
         &.meta-data {
           @media (min-width: @screen-sm-min) {
             // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
             .flex(@columns: 1);
           }
+          font-size: @component-label + 1;
           text-align: right;
-          line-height: 1.3em;
+          line-height: @line-height-base;
           .align-self(@align: left);
           color: @gray-light;
           @media (min-width: @screen-sm-min) and (max-width: @screen-sm-max), (max-width: 380px) {
@@ -144,15 +150,8 @@
 }
 
 .pod-template-block {
-  text-align: left;
-  display: inline-block;
-  .flex(@columns: 1 0 auto);
-  min-width: 150px;
-  max-width: 450px;
   border-radius: 3px;
   margin-bottom: 10px;
-  margin-right: 10px;
-  overflow: hidden;
   .pod-template {
     border: 1px dotted #ddd;
     border-radius: @border-radius-md;
@@ -160,15 +159,8 @@
     h4 {
       margin: 5px 0;
     }
-    .fa {
-      margin-right: 5px;
-      // Make sure the icons are exactly the same width so the labels align.
-      width: 13px;
-    }
-  }
-  .pod-template-ports {
-    .font-icon-block {
-      margin-right: 8px;
+    .pod-template-build {
+      .word-break();
     }
   }
 }
@@ -212,7 +204,6 @@
     .flex-direction(@direction: row);
     .flex-wrap(@wrap: wrap);
     .justify-content(@justify: flex-start);
-    margin-top: 5px;
     &.pod-container-lg {
       .pod {
         width: 70px;
@@ -302,13 +293,8 @@
         }
 
         .pod-status-label {
-          &:after {
-            content: "\e608"; // pficon-error-exclamation
-            left: -16px;
-            top: 0;
-          }
           &:before {
-            content: "\e609"; // pficon-error-octagon
+            content: @pficon-var-error-circle-o;
             color: @brand-danger;
             left: -16px;
             top: 0;

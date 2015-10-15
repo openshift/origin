@@ -13374,7 +13374,15 @@
      },
      "hostNetwork": {
       "type": "boolean",
-      "description": "Host networking requested for this pod. Uses the host's network namespace. If this option is set, the ports that will be used must be specified. Default to false."
+      "description": "Host networking requested for this pod. Use the host's network namespace. If this option is set, the ports that will be used must be specified. Default to false."
+     },
+     "hostPID": {
+      "type": "boolean",
+      "description": "Use the host's pid namespace. Optional: Default to false."
+     },
+     "hostIPC": {
+      "type": "boolean",
+      "description": "Use the host's ipc namespace. Optional: Default to false."
      },
      "imagePullSecrets": {
       "type": "array",
@@ -14464,7 +14472,9 @@
      "allowedCapabilities",
      "allowHostDirVolumePlugin",
      "allowHostNetwork",
-     "allowHostPorts"
+     "allowHostPorts",
+     "allowHostPID",
+     "allowHostIPC"
     ],
     "properties": {
      "kind": {
@@ -14501,6 +14511,14 @@
       "type": "boolean",
       "description": "allow the use of the host ports in the containers"
      },
+     "allowHostPID": {
+      "type": "boolean",
+      "description": "allow the use of the host pid in the containers"
+     },
+     "allowHostIPC": {
+      "type": "boolean",
+      "description": "allow the use of the host ipc in the containers"
+     },
      "seLinuxContext": {
       "$ref": "v1.SELinuxContextStrategyOptions",
       "description": "strategy used to generate SELinuxOptions"
@@ -14508,6 +14526,14 @@
      "runAsUser": {
       "$ref": "v1.RunAsUserStrategyOptions",
       "description": "strategy used to generate RunAsUser"
+     },
+     "supplementalGroups": {
+      "$ref": "v1.SupplementalGroupsStrategyOptions",
+      "description": "strategy used to generate supplemental groups"
+     },
+     "fsGroup": {
+      "$ref": "v1.FSGroupStrategyOptions",
+      "description": "strategy used to generate fsGroup"
      },
      "users": {
       "type": "array",
@@ -14559,6 +14585,53 @@
       "type": "integer",
       "format": "int64",
       "description": "max value for range based allocators"
+     }
+    }
+   },
+   "v1.SupplementalGroupsStrategyOptions": {
+    "id": "v1.SupplementalGroupsStrategyOptions",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "strategy used to generate supplemental groups"
+     },
+     "ranges": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.IDRange"
+      },
+      "description": "ranges of allowable IDs for supplemental groups"
+     }
+    }
+   },
+   "v1.IDRange": {
+    "id": "v1.IDRange",
+    "properties": {
+     "min": {
+      "type": "integer",
+      "format": "int64",
+      "description": "min value for the range"
+     },
+     "max": {
+      "type": "integer",
+      "format": "int64",
+      "description": "min value for the range"
+     }
+    }
+   },
+   "v1.FSGroupStrategyOptions": {
+    "id": "v1.FSGroupStrategyOptions",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "strategy used to generate fsGroup"
+     },
+     "ranges": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.IDRange"
+      },
+      "description": "ranges of allowable IDs for fsGroup"
      }
     }
    },

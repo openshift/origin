@@ -6,7 +6,7 @@
       </div>
       <alerts alerts="alerts"></alerts>
 
-        <table class="table table-bordered table-condensed table-events table-hover">
+        <table class="table table-bordered table-condensed table-mobile table-hover">
           <thead>
             <tr>
               <th>Time</th>
@@ -30,7 +30,7 @@
                 {{event.involvedObject.kind}}</td>
               <td class="hidden-sm hidden-md" data-title="Reason">
                 {{event.reason}}</td>
-              <td data-title="Message" class="break-word">
+              <td data-title="Message" class="word-break">
                 <div class="hidden-xs-block visible-sm-block visible-md-block hidden-lg-block">{{event.reason}}</div>
                 {{event.message}}
                 <span class="text-muted small" ng-if="event.count > 1">

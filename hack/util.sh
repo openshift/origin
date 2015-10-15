@@ -12,12 +12,14 @@ function setup_env_vars {
 	GO_OUT="${OS_ROOT}/_output/local/bin/$(os::util::host_platform)"
 	export PATH="${GO_OUT}:${PATH}"
 
+	export ETCD_PORT="${ETCD_PORT:-4001}"
+	export ETCD_PEER_PORT="${ETCD_PEER_PORT:-7001}"
 	export API_HOST="${API_HOST:-$(openshift start --print-ip)}"
+	export API_PORT="${API_PORT:-8443}"
 	export LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
 	export ETCD_DATA_DIR="${BASETMPDIR}/etcd"
 	export VOLUME_DIR="${BASETMPDIR}/volumes"
 	export FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
-	export API_PORT="${API_PORT:-8443}"
 	export API_SCHEME="${API_SCHEME:-https}"
 	export MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
 	export PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
@@ -28,6 +30,9 @@ function setup_env_vars {
 	export MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
 	export NODE_CONFIG_DIR="${SERVER_CONFIG_DIR}/node-${KUBELET_HOST}"
 	export ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
+	if [ -z ${SUDO+x} ]; then
+		export SUDO="${SUDO:-1}"
+	fi
 
 	# Use either the latest release built images, or latest.
 	if [[ -z "${USE_IMAGES-}" ]]; then
@@ -105,10 +110,16 @@ function configure_os_server {
 	--images="${USE_IMAGES}"
 
 
+	# Don't try this at home.  We don't have flags for setting etcd ports in the config, but we want deconflicted ones.  Use sed to replace defaults in a completely unsafe way
+	os::util::sed "s/:4001$/:${ETCD_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+	os::util::sed "s/:7001$/:${ETCD_PEER_PORT}/g" ${SERVER_CONFIG_DIR}/master/master-config.yaml
+
+
 	# Make oc use ${MASTER_CONFIG_DIR}/admin.kubeconfig, and ignore anything in the running user's $HOME dir
 	export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-	export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template -t '{{index . "current-context"}}')
-	sudo chmod -R a+rwX "${ADMIN_KUBECONFIG}"
+	export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
+	local sudo="${SUDO:+sudo}"
+	${sudo} chmod -R a+rwX "${ADMIN_KUBECONFIG}"
 	echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"
 }
 
@@ -116,6 +127,8 @@ function configure_os_server {
 # start_os_server starts the OS server, exports the PID of the OS server
 # and waits until OS server endpoints are available
 function start_os_server {
+	local sudo="${SUDO:+sudo}"
+
 	echo "[INFO] `openshift version`"
 	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
 	echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
@@ -129,7 +142,7 @@ function start_os_server {
 	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
 	ps -ef | grep openshift
 	echo "[INFO] Starting OpenShift server"
-	sudo env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
+	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start \
 	 --master-config=${MASTER_CONFIG_DIR}/master-config.yaml \
 	 --node-config=${NODE_CONFIG_DIR}/node-config.yaml \
 	 --loglevel=4 \
@@ -137,7 +150,7 @@ function start_os_server {
 	export OS_PID=$!
 
 	echo "[INFO] OpenShift server start at: "
-	echo `date`
+	date
 	
 	wait_for_url "${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz" "[INFO] kubelet: " 0.5 60
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
@@ -145,9 +158,41 @@ function start_os_server {
 	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/api/v1/nodes/${KUBELET_HOST}" "apiserver(nodes): " 0.25 80
 	
 	echo "[INFO] OpenShift server health checks done at: "
-	echo `date`
+	date
 }
 
+# start_os_master starts the OS server, exports the PID of the OS server
+# and waits until OS server endpoints are available
+function start_os_master {
+	local sudo="${SUDO:+sudo}"
+
+	echo "[INFO] `openshift version`"
+	echo "[INFO] Server logs will be at:    ${LOG_DIR}/openshift.log"
+	echo "[INFO] Test artifacts will be in: ${ARTIFACT_DIR}"
+	echo "[INFO] Config dir is:             ${SERVER_CONFIG_DIR}"
+	echo "[INFO] Using images:              ${USE_IMAGES}"
+	echo "[INFO] MasterIP is:               ${MASTER_ADDR}"
+
+	mkdir -p ${LOG_DIR}
+
+	echo "[INFO] Scan of OpenShift related processes already up via ps -ef	| grep openshift : "
+	ps -ef | grep openshift
+	echo "[INFO] Starting OpenShift server"
+	${sudo} env "PATH=${PATH}" OPENSHIFT_PROFILE=web OPENSHIFT_ON_PANIC=crash openshift start master \
+	 --config=${MASTER_CONFIG_DIR}/master-config.yaml \
+	 --loglevel=4 \
+	&> "${LOG_DIR}/openshift.log" &
+	export OS_PID=$!
+
+	echo "[INFO] OpenShift server start at: "
+	date
+	
+	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz" "apiserver: " 0.25 80
+	wait_for_url "${API_SCHEME}://${API_HOST}:${API_PORT}/healthz/ready" "apiserver(ready): " 0.25 80
+	
+	echo "[INFO] OpenShift server health checks done at: "
+	date
+}
 # ensure_iptables_or_die tests if the testing machine has iptables available
 # and in PATH. Also test whether current user has sudo privileges.	
 function ensure_iptables_or_die {
@@ -371,12 +416,14 @@ function validate_response {
 # 
 # $1 expression for which the mounts should be checked 
 reset_tmp_dir() {
+	local sudo="${SUDO:+sudo}"
+
 	set +e
-	sudo rm -rf ${BASETMPDIR} &>/dev/null
+	${sudo} rm -rf ${BASETMPDIR} &>/dev/null
 	if [[ $? != 0 ]]; then
 		echo "[INFO] Unmounting previously used volumes ..."
-		findmnt -lo TARGET | grep ${BASETMPDIR} | xargs -r sudo umount
-		sudo rm -rf ${BASETMPDIR}
+		findmnt -lo TARGET | grep ${BASETMPDIR} | xargs -r ${sudo} umount
+		${sudo} rm -rf ${BASETMPDIR}
 	fi
 
 	mkdir -p ${BASETMPDIR} ${LOG_DIR} ${ARTIFACT_DIR} ${FAKE_HOME_DIR} ${VOLUME_DIR}
@@ -387,10 +434,7 @@ reset_tmp_dir() {
 # all processes created by the test script.
 function kill_all_processes()
 {
-	sudo=
-	if type sudo &> /dev/null; then
-		sudo=sudo
-	fi
+	local sudo="${SUDO:+sudo}"
 
 	pids=($(jobs -pr))
 	for i in ${pids[@]-}; do
@@ -428,9 +472,9 @@ function delete_large_and_empty_logs()
 {
 	# clean up zero byte log files
 	# Clean up large log files so they don't end up on jenkins
-	find ${ARTIFACT_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size +20M -exec echo Deleting {} because it is too big. \; -exec rm -f {} \;
-	find ${LOG_DIR} -name *.log -size 0 -exec echo Deleting {} because it is empty. \; -exec rm -f {} \;
+	find ${ARTIFACT_DIR} -name *.log -size +20M -exec -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size +20M -exec -exec rm -f {} \;
+	find ${LOG_DIR} -name *.log -size 0 -exec rm -f {} \;
 }
 
 ######
@@ -459,16 +503,16 @@ function cleanup_openshift {
 
 	echo "[INFO] Dumping etcd contents to ${ARTIFACT_DIR}/etcd_dump.json"
 	set_curl_args 0 1
-	curl ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
+	curl -s ${clientcert_args} -L "${API_SCHEME}://${API_HOST}:${ETCD_PORT}/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
 	echo
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
 		echo "[INFO] Tearing down test"
 		kill_all_processes
 
-		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
+		echo "[INFO] Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
 		if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm
+			echo "[INFO] Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm >/dev/null
 		fi
 		set -u
 	fi
@@ -501,7 +545,19 @@ function install_router {
 	echo "[INFO] Installing the router"
 	echo '{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}' | oc create -f - --config="${ADMIN_KUBECONFIG}"
 	oc get scc privileged -o json --config="${ADMIN_KUBECONFIG}" | sed '/\"users\"/a \"system:serviceaccount:default:router\",' | oc replace scc privileged -f - --config="${ADMIN_KUBECONFIG}"
-	openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
+        # Create a TLS certificate for the router
+        if [[ -n "${CREATE_ROUTER_CERT-}" ]]; then
+            echo "[INFO] Generating router TLS certificate"
+            oadm ca create-server-cert --signer-cert=${MASTER_CONFIG_DIR}/ca.crt \
+                 --signer-key=${MASTER_CONFIG_DIR}/ca.key \
+                 --signer-serial=${MASTER_CONFIG_DIR}/ca.serial.txt \
+                 --hostnames="*.${API_HOST}.xip.io" \
+                 --cert=${MASTER_CONFIG_DIR}/router.crt --key=${MASTER_CONFIG_DIR}/router.key
+            cat ${MASTER_CONFIG_DIR}/router.crt ${MASTER_CONFIG_DIR}/router.key \
+                ${MASTER_CONFIG_DIR}/ca.crt > ${MASTER_CONFIG_DIR}/router.pem
+            ROUTER_DEFAULT_CERT="--default-cert=${MASTER_CONFIG_DIR}/router.pem"
+        fi
+        openshift admin router --create --credentials="${MASTER_CONFIG_DIR}/openshift-router.kubeconfig" --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router ${ROUTER_DEFAULT_CERT-}
 }
 
 # install registry for the extended tests
@@ -512,7 +568,7 @@ function install_registry {
 }
 
 function wait_for_registry {
-	wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 -t "{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=${ADMIN_KUBECONFIG} || echo "0")" != "0" ]]' $((5*TIME_MIN))
+	wait_for_command '[[ "$(oc get endpoints docker-registry --output-version=v1 --template="{{ if .subsets }}{{ len .subsets }}{{ else }}0{{ end }}" --config=${ADMIN_KUBECONFIG} || echo "0")" != "0" ]]' $((5*TIME_MIN))
 }
 
 
@@ -521,7 +577,7 @@ function wait_for_registry {
 function os::build:wait_for_start() {
 	echo "[INFO] Waiting for $1 namespace build to start"
 	wait_for_command "oc get -n $1 builds | grep -i running" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`oc get -n $1 builds  --output-version=v1 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	BUILD_ID=`oc get -n $1 builds  --output-version=v1 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} started"
 }
 
@@ -530,7 +586,7 @@ function os::build:wait_for_start() {
 function os::build:wait_for_end() {
 	echo "[INFO] Waiting for $1 namespace build to complete"
 	wait_for_command "oc get -n $1 builds | grep -i complete" $((10*TIME_MIN)) "oc get -n $1 builds | grep -i -e failed -e error"
-	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 -t "{{with index .items 0}}{{.metadata.name}}{{end}}"`
+	BUILD_ID=`oc get -n $1 builds --output-version=v1beta3 --template="{{with index .items 0}}{{.metadata.name}}{{end}}"`
 	echo "[INFO] Build ${BUILD_ID} finished"
 	# TODO: fix
 	set +e

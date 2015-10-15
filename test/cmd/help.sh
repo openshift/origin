@@ -53,12 +53,15 @@ os::log::install_errexit
 [ "$(oadm create-key-pair -h 2>&1 | grep 'Create an RSA key pair')" ]
 [ "$(oadm create-server-cert -h 2>&1 | grep 'Create a key and server certificate')" ]
 [ "$(oadm create-signer-cert -h 2>&1 | grep 'Create a self-signed CA')" ]
-# atomic-enterprise binaries are recognized
-[ "$(openshift | grep -i 'OpenShift Application Platform')" ]
-[ ! "$(openshift | grep -i 'Atomic')" ]
+# check whether product is recognized
 [ "$(origin | grep -i 'Origin Application Platform')" ]
-[ ! "$(origin | grep -i 'Atomic')" ]
-[ "$(atomic-enterprise | grep -i 'Atomic Application Platform')" ]
+[ "$(origin | grep -i 'Origin distribution of Kubernetes')" ]
+[ ! "$(origin | grep -i '\(Atomic\|OpenShift\)')" ]
+[ "$(openshift | grep -i 'OpenShift Application Platform')" ]
+[ "$(openshift | grep -i 'OpenShift distribution of Kubernetes')" ]
+[ ! "$(openshift | grep -i 'Atomic')" ]
+[ "$(atomic-enterprise | grep -i 'Atomic Enterprise Platform')" ]
+[ "$(atomic-enterprise | grep -i 'Atomic distribution of Kubernetes')" ]
 [ ! "$(atomic-enterprise | grep -i 'OpenShift')" ]
 
 # help for root commands with --help flag must be consistent

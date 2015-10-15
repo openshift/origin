@@ -38,5 +38,9 @@ func (authHandler *Authenticator) AuthenticateRequest(req *http.Request) (user.I
 		}
 	}
 
+	if len(errors) == 1 {
+		// Avoid wrapping an error if possible
+		return nil, false, errors[0]
+	}
 	return nil, false, kerrors.NewAggregate(errors)
 }

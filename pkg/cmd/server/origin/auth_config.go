@@ -2,7 +2,6 @@ package origin
 
 import (
 	"crypto/md5"
-	"crypto/x509"
 	"fmt"
 	"net/url"
 
@@ -25,7 +24,6 @@ type AuthConfig struct {
 
 	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
 	AssetPublicAddresses []string
-	MasterRoots          *x509.CertPool
 	EtcdHelper           storage.Interface
 
 	UserRegistry     userregistry.Registry
@@ -42,11 +40,6 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 	etcdHelper, err := NewEtcdStorage(client, options.EtcdStorageConfig.OpenShiftStorageVersion, options.EtcdStorageConfig.OpenShiftStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up server storage: %v", err)
-	}
-
-	apiServerCAs, err := configapi.GetAPIServerCertCAPool(options)
-	if err != nil {
-		return nil, err
 	}
 
 	var sessionAuth *session.Authenticator
@@ -76,7 +69,6 @@ func BuildAuthConfig(options configapi.MasterConfig) (*AuthConfig, error) {
 		Options: *options.OAuthConfig,
 
 		AssetPublicAddresses: assetPublicURLs,
-		MasterRoots:          apiServerCAs,
 		EtcdHelper:           etcdHelper,
 
 		IdentityRegistry: identityRegistry,

@@ -85,7 +85,7 @@ html, body {
     font-weight: 400;
     margin: 8px 0 0 0;
   }
-  .bootstrap-select > .btn {
+  .bootstrap-select.btn-group .btn {
     width: 100%;
     padding: 7px 25px 7px 10px;
     font-size: @font-size-large;
@@ -94,19 +94,22 @@ html, body {
     font-weight: 400;
     background: @navbar-os-project-menu-bg;
     border: @navbar-os-project-menu-border;
+    transition: none;
+    &:hover, &:focus {
+      border-color: @input-border-hover;
+    }
     .caret {
       font-size: @font-size-large + 5;
+      margin-top: -4px;
     }
     .filter-option {
       text-overflow: ellipsis;
     }
   }
-  .dropdown-menu.open {
-    .dropdown-menu.inner.selectpicker {
-      li {
-        a {
-          padding: 5px 10px;
-        }
+  .bootstrap-select.btn-group {
+    .dropdown-menu {
+      li a {
+        padding: 10px;
       }
     }
   }
@@ -201,6 +204,25 @@ html, body {
   strong {
     font-weight: 600;
   }
+}
+
+.nav-tabs {
+  font-size: @font-size-base;
+  a {
+    // ui.bootstrap.tabs doesn't set the href attr, so the cursor style is
+    // required or it's a vertical bar
+    cursor: pointer;
+  }
+  li.active {
+    a, a:hover {
+      // Remove when we update patternfly
+      background-color: #fff;
+    }
+  }
+}
+
+.nav-tabs, .tab-content {
+  margin-top: @grid-gutter-width / 2;
 }
 
 .empty-project {
@@ -541,14 +563,12 @@ select:invalid {
 }
 
 .truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  // Bootstrap mixin
+  .text-overflow();
 }
 
-.break-word {
-  word-break: break-all; // Firefox
-  word-break: break-word; // Webkit and Microsoft
+.word-break {
+  .word-break();
 }
 
 .nowrap {
@@ -622,4 +642,8 @@ select:invalid {
     width: 13px;
     text-align: center;
   }
+}
+
+pre.clipped {
+  display: inline-block;
 }

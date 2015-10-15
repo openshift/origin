@@ -25,7 +25,9 @@ import (
 
 func init() {
 	admission.RegisterPlugin("SCCExecRestrictions", func(client client.Interface, config io.Reader) (admission.Interface, error) {
-		return NewSCCExecRestrictions(client), nil
+		execAdmitter := NewSCCExecRestrictions(client)
+		execAdmitter.constraintAdmission.Run()
+		return execAdmitter, nil
 	})
 }
 
@@ -65,10 +67,10 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 }
 
 // NewSCCExecRestrictions creates a new admission controller that denies an exec operation on a privileged pod
-func NewSCCExecRestrictions(client client.Interface) admission.Interface {
+func NewSCCExecRestrictions(client client.Interface) *sccExecRestrictions {
 	return &sccExecRestrictions{
 		Handler:             admission.NewHandler(admission.Connect),
-		constraintAdmission: NewConstraint(client).(*constraint),
+		constraintAdmission: NewConstraint(client),
 		client:              client,
 	}
 }

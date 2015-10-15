@@ -17,7 +17,10 @@
       <!-- Message -->
       Build
       <span ng-if="build | annotation : 'buildNumber'">
-        {{build.metadata.labels.buildconfig}} #{{build | annotation : 'buildNumber'}}
+        <a ng-href="{{build | navigateResourceURL}}">
+          <span ng-if="build.metadata.labels.buildconfig">{{build.metadata.labels.buildconfig}}</span>
+          #{{build | annotation : 'buildNumber'}}
+        </a>
       </span>
       <span ng-if="!(build | annotation : 'buildNumber')">
         {{build.metadata.name}}

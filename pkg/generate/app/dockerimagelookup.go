@@ -33,9 +33,9 @@ type DockerClientSearcher struct {
 	// so that the image can be pulled properly
 	Insecure bool
 
-	// AllowingMissing will allow images that could not be found in the local or
+	// AllowingMissingImages will allow images that could not be found in the local or
 	// remote registry to be used anyway.
-	AllowMissing bool
+	AllowMissingImages bool
 }
 
 // Search searches all images in local docker server for images that match terms
@@ -48,37 +48,51 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 			return nil, err
 		}
 
-		glog.V(4).Infof("checking local Docker daemon for %q", ref.String())
-		images, err := r.Client.ListImages(docker.ListImagesOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		if len(ref.Registry) == 0 {
-			ref.Registry = "local Docker"
-		}
-		if len(ref.Tag) == 0 {
-			ref.Tag = imageapi.DefaultImageTag
-		}
-
 		termMatches := ScoredComponentMatches{}
-		for _, image := range images {
-			if tags := matchTag(image, term, ref.Registry, ref.Namespace, ref.Name, ref.Tag); len(tags) > 0 {
-				termMatches = append(termMatches, tags...)
-			}
-		}
-		sort.Sort(termMatches)
 
-		if r.RegistrySearcher != nil && len(termMatches.Exact()) == 0 {
+		// first look for the image in the remote docker registry
+		if r.RegistrySearcher != nil {
+			glog.V(4).Infof("checking remote registry for %q", ref.String())
 			matches, err := r.RegistrySearcher.Search(term)
 			switch err.(type) {
 			case nil:
+				for i := range matches {
+					matches[i].LocalOnly = false
+					glog.V(5).Infof("Found remote match %v", matches[i].Value)
+				}
 				termMatches = append(termMatches, matches...)
 			case ErrNoMatch:
 			default:
 				return nil, err
 			}
 		}
+
+		// if we didn't find it exactly in a remote registry,
+		// try to find it as a local-only image.
+		if len(termMatches.Exact()) == 0 {
+			glog.V(4).Infof("checking local Docker daemon for %q", ref.String())
+			images, err := r.Client.ListImages(docker.ListImagesOptions{})
+			if err != nil {
+				return nil, err
+			}
+
+			if len(ref.Registry) == 0 {
+				ref.Registry = "local Docker"
+			}
+			if len(ref.Tag) == 0 {
+				ref.Tag = imageapi.DefaultImageTag
+			}
+			for _, image := range images {
+				if tags := matchTag(image, term, ref.Registry, ref.Namespace, ref.Name, ref.Tag); len(tags) > 0 {
+					for i := range tags {
+						tags[i].LocalOnly = true
+						glog.V(5).Infof("Found local match %v", tags[i].Value)
+					}
+					termMatches = append(termMatches, tags...)
+				}
+			}
+		}
+		sort.Sort(termMatches)
 
 		for i, match := range termMatches {
 			if match.Image != nil {
@@ -107,17 +121,25 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 				ImageTag:    ref.Tag,
 				Insecure:    r.Insecure,
 				Meta:        map[string]string{"registry": ref.Registry},
+				LocalOnly:   match.LocalOnly,
 			}
 			termMatches[i] = updated
 		}
 
 		componentMatches = append(componentMatches, termMatches...)
-		if len(componentMatches) == 0 && r.AllowMissing {
+
+		// if we didn't find it remotely or locally, but the user chose to
+		// allow missing images, create an exact match for the value they
+		// provided.
+		if len(componentMatches) == 0 && r.AllowMissingImages {
 			componentMatches = append(componentMatches, &ComponentMatch{
-				Value:   term,
-				Score:   0.0,
-				Builder: true,
+				Value:     term,
+				Score:     0.0,
+				Builder:   true,
+				LocalOnly: true,
 			})
+			glog.V(4).Infof("Appended missing match %v", term)
+
 		}
 	}
 
@@ -146,7 +168,7 @@ func (r DockerRegistrySearcher) Search(terms ...string) (ComponentMatches, error
 			return nil, err
 		}
 
-		glog.V(4).Infof("checking Docker registry for %q", ref.String())
+		glog.V(4).Infof("checking Docker registry for %q, allow-insecure=%v", ref.String(), r.AllowInsecure)
 		connection, err := r.Client.Connect(ref.Registry, r.AllowInsecure)
 		if err != nil {
 			if dockerregistry.IsRegistryNotFound(err) {

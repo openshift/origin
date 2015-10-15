@@ -1454,6 +1454,8 @@ func deepCopy_v1_PodSpec(in PodSpec, out *PodSpec, c *conversion.Cloner) error {
 	out.DeprecatedServiceAccount = in.DeprecatedServiceAccount
 	out.NodeName = in.NodeName
 	out.HostNetwork = in.HostNetwork
+	out.HostPID = in.HostPID
+	out.HostIPC = in.HostIPC
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -1835,6 +1837,42 @@ func deepCopy_v1_SELinuxOptions(in SELinuxOptions, out *SELinuxOptions, c *conve
 	return nil
 }
 
+func deepCopy_v1_SupplementalGroupsStrategyOptions(in SupplementalGroupsStrategyOptions, out *SupplementalGroupsStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.Ranges != nil {
+		out.Ranges = make([]IDRange, len(in.Ranges))
+		for i := range in.Ranges {
+			if err := deepCopy_v1_IDRange(in.Ranges[i], &out.Ranges[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ranges = nil
+	}
+	return nil
+}
+
+func deepCopy_v1_FSGroupStrategyOptions(in FSGroupStrategyOptions, out *FSGroupStrategyOptions, c *conversion.Cloner) error {
+	out.Type = in.Type
+	if in.Ranges != nil {
+		out.Ranges = make([]IDRange, len(in.Ranges))
+		for i := range in.Ranges {
+			if err := deepCopy_v1_IDRange(in.Ranges[i], &out.Ranges[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ranges = nil
+	}
+	return nil
+}
+
+func deepCopy_v1_IDRange(in IDRange, out *IDRange, c *conversion.Cloner) error {
+	out.Max = in.Max
+	out.Min = in.Min
+	return nil
+}
+
 func deepCopy_v1_Secret(in Secret, out *Secret, c *conversion.Cloner) error {
 	if err := deepCopy_v1_TypeMeta(in.TypeMeta, &out.TypeMeta, c); err != nil {
 		return err
@@ -1935,10 +1973,18 @@ func deepCopy_v1_SecurityContextConstraints(in SecurityContextConstraints, out *
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
+	out.AllowHostPID = in.AllowHostPID
+	out.AllowHostIPC = in.AllowHostIPC
 	if err := deepCopy_v1_SELinuxContextStrategyOptions(in.SELinuxContext, &out.SELinuxContext, c); err != nil {
 		return err
 	}
 	if err := deepCopy_v1_RunAsUserStrategyOptions(in.RunAsUser, &out.RunAsUser, c); err != nil {
+		return err
+	}
+	if err := deepCopy_v1_FSGroupStrategyOptions(in.FSGroup, &out.FSGroup, c); err != nil {
+		return err
+	}
+	if err := deepCopy_v1_SupplementalGroupsStrategyOptions(in.SupplementalGroups, &out.SupplementalGroups, c); err != nil {
 		return err
 	}
 	if in.Users != nil {
@@ -2390,12 +2436,14 @@ func init() {
 		deepCopy_v1_EventList,
 		deepCopy_v1_EventSource,
 		deepCopy_v1_ExecAction,
+		deepCopy_v1_FSGroupStrategyOptions,
 		deepCopy_v1_GCEPersistentDiskVolumeSource,
 		deepCopy_v1_GitRepoVolumeSource,
 		deepCopy_v1_GlusterfsVolumeSource,
 		deepCopy_v1_HTTPGetAction,
 		deepCopy_v1_Handler,
 		deepCopy_v1_HostPathVolumeSource,
+		deepCopy_v1_IDRange,
 		deepCopy_v1_ISCSIVolumeSource,
 		deepCopy_v1_Lifecycle,
 		deepCopy_v1_LimitRange,
@@ -2480,6 +2528,7 @@ func init() {
 		deepCopy_v1_Status,
 		deepCopy_v1_StatusCause,
 		deepCopy_v1_StatusDetails,
+		deepCopy_v1_SupplementalGroupsStrategyOptions,
 		deepCopy_v1_TCPSocketAction,
 		deepCopy_v1_TypeMeta,
 		deepCopy_v1_Volume,

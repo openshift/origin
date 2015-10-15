@@ -68,7 +68,7 @@ var _ = g.Describe("builds: parallel: oc start-build", func() {
 			var buildName string
 			wait.Poll(time.Duration(100*time.Millisecond), time.Duration(60*time.Second), func() (bool, error) {
 				out, err := oc.Run("get").
-					Args("build", "-t", "{{ (index .items 0).metadata.name }}").Output()
+					Args("build", "--template", "{{ (index .items 0).metadata.name }}").Output()
 				// Give it second chance in case the build resource was not created yet
 				if err != nil || len(out) == 0 {
 					return false, nil

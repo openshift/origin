@@ -43,8 +43,7 @@ type MasterOptions struct {
 }
 
 func (o *MasterOptions) DefaultsFromName(basename string) {
-	switch basename {
-	case "atomic-enterprise":
+	if cmdutil.GetProductName(basename) == cmdutil.ProductAtomicEnterprise {
 		o.DisabledFeatures = configapi.AtomicDisabledFeatures
 	}
 }
@@ -370,6 +369,8 @@ func (m *Master) Start() error {
 		AllowPrivileged: true,
 		PrivilegedSources: capabilities.PrivilegedSources{
 			HostNetworkSources: []string{kubelet.ApiserverSource, kubelet.FileSource},
+			HostPIDSources:     []string{kubelet.ApiserverSource, kubelet.FileSource},
+			HostIPCSources:     []string{kubelet.ApiserverSource, kubelet.FileSource},
 		},
 	})
 

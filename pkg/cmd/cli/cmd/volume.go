@@ -729,7 +729,7 @@ func describeVolumeSource(source *kapi.VolumeSource) string {
 	case source.HostPath != nil:
 		return fmt.Sprintf("host path %s", source.HostPath.Path)
 	case source.ISCSI != nil:
-		return fmt.Sprintf("ISCSI %s target-portal=%s type=%s lun=%s%s", source.ISCSI.IQN, source.ISCSI.TargetPortal, source.ISCSI.FSType, source.ISCSI.Lun, sourceAccessMode(source.ISCSI.ReadOnly))
+		return fmt.Sprintf("ISCSI %s target-portal=%s type=%s lun=%d%s", source.ISCSI.IQN, source.ISCSI.TargetPortal, source.ISCSI.FSType, source.ISCSI.Lun, sourceAccessMode(source.ISCSI.ReadOnly))
 	case source.NFS != nil:
 		return fmt.Sprintf("NFS %s:%s%s", source.NFS.Server, source.NFS.Path, sourceAccessMode(source.NFS.ReadOnly))
 	case source.PersistentVolumeClaim != nil:

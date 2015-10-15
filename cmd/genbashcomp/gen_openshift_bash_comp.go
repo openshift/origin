@@ -32,7 +32,7 @@ func OutDir(path string) (string, error) {
 
 func main() {
 	// use os.Args instead of "flags" because "flags" will mess up the man pages!
-	path := "rel-eng/completions/bash/"
+	path := "contrib/completions/bash/"
 	if len(os.Args) == 2 {
 		path = os.Args[1]
 	} else if len(os.Args) > 2 {

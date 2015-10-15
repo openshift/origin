@@ -39,6 +39,14 @@ func init() {
 					obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
 				}
 			}
+
+			// Historically, the clientCA was incorrectly used as the master's server cert CA bundle
+			// If missing from the config, migrate the ClientCA into that field
+			if obj.OAuthConfig != nil && obj.OAuthConfig.MasterCA == nil {
+				s := obj.ServingInfo.ClientCA
+				// The final value of OAuthConfig.MasterCA should never be nil
+				obj.OAuthConfig.MasterCA = &s
+			}
 		},
 		func(obj *KubernetesMasterConfig) {
 			if obj.MasterCount == 0 {
@@ -61,6 +69,23 @@ func init() {
 			}
 			if obj.NetworkConfig.MTU == 0 {
 				obj.NetworkConfig.MTU = 1450
+			}
+			if len(obj.IPTablesSyncPeriod) == 0 {
+				obj.IPTablesSyncPeriod = "5s"
+			}
+
+			// Auth cache defaults
+			if len(obj.AuthConfig.AuthenticationCacheTTL) == 0 {
+				obj.AuthConfig.AuthenticationCacheTTL = "5m"
+			}
+			if obj.AuthConfig.AuthenticationCacheSize == 0 {
+				obj.AuthConfig.AuthenticationCacheSize = 1000
+			}
+			if len(obj.AuthConfig.AuthorizationCacheTTL) == 0 {
+				obj.AuthConfig.AuthorizationCacheTTL = "5m"
+			}
+			if obj.AuthConfig.AuthorizationCacheSize == 0 {
+				obj.AuthConfig.AuthorizationCacheSize = 1000
 			}
 		},
 		func(obj *EtcdStorageConfig) {

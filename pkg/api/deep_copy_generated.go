@@ -918,6 +918,12 @@ func deepCopy_api_BuildSpec(in buildapi.BuildSpec, out *buildapi.BuildSpec, c *c
 	} else {
 		out.Resources = newVal.(pkgapi.ResourceRequirements)
 	}
+	if in.CompletionDeadlineSeconds != nil {
+		out.CompletionDeadlineSeconds = new(int64)
+		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
+	} else {
+		out.CompletionDeadlineSeconds = nil
+	}
 	return nil
 }
 

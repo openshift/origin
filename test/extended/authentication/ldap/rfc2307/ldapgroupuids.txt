@@ -1,0 +1,3 @@
+cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com

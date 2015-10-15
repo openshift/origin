@@ -287,6 +287,18 @@ func ValidateAssetConfig(config *api.AssetConfig) fielderrors.ValidationErrorLis
 		allErrs = append(allErrs, urlErrs...)
 	}
 
+	if len(config.LoggingPublicURL) > 0 {
+		if _, loggingURLErrs := ValidateSecureURL(config.LoggingPublicURL, "loggingPublicURL"); len(loggingURLErrs) > 0 {
+			allErrs = append(allErrs, loggingURLErrs...)
+		}
+	}
+
+	if len(config.MetricsPublicURL) > 0 {
+		if _, metricsURLErrs := ValidateSecureURL(config.MetricsPublicURL, "metricsPublicURL"); len(metricsURLErrs) > 0 {
+			allErrs = append(allErrs, metricsURLErrs...)
+		}
+	}
+
 	for i, scriptFile := range config.ExtensionScripts {
 		allErrs = append(allErrs, ValidateFile(scriptFile, fmt.Sprintf("extensionScripts[%d]", i))...)
 	}
@@ -359,6 +371,11 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) Validati
 
 	if config.MasterCount == 0 || config.MasterCount < -1 {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("masterCount", config.MasterCount, "must be a positive integer or -1"))
+	}
+
+	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false).Prefix("proxyClientInfo")...)
+	if len(config.ProxyClientInfo.CertFile) == 0 && len(config.ProxyClientInfo.KeyFile) == 0 {
+		validationResults.AddWarnings(fielderrors.NewFieldInvalid("proxyClientInfo", "", "if no client certificate is specified, TLS pods and services cannot validate requests came from the proxy"))
 	}
 
 	if len(config.ServicesSubnet) > 0 {

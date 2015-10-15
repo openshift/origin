@@ -139,13 +139,13 @@ func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
 		mkdeployment(2),
 		mkdeployment(3),
 	}
-	sort.Sort(DeploymentsByLatestVersionAsc(deployments))
+	sort.Sort(ByLatestVersionAsc(deployments))
 	for i := 0; i < 4; i++ {
 		if e, a := i+1, DeploymentVersionFor(&deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)
 		}
 	}
-	sort.Sort(DeploymentsByLatestVersionDesc(deployments))
+	sort.Sort(ByLatestVersionDesc(deployments))
 	for i := 0; i < 4; i++ {
 		if e, a := 4-i, DeploymentVersionFor(&deployments[i]); e != a {
 			t.Errorf("expected deployment[%d]=%d, got %d", i, e, a)

@@ -12,7 +12,7 @@
 # openvswitch_version is the version of openvswitch requires by packages
 %global openvswitch_version 2.3.1
 # %commit and %ldflags are intended to be set by tito custom builders provided
-# in the rel-eng directory. The values in this spec file will not be kept up to date.
+# in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
 %global commit d31dd1a5acfdc4c35c02394a2a9b98640d113543
 }
@@ -32,7 +32,7 @@
 
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
-# builders provided in the rel-eng directory of this project
+# builders provided in the .tito/lib directory of this project
 Version:        3.0.2.900
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
@@ -198,16 +198,16 @@ ln -s %{_bindir}/oc %{buildroot}%{_bindir}/kubectl
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
 # different service for origin vs aos
-install -m 0644 rel-eng/%{name}-master.service %{buildroot}%{_unitdir}/%{name}-master.service
-install -m 0644 rel-eng/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
+install -m 0644 contrib/systemd/%{name}-master.service %{buildroot}%{_unitdir}/%{name}-master.service
+install -m 0644 contrib/systemd/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
 # same sysconfig files for origin vs aos
-install -m 0644 rel-eng/origin-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-master
-install -m 0644 rel-eng/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
+install -m 0644 contrib/systemd/origin-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-master
+install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
 install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/%{name}-node-{guest,host}
-install -m 0644 tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
-install -m 0644 tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
+install -m 0644 contrib/tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
+install -m 0644 contrib/tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
 install -d -m 0755 %{buildroot}%{_mandir}/man7
-install -m 0644 tuned/man/tuned-profiles-origin-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-%{name}-node.7
+install -m 0644 contrib/tuned/man/tuned-profiles-origin-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-%{name}-node.7
 
 mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
@@ -215,7 +215,7 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{kube_plugin_path}
 install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
-install -p -m 0644 rel-eng/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
+install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
 pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/kube/bin
    install -p -m 755 openshift-ovs-subnet %{buildroot}%{kube_plugin_path}/openshift-ovs-subnet
    install -p -m 755 openshift-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/openshift-sdn-kube-subnet-setup.sh
@@ -225,13 +225,13 @@ pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/multitenant/b
    install -p -m 755 openshift-sdn-multitenant-setup.sh %{buildroot}%{_bindir}/openshift-sdn-multitenant-setup.sh
 popd
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
-install -p -m 0644 rel-eng/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
+install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-install -p -m 644 rel-eng/completions/bash/* %{buildroot}%{_sysconfdir}/bash_completion.d/
+install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_completion.d/
 # Generate atomic-enterprise bash completions
-%{__sed} -e "s|openshift|atomic-enterprise|g" rel-eng/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
+%{__sed} -e "s|openshift|atomic-enterprise|g" contrib/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
 
 %files
 %defattr(-,root,root,-)

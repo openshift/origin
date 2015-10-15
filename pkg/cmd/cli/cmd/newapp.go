@@ -49,8 +49,8 @@ configuration, and a service will be connected to the first public port of the a
 components using the various existing flags or let new-app autodetect what kind of components
 you have provided.
 
-If you provide source code, you may need to run a build with 'start-build' after the
-application is created.`
+If you provide source code, a new build will be automatically triggered.
+You can use '%[1]s status' to check the progress.`
 
 	newAppExample = `
   # List all local templates and image streams that can be used to create an app
@@ -59,7 +59,7 @@ application is created.`
   # Search all templates, image streams, and Docker images for the ones that match "ruby"
   $ %[1]s new-app --search ruby
 
-  # Create an application based on the source code in the current git repository (with a public remote) 
+  # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
   $ %[1]s new-app . --docker-image=repo/langimage
 
@@ -80,7 +80,7 @@ application is created.`
 
   # Create an application from a remote repository and specify a context directory
   $ %[1]s new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
- 
+
   # Create an application based on a template file, explicitly setting a parameter value
   $ %[1]s new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
@@ -98,13 +98,13 @@ application is created.`
 
 To list all local templates and image streams, use:
 
-  $ oc new-app -L
+  $ %[1]s new-app -L
 
 To search templates, image streams, and Docker images that match the arguments provided, use:
 
-  $ oc new-app -S php
-  $ oc new-app -S --template=ruby
-  $ oc new-app -S --image=mysql
+  $ %[1]s new-app -S php
+  $ %[1]s new-app -S --template=ruby
+  $ %[1]s new-app -S --image=mysql
 `
 )
 
@@ -117,7 +117,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd := &cobra.Command{
 		Use:        "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
 		Short:      "Create a new application",
-		Long:       newAppLong,
+		Long:       fmt.Sprintf(newAppLong, fullName),
 		Example:    fmt.Sprintf(newAppExample, fullName),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
@@ -145,7 +145,7 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 	cmd.Flags().BoolVar(&config.InsecureRegistry, "insecure-registry", false, "If true, indicates that the referenced Docker images are on insecure registries and should bypass certificate checking")
 	cmd.Flags().BoolVarP(&config.AsList, "list", "L", false, "List all local templates and image streams that can be used to create.")
 	cmd.Flags().BoolVarP(&config.AsSearch, "search", "S", false, "Search all templates, image streams, and Docker images that match the arguments provided.")
-	cmd.Flags().BoolVar(&config.AllowMissing, "allow-missing", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
+	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 
 	// TODO AddPrinterFlags disabled so that it doesn't conflict with our own "template" flag.
 	// Need a better solution.
@@ -166,7 +166,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	if config.Querying() {
 		result, err := config.RunQuery()
 		if err != nil {
-			return handleRunError(c, err)
+			return handleRunError(c, err, fullName)
 		}
 
 		if len(cmdutil.GetFlagString(c, "output")) != 0 {
@@ -180,7 +180,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 	}
 	result, err := config.RunAll()
 	if err != nil {
-		return handleRunError(c, err)
+		return handleRunError(c, err, fullName)
 	}
 
 	if err := setLabels(config.Labels, result); err != nil {
@@ -208,7 +208,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			}
 			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.ClusterIP, portMappings)
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "Build %q created and started - you can run `%s status` to check the progress.\n", t.Name, fullName)
+			fmt.Fprintf(c.Out(), "Build configuration %q created and build triggered.\n", t.Name)
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
 				if hasMissingRepo {
@@ -267,8 +267,8 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 		return cmdutil.UsageError(c, "Did not recognize the following arguments: %v", unknown)
 	}
 
-	if config.AllowMissing && config.AsSearch {
-		return cmdutil.UsageError(c, "--allow-missing and --search are mutually exclusive.")
+	if config.AllowMissingImages && config.AsSearch {
+		return cmdutil.UsageError(c, "--allow-missing-images and --search are mutually exclusive.")
 	}
 	return nil
 }
@@ -377,7 +377,7 @@ func describeServicePorts(spec kapi.ServiceSpec) string {
 	}
 }
 
-func handleRunError(c *cobra.Command, err error) error {
+func handleRunError(c *cobra.Command, err error, fullName string) error {
 	if err == nil {
 		return nil
 	}
@@ -388,7 +388,7 @@ func handleRunError(c *cobra.Command, err error) error {
 	}
 	if err == newcmd.ErrNoInputs {
 		// TODO: suggest things to the user
-		return cmdutil.UsageError(c, newAppNoInput)
+		return cmdutil.UsageError(c, newAppNoInput, fullName)
 	}
 	return err
 }

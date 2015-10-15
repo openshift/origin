@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: firstgroup
+users:
+- person1smith@example.com
+- 'person2mith@example.com '
+- person3smith@example.com
+- person4smith@example.com
+- person5smith@example.com
+apiVersion: v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: group2
+users:
+- person1smith@example.com
+- 'person2mith@example.com '
+- person3smith@example.com

@@ -1,0 +1,42 @@
+<div ng-controller="ProjectController" class="content">
+  <project-page>
+    <div ng-controller="RoutesController">
+      <div class="page-header page-header-bleed-right">
+        <h1>Routes</h1>
+      </div>
+      <alerts alerts="alerts"></alerts>
+      <table class="table table-bordered table-hover table-mobile">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Hostname</th>
+            <th>Routes to</th>
+            <th>Age</th>
+          </tr>
+        </thead>
+        <tbody ng-if="(routes | hashSize) == 0">
+          <tr><td colspan="6"><em>{{emptyMessage}}</em></td></tr>
+        </tbody>
+        <tbody ng-repeat="route in routes | orderObjectsByDate : true">
+          <tr>
+            <td data-title="Name"><a href="project/{{projectName}}/browse/routes/{{route.metadata.name}}">{{route.metadata.name}}</a></td>
+            <td data-title="Hostname">
+              <div ng-if="(route | isWebRoute)" class="word-break">
+                <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
+              </div>
+              <div ng-if="!(route | isWebRoute)" class="word-break">
+                {{route | routeLabel}}
+              </div>
+            </td>
+            <td data-title="Routes to">
+              <div>{{route.spec.to.kind}}: </div>
+              <div ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</div>
+              <div ng-if="route.spec.to.kind == 'Service'"><a ng-href="{{route.spec.to.name | navigateResourceURL : 'Service': route.metadata.namespace}}">{{route.spec.to.name}}</a></div>
+            </td>
+            <td data-title="Age"><relative-timestamp timestamp="route.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </project-page>
+</div>

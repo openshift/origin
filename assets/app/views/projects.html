@@ -5,14 +5,11 @@
     <a ng-if="canCreate" href="createProject" style="margin-top: 10px;" class="btn btn-lg btn-primary pull-right">New Project</a>
     <alerts alerts="alerts"></alerts>
     <div ng-repeat="project in projects | orderByDisplayName">
-      <div row flex cross-axis="center" class="tile tile-project tile-click">
+      <div row flex cross-axis="center" class="tile tile-project tile-click tile-flex">
         <div flex>
           <h2 class="project">
             <a class="tile-target" href="project/{{project.metadata.name}}">{{(project | uniqueDisplayName : projects)}}</a>
-            <span ng-if="project.status.phase != 'Active'" class="pficon-layered" data-toggle="tooltip" data-placement="right" title="This project has been marked for deletion." style="cursor: help; vertical-align: top; margin-left: 5px;">
-              <span class="pficon pficon-warning-triangle"></span>
-              <span class="pficon pficon-warning-exclamation"></span>
-            </span>
+            <span ng-if="project.status.phase != 'Active'" data-toggle="tooltip" data-placement="right" title="This project has been marked for deletion." class="pficon pficon-warning-triangle-o" style="cursor: help; vertical-align: top; margin-left: 5px;"></span>
           </h2>
           <div class="muted" style="margin-top: -5px;" ng-if="project | description">
             <truncate-long-text content="project | description" limit="512" use-word-boundary="true"></truncate-long-text>

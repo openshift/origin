@@ -603,7 +603,8 @@ func (dm *DockerManager) runContainer(
 	ref *api.ObjectReference,
 	netMode string,
 	ipcMode string,
-	utsMode string) (string, error) {
+	utsMode string,
+	pidMode string) (string, error) {
 
 	dockerName := KubeletContainerName{
 		PodFullName:   kubecontainer.GetPodFullName(pod),
@@ -720,6 +721,7 @@ func (dm *DockerManager) runContainer(
 		NetworkMode:  netMode,
 		IpcMode:      ipcMode,
 		UTSMode:      utsMode,
+		PidMode:      pidMode,
 		// Memory and CPU are set here for newer versions of Docker (1.6+).
 		Memory:     memoryLimit,
 		MemorySwap: -1,
@@ -1368,7 +1370,7 @@ func containerAndPodFromLabels(inspect *docker.Container) (pod *api.Pod, contain
 }
 
 // Run a single container from a pod. Returns the docker container ID
-func (dm *DockerManager) runContainerInPod(pod *api.Pod, container *api.Container, netMode, ipcMode string) (kubeletTypes.DockerID, error) {
+func (dm *DockerManager) runContainerInPod(pod *api.Pod, container *api.Container, netMode, ipcMode, pidMode string) (kubeletTypes.DockerID, error) {
 	start := time.Now()
 	defer func() {
 		metrics.ContainerManagerLatency.WithLabelValues("runContainerInPod").Observe(metrics.SinceInMicroseconds(start))
@@ -1388,7 +1390,7 @@ func (dm *DockerManager) runContainerInPod(pod *api.Pod, container *api.Containe
 	if pod.Spec.HostNetwork {
 		utsMode = "host"
 	}
-	id, err := dm.runContainer(pod, container, opts, ref, netMode, ipcMode, utsMode)
+	id, err := dm.runContainer(pod, container, opts, ref, netMode, ipcMode, utsMode, pidMode)
 	if err != nil {
 		return "", err
 	}
@@ -1520,7 +1522,7 @@ func (dm *DockerManager) createPodInfraContainer(pod *api.Pod) (kubeletTypes.Doc
 		return "", err
 	}
 
-	id, err := dm.runContainerInPod(pod, container, netNamespace, "")
+	id, err := dm.runContainerInPod(pod, container, netNamespace, getIPCMode(pod), getPidMode(pod))
 	if err != nil {
 		return "", err
 	}
@@ -1775,8 +1777,12 @@ func (dm *DockerManager) SyncPod(pod *api.Pod, runningPod kubecontainer.Pod, pod
 		}
 
 		// TODO(dawnchen): Check RestartPolicy.DelaySeconds before restart a container
+		// Note: when configuring the pod's containers anything that can be configured by pointing
+		// to the namespace of the infra container should use namespaceMode.  This includes things like the net namespace
+		// and IPC namespace.  PID mode cannot point to another container right now.
+		// See createPodInfraContainer for infra container setup.
 		namespaceMode := fmt.Sprintf("container:%v", podInfraContainerID)
-		_, err = dm.runContainerInPod(pod, container, namespaceMode, namespaceMode)
+		_, err = dm.runContainerInPod(pod, container, namespaceMode, namespaceMode, getPidMode(pod))
 		dm.updateReasonCache(pod, container, err)
 		if err != nil {
 			// TODO(bburns) : Perhaps blacklist a container after N failures?
@@ -1888,4 +1894,22 @@ func (dm *DockerManager) doBackOff(pod *api.Pod, container *api.Container, podSt
 	}
 	dm.clearReasonCache(pod, container)
 	return false
+}
+
+// getPidMode returns the pid mode to use on the docker container based on pod.Spec.HostPID.
+func getPidMode(pod *api.Pod) string {
+	pidMode := ""
+	if pod.Spec.HostPID {
+		pidMode = "host"
+	}
+	return pidMode
+}
+
+// getIPCMode returns the ipc mode to use on the docker container based on pod.Spec.HostIPC.
+func getIPCMode(pod *api.Pod) string {
+	ipcMode := ""
+	if pod.Spec.HostIPC {
+		ipcMode = "host"
+	}
+	return ipcMode
 }

@@ -86,21 +86,34 @@ func GetAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdcli
 
 // EtcdClient creates an etcd client based on the provided config.
 func EtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (*etcdclient.Client, error) {
-	// etcd does a poor job of setting up the transport - use the Kube client stack
-	transport, err := client.TransportFor(&client.Config{
+	tlsConfig, err := client.TLSConfigFor(&client.Config{
 		TLSClientConfig: client.TLSClientConfig{
 			CertFile: etcdClientInfo.ClientCert.CertFile,
 			KeyFile:  etcdClientInfo.ClientCert.KeyFile,
 			CAFile:   etcdClientInfo.CA,
 		},
-		WrapTransport: DefaultEtcdClientTransport,
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Dial: (&net.Dialer{
+			// default from http.DefaultTransport
+			Timeout: 30 * time.Second,
+			// Lower the keep alive for connections.
+			KeepAlive: 1 * time.Second,
+		}).Dial,
+		// Because watches are very bursty, defends against long delays in watch reconnections.
+		MaxIdleConnsPerHost: 500,
+		// defaults from http.DefaultTransport
+		Proxy:               http.ProxyFromEnvironment,
+		TLSHandshakeTimeout: 10 * time.Second,
+	}
+
 	etcdClient := etcdclient.NewClient(etcdClientInfo.URLs)
-	etcdClient.SetTransport(transport.(*http.Transport))
+	etcdClient.SetTransport(transport)
 	return etcdClient, nil
 }
 
@@ -119,20 +132,4 @@ func TestEtcdClient(etcdClient *etcdclient.Client) error {
 		time.Sleep(50 * time.Millisecond)
 	}
 	return nil
-}
-
-// DefaultEtcdClientTransport sets defaults for an etcd Transport that are suitable
-// for use by infrastructure components.
-func DefaultEtcdClientTransport(rt http.RoundTripper) http.RoundTripper {
-	transport := rt.(*http.Transport)
-	dialer := &net.Dialer{
-		Timeout: 30 * time.Second,
-		// Lower the keep alive for connections.
-		KeepAlive: 1 * time.Second,
-	}
-	transport.Dial = dialer.Dial
-	// Because watches are very bursty, defends against long delays
-	// in watch reconnections.
-	transport.MaxIdleConnsPerHost = 500
-	return transport
 }

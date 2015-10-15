@@ -1,11 +1,9 @@
 package app
 
 import (
-	"io"
 	"testing"
 
 	"github.com/openshift/origin/pkg/generate/app/test"
-	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/source"
 )
 
@@ -17,7 +15,6 @@ func TestFromSTIBuilderImage(t *testing.T) {
 	g := &BuildStrategyRefGenerator{
 		gitRepository:     &test.FakeGit{},
 		dockerfileFinder:  &fakeFinder{},
-		dockerfileParser:  &fakeParser{},
 		sourceDetectors:   sourceDetectors,
 		imageRefGenerator: NewImageRefGenerator(),
 	}
@@ -41,7 +38,6 @@ func TestFromDockerContextAndParent(t *testing.T) {
 	g := &BuildStrategyRefGenerator{
 		gitRepository:     &test.FakeGit{},
 		dockerfileFinder:  &fakeFinder{},
-		dockerfileParser:  &fakeParser{},
 		sourceDetectors:   sourceDetectors,
 		imageRefGenerator: NewImageRefGenerator(),
 	}
@@ -74,14 +70,6 @@ type dfile map[string][]string
 func (d dfile) GetDirective(name string) ([]string, bool) {
 	result, ok := d[name]
 	return result, ok
-}
-
-type fakeParser struct {
-	result dfile
-}
-
-func (f *fakeParser) Parse(input io.Reader) (dockerfile.Dockerfile, error) {
-	return f.result, nil
 }
 
 func fakeDetector(dir string) (*source.Info, bool) {

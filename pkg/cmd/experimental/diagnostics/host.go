@@ -59,19 +59,19 @@ func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool, er
 	for _, diagnosticName := range requestedDiagnostics {
 		switch diagnosticName {
 		case systemddiags.AnalyzeLogsName:
-			diagnostics = append(diagnostics, systemddiags.AnalyzeLogs{systemdUnits})
+			diagnostics = append(diagnostics, systemddiags.AnalyzeLogs{SystemdUnits: systemdUnits})
 
 		case systemddiags.UnitStatusName:
-			diagnostics = append(diagnostics, systemddiags.UnitStatus{systemdUnits})
+			diagnostics = append(diagnostics, systemddiags.UnitStatus{SystemdUnits: systemdUnits})
 
 		case hostdiags.MasterConfigCheckName:
 			if len(o.MasterConfigLocation) > 0 {
-				diagnostics = append(diagnostics, hostdiags.MasterConfigCheck{o.MasterConfigLocation})
+				diagnostics = append(diagnostics, hostdiags.MasterConfigCheck{MasterConfigFile: o.MasterConfigLocation})
 			}
 
 		case hostdiags.NodeConfigCheckName:
 			if len(o.NodeConfigLocation) > 0 {
-				diagnostics = append(diagnostics, hostdiags.NodeConfigCheck{o.NodeConfigLocation})
+				diagnostics = append(diagnostics, hostdiags.NodeConfigCheck{NodeConfigFile: o.NodeConfigLocation})
 			}
 
 		default:

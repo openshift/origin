@@ -7,7 +7,6 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/pkg/master/ports"
@@ -256,6 +255,11 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 
 		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.ConfigDir.Value())
 
+		if oauthConfig != nil {
+			s := admin.DefaultRootCAFile(args.ConfigDir.Value())
+			oauthConfig.MasterCA = &s
+		}
+
 		// Only set up ca/cert info for kubelet connections if we're self-hosting Kubernetes
 		if builtInKubernetes {
 			config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
@@ -338,33 +342,6 @@ func (args MasterArgs) BuildSerializeableOAuthConfig() (*configapi.OAuthConfig, 
 		},
 	}
 
-	// Make sure we don't start up in a permissive auth mode they don't expect
-	if cmdutil.Env("OPENSHIFT_OAUTH_HANDLER", "login") != "login" {
-		return nil, fmt.Errorf("OPENSHIFT_OAUTH_HANDLER is deprecated. Use the master configuration file to configure OAuth.")
-	}
-	if cmdutil.Env("OPENSHIFT_OAUTH_PASSWORD_AUTH", "anypassword") != "anypassword" {
-		return nil, fmt.Errorf("OPENSHIFT_OAUTH_PASSWORD_AUTH is deprecated. Use the master configuration file to configure OAuth.")
-	}
-
-	// Warn about deprecation
-	// TODO: remove before 3.0
-	deprecated := []string{
-		"OPENSHIFT_OAUTH_ACCESS_TOKEN_MAX_AGE_SECONDS",
-		"OPENSHIFT_OAUTH_AUTHORIZE_TOKEN_MAX_AGE_SECONDS",
-		"OPENSHIFT_OAUTH_GRANT_HANDLER",
-		"OPENSHIFT_OAUTH_HANDLER",
-		"OPENSHIFT_OAUTH_PASSWORD_AUTH",
-		"OPENSHIFT_OAUTH_REQUEST_HANDLERS",
-		"OPENSHIFT_OAUTH_SESSION_MAX_AGE_SECONDS",
-		"OPENSHIFT_OAUTH_SESSION_NAME",
-		"OPENSHIFT_OAUTH_SESSION_SECRET",
-	}
-	for _, key := range deprecated {
-		if value := cmdutil.Env(key, ""); len(value) != 0 {
-			glog.Warningf("%s is deprecated. Use the master configuration file to configure OAuth.", key)
-		}
-	}
-
 	config.IdentityProviders = append(config.IdentityProviders,
 		configapi.IdentityProvider{
 			Name:            "anypassword",
@@ -438,6 +415,7 @@ func (args MasterArgs) BuildSerializeableKubeMasterConfig() (*configapi.Kubernet
 		ServicesSubnet:      args.NetworkArgs.ServiceNetworkCIDR,
 		StaticNodeNames:     staticNodeList.List(),
 		SchedulerConfigFile: args.SchedulerConfigFile,
+		ProxyClientInfo:     admin.DefaultProxyClientCertInfo(args.ConfigDir.Value()).CertLocation,
 	}
 
 	return config, nil

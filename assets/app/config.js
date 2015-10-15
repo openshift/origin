@@ -99,5 +99,7 @@ window.OPENSHIFT_CONFIG = {
   	oauth_redirect_base: "https://localhost:9000",
   	oauth_client_id: "openshift-web-console",
   	logout_uri: ""
-  }
+  },
+  loggingURL: "",
+  metricsURL: ""
 };

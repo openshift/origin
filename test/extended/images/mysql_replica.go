@@ -127,8 +127,14 @@ func replicationTestFactory(oc *exutil.CLI, template string) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		assertReplicationIsWorking("mysql-master-2", "mysql-slave-1", 1)
 
+		pods, err := oc.KubeREST().Pods(oc.Namespace()).List(exutil.ParseLabelsOrDie("deployment=mysql-slave-1"), nil)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(len(pods.Items)).To(o.Equal(1))
+
 		g.By("after slave is scaled to 0 and then back to 4 replicas")
 		err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=0").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = exutil.WaitUntilPodIsGone(oc.KubeREST().Pods(oc.Namespace()), pods.Items[0].Name, 60*time.Second)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("scale").Args("dc", "mysql-slave", "--replicas=4").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

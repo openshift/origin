@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/openshift-sdn/pkg/cmd/admin/network"
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
 	"github.com/openshift/origin/pkg/cmd/admin/groups"
 	"github.com/openshift/origin/pkg/cmd/admin/node"
@@ -79,6 +80,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 		{
 			Message: "Advanced Commands:",
 			Commands: []*cobra.Command{
+				network.NewCmdPodNetwork(network.PodNetworkCommandName, fullName+" "+network.PodNetworkCommandName, f, out),
 				admin.NewCommandCreateBootstrapProjectTemplate(f, admin.CreateBootstrapProjectTemplateCommand, fullName+" "+admin.CreateBootstrapProjectTemplateCommand, out),
 				admin.NewCommandCreateBootstrapPolicyFile(admin.CreateBootstrapPolicyFileCommand, fullName+" "+admin.CreateBootstrapPolicyFileCommand, out),
 				admin.NewCommandCreateLoginTemplate(f, admin.CreateLoginTemplateCommand, fullName+" "+admin.CreateLoginTemplateCommand, out),

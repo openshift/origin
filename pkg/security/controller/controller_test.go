@@ -40,10 +40,13 @@ func TestController(t *testing.T) {
 
 	got := action.(testclient.CreateAction).GetObject().(*kapi.Namespace)
 	if got.Annotations[security.UIDRangeAnnotation] != "10/2" {
-		t.Errorf("unexpected annotation: %#v", got)
+		t.Errorf("unexpected uid annotation: %#v", got)
+	}
+	if got.Annotations[security.SupplementalGroupsAnnotation] != "10/2" {
+		t.Errorf("unexpected supplemental group annotation: %#v", got)
 	}
 	if got.Annotations[security.MCSAnnotation] != "s0:c1,c0" {
-		t.Errorf("unexpected annotation: %#v", got)
+		t.Errorf("unexpected mcs annotation: %#v", got)
 	}
 	if !uida.Has(uid.Block{Start: 10, End: 11}) {
 		t.Errorf("did not allocate uid: %#v", uida)

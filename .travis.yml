@@ -2,10 +2,16 @@ language: go
 
 go:
   - 1.4
+  - 1.5.1
 
 env:
- - TEST_ASSETS=true
- - TEST_ASSETS=false
+  - TEST_ASSETS=true
+  - TEST_ASSETS=false
+
+matrix:
+  exclude:
+  - go: 1.5.1
+    env: TEST_ASSETS=true
 
 install:
   - export PATH=$GOPATH/bin:./_tools/etcd/bin:$PATH

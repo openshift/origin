@@ -41,7 +41,7 @@ func encodeAndCreate(info *resource.Info, namespace string, obj runtime.Object) 
 // event a failure occurs. The contents of list will be updated to include the
 // version from the server.
 func (b *Bulk) Create(list *kapi.List, namespace string) []error {
-	resourceMapper := &resource.Mapper{b.Typer, b.Mapper, resource.ClientMapperFunc(b.RESTClientFactory)}
+	resourceMapper := &resource.Mapper{ObjectTyper: b.Typer, RESTMapper: b.Mapper, ClientMapper: resource.ClientMapperFunc(b.RESTClientFactory)}
 	after := b.After
 	if after == nil {
 		after = func(*resource.Info, error) {}

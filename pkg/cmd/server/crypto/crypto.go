@@ -103,8 +103,11 @@ func GetTLSCertificateConfig(certFile, keyFile string) (*TLSCertificateConfig, e
 }
 
 var (
-	// Default templates to last for a year
-	lifetime = time.Hour * 24 * 365
+	// Default ca certs to be long-lived
+	caLifetime = time.Hour * 24 * 365 * 5
+
+	// Default templates to last for two years
+	lifetime = time.Hour * 24 * 365 * 2
 
 	// Default keys are 2048 bits
 	keyBits = 2048
@@ -312,7 +315,7 @@ func newSigningCertificateTemplate(subject pkix.Name) (*x509.Certificate, error)
 		SignatureAlgorithm: x509.SHA256WithRSA,
 
 		NotBefore:    time.Now().Add(-1 * time.Second),
-		NotAfter:     time.Now().Add(lifetime),
+		NotAfter:     time.Now().Add(caLifetime),
 		SerialNumber: big.NewInt(1),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,

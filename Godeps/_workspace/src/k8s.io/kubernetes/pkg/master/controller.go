@@ -57,9 +57,12 @@ type Controller struct {
 
 	PublicIP net.IP
 
-	ServiceIP         net.IP
-	ServicePort       int
-	PublicServicePort int
+	ServiceIP                 net.IP
+	ServicePort               int
+	ExtraServicePorts         []api.ServicePort
+	ExtraEndpointPorts        []api.EndpointPort
+	PublicServicePort         int
+	KubernetesServiceNodePort int
 
 	runner *util.Runner
 }
@@ -110,10 +113,12 @@ func (c *Controller) UpdateKubernetesService() error {
 		return err
 	}
 	if c.ServiceIP != nil {
-		if err := c.CreateMasterServiceIfNeeded("kubernetes", c.ServiceIP, c.ServicePort); err != nil {
+		servicePorts, serviceType := createPortAndServiceSpec(c.ServicePort, c.KubernetesServiceNodePort, "https", c.ExtraServicePorts)
+		if err := c.CreateMasterServiceIfNeeded("kubernetes", c.ServiceIP, servicePorts, serviceType); err != nil {
 			return err
 		}
-		if err := c.SetEndpoints("kubernetes", c.PublicIP, c.PublicServicePort); err != nil {
+		endpointPorts := createEndpointPortSpec(c.PublicServicePort, "https", c.ExtraEndpointPorts)
+		if err := c.SetEndpoints("kubernetes", c.PublicIP, endpointPorts); err != nil {
 			return err
 		}
 	}
@@ -140,9 +145,41 @@ func (c *Controller) CreateNamespaceIfNeeded(ns string) error {
 	return err
 }
 
+// createPortAndServiceSpec creates an array of service ports.
+// If the NodePort value is 0, just the servicePort is used, otherwise, a node port is exposed.
+func createPortAndServiceSpec(servicePort int, nodePort int, servicePortName string, extraServicePorts []api.ServicePort) ([]api.ServicePort, api.ServiceType) {
+	//Use the Cluster IP type for the service port if NodePort isn't provided.
+	//Otherwise, we will be binding the master service to a NodePort.
+	servicePorts := []api.ServicePort{{Protocol: api.ProtocolTCP,
+		Port:       servicePort,
+		Name:       servicePortName,
+		TargetPort: util.NewIntOrStringFromInt(servicePort)}}
+	serviceType := api.ServiceTypeClusterIP
+	if nodePort > 0 {
+		servicePorts[0].NodePort = nodePort
+		serviceType = api.ServiceTypeNodePort
+	}
+	if extraServicePorts != nil {
+		servicePorts = append(servicePorts, extraServicePorts...)
+	}
+	return servicePorts, serviceType
+}
+
+// createEndpointPortSpec creates an array of endpoint ports
+func createEndpointPortSpec(endpointPort int, endpointPortName string, extraEndpointPorts []api.EndpointPort) []api.EndpointPort {
+	endpointPorts := []api.EndpointPort{{Protocol: api.ProtocolTCP,
+		Port: endpointPort,
+		Name: endpointPortName,
+	}}
+	if extraEndpointPorts != nil {
+		endpointPorts = append(endpointPorts, extraEndpointPorts...)
+	}
+	return endpointPorts
+}
+
 // CreateMasterServiceIfNeeded will create the specified service if it
 // doesn't already exist.
-func (c *Controller) CreateMasterServiceIfNeeded(serviceName string, serviceIP net.IP, servicePort int) error {
+func (c *Controller) CreateMasterServiceIfNeeded(serviceName string, serviceIP net.IP, servicePorts []api.ServicePort, serviceType api.ServiceType) error {
 	ctx := api.NewDefaultContext()
 	if _, err := c.ServiceRegistry.GetService(ctx, serviceName); err == nil {
 		// The service already exists.
@@ -155,15 +192,14 @@ func (c *Controller) CreateMasterServiceIfNeeded(serviceName string, serviceIP n
 			Labels:    map[string]string{"provider": "kubernetes", "component": "apiserver"},
 		},
 		Spec: api.ServiceSpec{
-			Ports: []api.ServicePort{{Port: servicePort, Protocol: api.ProtocolTCP, TargetPort: util.NewIntOrStringFromInt(servicePort)}},
+			Ports: servicePorts,
 			// maintained by this code, not by the pod selector
 			Selector:        nil,
 			ClusterIP:       serviceIP.String(),
 			SessionAffinity: api.ServiceAffinityNone,
-			Type:            api.ServiceTypeClusterIP,
+			Type:            serviceType,
 		},
 	}
-
 	if err := rest.BeforeCreate(rest.Services, ctx, svc); err != nil {
 		return err
 	}
@@ -188,7 +224,7 @@ func (c *Controller) CreateMasterServiceIfNeeded(serviceName string, serviceIP n
 //      to be running (c.masterCount).
 //  * SetEndpoints is called periodically from all apiservers.
 //
-func (c *Controller) SetEndpoints(serviceName string, ip net.IP, port int) error {
+func (c *Controller) SetEndpoints(serviceName string, ip net.IP, endpointPorts []api.EndpointPort) error {
 	ctx := api.NewDefaultContext()
 	e, err := c.EndpointRegistry.GetEndpoints(ctx, serviceName)
 	if err != nil {
@@ -201,13 +237,13 @@ func (c *Controller) SetEndpoints(serviceName string, ip net.IP, port int) error
 	}
 
 	// First, determine if the endpoint is in the format we expect (one
-	// subset, one port, N IP addresses).
-	formatCorrect, ipCorrect := checkEndpointSubsetFormat(e, ip.String(), port, c.MasterCount)
+	// subset, ports matching endpointPorts, N IP addresses).
+	formatCorrect, ipCorrect := checkEndpointSubsetFormat(e, ip.String(), endpointPorts, c.MasterCount)
 	if !formatCorrect {
 		// Something is egregiously wrong, just re-make the endpoints record.
 		e.Subsets = []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{{IP: ip.String()}},
-			Ports:     []api.EndpointPort{{Port: port, Protocol: api.ProtocolTCP}},
+			Ports:     endpointPorts,
 		}}
 		glog.Warningf("Resetting endpoints for master service %q to %v", serviceName, e)
 		return c.EndpointRegistry.UpdateEndpoints(ctx, e)
@@ -238,19 +274,26 @@ func (c *Controller) SetEndpoints(serviceName string, ip net.IP, port int) error
 }
 
 // Determine if the endpoint is in the format SetEndpoints expect (one subset,
-// one port, N IP addresses); and if the specified IP address is present and
+// correct ports, N IP addresses); and if the specified IP address is present and
 // the correct number of ip addresses are found.
-func checkEndpointSubsetFormat(e *api.Endpoints, ip string, port int, count int) (formatCorrect, ipCorrect bool) {
+func checkEndpointSubsetFormat(e *api.Endpoints, ip string, ports []api.EndpointPort, count int) (formatCorrect, ipCorrect bool) {
 	if len(e.Subsets) != 1 {
 		return false, false
 	}
 	sub := &e.Subsets[0]
-	if len(sub.Ports) != 1 {
+	if len(sub.Ports) != len(ports) {
 		return false, false
 	}
-	p := &sub.Ports[0]
-	if p.Port != port || p.Protocol != api.ProtocolTCP {
-		return false, false
+	for _, port := range ports {
+		contains := false
+		for _, subPort := range sub.Ports {
+			if port == subPort {
+				contains = true
+			}
+		}
+		if !contains {
+			return false, false
+		}
 	}
 	for _, addr := range sub.Addresses {
 		if addr.IP == ip {

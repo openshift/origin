@@ -69,8 +69,15 @@ func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorLis
 	}
 
 	if len(stream.Spec.DockerImageRepository) != 0 {
-		if _, err := api.ParseDockerImageReference(stream.Spec.DockerImageRepository); err != nil {
+		if ref, err := api.ParseDockerImageReference(stream.Spec.DockerImageRepository); err != nil {
 			result = append(result, fielderrors.NewFieldInvalid("spec.dockerImageRepository", stream.Spec.DockerImageRepository, err.Error()))
+		} else {
+			if len(ref.Tag) > 0 {
+				result = append(result, fielderrors.NewFieldInvalid("spec.dockerImageRepository", stream.Spec.DockerImageRepository, "the repository name may not contain a tag"))
+			}
+			if len(ref.ID) > 0 {
+				result = append(result, fielderrors.NewFieldInvalid("spec.dockerImageRepository", stream.Spec.DockerImageRepository, "the repository name may not contain an ID"))
+			}
 		}
 	}
 	for tag, tagRef := range stream.Spec.Tags {
