@@ -134,7 +134,9 @@ func addDefaultingFuncs() {
 			if len(obj.NodeName) == 0 && len(obj.DeprecatedHost) > 0 {
 				obj.NodeName = obj.DeprecatedHost
 			}
-
+			if obj.SecurityContext == nil {
+				obj.SecurityContext = &PodSecurityContext{}
+			}
 			if obj.TerminationGracePeriodSeconds == nil {
 				period := int64(DefaultTerminationGracePeriodSeconds)
 				obj.TerminationGracePeriodSeconds = &period

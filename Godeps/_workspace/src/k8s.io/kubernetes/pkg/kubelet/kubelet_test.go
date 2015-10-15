@@ -2921,7 +2921,9 @@ func TestHostNetworkAllowed(t *testing.T) {
 			Containers: []api.Container{
 				{Name: "foo"},
 			},
-			HostNetwork: true,
+			SecurityContext: &api.PodSecurityContext{
+				HostNetwork: true,
+			},
 		},
 	}
 	kubelet.podManager.SetPods([]*api.Pod{pod})
@@ -2953,7 +2955,9 @@ func TestHostNetworkDisallowed(t *testing.T) {
 			Containers: []api.Container{
 				{Name: "foo"},
 			},
-			HostNetwork: true,
+			SecurityContext: &api.PodSecurityContext{
+				HostNetwork: true,
+			},
 		},
 	}
 	err := kubelet.syncPod(pod, nil, container.Pod{}, SyncPodUpdate)
