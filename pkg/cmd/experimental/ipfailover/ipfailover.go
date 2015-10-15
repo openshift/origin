@@ -61,6 +61,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out i
 		Long:    ipFailover_long,
 		Example: fmt.Sprintf(ipFailover_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
+			options.ShortOutput = cmdutil.GetFlagString(cmd, "output") == "name"
 			err := processCommand(f, options, cmd, args, out)
 			cmdutil.CheckErr(err)
 		},
