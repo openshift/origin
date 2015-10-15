@@ -1407,6 +1407,35 @@ func deepCopy_v1_PodProxyOptions(in PodProxyOptions, out *PodProxyOptions, c *co
 }
 
 func deepCopy_v1_PodSecurityContext(in PodSecurityContext, out *PodSecurityContext, c *conversion.Cloner) error {
+	if in.Capabilities != nil {
+		out.Capabilities = new(Capabilities)
+		if err := deepCopy_v1_Capabilities(*in.Capabilities, out.Capabilities, c); err != nil {
+			return err
+		}
+	} else {
+		out.Capabilities = nil
+	}
+	if in.Privileged != nil {
+		out.Privileged = new(bool)
+		*out.Privileged = *in.Privileged
+	} else {
+		out.Privileged = nil
+	}
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(SELinuxOptions)
+		if err := deepCopy_v1_SELinuxOptions(*in.SELinuxOptions, out.SELinuxOptions, c); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	out.RunAsNonRoot = in.RunAsNonRoot
 	return nil
 }
 

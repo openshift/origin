@@ -1252,6 +1252,25 @@ type PodSpec struct {
 
 // PodSecurityContext holds pod-level security attributes and common container settings.
 type PodSecurityContext struct {
+	// Capabilities are the capabilities to add/drop when running containers.
+	// Optional: Defaults to the default set of capabilities granted by the container
+	// runtime.
+	Capabilities *Capabilities `json:"capabilities,omitempty"`
+	// Run all containers in privileged mode.
+	// Processes in privileged containers are essentially equivalent to root on the host.
+	// Optional: Default to false
+	Privileged *bool `json:"privileged,omitempty"`
+	// SELinuxOptions is the SELinux context to be applied to all containers
+	// Optional: docker daemon will allocate a random SELinux context for each
+	// container if unspecified.
+	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty"`
+	// RunAsUser is the UID to run the entrypoint of all container processes.
+	// Optional: defaults to user specified in image metadata if unspecified.
+	RunAsUser *int64 `json:"runAsUser,omitempty"`
+	// RunAsNonRoot indicates that all containers should be run as a non-root user.
+	// Optional: if false, then the kubelet may check the image for a specified user
+	// or perform defaulting to specify a user.
+	RunAsNonRoot bool `json:"runAsNonRoot,omitempty"`
 }
 
 // PodStatus represents information about the status of a pod. Status may trail the actual
@@ -2589,31 +2608,26 @@ type DownwardAPIVolumeFile struct {
 }
 
 // SecurityContext holds security configuration that will be applied to a container.
+// More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context
 type SecurityContext struct {
-	// The linux kernel capabilites that should be added or removed.
-	// Default to Container.Capabilities if left unset.
-	// More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context
+	// Capabilities are the capabilities to add/drop when running containers.
+	// Optional: Defaults to the default set of capabilities granted by the container
+	// runtime.
 	Capabilities *Capabilities `json:"capabilities,omitempty"`
-
-	// Run the container in privileged mode.
-	// Default to Container.Privileged if left unset.
-	// More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context
+	// Run container in privileged mode.
+	// Processes in privileged containers are essentially equivalent to root on the host.
+	// Optional: Default to false
 	Privileged *bool `json:"privileged,omitempty"`
-
-	// SELinuxOptions are the labels to be applied to the container
-	// and volumes.
-	// Options that control the SELinux labels applied.
-	// More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context
+	// SELinuxOptions is the SELinux context to be applied to the container
+	// Optional: container runtime will allocate a random SELinux context for each
+	// container if unspecified.
 	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty"`
-
 	// RunAsUser is the UID to run the entrypoint of the container process.
-	// The user id that runs the first process in the container.
-	// More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context
+	// Optional: defaults to user specified in image metadata if unspecified.
 	RunAsUser *int64 `json:"runAsUser,omitempty"`
-
-	// RunAsNonRoot indicates that the container should be run as a non-root user. If the RunAsUser
-	// field is not explicitly set then the kubelet may check the image for a specified user or
-	// perform defaulting to specify a user.
+	// RunAsNonRoot indicates that the container should be run as a non-root user.
+	// Optional: if false, then the kubelet may check the image for a specified user
+	// or perform defaulting to specify a user.
 	RunAsNonRoot bool `json:"runAsNonRoot,omitempty"`
 }
 
@@ -2622,15 +2636,12 @@ type SELinuxOptions struct {
 	// User is a SELinux user label that applies to the container.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md
 	User string `json:"user,omitempty"`
-
 	// Role is a SELinux role label that applies to the container.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md
 	Role string `json:"role,omitempty"`
-
 	// Type is a SELinux type label that applies to the container.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md
 	Type string `json:"type,omitempty"`
-
 	// Level is SELinux level label that applies to the container.
 	// More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md
 	Level string `json:"level,omitempty"`

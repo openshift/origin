@@ -91,6 +91,22 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			j.LabelSelector, _ = labels.Parse("a=b")
 			j.FieldSelector, _ = fields.ParseSelector("a=b")
 		},
+		func(psc *api.PodSecurityContext, c fuzz.Continue) {
+			c.FuzzNoCustom(psc) // fuzz self without calling this function again
+			if c.RandBool() {
+				priv := c.RandBool()
+				psc.Privileged = &priv
+			}
+
+			if c.RandBool() {
+				psc.Capabilities = &api.Capabilities{
+					Add:  make([]api.Capability, 0),
+					Drop: make([]api.Capability, 0),
+				}
+				c.Fuzz(&psc.Capabilities.Add)
+				c.Fuzz(&psc.Capabilities.Drop)
+			}
+		},
 		func(s *api.PodSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(s)
 			// has a default value
@@ -100,9 +116,7 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			}
 			s.TerminationGracePeriodSeconds = &ttl
 
-			if s.SecurityContext == nil {
-				s.SecurityContext = &api.PodSecurityContext{}
-			}
+			c.Fuzz(s.SecurityContext)
 		},
 		func(j *api.PodPhase, c fuzz.Continue) {
 			statuses := []api.PodPhase{api.PodPending, api.PodRunning, api.PodFailed, api.PodUnknown}
@@ -289,14 +303,19 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 		},
 		func(sc *api.SecurityContext, c fuzz.Continue) {
 			c.FuzzNoCustom(sc) // fuzz self without calling this function again
-			priv := c.RandBool()
-			sc.Privileged = &priv
-			sc.Capabilities = &api.Capabilities{
-				Add:  make([]api.Capability, 0),
-				Drop: make([]api.Capability, 0),
+			if c.RandBool() {
+				priv := c.RandBool()
+				sc.Privileged = &priv
 			}
-			c.Fuzz(&sc.Capabilities.Add)
-			c.Fuzz(&sc.Capabilities.Drop)
+
+			if c.RandBool() {
+				sc.Capabilities = &api.Capabilities{
+					Add:  make([]api.Capability, 0),
+					Drop: make([]api.Capability, 0),
+				}
+				c.Fuzz(&sc.Capabilities.Add)
+				c.Fuzz(&sc.Capabilities.Drop)
+			}
 		},
 		func(e *api.Event, c fuzz.Continue) {
 			c.FuzzNoCustom(e) // fuzz self without calling this function again
