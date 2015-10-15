@@ -856,6 +856,10 @@ func TestRunAll(t *testing.T) {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
 			continue
 		}
+		if res.Name != test.expectedName {
+			t.Errorf("%s: Name was not correct: %v", test.name, res.Name)
+			continue
+		}
 		imageStreams := []*imageapi.ImageStream{}
 		got := map[string][]string{}
 		gotVolumes := map[string]string{}

@@ -6,6 +6,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
+	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -19,12 +20,12 @@ type Bulk struct {
 	Retry             func(info *resource.Info, err error) runtime.Object
 }
 
-func NewPrintNameOrErrorAfter(out, errs io.Writer) func(*resource.Info, error) {
+func NewPrintNameOrErrorAfter(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer) func(*resource.Info, error) {
 	return func(info *resource.Info, err error) {
 		if err == nil {
-			fmt.Fprintf(out, "%s/%s\n", info.Mapping.Resource, info.Name)
+			cmdutil.PrintSuccess(mapper, false, out, info.Mapping.Kind, info.Name, operation)
 		} else {
-			fmt.Fprintf(errs, "Error: %v\n", err)
+			fmt.Fprintf(errs, "error: %v\n", err)
 		}
 	}
 }
