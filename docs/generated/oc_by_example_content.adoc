@@ -459,7 +459,7 @@ End the current server session
 
 
 == oc logs
-Print the logs for a container in a pod.
+Print the logs for a resource.
 
 ====
 
@@ -470,6 +470,9 @@ Print the logs for a container in a pod.
 
   # Starts streaming of ruby-container logs from pod 123456-7890.
   $ openshift cli logs -f 123456-7890 -c ruby-container
+
+  # Starts streaming the logs of the most recent build of the openldap BuildConfig.
+  $ openshift cli logs -f bc/openldap
 ----
 ====
 
@@ -488,7 +491,7 @@ Create a new application
   # Search all templates, image streams, and Docker images for the ones that match "ruby"
   $ openshift cli new-app --search ruby
 
-  # Create an application based on the source code in the current git repository (with a public remote) 
+  # Create an application based on the source code in the current git repository (with a public remote)
   # and a Docker image
   $ openshift cli new-app . --docker-image=repo/langimage
 
@@ -509,7 +512,7 @@ Create a new application
 
   # Create an application from a remote repository and specify a context directory
   $ openshift cli new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
- 
+
   # Create an application based on a template file, explicitly setting a parameter value
   $ openshift cli new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
@@ -543,7 +546,7 @@ Create a new build configuration
   $ openshift cli new-build https://github.com/openshift/ruby-hello-world#beta2
 
   # Create a build config using a Dockerfile specified as an argument
-  $ openshift cli new-build -D $'FROM centos7\nRUN yum install -y apache'
+  $ openshift cli new-build -D $'FROM centos:7\nRUN yum install -y httpd'
 
   # Create a build config from a remote repository and add custom environment variables into resulting image
   $ openshift cli new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development
@@ -714,6 +717,20 @@ Start a shell session in a pod
 
   # Run the command 'cat /etc/resolv.conf' inside pod 'foo'
   $ openshift cli rsh foo cat /etc/resolv.conf
+----
+====
+
+
+== oc rsync
+Copy local files to a pod
+
+====
+
+[options="nowrap"]
+----
+
+  # Synchronize a local directory with a pod directory
+  $ openshift cli rsync ./local/dir/ POD:/remote/dir
 ----
 ====
 

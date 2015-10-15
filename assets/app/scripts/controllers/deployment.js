@@ -46,6 +46,7 @@ angular.module('openshiftConsole')
       DataService.get("replicationcontrollers", $routeParams.deployment || $routeParams.replicationcontroller, $scope).then(
         // success
         function(deployment) {
+          $scope.loaded = true;
           $scope.deployment = deployment;
           var deploymentVersion = $filter("annotation")(deployment, "deploymentVersion");
           if (deploymentVersion) {
@@ -66,6 +67,7 @@ angular.module('openshiftConsole')
         },
         // failure
         function(e) {
+          $scope.loaded = true;
           $scope.alerts["load"] = {
             type: "error",
             message: $routeParams.deployment ? "The deployment details could not be loaded." : "The replication controller details could not be loaded.",

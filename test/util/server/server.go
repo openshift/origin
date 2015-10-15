@@ -21,6 +21,7 @@ import (
 	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/test/util"
@@ -67,6 +68,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 
 	basedir := util.GetBaseDir()
 
+	nodeArgs.NodeName = "127.0.0.1"
 	nodeArgs.VolumeDir = path.Join(basedir, "volume")
 	masterArgs.EtcdDir = path.Join(basedir, "etcd")
 	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
@@ -76,7 +78,7 @@ func setupStartOptions() (*start.MasterArgs, *start.NodeArgs, *start.ListenArg, 
 	// don't wait for nodes to come up
 	masterAddr := os.Getenv("OS_MASTER_ADDR")
 	if len(masterAddr) == 0 {
-		if addr, err := FindAvailableBindAddress(8443, 8999); err != nil {
+		if addr, err := FindAvailableBindAddress(12000, 12999); err != nil {
 			glog.Fatalf("Couldn't find free address for master: %v", err)
 		} else {
 			masterAddr = addr
@@ -176,7 +178,7 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 	return nil
 }
 
-func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
+func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 	getSignerOptions := &admin.SignerCertOptions{
 		CertFile:   admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca"),
 		KeyFile:    admin.DefaultKeyFilename(nodeArgs.MasterCertDir, "ca"),
@@ -190,6 +192,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs) error {
 	createNodeConfig.NodeName = nodeArgs.NodeName
 	createNodeConfig.Hostnames = []string{nodeArgs.NodeName}
 	createNodeConfig.ListenAddr = nodeArgs.ListenArg.ListenAddr
+	createNodeConfig.APIServerURL = masterURL
 	createNodeConfig.APIServerCAFile = admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")
 	createNodeConfig.NodeClientCAFile = admin.DefaultCertFilename(nodeArgs.MasterCertDir, "ca")
 
@@ -221,7 +224,7 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, e
 		return nil, nil, err
 	}
 
-	if err := CreateNodeCerts(startOptions.NodeArgs); err != nil {
+	if err := CreateNodeCerts(startOptions.NodeArgs, startOptions.MasterOptions.MasterArgs.MasterAddr.String()); err != nil {
 		return nil, nil, err
 	}
 
@@ -244,7 +247,7 @@ func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *c
 		return "", err
 	}
 
-	if err := start.StartNode(*nodeConfig); err != nil {
+	if err := StartConfiguredNode(nodeConfig); err != nil {
 		return "", err
 	}
 
@@ -267,6 +270,27 @@ type TestOptions struct {
 
 func DefaultTestOptions() TestOptions {
 	return TestOptions{true}
+}
+
+func StartConfiguredNode(nodeConfig *configapi.NodeConfig) error {
+	kubernetes.SetFakeCadvisorInterfaceForIntegrationTest()
+
+	_, nodePort, err := net.SplitHostPort(nodeConfig.ServingInfo.BindAddress)
+	if err != nil {
+		return err
+	}
+	nodeTLS := configapi.UseTLS(nodeConfig.ServingInfo)
+
+	if err := start.StartNode(*nodeConfig); err != nil {
+		return err
+	}
+
+	// wait for the server to come up for 30 seconds (average time on desktop is 2 seconds, but Jenkins timed out at 10 seconds)
+	if err := cmdutil.WaitForSuccessfulDial(nodeTLS, "tcp", net.JoinHostPort(nodeConfig.NodeName, nodePort), 100*time.Millisecond, 1*time.Second, 30); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func StartConfiguredMaster(masterConfig *configapi.MasterConfig) (string, error) {

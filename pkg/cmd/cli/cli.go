@@ -109,7 +109,8 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Message: "Troubleshooting and Debugging Commands:",
 			Commands: []*cobra.Command{
 				cmd.NewCmdLogs(fullName, f, out),
-				cmd.NewCmdRsh(fullName, f, in, out, errout),
+				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, in, out, errout),
+				cmd.NewCmdRsync(cmd.RsyncRecommendedName, fullName, f, out, errout),
 				cmd.NewCmdExec(fullName, f, in, out, errout),
 				cmd.NewCmdPortForward(fullName, f),
 				cmd.NewCmdProxy(fullName, f, out),
@@ -139,6 +140,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		},
 	}
 	groups.Add(cmds)
+	changeSharedFlagDefaults(cmds)
 	templates.ActsAsRootCommand(cmds, groups...).
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify")
 
@@ -148,6 +150,25 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 
 	return cmds
+}
+
+// changeSharedFlagDefaults changes values of shared flags that we disagree with.  This can't be done in godep code because
+// that would change behavior in our `kubectl` symlink. Defend each change.
+// 1. show-all - the most interesting pods are terminated/failed pods.  We don't want to exclude them from printing
+func changeSharedFlagDefaults(rootCmd *cobra.Command) {
+	cmds := []*cobra.Command{rootCmd}
+
+	for i := 0; i < len(cmds); i++ {
+		currCmd := cmds[i]
+		cmds = append(cmds, currCmd.Commands()...)
+
+		if showAllFlag := currCmd.Flags().Lookup("show-all"); showAllFlag != nil {
+			showAllFlag.DefValue = "true"
+			showAllFlag.Value.Set("true")
+			showAllFlag.Changed = false
+			showAllFlag.Usage = "When printing, show all resources (false means hide terminated pods.)"
+		}
+	}
 }
 
 // NewCmdKubectl provides exactly the functionality from Kubernetes,

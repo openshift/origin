@@ -17,7 +17,7 @@ oc new-build openshift/ruby-20-centos7 https://github.com/openshift/ruby-hello-w
 oc get bc/ruby-hello-world
 cat "${OS_ROOT}/Dockerfile" | oc new-build -D - --name=test
 oc get bc/test
-oc new-build --dockerfile=$'FROM centos\nRUN yum install -y apache'
+oc new-build --dockerfile=$'FROM centos:7\nRUN yum install -y httpd'
 oc get bc/centos
 oc delete all --all
 
@@ -25,6 +25,12 @@ oc process -f examples/sample-app/application-template-dockerbuild.json -l build
 oc get buildConfigs
 oc get bc
 oc get builds
+
+REAL_OUTPUT_TO=$(oc get bc/ruby-sample-build -t '{{ .spec.output.to.name }}')
+oc patch bc/ruby-sample-build -p '{"spec":{"output":{"to":{"name":"different:tag1"}}}}'
+oc get bc/ruby-sample-build -t '{{ .spec.output.to.name }}' | grep 'different'
+oc patch bc/ruby-sample-build -p "{\"spec\":{\"output\":{\"to\":{\"name\":\"${REAL_OUTPUT_TO}\"}}}}"
+echo "patchAnonFields: ok"
 
 [ "$(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook GitHub" | grep -F "${url}/osapi/v1beta3/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/github")" ]
 [ "$(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook Generic" | grep -F "${url}/osapi/v1beta3/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/generic")" ]
@@ -50,7 +56,7 @@ echo "start-build: ok"
 
 oc cancel-build "${started}" --dump-logs --restart
 echo "cancel-build: ok"
+
 oc delete is/ruby-20-centos7-buildcli
 oc delete bc/ruby-sample-build-validtag
 oc delete bc/ruby-sample-build-invalidtag
-

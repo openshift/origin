@@ -121,7 +121,8 @@ ul.messenger-theme-flat .messenger-message {
   background: @gray-darker;
   color: #f0f0f0;
   font-weight: 500;
-  padding: 10px 30px 13px 65px;
+  padding: 10px 30px 10px 65px;
+  line-height: 27px;
   &:before,
   .messenger-message-inner:before {
     font-size: 20px;
@@ -138,6 +139,9 @@ ul.messenger-theme-flat .messenger-message {
     line-height: 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+  .messenger-close {
+    line-height: 30px;
   }
 }
 ul.messenger-theme-flat {
@@ -160,36 +164,29 @@ ul.messenger-theme-flat .messenger-message .messenger-actions a {
 ul.messenger-theme-flat {
   .messenger-message.alert-error {
     &:before {
-      content: "\e609";
+      content: @pficon-var-error-circle-o;
       color: @brand-danger;
     }
     .messenger-message-inner:before {
-      color: #fff;
-      content: "\e608";
       background-color: transparent;
     }
   }
   .messenger-message.alert-warning {
     &:before {
-      content: "\e60c";
+      content: @pficon-var-warning-triangle-o;
       color: @brand-warning;
       left: 14px;
       margin-top: -11px;
     }
-    .messenger-message-inner:before {
-      color: #fff;
-      content: "\e608";
-      background-color: transparent;
-    }
   }
   .messenger-message.alert-success .messenger-message-inner:before {
     color: @brand-success;
-    content: "\e602";
+    content: @pficon-var-ok;
     background-color: transparent;
   }
   .messenger-message.alert-info .messenger-message-inner:before {
     color: @brand-info;
-    content: "\e604";
+    content: @pficon-var-info;
     background-color: transparent;
   }
 }

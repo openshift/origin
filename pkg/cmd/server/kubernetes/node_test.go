@@ -39,55 +39,55 @@ func TestInitializeVolumeDir(t *testing.T) {
 	}
 	defer os.RemoveAll(parentDir)
 
-	testCases := []struct {
-		chconFound      bool
-		chconRunErr     error
-		removeVolumeDir bool
+	volumeDir := path.Join(parentDir, "somedir")
+
+	testCases := map[string]struct {
+		chconFound       bool
+		chconRunErr      error
+		dirAlreadyExists bool
 	}{
-		{chconFound: false, removeVolumeDir: true},
-		{chconFound: true, chconRunErr: nil, removeVolumeDir: true},
-		{chconFound: true, chconRunErr: errors.New("e"), removeVolumeDir: true},
-		{removeVolumeDir: false},
+		"no chcon":                  {chconFound: false},
+		"have chcon":                {chconFound: true},
+		"chcon error":               {chconFound: true, chconRunErr: errors.New("e")},
+		"volume dir already exists": {chconFound: true, dirAlreadyExists: true},
 	}
 
-	for i, testCase := range testCases {
+	for name, testCase := range testCases {
 		ce := &fakeCommandExecutor{
 			commandFound: testCase.chconFound,
 			commandErr:   testCase.chconRunErr,
 		}
-		nc := &NodeConfig{VolumeDir: path.Join(parentDir, "somedir")}
 
-		if testCase.removeVolumeDir {
-			if err := os.RemoveAll(nc.VolumeDir); err != nil {
-				t.Fatalf("%d: Error removing volume dir: %s", i, err)
+		if testCase.dirAlreadyExists {
+			if err := os.MkdirAll(volumeDir, 0750); err != nil {
+				t.Fatalf("%s: error creating volume dir: %v", name, err)
+			}
+		} else {
+			if err := os.RemoveAll(volumeDir); err != nil {
+				t.Fatalf("%s: error removing volume dir: %v", name, err)
 			}
 		}
 
+		nc := &NodeConfig{VolumeDir: volumeDir}
 		path, err := nc.initializeVolumeDir(ce, nc.VolumeDir)
 
-		if testCase.removeVolumeDir {
-			if !ce.lookCalled {
-				t.Fatalf("%d: expected look for chcon", i)
-			}
-			if !testCase.chconFound && ce.runCalled {
-				t.Fatalf("%d: unexpected run after chcon not found", i)
-			}
-			if testCase.chconFound && !ce.runCalled {
-				t.Fatalf("%d: expected chcon run", i)
-			}
-			if err != nil {
-				t.Fatalf("%d: unexpected err: %s", i, err)
-			}
-			if path != nc.VolumeDir {
-				t.Fatalf("%d:, expected path(%s) == nc.VolumeDir(%s)", i, path, nc.VolumeDir)
-			}
-		} else {
-			if ce.lookCalled {
-				t.Fatalf("%d: unexpected look for chcon with reused volume dir", i)
-			}
-			if ce.runCalled {
-				t.Fatalf("%d: unexpected run for chcon with reused volume dir", i)
-			}
+		if !ce.lookCalled {
+			t.Errorf("%s: expected look for chcon", name)
+		}
+		if !testCase.chconFound && ce.runCalled {
+			t.Errorf("%s: unexpected run after chcon not found", name)
+		}
+		if testCase.chconFound && !ce.runCalled {
+			t.Errorf("%s: expected chcon run", name)
+		}
+		if err != nil {
+			t.Errorf("%s: unexpected err: %s", name, err)
+		}
+		if path != nc.VolumeDir {
+			t.Errorf("%s:, expected path(%s) == nc.VolumeDir(%s)", name, path, nc.VolumeDir)
+		}
+		if _, err := os.Stat(path); err != nil {
+			t.Errorf("%s: expected volume dir to exist: %v", name, err)
 		}
 	}
 }

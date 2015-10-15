@@ -1,17 +1,11 @@
 <div ng-repeat="alert in alerts">
   <div ng-switch="alert.type">
     <div ng-switch-when="error" class="alert alert-danger">
-      <span class="pficon-layered">
-        <span class="pficon pficon-error-octagon"></span>
-        <span class="pficon pficon-error-exclamation"></span>
-      </span>
+      <span class="pficon pficon-error-circle-o"></span>
       <strong ng-if="alert.message" style="margin-right: 5px;">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
     </div>  
     <div ng-switch-when="warning" class="alert alert-warning">
-      <span class="pficon-layered">
-        <span class="pficon pficon-warning-triangle"></span>
-        <span class="pficon pficon-warning-exclamation"></span>
-      </span>
+      <span class="pficon pficon-warning-triangle-o"></span>
       <strong ng-if="alert.message" style="margin-right: 5px;">{{alert.message}}</strong><span ng-if="alert.details">{{alert.details}}</span>
     </div>  
     <div ng-switch-when="success" class="alert alert-success">

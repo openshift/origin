@@ -314,12 +314,13 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 	bcCopy := obj.(*buildapi.BuildConfig)
 	build := &buildapi.Build{
 		Spec: buildapi.BuildSpec{
-			ServiceAccount: serviceAccount,
-			Source:         bcCopy.Spec.Source,
-			Strategy:       bcCopy.Spec.Strategy,
-			Output:         bcCopy.Spec.Output,
-			Revision:       revision,
-			Resources:      bcCopy.Spec.Resources,
+			ServiceAccount:            serviceAccount,
+			Source:                    bcCopy.Spec.Source,
+			Strategy:                  bcCopy.Spec.Strategy,
+			Output:                    bcCopy.Spec.Output,
+			Revision:                  revision,
+			Resources:                 bcCopy.Spec.Resources,
+			CompletionDeadlineSeconds: bcCopy.Spec.CompletionDeadlineSeconds,
 		},
 		ObjectMeta: kapi.ObjectMeta{
 			Labels: bcCopy.Labels,

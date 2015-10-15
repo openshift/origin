@@ -23,6 +23,16 @@ const (
 	MasterUsername   = "system:" + MasterUnqualifiedUsername
 	RouterUsername   = "system:" + RouterUnqualifiedUsername
 	RegistryUsername = "system:" + RegistryUnqualifiedUsername
+
+	// Not granted any API permissions, just an identity for a client certificate for the API proxy to use
+	// Should not be changed without considering impact to pods that may be verifying this identity by default
+	MasterProxyUnqualifiedUsername = "master-proxy"
+	MasterProxyUsername            = "system:" + MasterProxyUnqualifiedUsername
+
+	// Previous versions used this as the username for the master to connect to the kubelet
+	// This should remain in the default role bindings for the NodeAdmin role
+	LegacyMasterKubeletAdminClientUsername = "system:master"
+	MasterKubeletAdminClientUsername       = "system:openshift-node-admin"
 )
 
 // groups
@@ -35,6 +45,8 @@ const (
 	ClusterReaderGroup   = "system:cluster-readers"
 	MastersGroup         = "system:masters"
 	NodesGroup           = "system:nodes"
+	NodeAdminsGroup      = "system:node-admins"
+	NodeReadersGroup     = "system:node-readers"
 	RouterGroup          = "system:routers"
 	RegistryGroup        = "system:registries"
 )
@@ -68,6 +80,11 @@ const (
 	OAuthTokenDeleterRoleName = "system:oauth-token-deleter"
 	WebHooksRoleName          = "system:webhook"
 
+	// NodeAdmin has full access to the API provided by the kubelet
+	NodeAdminRoleName = "system:node-admin"
+	// NodeReader has read access to the metrics and stats provided by the kubelet
+	NodeReaderRoleName = "system:node-reader"
+
 	OpenshiftSharedResourceViewRoleName = "shared-resource-viewer"
 )
 
@@ -87,6 +104,8 @@ const (
 	MasterRoleBindingName            = MasterRoleName + "s"
 	NodeRoleBindingName              = NodeRoleName + "s"
 	NodeProxierRoleBindingName       = NodeProxierRoleName + "s"
+	NodeAdminRoleBindingName         = NodeAdminRoleName + "s"
+	NodeReaderRoleBindingName        = NodeReaderRoleName + "s"
 	SDNReaderRoleBindingName         = SDNReaderRoleName + "s"
 	SDNManagerRoleBindingName        = SDNManagerRoleName + "s"
 	WebHooksRoleBindingName          = WebHooksRoleName + "s"

@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/template"
+	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
@@ -55,11 +56,11 @@ type AppConfig struct {
 
 	Dockerfile string
 
-	Name             string
-	Strategy         string
-	InsecureRegistry bool
-	OutputDocker     bool
-	AllowMissing     bool
+	Name               string
+	Strategy           string
+	InsecureRegistry   bool
+	OutputDocker       bool
+	AllowMissingImages bool
 
 	AsSearch bool
 	AsList   bool
@@ -129,10 +130,10 @@ func (c *AppConfig) ensureDockerSearcher() {
 // SetDockerClient sets the passed Docker client in the application configuration
 func (c *AppConfig) SetDockerClient(dockerclient *docker.Client) {
 	c.dockerSearcher = app.DockerClientSearcher{
-		Client:           dockerclient,
-		RegistrySearcher: c.dockerRegistrySearcher(),
-		Insecure:         c.InsecureRegistry,
-		AllowMissing:     c.AllowMissing,
+		Client:             dockerclient,
+		RegistrySearcher:   c.dockerRegistrySearcher(),
+		Insecure:           c.InsecureRegistry,
+		AllowMissingImages: c.AllowMissingImages,
 	}
 }
 
@@ -317,17 +318,13 @@ func (c *AppConfig) componentsForRepos(repositories app.SourceRepositories) (app
 			errs = append(errs, fmt.Errorf("source not detected for repository %q", repo))
 			continue
 		case info.Dockerfile != nil && (len(c.Strategy) == 0 || c.Strategy == "docker"):
-			df, err := info.Dockerfile.Dockerfile()
-			if err != nil {
-				// an unparseable docker file should not terminate the entire create - it may be valid to Docker but not to us
-				fmt.Fprintf(c.ErrOut, "WARNING: The Dockerfile for the repository %q could not be parsed - no image stream can be created for the FROM\n", info.Path)
+			node := info.Dockerfile.AST()
+			baseImage := dockerfileutil.LastBaseImage(node)
+			if baseImage == "" {
+				errs = append(errs, fmt.Errorf("the Dockerfile in the repository %q has no FROM instruction", info.Path))
 				continue
 			}
-			dockerFrom, ok := df.GetDirective("FROM")
-			if !ok || len(dockerFrom) > 1 {
-				errs = append(errs, fmt.Errorf("invalid FROM directive in Dockerfile in repository %q", repo))
-			}
-			refs := b.AddComponents(dockerFrom, func(input *app.ComponentInput) app.ComponentReference {
+			refs := b.AddComponents([]string{baseImage}, func(input *app.ComponentInput) app.ComponentReference {
 				resolver := app.PerfectMatchWeightedResolver{}
 				if c.imageStreamSearcher != nil {
 					resolver = append(resolver, app.WeightedResolver{Searcher: c.imageStreamSearcher, Weight: 0.0})
@@ -508,7 +505,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 				if !input.AsImageStream {
-					glog.Warningf("Could not find an image match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", ref.Input().ResolvedMatch.Value)
+					glog.Warningf("Could not find an ImageStream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", ref.Input().ResolvedMatch.Value)
 				}
 				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses, input)
 				if err != nil {
@@ -531,18 +528,17 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 
 				// Append any exposed ports from Dockerfile to input image
 				if ref.Input().Uses.IsDockerBuild() {
-					if df, err := ref.Input().Uses.Info().Dockerfile.Dockerfile(); err == nil {
-						exposed, ok := df.GetDirective("EXPOSE")
-						if ok {
-							if input.Info == nil {
-								input.Info = &imageapi.DockerImage{
-									Config: &imageapi.DockerConfig{},
-								}
+					node := ref.Input().Uses.Info().Dockerfile.AST()
+					ports := dockerfileutil.LastExposedPorts(node)
+					if len(ports) > 0 {
+						if input.Info == nil {
+							input.Info = &imageapi.DockerImage{
+								Config: &imageapi.DockerConfig{},
 							}
-							input.Info.Config.ExposedPorts = map[string]struct{}{}
-							for _, p := range exposed {
-								input.Info.Config.ExposedPorts[p] = struct{}{}
-							}
+						}
+						input.Info.Config.ExposedPorts = map[string]struct{}{}
+						for _, p := range ports {
+							input.Info.Config.ExposedPorts[p] = struct{}{}
 						}
 					}
 				}

@@ -54,10 +54,11 @@ type PodStorage struct {
 // REST implements a RESTStorage for pods against etcd
 type REST struct {
 	*etcdgeneric.Etcd
+	proxyTransport http.RoundTripper
 }
 
 // NewStorage returns a RESTStorage object that will work against pods.
-func NewStorage(s storage.Interface, useCacher bool, k client.ConnectionInfoGetter) PodStorage {
+func NewStorage(s storage.Interface, useCacher bool, k client.ConnectionInfoGetter, proxyTransport http.RoundTripper) PodStorage {
 	prefix := "/pods"
 
 	storageInterface := s
@@ -104,11 +105,11 @@ func NewStorage(s storage.Interface, useCacher bool, k client.ConnectionInfoGett
 	statusStore.UpdateStrategy = pod.StatusStrategy
 
 	return PodStorage{
-		Pod:         &REST{store},
+		Pod:         &REST{store, proxyTransport},
 		Binding:     &BindingREST{store: store},
 		Status:      &StatusREST{store: &statusStore},
 		Log:         &LogREST{store: store, kubeletConn: k},
-		Proxy:       &ProxyREST{store: store},
+		Proxy:       &ProxyREST{store: store, proxyTransport: proxyTransport},
 		Exec:        &ExecREST{store: store, kubeletConn: k},
 		Attach:      &AttachREST{store: store, kubeletConn: k},
 		PortForward: &PortForwardREST{store: store, kubeletConn: k},
@@ -120,7 +121,7 @@ var _ = rest.Redirector(&REST{})
 
 // ResourceLocation returns a pods location from its HostIP
 func (r *REST) ResourceLocation(ctx api.Context, name string) (*url.URL, http.RoundTripper, error) {
-	return pod.ResourceLocation(r, ctx, name)
+	return pod.ResourceLocation(r, r.proxyTransport, ctx, name)
 }
 
 // BindingREST implements the REST endpoint for binding pods to nodes when etcd is in use.
@@ -249,7 +250,8 @@ func (r *LogREST) NewGetOptions() (runtime.Object, bool, string) {
 
 // ProxyREST implements the proxy subresource for a Pod
 type ProxyREST struct {
-	store *etcdgeneric.Etcd
+	store          *etcdgeneric.Etcd
+	proxyTransport http.RoundTripper
 }
 
 // Implement Connecter
@@ -278,15 +280,16 @@ func (r *ProxyREST) Connect(ctx api.Context, id string, opts runtime.Object) (re
 	if !ok {
 		return nil, fmt.Errorf("Invalid options object: %#v", opts)
 	}
-	location, _, err := pod.ResourceLocation(r.store, ctx, id)
+	location, transport, err := pod.ResourceLocation(r.store, r.proxyTransport, ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	location.Path = path.Join(location.Path, proxyOpts.Path)
-	return newUpgradeAwareProxyHandler(location, nil, false), nil
+	// Return a proxy handler that uses the desired transport, wrapped with additional proxy handling (to get URL rewriting, X-Forwarded-* headers, etc)
+	return newThrottledUpgradeAwareProxyHandler(location, transport, true, false), nil
 }
 
-// Support both GET and POST methods. Over time, we want to move all clients to start using POST and then stop supporting GET.
+// Support both GET and POST methods. We must support GET for browsers that want to use WebSockets.
 var upgradeableMethods = []string{"GET", "POST"}
 
 // AttachREST implements the attach subresource for a Pod
@@ -313,7 +316,7 @@ func (r *AttachREST) Connect(ctx api.Context, name string, opts runtime.Object) 
 	if err != nil {
 		return nil, err
 	}
-	return genericrest.NewUpgradeAwareProxyHandler(location, transport, true), nil
+	return newThrottledUpgradeAwareProxyHandler(location, transport, false, true), nil
 }
 
 // NewConnectOptions returns the versioned object that represents exec parameters
@@ -350,7 +353,7 @@ func (r *ExecREST) Connect(ctx api.Context, name string, opts runtime.Object) (r
 	if err != nil {
 		return nil, err
 	}
-	return newUpgradeAwareProxyHandler(location, transport, true), nil
+	return newThrottledUpgradeAwareProxyHandler(location, transport, false, true), nil
 }
 
 // NewConnectOptions returns the versioned object that represents exec parameters
@@ -393,11 +396,11 @@ func (r *PortForwardREST) Connect(ctx api.Context, name string, opts runtime.Obj
 	if err != nil {
 		return nil, err
 	}
-	return newUpgradeAwareProxyHandler(location, transport, true), nil
+	return newThrottledUpgradeAwareProxyHandler(location, transport, false, true), nil
 }
 
-func newUpgradeAwareProxyHandler(location *url.URL, transport http.RoundTripper, upgradeRequired bool) *genericrest.UpgradeAwareProxyHandler {
-	handler := genericrest.NewUpgradeAwareProxyHandler(location, transport, upgradeRequired)
+func newThrottledUpgradeAwareProxyHandler(location *url.URL, transport http.RoundTripper, wrapTransport, upgradeRequired bool) *genericrest.UpgradeAwareProxyHandler {
+	handler := genericrest.NewUpgradeAwareProxyHandler(location, transport, wrapTransport, upgradeRequired)
 	handler.MaxBytesPerSec = capabilities.Get().PerConnectionBandwidthLimitBytesPerSec
 	return handler
 }

@@ -57,7 +57,7 @@ else
 verify: build
 endif
 	hack/verify-gofmt.sh
-	#hack/verify-govet.sh disable until we can verify that the output is sane
+	hack/verify-govet.sh
 	hack/verify-generated-deep-copies.sh
 	hack/verify-generated-conversions.sh
 	hack/verify-generated-completions.sh

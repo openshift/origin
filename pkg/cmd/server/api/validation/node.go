@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	kapp "k8s.io/kubernetes/cmd/kubelet/app"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
@@ -40,7 +41,43 @@ func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList 
 
 	allErrs = append(allErrs, ValidateDockerConfig(config.DockerConfig).Prefix("dockerConfig")...)
 
+	allErrs = append(allErrs, ValidateNodeAuthConfig(config.AuthConfig).Prefix("authConfig")...)
+
 	allErrs = append(allErrs, ValidateKubeletExtendedArguments(config.KubeletArguments).Prefix("kubeletArguments")...)
+
+	if _, err := time.ParseDuration(config.IPTablesSyncPeriod); err != nil {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("iptablesSyncPeriod", config.IPTablesSyncPeriod, fmt.Sprintf("unable to parse iptablesSyncPeriod: %v. Examples with correct format: '5s', '1m', '2h22m'", err)))
+	}
+
+	return allErrs
+}
+
+func ValidateNodeAuthConfig(config api.NodeAuthConfig) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+
+	if len(config.AuthenticationCacheTTL) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("authenticationCacheTTL"))
+	} else if ttl, err := time.ParseDuration(config.AuthenticationCacheTTL); err != nil {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("authenticationCacheTTL", config.AuthenticationCacheTTL, fmt.Sprintf("%v", err)))
+	} else if ttl < 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("authenticationCacheTTL", config.AuthenticationCacheTTL, fmt.Sprintf("cannot be less than zero")))
+	}
+
+	if config.AuthenticationCacheSize <= 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("authenticationCacheSize", config.AuthenticationCacheSize, fmt.Sprintf("must be greater than zero")))
+	}
+
+	if len(config.AuthorizationCacheTTL) == 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldRequired("authorizationCacheTTL"))
+	} else if ttl, err := time.ParseDuration(config.AuthorizationCacheTTL); err != nil {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("authorizationCacheTTL", config.AuthorizationCacheTTL, fmt.Sprintf("%v", err)))
+	} else if ttl < 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("authorizationCacheTTL", config.AuthorizationCacheTTL, fmt.Sprintf("cannot be less than zero")))
+	}
+
+	if config.AuthorizationCacheSize <= 0 {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("authorizationCacheSize", config.AuthorizationCacheSize, fmt.Sprintf("must be greater than zero")))
+	}
 
 	return allErrs
 }

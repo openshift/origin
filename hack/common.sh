@@ -485,29 +485,89 @@ KUBE_GIT_VERSION='${KUBE_GIT_VERSION-}'
 EOF
 }
 
+# golang 1.5 wants `-X key=val`, but golang 1.4- REQUIRES `-X key val`
+os::build::ldflag() {
+  local key=${1}
+  local val=${2}
+
+  GO_VERSION=($(go version))
+
+  if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.5') ]]; then
+    echo "-X ${OS_GO_PACKAGE}/pkg/version.${key} ${val}"
+  else
+    echo "-X ${OS_GO_PACKAGE}/pkg/version.${key}=${val}"
+  fi
+}
+
 # os::build::ldflags calculates the -ldflags argument for building OpenShift
 os::build::ldflags() {
-  (
-    # Run this in a subshell to prevent settings/variables from leaking.
-    set -o errexit
-    set -o nounset
-    set -o pipefail
+  # Run this in a subshell to prevent settings/variables from leaking.
+  set -o errexit
+  set -o nounset
+  set -o pipefail
 
-    cd "${OS_ROOT}"
+  cd "${OS_ROOT}"
 
-    os::build::get_version_vars
+  os::build::get_version_vars
 
-    declare -a ldflags=()
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.versionFromGit" "${OS_GIT_VERSION}")
-    ldflags+=(-X "${OS_GO_PACKAGE}/pkg/version.commitFromGit" "${OS_GIT_COMMIT}")
+  declare -a ldflags=()
+
+  ldflags+=($(os::build::ldflag "majorFromGit" "${OS_GIT_MAJOR}"))
+  ldflags+=($(os::build::ldflag "minorFromGit" "${OS_GIT_MINOR}"))
+  ldflags+=($(os::build::ldflag "versionFromGit" "${OS_GIT_VERSION}"))
+  ldflags+=($(os::build::ldflag "commitFromGit" "${OS_GIT_COMMIT}"))
+
+  GO_VERSION=($(go version))
+  if [[ -z $(echo "${GO_VERSION[2]}" | grep -E 'go1.5') ]]; then
     ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit" "${KUBE_GIT_COMMIT}")
     ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion" "${KUBE_GIT_VERSION}")
+  else
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitCommit=${KUBE_GIT_COMMIT}")
+    ldflags+=(-X "k8s.io/kubernetes/pkg/version.gitVersion=${KUBE_GIT_VERSION}")
+  fi
 
-    # The -ldflags parameter takes a single string, so join the output.
-    echo "${ldflags[*]-}"
-  )
+  # The -ldflags parameter takes a single string, so join the output.
+  echo "${ldflags[*]-}"
+}
+
+# os::build::require_clean_tree exits if the current Git tree is not clean.
+os::build::require_clean_tree() {
+  if ! git diff-index --quiet HEAD -- || test $(git ls-files --exclude-standard --others | wc -l) != 0; then
+    echo "You can't have any staged or dirty files in $(pwd) for this command."
+    echo "Either commit them or unstage them to continue."
+    exit 1
+  fi
+}
+
+# os::build::commit_range takes one or two arguments - if the first argument is an
+# integer, it is assumed to be a pull request and the local origin/pr/# branch is
+# used to determine the common range with the second argument. If the first argument
+# is not an integer, it is assumed to be a Git commit range and output directly.
+os::build::commit_range() {
+  if [[ "$1" =~ ^-?[0-9]+$ ]]; then
+    local target
+    target="$(git rev-parse origin/pr/$1)"
+    if [[ $? -ne 0 ]]; then
+      echo "Branch does not exist, or you have not configured origin/pr/* style branches from GitHub" 1>&2
+      exit 1
+    fi
+
+    local base
+    base="$(git merge-base origin/pr/$1 $2)"
+    if [[ $? -ne 0 ]]; then
+      echo "Branch has no common commits with $2" 1>&2
+      exit 1
+    fi
+    if [[ "${base}" == "${target}" ]]; then
+      echo "Branch has already been merged to upstream master, use explicit range instead" 1>&2
+      exit 1
+    fi
+
+    echo "${base}...${target}"
+    exit 0
+  fi
+
+  echo "$1"
 }
 
 os::build::gen-docs() {

@@ -30,6 +30,12 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 	}
 
 	token := parts[1]
+
+	// Empty bearer tokens aren't valid
+	if len(token) == 0 {
+		return nil, false, nil
+	}
+
 	user, ok, err := a.auth.AuthenticateToken(token)
 	if ok && a.removeHeader {
 		req.Header.Del("Authorization")

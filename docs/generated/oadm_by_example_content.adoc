@@ -201,6 +201,63 @@ Manage nodes - list pods, evacuate, or mark ready
 ====
 
 
+== oadm pod-network join-projects
+Join project network
+
+====
+
+[options="nowrap"]
+----
+	# Allow project p2 to use project p1 network
+	$ openshift admin pod-network join-projects --to=<p1> <p2>
+
+	# Allow all projects with label name=top-secret to use project p1 network
+	$ openshift admin pod-network join-projects --to=<p1> --selector='name=top-secret'
+----
+====
+
+
+== oadm pod-network unisolate-projects
+UnIsolate project network
+
+====
+
+[options="nowrap"]
+----
+	# Allow project p1 to access all pods in the cluster and vice versa
+	$ openshift admin pod-network unisolate-projects <p1>
+
+	# Allow all projects with label name=share to access all pods in the cluster and vice versa
+	$ openshift admin pod-network unisolate-projects --selector='name=share'
+----
+====
+
+
+== oadm policy reconcile-cluster-role-bindings
+Replace cluster role bindings to match the recommended bootstrap policy
+
+====
+
+[options="nowrap"]
+----
+  # Display the cluster role bindings that would be modified
+  $ openshift admin policy reconcile-cluster-role-bindings
+
+  # Display the cluster role bindings that would be modified, removing any extra subjects
+  $ openshift admin policy reconcile-cluster-role-bindings --additive-only=false
+
+  # Update cluster role bindings that don't match the current defaults
+  $ openshift admin policy reconcile-cluster-role-bindings --confirm
+
+  # Update cluster role bindings that don't match the current defaults, avoid adding roles to the system:authenticated group
+  $ openshift admin policy reconcile-cluster-role-bindings --confirm --exclude-groups=system:authenticated
+
+  # Update cluster role bindings that don't match the current defaults, removing any extra subjects from the binding
+  $ openshift admin policy reconcile-cluster-role-bindings --confirm --additive-only=false
+----
+====
+
+
 == oadm policy reconcile-cluster-roles
 Replace cluster roles to match the recommended bootstrap policy
 
@@ -260,6 +317,10 @@ Install a router
 
   # Use a different router image and see the router configuration
   $ openshift admin router region-west -o yaml --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --images=myrepo/somerouter:mytag
+
+  # Run the router with a hint to the underlying implementation to _not_ expose statistics.
+  $ openshift admin router router-west --credentials=/path/to/openshift-router.kubeconfig --service-account=myserviceaccount --stats-port=0
+  
 ----
 ====
 

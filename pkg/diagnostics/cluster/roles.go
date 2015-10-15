@@ -28,7 +28,7 @@ func (d *ClusterRoles) Name() string {
 }
 
 func (d *ClusterRoles) Description() string {
-	return "Check that the ClusterRoles are up-to-date"
+	return "Check that the default ClusterRoles are present and contain the expected permissions"
 }
 
 func (d *ClusterRoles) CanRun() (bool, error) {
@@ -58,6 +58,7 @@ func (d *ClusterRoles) Check() types.DiagnosticResult {
 	changedClusterRoles, err := reconcileOptions.ChangedClusterRoles()
 	if err != nil {
 		r.Error("CRD1000", err, fmt.Sprintf("Error inspecting ClusterRoles: %v", err))
+		return r
 	}
 
 	// success

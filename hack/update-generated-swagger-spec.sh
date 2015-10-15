@@ -13,8 +13,7 @@ os::log::install_errexit
 function cleanup()
 {
     out=$?
-    pkill -P $$
-    rm -rf "${TEMP_DIR}"
+    cleanup_openshift
 
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Generate Failed !!!!"
@@ -32,40 +31,28 @@ trap "cleanup" EXIT
 
 set -e
 
-ADDR=127.0.0.1:8443
-HOST=https://${ADDR}
+
+TMPDIR="${TMPDIR:-"/tmp"}"
+BASETMPDIR="${TMPDIR}/openshift-swagger"
+export ALL_IP_ADDRESSES=127.0.0.1
+export SERVER_HOSTNAME_LIST=127.0.0.1
+export API_HOST=127.0.0.1
+export API_PORT=38443
+export ETCD_PORT=34001
+export ETCD_PEER_PORT=37001
+export SUDO=''
+setup_env_vars
+reset_tmp_dir 
+configure_os_server
+
+
 SWAGGER_SPEC_REL_DIR=${1:-""}
 SWAGGER_SPEC_OUT_DIR="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/swagger-spec"
-mkdir -p "${SWAGGER_SPEC_OUT_DIR}" || echo $? > /dev/null
-SWAGGER_API_PATH="${HOST}/swaggerapi/"
-
-# Prevent user environment from colliding with the test setup
-unset KUBECONFIG
-
-openshift=$(cd "${OS_ROOT}"; echo "$(pwd)/_output/local/bin/$(os::util::host_platform)/openshift")
-
-if [[ ! -e "${openshift}" ]]; then
-  {
-    echo "It looks as if you don't have a compiled openshift binary"
-    echo
-    echo "If you are running from a clone of the git repo, please run"
-    echo "'./hack/build-go.sh'."
-  } >&2
-  exit 1
-fi
-
-# create temp dir
-TEMP_DIR=${USE_TEMP:-$(mktemp -d /tmp/openshift-cmd.XXXX)}
-export CURL_CA_BUNDLE="${TEMP_DIR}/openshift.local.config/master/ca.crt"
+mkdir -p "${SWAGGER_SPEC_OUT_DIR}" || true
+SWAGGER_API_PATH="${MASTER_ADDR}/swaggerapi/"
 
 # Start openshift
-echo "Starting OpenShift..."
-pushd "${TEMP_DIR}" > /dev/null
-OPENSHIFT_ON_PANIC=crash "${openshift}" start master --master="https://127.0.0.1:8443" >/dev/null 2>&1  &
-OS_PID=$!
-popd > /dev/null
-
-wait_for_url "${HOST}/healthz" "apiserver: " 0.25 80
+start_os_master
 
 echo "Updating ${SWAGGER_SPEC_OUT_DIR}:"
 
@@ -77,6 +64,8 @@ do
     do
         echo "Updating ${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json from ${SWAGGER_API_PATH}${type}/${endpoint}..."
         curl -w "\n" "${SWAGGER_API_PATH}${type}/${endpoint}" > "${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json"
+
+        os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json"
     done
 done
 echo "SUCCESS"

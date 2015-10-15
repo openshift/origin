@@ -101,7 +101,7 @@ NOTE: Replace "linux/amd64" with the appropriate value for your platform/archite
 
 13.  NOTE:  to properly stop OpenShift and clean up, so that you can start fresh instance of OpenShift, execute:
 
-        $ sudo killall openshift
+        $ sudo pkill -x openshift
         $ docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop
         $ mount | grep "openshift.local.volumes" | awk '{ print $3}' | xargs -l -r sudo umount
         $ cd <to the dir you ran openshift start> ; sudo rm -rf openshift.local.*
@@ -152,7 +152,7 @@ NOTE: By default your origin directory will be mounted as a vagrant synced folde
 
         $ sudo chmod +r openshift.local.config/master/openshift-registry.kubeconfig
         $ sudo chmod +r openshift.local.config/master/admin.kubeconfig
-        $ oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
+        $ ./oadm registry --create --credentials=openshift.local.config/master/openshift-registry.kubeconfig --config=openshift.local.config/master/admin.kubeconfig
 
 10.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
 

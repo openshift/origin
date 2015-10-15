@@ -31,7 +31,7 @@ if [[ ! "$genbashcomp" ]]; then
 fi
 
 OUTPUT_REL_DIR=${1:-""}
-OUTPUT_DIR_ROOT="${OS_ROOT}/${OUTPUT_REL_DIR}/rel-eng/completions"
+OUTPUT_DIR_ROOT="${OS_ROOT}/${OUTPUT_REL_DIR}/contrib/completions"
 
 mkdir -p "${OUTPUT_DIR_ROOT}/bash" || echo $? > /dev/null
 

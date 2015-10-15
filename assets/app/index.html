@@ -103,8 +103,11 @@
     <script src="bower_components/uri.js/src/jquery.URI.js"></script>
     <script src="bower_components/uri.js/src/URI.fragmentURI.js"></script>
     <script src="bower_components/moment/moment.js"></script>
+    <script src="bower_components/patternfly/components/bootstrap-combobox/js/bootstrap-combobox.js"></script>
+    <script src="bower_components/patternfly/components/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
     <script src="bower_components/patternfly/components/bootstrap/dist/js/bootstrap.js"></script>
-    <script src="bower_components/patternfly/components/bootstrap-select/bootstrap-select.js"></script>
+    <script src="bower_components/patternfly/components/bootstrap-select/dist/js/bootstrap-select.js"></script>
+    <script src="bower_components/patternfly/components/bootstrap-treeview/dist/bootstrap-treeview.min.js"></script>
     <script src="bower_components/js-logger/src/logger.js"></script>
     <script src="bower_components/hawtio-core/hawtio-core.js"></script>
     <script src="bower_components/lodash/lodash.js"></script>
@@ -125,6 +128,9 @@
     <!-- endbower -->
     <!-- endbuild -->
 
+    <!-- This needs to be loaded before scripts.js -->
+    <script src="scripts/templates.js"></script>
+    
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
         <script src="scripts/app.js"></script>
         <script src="scripts/services/logger.js"></script>
@@ -132,6 +138,7 @@
         <script src="scripts/services/userstore.js"></script>
         <script src="scripts/services/auth.js"></script>
         <script src="scripts/services/data.js"></script>
+        <script src="scripts/services/discovery.js"></script>
         <script src="scripts/services/project.js"></script>
         <script src="scripts/services/applicationGenerator.js"></script>
         <script src="scripts/services/alertMessage.js"></script>
@@ -145,6 +152,7 @@
         <script src="scripts/services/util.js"></script>
         <script src="scripts/services/builds.js"></script>
         <script src="scripts/services/deployments.js"></script>
+        <script src="scripts/services/imagestreams.js"></script>
         <script src="scripts/controllers/projects.js"></script>
         <script src="scripts/controllers/project.js"></script>
         <script src="scripts/controllers/pods.js"></script>
@@ -161,6 +169,8 @@
         <script src="scripts/controllers/deployment.js"></script>        
         <script src="scripts/controllers/services.js"></script>
         <script src="scripts/controllers/service.js"></script>
+        <script src="scripts/controllers/routes.js"></script>
+        <script src="scripts/controllers/route.js"></script>
         <script src="scripts/controllers/create/createFromImage.js"></script>
         <script src="scripts/controllers/create/nextSteps.js"></script>
         <script src="scripts/controllers/newfromtemplate.js"></script>

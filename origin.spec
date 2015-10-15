@@ -12,14 +12,14 @@
 # openvswitch_version is the version of openvswitch requires by packages
 %global openvswitch_version 2.3.1
 # %commit and %ldflags are intended to be set by tito custom builders provided
-# in the rel-eng directory. The values in this spec file will not be kept up to date.
+# in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d31dd1a5acfdc4c35c02394a2a9b98640d113543
+%global commit 7a28ecb805fe49d7716ff4fedf637979267d1838
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.100-275-gd31dd1a -X github.com/openshift/origin/pkg/version.commitFromGit d31dd1a -X k8s.io/kubernetes/pkg/version.gitCommit 86b4e77 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-alpha.1-653-g86b4e77
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.900-384-g7a28ecb -X github.com/openshift/origin/pkg/version.commitFromGit 7a28ecb -X k8s.io/kubernetes/pkg/version.gitCommit 86b4e77 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-alpha.1-653-g86b4e77
 }
 
 %if "%{dist}" == ".el7aos"
@@ -32,8 +32,8 @@
 
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
-# builders provided in the rel-eng directory of this project
-Version:        3.0.2.900
+# builders provided in the .tito/lib directory of this project
+Version:        3.0.2.901
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -198,16 +198,16 @@ ln -s %{_bindir}/oc %{buildroot}%{_bindir}/kubectl
 install -d -m 0755 %{buildroot}%{_sysconfdir}/origin/{master,node}
 
 # different service for origin vs aos
-install -m 0644 rel-eng/%{name}-master.service %{buildroot}%{_unitdir}/%{name}-master.service
-install -m 0644 rel-eng/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
+install -m 0644 contrib/systemd/%{name}-master.service %{buildroot}%{_unitdir}/%{name}-master.service
+install -m 0644 contrib/systemd/%{name}-node.service %{buildroot}%{_unitdir}/%{name}-node.service
 # same sysconfig files for origin vs aos
-install -m 0644 rel-eng/origin-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-master
-install -m 0644 rel-eng/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
+install -m 0644 contrib/systemd/origin-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-master
+install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
 install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/%{name}-node-{guest,host}
-install -m 0644 tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
-install -m 0644 tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
+install -m 0644 contrib/tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
+install -m 0644 contrib/tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
 install -d -m 0755 %{buildroot}%{_mandir}/man7
-install -m 0644 tuned/man/tuned-profiles-origin-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-%{name}-node.7
+install -m 0644 contrib/tuned/man/tuned-profiles-origin-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-%{name}-node.7
 
 mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
@@ -215,7 +215,7 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{kube_plugin_path}
 install -d -m 0755 %{buildroot}%{_unitdir}/docker.service.d
-install -p -m 0644 rel-eng/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
+install -p -m 0644 contrib/systemd/docker-sdn-ovs.conf %{buildroot}%{_unitdir}/docker.service.d/
 pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/kube/bin
    install -p -m 755 openshift-ovs-subnet %{buildroot}%{kube_plugin_path}/openshift-ovs-subnet
    install -p -m 755 openshift-sdn-kube-subnet-setup.sh %{buildroot}%{_bindir}/openshift-sdn-kube-subnet-setup.sh
@@ -225,13 +225,13 @@ pushd _thirdpartyhacks/src/%{sdn_import_path}/ovssubnet/controller/multitenant/b
    install -p -m 755 openshift-sdn-multitenant-setup.sh %{buildroot}%{_bindir}/openshift-sdn-multitenant-setup.sh
 popd
 install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
-install -p -m 0644 rel-eng/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
+install -p -m 0644 contrib/systemd/openshift-sdn-ovs.conf %{buildroot}%{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-install -p -m 644 rel-eng/completions/bash/* %{buildroot}%{_sysconfdir}/bash_completion.d/
+install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_completion.d/
 # Generate atomic-enterprise bash completions
-%{__sed} -e "s|openshift|atomic-enterprise|g" rel-eng/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
+%{__sed} -e "s|openshift|atomic-enterprise|g" contrib/completions/bash/openshift > %{buildroot}%{_sysconfdir}/bash_completion.d/atomic-enterprise
 
 %files
 %defattr(-,root,root,-)
@@ -387,6 +387,303 @@ fi
 
 
 %changelog
+* Wed Oct 14 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.901
+- Build transport for etcd directly (jliggitt@redhat.com)
+- Remove volume dir chcon from e2e-docker (agoldste@redhat.com)
+- Always try to chcon the volume dir (agoldste@redhat.com)
+- Filter service endpoints when using multitenant plugin (danw@redhat.com)
+- Update for osdn plugin argument changes (danw@redhat.com)
+- Updated generated docs for openshift-sdn changes (danw@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  5a41fee40db41b65578c07eff9fef35d183dce1c (danw@redhat.com)
+- Generalize move-upstream.sh (ccoleman@redhat.com)
+- Add links to things from the overview and pod template (jforrest@redhat.com)
+- deconflict swagger ports (deads@redhat.com)
+- Scan for selinux write error in registry diagnostic. (dgoodwin@redhat.com)
+- Report transient deployment trigger errors via API field
+  (mkargaki@redhat.com)
+- Add build timeout, by setting ActiveDeadlineSeconds on a build pod
+  (maszulik@redhat.com)
+- Update completions (ffranz@redhat.com)
+- Append missing flags to cobra flags (jchaloup@redhat.com)
+- added an LDAP host label (skuznets@redhat.com)
+- add openshift group mapping for ldap sync (deads@redhat.com)
+- Convert tables to 2 column layout at mobile res. And fix incorrect url to js
+  files. (sgoodwin@redhat.com)
+- add ldapsync blacklisting (deads@redhat.com)
+- Move to openshift-jvm 1.0.29 (slewis@fusesource.com)
+- bump(github.com/openshift/openshift-sdn)
+  12f0efeb113058e04e9d333b92bbdddcfc34a9b4 (rpenta@redhat.com)
+- Auto generated bash completion and examples doc for oadm pod-network
+  (rpenta@redhat.com)
+- Remove duplicated helper (rhcarvalho@gmail.com)
+- union group name mapper (deads@redhat.com)
+- UPSTREAM: 14871: Additional service ports config for master service.
+  (abutcher@redhat.com)
+- Update completions for kubernetes-service-node-port (abutcher@redhat.com)
+- UPSTREAM: 13978 <drop>: NodePort option: Allowing for apiservers behind load-
+  balanced endpoint. (abutcher@redhat.com)
+- Update image stream page to use a table for the tags (jforrest@redhat.com)
+- tighten ldap sync query types (deads@redhat.com)
+- refactor building the syncer (deads@redhat.com)
+- enhanced active directory ldap sync (deads@redhat.com)
+- Use only official Dockerfile parser (rhcarvalho@gmail.com)
+- Support oadm pod-network cmd (rpenta@redhat.com)
+- added extended tests for LDAP sync (skuznets@redhat.com)
+- update ldif to work (deads@redhat.com)
+- e2e util has unused import 'regexp' (ccoleman@redhat.com)
+- add master API proxy client cert (jliggitt@redhat.com)
+- Change CA lifetime defaults (jliggitt@redhat.com)
+- UPSTREAM: 15224: Refactor SSH tunneling, fix proxy transport TLS/Dial
+  extraction (jliggitt@redhat.com)
+- UPSTREAM: 15224: Allow specifying scheme when proxying (jliggitt@redhat.com)
+- UPSTREAM: 14889: Honor InsecureSkipVerify flag (jliggitt@redhat.com)
+- UPSTREAM: 14967: Add util to set transport defaults (jliggitt@redhat.com)
+- Fix for issue where pod template is clipped at mobile res.      - fix
+  https://github.com/openshift/origin/issues/4489   - switch to pf-image icon
+  - correct icon alignment in pod template        - align label and meta data
+  on overview (sgoodwin@redhat.com)
+- Fix issue where long text strings extend beyond pod template container at
+  mobile res.  - remove flex and min/max width that are no longer needed
+  (sgoodwin@redhat.com)
+- OS support for host pid and ipc (pweil@redhat.com)
+- UPSTREAM:<carry>:hostPid/hostIPC scc support (pweil@redhat.com)
+- UPSTREAM:14279:IPC followup (pweil@redhat.com)
+- UPSTREAM:<carry>:v1beta3 hostIPC (pweil@redhat.com)
+- UPSTREAM:12470:Support containers with host ipc in a pod (pweil@redhat.com)
+- UPSTREAM:<carry>:v1beta3 hostPID (pweil@redhat.com)
+- UPSTREAM:13447:Allow sharing the host PID namespace (pweil@redhat.com)
+- Specify scheme in the jolokia URL (slewis@fusesource.com)
+- Fix tag and package name in new-build example (rhcarvalho@gmail.com)
+- UPSTREAM: <drop>: disable oidc tests (jliggitt@redhat.com)
+- Verify `oc get` returns OpenShift resources (ccoleman@redhat.com)
+- UPSTREAM: 15451 <partial>: Add our types to kubectl get error
+  (ccoleman@redhat.com)
+- Add loading message to all individual pages (jforrest@redhat.com)
+- Remove build history and deployment history from main tables
+  (jforrest@redhat.com)
+- status: Fix incorrect missing registry warning (mkargaki@redhat.com)
+- Add configuration options for logging and metrics endpoints
+  (spadgett@redhat.com)
+- Fix masterCA conversion (jliggitt@redhat.com)
+- Fix oc logs (jliggitt@redhat.com)
+- Revert "Unique output image stream names in new-app" (ccoleman@redhat.com)
+- Bug 1263562 - users without projects should get default ctx when logging in
+  (ffranz@redhat.com)
+- added LDAP entries for other schemas (skuznets@redhat.com)
+- remove cruft from options (deads@redhat.com)
+- provide feedback while the ldap group sync job is running (deads@redhat.com)
+- Allow POST access to node stats for cluster-reader and system:node-reader
+  (jliggitt@redhat.com)
+- Update role bindings in compatibility test (jliggitt@redhat.com)
+- Add cluster role bindings diagnostic (jliggitt@redhat.com)
+- Fix template minification to keep line breaks, remove html files from bindata
+  (jforrest@redhat.com)
+- Post 4902 fixes (maszulik@redhat.com)
+- Add oc rsync command (cewong@redhat.com)
+- bump(github.com/openshift/source-to-image)
+  1fd4429c584d688d83c1247c03fa2eeb0b083ccb (cewong@redhat.com)
+- Fixing typos (dmcphers@redhat.com)
+- allocate supplemental groups to namespace (pweil@redhat.com)
+- Remove forgotten code no longer used (nagy.martin@gmail.com)
+- assets: Fix null dereference in updateTopology() (stefw@redhat.com)
+- make oc logs support builds and buildconfigs (deads@redhat.com)
+- Wait until the slave pod is gone (nagy.martin@gmail.com)
+- UPSTREAM: 14616: Controller framework test flake fix (mfojtik@redhat.com)
+- Disable verbose extended run (mfojtik@redhat.com)
+- Unique output image stream names in new-app (rhcarvalho@gmail.com)
+- Fix start build extended test (mfojtik@redhat.com)
+- Make cleanup less noisy (mfojtik@redhat.com)
+- Replace default reporter in Ginkgo with SimpleReporter (mfojtik@redhat.com)
+- Atomic feature flags followup (miminar@redhat.com)
+- examples: Move hello-openshift example to API v1 (stefw@redhat.com)
+- Fix Vagrant provisioning after move to contrib/vagrant (dcbw@redhat.com)
+- Always bring up openshift's desired network configuration on Vagrant
+  provision (dcbw@redhat.com)
+- Add annotations to the individual pages (jforrest@redhat.com)
+- OS swagger and descriptions (pweil@redhat.com)
+- UPSTREAM:<carry>:introduce scc types for fsgroup and supplemental groups
+  (pweil@redhat.com)
+- ldap sync active directory (deads@redhat.com)
+- Change connection-based kubelet auth to application-level authn/authz
+  interfaces (jliggitt@redhat.com)
+- UPSTREAM: 15232`: refactor logs to be composeable (deads@redhat.com)
+- bump(github.com/hashicorp/golang-lru):
+  7f9ef20a0256f494e24126014135cf893ab71e9e (jliggitt@redhat.com)
+- UPSTREAM: 14700: Add authentication/authorization interfaces to kubelet,
+  always include /metrics with /stats (jliggitt@redhat.com)
+- UPSTREAM: 14134: sets.String#Intersection (jliggitt@redhat.com)
+- UPSTREAM: 15101: Add bearer token support for kubelet client config
+  (jliggitt@redhat.com)
+- UPSTREAM: 14710: Add verb to authorizer attributes (jliggitt@redhat.com)
+- UPSTREAM: 13885: Cherry pick base64 and websocket patches
+  (ccoleman@redhat.com)
+- Delete --all option for oc export in cli doc (nakayamakenjiro@gmail.com)
+- Fix cadvisor in integration test (jliggitt@redhat.com)
+- Disable --allow-missing-image test (cewong@redhat.com)
+- Make kube-proxy iptables sync period configurable (mkargaki@redhat.com)
+- Update to latest version of PatternFly 2.2.0 and Bootstrap  3.3.5
+  (sgoodwin@redhat.com)
+- PHP hot deploy extended test (jhadvig@redhat.com)
+- Ruby hot deploy extended test (jhadvig@redhat.com)
+- change show-all default to true (deads@redhat.com)
+- Update post-creation messages for builds in CLI (rhcarvalho@gmail.com)
+- [Bug 4959] sample-app/cleanup.sh: fix usage of not-installed killall command.
+  (vsemushi@redhat.com)
+- fix bad oadm line (max.andersen@gmail.com)
+- Refactored Openshift Origin builder, decoupled from S2I builder, added mocks
+  and testing (kirill.frolov@servian.com)
+- Use correct master url for internal token request, set master CA correctly
+  (jliggitt@redhat.com)
+- fix non-default all-in-one ports for testing (deads@redhat.com)
+- Add extended test for git authentication (cewong@redhat.com)
+- reconcile-cluster-role-bindings command (jliggitt@redhat.com)
+- Change validation timing on create from image page (spadgett@redhat.com)
+- Issue 2378 - Show TLS information for routes, create routes and
+  routes/routename pages (jforrest@redhat.com)
+- Lowercase resource names (rhcarvalho@gmail.com)
+- create local images as docker refs (bparees@redhat.com)
+- Preserve deployment status sequence (mkargaki@redhat.com)
+- Add tests for S2I Perl and Python images with Hot Deploy
+  (nagy.martin@gmail.com)
+- Test asset config (jliggitt@redhat.com)
+- UPSTREAM: 14967: Add util to set transport defaults (jliggitt@redhat.com)
+- UPSTREAM: 14246: Fix race in lifecycle admission test (mfojtik@redhat.com)
+- Fix send to closed channel in waitForBuild (mfojtik@redhat.com)
+- UPSTREAM: 13885: Update error message in wsstream for go 1.5
+  (mfojtik@redhat.com)
+- Fix go vet (jliggitt@redhat.com)
+- Change to use a 503 error page to fully address #4215 This allows custom
+  error pages to be layered on in custom haproxy images. (smitram@gmail.com)
+- Reduce number of test cases and add cleanup - travis seems to be hitting
+  memory errors with starting multiple haproxy routers. (smitram@gmail.com)
+- Fixes as per @Miciah review comments. (smitram@gmail.com)
+- Update generated completions. (smitram@gmail.com)
+- Add/update f5 tests for partition path. (smitram@gmail.com)
+- Add partition path support to the f5 router - this will also allows us to
+  support sharded routers with f5 using different f5 partitions.
+  (smitram@gmail.com)
+- Fixes as per @smarterclayton & @pweil- review comments and add generated docs
+  and bash completions. (smitram@gmail.com)
+- Turn on haproxy statistics by default since its now on a protected page.
+  (smitram@gmail.com)
+- Bind to router stats options (fixes issue #4884) and add help text
+  clarifications. (smitram@gmail.com)
+- Add tabs to pod details page (spadgett@redhat.com)
+- Bug 1268484 - Use build.metadata.uid to track dismissed builds in UI
+  (spadgett@redhat.com)
+- cleanup ldap sync validation (deads@redhat.com)
+- update auth test to share long running setup (deads@redhat.com)
+- make ldap sync-group work (deads@redhat.com)
+- fix ldap sync types to be more understandable (deads@redhat.com)
+- remove unused mapper (pweil@redhat.com)
+- change from kind to resource (pweil@redhat.com)
+- fix decoding to handle yaml (deads@redhat.com)
+- UPSTREAM: go-ldap: add String for debugging (deads@redhat.com)
+- UPSTREAM: 14451: Fix a race in pod backoff. (mfojtik@redhat.com)
+- Fix unbound variable in hack/cherry-pick.sh (mfojtik@redhat.com)
+- Cleanup godocs of build types (rhcarvalho@gmail.com)
+- Update travis to go 1.5.1 (mfojtik@redhat.com)
+- Enable Go 1.5 (ccoleman@redhat.com)
+- UPSTREAM: Fix typo in e2e pods test (nagy.martin@gmail.com)
+- rename allow-missing to allow-missing-images (bparees@redhat.com)
+- prune images: Conform to the hacking guide (mkargaki@redhat.com)
+- Drop imageStream.spec.dockerImageRepository tags/IDs during conversion
+  (ccoleman@redhat.com)
+- Add validation to prevent IS.spec.dockerImageRepository from having tags
+  (ccoleman@redhat.com)
+- Add a helper to move things upstream (ccoleman@redhat.com)
+- Cherry-pick helper (ccoleman@redhat.com)
+- Clean up root folder (ccoleman@redhat.com)
+- UPSTREAM: 13885: Support websockets on exec and pod logs
+  (ccoleman@redhat.com)
+- add test for patching anonymous fields in structs (deads@redhat.com)
+- UPSTREAM: 14985: fix patch for anonymous struct fields (deads@redhat.com)
+- fix exec admission controller flake (deads@redhat.com)
+- updated template use (skuznets@redhat.com)
+- fixed go vet invocation and errors (skuznets@redhat.com)
+- Add ethtool to base/Dockerfile.rhel7 too (sdodson@redhat.com)
+- [RPMS] atomic-openshift services use openshift bin (sdodson@redhat.com)
+- [RPMS] fix rpm build related to sdn restructure (sdodson@redhat.com)
+- UPSTREAM: 14831: allow yaml as argument to patch (deads@redhat.com)
+- Move host etc master/node directories to official locations.
+  (dgoodwin@redhat.com)
+- Wait for service account to be accessible (mfojtik@redhat.com)
+- Wait for builder account (mfojtik@redhat.com)
+- Pull RHEL7 images from internal CI registry (mfojtik@redhat.com)
+- Initial addition of S2I SCL enablement extended tests (mfojtik@redhat.com)
+- tolerate missing docker images (bparees@redhat.com)
+- bump(github.com/spf13/cobra): d732ab3a34e6e9e6b5bdac80707c2b6bad852936
+  (ffranz@redhat.com)
+- Rename various openshift directories to origin. (dgoodwin@redhat.com)
+- allow SAR requests in lifecycle admission (pweil@redhat.com)
+- Issue 4001 - add requests and limits to resource limits on settings page
+  (jforrest@redhat.com)
+- prevent force pull set up from running in other focuses; add some debug clues
+  in hack/util.sh; comments from Cesar, Ben; create new builder images so we
+  run concurrent;  MIchal's comments; move to just one builder
+  (gmontero@redhat.com)
+- fix govet example error (skuznets@redhat.com)
+- Add Restart=always to master service (sdodson@redhat.com)
+- Issue 4867 - route links should open in a new window (jforrest@redhat.com)
+- Fix output of git basic credentials in builder (cewong@redhat.com)
+- Set build status message in case of error (rhcarvalho@gmail.com)
+- Fix the reference of openshift command in Makefile (akira@tagoh.org)
+- Issue 4632 - remove 'Project' from the project overview header
+  (jforrest@redhat.com)
+- Issue 4860 - missing no deployments msg when only have RCs
+  (jforrest@redhat.com)
+- Support deployment hook volume inheritance (ironcladlou@gmail.com)
+- fix RAR test flake (deads@redhat.com)
+- UPSTREAM: 14688: Deflake max in flight (deads@redhat.com)
+- Fix vagrant provisioning (danw@redhat.com)
+- setup makefile to be parallelizeable (deads@redhat.com)
+- api group support for authorizer (deads@redhat.com)
+- Apply OOMScoreAdjust and Restart policy to openshift node (decarr@redhat.com)
+- Fix nit (dmcphers@redhat.com)
+- Add ethtool to our deps (mkargaki@redhat.com)
+- Issue 4855 - warning flickers about build config and deployment config not
+  existing (jforrest@redhat.com)
+- Add MySQL extended replication tests (nagy.martin@gmail.com)
+- extended: Disable Daemon tests (mkargaki@redhat.com)
+- Adds explicit suggestions for some cli commands (ffranz@redhat.com)
+- bump(github.com/spf13/pflag): b084184666e02084b8ccb9b704bf0d79c466eb1d
+  (ffranz@redhat.com)
+- bump(github.com/cpf13/cobra): 046a67325286b5e4d7c95b1d501ea1cd5ba43600
+  (ffranz@redhat.com)
+- Don't show errors in name field until blurred (spadgett@redhat.com)
+- Allow whitespace-only values in UI for required parameters
+  (spadgett@redhat.com)
+- make RAR allow evaluation errors (deads@redhat.com)
+- Watch routes on individual service page (spadgett@redhat.com)
+- bump(github.com/vjeantet/ldapserver) 19fbc46ed12348d5122812c8303fb82e49b6c25d
+  (mkargaki@redhat.com)
+- Bug 1266859: UPSTREAM: <drop>: expose: Truncate service names
+  (mkargaki@redhat.com)
+- Update docs regarding the rebase (mkargaki@redhat.com)
+- add timing statements (deads@redhat.com)
+- Routes should be able to specify which port they desire (ccoleman@redhat.com)
+- Add dbus for the OVS setup required docker restart. (dgoodwin@redhat.com)
+- Return to OSBS preferred labels. (dgoodwin@redhat.com)
+- Source info should only be loaded when Git is used for builds
+  (ccoleman@redhat.com)
+- Rename ose3 node run script to match aos. (dgoodwin@redhat.com)
+- Bump aos-master and aos-node to 3.0.2.100. (dgoodwin@redhat.com)
+- Rename ose3 script to matching aos, standardize labels. (dgoodwin@redhat.com)
+- Merge in latest work from oseonatomic repo. (dgoodwin@redhat.com)
+- Expose version as prometheus metric (jimmidyson@gmail.com)
+- Cleanup unused code and add proper labels. (dgoodwin@redhat.com)
+- Update for AOS 3.1 version and a more consistent bz component name.
+  (dgoodwin@redhat.com)
+- Add missing Name label. (dgoodwin@redhat.com)
+- Cleanup aos-master image for OSBS build. (dgoodwin@redhat.com)
+- aos-node container building locally. (dgoodwin@redhat.com)
+- Use Dockerfile.product for ose-master to future proof a bit.
+  (dgoodwin@redhat.com)
+- Move to Dockerfile.product for future upstream compatability.
+  (dgoodwin@redhat.com)
+- Initial draft of aos-master container. (dgoodwin@redhat.com)
+
 * Tue Sep 29 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.900
 - OSE Docs URLs (sdodson@redhat.com)
 - Do not treat directories named Dockerfile as file (rhcarvalho@gmail.com)

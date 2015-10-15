@@ -71,6 +71,15 @@ func convert_v1_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out 
 
 func convert_api_ImageStreamSpec_To_v1_ImageStreamSpec(in *newer.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
+	if len(in.DockerImageRepository) > 0 {
+		// ensure that stored image references have no tag or ID, which was possible from 1.0.0 until 1.0.7
+		if ref, err := newer.ParseDockerImageReference(in.DockerImageRepository); err == nil {
+			if len(ref.Tag) > 0 || len(ref.ID) > 0 {
+				ref.Tag, ref.ID = "", ""
+				out.DockerImageRepository = ref.Exact()
+			}
+		}
+	}
 	out.Tags = make([]NamedTagReference, 0, 0)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
@@ -83,6 +92,15 @@ func convert_v1_ImageStreamStatus_To_api_ImageStreamStatus(in *ImageStreamStatus
 
 func convert_api_ImageStreamStatus_To_v1_ImageStreamStatus(in *newer.ImageStreamStatus, out *ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
+	if len(in.DockerImageRepository) > 0 {
+		// ensure that stored image references have no tag or ID, which was possible from 1.0.0 until 1.0.7
+		if ref, err := newer.ParseDockerImageReference(in.DockerImageRepository); err == nil {
+			if len(ref.Tag) > 0 || len(ref.ID) > 0 {
+				ref.Tag, ref.ID = "", ""
+				out.DockerImageRepository = ref.Exact()
+			}
+		}
+	}
 	out.Tags = make([]NamedTagEventList, 0, 0)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }

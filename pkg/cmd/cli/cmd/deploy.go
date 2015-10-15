@@ -292,7 +292,7 @@ func (o *DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer
 		fmt.Fprintf(out, "There have been no deployments for %s/%s\n", config.Namespace, config.Name)
 		return nil
 	}
-	sort.Sort(deployutil.DeploymentsByLatestVersionDesc(deployments.Items))
+	sort.Sort(deployutil.ByLatestVersionDesc(deployments.Items))
 	failedCancellations := []string{}
 	anyCancelled := false
 	for _, deployment := range deployments.Items {

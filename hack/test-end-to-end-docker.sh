@@ -20,15 +20,6 @@ BASETMPDIR="${BASETMPDIR:-${TMPDIR}/openshift-e2e-containerized}"
 setup_env_vars
 reset_tmp_dir
 
-# when selinux is enforcing, the volume dir selinux label needs to be
-# svirt_sandbox_file_t
-#
-# TODO: fix the selinux policy to either allow openshift_var_lib_dir_t
-# or to default the volume dir to svirt_sandbox_file_t.
-if selinuxenabled; then
-	sudo chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
-fi
-
 function cleanup()
 {
 	out=$?
@@ -102,7 +93,7 @@ IMAGE_WORKING_DIR=/var/lib/openshift
 docker cp origin:${IMAGE_WORKING_DIR}/openshift.local.config ${BASETMPDIR}
 
 export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template -t '{{index . "current-context"}}')
+export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')
 sudo chmod -R a+rwX "${ADMIN_KUBECONFIG}"
 export KUBECONFIG="${ADMIN_KUBECONFIG}"
 echo "[INFO] To debug: export KUBECONFIG=$ADMIN_KUBECONFIG"

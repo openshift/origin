@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/openshift-sdn/plugins/osdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/flatsdn"
 	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
@@ -239,24 +240,27 @@ func (o NodeOptions) IsRunFromConfig() bool {
 	return (len(o.ConfigFile) > 0)
 }
 
-func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeConfig) {
+func RunSDNController(config *kubernetes.NodeConfig, nodeConfig configapi.NodeConfig) kubernetes.FilteringEndpointsConfigHandler {
 	oclient, _, err := configapi.GetOpenShiftClient(nodeConfig.MasterKubeConfig)
 	if err != nil {
 		glog.Fatal("Failed to get kube client for SDN")
 	}
+	registry := osdn.NewOsdnRegistryInterface(oclient, config.Client)
 
 	switch nodeConfig.NetworkConfig.NetworkPluginName {
 	case flatsdn.NetworkPluginName():
 		ch := make(chan struct{})
 		config.KubeletConfig.StartUpdates = ch
-		go flatsdn.Node(oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch, nodeConfig.NetworkConfig.MTU)
+		go flatsdn.Node(registry, nodeConfig.NodeName, nodeConfig.NodeIP, ch, nodeConfig.NetworkConfig.MTU)
 	case multitenant.NetworkPluginName():
 		ch := make(chan struct{})
 		config.KubeletConfig.StartUpdates = ch
 		plugin := multitenant.GetKubeNetworkPlugin()
 		config.KubeletConfig.NetworkPlugins = append(config.KubeletConfig.NetworkPlugins, plugin)
-		go multitenant.Node(oclient, config.Client, nodeConfig.NodeName, nodeConfig.NodeIP, ch, plugin, nodeConfig.NetworkConfig.MTU)
+		go multitenant.Node(registry, nodeConfig.NodeName, nodeConfig.NodeIP, ch, plugin, nodeConfig.NetworkConfig.MTU)
+		return registry
 	}
+	return nil
 }
 
 func StartNode(nodeConfig configapi.NodeConfig) error {
@@ -266,10 +270,10 @@ func StartNode(nodeConfig configapi.NodeConfig) error {
 	}
 	glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 
-	RunSDNController(config, nodeConfig)
+	endpointFilter := RunSDNController(config, nodeConfig)
 	config.EnsureVolumeDir()
 	config.EnsureDocker(docker.NewHelper())
-	config.RunProxy()
+	config.RunProxy(endpointFilter)
 	config.RunKubelet()
 
 	return nil

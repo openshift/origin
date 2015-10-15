@@ -42,6 +42,11 @@ type BuildSpec struct {
 
 	// Compute resource requirements to execute the build
 	Resources kapi.ResourceRequirements `json:"resources,omitempty" description:"the desired compute resources the build should have"`
+
+	// Optional duration in seconds, counted from the time when a build pod gets
+	// scheduled in the system, that the build may be active on a node before the
+	// system actively tries to terminate the build; value must be positive integer
+	CompletionDeadlineSeconds *int64 `json:"completionDeadlineSeconds,omitempty" description:"optional duration in seconds the build may be active on a node before the system will actively try to mark it failed and kill associated containers; value must be a positive integer"`
 }
 
 // BuildStatus contains the status of a build
@@ -107,20 +112,20 @@ const (
 	BuildPhaseCancelled BuildPhase = "Cancelled"
 )
 
-// BuildSourceType is the type of SCM used
+// BuildSourceType is the type of SCM used.
 type BuildSourceType string
 
 // Valid values for BuildSourceType.
 const (
-	//BuildSourceGit is a Git SCM
+	// BuildSourceGit is a Git SCM.
 	BuildSourceGit BuildSourceType = "Git"
-	// bulidSourceDockerfile is an embedded dockerfile
+	// BuildSourceDockerfile is an embedded Dockerfile.
 	BuildSourceDockerfile BuildSourceType = "Dockerfile"
 )
 
-// BuildSource is the SCM used for the build
+// BuildSource is the SCM used for the build.
 type BuildSource struct {
-	// Type of source control management system
+	// Type of build input system.
 	Type BuildSourceType `json:"type" description:"type of source control management system"`
 
 	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is

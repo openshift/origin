@@ -125,6 +125,11 @@ func validateBuildSpec(spec *buildapi.BuildSpec) fielderrors.ValidationErrorList
 	if spec.Revision != nil {
 		allErrs = append(allErrs, validateRevision(spec.Revision).Prefix("revision")...)
 	}
+	if spec.CompletionDeadlineSeconds != nil {
+		if *spec.CompletionDeadlineSeconds <= 0 {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("completionDeadlineSeconds", spec.CompletionDeadlineSeconds, "completionDeadlineSeconds must be a positive integer greater than 0"))
+		}
+	}
 
 	allErrs = append(allErrs, validateOutput(&spec.Output).Prefix("output")...)
 	allErrs = append(allErrs, validateStrategy(&spec.Strategy).Prefix("strategy")...)

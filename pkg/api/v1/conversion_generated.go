@@ -771,6 +771,12 @@ func convert_api_BuildSpec_To_v1_BuildSpec(in *buildapi.BuildSpec, out *apiv1.Bu
 	if err := convert_api_ResourceRequirements_To_v1_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
 	}
+	if in.CompletionDeadlineSeconds != nil {
+		out.CompletionDeadlineSeconds = new(int64)
+		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
+	} else {
+		out.CompletionDeadlineSeconds = nil
+	}
 	return nil
 }
 
@@ -1158,6 +1164,12 @@ func convert_v1_BuildSpec_To_api_BuildSpec(in *apiv1.BuildSpec, out *buildapi.Bu
 	}
 	if err := convert_v1_ResourceRequirements_To_api_ResourceRequirements(&in.Resources, &out.Resources, s); err != nil {
 		return err
+	}
+	if in.CompletionDeadlineSeconds != nil {
+		out.CompletionDeadlineSeconds = new(int64)
+		*out.CompletionDeadlineSeconds = *in.CompletionDeadlineSeconds
+	} else {
+		out.CompletionDeadlineSeconds = nil
 	}
 	return nil
 }

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "Killing openshift all-in-one server ..."
-killall openshift
+pkill -x openshift
 
 echo "Cleaning up openshift runtime files ..."
 rm -rf openshift.local.*

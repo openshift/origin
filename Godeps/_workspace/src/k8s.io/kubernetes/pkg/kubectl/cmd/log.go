@@ -63,90 +63,105 @@ func selectContainer(pod *api.Pod, in io.Reader, out io.Writer) string {
 	}
 }
 
-type logParams struct {
-	containerName string
+type LogsOptions struct {
+	Client *client.Client
+
+	PodNamespace  string
+	PodName       string
+	ContainerName string
+	Follow        bool
+	Interactive   bool
+	Previous      bool
+	Out           io.Writer
 }
 
 // NewCmdLog creates a new pod log command
 func NewCmdLog(f *cmdutil.Factory, out io.Writer) *cobra.Command {
-	params := &logParams{}
+	o := &LogsOptions{
+		Out:         out,
+		Interactive: true,
+	}
+
 	cmd := &cobra.Command{
 		Use:     "logs [-f] [-p] POD [-c CONTAINER]",
 		Short:   "Print the logs for a container in a pod.",
 		Long:    "Print the logs for a container in a pod. If the pod has only one container, the container name is optional.",
 		Example: log_example,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := RunLog(f, out, cmd, args, params)
-			cmdutil.CheckErr(err)
+			if len(os.Args) > 1 && os.Args[1] == "log" {
+				printDeprecationWarning("logs", "log")
+			}
+
+			cmdutil.CheckErr(o.Complete(f, out, cmd, args))
+
+			cmdutil.CheckErr(o.Validate(cmd))
+
+			cmdutil.CheckErr(o.RunLog())
 		},
 		Aliases: []string{"log"},
 	}
-	cmd.Flags().BoolP("follow", "f", false, "Specify if the logs should be streamed.")
-	cmd.Flags().Bool("interactive", true, "If true, prompt the user for input when required. Default true.")
-	cmd.Flags().BoolP("previous", "p", false, "If true, print the logs for the previous instance of the container in a pod if it exists.")
-	cmd.Flags().StringVarP(&params.containerName, "container", "c", "", "Container name")
+	cmd.Flags().BoolVarP(&o.Follow, "follow", "f", o.Follow, "Specify if the logs should be streamed.")
+	cmd.Flags().BoolVar(&o.Interactive, "interactive", o.Interactive, "If true, prompt the user for input when required. Default true.")
+	cmd.Flags().BoolVarP(&o.Previous, "previous", "p", o.Previous, "If true, print the logs for the previous instance of the container in a pod if it exists.")
+	cmd.Flags().StringVarP(&o.ContainerName, "container", "c", o.ContainerName, "Container name")
 	return cmd
 }
 
-// RunLog retrieves a pod log
-func RunLog(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string, p *logParams) error {
-	if len(os.Args) > 1 && os.Args[1] == "log" {
-		printDeprecationWarning("logs", "log")
-	}
-
-	if len(args) == 0 {
+func (o *LogsOptions) Complete(f *cmdutil.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+	switch len(args) {
+	case 0:
 		return cmdutil.UsageError(cmd, "POD is required for log")
-	}
 
-	if len(args) > 2 {
+	case 1:
+		o.PodName = args[0]
+	case 2:
+		o.PodName = args[0]
+		o.ContainerName = args[1]
+
+	default:
 		return cmdutil.UsageError(cmd, "log POD [CONTAINER]")
 	}
 
-	namespace, _, err := f.DefaultNamespace()
+	var err error
+	o.PodNamespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
 	}
-	client, err := f.Client()
+	o.Client, err = f.Client()
 	if err != nil {
 		return err
 	}
 
-	podID := args[0]
+	return nil
+}
 
-	pod, err := client.Pods(namespace).Get(podID)
+func (o *LogsOptions) Validate(cmd *cobra.Command) error {
+	return nil
+}
+
+// RunLog retrieves a pod log
+func (o *LogsOptions) RunLog() error {
+	pod, err := o.Client.Pods(o.PodNamespace).Get(o.PodName)
 	if err != nil {
 		return err
 	}
 
 	// [-c CONTAINER]
-	container := p.containerName
+	container := o.ContainerName
 	if len(container) == 0 {
 		// [CONTAINER] (container as arg not flag) is supported as legacy behavior. See PR #10519 for more details.
-		if len(args) == 1 {
-			if len(pod.Spec.Containers) != 1 {
-				podContainersNames := []string{}
-				for _, container := range pod.Spec.Containers {
-					podContainersNames = append(podContainersNames, container.Name)
-				}
-
-				return fmt.Errorf("Pod %s has the following containers: %s; please specify the container to print logs for with -c", pod.ObjectMeta.Name, strings.Join(podContainersNames, ", "))
+		if len(pod.Spec.Containers) != 1 {
+			podContainersNames := []string{}
+			for _, container := range pod.Spec.Containers {
+				podContainersNames = append(podContainersNames, container.Name)
 			}
-			container = pod.Spec.Containers[0].Name
-		} else {
-			container = args[1]
+
+			return fmt.Errorf("Pod %s has the following containers: %s; please specify the container to print logs for with -c", pod.ObjectMeta.Name, strings.Join(podContainersNames, ", "))
 		}
+		container = pod.Spec.Containers[0].Name
 	}
 
-	follow := false
-	if cmdutil.GetFlagBool(cmd, "follow") {
-		follow = true
-	}
-
-	previous := false
-	if cmdutil.GetFlagBool(cmd, "previous") {
-		previous = true
-	}
-	return handleLog(client, namespace, podID, container, follow, previous, out)
+	return handleLog(o.Client, o.PodNamespace, o.PodName, container, o.Follow, o.Previous, o.Out)
 }
 
 func handleLog(client *client.Client, namespace, podID, container string, follow, previous bool, out io.Writer) error {

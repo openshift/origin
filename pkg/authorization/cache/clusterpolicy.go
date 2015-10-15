@@ -19,12 +19,12 @@ import (
 type readOnlyClusterPolicyCache struct {
 	registry  clusterpolicyregistry.WatchingRegistry
 	indexer   cache.Indexer
-	reflector cache.Reflector
+	reflector *cache.Reflector
 
 	keyFunc cache.KeyFunc
 }
 
-func NewReadOnlyClusterPolicyCache(registry clusterpolicyregistry.WatchingRegistry) readOnlyClusterPolicyCache {
+func NewReadOnlyClusterPolicyCache(registry clusterpolicyregistry.WatchingRegistry) *readOnlyClusterPolicyCache {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{"namespace": cache.MetaNamespaceIndexFunc})
@@ -43,10 +43,10 @@ func NewReadOnlyClusterPolicyCache(registry clusterpolicyregistry.WatchingRegist
 		2*time.Minute,
 	)
 
-	return readOnlyClusterPolicyCache{
+	return &readOnlyClusterPolicyCache{
 		registry:  registry,
 		indexer:   indexer,
-		reflector: *reflector,
+		reflector: reflector,
 
 		keyFunc: cache.MetaNamespaceKeyFunc,
 	}
@@ -104,5 +104,5 @@ func (c *readOnlyClusterPolicyCache) Get(name string) (*authorizationapi.Cluster
 }
 
 func newReadOnlyClusterPolicies(cache readOnlyAuthorizationCache) client.ReadOnlyClusterPolicyInterface {
-	return &cache.readOnlyClusterPolicyCache
+	return cache.readOnlyClusterPolicyCache
 }

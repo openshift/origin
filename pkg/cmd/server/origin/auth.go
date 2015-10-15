@@ -18,6 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kuser "k8s.io/kubernetes/pkg/auth/user"
+	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
@@ -152,12 +153,15 @@ func (c *AuthConfig) InstallAPI(container *restful.Container) []string {
 	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
 
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
-	if c.MasterRoots != nil {
-		// Copy the default transport
-		var transport http.Transport = *http.DefaultTransport.(*http.Transport)
-		// Set TLS CA roots
-		transport.TLSClientConfig = &tls.Config{RootCAs: c.MasterRoots}
-		osOAuthClient.Transport = &transport
+	if len(*c.Options.MasterCA) > 0 {
+		rootCAs, err := cmdutil.CertPoolFromFile(*c.Options.MasterCA)
+		if err != nil {
+			glog.Fatal(err)
+		}
+
+		osOAuthClient.Transport = kutil.SetTransportDefaults(&http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: rootCAs},
+		})
 	}
 
 	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, osOAuthClient)
@@ -183,7 +187,7 @@ func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.OAuthClient)
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
 		AuthorizeUrl:             OpenShiftOAuthAuthorizeURL(c.Options.MasterPublicURL),
-		TokenUrl:                 OpenShiftOAuthTokenURL(c.Options.MasterPublicURL),
+		TokenUrl:                 OpenShiftOAuthTokenURL(c.Options.MasterURL),
 		Scope:                    "",
 	}
 	return config
@@ -489,7 +493,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 
 		opts := ldappassword.Options{
 			URL:                  url,
-			ClientConfig:         clientConfig,
+			ClientConfig:         *clientConfig,
 			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.Attributes),
 		}
 		return ldappassword.New(identityProvider.Name, opts, identityMapper)

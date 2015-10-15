@@ -107,3 +107,7 @@ func (c *FlowController) AddServiceOFRules(netID uint, IP string, protocol api.S
 func (c *FlowController) DelServiceOFRules(netID uint, IP string, protocol api.ServiceProtocol, port uint) error {
 	return nil
 }
+
+func (c *FlowController) UpdatePod(namespace, podName, containerID string, netID uint) error {
+	return nil
+}

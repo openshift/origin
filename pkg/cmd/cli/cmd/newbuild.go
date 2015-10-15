@@ -27,7 +27,8 @@ If you specify a source code URL, it will set up a build that takes your source 
 it into an image that can run inside of a pod. Local source must be in a git repository that has a
 remote repository that the server can see.
 
-Once the build configuration is created you may need to run a build with 'start-build'.`
+Once the build configuration is created a new build will be automatically triggered.
+You can use '%[1]s status' to check the progress.`
 
 	newBuildExample = `  # Create a build config based on the source code in the current git repository (with a public remote) and a Docker image
   $ %[1]s new-build . --docker-image=repo/langimage
@@ -39,7 +40,7 @@ Once the build configuration is created you may need to run a build with 'start-
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world#beta2
 
   # Create a build config using a Dockerfile specified as an argument
-  $ %[1]s new-build -D $'FROM centos7\nRUN yum install -y apache'
+  $ %[1]s new-build -D $'FROM centos:7\nRUN yum install -y httpd'
 
   # Create a build config from a remote repository and add custom environment variables into resulting image
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development`
@@ -54,7 +55,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd := &cobra.Command{
 		Use:        "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
 		Short:      "Create a new build configuration",
-		Long:       newBuildLong,
+		Long:       fmt.Sprintf(newBuildLong, fullName),
 		Example:    fmt.Sprintf(newBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
@@ -76,7 +77,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
-	cmd.Flags().BoolVar(&config.AllowMissing, "allow-missing", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
+	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd
@@ -128,8 +129,11 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "A build configuration was created - you can run `%s start-build %s` to start it.\n", fullName, t.Name)
+			fmt.Fprintf(c.Out(), "Build configuration %q created and build triggered.\n", t.Name)
 		}
+	}
+	if len(result.List.Items) > 0 {
+		fmt.Fprintf(c.Out(), "Run '%s %s' to check the progress.\n", fullName, StatusRecommendedName)
 	}
 
 	return nil

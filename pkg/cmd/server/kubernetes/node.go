@@ -12,6 +12,7 @@ import (
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	proxy "k8s.io/kubernetes/pkg/proxy/userspace"
@@ -109,12 +110,13 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 		if err := os.MkdirAll(rootDirectory, 0750); err != nil {
 			return "", fmt.Errorf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, err)
 		}
-		if chconPath, err := ce.LookPath("chcon"); err != nil {
-			glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
-		} else {
-			if err := ce.Run(chconPath, "-t", "svirt_sandbox_file_t", rootDirectory); err != nil {
-				glog.Warningf("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
-			}
+	}
+	// always try to chcon, in case the volume dir existed prior to the node starting
+	if chconPath, err := ce.LookPath("chcon"); err != nil {
+		glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
+	} else {
+		if err := ce.Run(chconPath, "-t", "svirt_sandbox_file_t", rootDirectory); err != nil {
+			glog.Warningf("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
 		}
 	}
 	return rootDirectory, nil
@@ -137,19 +139,40 @@ func (c *NodeConfig) RunKubelet() {
 	// updated by NodeConfig.EnsureVolumeDir
 	c.KubeletConfig.RootDirectory = c.VolumeDir
 
+	// hook for overriding the cadvisor interface for integration tests
+	c.KubeletConfig.CadvisorInterface = defaultCadvisorInterface
+
 	go func() {
 		glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
 	}()
 }
 
+// defaultCadvisorInterface holds the overridden default interface
+// exists only to allow stubbing integration tests, should always be nil in production
+var defaultCadvisorInterface cadvisor.Interface = nil
+
+// SetFakeCadvisorInterfaceForIntegrationTest sets a fake cadvisor implementation to allow the node to run in integration tests
+func SetFakeCadvisorInterfaceForIntegrationTest() {
+	defaultCadvisorInterface = &cadvisor.Fake{}
+}
+
+type FilteringEndpointsConfigHandler interface {
+	pconfig.EndpointsConfigHandler
+	SetBaseEndpointsHandler(base pconfig.EndpointsConfigHandler)
+}
+
 // RunProxy starts the proxy
-func (c *NodeConfig) RunProxy() {
+func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler) {
 	// initialize kube proxy
 	serviceConfig := pconfig.NewServiceConfig()
 	endpointsConfig := pconfig.NewEndpointsConfig()
 	loadBalancer := proxy.NewLoadBalancerRR()
-	endpointsConfig.RegisterHandler(loadBalancer)
-	syncPeriod := 5 * time.Second
+	if endpointsFilterer == nil {
+		endpointsConfig.RegisterHandler(loadBalancer)
+	} else {
+		endpointsFilterer.SetBaseEndpointsHandler(loadBalancer)
+		endpointsConfig.RegisterHandler(endpointsFilterer)
+	}
 
 	host, _, err := net.SplitHostPort(c.BindAddress)
 	if err != nil {
@@ -163,6 +186,11 @@ func (c *NodeConfig) RunProxy() {
 	protocol := iptables.ProtocolIpv4
 	if ip.To4() == nil {
 		protocol = iptables.ProtocolIpv6
+	}
+
+	syncPeriod, err := time.ParseDuration(c.IPTablesSyncPeriod)
+	if err != nil {
+		glog.Fatalf("Cannot parse the provided ip-tables sync period (%s) : %v", c.IPTablesSyncPeriod, err)
 	}
 
 	go util.Forever(func() {

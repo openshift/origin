@@ -49,7 +49,7 @@ set -e
 
 function find_tests {
   cd "${OS_ROOT}"
-  find "${1}" -name '*.sh' -print0 | sort -u | xargs -0 -n1 printf "%s\n"
+  find "${1}" -name '*.sh' | sort -u
 }
 tests=( $(find_tests ${1:-test/cmd}) )
 
@@ -60,14 +60,13 @@ BASETMPDIR=${USE_TEMP:-$(mkdir -p /tmp/openshift-cmd && mktemp -d /tmp/openshift
 API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
 
+export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
+export ETCD_PORT=${ETCD_PORT:-24001}
+export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 setup_env_vars
+export SUDO=''
 mkdir -p "${ETCD_DATA_DIR}" "${VOLUME_DIR}" "${FAKE_HOME_DIR}" "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" "${LOG_DIR}"
 
-ETCD_HOST=${ETCD_HOST:-127.0.0.1}
-ETCD_PORT=${ETCD_PORT:-24001}
-ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
-MASTER_ADDR="${API_SCHEME}://${API_HOST}:${API_PORT}"
-PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
 
 # Prevent user environment from colliding with the test setup
 unset KUBECONFIG
@@ -218,17 +217,20 @@ oc logout
 # properly parse server port
 [ "$(oc login https://server1:844333 2>&1 | grep 'Not a valid port')" ]
 # properly handle trailing slash
-oc login --server=${KUBERNETES_MASTER}/ --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 # create a new project
 oc new-project project-foo --display-name="my project" --description="boring project description"
 [ "$(oc project | grep 'Using project "project-foo"')" ]
+# new user should get default context
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u new-and-unknown-user -p anything
+[ "$(oc config view | grep current-context | grep /${API_HOST}:${API_PORT}/new-and-unknown-user)" ]
 # denies access after logging out
 oc logout
 [ -z "$(oc get pods | grep 'system:anonymous')" ]
 
 # log in as an image-pruner and test that oadm prune images works against the atomic binary
 oadm policy add-cluster-role-to-user system:image-pruner pruner --config="${MASTER_CONFIG_DIR}/admin.kubeconfig"
-oc login --server=${KUBERNETES_MASTER}/ --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u pruner -p anything
+oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u pruner -p anything
 # this shouldn't fail but instead output "Dry run enabled - no modifications will be made. Add --confirm to remove images"
 oadm prune images
 
@@ -236,6 +238,7 @@ oadm prune images
 oc login --server=${KUBERNETES_MASTER} --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" -u test-user -p anything
 oc get projects
 oc project project-foo
+[ "$(oc config view | grep current-context | grep project-foo/${API_HOST}:${API_PORT}/test-user)" ]
 [ "$(oc whoami | grep 'test-user')" ]
 [ -n "$(oc whoami -t)" ]
 [ -n "$(oc whoami -c)" ]
@@ -255,7 +258,7 @@ echo "config files: ok"
 
 # from this point every command will use config from the KUBECONFIG env var
 export KUBECONFIG="${HOME}/.kube/non-default-config"
-export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template -t '{{index . "current-context"}}')
+export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
 
 
 # NOTE: Do not add tests here, add them to test/cmd/*.

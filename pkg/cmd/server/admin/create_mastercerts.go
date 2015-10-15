@@ -160,6 +160,7 @@ func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 		func() error { return o.createAPIClients(&getSignerCertOptions) },
 		func() error { return o.createEtcdClientCerts(&getSignerCertOptions) },
 		func() error { return o.createKubeletClientCerts(&getSignerCertOptions) },
+		func() error { return o.createProxyClientCerts(&getSignerCertOptions) },
 		func() error { return o.createServiceAccountKeys() },
 	)
 	return utilerrors.NewAggregate(errs)
@@ -196,6 +197,15 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerC
 
 func (o CreateMasterCertsOptions) createEtcdClientCerts(getSignerCertOptions *SignerCertOptions) error {
 	for _, clientCertInfo := range DefaultEtcdClientCerts(o.CertDir) {
+		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (o CreateMasterCertsOptions) createProxyClientCerts(getSignerCertOptions *SignerCertOptions) error {
+	for _, clientCertInfo := range DefaultProxyClientCerts(o.CertDir) {
 		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
 			return err
 		}

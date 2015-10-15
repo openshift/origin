@@ -1940,6 +1940,48 @@ func convert_api_ResourceRequirements_To_v1_ResourceRequirements(in *api.Resourc
 	return nil
 }
 
+func convert_api_FSGroupStrategyOptions_To_v1_FSGroupStrategyOptions(in *api.FSGroupStrategyOptions, out *FSGroupStrategyOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.FSGroupStrategyOptions))(in)
+	}
+	out.Type = FSGroupStrategyType(in.Type)
+	if in.Ranges != nil {
+		out.Ranges = make([]IDRange, len(in.Ranges))
+		for i := range in.Ranges {
+			if err := convert_api_IDRange_To_v1_IDRange(&in.Ranges[i], &out.Ranges[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ranges = nil
+	}
+	return nil
+}
+
+func convert_api_SupplementalGroupsStrategyOptions_To_v1_SupplementalGroupsStrategyOptions(in *api.SupplementalGroupsStrategyOptions, out *SupplementalGroupsStrategyOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.SupplementalGroupsStrategyOptions))(in)
+	}
+	out.Type = SupplementalGroupsStrategyType(in.Type)
+	if in.Ranges != nil {
+		out.Ranges = make([]IDRange, len(in.Ranges))
+		for i := range in.Ranges {
+			if err := convert_api_IDRange_To_v1_IDRange(&in.Ranges[i], &out.Ranges[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ranges = nil
+	}
+	return nil
+}
+
+func convert_api_IDRange_To_v1_IDRange(in *api.IDRange, out *IDRange, s conversion.Scope) error {
+	out.Min = in.Min
+	out.Max = in.Max
+	return nil
+}
+
 func convert_api_RunAsUserStrategyOptions_To_v1_RunAsUserStrategyOptions(in *api.RunAsUserStrategyOptions, out *RunAsUserStrategyOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*api.RunAsUserStrategyOptions))(in)
@@ -2108,10 +2150,18 @@ func convert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints(in 
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
+	out.AllowHostPID = in.AllowHostPID
+	out.AllowHostIPC = in.AllowHostIPC
 	if err := convert_api_SELinuxContextStrategyOptions_To_v1_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
 		return err
 	}
 	if err := convert_api_RunAsUserStrategyOptions_To_v1_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, s); err != nil {
+		return err
+	}
+	if err := convert_api_FSGroupStrategyOptions_To_v1_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, s); err != nil {
+		return err
+	}
+	if err := convert_api_SupplementalGroupsStrategyOptions_To_v1_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
 		return err
 	}
 	if in.Users != nil {
@@ -4341,6 +4391,48 @@ func convert_v1_ResourceRequirements_To_api_ResourceRequirements(in *ResourceReq
 	return nil
 }
 
+func convert_v1_FSGroupStrategyOptions_To_api_FSGroupStrategyOptions(in *FSGroupStrategyOptions, out *api.FSGroupStrategyOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*FSGroupStrategyOptions))(in)
+	}
+	out.Type = api.FSGroupStrategyType(in.Type)
+	if in.Ranges != nil {
+		out.Ranges = make([]api.IDRange, len(in.Ranges))
+		for i := range in.Ranges {
+			if err := convert_v1_IDRange_To_api_IDRange(&in.Ranges[i], &out.Ranges[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ranges = nil
+	}
+	return nil
+}
+
+func convert_v1_SupplementalGroupsStrategyOptions_To_api_SupplementalGroupsStrategyOptions(in *SupplementalGroupsStrategyOptions, out *api.SupplementalGroupsStrategyOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*SupplementalGroupsStrategyOptions))(in)
+	}
+	out.Type = api.SupplementalGroupsStrategyType(in.Type)
+	if in.Ranges != nil {
+		out.Ranges = make([]api.IDRange, len(in.Ranges))
+		for i := range in.Ranges {
+			if err := convert_v1_IDRange_To_api_IDRange(&in.Ranges[i], &out.Ranges[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ranges = nil
+	}
+	return nil
+}
+
+func convert_v1_IDRange_To_api_IDRange(in *IDRange, out *api.IDRange, s conversion.Scope) error {
+	out.Min = in.Min
+	out.Max = in.Max
+	return nil
+}
+
 func convert_v1_RunAsUserStrategyOptions_To_api_RunAsUserStrategyOptions(in *RunAsUserStrategyOptions, out *api.RunAsUserStrategyOptions, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*RunAsUserStrategyOptions))(in)
@@ -4509,10 +4601,18 @@ func convert_v1_SecurityContextConstraints_To_api_SecurityContextConstraints(in 
 	out.AllowHostDirVolumePlugin = in.AllowHostDirVolumePlugin
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
+	out.AllowHostPID = in.AllowHostPID
+	out.AllowHostIPC = in.AllowHostIPC
 	if err := convert_v1_SELinuxContextStrategyOptions_To_api_SELinuxContextStrategyOptions(&in.SELinuxContext, &out.SELinuxContext, s); err != nil {
 		return err
 	}
 	if err := convert_v1_RunAsUserStrategyOptions_To_api_RunAsUserStrategyOptions(&in.RunAsUser, &out.RunAsUser, s); err != nil {
+		return err
+	}
+	if err := convert_v1_FSGroupStrategyOptions_To_api_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, s); err != nil {
+		return err
+	}
+	if err := convert_v1_SupplementalGroupsStrategyOptions_To_api_SupplementalGroupsStrategyOptions(&in.SupplementalGroups, &out.SupplementalGroups, s); err != nil {
 		return err
 	}
 	if in.Users != nil {
@@ -4856,12 +4956,14 @@ func init() {
 		convert_api_EventSource_To_v1_EventSource,
 		convert_api_Event_To_v1_Event,
 		convert_api_ExecAction_To_v1_ExecAction,
+		convert_api_FSGroupStrategyOptions_To_v1_FSGroupStrategyOptions,
 		convert_api_GCEPersistentDiskVolumeSource_To_v1_GCEPersistentDiskVolumeSource,
 		convert_api_GitRepoVolumeSource_To_v1_GitRepoVolumeSource,
 		convert_api_GlusterfsVolumeSource_To_v1_GlusterfsVolumeSource,
 		convert_api_HTTPGetAction_To_v1_HTTPGetAction,
 		convert_api_Handler_To_v1_Handler,
 		convert_api_HostPathVolumeSource_To_v1_HostPathVolumeSource,
+		convert_api_IDRange_To_v1_IDRange,
 		convert_api_ISCSIVolumeSource_To_v1_ISCSIVolumeSource,
 		convert_api_Lifecycle_To_v1_Lifecycle,
 		convert_api_LimitRangeItem_To_v1_LimitRangeItem,
@@ -4942,6 +5044,7 @@ func init() {
 		convert_api_StatusCause_To_v1_StatusCause,
 		convert_api_StatusDetails_To_v1_StatusDetails,
 		convert_api_Status_To_v1_Status,
+		convert_api_SupplementalGroupsStrategyOptions_To_v1_SupplementalGroupsStrategyOptions,
 		convert_api_TCPSocketAction_To_v1_TCPSocketAction,
 		convert_api_TypeMeta_To_v1_TypeMeta,
 		convert_api_VolumeMount_To_v1_VolumeMount,
@@ -4976,12 +5079,14 @@ func init() {
 		convert_v1_EventSource_To_api_EventSource,
 		convert_v1_Event_To_api_Event,
 		convert_v1_ExecAction_To_api_ExecAction,
+		convert_v1_FSGroupStrategyOptions_To_api_FSGroupStrategyOptions,
 		convert_v1_GCEPersistentDiskVolumeSource_To_api_GCEPersistentDiskVolumeSource,
 		convert_v1_GitRepoVolumeSource_To_api_GitRepoVolumeSource,
 		convert_v1_GlusterfsVolumeSource_To_api_GlusterfsVolumeSource,
 		convert_v1_HTTPGetAction_To_api_HTTPGetAction,
 		convert_v1_Handler_To_api_Handler,
 		convert_v1_HostPathVolumeSource_To_api_HostPathVolumeSource,
+		convert_v1_IDRange_To_api_IDRange,
 		convert_v1_ISCSIVolumeSource_To_api_ISCSIVolumeSource,
 		convert_v1_Lifecycle_To_api_Lifecycle,
 		convert_v1_LimitRangeItem_To_api_LimitRangeItem,
@@ -5062,6 +5167,7 @@ func init() {
 		convert_v1_StatusCause_To_api_StatusCause,
 		convert_v1_StatusDetails_To_api_StatusDetails,
 		convert_v1_Status_To_api_Status,
+		convert_v1_SupplementalGroupsStrategyOptions_To_api_SupplementalGroupsStrategyOptions,
 		convert_v1_TCPSocketAction_To_api_TCPSocketAction,
 		convert_v1_TypeMeta_To_api_TypeMeta,
 		convert_v1_VolumeMount_To_api_VolumeMount,

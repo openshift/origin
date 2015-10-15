@@ -19,7 +19,8 @@ angular
     'ngTouch',
     'openshiftUI',
     'kubernetesUI',
-    'ui.bootstrap'
+    'ui.bootstrap',
+    'openshiftConsoleTemplates'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value
                          // or it can't be referenced during module config
@@ -76,6 +77,7 @@ angular
       .subPath("Events", "events", builder.join(templatePath, 'events.html'))
       .subPath("Image Streams", "images", builder.join(templatePath, 'images.html'))
       .subPath("Pods", "pods", builder.join(templatePath, 'pods.html'))
+      .subPath("Routes", "routes", builder.join(templatePath, 'browse/routes.html'))
       .subPath("Services", "services", builder.join(templatePath, 'services.html'))
       .build();
     tab.icon = "sitemap";
@@ -158,7 +160,8 @@ angular
         templateUrl: 'views/pods.html'
       })
       .when('/project/:project/browse/pods/:pod', {
-        templateUrl: 'views/browse/pod.html'
+        templateUrl: 'views/browse/pod.html',
+        controller: 'PodController'
       })
       .when('/project/:project/browse/services', {
         templateUrl: 'views/services.html'
@@ -166,6 +169,12 @@ angular
       .when('/project/:project/browse/services/:service', {
         templateUrl: 'views/browse/service.html'
       })
+      .when('/project/:project/browse/routes', {
+        templateUrl: 'views/browse/routes.html'
+      })
+      .when('/project/:project/browse/routes/:route', {
+        templateUrl: 'views/browse/route.html'
+      })      
       .when('/project/:project/create', {
         templateUrl: 'views/create.html'
       })
@@ -197,6 +206,8 @@ angular
   })
   .constant("API_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).api))
   .constant("AUTH_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).auth))
+  .constant("LOGGING_URL", (window.OPENSHIFT_CONFIG || {}).loggingURL)
+  .constant("METRICS_URL", (window.OPENSHIFT_CONFIG || {}).metricsURL)
   .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG) {
     $httpProvider.interceptors.push('AuthInterceptor');
 

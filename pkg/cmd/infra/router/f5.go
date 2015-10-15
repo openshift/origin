@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -66,6 +67,11 @@ type F5Router struct {
 	// Insecure specifies whether the F5 plugin should perform strict certificate
 	// validation for connections to the F5 BIG-IP host.
 	Insecure bool
+
+	// PartitionPath specifies the path to the F5 partition. This is
+	// normally used to create access control boundaries for users
+	// and applications.
+	PartitionPath string
 }
 
 // Bind binds F5Router arguments to flags
@@ -77,6 +83,7 @@ func (o *F5Router) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.HttpsVserver, "f5-https-vserver", util.Env("ROUTER_EXTERNAL_HOST_HTTPS_VSERVER", "https-ose-vserver"), "The F5 BIG-IP virtual server for HTTPS connections")
 	flag.StringVar(&o.PrivateKey, "f5-private-key", util.Env("ROUTER_EXTERNAL_HOST_PRIVKEY", ""), "The path to the F5 BIG-IP SSH private key file")
 	flag.BoolVar(&o.Insecure, "f5-insecure", util.Env("ROUTER_EXTERNAL_HOST_INSECURE", "") == "true", "Skip strict certificate verification")
+	flag.StringVar(&o.PartitionPath, "f5-partition-path", util.Env("ROUTER_EXTERNAL_HOST_PARTITION_PATH", f5plugin.F5DefaultPartitionPath), "The F5 BIG-IP partition path to use")
 }
 
 // Validate verifies the required F5 flags are present
@@ -96,6 +103,7 @@ func (o *F5Router) Validate() error {
 	if len(o.HttpVserver) == 0 && len(o.HttpsVserver) == 0 {
 		return errors.New("F5 HTTP and HTTPS vservers cannot both be blank")
 	}
+
 	return nil
 }
 
@@ -129,6 +137,12 @@ func NewCommandF5Router(name string) *cobra.Command {
 }
 
 func (o *F5RouterOptions) Complete() error {
+	if len(o.PartitionPath) == 0 {
+		o.PartitionPath = f5plugin.F5DefaultPartitionPath
+		glog.Warningf("Partition path was empty, using default: %q",
+			f5plugin.F5DefaultPartitionPath)
+	}
+
 	return o.RouterSelection.Complete()
 }
 
@@ -139,13 +153,14 @@ func (o *F5RouterOptions) Validate() error {
 // Run launches an F5 route sync process using the provided options. It never exits.
 func (o *F5RouterOptions) Run() error {
 	cfg := f5plugin.F5PluginConfig{
-		Host:         o.Host,
-		Username:     o.Username,
-		Password:     o.Password,
-		HttpVserver:  o.HttpVserver,
-		HttpsVserver: o.HttpsVserver,
-		PrivateKey:   o.PrivateKey,
-		Insecure:     o.Insecure,
+		Host:          o.Host,
+		Username:      o.Username,
+		Password:      o.Password,
+		HttpVserver:   o.HttpVserver,
+		HttpsVserver:  o.HttpsVserver,
+		PrivateKey:    o.PrivateKey,
+		Insecure:      o.Insecure,
+		PartitionPath: o.PartitionPath,
 	}
 	f5Plugin, err := f5plugin.NewF5Plugin(cfg)
 	if err != nil {

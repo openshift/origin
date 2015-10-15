@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -40,8 +41,8 @@ func NewSchedulerCommand(name, fullName string, out io.Writer) *cobra.Command {
 	cmd.SetOutput(out)
 
 	flags := cmd.Flags()
-	//TODO: uncomment after picking up a newer cobra
-	//pflag.AddFlagSetToPFlagSet(flag, flags)
+	flags.SetNormalizeFunc(util.WordSepNormalizeFunc)
+	flags.AddGoFlagSet(flag.CommandLine)
 	s.AddFlags(flags)
 
 	return cmd

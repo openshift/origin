@@ -16,6 +16,7 @@ type NetNamespaceInterface interface {
 	List() (*sdnapi.NetNamespaceList, error)
 	Get(name string) (*sdnapi.NetNamespace, error)
 	Create(sub *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error)
+	Update(sub *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error)
 	Delete(name string) error
 	Watch(resourceVersion string) (watch.Interface, error)
 }
@@ -53,6 +54,13 @@ func (c *netNamespace) Get(netname string) (result *sdnapi.NetNamespace, err err
 func (c *netNamespace) Create(netNamespace *sdnapi.NetNamespace) (result *sdnapi.NetNamespace, err error) {
 	result = &sdnapi.NetNamespace{}
 	err = c.r.Post().Resource("netNamespaces").Body(netNamespace).Do().Into(result)
+	return
+}
+
+// Update updates the NetNamespace. Returns the server's representation of the NetNamespace and error if one occurs.
+func (c *netNamespace) Update(netNamespace *sdnapi.NetNamespace) (result *sdnapi.NetNamespace, err error) {
+	result = &sdnapi.NetNamespace{}
+	err = c.r.Put().Resource("netNamespaces").Name(netNamespace.Name).Body(netNamespace).Do().Into(result)
 	return
 }
 

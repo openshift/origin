@@ -268,7 +268,7 @@ module.exports = function (grunt) {
                       beautify: true,
                       indent_level: 0, // Don't waste characters indenting
                       space_colon: false, // Don't waste characters
-                      width: 1000,
+                      width: 1000
                     },
                   };
                 }
@@ -384,11 +384,11 @@ module.exports = function (grunt) {
       dist: {
         cwd: '<%= yeoman.app %>',
         src: 'views/**/*.html',
-        dest: '.tmp/scripts/templates.js',
+        dest: 'dist/scripts/templates.js',
         options: {
-          module: 'openshiftConsole',
-          htmlmin: '<%= htmlmin.dist.options %>',
-          usemin: 'scripts/scripts.js'
+          module: 'openshiftConsoleTemplates',
+          standalone: true,
+          htmlmin: '<%= htmlmin.dist.options %>'
         }
       }
     },
@@ -405,7 +405,6 @@ module.exports = function (grunt) {
             '*.{ico,png,txt}',
             '.htaccess',
             '*.html',
-            'views/{,*/}*.html',
             'images/{,*/}*.{png,jpg,jpeg,gif}',
             'images/{,*/}*.{webp}',
             'fonts/*',

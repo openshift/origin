@@ -2,63 +2,100 @@
   <project-page>
     <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
+    <div ng-if="!loaded">Loading...</div>
     <div class="tile" ng-if="imageStream">
       <h2>
         {{imageStream.metadata.name}}
       </h2>
-      <div ng-if="imageStream.spec.dockerImageRepository" class="small">Docker image repository: {{imageStream.spec.dockerImageRepository}}</div>
-      <!-- Print out missing status tags with a warning. If the dockerRepositoryCheck annotation
-           is present, but status tag is missing, tag could not be resolved. Otherwise, it's simply
-           not synced yet. -->
-      <div ng-repeat="specTag in missingStatusTagsByImageStream[imageStream.metadata.name] | orderBy : 'name' track by specTag.name"
-           style="margin-top: 10px;">
-        <div ng-if="imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck'">
-          <span class="pficon-layered" style="margin-right: 5px;"
-                ng-attr-title="{{imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck'}}">
-            <span class="pficon pficon-warning-triangle"></span>
-            <span class="pficon pficon-warning-exclamation"></span>
-          </span>
-          {{specTag.name}}
-          &mdash;
-          <span class="small">Tag could not be resolved.</span>
-        </div>
-        <div ng-if="!(imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck')">
-            {{specTag.name}}
-            &mdash;
-            <span class="small text-muted">Not yet synced</span>
-        </div>
-      </div>
-      <div ng-repeat="tag in imageStream.status.tags" style="margin-top: 10px;">
-        <div>
-            {{tag.tag}}
-            <span ng-if="tag.items.length && tag.items[0].image">&mdash;
-              <short-id id="{{tag.items[0].image | imageName}}"></short-id>
-              <small class="text-muted">Created <relative-timestamp timestamp="tag.items[0].created"></relative-timestamp></small>
-            </span>
-          <span ng-if="!tag.items.length"><em>No images for this tag</em></span>
-        </div>
-        <div class="small">
-          <!-- dockerImageReference values can get long. Use max width and class truncate to elide some of the SHA1 for long values.
-               They can still be copied even when elided. -->
-          <div ng-if="tag.items.length && tag.items[0].dockerImageReference" style="max-width: 400px;" class="truncate"
-                 ng-attr-title="{{tag.items[0].dockerImageReference}}">
-             Pull spec: {{tag.items[0].dockerImageReference}}
-          </div>
-          <div ng-init="tagTags = (imageStream | imageStreamTagTags : tag.tag)">
-            <span ng-repeat="tagTag in (imageStream | imageStreamTagTags : tag.tag)" class="tag small text-muted">{{tagTag}}</span>
-          </div>
-        </div>
-        <div ng-if="tag.items.length > 1">
-          <div click-to-reveal link-text="Show older images">
-            <div ng-repeat="image in tag.items" ng-if="!$first" class="text-muted small">
-              <short-id ng-if="image.image" id="{{image.image | imageName}}"></short-id>
-              <span ng-if="!image.image">{{image.dockerImageReference}}</span>
-              <span> created </span>
-              <relative-timestamp timestamp="image.created"></relative-timestamp>
-            </div>
-          </div>
-        </div>
-      </div>
+      <dl class="dl-horizontal left">
+        <dt ng-if-start="imageStream.spec.dockerImageRepository">Follows docker repo:</dt>
+        <dd ng-if-end>{{imageStream.spec.dockerImageRepository}}</dd>
+        <dt>Docker pull spec:</dt>
+        <dd>{{imageStream.status.dockerImageRepository}}</dd>
+      </dl>
+      <annotations annotations="imageStream.metadata.annotations"></annotations>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Tag</th>
+            <th>From</th>
+            <th>Latest Image</th>
+            <th>Created</th>
+            <th>Pull Spec</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat-start="tag in tagsByName | orderBy : 'name'">
+            <td>{{tag.name}}</td>
+            <td>
+              <!-- this value can get long when its an ImageStreamImage. Use max width and class truncate to elide some 
+                   of the SHA1 for long values. They can still be copied even when elided. -->
+              <div style="max-width: 400px;" class="truncate">
+                <span ng-if="!tag.spec.from"><em>pushed</em></span>
+                <span ng-if="tag.spec.from">
+                  <span ng-if="tag.spec.from._imageStreamName === imageStream.metadata.name">{{tag.spec.from._completeName}}</span>
+                  <span ng-if="tag.spec.from._imageStreamName !== imageStream.metadata.name" >
+                    <a href="project/{{tag.spec.from.namespace || imageStream.metadata.namespace}}/browse/images/{{tag.spec.from._imageStreamName}}"><span ng-if="tag.spec.from.namespace && tag.spec.from.namespace !== imageStream.metadata.namespace" >{{tag.spec.from.namespace}}/</span>{{tag.spec.from._imageStreamName}}</a>{{tag.spec.from._nameConnector}}{{tag.spec.from._idOrTag}}
+                  </span>
+                </span>
+              </div>
+            </td>
+            <td>
+              <div ng-if="!tag.status">
+                <div ng-if="imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck'">
+                  <span class="pficon pficon-warning-triangle-o" style="margin-right: 5px;"
+                        ng-attr-title="{{imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck'}}"></span>
+                  <span>Unable to resolve</span>
+                </div>
+                <div ng-if="!(imageStream | annotation : 'openshift.io/image.dockerRepositoryCheck')">
+                  <span ng-if="!tag.spec.from">Not yet synced</span>
+                  <!-- We have no idea why in this case -->
+                  <span ng-if="tag.spec.from">Unresolved</span>
+                </div>              
+              </div>
+              <div ng-if="tag.status">
+                <span ng-if="tag.status.items.length && tag.status.items[0].image">
+                  <short-id id="{{tag.status.items[0].image | imageName}}"></short-id>
+                  <a href="" ng-if="tag.status.items.length > 1" ng-click="tagShowOlder[tag.name] = !tagShowOlder[tag.name]" ng-attr-title="{{tagShowOlder[tag.name] ? 'Hide older images' : 'Show older images'}}"><span class="fa fa-clock-o"></span><span class="fa fa-caret-up" ng-if="tagShowOlder[tag.name]" style="margin-left: 3px;"></span></a>
+                </span>
+                <span ng-if="!tag.status.items.length"><em>none</em></span>
+              </div>
+            </td>
+            <td>
+              <span ng-if="tag.status.items.length && tag.status.items[0].image">
+                <relative-timestamp timestamp="tag.status.items[0].created"></relative-timestamp>
+              </span>
+            </td>
+            <td>
+              <!-- dockerImageReference values can get long. Use max width and class truncate to elide some of the SHA1 for long values.
+                   They can still be copied even when elided. -->
+              <div ng-if="tag.status.items.length && tag.status.items[0].dockerImageReference" style="max-width: 400px;" class="truncate"
+                     ng-attr-title="{{tag.items[0].dockerImageReference}}">
+                 {{tag.status.items[0].dockerImageReference}}
+              </div>              
+            </td>
+          </tr>
+          <tr ng-repeat="item in tag.status.items" ng-if="tagShowOlder[tag.name] && !$first && item.image">
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>
+              <short-id id="{{item.image | imageName}}"></short-id>
+            </td>
+            <td>
+              <relative-timestamp timestamp="item.created"></relative-timestamp>
+            </td>
+            <td>
+              <div ng-if="item.dockerImageReference" style="max-width: 400px;" class="truncate"
+                     ng-attr-title="{{item.dockerImageReference}}">
+                 {{item.dockerImageReference}}
+              </div>              
+            </td>
+          </tr>
+          <tr ng-repeat-end style="display: none;"></tr>
+        </tbody>
+      </table>
     </div>
   </project-page>
 </div>

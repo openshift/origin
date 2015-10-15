@@ -90,7 +90,7 @@ angular.module('openshiftConsole')
   })  
   .directive('triggers', function() {
     var hideBuildKey = function(build) {
-      return 'hide/build/' + build.metadata.namespace + '/' + build.metadata.name;
+      return 'hide/build/' + build.metadata.uid;
     };
     return {
       restrict: 'E',
@@ -119,5 +119,20 @@ angular.module('openshiftConsole')
         differentService: '='
       },
       templateUrl: 'views/_deployment-config-metadata.html'
+    };
+  })
+  .directive('annotations', function() {
+    return {
+      restrict: 'E',
+      scope: {
+        annotations: '='
+      },
+      templateUrl: 'views/directives/annotations.html',
+      link: function(scope) {
+        scope.expandAnnotations = false;
+        scope.toggleAnnotations = function() {
+          scope.expandAnnotations = !scope.expandAnnotations;
+        };
+      }
     };
   });

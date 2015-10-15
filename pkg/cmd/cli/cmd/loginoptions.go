@@ -315,7 +315,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
     $ oc new-project <projectname>
 
 `)
-		o.Project = o.DefaultNamespace
+		o.Project = ""
 
 	case 1:
 		o.Project = projectsItems[0].Name

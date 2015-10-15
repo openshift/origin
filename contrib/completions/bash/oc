@@ -1,0 +1,2058 @@
+#!/bin/bash
+
+__debug()
+{
+    if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
+        echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
+    fi
+}
+
+# Homebrew on Macs have version 1.3 of bash-completion which doesn't include
+# _init_completion. This is a very minimal version of that function.
+__my_init_completion()
+{
+    COMPREPLY=()
+    _get_comp_words_by_ref cur prev words cword
+}
+
+__index_of_word()
+{
+    local w word=$1
+    shift
+    index=0
+    for w in "$@"; do
+        [[ $w = "$word" ]] && return
+        index=$((index+1))
+    done
+    index=-1
+}
+
+__contains_word()
+{
+    local w word=$1; shift
+    for w in "$@"; do
+        [[ $w = "$word" ]] && return
+    done
+    return 1
+}
+
+__handle_reply()
+{
+    __debug "${FUNCNAME}"
+    case $cur in
+        -*)
+            compopt -o nospace
+            local allflags
+            if [ ${#must_have_one_flag[@]} -ne 0 ]; then
+                allflags=("${must_have_one_flag[@]}")
+            else
+                allflags=("${flags[*]} ${two_word_flags[*]}")
+            fi
+            COMPREPLY=( $(compgen -W "${allflags[*]}" -- "$cur") )
+            [[ $COMPREPLY == *= ]] || compopt +o nospace
+            return 0;
+            ;;
+    esac
+
+    # check if we are handling a flag with special work handling
+    local index
+    __index_of_word "${prev}" "${flags_with_completion[@]}"
+    if [[ ${index} -ge 0 ]]; then
+        ${flags_completion[${index}]}
+        return
+    fi
+
+    # we are parsing a flag and don't have a special handler, no completion
+    if [[ ${cur} != "${words[cword]}" ]]; then
+        return
+    fi
+
+    local completions
+    if [[ ${#must_have_one_flag[@]} -ne 0 ]]; then
+        completions=("${must_have_one_flag[@]}")
+    elif [[ ${#must_have_one_noun[@]} -ne 0 ]]; then
+        completions=("${must_have_one_noun[@]}")
+    else
+        completions=("${commands[@]}")
+    fi
+    COMPREPLY=( $(compgen -W "${completions[*]}" -- "$cur") )
+
+    if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
+        declare -F __custom_func >/dev/null && __custom_func
+    fi
+}
+
+# The arguments should be in the form "ext1|ext2|extn"
+__handle_filename_extension_flag()
+{
+    local ext="$1"
+    _filedir "@(${ext})"
+}
+
+__handle_subdirs_in_dir_flag()
+{
+    local dir="$1"
+    pushd "${dir}" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1
+}
+
+__handle_flag()
+{
+    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+
+    # if a command required a flag, and we found it, unset must_have_one_flag()
+    local flagname=${words[c]}
+    # if the word contained an =
+    if [[ ${words[c]} == *"="* ]]; then
+        flagname=${flagname%=*} # strip everything after the =
+        flagname="${flagname}=" # but put the = back
+    fi
+    __debug "${FUNCNAME}: looking for ${flagname}"
+    if __contains_word "${flagname}" "${must_have_one_flag[@]}"; then
+        must_have_one_flag=()
+    fi
+
+    # skip the argument to a two word flag
+    if __contains_word "${words[c]}" "${two_word_flags[@]}"; then
+        c=$((c+1))
+        # if we are looking for a flags value, don't show commands
+        if [[ $c -eq $cword ]]; then
+            commands=()
+        fi
+    fi
+
+    # skip the flag itself
+    c=$((c+1))
+
+}
+
+__handle_noun()
+{
+    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+
+    if __contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
+        must_have_one_noun=()
+    fi
+
+    nouns+=("${words[c]}")
+    c=$((c+1))
+}
+
+__handle_command()
+{
+    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+
+    local next_command
+    if [[ -n ${last_command} ]]; then
+        next_command="_${last_command}_${words[c]}"
+    else
+        next_command="_${words[c]}"
+    fi
+    c=$((c+1))
+    __debug "${FUNCNAME}: looking for ${next_command}"
+    declare -F $next_command >/dev/null && $next_command
+}
+
+__handle_word()
+{
+    if [[ $c -ge $cword ]]; then
+        __handle_reply
+	return
+    fi
+    __debug "${FUNCNAME}: c is $c words[c] is ${words[c]}"
+    if [[ "${words[c]}" == -* ]]; then
+	__handle_flag
+    elif __contains_word "${words[c]}" "${commands[@]}"; then
+        __handle_command
+    else
+        __handle_noun
+    fi
+    __handle_word
+}
+
+# call oc get $1,
+__oc_parse_get()
+{
+
+    local template
+    template="{{ range .items  }}{{ .metadata.name }} {{ end }}"
+    local oc_out
+    if oc_out=$(oc get -o template --template="${template}" "$1" 2>/dev/null); then
+        COMPREPLY=( $( compgen -W "${oc_out[*]}" -- "$cur" ) )
+    fi
+}
+
+__oc_get_resource()
+{
+    if [[ ${#nouns[@]} -eq 0 ]]; then
+        return 1
+    fi
+    __oc_parse_get ${nouns[${#nouns[@]} -1]}
+}
+
+# $1 is the name of the pod we want to get the list of containers inside
+__oc_get_containers()
+{
+    local template
+    template="{{ range .spec.containers  }}{{ .name }} {{ end }}"
+    __debug ${FUNCNAME} "nouns are ${nouns[@]}"
+
+    local len="${#nouns[@]}"
+    if [[ ${len} -ne 1 ]]; then
+        return
+    fi
+    local last=${nouns[${len} -1]}
+    local oc_out
+    if oc_out=$(oc get -o template --template="${template}" pods "${last}" 2>/dev/null); then
+        COMPREPLY=( $( compgen -W "${oc_out[*]}" -- "$cur" ) )
+    fi
+}
+
+# Require both a pod and a container to be specified
+__oc_require_pod_and_container()
+{
+    if [[ ${#nouns[@]} -eq 0 ]]; then
+        __oc_parse_get pods
+        return 0
+    fi;
+    __oc_get_containers
+    return 0
+}
+
+__custom_func() {
+    case ${last_command} in
+        oc_get | oc_describe | oc_delete | oc_label | oc_stop | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume)
+            __oc_get_resource
+            return
+            ;;
+        oc_logs)
+            __oc_require_pod_and_container
+            return
+            ;;
+        oc_secrets_new)
+            # Complete args other than the first as filenames
+            if [[ ${#nouns[@]} -gt 0 ]]; then
+                _filedir
+            fi;
+            return
+            ;;
+        *)
+            ;;
+    esac
+}
+
+_oc_types()
+{
+    last_command="oc_types"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_login()
+{
+    last_command="oc_login"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--password=")
+    two_word_flags+=("-p")
+    flags+=("--username=")
+    two_word_flags+=("-u")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_new-project()
+{
+    last_command="oc_new-project"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    flags+=("--display-name=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_new-app()
+{
+    last_command="oc_new-app"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--allow-missing-images")
+    flags+=("--code=")
+    flags+=("--context-dir=")
+    flags+=("--docker-image=")
+    flags+=("--env=")
+    two_word_flags+=("-e")
+    flags+=("--file=")
+    two_word_flags+=("-f")
+    flags+=("--group=")
+    flags+=("--image=")
+    flags+=("--image-stream=")
+    two_word_flags+=("-i")
+    flags+=("--insecure-registry")
+    flags+=("--labels=")
+    two_word_flags+=("-l")
+    flags+=("--list")
+    flags+=("-L")
+    flags+=("--name=")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-template=")
+    flags+=("--output-version=")
+    flags+=("--param=")
+    two_word_flags+=("-p")
+    flags+=("--search")
+    flags+=("-S")
+    flags+=("--strategy=")
+    flags+=("--template=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_status()
+{
+    last_command="oc_status"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("-o")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_project()
+{
+    last_command="oc_project"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--short")
+    flags+=("-q")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_start-build()
+{
+    last_command="oc_start-build"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--commit=")
+    flags+=("--follow")
+    flags+=("--from-build=")
+    flags+=("--from-webhook=")
+    flags+=("--git-post-receive=")
+    flags+=("--git-repository=")
+    flags+=("--list-webhooks=")
+    flags+=("--wait")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_build-logs()
+{
+    last_command="oc_build-logs"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--follow")
+    flags+=("-f")
+    flags+=("--nowait")
+    flags+=("-w")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_deploy()
+{
+    last_command="oc_deploy"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--cancel")
+    flags+=("--enable-triggers")
+    flags+=("--latest")
+    flags+=("--retry")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_rollback()
+{
+    last_command="oc_rollback"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--change-scaling-settings")
+    flags+=("--change-strategy")
+    flags+=("--change-triggers")
+    flags+=("--dry-run")
+    flags+=("-d")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--to-version=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_new-build()
+{
+    last_command="oc_new-build"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--allow-missing-images")
+    flags+=("--code=")
+    flags+=("--docker-image=")
+    flags+=("--dockerfile=")
+    two_word_flags+=("-D")
+    flags+=("--env=")
+    two_word_flags+=("-e")
+    flags+=("--image=")
+    two_word_flags+=("-i")
+    flags+=("--labels=")
+    two_word_flags+=("-l")
+    flags+=("--name=")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--strategy=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--to-docker")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_cancel-build()
+{
+    last_command="oc_cancel-build"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--dump-logs")
+    flags+=("--restart")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_import-image()
+{
+    last_command="oc_import-image"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--confirm")
+    flags+=("--from=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_scale()
+{
+    last_command="oc_scale"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--current-replicas=")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--replicas=")
+    flags+=("--resource-version=")
+    flags+=("--timeout=")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--replicas=")
+    must_have_one_noun=()
+}
+
+_oc_tag()
+{
+    last_command="oc_tag"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--source=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_get()
+{
+    last_command="oc_get"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all-namespaces")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--label-columns=")
+    two_word_flags+=("-L")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--watch")
+    flags+=("-w")
+    flags+=("--watch-only")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    must_have_one_noun+=("build")
+    must_have_one_noun+=("buildconfig")
+    must_have_one_noun+=("clusternetwork")
+    must_have_one_noun+=("clusterpolicy")
+    must_have_one_noun+=("clusterpolicybinding")
+    must_have_one_noun+=("clusterrole")
+    must_have_one_noun+=("clusterrolebinding")
+    must_have_one_noun+=("componentstatus")
+    must_have_one_noun+=("deployment")
+    must_have_one_noun+=("deploymentconfig")
+    must_have_one_noun+=("endpoints")
+    must_have_one_noun+=("event")
+    must_have_one_noun+=("group")
+    must_have_one_noun+=("horizontalpodautoscaler")
+    must_have_one_noun+=("hostsubnet")
+    must_have_one_noun+=("identity")
+    must_have_one_noun+=("image")
+    must_have_one_noun+=("imagestream")
+    must_have_one_noun+=("imagestreamimage")
+    must_have_one_noun+=("imagestreamtag")
+    must_have_one_noun+=("ispersonalsubjectaccessreview")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("namespace")
+    must_have_one_noun+=("netnamespace")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("oauthaccesstoken")
+    must_have_one_noun+=("oauthauthorizetoken")
+    must_have_one_noun+=("oauthclient")
+    must_have_one_noun+=("oauthclientauthorization")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("podtemplate")
+    must_have_one_noun+=("policy")
+    must_have_one_noun+=("policybinding")
+    must_have_one_noun+=("project")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("role")
+    must_have_one_noun+=("rolebinding")
+    must_have_one_noun+=("route")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("securitycontextconstraints")
+    must_have_one_noun+=("service")
+    must_have_one_noun+=("serviceaccount")
+    must_have_one_noun+=("template")
+    must_have_one_noun+=("thirdpartyresource")
+    must_have_one_noun+=("user")
+    must_have_one_noun+=("useridentitymapping")
+}
+
+_oc_describe()
+{
+    last_command="oc_describe"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    must_have_one_noun+=("build")
+    must_have_one_noun+=("buildconfig")
+    must_have_one_noun+=("buildlog")
+    must_have_one_noun+=("clusterpolicy")
+    must_have_one_noun+=("clusterpolicybinding")
+    must_have_one_noun+=("clusterrole")
+    must_have_one_noun+=("clusterrolebinding")
+    must_have_one_noun+=("deploymentconfig")
+    must_have_one_noun+=("group")
+    must_have_one_noun+=("identity")
+    must_have_one_noun+=("image")
+    must_have_one_noun+=("imagestream")
+    must_have_one_noun+=("imagestreamimage")
+    must_have_one_noun+=("imagestreamtag")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("minion")
+    must_have_one_noun+=("namespace")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("policy")
+    must_have_one_noun+=("policybinding")
+    must_have_one_noun+=("project")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("role")
+    must_have_one_noun+=("rolebinding")
+    must_have_one_noun+=("route")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("service")
+    must_have_one_noun+=("serviceaccount")
+    must_have_one_noun+=("template")
+    must_have_one_noun+=("user")
+    must_have_one_noun+=("useridentitymapping")
+}
+
+_oc_edit()
+{
+    last_command="oc_edit"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_env()
+{
+    last_command="oc_env"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--containers=")
+    two_word_flags+=("-c")
+    flags+=("--env=")
+    two_word_flags+=("-e")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag yaml|yml|json")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag yaml|yml|json")
+    flags+=("--list")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overwrite")
+    flags+=("--resource-version=")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_volume()
+{
+    last_command="oc_volume"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--add")
+    flags+=("--all")
+    flags+=("--claim-mode=")
+    flags+=("--claim-name=")
+    flags+=("--claim-size=")
+    flags+=("--confirm")
+    flags+=("--containers=")
+    two_word_flags+=("-c")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag yaml|yml|json")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag yaml|yml|json")
+    flags+=("--list")
+    flags+=("--mount-path=")
+    two_word_flags+=("-m")
+    flags+=("--name=")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overwrite")
+    flags+=("--path=")
+    flags+=("--remove")
+    flags+=("--secret-name=")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    flags+=("--source=")
+    flags+=("--type=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_label()
+{
+    last_command="oc_label"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--dry-run")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overwrite")
+    flags+=("--resource-version=")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    must_have_one_noun+=("build")
+    must_have_one_noun+=("buildconfig")
+    must_have_one_noun+=("clusternetwork")
+    must_have_one_noun+=("clusterpolicy")
+    must_have_one_noun+=("clusterpolicybinding")
+    must_have_one_noun+=("clusterrole")
+    must_have_one_noun+=("clusterrolebinding")
+    must_have_one_noun+=("componentstatus")
+    must_have_one_noun+=("deployment")
+    must_have_one_noun+=("deploymentconfig")
+    must_have_one_noun+=("endpoints")
+    must_have_one_noun+=("event")
+    must_have_one_noun+=("group")
+    must_have_one_noun+=("horizontalpodautoscaler")
+    must_have_one_noun+=("hostsubnet")
+    must_have_one_noun+=("identity")
+    must_have_one_noun+=("image")
+    must_have_one_noun+=("imagestream")
+    must_have_one_noun+=("imagestreamimage")
+    must_have_one_noun+=("imagestreamtag")
+    must_have_one_noun+=("ispersonalsubjectaccessreview")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("namespace")
+    must_have_one_noun+=("netnamespace")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("oauthaccesstoken")
+    must_have_one_noun+=("oauthauthorizetoken")
+    must_have_one_noun+=("oauthclient")
+    must_have_one_noun+=("oauthclientauthorization")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("podtemplate")
+    must_have_one_noun+=("policy")
+    must_have_one_noun+=("policybinding")
+    must_have_one_noun+=("project")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("role")
+    must_have_one_noun+=("rolebinding")
+    must_have_one_noun+=("route")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("securitycontextconstraints")
+    must_have_one_noun+=("service")
+    must_have_one_noun+=("serviceaccount")
+    must_have_one_noun+=("template")
+    must_have_one_noun+=("thirdpartyresource")
+    must_have_one_noun+=("user")
+    must_have_one_noun+=("useridentitymapping")
+}
+
+_oc_annotate()
+{
+    last_command="oc_annotate"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--overwrite")
+    flags+=("--resource-version=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_expose()
+{
+    last_command="oc_expose"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container-port=")
+    flags+=("--create-external-load-balancer")
+    flags+=("--dry-run")
+    flags+=("--external-ip=")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--generator=")
+    flags+=("--hostname=")
+    flags+=("--labels=")
+    two_word_flags+=("-l")
+    flags+=("--load-balancer-ip=")
+    flags+=("--name=")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overrides=")
+    flags+=("--port=")
+    flags+=("--protocol=")
+    flags+=("--selector=")
+    flags+=("--session-affinity=")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--target-port=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--type=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_stop()
+{
+    last_command="oc_stop"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--grace-period=")
+    flags+=("--ignore-not-found")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    flags+=("--timeout=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_delete()
+{
+    last_command="oc_delete"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--cascade")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--grace-period=")
+    flags+=("--ignore-not-found")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    flags+=("--timeout=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    must_have_one_noun+=("build")
+    must_have_one_noun+=("buildconfig")
+    must_have_one_noun+=("clusternetwork")
+    must_have_one_noun+=("clusterpolicy")
+    must_have_one_noun+=("clusterpolicybinding")
+    must_have_one_noun+=("clusterrole")
+    must_have_one_noun+=("clusterrolebinding")
+    must_have_one_noun+=("componentstatus")
+    must_have_one_noun+=("deployment")
+    must_have_one_noun+=("deploymentconfig")
+    must_have_one_noun+=("endpoints")
+    must_have_one_noun+=("event")
+    must_have_one_noun+=("group")
+    must_have_one_noun+=("horizontalpodautoscaler")
+    must_have_one_noun+=("hostsubnet")
+    must_have_one_noun+=("identity")
+    must_have_one_noun+=("image")
+    must_have_one_noun+=("imagestream")
+    must_have_one_noun+=("imagestreamimage")
+    must_have_one_noun+=("imagestreamtag")
+    must_have_one_noun+=("ispersonalsubjectaccessreview")
+    must_have_one_noun+=("limitrange")
+    must_have_one_noun+=("namespace")
+    must_have_one_noun+=("netnamespace")
+    must_have_one_noun+=("node")
+    must_have_one_noun+=("oauthaccesstoken")
+    must_have_one_noun+=("oauthauthorizetoken")
+    must_have_one_noun+=("oauthclient")
+    must_have_one_noun+=("oauthclientauthorization")
+    must_have_one_noun+=("persistentvolume")
+    must_have_one_noun+=("persistentvolumeclaim")
+    must_have_one_noun+=("pod")
+    must_have_one_noun+=("podtemplate")
+    must_have_one_noun+=("policy")
+    must_have_one_noun+=("policybinding")
+    must_have_one_noun+=("project")
+    must_have_one_noun+=("replicationcontroller")
+    must_have_one_noun+=("resourcequota")
+    must_have_one_noun+=("role")
+    must_have_one_noun+=("rolebinding")
+    must_have_one_noun+=("route")
+    must_have_one_noun+=("secret")
+    must_have_one_noun+=("securitycontextconstraints")
+    must_have_one_noun+=("service")
+    must_have_one_noun+=("serviceaccount")
+    must_have_one_noun+=("template")
+    must_have_one_noun+=("thirdpartyresource")
+    must_have_one_noun+=("user")
+    must_have_one_noun+=("useridentitymapping")
+}
+
+_oc_logs()
+{
+    last_command="oc_logs"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--follow")
+    flags+=("-f")
+    flags+=("--interactive")
+    flags+=("--previous")
+    flags+=("-p")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_rsh()
+{
+    last_command="oc_rsh"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--no-tty")
+    flags+=("-T")
+    flags+=("--shell=")
+    flags+=("--tty")
+    flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_rsync()
+{
+    last_command="oc_rsync"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--delete")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--use-tar")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_exec()
+{
+    last_command="oc_exec"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--pod=")
+    two_word_flags+=("-p")
+    flags+=("--stdin")
+    flags+=("-i")
+    flags+=("--tty")
+    flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_port-forward()
+{
+    last_command="oc_port-forward"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--pod=")
+    two_word_flags+=("-p")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_proxy()
+{
+    last_command="oc_proxy"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--accept-hosts=")
+    flags+=("--accept-paths=")
+    flags+=("--api-prefix=")
+    flags+=("--disable-filter")
+    flags+=("--port=")
+    two_word_flags+=("-p")
+    flags+=("--reject-methods=")
+    flags+=("--reject-paths=")
+    flags+=("--unix-socket=")
+    two_word_flags+=("-u")
+    flags+=("--www=")
+    two_word_flags+=("-w")
+    flags+=("--www-prefix=")
+    two_word_flags+=("-P")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_create()
+{
+    last_command="oc_create"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--schema-cache-dir=")
+    flags+=("--validate")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--filename=")
+    must_have_one_flag+=("-f")
+    must_have_one_noun=()
+}
+
+_oc_replace()
+{
+    last_command="oc_replace"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--cascade")
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--force")
+    flags+=("--grace-period=")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--schema-cache-dir=")
+    flags+=("--timeout=")
+    flags+=("--validate")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--filename=")
+    must_have_one_flag+=("-f")
+    must_have_one_noun=()
+}
+
+_oc_patch()
+{
+    last_command="oc_patch"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag json|stdin|yaml|yml")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--patch=")
+    two_word_flags+=("-p")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--patch=")
+    must_have_one_flag+=("-p")
+    must_have_one_noun=()
+}
+
+_oc_process()
+{
+    last_command="oc_process"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--filename=")
+    flags_with_completion+=("--filename")
+    flags_completion+=("__handle_filename_extension_flag yaml|yml|json")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__handle_filename_extension_flag yaml|yml|json")
+    flags+=("--labels=")
+    two_word_flags+=("-l")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--parameters")
+    flags+=("--raw")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--value=")
+    two_word_flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_export()
+{
+    last_command="oc_export"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("--all-namespaces")
+    flags+=("--as-template=")
+    flags+=("--exact")
+    flags+=("--filename=")
+    two_word_flags+=("-f")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--raw")
+    flags+=("--selector=")
+    two_word_flags+=("-l")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_run()
+{
+    last_command="oc_run"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--attach")
+    flags+=("--command")
+    flags+=("--dry-run")
+    flags+=("--env=")
+    flags+=("--generator=")
+    flags+=("--hostport=")
+    flags+=("--image=")
+    flags+=("--labels=")
+    two_word_flags+=("-l")
+    flags+=("--limits=")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--overrides=")
+    flags+=("--port=")
+    flags+=("--replicas=")
+    two_word_flags+=("-r")
+    flags+=("--requests=")
+    flags+=("--restart=")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--stdin")
+    flags+=("-i")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--tty")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--image=")
+    must_have_one_noun=()
+}
+
+_oc_attach()
+{
+    last_command="oc_attach"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--container=")
+    two_word_flags+=("-c")
+    flags+=("--stdin")
+    flags+=("-i")
+    flags+=("--tty")
+    flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_who-can()
+{
+    last_command="oc_policy_who-can"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all-namespaces")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_add-role-to-user()
+{
+    last_command="oc_policy_add-role-to-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--role-namespace=")
+    flags+=("--serviceaccount=")
+    two_word_flags+=("-z")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_remove-role-from-user()
+{
+    last_command="oc_policy_remove-role-from-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--role-namespace=")
+    flags+=("--serviceaccount=")
+    two_word_flags+=("-z")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_remove-user()
+{
+    last_command="oc_policy_remove-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_add-role-to-group()
+{
+    last_command="oc_policy_add-role-to-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--role-namespace=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_remove-role-from-group()
+{
+    last_command="oc_policy_remove-role-from-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--role-namespace=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy_remove-group()
+{
+    last_command="oc_policy_remove-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_policy()
+{
+    last_command="oc_policy"
+    commands=()
+    commands+=("who-can")
+    commands+=("add-role-to-user")
+    commands+=("remove-role-from-user")
+    commands+=("remove-user")
+    commands+=("add-role-to-group")
+    commands+=("remove-role-from-group")
+    commands+=("remove-group")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets_new()
+{
+    last_command="oc_secrets_new"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--type=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets_new-dockercfg()
+{
+    last_command="oc_secrets_new-dockercfg"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--docker-email=")
+    flags+=("--docker-password=")
+    flags+=("--docker-server=")
+    flags+=("--docker-username=")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets_new-basicauth()
+{
+    last_command="oc_secrets_new-basicauth"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--ca-cert=")
+    flags_with_completion+=("--ca-cert")
+    flags_completion+=("_filedir")
+    flags+=("--gitconfig=")
+    flags_with_completion+=("--gitconfig")
+    flags_completion+=("_filedir")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--password=")
+    flags+=("--prompt")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+    flags+=("--username=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets_new-sshauth()
+{
+    last_command="oc_secrets_new-sshauth"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--ca-cert=")
+    flags_with_completion+=("--ca-cert")
+    flags_completion+=("_filedir")
+    flags+=("--gitconfig=")
+    flags_with_completion+=("--gitconfig")
+    flags_completion+=("_filedir")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--ssh-privatekey=")
+    flags_with_completion+=("--ssh-privatekey")
+    flags_completion+=("_filedir")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets_add()
+{
+    last_command="oc_secrets_add"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--for=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_secrets()
+{
+    last_command="oc_secrets"
+    commands=()
+    commands+=("new")
+    commands+=("new-dockercfg")
+    commands+=("new-basicauth")
+    commands+=("new-sshauth")
+    commands+=("add")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_logout()
+{
+    last_command="oc_logout"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_config_view()
+{
+    last_command="oc_config_view"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--flatten")
+    flags+=("--merge")
+    flags+=("--minify")
+    flags+=("--no-headers")
+    flags+=("--output=")
+    two_word_flags+=("-o")
+    flags+=("--output-version=")
+    flags+=("--raw")
+    flags+=("--show-all")
+    flags+=("-a")
+    flags+=("--sort-by=")
+    flags+=("--template=")
+    two_word_flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_config_set-cluster()
+{
+    last_command="oc_config_set-cluster"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--api-version=")
+    flags+=("--certificate-authority=")
+    flags+=("--embed-certs")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--server=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_config_set-credentials()
+{
+    last_command="oc_config_set-credentials"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--client-certificate=")
+    flags+=("--client-key=")
+    flags+=("--embed-certs")
+    flags+=("--password=")
+    flags+=("--token=")
+    flags+=("--username=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_config_set-context()
+{
+    last_command="oc_config_set-context"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--cluster=")
+    flags+=("--namespace=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_config_set()
+{
+    last_command="oc_config_set"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_config_unset()
+{
+    last_command="oc_config_unset"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_config_use-context()
+{
+    last_command="oc_config_use-context"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_config()
+{
+    last_command="oc_config"
+    commands=()
+    commands+=("view")
+    commands+=("set-cluster")
+    commands+=("set-credentials")
+    commands+=("set-context")
+    commands+=("set")
+    commands+=("unset")
+    commands+=("use-context")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--config=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_whoami()
+{
+    last_command="oc_whoami"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--context")
+    flags+=("-c")
+    flags+=("--token")
+    flags+=("-t")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc_options()
+{
+    last_command="oc_options"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oc()
+{
+    last_command="oc"
+    commands=()
+    commands+=("types")
+    commands+=("login")
+    commands+=("new-project")
+    commands+=("new-app")
+    commands+=("status")
+    commands+=("project")
+    commands+=("start-build")
+    commands+=("build-logs")
+    commands+=("deploy")
+    commands+=("rollback")
+    commands+=("new-build")
+    commands+=("cancel-build")
+    commands+=("import-image")
+    commands+=("scale")
+    commands+=("tag")
+    commands+=("get")
+    commands+=("describe")
+    commands+=("edit")
+    commands+=("env")
+    commands+=("volume")
+    commands+=("label")
+    commands+=("annotate")
+    commands+=("expose")
+    commands+=("stop")
+    commands+=("delete")
+    commands+=("logs")
+    commands+=("rsh")
+    commands+=("rsync")
+    commands+=("exec")
+    commands+=("port-forward")
+    commands+=("proxy")
+    commands+=("create")
+    commands+=("replace")
+    commands+=("patch")
+    commands+=("process")
+    commands+=("export")
+    commands+=("run")
+    commands+=("attach")
+    commands+=("policy")
+    commands+=("secrets")
+    commands+=("logout")
+    commands+=("config")
+    commands+=("whoami")
+    commands+=("options")
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--alsologtostderr")
+    flags+=("--api-version=")
+    flags+=("--boot-id-file=")
+    flags+=("--certificate-authority=")
+    flags+=("--client-certificate=")
+    flags+=("--client-key=")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags+=("--container-hints=")
+    flags+=("--context=")
+    flags+=("--docker=")
+    flags+=("--docker-only")
+    flags+=("--docker-root=")
+    flags+=("--docker-run=")
+    flags+=("--enable-load-reader")
+    flags+=("--event-storage-age-limit=")
+    flags+=("--event-storage-event-limit=")
+    flags+=("--global-housekeeping-interval=")
+    flags+=("--google-json-key=")
+    flags+=("--housekeeping-interval=")
+    flags+=("--httptest.serve=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--ir-data-source=")
+    flags+=("--ir-dbname=")
+    flags+=("--ir-influxdb-host=")
+    flags+=("--ir-password=")
+    flags+=("--ir-percentile=")
+    flags+=("--ir-user=")
+    flags+=("--log-backtrace-at=")
+    flags+=("--log-cadvisor-usage")
+    flags+=("--log-dir=")
+    flags+=("--log-flush-frequency=")
+    flags+=("--logtostderr")
+    flags+=("--machine-id-file=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--server=")
+    flags+=("--stderrthreshold=")
+    flags+=("--token=")
+    flags+=("--user=")
+    flags+=("--v=")
+    flags+=("--vmodule=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+__start_oc()
+{
+    local cur prev words cword
+    if declare -F _init_completions >/dev/null 2>&1; then
+        _init_completion -s || return
+    else
+        __my_init_completion || return
+    fi
+
+    local c=0
+    local flags=()
+    local two_word_flags=()
+    local flags_with_completion=()
+    local flags_completion=()
+    local commands=("oc")
+    local must_have_one_flag=()
+    local must_have_one_noun=()
+    local last_command
+    local nouns=()
+
+    __handle_word
+}
+
+complete -F __start_oc oc
+# ex: ts=4 sw=4 et filetype=sh
