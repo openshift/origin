@@ -361,7 +361,7 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				})},
-			expectedErr: `tag "invalid" has not been set`,
+			expectedErr: `no image or template matched "mysql:invalid`,
 		},
 		{
 			name: "Successful mysql builder",
