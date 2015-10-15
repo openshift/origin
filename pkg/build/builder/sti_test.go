@@ -2,14 +2,16 @@ package builder
 
 import (
 	"errors"
-	docker "github.com/fsouza/go-dockerclient"
-	"github.com/openshift/origin/pkg/build/api"
-	stiapi "github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/api/validation"
-	"github.com/openshift/source-to-image/pkg/build"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"strings"
 	"testing"
+
+	docker "github.com/fsouza/go-dockerclient"
+	kapi "k8s.io/kubernetes/pkg/api"
+
+	"github.com/openshift/origin/pkg/build/api"
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/api/validation"
+	s2ibuild "github.com/openshift/source-to-image/pkg/build"
 )
 
 type testDockerClient struct {
@@ -41,7 +43,9 @@ type testStiConfigValidator struct {
 	errors []validation.ValidationError
 }
 
-func (factory testStiBuilderFactory) GetStrategy(config *stiapi.Config) (build.Builder, error) {
+// Mock S2I builder factory implementation. Just returns mock S2I builder instances ot error (if set)
+func (factory testStiBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, error) {
+	// if there is error set, return this error
 	if factory.getStrategyErr != nil {
 		return nil, factory.getStrategyErr
 	}
@@ -52,7 +56,8 @@ type testBuilder struct {
 	buildError error
 }
 
-func (builder testBuilder) Build(config *stiapi.Config) (*stiapi.Result, error) {
+// Build is a mock implementation for STI builder, returns nil result and error if any
+func (builder testBuilder) Build(config *s2iapi.Config) (*s2iapi.Result, error) {
 	return nil, builder.buildError
 }
 
@@ -73,7 +78,8 @@ func makeStiBuilder(
 	)
 }
 
-func (validator testStiConfigValidator) ValidateConfig(config *stiapi.Config) []validation.ValidationError {
+// ValidateConfig is a mock implementation for config validator. returns error if set or nil
+func (validator testStiConfigValidator) ValidateConfig(config *s2iapi.Config) []validation.ValidationError {
 	return validator.errors
 }
 
@@ -106,8 +112,8 @@ func makeBuild() *api.Build {
 
 func TestDockerBuildError(t *testing.T) {
 	expErr := errors.New("Artificial exception: Error building")
-	stiBuilder := makeStiBuilder(expErr, nil, nil, make([]validation.ValidationError, 0))
-	err := stiBuilder.Build()
+	s2iBuilder := makeStiBuilder(expErr, nil, nil, make([]validation.ValidationError, 0))
+	err := s2iBuilder.Build()
 	if err == nil {
 		t.Error("Artificial error expected from build process")
 	} else {
@@ -119,8 +125,8 @@ func TestDockerBuildError(t *testing.T) {
 
 func TestPushError(t *testing.T) {
 	expErr := errors.New("Artificial exception: Error pushing image")
-	stiBuilder := makeStiBuilder(nil, nil, expErr, make([]validation.ValidationError, 0))
-	err := stiBuilder.Build()
+	s2iBuilder := makeStiBuilder(nil, nil, expErr, make([]validation.ValidationError, 0))
+	err := s2iBuilder.Build()
 	if err == nil {
 		t.Error("Artificial error expected from build process")
 	} else {
@@ -130,10 +136,11 @@ func TestPushError(t *testing.T) {
 	}
 }
 
+// Test error creating s2i builder
 func TestGetStrategyError(t *testing.T) {
 	expErr := errors.New("Artificial exception: config error")
-	stiBuilder := makeStiBuilder(nil, expErr, nil, make([]validation.ValidationError, 0))
-	err := stiBuilder.Build()
+	s2iBuilder := makeStiBuilder(nil, expErr, nil, make([]validation.ValidationError, 0))
+	err := s2iBuilder.Build()
 	if err == nil {
 		t.Error("Artificial error expected from build process")
 	} else {

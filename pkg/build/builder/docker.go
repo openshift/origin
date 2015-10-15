@@ -3,8 +3,6 @@ package builder
 import (
 	"fmt"
 	"io/ioutil"
-	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,15 +21,11 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
 const (
-	// urlCheckTimeout is the timeout used to check the source URL
-	// If fetching the URL exceeds the timeout, then the build will
-	// not proceed further and stop
-	urlCheckTimeout = 16 * time.Second
-
 	// noOutputDefaultTag is used as the tag name for docker built images that will
 	// not be pushed because no Output value was defined in the BuildConfig
 	noOutputDefaultTag = "no_repo/no_output_default_tag"
@@ -63,13 +57,13 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		return err
 	}
-	if err = d.fetchSource(buildDir); err != nil {
+	if err := fetchSource(buildDir, d.build, d.urlTimeout, os.Stdin, d.git); err != nil {
 		return err
 	}
-	if err = d.addBuildParameters(buildDir); err != nil {
+	if err := d.addBuildParameters(buildDir); err != nil {
 		return err
 	}
-	glog.V(4).Infof("Starting Docker build from %s/%s BuildConfig ...", d.build.Namespace, d.build.Name)
+	glog.V(4).Infof("Starting Docker build from build config %s ...", d.build.Name)
 	var push bool
 
 	// if there is no output target, set one up so the docker build logic
@@ -84,7 +78,7 @@ func (d *DockerBuilder) Build() error {
 		push = true
 	}
 
-	if err = d.dockerBuild(buildDir); err != nil {
+	if err := d.dockerBuild(buildDir); err != nil {
 		return err
 	}
 
@@ -97,99 +91,14 @@ func (d *DockerBuilder) Build() error {
 			dockercfg.PushAuthType,
 		)
 		if authPresent {
-			glog.Infof("Using provided push secret for pushing %s image", d.build.Spec.Output.To.Name)
+			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
-		glog.Infof("Pushing %s image ...", d.build.Spec.Output.To.Name)
+		glog.Infof("Pushing image %s ...", d.build.Spec.Output.To.Name)
 		if err := pushImage(d.dockerClient, d.build.Spec.Output.To.Name, pushAuthConfig); err != nil {
 			return fmt.Errorf("Failed to push image: %v", err)
 		}
-		glog.Infof("Successfully pushed %s", d.build.Spec.Output.To.Name)
+		glog.Infof("Push successful")
 	}
-	return nil
-}
-
-// checkSourceURI performs a check on the URI associated with the build
-// to make sure that it is valid.  It also optionally tests the connection
-// to the source uri.
-func (d *DockerBuilder) checkSourceURI(testConnection bool) error {
-	rawurl := d.build.Spec.Source.Git.URI
-	if !d.git.ValidCloneSpec(rawurl) {
-		return fmt.Errorf("Invalid git source url: %s", rawurl)
-	}
-	if strings.HasPrefix(rawurl, "git@") || strings.HasPrefix(rawurl, "git://") {
-		return nil
-	}
-	srcURL, err := url.Parse(rawurl)
-	if err != nil {
-		return err
-	}
-	if !testConnection {
-		return nil
-	}
-	host := srcURL.Host
-	if strings.Index(host, ":") == -1 {
-		switch srcURL.Scheme {
-		case "http":
-			host += ":80"
-		case "https":
-			host += ":443"
-		}
-	}
-	dialer := net.Dialer{Timeout: d.urlTimeout}
-	conn, err := dialer.Dial("tcp", host)
-	if err != nil {
-		return err
-	}
-	return conn.Close()
-}
-
-// fetchSource retrieves the git source from the repository. If a commit ID
-// is included in the build revision, that commit ID is checked out. Otherwise
-// if a ref is included in the source definition, that ref is checked out.
-func (d *DockerBuilder) fetchSource(dir string) error {
-	hasGitSource := false
-	// TODO: refactor me into a method
-	if gitSource := d.build.Spec.Source.Git; gitSource != nil {
-		hasGitSource = true
-		revision := d.build.Spec.Revision
-
-		// Set the HTTP and HTTPS proxies to be used by git clone.
-		originalProxies := setHTTPProxy(gitSource.HTTPProxy, gitSource.HTTPSProxy)
-		defer resetHTTPProxy(originalProxies)
-
-		// Check source URI, trying to connect to the server only if not using a proxy.
-		usingProxy := len(originalProxies) > 0
-		if err := d.checkSourceURI(!usingProxy); err != nil {
-			return err
-		}
-
-		glog.V(2).Infof("Cloning source from %s", gitSource.URI)
-		if err := d.git.Clone(gitSource.URI, dir, s2iapi.CloneConfig{Recursive: true, Quiet: true}); err != nil {
-			return err
-		}
-
-		// if we specify a commit, ref, or branch to checkout, do so
-		if len(gitSource.Ref) != 0 || (revision != nil && revision.Git != nil && len(revision.Git.Commit) != 0) {
-			commit := gitSource.Ref
-			if revision != nil && revision.Git != nil && revision.Git.Commit != "" {
-				commit = revision.Git.Commit
-			}
-			if err := d.git.Checkout(dir, commit); err != nil {
-				return err
-			}
-		}
-	}
-
-	// a Dockerfile has been specified, create or overwrite into the destination
-	if dockerfileSource := d.build.Spec.Source.Dockerfile; dockerfileSource != nil {
-		baseDir := dir
-		// if a context dir has been defined and we cloned source, overwrite the destination
-		if hasGitSource && len(d.build.Spec.Source.ContextDir) != 0 {
-			baseDir = filepath.Join(baseDir, d.build.Spec.Source.ContextDir)
-		}
-		return ioutil.WriteFile(filepath.Join(baseDir, "Dockerfile"), []byte(*dockerfileSource), 0660)
-	}
-
 	return nil
 }
 
@@ -215,7 +124,12 @@ func (d *DockerBuilder) addBuildParameters(dir string) error {
 
 	// Update base image if build strategy specifies the From field.
 	if d.build.Spec.Strategy.DockerStrategy.From != nil && d.build.Spec.Strategy.DockerStrategy.From.Kind == "DockerImage" {
-		err := replaceLastFrom(node, d.build.Spec.Strategy.DockerStrategy.From.Name)
+		// Reduce the name to a minimal canonical form for the daemon
+		name := d.build.Spec.Strategy.DockerStrategy.From.Name
+		if ref, err := imageapi.ParseDockerImageReference(name); err == nil {
+			name = ref.DaemonMinimal().String()
+		}
+		err := replaceLastFrom(node, name)
 		if err != nil {
 			return err
 		}
@@ -264,6 +178,7 @@ func (d *DockerBuilder) buildInfo() []dockerfile.KeyValue {
 // consume.
 func (d *DockerBuilder) buildLabels(dir string) []dockerfile.KeyValue {
 	labels := map[string]string{}
+	// TODO: allow source info to be overriden by build
 	sourceInfo := &s2iapi.SourceInfo{}
 	if d.build.Spec.Source.Git != nil {
 		sourceInfo = d.git.GetInfo(dir)
