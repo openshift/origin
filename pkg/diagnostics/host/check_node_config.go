@@ -41,8 +41,12 @@ func (d NodeConfigCheck) Check() types.DiagnosticResult {
 
 	r.Info("DH1003", fmt.Sprintf("Found a node config file: %[1]s", d.NodeConfigFile))
 
-	for _, err := range configvalidation.ValidateNodeConfig(nodeConfig) {
+	results := configvalidation.ValidateNodeConfig(nodeConfig)
+	for _, err := range results.Errors {
 		r.Error("DH1004", err, fmt.Sprintf("Validation of node config file '%s' failed:\n(%T) %[2]v", d.NodeConfigFile, err))
+	}
+	for _, err := range results.Warnings {
+		r.Warn("DH1005", err, fmt.Sprintf("Validation of node config file '%s' warning:\n(%T) %[2]v", d.NodeConfigFile, err))
 	}
 	return r
 }

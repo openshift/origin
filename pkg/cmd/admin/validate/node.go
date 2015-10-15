@@ -84,10 +84,10 @@ func (o *ValidateNodeConfigOptions) Run() (ok bool, err error) {
 
 	results := validation.ValidateNodeConfig(nodeConfig)
 	writer := tabwriter.NewWriter(o.Out, minColumnWidth, tabWidth, padding, padchar, flags)
-	err = prettyPrintValidationErrorList(results, writer)
+	err = prettyPrintValidationResults(results, writer)
 	if err != nil {
-		return len(results) == 0, fmt.Errorf("could not print results: %v", err)
+		return len(results.Errors) == 0, fmt.Errorf("could not print results: %v", err)
 	}
 	writer.Flush()
-	return len(results) == 0, nil
+	return len(results.Errors) == 0, nil
 }

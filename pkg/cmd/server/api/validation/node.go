@@ -11,45 +11,45 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-func ValidateNodeConfig(config *api.NodeConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateNodeConfig(config *api.NodeConfig) ValidationResults {
+	validationResults := ValidationResults{}
 
 	if len(config.NodeName) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("nodeName"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("nodeName"))
 	}
 	if len(config.NodeIP) > 0 {
-		allErrs = append(allErrs, ValidateSpecifiedIP(config.NodeIP, "nodeIP")...)
+		validationResults.AddErrors(ValidateSpecifiedIP(config.NodeIP, "nodeIP")...)
 	}
 
-	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+	validationResults.Append(ValidateServingInfo(config.ServingInfo).Prefix("servingInfo"))
 	if config.ServingInfo.BindNetwork == "tcp6" {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("servingInfo.bindNetwork", config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for nodes, must be tcp or tcp4"))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("servingInfo.bindNetwork", config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for nodes, must be tcp or tcp4"))
 	}
-	allErrs = append(allErrs, ValidateKubeConfig(config.MasterKubeConfig, "masterKubeConfig")...)
+	validationResults.AddErrors(ValidateKubeConfig(config.MasterKubeConfig, "masterKubeConfig")...)
 
 	if len(config.DNSIP) > 0 {
-		allErrs = append(allErrs, ValidateSpecifiedIP(config.DNSIP, "dnsIP")...)
+		validationResults.AddErrors(ValidateSpecifiedIP(config.DNSIP, "dnsIP")...)
 	}
 
-	allErrs = append(allErrs, ValidateImageConfig(config.ImageConfig).Prefix("imageConfig")...)
+	validationResults.AddErrors(ValidateImageConfig(config.ImageConfig).Prefix("imageConfig")...)
 
 	if config.PodManifestConfig != nil {
-		allErrs = append(allErrs, ValidatePodManifestConfig(config.PodManifestConfig).Prefix("podManifestConfig")...)
+		validationResults.AddErrors(ValidatePodManifestConfig(config.PodManifestConfig).Prefix("podManifestConfig")...)
 	}
 
-	allErrs = append(allErrs, ValidateNetworkConfig(config.NetworkConfig).Prefix("networkConfig")...)
+	validationResults.AddErrors(ValidateNetworkConfig(config.NetworkConfig).Prefix("networkConfig")...)
 
-	allErrs = append(allErrs, ValidateDockerConfig(config.DockerConfig).Prefix("dockerConfig")...)
+	validationResults.AddErrors(ValidateDockerConfig(config.DockerConfig).Prefix("dockerConfig")...)
 
-	allErrs = append(allErrs, ValidateNodeAuthConfig(config.AuthConfig).Prefix("authConfig")...)
+	validationResults.AddErrors(ValidateNodeAuthConfig(config.AuthConfig).Prefix("authConfig")...)
 
-	allErrs = append(allErrs, ValidateKubeletExtendedArguments(config.KubeletArguments).Prefix("kubeletArguments")...)
+	validationResults.AddErrors(ValidateKubeletExtendedArguments(config.KubeletArguments).Prefix("kubeletArguments")...)
 
 	if _, err := time.ParseDuration(config.IPTablesSyncPeriod); err != nil {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("iptablesSyncPeriod", config.IPTablesSyncPeriod, fmt.Sprintf("unable to parse iptablesSyncPeriod: %v. Examples with correct format: '5s', '1m', '2h22m'", err)))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("iptablesSyncPeriod", config.IPTablesSyncPeriod, fmt.Sprintf("unable to parse iptablesSyncPeriod: %v. Examples with correct format: '5s', '1m', '2h22m'", err)))
 	}
 
-	return allErrs
+	return validationResults
 }
 
 func ValidateNodeAuthConfig(config api.NodeAuthConfig) fielderrors.ValidationErrorList {

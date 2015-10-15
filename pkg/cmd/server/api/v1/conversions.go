@@ -141,17 +141,17 @@ func init() {
 			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 		},
 		func(in *ServingInfo, out *newer.ServingInfo, s conversion.Scope) error {
-			out.BindAddress = in.BindAddress
-			out.BindNetwork = in.BindNetwork
-			out.ClientCA = in.ClientCA
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			out.ServerCert.CertFile = in.CertFile
 			out.ServerCert.KeyFile = in.KeyFile
 			return nil
 		},
 		func(in *newer.ServingInfo, out *ServingInfo, s conversion.Scope) error {
-			out.BindAddress = in.BindAddress
-			out.BindNetwork = in.BindNetwork
-			out.ClientCA = in.ClientCA
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			out.CertFile = in.ServerCert.CertFile
 			out.KeyFile = in.ServerCert.KeyFile
 			return nil

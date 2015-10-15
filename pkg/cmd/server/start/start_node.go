@@ -164,9 +164,14 @@ func (o NodeOptions) RunNode() error {
 		return err
 	}
 
-	errs := validation.ValidateNodeConfig(nodeConfig)
-	if len(errs) != 0 {
-		return kerrors.NewInvalid("NodeConfig", o.ConfigFile, errs)
+	validationResults := validation.ValidateNodeConfig(nodeConfig)
+	if len(validationResults.Warnings) != 0 {
+		for _, warning := range validationResults.Warnings {
+			glog.Warningf("%v", warning)
+		}
+	}
+	if len(validationResults.Errors) != 0 {
+		return kerrors.NewInvalid("NodeConfig", o.ConfigFile, validationResults.Errors)
 	}
 
 	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig)
