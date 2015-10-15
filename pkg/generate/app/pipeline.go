@@ -164,8 +164,6 @@ func (g PipelineGroup) String() string {
 	return strings.Join(s, "+")
 }
 
-const maxServiceNameLength = 24
-
 var invalidServiceChars = regexp.MustCompile("[^-a-z0-9]")
 
 func makeValidServiceName(name string) (string, string) {
@@ -178,8 +176,8 @@ func makeValidServiceName(name string) (string, string) {
 	switch {
 	case len(name) == 0:
 		return "", "service-"
-	case len(name) > maxServiceNameLength:
-		name = name[:maxServiceNameLength]
+	case len(name) > kutil.DNS952LabelMaxLength:
+		name = name[:kutil.DNS952LabelMaxLength]
 	}
 	return name, ""
 }
