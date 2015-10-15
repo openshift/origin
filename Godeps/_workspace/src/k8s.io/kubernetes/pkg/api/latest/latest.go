@@ -147,3 +147,64 @@ type GroupMeta struct {
 	// string, or an error if the version is not known.
 	InterfacesFor func(version string) (*meta.VersionInterfaces, error)
 }
+
+type GroupVersion struct {
+	Group   string
+	Version string
+}
+
+func InterfacesFor(groupVersion GroupVersion) (*meta.VersionInterfaces, error) {
+	kubeAPIGroup, err := Group(groupVersion.Group)
+	if err != nil {
+		return nil, err
+	}
+
+	return kubeAPIGroup.InterfacesFor(groupVersion.Version)
+}
+
+func CodecFor(group string) (runtime.Codec, error) {
+	kubeAPIGroup, err := Group(group)
+	if err != nil {
+		return nil, err
+	}
+
+	return kubeAPIGroup.Codec, nil
+}
+
+func RESTMapperFor(group string) (meta.RESTMapper, error) {
+	kubeAPIGroup, err := Group(group)
+	if err != nil {
+		return nil, err
+	}
+
+	return kubeAPIGroup.RESTMapper, nil
+}
+
+func DefaultVersionFor(group string) (string, error) {
+	kubeAPIGroup, err := Group(group)
+	if err != nil {
+		return "", err
+	}
+
+	return kubeAPIGroup.Version, nil
+}
+
+func InterfacesForLegacyGroup(version string) (*meta.VersionInterfaces, error) {
+	return GroupOrDie("").InterfacesFor(version)
+}
+
+func CodecForLegacyGroup() runtime.Codec {
+	return GroupOrDie("").Codec
+}
+
+func RESTMapperForLegacyGroup() meta.RESTMapper {
+	return GroupOrDie("").RESTMapper
+}
+
+func DefaultVersionForLegacyGroup() string {
+	return GroupOrDie("").Version
+}
+
+func VersionsForLegacyGroup() []string {
+	return GroupOrDie("").Versions
+}
