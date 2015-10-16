@@ -780,6 +780,10 @@
 			"Rev": "37aabad69cfd3d20b8390d902a8b10e245c615ff"
 		},
 		{
+			"ImportPath": "github.com/sergi/go-diff/diffmatchpatch",
+			"Rev": "ffccea18eeb30a700e65bdf8a9f99456e5d254fa"
+		},
+		{
 			"ImportPath": "github.com/shurcooL/sanitized_anchor_name",
 			"Rev": "244f5ac324cb97e1987ef901a0081a77bfd8e845"
 		},
