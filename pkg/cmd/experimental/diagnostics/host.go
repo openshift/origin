@@ -2,19 +2,12 @@ package diagnostics
 
 import (
 	"fmt"
-	"os"
 
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	hostdiags "github.com/openshift/origin/pkg/diagnostics/host"
 	systemddiags "github.com/openshift/origin/pkg/diagnostics/systemd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-)
-
-const (
-	// Standard locations for the host config files OpenShift uses.
-	StandardMasterConfigPath string = "/etc/openshift/master/master-config.yaml"
-	StandardNodeConfigPath   string = "/etc/openshift/node/node-config.yaml"
 )
 
 var (
@@ -31,21 +24,7 @@ func (o DiagnosticsOptions) buildHostDiagnostics() ([]types.Diagnostic, bool, er
 		return nil, true, nil // don't waste time on discovery
 	}
 	isHost := o.IsHost
-	// check for standard host config paths if not given
-	if len(o.MasterConfigLocation) == 0 {
-		if _, err := os.Stat(StandardMasterConfigPath); !os.IsNotExist(err) {
-			o.MasterConfigLocation = StandardMasterConfigPath
-			isHost = true
-		}
-	} else {
-		isHost = true
-	}
-	if len(o.NodeConfigLocation) == 0 {
-		if _, err := os.Stat(StandardNodeConfigPath); !os.IsNotExist(err) {
-			o.NodeConfigLocation = StandardNodeConfigPath
-			isHost = true
-		}
-	} else {
+	if len(o.MasterConfigLocation) > 0 || len(o.NodeConfigLocation) > 0 {
 		isHost = true
 	}
 

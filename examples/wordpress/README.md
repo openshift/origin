@@ -1,54 +1,12 @@
-# How To Use NFS Persistent Volumes
+# How To Use Persistent Volumes
 
-The purpose of this guide is to help you understand storage provisioning with NFS by creating a WordPress blog and MySQL database.
+The purpose of this guide is to help you understand storage provisioning by creating a WordPress blog and MySQL database.
 In this example, both the blog and database require persistent storage.  
 
 This guide assumes knowledge of OpenShift fundamentals and that you have a cluster up and running.  Please review steps 1 - 10 in the
 [sample-app](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md) to run an OpenShift cluster.
 
-## NFS Provisioning
-
-We'll be creating NFS exports on the local machine.  The instructions below are for Fedora.  The provisioning process may be slightly different based on linux distribution or the type of NFS server being used.
-
-Create two NFS exports, each of which will become a Persistent Volume in the cluster. 
-
-```
-# the directories in this example can grow unbounded
-# use disk partitions of specific sizes to enforce storage quotas
-mkdir /home/data/pv0001 
-mkdir /home/data/pv0002
-
-# data written to NFS by a pod gets squashed by NFS and is owned by 'nfsnobody'
-# we'll make our export directories owned by the same user
-chown -R /home/data nfsnobody:nfsnobody
-
-# security needs to be permissive currently, but the export will soon be restricted 
-# to the same UID/GID that wrote the data
-chmod -R 777 /home/data/
-
-# Add to /etc/exports
-/home/data/pv0001 *(rw,sync,no_root_squash)
-/home/data/pv0002 *(rw,sync,no_root_squash)
-
-# Enable the new exports without bouncing the NFS service
-exportfs -a
-
-```
-
-## Security
-
-### SELinux
-
-By default, SELinux does not allow writing from a pod to a remote NFS server. The NFS volume mounts correctly, but is read-only.
-
-To enable writing in SELinux on each node:
-
-```
-# -P makes the bool persistent between reboots.
-$ setsebool -P virt_use_nfs 1 
-```
-
-### Root access
+## Root access
 
 The Wordpress Dockerhub image binds Apache to port 80 in the container, which requires root access.  We can allow that 
 in this example, but those wishing to run a more secure cluster will want to ensure their images don't require root access (e.g, bind to high number ports, don't chown or chmod dirs, etc)
@@ -77,21 +35,18 @@ seLinuxContext:
 
 Changing the restricted security context as shown above allows the Wordpress container to bind to port 80.  
 
+## Storage Provisioning
 
-## Persistent Volumes and Claims
+OpenShift expects that storage volumes are provisioned by system administrator outside of OpenShift. As subsequent step, the system admin then tells OpenShift about these volumes by creating Persistent Volumes objects. Wearing your "system admin" hat, follow these guides to create Persistent Volumes named `pv001` and `pv002`.
 
-Each NFS export becomes its own Persistent Volume in the cluster.
+* [NFS](nfs/README.md)
+* [OpenStack Cinder](cinder/README.md)
+- [Fibre Channel](fc/README.md)
+
+## Persistent Volumes Claims
+Now that the "system admin" guy has deployed some Persistent Volumes, you can continue as an application developer and actually use these volumes to store some MySQL and Wordpress data. From now on, the guide does not depend on the underlying storage technology!
 
 ```
-# Create the persistent volumes for NFS.
-$ oc create -f examples/wordpress/pv-nfs-1.yaml 
-$ oc create -f examples/wordpress/pv-nfs-2.yaml 
-$ oc get pv
-
-NAME      LABELS    CAPACITY     ACCESSMODES   STATUS      CLAIM     REASON
-pv0001    <none>    1073741824   RWO,RWX       Available             
-pv0002    <none>    5368709120   RWO           Available             
-
 # Create claims for storage.
 # The claims in this example carefully match the volumes created above.
 $ oc create -f examples/wordpress/pvc-wp.yaml 

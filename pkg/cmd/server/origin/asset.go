@@ -81,9 +81,15 @@ func (c *AssetConfig) Run() {
 
 	go util.Forever(func() {
 		if isTLS {
+			extraCerts, err := configapi.GetNamedCertificateMap(c.Options.ServingInfo.NamedCertificates)
+			if err != nil {
+				glog.Fatal(err)
+			}
 			server.TLSConfig = &tls.Config{
 				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
 				MinVersion: tls.VersionTLS10,
+				// Set SNI certificate func
+				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
 			}
 			glog.Infof("Web console listening at https://%s", c.Options.ServingInfo.BindAddress)
 			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))

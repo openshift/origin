@@ -56,24 +56,31 @@ func ValidateEtcdConnectionInfo(config api.EtcdConnectionInfo, server *api.EtcdC
 	return allErrs
 }
 
-func ValidateEtcdConfig(config *api.EtcdConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateEtcdConfig(config *api.EtcdConfig) ValidationResults {
+	validationResults := ValidationResults{}
 
-	allErrs = append(allErrs, ValidateServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+	validationResults.Append(ValidateServingInfo(config.ServingInfo).Prefix("servingInfo"))
 	if config.ServingInfo.BindNetwork == "tcp6" {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("servingInfo.bindNetwork", config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for etcd, must be tcp or tcp4"))
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("servingInfo.bindNetwork", config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for etcd, must be tcp or tcp4"))
 	}
-	allErrs = append(allErrs, ValidateServingInfo(config.PeerServingInfo).Prefix("peerServingInfo")...)
-	if config.ServingInfo.BindNetwork == "tcp6" {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("peerServingInfo.bindNetwork", config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for etcd peers, must be tcp or tcp4"))
+	if len(config.ServingInfo.NamedCertificates) > 0 {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("servingInfo.namedCertificates", "<not shown>", "namedCertificates are not supported for etcd"))
 	}
 
-	allErrs = append(allErrs, ValidateHostPort(config.Address, "address")...)
-	allErrs = append(allErrs, ValidateHostPort(config.PeerAddress, "peerAddress")...)
+	validationResults.Append(ValidateServingInfo(config.PeerServingInfo).Prefix("peerServingInfo"))
+	if config.ServingInfo.BindNetwork == "tcp6" {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("peerServingInfo.bindNetwork", config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for etcd peers, must be tcp or tcp4"))
+	}
+	if len(config.ServingInfo.NamedCertificates) > 0 {
+		validationResults.AddErrors(fielderrors.NewFieldInvalid("peerServingInfo.namedCertificates", "<not shown>", "namedCertificates are not supported for etcd"))
+	}
+
+	validationResults.AddErrors(ValidateHostPort(config.Address, "address")...)
+	validationResults.AddErrors(ValidateHostPort(config.PeerAddress, "peerAddress")...)
 
 	if len(config.StorageDir) == 0 {
-		allErrs = append(allErrs, fielderrors.NewFieldRequired("storageDirectory"))
+		validationResults.AddErrors(fielderrors.NewFieldRequired("storageDirectory"))
 	}
 
-	return allErrs
+	return validationResults
 }

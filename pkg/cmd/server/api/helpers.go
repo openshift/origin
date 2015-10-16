@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -120,6 +121,10 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	refs = append(refs, &config.ServingInfo.ServerCert.CertFile)
 	refs = append(refs, &config.ServingInfo.ServerCert.KeyFile)
 	refs = append(refs, &config.ServingInfo.ClientCA)
+	for i := range config.ServingInfo.NamedCertificates {
+		refs = append(refs, &config.ServingInfo.NamedCertificates[i].CertFile)
+		refs = append(refs, &config.ServingInfo.NamedCertificates[i].KeyFile)
+	}
 
 	refs = append(refs, &config.EtcdClientInfo.ClientCert.CertFile)
 	refs = append(refs, &config.EtcdClientInfo.ClientCert.KeyFile)
@@ -133,10 +138,18 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.EtcdConfig.ServingInfo.ServerCert.CertFile)
 		refs = append(refs, &config.EtcdConfig.ServingInfo.ServerCert.KeyFile)
 		refs = append(refs, &config.EtcdConfig.ServingInfo.ClientCA)
+		for i := range config.EtcdConfig.ServingInfo.NamedCertificates {
+			refs = append(refs, &config.EtcdConfig.ServingInfo.NamedCertificates[i].CertFile)
+			refs = append(refs, &config.EtcdConfig.ServingInfo.NamedCertificates[i].KeyFile)
+		}
 
 		refs = append(refs, &config.EtcdConfig.PeerServingInfo.ServerCert.CertFile)
 		refs = append(refs, &config.EtcdConfig.PeerServingInfo.ServerCert.KeyFile)
 		refs = append(refs, &config.EtcdConfig.PeerServingInfo.ClientCA)
+		for i := range config.EtcdConfig.PeerServingInfo.NamedCertificates {
+			refs = append(refs, &config.EtcdConfig.PeerServingInfo.NamedCertificates[i].CertFile)
+			refs = append(refs, &config.EtcdConfig.PeerServingInfo.NamedCertificates[i].KeyFile)
+		}
 
 		refs = append(refs, &config.EtcdConfig.StorageDir)
 	}
@@ -167,6 +180,11 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
 				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
 
+			case (*KeystonePasswordIdentityProvider):
+				refs = append(refs, &provider.RemoteConnectionInfo.CA)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.CertFile)
+				refs = append(refs, &provider.RemoteConnectionInfo.ClientCert.KeyFile)
+
 			case (*OpenIDIdentityProvider):
 				refs = append(refs, &provider.CA)
 
@@ -182,6 +200,11 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.CertFile)
 		refs = append(refs, &config.AssetConfig.ServingInfo.ServerCert.KeyFile)
 		refs = append(refs, &config.AssetConfig.ServingInfo.ClientCA)
+		for i := range config.AssetConfig.ServingInfo.NamedCertificates {
+			refs = append(refs, &config.AssetConfig.ServingInfo.NamedCertificates[i].CertFile)
+			refs = append(refs, &config.AssetConfig.ServingInfo.NamedCertificates[i].KeyFile)
+		}
+
 		for i := range config.AssetConfig.ExtensionScripts {
 			refs = append(refs, &config.AssetConfig.ExtensionScripts[i])
 		}
@@ -228,6 +251,10 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 	refs = append(refs, &config.ServingInfo.ServerCert.CertFile)
 	refs = append(refs, &config.ServingInfo.ServerCert.KeyFile)
 	refs = append(refs, &config.ServingInfo.ClientCA)
+	for i := range config.ServingInfo.NamedCertificates {
+		refs = append(refs, &config.ServingInfo.NamedCertificates[i].CertFile)
+		refs = append(refs, &config.ServingInfo.NamedCertificates[i].KeyFile)
+	}
 
 	refs = append(refs, &config.MasterKubeConfig)
 
@@ -317,6 +344,26 @@ func GetAPIClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	return cmdutil.CertPoolFromFile(options.ServingInfo.ClientCA)
 }
 
+// GetNamedCertificateMap returns a map of strings to *tls.Certificate, suitable for use in tls.Config#NamedCertificates
+// Returns an error if any of the certs cannot be loaded, or do not match the configured name
+// Returns nil if len(namedCertificates) == 0
+func GetNamedCertificateMap(namedCertificates []NamedCertificate) (map[string]*tls.Certificate, error) {
+	if len(namedCertificates) == 0 {
+		return nil, nil
+	}
+	namedCerts := map[string]*tls.Certificate{}
+	for _, namedCertificate := range namedCertificates {
+		cert, err := tls.LoadX509KeyPair(namedCertificate.CertFile, namedCertificate.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+		for _, name := range namedCertificate.Names {
+			namedCerts[name] = &cert
+		}
+	}
+	return namedCerts, nil
+}
+
 // GetClientCertCAPool returns a cert pool containing all client CAs that could be presented (union of API and OAuth)
 func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	roots := x509.NewCertPool()
@@ -404,7 +451,8 @@ func IsPasswordAuthenticator(provider IdentityProvider) bool {
 		(*AllowAllPasswordIdentityProvider),
 		(*DenyAllPasswordIdentityProvider),
 		(*HTPasswdPasswordIdentityProvider),
-		(*LDAPPasswordIdentityProvider):
+		(*LDAPPasswordIdentityProvider),
+		(*KeystonePasswordIdentityProvider):
 
 		return true
 	}
@@ -421,6 +469,7 @@ func IsIdentityProviderType(provider runtime.EmbeddedObject) bool {
 		(*DenyAllPasswordIdentityProvider),
 		(*HTPasswdPasswordIdentityProvider),
 		(*LDAPPasswordIdentityProvider),
+		(*KeystonePasswordIdentityProvider),
 		(*OpenIDIdentityProvider),
 		(*GitHubIdentityProvider),
 		(*GoogleIdentityProvider):

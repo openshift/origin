@@ -85,6 +85,8 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 
 // RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
 func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Reader, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+	output := cmdutil.GetFlagString(c, "output")
+
 	if config.Dockerfile == "-" {
 		data, err := ioutil.ReadAll(in)
 		if err != nil {
@@ -119,10 +121,10 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	if err := setAnnotations(map[string]string{newcmd.GeneratedByNamespace: newcmd.GeneratedByNewBuild}, result); err != nil {
 		return err
 	}
-	if len(cmdutil.GetFlagString(c, "output")) != 0 {
+	if len(output) != 0 && output != "name" {
 		return f.Factory.PrintObject(c, result.List, out)
 	}
-	if err := createObjects(f, out, result); err != nil {
+	if err := createObjects(f, out, output == "name", result); err != nil {
 		return err
 	}
 

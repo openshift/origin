@@ -94,12 +94,13 @@ func (o *ValidateMasterConfigOptions) Run() (bool, error) {
 }
 
 const (
-	minColumnWidth          = 4
-	tabWidth                = 4
-	padding                 = 2
-	padchar                 = byte(' ')
-	flags                   = 0
-	validationErrorHeadings = "ERROR\tFIELD\tVALUE\tDETAILS\n"
+	minColumnWidth            = 4
+	tabWidth                  = 4
+	padding                   = 2
+	padchar                   = byte(' ')
+	flags                     = 0
+	validationErrorHeadings   = "ERROR\tFIELD\tVALUE\tDETAILS\n"
+	validationWarningHeadings = "WARNING\tFIELD\tVALUE\tDETAILS\n"
 )
 
 // prettyPrintValidationResults prints the contents of the ValidationResults into the buffer of a tabwriter.Writer.
@@ -107,14 +108,14 @@ const (
 func prettyPrintValidationResults(results validation.ValidationResults, writer *tabwriter.Writer) error {
 	if len(results.Errors) > 0 {
 		fmt.Fprintf(writer, "VALIDATION ERRORS:\t\t\t\n")
-		err := prettyPrintValidationErrorList(results.Errors, writer)
+		err := prettyPrintValidationErrorList(validationErrorHeadings, results.Errors, writer)
 		if err != nil {
 			return err
 		}
 	}
 	if len(results.Warnings) > 0 {
 		fmt.Fprintf(writer, "VALIDATION WARNINGS:\t\t\t\n")
-		err := prettyPrintValidationErrorList(results.Errors, writer)
+		err := prettyPrintValidationErrorList(validationWarningHeadings, results.Warnings, writer)
 		if err != nil {
 			return err
 		}
@@ -124,9 +125,9 @@ func prettyPrintValidationResults(results validation.ValidationResults, writer *
 
 // prettyPrintValidationErrorList prints the contents of the ValidationErrorList into the buffer of a tabwriter.Writer.
 // The writer must be Flush()ed after calling this to write the buffered data.
-func prettyPrintValidationErrorList(validationErrors fielderrors.ValidationErrorList, writer *tabwriter.Writer) error {
+func prettyPrintValidationErrorList(headings string, validationErrors fielderrors.ValidationErrorList, writer *tabwriter.Writer) error {
 	if len(validationErrors) > 0 {
-		fmt.Fprintf(writer, validationErrorHeadings)
+		fmt.Fprintf(writer, headings)
 		for _, err := range validationErrors {
 			switch validationError := err.(type) {
 			case (*fielderrors.ValidationError):

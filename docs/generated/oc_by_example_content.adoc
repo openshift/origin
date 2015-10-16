@@ -499,7 +499,7 @@ Create a new application
   $ openshift cli new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
 
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
-  $ openshift cli new-app mysql -l db=mysql
+  $ openshift cli new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
 
   # Use a MySQL image in a private registry to create an app and override application artifacts' names
   $ openshift cli new-app --docker-image=myregistry.com/mycompany/mysql --name=private

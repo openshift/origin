@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -57,8 +58,6 @@ func (r ValidationResults) Prefix(prefix string) ValidationResults {
 func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 	validationResults := ValidationResults{}
 
-	validationResults.AddErrors(ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo")...)
-
 	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
 		validationResults.AddErrors(urlErrs...)
 	}
@@ -73,12 +72,18 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 	validationResults.AddErrors(ValidateDisabledFeatures(config.DisabledFeatures, "disabledFeatures")...)
 
 	if config.AssetConfig != nil {
-		validationResults.AddErrors(ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig")...)
+		validationResults.Append(ValidateAssetConfig(config.AssetConfig).Prefix("assetConfig"))
 		colocated := config.AssetConfig.ServingInfo.BindAddress == config.ServingInfo.BindAddress
 		if colocated {
 			publicURL, _ := url.Parse(config.AssetConfig.PublicURL)
 			if publicURL.Path == "/" {
 				validationResults.AddErrors(fielderrors.NewFieldInvalid("assetConfig.publicURL", config.AssetConfig.PublicURL, "path can not be / when colocated with master API"))
+			}
+
+			// Warn if they have customized the asset certificates in ways that will be ignored
+			if !reflect.DeepEqual(config.AssetConfig.ServingInfo.ServerCert, config.ServingInfo.ServerCert) ||
+				!reflect.DeepEqual(config.AssetConfig.ServingInfo.NamedCertificates, config.ServingInfo.NamedCertificates) {
+				validationResults.AddWarnings(fielderrors.NewFieldInvalid("assetConfig.servingInfo", "<not displayed>", "changes to assetConfig certificate configuration are not used when colocated with master API"))
 			}
 		}
 
@@ -106,9 +111,9 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 
 	if config.EtcdConfig != nil {
 		etcdConfigErrs := ValidateEtcdConfig(config.EtcdConfig).Prefix("etcdConfig")
-		validationResults.AddErrors(etcdConfigErrs...)
+		validationResults.Append(etcdConfigErrs)
 
-		if len(etcdConfigErrs) == 0 {
+		if len(etcdConfigErrs.Errors) == 0 {
 			// Validate the etcdClientInfo with the internal etcdConfig
 			validationResults.AddErrors(ValidateEtcdConnectionInfo(config.EtcdClientInfo, config.EtcdConfig).Prefix("etcdClientInfo")...)
 		} else {
@@ -157,7 +162,7 @@ func ValidateMasterConfig(config *api.MasterConfig) ValidationResults {
 
 	validationResults.Append(ValidateServiceAccountConfig(config.ServiceAccountConfig, builtInKubernetes).Prefix("serviceAccountConfig"))
 
-	validationResults.AddErrors(ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+	validationResults.Append(ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo"))
 
 	validationResults.Append(ValidateProjectConfig(config.ProjectConfig).Prefix("projectConfig"))
 
@@ -261,65 +266,65 @@ func ValidateServiceAccountConfig(config api.ServiceAccountConfig, builtInKubern
 	return validationResults
 }
 
-func ValidateAssetConfig(config *api.AssetConfig) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
+func ValidateAssetConfig(config *api.AssetConfig) ValidationResults {
+	validationResults := ValidationResults{}
 
-	allErrs = append(allErrs, ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo")...)
+	validationResults.Append(ValidateHTTPServingInfo(config.ServingInfo).Prefix("servingInfo"))
 
 	if len(config.LogoutURL) > 0 {
 		_, urlErrs := ValidateURL(config.LogoutURL, "logoutURL")
 		if len(urlErrs) > 0 {
-			allErrs = append(allErrs, urlErrs...)
+			validationResults.AddErrors(urlErrs...)
 		}
 	}
 
 	urlObj, urlErrs := ValidateURL(config.PublicURL, "publicURL")
 	if len(urlErrs) > 0 {
-		allErrs = append(allErrs, urlErrs...)
+		validationResults.AddErrors(urlErrs...)
 	}
 	if urlObj != nil {
 		if !strings.HasSuffix(urlObj.Path, "/") {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("publicURL", config.PublicURL, "must have a trailing slash in path"))
+			validationResults.AddErrors(fielderrors.NewFieldInvalid("publicURL", config.PublicURL, "must have a trailing slash in path"))
 		}
 	}
 
 	if _, urlErrs := ValidateURL(config.MasterPublicURL, "masterPublicURL"); len(urlErrs) > 0 {
-		allErrs = append(allErrs, urlErrs...)
+		validationResults.AddErrors(urlErrs...)
 	}
 
 	if len(config.LoggingPublicURL) > 0 {
 		if _, loggingURLErrs := ValidateSecureURL(config.LoggingPublicURL, "loggingPublicURL"); len(loggingURLErrs) > 0 {
-			allErrs = append(allErrs, loggingURLErrs...)
+			validationResults.AddErrors(loggingURLErrs...)
 		}
 	}
 
 	if len(config.MetricsPublicURL) > 0 {
 		if _, metricsURLErrs := ValidateSecureURL(config.MetricsPublicURL, "metricsPublicURL"); len(metricsURLErrs) > 0 {
-			allErrs = append(allErrs, metricsURLErrs...)
+			validationResults.AddErrors(metricsURLErrs...)
 		}
 	}
 
 	for i, scriptFile := range config.ExtensionScripts {
-		allErrs = append(allErrs, ValidateFile(scriptFile, fmt.Sprintf("extensionScripts[%d]", i))...)
+		validationResults.AddErrors(ValidateFile(scriptFile, fmt.Sprintf("extensionScripts[%d]", i))...)
 	}
 
 	for i, stylesheetFile := range config.ExtensionStylesheets {
-		allErrs = append(allErrs, ValidateFile(stylesheetFile, fmt.Sprintf("extensionStylesheets[%d]", i))...)
+		validationResults.AddErrors(ValidateFile(stylesheetFile, fmt.Sprintf("extensionStylesheets[%d]", i))...)
 	}
 
 	nameTaken := map[string]bool{}
 	for i, extConfig := range config.Extensions {
 		extConfigErrors := ValidateAssetExtensionsConfig(extConfig).Prefix(fmt.Sprintf("extensions[%d]", i))
-		allErrs = append(allErrs, extConfigErrors...)
+		validationResults.AddErrors(extConfigErrors...)
 		if nameTaken[extConfig.Name] {
 			dupError := fielderrors.NewFieldInvalid(fmt.Sprintf("extensions[%d].name", i), extConfig.Name, "duplicate extension name")
-			allErrs = append(allErrs, dupError)
+			validationResults.AddErrors(dupError)
 		} else {
 			nameTaken[extConfig.Name] = true
 		}
 	}
 
-	return allErrs
+	return validationResults
 }
 
 var extNameExp = regexp.MustCompile(`^[A-Za-z0-9_]+$`)

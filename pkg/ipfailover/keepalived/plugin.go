@@ -142,7 +142,7 @@ func (p *KeepalivedPlugin) Create(out io.Writer) error {
 		Typer:             typer,
 		RESTClientFactory: p.Factory.Factory.RESTClient,
 
-		After: configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
+		After: configcmd.NewPrintNameOrErrorAfter(mapper, p.Options.ShortOutput, "created", out, os.Stderr),
 	}
 
 	configList, err := p.Generate()

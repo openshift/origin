@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	kapp "k8s.io/kubernetes/cmd/kubelet/app"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/util"
@@ -129,6 +130,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	server.HTTPCheckFrequency = 0 // no remote HTTP pod creation access
 	server.FileCheckFrequency = time.Duration(fileCheckInterval) * time.Second
 	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
+	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
 
 	// prevents kube from generating certs
 	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile
@@ -192,6 +194,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 
 	// TODO: could be cleaner
 	if configapi.UseTLS(options.ServingInfo) {
+		extraCerts, err := configapi.GetNamedCertificateMap(options.ServingInfo.NamedCertificates)
+		if err != nil {
+			return nil, err
+		}
 		cfg.TLSOptions = &kubelet.TLSOptions{
 			Config: &tls.Config{
 				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
@@ -200,6 +206,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 				// Verification is done by the authn layer
 				ClientAuth: tls.RequestClientCert,
 				ClientCAs:  clientCAs,
+				// Set SNI certificate func
+				// Do not use NameToCertificate, since that requires certificates be included in the server's tlsConfig.Certificates list,
+				// which we do not control when running with http.Server#ListenAndServeTLS
+				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
 			},
 			CertFile: options.ServingInfo.ServerCert.CertFile,
 			KeyFile:  options.ServingInfo.ServerCert.KeyFile,
@@ -207,6 +217,16 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	} else {
 		cfg.TLSOptions = nil
 	}
+
+	// Prepare cloud provider
+	cloud, err := cloudprovider.InitCloudProvider(server.CloudProvider, server.CloudConfigFile)
+	if err != nil {
+		return nil, err
+	}
+	if cloud != nil {
+		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", server.CloudProvider, server.CloudConfigFile)
+	}
+	cfg.Cloud = cloud
 
 	config := &NodeConfig{
 		BindAddress: options.ServingInfo.BindAddress,

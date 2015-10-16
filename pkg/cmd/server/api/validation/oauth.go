@@ -3,6 +3,7 @@ package validation
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/util/fielderrors"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/authenticator/redirector"
 	"github.com/openshift/origin/pkg/auth/server/login"
+	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -110,6 +112,13 @@ func ValidateOAuthConfig(config *api.OAuthConfig) ValidationResults {
 	return validationResults
 }
 
+var validMappingMethods = sets.NewString(
+	string(identitymapper.MappingMethodLookup),
+	string(identitymapper.MappingMethodClaim),
+	string(identitymapper.MappingMethodAdd),
+	string(identitymapper.MappingMethodGenerate),
+)
+
 func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationResults {
 	validationResults := ValidationResults{}
 
@@ -118,6 +127,12 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 	}
 	if ok, err := validation.ValidateIdentityProviderName(identityProvider.Name); !ok {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("name", identityProvider.Name, err))
+	}
+
+	if len(identityProvider.MappingMethod) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("mappingMethod"))
+	} else if !validMappingMethods.Has(identityProvider.MappingMethod) {
+		validationResults.AddErrors(fielderrors.NewFieldValueNotSupported("mappingMethod", identityProvider.MappingMethod, validMappingMethods.List()))
 	}
 
 	if !api.IsIdentityProviderType(identityProvider.Provider) {
@@ -135,6 +150,9 @@ func ValidateIdentityProvider(identityProvider api.IdentityProvider) ValidationR
 
 		case (*api.LDAPPasswordIdentityProvider):
 			validationResults.Append(ValidateLDAPIdentityProvider(provider))
+
+		case (*api.KeystonePasswordIdentityProvider):
+			validationResults.Append(ValidateKeystoneIdentityProvider(provider, identityProvider).Prefix("provider"))
 
 		case (*api.GitHubIdentityProvider):
 			validationResults.AddErrors(ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, identityProvider.UseAsChallenger)...)
@@ -157,6 +175,24 @@ func ValidateLDAPIdentityProvider(provider *api.LDAPPasswordIdentityProvider) Va
 	// At least one attribute to use as the user id is required
 	if len(provider.Attributes.ID) == 0 {
 		validationResults.AddErrors(fielderrors.NewFieldInvalid("provider.attributes.id", "[]", "at least one id attribute is required (LDAP standard identity attribute is 'dn')"))
+	}
+
+	return validationResults
+}
+
+// RemoteConnection fields validated separately -- this is for keystone-specific validation
+func ValidateKeystoneIdentityProvider(provider *api.KeystonePasswordIdentityProvider, identityProvider api.IdentityProvider) ValidationResults {
+	validationResults := ValidationResults{}
+	validationResults.AddErrors(ValidateRemoteConnectionInfo(provider.RemoteConnectionInfo)...)
+
+	providerURL, err := url.Parse(provider.RemoteConnectionInfo.URL)
+	if err == nil {
+		if providerURL.Scheme != "https" {
+			validationResults.AddWarnings(fielderrors.NewFieldInvalid("url", provider.RemoteConnectionInfo.URL, "Auth URL should be secure and start with https"))
+		}
+	}
+	if len(provider.DomainName) == 0 {
+		validationResults.AddErrors(fielderrors.NewFieldRequired("domainName"))
 	}
 
 	return validationResults

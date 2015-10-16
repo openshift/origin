@@ -128,6 +128,14 @@ func init() {
 				obj.MCSLabelsPerProject = 5
 			}
 		},
+		func(obj *IdentityProvider) {
+			if len(obj.MappingMethod) == 0 {
+				// By default, only let one identity provider authenticate a particular user
+				// If multiple identity providers collide, the second one in will fail to auth
+				// The admin can set this to "add" if they want to allow new identities to join existing users
+				obj.MappingMethod = "claim"
+			}
+		},
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
@@ -141,17 +149,17 @@ func init() {
 			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 		},
 		func(in *ServingInfo, out *newer.ServingInfo, s conversion.Scope) error {
-			out.BindAddress = in.BindAddress
-			out.BindNetwork = in.BindNetwork
-			out.ClientCA = in.ClientCA
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			out.ServerCert.CertFile = in.CertFile
 			out.ServerCert.KeyFile = in.KeyFile
 			return nil
 		},
 		func(in *newer.ServingInfo, out *ServingInfo, s conversion.Scope) error {
-			out.BindAddress = in.BindAddress
-			out.BindNetwork = in.BindNetwork
-			out.ClientCA = in.ClientCA
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
 			out.CertFile = in.ServerCert.CertFile
 			out.KeyFile = in.ServerCert.KeyFile
 			return nil

@@ -361,7 +361,7 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				})},
-			expectedErr: `tag "invalid" has not been set`,
+			expectedErr: `no image or template matched "mysql:invalid`,
 		},
 		{
 			name: "Successful mysql builder",
@@ -854,6 +854,10 @@ func TestRunAll(t *testing.T) {
 		res, err := test.config.RunAll()
 		if err != test.expectedErr {
 			t.Errorf("%s: Error mismatch! Expected %v, got %v", test.name, test.expectedErr, err)
+			continue
+		}
+		if res.Name != test.expectedName {
+			t.Errorf("%s: Name was not correct: %v", test.name, res.Name)
 			continue
 		}
 		imageStreams := []*imageapi.ImageStream{}

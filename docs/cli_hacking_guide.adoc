@@ -44,6 +44,10 @@ Sample command skeleton:
 ====
 [source,go,numbered,options="nowrap"]
 ----
+// MineRecommendedCommandName is the recommended command name
+const MineRecommendedCommandName = "mine"
+
+// MineOptions contains all the options for running the mine cli command
 type MineOptions struct {
   mineLatest bool
 }
@@ -52,13 +56,14 @@ const (
   mineLong = `Some long description
 for my command.`
 
-  mineExample = `  // Run my command's first action
+  mineExample = `  # Run my command's first action
   $ %[1]s first
 
-  // Run my command's second action on latest stuff
+  # Run my command's second action on latest stuff
   $ %[1]s second --latest`
 )
 
+// NewCmdMine implement the OpenShift cli mine command.
 func NewCmdMine(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
   options := &MineOptions{}
   cmd := &cobra.Command{
@@ -82,13 +87,18 @@ func NewCmdMine(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
   return cmd
 }
 
+// Complete completes all the required options for mine.
 func (o *MineOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
   return nil
 }
-func (o MineOptions) Validate(args []string) error {
+
+// Validate validates all the required options for mine.
+func (o MineOptions) Validate() error {
   return nil
 }
-func (o MineOptions) RunDeploy() error {
+
+// RunMine implements all the necessary functionality for mine.
+func (o MineOptions) RunMine() error {
   return nil
 }
 ----
@@ -119,17 +129,17 @@ process (TEMPLATE | -f FILENAME) [-v KEY=VALUE]
 
 === Writing Examples
 
-Examples must have 2-space tabbing. Always try to have a consistent explanation for every example as a comment (starting with `//`). The full command name is parameterized for every example (usually with `%[1]s`) so that the examples are still valid if the command is used by different parent commands. Make sure you don't have a newline character at the end of the string.
+Examples must have 2-space tabbing. Always try to have a consistent explanation for every example as a comment (starting with `#`). The full command name is parameterized for every example (usually with `%[1]s`) so that the examples are still valid if the command is used by different parent commands. Make sure you don't have a newline character at the end of the string.
 
 Example:
 
 ====
 [source,go,numbered,options="nowrap"]
 ----
-  deployExample = `  // Display the latest deployment for the 'database' deployment config
+  deployExample = `  # Display the latest deployment for the 'database' deployment config
   $ %[1]s database
 
-  // Start a new deployment based on the 'database' deployment config
+  # Start a new deployment based on the 'database' deployment config
   $ %[1]s database --latest`
 ----
 ====
@@ -198,9 +208,10 @@ There are a number of helper functions available in `cmdutil` and `kcmdutil`. Im
 [source,go,options="nowrap"]
 ----
 import (
-  (...)
+  // other imports...
   kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
   cmdutil "github.com/openshift/origin/pkg/cmd/util"
+)
 ----
 ====
 
@@ -219,42 +230,51 @@ Taking the `oc deploy` command as an example, the code structure for a command w
 ====
 [source,go,numbered,options="nowrap"]
 ----
-type DeployOptions struct { <1>
-  (...)
+// 1.
+type DeployOptions struct {
+  // other fields...
   deployLatest bool
   retryDeploy  bool
 }
 
 const (
+  // 2.
   deployLong = `Some long description 
-for the deploy command.` // <2>
+for the deploy command.` 
 
-  deployExample = `  // Display the latest deployment for the 'database' DeploymentConfig
+  // 3.
+  deployExample = `  # Display the latest deployment for the 'database' DeploymentConfig
   $ %[1]s database
 
-  // Start a new deployment based on the 'database' DeploymentConfig
-  $ %[1]s database --latest` // <3>
+  # Start a new deployment based on the 'database' DeploymentConfig
+  $ %[1]s database --latest`
 )
 
-func NewCmdDeploy(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command { // <4>
+// 4.
+func NewCmdDeploy(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
   options := &DeployOptions{}
 
   cmd := &cobra.Command{
-    Use:     fmt.Sprintf("%s DEPLOYMENTCONFIG", name), <5>
+    // 5.
+    Use:     fmt.Sprintf("%s DEPLOYMENTCONFIG", name),
     Short:   "View, start, cancel, or retry deployments",
     Long:    deployLong,
     Example: fmt.Sprintf(deployExample, fullName),
     Run: func(cmd *cobra.Command, args []string) {
-      if err := options.Complete(f, cmd, args, out); err != nil { <6>
+      // 6.
+      if err := options.Complete(f, cmd, args, out); err != nil {
         cmdutil.CheckErr(err)
       }
 
-      if err := options.Validate(args); err != nil { <7>
+      // 7.
+      if err := options.Validate(); err != nil {
         cmdutil.CheckErr(cmdutil.UsageError(cmd, err.Error()))
       }
 
-      if err := options.RunDeploy(); err != nil { <8>
-        cmdutil.CheckErr(err) <9>
+      // 8.
+      if err := options.RunDeploy(); err != nil {
+        // 9.
+        cmdutil.CheckErr(err)
       }
     },
   }
@@ -269,7 +289,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args 
   return nil
 }
 
-func (o DeployOptions) Validate(args []string) error {
+func (o DeployOptions) Validate() error {
   return nil
 }
 
@@ -283,7 +303,7 @@ func (o DeployOptions) RunDeploy() error {
 <4> This function creates the command. Notice it takes the parent command name as argument and also a `io.Writer` that will be used to print messages.
 <5> Command usage.
 <6> `Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error` is used to populate any object or variable that will be required to run the command and is still missing at this point. For example, if the command will make use of an API client it can be created from the factory in this method. Can also be used to take argument values from the `args` slice and hold it in explicit variables in your struct, store the `io.Writer` that will be used later, etc.
-<7> `Validate(args []string) error` perform validations on arguments as required. Notice that if the `Complete` and `Validate` methods implementations are simple enough, you may have only one of them that does both.
+<7> `Validate() error` perform validations on anything required in order to run this command. Notice that if the `Complete` and `Validate` methods implementations are simple enough, you may have only one of them that does both.
 <8> `Run<Command>() error` (e.g. `RunDeploy`, `RunCreate` and so on) does the actual command logic and returns errors as required. Notice that this method does not take anything as argument - it's expected that you previously extracted and stored in the `struct` anything that will be needed to run this command. This makes commands more easily testable once you can run and populate the command struct with the values you want to test and then just run this method and check for the returned error(s).
 <9> Try to always use the functions in `k8s.io/kubernetes/pkg/kubectl/cmd/util` to check and handle errors. It is not expected that commands call `glog.Fatalf`, `os.Exit` or anything similar directly.
 ====
