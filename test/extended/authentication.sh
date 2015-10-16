@@ -14,13 +14,9 @@ source "${OS_ROOT}/hack/common.sh"
 os::log::install_errexit
 cd "${OS_ROOT}"
 
-ensure_ginkgo_or_die
 ensure_iptables_or_die
 
 os::build::setup_env
-if [[ -z ${TEST_ONLY+x} ]]; then
-	go test -c ./test/extended -o ${OS_OUTPUT_BINPATH}/extended.test
-fi
 
 export TMPDIR="${TMPDIR:-"/tmp"}"
 export BASETMPDIR="${TMPDIR}/openshift-extended-tests/authentication"
