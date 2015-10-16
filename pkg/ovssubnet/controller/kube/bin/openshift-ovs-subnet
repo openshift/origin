@@ -76,6 +76,7 @@ Setup() {
     get_ipaddr_pid_veth
     add_ovs_port
     add_ovs_flows
+    add_subnet_route
 }
 
 Teardown() {
