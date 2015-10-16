@@ -145,7 +145,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		ExposeFlags(loginCmd, "certificate-authority", "insecure-skip-tls-verify")
 
 	if name == fullName {
-		cmds.AddCommand(version.NewVersionCommand(fullName))
+		cmds.AddCommand(version.NewVersionCommand(fullName, false))
 	}
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 

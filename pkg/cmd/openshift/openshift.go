@@ -110,7 +110,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
-	root.AddCommand(version.NewVersionCommand(name))
+	root.AddCommand(version.NewVersionCommand(name, true))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
 	// directly

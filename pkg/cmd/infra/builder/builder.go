@@ -50,7 +50,7 @@ func NewCommandSTIBuilder(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(version.NewVersionCommand(name))
+	cmd.AddCommand(version.NewVersionCommand(name, false))
 	return cmd
 }
 
@@ -64,6 +64,6 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 			cmd.RunDockerBuild()
 		},
 	}
-	cmd.AddCommand(version.NewVersionCommand(name))
+	cmd.AddCommand(version.NewVersionCommand(name, false))
 	return cmd
 }
