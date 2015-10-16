@@ -43,6 +43,9 @@ func addConversionFuncs() {
 		convert_v1_PodSpec_To_api_PodSpec,
 		convert_v1_ReplicationControllerSpec_To_api_ReplicationControllerSpec,
 		convert_v1_ServiceSpec_To_api_ServiceSpec,
+
+		convert_api_VolumeSource_To_v1_VolumeSource,
+		convert_v1_VolumeSource_To_api_VolumeSource,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.
@@ -525,5 +528,103 @@ func convert_v1_PodSecurityContext_To_api_PodSecurityContext(in *PodSecurityCont
 	} else {
 		out.FSGroup = nil
 	}
+	return nil
+}
+
+// This will convert our internal represantation of VolumeSource to its v1 representation
+// Used for keeping backwards compatibility for the Metadata field
+func convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.VolumeSource))(in)
+	}
+
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	if in.DownwardAPI != nil {
+		out.Metadata = new(MetadataVolumeSource)
+		if err := convert_api_DownwardAPIVolumeSource_To_v1_MetadataVolumeSource(in.DownwardAPI, out.Metadata, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// downward -> metadata (api -> v1)
+func convert_api_DownwardAPIVolumeSource_To_v1_MetadataVolumeSource(in *api.DownwardAPIVolumeSource, out *MetadataVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.DownwardAPIVolumeSource))(in)
+	}
+	if in.Items != nil {
+		out.Items = make([]MetadataFile, len(in.Items))
+		for i := range in.Items {
+			if err := convert_api_DownwardAPIVolumeFile_To_v1_MetadataFile(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func convert_api_DownwardAPIVolumeFile_To_v1_MetadataFile(in *api.DownwardAPIVolumeFile, out *MetadataFile, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.DownwardAPIVolumeFile))(in)
+	}
+	out.Name = in.Path
+	if err := convert_api_ObjectFieldSelector_To_v1_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// This will convert the v1 representation of VolumeSource to our internal representation
+// Used for keeping backwards compatibility for the Metadata field
+func convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*VolumeSource))(in)
+	}
+
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+
+	if in.Metadata != nil {
+		out.DownwardAPI = new(api.DownwardAPIVolumeSource)
+		if err := convert_v1_MetadataVolumeSource_To_api_DownwardAPIVolumeSource(in.Metadata, out.DownwardAPI, s); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// metadata -> downward (v1 -> api)
+func convert_v1_MetadataVolumeSource_To_api_DownwardAPIVolumeSource(in *MetadataVolumeSource, out *api.DownwardAPIVolumeSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*MetadataVolumeSource))(in)
+	}
+	if in.Items != nil {
+		out.Items = make([]api.DownwardAPIVolumeFile, len(in.Items))
+		for i := range in.Items {
+			if err := convert_v1_MetadataFile_To_api_DownwardAPIVolumeFile(&in.Items[i], &out.Items[i], s); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func convert_v1_MetadataFile_To_api_DownwardAPIVolumeFile(in *MetadataFile, out *api.DownwardAPIVolumeFile, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*MetadataFile))(in)
+	}
+	out.Path = in.Name
+	if err := convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
+		return err
+	}
+
 	return nil
 }
