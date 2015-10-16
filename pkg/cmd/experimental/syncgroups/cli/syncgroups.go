@@ -186,6 +186,13 @@ func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, blacklistFile, conf
 			return err
 		}
 		o.Whitelist = append(o.Whitelist, whitelistData...)
+
+		if o.Source == GroupSyncSourceOpenShift {
+			o.Whitelist, err = openshiftGroupNamesOnlyList(o.Whitelist)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// unpack blacklist file from source
@@ -195,6 +202,13 @@ func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, blacklistFile, conf
 			return err
 		}
 		o.Blacklist = append(o.Blacklist, blacklistData...)
+
+		if o.Source == GroupSyncSourceOpenShift {
+			o.Blacklist, err = openshiftGroupNamesOnlyList(o.Blacklist)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	yamlConfig, err := ioutil.ReadFile(configFile)
@@ -218,6 +232,35 @@ func (o *SyncGroupsOptions) Complete(typeArg, whitelistFile, blacklistFile, conf
 	}
 
 	return nil
+}
+
+// openshiftGroupNamesOnlyBlacklist returns back a list that contains only the names of the groups.
+// Since Group.Name cannot contain '/', the split is safe.  Any resource ref that is not a group
+// is skipped.
+func openshiftGroupNamesOnlyList(list []string) ([]string, error) {
+	ret := []string{}
+	errs := []error{}
+
+	for _, curr := range list {
+		tokens := strings.SplitN(curr, "/", 2)
+		if len(tokens) == 1 {
+			ret = append(ret, tokens[0])
+			continue
+		}
+
+		if tokens[0] != "group" && tokens[0] != "groups" {
+			errs = append(errs, fmt.Errorf("%q is not a valid OpenShift group", curr))
+			continue
+		}
+
+		ret = append(ret, tokens[1])
+	}
+
+	if len(errs) > 0 {
+		return nil, kerrs.NewAggregate(errs)
+	}
+
+	return ret, nil
 }
 
 // readLines interprets a file as plaintext and returns a string array of the lines of text in the file

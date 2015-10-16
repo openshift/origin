@@ -1,2 +1,2 @@
 group1
-group3
+group/group3

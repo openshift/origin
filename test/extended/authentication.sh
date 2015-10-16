@@ -186,7 +186,7 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	openshift ex sync-groups ${group1_ldapuid} ${group2_ldapuid} --sync-config=sync-config.yaml --confirm
 	oc patch group ${group1_osuid} -p 'users: []'
 	oc patch group ${group2_osuid} -p 'users: []'
-	openshift ex sync-groups --type=openshift ${group2_osuid} --whitelist=whitelist_openshift.txt --sync-config=sync-config.yaml --confirm
+	openshift ex sync-groups --type=openshift group/${group2_osuid} --whitelist=whitelist_openshift.txt --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_whitelist_union_sync.txt
 	
 
@@ -203,9 +203,7 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 
 	echo -e "\tTEST: Sync subset of OpenShift groups from LDAP server using whitelist and blacklist file"
 	openshift ex sync-groups --sync-config=sync-config.yaml --confirm || true
-	oc patch group ${group1_osuid} -p 'users: []'
-	oc patch group ${group2_osuid} -p 'users: []'
-	oc patch group ${group3_osuid} -p 'users: []' || true
+	oc get group -o name --no-headers | xargs -n 1 oc patch -p 'users: []'
 	# openshift ex sync-groups --type=openshift --whitelist=osgroupuids.txt --blacklist=blacklist_openshift.txt --blacklist-group=${group1_osuid} --sync-config=sync-config.yaml --confirm
 	openshift ex sync-groups --type=openshift --whitelist=osgroupuids.txt --blacklist=blacklist_openshift.txt --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_all_openshift_blacklist_sync.txt
