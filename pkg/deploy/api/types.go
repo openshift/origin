@@ -192,14 +192,20 @@ const (
 	// annotation value is the LatestVersion value of the DeploymentConfig which was the basis for
 	// the deployment.
 	DeploymentVersionAnnotation = "openshift.io/deployment-config.latest-version"
+	// DeprecatedDeploymentLabel is the name of a label used to correlate a deployment with the Pod created
+	// to execute the deployment logic.
+	DeprecatedDeploymentLabel = "deployment"
 	// DeploymentLabel is the name of a label used to correlate a deployment with the Pod created
 	// to execute the deployment logic.
 	// TODO: This is a workaround for upstream's lack of annotation support on PodTemplate. Once
 	// annotations are available on PodTemplate, audit this constant with the goal of removing it.
-	DeploymentLabel = "deployment"
+	DeploymentLabel = "openshift.io/deployment.name"
+	// DeprecatedDeploymentConfigLabel is the name of a label used to correlate a deployment with the
+	// DeploymentConfigs on which the deployment is based.
+	DeprecatedDeploymentConfigLabel = "deploymentconfig"
 	// DeploymentConfigLabel is the name of a label used to correlate a deployment with the
 	// DeploymentConfigs on which the deployment is based.
-	DeploymentConfigLabel = "deploymentconfig"
+	DeploymentConfigLabel = "openshift.io/deploymentconfig.name"
 	// DesiredReplicasAnnotation represents the desired number of replicas for a
 	// new deployment.
 	// TODO: This should be made public upstream.

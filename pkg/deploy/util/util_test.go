@@ -118,6 +118,13 @@ func TestMakeDeploymentOk(t *testing.T) {
 	if e, a := deployment.Name, deployment.Spec.Template.Labels[deployapi.DeploymentLabel]; e != a {
 		t.Fatalf("expected label DeploymentLabel=%s, got %s", e, a)
 	}
+	if e, a := config.Name, deployment.Spec.Template.Labels[deployapi.DeprecatedDeploymentConfigLabel]; e != a {
+		t.Fatalf("expected label DeprecatedDeploymentConfigLabel=%s, got %s", e, a)
+	}
+
+	if e, a := deployment.Name, deployment.Spec.Template.Labels[deployapi.DeprecatedDeploymentLabel]; e != a {
+		t.Fatalf("expected label DeprecatedDeploymentLabel=%s, got %s", e, a)
+	}
 
 	if e, a := config.Name, deployment.Spec.Selector[deployapi.DeploymentConfigLabel]; e != a {
 		t.Fatalf("expected selector DeploymentConfigLabel=%s, got %s", e, a)
@@ -125,6 +132,13 @@ func TestMakeDeploymentOk(t *testing.T) {
 
 	if e, a := deployment.Name, deployment.Spec.Selector[deployapi.DeploymentLabel]; e != a {
 		t.Fatalf("expected selector DeploymentLabel=%s, got %s", e, a)
+	}
+	if e, a := config.Name, deployment.Spec.Selector[deployapi.DeprecatedDeploymentConfigLabel]; e != a {
+		t.Fatalf("expected selector DeprecatedDeploymentConfigLabel=%s, got %s", e, a)
+	}
+
+	if e, a := deployment.Name, deployment.Spec.Selector[deployapi.DeprecatedDeploymentLabel]; e != a {
+		t.Fatalf("expected selector DeprecatedDeploymentLabel=%s, got %s", e, a)
 	}
 }
 
