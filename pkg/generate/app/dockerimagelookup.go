@@ -180,7 +180,10 @@ func (r DockerRegistrySearcher) Search(terms ...string) (ComponentMatches, error
 		image, err := connection.ImageByTag(ref.Namespace, ref.Name, ref.Tag)
 		if err != nil {
 			if dockerregistry.IsNotFound(err) {
-				return nil, ErrNoMatch{value: term, qualifier: err.Error()}
+				if dockerregistry.IsTagNotFound(err) {
+					glog.V(4).Infof("tag not found: %v", err)
+				}
+				continue
 			}
 			return nil, fmt.Errorf("can't connect to %q: %v", ref.Registry, err)
 		}
