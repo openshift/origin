@@ -97,7 +97,7 @@ NOTE: Replace "linux/amd64" with the appropriate value for your platform/archite
 
 11.  If it is not there already, add the current directory to the $PATH, so you can leverage the OpenShift commands elsewhere.
 
-12.  NOTE:  the set of steps above have not created a router for you, meaning that if you want to access your your pods, you will need to use their ips. https://github.com/openshift/origin/blob/master/docs/routing.md[Routing] contains details on how to setup a router.
+12.  NOTE:  the set of steps above have not created a router for you, meaning that if you want to access your pods, you will need to use their ips. https://github.com/openshift/origin/blob/master/docs/routing.md[Routing] contains details on how to setup a router.
 
 13.  You are now ready to edit the source, rebuild and restart OpenShift to test your changes.
 
