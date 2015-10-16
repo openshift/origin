@@ -8,13 +8,13 @@ import (
 	"github.com/coreos/go-etcd/etcd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/runtime"
 	kstorage "k8s.io/kubernetes/pkg/storage"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
-	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -153,7 +153,7 @@ func TestGetImageStreamTag(t *testing.T) {
 						"latest": {
 							Items: []api.TagEvent{
 								{
-									Created:              util.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+									Created:              unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
 									DockerImageReference: "test",
 									Image:                "10",
 								},
@@ -264,7 +264,7 @@ func TestGetImageStreamTag(t *testing.T) {
 			if e, a := map[string]string{"size": "large", "color": "blue"}, actual.Image.Annotations; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s: annotations: expected %v, got %v", name, e, a)
 			}
-			if e, a := util.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC), actual.CreationTimestamp; !a.Equal(e) {
+			if e, a := unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC), actual.CreationTimestamp; !a.Equal(e) {
 				t.Errorf("%s: timestamp: expected %v, got %v", name, e, a)
 			}
 		}

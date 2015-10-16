@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/util"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 )
 
 func TestGetName(t *testing.T) {

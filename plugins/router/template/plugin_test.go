@@ -8,7 +8,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
 
@@ -351,7 +351,7 @@ func TestHandleRoute(t *testing.T) {
 	// here
 	plugin := controller.NewUniqueHost(templatePlugin, controller.HostForRoute)
 
-	original := util.Time{Time: time.Now()}
+	original := unversioned.Time{Time: time.Now()}
 
 	//add
 	route := &routeapi.Route{
@@ -394,7 +394,7 @@ func TestHandleRoute(t *testing.T) {
 	// attempt to add a second route with a newer time, verify it is ignored
 	duplicateRoute := &routeapi.Route{
 		ObjectMeta: kapi.ObjectMeta{
-			CreationTimestamp: util.Time{Time: original.Add(time.Hour)},
+			CreationTimestamp: unversioned.Time{Time: original.Add(time.Hour)},
 			Namespace:         "foo",
 			Name:              "dupe",
 		},
@@ -430,7 +430,7 @@ func TestHandleRoute(t *testing.T) {
 	}
 
 	// add a second route with an older time, verify it takes effect
-	duplicateRoute.CreationTimestamp = util.Time{Time: original.Add(-time.Hour)}
+	duplicateRoute.CreationTimestamp = unversioned.Time{Time: original.Add(-time.Hour)}
 	if err := plugin.HandleRoute(watch.Added, duplicateRoute); err != nil {
 		t.Fatal("unexpected error")
 	}

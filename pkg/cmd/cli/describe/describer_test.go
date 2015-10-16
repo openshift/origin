@@ -7,10 +7,10 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
-	kutil "k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -215,11 +215,11 @@ func TestDescribeBuildDuration(t *testing.T) {
 		output string
 	}
 
-	creation := kutil.Date(2015, time.April, 9, 6, 0, 0, 0, time.Local)
+	creation := unversioned.Date(2015, time.April, 9, 6, 0, 0, 0, time.Local)
 	// now a minute ago
-	minuteAgo := kutil.Unix(unversioned.Now().Rfc3339Copy().Time.Unix()-60, 0)
-	start := kutil.Date(2015, time.April, 9, 6, 1, 0, 0, time.Local)
-	completion := kutil.Date(2015, time.April, 9, 6, 2, 0, 0, time.Local)
+	minuteAgo := unversioned.Unix(unversioned.Now().Rfc3339Copy().Time.Unix()-60, 0)
+	start := unversioned.Date(2015, time.April, 9, 6, 1, 0, 0, time.Local)
+	completion := unversioned.Date(2015, time.April, 9, 6, 2, 0, 0, time.Local)
 	duration := completion.Rfc3339Copy().Time.Sub(start.Rfc3339Copy().Time)
 	zeroDuration := time.Duration(0)
 

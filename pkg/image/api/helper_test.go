@@ -7,6 +7,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util"
 )
 
@@ -431,7 +432,7 @@ func TestImageWithMetadata(t *testing.T) {
 					ID:        "2d24f826cb16146e2016ff349a8a33ed5830f3b938d45c0f82943f4ab8c097e7",
 					Parent:    "117ee323aaa9d1b136ea55e4421f4ce413dfc6c0cc6b2186dea6c88d93e1ad7c",
 					Comment:   "",
-					Created:   util.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
+					Created:   unversioned.Date(2015, 2, 21, 2, 11, 6, 735146646, time.UTC),
 					Container: "c9a3eda5951d28aa8dbe5933be94c523790721e4f80886d0a8e7a710132a38ec",
 					ContainerConfig: DockerConfig{
 						Hostname:        "43bd710ec89a",

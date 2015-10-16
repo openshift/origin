@@ -6,8 +6,8 @@ import (
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/project/api"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/util"
 )
 
 func TestSyncNamespaceThatIsTerminating(t *testing.T) {

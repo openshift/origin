@@ -5,7 +5,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )

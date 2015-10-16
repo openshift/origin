@@ -8,7 +8,7 @@ import (
 	"github.com/gonum/graph/concrete"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"

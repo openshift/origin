@@ -91,6 +91,7 @@ func TestAdmit(t *testing.T) {
 		return &kapi.Pod{
 			Spec: kapi.PodSpec{
 				ServiceAccountName: "default",
+				SecurityContext:    &kapi.PodSecurityContext{},
 				Containers: []kapi.Container{
 					{
 						SecurityContext: &kapi.SecurityContext{},
@@ -125,13 +126,13 @@ func TestAdmit(t *testing.T) {
 	}
 
 	requestsHostNetwork := goodPod()
-	requestsHostNetwork.Spec.HostNetwork = true
+	requestsHostNetwork.Spec.SecurityContext.HostNetwork = true
 
 	requestsHostPID := goodPod()
-	requestsHostPID.Spec.HostPID = true
+	requestsHostPID.Spec.SecurityContext.HostPID = true
 
 	requestsHostIPC := goodPod()
-	requestsHostIPC.Spec.HostIPC = true
+	requestsHostIPC.Spec.SecurityContext.HostIPC = true
 
 	requestsHostPorts := goodPod()
 	requestsHostPorts.Spec.Containers[0].Ports = []kapi.ContainerPort{{HostPort: 1}}
@@ -293,7 +294,8 @@ func TestAssignSecurityContext(t *testing.T) {
 		"container SC is not changed when invalid": {
 			pod: &kapi.Pod{
 				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{createContainer(true)},
+					SecurityContext: &kapi.PodSecurityContext{},
+					Containers:      []kapi.Container{createContainer(true)},
 				},
 			},
 			shouldValidate: false,
@@ -302,7 +304,8 @@ func TestAssignSecurityContext(t *testing.T) {
 			pod: &kapi.Pod{
 				Spec: kapi.PodSpec{
 					// good pod and bad pod
-					Containers: []kapi.Container{createContainer(false), createContainer(true)},
+					SecurityContext: &kapi.PodSecurityContext{},
+					Containers:      []kapi.Container{createContainer(false), createContainer(true)},
 				},
 			},
 			shouldValidate: false,
@@ -310,7 +313,8 @@ func TestAssignSecurityContext(t *testing.T) {
 		"pod validates": {
 			pod: &kapi.Pod{
 				Spec: kapi.PodSpec{
-					Containers: []kapi.Container{createContainer(false)},
+					SecurityContext: &kapi.PodSecurityContext{},
+					Containers:      []kapi.Container{createContainer(false)},
 				},
 			},
 			shouldValidate: true,

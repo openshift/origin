@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // TestSort verifies that builds are sorted by most recently created
