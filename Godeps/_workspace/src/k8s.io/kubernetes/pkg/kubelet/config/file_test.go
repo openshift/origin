@@ -88,7 +88,8 @@ func TestReadPodsFromFile(t *testing.T) {
 					Namespace: "mynamespace",
 				},
 				Spec: api.PodSpec{
-					Containers: []api.Container{{Name: "image", Image: "test/image", SecurityContext: securitycontext.ValidSecurityContextWithContainerDefaults()}},
+					Containers:      []api.Container{{Name: "image", Image: "test/image", SecurityContext: securitycontext.ValidSecurityContextWithContainerDefaults()}},
+					SecurityContext: &api.PodSecurityContext{},
 				},
 			},
 			expected: CreatePodUpdate(kubelet.SET, kubelet.FileSource, &api.Pod{
@@ -109,6 +110,7 @@ func TestReadPodsFromFile(t *testing.T) {
 						TerminationMessagePath: "/dev/termination-log",
 						ImagePullPolicy:        "IfNotPresent",
 						SecurityContext:        securitycontext.ValidSecurityContextWithContainerDefaults()}},
+					SecurityContext: &api.PodSecurityContext{},
 				},
 			}),
 		},

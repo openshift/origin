@@ -1332,7 +1332,7 @@ func (kl *Kubelet) syncPod(pod *api.Pod, mirrorPod *api.Pod, runningPod kubecont
 		return err
 	}
 	if egress != nil || ingress != nil {
-		if pod.Spec.HostNetwork {
+		if podUsesHostNetwork(pod) {
 			kl.recorder.Event(pod, "HostNetworkNotSupported", "Bandwidth shaping is not currently supported on the host network")
 		} else if kl.shaper != nil {
 			status, found := kl.statusManager.GetPodStatus(pod.UID)
@@ -1369,6 +1369,10 @@ func (kl *Kubelet) syncPod(pod *api.Pod, mirrorPod *api.Pod, runningPod kubecont
 		}
 	}
 	return nil
+}
+
+func podUsesHostNetwork(pod *api.Pod) bool {
+	return pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork
 }
 
 // getPullSecretsForPod inspects the Pod and retrieves the referenced pull secrets
@@ -2593,7 +2597,7 @@ func (kl *Kubelet) generatePodStatus(pod *api.Pod) (api.PodStatus, error) {
 			glog.V(4).Infof("Cannot get host IP: %v", err)
 		} else {
 			podStatus.HostIP = hostIP.String()
-			if pod.Spec.HostNetwork && podStatus.PodIP == "" {
+			if podUsesHostNetwork(pod) && podStatus.PodIP == "" {
 				podStatus.PodIP = hostIP.String()
 			}
 		}

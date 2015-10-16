@@ -34,6 +34,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -123,33 +124,20 @@ func TestList(t *testing.T) {
 			},
 		},
 	}
-	grace := int64(30)
 	expect := api.PodList{
 		ListMeta: api.ListMeta{ResourceVersion: "10"},
 		Items: []api.Pod{
 			{
 				ObjectMeta: api.ObjectMeta{Name: "bar", ResourceVersion: "2"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 			{
 				ObjectMeta: api.ObjectMeta{Name: "baz", ResourceVersion: "3"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 			{
 				ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 		},
 	}
@@ -210,34 +198,21 @@ func TestListAcrossDirectories(t *testing.T) {
 			},
 		},
 	}
-	grace := int64(30)
 	expect := api.PodList{
 		ListMeta: api.ListMeta{ResourceVersion: "10"},
 		Items: []api.Pod{
 			// We expect list to be sorted by directory (e.g. namespace) first, then by name.
 			{
 				ObjectMeta: api.ObjectMeta{Name: "baz", ResourceVersion: "3"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 			{
 				ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 			{
 				ObjectMeta: api.ObjectMeta{Name: "bar", ResourceVersion: "2"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 		},
 	}
@@ -286,33 +261,20 @@ func TestListExcludesDirectories(t *testing.T) {
 			},
 		},
 	}
-	grace := int64(30)
 	expect := api.PodList{
 		ListMeta: api.ListMeta{ResourceVersion: "10"},
 		Items: []api.Pod{
 			{
 				ObjectMeta: api.ObjectMeta{Name: "bar", ResourceVersion: "2"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 			{
 				ObjectMeta: api.ObjectMeta{Name: "baz", ResourceVersion: "3"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 			{
 				ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "1"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 		},
 	}
@@ -331,14 +293,9 @@ func TestGet(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
 	helper := newEtcdHelper(fakeClient, testapi.Default.Codec(), etcdtest.PathPrefix())
 	key := etcdtest.AddPrefix("/some/key")
-	grace := int64(30)
 	expect := api.Pod{
 		ObjectMeta: api.ObjectMeta{Name: "foo"},
-		Spec: api.PodSpec{
-			RestartPolicy:                 api.RestartPolicyAlways,
-			DNSPolicy:                     api.DNSClusterFirst,
-			TerminationGracePeriodSeconds: &grace,
-		},
+		Spec:       apitesting.DeepEqualSafePodSpec(),
 	}
 	fakeClient.Set(key, runtime.EncodeOrDie(testapi.Default.Codec(), &expect), 0)
 	var got api.Pod

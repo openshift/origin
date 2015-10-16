@@ -506,9 +506,15 @@ func convert_v1beta3_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s con
 	}
 	out.ServiceAccountName = in.ServiceAccount
 	out.NodeName = in.Host
-	out.HostNetwork = in.HostNetwork
-	out.HostPID = in.HostPID
-	out.HostIPC = in.HostIPC
+	// Backward compatibility with internal API changes for PodSecurityContext.
+	// No conversion is necessary here because PodSecurityContext is not exposed
+	// though the v1beta3 API.
+	if out.SecurityContext == nil {
+		out.SecurityContext = new(api.PodSecurityContext)
+	}
+	out.SecurityContext.HostNetwork = in.HostNetwork
+	out.SecurityContext.HostPID = in.HostPID
+	out.SecurityContext.HostIPC = in.HostIPC
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -570,9 +576,16 @@ func convert_api_PodSpec_To_v1beta3_PodSpec(in *api.PodSpec, out *PodSpec, s con
 	}
 	out.ServiceAccount = in.ServiceAccountName
 	out.Host = in.NodeName
-	out.HostNetwork = in.HostNetwork
-	out.HostPID = in.HostPID
-	out.HostIPC = in.HostIPC
+
+	// Backward compatibility with internal API changes for PodSecurityContext.
+	// No conversion is necessary here because PodSecurityContext is not exposed
+	// though the v1beta3 API.
+	if in.SecurityContext != nil {
+		out.HostPID = in.SecurityContext.HostPID
+		out.HostNetwork = in.SecurityContext.HostNetwork
+		out.HostIPC = in.SecurityContext.HostIPC
+	}
+
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {

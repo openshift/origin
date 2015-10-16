@@ -142,8 +142,9 @@ func TestExtractPodsFromHTTP(t *testing.T) {
 					Namespace: "mynamespace",
 				},
 				Spec: api.PodSpec{
-					NodeName:   hostname,
-					Containers: []api.Container{{Name: "1", Image: "foo", ImagePullPolicy: api.PullAlways}},
+					NodeName:        hostname,
+					Containers:      []api.Container{{Name: "1", Image: "foo", ImagePullPolicy: api.PullAlways}},
+					SecurityContext: &api.PodSecurityContext{},
 				},
 			},
 			expected: CreatePodUpdate(kubelet.SET,
@@ -160,6 +161,7 @@ func TestExtractPodsFromHTTP(t *testing.T) {
 						NodeName:                      hostname,
 						RestartPolicy:                 api.RestartPolicyAlways,
 						DNSPolicy:                     api.DNSClusterFirst,
+						SecurityContext:               &api.PodSecurityContext{},
 						TerminationGracePeriodSeconds: &grace,
 
 						Containers: []api.Container{{
@@ -185,8 +187,9 @@ func TestExtractPodsFromHTTP(t *testing.T) {
 							UID:  "111",
 						},
 						Spec: api.PodSpec{
-							NodeName:   hostname,
-							Containers: []api.Container{{Name: "1", Image: "foo", ImagePullPolicy: api.PullAlways}},
+							NodeName:        hostname,
+							Containers:      []api.Container{{Name: "1", Image: "foo", ImagePullPolicy: api.PullAlways}},
+							SecurityContext: &api.PodSecurityContext{},
 						},
 					},
 					{
@@ -195,8 +198,9 @@ func TestExtractPodsFromHTTP(t *testing.T) {
 							UID:  "222",
 						},
 						Spec: api.PodSpec{
-							NodeName:   hostname,
-							Containers: []api.Container{{Name: "2", Image: "bar", ImagePullPolicy: ""}},
+							NodeName:        hostname,
+							Containers:      []api.Container{{Name: "2", Image: "bar", ImagePullPolicy: ""}},
+							SecurityContext: &api.PodSecurityContext{},
 						},
 					},
 				},
@@ -216,6 +220,7 @@ func TestExtractPodsFromHTTP(t *testing.T) {
 						RestartPolicy:                 api.RestartPolicyAlways,
 						DNSPolicy:                     api.DNSClusterFirst,
 						TerminationGracePeriodSeconds: &grace,
+						SecurityContext:               &api.PodSecurityContext{},
 
 						Containers: []api.Container{{
 							Name:  "1",
@@ -238,6 +243,7 @@ func TestExtractPodsFromHTTP(t *testing.T) {
 						RestartPolicy:                 api.RestartPolicyAlways,
 						DNSPolicy:                     api.DNSClusterFirst,
 						TerminationGracePeriodSeconds: &grace,
+						SecurityContext:               &api.PodSecurityContext{},
 
 						Containers: []api.Container{{
 							Name:  "2",
