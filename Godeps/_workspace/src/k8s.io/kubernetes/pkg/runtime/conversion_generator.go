@@ -606,7 +606,7 @@ func (g *conversionGenerator) writeConversionForSlice(b *buffer, inField, outFie
 	}
 	if !assigned {
 		assignStmt := ""
-		if g.existsDedicatedConversionFunction(inField.Type.Elem(), outField.Type.Elem()) {
+		if g.existsDedicatedConversionFunction(inField.Type.Elem(), outField.Type.Elem()) && !g.isCustomRegisteredConversionFunction(inField.Type.Elem(), outField.Type.Elem()) {
 			assignFormat := "if err := %s(&in.%s[i], &out.%s[i], s); err != nil {\n"
 			funcName := g.conversionFunctionName(inField.Type.Elem(), outField.Type.Elem())
 			assignStmt = fmt.Sprintf(assignFormat, funcName, inField.Name, outField.Name)
@@ -666,7 +666,7 @@ func (g *conversionGenerator) writeConversionForPtr(b *buffer, inField, outField
 	ifStmt := fmt.Sprintf(ifFormat, inField.Name)
 	b.addLine(ifStmt, indent)
 	assignStmt := ""
-	if g.existsDedicatedConversionFunction(inField.Type.Elem(), outField.Type.Elem()) {
+	if g.existsDedicatedConversionFunction(inField.Type.Elem(), outField.Type.Elem()) && !g.isCustomRegisteredConversionFunction(inField.Type.Elem(), outField.Type.Elem()) {
 		newFormat := "out.%s = new(%s)\n"
 		newStmt := fmt.Sprintf(newFormat, outField.Name, g.typeName(outField.Type.Elem()))
 		b.addLine(newStmt, indent+1)
@@ -772,7 +772,7 @@ func (g *conversionGenerator) writeConversionForStruct(b *buffer, inType, outTyp
 		}
 
 		assignStmt := ""
-		if g.existsDedicatedConversionFunction(inField.Type, outField.Type) {
+		if g.existsDedicatedConversionFunction(inField.Type, outField.Type) && !g.isCustomRegisteredConversionFunction(inField.Type, outField.Type) {
 			assignFormat := "if err := %s(&in.%s, &out.%s, s); err != nil {\n"
 			funcName := g.conversionFunctionName(inField.Type, outField.Type)
 			assignStmt = fmt.Sprintf(assignFormat, funcName, inField.Name, outField.Name)
@@ -865,6 +865,10 @@ func (g *conversionGenerator) existsDedicatedConversionFunction(inType, outType 
 	if g.assumePrivateConversions {
 		return false
 	}
+	return g.scheme.Converter().HasConversionFunc(inType, outType)
+}
+
+func (g *conversionGenerator) isCustomRegisteredConversionFunction(inType, outType reflect.Type) bool {
 	return g.scheme.Converter().HasConversionFunc(inType, outType)
 }
 
