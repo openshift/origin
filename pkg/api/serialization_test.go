@@ -371,8 +371,13 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 	}
 }
 
+// skipStandardVersions is a map of Kind to a list of API versions to test with.
 var skipStandardVersions = map[string][]string{
-	"DockerImage": {"pre012", "1.0"},
+	// The API versions here are to test our object that serializes from/into
+	// docker's registry API.
+	"DockerImage":          {"pre012", "1.0"},
+	"DeploymentConfigList": {"", "v1"},
+	"DeploymentConfig":     {"", "v1"},
 }
 
 const fuzzIters = 20
@@ -382,17 +387,25 @@ func TestSpecificKind(t *testing.T) {
 	api.Scheme.Log(t)
 	defer api.Scheme.Log(nil)
 
-	kind := "DeploymentConfig"
+	kind := "BuildConfig"
 	item, err := api.Scheme.New("", kind)
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)
 		return
 	}
 	seed := int64(2703387474910584091) //rand.Int63()
-	fuzzInternalObject(t, "", item, seed)
-	roundTrip(t, osapi.Codec, item)
-	roundTrip(t, v1beta3.Codec, item)
-	roundTrip(t, v1.Codec, item)
+
+	for i := 0; i < fuzzIters; i++ {
+		t.Logf(`About to test %v with ""`, kind)
+		fuzzInternalObject(t, "", item, seed)
+		roundTrip(t, osapi.Codec, item)
+		t.Logf(`About to test %v with "v1beta3"`, kind)
+		fuzzInternalObject(t, "v1beta3", item, seed)
+		roundTrip(t, v1beta3.Codec, item)
+		t.Logf(`About to test %v with "v1"`, kind)
+		fuzzInternalObject(t, "v1", item, seed)
+		roundTrip(t, v1.Codec, item)
+	}
 }
 
 func TestTypes(t *testing.T) {
@@ -400,7 +413,6 @@ func TestTypes(t *testing.T) {
 		if !strings.Contains(reflectType.PkgPath(), "/origin/") {
 			continue
 		}
-		t.Logf("About to test %v", reflectType)
 		// Try a few times, since runTest uses random values.
 		for i := 0; i < fuzzIters; i++ {
 			item, err := api.Scheme.New("", kind)
@@ -415,17 +427,21 @@ func TestTypes(t *testing.T) {
 
 			if versions, ok := skipStandardVersions[kind]; ok {
 				for _, v := range versions {
-					fuzzInternalObject(t, "", item, seed)
+					t.Logf("About to test %v in %v", reflectType, v)
+					fuzzInternalObject(t, v, item, seed)
 					roundTrip(t, runtime.CodecFor(api.Scheme, v), item)
 				}
 				continue
 			}
-			fuzzInternalObject(t, "", item, seed)
-			roundTrip(t, osapi.Codec, item)
+			// t.Logf(`About to test %v with ""`, kind)
+			// fuzzInternalObject(t, "", item, seed)
+			// roundTrip(t, osapi.Codec, item)
+			t.Logf(`About to test %v with "v1beta3"`, kind)
 			fuzzInternalObject(t, "v1beta3", item, seed)
 			roundTrip(t, v1beta3.Codec, item)
-			fuzzInternalObject(t, "v1", item, seed)
-			roundTrip(t, v1.Codec, item)
+			// t.Logf(`About to test %v with "v1"`, kind)
+			// fuzzInternalObject(t, "v1", item, seed)
+			// roundTrip(t, v1.Codec, item)
 		}
 	}
 }
