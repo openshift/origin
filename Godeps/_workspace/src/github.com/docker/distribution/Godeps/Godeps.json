@@ -6,26 +6,20 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "code.google.com/p/go-uuid/uuid",
-			"Comment": "null-15",
-			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
-		},
-		{
 			"ImportPath": "github.com/AdRoll/goamz/aws",
-			"Rev": "cc210f45dcb9889c2769a274522be2bf70edfb99"
+			"Rev": "f8c4952d5bc3056c0ca6711a1f56bc88b828d989"
 		},
 		{
 			"ImportPath": "github.com/AdRoll/goamz/cloudfront",
-			"Rev": "cc210f45dcb9889c2769a274522be2bf70edfb99"
+			"Rev": "f8c4952d5bc3056c0ca6711a1f56bc88b828d989"
 		},
 		{
 			"ImportPath": "github.com/AdRoll/goamz/s3",
-			"Rev": "cc210f45dcb9889c2769a274522be2bf70edfb99"
+			"Rev": "f8c4952d5bc3056c0ca6711a1f56bc88b828d989"
 		},
 		{
-			"ImportPath": "github.com/MSOpenTech/azure-sdk-for-go/storage",
-			"Comment": "v1.2-43-gd90753b",
-			"Rev": "d90753bcad2ed782fcead7392d1e831df29aa2bb"
+			"ImportPath": "github.com/Azure/azure-sdk-for-go/storage",
+			"Rev": "97d9593768bbbbd316f9c055dfc5f780933cd7fc"
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
@@ -51,14 +45,17 @@
 			"Rev": "6086d7927ec35315964d9fea46df6c04e6d697c1"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/pkg/tarsum",
-			"Comment": "v1.4.1-863-g165ea5c",
-			"Rev": "165ea5c158cff3fc40d476ffe233a5ccc03e7d61"
+			"ImportPath": "github.com/denverdino/aliyungo/oss",
+			"Rev": "0e0f322d0a54b994dea9d32541050d177edf6aa3"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar",
-			"Comment": "v1.4.1-863-g165ea5c",
-			"Rev": "165ea5c158cff3fc40d476ffe233a5ccc03e7d61"
+			"ImportPath": "github.com/denverdino/aliyungo/util",
+			"Rev": "0e0f322d0a54b994dea9d32541050d177edf6aa3"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/tarsum",
+			"Comment": "v1.4.1-3932-gb63ec6e",
+			"Rev": "b63ec6e4b1f6f5c77a6a74a52fcea9564538c575"
 		},
 		{
 			"ImportPath": "github.com/docker/libtrust",
@@ -78,15 +75,28 @@
 		},
 		{
 			"ImportPath": "github.com/gorilla/handlers",
-			"Rev": "0e84b7d810c16aed432217e330206be156bafae0"
+			"Rev": "60c7bfde3e33c201519a200a4507a158cc03a17b"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
 			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
 		},
 		{
-			"ImportPath": "github.com/jlhawn/go-crypto",
-			"Rev": "cd738dde20f0b3782516181b0866c9bb9db47401"
+			"ImportPath": "github.com/noahdesu/go-ceph/rados",
+			"Comment": "v.0.3.0-29-gb15639c",
+			"Rev": "b15639c44c05368348355229070361395d9152ee"
+		},
+		{
+			"ImportPath": "github.com/stevvooe/resumable",
+			"Rev": "51ad44105773cafcbe91927f70ac68e1bf78f8b4"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "482a9fd5fa83e8c4e7817413b80f3eb8feec03ef"
+		},
+		{
+			"ImportPath": "github.com/ncw/swift",
+			"Rev": "22c8fa9fb5ba145b4d4e2cebb027e84b1a7b1296"
 		},
 		{
 			"ImportPath": "github.com/yvasiyarov/go-metrics",
@@ -100,6 +110,14 @@
 		{
 			"ImportPath": "github.com/yvasiyarov/newrelic_platform_go",
 			"Rev": "b21fdbd4370f3717f3bbd2bf41c223bc273068e6"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/bcrypt",
+			"Rev": "c10c31b5e94b6f7a0283272dc2bb27163dcea24b"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/blowfish",
+			"Rev": "c10c31b5e94b6f7a0283272dc2bb27163dcea24b"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",

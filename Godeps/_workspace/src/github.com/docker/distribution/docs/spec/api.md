@@ -1,8 +1,12 @@
-<!--GITHUB
-page_title: Docker Registry HTTP API V2
-page_description: Explains how to use registry API
-page_keywords: registry, service, driver, images, storage, api
-IGNORES-->
+<!--[metadata]>
++++
+title = "Docker Registry HTTP API V2"
+description = "This is a specification for the API."
+keywords = ["registry, service, driver, images, storage,  api"]
+[menu.main]
+parent="smn_registry_ref"
++++
+<![end-metadata]-->
 
 # Docker Registry HTTP API V2
 
@@ -115,33 +119,62 @@ This section should be updated when changes are made to the specification,
 indicating what is different. Optionally, we may start marking parts of the
 specification to correspond with the versions enumerated here.
 
+Each set of changes is given a letter corresponding to a set of modifications
+that were applied to the baseline specification. These are merely for
+reference and shouldn't be used outside the specification other than to
+identify a set of modifications.
+
 <dl>
-	<dt>2.0.1</dt>
-	<dd>
-		<ul>
-			<li>Added capability of doing streaming upload to PATCH blob upload.</li>
-			<li>Updated PUT blob upload to no longer take final chunk, now requires entire data or no data.</li>
-			<li>Removed `416 Requested Range Not Satisfiable` response status from PUT blob upload.</li>
-		</ul>
-	</dd>
+  <dt>f</dt>
+  <dd>
+    <ul>
+      <li>Specify the delete API for layers and manifests.</li>
+    </ul>
+  </dd>
 
-	<dt>2.0.0</dt>
-	<dd>
-		<ul>
-			<li>Added support for immutable manifest references in manifest endpoints.</li>
-			<li>Deleting a manifest by tag has been deprecated.</li>
-			<li>Specified `Docker-Content-Digest` header for appropriate entities.</li>
-			<li>Added error code for unsupported operations.</li>
-			<li>Added capability of doing streaming upload to PATCH blob upload.</li>
-			<li>Updated PUT blob upload to no longer take final chunk, now requires entire data or no data.</li>
-			<li>Removed 416 return code from PUT blob upload.</li>
-		</ul>
-	</dd>
+  <dt>e</dt>
+  <dd>
+    <ul>
+      <li>Added support for listing registry contents.</li>
+      <li>Added pagination to tags API.</li>
+      <li>Added common approach to support pagination.</li>
+    </ul>
+  </dd>
 
-	<dt>2.0</dt>
-	<dd>
-		This is the baseline specification.
-	</dd>
+  <dt>d</dt>
+  <dd>
+    <ul>
+      <li>Allow repository name components to be one character.</li>
+      <li>Clarified that single component names are allowed.</li>
+    </ul>
+  </dd>
+
+  <dt>c</dt>
+  <dd>
+    <ul>
+      <li>Added section covering digest format.</li>
+      <li>Added more clarification that manifest cannot be deleted by tag.</li>
+    </ul>
+  </dd>
+
+  <dt>b</dt>
+  <dd>
+    <ul>
+      <li>Added capability of doing streaming upload to PATCH blob upload.</li>
+      <li>Updated PUT blob upload to no longer take final chunk, now requires entire data or no data.</li>
+      <li>Removed `416 Requested Range Not Satisfiable` response status from PUT blob upload.</li>
+    </ul>
+  </dd>
+
+  <dt>a</dt>
+  <dd>
+    <ul>
+      <li>Added support for immutable manifest references in manifest endpoints.</li>
+      <li>Deleting a manifest by tag has been deprecated.</li>
+      <li>Specified `Docker-Content-Digest` header for appropriate entities.</li>
+      <li>Added error code for unsupported operations.</li>
+    </ul>
+  </dd>
 </dl>
 
 ## Overview
@@ -167,12 +200,11 @@ path component is less than 30 characters. The V2 registry API does not
 enforce this. The rules for a repository name are as follows:
 
 1. A repository name is broken up into _path components_. A component of a
-   repository name must be at least two lowercase, alpha-numeric characters,
+   repository name must be at least one lowercase, alpha-numeric characters,
    optionally separated by periods, dashes or underscores. More strictly, it
-   must match the regular expression `[a-z0-9]+(?:[._-][a-z0-9]+)*` and the
-   matched result must be 2 or more characters in length.
-2. The name of a repository must have at least two path components, separated
-   by a forward slash.
+   must match the regular expression `[a-z0-9]+(?:[._-][a-z0-9]+)*`.
+2. If a repository  name has two or more path components, they must be
+   separated by a forward slash ("/").
 3. The total length of a repository name, including slashes, must be less the
    256 characters.
 
@@ -240,6 +272,84 @@ When a `200 OK` or `401 Unauthorized` response is returned, the
 "Docker-Distribution-API-Version" header should be set to "registry/2.0".
 Clients may require this header value to determine if the endpoint serves this
 API. When this header is omitted, clients may fallback to an older API version.
+
+### Content Digests
+
+This API design is driven heavily by [content addressability](http://en.wikipedia.org/wiki/Content-addressable_storage).
+The core of this design is the concept of a content addressable identifier. It
+uniquely identifies content by taking a collision-resistant hash of the bytes.
+Such an identifier can be independently calculated and verified by selection
+of a common _algorithm_. If such an identifier can be communicated in a secure
+manner, one can retrieve the content from an insecure source, calculate it
+independently and be certain that the correct content was obtained. Put simply,
+the identifier is a property of the content.
+
+To disambiguate from other concepts, we call this identifier a _digest_. A
+_digest_ is a serialized hash result, consisting of a _algorithm_ and _hex_
+portion. The _algorithm_ identifies the methodology used to calculate the
+digest. The _hex_ portion is the hex-encoded result of the hash.
+
+We define a _digest_ string to match the following grammar:
+
+  digest      := algorithm ":" hex
+  algorithm   := /[A-Fa-f0-9_+.-]+/
+  hex         := /[A-Fa-f0-9]+/
+
+Some examples of _digests_ include the following:
+
+digest                                                                            | description                                   |
+----------------------------------------------------------------------------------|------------------------------------------------
+sha256:6c3c624b58dbbcd3c0dd82b4c53f04194d1247c6eebdaab7c610cf7d66709b3b           | Common sha256 based digest                    |
+tarsum.v1+sha256:6c3c624b58dbbcd3c0dd82b4c53f04194d1247c6eebdaab7c610cf7d66709b3b | Tarsum digest, used for legacy layer digests. |
+
+> __NOTE:__ While we show an example of using a `tarsum` digest, the security
+> of tarsum has not been verified. It is recommended that most implementations
+> use sha256 for interoperability.
+
+While the _algorithm_ does allow one to implement a wide variety of
+algorithms, compliant implementations should use sha256. Heavy processing of
+input before calculating a hash is discouraged to avoid degrading the
+uniqueness of the _digest_ but some canonicalization may be performed to
+ensure consistent identifiers.
+
+Let's use a simple example in pseudo-code to demonstrate a digest calculation:
+
+```
+let C = 'a small string'
+let B = sha256(C)
+let D = 'sha256:' + EncodeHex(B)
+let ID(C) = D
+```
+
+Above, we have bytestring _C_ passed into a function, _SHA256_, that returns a
+bytestring B, which is the hash of _C_. _D_ gets the algorithm concatenated
+with the hex encoding of _B_. We then define the identifier of _C_ to _ID(C)_
+as equal to _D_. A digest can be verified by independently calculating _D_ and
+comparing it with identifier _ID(C)_
+
+#### Digest Header
+
+To provide verification of http content, any response may include a `Docker-
+Content-Digest` header. This will include the digest of the target entity
+returned in the response. For blobs, this is the entire blob content. For
+manifests, this is the manifest body without the signature content, also known
+as the JWS payload. Note that the commonly used canonicalization for digest
+calculation may be dependent on the mediatype of the content, such as with
+manifests.
+
+The client may choose to ignore the header or may verify it to ensure content
+integrity and transport security. This is most important when fetching by a
+digest. To ensure security, the content should be verified against the digest
+used to fetch the content. At times, the returned digest may differ from that
+used to initiate a request. Such digests are considered to be from different
+_domains_, meaning they have different values for _algorithm_. In such a case,
+the client may choose to verify the digests in both domains or ignore the
+server's digest. To maintain security, the client _must_ always verify the
+content against the _digest_ used to fetch the content.
+
+> __IMPORTANT:__ If a _digest_ is used to fetch content, the client should use
+> the same digest used to fetch the content to verify it. The header `Docker-
+> Content-Digest` should not be trusted over the "local" digest.
 
 ### Pulling An Image
 
@@ -609,6 +719,25 @@ Note that the upload url will not be available forever. If the upload uuid is
 unknown to the registry, a `404 Not Found` response will be returned and the
 client must restart the upload process.
 
+### Deleting a Layer
+
+A layer may be deleted from the registry via its `name` and `digest`. A
+delete may be issued with the following request format:
+
+    DELETE /v2/<name>/blobs/<digest>
+
+If the blob exists and has been successfully deleted, the following response
+will be issued:
+
+    202 Accepted
+    Content-Length: None
+
+If the blob had already been deleted or did not exist, a `404 Not Found`
+response will be issued instead.
+
+If a layer is deleted which is referenced by a manifest in the registry,
+then the complete images will not be resolvable.
+
 #### Pushing an Image Manifest
 
 Once all of the layers for an image are uploaded, the client can upload the
@@ -655,7 +784,131 @@ each unknown blob. The response format is as follows:
         ]
     }
 
-#### Listing Image Tags
+### Listing Repositories
+
+Images are stored in collections, known as a _repository_, which is keyed by a
+`name`, as seen throughout the API specification. A registry instance may
+contain several repositories. The list of available repositories is made
+available through the _catalog_.
+
+The catalog for a given registry can be retrieved with the following request:
+
+```
+GET /v2/_catalog
+```
+
+The response will be in the following format:
+
+```
+200 OK
+Content-Type: application/json
+
+{
+  "repositories": [
+    <name>,
+    ...
+  ]
+}
+```
+
+Note that the contents of the response are specific to the registry
+implementation. Some registries may opt to provide a full catalog output,
+limit it based on the user's access level or omit upstream results, if
+providing mirroring functionality. Subsequently, the presence of a repository
+in the catalog listing only means that the registry *may* provide access to
+the repository at the time of the request. Conversely, a missing entry does
+*not* mean that the registry does not have the repository. More succinctly,
+the presence of a repository only guarantees that it is there but not that it
+is _not_ there.
+
+For registries with a large number of repositories, this response may be quite
+large. If such a response is expected, one should use pagination.
+
+#### Pagination
+
+Paginated catalog results can be retrieved by adding an `n` parameter to the
+request URL, declaring that the response should be limited to `n` results.
+Starting a paginated flow begins as follows:
+
+```
+GET /v2/_catalog?n=<integer>
+```
+
+The above specifies that a catalog response should be returned, from the start of
+the result set, ordered lexically, limiting the number of results to `n`. The
+response to such a request would look as follows:
+
+```
+200 OK
+Content-Type: application/json
+Link: <<url>?n=<n from the request>&last=<last repository in response>>; rel="next"
+
+{
+  "repositories": [
+    <name>,
+    ...
+  ]
+}
+```
+
+The above includes the _first_ `n` entries from the result set. To get the
+_next_ `n` entries, one can create a URL where the argument `last` has the
+value from `repositories[len(repositories)-1]`. If there are indeed more
+results, the URL for the next block is encoded in an
+[RFC5988](https://tools.ietf.org/html/rfc5988) `Link` header, as a "next"
+relation. The presence of the `Link` header communicates to the client that
+the entire result set has not been returned and another request must be
+issued. If the header is not present, the client can assume that all results
+have been recieved.
+
+> __NOTE:__ In the request template above, note that the brackets
+> are required. For example, if the url is
+> `http://example.com/v2/_catalog?n=20&last=b`, the value of the header would
+> be `<http://example.com/v2/_catalog?n=20&last=b>; rel="next"`. Please see
+> [RFC5988](https://tools.ietf.org/html/rfc5988) for details.
+
+Compliant client implementations should always use the `Link` header
+value when proceeding through results linearly. The client may construct URLs
+to skip forward in the catalog.
+
+To get the next result set, a client would issue the request as follows, using
+the URL encoded in the described `Link` header:
+
+```
+GET /v2/_catalog?n=<n from the request>&last=<last repository value from previous response>
+```
+
+The above process should then be repeated until the `Link` header is no longer
+set.
+
+The catalog result set is represented abstractly as a lexically sorted list,
+where the position in that list can be specified by the query term `last`. The
+entries in the response start _after_ the term specified by `last`, up to `n`
+entries.
+
+The behavior of `last` is quite simple when demonstrated with an example. Let
+us say the registry has the following repositories:
+
+```
+a
+b
+c
+d
+```
+
+If the value of `n` is 2, _a_ and _b_ will be returned on the first response.
+The `Link` header returned on the response will have `n` set to 2 and last set
+to _b_:
+
+```
+Link: <<url>?n=2&last=b>; rel="next"
+```
+
+The client can then issue the request with above value from the `Link` header,
+receiving the values _c_ and _d_. Note that n may change on second to last
+response or be omitted fully, if the server may so choose.
+
+### Listing Image Tags
 
 It may be necessary to list all of the tags under a given repository. The tags
 for an image repository can be retrieved with the following request:
@@ -676,8 +929,51 @@ The response will be in the following format:
     }
 
 For repositories with a large number of tags, this response may be quite
-large, so care should be taken by the client when parsing the response to
-reduce copying.
+large. If such a response is expected, one should use the pagination.
+
+#### Pagination
+
+Paginated tag results can be retrieved by adding the appropriate parameters to
+the request URL described above. The behavior of tag pagination is identical
+to that specified for catalog pagination. We cover a simple flow to highlight
+any differences.
+
+Starting a paginated flow may begin as follows:
+
+```
+GET /v2/<name>/tags/list?n=<integer>
+```
+
+The above specifies that a tags response should be returned, from the start of
+the result set, ordered lexically, limiting the number of results to `n`. The
+response to such a request would look as follows:
+
+```
+200 OK
+Content-Type: application/json
+Link: <<url>?n=<n from the request>&last=<last tag value from previous response>>; rel="next"
+
+{
+  "name": <name>,
+  "tags": [
+    <tag>,
+    ...
+  ]
+}
+```
+
+To get the next result set, a client would issue the request as follows, using
+the value encoded in the [RFC5988](https://tools.ietf.org/html/rfc5988) `Link`
+header:
+
+```
+GET /v2/<name>/tags/list?n=<n from the request>&last=<last tag value from previous response>
+```
+
+The above process should then be repeated until the `Link` header is no longer
+set in the response. The behavior of the `last` parameter, the provided
+response result, lexical ordering and encoding of the `Link` header are
+identical to that of catalog pagination.
 
 ### Deleting an Image
 
@@ -715,18 +1011,20 @@ corresponding responses, with success and failure, are enumerated.
 A list of methods and URIs are covered in the table below:
 
 |Method|Path|Entity|Description|
--------|----|------|------------
+|------|----|------|-----------|
 | GET | `/v2/` | Base | Check that the endpoint implements Docker Registry API V2. |
 | GET | `/v2/<name>/tags/list` | Tags | Fetch the tags under the repository identified by `name`. |
 | GET | `/v2/<name>/manifests/<reference>` | Manifest | Fetch the manifest identified by `name` and `reference` where `reference` can be a tag or digest. |
 | PUT | `/v2/<name>/manifests/<reference>` | Manifest | Put the manifest identified by `name` and `reference` where `reference` can be a tag or digest. |
-| DELETE | `/v2/<name>/manifests/<reference>` | Manifest | Delete the manifest identified by `name` and `reference` where `reference` can be a tag or digest. |
+| DELETE | `/v2/<name>/manifests/<reference>` | Manifest | Delete the manifest identified by `name` and `reference`. Note that a manifest can _only_ be deleted by `digest`. |
 | GET | `/v2/<name>/blobs/<digest>` | Blob | Retrieve the blob from the registry identified by `digest`. A `HEAD` request can also be issued to this endpoint to obtain resource information without receiving all data. |
-| POST | `/v2/<name>/blobs/uploads/` | Intiate Blob Upload | Initiate a resumable blob upload. If successful, an upload location will be provided to complete the upload. Optionally, if the `digest` parameter is present, the request body will be used to complete the upload in a single request. |
+| DELETE | `/v2/<name>/blobs/<digest>` | Blob | Delete the blob identified by `name` and `digest` |
+| POST | `/v2/<name>/blobs/uploads/` | Initiate Blob Upload | Initiate a resumable blob upload. If successful, an upload location will be provided to complete the upload. Optionally, if the `digest` parameter is present, the request body will be used to complete the upload in a single request. |
 | GET | `/v2/<name>/blobs/uploads/<uuid>` | Blob Upload | Retrieve status of upload identified by `uuid`. The primary purpose of this endpoint is to resolve the current status of a resumable upload. |
 | PATCH | `/v2/<name>/blobs/uploads/<uuid>` | Blob Upload | Upload a chunk of data for the specified upload. |
 | PUT | `/v2/<name>/blobs/uploads/<uuid>` | Blob Upload | Complete the upload specified by `uuid`, optionally appending the body as the final chunk. |
 | DELETE | `/v2/<name>/blobs/uploads/<uuid>` | Blob Upload | Cancel outstanding upload processes, releasing associated resources. If this is not called, the unfinished uploads will eventually timeout. |
+| GET | `/v2/_catalog` | Catalog | Retrieve a sorted, json list of repositories available in the registry. |
 
 
 The detail for each endpoint is covered in the following sections.
@@ -736,21 +1034,21 @@ The detail for each endpoint is covered in the following sections.
 The error codes encountered via the API are enumerated in the following table:
 
 |Code|Message|Description|
--------|----|------|------------
- `UNKNOWN` | unknown error | Generic error returned when the error does not have an API classification.
- `UNSUPPORTED` | The operation is unsupported. | The operation was unsupported due to a missing implementation or invalid set of parameters.
- `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status.
- `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest.
- `SIZE_INVALID` | provided length did not match content length | When a layer is uploaded, the provided size will be checked against the uploaded content. If they do not match, this error will be returned.
- `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation.
- `TAG_INVALID` | manifest tag did not match URI | During a manifest upload, if the tag in the manifest does not match the uri tag, this error will be returned.
- `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry.
- `MANIFEST_UNKNOWN` | manifest unknown | This error is returned when the manifest, identified by name and tag is unknown to the repository.
- `MANIFEST_INVALID` | manifest invalid | During upload, manifests undergo several checks ensuring validity. If those checks fail, this error may be returned, unless a more specific error is included. The detail will contain information the failed validation.
- `MANIFEST_UNVERIFIED` | manifest failed signature verification | During manifest upload, if the manifest fails signature verification, this error will be returned.
+|----|-------|-----------|
  `BLOB_UNKNOWN` | blob unknown to registry | This error may be returned when a blob is unknown to the registry in a specified repository. This can be returned with a standard get or if a manifest references an unknown layer during upload.
- `BLOB_UPLOAD_UNKNOWN` | blob upload unknown to registry | If a blob upload has been cancelled or was never started, this error code may be returned.
  `BLOB_UPLOAD_INVALID` | blob upload invalid | The blob upload encountered an error and can no longer proceed.
+ `BLOB_UPLOAD_UNKNOWN` | blob upload unknown to registry | If a blob upload has been cancelled or was never started, this error code may be returned.
+ `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest.
+ `MANIFEST_BLOB_UNKNOWN` | blob unknown to registry | This error may be returned when a manifest blob is  unknown to the registry.
+ `MANIFEST_INVALID` | manifest invalid | During upload, manifests undergo several checks ensuring validity. If those checks fail, this error may be returned, unless a more specific error is included. The detail will contain information the failed validation.
+ `MANIFEST_UNKNOWN` | manifest unknown | This error is returned when the manifest, identified by name and tag is unknown to the repository.
+ `MANIFEST_UNVERIFIED` | manifest failed signature verification | During manifest upload, if the manifest fails signature verification, this error will be returned.
+ `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation.
+ `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry.
+ `SIZE_INVALID` | provided length did not match content length | When a layer is uploaded, the provided size will be checked against the uploaded content. If they do not match, this error will be returned.
+ `TAG_INVALID` | manifest tag did not match URI | During a manifest upload, if the tag in the manifest does not match the uri tag, this error will be returned.
+ `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status.
+ `UNSUPPORTED` | The operation is unsupported. | The operation was unsupported due to a missing implementation or invalid set of parameters.
 
 
 
@@ -796,7 +1094,6 @@ The API implements V2 protocol and is accessible.
 
 
 
-
 ###### On Failure: Unauthorized
 
 ```
@@ -829,7 +1126,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -857,6 +1154,7 @@ Retrieve information about tags.
 Fetch the tags under the repository identified by `name`.
 
 
+##### Tags
 
 ```
 GET /v2/<name>/tags/list
@@ -864,7 +1162,7 @@ Host: <registry host>
 Authorization: <scheme> <token>
 ```
 
-
+Return all tags for the repository
 
 
 The following parameters should be specified on the request:
@@ -930,7 +1228,7 @@ The repository is not known to the registry.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry. |
 
 
@@ -960,7 +1258,116 @@ The client does not have access to the repository.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
+| `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
+
+
+
+##### Tags Paginated
+
+```
+GET /v2/<name>/tags/list?n=<integer>&last=<integer>
+```
+
+Return a portion of the tags for the specified repository.
+
+
+The following parameters should be specified on the request:
+
+|Name|Kind|Description|
+|----|----|-----------|
+|`name`|path|Name of the target repository.|
+|`n`|query|Limit the number of entries in each response. It not present, all entries will be returned.|
+|`last`|query|Result set will include values lexically after last.|
+
+
+
+
+###### On Success: OK
+
+```
+200 OK
+Content-Length: <length>
+Link: <<url>?n=<last n value>&last=<last entry from response>>; rel="next"
+Content-Type: application/json; charset=utf-8
+
+{
+    "name": <name>,
+    "tags": [
+        <tag>,
+        ...
+    ],
+}
+```
+
+A list of tags for the named repository.
+
+The following headers will be returned with the response:
+
+|Name|Description|
+|----|-----------|
+|`Content-Length`|Length of the JSON response body.|
+|`Link`|RFC5988 compliant rel='next' with URL to next result set, if available|
+
+
+
+
+###### On Failure: Not Found
+
+```
+404 Not Found
+Content-Type: application/json; charset=utf-8
+
+{
+	"errors:" [
+	    {
+            "code": <error code>,
+            "message": "<error message>",
+            "detail": ...
+        },
+        ...
+    ]
+}
+```
+
+The repository is not known to the registry.
+
+
+
+The error codes that may be included in the response body are enumerated below:
+
+|Code|Message|Description|
+|----|-------|-----------|
+| `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry. |
+
+
+
+###### On Failure: Unauthorized
+
+```
+401 Unauthorized
+Content-Type: application/json; charset=utf-8
+
+{
+	"errors:" [
+	    {
+            "code": <error code>,
+            "message": "<error message>",
+            "detail": ...
+        },
+        ...
+    ]
+}
+```
+
+The client does not have access to the repository.
+
+
+
+The error codes that may be included in the response body are enumerated below:
+
+|Code|Message|Description|
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -969,7 +1376,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ### Manifest
 
-Create, update and retrieve manifests.
+Create, update, delete and retrieve manifests.
 
 
 
@@ -995,7 +1402,7 @@ The following parameters should be specified on the request:
 |`Host`|header|Standard HTTP Host Header. Should be set to the registry host.|
 |`Authorization`|header|An RFC7235 compliant authorization header.|
 |`name`|path|Name of the target repository.|
-|`tag`|path|Tag of the target manifiest.|
+|`reference`|path|Tag or digest of the target manifest.|
 
 
 
@@ -1022,7 +1429,7 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-The manifest idenfied by `name` and `reference`. The contents can be used to identify and resolve resources required to run the specified image.
+The manifest identified by `name` and `reference`. The contents can be used to identify and resolve resources required to run the specified image.
 
 The following headers will be returned with the response:
 
@@ -1058,7 +1465,7 @@ The name or reference was invalid.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `TAG_INVALID` | manifest tag did not match URI | During a manifest upload, if the tag in the manifest does not match the uri tag, this error will be returned. |
 
@@ -1089,7 +1496,7 @@ The client does not have access to the repository.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -1119,7 +1526,7 @@ The named manifest is not known to the registry.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry. |
 | `MANIFEST_UNKNOWN` | manifest unknown | This error is returned when the manifest, identified by name and tag is unknown to the repository. |
 
@@ -1163,15 +1570,15 @@ The following parameters should be specified on the request:
 |`Host`|header|Standard HTTP Host Header. Should be set to the registry host.|
 |`Authorization`|header|An RFC7235 compliant authorization header.|
 |`name`|path|Name of the target repository.|
-|`tag`|path|Tag of the target manifiest.|
+|`reference`|path|Tag or digest of the target manifest.|
 
 
 
 
-###### On Success: Accepted
+###### On Success: Created
 
 ```
-202 Accepted
+201 Created
 Location: <url>
 Content-Length: 0
 Docker-Content-Digest: <digest>
@@ -1215,7 +1622,7 @@ The received manifest was invalid in some way, as described by the error codes. 
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `TAG_INVALID` | manifest tag did not match URI | During a manifest upload, if the tag in the manifest does not match the uri tag, this error will be returned. |
 | `MANIFEST_INVALID` | manifest invalid | During upload, manifests undergo several checks ensuring validity. If those checks fail, this error may be returned, unless a more specific error is included. The detail will contain information the failed validation. |
@@ -1249,7 +1656,7 @@ The client does not have permission to push to the repository.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -1280,7 +1687,7 @@ One or more layers may be missing during a manifest upload. If so, the missing l
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `BLOB_UNKNOWN` | blob unknown to registry | This error may be returned when a blob is unknown to the registry in a specified repository. This can be returned with a standard get or if a manifest references an unknown layer during upload. |
 
 
@@ -1319,15 +1726,33 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
+
+
+
+###### On Failure: Not allowed
+
+```
+405 Method Not Allowed
+```
+
+Manifest put is not allowed because the registry is configured as a pull-through cache or for some other reason
+
+
+
+The error codes that may be included in the response body are enumerated below:
+
+|Code|Message|Description|
+|----|-------|-----------|
+| `UNSUPPORTED` | The operation is unsupported. | The operation was unsupported due to a missing implementation or invalid set of parameters. |
 
 
 
 
 #### DELETE Manifest
 
-Delete the manifest identified by `name` and `reference` where `reference` can be a tag or digest.
+Delete the manifest identified by `name` and `reference`. Note that a manifest can _only_ be deleted by `digest`.
 
 
 
@@ -1347,7 +1772,7 @@ The following parameters should be specified on the request:
 |`Host`|header|Standard HTTP Host Header. Should be set to the registry host.|
 |`Authorization`|header|An RFC7235 compliant authorization header.|
 |`name`|path|Name of the target repository.|
-|`tag`|path|Tag of the target manifiest.|
+|`reference`|path|Tag or digest of the target manifest.|
 
 
 
@@ -1363,8 +1788,7 @@ The following parameters should be specified on the request:
 
 
 
-
-###### On Failure: Invalid Name or Tag
+###### On Failure: Invalid Name or Reference
 
 ```
 400 Bad Request
@@ -1382,14 +1806,14 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-The specified `name` or `tag` were invalid and the delete was unable to proceed.
+The specified `name` or `reference` were invalid and the delete was unable to proceed.
 
 
 
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `TAG_INVALID` | manifest tag did not match URI | During a manifest upload, if the tag in the manifest does not match the uri tag, this error will be returned. |
 
@@ -1429,7 +1853,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -1452,16 +1876,34 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-The specified `name` or `tag` are unknown to the registry and the delete was unable to proceed. Clients can assume the manifest was already deleted if this response is returned.
+The specified `name` or `reference` are unknown to the registry and the delete was unable to proceed. Clients can assume the manifest was already deleted if this response is returned.
 
 
 
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry. |
 | `MANIFEST_UNKNOWN` | manifest unknown | This error is returned when the manifest, identified by name and tag is unknown to the repository. |
+
+
+
+###### On Failure: Not allowed
+
+```
+405 Method Not Allowed
+```
+
+Manifest delete is not allowed because the registry is configured as a pull-through cache or `delete` has been disabled.
+
+
+
+The error codes that may be included in the response body are enumerated below:
+
+|Code|Message|Description|
+|----|-------|-----------|
+| `UNSUPPORTED` | The operation is unsupported. | The operation was unsupported due to a missing implementation or invalid set of parameters. |
 
 
 
@@ -1469,7 +1911,7 @@ The error codes that may be included in the response body are enumerated below:
 
 ### Blob
 
-Fetch the blob identified by `name` and `digest`. Used to fetch layers by digest.
+Operations on blobs identified by `name` and `digest`. Used to fetch or delete layers by digest.
 
 
 
@@ -1566,7 +2008,7 @@ There was a problem with the request that needs to be addressed by the client, s
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest. |
 
@@ -1606,7 +2048,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -1636,7 +2078,7 @@ The blob, identified by `name` and `digest`, is unknown to the registry.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry. |
 | `BLOB_UNKNOWN` | blob unknown to registry | This error may be returned when a blob is unknown to the registry in a specified repository. This can be returned with a standard get or if a manifest references an unknown layer during upload. |
 
@@ -1715,7 +2157,7 @@ There was a problem with the request that needs to be addressed by the client, s
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest. |
 
@@ -1755,7 +2197,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -1785,7 +2227,7 @@ Content-Type: application/json; charset=utf-8
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry. |
 | `BLOB_UNKNOWN` | blob unknown to registry | This error may be returned when a blob is unknown to the registry in a specified repository. This can be returned with a standard get or if a manifest references an unknown layer during upload. |
 
@@ -1802,14 +2244,142 @@ The range specification cannot be satisfied for the requested content. This can 
 
 
 
+#### DELETE Blob
 
-### Intiate Blob Upload
+Delete the blob identified by `name` and `digest`
+
+
+
+```
+DELETE /v2/<name>/blobs/<digest>
+Host: <registry host>
+Authorization: <scheme> <token>
+```
+
+
+
+
+The following parameters should be specified on the request:
+
+|Name|Kind|Description|
+|----|----|-----------|
+|`Host`|header|Standard HTTP Host Header. Should be set to the registry host.|
+|`Authorization`|header|An RFC7235 compliant authorization header.|
+|`name`|path|Name of the target repository.|
+|`digest`|path|Digest of desired blob.|
+
+
+
+
+###### On Success: Accepted
+
+```
+202 Accepted
+Content-Length: 0
+Docker-Content-Digest: <digest>
+```
+
+
+
+The following headers will be returned with the response:
+
+|Name|Description|
+|----|-----------|
+|`Content-Length`|0|
+|`Docker-Content-Digest`|Digest of the targeted content for the request.|
+
+
+
+
+###### On Failure: Invalid Name or Digest
+
+```
+400 Bad Request
+```
+
+
+
+
+
+The error codes that may be included in the response body are enumerated below:
+
+|Code|Message|Description|
+|----|-------|-----------|
+| `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest. |
+| `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
+
+
+
+###### On Failure: Not Found
+
+```
+404 Not Found
+Content-Type: application/json; charset=utf-8
+
+{
+	"errors:" [
+	    {
+            "code": <error code>,
+            "message": "<error message>",
+            "detail": ...
+        },
+        ...
+    ]
+}
+```
+
+The blob, identified by `name` and `digest`, is unknown to the registry.
+
+
+
+The error codes that may be included in the response body are enumerated below:
+
+|Code|Message|Description|
+|----|-------|-----------|
+| `NAME_UNKNOWN` | repository name not known to registry | This is returned if the name used during an operation is unknown to the registry. |
+| `BLOB_UNKNOWN` | blob unknown to registry | This error may be returned when a blob is unknown to the registry in a specified repository. This can be returned with a standard get or if a manifest references an unknown layer during upload. |
+
+
+
+###### On Failure: Method Not Allowed
+
+```
+405 Method Not Allowed
+Content-Type: application/json; charset=utf-8
+
+{
+	"errors:" [
+	    {
+            "code": <error code>,
+            "message": "<error message>",
+            "detail": ...
+        },
+        ...
+    ]
+}
+```
+
+Blob delete is not allowed because the registry is configured as a pull-through cache or `delete` has been disabled
+
+
+
+The error codes that may be included in the response body are enumerated below:
+
+|Code|Message|Description|
+|----|-------|-----------|
+| `UNSUPPORTED` | The operation is unsupported. | The operation was unsupported due to a missing implementation or invalid set of parameters. |
+
+
+
+
+
+### Initiate Blob Upload
 
 Initiate a blob upload. This endpoint can be used to create resumable uploads or monolithic uploads.
 
 
 
-#### POST Intiate Blob Upload
+#### POST Initiate Blob Upload
 
 Initiate a resumable blob upload. If successful, an upload location will be provided to complete the upload. Optionally, if the `digest` parameter is present, the request body will be used to complete the upload in a single request.
 
@@ -1877,7 +2447,7 @@ The following headers will be returned with the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest. |
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 
@@ -1917,8 +2487,26 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
+
+
+
+###### On Failure: Not allowed
+
+```
+405 Method Not Allowed
+```
+
+Blob upload is not allowed because the registry is configured as a pull-through cache or for some other reason
+
+
+
+The error codes that may be included in the response body are enumerated below:
+
+|Code|Message|Description|
+|----|-------|-----------|
+| `UNSUPPORTED` | The operation is unsupported. | The operation was unsupported due to a missing implementation or invalid set of parameters. |
 
 
 
@@ -1983,7 +2571,7 @@ The following headers will be returned with the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest. |
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 
@@ -2023,7 +2611,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -2110,7 +2698,7 @@ There was an error processing the upload and it must be restarted.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest. |
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `BLOB_UPLOAD_INVALID` | blob upload invalid | The blob upload encountered an error and can no longer proceed. |
@@ -2151,7 +2739,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -2181,7 +2769,7 @@ The upload is unknown to the registry. The upload must be restarted.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `BLOB_UPLOAD_UNKNOWN` | blob upload unknown to registry | If a blob upload has been cancelled or was never started, this error code may be returned. |
 
 
@@ -2267,7 +2855,7 @@ There was an error processing the upload and it must be restarted.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest. |
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `BLOB_UPLOAD_INVALID` | blob upload invalid | The blob upload encountered an error and can no longer proceed. |
@@ -2308,7 +2896,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -2338,7 +2926,7 @@ The upload is unknown to the registry. The upload must be restarted.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `BLOB_UPLOAD_UNKNOWN` | blob upload unknown to registry | If a blob upload has been cancelled or was never started, this error code may be returned. |
 
 
@@ -2422,7 +3010,7 @@ There was an error processing the upload and it must be restarted.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest. |
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `BLOB_UPLOAD_INVALID` | blob upload invalid | The blob upload encountered an error and can no longer proceed. |
@@ -2463,7 +3051,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -2493,7 +3081,7 @@ The upload is unknown to the registry. The upload must be restarted.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `BLOB_UPLOAD_UNKNOWN` | blob upload unknown to registry | If a blob upload has been cancelled or was never started, this error code may be returned. |
 
 
@@ -2591,10 +3179,11 @@ There was an error processing the upload and it must be restarted.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `DIGEST_INVALID` | provided digest did not match uploaded content | When a blob is uploaded, the registry will check that the content matches the digest provided by the client. The error may include a detail structure with the key "digest", including the invalid digest string. This error may also be returned when a manifest includes an invalid layer digest. |
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `BLOB_UPLOAD_INVALID` | blob upload invalid | The blob upload encountered an error and can no longer proceed. |
+| `UNSUPPORTED` | The operation is unsupported. | The operation was unsupported due to a missing implementation or invalid set of parameters. |
 
 
 
@@ -2632,7 +3221,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -2662,7 +3251,7 @@ The upload is unknown to the registry. The upload must be restarted.
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `BLOB_UPLOAD_UNKNOWN` | blob upload unknown to registry | If a blob upload has been cancelled or was never started, this error code may be returned. |
 
 
@@ -2740,7 +3329,7 @@ An error was encountered processing the delete. The client may ignore this error
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `NAME_INVALID` | invalid repository name | Invalid repository name encountered either during manifest validation or any API operation. |
 | `BLOB_UPLOAD_INVALID` | blob upload invalid | The blob upload encountered an error and can no longer proceed. |
 
@@ -2780,7 +3369,7 @@ The following headers will be returned on the response:
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `UNAUTHORIZED` | access to the requested resource is not authorized | The access controller denied access for the operation on a resource. Often this will be accompanied by a 401 Unauthorized response status. |
 
 
@@ -2810,8 +3399,105 @@ The upload is unknown to the registry. The client may ignore this error and assu
 The error codes that may be included in the response body are enumerated below:
 
 |Code|Message|Description|
--------|----|------|------------
+|----|-------|-----------|
 | `BLOB_UPLOAD_UNKNOWN` | blob upload unknown to registry | If a blob upload has been cancelled or was never started, this error code may be returned. |
+
+
+
+
+
+### Catalog
+
+List a set of available repositories in the local registry cluster. Does not provide any indication of what may be available upstream. Applications can only determine if a repository is available but not if it is not available.
+
+
+
+#### GET Catalog
+
+Retrieve a sorted, json list of repositories available in the registry.
+
+
+##### Catalog Fetch Complete
+
+```
+GET /v2/_catalog
+```
+
+Request an unabridged list of repositories available.
+
+
+
+
+
+###### On Success: OK
+
+```
+200 OK
+Content-Length: <length>
+Content-Type: application/json; charset=utf-8
+
+{
+	"repositories": [
+		<name>,
+		...
+	]
+}
+```
+
+Returns the unabridged list of repositories as a json response.
+
+The following headers will be returned with the response:
+
+|Name|Description|
+|----|-----------|
+|`Content-Length`|Length of the JSON response body.|
+
+
+
+##### Catalog Fetch Paginated
+
+```
+GET /v2/_catalog?n=<integer>&last=<integer>
+```
+
+Return the specified portion of repositories.
+
+
+The following parameters should be specified on the request:
+
+|Name|Kind|Description|
+|----|----|-----------|
+|`n`|query|Limit the number of entries in each response. It not present, all entries will be returned.|
+|`last`|query|Result set will include values lexically after last.|
+
+
+
+
+###### On Success: OK
+
+```
+200 OK
+Content-Length: <length>
+Link: <<url>?n=<last n value>&last=<last entry from response>>; rel="next"
+Content-Type: application/json; charset=utf-8
+
+{
+	"repositories": [
+		<name>,
+		...
+	]
+	"next": "<url>?last=<name>&n=<last value of n>"
+}
+```
+
+
+
+The following headers will be returned with the response:
+
+|Name|Description|
+|----|-----------|
+|`Content-Length`|Length of the JSON response body.|
+|`Link`|RFC5988 compliant rel='next' with URL to next result set, if available|
 
 
 

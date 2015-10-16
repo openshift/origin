@@ -1,13 +1,9 @@
 package distribution
 
 import (
-	"io"
-	"net/http"
-	"time"
-
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
-	"golang.org/x/net/context"
 )
 
 // Scope defines the set of items that match a namespace.
@@ -40,8 +36,15 @@ type Namespace interface {
 	// reference.
 	Repository(ctx context.Context, name string) (Repository, error)
 
-	Blobs() BlobService
+	// Repositories fills 'repos' with a lexigraphically sorted catalog of repositories
+	// up to the size of 'repos' and returns the value 'n' for the number of entries
+	// which were filled.  'last' contains an offset in the catalog, and 'err' will be
+	// set to io.EOF if there are no more entries to obtain.
+	Repositories(ctx context.Context, repos []string, last string) (n int, err error)
 }
+
+// ManifestServiceOption is a function argument for Manifest Service methods
+type ManifestServiceOption func(ManifestService) error
 
 // Repository is a named collection of manifests and layers.
 type Repository interface {
@@ -49,10 +52,15 @@ type Repository interface {
 	Name() string
 
 	// Manifests returns a reference to this repository's manifest service.
-	Manifests() ManifestService
+	// with the supplied options applied.
+	Manifests(ctx context.Context, options ...ManifestServiceOption) (ManifestService, error)
 
-	// Layers returns a reference to this repository's layers service.
-	Layers() LayerService
+	// Blobs returns a reference to this repository's blob service.
+	Blobs(ctx context.Context) BlobStore
+
+	// TODO(stevvooe): The above BlobStore return can probably be relaxed to
+	// be a BlobService for use with clients. This will allow such
+	// implementations to avoid implementing ServeBlob.
 
 	// Signatures returns a reference to this repository's signatures service.
 	Signatures() SignatureService
@@ -65,28 +73,28 @@ type Repository interface {
 // ManifestService provides operations on image manifests.
 type ManifestService interface {
 	// Exists returns true if the manifest exists.
-	Exists(ctx context.Context, dgst digest.Digest) (bool, error)
+	Exists(dgst digest.Digest) (bool, error)
 
 	// Get retrieves the identified by the digest, if it exists.
-	Get(ctx context.Context, dgst digest.Digest) (*manifest.SignedManifest, error)
+	Get(dgst digest.Digest) (*manifest.SignedManifest, error)
 
 	// Delete removes the manifest, if it exists.
-	Delete(ctx context.Context, dgst digest.Digest) error
+	Delete(dgst digest.Digest) error
 
 	// Put creates or updates the manifest.
-	Put(ctx context.Context, manifest *manifest.SignedManifest) error
+	Put(manifest *manifest.SignedManifest) error
 
 	// TODO(stevvooe): The methods after this message should be moved to a
 	// discrete TagService, per active proposals.
 
 	// Tags lists the tags under the named repository.
-	Tags(ctx context.Context) ([]string, error)
+	Tags() ([]string, error)
 
 	// ExistsByTag returns true if the manifest exists.
-	ExistsByTag(ctx context.Context, tag string) (bool, error)
+	ExistsByTag(tag string) (bool, error)
 
 	// GetByTag retrieves the named manifest, if it exists.
-	GetByTag(ctx context.Context, tag string) (*manifest.SignedManifest, error)
+	GetByTag(tag string, options ...ManifestServiceOption) (*manifest.SignedManifest, error)
 
 	// TODO(stevvooe): There are several changes that need to be done to this
 	// interface:
@@ -102,73 +110,6 @@ type ManifestService interface {
 	//       really be concerned with the storage format.
 }
 
-// LayerService provides operations on layer files in a backend storage.
-type LayerService interface {
-	// Exists returns true if the layer exists.
-	Exists(digest digest.Digest) (bool, error)
-
-	// Fetch the layer identifed by TarSum.
-	Fetch(digest digest.Digest) (Layer, error)
-
-	// Delete unlinks the layer from a Repository.
-	Delete(dgst digest.Digest) error
-
-	// Upload begins a layer upload to repository identified by name,
-	// returning a handle.
-	Upload() (LayerUpload, error)
-
-	// Resume continues an in progress layer upload, returning a handle to the
-	// upload. The caller should seek to the latest desired upload location
-	// before proceeding.
-	Resume(uuid string) (LayerUpload, error)
-}
-
-// Layer provides a readable and seekable layer object. Typically,
-// implementations are *not* goroutine safe.
-type Layer interface {
-	// http.ServeContent requires an efficient implementation of
-	// ReadSeeker.Seek(0, os.SEEK_END).
-	io.ReadSeeker
-	io.Closer
-
-	// Digest returns the unique digest of the blob.
-	Digest() digest.Digest
-
-	// Length returns the length in bytes of the blob.
-	Length() int64
-
-	// CreatedAt returns the time this layer was created.
-	CreatedAt() time.Time
-
-	// Handler returns an HTTP handler which serves the layer content, whether
-	// by providing a redirect directly to the content, or by serving the
-	// content itself.
-	Handler(r *http.Request) (http.Handler, error)
-}
-
-// LayerUpload provides a handle for working with in-progress uploads.
-// Instances can be obtained from the LayerService.Upload and
-// LayerService.Resume.
-type LayerUpload interface {
-	io.WriteSeeker
-	io.ReaderFrom
-	io.Closer
-
-	// UUID returns the identifier for this upload.
-	UUID() string
-
-	// StartedAt returns the time this layer upload was started.
-	StartedAt() time.Time
-
-	// Finish marks the upload as completed, returning a valid handle to the
-	// uploaded layer. The digest is validated against the contents of the
-	// uploaded layer.
-	Finish(digest digest.Digest) (Layer, error)
-
-	// Cancel the layer upload process.
-	Cancel() error
-}
-
 // SignatureService provides operations on signatures.
 type SignatureService interface {
 	// Get retrieves all of the signature blobs for the specified digest.
@@ -176,29 +117,4 @@ type SignatureService interface {
 
 	// Put stores the signature for the provided digest.
 	Put(dgst digest.Digest, signatures ...[]byte) error
-}
-
-type BlobService interface {
-	Delete(dgst digest.Digest) error
-}
-
-// Descriptor describes targeted content. Used in conjunction with a blob
-// store, a descriptor can be used to fetch, store and target any kind of
-// blob. The struct also describes the wire protocol format. Fields should
-// only be added but never changed.
-type Descriptor struct {
-	// MediaType describe the type of the content. All text based formats are
-	// encoded as utf-8.
-	MediaType string `json:"mediaType,omitempty"`
-
-	// Length in bytes of content.
-	Length int64 `json:"length,omitempty"`
-
-	// Digest uniquely identifies the content. A byte stream can be verified
-	// against against this digest.
-	Digest digest.Digest `json:"digest,omitempty"`
-
-	// NOTE: Before adding a field here, please ensure that all
-	// other options have been exhausted. Much of the type relationships
-	// depend on the simplicity of this type.
 }

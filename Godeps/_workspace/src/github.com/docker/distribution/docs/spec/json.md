@@ -1,8 +1,14 @@
-<!--GITHUB
-page_title: Docker Distribution JSON Canonicalization
-page_description: Explains registry JSON objects
-page_keywords: registry, service, images, repository, json
-IGNORES-->
+<!--[metadata]>
++++
+draft=true
+title = "Docker Distribution JSON Canonicalization"
+description = "Explains registry JSON objects"
+keywords = ["registry, service, images, repository,  json"]
+[menu.main]
+parent="smn_registry_ref"
++++
+<![end-metadata]-->
+
 
 
 # Docker Distribution JSON Canonicalization

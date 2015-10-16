@@ -1,17 +1,34 @@
-page_title: Build the development environment
-page_description: Explains how to build the distribution project
-page_keywords: registry, service, images, repository
+<!--[metadata]>
++++
+draft = "true"
++++
+<![end-metadata]-->
 
 # Build the development environment
 
-If a go development environment is setup, one can use `go get` to install the
+The first prerequisite of properly building distribution targets is to have a Go
+development environment setup. Please follow [How to Write Go Code](https://golang.org/doc/code.html)
+for proper setup. If done correctly, you should have a GOROOT and GOPATH set in the
+environment.
+
+If a Go development environment is setup, one can use `go get` to install the
 `registry` command from the current latest:
 
 ```sh
 go get github.com/docker/distribution/cmd/registry
 ```
 
-The above will install the source repository into the `GOPATH`. The `registry`
+The above will install the source repository into the `GOPATH`.
+
+Now create the directory for the registry data (this might require you to set permissions properly)
+
+```sh
+mkdir -p /var/lib/registry
+```
+
+... or alternatively `export REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/somewhere` if you want to store data into another location.
+
+The `registry`
 binary can then be run with the following:
 
 ```
@@ -19,12 +36,17 @@ $ $GOPATH/bin/registry -version
 $GOPATH/bin/registry github.com/docker/distribution v2.0.0-alpha.1+unknown
 ```
 
+> __NOTE:__ While you do not need to use `go get` to checkout the distribution
+> project, for these build instructions to work, the project must be checked
+> out in the correct location in the `GOPATH`. This should almost always be
+> `$GOPATH/src/github.com/docker/distribution`.
+
 The registry can be run with the default config using the following
-incantantation:
+incantation:
 
 ```
-$ $GOPATH/bin/registry $GOPATH/src/github.com/docker/distribution/cmd/registry/config.yml
-INFO[0000] endpoint local-8082 disabled, skipping        app.id=34bbec38-a91a-494a-9a3f-b72f9010081f version=v2.0.0-alpha.1+unknown
+$ $GOPATH/bin/registry $GOPATH/src/github.com/docker/distribution/cmd/registry/config-dev.yml
+INFO[0000] endpoint local-5003 disabled, skipping        app.id=34bbec38-a91a-494a-9a3f-b72f9010081f version=v2.0.0-alpha.1+unknown
 INFO[0000] endpoint local-8083 disabled, skipping        app.id=34bbec38-a91a-494a-9a3f-b72f9010081f version=v2.0.0-alpha.1+unknown
 INFO[0000] listening on :5000                            app.id=34bbec38-a91a-494a-9a3f-b72f9010081f version=v2.0.0-alpha.1+unknown
 INFO[0000] debug server listening localhost:5001
@@ -77,7 +99,6 @@ ok    github.com/docker/distribution/registry/auth/silly  0.011s
 ...
 + /Users/sday/go/src/github.com/docker/distribution/bin/registry
 + /Users/sday/go/src/github.com/docker/distribution/bin/registry-api-descriptor-template
-+ /Users/sday/go/src/github.com/docker/distribution/bin/dist
 + binaries
 ```
 
@@ -121,3 +142,15 @@ $ make
 
 If that is successful, standard `go` commands, such as `go test` should work,
 per package, without issue.
+
+### Optional build tags
+
+Optional [build tags](http://golang.org/pkg/go/build/) can be provided using
+the environment variable `DOCKER_BUILDTAGS`.
+
+To enable the [Ceph RADOS storage driver](storage-drivers/rados.md)
+(librados-dev and librbd-dev will be required to build the bindings):
+
+```sh
+export DOCKER_BUILDTAGS='include_rados'
+```

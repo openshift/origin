@@ -20,6 +20,7 @@ var configStruct = Configuration{
 		Level     Loglevel               `yaml:"level"`
 		Formatter string                 `yaml:"formatter,omitempty"`
 		Fields    map[string]interface{} `yaml:"fields,omitempty"`
+		Hooks     []LogHook              `yaml:"hooks,omitempty"`
 	}{
 		Fields: map[string]interface{}{"environment": "test"},
 	},
@@ -61,6 +62,7 @@ var configStruct = Configuration{
 	},
 	HTTP: struct {
 		Addr   string `yaml:"addr,omitempty"`
+		Net    string `yaml:"net,omitempty"`
 		Prefix string `yaml:"prefix,omitempty"`
 		Secret string `yaml:"secret,omitempty"`
 		TLS    struct {

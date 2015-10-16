@@ -9,11 +9,12 @@ import (
 	"testing"
 
 	"github.com/docker/distribution/configuration"
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/auth"
 	_ "github.com/docker/distribution/registry/auth/silly"
 	"github.com/docker/distribution/registry/storage"
-	"github.com/docker/distribution/registry/storage/cache"
+	memorycache "github.com/docker/distribution/registry/storage/cache/memory"
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
 	"golang.org/x/net/context"
 )
@@ -24,12 +25,13 @@ import (
 // tested individually.
 func TestAppDispatcher(t *testing.T) {
 	driver := inmemory.New()
+	ctx := context.Background()
 	app := &App{
 		Config:   configuration.Configuration{},
-		Context:  context.Background(),
+		Context:  ctx,
 		router:   v2.Router(),
 		driver:   driver,
-		registry: storage.NewRegistryWithDriver(driver, cache.NewInMemoryLayerInfoCache()),
+		registry: storage.NewRegistryWithDriver(ctx, driver, memorycache.NewInMemoryBlobDescriptorCacheProvider(), true, true, false),
 	}
 	server := httptest.NewServer(app)
 	router := v2.Router()
@@ -193,14 +195,18 @@ func TestNewApp(t *testing.T) {
 		t.Fatalf("unexpected WWW-Authenticate header: %q != %q", e, a)
 	}
 
-	var errs v2.Errors
+	var errs errcode.Errors
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&errs); err != nil {
 		t.Fatalf("error decoding error response: %v", err)
 	}
 
-	if errs.Errors[0].Code != v2.ErrorCodeUnauthorized {
-		t.Fatalf("unexpected error code: %v != %v", errs.Errors[0].Code, v2.ErrorCodeUnauthorized)
+	err2, ok := errs[0].(errcode.ErrorCoder)
+	if !ok {
+		t.Fatalf("not an ErrorCoder: %#v", errs[0])
+	}
+	if err2.ErrorCode() != errcode.ErrorCodeUnauthorized {
+		t.Fatalf("unexpected error code: %v != %v", err2.ErrorCode(), errcode.ErrorCodeUnauthorized)
 	}
 }
 

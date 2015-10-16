@@ -1,8 +1,16 @@
 # Set an output prefix, which is the local directory if not specified
 PREFIX?=$(shell pwd)
 
+
 # Used to populate version variable in main package.
 VERSION=$(shell git describe --match 'v[0-9]*' --dirty='.m' --always)
+
+# Allow turning off function inlining and variable registerization
+ifeq (${DISABLE_OPTIMIZATION},true)
+	GO_GCFLAGS=-gcflags "-N -l"
+	VERSION:="$(VERSION)-noopt"
+endif
+
 GO_LDFLAGS=-ldflags "-X `go list ./version`.Version $(VERSION)"
 
 .PHONY: clean all fmt vet lint build test binaries
@@ -18,20 +26,18 @@ version/version.go:
 
 ${PREFIX}/bin/registry: version/version.go $(shell find . -type f -name '*.go')
 	@echo "+ $@"
-	@go build -o $@ ${GO_LDFLAGS} ./cmd/registry
+	@go build -tags "${DOCKER_BUILDTAGS}" -o $@ ${GO_LDFLAGS}  ${GO_GCFLAGS} ./cmd/registry
 
 ${PREFIX}/bin/registry-api-descriptor-template: version/version.go $(shell find . -type f -name '*.go')
 	@echo "+ $@"
-	@go build -o $@ ${GO_LDFLAGS} ./cmd/registry-api-descriptor-template
-
-${PREFIX}/bin/dist: version/version.go $(shell find . -type f -name '*.go')
-	@echo "+ $@"
-	@go build -o $@ ${GO_LDFLAGS} ./cmd/dist
+	@go build -o $@ ${GO_LDFLAGS} ${GO_GCFLAGS} ./cmd/registry-api-descriptor-template
 
 docs/spec/api.md: docs/spec/api.md.tmpl ${PREFIX}/bin/registry-api-descriptor-template
 	./bin/registry-api-descriptor-template $< > $@
 
-vet:
+# Depends on binaries because vet will silently fail if it can't load compiled
+# imports
+vet: binaries
 	@echo "+ $@"
 	@go vet ./...
 
@@ -46,36 +52,19 @@ lint:
 
 build:
 	@echo "+ $@"
-	@go build -v ${GO_LDFLAGS} ./...
+	@go build -tags "${DOCKER_BUILDTAGS}" -v ${GO_LDFLAGS} ./...
 
 test:
 	@echo "+ $@"
-	@go test -test.short ./...
+	@go test -test.short -tags "${DOCKER_BUILDTAGS}" ./...
 
 test-full:
 	@echo "+ $@"
 	@go test ./...
 
-binaries: ${PREFIX}/bin/registry ${PREFIX}/bin/registry-api-descriptor-template ${PREFIX}/bin/dist
+binaries: ${PREFIX}/bin/registry ${PREFIX}/bin/registry-api-descriptor-template
 	@echo "+ $@"
 
 clean:
 	@echo "+ $@"
 	@rm -rf "${PREFIX}/bin/registry" "${PREFIX}/bin/registry-api-descriptor-template"
-
-	
-# Use the existing docs build cmds from docker/docker
-# Later, we will move this into an import
-DOCS_MOUNT := $(if $(DOCSDIR),-v $(CURDIR)/$(DOCSDIR):/$(DOCSDIR))
-DOCSPORT := 8000
-DOCKER_DOCS_IMAGE := docker-docs-$(VERSION)
-DOCKER_RUN_DOCS := docker run --rm -it $(DOCS_MOUNT) -e AWS_S3_BUCKET -e NOCACHE
-
-docs: docs-build
-	$(DOCKER_RUN_DOCS) -p $(DOCSPORT):8000 "$(DOCKER_DOCS_IMAGE)" mkdocs serve
-
-docs-shell: docs-build
-	$(DOCKER_RUN_DOCS) -p $(DOCSPORT):8000 "$(DOCKER_DOCS_IMAGE)" bash
-
-docs-build:
-	docker build -t "$(DOCKER_DOCS_IMAGE)" -f docs/Dockerfile .
