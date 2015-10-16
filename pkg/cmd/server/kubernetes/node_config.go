@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 	kapp "k8s.io/kubernetes/cmd/kubelet/app"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/util"
@@ -216,6 +217,16 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	} else {
 		cfg.TLSOptions = nil
 	}
+
+	// Prepare cloud provider
+	cloud, err := cloudprovider.InitCloudProvider(server.CloudProvider, server.CloudConfigFile)
+	if err != nil {
+		return nil, err
+	}
+	if cloud != nil {
+		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", server.CloudProvider, server.CloudConfigFile)
+	}
+	cfg.Cloud = cloud
 
 	config := &NodeConfig{
 		BindAddress: options.ServingInfo.BindAddress,
