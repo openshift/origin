@@ -27,7 +27,7 @@ listen stats :{{.StatsPort}}
     mode http
 
     # Health check monitoring uri.
-    monitor-uri /health
+    monitor-uri /healthz
 
     # Add your custom health check monitoring failure condition here.
     # monitor fail if <condition>
