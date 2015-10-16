@@ -106,8 +106,9 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 }
 
 // attemptToLoadRecycler tries decoding a pod from a filepath for use as a recycler for a volume.
-// If successful, this method will set the recycler on the config.
-// If unsucessful, an error is returned.
+// If a path is not set as a CLI flag, no load will be attempted and no error returned.
+// If a path is set and the pod was successfully loaded, the recycler pod will be set on the config and no error returned.
+// Any failed attempt to load the recycler pod will return an error.
 func attemptToLoadRecycler(path string, config *volume.VolumeConfig) error {
 	glog.V(5).Infof("Attempting to load recycler pod file from %s", path)
 	if path != "" {
