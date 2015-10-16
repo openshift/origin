@@ -399,6 +399,17 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			s.MinReplicas = &minReplicas
 			s.CPUUtilization = &extensions.CPUTargetUtilization{TargetPercentage: int(int32(c.RandUint64()))}
 		},
+		func(scc *api.SecurityContextConstraints, c fuzz.Continue) {
+			c.FuzzNoCustom(scc) // fuzz self without calling this function again
+			userTypes := []api.RunAsUserStrategyType{api.RunAsUserStrategyMustRunAsNonRoot, api.RunAsUserStrategyMustRunAs, api.RunAsUserStrategyRunAsAny, api.RunAsUserStrategyMustRunAsRange}
+			scc.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
+			seLinuxTypes := []api.SELinuxContextStrategyType{api.SELinuxStrategyRunAsAny, api.SELinuxStrategyMustRunAs}
+			scc.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
+			supGroupTypes := []api.SupplementalGroupsStrategyType{api.SupplementalGroupsStrategyMustRunAs, api.SupplementalGroupsStrategyRunAsAny}
+			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
+			fsGroupTypes := []api.FSGroupStrategyType{api.FSGroupStrategyMustRunAs, api.FSGroupStrategyRunAsAny}
+			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]
+		},
 	)
 	return f
 }

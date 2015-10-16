@@ -568,3 +568,83 @@ func TestSetDefaultProbe(t *testing.T) {
 		t.Errorf("Expected probe: %+v\ngot: %+v\n", expectedProbe, actualProbe)
 	}
 }
+
+func TestDefaultSecurityContextConstraints(t *testing.T) {
+	tests := map[string]struct {
+		scc              *versioned.SecurityContextConstraints
+		expectedFSGroup  versioned.FSGroupStrategyType
+		expectedSupGroup versioned.SupplementalGroupsStrategyType
+	}{
+		"shouldn't default": {
+			scc: &versioned.SecurityContextConstraints{
+				FSGroup: versioned.FSGroupStrategyOptions{
+					Type: versioned.FSGroupStrategyMustRunAs,
+				},
+				SupplementalGroups: versioned.SupplementalGroupsStrategyOptions{
+					Type: versioned.SupplementalGroupsStrategyMustRunAs,
+				},
+			},
+			expectedFSGroup:  versioned.FSGroupStrategyMustRunAs,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyMustRunAs,
+		},
+		"default fsgroup runAsAny": {
+			scc: &versioned.SecurityContextConstraints{
+				RunAsUser: versioned.RunAsUserStrategyOptions{
+					Type: versioned.RunAsUserStrategyRunAsAny,
+				},
+				SupplementalGroups: versioned.SupplementalGroupsStrategyOptions{
+					Type: versioned.SupplementalGroupsStrategyMustRunAs,
+				},
+			},
+			expectedFSGroup:  versioned.FSGroupStrategyRunAsAny,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyMustRunAs,
+		},
+		"default sup group runAsAny": {
+			scc: &versioned.SecurityContextConstraints{
+				RunAsUser: versioned.RunAsUserStrategyOptions{
+					Type: versioned.RunAsUserStrategyRunAsAny,
+				},
+				FSGroup: versioned.FSGroupStrategyOptions{
+					Type: versioned.FSGroupStrategyMustRunAs,
+				},
+			},
+			expectedFSGroup:  versioned.FSGroupStrategyMustRunAs,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyRunAsAny,
+		},
+		"default fsgroup runAsAny with mustRunAs UID strat": {
+			scc: &versioned.SecurityContextConstraints{
+				RunAsUser: versioned.RunAsUserStrategyOptions{
+					Type: versioned.RunAsUserStrategyMustRunAsRange,
+				},
+				SupplementalGroups: versioned.SupplementalGroupsStrategyOptions{
+					Type: versioned.SupplementalGroupsStrategyMustRunAs,
+				},
+			},
+			expectedFSGroup:  versioned.FSGroupStrategyRunAsAny,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyMustRunAs,
+		},
+		"default sup group runAsAny with mustRunAs UID strat": {
+			scc: &versioned.SecurityContextConstraints{
+				RunAsUser: versioned.RunAsUserStrategyOptions{
+					Type: versioned.RunAsUserStrategyMustRunAsRange,
+				},
+				FSGroup: versioned.FSGroupStrategyOptions{
+					Type: versioned.FSGroupStrategyMustRunAs,
+				},
+			},
+			expectedFSGroup:  versioned.FSGroupStrategyMustRunAs,
+			expectedSupGroup: versioned.SupplementalGroupsStrategyRunAsAny,
+		},
+	}
+	for k, v := range tests {
+		output := roundTrip(t, runtime.Object(v.scc))
+		scc := output.(*versioned.SecurityContextConstraints)
+
+		if scc.FSGroup.Type != v.expectedFSGroup {
+			t.Errorf("%s has invalid fsgroup.  Expected: %v got: %v", k, v.expectedFSGroup, scc.FSGroup.Type)
+		}
+		if scc.SupplementalGroups.Type != v.expectedSupGroup {
+			t.Errorf("%s has invalid supplemental group.  Expected: %v got: %v", k, v.expectedSupGroup, scc.SupplementalGroups.Type)
+		}
+	}
+}

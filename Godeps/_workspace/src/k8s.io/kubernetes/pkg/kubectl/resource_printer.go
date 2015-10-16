@@ -26,6 +26,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"text/template"
@@ -415,6 +416,7 @@ var thirdPartyResourceColumns = []string{"NAME", "DESCRIPTION", "VERSION(S)"}
 var horizontalPodAutoscalerColumns = []string{"NAME", "REFERENCE", "TARGET", "CURRENT", "MINPODS", "MAXPODS", "AGE"}
 var withNamespacePrefixColumns = []string{"NAMESPACE"} // TODO(erictune): print cluster name too.
 var deploymentColumns = []string{"NAME", "UPDATEDREPLICAS", "AGE"}
+var securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "HOSTDIR", "SELINUX", "RUNASUSER", "FSGROUP", "SUPGROUP", "PRIORITY"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -460,6 +462,8 @@ func (h *HumanReadablePrinter) addDefaultHandlers() {
 	h.Handler(deploymentColumns, printDeploymentList)
 	h.Handler(horizontalPodAutoscalerColumns, printHorizontalPodAutoscaler)
 	h.Handler(horizontalPodAutoscalerColumns, printHorizontalPodAutoscalerList)
+	h.Handler(securityContextConstraintsColumns, printSecurityContextConstraints)
+	h.Handler(securityContextConstraintsColumns, printSecurityContextConstraintsList)
 }
 
 func (h *HumanReadablePrinter) unknown(data []byte, w io.Writer) error {
@@ -1445,6 +1449,28 @@ func printHorizontalPodAutoscalerList(list *extensions.HorizontalPodAutoscalerLi
 			return err
 		}
 	}
+	return nil
+}
+
+func printSecurityContextConstraints(item *api.SecurityContextConstraints, w io.Writer, options PrintOptions) error {
+	priority := "<none>"
+	if item.Priority != nil {
+		priority = strconv.Itoa(*item.Priority)
+	}
+
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\t%s\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
+		item.AllowedCapabilities, item.AllowHostDirVolumePlugin, item.SELinuxContext.Type,
+		item.RunAsUser.Type, item.FSGroup.Type, item.SupplementalGroups.Type, priority)
+	return err
+}
+
+func printSecurityContextConstraintsList(list *api.SecurityContextConstraintsList, w io.Writer, options PrintOptions) error {
+	for _, item := range list.Items {
+		if err := printSecurityContextConstraints(&item, w, options); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

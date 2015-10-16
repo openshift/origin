@@ -139,7 +139,7 @@ func KindToResource(kind string, mixedCase bool) (plural, singular string) {
 	} else {
 		singular = strings.ToLower(kind)
 	}
-	if strings.HasSuffix(singular, "endpoints") {
+	if strings.HasSuffix(singular, "endpoints") || strings.HasSuffix(singular, "securitycontextconstraints") {
 		plural = singular
 	} else {
 		switch string(singular[len(singular)-1]) {
