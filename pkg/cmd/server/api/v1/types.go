@@ -557,6 +557,14 @@ type LDAPAttributeMapping struct {
 	Email []string `json:"email"`
 }
 
+type KeystonePasswordIdentityProvider struct {
+	v1.TypeMeta `json:",inline"`
+	// RemoteConnectionInfo contains information about how to connect to the keystone server
+	RemoteConnectionInfo `json:",inline"`
+	// Domain Name is required for keystone v3
+	DomainName string `json:"domainName"`
+}
+
 type RequestHeaderIdentityProvider struct {
 	v1.TypeMeta `json:",inline"`
 

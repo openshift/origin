@@ -578,6 +578,14 @@ type LDAPAttributeMapping struct {
 	Email []string
 }
 
+type KeystonePasswordIdentityProvider struct {
+	api.TypeMeta
+	// RemoteConnectionInfo contains information about how to connect to the keystone server
+	RemoteConnectionInfo RemoteConnectionInfo
+	// Domain Name is required for keystone v3
+	DomainName string
+}
+
 type RequestHeaderIdentityProvider struct {
 	api.TypeMeta
 

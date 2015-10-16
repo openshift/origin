@@ -37,10 +37,10 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 	identity.Extra["token"] = token.AccessToken
 	user, err := a.mapper.UserFor(identity)
-	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
 	}
+	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 
 	return user, true, nil
 }
