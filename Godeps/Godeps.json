@@ -1244,6 +1244,11 @@
 			"Rev": "4c8e6f47ec23f390978e651232b375f5f9cde3c7"
 		},
 		{
+			"ImportPath": "k8s.io/kubernetes/pkg/securitycontextconstraints",
+			"Comment": "v1.1.0-alpha.1-653-g86b4e77",
+			"Rev": "86b4e777e1947c1bc00e422306a3ca74cbd54dbe"
+		},
+		{
 			"ImportPath": "k8s.io/kubernetes/pkg/storage",
 			"Comment": "v1.2.0-alpha.1-1107-g4c8e6f4",
 			"Rev": "4c8e6f47ec23f390978e651232b375f5f9cde3c7"

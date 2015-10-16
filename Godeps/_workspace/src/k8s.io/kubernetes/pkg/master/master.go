@@ -66,6 +66,7 @@ import (
 	podtemplateetcd "k8s.io/kubernetes/pkg/registry/podtemplate/etcd"
 	resourcequotaetcd "k8s.io/kubernetes/pkg/registry/resourcequota/etcd"
 	secretetcd "k8s.io/kubernetes/pkg/registry/secret/etcd"
+	sccetcd "k8s.io/kubernetes/pkg/registry/securitycontextconstraints/etcd"
 	"k8s.io/kubernetes/pkg/registry/service"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/service/allocator/etcd"
 	serviceetcd "k8s.io/kubernetes/pkg/registry/service/etcd"
@@ -550,6 +551,8 @@ func (m *Master) init(c *Config) {
 	endpointsStorage := endpointsetcd.NewREST(dbClient("endpoints"), c.EnableWatchCache)
 	m.endpointRegistry = endpoint.NewRegistry(endpointsStorage)
 
+	securityContextConstraintsStorage := sccetcd.NewStorage(dbClient("securityContextConstraints"))
+
 	nodeStorage, nodeStatusStorage := nodeetcd.NewREST(dbClient("nodes"), c.EnableWatchCache, c.KubeletClient, m.proxyTransport)
 	m.nodeRegistry = node.NewRegistry(nodeStorage)
 
@@ -606,6 +609,7 @@ func (m *Master) init(c *Config) {
 		"namespaces/finalize":           namespaceFinalizeStorage,
 		"secrets":                       secretStorage,
 		"serviceAccounts":               serviceAccountStorage,
+		"securityContextConstraints":    securityContextConstraintsStorage,
 		"persistentVolumes":             persistentVolumeStorage,
 		"persistentVolumes/status":      persistentVolumeStatusStorage,
 		"persistentVolumeClaims":        persistentVolumeClaimStorage,

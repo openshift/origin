@@ -82,6 +82,9 @@ func addKnownTypes() {
 		&ComponentStatusList{},
 		&SerializedReference{},
 		&RangeAllocation{},
+
+		&SecurityContextConstraints{},
+		&SecurityContextConstraintsList{},
 	)
 
 	// Add common types
@@ -129,3 +132,6 @@ func (*ComponentStatus) IsAnAPIObject()           {}
 func (*ComponentStatusList) IsAnAPIObject()       {}
 func (*SerializedReference) IsAnAPIObject()       {}
 func (*RangeAllocation) IsAnAPIObject()           {}
+
+func (*SecurityContextConstraints) IsAnAPIObject()     {}
+func (*SecurityContextConstraintsList) IsAnAPIObject() {}
