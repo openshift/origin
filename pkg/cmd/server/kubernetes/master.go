@@ -20,6 +20,7 @@ import (
 	resourcequotacontroller "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/host_path"
 	"k8s.io/kubernetes/pkg/volume/nfs"
@@ -75,15 +76,22 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 	defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/share/openshift/scripts/volumes/recycler.sh"}
 	defaultScrubPod.Spec.Containers[0].Args = []string{"/scrub"}
 
+	volumeConfig := c.ControllerManager.VolumeConfigFlags
 	hostPathConfig := volume.VolumeConfig{
-		RecyclerMinimumTimeout:   30,
-		RecyclerTimeoutIncrement: 30,
+		RecyclerMinimumTimeout:   volumeConfig.PersistentVolumeRecyclerMinimumTimeoutHostPath,
+		RecyclerTimeoutIncrement: volumeConfig.PersistentVolumeRecyclerIncrementTimeoutHostPath,
 		RecyclerPodTemplate:      defaultScrubPod,
 	}
+	if err := attemptToLoadRecycler(volumeConfig.PersistentVolumeRecyclerPodTemplateFilePathHostPath, &hostPathConfig); err != nil {
+		glog.Fatalf("Could not create hostpath recycler pod from file %s: %+v", volumeConfig.PersistentVolumeRecyclerPodTemplateFilePathHostPath, err)
+	}
 	nfsConfig := volume.VolumeConfig{
-		RecyclerMinimumTimeout:   180,
-		RecyclerTimeoutIncrement: 30,
+		RecyclerMinimumTimeout:   volumeConfig.PersistentVolumeRecyclerMinimumTimeoutNFS,
+		RecyclerTimeoutIncrement: volumeConfig.PersistentVolumeRecyclerIncrementTimeoutNFS,
 		RecyclerPodTemplate:      defaultScrubPod,
+	}
+	if err := attemptToLoadRecycler(volumeConfig.PersistentVolumeRecyclerPodTemplateFilePathNFS, &nfsConfig); err != nil {
+		glog.Fatalf("Could not create NFS recycler pod from file %s: %+v", volumeConfig.PersistentVolumeRecyclerPodTemplateFilePathNFS, err)
 	}
 
 	allPlugins := []volume.VolumePlugin{}
@@ -95,6 +103,22 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 		glog.Fatalf("Could not start Persistent Volume Recycler: %+v", err)
 	}
 	recycler.Run()
+}
+
+// attemptToLoadRecycler tries decoding a pod from a filepath for use as a recycler for a volume.
+// If successful, this method will set the recycler on the config.
+// If unsucessful, an error is returned.
+func attemptToLoadRecycler(path string, config *volume.VolumeConfig) error {
+	glog.V(5).Infof("Attempting to load recycler pod file from %s", path)
+	if path != "" {
+		recyclerPod, err := io.LoadPodFromFile(path)
+		if err != nil {
+			return err
+		}
+		config.RecyclerPodTemplate = recyclerPod
+		glog.V(5).Infof("Recycler set to %s/%s", config.RecyclerPodTemplate.Namespace,  config.RecyclerPodTemplate.Name)
+	}
+	return nil
 }
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
