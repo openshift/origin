@@ -14,7 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-var _ = g.Describe("builds: incremental: S2I incremental build with push and pull to authenticated registry", func() {
+var _ = g.Describe("builds: s2i incremental build with push and pull to authenticated registry", func() {
 	defer g.GinkgoRecover()
 	var (
 		templateFixture = exutil.FixturePath("fixtures", "incremental-auth-build.json")

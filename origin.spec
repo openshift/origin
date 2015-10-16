@@ -251,7 +251,9 @@ install -p -m 644 contrib/completions/bash/* %{buildroot}%{_sysconfdir}/bash_com
 %{_bindir}/kube-controller-manager
 %{_bindir}/kube-scheduler
 %{_sharedstatedir}/origin
-%{_sysconfdir}/bash_completion.d/*
+%{_sysconfdir}/bash_completion.d/atomic-enterprise
+%{_sysconfdir}/bash_completion.d/oadm
+%{_sysconfdir}/bash_completion.d/openshift
 %dir %config(noreplace) %{_sysconfdir}/origin
 
 %pre
@@ -371,6 +373,7 @@ fi
 %files clients
 %{_bindir}/oc
 %{_bindir}/kubectl
+%{_sysconfdir}/bash_completion.d/oc
 
 %files clients-redistributable
 %{_datadir}/%{name}/linux/oc

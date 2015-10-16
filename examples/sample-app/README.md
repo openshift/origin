@@ -234,9 +234,9 @@ This section covers how to perform all the steps of building, deploying, and upd
     This will define a number of related OpenShift entities in the project:
 
     * A BuildConfig (ruby-sample-build) to specify a build that uses
-      your ruby-hello-world fork as the input for a source-to-image (STI) build
+      your ruby-hello-world fork as the input for a source-to-image (S2I) build
     * ImageStreams for the images used and created in the build:
-      * The ruby-20-centos7 STI builder will build an image from your source
+      * The ruby-20-centos7 S2I builder will build an image from your source
       * The output image will be called origin-ruby-sample
     * DeploymentConfigs (frontend, backend) for defining Deployments once the images are available
     * Services (routable endpoints) for the ruby frontend and database backend deployments
@@ -259,7 +259,7 @@ This section covers how to perform all the steps of building, deploying, and upd
     Sample output:
 
         NAME                  TYPE                STATUS              POD
-        ruby-sample-build-1   STI                 Complete            ruby-sample-build-1
+        ruby-sample-build-1   Source              Complete            ruby-sample-build-1
 
      The built image will be named with the ImageStream
      (origin-ruby-sample) named in the BuildConfig and pushed to the

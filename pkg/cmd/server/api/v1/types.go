@@ -319,6 +319,17 @@ type ServingInfo struct {
 	CertInfo `json:",inline"`
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
 	ClientCA string `json:"clientCA"`
+	// NamedCertificates is a list of certificates to use to secure requests to specific hostnames
+	NamedCertificates []NamedCertificate `json:"namedCertificates"`
+}
+
+// NamedCertificate specifies a certificate/key, and the names it should be served for
+type NamedCertificate struct {
+	// Names is a list of DNS names this certificate should be used to secure
+	// A name can be a normal DNS name, or can contain leading wildcard segments.
+	Names []string `json:"names"`
+	// CertInfo is the TLS cert info for serving secure traffic
+	CertInfo `json:",inline"`
 }
 
 type HTTPServingInfo struct {
@@ -482,6 +493,8 @@ type IdentityProvider struct {
 	UseAsChallenger bool `json:"challenge"`
 	// UseAsLogin indicates whether to use this identity provider for unauthenticated browsers to login against
 	UseAsLogin bool `json:"login"`
+	// MappingMethod determines how identities from this provider are mapped to users
+	MappingMethod string `json:"mappingMethod"`
 	// Provider contains the information about how to set up a specific identity provider
 	Provider runtime.RawExtension `json:"provider"`
 }
@@ -542,6 +555,14 @@ type LDAPAttributeMapping struct {
 	// Email is the list of attributes whose values should be used as the email address. Optional.
 	// If unspecified, no email is set for the identity
 	Email []string `json:"email"`
+}
+
+type KeystonePasswordIdentityProvider struct {
+	v1.TypeMeta `json:",inline"`
+	// RemoteConnectionInfo contains information about how to connect to the keystone server
+	RemoteConnectionInfo `json:",inline"`
+	// Domain Name is required for keystone v3
+	DomainName string `json:"domainName"`
 }
 
 type RequestHeaderIdentityProvider struct {

@@ -9,7 +9,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -67,7 +66,7 @@ You can use '%[1]s status' to check the progress.`
   $ %[1]s new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
 
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
-  $ %[1]s new-app mysql -l db=mysql
+  $ %[1]s new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
 
   # Use a MySQL image in a private registry to create an app and override application artifacts' names
   $ %[1]s new-app --docker-image=myregistry.com/mycompany/mysql --name=private
@@ -160,6 +159,8 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 
 // RunNewApplication contains all the necessary functionality for the OpenShift cli new-app command
 func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *cobra.Command, args []string, config *newcmd.AppConfig) error {
+	output := cmdutil.GetFlagString(c, "output")
+
 	if err := setupAppConfig(f, out, c, args, config); err != nil {
 		return err
 	}
@@ -169,7 +170,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 			return handleRunError(c, err, fullName)
 		}
 
-		if len(cmdutil.GetFlagString(c, "output")) != 0 {
+		if len(output) != 0 {
 			return f.Factory.PrintObject(c, result.List, out)
 		}
 
@@ -191,31 +192,27 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 		return err
 	}
 
-	if len(cmdutil.GetFlagString(c, "output")) != 0 {
+	if len(output) != 0 && output != "name" {
 		return f.Factory.PrintObject(c, result.List, out)
 	}
-	if err := createObjects(f, out, result); err != nil {
+	if err := createObjects(f, out, output == "name", result); err != nil {
 		return err
 	}
 
 	hasMissingRepo := false
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
-		case *kapi.Service:
-			portMappings := "."
-			if len(t.Spec.Ports) > 0 {
-				portMappings = fmt.Sprintf(" with port mappings %s.", describeServicePorts(t.Spec))
-			}
-			fmt.Fprintf(c.Out(), "Service %q created at %s%s\n", t.Name, t.Spec.ClusterIP, portMappings)
 		case *buildapi.BuildConfig:
-			fmt.Fprintf(c.Out(), "Build configuration %q created and build triggered.\n", t.Name)
+			if len(t.Spec.Triggers) > 0 {
+				fmt.Fprintf(c.Out(), "Build scheduled for %q - use the build-logs command to track its progress.\n", t.Name)
+			}
 		case *imageapi.ImageStream:
 			if len(t.Status.DockerImageRepository) == 0 {
 				if hasMissingRepo {
 					continue
 				}
 				hasMissingRepo = true
-				fmt.Fprintf(c.Out(), "WARNING: We created an image stream %q, but it does not look like a Docker registry has been integrated with the server. Automatic builds and deployments depend on that integration to detect new images and will not function properly.\n", t.Name)
+				fmt.Fprint(c.Out(), "WARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n")
 			}
 		}
 	}
@@ -339,13 +336,13 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 	return nil
 }
 
-func createObjects(f *clientcmd.Factory, out io.Writer, result *newcmd.AppResult) error {
+func createObjects(f *clientcmd.Factory, out io.Writer, shortOutput bool, result *newcmd.AppResult) error {
 	mapper, typer := f.Factory.Object()
 	bulk := configcmd.Bulk{
 		Mapper:            mapper,
 		Typer:             typer,
 		RESTClientFactory: f.Factory.RESTClient,
-		After:             configcmd.NewPrintNameOrErrorAfter(out, os.Stderr),
+		After:             configcmd.NewPrintNameOrErrorAfter(mapper, shortOutput, "created", out, os.Stderr),
 		// Retry is used to support previous versions of the API server that will
 		// consider the presence of an unknown trigger type to be an error.
 		Retry: retryBuildConfig,
@@ -355,26 +352,6 @@ func createObjects(f *clientcmd.Factory, out io.Writer, result *newcmd.AppResult
 	}
 
 	return nil
-}
-
-func describeServicePorts(spec kapi.ServiceSpec) string {
-	switch len(spec.Ports) {
-	case 1:
-		if spec.Ports[0].TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone || spec.Ports[0].Port == spec.Ports[0].TargetPort.IntVal {
-			return fmt.Sprintf("%d", spec.Ports[0].Port)
-		}
-		return fmt.Sprintf("%d->%s", spec.Ports[0].Port, spec.Ports[0].TargetPort.String())
-	default:
-		pairs := []string{}
-		for _, port := range spec.Ports {
-			if port.TargetPort.String() == "0" || spec.ClusterIP == kapi.ClusterIPNone {
-				pairs = append(pairs, fmt.Sprintf("%d", port.Port))
-				continue
-			}
-			pairs = append(pairs, fmt.Sprintf("%d->%s", port.Port, port.TargetPort.String()))
-		}
-		return strings.Join(pairs, ", ")
-	}
 }
 
 func handleRunError(c *cobra.Command, err error, fullName string) error {

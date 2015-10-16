@@ -69,7 +69,10 @@ func TestCLIGetToken(t *testing.T) {
 	identityStorage := identityetcd.NewREST(etcdHelper)
 	identityRegistry := identityregistry.NewRegistry(identityStorage)
 
-	identityMapper := identitymapper.NewAlwaysCreateUserIdentityToUserMapper(identityRegistry, userRegistry)
+	identityMapper, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodGenerate)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	authRequestHandler := basicauthrequest.NewBasicAuthAuthentication(allowanypassword.New("get-token-test", identityMapper), true)
 	authHandler := oauthhandlers.NewUnionAuthenticationHandler(

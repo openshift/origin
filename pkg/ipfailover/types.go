@@ -39,4 +39,6 @@ type IPFailoverConfigCmdOptions struct {
 	NetworkInterface string
 	WatchPort        int
 	Replicas         int
+
+	ShortOutput bool
 }

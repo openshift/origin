@@ -17,7 +17,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func TestHTPasswd(t *testing.T) {
+func TestOAuthHTPasswd(t *testing.T) {
 	htpasswdFile, err := ioutil.TempFile("", "test.htpasswd")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -33,6 +33,7 @@ func TestHTPasswd(t *testing.T) {
 		Name:            "htpasswd",
 		UseAsChallenger: true,
 		UseAsLogin:      true,
+		MappingMethod:   "claim",
 		Provider: runtime.EmbeddedObject{
 			Object: &configapi.HTPasswdPasswordIdentityProvider{
 				File: htpasswdFile.Name(),

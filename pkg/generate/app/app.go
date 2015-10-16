@@ -76,6 +76,9 @@ func (g *Generated) WithType(slicePtr interface{}) bool {
 }
 
 func nameFromGitURL(url *url.URL) (string, bool) {
+	if url == nil {
+		return "", false
+	}
 	// from path
 	if name, ok := git.NameFromRepositoryURL(url); ok {
 		return name, true
@@ -110,13 +113,13 @@ func urlWithoutRef(url url.URL) string {
 
 // SuggestName returns a name derived from the source URL
 func (r *SourceRef) SuggestName() (string, bool) {
+	if r == nil {
+		return "", false
+	}
 	if len(r.Name) > 0 {
 		return r.Name, true
 	}
-	if r.URL != nil {
-		return nameFromGitURL(r.URL)
-	}
-	return "", false
+	return nameFromGitURL(r.URL)
 }
 
 // BuildSource returns an OpenShift BuildSource from the SourceRef

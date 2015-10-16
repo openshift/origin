@@ -339,6 +339,17 @@ type ServingInfo struct {
 	ServerCert CertInfo
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
 	ClientCA string
+	// NamedCertificates is a list of certificates to use to secure requests to specific hostnames
+	NamedCertificates []NamedCertificate
+}
+
+// NamedCertificate specifies a certificate/key, and the names it should be served for
+type NamedCertificate struct {
+	// Names is a list of DNS names this certificate should be used to secure
+	// A name can be a normal DNS name, or can contain leading wildcard segments.
+	Names []string
+	// CertInfo is the TLS cert info for serving secure traffic
+	CertInfo
 }
 
 type HTTPServingInfo struct {
@@ -503,6 +514,8 @@ type IdentityProvider struct {
 	UseAsChallenger bool
 	// UseAsLogin indicates whether to use this identity provider for unauthenticated browsers to login against
 	UseAsLogin bool
+	// MappingMethod determines how identities from this provider are mapped to users
+	MappingMethod string
 	// Provider contains the information about how to set up a specific identity provider
 	Provider runtime.EmbeddedObject
 }
@@ -563,6 +576,14 @@ type LDAPAttributeMapping struct {
 	// Email is the list of attributes whose values should be used as the email address. Optional.
 	// If unspecified, no email is set for the identity
 	Email []string
+}
+
+type KeystonePasswordIdentityProvider struct {
+	api.TypeMeta
+	// RemoteConnectionInfo contains information about how to connect to the keystone server
+	RemoteConnectionInfo RemoteConnectionInfo
+	// Domain Name is required for keystone v3
+	DomainName string
 }
 
 type RequestHeaderIdentityProvider struct {
