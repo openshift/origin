@@ -45,6 +45,12 @@ type DiagnosticsOptions struct {
 	Logger *log.Logger
 }
 
+const (
+	// Standard locations for the host config files OpenShift uses.
+	StandardMasterConfigPath string = "/etc/openshift/master/master-config.yaml"
+	StandardNodeConfigPath   string = "/etc/openshift/node/node-config.yaml"
+)
+
 const longDescription = `
 This utility helps troubleshoot and diagnose known problems. It runs
 diagnostics using a client and/or the state of a running master /
@@ -148,6 +154,19 @@ only these are available:
 The list of all possible is:
     {{.available}}
 		`, log.Hash{"requested": o.RequestedDiagnostics, "common": common.List(), "available": AvailableDiagnostics.List()}))
+	}
+
+	// If not given master/client config file locations, check if the defaults exist
+	// and adjust the options accordingly:
+	if len(o.MasterConfigLocation) == 0 {
+		if _, err := os.Stat(StandardMasterConfigPath); !os.IsNotExist(err) {
+			o.MasterConfigLocation = StandardMasterConfigPath
+		}
+	}
+	if len(o.NodeConfigLocation) == 0 {
+		if _, err := os.Stat(StandardNodeConfigPath); !os.IsNotExist(err) {
+			o.NodeConfigLocation = StandardNodeConfigPath
+		}
 	}
 
 	func() { // don't trust discovery/build of diagnostics; wrap panic nicely in case of developer error
