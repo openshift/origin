@@ -12500,6 +12500,10 @@
       "type": "boolean",
       "description": "Use the host's ipc namespace. Optional: Default to false."
      },
+     "securityContext": {
+      "$ref": "v1.PodSecurityContext",
+      "description": "SecurityContext holds pod-level security attributes and common container settings"
+     },
      "imagePullSecrets": {
       "type": "array",
       "items": {
@@ -12976,28 +12980,28 @@
    },
    "v1.SecurityContext": {
     "id": "v1.SecurityContext",
-    "description": "SecurityContext holds security configuration that will be applied to a container.",
+    "description": "SecurityContext holds security configuration that will be applied to a container. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context",
     "properties": {
      "capabilities": {
       "$ref": "v1.Capabilities",
-      "description": "The linux kernel capabilites that should be added or removed. Default to Container.Capabilities if left unset. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context"
+      "description": "Capabilities are the capabilities to add/drop when running containers. Optional: Defaults to the default set of capabilities granted by the container runtime."
      },
      "privileged": {
       "type": "boolean",
-      "description": "Run the container in privileged mode. Default to Container.Privileged if left unset. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context"
+      "description": "Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Optional: Default to false"
      },
      "seLinuxOptions": {
       "$ref": "v1.SELinuxOptions",
-      "description": "SELinuxOptions are the labels to be applied to the container and volumes. Options that control the SELinux labels applied. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context"
+      "description": "SELinuxOptions is the SELinux context to be applied to the container Optional: container runtime will allocate a random SELinux context for each container if unspecified."
      },
      "runAsUser": {
       "type": "integer",
       "format": "int64",
-      "description": "RunAsUser is the UID to run the entrypoint of the container process. The user id that runs the first process in the container. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context"
+      "description": "RunAsUser is the UID to run the entrypoint of the container process. Optional: defaults to user specified in image metadata if unspecified."
      },
      "runAsNonRoot": {
       "type": "boolean",
-      "description": "RunAsNonRoot indicates that the container should be run as a non-root user. If the RunAsUser field is not explicitly set then the kubelet may check the image for a specified user or perform defaulting to specify a user."
+      "description": "RunAsNonRoot indicates that the container should be run as a non-root user. Optional: if false, then the kubelet may check the image for a specified user or perform defaulting to specify a user."
      }
     }
    },
@@ -13044,6 +13048,33 @@
      "level": {
       "type": "string",
       "description": "Level is SELinux level label that applies to the container. More info: http://releases.k8s.io/HEAD/docs/user-guide/labels.md"
+     }
+    }
+   },
+   "v1.PodSecurityContext": {
+    "id": "v1.PodSecurityContext",
+    "description": "PodSecurityContext holds pod-level security attributes and common container settings.",
+    "properties": {
+     "capabilities": {
+      "$ref": "v1.Capabilities",
+      "description": "Capabilities are the capabilities to add/drop when running containers. Optional: Defaults to the default set of capabilities granted by the container runtime."
+     },
+     "privileged": {
+      "type": "boolean",
+      "description": "Run all containers in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Optional: Default to false"
+     },
+     "seLinuxOptions": {
+      "$ref": "v1.SELinuxOptions",
+      "description": "SELinuxOptions is the SELinux context to be applied to all containers Optional: docker daemon will allocate a random SELinux context for each container if unspecified."
+     },
+     "runAsUser": {
+      "type": "integer",
+      "format": "int64",
+      "description": "RunAsUser is the UID to run the entrypoint of all container processes. Optional: defaults to user specified in image metadata if unspecified."
+     },
+     "runAsNonRoot": {
+      "type": "boolean",
+      "description": "RunAsNonRoot indicates that all containers should be run as a non-root user. Optional: if false, then the kubelet may check the image for a specified user or perform defaulting to specify a user."
      }
     }
    },

@@ -1385,6 +1385,42 @@ func deepCopy_api_PodProxyOptions(in PodProxyOptions, out *PodProxyOptions, c *c
 	return nil
 }
 
+func deepCopy_api_PodSecurityContext(in PodSecurityContext, out *PodSecurityContext, c *conversion.Cloner) error {
+	out.HostNetwork = in.HostNetwork
+	out.HostPID = in.HostPID
+	out.HostIPC = in.HostIPC
+	if in.Capabilities != nil {
+		out.Capabilities = new(Capabilities)
+		if err := deepCopy_api_Capabilities(*in.Capabilities, out.Capabilities, c); err != nil {
+			return err
+		}
+	} else {
+		out.Capabilities = nil
+	}
+	if in.Privileged != nil {
+		out.Privileged = new(bool)
+		*out.Privileged = *in.Privileged
+	} else {
+		out.Privileged = nil
+	}
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(SELinuxOptions)
+		if err := deepCopy_api_SELinuxOptions(*in.SELinuxOptions, out.SELinuxOptions, c); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	out.RunAsNonRoot = in.RunAsNonRoot
+	return nil
+}
+
 func deepCopy_api_PodSpec(in PodSpec, out *PodSpec, c *conversion.Cloner) error {
 	if in.Volumes != nil {
 		out.Volumes = make([]Volume, len(in.Volumes))
@@ -1430,9 +1466,14 @@ func deepCopy_api_PodSpec(in PodSpec, out *PodSpec, c *conversion.Cloner) error 
 	}
 	out.ServiceAccountName = in.ServiceAccountName
 	out.NodeName = in.NodeName
-	out.HostNetwork = in.HostNetwork
-	out.HostPID = in.HostPID
-	out.HostIPC = in.HostIPC
+	if in.SecurityContext != nil {
+		out.SecurityContext = new(PodSecurityContext)
+		if err := deepCopy_api_PodSecurityContext(*in.SecurityContext, out.SecurityContext, c); err != nil {
+			return err
+		}
+	} else {
+		out.SecurityContext = nil
+	}
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -2451,6 +2492,7 @@ func init() {
 		deepCopy_api_PodList,
 		deepCopy_api_PodLogOptions,
 		deepCopy_api_PodProxyOptions,
+		deepCopy_api_PodSecurityContext,
 		deepCopy_api_PodSpec,
 		deepCopy_api_PodStatus,
 		deepCopy_api_PodStatusResult,

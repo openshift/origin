@@ -283,9 +283,18 @@ func convert_api_PodSpec_To_v1_PodSpec(in *api.PodSpec, out *PodSpec, s conversi
 	// DeprecatedServiceAccount is an alias for ServiceAccountName.
 	out.DeprecatedServiceAccount = in.ServiceAccountName
 	out.NodeName = in.NodeName
-	out.HostNetwork = in.HostNetwork
-	out.HostPID = in.HostPID
-	out.HostIPC = in.HostIPC
+	if in.SecurityContext != nil {
+		out.SecurityContext = new(PodSecurityContext)
+		if err := convert_api_PodSecurityContext_To_v1_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+			return err
+		}
+
+		// the host namespace fields have to be handled here for backward compatibilty
+		// with v1.0.0
+		out.HostPID = in.SecurityContext.HostPID
+		out.HostNetwork = in.SecurityContext.HostNetwork
+		out.HostIPC = in.SecurityContext.HostIPC
+	}
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -362,9 +371,21 @@ func convert_v1_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s conversi
 		out.NodeName = in.DeprecatedHost
 	}
 
-	out.HostNetwork = in.HostNetwork
-	out.HostPID = in.HostPID
-	out.HostIPC = in.HostIPC
+	if in.SecurityContext != nil {
+		out.SecurityContext = new(api.PodSecurityContext)
+		if err := convert_v1_PodSecurityContext_To_api_PodSecurityContext(in.SecurityContext, out.SecurityContext, s); err != nil {
+			return err
+		}
+	}
+
+	// the host namespace fields have to be handled specially for backward compatibility
+	// with v1.0.0
+	if out.SecurityContext == nil {
+		out.SecurityContext = new(api.PodSecurityContext)
+	}
+	out.SecurityContext.HostNetwork = in.HostNetwork
+	out.SecurityContext.HostPID = in.HostPID
+	out.SecurityContext.HostIPC = in.HostIPC
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -469,5 +490,77 @@ func convert_v1_MetadataFile_To_api_DownwardAPIVolumeFile(in *MetadataFile, out 
 	if err := convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(&in.FieldRef, &out.FieldRef, s); err != nil {
 		return err
 	}
+	return nil
+}
+
+func convert_api_PodSecurityContext_To_v1_PodSecurityContext(in *api.PodSecurityContext, out *PodSecurityContext, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*api.PodSecurityContext))(in)
+	}
+	if in.Capabilities != nil {
+		out.Capabilities = new(Capabilities)
+		if err := convert_api_Capabilities_To_v1_Capabilities(in.Capabilities, out.Capabilities, s); err != nil {
+			return err
+		}
+	} else {
+		out.Capabilities = nil
+	}
+	if in.Privileged != nil {
+		out.Privileged = new(bool)
+		*out.Privileged = *in.Privileged
+	} else {
+		out.Privileged = nil
+	}
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(SELinuxOptions)
+		if err := convert_api_SELinuxOptions_To_v1_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	out.RunAsNonRoot = in.RunAsNonRoot
+	return nil
+}
+
+func convert_v1_PodSecurityContext_To_api_PodSecurityContext(in *PodSecurityContext, out *api.PodSecurityContext, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*PodSecurityContext))(in)
+	}
+	if in.Capabilities != nil {
+		out.Capabilities = new(api.Capabilities)
+		if err := convert_v1_Capabilities_To_api_Capabilities(in.Capabilities, out.Capabilities, s); err != nil {
+			return err
+		}
+	} else {
+		out.Capabilities = nil
+	}
+	if in.Privileged != nil {
+		out.Privileged = new(bool)
+		*out.Privileged = *in.Privileged
+	} else {
+		out.Privileged = nil
+	}
+	if in.SELinuxOptions != nil {
+		out.SELinuxOptions = new(api.SELinuxOptions)
+		if err := convert_v1_SELinuxOptions_To_api_SELinuxOptions(in.SELinuxOptions, out.SELinuxOptions, s); err != nil {
+			return err
+		}
+	} else {
+		out.SELinuxOptions = nil
+	}
+	if in.RunAsUser != nil {
+		out.RunAsUser = new(int64)
+		*out.RunAsUser = *in.RunAsUser
+	} else {
+		out.RunAsUser = nil
+	}
+	out.RunAsNonRoot = in.RunAsNonRoot
 	return nil
 }

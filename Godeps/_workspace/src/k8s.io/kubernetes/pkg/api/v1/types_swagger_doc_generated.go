@@ -941,6 +941,19 @@ func (PodProxyOptions) SwaggerDoc() map[string]string {
 	return map_PodProxyOptions
 }
 
+var map_PodSecurityContext = map[string]string{
+	"":               "PodSecurityContext holds pod-level security attributes and common container settings.",
+	"capabilities":   "Capabilities are the capabilities to add/drop when running containers. Optional: Defaults to the default set of capabilities granted by the container runtime.",
+	"privileged":     "Run all containers in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Optional: Default to false",
+	"seLinuxOptions": "SELinuxOptions is the SELinux context to be applied to all containers Optional: docker daemon will allocate a random SELinux context for each container if unspecified.",
+	"runAsUser":      "RunAsUser is the UID to run the entrypoint of all container processes. Optional: defaults to user specified in image metadata if unspecified.",
+	"runAsNonRoot":   "RunAsNonRoot indicates that all containers should be run as a non-root user. Optional: if false, then the kubelet may check the image for a specified user or perform defaulting to specify a user.",
+}
+
+func (PodSecurityContext) SwaggerDoc() map[string]string {
+	return map_PodSecurityContext
+}
+
 var map_PodSpec = map[string]string{
 	"":                              "PodSpec is a description of a pod.",
 	"volumes":                       "List of volumes that can be mounted by containers belonging to the pod. More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md",
@@ -956,6 +969,7 @@ var map_PodSpec = map[string]string{
 	"hostNetwork":                   "Host networking requested for this pod. Use the host's network namespace. If this option is set, the ports that will be used must be specified. Default to false.",
 	"hostPID":                       "Use the host's pid namespace. Optional: Default to false.",
 	"hostIPC":                       "Use the host's ipc namespace. Optional: Default to false.",
+	"securityContext":               "SecurityContext holds pod-level security attributes and common container settings",
 	"imagePullSecrets":              "ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec. If specified, these secrets will be passed to individual puller implementations for them to use. For example, in the case of docker, only DockerConfig type secrets are honored. More info: http://releases.k8s.io/HEAD/docs/user-guide/images.md#specifying-imagepullsecrets-on-a-pod",
 }
 
@@ -1191,12 +1205,12 @@ func (SecretVolumeSource) SwaggerDoc() map[string]string {
 }
 
 var map_SecurityContext = map[string]string{
-	"":               "SecurityContext holds security configuration that will be applied to a container.",
-	"capabilities":   "The linux kernel capabilites that should be added or removed. Default to Container.Capabilities if left unset. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context",
-	"privileged":     "Run the container in privileged mode. Default to Container.Privileged if left unset. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context",
-	"seLinuxOptions": "SELinuxOptions are the labels to be applied to the container and volumes. Options that control the SELinux labels applied. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context",
-	"runAsUser":      "RunAsUser is the UID to run the entrypoint of the container process. The user id that runs the first process in the container. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context",
-	"runAsNonRoot":   "RunAsNonRoot indicates that the container should be run as a non-root user. If the RunAsUser field is not explicitly set then the kubelet may check the image for a specified user or perform defaulting to specify a user.",
+	"":               "SecurityContext holds security configuration that will be applied to a container. More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context",
+	"capabilities":   "Capabilities are the capabilities to add/drop when running containers. Optional: Defaults to the default set of capabilities granted by the container runtime.",
+	"privileged":     "Run container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Optional: Default to false",
+	"seLinuxOptions": "SELinuxOptions is the SELinux context to be applied to the container Optional: container runtime will allocate a random SELinux context for each container if unspecified.",
+	"runAsUser":      "RunAsUser is the UID to run the entrypoint of the container process. Optional: defaults to user specified in image metadata if unspecified.",
+	"runAsNonRoot":   "RunAsNonRoot indicates that the container should be run as a non-root user. Optional: if false, then the kubelet may check the image for a specified user or perform defaulting to specify a user.",
 }
 
 func (SecurityContext) SwaggerDoc() map[string]string {

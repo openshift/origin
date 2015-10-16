@@ -980,9 +980,19 @@ type PodSpec struct {
 	// the scheduler simply schedules this pod onto that node, assuming that it fits resource
 	// requirements.
 	NodeName string `json:"nodeName,omitempty"`
-	// Use the host's network namespace. If this option is set, the ports that will be
+	// SecurityContext holds pod-level security attributes and common container settings
+	SecurityContext *PodSecurityContext `json:"securityContext,omitempty"`
+	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec.
+	// If specified, these secrets will be passed to individual puller implementations for them to use.  For example,
+	// in the case of docker, only DockerConfig type secrets are honored.
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
+}
+
+// PodSecurityContext holds pod-level security attributes and common container settings.
+type PodSecurityContext struct {
+	// Use the host's network namespace.  If this option is set, the ports that will be
 	// used must be specified.
-	// Optional: Default to false.
+	// Optional: Default to false
 	HostNetwork bool `json:"hostNetwork,omitempty"`
 	// Use the host's pid namespace.
 	// Optional: Default to false.
@@ -990,10 +1000,25 @@ type PodSpec struct {
 	// Use the host's ipc namespace.
 	// Optional: Default to false.
 	HostIPC bool `json:"hostIPC,omitempty"`
-	// ImagePullSecrets is an optional list of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec.
-	// If specified, these secrets will be passed to individual puller implementations for them to use.  For example,
-	// in the case of docker, only DockerConfig type secrets are honored.
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	// Capabilities are the capabilities to add/drop when running containers.
+	// Optional: Defaults to the default set of capabilities granted by the container
+	// runtime.
+	Capabilities *Capabilities `json:"capabilities,omitempty"`
+	// Run all containers in privileged mode.
+	// Processes in privileged containers are essentially equivalent to root on the host.
+	// Optional: Default to false
+	Privileged *bool `json:"privileged,omitempty"`
+	// SELinuxOptions is the SELinux context to be applied to all containers
+	// Optional: container runtime will allocate a random SELinux context for each
+	// container if unspecified.
+	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty"`
+	// RunAsUser is the UID to run the entrypoint of all container processes.
+	// Optional: defaults to user specified in image metadata if unspecified.
+	RunAsUser *int64 `json:"runAsUser,omitempty"`
+	// RunAsNonRoot indicates that all containers should be run as a non-root user.
+	// Optional: if false, then the kubelet may check the image for a specified user
+	// or perform defaulting to specify a user.
+	RunAsNonRoot bool `json:"runAsNonRoot,omitempty"`
 }
 
 // PodStatus represents information about the status of a pod. Status may trail the actual
@@ -2183,36 +2208,35 @@ type ComponentStatusList struct {
 // will be populated based on the Container configuration if they are not set.  Defining them on
 // both the Container AND the SecurityContext will result in an error.
 type SecurityContext struct {
-	// Capabilities are the capabilities to add/drop when running the container
+	// Capabilities are the capabilities to add/drop when running containers.
+	// Optional: Defaults to the default set of capabilities granted by the container
+	// runtime.
 	Capabilities *Capabilities `json:"capabilities,omitempty"`
-
-	// Run the container in privileged mode
+	// Run container in privileged mode.
+	// Processes in privileged containers are essentially equivalent to root on the host.
+	// Optional: Default to false
 	Privileged *bool `json:"privileged,omitempty"`
-
-	// SELinuxOptions are the labels to be applied to the container
-	// and volumes
+	// SELinuxOptions is the SELinux context to be applied to the container
+	// Optional: container runtime will allocate a random SELinux context for each
+	// container if unspecified.
 	SELinuxOptions *SELinuxOptions `json:"seLinuxOptions,omitempty"`
-
 	// RunAsUser is the UID to run the entrypoint of the container process.
+	// Optional: defaults to user specified in image metadata if unspecified.
 	RunAsUser *int64 `json:"runAsUser,omitempty"`
-
-	// RunAsNonRoot indicates that the container should be run as a non-root user.  If the RunAsUser
-	// field is not explicitly set then the kubelet may check the image for a specified user or
-	// perform defaulting to specify a user.
-	RunAsNonRoot bool
+	// RunAsNonRoot indicates that the container should be run as a non-root user.
+	// Optional: if false, then the kubelet may check the image for a specified user
+	// or perform defaulting to specify a user.
+	RunAsNonRoot bool `json:"runAsNonRoot,omitempty"`
 }
 
 // SELinuxOptions are the labels to be applied to the container.
 type SELinuxOptions struct {
 	// SELinux user label
 	User string `json:"user,omitempty"`
-
 	// SELinux role label
 	Role string `json:"role,omitempty"`
-
 	// SELinux type label
 	Type string `json:"type,omitempty"`
-
 	// SELinux level label.
 	Level string `json:"level,omitempty"`
 }

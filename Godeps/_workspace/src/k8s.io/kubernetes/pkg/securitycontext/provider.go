@@ -37,11 +37,12 @@ type SimpleSecurityContextProvider struct{}
 // The security context provider can make changes to the Config with which
 // the container is created.
 func (p SimpleSecurityContextProvider) ModifyContainerConfig(pod *api.Pod, container *api.Container, config *docker.Config) {
-	if container.SecurityContext == nil {
+	effectiveSC := determineEffectiveSecurityContext(pod, container)
+	if effectiveSC == nil {
 		return
 	}
-	if container.SecurityContext.RunAsUser != nil {
-		config.User = strconv.FormatInt(*container.SecurityContext.RunAsUser, 10)
+	if effectiveSC.RunAsUser != nil {
+		config.User = strconv.FormatInt(*effectiveSC.RunAsUser, 10)
 	}
 }
 
@@ -51,24 +52,26 @@ func (p SimpleSecurityContextProvider) ModifyContainerConfig(pod *api.Pod, conta
 // An error is returned if it's not possible to secure the container as requested
 // with a security context.
 func (p SimpleSecurityContextProvider) ModifyHostConfig(pod *api.Pod, container *api.Container, hostConfig *docker.HostConfig) {
-	if container.SecurityContext == nil {
+	effectiveSC := determineEffectiveSecurityContext(pod, container)
+	if effectiveSC == nil {
 		return
 	}
-	if container.SecurityContext.Privileged != nil {
-		hostConfig.Privileged = *container.SecurityContext.Privileged
+
+	if effectiveSC.Privileged != nil {
+		hostConfig.Privileged = *effectiveSC.Privileged
 	}
 
-	if container.SecurityContext.Capabilities != nil {
-		add, drop := makeCapabilites(container.SecurityContext.Capabilities.Add, container.SecurityContext.Capabilities.Drop)
+	if effectiveSC.Capabilities != nil {
+		add, drop := makeCapabilites(effectiveSC.Capabilities.Add, effectiveSC.Capabilities.Drop)
 		hostConfig.CapAdd = add
 		hostConfig.CapDrop = drop
 	}
 
-	if container.SecurityContext.SELinuxOptions != nil {
-		hostConfig.SecurityOpt = modifySecurityOption(hostConfig.SecurityOpt, dockerLabelUser, container.SecurityContext.SELinuxOptions.User)
-		hostConfig.SecurityOpt = modifySecurityOption(hostConfig.SecurityOpt, dockerLabelRole, container.SecurityContext.SELinuxOptions.Role)
-		hostConfig.SecurityOpt = modifySecurityOption(hostConfig.SecurityOpt, dockerLabelType, container.SecurityContext.SELinuxOptions.Type)
-		hostConfig.SecurityOpt = modifySecurityOption(hostConfig.SecurityOpt, dockerLabelLevel, container.SecurityContext.SELinuxOptions.Level)
+	if effectiveSC.SELinuxOptions != nil {
+		hostConfig.SecurityOpt = modifySecurityOption(hostConfig.SecurityOpt, dockerLabelUser, effectiveSC.SELinuxOptions.User)
+		hostConfig.SecurityOpt = modifySecurityOption(hostConfig.SecurityOpt, dockerLabelRole, effectiveSC.SELinuxOptions.Role)
+		hostConfig.SecurityOpt = modifySecurityOption(hostConfig.SecurityOpt, dockerLabelType, effectiveSC.SELinuxOptions.Type)
+		hostConfig.SecurityOpt = modifySecurityOption(hostConfig.SecurityOpt, dockerLabelLevel, effectiveSC.SELinuxOptions.Level)
 	}
 }
 
@@ -94,4 +97,39 @@ func makeCapabilites(capAdd []api.Capability, capDrop []api.Capability) ([]strin
 		dropCaps = append(dropCaps, string(cap))
 	}
 	return addCaps, dropCaps
+}
+
+func determineEffectiveSecurityContext(pod *api.Pod, container *api.Container) *api.SecurityContext {
+	if container.SecurityContext != nil {
+		return container.SecurityContext
+	}
+
+	return securityContextFromPodSecurityContext(pod)
+}
+
+func securityContextFromPodSecurityContext(pod *api.Pod) *api.SecurityContext {
+	if pod.Spec.SecurityContext == nil {
+		return nil
+	}
+
+	fromPod := &api.SecurityContext{}
+
+	if pod.Spec.SecurityContext.Capabilities != nil {
+		fromPod.Capabilities = &api.Capabilities{}
+		*fromPod.Capabilities = *pod.Spec.SecurityContext.Capabilities
+	}
+	if pod.Spec.SecurityContext.Privileged != nil {
+		fromPod.Privileged = new(bool)
+		*fromPod.Privileged = *pod.Spec.SecurityContext.Privileged
+	}
+	if pod.Spec.SecurityContext.SELinuxOptions != nil {
+		fromPod.SELinuxOptions = &api.SELinuxOptions{}
+		*fromPod.SELinuxOptions = *pod.Spec.SecurityContext.SELinuxOptions
+	}
+	if pod.Spec.SecurityContext.RunAsUser != nil {
+		fromPod.RunAsUser = pod.Spec.SecurityContext.RunAsUser
+	}
+	fromPod.RunAsNonRoot = pod.Spec.SecurityContext.RunAsNonRoot
+
+	return fromPod
 }

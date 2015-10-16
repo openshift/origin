@@ -34,6 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/watch"
@@ -83,7 +84,6 @@ func fakeClientWith(testName string, t *testing.T, data map[string]string) Clien
 }
 
 func testData() (*api.PodList, *api.ServiceList) {
-	grace := int64(30)
 	pods := &api.PodList{
 		ListMeta: api.ListMeta{
 			ResourceVersion: "15",
@@ -91,19 +91,11 @@ func testData() (*api.PodList, *api.ServiceList) {
 		Items: []api.Pod{
 			{
 				ObjectMeta: api.ObjectMeta{Name: "foo", Namespace: "test", ResourceVersion: "10"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 			{
 				ObjectMeta: api.ObjectMeta{Name: "bar", Namespace: "test", ResourceVersion: "11"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 		},
 	}
