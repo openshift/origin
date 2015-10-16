@@ -212,7 +212,7 @@ func RunNewApplication(fullName string, f *clientcmd.Factory, out io.Writer, c *
 					continue
 				}
 				hasMissingRepo = true
-				fmt.Fprintf(c.Out(), "WARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n", t.Name)
+				fmt.Fprint(c.Out(), "WARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n")
 			}
 		}
 	}
