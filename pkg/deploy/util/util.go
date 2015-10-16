@@ -141,14 +141,18 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 		selector[k] = v
 	}
 	selector[deployapi.DeploymentConfigLabel] = config.Name
+	selector[deployapi.DeprecatedDeploymentConfigLabel] = config.Name
 	selector[deployapi.DeploymentLabel] = deploymentName
+	selector[deployapi.DeprecatedDeploymentLabel] = deploymentName
 
 	podLabels := make(labels.Set)
 	for k, v := range config.Template.ControllerTemplate.Template.Labels {
 		podLabels[k] = v
 	}
 	podLabels[deployapi.DeploymentConfigLabel] = config.Name
+	podLabels[deployapi.DeprecatedDeploymentConfigLabel] = config.Name
 	podLabels[deployapi.DeploymentLabel] = deploymentName
+	podLabels[deployapi.DeprecatedDeploymentLabel] = deploymentName
 
 	podAnnotations := make(labels.Set)
 	for k, v := range config.Template.ControllerTemplate.Template.Annotations {
