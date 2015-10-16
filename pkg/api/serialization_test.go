@@ -375,7 +375,9 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 var skipStandardVersions = map[string][]string{
 	// The API versions here are to test our object that serializes from/into
 	// docker's registry API.
-	"DockerImage": {"pre012", "1.0"},
+	"DockerImage":          {"pre012", "1.0"},
+	"DeploymentConfigList": {"", "v1"},
+	"DeploymentConfig":     {"", "v1"},
 }
 
 const fuzzIters = 20
@@ -385,7 +387,7 @@ func TestSpecificKind(t *testing.T) {
 	api.Scheme.Log(t)
 	defer api.Scheme.Log(nil)
 
-	kind := "ImageStreamTag"
+	kind := "BuildConfig"
 	item, err := api.Scheme.New("", kind)
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)
