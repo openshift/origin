@@ -1,0 +1,20 @@
+---
+  apiVersion: v1
+  kind: PersistentVolume
+  metadata: 
+    name: ceph-pv
+  spec: 
+    capacity:
+      storage: 2Gi
+    accessModes:
+      - ReadWriteMany
+    rbd: 
+      monitors: 
+        - 192.168.122.133:6789
+      pool: rbd
+      image: foo
+      user: admin
+      secretRef: 
+        name: ceph-secret
+      fsType: ext4
+      readOnly: false

@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: ceph-mysql-template
+  annotations:
+    description: "mysql persistent ceph application template using inline PVC"
+    tags: "ceph mysql pvc"
+
+objects:
+- apiVersion: v1
+  id: ceph-claim-template
+  kind: PersistentVolumeClaim
+  metadata:
+    name: ceph-claim-template
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: 1Gi
+
+- apiVersion: v1
+  id: ceph-mysql-pod
+  kind: Pod
+  metadata:
+    name: ceph-mysql-pod
+  spec:
+    containers:
+    - image: mysql
+      name: mysql-from-template
+      volumeMounts:
+      - mountPath: /var/lib/mysql
+        name: mysql-pv
+      env:
+      - name: MYSQL_ROOT_PASSWORD
+        value: foopass
+      securityContext:
+        capabilities: {}
+        privileged: true #privileged required for the rbd mount
+    volumes:
+    - name: mysql-pv
+      persistentVolumeClaim:
+        claimName: ceph-claim-template
