@@ -19,6 +19,8 @@ cat "${OS_ROOT}/Dockerfile" | oc new-build -D - --name=test
 oc get bc/test
 oc new-build --dockerfile=$'FROM centos:7\nRUN yum install -y httpd'
 oc get bc/centos
+oc new-build -D $'FROM openshift/origin:v1.1' --to-docker
+[[ $(oc get bc/origin --template '{{with .spec.output.to}}{{.kind}} {{.name}}{{end}}') == "DockerImage openshift/origin:latest" ]]
 oc delete all --all
 
 oc process -f examples/sample-app/application-template-dockerbuild.json -l build=docker | oc create -f -

@@ -3,6 +3,7 @@ package app
 import (
 	"net/url"
 	"os"
+	"reflect"
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -34,10 +35,22 @@ func TestBuildConfigOutput(t *testing.T) {
 	}
 	tests := []struct {
 		asImageStream bool
-		expectedKind  string
+		want          *kapi.ObjectReference
 	}{
-		{true, "ImageStreamTag"},
-		{false, "DockerImage"},
+		{
+			asImageStream: true,
+			want: &kapi.ObjectReference{
+				Kind: "ImageStreamTag",
+				Name: "origin:latest",
+			},
+		},
+		{
+			asImageStream: false,
+			want: &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: "myregistry/openshift/origin",
+			},
+		},
 	}
 	for i, test := range tests {
 		output.AsImageStream = test.asImageStream
@@ -51,8 +64,8 @@ func TestBuildConfigOutput(t *testing.T) {
 		if config.Name != "origin" {
 			t.Errorf("(%d) unexpected name: %s", i, config.Name)
 		}
-		if config.Spec.Output.To.Name != "origin:latest" || config.Spec.Output.To.Kind != test.expectedKind {
-			t.Errorf("(%d) unexpected output image: %s/%s", i, config.Spec.Output.To.Kind, config.Spec.Output.To.Name)
+		if !reflect.DeepEqual(config.Spec.Output.To, test.want) {
+			t.Errorf("(%d) unexpected output image: %v; want %v", i, config.Spec.Output.To, test.want)
 		}
 		if len(config.Spec.Triggers) != 4 {
 			t.Errorf("(%d) unexpected number of triggers %d: %#v\n", i, len(config.Spec.Triggers), config.Spec.Triggers)
