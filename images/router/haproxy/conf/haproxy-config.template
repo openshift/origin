@@ -25,6 +25,13 @@ defaults
 {{ if and (and (ne .StatsUser "") (ne .StatsPassword "")) (gt .StatsPort 0) }}
 listen stats :{{.StatsPort}}
     mode http
+
+    # Health check monitoring uri.
+    monitor-uri /health
+
+    # Add your custom health check monitoring failure condition here.
+    # monitor fail if <condition>
+
     stats enable
     stats hide-version
     stats realm Haproxy\ Statistics
