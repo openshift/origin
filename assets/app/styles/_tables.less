@@ -83,3 +83,22 @@
     }
   }
 }
+
+.table-hover > tbody > tr.expanded:hover {
+  background: #FFF;
+
+  > td, > th {
+    background: #FFF;  
+    border-bottom-color: #d1d1d1;
+  }
+}
+
+tr.expandable {
+  cursor: pointer;
+}
+
+// The expanded rows just don't look good above 1200px wide
+// TODO - we can probably remove this once we have the label summary sidebar on the right
+.table-expandable-rows {
+  max-width: 1200px;
+}
