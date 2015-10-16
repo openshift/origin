@@ -100,10 +100,6 @@
               <span ng-if="deployment | annotation : 'deploymentVersion'">
                 <a ng-href="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfig.metadata.name}}/{{deployment.metadata.name}}">#{{deployment | annotation : 'deploymentVersion'}}</a>
               </span>
-              <span flex>
-                {{deployment | deploymentStatus}}<span ng-if="(deployment | deploymentStatus) == 'Deployed'">, 
-                <span ng-if="deployment.spec.replicas !== deployment.status.replicas">{{deployment.status.replicas}}/</span>{{deployment.spec.replicas}} replica<span ng-if="deployment.spec.replicas != 1">s</span></span>
-              </span>
             </td>
             <td data-title="Status">
               <div row class="status">
