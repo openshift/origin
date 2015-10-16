@@ -66,7 +66,7 @@ You can use '%[1]s status' to check the progress.`
   $ %[1]s new-app openshift/ruby-20-centos7~https://github.com/openshift/ruby-hello-world.git
 
   # Use the public Docker Hub MySQL image to create an app. Generated artifacts will be labeled with db=mysql
-  $ %[1]s new-app mysql -l db=mysql
+  $ %[1]s new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
 
   # Use a MySQL image in a private registry to create an app and override application artifacts' names
   $ %[1]s new-app --docker-image=myregistry.com/mycompany/mysql --name=private
