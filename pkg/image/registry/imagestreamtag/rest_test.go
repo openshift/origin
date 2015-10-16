@@ -58,10 +58,9 @@ func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
 	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
-	imageStorage := imageetcd.NewREST(helper)
-	imageRegistry := image.NewRegistry(imageStorage)
-	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageRegistry := image.NewRegistry(imageetcd.NewREST(helper))
+	imageStreamStorage, imageStreamStatus, imageStreamFinalize := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, imageStreamFinalize)
 	storage := NewREST(imageRegistry, imageStreamRegistry)
 	return fakeEtcdClient, helper, storage
 }
@@ -272,6 +271,7 @@ func TestGetImageStreamTag(t *testing.T) {
 }
 
 func TestDeleteImageStreamTag(t *testing.T) {
+	now := util.Now()
 	tests := map[string]struct {
 		repo        *api.ImageStream
 		expectError bool
@@ -310,8 +310,9 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		"happy path": {
 			repo: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
-					Namespace: "default",
-					Name:      "test",
+					Namespace:         "default",
+					Name:              "test",
+					DeletionTimestamp: &now,
 				},
 				Spec: api.ImageStreamSpec{
 					Tags: map[string]api.TagReference{
@@ -331,6 +332,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 				},
 				Status: api.ImageStreamStatus{
 					DockerImageRepository: "registry.default.local/default/test",
+					Phase: api.ImageStreamTerminating,
 					Tags: map[string]api.TagEventList{
 						"another": {
 							Items: []api.TagEvent{

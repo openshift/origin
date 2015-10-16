@@ -66,6 +66,8 @@ type ImageStreamSpec struct {
 	DockerImageRepository string `json:"dockerImageRepository,omitempty"`
 	// Tags map arbitrary string values to specific image locators
 	Tags []NamedTagReference `json:"tags,omitempty"`
+	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage
+	Finalizers []kapi.FinalizerName `json:"finalizers,omitempty"`
 }
 
 // NamedTagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
@@ -75,6 +77,14 @@ type NamedTagReference struct {
 	From        *kapi.ObjectReference `json:"from,omitempty"`
 }
 
+// These are the valid phases of an image stream.
+const (
+	// ImageStreamActive means the image stream is available for use in the system
+	ImageStreamAvailable string = "Available"
+	// ImageStreamTerminating means the image stream is being deleted
+	ImageStreamTerminating string = "Terminating"
+)
+
 // ImageStreamStatus contains information about the state of this image stream.
 type ImageStreamStatus struct {
 	// Represents the effective location this stream may be accessed at. May be empty until the server
@@ -83,6 +93,8 @@ type ImageStreamStatus struct {
 	// A historical record of images associated with each tag. The first entry in the TagEvent array is
 	// the currently tagged image.
 	Tags []NamedTagEventList `json:"tags,omitempty"`
+	// Phase is the current lifecycle phase of the image stream.
+	Phase string `json:"phase" description:"phase is the current lifecycle phase of the image stream"`
 }
 
 // NamedTagEventList relates a tag to its image history.

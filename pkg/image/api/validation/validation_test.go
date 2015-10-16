@@ -189,23 +189,28 @@ func TestValidateImageStream(t *testing.T) {
 
 	missingNameErr := fielderrors.NewFieldRequired("metadata.name")
 	missingNameErr.Detail = "name or generateName is required"
+	now := util.Now()
 
 	tests := map[string]struct {
 		namespace             string
 		name                  string
+		deletionTimestamp     *util.Time
 		dockerImageRepository string
 		specTags              map[string]api.TagReference
 		statusTags            map[string]api.TagEventList
+		phase                 string
 		expected              fielderrors.ValidationErrorList
 	}{
 		"missing name": {
 			namespace: "foo",
 			name:      "",
+			phase:     api.ImageStreamAvailable,
 			expected:  fielderrors.ValidationErrorList{missingNameErr},
 		},
 		"no slash in Name": {
 			namespace: "foo",
 			name:      "foo/bar",
+			phase:     api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldInvalid("metadata.name", "foo/bar", `name may not contain "/"`),
 			},
@@ -213,6 +218,7 @@ func TestValidateImageStream(t *testing.T) {
 		"no percent in Name": {
 			namespace: "foo",
 			name:      "foo%%bar",
+			phase:     api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldInvalid("metadata.name", "foo%%bar", `name may not contain "%"`),
 			},
@@ -220,6 +226,7 @@ func TestValidateImageStream(t *testing.T) {
 		"other invalid name": {
 			namespace: "foo",
 			name:      "foo bar",
+			phase:     api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldInvalid("metadata.name", "foo bar", `must match "[a-z0-9]+(?:[._-][a-z0-9]+)*"`),
 			},
@@ -227,6 +234,7 @@ func TestValidateImageStream(t *testing.T) {
 		"missing namespace": {
 			namespace: "",
 			name:      "foo",
+			phase:     api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldRequired("metadata.namespace"),
 			},
@@ -234,6 +242,7 @@ func TestValidateImageStream(t *testing.T) {
 		"invalid namespace": {
 			namespace: "!$",
 			name:      "foo",
+			phase:     api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldInvalid("metadata.namespace", "!$", `must be a DNS label (at most 63 characters, matching regex [a-z0-9]([-a-z0-9]*[a-z0-9])?): e.g. "my-name"`),
 			},
@@ -242,6 +251,7 @@ func TestValidateImageStream(t *testing.T) {
 			namespace: "namespace",
 			name:      "foo",
 			dockerImageRepository: "a-|///bbb",
+			phase: api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldInvalid("spec.dockerImageRepository", "a-|///bbb", "the docker pull spec \"a-|///bbb\" must be two or three segments separated by slashes"),
 			},
@@ -250,21 +260,25 @@ func TestValidateImageStream(t *testing.T) {
 			namespace: "namespace",
 			name:      "foo",
 			dockerImageRepository: "a/b:tag",
+			phase: api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldInvalid("spec.dockerImageRepository", "a/b:tag", "the repository name may not contain a tag"),
 			},
 		},
 		"invalid dockerImageRepository with ID": {
-			namespace: "namespace",
-			name:      "foo",
+			namespace:             "namespace",
+			name:                  "foo",
+			deletionTimestamp:     &now,
 			dockerImageRepository: "a/b@sha256:something",
+			phase: api.ImageStreamTerminating,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldInvalid("spec.dockerImageRepository", "a/b@sha256:something", "the repository name may not contain an ID"),
 			},
 		},
 		"status tag missing dockerImageReference": {
-			namespace: "namespace",
-			name:      "foo",
+			namespace:         "namespace",
+			name:              "foo",
+			deletionTimestamp: &now,
 			statusTags: map[string]api.TagEventList{
 				"tag": {
 					Items: []api.TagEvent{
@@ -274,9 +288,26 @@ func TestValidateImageStream(t *testing.T) {
 					},
 				},
 			},
+			phase: api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldRequired("status.tags[tag].Items[0].dockerImageReference"),
 				fielderrors.NewFieldRequired("status.tags[tag].Items[2].dockerImageReference"),
+			},
+		},
+		"invalid phase": {
+			namespace: "namespace",
+			name:      "foo",
+			phase:     "InvalidPhase",
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("status.phase", "InvalidPhase", "phase is not one of valid phases (Available, Terminating)"),
+			},
+		},
+		"phase doesn't match deletion timestamp": {
+			namespace: "namespace",
+			name:      "foo",
+			phase:     api.ImageStreamTerminating,
+			expected: fielderrors.ValidationErrorList{
+				fielderrors.NewFieldInvalid("status.phase", api.ImageStreamTerminating, "Terminating phase is valid only when DeletionTimestamp is set"),
 			},
 		},
 		"valid": {
@@ -303,21 +334,25 @@ func TestValidateImageStream(t *testing.T) {
 					},
 				},
 			},
+			phase:    api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{},
 		},
 		"all possible characters used": {
 			namespace: "abcdefghijklmnopqrstuvwxyz-1234567890",
 			name:      "abcdefghijklmnopqrstuvwxyz-1234567890.dot_underscore-dash",
+			phase:     api.ImageStreamAvailable,
 			expected:  fielderrors.ValidationErrorList{},
 		},
 		"max name and namespace length met": {
 			namespace: namespace63Char,
 			name:      name191Char,
+			phase:     api.ImageStreamAvailable,
 			expected:  fielderrors.ValidationErrorList{},
 		},
 		"max name and namespace length exceeded": {
 			namespace: namespace63Char,
 			name:      name192Char,
+			phase:     api.ImageStreamAvailable,
 			expected: fielderrors.ValidationErrorList{
 				fielderrors.NewFieldInvalid("metadata.name", name192Char, "'namespace/name' cannot be longer than 255 characters"),
 			},
@@ -327,15 +362,17 @@ func TestValidateImageStream(t *testing.T) {
 	for name, test := range tests {
 		stream := api.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{
-				Namespace: test.namespace,
-				Name:      test.name,
+				Namespace:         test.namespace,
+				Name:              test.name,
+				DeletionTimestamp: test.deletionTimestamp,
 			},
 			Spec: api.ImageStreamSpec{
 				DockerImageRepository: test.dockerImageRepository,
 				Tags: test.specTags,
 			},
 			Status: api.ImageStreamStatus{
-				Tags: test.statusTags,
+				Tags:  test.statusTags,
+				Phase: test.phase,
 			},
 		}
 

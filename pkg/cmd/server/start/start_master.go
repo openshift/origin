@@ -558,7 +558,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunDeploymentConfigController()
 	oc.RunDeploymentConfigChangeController()
 	oc.RunDeploymentImageChangeTriggerController()
-	oc.RunImageImportController()
+	oc.RunImageStreamController()
 	oc.RunOriginNamespaceController()
 	oc.RunSDNController()
 

@@ -377,8 +377,8 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 
 	imageStorage, imageStatusStorage, imageFinalizeStorage := imageetcd.NewREST(c.EtcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage, imageStatusStorage, imageFinalizeStorage)
-	imageStreamStorage, imageStreamStatusStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage)
+	imageStreamStorage, imageStreamStatusStorage, imageStreamFinalizeStorage := imagestreametcd.NewREST(c.EtcdHelper, imagestream.DefaultRegistryFunc(defaultRegistryFunc), subjectAccessReviewRegistry)
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, imageStreamFinalizeStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
@@ -436,15 +436,16 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	)
 
 	storage := map[string]rest.Storage{
-		"images":               imageStorage,
-		"images/status":        imageStatusStorage,
-		"images/finalize":      imageStreamFinalizeStorage,
-		"imageStreams":         imageStreamStorage,
-		"imageStreams/status":  imageStreamStatusStorage,
-		"imageStreamImages":    imageStreamImageStorage,
-		"imageStreamMappings":  imageStreamMappingStorage,
-		"imageStreamTags":      imageStreamTagStorage,
-		"imageStreamDeletions": imageStreamDeletionStorage,
+		"images":                imageStorage,
+		"images/status":         imageStatusStorage,
+		"images/finalize":       imageStreamFinalizeStorage,
+		"imageStreams":          imageStreamStorage,
+		"imageStreams/status":   imageStreamStatusStorage,
+		"imageStreams/finalize": imageStreamFinalizeStorage,
+		"imageStreamImages":     imageStreamImageStorage,
+		"imageStreamMappings":   imageStreamMappingStorage,
+		"imageStreamTags":       imageStreamTagStorage,
+		"imageStreamDeletions":  imageStreamDeletionStorage,
 
 		"deploymentConfigs":         deployConfigStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),

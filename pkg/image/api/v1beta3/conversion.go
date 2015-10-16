@@ -108,7 +108,7 @@ func convert_v1beta3_ImageStatus_To_api_ImageStatus(in *ImageStatus, out *newer.
 	return nil
 }
 
-func convert_v1beta3_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
+func convert_api_ImageStreamSpec_To_v1beta3_ImageStreamSpec(in *newer.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	if len(in.DockerImageRepository) > 0 {
 		// ensure that stored image references have no tag or ID, which was possible from 1.0.0 until 1.0.7
@@ -119,14 +119,22 @@ func convert_v1beta3_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec,
 			}
 		}
 	}
-	out.Tags = make(map[string]newer.TagReference)
-	return s.Convert(&in.Tags, &out.Tags, 0)
+	out.Tags = make([]NamedTagReference, 0, 0)
+	if err := s.Convert(&in.Tags, &out.Tags, 0); err != nil {
+		return err
+	}
+	out.Finalizers = make([]kapiv1beta3.FinalizerName, 0, 1)
+	return s.Convert(&in.Finalizers, &out.Finalizers, 0)
 }
 
-func convert_api_ImageStreamSpec_To_v1beta3_ImageStreamSpec(in *newer.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
+func convert_v1beta3_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
-	out.Tags = make([]NamedTagReference, 0, 0)
-	return s.Convert(&in.Tags, &out.Tags, 0)
+	out.Tags = make(map[string]newer.TagReference)
+	if err := s.Convert(&in.Tags, &out.Tags, 0); err != nil {
+		return err
+	}
+	out.Finalizers = make([]kapi.FinalizerName, 0, 1)
+	return s.Convert(&in.Finalizers, &out.Finalizers, 0)
 }
 
 func convert_v1beta3_ImageStreamStatus_To_api_ImageStreamStatus(in *ImageStreamStatus, out *newer.ImageStreamStatus, s conversion.Scope) error {
@@ -140,12 +148,14 @@ func convert_v1beta3_ImageStreamStatus_To_api_ImageStreamStatus(in *ImageStreamS
 			}
 		}
 	}
+	out.Phase = in.Phase
 	out.Tags = make(map[string]newer.TagEventList)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
 
 func convert_api_ImageStreamStatus_To_v1beta3_ImageStreamStatus(in *newer.ImageStreamStatus, out *ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
+	out.Phase = in.Phase
 	out.Tags = make([]NamedTagEventList, 0, 0)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
@@ -175,7 +185,28 @@ func convert_v1beta3_ImageStream_To_api_ImageStream(in *ImageStream, out *newer.
 	if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
 		return err
 	}
-	return s.Convert(&in.Status, &out.Status, 0)
+	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+		return err
+	}
+
+	if out.DeletionTimestamp == nil {
+		// make sure that finalizers contain origin
+		hasOriginFinalizer := false
+		for _, finalizer := range out.Spec.Finalizers {
+			if finalizer == oapi.FinalizerOrigin {
+				hasOriginFinalizer = true
+				break
+			}
+		}
+		if !hasOriginFinalizer {
+			out.Spec.Finalizers = append(out.Spec.Finalizers, oapi.FinalizerOrigin)
+		}
+		// phase need to match DeletionTimestamp
+		out.Status.Phase = newer.ImageStreamAvailable
+	} else {
+		out.Status.Phase = newer.ImageStreamTerminating
+	}
+	return nil
 }
 
 func convert_api_ImageStreamImage_To_v1beta3_ImageStreamImage(in *newer.ImageStreamImage, out *ImageStreamImage, s conversion.Scope) error {

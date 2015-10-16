@@ -108,12 +108,6 @@ func convert_v1_ImageStatus_To_api_ImageStatus(in *ImageStatus, out *newer.Image
 	return nil
 }
 
-func convert_v1_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
-	out.DockerImageRepository = in.DockerImageRepository
-	out.Tags = make(map[string]newer.TagReference)
-	return s.Convert(&in.Tags, &out.Tags, 0)
-}
-
 func convert_api_ImageStreamSpec_To_v1_ImageStreamSpec(in *newer.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	if len(in.DockerImageRepository) > 0 {
@@ -126,11 +120,29 @@ func convert_api_ImageStreamSpec_To_v1_ImageStreamSpec(in *newer.ImageStreamSpec
 		}
 	}
 	out.Tags = make([]NamedTagReference, 0, 0)
-	return s.Convert(&in.Tags, &out.Tags, 0)
+	if err := s.Convert(&in.Tags, &out.Tags, 0); err != nil {
+		return err
+	}
+	out.Finalizers = make([]kapiv1.FinalizerName, 0, 1)
+	return s.Convert(&in.Finalizers, &out.Finalizers, 0)
+}
+
+func convert_v1_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out *newer.ImageStreamSpec, s conversion.Scope) error {
+	out.DockerImageRepository = in.DockerImageRepository
+	out.Tags = make(map[string]newer.TagReference)
+	if err := s.Convert(&in.Tags, &out.Tags, 0); err != nil {
+		return err
+	}
+	out.Finalizers = make([]kapi.FinalizerName, 0, 1)
+	return s.Convert(&in.Finalizers, &out.Finalizers, 0)
 }
 
 func convert_v1_ImageStreamStatus_To_api_ImageStreamStatus(in *ImageStreamStatus, out *newer.ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
+	out.Phase = in.Phase
+	if out.Phase == "" {
+		out.Phase = newer.ImageStreamAvailable
+	}
 	out.Tags = make(map[string]newer.TagEventList)
 	return s.Convert(&in.Tags, &out.Tags, 0)
 }
@@ -146,8 +158,49 @@ func convert_api_ImageStreamStatus_To_v1_ImageStreamStatus(in *newer.ImageStream
 			}
 		}
 	}
+	out.Phase = in.Phase
 	out.Tags = make([]NamedTagEventList, 0, 0)
 	return s.Convert(&in.Tags, &out.Tags, 0)
+}
+
+func convert_v1_ImageStream_To_api_ImageStream(in *ImageStream, out *newer.ImageStream, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
+		return err
+	}
+	if out.DeletionTimestamp == nil {
+		// make sure that finalizers contain origin
+		hasOriginFinalizer := false
+		for _, finalizer := range out.Spec.Finalizers {
+			if finalizer == oapi.FinalizerOrigin {
+				hasOriginFinalizer = true
+				break
+			}
+		}
+		if !hasOriginFinalizer {
+			out.Spec.Finalizers = append(out.Spec.Finalizers, oapi.FinalizerOrigin)
+		}
+		// phase need to match DeletionTimestamp
+		out.Status.Phase = newer.ImageStreamAvailable
+	} else {
+		out.Status.Phase = newer.ImageStreamTerminating
+	}
+	return nil
+}
+
+func convert_api_ImageStream_To_v1_ImageStream(in *newer.ImageStream, out *ImageStream, s conversion.Scope) error {
+	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
+		return err
+	}
+	return s.Convert(&in.Status, &out.Status, 0)
 }
 
 func convert_api_ImageStreamMapping_To_v1_ImageStreamMapping(in *newer.ImageStreamMapping, out *ImageStreamMapping, s conversion.Scope) error {
@@ -243,6 +296,8 @@ func init() {
 		convert_v1_Image_To_api_Image,
 		convert_api_ImageStatus_To_v1_ImageStatus,
 		convert_v1_ImageStatus_To_api_ImageStatus,
+		convert_api_ImageStream_To_v1_ImageStream,
+		convert_v1_ImageStream_To_api_ImageStream,
 		convert_api_ImageStreamSpec_To_v1_ImageStreamSpec,
 		convert_v1_ImageStreamSpec_To_api_ImageStreamSpec,
 		convert_api_ImageStreamStatus_To_v1_ImageStreamStatus,
@@ -264,7 +319,7 @@ func init() {
 			switch label {
 			case "name":
 				return "metadata.name", value, nil
-			case "metadata.name", "spec.dockerImageRepository", "status.dockerImageRepository":
+			case "metadata.name", "spec.dockerImageRepository", "status.dockerImageRepository", "status.phase":
 				return label, value, nil
 			default:
 				return "", "", fmt.Errorf("field label not supported: %s", label)
@@ -274,7 +329,7 @@ func init() {
 		func(label, value string) (string, string, error) {
 			switch label {
 			case "name":
-				return "image.name", value, nil
+				return "metadata.name", value, nil
 			case "metadata.name", "imagestream.name", "image.name", "image.status.phase":
 				return label, value, nil
 			default:

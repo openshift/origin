@@ -41,6 +41,9 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 	expectedActionSet := []ktestclient.Action{
 		ktestclient.NewListAction("buildconfigs", "", nil, nil),
 		ktestclient.NewListAction("policies", "", nil, nil),
+		// 1st time for deleting
+		ktestclient.NewListAction("imagestreams", "", nil, nil),
+		// 2nd time to check whether they are deleted
 		ktestclient.NewListAction("imagestreams", "", nil, nil),
 		ktestclient.NewListAction("policybindings", "", nil, nil),
 		ktestclient.NewListAction("rolebindings", "", nil, nil),

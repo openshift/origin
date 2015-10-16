@@ -68,7 +68,7 @@ func (f *fakeDockerRegistryClient) ImageByID(namespace, name, id string) (*docke
 
 func TestControllerNoDockerRepo(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{}, &client.Fake{}
-	c := ImportController{client: cli, streams: fake, mappings: fake}
+	c := ImageStreamController{client: cli, streams: fake, mappings: fake}
 
 	stream := api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
@@ -87,7 +87,7 @@ func TestControllerNoDockerRepo(t *testing.T) {
 
 func TestControllerRepoHandled(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{}, &client.Fake{}
-	c := ImportController{client: cli, streams: fake, mappings: fake}
+	c := ImageStreamController{client: cli, streams: fake, mappings: fake}
 
 	stream := api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
@@ -111,7 +111,7 @@ func TestControllerRepoHandled(t *testing.T) {
 
 func TestControllerTagRetrievalFails(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{Err: fmt.Errorf("test error")}, &client.Fake{}
-	c := ImportController{client: cli, streams: fake, mappings: fake}
+	c := ImageStreamController{client: cli, streams: fake, mappings: fake}
 
 	stream := api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
@@ -132,7 +132,7 @@ func TestControllerTagRetrievalFails(t *testing.T) {
 
 func TestControllerRetrievesInsecure(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{Err: fmt.Errorf("test error")}, &client.Fake{}
-	c := ImportController{client: cli, streams: fake, mappings: fake}
+	c := ImageStreamController{client: cli, streams: fake, mappings: fake}
 
 	stream := api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
@@ -162,7 +162,7 @@ func TestControllerRetrievesInsecure(t *testing.T) {
 
 func TestControllerImageNotFoundError(t *testing.T) {
 	cli, fake := &fakeDockerRegistryClient{Tags: map[string]string{api.DefaultImageTag: "not_found"}}, &client.Fake{}
-	c := ImportController{client: cli, streams: fake, mappings: fake}
+	c := ImageStreamController{client: cli, streams: fake, mappings: fake}
 	stream := api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
 		Spec: api.ImageStreamSpec{
@@ -190,7 +190,7 @@ func TestControllerImageWithGenericError(t *testing.T) {
 			},
 		},
 	}, &client.Fake{}
-	c := ImportController{client: cli, streams: fake, mappings: fake}
+	c := ImageStreamController{client: cli, streams: fake, mappings: fake}
 	stream := api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
 		Spec: api.ImageStreamSpec{
@@ -223,7 +223,7 @@ func TestControllerWithImage(t *testing.T) {
 			},
 		},
 	}, &client.Fake{}
-	c := ImportController{client: cli, streams: fake, mappings: fake}
+	c := ImageStreamController{client: cli, streams: fake, mappings: fake}
 	stream := api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
 		Spec: api.ImageStreamSpec{
@@ -288,7 +288,7 @@ func TestControllerWithSpecTags(t *testing.T) {
 				},
 			},
 		}, &client.Fake{}
-		c := ImportController{client: cli, streams: fake, mappings: fake}
+		c := ImageStreamController{client: cli, streams: fake, mappings: fake}
 		stream := api.ImageStream{
 			ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
 			Spec: api.ImageStreamSpec{

@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/tools"
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -40,10 +41,9 @@ func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
 	fakeEtcdClient := tools.NewFakeEtcdClient(t)
 	fakeEtcdClient.TestIndex = true
 	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
-	imageStorage := imageetcd.NewREST(helper)
-	imageRegistry := image.NewRegistry(imageStorage)
-	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageRegistry := image.NewRegistry(imageetcd.NewREST(helper))
+	imageStreamStorage, imageStreamStatus, imageStreamFinalize := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, imageStreamFinalize)
 	storage := NewREST(imageRegistry, imageStreamRegistry)
 	return fakeEtcdClient, helper, storage
 }
@@ -352,8 +352,10 @@ func TestTrackingTags(t *testing.T) {
 					},
 				},
 			},
+			Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin},
 		},
 		Status: api.ImageStreamStatus{
+			Phase: api.ImageStreamAvailable,
 			Tags: map[string]api.TagEventList{
 				"tracking": {
 					Items: []api.TagEvent{
@@ -392,6 +394,10 @@ func TestTrackingTags(t *testing.T) {
 			Name: "5678",
 		},
 		DockerImageReference: "foo/bar@sha256:5678",
+		Finalizers:           []kapi.FinalizerName{oapi.FinalizerOrigin},
+		Status: api.ImageStatus{
+			Phase: api.ImageAvailable,
+		},
 	}
 
 	mapping := api.ImageStreamMapping{

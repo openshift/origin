@@ -1446,25 +1446,6 @@ func convert_api_ImageList_To_v1_ImageList(in *imageapi.ImageList, out *imageapi
 	return nil
 }
 
-func convert_api_ImageStream_To_v1_ImageStream(in *imageapi.ImageStream, out *imageapiv1.ImageStream, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*imageapi.ImageStream))(in)
-	}
-	if err := convert_api_TypeMeta_To_v1_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
-		return err
-	}
-	return nil
-}
-
 func convert_api_ImageStreamDeletionList_To_v1_ImageStreamDeletionList(in *imageapi.ImageStreamDeletionList, out *imageapiv1.ImageStreamDeletionList, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapi.ImageStreamDeletionList))(in)
@@ -1524,7 +1505,7 @@ func convert_api_ImageStreamList_To_v1_ImageStreamList(in *imageapi.ImageStreamL
 	if in.Items != nil {
 		out.Items = make([]imageapiv1.ImageStream, len(in.Items))
 		for i := range in.Items {
-			if err := convert_api_ImageStream_To_v1_ImageStream(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}
@@ -1569,25 +1550,6 @@ func convert_v1_ImageList_To_api_ImageList(in *imageapiv1.ImageList, out *imagea
 		}
 	} else {
 		out.Items = nil
-	}
-	return nil
-}
-
-func convert_v1_ImageStream_To_api_ImageStream(in *imageapiv1.ImageStream, out *imageapi.ImageStream, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*imageapiv1.ImageStream))(in)
-	}
-	if err := convert_v1_TypeMeta_To_api_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
-		return err
-	}
-	if err := convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.Spec, &out.Spec, 0); err != nil {
-		return err
-	}
-	if err := s.Convert(&in.Status, &out.Status, 0); err != nil {
-		return err
 	}
 	return nil
 }
@@ -1651,7 +1613,7 @@ func convert_v1_ImageStreamList_To_api_ImageStreamList(in *imageapiv1.ImageStrea
 	if in.Items != nil {
 		out.Items = make([]imageapi.ImageStream, len(in.Items))
 		for i := range in.Items {
-			if err := convert_v1_ImageStream_To_api_ImageStream(&in.Items[i], &out.Items[i], s); err != nil {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
 				return err
 			}
 		}
@@ -3416,7 +3378,6 @@ func init() {
 		convert_api_ImageStreamImageList_To_v1_ImageStreamImageList,
 		convert_api_ImageStreamList_To_v1_ImageStreamList,
 		convert_api_ImageStreamTag_To_v1_ImageStreamTag,
-		convert_api_ImageStream_To_v1_ImageStream,
 		convert_api_IsPersonalSubjectAccessReview_To_v1_IsPersonalSubjectAccessReview,
 		convert_api_ListMeta_To_v1_ListMeta,
 		convert_api_LocalObjectReference_To_v1_LocalObjectReference,
@@ -3500,7 +3461,6 @@ func init() {
 		convert_v1_ImageStreamImageList_To_api_ImageStreamImageList,
 		convert_v1_ImageStreamList_To_api_ImageStreamList,
 		convert_v1_ImageStreamTag_To_api_ImageStreamTag,
-		convert_v1_ImageStream_To_api_ImageStream,
 		convert_v1_IsPersonalSubjectAccessReview_To_api_IsPersonalSubjectAccessReview,
 		convert_v1_ListMeta_To_api_ListMeta,
 		convert_v1_LocalObjectReference_To_api_LocalObjectReference,

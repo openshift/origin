@@ -339,10 +339,10 @@ func (c *MasterConfig) RunSDNController() {
 	}
 }
 
-// RunImageImportController starts the image import trigger controller process.
-func (c *MasterConfig) RunImageImportController() {
-	osclient := c.ImageImportControllerClient()
-	factory := imagecontroller.ImportControllerFactory{
+// RunImageStreamController starts the image import trigger and stream termination controller process.
+func (c *MasterConfig) RunImageStreamController() {
+	osclient := c.ImageStreamControllerClient()
+	factory := imagecontroller.ImageStreamControllerFactory{
 		Client: osclient,
 	}
 	controller := factory.Create()

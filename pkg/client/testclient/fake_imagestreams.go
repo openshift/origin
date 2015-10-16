@@ -79,3 +79,18 @@ func (c *FakeImageStreams) UpdateStatus(inObj *imageapi.ImageStream) (result *im
 
 	return obj.(*imageapi.ImageStream), err
 }
+
+func (c *FakeImageStreams) Finalize(inObj *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
+	action := ktestclient.CreateActionImpl{}
+	action.Verb = "create"
+	action.Resource = "imagestreams"
+	action.Subresource = "finalize"
+	action.Object = inObj
+
+	obj, err := c.Fake.Invokes(action, inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*imageapi.ImageStream), err
+}

@@ -58,7 +58,8 @@ func (s Strategy) PrepareForCreate(obj runtime.Object) {
 	stream := obj.(*api.ImageStream)
 	stream.Status = api.ImageStreamStatus{
 		DockerImageRepository: s.dockerImageRepository(stream),
-		Tags: make(map[string]api.TagEventList),
+		Tags:  make(map[string]api.TagEventList),
+		Phase: api.ImageStreamAvailable,
 	}
 }
 
@@ -335,6 +336,7 @@ func (s Strategy) PrepareForUpdate(obj, old runtime.Object) {
 
 	stream.Status = oldStream.Status
 	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
+	stream.Spec.Finalizers = oldStream.Spec.Finalizers
 }
 
 // ValidateUpdate is the default update validation for an end user.
@@ -373,6 +375,9 @@ func NewStatusStrategy(strategy Strategy) StatusStrategy {
 }
 
 func (StatusStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newImageStream := obj.(*api.ImageStream)
+	oldImageStream := obj.(*api.ImageStream)
+	newImageStream.Spec = oldImageStream.Spec
 }
 
 func (StatusStrategy) AllowUnconditionalUpdate() bool {
@@ -382,6 +387,27 @@ func (StatusStrategy) AllowUnconditionalUpdate() bool {
 func (StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
 	// TODO: merge valid fields after update
 	return validation.ValidateImageStreamStatusUpdate(obj.(*api.ImageStream), old.(*api.ImageStream))
+}
+
+type FinalizeStrategy struct {
+	Strategy
+}
+
+func NewFinalizeStrategy(strategy Strategy) FinalizeStrategy {
+	return FinalizeStrategy{strategy}
+}
+
+func (FinalizeStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+	return validation.ValidateImageStreamFinalizeUpdate(obj.(*api.ImageStream), old.(*api.ImageStream))
+}
+
+// PrepareForUpdate clears fields that are not allowed to be set by end users on update.
+func (FinalizeStrategy) PrepareForUpdate(obj, old runtime.Object) {
+	newStream := obj.(*api.ImageStream)
+	oldStream := old.(*api.ImageStream)
+	newStream.Status = oldStream.Status
+	newStream.Spec.DockerImageRepository = oldStream.Spec.DockerImageRepository
+	newStream.Spec.Tags = oldStream.Spec.Tags
 }
 
 // MatchImageStream returns a generic matcher for a given label and field selector.
@@ -402,6 +428,7 @@ func ImageStreamToSelectableFields(ir *api.ImageStream) labels.Set {
 		"metadata.name":                ir.Name,
 		"spec.dockerImageRepository":   ir.Spec.DockerImageRepository,
 		"status.dockerImageRepository": ir.Status.DockerImageRepository,
+		"status.phase":                 ir.Status.Phase,
 	}
 }
 

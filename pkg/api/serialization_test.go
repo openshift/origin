@@ -171,6 +171,15 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 				j.DockerImageRepository = ""
 			}
 		},
+		func(j *image.ImageStream, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			if j.DeletionTimestamp == nil {
+				j.Status.Phase = image.ImageStreamAvailable
+				j.Spec.Finalizers = append(j.Spec.Finalizers, osapi.FinalizerOrigin)
+			} else {
+				j.Status.Phase = image.ImageStreamTerminating
+			}
+		},
 		func(j *image.ImageStreamTag, c fuzz.Continue) {
 			c.Fuzz(&j.Image)
 			// because we de-embedded Image from ImageStreamTag, in order to round trip

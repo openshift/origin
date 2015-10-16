@@ -97,22 +97,6 @@ func ValidateImageFinalizeUpdate(newImage, oldImage *api.Image) fielderrors.Vali
 	return allErrs
 }
 
-// validateFinalizerName validates finalizer names
-func validateFinalizerName(stringValue string) fielderrors.ValidationErrorList {
-	allErrs := fielderrors.ValidationErrorList{}
-	if !util.IsQualifiedName(stringValue) {
-		return append(allErrs, fielderrors.NewFieldInvalid("finalizers", stringValue, qualifiedNameErrorMsg))
-	}
-
-	if strings.Index(stringValue, "/") < 0 && !kapi.IsStandardFinalizerName(stringValue) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("finalizers", stringValue, fmt.Sprintf("finalizer name is neither a standard finalizer name nor is it fully qualified")))
-	} else if strings.Index(stringValue, "/") >= 0 && stringValue != string(oapi.FinalizerOrigin) {
-		allErrs = append(allErrs, fielderrors.NewFieldInvalid("finalizers", stringValue, fmt.Sprintf("is fully qualified and doesn't match %s", oapi.FinalizerOrigin)))
-	}
-
-	return allErrs
-}
-
 // ValidateImageStream tests required fields for an ImageStream.
 func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
@@ -156,6 +140,14 @@ func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorLis
 		}
 	}
 
+	if stream.Status.Phase != api.ImageStreamAvailable && stream.Status.Phase != api.ImageStreamTerminating {
+		result = append(result, fielderrors.NewFieldInvalid("status.phase", stream.Status.Phase, fmt.Sprintf("phase is not one of valid phases (%s, %s)", api.ImageStreamAvailable, api.ImageStreamTerminating)))
+	}
+	if stream.DeletionTimestamp == nil && stream.Status.Phase == api.ImageStreamTerminating {
+		result = append(result, fielderrors.NewFieldInvalid("status.phase", stream.Status.Phase, fmt.Sprintf("%s phase is valid only when DeletionTimestamp is set", api.ImageStreamTerminating)))
+
+	}
+
 	return result
 }
 
@@ -164,6 +156,8 @@ func ValidateImageStreamUpdate(newStream, oldStream *api.ImageStream) fielderror
 
 	result = append(result, validation.ValidateObjectMetaUpdate(&newStream.ObjectMeta, &oldStream.ObjectMeta).Prefix("metadata")...)
 	result = append(result, ValidateImageStream(newStream)...)
+	newStream.Status.Phase = oldStream.Status.Phase
+	newStream.Spec.Finalizers = oldStream.Spec.Finalizers
 
 	return result
 }
@@ -172,8 +166,29 @@ func ValidateImageStreamUpdate(newStream, oldStream *api.ImageStream) fielderror
 func ValidateImageStreamStatusUpdate(newStream, oldStream *api.ImageStream) fielderrors.ValidationErrorList {
 	result := fielderrors.ValidationErrorList{}
 	result = append(result, validation.ValidateObjectMetaUpdate(&newStream.ObjectMeta, &oldStream.ObjectMeta).Prefix("metadata")...)
+	if newStream.Status.Phase != api.ImageStreamAvailable && newStream.Status.Phase != api.ImageStreamTerminating {
+		result = append(result, fielderrors.NewFieldInvalid("status.phase", newStream.Status.Phase, fmt.Sprintf("phase is not one of valid phases (%s, %s)", api.ImageStreamAvailable, api.ImageStreamTerminating)))
+	}
+	if newStream.DeletionTimestamp == nil && newStream.Status.Phase == api.ImageStreamTerminating {
+		result = append(result, fielderrors.NewFieldInvalid("status.phase", newStream.Status.Phase, fmt.Sprintf("%s phase is valid  only when DeletionTimestamp is set", api.ImageStreamTerminating)))
+
+	}
 	newStream.Spec.Tags = oldStream.Spec.Tags
 	newStream.Spec.DockerImageRepository = oldStream.Spec.DockerImageRepository
+	newStream.Spec.Finalizers = oldStream.Spec.Finalizers
+	return result
+}
+
+// ValidateImageStreamFinalizeUpdate tests whether stream's finalizers contain proper values.
+func ValidateImageStreamFinalizeUpdate(newStream, oldStream *api.ImageStream) fielderrors.ValidationErrorList {
+	result := fielderrors.ValidationErrorList{}
+	result = append(result, validation.ValidateObjectMetaUpdate(&newStream.ObjectMeta, &oldStream.ObjectMeta).Prefix("metadata")...)
+	for i := range newStream.Spec.Finalizers {
+		result = append(result, validateFinalizerName(string(newStream.Spec.Finalizers[i]))...)
+	}
+	newStream.Spec.Tags = oldStream.Spec.Tags
+	newStream.Spec.DockerImageRepository = oldStream.Spec.DockerImageRepository
+	newStream.Status = oldStream.Status
 	return result
 }
 
@@ -225,4 +240,20 @@ func ValidateImageStreamDeletion(isd *api.ImageStreamDeletion) fielderrors.Valid
 		}
 	}
 	return result
+}
+
+// validateFinalizerName checks whether finalizer name is valid
+func validateFinalizerName(stringValue string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if !util.IsQualifiedName(stringValue) {
+		return append(allErrs, fielderrors.NewFieldInvalid("finalizers", stringValue, qualifiedNameErrorMsg))
+	}
+
+	if strings.Index(stringValue, "/") < 0 && !kapi.IsStandardFinalizerName(stringValue) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("finalizers", stringValue, fmt.Sprintf("finalizer name is neither a standard finalizer name nor is it fully qualified")))
+	} else if strings.Index(stringValue, "/") >= 0 && stringValue != string(oapi.FinalizerOrigin) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("finalizers", stringValue, fmt.Sprintf("is fully qualified and doesn't match %s", oapi.FinalizerOrigin)))
+	}
+
+	return allErrs
 }

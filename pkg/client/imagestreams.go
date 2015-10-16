@@ -1,6 +1,8 @@
 package client
 
 import (
+	"fmt"
+
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/watch"
@@ -22,6 +24,7 @@ type ImageStreamInterface interface {
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 	UpdateStatus(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	Finalize(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 }
 
 // ImageStreamNamespaceGetter exposes methods to get ImageStreams by Namespace
@@ -106,5 +109,16 @@ func (c *imageStreams) Watch(label labels.Selector, field fields.Selector, resou
 func (c *imageStreams) UpdateStatus(stream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
 	result = &imageapi.ImageStream{}
 	err = c.r.Put().Namespace(c.ns).Resource("imageStreams").Name(stream.Name).SubResource("status").Body(stream).Do().Into(result)
+	return
+}
+
+// Finalize takes the representation of an image stream to update. Returns the server's representation of the image stream, and an error, if it occurs.
+func (c *imageStreams) Finalize(imageStream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
+	result = &imageapi.ImageStream{}
+	if len(imageStream.ResourceVersion) == 0 {
+		err = fmt.Errorf("invalid update object, missing resource version: %v", imageStream)
+		return
+	}
+	err = c.r.Put().Namespace(c.ns).Resource("imageStreams").Name(imageStream.Name).SubResource("finalize").Body(imageStream).Do().Into(result)
 	return
 }

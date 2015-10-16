@@ -76,6 +76,8 @@ type ImageStreamSpec struct {
 	DockerImageRepository string `json:"dockerImageRepository,omitempty" description:"optional field if specified this stream is backed by a Docker repository on this server"`
 	// Tags map arbitrary string values to specific image locators
 	Tags []NamedTagReference `json:"tags,omitempty" description:"map arbitrary string values to specific image locators"`
+	// Finalizers is an opaque list of values that must be empty to permanently remove object from storage
+	Finalizers []kapi.FinalizerName `json:"finalizers,omitempty" description:"opaque list of values that must be empty to permanently remove object from storage"`
 }
 
 // NamedTagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
@@ -88,6 +90,14 @@ type NamedTagReference struct {
 	From *kapi.ObjectReference `json:"from,omitempty" description:"a reference to an image stream tag or image stream this tag should track"`
 }
 
+// These are the valid phases of an image stream.
+const (
+	// ImageStreamActive means the image stream is available for use in the system
+	ImageStreamAvailable string = "Available"
+	// ImageStreamTerminating means the image stream is being deleted
+	ImageStreamTerminating string = "Terminating"
+)
+
 // ImageStreamStatus contains information about the state of this image stream.
 type ImageStreamStatus struct {
 	// DockerImageRepository represents the effective location this stream may be accessed at.
@@ -96,6 +106,8 @@ type ImageStreamStatus struct {
 	// Tags are a historical record of images associated with each tag. The first entry in the
 	// TagEvent array is the currently tagged image.
 	Tags []NamedTagEventList `json:"tags,omitempty" description:"historical record of images associated with each tag, the first entry is the currently tagged image"`
+	// Phase is the current lifecycle phase of the image stream.
+	Phase string `json:"phase,omitempty" description:"phase is the current lifecycle phase of the image stream"`
 }
 
 // NamedTagEventList relates a tag to its image history.

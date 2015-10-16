@@ -1906,6 +1906,14 @@ func deepCopy_api_ImageStreamSpec(in imageapi.ImageStreamSpec, out *imageapi.Ima
 	} else {
 		out.Tags = nil
 	}
+	if in.Finalizers != nil {
+		out.Finalizers = make([]pkgapi.FinalizerName, len(in.Finalizers))
+		for i := range in.Finalizers {
+			out.Finalizers[i] = in.Finalizers[i]
+		}
+	} else {
+		out.Finalizers = nil
+	}
 	return nil
 }
 
@@ -1923,6 +1931,7 @@ func deepCopy_api_ImageStreamStatus(in imageapi.ImageStreamStatus, out *imageapi
 	} else {
 		out.Tags = nil
 	}
+	out.Phase = in.Phase
 	return nil
 }
 

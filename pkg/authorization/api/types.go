@@ -73,7 +73,7 @@ const (
 var (
 	GroupsToResources = map[string][]string{
 		BuildGroupName:       {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone", "buildconfigs/webhooks"},
-		ImageGroupName:       {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
+		ImageGroupName:       {"imagestreams", "imagestreams/finalize", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
 		DeploymentGroupName:  {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
 		SDNGroupName:         {"clusternetworks", "hostsubnets", "netnamespaces"},
 		TemplateGroupName:    {"templates", "templateconfigs", "processedtemplates"},

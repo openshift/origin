@@ -17,13 +17,13 @@ import (
 	"github.com/openshift/origin/pkg/image/api"
 )
 
-// ImportControllerFactory can create an ImportController.
-type ImportControllerFactory struct {
+// ImageStreamControllerFactory can create an ImageStreamController.
+type ImageStreamControllerFactory struct {
 	Client client.Interface
 }
 
-// Create creates an ImportController.
-func (f *ImportControllerFactory) Create() controller.RunnableController {
+// Create creates an ImageStreamController.
+func (f *ImageStreamControllerFactory) Create() controller.RunnableController {
 	lw := &cache.ListWatch{
 		ListFunc: func() (runtime.Object, error) {
 			return f.Client.ImageStreams(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
@@ -35,9 +35,12 @@ func (f *ImportControllerFactory) Create() controller.RunnableController {
 	q := cache.NewFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(lw, &api.ImageStream{}, q, 2*time.Minute).Run()
 
-	c := &ImportController{
-		streams:  f.Client,
-		mappings: f.Client,
+	c := &ImageStreamController{
+		streams:         f.Client,
+		streamDeletions: f.Client,
+		streamImages:    f.Client,
+		images:          f.Client,
+		mappings:        f.Client,
 	}
 
 	return &controller.RetryController{

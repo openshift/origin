@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -42,6 +43,14 @@ func (c *NamespaceController) Handle(namespace *kapi.Namespace) (err error) {
 	err = deleteAllContent(c.Client, namespace.Name)
 	if err != nil {
 		return err
+	}
+
+	streams, err := c.Client.ImageStreams(namespace.Name).List(labels.Everything(), fields.Everything())
+	if err != nil {
+		return err
+	}
+	if len(streams.Items) > 0 {
+		return fmt.Errorf("Waiting for image streams to be finalized")
 	}
 
 	// we have removed content, so mark it finalized by us

@@ -31,7 +31,7 @@ var (
 	imageColumns            = []string{"NAME", "DOCKER REF", "STATUS"}
 	imageStreamTagColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
 	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
-	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
+	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED", "STATUS"}
 	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "TLS TERMINATION"}
 	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
@@ -358,7 +358,7 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, withNamespace, 
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.Name, stream.Status.DockerImageRepository, tags, latestTime)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", stream.Name, stream.Status.DockerImageRepository, tags, latestTime, stream.Status.Phase)
 	return err
 }
 

@@ -27,6 +27,8 @@ type Registry interface {
 	DeleteImageStream(ctx kapi.Context, id string) (*kapi.Status, error)
 	// WatchImageStreams watches for new/changed/deleted image streams.
 	WatchImageStreams(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
+	// FinalizeImageStream updates image stream's finalizers
+	FinalizeImageStream(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -43,13 +45,14 @@ type Storage interface {
 // storage puts strong typing around storage calls
 type storage struct {
 	Storage
-	status rest.Updater
+	status    rest.Updater
+	finalizer rest.Updater
 }
 
 // NewRegistry returns a new Registry interface for the given Storage. Any mismatched
 // types will panic.
-func NewRegistry(s Storage, status rest.Updater) Registry {
-	return &storage{s, status}
+func NewRegistry(s Storage, status rest.Updater, finalizer rest.Updater) Registry {
+	return &storage{s, status, finalizer}
 }
 
 func (s *storage) ListImageStreams(ctx kapi.Context, label labels.Selector) (*api.ImageStreamList, error) {
@@ -102,4 +105,12 @@ func (s *storage) DeleteImageStream(ctx kapi.Context, imageStreamID string) (*ka
 
 func (s *storage) WatchImageStreams(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
 	return s.Watch(ctx, label, field, resourceVersion)
+}
+
+func (s *storage) FinalizeImageStream(ctx kapi.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
+	obj, _, err := s.finalizer.Update(ctx, imageStream)
+	if err != nil {
+		return nil, err
+	}
+	return obj.(*api.ImageStream), nil
 }

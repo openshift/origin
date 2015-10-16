@@ -427,8 +427,8 @@ func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// ImageImportControllerClient returns the deployment client object
-func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
+// ImageStreamControllerClient returns the deployment client object
+func (c *MasterConfig) ImageStreamControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 

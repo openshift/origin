@@ -2,20 +2,45 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
+	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
-type ImportController struct {
-	streams  client.ImageStreamsNamespacer
-	mappings client.ImageStreamMappingsNamespacer
+var (
+	availableSelector       fields.Selector
+	availableStreamSelector fields.Selector
+)
+
+func init() {
+	var err error
+	availableSelector, err = fields.ParseSelector("image.status.phase!=" + api.ImagePurging)
+	if err != nil {
+		glog.Fatal(err.Error())
+	}
+	availableStreamSelector, err = fields.ParseSelector("status.phase==" + api.ImageStreamAvailable)
+	if err != nil {
+		glog.Fatal(err.Error())
+	}
+}
+
+type ImageStreamController struct {
+	streams         client.ImageStreamsNamespacer
+	streamDeletions client.ImageStreamDeletionsInterfacer
+	streamImages    client.ImageStreamImagesNamespacer
+	images          client.ImagesInterfacer
+	mappings        client.ImageStreamMappingsNamespacer
 	// injected for testing
 	client dockerregistry.Client
 }
@@ -39,7 +64,12 @@ const retryCount = 2
 // the image stream is not modified (so it will be tried again later). If a permanent
 // failure occurs the image is marked with an annotation. The tags of the original spec image
 // are left as is (those are updated through status).
-func (c *ImportController) Next(stream *api.ImageStream) error {
+func (c *ImageStreamController) Next(stream *api.ImageStream) error {
+
+	if stream.Status.Phase == api.ImageStreamTerminating {
+		return c.terminateImageStream(stream)
+	}
+
 	if !needsImport(stream) {
 		return nil
 	}
@@ -156,7 +186,7 @@ func (c *ImportController) Next(stream *api.ImageStream) error {
 }
 
 // done marks the stream as being processed due to an error or failure condition
-func (c *ImportController) done(stream *api.ImageStream, reason string, retry int) error {
+func (c *ImageStreamController) done(stream *api.ImageStream, reason string, retry int) error {
 	if len(reason) == 0 {
 		reason = util.Now().UTC().Format(time.RFC3339)
 	}
@@ -182,4 +212,118 @@ func hasTag(tags []string, tag string) bool {
 		}
 	}
 	return false
+}
+
+// terminateImageStream handles terminating image stream. It does following:
+//
+//    1. marks for deletion all its images that aren't referred by any other
+//       available image streams
+//    2. creates an instance of ImageStreamDeletion
+//    3. removes origin finalizer from its finalizers
+//    4. deletes it if there are no other finalizers left
+func (c *ImageStreamController) terminateImageStream(stream *api.ImageStream) (err error) {
+	glog.V(4).Infof("Handling termination of image stream %s/%s (%s)", stream.Namespace, stream.Name, stream.Status.Phase)
+	// if stream is not terminating, ignore it
+	if stream.Status.Phase != api.ImageStreamTerminating {
+		return nil
+	}
+
+	if !imageutil.ImageStreamFinalized(stream) {
+		// finalize image stream
+		if err := c.markOrphanedImagesForDeletion(stream); err != nil {
+			return err
+		}
+
+		glog.V(4).Infof("Creating image stream deletion for stream %s/%s", stream.Namespace, stream.Name)
+		isd, err := api.NewDeletionForImageStream(stream)
+		if err != nil {
+			return err
+		}
+		_, err = c.streamDeletions.ImageStreamDeletions().Create(isd)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			return err
+		}
+
+		glog.V(4).Infof("Finalizing image stream %s/%s", stream.Namespace, stream.Name)
+		stream, err = imageutil.FinalizeImageStream(c.streams, stream)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(stream.Spec.Finalizers) == 0 {
+		glog.V(4).Infof("Deleting image stream %s/%s", stream.Namespace, stream.Name)
+		return c.streams.ImageStreams(stream.Namespace).Delete(stream.Name)
+	}
+
+	return nil
+}
+
+// markOrphanedImagesForDeletion marks for deletion each image if given image
+// stream if it meets following conditions
+//
+//   1. it's an internally managed image (lives in internal registry)
+//   2. it's available (not marked for deletion already)
+//   3. it's referenced only by terminating image streams
+func (c *ImageStreamController) markOrphanedImagesForDeletion(stream *api.ImageStream) (err error) {
+	glog.V(4).Infof("Marking images of image stream %s/%s for deletion", stream.Namespace, stream.Name)
+
+	candidates := make(map[string]*api.Image)
+	images, err := c.streamImages.ImageStreamImages(stream.Namespace).List(labels.Everything(), availableSelector)
+	if err != nil {
+		return fmt.Errorf("Failed to list image stream images: %v", err)
+	}
+	for _, isi := range images.Items {
+		nameParts := strings.Split(isi.Name, "@")
+		imageStreamName := nameParts[0]
+
+		if isi.Image.Annotations == nil || isi.Image.Annotations[api.ManagedByOpenShiftAnnotation] != "true" {
+			// skip images not managed internally
+			continue
+		}
+		if isi.Image.Status.Phase == api.ImagePurging {
+			// shouldn't happen
+			glog.V(4).Infof("Received image %q belonging to stream %s/%s which is already being purged", isi.Image.Name, stream.Namespace, imageStreamName)
+			continue
+		}
+
+		if imageStreamName == stream.Name {
+			candidates[isi.Image.Name] = &isi.Image
+		}
+	}
+
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	// remove all candidates referred by available image streams
+	availableStreams, err := c.streams.ImageStreams("").List(labels.Everything(), availableStreamSelector)
+	if err != nil {
+		return fmt.Errorf("Failed to list available image streams: %v", err)
+	}
+
+	for _, stream := range availableStreams.Items {
+		if stream.Status.Phase == api.ImageStreamTerminating {
+			// shouldn't happen
+			glog.V(4).Infof("Skipping available image stream %s/%s", stream.Namespace, stream.Name)
+			continue
+		}
+		images, err := c.streamImages.ImageStreamImages(stream.Namespace).List(labels.Everything(), availableSelector)
+		if err != nil {
+			return fmt.Errorf("Failed to list images of image stream %s/%s: %v", stream.Namespace, stream.Name, err)
+		}
+
+		for _, isi := range images.Items {
+			delete(candidates, isi.Image.Name)
+		}
+	}
+
+	for _, img := range candidates {
+		glog.V(4).Infof("Marking image %q for deletion", img.Name)
+		if err := c.images.Images().Delete(img.Name); err != nil {
+			return fmt.Errorf("Failed to delete image %s: %v", img.Name, err)
+		}
+	}
+
+	return nil
 }

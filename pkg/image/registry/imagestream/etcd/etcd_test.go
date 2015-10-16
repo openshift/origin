@@ -6,11 +6,6 @@ import (
 	"testing"
 
 	"github.com/coreos/go-etcd/etcd"
-	"github.com/openshift/origin/pkg/api/latest"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
-	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/user"
@@ -21,6 +16,15 @@ import (
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
+	kutil "k8s.io/kubernetes/pkg/util"
+
+	oapi "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/latest"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 var (
@@ -50,18 +54,25 @@ func newHelper(t *testing.T) (*tools.FakeEtcdClient, storage.Interface) {
 	return fakeEtcdClient, helper
 }
 
-func validNewStream() *api.ImageStream {
+func validNewStream(namespace string) *api.ImageStream {
 	return &api.ImageStream{
 		ObjectMeta: kapi.ObjectMeta{
-			Name: "foo",
+			Name:      "foo",
+			Namespace: namespace,
+		},
+		Spec: api.ImageStreamSpec{
+			Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin},
+		},
+		Status: api.ImageStreamStatus{
+			Phase: api.ImageStreamAvailable,
 		},
 	}
 }
 
 func TestCreate(t *testing.T) {
 	_, helper := newHelper(t)
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
-	stream := validNewStream()
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	stream := validNewStream("default")
 	ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
 	_, err := storage.Create(ctx, stream)
 	if err != nil {
@@ -69,10 +80,43 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestCreateSetsFields(t *testing.T) {
+	_, helper := newHelper(t)
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	stream := &api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "foo",
+		},
+	}
+
+	ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+	_, err := storage.Create(ctx, stream)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	object, err := storage.Get(ctx, "foo")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	actual := object.(*api.ImageStream)
+	if actual.Name != stream.Name {
+		t.Errorf("unexpected image stream: %#v", actual)
+	}
+	if actual.Status.Phase != api.ImageStreamAvailable {
+		t.Errorf("expected image stream phase to be set to available, but %v", actual.Status.Phase)
+	}
+	if len(actual.Spec.Finalizers) != 1 {
+		t.Errorf("unexpected length of image stream finalizers (%d != %d): %v", len(actual.Spec.Finalizers), 1, actual.Spec.Finalizers)
+	} else if actual.Spec.Finalizers[0] != oapi.FinalizerOrigin {
+		t.Errorf("expected image stream finalizers to contain %q, not %q", oapi.FinalizerOrigin, actual.Spec.Finalizers[0])
+	}
+}
+
 func TestGetImageStreamError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("foo")
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	image, err := storage.Get(kapi.NewDefaultContext(), "image1")
 	if image != nil {
@@ -85,7 +129,7 @@ func TestGetImageStreamError(t *testing.T) {
 
 func TestGetImageStreamOK(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	ctx := kapi.NewDefaultContext()
 	repoName := "foo"
@@ -108,7 +152,7 @@ func TestGetImageStreamOK(t *testing.T) {
 func TestListImageStreamsError(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("foo")
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	imageStreams, err := storage.List(kapi.NewDefaultContext(), nil, nil)
 	if err != fakeEtcdClient.Err {
@@ -127,7 +171,7 @@ func TestListImageStreamsEmptyList(t *testing.T) {
 		R: &etcd.Response{},
 		E: fakeEtcdClient.NewError(tools.EtcdErrorCodeNotFound),
 	}
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	imageStreams, err := storage.List(kapi.NewDefaultContext(), labels.Everything(), fields.Everything())
 	if err != nil {
@@ -143,7 +187,7 @@ func TestListImageStreamsEmptyList(t *testing.T) {
 
 func TestListImageStreamsPopulatedList(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	fakeEtcdClient.Data["/imagestreams/default"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
@@ -187,7 +231,7 @@ func (u *fakeUser) GetGroups() []string {
 
 func TestCreateImageStreamOK(t *testing.T) {
 	_, helper := newHelper(t)
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	stream := &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}
 	ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
@@ -244,7 +288,7 @@ func TestCreateImageStreamSpecTagsFromSet(t *testing.T) {
 		sarRegistry := &fakeSubjectAccessReviewRegistry{
 			allow: test.sarAllowed,
 		}
-		storage, _ := NewREST(helper, noDefaultRegistry, sarRegistry)
+		storage, _, _ := NewREST(helper, noDefaultRegistry, sarRegistry)
 
 		otherNamespace := test.otherNamespace
 		if len(otherNamespace) == 0 {
@@ -319,7 +363,7 @@ func TestCreateImageStreamSpecTagsFromSet(t *testing.T) {
 func TestCreateRegistryErrorSaving(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("foo")
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
 	_, err := storage.Create(ctx, &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
@@ -330,7 +374,7 @@ func TestCreateRegistryErrorSaving(t *testing.T) {
 
 func TestUpdateImageStreamMissingID(t *testing.T) {
 	_, helper := newHelper(t)
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	obj, created, err := storage.Update(kapi.NewDefaultContext(), &api.ImageStream{})
 	if obj != nil || created {
@@ -344,7 +388,7 @@ func TestUpdateImageStreamMissingID(t *testing.T) {
 func TestUpdateRegistryErrorSaving(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Err = fmt.Errorf("foo")
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	_, created, err := storage.Update(kapi.NewDefaultContext(), &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "bar"}})
 	if err != fakeEtcdClient.Err || created {
@@ -364,7 +408,7 @@ func TestUpdateImageStreamOK(t *testing.T) {
 			},
 		},
 	}
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
 	obj, created, err := storage.Update(ctx, &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "bar", ResourceVersion: "1"}})
@@ -414,7 +458,7 @@ func TestUpdateImageStreamSpecTagsFromSet(t *testing.T) {
 		sarRegistry := &fakeSubjectAccessReviewRegistry{
 			allow: test.sarAllowed,
 		}
-		storage, _ := NewREST(helper, noDefaultRegistry, sarRegistry)
+		storage, _, _ := NewREST(helper, noDefaultRegistry, sarRegistry)
 
 		fakeEtcdClient.Data["/imagestreams/default/foo"] = tools.EtcdResponseWithError{
 			R: &etcd.Response{
@@ -502,25 +546,70 @@ func TestDeleteImageStream(t *testing.T) {
 	fakeEtcdClient.Data["/imagestreams/default/foo"] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "default"},
-				}),
+				Value:         runtime.EncodeOrDie(latest.Codec, validNewStream("default")),
 				ModifiedIndex: 2,
 			},
 		},
 	}
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, finalizeStorage := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	obj, err := storage.Delete(kapi.NewDefaultContext(), "foo", nil)
 	if err != nil {
 		t.Fatalf("Unexpected non-nil error: %#v", err)
 	}
-	status, ok := obj.(*kapi.Status)
+	stream, ok := obj.(*api.ImageStream)
 	if !ok {
-		t.Fatalf("Expected status, got %#v", obj)
+		t.Fatalf("Expected image stream, got %#v", obj)
 	}
-	if status.Status != kapi.StatusSuccess {
-		t.Errorf("Expected status=success, got %#v", status)
+
+	// second delete without finalization shall result in conflict
+	obj, err = storage.Delete(kapi.NewDefaultContext(), "foo", nil)
+	if obj != nil {
+		t.Error("Unexpected non-nil obj")
+	}
+	if err == nil {
+		t.Fatalf("Unexpected nil error")
+	}
+	if !errors.IsConflict(err) {
+		t.Fatalf("Expected conflict error, got: %#v", err)
+	}
+
+	// finalize the image stream
+	if util.ImageStreamFinalized(stream) {
+		t.Fatalf("Expected image stream to have incomplete finalizers")
+	}
+	stream.Spec.Finalizers = nil
+	obj, _, err = finalizeStorage.Update(kapi.NewDefaultContext(), stream)
+	if obj == nil {
+		t.Error("Unexpected nil obj")
+	}
+	if err != nil {
+		t.Fatalf("Unexpected non-nil error: %#v", err)
+	}
+	stream, ok = obj.(*api.ImageStream)
+	if !ok {
+		t.Fatalf("Expected image stream type, got: %#v", obj)
+	}
+	if !util.ImageStreamFinalized(stream) {
+		t.Fatalf("Expected image stream to be finalized")
+	}
+
+	// delete after finalization shall succeed
+	obj, err = storage.Delete(kapi.NewDefaultContext(), "foo", nil)
+	if obj == nil {
+		t.Error("Unexpected nil obj")
+	}
+	if err != nil {
+		t.Fatalf("Unexpected non-nil error: %#v", err)
+	}
+	_, ok = obj.(*api.ImageStream)
+	if !ok {
+		t.Fatalf("Expected image stream type, got: %#v", obj)
+	}
+	if len(fakeEtcdClient.DeletedKeys) != 1 {
+		t.Errorf("Expected 1 delete, found %#v", fakeEtcdClient.DeletedKeys)
+	} else if key := "/imagestreams/default/foo"; fakeEtcdClient.DeletedKeys[0] != key {
+		t.Errorf("Unexpected key: %s, expected %s", fakeEtcdClient.DeletedKeys[0], key)
 	}
 }
 
@@ -536,7 +625,7 @@ func TestUpdateImageStreamConflictingNamespace(t *testing.T) {
 			},
 		},
 	}
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
 
 	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "legal-name"), &fakeUser{})
 	obj, created, err := storage.Update(ctx, &api.ImageStream{
@@ -559,6 +648,56 @@ func checkExpectedNamespaceError(t *testing.T, err error) {
 		t.Errorf("Expected '"+expectedError+"' error, got '%v'", err.Error())
 	}
 
+}
+
+func TestDeleteImageStreamWithIncompleteFinalizers(t *testing.T) {
+	fakeEtcdClient, helper := newHelper(t)
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	key := etcdtest.AddPrefix("imagestreams/foo")
+	ctx := kapi.NewContext()
+	now := kutil.Now()
+	stream := &api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace:         "some-value",
+			Name:              "foo",
+			DeletionTimestamp: &now,
+		},
+		Spec: api.ImageStreamSpec{
+			Finalizers: []kapi.FinalizerName{oapi.FinalizerOrigin},
+		},
+		Status: api.ImageStreamStatus{Phase: api.ImageStreamTerminating},
+	}
+	if _, err := fakeEtcdClient.Set(key, runtime.EncodeOrDie(latest.Codec, stream), 0); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := storage.Delete(ctx, "foo", nil); err == nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestDeleteImageStreamWithCompleteFinalizers(t *testing.T) {
+	fakeEtcdClient, helper := newHelper(t)
+	storage, _, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	key := etcdtest.AddPrefix("imagestreams/default/foo")
+	ctx := kapi.NewDefaultContext()
+	now := kutil.Now()
+	stream := &api.ImageStream{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace:         "default",
+			Name:              "foo",
+			DeletionTimestamp: &now,
+		},
+		Spec: api.ImageStreamSpec{
+			Finalizers: []kapi.FinalizerName{},
+		},
+		Status: api.ImageStreamStatus{Phase: api.ImageStreamTerminating},
+	}
+	if _, err := fakeEtcdClient.Set(key, runtime.EncodeOrDie(latest.Codec, stream), 0); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := storage.Delete(ctx, "foo", nil); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 }
 
 /*
@@ -1069,8 +1208,8 @@ func (fakeStrategy) PrepareForUpdate(obj, old runtime.Object) {
 
 func TestStrategyPrepareMethods(t *testing.T) {
 	_, helper := newHelper(t)
-	storage, _ := NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
-	stream := validNewStream()
+	storage, _, _ := NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	stream := validNewStream("default")
 	strategy := fakeStrategy{imagestream.NewStrategy(testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})}
 
 	storage.store.CreateStrategy = strategy
