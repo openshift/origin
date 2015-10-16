@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	"github.com/openshift/origin/pkg/util"
 )
 
 const (
@@ -147,7 +148,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, args []string, out io.W
 
 // Validate ensures that a RollbackOptions is valid and can be used to execute
 // a rollback.
-func (o *RollbackOptions) Validate() error {
+func (o RollbackOptions) Validate() error {
 	if len(o.TargetName) == 0 {
 		return fmt.Errorf("a deployment or deploymentconfig name is required")
 	}
@@ -175,7 +176,7 @@ func (o *RollbackOptions) Validate() error {
 }
 
 // Run performs a rollback.
-func (o *RollbackOptions) Run() error {
+func (o RollbackOptions) Run() error {
 	// Get the resource referenced in the command args.
 	obj, err := o.findResource(o.TargetName)
 	if err != nil {
@@ -199,7 +200,7 @@ func (o *RollbackOptions) Run() error {
 		target = deployment
 	}
 	if target == nil {
-		return fmt.Errorf("%s is not a valid deployment or deploymentconfig", o.TargetName)
+		return fmt.Errorf("%s is not a valid deployment", o.TargetName)
 	}
 
 	// Set up the rollback and generate a new rolled back config.
@@ -221,12 +222,24 @@ func (o *RollbackOptions) Run() error {
 
 	// If this is a dry run, print and exit.
 	if o.DryRun {
-		describer := describe.NewDeploymentConfigDescriberForConfig(o.oc, o.kc, newConfig)
-		description, err := describer.Describe(newConfig.Namespace, newConfig.Name)
+		// Compare against the current deployment config
+		configName := deployutil.DeploymentConfigNameFor(target)
+		currentConfig, err := o.oc.DeploymentConfigs(o.Namespace).Get(configName)
 		if err != nil {
 			return err
 		}
-		o.out.Write([]byte(description))
+		describer := describe.NewDeploymentConfigDescriberForConfig(o.oc, o.kc, currentConfig)
+		description, err := describer.Describe(currentConfig.Namespace, currentConfig.Name)
+		if err != nil {
+			return err
+		}
+
+		newDescriber := describe.NewDeploymentConfigDescriberForConfig(o.oc, o.kc, newConfig)
+		newDescription, err := newDescriber.Describe(newConfig.Namespace, newConfig.Name)
+		if err != nil {
+			return err
+		}
+		o.out.Write([]byte(util.Diff(description, newDescription)))
 		return nil
 	}
 
@@ -266,19 +279,12 @@ func (o *RollbackOptions) Run() error {
 // findResource tries to find a deployment or deploymentconfig named
 // targetName using a resource.Builder. For compatibility, if the resource
 // name is unprefixed, treat it as an rc first and a dc second.
-func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error) {
-	candidates := []string{}
-	if strings.Index(targetName, "/") == -1 {
-		candidates = append(candidates, "rc/"+targetName)
-		candidates = append(candidates, "dc/"+targetName)
-	} else {
-		candidates = append(candidates, targetName)
-	}
+func (o RollbackOptions) findResource(targetName string) (runtime.Object, error) {
 	var obj runtime.Object
-	for _, name := range candidates {
+	for _, resourceType := range []string{"rc", "dc"} {
 		r := o.getBuilder().
 			NamespaceParam(o.Namespace).
-			ResourceTypeOrNameArgs(false, name).
+			ResourceNames(resourceType, targetName).
 			SingleResourceType().
 			Do()
 		if r.Err() != nil {
@@ -306,7 +312,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 // the deployment matching desiredVersion will be returned. If desiredVersion
 // is <=0, the last completed deployment which is older than the config's
 // version will be returned.
-func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int) (*kapi.ReplicationController, error) {
+func (o RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int) (*kapi.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
 	deployments, err := o.kc.ReplicationControllers(config.Namespace).List(deployutil.ConfigSelector(config.Name))
 	if err != nil {
