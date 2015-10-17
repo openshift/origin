@@ -114,10 +114,15 @@ func NewCmdPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *co
 	}
 
 	cmd.Flags().StringVar(&whitelistFile, "whitelist", whitelistFile, "path to the group whitelist file")
+	cmd.MarkFlagFilename("whitelist", "txt")
 	cmd.Flags().StringVar(&blacklistFile, "blacklist", whitelistFile, "path to the group blacklist file")
+	cmd.MarkFlagFilename("blacklist", "txt")
 	// TODO(deads): enable this once we're able to support string slice elements that have commas
 	// cmd.Flags().StringSliceVar(&options.Blacklist, "blacklist-group", options.Blacklist, "group to blacklist")
+
 	cmd.Flags().StringVar(&configFile, "sync-config", configFile, "path to the sync config")
+	cmd.MarkFlagFilename("sync-config", "yaml", "yml")
+
 	cmd.Flags().BoolVar(&options.Confirm, "confirm", false, "if true, modify OpenShift groups; if false, display groups")
 
 	return cmd
