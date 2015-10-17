@@ -7,9 +7,9 @@
       <div class="row">
         <div class="col-md-12">
           <div class="tile">
+            <h1>{{service.metadata.name}}</h1>
+            <labels labels="service.metadata.labels" clickable="true" kind="services" project-name="{{service.metadata.namespace}}" limit="3"></labels>
             <dl class="dl-horizontal left">
-              <dt>Name:</dt>
-              <dd>{{service.metadata.name}}</dd>
               <dt>Labels:</dt>
               <dd>
                 <span ng-if="!service.metadata.labels">none</span>

@@ -7,9 +7,11 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('DeploymentConfigController', function ($scope, $routeParams, DataService, project, DeploymentsService, ImageStreamResolver, $filter) {
+  .controller('DeploymentConfigController', function ($scope, $routeParams, DataService, project, DeploymentsService, ImageStreamResolver, $filter, LabelFilter) {
     $scope.deploymentConfig = null;
     $scope.deployments = {};
+    $scope.unfilteredDeployments = {};
+    $scope.labelSuggestions = {};    
     // TODO we should add this back in and show the pod template on this page
     //$scope.podTemplates = {};
     //$scope.imageStreams = {};
@@ -17,8 +19,6 @@ angular.module('openshiftConsole')
     //$scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
     //$scope.builds = {};   
     $scope.alerts = {};
-    $scope.renderOptions = $scope.renderOptions || {};    
-    $scope.renderOptions.hideFilterWidget = true;    
     $scope.breadcrumbs = [
       {
         title: "Deployments",
@@ -72,13 +72,18 @@ angular.module('openshiftConsole')
       //   });
       // }
 
-      watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments, action, deployment) {
-        $scope.deployments = deployments.by("metadata.name");
+      watches.push(DataService.watch("replicationcontrollers", $scope, function(deployments, action, deployment) { 
         // TODO we should add this back in and show the pod template on this page
         // extractPodTemplates();
         // ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
         $scope.emptyMessage = "No deployments to show";
-        $scope.deploymentsByDeploymentConfig = DeploymentsService.associateDeploymentsToDeploymentConfig($scope.deployments);
+        var deploymentsByDeploymentConfig = DeploymentsService.associateDeploymentsToDeploymentConfig(deployments.by("metadata.name"));
+
+        $scope.unfilteredDeployments = deploymentsByDeploymentConfig[$routeParams.deploymentconfig];
+        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
+        LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+        $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);      
+        updateFilterWarning(); 
 
         var deploymentConfigName;
         var deploymentName;
@@ -128,6 +133,26 @@ angular.module('openshiftConsole')
       //   Logger.log("builds (subscribe)", $scope.builds);
       // }));
     });
+
+    function updateFilterWarning() {
+      if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.deployments) && !$.isEmptyObject($scope.unfilteredDeployments)) {
+        $scope.alerts["deployments"] = {
+          type: "warning",
+          details: "The active filters are hiding all deployments."
+        };
+      }
+      else {
+        delete $scope.alerts["deployments"];
+      }
+    }
+
+    LabelFilter.onActiveFiltersChanged(function(labelSelector) {
+      // trigger a digest loop
+      $scope.$apply(function() {
+        $scope.deployments = labelSelector.select($scope.unfilteredDeployments);
+        updateFilterWarning();
+      });
+    }); 
 
     $scope.startLatestDeployment = function(deploymentConfig) {
       DeploymentsService.startLatestDeployment(deploymentConfig, $scope);

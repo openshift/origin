@@ -15,13 +15,14 @@
             <th>Trigger</th>
           </tr>
         </thead>
-        <tbody ng-if="(deploymentConfigs | hashSize) === 0 && ((deployments | hashSize) === (deploymentsByDeploymentConfig[''] | hashSize))">
+        <!-- message doesnt show right when there are both dcs and rcs and they are all filtered -->
+        <tbody ng-if="showEmptyMessage()">
           <!-- If there are no deployment configs, and if the only 'deployments' are just replication controllers -->
           <tr><td colspan="5" data-title="Name"><em>{{emptyMessage}}</em></td></tr>
         </tbody>
-        <tbody ng-repeat="(deploymentConfigName, deploymentConfigDeployments) in deploymentsByDeploymentConfig">
+        <tbody ng-repeat="(deploymentConfigName, deploymentConfigDeployments) in deploymentsByDeploymentConfig" ng-if="deploymentConfigs[deploymentConfigName] || !unfilteredDeploymentConfigs[deploymentConfigName]">
           <!-- Deployment config with no deployments-->
-          <tr ng-if="(deploymentConfigDeployments | hashSize) == 0">
+          <tr ng-if="(deploymentConfigDeployments | hashSize) == 0 && deploymentConfigName != ''">
             <td data-title="Name">
               <a ng-if="deploymentConfigs[deploymentConfigName]" href="project/{{projectName}}/browse/deployments/{{deploymentConfigName}}">{{deploymentConfigName}}</a>
             </td>
@@ -90,7 +91,7 @@
           </tr>
         </tbody>
       </table>
-      <div ng-if="(deploymentsByDeploymentConfig[''] | hashSize) > 0">
+      <div ng-if="(unfilteredReplicationControllers | hashSize) > 0">
         <h3>Other replication controllers</h3>
         <table class="table table-bordered">
           <thead>
@@ -101,6 +102,9 @@
             </tr>
           </thead>
           <tbody>
+            <!-- We only show this if there are replication controllers but the active filter is hiding them, otherwise the RC table doesnt show
+                 at all -->
+            <tr ng-if="(deploymentsByDeploymentConfig[''] | hashSize) === 0"><td><em>No replication controllers to show</em></td></tr>
             <tr ng-repeat="deployment in deploymentsByDeploymentConfig[''] | orderObjectsByDate : true">
               <td>
                 <a ng-href="project/{{deployment.metadata.namespace}}/browse/deployments-replicationcontrollers/{{deployment.metadata.name}}">{{deployment.metadata.name}}</a>

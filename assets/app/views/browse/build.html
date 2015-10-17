@@ -7,9 +7,10 @@
       <div class="row">
         <div class="col-md-12">
           <div class="tile">
+            <h1>{{build.metadata.name}}</h1>
+            <labels ng-if="buildConfigName" labels="build.metadata.labels" clickable="true" kind="builds" title-kind="builds for build config {{buildConfigName}}" project-name="{{build.metadata.namespace}}" limit="3" navigate-url="project/{{build.metadata.namespace}}/browse/builds/{{buildConfigName}}"></labels>
+            <labels ng-if="!buildConfigName" labels="build.metadata.labels" limit="3"></labels>
             <dl class="dl-horizontal left">
-              <dt>Name:</dt>
-              <dd>{{build.metadata.name}}</dd>
               <dt>Status:</dt>
               <dd>
                 <span ng-switch="build.status.phase" class="hide-ng-leave">

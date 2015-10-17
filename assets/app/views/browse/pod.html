@@ -1,6 +1,6 @@
 <div class="content">
   <project-page>
-    <breadcrumbs breadcrumbs="breadcrumbs"></breadcrumbs>
+    <breadcrumbs breadcrumbs="breadcrumbs" style="float: left;"></breadcrumbs>
     <alerts alerts="alerts"></alerts>
     <div ng-if="!loaded">Loading...</div>
     <div ng-if="pod">
@@ -8,16 +8,12 @@
         <div class="col-md-12">
           <div class="tile">
             <h1>Pod {{pod.metadata.name}}</h1>
+            <labels labels="pod.metadata.labels" clickable="true" kind="pods" project-name="{{pod.metadata.namespace}}" limit="3"></labels>
             <tabset>
               <tab heading="Details" active="selectedTab.details">
                 <dl class="dl-horizontal left">
                   <dt>Node:</dt>
                   <dd>{{pod.spec.nodeName || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.nodeName != pod.status.hostIP">({{pod.status.hostIP}})</span></dd>
-                  <dt>Labels:</dt>
-                  <dd>
-                    <span ng-if="!pod.metadata.labels">none</span>
-                    <span ng-repeat="(labelKey, labelValue) in pod.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
-                  </dd>
                   <dt>Status:</dt>
                   <dd>
                     <span ng-switch="pod.status.phase">

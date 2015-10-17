@@ -228,6 +228,11 @@ angular
       HawtioNav.add(tabs[i]);
     }
   }])
+  .run(function($rootScope, LabelFilter){
+    $rootScope.$on('$locationChangeSuccess', function(event) {
+      LabelFilter.setLabelSelector(new LabelSelector({}, true), true);
+    });
+  })
   .run(function(dateRelativeFilter, durationFilter) {
     // Use setInterval instead of $interval because we're directly manipulating the DOM and don't want scope.$apply overhead
     setInterval(function() {
