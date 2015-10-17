@@ -2304,6 +2304,7 @@ _openshift_cli_tag()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--alias")
     flags+=("--delete")
     flags+=("-d")
     flags+=("--source=")
