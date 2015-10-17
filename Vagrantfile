@@ -12,26 +12,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 # Require a recent version of vagrant otherwise some have reported errors setting host names on boxes
-Vagrant.require_version ">= 1.6.2"
-
-def pre_vagrant_171
-  @pre_vagrant_171 ||= begin
-    req = Gem::Requirement.new("< 1.7.1")
-    if req.satisfied_by?(Gem::Version.new(Vagrant::VERSION))
-      true
-    else
-      false
-    end
-  end
-end
-
-def full_provision(vm, username = [])
-  if pre_vagrant_171
-    vm.provision "shell", path: "contrib/vagrant/provision-full.sh", args: username, id: "setup"
-  else
-    vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: username
-  end
-end
+Vagrant.require_version ">= 1.7.1"
 
 # @param tgt [Hash] target hash that we will be **altering**
 # @param src [Hash] read from this source hash
@@ -188,16 +169,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       if vagrant_openshift_config['rebuild_yum_cache']
         config.vm.provision "shell", inline: "yum clean all && yum makecache"
       end
-      if pre_vagrant_171
-        config.vm.provision "shell", path: "contrib/vagrant/provision-minimal.sh", id: "setup"
-      else
-        config.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-minimal.sh"
-      end
+      config.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-minimal.sh"
 
       config.vm.synced_folder ".", "/vagrant", disabled: true
       unless vagrant_openshift_config['no_synced_folders']
-        config.vm.synced_folder sync_from, sync_to, 
-          rsync__args: %w(--verbose --archive --delete), 
+        config.vm.synced_folder sync_from, sync_to,
+          rsync__args: %w(--verbose --archive --delete),
           type: vagrant_openshift_config['sync_folders_type'],
           nfs_udp: false # has issues when using NFS from within a docker container
       end
@@ -239,13 +216,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.vm.box     = vagrant_openshift_config['libvirt']['box_name']
       override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
-      override.vm.synced_folder ".", "/vagrant", type: 'nfs'
       libvirt.driver      = 'kvm'
       libvirt.memory      = vagrant_openshift_config['memory'].to_i
       libvirt.cpus        = vagrant_openshift_config['cpus'].to_i
       # run on libvirt somewhere other than default:
       libvirt.uri         = ENV["VAGRANT_LIBVIRT_URI"] if ENV["VAGRANT_LIBVIRT_URI"]
-      full_provision(override.vm)
     end if vagrant_openshift_config['libvirt']
 
     # ###################################
@@ -257,7 +232,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.vmx["memsize"]    = vagrant_openshift_config['memory'].to_s
       v.vmx["numvcpus"]   = vagrant_openshift_config['cpus'].to_s
       v.gui               = false
-      full_provision(override.vm)
+      override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh"
     end if vagrant_openshift_config['vmware']
 
     # ###############################
@@ -285,7 +260,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       os.image        = voc['image']          || creds['OSImage']    || /Fedora/         # Regex or String
       os.ssh_username = user = voc['ssh_user']|| creds['OSSshUser']  || "root"           # login for the VM instance
       os.server_name  = ENV['OS_HOSTNAME']    || vagrant_openshift_config['instance_name'] # name for the instance created
-      full_provision(override.vm, user)
+      override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: user
 
       # floating ip usually needed for accessing machines
       floating_ip     = creds['OSFloatingIP'] || ENV['OS_FLOATING_IP']
@@ -338,7 +313,6 @@ runcmd:
           }
         ]
       end
-      #full_provision(override.vm)
     end if vagrant_openshift_config['aws']
 
 end
