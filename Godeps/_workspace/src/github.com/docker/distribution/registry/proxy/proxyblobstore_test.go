@@ -30,6 +30,11 @@ func (sbs statsBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, 
 	return sbs.blobs.Get(ctx, dgst)
 }
 
+func (sbs statsBlobStore) Enumerate(ctx context.Context, digests []digest.Digest, last string) (n int, err error) {
+	sbs.stats["enumerate"]++
+	return sbs.blobs.Enumerate(ctx, digests, last)
+}
+
 func (sbs statsBlobStore) Create(ctx context.Context) (distribution.BlobWriter, error) {
 	sbs.stats["create"]++
 	return sbs.blobs.Create(ctx)
@@ -80,13 +85,13 @@ func (te testEnv) RemoteStats() *map[string]int {
 func makeTestEnv(t *testing.T, name string) testEnv {
 	ctx := context.Background()
 
-	localRegistry := storage.NewRegistryWithDriver(ctx, inmemory.New(), memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, true)
+	localRegistry := storage.NewRegistryWithDriver(ctx, inmemory.New(), memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, true, false)
 	localRepo, err := localRegistry.Repository(ctx, name)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
 	}
 
-	truthRegistry := storage.NewRegistryWithDriver(ctx, inmemory.New(), memory.NewInMemoryBlobDescriptorCacheProvider(), false, false, false)
+	truthRegistry := storage.NewRegistryWithDriver(ctx, inmemory.New(), memory.NewInMemoryBlobDescriptorCacheProvider(), false, false, false, false)
 	truthRepo, err := truthRegistry.Repository(ctx, name)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)

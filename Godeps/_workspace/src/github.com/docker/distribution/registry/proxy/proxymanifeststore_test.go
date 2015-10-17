@@ -61,6 +61,11 @@ func (sm statsManifest) GetByTag(tag string, options ...distribution.ManifestSer
 	return sm.manifests.GetByTag(tag, options...)
 }
 
+func (sm statsManifest) Enumerate() ([]digest.Digest, error) {
+	sm.stats["enumerate"]++
+	return sm.manifests.Enumerate()
+}
+
 func (sm statsManifest) Put(manifest *manifest.SignedManifest) error {
 	sm.stats["put"]++
 	return sm.manifests.Put(manifest)
@@ -73,7 +78,7 @@ func (sm statsManifest) Tags() ([]string, error) {
 
 func newManifestStoreTestEnv(t *testing.T, name, tag string) *manifestStoreTestEnv {
 	ctx := context.Background()
-	truthRegistry := storage.NewRegistryWithDriver(ctx, inmemory.New(), memory.NewInMemoryBlobDescriptorCacheProvider(), false, false, false)
+	truthRegistry := storage.NewRegistryWithDriver(ctx, inmemory.New(), memory.NewInMemoryBlobDescriptorCacheProvider(), false, false, false, false)
 	truthRepo, err := truthRegistry.Repository(ctx, name)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
@@ -92,7 +97,7 @@ func newManifestStoreTestEnv(t *testing.T, name, tag string) *manifestStoreTestE
 		t.Fatalf(err.Error())
 	}
 
-	localRegistry := storage.NewRegistryWithDriver(ctx, inmemory.New(), memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, true)
+	localRegistry := storage.NewRegistryWithDriver(ctx, inmemory.New(), memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, true, false)
 	localRepo, err := localRegistry.Repository(ctx, name)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)

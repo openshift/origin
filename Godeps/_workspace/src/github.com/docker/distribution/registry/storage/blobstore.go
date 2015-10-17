@@ -1,10 +1,25 @@
 package storage
 
 import (
+	"fmt"
+	"io"
+	"path"
+	"regexp"
+	"strings"
+
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/registry/storage/driver"
+)
+
+const (
+	tarsumPrefix = `tarsum`
+)
+
+var (
+	reTarsumPrefix = regexp.MustCompile(`^` + tarsumPrefix + `(?:/(\w+))?`)
+	reDigestPath   = regexp.MustCompile(fmt.Sprintf(`^([^/]+)/(?:\w{%d}/)?(\w+)$`, multilevelHexPrefixLength))
 )
 
 // blobStore implements the read side of the blob store interface over a
@@ -12,12 +27,18 @@ import (
 // intentionally a leaky abstraction, providing utility methods that support
 // creating and traversing backend links.
 type blobStore struct {
-	driver  driver.StorageDriver
-	pm      *pathMapper
-	statter distribution.BlobStatter
+	driver        driver.StorageDriver
+	pm            *pathMapper
+	statter       distribution.BlobStatter
+	deleteEnabled bool
+	// Causes directory containing blob's data to be removed recursively upon
+	// Delete.
+	removeParentsOnDelete bool
 }
 
-var _ distribution.BlobProvider = &blobStore{}
+var _ distribution.BlobService = &blobStore{}
+var _ distribution.BlobEnumerator = &blobStore{}
+var _ distribution.BlobDeleter = &blobStore{}
 
 // Get implements the BlobReadService.Get call.
 func (bs *blobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
@@ -59,7 +80,6 @@ func (bs *blobStore) Open(ctx context.Context, dgst digest.Digest) (distribution
 func (bs *blobStore) Put(ctx context.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
 	dgst, err := digest.FromBytes(p)
 	if err != nil {
-		context.GetLogger(ctx).Errorf("blobStore: error digesting content: %v, %s", err, string(p))
 		return distribution.Descriptor{}, err
 	}
 
@@ -68,7 +88,6 @@ func (bs *blobStore) Put(ctx context.Context, mediaType string, p []byte) (distr
 		// content already present
 		return desc, nil
 	} else if err != distribution.ErrBlobUnknown {
-		context.GetLogger(ctx).Errorf("blobStore: error stating content (%v): %#v", dgst, err)
 		// real error, return it
 		return distribution.Descriptor{}, err
 	}
@@ -89,6 +108,130 @@ func (bs *blobStore) Put(ctx context.Context, mediaType string, p []byte) (distr
 		MediaType: "application/octet-stream",
 		Digest:    dgst,
 	}, bs.driver.PutContent(ctx, bp, p)
+}
+
+func (bs *blobStore) Enumerate(ctx context.Context, digests []digest.Digest, last string) (n int, err error) {
+	var lastPathComponents []string
+
+	if last != "" {
+		lastPathComponents, err = digestPathComponents(digest.Digest(last), true)
+		if err != nil {
+			return 0, fmt.Errorf("invalid last digest %q", last)
+		}
+	}
+
+	rootPath := path.Join(storagePathRoot, storagePathVersion, "blobs")
+
+	pastLastOffset := func(pthSepCount int, pth string, lastPathComponents []string) bool {
+		maxComponents := pthSepCount + 1
+		if maxComponents >= len(lastPathComponents) {
+			return pth > path.Join(lastPathComponents...)
+		}
+		return pth >= path.Join(lastPathComponents[:maxComponents]...)
+	}
+
+	err = WalkSorted(ctx, bs.driver, rootPath, func(fi driver.FileInfo) error {
+		if !fi.IsDir() {
+			// ignore files
+			return nil
+		}
+
+		// trim <from>/ prefix
+		pth := strings.TrimPrefix(strings.TrimPrefix(fi.Path(), rootPath), "/")
+		sepCount := strings.Count(pth, "/")
+
+		if !pastLastOffset(sepCount, pth, lastPathComponents) {
+			// we haven't reached the 'last' offset yet
+			return ErrSkipDir
+		}
+
+		if sepCount < 2 {
+			// continue walking
+			return nil
+		}
+
+		alg := ""
+		tarsumParts := reTarsumPrefix.FindStringSubmatch(pth)
+		isTarsum := len(tarsumParts) > 0
+		if sepCount > 4 || (!isTarsum && sepCount > 2) {
+			// path too long
+			return ErrSkipDir
+		}
+
+		if len(tarsumParts) > 0 {
+			alg = tarsumPrefix + "." + tarsumParts[1] + "+"
+			// trim "tarsum/<version>/" prefix from path
+			pth = strings.TrimPrefix(pth[len(tarsumParts[0]):], "/")
+		}
+
+		digestParts := reDigestPath.FindStringSubmatch(pth)
+		if len(digestParts) > 0 {
+			alg += digestParts[1]
+			dgstHex := digestParts[2]
+			dgst := digest.NewDigestFromHex(alg, dgstHex)
+			// append only valid digests
+			if err := dgst.Validate(); err == nil {
+				if n >= len(digests) {
+					return ErrStopWalking
+				}
+				digests[n] = dgst
+				n++
+			} else {
+				context.GetLogger(ctx).Warnf("skipping invalid digest %q: %v", dgst.String(), err)
+			}
+			return ErrSkipDir
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		switch err.(type) {
+		case driver.PathNotFoundError:
+			err = io.EOF
+		default:
+			if err == ErrStopWalking {
+				err = nil
+			}
+		}
+	} else if n < len(digests) {
+		err = io.EOF
+	}
+	return
+}
+
+func (bs *blobStore) Create(ctx context.Context) (distribution.BlobWriter, error) {
+	return nil, distribution.ErrUnsupported
+}
+
+func (bs *blobStore) Resume(ctx context.Context, id string) (distribution.BlobWriter, error) {
+	return nil, distribution.ErrUnsupported
+}
+
+func (bs *blobStore) Delete(ctx context.Context, dgst digest.Digest) error {
+	var (
+		blobPath string
+		err      error
+	)
+	if !bs.deleteEnabled {
+		return distribution.ErrUnsupported
+	}
+
+	if bs.removeParentsOnDelete {
+		blobPath, err = bs.pm.path(blobPathSpec{digest: dgst})
+	} else {
+		blobPath, err = bs.pm.path(blobDataPathSpec{digest: dgst})
+	}
+	if err != nil {
+		return err
+	}
+
+	context.GetLogger(ctx).Infof("Deleting blob path: %s", blobPath)
+	return bs.driver.Delete(ctx, blobPath)
+}
+
+func (bs *blobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+	return bs.statter.Stat(ctx, dgst)
 }
 
 // path returns the canonical path for the blob identified by digest. The blob

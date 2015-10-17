@@ -111,6 +111,11 @@ func (pr *proxyingRegistry) Repository(ctx context.Context, name string) (distri
 	}, nil
 }
 
+func (pr *proxyingRegistry) Blobs() distribution.BlobService {
+	// TODO
+	return nil
+}
+
 // proxiedRepository uses proxying blob and manifest services to serve content
 // locally, or pulling it through from a remote and caching it locally if it doesn't
 // already exist

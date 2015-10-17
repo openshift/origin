@@ -158,10 +158,10 @@ func NewApp(ctx context.Context, configuration configuration.Configuration) *App
 			if app.redis == nil {
 				panic("redis configuration required to use for layerinfo cache")
 			}
-			app.registry = storage.NewRegistryWithDriver(app, app.driver, rediscache.NewRedisBlobDescriptorCacheProvider(app.redis), deleteEnabled, !redirectDisabled, app.isCache)
+			app.registry = storage.NewRegistryWithDriver(app, app.driver, rediscache.NewRedisBlobDescriptorCacheProvider(app.redis), deleteEnabled, !redirectDisabled, app.isCache, false)
 			ctxu.GetLogger(app).Infof("using redis blob descriptor cache")
 		case "inmemory":
-			app.registry = storage.NewRegistryWithDriver(app, app.driver, memorycache.NewInMemoryBlobDescriptorCacheProvider(), deleteEnabled, !redirectDisabled, app.isCache)
+			app.registry = storage.NewRegistryWithDriver(app, app.driver, memorycache.NewInMemoryBlobDescriptorCacheProvider(), deleteEnabled, !redirectDisabled, app.isCache, false)
 			ctxu.GetLogger(app).Infof("using inmemory blob descriptor cache")
 		default:
 			if v != "" {
@@ -172,7 +172,7 @@ func NewApp(ctx context.Context, configuration configuration.Configuration) *App
 
 	if app.registry == nil {
 		// configure the registry if no cache section is available.
-		app.registry = storage.NewRegistryWithDriver(app.Context, app.driver, nil, deleteEnabled, !redirectDisabled, app.isCache)
+		app.registry = storage.NewRegistryWithDriver(app.Context, app.driver, nil, deleteEnabled, !redirectDisabled, app.isCache, false)
 	}
 
 	app.registry, err = applyRegistryMiddleware(app.Context, app.registry, configuration.Middleware["registry"])

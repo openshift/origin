@@ -75,6 +75,17 @@ type BlobDeleter interface {
 	Delete(ctx context.Context, dgst digest.Digest) error
 }
 
+// BlobEnumerator allows to list blobs in storage.
+type BlobEnumerator interface {
+	// Enumerate fills 'digests' with a lexicographically sorted list of
+	// digests up to the size of 'digests' and returns the value 'n' for the
+	// number of entries which were filled. 'last' contains an offset in the
+	// list. It's a string representation of digest. Empty string means 0
+	// offset. 'err' will be set to io.OEF if there are no more entries to
+	// obtain.
+	Enumerate(ctx context.Context, digests []digest.Digest, last string) (n int, err error)
+}
+
 // BlobDescriptorService manages metadata about a blob by digest. Most
 // implementations will not expose such an interface explicitly. Such mappings
 // should be maintained by interacting with the BlobIngester. Hence, this is
@@ -194,9 +205,10 @@ type BlobService interface {
 }
 
 // BlobStore represent the entire suite of blob related operations. Such an
-// implementation can access, read, write, delete and serve blobs.
+// implementation can access, enumerate, read, write, delete and serve blobs.
 type BlobStore interface {
 	BlobService
 	BlobServer
+	BlobEnumerator
 	BlobDeleter
 }

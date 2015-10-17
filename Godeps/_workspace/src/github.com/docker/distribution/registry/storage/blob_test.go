@@ -2,11 +2,16 @@ package storage
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
 	"io"
 	"io/ioutil"
+	mrand "math/rand"
 	"os"
+	"path"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/docker/distribution"
@@ -33,7 +38,7 @@ func TestSimpleBlobUpload(t *testing.T) {
 	ctx := context.Background()
 	imageName := "foo/bar"
 	driver := inmemory.New()
-	registry := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false)
+	registry := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false, false)
 	repository, err := registry.Repository(ctx, imageName)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
@@ -138,16 +143,22 @@ func TestSimpleBlobUpload(t *testing.T) {
 		t.Fatalf("unexpected digest from uploaded layer: %q != %q", digest.NewDigest("sha256", h), sha256Digest)
 	}
 
+	checkBlobParentPath(t, ctx, driver, "", desc.Digest, true)
+	checkBlobParentPath(t, ctx, driver, imageName, desc.Digest, true)
+
 	// Delete a blob
 	err = bs.Delete(ctx, desc.Digest)
 	if err != nil {
-		t.Fatalf("Unexpected error deleting blob")
+		t.Fatalf("Unexpected error deleting blob: %v", err)
 	}
 
 	d, err := bs.Stat(ctx, desc.Digest)
 	if err == nil {
 		t.Fatalf("unexpected non-error stating deleted blob: %v", d)
 	}
+
+	checkBlobParentPath(t, ctx, driver, "", desc.Digest, true)
+	checkBlobParentPath(t, ctx, driver, imageName, desc.Digest, true)
 
 	switch err {
 	case distribution.ErrBlobUnknown:
@@ -193,7 +204,7 @@ func TestSimpleBlobUpload(t *testing.T) {
 	}
 
 	// Reuse state to test delete with a delete-disabled registry
-	registry = NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, false)
+	registry = NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, false, false)
 	repository, err = registry.Repository(ctx, imageName)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
@@ -212,7 +223,7 @@ func TestSimpleBlobRead(t *testing.T) {
 	ctx := context.Background()
 	imageName := "foo/bar"
 	driver := inmemory.New()
-	registry := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false)
+	registry := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false, false)
 	repository, err := registry.Repository(ctx, imageName)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
@@ -316,7 +327,7 @@ func TestLayerUploadZeroLength(t *testing.T) {
 	ctx := context.Background()
 	imageName := "foo/bar"
 	driver := inmemory.New()
-	registry := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false)
+	registry := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false, false)
 	repository, err := registry.Repository(ctx, imageName)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
@@ -324,6 +335,361 @@ func TestLayerUploadZeroLength(t *testing.T) {
 	bs := repository.Blobs(ctx)
 
 	simpleUpload(t, bs, []byte{}, digest.DigestSha256EmptyTar)
+}
+
+// TestRemoveParentsOnDelete verifies that blob store deletes a directory
+// together with blob's data or link when RemoveParentsOnDelete option is
+// applied.
+func TestRemoveBlobParentsOnDelete(t *testing.T) {
+	ctx := context.Background()
+	imageName := "foo/bar"
+	driver := inmemory.New()
+	registry := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false, true)
+	repository, err := registry.Repository(ctx, imageName)
+	if err != nil {
+		t.Fatalf("unexpected error getting repo: %v", err)
+	}
+	bs := repository.Blobs(ctx)
+
+	checkBlobParentPath(t, ctx, driver, "", digest.DigestSha256EmptyTar, false)
+	checkBlobParentPath(t, ctx, driver, imageName, digest.DigestSha256EmptyTar, false)
+
+	simpleUpload(t, bs, []byte{}, digest.DigestSha256EmptyTar)
+
+	checkBlobParentPath(t, ctx, driver, "", digest.DigestSha256EmptyTar, true)
+	checkBlobParentPath(t, ctx, driver, imageName, digest.DigestSha256EmptyTar, true)
+
+	// Delete a layer link
+	err = bs.Delete(ctx, digest.DigestSha256EmptyTar)
+	if err != nil {
+		t.Fatalf("Unexpected error deleting blob: %v", err)
+	}
+
+	checkBlobParentPath(t, ctx, driver, "", digest.DigestSha256EmptyTar, true)
+	checkBlobParentPath(t, ctx, driver, imageName, digest.DigestSha256EmptyTar, false)
+
+	bd, err := RegistryBlobDeleter(registry)
+	if err != nil {
+		t.Fatalf("failed to obtain blob deleter: %v", err)
+	}
+	bd.Delete(ctx, digest.DigestSha256EmptyTar)
+
+	checkBlobParentPath(t, ctx, driver, "", digest.DigestSha256EmptyTar, false)
+	checkBlobParentPath(t, ctx, driver, imageName, digest.DigestSha256EmptyTar, false)
+}
+
+// TestBlobEnumeration checks whether enumeration of repository and registry's
+// blobs returns proper results.
+func TestBlobEnumeration(t *testing.T) {
+	var err error
+	ctx := context.Background()
+	imageNames := []string{"foo/bar", "baz/gas"}
+	driver := inmemory.New()
+	reg := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false, false)
+	// holds a repository objects corresponding to imageNames
+	repositories := make([]distribution.Repository, len(imageNames))
+	// holds blob store of each repository
+	blobStores := make([]distribution.BlobStore, len(imageNames))
+	for i, name := range imageNames {
+		repositories[i], err = reg.Repository(ctx, name)
+		if err != nil {
+			t.Fatalf("unexpected error getting repo: %v", err)
+		}
+		blobStores[i] = repositories[i].Blobs(ctx)
+	}
+	be, err := RegistryBlobEnumerator(reg)
+	if err != nil {
+		t.Fatalf("unexpected error getting blob enumerator: %v", err)
+	}
+
+	// doEnumeration calls Enumerate method on all repositories and registry's blob store.
+	// Additinal arguments represent expected digests for each repository defined.
+	doEnumeration := func(expectRegistryBlobs []digest.Digest, expectDigests ...[]digest.Digest) {
+		expBlobSets := make([]map[digest.Digest]struct{}, len(imageNames))
+		// each number is a counter of tarsum digests for corresponding repository
+		tarsumDgstCounts := make([]int, len(imageNames))
+		totalBlobSet := make(map[digest.Digest]struct{})
+		tarsumTotalDgstCount := 0
+		for i, dgsts := range expectDigests {
+			expBlobSets[i] = make(map[digest.Digest]struct{})
+			for _, dgst := range dgsts {
+				expBlobSets[i][dgst] = struct{}{}
+				if strings.HasPrefix(dgst.String(), "tarsum") {
+					tarsumDgstCounts[i]++
+				}
+			}
+		}
+		for _, d := range expectRegistryBlobs {
+			if strings.HasPrefix(d.String(), "tarsum") {
+				tarsumTotalDgstCount++
+			} else {
+				totalBlobSet[d] = struct{}{}
+			}
+		}
+
+		unexpected := []digest.Digest{}
+		blobTarsumDigests := make(map[digest.Digest]struct{})
+
+		buf := make([]digest.Digest, len(totalBlobSet)+tarsumTotalDgstCount+1)
+
+		for i, bs := range blobStores {
+			n, err := bs.Enumerate(ctx, buf, "")
+			if err != io.EOF {
+				t.Fatalf("expected io.EOF when enumerating blobs of repository %s, not: %v", imageNames[i], err)
+			}
+			dgsts := buf[:n]
+			// linked blob store stores 2 links per tarsum blob
+			if len(dgsts) != len(expBlobSets[i])+tarsumDgstCounts[i] {
+				t.Errorf("got unexpected number of blobs in repository %s (%d != %d)", imageNames[i], len(dgsts), len(expBlobSets[i])+tarsumDgstCounts[i])
+			}
+			for _, d := range dgsts {
+				if _, exists := expBlobSets[i][d]; !exists {
+					unexpected = append(unexpected, d)
+					blobTarsumDigests[d] = struct{}{}
+				}
+				delete(expBlobSets[i], d)
+			}
+			if len(unexpected) != tarsumDgstCounts[i] {
+				for _, d := range dgsts {
+					t.Errorf("received unexpected blob digest %s in repository %s", d, imageNames[i])
+				}
+			}
+			for d := range expBlobSets[i] {
+				t.Errorf("expected digest %s not received for repository %s", d, imageNames[i])
+			}
+			unexpected = unexpected[:0]
+		}
+
+		n, err := be.Enumerate(ctx, buf, "")
+		if err != io.EOF {
+			t.Fatalf("expected io.EOF when enumerating registry blobs, not: %v", err)
+		}
+		dgsts := buf[:n]
+		if len(dgsts) != len(totalBlobSet)+tarsumTotalDgstCount {
+			t.Errorf("got unexpected number of blobs in registry (%d != %d)", len(dgsts), len(totalBlobSet)+tarsumTotalDgstCount)
+		}
+		for _, d := range dgsts {
+			if _, exists := totalBlobSet[d]; !exists {
+				unexpected = append(unexpected, d)
+			}
+			delete(totalBlobSet, d)
+		}
+		for _, d := range unexpected {
+			if _, exists := blobTarsumDigests[d]; !exists || len(unexpected) != tarsumTotalDgstCount {
+				t.Errorf("received unexpected blob digest %s", d)
+			}
+		}
+		for d := range totalBlobSet {
+			t.Errorf("expected digest %s not received", d)
+		}
+	}
+
+	doEnumeration(
+		[]digest.Digest{},
+		[]digest.Digest{},
+		[]digest.Digest{},
+	)
+
+	t.Logf("uploading an empty tarball to repository %s", imageNames[0])
+	simpleUpload(t, blobStores[0], []byte{}, digest.DigestSha256EmptyTar)
+
+	doEnumeration(
+		[]digest.Digest{digest.DigestSha256EmptyTar},
+		[]digest.Digest{digest.DigestSha256EmptyTar},
+		[]digest.Digest{},
+	)
+
+	t.Logf("uploading a random tarball to repository %s", imageNames[1])
+	tarballDgst := uploadRandomTarball(t, ctx, blobStores[1])
+
+	doEnumeration(
+		[]digest.Digest{digest.DigestSha256EmptyTar, tarballDgst},
+		[]digest.Digest{digest.DigestSha256EmptyTar},
+		[]digest.Digest{tarballDgst},
+	)
+
+	t.Logf("uploading a random layer to %s repository", imageNames[0])
+	layerDgst := uploadRandomLayer(t, ctx, blobStores[0])
+
+	doEnumeration(
+		[]digest.Digest{digest.DigestSha256EmptyTar, layerDgst, tarballDgst},
+		[]digest.Digest{digest.DigestSha256EmptyTar, layerDgst},
+		[]digest.Digest{tarballDgst},
+	)
+
+	// delete is performed without parent directory being deleted
+	t.Logf("deleting empty layer data from registry")
+	bd, err := RegistryBlobDeleter(reg)
+	if err != nil {
+		t.Fatalf("failed to obtain blob deleter: %v", err)
+	}
+	err = bd.Delete(ctx, digest.DigestSha256EmptyTar)
+	if err != nil {
+		t.Fatalf("unexpected error while deleting registry blob: %v", err)
+	}
+	checkBlobParentPath(t, ctx, driver, "", digest.DigestSha256EmptyTar, true)
+	checkBlobParentPath(t, ctx, driver, imageNames[0], digest.DigestSha256EmptyTar, true)
+	checkBlobParentPath(t, ctx, driver, imageNames[1], digest.DigestSha256EmptyTar, false)
+
+	// check that deletion had no effect on digests enumerated
+	doEnumeration(
+		[]digest.Digest{digest.DigestSha256EmptyTar, layerDgst, tarballDgst},
+		[]digest.Digest{digest.DigestSha256EmptyTar, layerDgst},
+		[]digest.Digest{tarballDgst},
+	)
+
+	// set RemoveParentsOnDelete and delete the layer again
+	if r, ok := reg.(*registry); ok {
+		r.blobStore.removeParentsOnDelete = true
+	} else {
+		t.Fatalf("failed to cast registry")
+	}
+
+	repo, err := reg.Repository(ctx, imageNames[0])
+	if err != nil {
+		t.Fatalf("unexpected error getting repo: %v", err)
+	}
+	bs := repo.Blobs(ctx)
+	bd, err = RegistryBlobDeleter(reg)
+	if err != nil {
+		t.Fatalf("failed to obtain blob deleter: %v", err)
+	}
+
+	t.Logf("deleting empty layer link directory from %s repository", imageNames[0])
+	err = bs.Delete(ctx, digest.DigestSha256EmptyTar)
+	if err != nil {
+		t.Fatalf("unexpected error while deleting empty layer link: %v", err)
+	}
+	checkBlobParentPath(t, ctx, driver, "", digest.DigestSha256EmptyTar, true)
+	checkBlobParentPath(t, ctx, driver, imageNames[0], digest.DigestSha256EmptyTar, false)
+	checkBlobParentPath(t, ctx, driver, imageNames[1], digest.DigestSha256EmptyTar, false)
+
+	// verify that blob data is still in registry's store
+	doEnumeration(
+		[]digest.Digest{digest.DigestSha256EmptyTar, layerDgst, tarballDgst},
+		[]digest.Digest{layerDgst},
+		[]digest.Digest{tarballDgst},
+	)
+
+	t.Logf("deleting empty layer directory from registry")
+	err = bd.Delete(ctx, digest.DigestSha256EmptyTar)
+	if err != nil {
+		t.Fatalf("unexpected error while deleting registry blob: %v", err)
+	}
+
+	doEnumeration(
+		[]digest.Digest{layerDgst, tarballDgst},
+		[]digest.Digest{layerDgst},
+		[]digest.Digest{tarballDgst},
+	)
+
+	checkBlobParentPath(t, ctx, driver, "", digest.DigestSha256EmptyTar, false)
+}
+
+// TestBlobBatchEnumeration checks whether enumeration of repository and registry's
+// blobs returns proper results when enumerating store iteratively with small
+// buffer.
+func TestBlobBatchEnumeration(t *testing.T) {
+	const numDigests = 10
+	ctx := context.Background()
+	imageName := "foo/bar"
+	driver := inmemory.New()
+	reg := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false, true)
+	repo, err := reg.Repository(ctx, imageName)
+	if err != nil {
+		t.Fatalf("unexpected error getting repo: %v", err)
+	}
+	bs := repo.Blobs(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error getting blob enumerator: %v", err)
+	}
+	be, err := RegistryBlobEnumerator(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	digests := make([]digest.Digest, numDigests)
+	for i := 0; i < numDigests; i++ {
+		var dgst digest.Digest
+		if i%2 == 0 {
+			dgst = uploadRandomLayer(t, ctx, bs)
+			t.Logf("uploaded a new layer with digest %s", dgst.String())
+		} else {
+			dgst = uploadRandomTarball(t, ctx, bs)
+			t.Logf("uploaded a new tarsum layer with digest %s", dgst.String())
+		}
+		digests[i] = dgst
+	}
+	tarsumDigests := numDigests/2 + numDigests%1
+	layerLinkDigests, err := EnumerateAllBlobs(bs, ctx)
+	// two links are written for one tarsum digest in the blob store
+	if len(layerLinkDigests) != numDigests+tarsumDigests {
+		t.Fatalf("unexpected number of digests (%d != %d)", len(layerLinkDigests), numDigests+tarsumDigests)
+	}
+	// registry doesn't contain tarsum digests
+	blobDigests := make([]digest.Digest, 0, len(digests))
+	for _, d := range layerLinkDigests {
+		if !strings.HasPrefix(d.String(), tarsumPrefix) {
+			blobDigests = append(blobDigests, d)
+		}
+	}
+
+	sort.Sort(byDigestString(blobDigests))
+	sort.Sort(byDigestString(layerLinkDigests))
+
+	doEnum := func(be distribution.BlobEnumerator, batchSize int, expectedDigests []digest.Digest) {
+		t.Logf("enumerating %T with a buffer of size %d", be, batchSize)
+		last := ""
+		buf := make([]digest.Digest, batchSize)
+		for i := 0; i < (len(digests)/batchSize)+1; i++ {
+			n, err := be.Enumerate(ctx, buf, last)
+			expectedN := batchSize
+			if i >= len(expectedDigests)/batchSize {
+				// last batch or past last batch
+				expectedN = len(expectedDigests) % batchSize
+				if err != io.EOF {
+					t.Fatalf("batch #%d: expected io.EOF while enumerating blobs of %T, not: %v", i+1, be, err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("batch #%d: got unexpected error while enumerating blobs of %T: %v", i+1, be, err)
+				}
+			}
+			if n != expectedN {
+				t.Fatalf("batch #%d: got unexpected number of digests while enumerating %T (%d != %d) ", i+1, be, n, expectedN)
+			}
+			for j := 0; j < expectedN; j++ {
+				if expectedDigests[i*batchSize+j] != buf[j] {
+					t.Errorf("batch #%d: got unexpected digest on index %d while enumerating %T: %s != %s", i+1, j, be, buf[j].String(), expectedDigests[i*batchSize+j].String())
+				}
+			}
+			if n > 0 {
+				last = buf[n-1].String()
+			}
+		}
+	}
+
+	// enumerate linked blob store
+	doEnum(bs, 4, layerLinkDigests)
+	doEnum(bs, 1, layerLinkDigests)
+	doEnum(bs, len(layerLinkDigests), layerLinkDigests)
+
+	// enumerate registry's blob store
+	doEnum(be, 4, blobDigests)
+	doEnum(be, 1, blobDigests)
+	doEnum(be, len(blobDigests), blobDigests)
+
+	// enumerate with empty buffer
+	for _, enumerator := range []distribution.BlobEnumerator{bs, be} {
+		buf := []digest.Digest{}
+		n, err := enumerator.Enumerate(ctx, buf, "")
+		if err != nil {
+			t.Errorf("unexpected error while enumerating %T with empty buffer: %v", enumerator, err)
+		}
+		if n != 0 {
+			t.Errorf("expected 0 items written to empty buffer by %T, not %d", enumerator, n)
+		}
+	}
 }
 
 func simpleUpload(t *testing.T, bs distribution.BlobIngester, blob []byte, expectedDigest digest.Digest) {
@@ -404,4 +770,107 @@ func addBlob(ctx context.Context, bs distribution.BlobIngester, desc distributio
 	}
 
 	return wr.Commit(ctx, desc)
+}
+
+func createRandomData() (io.ReadSeeker, int64, error) {
+	fileSize := mrand.Int63n(1<<20) + 1<<20
+
+	randomData := make([]byte, fileSize)
+	// Fill up the buffer with some random data.
+	n, err := rand.Read(randomData)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fill buffer with random data: %v", err)
+	}
+	if n != len(randomData) {
+		return nil, 0, fmt.Errorf("short read creating random reader: %v bytes != %v bytes", n, len(randomData))
+	}
+
+	return bytes.NewReader(randomData), fileSize, nil
+}
+
+func uploadRandomLayer(t *testing.T, ctx context.Context, bi distribution.BlobIngester) digest.Digest {
+	dr, size, err := createRandomData()
+	if err != nil {
+		t.Fatalf("failed to create random file: %v", err)
+	}
+
+	h := sha256.New()
+	rd := io.TeeReader(dr, h)
+	blobUpload, err := bi.Create(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error starting layer upload: %s", err)
+	}
+	nn, err := io.Copy(blobUpload, rd)
+	if err != nil {
+		t.Fatalf("unexpected error uploading layer data: %v", err)
+	}
+	if nn != size {
+		t.Fatalf("layer data write incomplete")
+	}
+	dgst := digest.NewDigest("sha256", h)
+	_, err = blobUpload.Commit(ctx, distribution.Descriptor{Digest: dgst})
+	if err != nil {
+		t.Fatalf("unexpected error finishing layer upload: %v", err)
+	}
+	return dgst
+}
+
+func uploadRandomTarball(t *testing.T, ctx context.Context, bi distribution.BlobIngester) digest.Digest {
+	randomDataReader, tarSumStr, err := testutil.CreateRandomTarFile()
+	if err != nil {
+		t.Fatalf("error creating random reader: %v", err)
+	}
+	dgst := digest.Digest(tarSumStr)
+	if err != nil {
+		t.Fatalf("error allocating upload store: %v", err)
+	}
+
+	randomLayerSize, err := seekerSize(randomDataReader)
+	if err != nil {
+		t.Fatalf("error getting seeker size for random layer: %v", err)
+	}
+
+	_, err = addBlob(ctx, bi, distribution.Descriptor{
+		Digest:    dgst,
+		MediaType: "application/octet-stream",
+		Size:      randomLayerSize,
+	}, randomDataReader)
+	if err != nil {
+		t.Fatalf("failed to add blob: %v", err)
+	}
+	return dgst
+}
+
+// checkBlobParentPath asserts that a directory containing blob's link or data
+// does (not) exist. If repoName is given, link path in _layers directory of
+// that repository will be checked. Registry's blob store will be checked
+// otherwise.
+func checkBlobParentPath(t *testing.T, ctx context.Context, driver *inmemory.Driver, repoName string, dgst digest.Digest, expectExistent bool) {
+	var (
+		blobPath string
+		err      error
+	)
+
+	if repoName != "" {
+		blobPath, err = defaultPathMapper.path(layerLinkPathSpec{name: repoName, digest: dgst})
+		if err != nil {
+			t.Fatalf("failed to get layer link path for repo=%s, digest=%s: %v", repoName, dgst.String(), err)
+		}
+		blobPath = path.Dir(blobPath)
+	} else {
+		blobPath, err = defaultPathMapper.path(blobPathSpec{digest: dgst})
+		if err != nil {
+			t.Fatalf("failed to get blob path for digest %s: %v", dgst.String(), err)
+		}
+	}
+
+	parentExists, err := exists(ctx, driver, blobPath)
+	if err != nil {
+		t.Fatalf("failed to check whether path %s exists: %v", blobPath, err)
+	}
+	if expectExistent && !parentExists {
+		t.Errorf("expected blob path %s to exist", blobPath)
+	} else if !expectExistent && parentExists {
+		t.Errorf("expected blob path %s not to exist", blobPath)
+	}
 }

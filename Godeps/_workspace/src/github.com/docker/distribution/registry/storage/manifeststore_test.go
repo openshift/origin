@@ -29,7 +29,7 @@ type manifestStoreTestEnv struct {
 func newManifestStoreTestEnv(t *testing.T, name, tag string) *manifestStoreTestEnv {
 	ctx := context.Background()
 	driver := inmemory.New()
-	registry := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false)
+	registry := NewRegistryWithDriver(ctx, driver, memory.NewInMemoryBlobDescriptorCacheProvider(), true, true, false, false)
 
 	repo, err := registry.Repository(ctx, name)
 	if err != nil {
@@ -61,6 +61,13 @@ func TestManifestStorage(t *testing.T) {
 
 	if exists {
 		t.Fatalf("manifest should not exist")
+	}
+
+	dgsts, err := ms.Enumerate()
+	if err != nil {
+		t.Errorf("unexpected error enumerating manifest revisions: %v", err)
+	} else if len(dgsts) != 0 {
+		t.Errorf("expected exactly 0 manifests, not %d", len(dgsts))
 	}
 
 	if _, err := ms.GetByTag(env.tag); true {
@@ -209,6 +216,43 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("unexpected number of signatures: %d != %d", len(sigs), 1)
 	}
 
+	// Enumerate only valid manifest revision digests
+	dgsts, err = ms.Enumerate()
+	if err != nil {
+		t.Errorf("unexpected error enumerating manifest revisions: %v", err)
+	} else if len(dgsts) != 1 {
+		t.Errorf("expected exactly 1 manifest, not %d", len(dgsts))
+	} else if dgsts[0] != dgst {
+		t.Errorf("got unexpected digest manifest (%s != %s)", dgsts[0], dgst)
+	}
+
+	// Enumerate all digests
+	if err := EnumerateAllDigests(ms); err != nil {
+		t.Fatalf("failed to configure enumeration of all digests: %v", err)
+	}
+	dgsts, err = ms.Enumerate()
+	if err != nil {
+		t.Errorf("unexpected error enumerating manifest revisions: %v", err)
+	} else {
+		// _layers contain 2 links per one tarsum blob
+		expCount := 1 + len(testLayers)*2
+		if len(dgsts) != expCount {
+			t.Errorf("unexpected number of returned digests (%d != %d)", len(dgsts), expCount)
+		}
+		received := make(map[digest.Digest]struct{})
+		for _, dgst := range dgsts {
+			received[dgst] = struct{}{}
+		}
+		if _, exists := received[dgst]; !exists {
+			t.Errorf("expected manifest revision %s to be returned", dgst.String())
+		}
+		for dgst := range testLayers {
+			if _, exists := received[dgst]; !exists {
+				t.Errorf("expected layer blob %s to be returned", dgst.String())
+			}
+		}
+	}
+
 	// Grabs the tags and check that this tagged manifest is present
 	tags, err := ms.Tags()
 	if err != nil {
@@ -348,7 +392,7 @@ func TestManifestStorage(t *testing.T) {
 		t.Errorf("Deleted manifest get returned non-nil")
 	}
 
-	r := NewRegistryWithDriver(ctx, env.driver, memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, false)
+	r := NewRegistryWithDriver(ctx, env.driver, memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, false, false)
 	repo, err := r.Repository(ctx, env.name)
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)

@@ -152,3 +152,7 @@ func (pms proxyManifestStore) Put(manifest *manifest.SignedManifest) error {
 func (pms proxyManifestStore) Delete(dgst digest.Digest) error {
 	return distribution.ErrUnsupported
 }
+
+func (pms proxyManifestStore) Enumerate() ([]digest.Digest, error) {
+	return nil, distribution.ErrUnsupported
+}

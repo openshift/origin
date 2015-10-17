@@ -22,7 +22,7 @@ func setupFS(t *testing.T) *setupEnv {
 	d := inmemory.New()
 	c := []byte("")
 	ctx := context.Background()
-	registry := NewRegistryWithDriver(ctx, d, memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, false)
+	registry := NewRegistryWithDriver(ctx, d, memory.NewInMemoryBlobDescriptorCacheProvider(), false, true, false, false)
 	rootpath, _ := defaultPathMapper.path(repositoriesRootPathSpec{})
 
 	repos := []string{
