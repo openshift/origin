@@ -274,14 +274,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	legacyAPIVersions := []string{}
 	currentAPIVersions := []string{}
 
-	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta3) {
-		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
-			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
-		}
-		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1Beta3))
-		legacyAPIVersions = append(legacyAPIVersions, OpenShiftAPIV1Beta3)
-	}
-
 	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1) {
 		if err := c.api_v1(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1 API: %v", err)
@@ -307,6 +299,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		container.Add(root)
 	}
 
+	// The old API prefix must continue to return 200 (with an empty versions
+	// list) for backwards compatibility, even though we won't service any other
+	// requests through the route. Take care when considering whether to delete
+	// this route.
 	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
 	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
 
@@ -502,10 +498,6 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 
 // initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
-	if len(versions) == 0 {
-		return
-	}
-
 	versionHandler := apiserver.APIVersionHandler(versions...)
 	root.Route(root.GET(prefix).To(versionHandler).
 		Doc("list supported server API versions").

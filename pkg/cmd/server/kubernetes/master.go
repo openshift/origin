@@ -31,9 +31,8 @@ import (
 )
 
 const (
-	KubeAPIPrefix        = "/api"
-	KubeAPIPrefixV1Beta3 = "/api/v1beta3"
-	KubeAPIPrefixV1      = "/api/v1"
+	KubeAPIPrefix   = "/api"
+	KubeAPIPrefixV1 = "/api/v1"
 )
 
 // InstallAPI starts a Kubernetes master and registers the supported REST APIs
@@ -45,9 +44,6 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	_ = master.New(c.Master)
 
 	messages := []string{}
-	if c.Master.EnableV1Beta3 {
-		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s (deprecated)", KubeAPIPrefixV1Beta3))
-	}
 	if !c.Master.DisableV1 {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1))
 	}
