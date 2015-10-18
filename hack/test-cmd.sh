@@ -134,11 +134,11 @@ openshift start \
 [ "$(openshift ex validate node-config ${NODE_CONFIG_DIR}/node-config.yaml 2>&1 | grep SUCCESS)" ]
 # breaking the config fails the validation check
 cp ${MASTER_CONFIG_DIR}/master-config.yaml ${BASETMPDIR}/master-config-broken.yaml
-sed -i '5,10d' ${BASETMPDIR}/master-config-broken.yaml
+os::util::sed '5,10d' ${BASETMPDIR}/master-config-broken.yaml
 [ "$(openshift ex validate master-config ${BASETMPDIR}/master-config-broken.yaml 2>&1 | grep error)" ]
 
 cp ${NODE_CONFIG_DIR}/node-config.yaml ${BASETMPDIR}/node-config-broken.yaml
-sed -i '5,10d' ${BASETMPDIR}/node-config-broken.yaml
+os::util::sed '5,10d' ${BASETMPDIR}/node-config-broken.yaml
 [ "$(openshift ex validate node-config ${BASETMPDIR}/node-config-broken.yaml 2>&1 | grep ERROR)" ]
 echo "validation: ok"
 
