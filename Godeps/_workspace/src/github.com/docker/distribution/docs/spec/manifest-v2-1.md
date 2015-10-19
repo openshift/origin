@@ -1,8 +1,16 @@
 # Image Manifest Version 2, Schema 1 
 
-This document outlines the format of of the V2 image manifest.  Image manifests
-describe the various constituents of a docker image.  Image manifests can be
- serialized to JSON format with the following media types:
+This document outlines the format of of the V2 image manifest. The image
+manifest described herein was introduced in the Docker daemon in the [v1.3.0
+release](https://github.com/docker/docker/commit/9f482a66ab37ec396ac61ed0c00d59122ac07453).
+It is a provisional manifest to provide a compatibility with the [V1 Image
+format](https://github.com/docker/docker/blob/master/image/spec/v1.md), as the
+requirements are defined for the [V2 Schema 2
+image](https://github.com/docker/distribution/pull/62).
+
+
+Image manifests describe the various constituents of a docker image.  Image
+manifests can be serialized to JSON format with the following media types:
 
 Manifest Type  | Media Type
 ------------- | -------------
@@ -47,18 +55,22 @@ Manifest provides the base accessible fields for working with V2 image format
    
 - **`history`** *array*
    
-   history is a list of unstructured historical data for v1 compatibility.
+   history is a list of unstructured historical data for v1 compatibility. It 
+   contains ID of the image layer and ID of the layer's parent layers.
    
    history is a struct consisting of the following fields
    - **`v1Compatibility`** string
    
-      V1Compatibility is the raw V1 compatibility information.  This  will 
+      V1Compatibility is the raw V1 compatibility information. This will 
       contain the JSON object describing the V1 of this image.
       
 - **`schemaVersion`** *int*
 	
    SchemaVersion is the image manifest schema that this image follows.
 	
+>**Note**:the length of `history` must be equal to the length of `fsLayers` and 
+>entries in each are correlated by index.
+
 ## Signed Manifests
 
 Signed manifests provides an envelope for a signed image manifest.  A signed 
@@ -76,7 +88,7 @@ Image manifests can be signed in two different ways: with a *libtrust* private
    
 ### Signed Manifest Field Description
 
-Signed manifests include an image manifest and and a list of signatures generated
+Signed manifests include an image manifest and a list of signatures generated
 by *libtrust*.  A signature consists of the following fields:
 
 

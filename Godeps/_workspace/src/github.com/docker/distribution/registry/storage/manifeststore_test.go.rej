@@ -1,0 +1,20 @@
+--- registry/storage/manifeststore_test.go	2015-05-07 01:37:30.000000000 +0200
++++ home/miminar/wsp/rh/openshift-origin/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/manifeststore_test.go	2015-10-06 15:06:40.266175805 +0200
+@@ -139,7 +139,7 @@
+ 		t.Fatalf("manifest should exist")
+ 	}
+ 
+-	fetchedManifest, err := ms.GetByTag(env.tag)
++	fetchedManifest, err := ms.GetByTag(env.ctx, env.tag)
+ 	if err != nil {
+ 		t.Fatalf("unexpected error fetching manifest: %v", err)
+ 	}
+@@ -284,7 +284,7 @@
+ 	// complexity around managing tag indexes. We'll add this support back in
+ 	// when the manifest format has settled. For now, we expect an error for
+ 	// all deletes.
+-	if err := ms.Delete(dgst); err == nil {
++	if err := ms.Delete(env.ctx, dgst); err == nil {
+ 		t.Fatalf("unexpected an error deleting manifest by digest: %v", err)
+ 	}
+ }

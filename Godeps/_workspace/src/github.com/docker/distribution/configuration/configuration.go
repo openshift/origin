@@ -11,7 +11,10 @@ import (
 )
 
 // Configuration is a versioned registry configuration, intended to be provided by a yaml file, and
-// optionally modified by environment variables
+// optionally modified by environment variables.
+//
+// Note that yaml field names should never include _ characters, since this is the separator used
+// in environment variable names.
 type Configuration struct {
 	// Version is the version which defines the format of the rest of the configuration
 	Version Version `yaml:"version"`
@@ -29,6 +32,10 @@ type Configuration struct {
 		// Fields allows users to specify static string fields to include in
 		// the logger context.
 		Fields map[string]interface{} `yaml:"fields,omitempty"`
+
+		// Hooks allows users to configurate the log hooks, to enabling the
+		// sequent handling behavior, when defined levels of log message emit.
+		Hooks []LogHook `yaml:"hooks,omitempty"`
 	}
 
 	// Loglevel is the level at which registry operations are logged. This is
@@ -54,6 +61,9 @@ type Configuration struct {
 		// Addr specifies the bind address for the registry instance.
 		Addr string `yaml:"addr,omitempty"`
 
+		// Net specifies the net portion of the bind address. A default empty value means tcp.
+		Net string `yaml:"net,omitempty"`
+
 		Prefix string `yaml:"prefix,omitempty"`
 
 		// Secret specifies the secret key which HMAC tokens are created with.
@@ -78,6 +88,12 @@ type Configuration struct {
 			// A file may contain multiple CA certificates encoded as PEM
 			ClientCAs []string `yaml:"clientcas,omitempty"`
 		} `yaml:"tls,omitempty"`
+
+		// Headers is a set of headers to include in HTTP responses. A common
+		// use case for this would be security headers such as
+		// Strict-Transport-Security. The map keys are the header names, and
+		// the values are the associated header payloads.
+		Headers http.Header `yaml:"headers,omitempty"`
 
 		// Debug configures the http debug interface, if specified. This can
 		// include services such as pprof, expvar and other data that should
@@ -121,6 +137,113 @@ type Configuration struct {
 			IdleTimeout time.Duration `yaml:"idletimeout,omitempty"`
 		} `yaml:"pool,omitempty"`
 	} `yaml:"redis,omitempty"`
+
+	Health Health `yaml:"health,omitempty"`
+
+	Proxy Proxy `yaml:"proxy,omitempty"`
+}
+
+// LogHook is composed of hook Level and Type.
+// After hooks configuration, it can execute the next handling automatically,
+// when defined levels of log message emitted.
+// Example: hook can sending an email notification when error log happens in app.
+type LogHook struct {
+	// Disable lets user select to enable hook or not.
+	Disabled bool `yaml:"disabled,omitempty"`
+
+	// Type allows user to select which type of hook handler they want.
+	Type string `yaml:"type,omitempty"`
+
+	// Levels set which levels of log message will let hook executed.
+	Levels []string `yaml:"levels,omitempty"`
+
+	// MailOptions allows user to configurate email parameters.
+	MailOptions MailOptions `yaml:"options,omitempty"`
+}
+
+// MailOptions provides the configuration sections to user, for specific handler.
+type MailOptions struct {
+	SMTP struct {
+		// Addr defines smtp host address
+		Addr string `yaml:"addr,omitempty"`
+
+		// Username defines user name to smtp host
+		Username string `yaml:"username,omitempty"`
+
+		// Password defines password of login user
+		Password string `yaml:"password,omitempty"`
+
+		// Insecure defines if smtp login skips the secure cerification.
+		Insecure bool `yaml:"insecure,omitempty"`
+	} `yaml:"smtp,omitempty"`
+
+	// From defines mail sending address
+	From string `yaml:"from,omitempty"`
+
+	// To defines mail receiving address
+	To []string `yaml:"to,omitempty"`
+}
+
+// FileChecker is a type of entry in the health section for checking files.
+type FileChecker struct {
+	// Interval is the duration in between checks
+	Interval time.Duration `yaml:"interval,omitempty"`
+	// File is the path to check
+	File string `yaml:"file,omitempty"`
+	// Threshold is the number of times a check must fail to trigger an
+	// unhealthy state
+	Threshold int `yaml:"threshold,omitempty"`
+}
+
+// HTTPChecker is a type of entry in the health section for checking HTTP URIs.
+type HTTPChecker struct {
+	// Timeout is the duration to wait before timing out the HTTP request
+	Timeout time.Duration `yaml:"interval,omitempty"`
+	// StatusCode is the expected status code
+	StatusCode int
+	// Interval is the duration in between checks
+	Interval time.Duration `yaml:"interval,omitempty"`
+	// URI is the HTTP URI to check
+	URI string `yaml:"uri,omitempty"`
+	// Headers lists static headers that should be added to all requests
+	Headers http.Header `yaml:"headers"`
+	// Threshold is the number of times a check must fail to trigger an
+	// unhealthy state
+	Threshold int `yaml:"threshold,omitempty"`
+}
+
+// TCPChecker is a type of entry in the health section for checking TCP servers.
+type TCPChecker struct {
+	// Timeout is the duration to wait before timing out the TCP connection
+	Timeout time.Duration `yaml:"interval,omitempty"`
+	// Interval is the duration in between checks
+	Interval time.Duration `yaml:"interval,omitempty"`
+	// Addr is the TCP address to check
+	Addr string `yaml:"addr,omitempty"`
+	// Threshold is the number of times a check must fail to trigger an
+	// unhealthy state
+	Threshold int `yaml:"threshold,omitempty"`
+}
+
+// Health provides the configuration section for health checks.
+type Health struct {
+	// FileCheckers is a list of paths to check
+	FileCheckers []FileChecker `yaml:"file,omitempty"`
+	// HTTPCheckers is a list of URIs to check
+	HTTPCheckers []HTTPChecker `yaml:"http,omitempty"`
+	// TCPCheckers is a list of URIs to check
+	TCPCheckers []TCPChecker `yaml:"tcp,omitempty"`
+	// StorageDriver configures a health check on the configured storage
+	// driver
+	StorageDriver struct {
+		// Enabled turns on the health check for the storage driver
+		Enabled bool `yaml:"enabled,omitempty"`
+		// Interval is the duration in between checks
+		Interval time.Duration `yaml:"interval,omitempty"`
+		// Threshold is the number of times a check must fail to trigger an
+		// unhealthy state
+		Threshold int `yaml:"threshold,omitempty"`
+	} `yaml:"storagedriver,omitempty"`
 }
 
 // v0_1Configuration is a Version 0.1 Configuration struct
@@ -185,6 +308,8 @@ type Storage map[string]Parameters
 
 // Type returns the storage driver type, such as filesystem or s3
 func (storage Storage) Type() string {
+	var storageType []string
+
 	// Return only key in this map
 	for k := range storage {
 		switch k {
@@ -192,9 +317,19 @@ func (storage Storage) Type() string {
 			// allow configuration of maintenance
 		case "cache":
 			// allow configuration of caching
+		case "delete":
+			// allow configuration of delete
+		case "redirect":
+			// allow configuration of redirect
 		default:
-			return k
+			storageType = append(storageType, k)
 		}
+	}
+	if len(storageType) > 1 {
+		panic("multiple storage drivers specified in configuration or environment: " + strings.Join(storageType, ", "))
+	}
+	if len(storageType) == 1 {
+		return storageType[0]
 	}
 	return ""
 }
@@ -223,6 +358,10 @@ func (storage *Storage) UnmarshalYAML(unmarshal func(interface{}) error) error {
 					// allow for configuration of maintenance
 				case "cache":
 					// allow configuration of caching
+				case "delete":
+					// allow configuration of delete
+				case "redirect":
+					// allow configuration of redirect
 				default:
 					types = append(types, k)
 				}
@@ -372,6 +511,18 @@ type Middleware struct {
 	Disabled bool `yaml:"disabled,omitempty"`
 	// Map of parameters that will be passed to the middleware's initialization function
 	Options Parameters `yaml:"options"`
+}
+
+// Proxy configures the registry as a pull through cache
+type Proxy struct {
+	// RemoteURL is the URL of the remote registry
+	RemoteURL string `yaml:"remoteurl"`
+
+	// Username of the hub user
+	Username string `yaml:"username"`
+
+	// Password of the hub user
+	Password string `yaml:"password"`
 }
 
 // Parse parses an input configuration yaml document into a Configuration struct

@@ -26,21 +26,22 @@ import (
 )
 
 var (
-	buildColumns            = []string{"NAME", "TYPE", "FROM", "STATUS", "STARTED"}
-	buildConfigColumns      = []string{"NAME", "TYPE", "FROM", "LATEST"}
-	imageColumns            = []string{"NAME", "DOCKER REF"}
-	imageStreamTagColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
-	imageStreamImageColumns = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
-	imageStreamColumns      = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
-	projectColumns          = []string{"NAME", "DISPLAY NAME", "STATUS"}
-	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "TLS TERMINATION"}
-	deploymentColumns       = []string{"NAME", "STATUS", "CAUSE"}
-	deploymentConfigColumns = []string{"NAME", "TRIGGERS", "LATEST"}
-	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
-	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
-	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
-	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
-	roleColumns             = []string{"NAME"}
+	buildColumns               = []string{"NAME", "TYPE", "FROM", "STATUS", "STARTED"}
+	buildConfigColumns         = []string{"NAME", "TYPE", "FROM", "LATEST"}
+	imageColumns               = []string{"NAME", "DOCKER REF"}
+	imageStreamTagColumns      = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
+	imageStreamImageColumns    = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
+	imageStreamColumns         = []string{"NAME", "DOCKER REPO", "TAGS", "UPDATED"}
+	imageStreamDeletionColumns = []string{"NAME", "DELETED"}
+	projectColumns             = []string{"NAME", "DISPLAY NAME", "STATUS"}
+	routeColumns               = []string{"NAME", "HOST/PORT", "PATH", "SERVICE", "LABELS", "TLS TERMINATION"}
+	deploymentColumns          = []string{"NAME", "STATUS", "CAUSE"}
+	deploymentConfigColumns    = []string{"NAME", "TRIGGERS", "LATEST"}
+	templateColumns            = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
+	policyColumns              = []string{"NAME", "ROLES", "LAST MODIFIED"}
+	policyBindingColumns       = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
+	roleBindingColumns         = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
+	roleColumns                = []string{"NAME"}
 
 	oauthClientColumns              = []string{"NAME", "SECRET", "WWW-CHALLENGE", "REDIRECT URIS"}
 	oauthClientAuthorizationColumns = []string{"NAME", "USER NAME", "CLIENT NAME", "SCOPES"}
@@ -74,6 +75,8 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, showAll bool, 
 	p.Handler(imageColumns, printImageList)
 	p.Handler(imageStreamColumns, printImageStream)
 	p.Handler(imageStreamColumns, printImageStreamList)
+	p.Handler(imageStreamDeletionColumns, printImageStreamDeletion)
+	p.Handler(imageStreamDeletionColumns, printImageStreamDeletionList)
 	p.Handler(projectColumns, printProject)
 	p.Handler(projectColumns, printProjectList)
 	p.Handler(routeColumns, printRoute)
@@ -355,6 +358,21 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, withNamespace, 
 func printImageStreamList(streams *imageapi.ImageStreamList, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
 	for _, stream := range streams.Items {
 		if err := printImageStream(&stream, w, withNamespace, wide, showAll, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printImageStreamDeletion(isDeletion *imageapi.ImageStreamDeletion, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
+	deletedTime := fmt.Sprintf("%s ago", formatRelativeTime(isDeletion.CreationTimestamp.Time))
+	_, err := fmt.Fprintf(w, "%s\t%s\n", isDeletion.Name, deletedTime)
+	return err
+}
+
+func printImageStreamDeletionList(isDeletions *imageapi.ImageStreamDeletionList, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
+	for _, isd := range isDeletions.Items {
+		if err := printImageStreamDeletion(&isd, w, withNamespace, wide, showAll, columnLabels); err != nil {
 			return err
 		}
 	}

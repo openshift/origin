@@ -10,14 +10,24 @@ import (
 )
 
 type signatureStore struct {
-	*repository
+	repository *repository
+	blobStore  *blobStore
+	ctx        context.Context
+}
+
+func newSignatureStore(ctx context.Context, repo *repository, blobStore *blobStore) *signatureStore {
+	return &signatureStore{
+		ctx:        ctx,
+		repository: repo,
+		blobStore:  blobStore,
+	}
 }
 
 var _ distribution.SignatureService = &signatureStore{}
 
 func (s *signatureStore) Get(dgst digest.Digest) ([][]byte, error) {
-	signaturesPath, err := s.pm.path(manifestSignaturesPathSpec{
-		name:     s.Name(),
+	signaturesPath, err := pathFor(manifestSignaturesPathSpec{
+		name:     s.repository.Name(),
 		revision: dgst,
 	})
 
@@ -30,7 +40,7 @@ func (s *signatureStore) Get(dgst digest.Digest) ([][]byte, error) {
 	// can be eliminated by implementing listAll on drivers.
 	signaturesPath = path.Join(signaturesPath, "sha256")
 
-	signaturePaths, err := s.driver.List(signaturesPath)
+	signaturePaths, err := s.blobStore.driver.List(s.ctx, signaturesPath)
 	if err != nil {
 		return nil, err
 	}
@@ -43,27 +53,32 @@ func (s *signatureStore) Get(dgst digest.Digest) ([][]byte, error) {
 	}
 	ch := make(chan result)
 
+	bs := s.linkedBlobStore(s.ctx, dgst)
 	for i, sigPath := range signaturePaths {
-		// Append the link portion
-		sigPath = path.Join(sigPath, "link")
+		sigdgst, err := digest.ParseDigest("sha256:" + path.Base(sigPath))
+		if err != nil {
+			context.GetLogger(s.ctx).Errorf("could not get digest from path: %q, skipping", sigPath)
+			continue
+		}
 
 		wg.Add(1)
-		go func(idx int, sigPath string) {
+		go func(idx int, sigdgst digest.Digest) {
 			defer wg.Done()
 			context.GetLogger(s.ctx).
-				Debugf("fetching signature from %q", sigPath)
+				Debugf("fetching signature %q", sigdgst)
 
 			r := result{index: idx}
-			if p, err := s.blobStore.linked(sigPath); err != nil {
+
+			if p, err := bs.Get(s.ctx, sigdgst); err != nil {
 				context.GetLogger(s.ctx).
-					Errorf("error fetching signature from %q: %v", sigPath, err)
+					Errorf("error fetching signature %q: %v", sigdgst, err)
 				r.err = err
 			} else {
 				r.signature = p
 			}
 
 			ch <- r
-		}(i, sigPath)
+		}(i, sigdgst)
 	}
 	done := make(chan struct{})
 	go func() {
@@ -90,26 +105,56 @@ loop:
 	return signatures, err
 }
 
+// Enumerate returns an array of digests of manifest signatures.
+func (s *signatureStore) Enumerate(manifestReference digest.Digest) ([]digest.Digest, error) {
+	return s.linkedBlobStore(s.ctx, manifestReference).Enumerate(s.ctx)
+}
+
 func (s *signatureStore) Put(dgst digest.Digest, signatures ...[]byte) error {
+	bs := s.linkedBlobStore(s.ctx, dgst)
 	for _, signature := range signatures {
-		signatureDigest, err := s.blobStore.put(signature)
-		if err != nil {
-			return err
-		}
-
-		signaturePath, err := s.pm.path(manifestSignatureLinkPathSpec{
-			name:      s.Name(),
-			revision:  dgst,
-			signature: signatureDigest,
-		})
-
-		if err != nil {
-			return err
-		}
-
-		if err := s.blobStore.link(signaturePath, signatureDigest); err != nil {
+		if _, err := bs.Put(s.ctx, "application/json", signature); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// Delete removes a signature's link of given manifest revision identied by
+// digest.
+func (s *signatureStore) Delete(revision, dgst digest.Digest) error {
+	return s.linkedBlobStore(s.ctx, revision).Delete(s.ctx, dgst)
+}
+
+// linkedBlobStore returns the namedBlobStore of the signatures for the
+// manifest with the given digest. Effectively, each signature link path
+// layout is a unique linked blob store.
+func (s *signatureStore) linkedBlobStore(ctx context.Context, revision digest.Digest) *linkedBlobStore {
+	linkpath := func(name string, dgst digest.Digest) (string, error) {
+		return pathFor(manifestSignatureLinkPathSpec{
+			name:      name,
+			revision:  revision,
+			signature: dgst,
+		})
+	}
+	linkRootPath := func(name string) (string, error) {
+		return pathFor(manifestSignaturesPathSpec{
+			name:     name,
+			revision: revision,
+		})
+	}
+
+	return &linkedBlobStore{
+		ctx:        ctx,
+		repository: s.repository,
+		blobStore:  s.blobStore,
+		blobAccessController: &linkedBlobStatter{
+			blobStore:            s.blobStore,
+			repository:           s.repository,
+			linkPathFns:          []linkPathFunc{linkpath},
+			removeParentOnDelete: true,
+		},
+		linkPathFns:      []linkPathFunc{linkpath},
+		blobsRootPathFns: []blobsRootPathFunc{linkRootPath},
+	}
 }

@@ -6,16 +6,16 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/docker/distribution/registry/storage/cache"
-
 	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
+	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/registry/storage/cache/memory"
 	"github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/distribution/testutil"
 	"github.com/docker/libtrust"
-	"golang.org/x/net/context"
 )
 
 type manifestStoreTestEnv struct {
@@ -30,7 +30,10 @@ type manifestStoreTestEnv struct {
 func newManifestStoreTestEnv(t *testing.T, name, tag string) *manifestStoreTestEnv {
 	ctx := context.Background()
 	driver := inmemory.New()
-	registry := NewRegistryWithDriver(driver, cache.NewInMemoryLayerInfoCache())
+	registry, err := NewRegistry(ctx, driver, BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), EnableDelete, EnableRedirect)
+	if err != nil {
+		t.Fatalf("error creating registry: %v", err)
+	}
 
 	repo, err := registry.Repository(ctx, name)
 	if err != nil {
@@ -49,9 +52,13 @@ func newManifestStoreTestEnv(t *testing.T, name, tag string) *manifestStoreTestE
 
 func TestManifestStorage(t *testing.T) {
 	env := newManifestStoreTestEnv(t, "foo/bar", "thetag")
-	ms := env.repository.Manifests()
+	ctx := context.Background()
+	ms, err := env.repository.Manifests(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	exists, err := ms.ExistsByTag(env.ctx, env.tag)
+	exists, err := ms.ExistsByTag(env.tag)
 	if err != nil {
 		t.Fatalf("unexpected error checking manifest existence: %v", err)
 	}
@@ -60,7 +67,14 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("manifest should not exist")
 	}
 
-	if _, err := ms.GetByTag(env.ctx, env.tag); true {
+	dgsts, err := ms.Enumerate()
+	if err != nil {
+		t.Errorf("unexpected error enumerating manifest revisions: %v", err)
+	} else if len(dgsts) != 0 {
+		t.Errorf("expected exactly 0 manifests, not %d", len(dgsts))
+	}
+
+	if _, err := ms.GetByTag(env.tag); true {
 		switch err.(type) {
 		case distribution.ErrManifestUnknown:
 			break
@@ -69,7 +83,7 @@ func TestManifestStorage(t *testing.T) {
 		}
 	}
 
-	m := manifest.Manifest{
+	m := schema1.Manifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 1,
 		},
@@ -88,7 +102,7 @@ func TestManifestStorage(t *testing.T) {
 		dgst := digest.Digest(ds)
 
 		testLayers[digest.Digest(dgst)] = rs
-		m.FSLayers = append(m.FSLayers, manifest.FSLayer{
+		m.FSLayers = append(m.FSLayers, schema1.FSLayer{
 			BlobSum: dgst,
 		})
 	}
@@ -98,39 +112,52 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("unexpected error generating private key: %v", err)
 	}
 
-	sm, err := manifest.Sign(&m, pk)
-	if err != nil {
+	sm, merr := schema1.Sign(&m, pk)
+	if merr != nil {
 		t.Fatalf("error signing manifest: %v", err)
 	}
 
-	err = ms.Put(env.ctx, sm)
+	err = ms.Put(sm)
 	if err == nil {
-		t.Fatalf("expected errors putting manifest")
+		t.Fatalf("expected errors putting manifest with full verification")
 	}
 
-	// TODO(stevvooe): We expect errors describing all of the missing layers.
+	switch err := err.(type) {
+	case distribution.ErrManifestVerification:
+		if len(err) != 2 {
+			t.Fatalf("expected 2 verification errors: %#v", err)
+		}
+
+		for _, err := range err {
+			if _, ok := err.(distribution.ErrManifestBlobUnknown); !ok {
+				t.Fatalf("unexpected error type: %v", err)
+			}
+		}
+	default:
+		t.Fatalf("unexpected error verifying manifest: %v", err)
+	}
 
 	// Now, upload the layers that were missing!
 	for dgst, rs := range testLayers {
-		upload, err := env.repository.Layers().Upload()
+		wr, err := env.repository.Blobs(env.ctx).Create(env.ctx)
 		if err != nil {
 			t.Fatalf("unexpected error creating test upload: %v", err)
 		}
 
-		if _, err := io.Copy(upload, rs); err != nil {
+		if _, err := io.Copy(wr, rs); err != nil {
 			t.Fatalf("unexpected error copying to upload: %v", err)
 		}
 
-		if _, err := upload.Finish(dgst); err != nil {
+		if _, err := wr.Commit(env.ctx, distribution.Descriptor{Digest: dgst}); err != nil {
 			t.Fatalf("unexpected error finishing upload: %v", err)
 		}
 	}
 
-	if err = ms.Put(env.ctx, sm); err != nil {
+	if err = ms.Put(sm); err != nil {
 		t.Fatalf("unexpected error putting manifest: %v", err)
 	}
 
-	exists, err = ms.ExistsByTag(env.ctx, env.tag)
+	exists, err = ms.ExistsByTag(env.tag)
 	if err != nil {
 		t.Fatalf("unexpected error checking manifest existence: %v", err)
 	}
@@ -139,7 +166,8 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("manifest should exist")
 	}
 
-	fetchedManifest, err := ms.GetByTag(env.ctx, env.tag)
+	fetchedManifest, err := ms.GetByTag(env.tag)
+
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}
@@ -165,7 +193,7 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("error getting manifest digest: %v", err)
 	}
 
-	exists, err = ms.Exists(env.ctx, dgst)
+	exists, err = ms.Exists(dgst)
 	if err != nil {
 		t.Fatalf("error checking manifest existence by digest: %v", err)
 	}
@@ -174,7 +202,7 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("manifest %s should exist", dgst)
 	}
 
-	fetchedByDigest, err := ms.Get(env.ctx, dgst)
+	fetchedByDigest, err := ms.Get(dgst)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest by digest: %v", err)
 	}
@@ -192,8 +220,45 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("unexpected number of signatures: %d != %d", len(sigs), 1)
 	}
 
+	// Enumerate only valid manifest revision digests
+	dgsts, err = ms.Enumerate()
+	if err != nil {
+		t.Errorf("unexpected error enumerating manifest revisions: %v", err)
+	} else if len(dgsts) != 1 {
+		t.Errorf("expected exactly 1 manifest, not %d", len(dgsts))
+	} else if dgsts[0] != dgst {
+		t.Errorf("got unexpected digest manifest (%s != %s)", dgsts[0], dgst)
+	}
+
+	// Enumerate all digests
+	if err := EnumerateAllDigests(ms); err != nil {
+		t.Fatalf("failed to configure enumeration of all digests: %v", err)
+	}
+	dgsts, err = ms.Enumerate()
+	if err != nil {
+		t.Errorf("unexpected error enumerating manifest revisions: %v", err)
+	} else {
+		// _layers contain 2 links per one tarsum blob
+		expCount := 1 + len(testLayers)*2
+		if len(dgsts) != expCount {
+			t.Errorf("unexpected number of returned digests (%d != %d)", len(dgsts), expCount)
+		}
+		received := make(map[digest.Digest]struct{})
+		for _, dgst := range dgsts {
+			received[dgst] = struct{}{}
+		}
+		if _, exists := received[dgst]; !exists {
+			t.Errorf("expected manifest revision %s to be returned", dgst.String())
+		}
+		for dgst := range testLayers {
+			if _, exists := received[dgst]; !exists {
+				t.Errorf("expected layer blob %s to be returned", dgst.String())
+			}
+		}
+	}
+
 	// Grabs the tags and check that this tagged manifest is present
-	tags, err := ms.Tags(env.ctx)
+	tags, err := ms.Tags()
 	if err != nil {
 		t.Fatalf("unexpected error fetching tags: %v", err)
 	}
@@ -212,7 +277,7 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("unexpected error generating private key: %v", err)
 	}
 
-	sm2, err := manifest.Sign(&m, pk2)
+	sm2, err := schema1.Sign(&m, pk2)
 	if err != nil {
 		t.Fatalf("unexpected error signing manifest: %v", err)
 	}
@@ -231,16 +296,16 @@ func TestManifestStorage(t *testing.T) {
 		t.Fatalf("unexpected number of signatures: %d != %d", len(sigs2), 1)
 	}
 
-	if err = ms.Put(env.ctx, sm2); err != nil {
+	if err = ms.Put(sm2); err != nil {
 		t.Fatalf("unexpected error putting manifest: %v", err)
 	}
 
-	fetched, err := ms.GetByTag(env.ctx, env.tag)
+	fetched, err := ms.GetByTag(env.tag)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}
 
-	if _, err := manifest.Verify(fetched); err != nil {
+	if _, err := schema1.Verify(fetched); err != nil {
 		t.Fatalf("unexpected error verifying manifest: %v", err)
 	}
 
@@ -280,11 +345,105 @@ func TestManifestStorage(t *testing.T) {
 		}
 	}
 
-	// TODO(stevvooe): Currently, deletes are not supported due to some
-	// complexity around managing tag indexes. We'll add this support back in
-	// when the manifest format has settled. For now, we expect an error for
-	// all deletes.
-	if err := ms.Delete(env.ctx, dgst); err == nil {
+	// Test deleting manifests
+	err = ms.Delete(dgst)
+	if err != nil {
 		t.Fatalf("unexpected an error deleting manifest by digest: %v", err)
 	}
+
+	exists, err = ms.Exists(dgst)
+	if err != nil {
+		t.Fatalf("Error querying manifest existence")
+	}
+	if exists {
+		t.Errorf("Deleted manifest should not exist")
+	}
+
+	deletedManifest, err := ms.Get(dgst)
+	if err == nil {
+		t.Errorf("Unexpected success getting deleted manifest")
+	}
+	switch err.(type) {
+	case distribution.ErrManifestUnknownRevision:
+		break
+	default:
+		t.Errorf("Unexpected error getting deleted manifest: %s", reflect.ValueOf(err).Type())
+	}
+
+	if deletedManifest != nil {
+		t.Errorf("Deleted manifest get returned non-nil")
+	}
+
+	// Re-upload should restore manifest to a good state
+	err = ms.Put(sm)
+	if err != nil {
+		t.Errorf("Error re-uploading deleted manifest")
+	}
+
+	exists, err = ms.Exists(dgst)
+	if err != nil {
+		t.Fatalf("Error querying manifest existence")
+	}
+	if !exists {
+		t.Errorf("Restored manifest should exist")
+	}
+
+	deletedManifest, err = ms.Get(dgst)
+	if err != nil {
+		t.Errorf("Unexpected error getting manifest")
+	}
+	if deletedManifest == nil {
+		t.Errorf("Deleted manifest get returned non-nil")
+	}
+
+	r, err := NewRegistry(ctx, env.driver, BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), EnableRedirect)
+	if err != nil {
+		t.Fatalf("error creating registry: %v", err)
+	}
+	repo, err := r.Repository(ctx, env.name)
+	if err != nil {
+		t.Fatalf("unexpected error getting repo: %v", err)
+	}
+	ms, err = repo.Manifests(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ms.Delete(dgst)
+	if err == nil {
+		t.Errorf("Unexpected success deleting while disabled")
+	}
+}
+
+// TestLinkPathFuncs ensures that the link path functions behavior are locked
+// down and implemented as expected.
+func TestLinkPathFuncs(t *testing.T) {
+	for _, testcase := range []struct {
+		repo       string
+		digest     digest.Digest
+		linkPathFn linkPathFunc
+		expected   string
+	}{
+		{
+			repo:       "foo/bar",
+			digest:     "sha256:deadbeaf",
+			linkPathFn: blobLinkPath,
+			expected:   "/docker/registry/v2/repositories/foo/bar/_layers/sha256/deadbeaf/link",
+		},
+		{
+			repo:       "foo/bar",
+			digest:     "sha256:deadbeaf",
+			linkPathFn: manifestRevisionLinkPath,
+			expected:   "/docker/registry/v2/repositories/foo/bar/_manifests/revisions/sha256/deadbeaf/link",
+		},
+	} {
+		p, err := testcase.linkPathFn(testcase.repo, testcase.digest)
+		if err != nil {
+			t.Fatalf("unexpected error calling linkPathFn(pm, %q, %q): %v", testcase.repo, testcase.digest, err)
+		}
+
+		if p != testcase.expected {
+			t.Fatalf("incorrect path returned: %q != %q", p, testcase.expected)
+		}
+	}
+
 }

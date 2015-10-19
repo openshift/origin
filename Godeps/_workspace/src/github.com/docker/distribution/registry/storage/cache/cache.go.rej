@@ -1,0 +1,30 @@
+--- registry/storage/cache/cache.go	2015-05-07 01:37:30.000000000 +0200
++++ home/miminar/wsp/rh/openshift-origin/Godeps/_workspace/src/github.com/docker/distribution/registry/storage/cache/cache.go	2015-10-06 15:06:40.265175811 +0200
+@@ -38,6 +38,8 @@
+ 	// Add includes the layer in the given repository cache.
+ 	Add(ctx context.Context, repo string, dgst digest.Digest) error
+ 
++	Delete(ctx context.Context, repo string, dgst digest.Digest) error
++
+ 	// Meta provides the location of the layer on the backend and its size. Membership of a
+ 	// repository should be tested before using the result, if required.
+ 	Meta(ctx context.Context, dgst digest.Digest) (LayerMeta, error)
+@@ -77,6 +79,18 @@
+ 	return b.LayerInfoCache.Add(ctx, repo, dgst)
+ }
+ 
++func (b *base) Delete(ctx context.Context, repo string, dgst digest.Digest) error {
++	if repo == "" {
++		return fmt.Errorf("cache: cannot delete empty repository name")
++	}
++
++	if dgst == "" {
++		return fmt.Errorf("cache: cannot delete empty digest")
++	}
++
++	return b.LayerInfoCache.Delete(ctx, repo, dgst)
++}
++
+ func (b *base) Meta(ctx context.Context, dgst digest.Digest) (LayerMeta, error) {
+ 	if dgst == "" {
+ 		return LayerMeta{}, fmt.Errorf("cache: cannot get meta for empty digest")

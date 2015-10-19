@@ -6,22 +6,27 @@ import (
 	"testing"
 
 	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
+	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/registry/storage"
-	"github.com/docker/distribution/registry/storage/cache"
+	"github.com/docker/distribution/registry/storage/cache/memory"
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/distribution/testutil"
 	"github.com/docker/libtrust"
-	"golang.org/x/net/context"
 )
 
 func TestListener(t *testing.T) {
-	registry := storage.NewRegistryWithDriver(inmemory.New(), cache.NewInMemoryLayerInfoCache())
+	ctx := context.Background()
+	registry, err := storage.NewRegistry(ctx, inmemory.New(), storage.BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), storage.EnableDelete, storage.EnableRedirect)
+	if err != nil {
+		t.Fatalf("error creating registry: %v", err)
+	}
 	tl := &testListener{
 		ops: make(map[string]int),
 	}
-	ctx := context.Background()
+
 	repository, err := registry.Repository(ctx, "foo/bar")
 	if err != nil {
 		t.Fatalf("unexpected error getting repo: %v", err)
@@ -29,7 +34,7 @@ func TestListener(t *testing.T) {
 	repository = Listen(repository, tl)
 
 	// Now take the registry through a number of operations
-	checkExerciseRepository(t, ctx, repository)
+	checkExerciseRepository(t, repository)
 
 	expectedOps := map[string]int{
 		"manifest:push": 1,
@@ -50,47 +55,47 @@ type testListener struct {
 	ops map[string]int
 }
 
-func (tl *testListener) ManifestPushed(repo distribution.Repository, sm *manifest.SignedManifest) error {
+func (tl *testListener) ManifestPushed(repo string, sm *schema1.SignedManifest) error {
 	tl.ops["manifest:push"]++
 
 	return nil
 }
 
-func (tl *testListener) ManifestPulled(repo distribution.Repository, sm *manifest.SignedManifest) error {
+func (tl *testListener) ManifestPulled(repo string, sm *schema1.SignedManifest) error {
 	tl.ops["manifest:pull"]++
 	return nil
 }
 
-func (tl *testListener) ManifestDeleted(repo distribution.Repository, sm *manifest.SignedManifest) error {
+func (tl *testListener) ManifestDeleted(repo string, sm *schema1.SignedManifest) error {
 	tl.ops["manifest:delete"]++
 	return nil
 }
 
-func (tl *testListener) LayerPushed(repo distribution.Repository, layer distribution.Layer) error {
+func (tl *testListener) BlobPushed(repo string, desc distribution.Descriptor) error {
 	tl.ops["layer:push"]++
 	return nil
 }
 
-func (tl *testListener) LayerPulled(repo distribution.Repository, layer distribution.Layer) error {
+func (tl *testListener) BlobPulled(repo string, desc distribution.Descriptor) error {
 	tl.ops["layer:pull"]++
 	return nil
 }
 
-func (tl *testListener) LayerDeleted(repo distribution.Repository, layer distribution.Layer) error {
+func (tl *testListener) BlobDeleted(repo string, desc distribution.Descriptor) error {
 	tl.ops["layer:delete"]++
 	return nil
 }
 
 // checkExerciseRegistry takes the registry through all of its operations,
 // carrying out generic checks.
-func checkExerciseRepository(t *testing.T, ctx context.Context, repository distribution.Repository) {
+func checkExerciseRepository(t *testing.T, repository distribution.Repository) {
 	// TODO(stevvooe): This would be a nice testutil function. Basically, it
 	// takes the registry through a common set of operations. This could be
 	// used to make cross-cutting updates by changing internals that affect
 	// update counts. Basically, it would make writing tests a lot easier.
-
+	ctx := context.Background()
 	tag := "thetag"
-	m := manifest.Manifest{
+	m := schema1.Manifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 1,
 		},
@@ -98,37 +103,40 @@ func checkExerciseRepository(t *testing.T, ctx context.Context, repository distr
 		Tag:  tag,
 	}
 
-	layers := repository.Layers()
+	blobs := repository.Blobs(ctx)
 	for i := 0; i < 2; i++ {
 		rs, ds, err := testutil.CreateRandomTarFile()
 		if err != nil {
 			t.Fatalf("error creating test layer: %v", err)
 		}
 		dgst := digest.Digest(ds)
-		upload, err := layers.Upload()
+
+		wr, err := blobs.Create(ctx)
 		if err != nil {
 			t.Fatalf("error creating layer upload: %v", err)
 		}
 
 		// Use the resumes, as well!
-		upload, err = layers.Resume(upload.UUID())
+		wr, err = blobs.Resume(ctx, wr.ID())
 		if err != nil {
 			t.Fatalf("error resuming layer upload: %v", err)
 		}
 
-		io.Copy(upload, rs)
+		io.Copy(wr, rs)
 
-		if _, err := upload.Finish(dgst); err != nil {
+		if _, err := wr.Commit(ctx, distribution.Descriptor{Digest: dgst}); err != nil {
 			t.Fatalf("unexpected error finishing upload: %v", err)
 		}
 
-		m.FSLayers = append(m.FSLayers, manifest.FSLayer{
+		m.FSLayers = append(m.FSLayers, schema1.FSLayer{
 			BlobSum: dgst,
 		})
 
-		// Then fetch the layers
-		if _, err := layers.Fetch(dgst); err != nil {
+		// Then fetch the blobs
+		if rc, err := blobs.Open(ctx, dgst); err != nil {
 			t.Fatalf("error fetching layer: %v", err)
+		} else {
+			defer rc.Close()
 		}
 	}
 
@@ -137,14 +145,17 @@ func checkExerciseRepository(t *testing.T, ctx context.Context, repository distr
 		t.Fatalf("unexpected error generating key: %v", err)
 	}
 
-	sm, err := manifest.Sign(&m, pk)
+	sm, err := schema1.Sign(&m, pk)
 	if err != nil {
 		t.Fatalf("unexpected error signing manifest: %v", err)
 	}
 
-	manifests := repository.Manifests()
+	manifests, err := repository.Manifests(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
-	if err := manifests.Put(ctx, sm); err != nil {
+	if err = manifests.Put(sm); err != nil {
 		t.Fatalf("unexpected error putting the manifest: %v", err)
 	}
 
@@ -158,7 +169,7 @@ func checkExerciseRepository(t *testing.T, ctx context.Context, repository distr
 		t.Fatalf("unexpected error digesting manifest payload: %v", err)
 	}
 
-	fetchedByManifest, err := manifests.Get(ctx, dgst)
+	fetchedByManifest, err := manifests.Get(dgst)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}
@@ -167,7 +178,7 @@ func checkExerciseRepository(t *testing.T, ctx context.Context, repository distr
 		t.Fatalf("retrieved unexpected manifest: %v", err)
 	}
 
-	fetched, err := manifests.GetByTag(ctx, tag)
+	fetched, err := manifests.GetByTag(tag)
 	if err != nil {
 		t.Fatalf("unexpected error fetching manifest: %v", err)
 	}

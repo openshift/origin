@@ -1,571 +1,231 @@
-<!--GITHUB
-page_title: Deploying a registry server
-page_description: Explains how to deploy a registry server
-page_keywords: registry, service, images, repository
-IGNORES-->
-
+<!--[metadata]>
++++
+title = "Deploying a registry server"
+description = "Explains how to deploy a registry"
+keywords = ["registry, on-prem, images, tags, repository, distribution, deployment"]
+[menu.main]
+parent="smn_registry"
+weight=3
++++
+<![end-metadata]-->
 
 # Deploying a registry server
 
-This section explains how to deploy a Docker Registry either privately
-for your own company or publicly for other users. For example, your company may
-require a private registry to support your continuous integration (CI) system as
-it builds new releases or test servers. Alternatively, your company may have a
-large number of products or services with images you wish to serve in a branded
-manner.
+You need to [install Docker version 1.6.0 or newer](https://docs.docker.com/installation/).
 
-Docker's public registry maintains a default `registry` image to assist you in the
-deployment process. This registry image is sufficient for running local tests
-but is insufficient for production. For production you should configure and
-build your own custom registry image from the `docker/distribution` code.
+## Running on localhost
 
->**Note**: The examples on this page were written and tested using Ubuntu 14.04. 
->If you are running Docker in a different OS, you may need to "translate"
->the commands to meet the requirements of your own environment. 
+Start your registry:
 
+    docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
-## Simple example with the official image
+You can now use it with docker.
 
-In this section, you create a container running Docker's official registry
-image. You push an image to, and then pull the same image from, this registry.
-This a good exercise for understanding the basic interactions a client has with
-a local registry.
+Get any image from the hub and tag it to point to your registry:
 
-1. Install Docker.
+    docker pull ubuntu && docker tag ubuntu localhost:5000/ubuntu
 
-2. Run the `hello-world` image from the Docker public registry.
+... then push it to your registry:
 
-		$ docker run hello-world
-	
-	The `run` command automatically pulls a `hello-world` image from Docker's
-	official images.
+    docker push localhost:5000/ubuntu
 
-3. Start a registry on your localhost.
+... then pull it back from your registry:
 
-		$ docker run -p 5000:5000 registry:2.0
-		
-	This starts a registry on your `DOCKER_HOST` running on port `5000`. 
-	
-3. List your images.
-	
-		 $ docker images
-		 REPOSITORY     TAG     IMAGE ID      CREATED       VIRTUAL SIZE
-		 registry       2.0     bbf0b6ffe923  3 days ago    545.1 MB
-		 golang         1.4     121a93c90463  5 days ago    514.9 MB
-		 hello-world    latest  e45a5af57b00  3 months ago  910 B
-  
-    Your list should include a `hello-world` image from the earlier run.
+    docker pull localhost:5000/ubuntu
 
-4. Retag the `hello-world` image for your local repoistory.
+To stop your registry, you would:
 
-		$ docker tag hello-world:latest localhost:5000/hello-mine:latest
+    docker stop registry && docker rm -v registry
 
-	 The command labels a `hello-world:latest` using a new tag in the
-	 `[REGISTRYHOST/]NAME[:TAG]` format.  The `REGISTRYHOST` is this case is
-	 `localhost`. In a Mac OSX environment, you'd substitute `$(boot2docker
-	 ip):5000` for the `localhost`.
-	
-5. List your new image.
+## Storage
 
-		 $ docker images
-		 REPOSITORY                  TAG          IMAGE ID      CREATED       VIRTUAL SIZE
-		 registry                    2.0     bbf0b6ffe923  3 days ago    545.1 MB
-		 golang                      1.4     121a93c90463  5 days ago    514.9 MB
-		 hello-world                 latest  e45a5af57b00  3 months ago  910 B		 
-		 localhost:5000/hello-mine   latest  ef5a5gf57b01  3 months ago  910 B
-	
-	 You should see your new image in your listing.
+By default, your registry data is persisted as a [docker volume](https://docs.docker.com/userguide/dockervolumes/) on the host filesystem. Properly understanding volumes is essential if you want to stick with a local filesystem storage.
 
-6. Push this new image to your local registry.
+Specifically, you might want to point your volume location to a specific place in order to more easily access your registry data. To do so you can:
 
-		$ docker push localhost:5000/hello-mine:latest
-		The push refers to a repository [localhost:5000/hello-mine] (len: 1)
-		e45a5af57b00: Image already exists 
-		31cbccb51277: Image successfully pushed 
-		511136ea3c5a: Image already exists 
-		Digest: sha256:a1b13bc01783882434593119198938b9b9ef2bd32a0a246f16ac99b01383ef7a
-		
-7. Use the `curl` command and the Docker Registry API v2 to list your
-   image in the registry:
-   
-		$ curl -v -X GET http://localhost:5000/v2/hello-mine/tags/list
-		* Hostname was NOT found in DNS cache
-		*   Trying 127.0.0.1...
-		* Connected to localhost (127.0.0.1) port 5000 (#0)
-		> GET /v2/hello-mine/tags/list HTTP/1.1
-		> User-Agent: curl/7.35.0
-		> Host: localhost:5000
-		> Accept: */*
-		> 
-		< HTTP/1.1 200 OK
-		< Content-Type: application/json; charset=utf-8
-		< Docker-Distribution-Api-Version: registry/2.0
-		< Date: Sun, 12 Apr 2015 01:29:47 GMT
-		< Content-Length: 40
-		< 
-		{"name":"hello-mine","tags":["latest"]}
-		* Connection #0 to host localhost left intact
-		
-	You can also get this information by entering the
-	`http://localhost:5000/v2/hello-mine/tags/list` address in your browser.
-			
-8. Remove all the unused images from your local environment:
+    docker run -d -p 5000:5000 --restart=always --name registry \
+      -v `pwd`/data:/var/lib/registry \
+      registry:2
 
-		$ docker rmi -f $(docker images -q -a )
+### Alternatives
 
-	This command is for illustrative purposes; removing the image forces any `run`
-	to pull from a registry rather than a local cache. If you run `docker images`
-	after this you should not see any instance of `hello-world` or `hello-mine` in
-	your images list.
-	
-		 $ docker images
-		 REPOSITORY      TAG      IMAGE ID      CREATED       VIRTUAL SIZE
-		 registry         2.0     bbf0b6ffe923  3 days ago    545.1 MB
-		 golang           1.4     121a93c90463  5 days ago    514.9 MB
-	
-9. Try running `hello-mine`.
+You should usually consider using [another storage backend](https://github.com/docker/distribution/blob/master/docs/storagedrivers.md) instead of the local filesystem. Use the [storage configuration options](https://github.com/docker/distribution/blob/master/docs/configuration.md#storage) to configure an alternate storage backend.
 
-		$ docker run hello-mine
-		Unable to find image 'hello-mine:latest' locally
-		Pulling repository hello-mine
-		FATA[0001] Error: image library/hello-mine:latest not found 
-		
-	The `run` command fails because your new image doesn't exist in the Docker public
-	registry.
+Using one of these will allow you to more easily scale your registry, and leverage your storage redundancy and availability features. 
 
-10. Now, try running the image but specifying the image's registry:
+## Running a domain registry
 
-		$ docker run localhost:5000/hello-mine
+While running on `localhost` has its uses, most people want their registry to be more widely available. To do so, the Docker engine requires you to secure it using TLS, which is conceptually very similar to configuring your web server with SSL.
 
-	If you run `docker images` after this you'll fine a `hello-mine` instance. 
-		
-### Making Docker's official registry image production ready
+### Get a certificate
 
-Docker's official image is for simple tests or debugging. Its configuration is
-unsuitable for most production instances. For example, any client with access to
-the server's IP can push and pull images to it. See the next section for
-information on making this image production ready.
+Assuming that you own the domain `myregistrydomain.com`, and that its DNS record points to the host where you are running your registry, you first need to get a certificate from a CA.
 
-## Understand production deployment
+Create a `certs` directory:
 
-When deploying a registry for a production deployment you should consider these
-factors:
+    mkdir -p certs
 
-<table>
-  <tr>
-  	<th align="left">
-  		backend storage
-  	</th>
-  	<td>
-  		Where should you store the images? 
-  	</td>
-  </tr>
-  <tr>
-  	<th align="left">
-  		access and/or authentication
-  	</th>
-  	<td>
-  		Should users have full or controlled access? This can depend on whether
-  		you are serving images to the public or internally to your company only.
-  	</td>
-  </tr>
-   <tr>
-  	<th align="left">
-  		debugging
-  	</th>
-  	<td>
-  		When problems or issues arise, do you have the means of solving them. Logs
-  		are useful as is reporting to see trends.
-  	</td>
-  </tr>
-  <tr>
-  	<th align="left">
-  		caching
-  	</th>
-  	<td>
-  		Quickly retrieving images can be crucial if you are relying on images for
-  		tests, builds, or other automated systems.
-  	</td>
-  </tr>     
-</table>
+Then move and/or rename your crt file to: `certs/domain.crt`, and your key file to: `certs/domain.key`.
 
-You can configure your registry features to adjust for these factors. You do
-this by specifying options on the command line or, more typically, by writing a
-registry configuration file. The configuration file is in YAML format.
+Make sure you stopped your registry from the previous steps, then start your registry again with TLS enabled:
 
-Docker's official repository image is preconfigured using the following
-configuration file:
+    docker run -d -p 5000:5000 --restart=always --name registry \
+      -v `pwd`/certs:/certs \
+      -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+      -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+      registry:2
 
-```yaml
-version: 0.1
-log:
-  level: debug
-  fields:
-    service: registry
-    environment: development
-storage:
-  cache:
-      layerinfo: inmemory
-  filesystem:
-      rootdirectory: /tmp/registry-dev
-  maintenance:
-		uploadpurging:
-			enabled: false
-http:
-  addr: :5000
-  secret: asecretforlocaldevelopment
-  debug:
-      addr: localhost:5001
-redis:
-  addr: localhost:6379
-  pool:
-    maxidle: 16
-    maxactive: 64
-    idletimeout: 300s
-  dialtimeout: 10ms
-  readtimeout: 10ms
-  writetimeout: 10ms
-notifications:
-  endpoints:
-      - name: local-8082
-        url: http://localhost:5003/callback
-        headers:
-           Authorization: [Bearer <an example token>]
-        timeout: 1s
-        threshold: 10
-        backoff: 1s
-        disabled: true
-      - name: local-8083
-        url: http://localhost:8083/callback
-        timeout: 1s
-        threshold: 10
-        backoff: 1s
-        disabled: true
+You should now be able to access your registry from another docker host:
+
+    docker pull ubuntu
+    docker tag ubuntu myregistrydomain.com:5000/ubuntu
+    docker push myregistrydomain.com:5000/ubuntu
+    docker pull myregistrydomain.com:5000/ubuntu
+
+#### Gotcha
+
+A certificate issuer may supply you with an *intermediate* certificate. In this case, you must combine your certificate with the intermediate's to form a *certificate bundle*. You can do this using the `cat` command: 
+
+    cat domain.crt intermediate-certificates.pem > certs/domain.crt
+
+### Alternatives
+
+While rarely advisable, you may want to use self-signed certificates instead, or use your registry in an insecure fashion. You will find instructions [here](insecure.md).
+
+## Load Balancing Considerations
+
+One may want to use a load balancer to distribute load, terminate TLS or
+provide high availability. While a full load balancing setup is outside the
+scope of this document, there are a few considerations that can make the process
+smoother.
+
+The most important aspect is that a load balanced cluster of registries must
+share the same resources. For the current version of the registry, this means
+the following must be the same:
+
+  - Storage Driver
+  - HTTP Secret
+  - Redis Cache (if configured)
+
+If any of these are different, the registry will have trouble serving requests.
+As an example, if you're using the filesystem driver, all registry instances
+must have access to the same filesystem root, which means they should be in
+the same machine. For other drivers, such as s3 or azure, they should be
+accessing the same resource, and will likely share an identical configuration.
+The _HTTP Secret_ coordinates uploads, so also must be the same across
+instances. Configuring different redis instances will work (at the time
+of writing), but will not be optimal if the instances are not shared, causing
+more requests to be directed to the backend.
+
+Getting the headers correct is very important. For all responses to any
+request under the "/v2/" url space, the `Docker-Distribution-API-Version`
+header should be set to the value "registry/2.0", even for a 4xx response.
+This header allows the docker engine to quickly resolve authentication realms
+and fallback to version 1 registries, if necessary. Confirming this is setup
+correctly can help avoid problems with fallback.
+
+In the same train of thought, you must make sure you are properly sending the
+`X-Forwarded-Proto`, `X-Forwared-For` and `Host` headers to their "client-side"
+values. Failure to do so usually makes the registry issue redirects to internal
+hostnames or downgrading from https to http.
+
+A properly secured registry should return 401 when the "/v2/" endpoint is hit
+without credentials. The response should include a `WWW-Authenticate`
+challenge, providing guidance on how to authenticate, such as with basic auth
+or a token service. If the load balancer has health checks, it is recommended
+to configure it to consider a 401 response as healthy and any other as down.
+This will secure your registry by ensuring that configuration problems with
+authentication don't accidentally expose an unprotected registry. If you're
+using a less sophisticated load balancer, such as Amazon's Elastic Load
+Balancer, that doesn't allow one to change the healthy response code, health
+checks can be directed at "/", which will always return a `200 OK` response.
+
+## Restricting access
+
+Except for registries running on secure local networks, registries should always implement access restrictions.
+
+### Native basic auth
+
+The simplest way to achieve access restriction is through basic authentication (this is very similar to other web servers' basic authentication mechanism).
+
+:warning: You **cannot** use authentication with an insecure registry. You have to [configure TLS first](#running-a-domain-registry) for this to work.
+
+First create a password file with one entry for the user "testuser", with password "testpassword":
+
+    mkdir auth
+    docker run --entrypoint htpasswd registry:2 -Bbn testuser testpassword > auth/htpasswd
+
+Make sure you stopped your registry from the previous step, then start it again:
+
+    docker run -d -p 5000:5000 --restart=always --name registry \
+      -v `pwd`/auth:/auth \
+      -e "REGISTRY_AUTH=htpasswd" \
+      -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
+      -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+      -v `pwd`/certs:/certs \
+      -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+      -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+      registry:2
+
+You should now be able to:
+
+    docker login myregistrydomain.com:5000
+
+And then push and pull images as an authenticated user.
+
+#### Gotcha
+
+Seeing X509 errors is usually a sign you are trying to use self-signed certificates, and failed to [configure your docker daemon properly](insecure.md).
+
+### Alternatives
+
+1. You may want to leverage more advanced basic auth implementations through a proxy design, in front of the registry. You will find examples of such patterns in the [recipes list](recipes.md).
+
+2. Alternatively, the Registry also supports delegated authentication, redirecting users to a specific, trusted token server. That approach requires significantly more investment, and only makes sense if you want to fully configure ACLs and more control over the Registry integration into your global authorization and authentication systems.
+
+You will find [background information here](spec/auth/token.md), and [configuration information here](configuration.md#auth).
+
+Beware that you will have to implement your own authentication service for this to work, or leverage a third-party implementation.
+
+## Managing with Compose
+
+As your registry configuration grows more complex, dealing with it can quickly become tedious.
+
+It's highly recommended to use [Docker Compose](https://docs.docker.com/compose/) to facilitate operating your registry. 
+
+Here is a simple `docker-compose.yml` example that condenses everything explained so far:
+
+```
+registry:
+  restart: always
+  image: registry:2
+  ports:
+    - 5000:5000
+  environment:
+    REGISTRY_HTTP_TLS_CERTIFICATE: /certs/domain.crt
+    REGISTRY_HTTP_TLS_KEY: /certs/domain.key
+    REGISTRY_AUTH: htpasswd
+    REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+    REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+  volumes:
+    - /path/data:/var/lib/registry
+    - /path/certs:/certs
+    - /path/auth:/auth
 ```
 
-This configuration is very basic and you can see it would present some problems
-in a production. For example, the `http` section details the configuration for
-the HTTP server that hosts the registry. The server is not using even the most
-minimal transport layer security (TLS). Let's configure that in the next section. 
+:warning: replace `/path` by whatever directory that holds your `certs` and `auth` folder from above.
 
-## Configure TLS on a registry server
+You can then start your registry with a simple
 
-In this section, you configure TLS on the server to enable communication through
-the `https` protocol. Enabling TLS on the server is the minimum layer of
-security recommended for running a registry behind a corporate firewall. One way
-to do this is to build your own registry image.  
+    docker-compose up -d
 
-### Download the source and generate certificates
+## Next
 
-1. [Download the registry
-source](https://github.com/docker/distribution/releases/tag/v2.0.0).
+You will find more specific and advanced informations in the following sections:
 
-	Alternatively, use the `git clone` command if you are more comfortable with that.
-
-2. Unpack the the downloaded package into a local directory.
-
-	The package creates a `distribution` directory.
-
-3. Change to the root of the new `distribution` directory.
-
-		$ cd distribution
-
-4. Make a `certs` subdirectory.
-	
-		$ mkdir certs
-		
-5. Use SSL to generate some self-signed certificates.
-	
-		$ openssl req \
-				 -newkey rsa:2048 -nodes -keyout certs/domain.key \
-				 -x509 -days 365 -out certs/domain.crt
-				 
-	This command prompts you for basic information it needs to create the certificates.
-				 
-6. List the contents of the `certs` directory.
-
-		$ ls certs
-		domain.crt  domain.key
-
-	When you build this container, the `certs` directory and its contents
-	automatically get copied also.
-	
-### Add TLS to the configuration
-
-The `distribution` repo includes sample registry configurations in the `cmd`
-subdirectory. In this section, you edit one of these configurations to add TLS
-support. 
-		
-1. Edit the `./cmd/registry/config.yml`  file.
-
-		$ vi ./cmd/registry/config.yml 
-
-2. Locate the `http` block.
-
-		http:
-				addr: :5000
-				secret: asecretforlocaldevelopment
-				debug:
-						addr: localhost:5001
-
-3. Add a `tls` block for the server's self-signed certificates:
-
-		http:
-				addr: :5000
-				secret: asecretforlocaldevelopment
-				debug:
-						addr: localhost:5001
-				tls:
-					certificate: /go/src/github.com/docker/distribution/certs/domain.crt
-					key: /go/src/github.com/docker/distribution/certs/domain.key	
-		
-	You provide the paths to the certificates in the container. If you want
-	two-way authentication across the layer, you can add an optional `clientcas`
-	section.
-	
-4. Save and close the file.
-
-		
-### Build and run your registry image
-
-1. Build your registry image.
-
-		$ docker build -t secure_registry .
-	
-2. Run your new image.
-
-		$ docker run -p 5000:5000 secure_registry:latest
-		time="2015-04-12T03:06:18.616502588Z" level=info msg="endpoint local-8082 disabled, skipping" environment=development instance.id=bf33c9dc-2564-406b-97c3-6ee69dc20ec6 service=registry 
-		time="2015-04-12T03:06:18.617012948Z" level=info msg="endpoint local-8083 disabled, skipping" environment=development instance.id=bf33c9dc-2564-406b-97c3-6ee69dc20ec6 service=registry 
-		time="2015-04-12T03:06:18.617190113Z" level=info msg="using inmemory layerinfo cache" environment=development instance.id=bf33c9dc-2564-406b-97c3-6ee69dc20ec6 service=registry 
-		time="2015-04-12T03:06:18.617349067Z" level=info msg="listening on :5000, tls" environment=development instance.id=bf33c9dc-2564-406b-97c3-6ee69dc20ec6 service=registry 
-		time="2015-04-12T03:06:18.628589577Z" level=info msg="debug server listening localhost:5001" 
-		2015/04/12 03:06:28 http: TLS handshake error from 172.17.42.1:44261: remote error: unknown certificate authority
-		
-		Watch the messages at startup. You should see that `tls` is running.
-		
-3. Use `curl` to verify that you can connect over `https`.
-
-		$ curl -v https://localhost:5000
-		* Rebuilt URL to: https://localhost:5000/
-		* Hostname was NOT found in DNS cache
-		*   Trying 127.0.0.1...
-		* Connected to localhost (127.0.0.1) port 5000 (#0)
-		* successfully set certificate verify locations:
-		*   CAfile: none
-			CApath: /etc/ssl/certs
-		* SSLv3, TLS handshake, Client hello (1):
-		* SSLv3, TLS handshake, Server hello (2):
-		* SSLv3, TLS handshake, CERT (11):
-		* SSLv3, TLS alert, Server hello (2):
-		* SSL certificate problem: self signed certificate
-		* Closing connection 0
-		curl: (60) SSL certificate problem: self signed certificate
-		More details here: http://curl.haxx.se/docs/sslcerts.html
-	
-## Configure Nginx with a v1 and v2 registry
-
-This sections describes how to  user `docker-compose` to run a combined version
-1 and version 2.0 registry behind an `nginx` proxy. The combined registry is
-accessed at `localhost:5000`. If a `docker` client has a version less than 1.6,
-Nginx will route its requests to the 1.0 registry. Requests from newer clients
-will route to the 2.0 registry.
-
-This procedure uses the same `distribution` directory you created in the last
-procedure. The directory includes an example `compose` configuration. 
-
-### Install Docker Compose
-
-1. Open a new terminal on the host with your `distribution` directory.
-
-2. Get the `docker-compose` binary.
-
-		$ sudo wget https://github.com/docker/compose/releases/download/1.1.0/docker-compose-`uname  -s`-`uname -m` -O /usr/local/bin/docker-compose
-
-	This command installs the binary in the `/usr/local/bin` directory. 
-	
-3. Add executable permissions to the binary.
-
-		$  sudo chmod +x /usr/local/bin/docker-compose
-		
-
-### Do some housekeeping
-
-1. Remove any previous images.
-
-		$ docker rmi -f $(docker images -q -a )
-		
-	 This step is a house keeping step. It prevents you from mistakenly picking up
-	 an old image as you work through this example.
-		
-2. Edit the `distribution/cmd/registry/config.yml` file and remove the `tls` block.
-
-	If you worked through the previous example, you'll have a `tls` block. 
-
-4. Save any changes and close the file.
-
-### Configure SSL
-
-1. Change to the `distribution/contrib/compose/nginx` directory.
-
-	This directory contains configuration files for Nginx and both registries.
-	
-2. Use SSL to generate some self-signed certificates.
-	
-		$ openssl req \
-				 -newkey rsa:2048 -nodes -keyout domain.key \
-				 -x509 -days 365 -out domain.crt
-				 
-	 This command prompts you for basic information it needs to create certificates.
-				 
-3. Edit the `Dockerfile`and add the following lines.
-
-		COPY domain.crt /etc/nginx/domain.crt
-		COPY domain.key /etc/nginx/domain.key
-		
-	When you are done, the file looks like the following.
-	
-		FROM nginx:1.7
-
-		COPY nginx.conf /etc/nginx/nginx.conf
-		COPY registry.conf /etc/nginx/conf.d/registry.conf
-		COPY docker-registry.conf /etc/nginx/docker-registry.conf
-		COPY docker-registry-v2.conf /etc/nginx/docker-registry-v2.conf
-		COPY domain.crt /etc/nginx/domain.crt
-		COPY domain.key /etc/nginx/domain.key
-
-4. Save and close the `Dockerfile` file.
-		
-5. Edit the `registry.conf` file and add the following configuration. 
-
-		 ssl on;
-			ssl_certificate /etc/nginx/domain.crt;
-			ssl_certificate_key /etc/nginx/domain.key;
-			
-	This is an `nginx` configuration file.
-
-6. Save and close the `registry.conf` file.
-
-### Build and run
-
-1. Go up to the `distribution/contrib/compose` directory
-
-	This directory includes a single `docker-compose.yml` configuration.
-	
-		nginx:
-			build: "nginx"
-			ports:
-				- "5000:5000"
-			links:
-				- registryv1:registryv1
-				- registryv2:registryv2
-		registryv1:
-			image: registry
-			ports:
-				- "5000"
-		registryv2:
-			build: "../../"
-			ports:
-				- "5000"
-
- This configuration builds a new `nginx` image as specified by the
- `nginx/Dockerfile` file. The 1.0 registry comes from Docker's official public
- image. Finally, the registry 2.0 image is built from the
- `distribution/Dockerfile` you've used previously.
-
-2. Get a registry 1.0 image.
-
-		$ docker pull registry:0.9.1 
-
-	The Compose configuration looks for this image locally. If you don't do this
-	step, later steps can fail.
-	
-3. Build `nginx`, the registry 2.0 image, and 
-
-		$ docker-compose build
-		registryv1 uses an image, skipping
-		Building registryv2...
-		Step 0 : FROM golang:1.4
-		
-		...
-		
-		Removing intermediate container 9f5f5068c3f3
-		Step 4 : COPY docker-registry-v2.conf /etc/nginx/docker-registry-v2.conf
-		 ---> 74acc70fa106
-		Removing intermediate container edb84c2b40cb
-		Successfully built 74acc70fa106
-		
-	The commmand outputs its progress until it completes.
-
-4. Start your configuration with compose.
-
-		$ docker-compose up
-		Recreating compose_registryv1_1...
-		Recreating compose_registryv2_1...
-		Recreating compose_nginx_1...
-		Attaching to compose_registryv1_1, compose_registryv2_1, compose_nginx_1
-		...
-	
-
-5. In another terminal, display the running configuration.
-
-		$ docker ps
-		CONTAINER ID        IMAGE                       COMMAND                CREATED             STATUS              PORTS                                     NAMES
-		a81ad2557702        compose_nginx:latest        "nginx -g 'daemon of   8 minutes ago       Up 8 minutes        80/tcp, 443/tcp, 0.0.0.0:5000->5000/tcp   compose_nginx_1        
-		0618437450dd        compose_registryv2:latest   "registry cmd/regist   8 minutes ago       Up 8 minutes        0.0.0.0:32777->5000/tcp                   compose_registryv2_1   
-		aa82b1ed8e61        registry:latest             "docker-registry"      8 minutes ago       Up 8 minutes        0.0.0.0:32776->5000/tcp                   compose_registryv1_1   
-	
-### Explore a bit
-
-1. Check for TLS on your `nginx` server.
-
-		$ curl -v https://localhost:5000
-		* Rebuilt URL to: https://localhost:5000/
-		* Hostname was NOT found in DNS cache
-		*   Trying 127.0.0.1...
-		* Connected to localhost (127.0.0.1) port 5000 (#0)
-		* successfully set certificate verify locations:
-		*   CAfile: none
-			CApath: /etc/ssl/certs
-		* SSLv3, TLS handshake, Client hello (1):
-		* SSLv3, TLS handshake, Server hello (2):
-		* SSLv3, TLS handshake, CERT (11):
-		* SSLv3, TLS alert, Server hello (2):
-		* SSL certificate problem: self signed certificate
-		* Closing connection 0
-		curl: (60) SSL certificate problem: self signed certificate
-		More details here: http://curl.haxx.se/docs/sslcerts.html
-		
-2. Tag the `v1` registry image.
-
-		 $ docker tag registry:latest localhost:5000/registry_one:latest
-
-2. Push it to the localhost.
-
-		 $ docker push localhost:5000/registry_one:latest
-		
-	If you are using the 1.6 Docker client, this pushes the image the `v2 `registry.
-
-4. Use `curl` to list the image in the registry.
-
-			$ curl -v -X GET http://localhost:32777/v2/registry_one/tags/list
-			* Hostname was NOT found in DNS cache
-			*   Trying 127.0.0.1...
-			* Connected to localhost (127.0.0.1) port 32777 (#0)
-			> GET /v2/registry_one/tags/list HTTP/1.1
-			> User-Agent: curl/7.36.0
-			> Host: localhost:32777
-			> Accept: */*
-			> 
-			< HTTP/1.1 200 OK
-			< Content-Type: application/json; charset=utf-8
-			< Docker-Distribution-Api-Version: registry/2.0
-			< Date: Tue, 14 Apr 2015 22:34:13 GMT
-			< Content-Length: 39
-			< 
-			{"name":"registry1","tags":["latest"]}
-			* Connection #0 to host localhost left intact
-		
-	This example refers to the specific port assigned to the 2.0 registry. You saw
-	this port earlier, when you used `docker ps` to show your running containers.
-
+ - [Configuration reference](configuration.md)
+ - [Working with notifications](notifications.md)
+ - [Advanced "recipes"](recipes.md)
+ - [Registry API](spec/api.md)
+ - [Storage driver model](storagedrivers.md)
+ - [Token authentication](spec/auth/token.md)

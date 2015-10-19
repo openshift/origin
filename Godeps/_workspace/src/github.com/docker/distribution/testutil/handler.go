@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 )
@@ -20,8 +21,6 @@ type RequestResponseMapping struct {
 	Response Response
 }
 
-// TODO(bbland): add support for request headers
-
 // Request is a simplified http.Request object
 type Request struct {
 	// Method is the http method of the request, for example GET
@@ -35,23 +34,43 @@ type Request struct {
 
 	// Body is the byte contents of the http request
 	Body []byte
+
+	// Headers are the header for this request
+	Headers http.Header
 }
 
 func (r Request) String() string {
 	queryString := ""
 	if len(r.QueryParams) > 0 {
-		queryString = "?"
 		keys := make([]string, 0, len(r.QueryParams))
+		queryParts := make([]string, 0, len(r.QueryParams))
 		for k := range r.QueryParams {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			queryString += strings.Join(r.QueryParams[k], "&") + "&"
+			for _, val := range r.QueryParams[k] {
+				queryParts = append(queryParts, fmt.Sprintf("%s=%s", k, url.QueryEscape(val)))
+			}
 		}
-		queryString = queryString[:len(queryString)-1]
+		queryString = "?" + strings.Join(queryParts, "&")
 	}
-	return fmt.Sprintf("%s %s%s\n%s", r.Method, r.Route, queryString, r.Body)
+	var headers []string
+	if len(r.Headers) > 0 {
+		var headerKeys []string
+		for k := range r.Headers {
+			headerKeys = append(headerKeys, k)
+		}
+		sort.Strings(headerKeys)
+
+		for _, k := range headerKeys {
+			for _, val := range r.Headers[k] {
+				headers = append(headers, fmt.Sprintf("%s:%s", k, val))
+			}
+		}
+
+	}
+	return fmt.Sprintf("%s %s%s\n%s\n%s", r.Method, r.Route, queryString, headers, r.Body)
 }
 
 // Response is a simplified http.Response object
@@ -98,6 +117,14 @@ func (app *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Route:       r.URL.Path,
 		QueryParams: r.URL.Query(),
 		Body:        requestBody,
+		Headers:     make(map[string][]string),
+	}
+
+	// Add headers of interest here
+	for k, v := range r.Header {
+		if k == "If-None-Match" {
+			request.Headers[k] = v
+		}
 	}
 
 	responses, ok := app.responseMap[request.String()]

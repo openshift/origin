@@ -138,6 +138,20 @@ type ImageStreamImage struct {
 	Image Image
 }
 
+type ImageStreamDeletionList struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+
+	Items []ImageStreamDeletion
+}
+
+// ImageStreamDeletion represents an ImageStream that have been deleted from
+// etcd store and is awaiting a garbage collection in internal registry.
+type ImageStreamDeletion struct {
+	kapi.TypeMeta
+	kapi.ObjectMeta
+}
+
 // DockerImageReference points to a Docker image.
 type DockerImageReference struct {
 	Registry  string

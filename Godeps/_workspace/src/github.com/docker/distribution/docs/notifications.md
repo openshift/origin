@@ -1,9 +1,13 @@
-<!--GITHUB
-page_title: Work with Notifications
-page_description: Explains how to deploy a registry server
-page_keywords: registry, service, images, repository
-IGNORES-->
-
+<!--[metadata]>
++++
+title = "Working with notifications"
+description = "Explains how to work with registry notifications"
+keywords = ["registry, on-prem, images, tags, repository, distribution, notifications, advanced"]
+[menu.main]
+parent="smn_registry"
+weight=5
++++
+<![end-metadata]-->
 
 # Notifications
 
@@ -13,11 +17,11 @@ pushes and pulls and layer pushes and pulls. These actions are serialized into
 events. The events are queued into a registry-internal broadcast system which
 queues and dispatches events to [_Endpoints_](#endpoints).
 
-![](../images/notifications.png)
+![](images/notifications.png)
 
 ## Endpoints
 
-Notifications are sent to _endpoints_ via HTTP requests. Each configurated
+Notifications are sent to _endpoints_ via HTTP requests. Each configured
 endpoint has isolated queues, retry configuration and http targets within each
 instance of a registry. When an action happens within the registry, it is
 converted into an event which is dropped into an inmemory queue. When the
@@ -30,20 +34,18 @@ order is not guaranteed.
 To setup a registry instance to send notifications to endpoints, one must add
 them to the configuration. A simple example follows:
 
-```yaml
-notifications:
-  endpoints:
-    - name: alistener
-	  url: https://mylistener.example.com/event
-      headers:
-        Authorization: [Bearer <your token, if needed>]
-      timeout: 500ms
-      threshold: 5
-      backoff: 1s
-```
+      notifications:
+        endpoints:
+          - name: alistener
+            url: https://mylistener.example.com/event
+            headers:
+              Authorization: [Bearer <your token, if needed>]
+            timeout: 500ms
+            threshold: 5
+            backoff: 1s
 
 The above would configure the registry with an endpoint to send events to
-"https://mylistener.example.com/event", with the header "Authorization: Bearer
+`https://mylistener.example.com/event`, with the header "Authorization: Bearer
 <your token, if needed>". The request would timeout after 500 milliseconds. If
 5 failures happen consecutively, the registry will backoff for 1 second before
 trying again.
@@ -61,7 +63,7 @@ INFO[0000] configuring endpoint alistener (https://mylistener.example.com/event)
 
 Events have a well-defined JSON structure and are sent as the body of
 notification requests. One or more events are sent in a structure called an
-envelope. Each event has a unique id that can be used to uniqify incoming
+envelope. Each event has a unique id that can be used to uniquely identify incoming
 requests, if required. Along with that, an _action_ is provided with a
 _target, identifying the object mutated during the event.
 
@@ -80,8 +82,9 @@ manifest:
    "action": "push",
    "target": {
       "mediaType": "application/vnd.docker.distribution.manifest.v1+json",
-      "length": 1,
+      "size": 1,
       "digest": "sha256:0123456789abcdef0",
+      "length": 1,
       "repository": "library/test",
       "url": "http://example.com/v2/library/test/manifests/latest"
    },
@@ -100,6 +103,11 @@ manifest:
    }
 }
 ```
+
+> __NOTE:__ As of version 2.1, the `length` field for event targets
+> is being deprecated for the `size` field, bringing the target in line with
+> common nomenclature. Both will continue to be set for the foreseeable
+> future. Newer code should favor `size` but accept either.
 
 ## Envelope
 
@@ -226,14 +234,14 @@ The state of the endpoints are reported via the debug/vars http interface,
 usually configured to "http://localhost:5001/debug/vars". Information such as
 configuration and metrics are available by endpoint.
 
-The following provides and example of a few endpoints that have experience
+The following provides an example of a few endpoints that have experienced
 several failures and have since recovered:
 
 ```json
 "notifications":{
    "endpoints":[
       {
-         "name":"local-8082",
+         "name":"local-5003",
          "url":"http://localhost:5003/callback",
          "Headers":{
             "Authorization":[
@@ -310,4 +318,3 @@ is a possibility, although it may have an effect on request service time.
 Please see the
 [godoc](http://godoc.org/github.com/docker/distribution/notifications#Sink)
 for more information.
-

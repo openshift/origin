@@ -4,7 +4,7 @@
 // For example, to generate a new API specification, one would execute the
 // following command from the repo root:
 //
-// 	$ registry-api-descriptor-template doc/spec/api.md.tmpl > doc/spec/api.md
+// 	$ registry-api-descriptor-template docs/spec/api.md.tmpl > docs/spec/api.md
 //
 // The templates are passed in the api/v2.APIDescriptor object. Please see the
 // package documentation for fields available on that object. The template
@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"text/template"
 
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
 )
 
@@ -44,7 +45,18 @@ func main() {
 
 	tmpl := template.Must(template.New(filename).Funcs(funcMap).ParseFiles(path))
 
-	if err := tmpl.Execute(os.Stdout, v2.APIDescriptor); err != nil {
+	data := struct {
+		RouteDescriptors []v2.RouteDescriptor
+		ErrorDescriptors []errcode.ErrorDescriptor
+	}{
+		RouteDescriptors: v2.APIDescriptor.RouteDescriptors,
+		ErrorDescriptors: append(errcode.GetErrorCodeGroup("registry.api.v2"),
+			// The following are part of the specification but provided by errcode default.
+			errcode.ErrorCodeUnauthorized.Descriptor(),
+			errcode.ErrorCodeUnsupported.Descriptor()),
+	}
+
+	if err := tmpl.Execute(os.Stdout, data); err != nil {
 		log.Fatalln(err)
 	}
 }

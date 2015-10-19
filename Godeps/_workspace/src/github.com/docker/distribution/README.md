@@ -7,13 +7,14 @@ for storing and distributing Docker images. It supersedes the [docker/docker-
 registry](https://github.com/docker/docker-registry) project with a new API
 design, focused around security and performance.
 
+<img src="https://www.docker.com/sites/default/files/oyster-registry-3.png" width=200px/>
+
 This repository contains the following components:
 
 |**Component**       |Description                                                                                                                                                                                         |
 |--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **registry**       | An implementation of the [Docker Registry HTTP API V2](docs/spec/api.md) for use with docker 1.6+.                                                                                                  |
 | **libraries**      | A rich set of libraries for interacting with,distribution components. Please see [godoc](http://godoc.org/github.com/docker/distribution) for details. **Note**: These libraries are **unstable**. |
-| **dist**           | An _experimental_ tool to provide distribution, oriented functionality without the `docker` daemon.                                                                                                |
 | **specifications** | _Distribution_ related specifications are available in [docs/spec](docs/spec)                                                                                                                        |
 | **documentation**  | Docker's full documentation set is available at [docs.docker.com](http://docs.docker.com). This repository [contains the subset](docs/index.md) related just to the registry.                                                                                                                                          |
 
@@ -61,11 +62,19 @@ if they have a [Docker Hub](https://hub.docker.com/) account.
 For some users and even companies, this default behavior is sufficient. For
 others, it is not. 
 
-For example, users with their own software products and may want to maintain an
+For example, users with their own software products may want to maintain a
 registry for private, company images. Also, you may wish to deploy your own
 image repository for images used to test or in continuous integration. For these
 use cases and others, [deploying your own registry instance](docs/deploying.md)
 may be the better choice.
+
+### Migration to Registry 2.0
+
+For those who have previously deployed their own registry based on the Registry
+1.0 implementation and wish to deploy a Registry 2.0 while retaining images,
+data migration is required. A tool to assist with migration efforts has been
+created. For more information see [docker/migrator]
+(https://github.com/docker/migrator).
 
 ## Contribute
 

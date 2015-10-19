@@ -1,37 +1,23 @@
 FROM docs/base:latest
-MAINTAINER Mary <mary@docker.com> (@moxiegirl)
+MAINTAINER Mary Anthony <mary@docker.com> (@moxiegirl)
 
-# to get the git info for this repo
+ENV PROJECT=registry
+
+# To get the git info for this repo
 COPY . /src
 
-# Reset the /docs dir so we can replace the theme meta with the new repo's git info
-RUN git reset --hard
+COPY . /docs/content/$PROJECT/
 
-RUN grep "VERSION =" /src/version/version.go  | sed 's/.*"\(.*\)".*/\1/' > /docs/VERSION
+# Processing GitHub Markdown
+# 1 Remove <!--[metadata]> and <![end-metadata]-->
+# 2 Remove any leading combination of dots and slashes (./, ../, ../../, etc)
+# 3 Prepend /$PROJECT to all links, remove any trailing .md, only for non http:// links and non internal anchors
 
+RUN find /docs/content/$PROJECT -type f -name "*.md" -not -name "*.compare.md" -exec sed -i.old \
+    -e '/^<!\(--\)\{0,1\}\[\(end-\)\{0,1\}metadata\]\(--\)\{0,1\}>/g' \
+    -e 's/\(\][(]\)\(\.*\/\)*/\1/g' \
+    -e 's/\(\][(]\)\([A-Za-z0-9_/-]\{1,\}\)\(\.md\)\{0,1\}\(#\{0,1\}\(#[A-Za-z0-9_-]*\)\{0,1\}\)[)]/\1\/'$PROJECT'\/\2\4)/g' \
+        {} \;
 
-#
-# RUN git describe --match 'v[0-9]*' --dirty='.m' --always > /docs/VERSION
-# The above line causes a floating point error in our tools
-#
-COPY docs/* /docs/sources/registry/
-COPY docs/images/* /docs/sources/registry/images/
-COPY docs/spec/* /docs/sources/registry/spec/
-COPY docs/spec/auth/* /docs/sources/registry/spec/auth/
-COPY docs/storage-drivers/* /docs/sources/registry/storage-drivers/
-COPY docs/mkdocs.yml /docs/mkdocs-distribution.yml
-
-RUN sed -i.old '1s;^;no_version_dropdown: true;' \
-  /docs/sources/registry/*.md \
-  /docs/sources/registry/spec/*.md \
-  /docs/sources/registry/spec/auth/*.md \
-  /docs/sources/registry/storage-drivers/*.md 
-
-RUN sed -i.old  -e '/^<!--GITHUB/g' -e '/^IGNORES-->/g'\
-  /docs/sources/registry/*.md \
-  /docs/sources/registry/spec/*.md \
-  /docs/sources/registry/spec/auth/*.md \
-  /docs/sources/registry/storage-drivers/*.md 
-
-# Then build everything together, ready for mkdocs
-RUN /docs/build.sh
+# Prepare the compare file and expect an empty diff against test.md
+RUN sed -i.old -e 's/\/placeholder\//\/'$PROJECT'\//g' /docs/content/$PROJECT/test.compare.md && diff -u /docs/content/$PROJECT/test.md /docs/content/$PROJECT/test.compare.md
