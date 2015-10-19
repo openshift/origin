@@ -93,7 +93,7 @@ var (
 		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},
 		KubeExposedGroupName:   {"pods", "replicationcontrollers", "serviceaccounts", "services", "endpoints", "persistentvolumeclaims", "pods/log"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
-		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status"},
+		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status"},
 
 		OpenshiftEscalatingViewableGroupName: {"oauthauthorizetokens", "oauthaccesstokens"},
 		KubeEscalatingViewableGroupName:      {"secrets"},
