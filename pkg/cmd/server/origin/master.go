@@ -44,6 +44,7 @@ import (
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
+	imagestreamdeletionetcd "github.com/openshift/origin/pkg/image/registry/imagestreamdeletion/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
 	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
@@ -383,6 +384,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
+	imageStreamDeletionStorage := imagestreamdeletionetcd.NewREST(c.EtcdHelper)
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
@@ -434,12 +436,13 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 	)
 
 	storage := map[string]rest.Storage{
-		"images":              imageStorage,
-		"imageStreams":        imageStreamStorage,
-		"imageStreams/status": imageStreamStatusStorage,
-		"imageStreamImages":   imageStreamImageStorage,
-		"imageStreamMappings": imageStreamMappingStorage,
-		"imageStreamTags":     imageStreamTagStorage,
+		"images":               imageStorage,
+		"imageStreams":         imageStreamStorage,
+		"imageStreams/status":  imageStreamStatusStorage,
+		"imageStreamImages":    imageStreamImageStorage,
+		"imageStreamMappings":  imageStreamMappingStorage,
+		"imageStreamTags":      imageStreamTagStorage,
+		"imageStreamDeletions": imageStreamDeletionStorage,
 
 		"deploymentConfigs":         deployConfigStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),

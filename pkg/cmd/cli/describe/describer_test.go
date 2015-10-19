@@ -39,6 +39,7 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),                       // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildRequest{}),                          // normal users don't ever look at these
 	reflect.TypeOf(&imageapi.DockerImage{}),                           // not a top level resource
+	reflect.TypeOf(&imageapi.ImageStreamDeletion{}),                   // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthAccessToken{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthAuthorizeToken{}),                   // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthClientAuthorization{}),              // normal users don't ever look at these

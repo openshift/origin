@@ -115,6 +115,22 @@ type ImageStreamImage struct {
 	ImageName string `json:"imageName"`
 }
 
+// ImageStreamDeletionList is a list of image stream deletion objects.
+type ImageStreamDeletionList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+
+	// Items is a list of images stream images
+	Items []ImageStreamDeletion `json:"items" description:"list of image stream deletion objects"`
+}
+
+// ImageStreamDeletion represents an ImageStream that have been deleted from
+// etcd store and is awaiting a garbage collection in internal registry.
+type ImageStreamDeletion struct {
+	kapi.TypeMeta   `json:",inline"`
+	kapi.ObjectMeta `json:"metadata,omitempty"`
+}
+
 // DockerImageReference points to a Docker image.
 type DockerImageReference struct {
 	Registry  string

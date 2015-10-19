@@ -50,6 +50,7 @@ func init() {
 	Validator.Register(&imageapi.Image{}, imagevalidation.ValidateImage, imagevalidation.ValidateImageUpdate)
 	Validator.Register(&imageapi.ImageStream{}, imagevalidation.ValidateImageStream, imagevalidation.ValidateImageStreamUpdate)
 	Validator.Register(&imageapi.ImageStreamMapping{}, imagevalidation.ValidateImageStreamMapping, nil)
+	Validator.Register(&imageapi.ImageStreamDeletion{}, imagevalidation.ValidateImageStreamDeletion, nil)
 
 	Validator.Register(&oauthapi.OAuthAccessToken{}, oauthvalidation.ValidateAccessToken, nil)
 	Validator.Register(&oauthapi.OAuthAuthorizeToken{}, oauthvalidation.ValidateAuthorizeToken, nil)

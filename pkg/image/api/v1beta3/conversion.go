@@ -198,6 +198,15 @@ func convert_v1beta3_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, ou
 
 	return nil
 }
+
+func convert_api_ImageStreamDeletion_To_v1beta3_ImageStreamDeletion(in *newer.ImageStreamDeletion, out *ImageStreamDeletion, s conversion.Scope) error {
+	return s.DefaultConvert(in, out, conversion.DestFromSource)
+}
+
+func convert_v1beta3_ImageStreamDeletion_To_api_ImageStreamDeletion(in *ImageStreamDeletion, out *newer.ImageStreamDeletion, s conversion.Scope) error {
+	return s.DefaultConvert(in, out, conversion.SourceToDest)
+}
+
 func init() {
 	err := kapi.Scheme.AddConversionFuncs(
 		func(in *[]NamedTagEventList, out *map[string]newer.TagEventList, s conversion.Scope) error {
@@ -277,6 +286,8 @@ func init() {
 		convert_v1beta3_ImageStreamImage_To_api_ImageStreamImage,
 		convert_api_ImageStreamTag_To_v1beta3_ImageStreamTag,
 		convert_v1beta3_ImageStreamTag_To_api_ImageStreamTag,
+		convert_api_ImageStreamDeletion_To_v1beta3_ImageStreamDeletion,
+		convert_v1beta3_ImageStreamDeletion_To_api_ImageStreamDeletion,
 	)
 	if err != nil {
 		// If one of the conversion functions is malformed, detect it immediately.

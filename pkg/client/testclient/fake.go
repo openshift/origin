@@ -160,6 +160,11 @@ func (c *Fake) ImageStreamImages(namespace string) client.ImageStreamImageInterf
 	return &FakeImageStreamImages{Fake: c, Namespace: namespace}
 }
 
+// ImageStreamDeletions provides a fake REST client for ImageStreamDeletions
+func (c *Fake) ImageStreamDeletions() client.ImageStreamDeletionInterface {
+	return &FakeImageStreamDeletions{Fake: c}
+}
+
 // DeploymentConfigs provides a fake REST client for DeploymentConfigs
 func (c *Fake) DeploymentConfigs(namespace string) client.DeploymentConfigInterface {
 	return &FakeDeploymentConfigs{Fake: c, Namespace: namespace}

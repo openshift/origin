@@ -1675,6 +1675,44 @@ func deepCopy_v1beta3_ImageStream(in imageapiv1beta3.ImageStream, out *imageapiv
 	return nil
 }
 
+func deepCopy_v1beta3_ImageStreamDeletion(in imageapiv1beta3.ImageStreamDeletion, out *imageapiv1beta3.ImageStreamDeletion, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
+		return err
+	} else {
+		out.ObjectMeta = newVal.(pkgapiv1beta3.ObjectMeta)
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_ImageStreamDeletionList(in imageapiv1beta3.ImageStreamDeletionList, out *imageapiv1beta3.ImageStreamDeletionList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapiv1beta3.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(pkgapiv1beta3.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]imageapiv1beta3.ImageStreamDeletion, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_v1beta3_ImageStreamDeletion(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_ImageStreamImage(in imageapiv1beta3.ImageStreamImage, out *imageapiv1beta3.ImageStreamImage, c *conversion.Cloner) error {
 	if err := deepCopy_v1beta3_Image(in.Image, &out.Image, c); err != nil {
 		return err
@@ -2638,6 +2676,8 @@ func init() {
 		deepCopy_v1beta3_Image,
 		deepCopy_v1beta3_ImageList,
 		deepCopy_v1beta3_ImageStream,
+		deepCopy_v1beta3_ImageStreamDeletion,
+		deepCopy_v1beta3_ImageStreamDeletionList,
 		deepCopy_v1beta3_ImageStreamImage,
 		deepCopy_v1beta3_ImageStreamList,
 		deepCopy_v1beta3_ImageStreamMapping,

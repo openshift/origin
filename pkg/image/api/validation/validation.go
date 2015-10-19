@@ -141,3 +141,23 @@ func ValidateImageStreamMapping(mapping *api.ImageStreamMapping) fielderrors.Val
 	}
 	return result
 }
+
+// ValidateImageStreamDeletion tests required fields for an ImageStreamDeletion.
+func ValidateImageStreamDeletion(isd *api.ImageStreamDeletion) fielderrors.ValidationErrorList {
+	result := fielderrors.ValidationErrorList{}
+	result = append(result, validation.ValidateObjectMeta(&isd.ObjectMeta, false, oapi.MinimalNameRequirements).Prefix("metadata")...)
+	if isd.Name != "" {
+		nameParts := strings.SplitN(isd.Name, ":", 2)
+		if len(nameParts) != 2 {
+			result = append(result, fielderrors.NewFieldInvalid("name", isd.Name, "must have following format: namespace:name"))
+		} else {
+			if ok, msg := validation.ValidateNamespaceName(nameParts[0], false); !ok {
+				result = append(result, fielderrors.NewFieldInvalid("name", isd.Name, fmt.Sprintf("part before ':' is not a valid namespace: %v", msg)))
+			}
+			if len(isd.Namespace+"/"+isd.Name) > v2.RepositoryNameTotalLengthMax {
+				result = append(result, fielderrors.NewFieldInvalid("metadata.name", isd.Name, fmt.Sprintf("'namespace/name' cannot be longer than %d characters", v2.RepositoryNameTotalLengthMax)))
+			}
+		}
+	}
+	return result
+}

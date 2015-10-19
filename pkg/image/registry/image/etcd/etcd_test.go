@@ -7,9 +7,6 @@ import (
 	"time"
 
 	"github.com/coreos/go-etcd/etcd"
-	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/registry/image"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -23,6 +20,11 @@ import (
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
+
+	oapi "github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/registry/image"
 )
 
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we

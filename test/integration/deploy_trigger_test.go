@@ -354,6 +354,8 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	//imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 
+	imageStreamDeletionStorage := imagestreamdeletion.NewREST(etcdHelper)
+
 	deployConfigStorage := deployconfigetcd.NewStorage(etcdHelper)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
@@ -371,6 +373,7 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 		"imageStreamImages":         imageStreamImageStorage,
 		"imageStreamMappings":       imageStreamMappingStorage,
 		"imageStreamTags":           imageStreamTagStorage,
+		"imageStreamDeletions":      imageStreamDeletionStorage,
 		"deploymentConfigs":         deployConfigStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 	}

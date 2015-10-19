@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/util/sets"
+
 	"github.com/docker/distribution/digest"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // DockerDefaultNamespace is the value for namespace when a single segment name is provided.
@@ -393,4 +395,20 @@ func ResolveImageID(stream *ImageStream, imageID string) sets.String {
 		}
 	}
 	return set
+}
+
+func DeletionNameForImageStream(namespace string, name string) string {
+	return fmt.Sprintf("%s:%s", namespace, name)
+}
+
+func NewDeletionForImageStream(stream *ImageStream) (*ImageStreamDeletion, error) {
+	if stream.Namespace == "" || stream.Name == "" {
+		return nil, fmt.Errorf("cannot create ImageStreamDeletion for stream with namespace or name unset")
+	}
+	return &ImageStreamDeletion{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: stream.Namespace,
+			Name:      DeletionNameForImageStream(stream.Namespace, stream.Name),
+		},
+	}, nil
 }

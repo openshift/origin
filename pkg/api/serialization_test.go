@@ -170,6 +170,9 @@ func fuzzInternalObject(t *testing.T, forVersion string, item runtime.Object, se
 			// successfully, the ImageStreamTag's ObjectMeta must match the Image's.
 			j.ObjectMeta = j.Image.ObjectMeta
 		},
+		func(j *image.ImageStreamDeletion, c fuzz.Continue) {
+			c.Fuzz(&j.ObjectMeta)
+		},
 		func(j *image.TagReference, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if j.From != nil {
@@ -420,10 +423,13 @@ func TestTypes(t *testing.T) {
 				}
 				continue
 			}
+			t.Logf("doing a round trip with osapi codec")
 			fuzzInternalObject(t, "", item, seed)
 			roundTrip(t, osapi.Codec, item)
+			t.Logf("doing a round trip with v1beta3 codec")
 			fuzzInternalObject(t, "v1beta3", item, seed)
 			roundTrip(t, v1beta3.Codec, item)
+			t.Logf("doing a round trip with v1 codec")
 			fuzzInternalObject(t, "v1", item, seed)
 			roundTrip(t, v1.Codec, item)
 		}

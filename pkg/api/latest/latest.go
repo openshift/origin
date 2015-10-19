@@ -119,7 +119,8 @@ func init() {
 		"Project":        true,
 		"ProjectRequest": true,
 
-		"Image": true,
+		"Image":               true,
+		"ImageStreamDeletion": true,
 
 		"User":                true,
 		"Identity":            true,

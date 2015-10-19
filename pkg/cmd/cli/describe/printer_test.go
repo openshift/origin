@@ -33,6 +33,10 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&authorizationapi.ResourceAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
+
+	// just a marker of deleted image stream for registry pruner
+	reflect.TypeOf(&imageapi.ImageStreamDeletion{}),
+	reflect.TypeOf(&imageapi.ImageStreamDeletionList{}),
 }
 
 // MissingPrinterCoverageExceptions is the list of types that were missing printer methods when I started

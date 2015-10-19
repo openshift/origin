@@ -16,12 +16,16 @@ func init() {
 		&ImageStreamMapping{},
 		&ImageStreamTag{},
 		&ImageStreamImage{},
+		&ImageStreamDeletion{},
+		&ImageStreamDeletionList{},
 	)
 }
 
-func (*Image) IsAnAPIObject()              {}
-func (*ImageList) IsAnAPIObject()          {}
-func (*ImageStream) IsAnAPIObject()        {}
-func (*ImageStreamList) IsAnAPIObject()    {}
-func (*ImageStreamMapping) IsAnAPIObject() {}
-func (*ImageStreamTag) IsAnAPIObject()     {}
+func (*Image) IsAnAPIObject()                   {}
+func (*ImageList) IsAnAPIObject()               {}
+func (*ImageStream) IsAnAPIObject()             {}
+func (*ImageStreamList) IsAnAPIObject()         {}
+func (*ImageStreamMapping) IsAnAPIObject()      {}
+func (*ImageStreamTag) IsAnAPIObject()          {}
+func (*ImageStreamDeletion) IsAnAPIObject()     {}
+func (*ImageStreamDeletionList) IsAnAPIObject() {}

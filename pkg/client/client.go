@@ -23,6 +23,7 @@ type Interface interface {
 	ImageStreamMappingsNamespacer
 	ImageStreamTagsNamespacer
 	ImageStreamImagesNamespacer
+	ImageStreamDeletionsInterfacer
 	DeploymentConfigsNamespacer
 	RoutesNamespacer
 	HostSubnetsInterface
@@ -91,6 +92,11 @@ func (c *Client) ImageStreamTags(namespace string) ImageStreamTagInterface {
 // ImageStreamImages provides a REST client for ImageStreamImage
 func (c *Client) ImageStreamImages(namespace string) ImageStreamImageInterface {
 	return newImageStreamImages(c, namespace)
+}
+
+// ImageStreamDeletions provides a REST client for ImageStreamDeletion
+func (c *Client) ImageStreamDeletions() ImageStreamDeletionInterface {
+	return newImageStreamDeletions(c)
 }
 
 // DeploymentConfigs provides a REST client for DeploymentConfig
