@@ -33,7 +33,7 @@
               <dd>
                 <span>{{route.spec.to.kind}}: </span>
                 <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
-                <span ng-if="route.spec.to.kind == 'Service'"><a href="project/{{projectName}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></span>
+                <span ng-if="route.spec.to.kind == 'Service'"><a href="project/{{route.metadata.namespace}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></span>
               </dd>
               <dt>Port:</dt>
               <dd>
