@@ -3,6 +3,8 @@ package client
 import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 // BuildConfigGetter provides methods for getting BuildConfigs
@@ -13,6 +15,11 @@ type BuildConfigGetter interface {
 // BuildConfigUpdater provides methods for updating BuildConfigs
 type BuildConfigUpdater interface {
 	Update(buildConfig *buildapi.BuildConfig) error
+}
+
+// BuildConfigDeleter provides methods for deleting BuildConfigs
+type BuildConfigDeleter interface {
+	Delete(namespace, name string) error
 }
 
 // OSClientBuildConfigClient delegates get and update operations to the OpenShift client interface
@@ -36,9 +43,24 @@ func (c OSClientBuildConfigClient) Update(buildConfig *buildapi.BuildConfig) err
 	return err
 }
 
+// Delete deletes a BuildConfig using the OpenShift client.
+func (c OSClientBuildConfigClient) Delete(namespace, name string) error {
+	return c.Client.BuildConfigs(namespace).Delete(name)
+}
+
 // BuildUpdater provides methods for updating existing Builds.
 type BuildUpdater interface {
 	Update(namespace string, build *buildapi.Build) error
+}
+
+// BuildDeleter provides methods for deleting Builds.
+type BuildDeleter interface {
+	Delete(namespace, name string) error
+}
+
+// BuildLister provides methods for listing Builds.
+type BuildLister interface {
+	List(namespace string, label labels.Selector, field fields.Selector) (*buildapi.BuildList, error)
 }
 
 // OSClientBuildClient deletes build create and update operations to the OpenShift client interface
@@ -55,6 +77,16 @@ func NewOSClientBuildClient(client osclient.Interface) *OSClientBuildClient {
 func (c OSClientBuildClient) Update(namespace string, build *buildapi.Build) error {
 	_, e := c.Client.Builds(namespace).Update(build)
 	return e
+}
+
+// Delete deletes builds using the OpenShift client.
+func (c OSClientBuildClient) Delete(namespace, name string) error {
+	return c.Client.Builds(namespace).Delete(name)
+}
+
+// List lists builds using the OpenShift client.
+func (c OSClientBuildClient) List(namespace string, label labels.Selector, field fields.Selector) (*buildapi.BuildList, error) {
+	return c.Client.Builds(namespace).List(label, field)
 }
 
 // BuildCloner provides methods for cloning builds

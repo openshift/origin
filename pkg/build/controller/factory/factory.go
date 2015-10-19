@@ -281,6 +281,10 @@ func (factory *ImageChangeControllerFactory) Create() controller.RunnableControl
 type BuildConfigControllerFactory struct {
 	Client                  osclient.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+	BuildConfigUpdater      buildclient.BuildConfigUpdater
+	BuildConfigDeleter      buildclient.BuildConfigDeleter
+	BuildDeleter            buildclient.BuildDeleter
+	BuildLister             buildclient.BuildLister
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -292,6 +296,10 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 
 	bcController := &buildcontroller.BuildConfigController{
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
+		BuildConfigUpdater:      factory.BuildConfigUpdater,
+		BuildConfigDeleter:      factory.BuildConfigDeleter,
+		BuildDeleter:            factory.BuildDeleter,
+		BuildLister:             factory.BuildLister,
 	}
 
 	return &controller.RetryController{
