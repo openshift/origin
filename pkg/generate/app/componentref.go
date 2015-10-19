@@ -145,7 +145,7 @@ func (r *ReferenceBuilder) AddComponents(inputs []string, fn func(*ComponentInpu
 			input.GroupID = r.groupID
 			ref := fn(input)
 			if len(repo) != 0 {
-				repository, ok := r.AddSourceRepository(repo)
+				repository, ok := r.AddSourceRepository(repo, input.Value)
 				if !ok {
 					continue
 				}
@@ -191,13 +191,13 @@ func (r *ReferenceBuilder) AddGroups(inputs []string) {
 }
 
 // AddSourceRepository resolves the input to an actual source repository
-func (r *ReferenceBuilder) AddSourceRepository(input string) (*SourceRepository, bool) {
+func (r *ReferenceBuilder) AddSourceRepository(input, associatedImage string) (*SourceRepository, bool) {
 	for _, existing := range r.repos {
 		if input == existing.location {
 			return existing, true
 		}
 	}
-	source, err := NewSourceRepository(input)
+	source, err := NewSourceRepository(input, associatedImage)
 	if err != nil {
 		r.errs = append(r.errs, err)
 		return nil, false

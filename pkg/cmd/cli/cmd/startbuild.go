@@ -273,7 +273,6 @@ func RunStartBuildWebHook(f *clientcmd.Factory, out io.Writer, webhook string, p
 	if err != nil {
 		return err
 	}
-
 	httpClient := http.DefaultClient
 	// when using HTTPS, try to reuse the local config transport if possible to get a client cert
 	// TODO: search all configs
