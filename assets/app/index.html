@@ -43,13 +43,13 @@
           <div id="header-logo"></div>
         </a>
       </div>
-      <div class="collapse navbar-collapse navbar-collapse-1">  
+      <div class="collapse navbar-collapse navbar-collapse-1">
         <ul class="nav navbar-nav navbar-utility">
           <li>
             <a href="http://docs.openshift.org/latest/welcome/index.html">
             <span class="fa fa-files-o fa-fw"></span> Documentation</a>
           </li>
-          <li class="dropdown" ng-if="user">
+          <li ng-cloak ng-if="user" class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
               <span class="pficon pficon-user"></span>
               <span class="username">{{user.fullName || user.metadata.name}}</span> <b class="caret"></b>
@@ -65,7 +65,9 @@
               <li class="divider"></li>
               -->
               <li>
-                <a href="logout">Log out</a>
+                <!-- Stop event propagation to avoid a runtime error when the
+                     dropdown tries to close itself as we're navigating away. -->
+                <a href="logout" ng-click="$event.stopPropagation()">Log out</a>
               </li>
             </ul>
           </li>
