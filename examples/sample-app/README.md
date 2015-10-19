@@ -212,7 +212,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 10. *Optional:* Add the following webhook under the settings in your new GitHub repository:
 
-        $ https://<host>:8443/osapi/v1beta3/namespaces/test/buildconfigs/ruby-sample-build/webhooks/secret101/github
+        $ https://<host>:8443/osapi/v1/namespaces/test/buildconfigs/ruby-sample-build/webhooks/secret101/github
 
   * Note: Using the webhook requires that your OpenShift server be
     publicly accessible so GitHub can reach it to invoke the hook. You
