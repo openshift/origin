@@ -359,6 +359,18 @@ func (p *F5Plugin) addRoute(routename, poolname, hostname, pathname string,
 				routename, err)
 			return err
 		}
+
+		// TODO(ramr):  need to handle redirect case for F5.
+		if tls.Termination == routeapi.TLSTerminationEdge &&
+			tls.Insecure == routeapi.TLSInsecureExpose {
+			glog.V(4).Infof("Exposing insecure route %s for pool %s, hostname %s, pathname %s...",
+				routename, poolname, hostname, prettyPathname)
+			err := p.F5Client.AddInsecureRoute(routename, poolname, hostname, pathname)
+			if err != nil {
+				glog.V(4).Infof("Error exposing insecure route for pool %s: %v", poolname, err)
+				return err
+			}
+		}
 	}
 
 	return nil

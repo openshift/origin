@@ -368,3 +368,141 @@ func TestValidateTLS(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateTLSInsecure(t *testing.T) {
+	tests := []struct {
+		name  string
+		route *api.Route
+	}{
+		{
+			name: "Passthrough termination",
+			route: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination: api.TLSTerminationPassthrough,
+					},
+				},
+			},
+		},
+		{
+			name: "Reencrypt termination",
+			route: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						DestinationCACertificate: "dca",
+					},
+				},
+			},
+		},
+	}
+
+	insecureTypes := []api.TLSInsecureType{
+		api.TLSInsecureDisable,
+		api.TLSInsecureExpose,
+		api.TLSInsecureRedirect,
+		"support HTTPsec",
+		"or maybe HSTS",
+	}
+
+	for _, tc := range tests {
+		if errs := validateTLS(tc.route); len(errs) != 0 {
+			t.Errorf("Test case %s got %d errors where none were expected. %v",
+				tc.name, len(errs), errs)
+		}
+
+		tc.route.Spec.TLS.Insecure = ""
+		if errs := validateTLS(tc.route); len(errs) != 0 {
+			t.Errorf("Test case %s got %d errors where none were expected. %v",
+				tc.name, len(errs), errs)
+		}
+
+		for _, val := range insecureTypes {
+			tc.route.Spec.TLS.Insecure = val
+			if errs := validateTLS(tc.route); len(errs) != 1 {
+				t.Errorf("Test case %s with insecure=%q got %d errors where one was expected. %v",
+					tc.name, val, len(errs), errs)
+			}
+		}
+	}
+}
+
+func TestValidateTLSEdgeInsecure(t *testing.T) {
+	tests := []struct {
+		name           string
+		insecure       api.TLSInsecureType
+		expectedErrors int
+	}{
+		{
+			name:           "empty insecure option",
+			insecure:       "",
+			expectedErrors: 0,
+		},
+		{
+			name:           "foobar insecure option",
+			insecure:       "foobar",
+			expectedErrors: 1,
+		},
+		{
+			name:           "disabled insecure option",
+			insecure:       api.TLSInsecureDisable,
+			expectedErrors: 0,
+		},
+		{
+			name:           "exposed insecure option",
+			insecure:       api.TLSInsecureExpose,
+			expectedErrors: 0,
+		},
+		{
+			name:           "redirected insecure option",
+			insecure:       api.TLSInsecureRedirect,
+			expectedErrors: 0,
+		},
+		{
+			name:           "other insecure option",
+			insecure:       "something else",
+			expectedErrors: 1,
+		},
+	}
+
+	for _, tc := range tests {
+		route := &api.Route{
+			Spec: api.RouteSpec{
+				TLS: &api.TLSConfig{
+					Termination: api.TLSTerminationEdge,
+					Insecure:    tc.insecure,
+				},
+			},
+		}
+		errs := validateTLS(route)
+
+		if len(errs) != tc.expectedErrors {
+			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
+		}
+	}
+}
+
+func TestValidateTLSNoTerminationInsecure(t *testing.T) {
+	insecureTypes := []api.TLSInsecureType{
+		api.TLSInsecureDisable,
+		api.TLSInsecureExpose,
+		api.TLSInsecureRedirect,
+		"support HTTPsec",
+		"or maybe HSTS",
+	}
+
+	for _, val := range insecureTypes {
+		route := &api.Route{
+			Spec: api.RouteSpec{
+				TLS: &api.TLSConfig{
+					Termination: "",
+					Insecure:    val,
+				},
+			},
+		}
+		if errs := validateTLS(route); len(errs) != 0 {
+			t.Errorf("Test case for no termination with insecure=%s got %d errors where none were expected. %v",
+				val, len(errs), errs)
+		}
+	}
+}

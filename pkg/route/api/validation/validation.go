@@ -109,9 +109,14 @@ func validateTLS(route *routeapi.Route) fielderrors.ValidationErrorList {
 			result = append(result, fielderrors.NewFieldInvalid("destinationCACertificate", tls.DestinationCACertificate, "edge termination does not support destination certificates"))
 		}
 	default:
-		msg := fmt.Sprintf("invalid value for termination, acceptable values are %s, %s, %s, or emtpy (no tls specified)", routeapi.TLSTerminationEdge, routeapi.TLSTerminationPassthrough, routeapi.TLSTerminationReencrypt)
+		msg := fmt.Sprintf("invalid value for termination, acceptable values are %s, %s, %s, or empty (no tls specified)", routeapi.TLSTerminationEdge, routeapi.TLSTerminationPassthrough, routeapi.TLSTerminationReencrypt)
 		result = append(result, fielderrors.NewFieldInvalid("termination", tls.Termination, msg))
 	}
+
+	if err := validateTLSInsecure(tls); err != nil {
+		result = append(result, err)
+	}
+
 	result = append(result, validateNoDoubleEscapes(tls)...)
 	return result
 }
@@ -134,4 +139,36 @@ func validateNoDoubleEscapes(tls *routeapi.TLSConfig) fielderrors.ValidationErro
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("destinationCACertificate", tls.DestinationCACertificate, `double escaped new lines (\\n) are invalid`))
 	}
 	return allErrs
+}
+
+// validateTLSInsecure tests fields for different types of insecure options.
+// Called by validateTLS.
+func validateTLSInsecure(tls *routeapi.TLSConfig) *fielderrors.ValidationError {
+	// Check insecure option value if specified (empty is ok).
+	if tls == nil || tls.Insecure == "" {
+		return nil
+	}
+
+	// Ensure insecure is set only for edge terminated routes.
+	if routeapi.TLSTerminationEdge != tls.Termination {
+		// tls.Insecure option is not supported for a non edge-terminated routes.
+		msg := fmt.Sprintf("invalid value %s for insecure option - insecure is only supported for edge-terminated routes", tls.Insecure)
+		return fielderrors.NewFieldInvalid("insecure", tls.Insecure, msg)
+	}
+
+	// It is an edge-terminated route, check insecure option value is
+	// one of Disable/Expose/Redirect.
+	switch tls.Insecure {
+	case routeapi.TLSInsecureDisable:
+		// disable insecure routes.
+	case routeapi.TLSInsecureExpose:
+		// expose insecure routes.
+	case routeapi.TLSInsecureRedirect:
+		// redirect insecure routes.
+	default:
+		msg := fmt.Sprintf("invalid value for insecure option, acceptable values are %s, %s, %s, or empty", routeapi.TLSInsecureDisable, routeapi.TLSInsecureExpose, routeapi.TLSInsecureRedirect)
+		return fielderrors.NewFieldInvalid("insecure", tls.Insecure, msg)
+	}
+
+	return nil
 }

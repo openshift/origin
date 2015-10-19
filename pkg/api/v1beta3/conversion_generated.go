@@ -3761,6 +3761,7 @@ func autoconvert_api_TLSConfig_To_v1beta3_TLSConfig(in *routeapi.TLSConfig, out 
 	out.Key = in.Key
 	out.CACertificate = in.CACertificate
 	out.DestinationCACertificate = in.DestinationCACertificate
+	out.Insecure = routeapiv1beta3.TLSInsecureType(in.Insecure)
 	return nil
 }
 
@@ -3884,6 +3885,7 @@ func autoconvert_v1beta3_TLSConfig_To_api_TLSConfig(in *routeapiv1beta3.TLSConfi
 	out.Key = in.Key
 	out.CACertificate = in.CACertificate
 	out.DestinationCACertificate = in.DestinationCACertificate
+	out.Insecure = routeapi.TLSInsecureType(in.Insecure)
 	return nil
 }
 

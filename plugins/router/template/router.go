@@ -368,6 +368,10 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 	if tls != nil && len(tls.Termination) > 0 {
 		config.TLSTermination = tls.Termination
 
+		if tls.Termination == routeapi.TLSTerminationEdge {
+			config.Insecure = tls.Insecure
+		}
+
 		if tls.Termination != routeapi.TLSTerminationPassthrough {
 			if config.Certificates == nil {
 				config.Certificates = make(map[string]Certificate)
