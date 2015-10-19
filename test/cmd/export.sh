@@ -12,10 +12,9 @@ os::log::install_errexit
 
 oc new-app -f examples/sample-app/application-template-stibuild.json --name=sample
 
-oc export all --all-namespaces
-
+[ "$(oc export all --all-namespaces)" ]
 # make sure the deprecated flag doesn't fail
-oc export all --all
+[ "$(oc export all --all)" ]
 
 [ "$(oc export svc --template='{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | wc -l)" -ne 0 ]
 [ "$(oc export svc --as-template=template | grep 'kind: Template')" ]
