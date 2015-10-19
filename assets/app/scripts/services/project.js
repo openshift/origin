@@ -7,17 +7,16 @@ angular.module('openshiftConsole')
     'AuthService',
     'DataService',
     function($q, $routeParams, AuthService, DataService) {
-      var context = {
-        // TODO: swap $.Deferred() for $q.defer()
-        projectPromise: $.Deferred()
-      };
-
       return {
         get: function(projectName) {
           return  AuthService
                     .withUser()
                     .then(function() {
-                      context.projectName = projectName;
+                      var context = {
+                        // TODO: swap $.Deferred() for $q.defer()
+                        projectName: projectName,
+                        projectPromise: $.Deferred()
+                      };                      
                       return DataService
                               .get('projects', context.projectName, context, {errorNotification: false})
                               .then(function(project) {
