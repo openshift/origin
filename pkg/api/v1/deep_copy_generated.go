@@ -2120,6 +2120,39 @@ func deepCopy_v1_Route(in routeapiv1.Route, out *routeapiv1.Route, c *conversion
 	return nil
 }
 
+func deepCopy_v1_RouteIngress(in routeapiv1.RouteIngress, out *routeapiv1.RouteIngress, c *conversion.Cloner) error {
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapiv1.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := deepCopy_v1_RouteIngressCondition(in.Conditions[i], &out.Conditions[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func deepCopy_v1_RouteIngressCondition(in routeapiv1.RouteIngressCondition, out *routeapiv1.RouteIngressCondition, c *conversion.Cloner) error {
+	out.Type = in.Type
+	out.Status = in.Status
+	out.Reason = in.Reason
+	out.Message = in.Message
+	if in.LastTransitionTime != nil {
+		if newVal, err := c.DeepCopy(in.LastTransitionTime); err != nil {
+			return err
+		} else {
+			out.LastTransitionTime = newVal.(*util.Time)
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
 func deepCopy_v1_RouteList(in routeapiv1.RouteList, out *routeapiv1.RouteList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -2181,6 +2214,16 @@ func deepCopy_v1_RouteSpec(in routeapiv1.RouteSpec, out *routeapiv1.RouteSpec, c
 }
 
 func deepCopy_v1_RouteStatus(in routeapiv1.RouteStatus, out *routeapiv1.RouteStatus, c *conversion.Cloner) error {
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapiv1.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := deepCopy_v1_RouteIngress(in.Ingress[i], &out.Ingress[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
 	return nil
 }
 
@@ -2671,6 +2714,8 @@ func init() {
 		deepCopy_v1_ProjectSpec,
 		deepCopy_v1_ProjectStatus,
 		deepCopy_v1_Route,
+		deepCopy_v1_RouteIngress,
+		deepCopy_v1_RouteIngressCondition,
 		deepCopy_v1_RouteList,
 		deepCopy_v1_RoutePort,
 		deepCopy_v1_RouteSpec,

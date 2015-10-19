@@ -189,6 +189,8 @@ v1.routelist
 v1.routeport
 v1.routespec
 v1.routestatus
+v1.routeingress
+v1.routeingresscondition
 v1.runasuserstrategyoptions
 v1.secret
 v1.secretlist

@@ -2110,6 +2110,39 @@ func deepCopy_v1beta3_Route(in routeapiv1beta3.Route, out *routeapiv1beta3.Route
 	return nil
 }
 
+func deepCopy_v1beta3_RouteIngress(in routeapiv1beta3.RouteIngress, out *routeapiv1beta3.RouteIngress, c *conversion.Cloner) error {
+	out.Host = in.Host
+	out.RouterName = in.RouterName
+	if in.Conditions != nil {
+		out.Conditions = make([]routeapiv1beta3.RouteIngressCondition, len(in.Conditions))
+		for i := range in.Conditions {
+			if err := deepCopy_v1beta3_RouteIngressCondition(in.Conditions[i], &out.Conditions[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	return nil
+}
+
+func deepCopy_v1beta3_RouteIngressCondition(in routeapiv1beta3.RouteIngressCondition, out *routeapiv1beta3.RouteIngressCondition, c *conversion.Cloner) error {
+	out.Type = in.Type
+	out.Status = in.Status
+	out.Reason = in.Reason
+	out.Message = in.Message
+	if in.LastTransitionTime != nil {
+		if newVal, err := c.DeepCopy(in.LastTransitionTime); err != nil {
+			return err
+		} else {
+			out.LastTransitionTime = newVal.(*util.Time)
+		}
+	} else {
+		out.LastTransitionTime = nil
+	}
+	return nil
+}
+
 func deepCopy_v1beta3_RouteList(in routeapiv1beta3.RouteList, out *routeapiv1beta3.RouteList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -2171,6 +2204,16 @@ func deepCopy_v1beta3_RouteSpec(in routeapiv1beta3.RouteSpec, out *routeapiv1bet
 }
 
 func deepCopy_v1beta3_RouteStatus(in routeapiv1beta3.RouteStatus, out *routeapiv1beta3.RouteStatus, c *conversion.Cloner) error {
+	if in.Ingress != nil {
+		out.Ingress = make([]routeapiv1beta3.RouteIngress, len(in.Ingress))
+		for i := range in.Ingress {
+			if err := deepCopy_v1beta3_RouteIngress(in.Ingress[i], &out.Ingress[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ingress = nil
+	}
 	return nil
 }
 
@@ -2661,6 +2704,8 @@ func init() {
 		deepCopy_v1beta3_ProjectSpec,
 		deepCopy_v1beta3_ProjectStatus,
 		deepCopy_v1beta3_Route,
+		deepCopy_v1beta3_RouteIngress,
+		deepCopy_v1beta3_RouteIngressCondition,
 		deepCopy_v1beta3_RouteList,
 		deepCopy_v1beta3_RoutePort,
 		deepCopy_v1beta3_RouteSpec,

@@ -19,6 +19,7 @@ type RouteInterface interface {
 	Get(name string) (*routeapi.Route, error)
 	Create(route *routeapi.Route) (*routeapi.Route, error)
 	Update(route *routeapi.Route) (*routeapi.Route, error)
+	UpdateStatus(route *routeapi.Route) (*routeapi.Route, error)
 	Delete(name string) error
 	Watch(label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
@@ -73,6 +74,13 @@ func (c *routes) Create(route *routeapi.Route) (result *routeapi.Route, err erro
 func (c *routes) Update(route *routeapi.Route) (result *routeapi.Route, err error) {
 	result = &routeapi.Route{}
 	err = c.r.Put().Namespace(c.ns).Resource("routes").Name(route.Name).Body(route).Do().Into(result)
+	return
+}
+
+// UpdateStatus takes the route with altered status.  Returns the server's representation of the route, and an error, if it occurs.
+func (c *routes) UpdateStatus(route *routeapi.Route) (result *routeapi.Route, err error) {
+	result = &routeapi.Route{}
+	err = c.r.Put().Namespace(c.ns).Resource("routes").Name(route.Name).SubResource("status").Body(route).Do().Into(result)
 	return
 }
 
