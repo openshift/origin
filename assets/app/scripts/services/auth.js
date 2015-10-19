@@ -117,9 +117,8 @@ angular.module('openshiftConsole')
       },
 
       requestRequiresAuth: function(config) {
-        // TODO: replace with real implementation
-        var requiresAuth = config.url.toString().indexOf("api/") > 0;
-        authLogger.log('AuthService.requestRequiresAuth()', config.url.toString());
+        var requiresAuth = !!config.auth;
+        authLogger.log('AuthService.requestRequiresAuth()', config.url.toString(), requiresAuth);
         return requiresAuth;
       },
       addAuthToRequest: function(config) {
