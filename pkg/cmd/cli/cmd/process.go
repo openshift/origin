@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -129,7 +130,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 			}
 			return err
 		}
-		templateObj.CreationTimestamp = util.Now()
+		templateObj.CreationTimestamp = unversioned.Now()
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
 		infos, err = resource.NewBuilder(mapper, typer, f.ClientMapperForCommand()).
@@ -231,7 +232,7 @@ func RunProcess(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []
 	}
 
 	return p.PrintObj(&kapi.List{
-		ListMeta: kapi.ListMeta{},
+		ListMeta: unversioned.ListMeta{},
 		Items:    objects,
 	}, out)
 }

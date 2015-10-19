@@ -20,9 +20,9 @@ import (
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/experimental"
-	// Ensure that experimental/v1 package is initialized.
-	_ "k8s.io/kubernetes/pkg/apis/experimental/v1"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	// Ensure that extensions/v1beta1 package is initialized.
+	_ "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
@@ -30,24 +30,25 @@ import (
 	"k8s.io/kubernetes/pkg/tools"
 )
 
-func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
-	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "experimental")
-	return NewREST(etcdStorage), fakeClient
+func newStorage(t *testing.T) (*REST, *StatusREST, *tools.FakeEtcdClient) {
+	etcdStorage, fakeClient := registrytest.NewEtcdStorage(t, "extensions")
+	storage, statusStorage := NewREST(etcdStorage)
+	return storage, statusStorage, fakeClient
 }
 
-func validNewJob() *experimental.Job {
+func validNewJob() *extensions.Job {
 	completions := 1
 	parallelism := 1
-	return &experimental.Job{
+	return &extensions.Job{
 		ObjectMeta: api.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
 		},
-		Spec: experimental.JobSpec{
+		Spec: extensions.JobSpec{
 			Completions: &completions,
 			Parallelism: &parallelism,
 			Selector:    map[string]string{"a": "b"},
-			Template: &api.PodTemplateSpec{
+			Template: api.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
@@ -68,7 +69,7 @@ func validNewJob() *experimental.Job {
 }
 
 func TestCreate(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	validJob := validNewJob()
 	validJob.ObjectMeta = api.ObjectMeta{}
@@ -76,8 +77,8 @@ func TestCreate(t *testing.T) {
 		// valid
 		validJob,
 		// invalid (empty selector)
-		&experimental.Job{
-			Spec: experimental.JobSpec{
+		&extensions.Job{
+			Spec: extensions.JobSpec{
 				Completions: validJob.Spec.Completions,
 				Selector:    map[string]string{},
 				Template:    validJob.Spec.Template,
@@ -87,47 +88,52 @@ func TestCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
-	completions := 2
+	two := 2
 	test.TestUpdate(
 		// valid
 		validNewJob(),
 		// updateFunc
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*experimental.Job)
-			object.Spec.Completions = &completions
+			object := obj.(*extensions.Job)
+			object.Spec.Parallelism = &two
 			return object
 		},
 		// invalid updateFunc
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*experimental.Job)
+			object := obj.(*extensions.Job)
 			object.Spec.Selector = map[string]string{}
+			return object
+		},
+		func(obj runtime.Object) runtime.Object {
+			object := obj.(*extensions.Job)
+			object.Spec.Completions = &two
 			return object
 		},
 	)
 }
 
 func TestDelete(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	test.TestDelete(validNewJob())
 }
 
 func TestGet(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	test.TestGet(validNewJob())
 }
 
 func TestList(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	test.TestList(validNewJob())
 }
 
 func TestWatch(t *testing.T) {
-	storage, fakeClient := newStorage(t)
+	storage, _, fakeClient := newStorage(t)
 	test := registrytest.New(t, fakeClient, storage.Etcd)
 	test.TestWatch(
 		validNewJob(),
@@ -146,3 +152,5 @@ func TestWatch(t *testing.T) {
 		},
 	)
 }
+
+// TODO: test update /status

@@ -9,7 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -37,23 +38,21 @@ If the pod has only one container, the container name is optional.`
 )
 
 type OpenShiftLogsOptions struct {
-	KubeClient   *kclient.Client
 	OriginClient *client.Client
 
 	Namespace      string
 	ResourceString string
-	ContainerName  string
-	Follow         bool
-	Interactive    bool
-	Previous       bool
-	Out            io.Writer
+
+	KubeLogOptions *kcmd.LogsOptions
 }
 
 // NewCmdLogs creates a new pod log command
 func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	o := &OpenShiftLogsOptions{
-		Out:         out,
-		Interactive: true,
+		KubeLogOptions: &kcmd.LogsOptions{
+			Out:  out,
+			Tail: -1,
+		},
 	}
 
 	cmd := &cobra.Command{
@@ -71,10 +70,18 @@ func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 		},
 		Aliases: []string{"log"},
 	}
-	cmd.Flags().BoolVarP(&o.Follow, "follow", "f", o.Follow, "Specify if the logs should be streamed.")
-	cmd.Flags().BoolVar(&o.Interactive, "interactive", o.Interactive, "If true, prompt the user for input when required. Default true.")
-	cmd.Flags().BoolVarP(&o.Previous, "previous", "p", o.Previous, "If true, print the logs for the previous instance of the container in a pod if it exists.")
-	cmd.Flags().StringVarP(&o.ContainerName, "container", "c", o.ContainerName, "Container name")
+
+	cmd.Flags().BoolVarP(&o.KubeLogOptions.Follow, "follow", "f", o.KubeLogOptions.Follow, "Specify if the logs should be streamed.")
+	cmd.Flags().BoolVar(&o.KubeLogOptions.Timestamps, "timestamps", o.KubeLogOptions.Timestamps, "Include timestamps on each line in the log output")
+	cmd.Flags().Bool("interactive", true, "If true, prompt the user for input when required. Default true.")
+	cmd.Flags().MarkDeprecated("interactive", "This flag is no longer respected and there is no replacement.")
+	cmd.Flags().IntVar(&o.KubeLogOptions.LimitBytes, "limit-bytes", o.KubeLogOptions.LimitBytes, "Maximum bytes of logs to return. Defaults to no limit.")
+	cmd.Flags().BoolVarP(&o.KubeLogOptions.Previous, "previous", "p", o.KubeLogOptions.Previous, "If true, print the logs for the previous instance of the container in a pod if it exists.")
+	cmd.Flags().IntVar(&o.KubeLogOptions.Tail, "tail", o.KubeLogOptions.Tail, "Lines of recent log file to display. Defaults to -1, showing all log lines.")
+	cmd.Flags().String("since-time", "", "Only return logs after a specific date (RFC3339). Defaults to all logs. Only one of since-time / since may be used.")
+	cmd.Flags().DurationVar(&o.KubeLogOptions.SinceSeconds, "since", o.KubeLogOptions.SinceSeconds, "Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs. Only one of since-time / since may be used.")
+	cmd.Flags().StringVarP(&o.KubeLogOptions.ContainerName, "container", "c", o.KubeLogOptions.ContainerName, "Container name")
+
 	return cmd
 }
 
@@ -87,7 +94,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 		o.ResourceString = args[0]
 	case 2:
 		o.ResourceString = args[0]
-		o.ContainerName = args[1]
+		o.KubeLogOptions.ContainerName = args[1]
 
 	default:
 		return cmdutil.UsageError(cmd, "log RESOURCE")
@@ -98,9 +105,21 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	if err != nil {
 		return err
 	}
-	o.OriginClient, o.KubeClient, err = f.Clients()
+	o.OriginClient, o.KubeLogOptions.Client, err = f.Clients()
 	if err != nil {
 		return err
+	}
+
+	o.KubeLogOptions.PodName = o.ResourceString
+	o.KubeLogOptions.PodNamespace = o.Namespace
+
+	sinceTime := cmdutil.GetFlagString(cmd, "since-time")
+	if len(sinceTime) > 0 {
+		t, err := kapi.ParseRFC3339(sinceTime, unversioned.Now)
+		if err != nil {
+			return err
+		}
+		o.KubeLogOptions.SinceTime = &t
 	}
 
 	return nil
@@ -111,21 +130,10 @@ func (o *OpenShiftLogsOptions) Validate() error {
 		return errors.New("RESOURCE must be specified")
 	}
 
-	return nil
+	return o.KubeLogOptions.Validate()
 }
 
 func (o *OpenShiftLogsOptions) RunLog() error {
-	kLogsOptions := &kcmd.LogsOptions{
-		Client: o.KubeClient,
-
-		PodNamespace:  o.Namespace,
-		ContainerName: o.ContainerName,
-		Follow:        o.Follow,
-		Interactive:   o.Interactive,
-		Previous:      o.Previous,
-		Out:           o.Out,
-	}
-
 	resourceType := "pod"
 	resourceName := o.ResourceString
 	tokens := strings.SplitN(o.ResourceString, "/", 2)
@@ -136,9 +144,13 @@ func (o *OpenShiftLogsOptions) RunLog() error {
 	resourceType = strings.ToLower(resourceType)
 
 	// if we're requesting a pod, delegate directly to kubectl logs
-	if (resourceType == "pods") || (resourceType == "pod") || len(o.ContainerName) > 0 {
-		kLogsOptions.PodName = resourceName
-		return kLogsOptions.RunLog()
+	if (resourceType == "pods") || (resourceType == "pod") || (resourceType == "po") {
+		o.KubeLogOptions.PodName = resourceName
+		return o.KubeLogOptions.RunLog()
+	}
+
+	if len(o.KubeLogOptions.ContainerName) > 0 {
+		return errors.New("container cannot be specified with anything besides a pod")
 	}
 
 	switch resourceType {
@@ -172,7 +184,7 @@ func (o *OpenShiftLogsOptions) RunLog() error {
 // to take advantage of all of their extra options.
 func (o *OpenShiftLogsOptions) runLogsForBuild(build *buildapi.Build) error {
 	opts := buildapi.BuildLogOptions{
-		Follow: o.Follow,
+		Follow: o.KubeLogOptions.Follow,
 		NoWait: false,
 	}
 
@@ -182,6 +194,6 @@ func (o *OpenShiftLogsOptions) runLogsForBuild(build *buildapi.Build) error {
 	}
 	defer readCloser.Close()
 
-	_, err = io.Copy(o.Out, readCloser)
+	_, err = io.Copy(o.KubeLogOptions.Out, readCloser)
 	return err
 }

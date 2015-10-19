@@ -2,6 +2,7 @@ package api
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kutil "k8s.io/kubernetes/pkg/util"
 )
 
@@ -235,7 +236,7 @@ const DeploymentCancelledAnnotationValue = "true"
 // state of the DeploymentConfig. Each change to the DeploymentConfig which should result in
 // a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 	// Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers
 	// are defined, a new deployment can only occur as a result of an explicit client update to the
@@ -329,8 +330,8 @@ type DeploymentCauseImageTrigger struct {
 
 // DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of deployment configs
 	Items []DeploymentConfig
@@ -338,7 +339,7 @@ type DeploymentConfigList struct {
 
 // DeploymentConfigRollback provides the input to rollback generation.
 type DeploymentConfigRollback struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	// Spec defines the options to rollback generation.
 	Spec DeploymentConfigRollbackSpec
 }

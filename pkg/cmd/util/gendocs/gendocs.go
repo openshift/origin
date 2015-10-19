@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -46,7 +47,7 @@ func GenDocs(cmd *cobra.Command, filename string) error {
 	}
 
 	err = printer.PrintObj(&kapi.List{
-		ListMeta: kapi.ListMeta{},
+		ListMeta: unversioned.ListMeta{},
 		Items:    items,
 	}, out)
 	if err != nil {

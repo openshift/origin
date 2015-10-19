@@ -93,7 +93,7 @@ func TestRoundTrip(t *testing.T) {
 func TestAttributeIntersection(t *testing.T) {
 	// These are the things we expect to be shared
 	// Everything in this list should be used by OriginAuthorizerAttributes
-	expectedIntersection := sets.NewString("GetVerb", "GetResource")
+	expectedIntersection := sets.NewString("GetVerb", "GetResource", "GetAPIGroup")
 
 	// These are the things we expect to only be in the Kubernetes interface
 	// Everything in this list should be used by OriginAuthorizerAttributes or derivative (like IsReadOnly)

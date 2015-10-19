@@ -284,7 +284,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) 
 
 // cancel cancels any deployment process in progress for config.
 func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer) error {
-	deployments, err := o.kubeClient.ReplicationControllers(config.Namespace).List(deployutil.ConfigSelector(config.Name))
+	deployments, err := o.kubeClient.ReplicationControllers(config.Namespace).List(deployutil.ConfigSelector(config.Name), fields.Everything())
 	if err != nil {
 		return err
 	}

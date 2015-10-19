@@ -6,6 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -101,7 +102,7 @@ func (s *REST) List(ctx kapi.Context, label labels.Selector, field fields.Select
 		return nil, err
 	}
 	m := nsregistry.MatchNamespace(label, field)
-	list, err := generic.FilterList(namespaceList, m, nil)
+	list, err := filterList(namespaceList, m, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -160,5 +161,40 @@ func (s *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 
 // Delete deletes a Project specified by its name
 func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
-	return &kapi.Status{Status: kapi.StatusSuccess}, s.client.Delete(name)
+	return &unversioned.Status{Status: unversioned.StatusSuccess}, s.client.Delete(name)
+}
+
+// decoratorFunc can mutate the provided object prior to being returned.
+type decoratorFunc func(obj runtime.Object) error
+
+// filterList filters any list object that conforms to the api conventions,
+// provided that 'm' works with the concrete type of list. d is an optional
+// decorator for the returned functions. Only matching items are decorated.
+func filterList(list runtime.Object, m generic.Matcher, d decoratorFunc) (filtered runtime.Object, err error) {
+	// TODO: push a matcher down into tools.etcdHelper to avoid all this
+	// nonsense. This is a lot of unnecessary copies.
+	items, err := runtime.ExtractList(list)
+	if err != nil {
+		return nil, err
+	}
+	var filteredItems []runtime.Object
+	for _, obj := range items {
+		match, err := m.Matches(obj)
+		if err != nil {
+			return nil, err
+		}
+		if match {
+			if d != nil {
+				if err := d(obj); err != nil {
+					return nil, err
+				}
+			}
+			filteredItems = append(filteredItems, obj)
+		}
+	}
+	err = runtime.SetList(list, filteredItems)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
 }

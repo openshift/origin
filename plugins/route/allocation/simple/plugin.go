@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/util"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -27,7 +27,7 @@ func NewSimpleAllocationPlugin(suffix string) (*SimpleAllocationPlugin, error) {
 	glog.V(4).Infof("Route plugin initialized with suffix=%s", suffix)
 
 	// Check that the DNS suffix is valid.
-	if !util.IsDNS1123Subdomain(suffix) {
+	if !kvalidation.IsDNS1123Subdomain(suffix) {
 		return nil, fmt.Errorf("invalid DNS suffix: %s", suffix)
 	}
 

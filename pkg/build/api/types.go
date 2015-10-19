@@ -4,7 +4,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -26,7 +26,7 @@ const (
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
 type Build struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// Spec is all the inputs used to execute the build.
@@ -79,13 +79,13 @@ type BuildStatus struct {
 	// StartTimestamp is a timestamp representing the server time when this Build started
 	// running in a Pod.
 	// It is represented in RFC3339 form and is in UTC.
-	StartTimestamp *util.Time
+	StartTimestamp *unversioned.Time
 
 	// CompletionTimestamp is a timestamp representing the server time when this Build was
 	// finished, whether that build failed or succeeded.  It reflects the time at which
 	// the Pod running the Build terminated.
 	// It is represented in RFC3339 form and is in UTC.
-	CompletionTimestamp *util.Time
+	CompletionTimestamp *unversioned.Time
 
 	// Duration contains time.Duration object describing build time.
 	Duration time.Duration
@@ -350,7 +350,7 @@ const BuildConfigLabel = "buildconfig"
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// Spec holds all the input necessary to produce a new build, and the conditions when
@@ -444,8 +444,8 @@ const (
 
 // BuildList is a collection of Builds.
 type BuildList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of builds
 	Items []Build
@@ -453,8 +453,8 @@ type BuildList struct {
 
 // BuildConfigList is a collection of BuildConfigs.
 type BuildConfigList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of build configs
 	Items []BuildConfig
@@ -488,13 +488,13 @@ type GitRefInfo struct {
 
 // BuildLog is the (unused) resource associated with the build log redirector
 type BuildLog struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 }
 
 // BuildRequest is the resource used to pass parameters to build generator
 type BuildRequest struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// Revision is the information from the source for a specific repo snapshot.
@@ -514,7 +514,7 @@ type BuildRequest struct {
 
 // BuildLogOptions is the REST options for a build log
 type BuildLogOptions struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 
 	// Follow if true indicates that the build log should be streamed until
 	// the build terminates.

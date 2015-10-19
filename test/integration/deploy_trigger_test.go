@@ -316,7 +316,7 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	osMux := http.NewServeMux()
 	openshift.server = httptest.NewServer(osMux)
 
-	kubeClient := kclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: klatest.Version})
+	kubeClient := kclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: klatest.DefaultVersionForLegacyGroup()})
 	osClient := osclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
@@ -329,13 +329,16 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 
 	handlerContainer := master.NewHandlerContainer(osMux)
 
+	storageDestinations := master.NewStorageDestinations()
+	storageDestinations.AddAPIGroup("", etcdHelper)
+
 	_ = master.New(&master.Config{
-		DatabaseStorage:  etcdHelper,
-		KubeletClient:    kubeletClient,
-		APIPrefix:        "/api",
-		AdmissionControl: admit.NewAlwaysAdmit(),
-		RestfulContainer: handlerContainer,
-		DisableV1:        false,
+		StorageDestinations: storageDestinations,
+		KubeletClient:       kubeletClient,
+		APIPrefix:           "/api",
+		AdmissionControl:    admit.NewAlwaysAdmit(),
+		RestfulContainer:    handlerContainer,
+		DisableV1:           false,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)

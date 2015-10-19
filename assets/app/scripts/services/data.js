@@ -262,9 +262,17 @@ angular.module('openshiftConsole')
       var resource = self.kindToResource(object.kind);
       if (!resource) {
         failureResults.push({
-          data: {
-            message: "Unrecognized kind: " + object.kind + "."
-          }
+          data: {message: "Unrecognized kind " + object.kind}
+        });
+        remaining--;
+        _checkDone();
+        return;
+      }
+
+      var resourceInfo = self.resourceInfo(resource, object.apiVersion);
+      if (!resourceInfo) {
+        failureResults.push({
+          data: {message: "Unknown API version "+object.apiVersion+" for kind " + object.kind}
         });
         remaining--;
         _checkDone();

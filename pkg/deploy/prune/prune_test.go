@@ -6,7 +6,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -53,8 +53,8 @@ func TestPruneTask(t *testing.T) {
 		for _, deploymentStatusOption := range deploymentStatusOptions {
 			keepYoungerThan := time.Hour
 
-			now := util.Now()
-			old := util.NewTime(now.Time.Add(-1 * keepYoungerThan))
+			now := unversioned.Now()
+			old := unversioned.NewTime(now.Time.Add(-1 * keepYoungerThan))
 
 			deploymentConfigs := []*deployapi.DeploymentConfig{}
 			deployments := []*kapi.ReplicationController{}

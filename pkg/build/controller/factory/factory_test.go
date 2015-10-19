@@ -8,7 +8,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	controller "github.com/openshift/origin/pkg/controller"
@@ -27,10 +27,10 @@ func TestLimitedLogAndRetryFinish(t *testing.T) {
 	updater := &buildUpdater{}
 	err := errors.New("funky error")
 
-	now := kutil.Now()
+	now := unversioned.Now()
 	retry := controller.Retry{
 		Count:          0,
-		StartTimestamp: kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-31, now.Second(), now.Nanosecond(), now.Location()),
+		StartTimestamp: unversioned.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-31, now.Second(), now.Nanosecond(), now.Location()),
 	}
 	if limitedLogAndRetry(updater, 30*time.Minute)(&buildapi.Build{Status: buildapi.BuildStatus{Phase: buildapi.BuildPhaseNew}}, err, retry) {
 		t.Error("Expected no more retries after reaching timeout!")
@@ -53,10 +53,10 @@ func TestLimitedLogAndRetryProcessing(t *testing.T) {
 	updater := &buildUpdater{}
 	err := errors.New("funky error")
 
-	now := kutil.Now()
+	now := unversioned.Now()
 	retry := controller.Retry{
 		Count:          0,
-		StartTimestamp: kutil.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-10, now.Second(), now.Nanosecond(), now.Location()),
+		StartTimestamp: unversioned.Date(now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute()-10, now.Second(), now.Nanosecond(), now.Location()),
 	}
 	if !limitedLogAndRetry(updater, 30*time.Minute)(&buildapi.Build{Status: buildapi.BuildStatus{Phase: buildapi.BuildPhaseNew}}, err, retry) {
 		t.Error("Expected more retries!")

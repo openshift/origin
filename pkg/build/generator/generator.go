@@ -7,11 +7,13 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/util"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -599,11 +601,11 @@ func getNextBuildNameFromBuild(build *buildapi.Build, buildConfig *buildapi.Buil
 		nameElems := strings.Split(buildName, "-")
 		buildName = strings.Join(nameElems[:len(nameElems)-1], "-")
 	}
-	suffix := fmt.Sprintf("%v", util.Now().UnixNano())
+	suffix := fmt.Sprintf("%v", unversioned.Now().UnixNano())
 	if len(suffix) > 10 {
 		suffix = suffix[len(suffix)-10:]
 	}
-	return namer.GetName(buildName, suffix, util.DNS1123SubdomainMaxLength)
+	return namer.GetName(buildName, suffix, kvalidation.DNS1123SubdomainMaxLength)
 
 }
 

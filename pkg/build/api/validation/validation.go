@@ -6,8 +6,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -216,7 +216,7 @@ func validateToImageReference(reference *kapi.ObjectReference) fielderrors.Valid
 		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", name, "ImageStreamTag object references must be in the form <name>:<tag>"))
 		}
-		if len(namespace) != 0 && !util.IsDNS1123Subdomain(namespace) {
+		if len(namespace) != 0 && !kvalidation.IsDNS1123Subdomain(namespace) {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", namespace, "namespace must be a valid subdomain"))
 		}
 
@@ -247,7 +247,7 @@ func validateFromImageReference(reference *kapi.ObjectReference) fielderrors.Val
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("name", name, "ImageStreamTag object references must be in the form <name>:<tag>"))
 		}
 
-		if len(namespace) != 0 && !util.IsDNS1123Subdomain(namespace) {
+		if len(namespace) != 0 && !kvalidation.IsDNS1123Subdomain(namespace) {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", namespace, "namespace must be a valid subdomain"))
 		}
 
@@ -264,7 +264,7 @@ func validateFromImageReference(reference *kapi.ObjectReference) fielderrors.Val
 		if len(name) == 0 {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("name"))
 		}
-		if len(namespace) != 0 && !util.IsDNS1123Subdomain(namespace) {
+		if len(namespace) != 0 && !kvalidation.IsDNS1123Subdomain(namespace) {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("namespace", namespace, "namespace must be a valid subdomain"))
 		}
 	case "":

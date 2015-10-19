@@ -50,6 +50,7 @@ v1.containerstatewaiting
 v1.containerstatus
 v1.custombuildstrategy
 v1.customdeploymentstrategyparams
+v1.daemonendpoint
 v1.deleteoptions
 v1.deploymentcause
 v1.deploymentcauseimagetrigger
@@ -76,7 +77,9 @@ v1.eventlist
 v1.eventsource
 v1.execaction
 v1.execnewpodhook
+v1.fcvolumesource
 v1.finalizername
+v1.flockervolumesource
 v1.gcepersistentdiskvolumesource
 v1.gitbuildsource
 v1.gitrepovolumesource
@@ -127,6 +130,7 @@ v1.namespacestatus
 v1.nfsvolumesource
 v1.nodeaddress
 v1.nodecondition
+v1.nodedaemonendpoints
 v1.nodelist
 v1.nodespec
 v1.nodestatus
@@ -154,6 +158,7 @@ v1.persistentvolumestatus
 v1.podcondition
 v1.podlist
 v1.podspec
+v1.podsecuritycontext
 v1.podstatus
 v1.podtemplate
 v1.podtemplatelist
@@ -221,3 +226,8 @@ v1.userlist
 v1.volume
 v1.volumemount
 v1.webhooktrigger
+unversioned.status
+unversioned.statuscause
+unversioned.statusdetails
+unversioned.patch
+unversioned.listmeta

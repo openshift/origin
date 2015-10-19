@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -40,7 +41,7 @@ $ kubectl exec 123456-7890 date
 # Get output from running 'date' in ruby-container from pod 123456-7890
 $ kubectl exec 123456-7890 -c ruby-container date
 
-# Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
+# Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-7890
 # and sends stdout/stderr from 'bash' back to the client
 $ kubectl exec 123456-7890 -c ruby-container -i -t -- bash -il`
 )
@@ -74,15 +75,18 @@ func NewCmdExec(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *
 
 // RemoteExecutor defines the interface accepted by the Exec command - provided for test stubbing
 type RemoteExecutor interface {
-	Execute(req *client.Request, config *client.Config, command []string, stdin io.Reader, stdout, stderr io.Writer, tty bool) error
+	Execute(method string, url *url.URL, config *client.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error
 }
 
 // DefaultRemoteExecutor is the standard implementation of remote command execution
 type DefaultRemoteExecutor struct{}
 
-func (*DefaultRemoteExecutor) Execute(req *client.Request, config *client.Config, command []string, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
-	executor := remotecommand.New(req, config, command, stdin, stdout, stderr, tty)
-	return executor.Execute()
+func (*DefaultRemoteExecutor) Execute(method string, url *url.URL, config *client.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
+	exec, err := remotecommand.NewExecutor(config, method, url)
+	if err != nil {
+		return err
+	}
+	return exec.Stream(stdin, stdout, stderr, tty)
 }
 
 // ExecOptions declare the arguments accepted by the Exec command
@@ -222,13 +226,21 @@ func (p *ExecOptions) Run() error {
 		SubResource("exec").
 		Param("container", containerName)
 
-	postErr := p.Executor.Execute(req, p.Config, p.Command, stdin, p.Out, p.Err, tty)
+	req.VersionedParams(&api.PodExecOptions{
+		Container: containerName,
+		Command:   p.Command,
+		Stdin:     stdin != nil,
+		Stdout:    p.Out != nil,
+		Stderr:    p.Err != nil,
+		TTY:       tty,
+	}, api.Scheme)
+
+	postErr := p.Executor.Execute("POST", req.URL(), p.Config, stdin, p.Out, p.Err, tty)
 
 	// if we don't have an error, return.  If we did get an error, try a GET because v3.0.0 shipped with exec running as a GET.
 	if postErr == nil {
 		return nil
 	}
-
 	// only try the get if the error is either a forbidden or method not supported, otherwise trying with a GET probably won't help
 	if !apierrors.IsForbidden(postErr) && !apierrors.IsMethodNotSupported(postErr) {
 		return postErr
@@ -240,8 +252,16 @@ func (p *ExecOptions) Run() error {
 		Namespace(pod.Namespace).
 		SubResource("exec").
 		Param("container", containerName)
+	getReq.VersionedParams(&api.PodExecOptions{
+		Container: containerName,
+		Command:   p.Command,
+		Stdin:     stdin != nil,
+		Stdout:    p.Out != nil,
+		Stderr:    p.Err != nil,
+		TTY:       tty,
+	}, api.Scheme)
 
-	getErr := p.Executor.Execute(getReq, p.Config, p.Command, stdin, p.Out, p.Err, tty)
+	getErr := p.Executor.Execute("GET", getReq.URL(), p.Config, stdin, p.Out, p.Err, tty)
 	if getErr == nil {
 		return nil
 	}

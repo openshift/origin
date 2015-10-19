@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/api"
 	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
@@ -76,8 +76,8 @@ func RequestToken(clientCfg *kclient.Config, reader io.Reader, defaultUsername s
 			unauthorizedError := apierrs.NewUnauthorized("")
 			// Attempt to read body content and include as an error detail
 			if details, err := ioutil.ReadAll(resp.Body); err == nil && len(details) > 0 {
-				unauthorizedError.(*apierrs.StatusError).ErrStatus.Details = &api.StatusDetails{
-					Causes: []api.StatusCause{
+				unauthorizedError.(*apierrs.StatusError).ErrStatus.Details = &unversioned.StatusDetails{
+					Causes: []unversioned.StatusCause{
 						{Message: string(details)},
 					},
 				}

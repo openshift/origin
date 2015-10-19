@@ -17,6 +17,7 @@ import (
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	proxy "k8s.io/kubernetes/pkg/proxy/userspace"
 	"k8s.io/kubernetes/pkg/util"
+	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
 
@@ -140,7 +141,7 @@ func (c *NodeConfig) RunKubelet() {
 	c.KubeletConfig.RootDirectory = c.VolumeDir
 
 	// hook for overriding the cadvisor interface for integration tests
-	c.KubeletConfig.CadvisorInterface = defaultCadvisorInterface
+	c.KubeletConfig.CAdvisorInterface = defaultCadvisorInterface
 
 	go func() {
 		glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
@@ -194,7 +195,9 @@ func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler)
 	}
 
 	go util.Forever(func() {
-		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol), util.PortRange{}, syncPeriod)
+		dbus := utildbus.New()
+		iptables := iptables.New(kexec.New(), dbus, protocol)
+		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables, util.PortRange{}, syncPeriod)
 		if err != nil {
 			switch {
 			// conflicting use of iptables, retry

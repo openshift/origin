@@ -16,12 +16,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -149,7 +149,7 @@ func (d *BuildDescriber) Describe(namespace, name string) (string, error) {
 }
 
 func describeBuildDuration(build *buildapi.Build) string {
-	t := util.Now().Rfc3339Copy()
+	t := unversioned.Now().Rfc3339Copy()
 	if build.Status.StartTimestamp == nil &&
 		build.Status.CompletionTimestamp != nil &&
 		(build.Status.Phase == buildapi.BuildPhaseCancelled ||
@@ -595,12 +595,12 @@ func (d *ProjectDescriber) Describe(namespace, name string) (string, error) {
 		return "", err
 	}
 	resourceQuotasClient := d.kubeClient.ResourceQuotas(name)
-	resourceQuotaList, err := resourceQuotasClient.List(labels.Everything())
+	resourceQuotaList, err := resourceQuotasClient.List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return "", err
 	}
 	limitRangesClient := d.kubeClient.LimitRanges(name)
-	limitRangeList, err := limitRangesClient.List(labels.Everything())
+	limitRangeList, err := limitRangesClient.List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return "", err
 	}

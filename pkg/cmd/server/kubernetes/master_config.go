@@ -52,7 +52,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	if err != nil {
 		return nil, err
 	}
-	databaseStorage, err := master.NewEtcdStorage(etcdClient, kapilatest.InterfacesFor, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+	databaseStorage, err := master.NewEtcdStorage(etcdClient, kapilatest.InterfacesForLegacyGroup, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 	}
@@ -147,12 +147,14 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		proxyClientCerts = append(proxyClientCerts, clientCert)
 	}
 
+	storageDestinations := master.NewStorageDestinations()
+	storageDestinations.AddAPIGroup("", databaseStorage)
+
 	m := &master.Config{
 		PublicAddress: net.ParseIP(options.KubernetesMasterConfig.MasterIP),
 		ReadWritePort: port,
 
-		DatabaseStorage:    databaseStorage,
-		ExpDatabaseStorage: databaseStorage,
+		StorageDestinations: storageDestinations,
 
 		EventTTL: server.EventTTL,
 		//MinRequestTimeout: server.MinRequestTimeout,
@@ -172,8 +174,7 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 		Authorizer:       apiserver.NewAlwaysAllowAuthorizer(),
 		AdmissionControl: admissionController,
 
-		EnableV1Beta3: configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1beta3"),
-		DisableV1:     !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
+		DisableV1: !configapi.HasKubernetesAPILevel(*options.KubernetesMasterConfig, "v1"),
 
 		// Set the TLS options for proxying to pods and services
 		// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)

@@ -23,8 +23,8 @@ package labelselector
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 )
 
 // constants definition for lexer token
@@ -356,17 +356,17 @@ func Equals(labels1, labels2 map[string]string) bool {
 	return true
 }
 
-const qualifiedNameErrorMsg string = "must match regex [" + util.DNS1123SubdomainFmt + " / ] " + util.DNS1123LabelFmt
+const qualifiedNameErrorMsg string = "must match regex [" + kvalidation.DNS1123SubdomainFmt + " / ] " + kvalidation.DNS1123LabelFmt
 
 func validateLabelKey(k string) error {
-	if !util.IsQualifiedName(k) {
+	if !kvalidation.IsQualifiedName(k) {
 		return fielderrors.NewFieldInvalid("label key", k, qualifiedNameErrorMsg)
 	}
 	return nil
 }
 
 func validateLabelValue(v string) error {
-	if !util.IsValidLabelValue(v) {
+	if !kvalidation.IsValidLabelValue(v) {
 		return fielderrors.NewFieldInvalid("label value", v, qualifiedNameErrorMsg)
 	}
 	return nil

@@ -54,7 +54,7 @@ func (factory *DeploymentConfigControllerFactory) Create() controller.RunnableCo
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
 				sel := deployutil.ConfigSelector(configName)
-				list, err := factory.KubeClient.ReplicationControllers(namespace).List(sel)
+				list, err := factory.KubeClient.ReplicationControllers(namespace).List(sel, fields.Everything())
 				if err != nil {
 					return nil, err
 				}

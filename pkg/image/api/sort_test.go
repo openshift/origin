@@ -1,7 +1,7 @@
 package api
 
 import (
-	kutil "k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"reflect"
 	"testing"
@@ -21,7 +21,7 @@ func TestSortStatusTags(t *testing.T) {
 					Items: []TagEvent{
 						{
 							DockerImageReference: "other-ref",
-							Created:              kutil.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+							Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 							Image:                "other-image",
 						},
 					},
@@ -30,7 +30,7 @@ func TestSortStatusTags(t *testing.T) {
 					Items: []TagEvent{
 						{
 							DockerImageReference: "latest-ref",
-							Created:              kutil.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+							Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 							Image:                "latest-image",
 						},
 					},
@@ -39,7 +39,7 @@ func TestSortStatusTags(t *testing.T) {
 					Items: []TagEvent{
 						{
 							DockerImageReference: "third-ref",
-							Created:              kutil.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+							Created:              unversioned.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
 							Image:                "third-image",
 						},
 					},

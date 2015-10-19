@@ -8,9 +8,7 @@ import (
 	"github.com/spf13/pflag"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
-
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/registry/controller"
 	"k8s.io/kubernetes/pkg/registry/endpoint"
 	"k8s.io/kubernetes/pkg/registry/namespace"
@@ -21,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/resourcequota"
 	"k8s.io/kubernetes/pkg/registry/secret"
 	"k8s.io/kubernetes/pkg/registry/serviceaccount"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildrest "github.com/openshift/origin/pkg/build/registry/build"
@@ -47,7 +46,7 @@ func exportObjectMeta(objMeta *kapi.ObjectMeta, exact bool) {
 	if !exact {
 		objMeta.Namespace = ""
 	}
-	objMeta.CreationTimestamp = util.Time{}
+	objMeta.CreationTimestamp = unversioned.Time{}
 	objMeta.DeletionTimestamp = nil
 	objMeta.ResourceVersion = ""
 	objMeta.SelfLink = ""

@@ -17,6 +17,7 @@ limitations under the License.
 package unversioned
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -33,6 +34,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -143,15 +145,16 @@ func New(c *Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if _, err := latest.Group("extensions"); err != nil {
+		return &Client{RESTClient: client, ExtensionsClient: nil}, nil
+	}
 	experimentalConfig := *c
-	// clearing Version from the config so that the --api-version flag will work.  This may or may not be unborked after the next rebase
-	// but they are working on the issue in: https://github.com/kubernetes/kubernetes/pull/14383
-	experimentalConfig.Version = ""
-	experimentalClient, err := NewExperimental(&experimentalConfig)
+	experimentalClient, err := NewExtensions(&experimentalConfig)
 	if err != nil {
 		return nil, err
 	}
-	return &Client{RESTClient: client, ExperimentalClient: experimentalClient}, nil
+	return &Client{RESTClient: client, ExtensionsClient: experimentalClient}, nil
 }
 
 // MatchesServerVersion queries the server to compares the build version
@@ -175,6 +178,65 @@ func MatchesServerVersion(client *Client, c *Config) error {
 	}
 
 	return nil
+}
+
+func extractGroupVersions(l *unversioned.APIGroupList) []string {
+	var groupVersions []string
+	for _, g := range l.Groups {
+		for _, gv := range g.Versions {
+			groupVersions = append(groupVersions, gv.GroupVersion)
+		}
+	}
+	return groupVersions
+}
+
+// ServerAPIVersions returns the GroupVersions supported by the API server.
+// It creates a RESTClient based on the passed in config, but it doesn't rely
+// on the Version, Codec, and Prefix of the config, because it uses AbsPath and
+// takes the raw response.
+func ServerAPIVersions(c *Config) (groupVersions []string, err error) {
+	transport, err := TransportFor(c)
+	if err != nil {
+		return nil, err
+	}
+	client := http.Client{Transport: transport}
+
+	configCopy := *c
+	configCopy.Version = ""
+	configCopy.Prefix = ""
+	baseURL, err := defaultServerUrlFor(c)
+	if err != nil {
+		return nil, err
+	}
+	// Get the groupVersions exposed at /api
+	baseURL.Path = "/api"
+	resp, err := client.Get(baseURL.String())
+	if err != nil {
+		return nil, err
+	}
+	var v unversioned.APIVersions
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(&v)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error: %v", err)
+	}
+
+	groupVersions = append(groupVersions, v.Versions...)
+	// Get the groupVersions exposed at /apis
+	baseURL.Path = "/apis"
+	resp2, err := client.Get(baseURL.String())
+	if err != nil {
+		return nil, err
+	}
+	var apiGroupList unversioned.APIGroupList
+	defer resp2.Body.Close()
+	err = json.NewDecoder(resp2.Body).Decode(&apiGroupList)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error: %v", err)
+	}
+	groupVersions = append(groupVersions, extractGroupVersions(&apiGroupList)...)
+
+	return groupVersions, nil
 }
 
 // NegotiateVersion queries the server's supported api versions to find
@@ -230,9 +292,11 @@ func NegotiateVersion(client *Client, c *Config, version string, clientRegistere
 		if serverVersions.Has(clientVersion) {
 			// Version was not explicitly requested in command config (--api-version).
 			// Ok to fall back to a supported version with a warning.
-			if len(version) != 0 {
-				glog.Warningf("Server does not support API version '%s'. Falling back to '%s'.", version, clientVersion)
-			}
+			// TODO: caesarxuchao: enable the warning message when we have
+			// proper fix. Please refer to issue #14895.
+			// if len(version) != 0 {
+			// 	glog.Warningf("Server does not support API version '%s'. Falling back to '%s'.", version, clientVersion)
+			// }
 			return clientVersion, nil
 		}
 	}
@@ -261,7 +325,7 @@ func InClusterConfig() (*Config, error) {
 	tlsClientConfig := TLSClientConfig{}
 	rootCAFile := "/var/run/secrets/kubernetes.io/serviceaccount/" + api.ServiceAccountRootCAKey
 	if _, err := util.CertPoolFromFile(rootCAFile); err != nil {
-		glog.Errorf("expected to load root CA config from %s, but got err: %v", rootCAFile, err)
+		glog.Errorf("Expected to load root CA config from %s, but got err: %v", rootCAFile, err)
 	} else {
 		tlsClientConfig.CAFile = rootCAFile
 	}
@@ -285,6 +349,7 @@ func NewInCluster() (*Client, error) {
 
 // SetKubernetesDefaults sets default values on the provided client config for accessing the
 // Kubernetes API or returns an error if any of the defaults are impossible or invalid.
+// TODO: this method needs to be split into one that sets defaults per group, expected to be fix in PR "Refactoring clientcache.go and helper.go #14592"
 func SetKubernetesDefaults(config *Config) error {
 	if config.Prefix == "" {
 		config.Prefix = "/api"
@@ -296,9 +361,9 @@ func SetKubernetesDefaults(config *Config) error {
 		config.Version = defaultVersionFor(config)
 	}
 	version := config.Version
-	versionInterfaces, err := latest.InterfacesFor(version)
+	versionInterfaces, err := latest.GroupOrDie("").InterfacesFor(version)
 	if err != nil {
-		return fmt.Errorf("API version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.Versions, ", "))
+		return fmt.Errorf("API version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.GroupOrDie("").Versions, ", "))
 	}
 	if config.Codec == nil {
 		config.Codec = versionInterfaces.Codec
@@ -380,15 +445,9 @@ func tlsTransportFor(config *Config) (http.RoundTripper, error) {
 	}
 
 	// Cache a single transport for these options
-	tlsTransports[key] = &http.Transport{
+	tlsTransports[key] = util.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: tlsConfig,
-		Proxy:           http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
-		TLSHandshakeTimeout: 10 * time.Second,
-	}
+	})
 	return tlsTransports[key], nil
 }
 
@@ -473,9 +532,6 @@ func DefaultServerURL(host, prefix, version string, defaultTLS bool) (*url.URL, 
 	if host == "" {
 		return nil, fmt.Errorf("host must be a URL or a host:port pair")
 	}
-	if version == "" {
-		return nil, fmt.Errorf("version must be set")
-	}
 	base := host
 	hostURL, err := url.Parse(base)
 	if err != nil {
@@ -510,7 +566,7 @@ func DefaultServerURL(host, prefix, version string, defaultTLS bool) (*url.URL, 
 	return hostURL, nil
 }
 
-// IsConfigTransportTLS returns true iff the provided config will result in a protected
+// IsConfigTransportTLS returns true if and only if the provided config will result in a protected
 // connection to the server when it is passed to client.New() or client.RESTClientFor().
 // Use to determine when to send credentials over the wire.
 //
@@ -549,7 +605,7 @@ func defaultVersionFor(config *Config) string {
 	if version == "" {
 		// Clients default to the preferred code API version
 		// TODO: implement version negotiation (highest version supported by server)
-		version = latest.Version
+		version = latest.GroupOrDie("").Version
 	}
 	return version
 }

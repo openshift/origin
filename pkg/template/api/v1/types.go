@@ -1,14 +1,15 @@
 package v1
 
 import (
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // Template contains the inputs needed to produce a Config.
 type Template struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Objects is an array of objects to include in this template. Required.
 	Objects []runtime.RawExtension `json:"objects" description:"list of objects to include in the template"`
@@ -24,8 +25,8 @@ type Template struct {
 
 // TemplateList is a list of Template objects.
 type TemplateList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of templates
 	Items []Template `json:"items" description:"list of templates"`

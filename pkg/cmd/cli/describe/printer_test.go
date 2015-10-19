@@ -9,8 +9,8 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -130,7 +130,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "other-ref",
-								Created:              kutil.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 								Image:                "other-image",
 							},
 						},
@@ -139,7 +139,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "latest-ref",
-								Created:              kutil.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 								Image:                "latest-image",
 							},
 						},
@@ -155,7 +155,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "other-ref",
-								Created:              kutil.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 								Image:                "other-image",
 							},
 						},
@@ -164,7 +164,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "latest-ref",
-								Created:              kutil.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 								Image:                "latest-image",
 							},
 						},
@@ -173,7 +173,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "third-ref",
-								Created:              kutil.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+								Created:              unversioned.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
 								Image:                "third-image",
 							},
 						},
@@ -189,7 +189,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "other-ref",
-								Created:              kutil.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+								Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 								Image:                "other-image",
 							},
 						},
@@ -198,7 +198,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "latest-ref",
-								Created:              kutil.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+								Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 								Image:                "latest-image",
 							},
 						},
@@ -207,7 +207,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "third-ref",
-								Created:              kutil.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+								Created:              unversioned.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
 								Image:                "third-image",
 							},
 						},
@@ -216,7 +216,7 @@ func mockStreams() []*imageapi.ImageStream {
 						Items: []imageapi.TagEvent{
 							{
 								DockerImageReference: "another-ref",
-								Created:              kutil.Date(2015, 9, 4, 13, 55, 0, 0, time.UTC),
+								Created:              unversioned.Date(2015, 9, 4, 13, 55, 0, 0, time.UTC),
 								Image:                "another-image",
 							},
 						},

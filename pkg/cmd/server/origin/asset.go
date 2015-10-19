@@ -163,7 +163,9 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 
 	versions := sets.NewString()
 	versions.Insert(latest.Versions...)
-	versions.Insert(klatest.Versions...)
+	versions.Insert(klatest.VersionsForLegacyGroup()...)
+	deadOriginVersions := sets.NewString(configapi.DeadOpenShiftAPILevels...)
+	deadKubernetesVersions := sets.NewString(configapi.DeadKubernetesAPILevels...)
 	for _, version := range versions.List() {
 		for kind, t := range api.Scheme.KnownTypes(version) {
 			if strings.Contains(t.PkgPath(), "kubernetes/pkg/expapi") {
@@ -174,9 +176,13 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 			}
 			resource, _ := meta.KindToResource(kind, false)
 			if latest.OriginKind(kind, version) {
-				originResources.Insert(resource)
+				if !deadOriginVersions.Has(version) {
+					originResources.Insert(resource)
+				}
 			} else {
-				k8sResources.Insert(resource)
+				if !deadKubernetesVersions.Has(version) {
+					k8sResources.Insert(resource)
+				}
 			}
 		}
 	}
@@ -195,7 +201,6 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 	config := assets.WebConsoleConfig{
 		MasterAddr:          masterURL.Host,
 		MasterPrefix:        OpenShiftAPIPrefix,
-		MasterLegacyPrefix:  LegacyOpenShiftAPIPrefix,
 		MasterResources:     originResources.List(),
 		KubernetesAddr:      masterURL.Host,
 		KubernetesPrefix:    KubernetesAPIPrefix,

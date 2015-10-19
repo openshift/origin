@@ -94,7 +94,13 @@ func OriginKind(kind, apiVersion string) bool {
 }
 
 func init() {
-	kubeMapper := klatest.RESTMapper
+	// this keeps us consistent with old code.  We can decide if we want to expand our RESTMapper to cover
+	// api.RESTMapper, which is different than what you'd get from latest.
+	kubeAPIGroup, err := klatest.Group("")
+	if err != nil {
+		panic(err)
+	}
+	kubeMapper := kubeAPIGroup.RESTMapper
 
 	// list of versions we support on the server, in preferred order
 	versions := []string{"v1", "v1beta3"}

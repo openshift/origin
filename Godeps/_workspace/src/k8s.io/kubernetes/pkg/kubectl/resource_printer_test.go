@@ -28,8 +28,10 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apis/experimental"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	kubectltesting "k8s.io/kubernetes/pkg/kubectl/testing"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -37,23 +39,12 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-type testStruct struct {
-	api.TypeMeta   `json:",inline"`
-	api.ObjectMeta `json:"metadata,omitempty"`
-	Key            string         `json:"Key"`
-	Map            map[string]int `json:"Map"`
-	StringList     []string       `json:"StringList"`
-	IntList        []int          `json:"IntList"`
-}
-
-func (ts *testStruct) IsAnAPIObject() {}
-
 func init() {
-	api.Scheme.AddKnownTypes("", &testStruct{})
-	api.Scheme.AddKnownTypes(testapi.Default.Version(), &testStruct{})
+	api.Scheme.AddKnownTypes("", &kubectltesting.TestStruct{})
+	api.Scheme.AddKnownTypes(testapi.Default.Version(), &kubectltesting.TestStruct{})
 }
 
-var testData = testStruct{
+var testData = kubectltesting.TestStruct{
 	Key:        "testValue",
 	Map:        map[string]int{"TestSubkey": 1},
 	StringList: []string{"a", "b", "c"},
@@ -61,13 +52,13 @@ var testData = testStruct{
 }
 
 func TestVersionedPrinter(t *testing.T) {
-	original := &testStruct{Key: "value"}
+	original := &kubectltesting.TestStruct{Key: "value"}
 	p := NewVersionedPrinter(
 		ResourcePrinterFunc(func(obj runtime.Object, w io.Writer) error {
 			if obj == original {
 				t.Fatalf("object should not be identical: %#v", obj)
 			}
-			if obj.(*testStruct).Key != "value" {
+			if obj.(*kubectltesting.TestStruct).Key != "value" {
 				t.Fatalf("object was not converted: %#v", obj)
 			}
 			return nil
@@ -176,14 +167,14 @@ func testPrinter(t *testing.T, printer ResourcePrinter, unmarshalFunc func(data 
 	if err != nil {
 		t.Fatal(err)
 	}
-	var poutput testStruct
+	var poutput kubectltesting.TestStruct
 	// Verify that given function runs without error.
 	err = unmarshalFunc(buf.Bytes(), &poutput)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// Use real decode function to undo the versioning process.
-	poutput = testStruct{}
+	poutput = kubectltesting.TestStruct{}
 	err = runtime.YAMLDecoder(testapi.Default.Codec()).DecodeInto(buf.Bytes(), &poutput)
 	if err != nil {
 		t.Fatal(err)
@@ -292,7 +283,7 @@ func TestNamePrinter(t *testing.T) {
 	}{
 		"singleObject": {
 			&api.Pod{
-				TypeMeta: api.TypeMeta{
+				TypeMeta: unversioned.TypeMeta{
 					Kind: "Pod",
 				},
 				ObjectMeta: api.ObjectMeta{
@@ -302,7 +293,7 @@ func TestNamePrinter(t *testing.T) {
 			"pod/foo\n"},
 		"List": {
 			&v1.List{
-				TypeMeta: v1.TypeMeta{
+				TypeMeta: unversioned.TypeMeta{
 					Kind: "List",
 				},
 				Items: []runtime.RawExtension{
@@ -389,7 +380,7 @@ func TestTemplateStrings(t *testing.T) {
 							Name: "bar",
 							State: api.ContainerState{
 								Running: &api.ContainerStateRunning{
-									StartedAt: util.Time{},
+									StartedAt: unversioned.Time{},
 								},
 							},
 						},
@@ -406,7 +397,7 @@ func TestTemplateStrings(t *testing.T) {
 							Name: "foo",
 							State: api.ContainerState{
 								Running: &api.ContainerStateRunning{
-									StartedAt: util.Time{},
+									StartedAt: unversioned.Time{},
 								},
 							},
 						},
@@ -414,7 +405,7 @@ func TestTemplateStrings(t *testing.T) {
 							Name: "bar",
 							State: api.ContainerState{
 								Running: &api.ContainerStateRunning{
-									StartedAt: util.Time{},
+									StartedAt: unversioned.Time{},
 								},
 							},
 						},
@@ -513,22 +504,22 @@ func TestPrintEventsResultSorted(t *testing.T) {
 			{
 				Source:         api.EventSource{Component: "kubelet"},
 				Message:        "Item 1",
-				FirstTimestamp: util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
-				LastTimestamp:  util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				FirstTimestamp: unversioned.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  unversioned.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
 			},
 			{
 				Source:         api.EventSource{Component: "scheduler"},
 				Message:        "Item 2",
-				FirstTimestamp: util.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
-				LastTimestamp:  util.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
+				FirstTimestamp: unversioned.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  unversioned.NewTime(time.Date(1987, time.June, 17, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
 			},
 			{
 				Source:         api.EventSource{Component: "kubelet"},
 				Message:        "Item 3",
-				FirstTimestamp: util.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
-				LastTimestamp:  util.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
+				FirstTimestamp: unversioned.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  unversioned.NewTime(time.Date(2002, time.December, 25, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
 			},
 		},
@@ -908,8 +899,8 @@ func TestPrintHumanReadableWithNamespace(t *testing.T) {
 				ObjectMeta:     api.ObjectMeta{Name: name, Namespace: namespaceName},
 				Source:         api.EventSource{Component: "kubelet"},
 				Message:        "Item 1",
-				FirstTimestamp: util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
-				LastTimestamp:  util.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				FirstTimestamp: unversioned.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				LastTimestamp:  unversioned.NewTime(time.Date(2014, time.January, 15, 0, 0, 0, 0, time.UTC)),
 				Count:          1,
 			},
 			isNamespaced: true,
@@ -1214,16 +1205,16 @@ type stringTestList []struct {
 
 func TestTranslateTimestamp(t *testing.T) {
 	tl := stringTestList{
-		{"a while from now", translateTimestamp(util.Time{Time: time.Now().Add(2.1e9)}), "<invalid>"},
-		{"almost now", translateTimestamp(util.Time{Time: time.Now().Add(1.9e9)}), "0s"},
-		{"now", translateTimestamp(util.Time{Time: time.Now()}), "0s"},
-		{"unknown", translateTimestamp(util.Time{}), "<unknown>"},
-		{"30 seconds ago", translateTimestamp(util.Time{Time: time.Now().Add(-3e10)}), "30s"},
-		{"5 minutes ago", translateTimestamp(util.Time{Time: time.Now().Add(-3e11)}), "5m"},
-		{"an hour ago", translateTimestamp(util.Time{Time: time.Now().Add(-6e12)}), "1h"},
-		{"2 days ago", translateTimestamp(util.Time{Time: time.Now().AddDate(0, 0, -2)}), "2d"},
-		{"months ago", translateTimestamp(util.Time{Time: time.Now().AddDate(0, -3, 0)}), "92d"},
-		{"10 years ago", translateTimestamp(util.Time{Time: time.Now().AddDate(-10, 0, 0)}), "10y"},
+		{"a while from now", translateTimestamp(unversioned.Time{Time: time.Now().Add(2.1e9)}), "<invalid>"},
+		{"almost now", translateTimestamp(unversioned.Time{Time: time.Now().Add(1.9e9)}), "0s"},
+		{"now", translateTimestamp(unversioned.Time{Time: time.Now()}), "0s"},
+		{"unknown", translateTimestamp(unversioned.Time{}), "<unknown>"},
+		{"30 seconds ago", translateTimestamp(unversioned.Time{Time: time.Now().Add(-3e10)}), "30s"},
+		{"5 minutes ago", translateTimestamp(unversioned.Time{Time: time.Now().Add(-3e11)}), "5m"},
+		{"an hour ago", translateTimestamp(unversioned.Time{Time: time.Now().Add(-6e12)}), "1h"},
+		{"2 days ago", translateTimestamp(unversioned.Time{Time: time.Now().AddDate(0, 0, -2)}), "2d"},
+		{"months ago", translateTimestamp(unversioned.Time{Time: time.Now().AddDate(0, -3, 0)}), "92d"},
+		{"10 years ago", translateTimestamp(unversioned.Time{Time: time.Now().AddDate(-10, 0, 0)}), "10y"},
 	}
 	for _, test := range tl {
 		if test.got != test.exp {
@@ -1235,22 +1226,22 @@ func TestTranslateTimestamp(t *testing.T) {
 
 func TestPrintDeployment(t *testing.T) {
 	tests := []struct {
-		deployment experimental.Deployment
+		deployment extensions.Deployment
 		expect     string
 	}{
 		{
-			experimental.Deployment{
+			extensions.Deployment{
 				ObjectMeta: api.ObjectMeta{
 					Name:              "test1",
-					CreationTimestamp: util.Time{Time: time.Now().Add(1.9e9)},
+					CreationTimestamp: unversioned.Time{Time: time.Now().Add(1.9e9)},
 				},
-				Spec: experimental.DeploymentSpec{
+				Spec: extensions.DeploymentSpec{
 					Replicas: 5,
 					Template: &api.PodTemplateSpec{
 						Spec: api.PodSpec{Containers: make([]api.Container, 2)},
 					},
 				},
-				Status: experimental.DeploymentStatus{
+				Status: extensions.DeploymentStatus{
 					Replicas:        10,
 					UpdatedReplicas: 2,
 				},

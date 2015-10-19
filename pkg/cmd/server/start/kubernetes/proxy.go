@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/kubernetes/cmd/kube-proxy/app"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util"
 )
 
@@ -20,7 +21,7 @@ This command launches an instance of the Kubernetes proxy (kube-proxy).`
 
 // NewProxyCommand provides a CLI handler for the 'proxy' command
 func NewProxyCommand(name, fullName string, out io.Writer) *cobra.Command {
-	s := app.NewProxyServer()
+	proxyConfig := app.NewProxyConfig()
 
 	cmd := &cobra.Command{
 		Use:   name,
@@ -31,6 +32,9 @@ func NewProxyCommand(name, fullName string, out io.Writer) *cobra.Command {
 
 			util.InitLogs()
 			defer util.FlushLogs()
+
+			s, err := app.NewProxyServerDefault(proxyConfig)
+			kcmdutil.CheckErr(err)
 
 			if err := s.Run(pflag.CommandLine.Args()); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -43,7 +47,7 @@ func NewProxyCommand(name, fullName string, out io.Writer) *cobra.Command {
 	flags := cmd.Flags()
 	flags.SetNormalizeFunc(util.WordSepNormalizeFunc)
 	flags.AddGoFlagSet(flag.CommandLine)
-	s.AddFlags(flags)
+	proxyConfig.AddFlags(flags)
 
 	return cmd
 }

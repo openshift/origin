@@ -9,6 +9,8 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/test"
@@ -51,9 +53,33 @@ func newStorage() (*rest.WebHook, *buildConfigInstantiator, *test.BuildConfigReg
 
 func TestNewWebHook(t *testing.T) {
 	hook, _, _ := newStorage()
-	if out, ok := hook.New().(*kapi.Status); !ok {
+	if out, ok := hook.New().(*unversioned.Status); !ok {
 		t.Errorf("unexpected new: %#v", out)
 	}
+}
+
+type fakeResponder struct {
+	called     bool
+	statusCode int
+	object     runtime.Object
+	err        error
+}
+
+func (r *fakeResponder) Object(statusCode int, obj runtime.Object) {
+	if r.called {
+		panic("called twice")
+	}
+	r.called = true
+	r.statusCode = statusCode
+	r.object = obj
+}
+
+func (r *fakeResponder) Error(err error) {
+	if r.called {
+		panic("called twice")
+	}
+	r.called = true
+	r.err = err
 }
 
 func TestConnectWebHook(t *testing.T) {
@@ -106,14 +132,15 @@ func TestConnectWebHook(t *testing.T) {
 		if testCase.RegErr != nil {
 			registry.Err = testCase.RegErr
 		}
-		handler, err := hook.Connect(kapi.NewDefaultContext(), testCase.Name, &kapi.PodProxyOptions{Path: testCase.Path})
+		responder := &fakeResponder{}
+		handler, err := hook.Connect(kapi.NewDefaultContext(), testCase.Name, &kapi.PodProxyOptions{Path: testCase.Path}, responder)
 		if err != nil {
 			t.Errorf("%s: %v", k, err)
 			continue
 		}
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, &http.Request{})
-		if err := handler.RequestError(); !testCase.ErrFn(err) {
+		if err := responder.err; !testCase.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)
 			continue
 		}

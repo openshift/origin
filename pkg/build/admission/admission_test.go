@@ -28,6 +28,7 @@ func TestBuildAdmission(t *testing.T) {
 		reviewResponse   *authorizationapi.SubjectAccessReviewResponse
 		expectedResource string
 		expectAccept     bool
+		expectedError    string
 	}{
 		{
 			name:             "allowed source build",
@@ -125,6 +126,7 @@ func TestBuildAdmission(t *testing.T) {
 			resource:       buildConfigsResource,
 			reviewResponse: reviewResponse(true, ""),
 			expectAccept:   false,
+			expectedError:  "Internal error occurred: [Unrecognized request object &admission.fakeObject{}, couldn't find ObjectMeta field in admission.fakeObject{}]",
 		},
 	}
 
@@ -135,8 +137,12 @@ func TestBuildAdmission(t *testing.T) {
 		if err != nil && test.expectAccept {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}
-		if (err == nil || !apierrors.IsForbidden(err)) && !test.expectAccept {
-			t.Errorf("%s: expecting reject error", test.name)
+
+		if !apierrors.IsForbidden(err) && !test.expectAccept {
+			if (len(test.expectedError) != 0) || (test.expectedError == err.Error()) {
+				continue
+			}
+			t.Errorf("%s: expecting reject error, got %v", test.name, err)
 		}
 	}
 }

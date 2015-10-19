@@ -16,7 +16,6 @@ limitations under the License.
 
 package oidc
 
-/*
 import (
 	"bytes"
 	"crypto/rand"
@@ -394,4 +393,3 @@ func TestOIDCAuthentication(t *testing.T) {
 		}
 	}
 }
-*/

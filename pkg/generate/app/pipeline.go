@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/runtime"
 	kutil "k8s.io/kubernetes/pkg/util"
+	kuval "k8s.io/kubernetes/pkg/util/validation"
 
 	deploy "github.com/openshift/origin/pkg/deploy/api"
 	image "github.com/openshift/origin/pkg/image/api"
@@ -174,8 +175,8 @@ func makeValidServiceName(name string) (string, string) {
 	switch {
 	case len(name) == 0:
 		return "", "service-"
-	case len(name) > kutil.DNS952LabelMaxLength:
-		name = name[:kutil.DNS952LabelMaxLength]
+	case len(name) > kuval.DNS952LabelMaxLength:
+		name = name[:kuval.DNS952LabelMaxLength]
 	}
 	return name, ""
 }

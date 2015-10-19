@@ -92,7 +92,7 @@ func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
 	return item.(*api.Service), nil
 }
 
-func (a cachedServiceNamespacer) List(label labels.Selector) (*api.ServiceList, error) {
+func (a cachedServiceNamespacer) List(label labels.Selector, field fields.Selector) (*api.ServiceList, error) {
 	if !label.Empty() {
 		return nil, fmt.Errorf("label selection on the cache is not currently implemented")
 	}

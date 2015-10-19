@@ -235,7 +235,7 @@ func TestGet(t *testing.T) {
 		fakeEtcdClient, _, storage := setup(t)
 
 		if test.repo != nil {
-			fakeEtcdClient.Data["/imagestreams/default/repo"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/repo")] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: &etcd.Node{
 						Value: runtime.EncodeOrDie(latest.Codec, test.repo),
@@ -243,7 +243,7 @@ func TestGet(t *testing.T) {
 				},
 			}
 		} else {
-			fakeEtcdClient.Data["/imagestreams/default/repo"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/repo")] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: nil,
 				},
@@ -252,7 +252,7 @@ func TestGet(t *testing.T) {
 		}
 
 		if test.image != nil {
-			fakeEtcdClient.Data["/images/id"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/images/id")] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: &etcd.Node{
 						Value: runtime.EncodeOrDie(latest.Codec, test.image),
@@ -260,7 +260,7 @@ func TestGet(t *testing.T) {
 				},
 			}
 		} else {
-			fakeEtcdClient.Data["/images/id"] = tools.EtcdResponseWithError{
+			fakeEtcdClient.Data[etcdtest.AddPrefix("/images/id")] = tools.EtcdResponseWithError{
 				R: &etcd.Response{
 					Node: nil,
 				},

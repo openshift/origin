@@ -2,6 +2,7 @@ package proxy
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -54,7 +55,7 @@ func (s *ClusterRoleStorage) Delete(ctx kapi.Context, name string, options *kapi
 		return nil, err
 	}
 
-	return ret.(*kapi.Status), err
+	return ret.(*unversioned.Status), err
 }
 
 func (s *ClusterRoleStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {

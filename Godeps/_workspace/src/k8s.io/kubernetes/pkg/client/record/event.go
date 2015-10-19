@@ -17,15 +17,18 @@ limitations under the License.
 package record
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/strategicpatch"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
@@ -44,6 +47,7 @@ const maxQueuedEvents = 1000
 type EventSink interface {
 	Create(event *api.Event) (*api.Event, error)
 	Update(event *api.Event) (*api.Event, error)
+	Patch(oldEvent *api.Event, data []byte) (*api.Event, error)
 }
 
 // EventRecorder knows how to record events on behalf of an EventSource.
@@ -64,7 +68,7 @@ type EventRecorder interface {
 	Eventf(object runtime.Object, reason, messageFmt string, args ...interface{})
 
 	// PastEventf is just like Eventf, but with an option to specify the event's 'timestamp' field.
-	PastEventf(object runtime.Object, timestamp util.Time, reason, messageFmt string, args ...interface{})
+	PastEventf(object runtime.Object, timestamp unversioned.Time, reason, messageFmt string, args ...interface{})
 }
 
 // EventBroadcaster knows how to receive events and send them to any EventSink, watcher, or log.
@@ -103,25 +107,33 @@ func (eventBroadcaster *eventBroadcasterImpl) StartRecordingToSink(sink EventSin
 	// The default math/rand package functions aren't thread safe, so create a
 	// new Rand object for each StartRecording call.
 	randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
+	var eventCache *historyCache = NewEventCache()
 	return eventBroadcaster.StartEventWatcher(
 		func(event *api.Event) {
 			// Make a copy before modification, because there could be multiple listeners.
 			// Events are safe to copy like this.
 			eventCopy := *event
 			event = &eventCopy
-
-			previousEvent := getEvent(event)
+			var patch []byte
+			previousEvent := eventCache.getEvent(event)
 			updateExistingEvent := previousEvent.Count > 0
 			if updateExistingEvent {
-				event.Count = previousEvent.Count + 1
-				event.FirstTimestamp = previousEvent.FirstTimestamp
+				// we still need to copy Name because the Patch relies on the Name to find the target event
 				event.Name = previousEvent.Name
-				event.ResourceVersion = previousEvent.ResourceVersion
+				event.Count = previousEvent.Count + 1
+
+				// we need to make sure the Count and LastTimestamp are the only differences between event and the eventCopy2
+				eventCopy2 := *event
+				eventCopy2.Count = 0
+				eventCopy2.LastTimestamp = unversioned.NewTime(time.Unix(0, 0))
+				newData, _ := json.Marshal(event)
+				oldData, _ := json.Marshal(eventCopy2)
+				patch, _ = strategicpatch.CreateStrategicMergePatch(oldData, newData, event)
 			}
 
 			tries := 0
 			for {
-				if recordEvent(sink, event, updateExistingEvent) {
+				if recordEvent(sink, event, patch, updateExistingEvent, eventCache) {
 					break
 				}
 				tries++
@@ -155,11 +167,11 @@ func isKeyNotFoundError(err error) bool {
 // was successfully recorded or discarded, false if it should be retried.
 // If updateExistingEvent is false, it creates a new event, otherwise it updates
 // existing event.
-func recordEvent(sink EventSink, event *api.Event, updateExistingEvent bool) bool {
+func recordEvent(sink EventSink, event *api.Event, patch []byte, updateExistingEvent bool, eventCache *historyCache) bool {
 	var newEvent *api.Event
 	var err error
 	if updateExistingEvent {
-		newEvent, err = sink.Update(event)
+		newEvent, err = sink.Patch(event, patch)
 	}
 	// Update can fail because the event may have been removed and it no longer exists.
 	if !updateExistingEvent || (updateExistingEvent && isKeyNotFoundError(err)) {
@@ -168,7 +180,7 @@ func recordEvent(sink EventSink, event *api.Event, updateExistingEvent bool) boo
 		newEvent, err = sink.Create(event)
 	}
 	if err == nil {
-		addOrUpdateEvent(newEvent)
+		eventCache.addOrUpdateEvent(newEvent)
 		return true
 	}
 
@@ -230,41 +242,42 @@ func (eventBroadcaster *eventBroadcasterImpl) StartEventWatcher(eventHandler fun
 
 // NewRecorder returns an EventRecorder that records events with the given event source.
 func (eventBroadcaster *eventBroadcasterImpl) NewRecorder(source api.EventSource) EventRecorder {
-	return &recorderImpl{source, eventBroadcaster.Broadcaster}
+	return &recorderImpl{source, eventBroadcaster.Broadcaster, util.RealClock{}}
 }
 
 type recorderImpl struct {
 	source api.EventSource
 	*watch.Broadcaster
+	clock util.Clock
 }
 
-func (recorder *recorderImpl) generateEvent(object runtime.Object, timestamp util.Time, reason, message string) {
+func (recorder *recorderImpl) generateEvent(object runtime.Object, timestamp unversioned.Time, reason, message string) {
 	ref, err := api.GetReference(object)
 	if err != nil {
 		glog.Errorf("Could not construct reference to: '%#v' due to: '%v'. Will not report event: '%v' '%v'", object, err, reason, message)
 		return
 	}
 
-	event := makeEvent(ref, reason, message)
+	event := recorder.makeEvent(ref, reason, message)
 	event.Source = recorder.source
 
 	recorder.Action(watch.Added, event)
 }
 
 func (recorder *recorderImpl) Event(object runtime.Object, reason, message string) {
-	recorder.generateEvent(object, util.Now(), reason, message)
+	recorder.generateEvent(object, unversioned.Now(), reason, message)
 }
 
 func (recorder *recorderImpl) Eventf(object runtime.Object, reason, messageFmt string, args ...interface{}) {
 	recorder.Event(object, reason, fmt.Sprintf(messageFmt, args...))
 }
 
-func (recorder *recorderImpl) PastEventf(object runtime.Object, timestamp util.Time, reason, messageFmt string, args ...interface{}) {
+func (recorder *recorderImpl) PastEventf(object runtime.Object, timestamp unversioned.Time, reason, messageFmt string, args ...interface{}) {
 	recorder.generateEvent(object, timestamp, reason, fmt.Sprintf(messageFmt, args...))
 }
 
-func makeEvent(ref *api.ObjectReference, reason, message string) *api.Event {
-	t := util.Now()
+func (recorder *recorderImpl) makeEvent(ref *api.ObjectReference, reason, message string) *api.Event {
+	t := unversioned.Time{recorder.clock.Now()}
 	namespace := ref.Namespace
 	if namespace == "" {
 		namespace = api.NamespaceDefault
