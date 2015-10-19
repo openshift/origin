@@ -22,7 +22,7 @@ function cleanup()
     if [ $out -ne 0 ]; then
         echo "[FAIL] !!!!! Test Failed !!!!"
         echo
-        cat "${LOG_DIR}/openshift.log"
+        tail -40 "${LOG_DIR}/openshift.log"
         echo
         echo -------------------------------------
         echo
@@ -31,7 +31,7 @@ function cleanup()
           echo
           echo "pprof: top output"
           echo
-          go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof
+          go tool pprof -text ./_output/local/bin/$(os::util::host_platform)/openshift cpu.pprof | head -120
         fi
 
         echo
