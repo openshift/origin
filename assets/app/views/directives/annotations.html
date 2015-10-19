@@ -1,8 +1,8 @@
 <div ng-if="annotations">
   <a href="" ng-click="toggleAnnotations()" ng-if="annotations && !expandAnnotations">Show annotations</a>
   <a href="" ng-click="toggleAnnotations()" ng-if="annotations && expandAnnotations">Hide annotations</a>
-  <div class="table-responsive" style="margin-top: 5px;">
-    <table ng-if="expandAnnotations" class="table table-bordered table-bordered-columns">
+  <div ng-if="expandAnnotations" class="table-responsive" style="margin-top: 5px;">
+    <table class="table table-bordered table-bordered-columns">
       <tbody>
         <tr ng-repeat="(annotationKey, annotationValue) in annotations">
           <td style="padding-right: 10px; vertical-align: top;">{{annotationKey}}</td>

@@ -705,7 +705,12 @@ pre.clipped {
   }
 
   + .k8s-label {
-    margin-left: 5px;
+    margin-left: 2px;
+
+    &:before {
+      content: ' ';
+      white-space: normal;
+    }
   }
 }
 
