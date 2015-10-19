@@ -18,7 +18,7 @@
           <tr><td colspan="6"><em>{{emptyMessage}}</em></td></tr>
         </tbody>
         <tbody ng-repeat="route in routes | orderObjectsByDate : true">
-          <tr>
+          <tr class="expandable" ng-hide="expanded" ng-click="expanded = (expanded | toggleIfNotLink : $event)">
             <td data-title="Name"><a href="project/{{projectName}}/browse/routes/{{route.metadata.name}}">{{route.metadata.name}}</a></td>
             <td data-title="Hostname">
               <div ng-if="(route | isWebRoute)" class="word-break">
@@ -35,6 +35,42 @@
             </td>
             <td data-title="Age"><relative-timestamp timestamp="route.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
           </tr>
+          <tr class="expanded" ng-show="expanded">
+            <td colspan="4" style="padding: 0;">
+              <tr-expanded header="{{route.metadata.name}}" icon-class="pficon pficon-route" on-close="expanded = !expanded">
+                <div row>
+                  <div flex>
+                    <dl class="dl-horizontal">
+                      <dt>Name</dt>
+                      <dd>{{route.metadata.name}}</dd>
+                      <dt>Hostname</dt>
+                      <dd>
+                        <div ng-if="(route | isWebRoute)" class="word-break">
+                          <a href="{{route | routeWebURL}}" target="_blank">{{route | routeLabel}}</a>
+                        </div>
+                        <div ng-if="!(route | isWebRoute)" class="word-break">
+                          {{route | routeLabel}}
+                        </div>
+                      </dd>
+                      <dt>Routes to</dt>
+                      <dd>
+                        <span>{{route.spec.to.kind}}: </span>
+                        <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
+                        <span ng-if="route.spec.to.kind == 'Service'"><a href="project/{{projectName}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></span>
+                      </dd>
+                      <dt>Age</dt>
+                      <dd><relative-timestamp timestamp="route.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></dd>
+                    </dl>
+                  </div>
+                  <div flex>
+                    <span><strong>Labels</strong></span>
+                    <div ng-if="!route.metadata.labels"><em>No labels</em></div>
+                    <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}"></labels>
+                  </div>
+                </div>
+              </tr-expanded>
+            </td>
+          </tr>          
         </tbody>
       </table>
     </div>

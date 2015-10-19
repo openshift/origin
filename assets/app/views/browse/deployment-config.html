@@ -94,7 +94,7 @@
           <tr><td colspan="4" data-title="Deployment"><em>{{emptyMessage}}</em></td></tr>
         </tbody>
         <tbody ng-repeat="deployment in deployments | orderObjectsByDate : true">
-          <tr>
+          <tr class="expandable" ng-hide="expanded" ng-click="expanded = (expanded | toggleIfNotLink : $event)">
             <td data-title="Deployment">
               <!-- Deployment number and link -->
               <span ng-if="deployment | annotation : 'deploymentVersion'">
@@ -145,6 +145,67 @@
               </span>              
           </td>
         </tr>
+        <tr class="expanded" ng-show="expanded">
+          <td colspan="4" style="padding: 0;">
+            <tr-expanded header="{{deployment.metadata.name}}" icon-class="pficon pficon-replicator" on-close="expanded = !expanded">
+              <div row>
+                <div flex>
+                  <dl class="dl-horizontal">
+                    <dt>Name</dt>
+                    <dd>{{deployment.metadata.name}}</dd>
+                    <dt>Status</dt>
+                    <dd>
+                      <div row class="status">
+                        <!-- Deployment status -->
+                        <span ng-switch="deployment | deploymentStatus" class="hide-ng-leave status-icon">
+                          <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>              
+                          <span ng-switch-when="Deployed" class="fa fa-check text-success" aria-hidden="true"></span>
+                          <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
+                          <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
+                          <span ng-switch-when="New" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
+                          <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
+                          <span ng-switch-default class="fa fa-refresh" aria-hidden="true"></span>
+                        </span>
+                        <span flex>
+                          {{deployment | deploymentStatus}}<span ng-if="(deployment | deploymentStatus) == 'Deployed' || (deployment | deploymentStatus) == 'Running'">, 
+                          <span ng-if="deployment.spec.replicas !== deployment.status.replicas">{{deployment.status.replicas}}/</span>{{deployment.spec.replicas}} replica<span ng-if="deployment.spec.replicas != 1">s</span></span>
+                        </span>
+                        <!-- TODO would be nice to have the deploymentStatusReason in a popup, when there is one -->
+                      </div>
+                    </dd>
+                    <dt>Created</dt>
+                    <dd>
+                      <relative-timestamp timestamp="deployment.metadata.creationTimestamp"></relative-timestamp>
+                      <span>- {{deployment.metadata.creationTimestamp | date : 'short'}}</span>
+                    </dd>
+                    <dt>Trigger</dt>
+                    <dd>
+                      <span ng-if="!deployment.causes.length">Unknown</span>
+                      <span ng-if="deployment.causes.length">
+                        <span ng-repeat="cause in deployment.causes">
+                          <span ng-switch="cause.type">
+                            <span ng-switch-when="ImageChange">
+                              <span ng-if="cause.imageTrigger.from">
+                                <abbr title="{{cause.imageTrigger.from | imageObjectRef : null : true}}">Image</abbr> change
+                              </span>
+                            </span>
+                            <span ng-switch-when="ConfigChange">Config change</span>
+                            <span ng-switch-default>{{cause.type}}</span>
+                          </span>
+                        </span>
+                      </span>                        
+                    </dd>
+                  </dl>
+                </div>
+                <div flex>
+                  <span><strong>Labels</strong></span>
+                  <div ng-if="!deployment.metadata.labels"><em>No labels</em></div>
+                  <labels labels="deployment.metadata.labels" clickable="true" kind="deployments" title-kind="deployments for deployment config {{deploymentConfig.metadata.name}}" project-name="{{deployment.metadata.namespace}}" limit="3" navigate-url="project/{{deployment.metadata.namespace}}/browse/deployments/{{deploymentConfig.metadata.name}}"></labels>
+                </div>
+              </div>
+            </tr-expanded>
+          </td>
+        </tr>         
       </tbody>
       </table>
     </div>

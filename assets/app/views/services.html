@@ -5,7 +5,7 @@
         <h1>Services</h1>
       </div>
       <alerts alerts="alerts"></alerts>
-      <table class="table table-bordered table-hover table-mobile">
+      <table class="table table-bordered table-hover table-mobile table-expandable-rows">
         <thead>
           <tr>
             <th>Name</th>
@@ -20,7 +20,7 @@
           <tr><td colspan="6"><em>{{emptyMessage}}</em></td></tr>
         </tbody>
         <tbody ng-repeat="service in services | orderObjectsByDate : true">
-          <tr>
+          <tr class="expandable" ng-hide="expanded" ng-click="expanded = (expanded | toggleIfNotLink : $event)">
             <td data-title="Name"><a href="project/{{projectName}}/browse/services/{{service.metadata.name}}">{{service.metadata.name}}</a></td>
             <td data-title="Cluster IP">{{service.spec.clusterIP}}</td>
             <td data-title="External IP">
@@ -43,6 +43,50 @@
             </td>
             <td data-title="Age"><relative-timestamp timestamp="service.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
           </tr>
+          <tr class="expanded" ng-show="expanded">
+            <td colspan="6" style="padding: 0;">
+              <tr-expanded header="{{service.metadata.name}}" icon-class="pficon pficon-service" on-close="expanded = !expanded">
+                <div row>
+                  <div flex>
+                    <dl class="dl-horizontal">
+                      <dt>Name</dt>
+                      <dd>{{service.metadata.name}}</dd>
+                      <dt>Cluster IP</dt>
+                      <dd>{{service.spec.clusterIP}}</dd>
+                      <dt>External IP</dt>
+                      <dd>
+                        <span ng-if="!service.status.loadBalancer.ingress.length"><em>none</em></span>
+                        <span ng-repeat="ingress in service.status.loadBalancer.ingress | limitTo: 4">{{ingress.ip}}<span ng-if="!$last">,
+                        </span></span><span ng-if="service.status.loadBalancer.ingress.length === 5">,
+                          {{service.status.loadBalancer.ingress[4].ip}}</span><span ng-if="service.status.loadBalancer.ingress.length > 5">,
+                          and {{service.status.loadBalancer.ingress.length - 4}} others</span>                        
+                      </dd>
+                      <dt>Ports</dt>
+                      <dd>
+                        <span ng-if="!service.spec.ports.length"><em>none</em></span>
+                        <span ng-repeat="portMapping in service.spec.ports | limitTo: 4">{{portMapping.port}} ({{portMapping.protocol}})<span ng-if="!$last">,
+                        </span></span><span ng-if="service.spec.ports.length === 5">,
+                          {{service.spec.ports[4].port}} ({{service.spec.ports[4].protocol}})</span><span ng-if="service.spec.ports.length > 5">,
+                          and {{service.spec.ports.length - 4}} others</span>                        
+                      </dd>
+                      <dt>Selector</dt>
+                      <dd>
+                        <span ng-if="!service.spec.selector"><em>none</em></span>
+                        <span ng-repeat="(selectorLabel, selectorValue) in service.spec.selector">{{selectorLabel}}={{selectorValue}}<span ng-show="!$last">, </span></span>                         
+                      </dd>                      
+                      <dt>Age</dt>
+                      <dd><relative-timestamp timestamp="service.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></dd>
+                    </dl>
+                  </div>
+                  <div flex>
+                    <span><strong>Labels</strong></span>
+                    <div ng-if="!service.metadata.labels"><em>No labels</em></div>
+                    <labels labels="service.metadata.labels" clickable="true" kind="services" project-name="{{service.metadata.namespace}}"></labels>
+                  </div>
+                </div>
+              </tr-expanded>
+            </td>
+          </tr>          
         </tbody>
       </table>
     </div>

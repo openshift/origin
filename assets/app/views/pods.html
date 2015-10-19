@@ -19,7 +19,7 @@
           <tr><td colspan="5"><em>{{emptyMessage}}</em></td></tr>
         </tbody>
         <tbody ng-repeat="pod in pods | orderObjectsByDate : true">
-          <tr class="expandable" ng-hide="expandedRow[pod.metadata.name]" ng-click="expandedRow[pod.metadata.name] = !expandedRow[pod.metadata.name]">
+          <tr class="expandable" ng-hide="expanded" ng-click="expanded = (expanded | toggleIfNotLink : $event)">
             <td data-title="Name"><a href="project/{{projectName}}/browse/pods/{{pod.metadata.name}}">{{pod.metadata.name}}</a></td>
             <td data-title="Status">
               <div row class="status">
@@ -37,9 +37,10 @@
             <td data-title="Restarts">{{pod | numContainerRestarts}}</td>
             <td data-title="Age"><relative-timestamp timestamp="pod.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
           </tr>
-          <tr class="expanded" ng-show="expandedRow[pod.metadata.name]">
+          <tr class="expanded" ng-show="expanded">
             <td colspan="5" style="padding: 0;">
-              <tr-expanded header="{{pod.metadata.name}}" icon-class="fa fa-cubes" on-close="collapseRow(pod.metadata.name)">
+              <!-- TODO after i can rebase on master, need to add header-url="{{pod | navigateResourceUrl}}" -->
+              <tr-expanded header="{{pod.metadata.name}}" icon-class="fa fa-cubes" on-close="expanded = !expanded">
                 <div row>
                   <div flex>
                     <dl class="dl-horizontal">

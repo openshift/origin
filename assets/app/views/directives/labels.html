@@ -1,5 +1,5 @@
 <div ng-if="(labels | hashSize) > 0">
-  <span ng-repeat="(labelKey, labelValue) in labels" class="k8s-label" ng-if="!limit || $index < limit">
+  <span ng-repeat-start="(labelKey, labelValue) in labels" class="k8s-label" ng-if="!limit || $index < limit">
     <span ng-if="clickable">
       <a href="" class="label-key badge" ng-click="filterAndNavigate(labelKey)" ng-attr-title="All {{titleKind || kind}} with the label '{{labelKey}}' (any value)">{{labelKey}}</a><a href="" class="label-value badge" ng-click="filterAndNavigate(labelKey, labelValue)" ng-attr-title="All {{titleKind || kind}} with the label '{{labelKey}}={{labelValue}}'">{{labelValue}}<span ng-if="labelValue === ''"><em>&lt;empty&gt;</em></span></a>
     </span>
@@ -7,5 +7,7 @@
       <span class="label-key badge">{{labelKey}}</span><span class="label-value badge">{{labelValue}}</span>
     </span>
   </span>
+  <!-- Siblings with white-space nowrap can't wrap in between them?? so throwing in an empty white-space normal to allow wrapping -->
+  <span ng-repeat-end style="white-space: normal;"></span>
   <a href="" class="small" ng-click="limit = null" ng-show="limit && limit < (labels | hashSize)" style="padding-left: 5px; vertical-align: middle;">More labels...</a>
 </div>

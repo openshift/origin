@@ -1,7 +1,7 @@
 <div style="border-top: 3px solid #00a8e1;">
   <div style="background: #f6f6f6; padding-left: 15px;">
     <div>
-      <h2 style="display: inline-block; margin-top: 15px; margin-bottom: 15px;"><i ng-if="iconClass" class="{{iconClass}}" style="margin-right: 10px;"></i>{{header}}</h2>
+      <h2 style="display: inline-block; margin-top: 15px; margin-bottom: 15px;"><i ng-if="iconClass" class="{{iconClass}}" style="margin-right: 10px;"></i><a ng-href='{{headerUrl}}'>{{header}}</a></h2>
       <span class="pull-right" style="margin-right: 10px; margin-top: 12px;">
         <!-- any actions go here -->
         <a class="btn btn-default btn-sm" href="" ng-click="close()"><span class="fa fa-times" style="width: 10px;"></span></a>

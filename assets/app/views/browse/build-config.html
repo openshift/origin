@@ -151,7 +151,7 @@
           <tr><td colspan="4" data-title="Build"><em>{{emptyMessage}}</em></td></tr>
         </tbody>
         <tbody ng-repeat="build in builds | orderObjectsByDate : true">
-          <tr>
+          <tr class="expandable" ng-hide="expanded" ng-click="expanded = (expanded | toggleIfNotLink : $event)">
             <td data-title="Build">
               <!-- Build number and link -->
               <span ng-if="build | annotation : 'buildNumber'">
@@ -195,6 +195,63 @@
               <span>- {{(build.status.startTimestamp || build.metadata.creationTimestamp) | date : 'short'}}</span>
             </td>
           </tr>
+          <tr class="expanded" ng-show="expanded">
+            <td colspan="3" style="padding: 0;">
+              <!-- TODO we probably need a different icon for "build" -->
+              <tr-expanded header="{{build.metadata.name}}" icon-class="fa fa-cogs" on-close="expanded = !expanded">
+                <div row>
+                  <div flex>
+                    <dl class="dl-horizontal">
+                      <dt>Name</dt>
+                      <dd>{{build.metadata.name}}</dd>
+                      <dt>Status</dt>
+                      <dd>
+                        <!-- TODO - this in particular is a very large block to be copied, would like to see this
+                             factored out into a directive -->
+                        <div row class="status">
+                          <!-- Build status -->
+                          <span ng-switch="build.status.phase" class="hide-ng-leave status-icon">
+                            <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
+                            <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
+                            <span ng-switch-when="Error" class="fa fa-times text-danger" aria-hidden="true"></span>
+                            <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>
+                            <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
+                            <span ng-switch-default class="fa fa-refresh" aria-hidden="true"></span>
+                          </span>
+                          <span flex>
+                            <span>{{build.status.phase}}</span>
+                            <!-- Build duration -->
+                            <span ng-switch="build.status.phase" class="hide-ng-leave">
+                              <span ng-switch-when="Complete"> in {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>
+                              <span ng-switch-when="Failed">after {{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                              <span ng-switch-when="Cancelled"> after {{(build.status.startTimestamp || build.metadata.creationTimestamp) | duration : build.status.completionTimestamp}}</span>                  
+                              <span ng-switch-when="Running"> for <duration-until-now timestamp="build.status.startTimestamp"></duration-until-now></span>
+                              <span ng-switch-when="New">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+                              <span ng-switch-when="Pending">, waiting for <duration-until-now timestamp="build.metadata.creationTimestamp"></duration-until-now></span>
+                              <span ng-switch-default>
+                                <span ng-if="build.status.startTimestamp"> in {{build.status.startTimestamp | duration : build.status.completionTimestamp}}</span>
+                                <span ng-if="!build.status.startTimestamp"> waited for {{build.metadata.creationTimestamp | duration : build.status.completionTimestamp}}</span>
+                              </span>
+                            </span>
+                          </span>
+                        </div>
+                      </dd>
+                      <dt>Started</dt>
+                      <dd>
+                        <relative-timestamp timestamp="build.status.startTimestamp || build.metadata.creationTimestamp"></relative-timestamp>
+                        <span>- {{(build.status.startTimestamp || build.metadata.creationTimestamp) | date : 'short'}}</span>
+                      </dd>
+                    </dl>
+                  </div>
+                  <div flex>
+                    <span><strong>Labels</strong></span>
+                    <div ng-if="!build.metadata.labels"><em>No labels</em></div>
+                    <labels labels="build.metadata.labels" clickable="true" kind="builds" title-kind="builds for build config {{buildConfig.metadata.name}}" project-name="{{build.metadata.namespace}}" limit="3" navigate-url="project/{{build.metadata.namespace}}/browse/builds/{{buildConfig.metadata.name}}"></labels>
+                  </div>
+                </div>
+              </tr-expanded>
+            </td>
+          </tr>                   
         </tbody>
       </table>
     </div>

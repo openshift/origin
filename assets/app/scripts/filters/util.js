@@ -331,4 +331,10 @@ angular.module('openshiftConsole')
         return json;
       }
     };
+  })
+  .filter('toggleIfNotLink', function() {
+    return function(boolValue, $event) {
+      var toggle = $event && $event.target && $event.target.tagName.toUpperCase() !== 'A';
+      return toggle ? !boolValue : boolValue;
+    };
   });

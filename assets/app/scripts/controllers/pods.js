@@ -11,8 +11,6 @@ angular.module('openshiftConsole')
   .controller('PodsController', function ($scope, DataService, $filter, LabelFilter, Logger) {
     $scope.pods = {};
     $scope.unfilteredPods = {};
-    $scope.expandedRow = {};
-    $scope.collapseRow = function(podName) {$scope.expandedRow[podName] = !$scope.expandedRow[podName];}
     // TODO should we add links to the image streams the pod is using
     // $scope.imageStreams = {};
     // $scope.imagesByDockerReference = {};

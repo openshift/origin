@@ -8,6 +8,7 @@ angular.module('openshiftConsole')
       replace: true,
       scope: {
         header: '@',
+        headerUrl: '@',
         iconClass: '@?',
         close: '&onClose'
       },
