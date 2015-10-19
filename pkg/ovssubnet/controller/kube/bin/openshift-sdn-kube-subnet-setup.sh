@@ -25,39 +25,18 @@ function docker_network_config() {
 	DOCKER_NETWORK_OPTIONS="-b=lbr0 --mtu=${mtu}"
     fi
 
+    local conf=/run/openshift-sdn/docker-network
     case "$1" in
 	check)
-	    if [ -f /.dockerinit ]; then
-		# Assume supervisord-managed docker for docker-in-docker deployments
-		conf=/etc/supervisord.conf
-		if ! grep -q -s "DOCKER_DAEMON_ARGS=\"${DOCKER_NETWORK_OPTIONS}\"" $conf; then
-		    return 1
-		fi
-	    else
-		# Otherwise assume systemd-managed docker
-		conf=/run/openshift-sdn/docker-network
-		if ! grep -q -s "DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'" $conf; then
-		    return 1
-		fi
+	    if ! grep -q -s "DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'" $conf; then
+		return 1
 	    fi
 	    return 0
 	    ;;
 
 	update)
-	    if [ -f /.dockerinit ]; then
-		conf=/etc/supervisord.conf
-		if [ ! -f $conf ]; then
-		    echo "Running in docker but /etc/supervisord.conf not found." >&2
-		    exit 1
-		fi
-
-		echo "Docker networking options have changed; manual restart required." >&2
-		sed -i.bak -e \
-		    "s+\(DOCKER_DAEMON_ARGS=\)\"\"+\1\"${DOCKER_NETWORK_OPTIONS}\"+" \
-		    $conf
-	    else
-		mkdir -p /run/openshift-sdn
-		cat <<EOF > /run/openshift-sdn/docker-network
+		mkdir -p $(dirname $conf)
+		cat <<EOF > $conf
 # This file has been modified by openshift-sdn.
 
 DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'
@@ -66,6 +45,8 @@ EOF
 		systemctl daemon-reload
 		systemctl restart docker.service
 
+
+	    if [ ! -f /.dockerinit ]; then
 		# disable iptables for lbr0
 		# for kernel version 3.18+, module br_netfilter needs to be loaded upfront
 		# for older ones, br_netfilter may not exist, but is covered by bridge (bridge-utils)
