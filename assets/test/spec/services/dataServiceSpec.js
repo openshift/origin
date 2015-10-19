@@ -50,6 +50,8 @@ describe("DataService", function(){
       [{resource:'buildconfigs/instantiate',             name:"mycfg",      namespace:"foo"}, "http://localhost:8443/oapi/v1/namespaces/foo/buildconfigs/mycfg/instantiate"],
       [{resource:'buildconfigs/webhooks/123/github',     name:"mycfg",      namespace:"foo"}, "http://localhost:8443/oapi/v1/namespaces/foo/buildconfigs/mycfg/webhooks/123/github"],
       [{resource:'buildconfigs/webhooks/123?234/github', name:"mycfg",      namespace:"foo"}, "http://localhost:8443/oapi/v1/namespaces/foo/buildconfigs/mycfg/webhooks/123%3F234/github"],
+      // Subresources aren't lowercased
+      [{resource:'buildconfigs/webhooks/Aa1/github',     name:"mycfg",      namespace:"foo"}, "http://localhost:8443/oapi/v1/namespaces/foo/buildconfigs/mycfg/webhooks/Aa1/github"],
 
       // Watch
       [{resource:'pods', namespace:"foo", isWebsocket:true                     }, "ws://localhost:8443/api/v1/watch/namespaces/foo/pods"],

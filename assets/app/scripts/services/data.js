@@ -79,12 +79,16 @@ angular.module('openshiftConsole')
      if (!resource) {
       return resource;
      }
-     var lower = resource.toLowerCase();
-     if (resource !== lower) {
+
+     // only lowercase the first segment, leaving subresources as-is (some are case-sensitive)
+     var segments = resource.split("/");
+     segments[0] = segments[0].toLowerCase();
+     var normalized = segments.join("/");
+     if (resource !== normalized) {
        Logger.warn('Non-lower case resource "' + resource + '"');
      }
 
-     return lower;
+     return normalized;
   };
 
   function DataService() {
