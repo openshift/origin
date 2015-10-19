@@ -49,14 +49,24 @@ type Framework struct {
 	logsSizeWaitGroup    sync.WaitGroup
 	logsSizeCloseChannel chan bool
 	logsSizeVerifier     *LogsSizeVerifier
+
+	// Allows to override the initialization of the namespace
+	nsCreateFunc func(string, *client.Client) (*api.Namespace, error)
 }
 
 // NewFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
 func NewFramework(baseName string) *Framework {
+	return InitializeFramework(baseName, createTestingNS)
+}
+
+// InitializeFramework initialize the framework by allowing to pass a custom
+// namespace creation function.
+func InitializeFramework(baseName string, nsCreateFunc func(string, *client.Client) (*api.Namespace, error)) *Framework {
 	f := &Framework{
 		BaseName:                 baseName,
 		addonResourceConstraints: make(map[string]resourceConstraint),
+		nsCreateFunc:             nsCreateFunc,
 	}
 
 	BeforeEach(f.beforeEach)
@@ -74,7 +84,7 @@ func (f *Framework) beforeEach() {
 	f.Client = c
 
 	By("Building a namespace api object")
-	namespace, err := createTestingNS(f.BaseName, f.Client)
+	namespace, err := f.nsCreateFunc(f.BaseName, f.Client)
 	Expect(err).NotTo(HaveOccurred())
 
 	f.Namespace = namespace
