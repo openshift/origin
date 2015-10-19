@@ -19,7 +19,8 @@ angular.module('openshiftConsole')
                         LabelFilter, // for the label-selector widget in the navbar
                         Logger,
                         ImageStreamResolver,
-                        ObjectDescriber) {
+                        ObjectDescriber,
+                        $parse) {
     $scope.pods = {};
     $scope.services = {};
     $scope.routes = {};
@@ -227,7 +228,8 @@ angular.module('openshiftConsole')
       $scope.deploymentConfigsByService = {"": {}};
       angular.forEach($scope.deploymentConfigs, function(deploymentConfig, depName){
         var foundMatch = false;
-        var depConfigSelector = new LabelSelector(deploymentConfig.spec.selector);
+        var getLabels = $parse('spec.template.metadata.labels');
+        var depConfigSelector = new LabelSelector(getLabels(deploymentConfig) || {});
         angular.forEach($scope.unfilteredServices, function(service, name){
           $scope.deploymentConfigsByService[name] = $scope.deploymentConfigsByService[name] || {};
 
@@ -249,7 +251,8 @@ angular.module('openshiftConsole')
 
       angular.forEach($scope.deployments, function(deployment, depName){
         var foundMatch = false;
-        var deploymentSelector = new LabelSelector(deployment.spec.selector);
+        var getLabels = $parse('spec.template.metadata.labels');
+        var deploymentSelector = new LabelSelector(getLabels(deployment) || {});
         var depConfigName = annotationFilter(deployment, 'deploymentConfig') || "";
 
         angular.forEach($scope.unfilteredServices, function(service, name){
