@@ -199,7 +199,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 			return fmt.Errorf("unexpected error generating label selector: %v", err)
 		}
 
-		list, err := client.List(labels.LabelSelector{*requirement})
+		list, err := client.List(labels.LabelSelector{*requirement}, fields.Everything())
 		if err != nil {
 			return err
 		}
