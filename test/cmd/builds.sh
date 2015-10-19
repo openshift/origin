@@ -32,15 +32,13 @@ oc get bc/ruby-sample-build -t '{{ .spec.output.to.name }}' | grep 'different'
 oc patch bc/ruby-sample-build -p "{\"spec\":{\"output\":{\"to\":{\"name\":\"${REAL_OUTPUT_TO}\"}}}}"
 echo "patchAnonFields: ok"
 
-[ "$(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook GitHub" | grep -F "${url}/osapi/v1beta3/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/github")" ]
-[ "$(oc describe buildConfigs ruby-sample-build --api-version=v1beta3 | grep --text "Webhook Generic" | grep -F "${url}/osapi/v1beta3/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/generic")" ]
+[ "$(oc describe buildConfigs ruby-sample-build | grep --text "Webhook GitHub" | grep -F "${url}/oapi/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/github")" ]
+[ "$(oc describe buildConfigs ruby-sample-build | grep --text "Webhook Generic" | grep -F "${url}/oapi/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/secret101/generic")" ]
 oc start-build --list-webhooks='all' ruby-sample-build
 [ "$(oc start-build --list-webhooks='all' ruby-sample-build | grep --text "generic")" ]
 [ "$(oc start-build --list-webhooks='all' ruby-sample-build | grep --text "github")" ]
 [ "$(oc start-build --list-webhooks='github' ruby-sample-build | grep --text "secret101")" ]
 [ ! "$(oc start-build --list-webhooks='blah')" ]
-webhook=$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1beta3 | head -n 1)
-oc start-build --from-webhook="${webhook}"
 webhook=$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)
 oc start-build --from-webhook="${webhook}"
 oc get builds

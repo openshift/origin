@@ -128,7 +128,7 @@ func (o *LoginOptions) getClientConfig() (*kclient.Config, error) {
 		return nil, err
 	}
 
-	result := osClient.Get().AbsPath("/osapi").Do()
+	result := osClient.Get().AbsPath("/").Do()
 	if result.Error() != nil {
 		switch {
 		case o.InsecureTLS:
