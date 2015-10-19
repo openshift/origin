@@ -212,7 +212,7 @@ func printStrategy(strategy deployapi.DeploymentStrategy, w *tabwriter.Writer) {
 
 func printHook(prefix string, hook *deployapi.LifecycleHook, w io.Writer) {
 	if hook.ExecNewPod != nil {
-		fmt.Fprintf(w, "\t  %s hook (pod type, failure policy: %s)\n", prefix, hook.FailurePolicy)
+		fmt.Fprintf(w, "\t  %s hook (pod type, failure policy: %s):\n", prefix, hook.FailurePolicy)
 		fmt.Fprintf(w, "\t    Container:\t%s\n", hook.ExecNewPod.ContainerName)
 		fmt.Fprintf(w, "\t    Command:\t%v\n", strings.Join(hook.ExecNewPod.Command, " "))
 		fmt.Fprintf(w, "\t    Env:\t%s\n", formatLabels(convertEnv(hook.ExecNewPod.Env)))
