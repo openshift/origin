@@ -7,14 +7,13 @@ import (
 	"net/http"
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
+	context "github.com/docker/distribution/context"
+	registryauth "github.com/docker/distribution/registry/auth"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
-	log "github.com/Sirupsen/logrus"
-	ctxu "github.com/docker/distribution/context"
-	registryauth "github.com/docker/distribution/registry/auth"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
-	"golang.org/x/net/context"
 )
 
 func init() {
@@ -76,17 +75,15 @@ func (ac *authChallenge) Error() string {
 	return ac.err.Error()
 }
 
-// ServeHTTP handles writing the challenge response
-// by setting the challenge header and status code.
-func (ac *authChallenge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// SetHeaders sets the basic challenge header on the response.
+func (ac *authChallenge) SetHeaders(w http.ResponseWriter) {
 	// WWW-Authenticate response challenge header.
 	// See https://tools.ietf.org/html/rfc6750#section-3
 	str := fmt.Sprintf("Basic realm=%s", ac.realm)
 	if ac.err != nil {
 		str = fmt.Sprintf("%s,error=%q", str, ac.Error())
 	}
-	w.Header().Add("WWW-Authenticate", str)
-	w.WriteHeader(http.StatusUnauthorized)
+	w.Header().Set("WWW-Authenticate", str)
 }
 
 // wrapErr wraps errors related to authorization in an authChallenge error that will present a WWW-Authenticate challenge response
@@ -110,7 +107,7 @@ func (ac *AccessController) wrapErr(err error) error {
 //   origin/pkg/cmd/dockerregistry/dockerregistry.go#Execute
 //   docker/distribution/registry/handlers/app.go#appendAccessRecords
 func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...registryauth.Access) (context.Context, error) {
-	req, err := ctxu.GetRequest(ctx)
+	req, err := context.GetRequest(ctx)
 	if err != nil {
 		return nil, ac.wrapErr(err)
 	}

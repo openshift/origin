@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/docker/distribution/registry/api/v2"
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
 	"github.com/openshift/origin/pkg/api/graph"
@@ -914,7 +914,7 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 		if resp.StatusCode != http.StatusNoContent {
 			glog.V(1).Infof("Unexpected status code in response: %d", resp.StatusCode)
 			decoder := json.NewDecoder(resp.Body)
-			var response v2.Errors
+			var response errcode.Errors
 			decoder.Decode(&response)
 			glog.V(1).Infof("Response: %#v", response)
 			return &response
@@ -931,12 +931,12 @@ func deleteFromRegistry(registryClient *http.Client, url string) error {
 			return nil
 		}
 
-		if _, ok := err.(*v2.Errors); ok {
+		if _, ok := err.(*errcode.Errors); ok {
 			// we got a response back from the registry, so return it
 			return err
 		}
 
-		// we didn't get a success or a v2.Errors response back from the registry
+		// we didn't get a success or a errcode.Errors response back from the registry
 		glog.V(4).Infof("Error with %s for %s: %v", proto, url, err)
 	}
 	return err

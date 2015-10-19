@@ -6,8 +6,10 @@ import (
 
 	ctxu "github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/handlers"
+	"github.com/docker/distribution/registry/storage"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	gorillahandlers "github.com/gorilla/handlers"
 )
@@ -40,17 +42,20 @@ func (bh *blobHandler) Delete(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	if len(bh.Digest) == 0 {
-		bh.Errors.Push(v2.ErrorCodeBlobUnknown)
-		w.WriteHeader(http.StatusNotFound)
+		bh.Errors = append(bh.Errors, v2.ErrorCodeBlobUnknown)
 		return
 	}
 
-	err := bh.Registry().Blobs().Delete(bh.Digest)
+	bd, err := storage.RegistryBlobDeleter(bh.Registry())
+	if err != nil {
+		bh.Errors = append(bh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		return
+	}
+	err = bd.Delete(bh, bh.Digest)
 	if err != nil {
 		// Ignore PathNotFoundError
 		if _, ok := err.(storagedriver.PathNotFoundError); !ok {
-			bh.Errors.PushErr(fmt.Errorf("error deleting blob %q: %v", bh.Digest, err))
-			w.WriteHeader(http.StatusBadRequest)
+			bh.Errors = append(bh.Errors, errcode.ErrorCodeUnknown.WithDetail(fmt.Errorf("error deleting blob %q: %v", bh.Digest, err)))
 			return
 		}
 	}
@@ -86,17 +91,15 @@ func (lh *layerHandler) Delete(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	if len(lh.Digest) == 0 {
-		lh.Errors.Push(v2.ErrorCodeBlobUnknown)
-		w.WriteHeader(http.StatusNotFound)
+		lh.Errors = append(lh.Errors, v2.ErrorCodeBlobUnknown)
 		return
 	}
 
-	err := lh.Repository.Layers().Delete(lh.Digest)
+	err := lh.Repository.Blobs(lh).Delete(lh, lh.Digest)
 	if err != nil {
 		// Ignore PathNotFoundError
 		if _, ok := err.(storagedriver.PathNotFoundError); !ok {
-			lh.Errors.PushErr(fmt.Errorf("error unlinking layer %q from repo %q: %v", lh.Digest, lh.Repository.Name(), err))
-			w.WriteHeader(http.StatusBadRequest)
+			lh.Errors = append(lh.Errors, errcode.ErrorCodeUnknown.WithDetail(fmt.Errorf("error unlinking layer %q from repo %q: %v", lh.Digest, lh.Repository.Name(), err)))
 			return
 		}
 	}
@@ -133,17 +136,19 @@ func (mh *manifestHandler) Delete(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	if len(mh.Digest) == 0 {
-		mh.Errors.Push(v2.ErrorCodeManifestUnknown)
-		w.WriteHeader(http.StatusNotFound)
+		mh.Errors = append(mh.Errors, v2.ErrorCodeManifestUnknown)
 		return
 	}
 
-	err := mh.Repository.Manifests().Delete(mh.Context, mh.Digest)
+	manService, err := mh.Repository.Manifests(mh)
+	if err != nil {
+		mh.Errors = append(mh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+	}
+	err = manService.Delete(mh.Digest)
 	if err != nil {
 		// Ignore PathNotFoundError
 		if _, ok := err.(storagedriver.PathNotFoundError); !ok {
-			mh.Errors.PushErr(fmt.Errorf("error deleting repo %q, manifest %q: %v", mh.Repository.Name(), mh.Digest, err))
-			w.WriteHeader(http.StatusBadRequest)
+			mh.Errors = append(mh.Errors, errcode.ErrorCodeUnknown.WithDetail(fmt.Errorf("error deleting repo %q, manifest %q: %v", mh.Repository.Name(), mh.Digest, err)))
 			return
 		}
 	}
