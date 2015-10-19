@@ -204,6 +204,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.memory            = vagrant_openshift_config['memory'].to_i
       v.cpus              = vagrant_openshift_config['cpus'].to_i
       v.customize ["modifyvm", :id, "--cpus", vagrant_openshift_config['cpus'].to_s]
+      full_provision(override.vm)
       # to make the ha-proxy reachable from the host, you need to add a port forwarding rule from 1080 to 80, which
       # requires root privilege. Use iptables on linux based or ipfw on BSD based OS:
       # sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 1080
