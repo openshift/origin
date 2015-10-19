@@ -32,22 +32,6 @@ Update the annotations on a resource
 ====
 
 
-== oc apply
-Apply a configuration to a resource by filename or stdin
-
-====
-
-[options="nowrap"]
-----
-# Apply the configuration in pod.json to a pod.
-$ openshift cli apply -f ./pod.json
-
-# Apply the JSON passed into stdin to a pod.
-$ cat pod.json | openshift cli apply -f -
-----
-====
-
-
 == oc attach
 Attach to a running container.
 
