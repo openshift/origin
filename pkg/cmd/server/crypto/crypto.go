@@ -30,6 +30,34 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
+// SecureTLSConfig enforces the default minimum security settings for the
+// cluster.
+// TODO: allow override
+func SecureTLSConfig(config *tls.Config) *tls.Config {
+	// Recommendations from https://wiki.mozilla.org/Security/Server_Side_TLS
+	// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
+	config.MinVersion = tls.VersionTLS10
+	// In a legacy environment, allow cipher control to be disabled.
+	if len(os.Getenv("OPENSHIFT_ALLOW_DANGEROUS_TLS_CIPHER_SUITES")) == 0 {
+		config.PreferServerCipherSuites = true
+		config.CipherSuites = []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+			tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+		}
+	} else {
+		glog.Warningf("Potentially insecure TLS cipher suites are allowed in client connections because environment variable OPENSHIFT_ALLOW_DANGEROUS_TLS_CIPHER_SUITES is set")
+	}
+	return config
+}
+
 type TLSCertificateConfig struct {
 	Certs []*x509.Certificate
 	Key   crypto.PrivateKey

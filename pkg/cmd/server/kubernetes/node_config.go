@@ -19,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/errors"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -200,9 +201,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 			return nil, err
 		}
 		cfg.TLSOptions = &kubelet.TLSOptions{
-			Config: &tls.Config{
-				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-				MinVersion: tls.VersionTLS10,
+			Config: crypto.SecureTLSConfig(&tls.Config{
 				// RequestClientCert lets us request certs, but allow requests without client certs
 				// Verification is done by the authn layer
 				ClientAuth: tls.RequestClientCert,
@@ -211,7 +210,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 				// Do not use NameToCertificate, since that requires certificates be included in the server's tlsConfig.Certificates list,
 				// which we do not control when running with http.Server#ListenAndServeTLS
 				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-			},
+			}),
 			CertFile: options.ServingInfo.ServerCert.CertFile,
 			KeyFile:  options.ServingInfo.ServerCert.KeyFile,
 		}

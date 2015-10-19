@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
@@ -213,13 +214,11 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
-		TLSConfig: &tls.Config{
-			// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-			MinVersion: tls.VersionTLS10,
+		TLSConfig: crypto.SecureTLSConfig(&tls.Config{
 			// RequireAndVerifyClientCert lets us limit requests to ones with a valid client certificate
 			ClientAuth: tls.RequireAndVerifyClientCert,
 			ClientCAs:  clientCAs,
-		},
+		}),
 	}
 	go func() {
 		if err := remoteServer.ListenAndServeTLS(certNames[basicAuthRemoteServerCert], certNames[basicAuthRemoteServerKey]); err != nil {

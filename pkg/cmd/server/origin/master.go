@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
@@ -234,16 +235,14 @@ func (c *MasterConfig) serve(handler http.Handler, extra []string) {
 			if err != nil {
 				glog.Fatal(err)
 			}
-			server.TLSConfig = &tls.Config{
-				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-				MinVersion: tls.VersionTLS10,
+			server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
 				// Populate PeerCertificates in requests, but don't reject connections without certificates
 				// This allows certificates to be validated by authenticators, while still allowing other auth types
 				ClientAuth: tls.RequestClientCert,
 				ClientCAs:  c.ClientCAs,
 				// Set SNI certificate func
 				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-			}
+			})
 			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
 		} else {
 			glog.Fatal(server.ListenAndServe())
