@@ -239,6 +239,11 @@ func (app *App) register(routeName string, dispatch dispatchFunc) {
 	app.RegisterRoute(app.router.GetRoute(routeName), dispatch, app.nameRequired, NoCustomAccessRecords)
 }
 
+// Namespace returns a namespace instance representing application's registry storage.
+func (app *App) Namespace() distribution.Namespace {
+	return app.registry
+}
+
 func (app *App) RegisterRoute(route *mux.Route, dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) {
 	// TODO(stevvooe): This odd dispatcher/route registration is by-product of
 	// some limitations in the gorilla/mux router. We are using it to keep
