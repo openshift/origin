@@ -73,6 +73,7 @@ angular
     tab.icon = "sitemap";
     tabs.push(tab);
 
+
     tab = builder.create()
      .id(builder.join(pluginName, "settings"))
      .title(function () { return "Settings"; })
@@ -117,7 +118,12 @@ angular
         templateUrl: 'views/browse/build-config.html'
       })
       .when('/project/:project/browse/builds/:buildconfig/:build', {
-        templateUrl: 'views/browse/build.html'
+        templateUrl: function(params) {
+          return params.view ?
+                  'views/logs/'+params.view+'_log.html' :
+                  'views/browse/build.html';
+        },
+        controller: 'BuildController'
       })
       // For when a build is missing a buildconfig label
       // Needs to still be prefixed with browse/builds so the secondary nav active state is correct
@@ -150,7 +156,11 @@ angular
         templateUrl: 'views/pods.html'
       })
       .when('/project/:project/browse/pods/:pod', {
-        templateUrl: 'views/browse/pod.html',
+        templateUrl: function(params) {
+          return params.view ?
+                  'views/logs/'+params.view+'_log.html' :
+                  'views/browse/pod.html';
+        },
         controller: 'PodController'
       })
       .when('/project/:project/browse/services', {

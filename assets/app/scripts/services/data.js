@@ -1,5 +1,5 @@
 'use strict';
-/* jshint eqeqeq: false, unused: false */
+/* jshint eqeqeq: false, unused: false, expr: true */
 
 angular.module('openshiftConsole')
 .factory('DataService', function($http, $ws, $rootScope, $q, API_CFG, Notification, Logger, $timeout) {
@@ -376,6 +376,124 @@ angular.module('openshiftConsole')
     return deferred.promise;
   };
 
+// https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/btoa
+function utf8_to_b64( str ) {
+    return window.btoa(window.unescape(encodeURIComponent( str )));
+}
+function b64_to_utf8( str ) {
+    return decodeURIComponent(window.escape(window.atob( str )));
+}
+
+// TODO (bpeterse): Create a new Streamer service & get this out of DataService.
+DataService.prototype.createStream = function(kind, name, context, isRaw) {
+  var getNamespace = this._getNamespace.bind(this);
+  var urlForResource = this._urlForResource.bind(this);
+  kind = this.kindToResource(kind) ?
+              this.kindToResource(kind) :
+              normalizeResource(kind);
+
+  var protocols = isRaw ? 'binary.k8s.io' : 'base64.binary.k8s.io';
+  var identifier = 'stream_';
+  var openQueue = {};
+  var messageQueue = {};
+  var closeQueue = {};
+  var errorQueue = {};
+
+  var stream;
+  var makeStream = function() {
+     return getNamespace(kind, context, {})
+                .then(function(params) {
+                  return  $ws({
+                            url: urlForResource(kind, name, null, context, true, _.extend(params, {follow: true})),
+                            auth: {},
+                            onopen: function(evt) {
+                              _.each(openQueue, function(fn) {
+                                fn(evt);
+                              });
+                            },
+                            onmessage: function(evt) {
+                              if(!_.isString(evt.data)) {
+                                Logger.log('log stream response is not a string', evt.data);
+                                return;
+                              }
+                              _.each(messageQueue, function(fn) {
+                                if(isRaw) {
+                                  fn(evt.data);
+                                } else {
+                                  fn(b64_to_utf8(evt.data), evt.data);
+                                }
+                              });
+                            },
+                            onclose: function(evt) {
+                              _.each(closeQueue, function(fn) {
+                                fn(evt);
+                              });
+                            },
+                            onerror: function(evt) {
+                              _.each(errorQueue, function(fn) {
+                                fn(evt);
+                              });
+                            },
+                            protocols: protocols
+                          }).then(function(ws) {
+                            Logger.log("Streaming pod log", ws);
+                            return ws;
+                          });
+                });
+  };
+  return {
+    onOpen: function(fn) {
+      if(!_.isFunction(fn)) {
+        return;
+      }
+      var id = _.uniqueId(identifier);
+      openQueue[id] = fn;
+      return id;
+    },
+    onMessage: function(fn) {
+      if(!_.isFunction(fn)) {
+        return;
+      }
+      var id = _.uniqueId(identifier);
+      messageQueue[id] = fn;
+      return id;
+    },
+    onClose: function(fn) {
+      if(!_.isFunction(fn)) {
+        return;
+      }
+      var id = _.uniqueId(identifier);
+      closeQueue[id] = fn;
+      return id;
+    },
+    onError: function(fn) {
+      if(!_.isFunction(fn)) {
+        return;
+      }
+      var id = _.uniqueId(identifier);
+      errorQueue[id] = fn;
+      return id;
+    },
+    // can remove any callback from open, message, close or error
+    remove: function(id) {
+      if (openQueue[id]) { delete openQueue[id]; }
+      if (messageQueue[id]) { delete messageQueue[id]; }
+      if (closeQueue[id]) { delete closeQueue[id]; }
+      if (errorQueue[id]) { delete errorQueue[id]; }
+    },
+    start: function() {
+      stream = makeStream();
+      return stream;
+    },
+    stop: function() {
+      stream.then(function(ws) {
+        ws.close();
+      });
+    }
+  };
+};
+
+
 // resource:  API resource (e.g. "pods")
 // context:   API context (e.g. {project: "..."})
 // callback:  optional function to be called with the initial list of the requested resource,
@@ -436,14 +554,14 @@ angular.module('openshiftConsole')
       if (callback) {
         var existingData = this._data(resource, context);
         if (existingData) {
-          $timeout(function() {          
+          $timeout(function() {
             callback(existingData);
           }, 0);
         }
       }
       if (!this._listInFlight(resource, context)) {
         this._startListOp(resource, context);
-      }      
+      }
     }
 
     // returned handle needs resource, context, and callback in order to unwatch
@@ -454,6 +572,8 @@ angular.module('openshiftConsole')
       opts: opts
     };
   };
+
+
 
 // resource:  API resource (e.g. "pods")
 // name:      API name, the unique name for the object
@@ -506,7 +626,7 @@ angular.module('openshiftConsole')
     var handle = this.watch(resource, context, wrapperCallback, opts);
     handle.objectCallback = callback;
     handle.objectName = name;
-    
+
     return handle;
   };
 
@@ -517,7 +637,7 @@ angular.module('openshiftConsole')
     var callback = handle.callback;
     var objectCallback = handle.objectCallback;
     var opts = handle.opts;
-    
+
     if (objectCallback && objectName) {
       var objCallbacks = this._watchObjectCallbacks(resource, objectName, context);
       objCallbacks.remove(objectCallback);
@@ -567,7 +687,7 @@ angular.module('openshiftConsole')
       this._watchObjectCallbacksMap[key] = $.Callbacks();
     }
     return this._watchObjectCallbacksMap[key];
-  };  
+  };
 
   DataService.prototype._listCallbacks = function(resource, context) {
     var key = this._uniqueKeyForResourceContext(resource, context);
@@ -720,13 +840,13 @@ angular.module('openshiftConsole')
       return resource;
     }
     else if (context.namespace) {
-      return resource + "/" + context.namespace; 
+      return resource + "/" + context.namespace;
     }
     else if (context.project && context.project.metadata) {
       return resource + "/" + context.project.metadata.name;
     }
     else if (context.projectName) {
-      return resource + "/" + context.projectName;      
+      return resource + "/" + context.projectName;
     }
     else {
       return resource;
@@ -818,6 +938,7 @@ angular.module('openshiftConsole')
     if ($ws.available()) {
       var self = this;
       var params = {};
+      params.watch = true;
       if (resourceVersion) {
         params.resourceVersion = resourceVersion;
       }
@@ -978,10 +1099,8 @@ angular.module('openshiftConsole')
   };
 
   var URL_ROOT_TEMPLATE         = "{protocol}://{+serverUrl}{+apiPrefix}/{apiVersion}/";
-  var URL_WATCH_LIST            = URL_ROOT_TEMPLATE + "watch/{resource}{?q*}";
   var URL_GET_LIST              = URL_ROOT_TEMPLATE + "{resource}{?q*}";
   var URL_OBJECT                = URL_ROOT_TEMPLATE + "{resource}/{name}{/subresource*}{?q*}";
-  var URL_NAMESPACED_WATCH_LIST = URL_ROOT_TEMPLATE + "watch/namespaces/{namespace}/{resource}{?q*}";
   var URL_NAMESPACED_GET_LIST   = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}{?q*}";
   var URL_NAMESPACED_OBJECT     = URL_ROOT_TEMPLATE + "namespaces/{namespace}/{resource}/{name}{/subresource*}{?q*}";
 
@@ -1042,10 +1161,7 @@ angular.module('openshiftConsole')
       namespace: namespace,
       q: params
     };
-    if (isWebsocket) {
-      template = namespaceInPath ? URL_NAMESPACED_WATCH_LIST : URL_WATCH_LIST;
-    }
-    else if (name) {
+    if (name) {
       template = namespaceInPath ? URL_NAMESPACED_OBJECT : URL_OBJECT;
     }
     else {

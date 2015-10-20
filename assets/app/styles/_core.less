@@ -59,7 +59,7 @@ html, body {
         border-top: 1px solid @navbar-pf-navbar-header-border-color;
       }
     }
-    .navbar-brand { 
+    .navbar-brand {
       border: 0;
       margin-left: 20px;
       margin-top: 4px;
@@ -512,7 +512,9 @@ label.checkbox {
   margin-left: 3px;
 }
 
+
 // Misc
+// TODO: pull out into _partials where it makes sense
 // --------------------------------------------------
 .action-inline {
   margin-left: @action-link-inline-margin;
@@ -533,7 +535,7 @@ label.required:before {
   padding: 0 4px;
 }
 .btn-lg, .btn-group-lg > .btn {
-  line-height: 1.334; // needed to make same height as inputs 
+  line-height: 1.334; // needed to make same height as inputs
 }
 
 code {
@@ -545,7 +547,7 @@ pre {
     background-color: #fff;
     border: none;
     border-left: 2px solid rgb(204, 204, 204);
-  }  
+  }
 }
 
 // Fix to override the Firefox 40+ behavior to add text-decoration
@@ -617,6 +619,11 @@ select:invalid {
   width: 12px;
 }
 
+.spinner.spinner-inverse {
+  border-color: rgba(0,153,211, .25);
+  border-top-color: rgba(0,153,211, .75);
+}
+
 .attention-message {
   background-color: lighten(@brand-primary, 20%);
   border: 1px solid darken(@brand-primary, 10%);
@@ -683,7 +690,6 @@ a.action-button {
     text-align: center;
   }
 }
-
 pre.clipped {
   display: inline-block;
 }
@@ -733,3 +739,9 @@ pre.clipped {
 labels + dl {
   margin-top: 10px;
 }
+
+[flex].page-header {
+  // reduced for consistency if used with flex
+  margin-top: 21px;
+}
+

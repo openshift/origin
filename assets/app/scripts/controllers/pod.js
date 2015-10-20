@@ -7,7 +7,7 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('PodController', function ($scope, $routeParams, DataService, project, $filter, ImageStreamResolver, MetricsService) {
+  .controller('PodController', function ($scope, $routeParams, $timeout, DataService, project, $filter, ImageStreamResolver, MetricsService) {
     $scope.pod = null;
     $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};
@@ -87,6 +87,42 @@ angular.module('openshiftConsole')
         $scope.builds = builds.by("metadata.name");
         Logger.log("builds (subscribe)", $scope.builds);
       }));
+
+      (function initLogs() {
+        angular.extend($scope, {
+          logs: [],
+          logsLoading: true,
+          canShowDownload: false,
+          canInitAgain: false,
+          initLogs: initLogs
+        });
+
+        var streamer = DataService.createStream('pods/log',$routeParams.pod, $scope);
+
+        streamer.onMessage(function(msg) {
+          $scope.$apply(function() {
+            $scope.logs.push({text: msg});
+            $scope.canShowDownload = true;
+          });
+        });
+        streamer.onClose(function() {
+          $scope.$apply(function() {
+            $scope.logsLoading = false;
+          });
+        });
+        streamer.onError(function() {
+          $scope.$apply(function() {
+            $scope.canInitAgain = true;
+          });
+        });
+
+        streamer.start();
+        $scope.$on('$destroy', function() {
+          streamer.stop();
+        });
+
+      })();
+
     });
 
     $scope.$on('$destroy', function(){

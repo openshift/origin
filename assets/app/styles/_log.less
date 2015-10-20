@@ -1,0 +1,109 @@
+.log-title {
+  margin-top: 0;
+}
+.log-timestamp {
+  margin-bottom: 10px;
+}
+.log-view {
+  background-color: @log-bg-color;
+  min-height: 60px;
+  padding: 0;
+  position: relative;
+  pre, pre code {
+    background-color: transparent;
+    border: 0;
+    color: #98C1C8;
+    margin-bottom: 0;
+    overflow: visible;
+    padding: 0 10px;
+  }
+  .log-scroll {
+    text-align:right;
+    a {
+      padding-right:10px;
+    }
+    a:hover {
+      color: @link-hover-color-bright;
+    }
+  }
+  .log-scroll-top.affix {
+    position: fixed;
+    right: 30px;
+    top: 0;
+  }
+  .log-scroll-top.affix-top {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+  .log-scroll-top.affix-bottom {
+
+  }
+  .log-scroll-bottom {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+  }
+  .log-view-output {
+    font-size: 12px;
+    padding: 20px 0 20px;
+    &:before {
+      content: '';
+      display: block;
+      height: 100%;
+      width: 1px;
+      background-color: lighten(@log-bg-color, 5%);
+      top: 0;
+      left: 60px;
+      position: absolute;
+    }
+  }
+}
+
+.log-link-external {
+  a {
+    margin-left: 20px;
+  }
+  i {
+    font-size: @font-size-xsmall;
+    margin-left: 5px;
+  }
+}
+.log-line {
+    color: #98C1C8;
+}
+.log-line.even {}
+.log-line.odd {}
+.log-line:hover {
+  background-color: lighten(@log-bg-color, 3%);
+  color: 000;
+}
+.log-line-number {
+  &:hover, &:focus {
+    background-color: lighten(@log-bg-color, 8%);
+    color: @link-hover-color-bright;
+  }
+  span {
+    width: 60px;
+    padding-right: 10px;
+  }
+}
+.log-line-text {
+  padding: 0 10px;
+}
+.log-chromeless {
+  margin-top: -1px;
+  .log-view {
+    .log-scroll-top.affix {
+      right: 10px;
+    }
+  }
+}
+
+.table-log-pods {
+  > tbody + tbody {
+    border-top-width: 1px;
+  }
+  background-color: #fff;
+  border: 1px solid #D1D1D1;
+}

@@ -1,0 +1,30 @@
+<div layout column flex ng-if="links">
+  <div layout row class="log-timestamp" ng-if="start">
+    <span>Current log from {{start}}&nbsp;</span>
+    <span ng-if="end">to {{end}}</span>
+  </div>
+  <div layout sm="column" md="row">
+    <div flex row main-axis="end">
+      <div ng-transclude flex></div>
+      <div layout row cross-axis="end" class="log-link-external">
+        <a
+          ng-show="download"
+          ng-click="makeDownload(logs)">
+          Raw <i class="fa fa-external-link"></i>
+        </a>
+        <a ng-click="goChromeless()">
+          Open full view of log<i class="fa fa-external-link"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--
+<ng-include
+  src="'views/directives/logs/_log-raw.html'"></ng-include>
+-->
+<ng-include
+  src="'views/directives/logs/_log-formatted.html'"></ng-include>
+
+
