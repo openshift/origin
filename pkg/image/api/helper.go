@@ -307,6 +307,38 @@ func AddTagEventToImageStream(stream *ImageStream, tag string, next TagEvent) bo
 	return true
 }
 
+// UpdateChangedTrackingTags identifies any tags in the status that have changed and
+// ensures any referenced tracking tags are also updated. It returns the number of
+// updates applied.
+func UpdateChangedTrackingTags(new, old *ImageStream) int {
+	changes := 0
+	for newTag, newImages := range new.Status.Tags {
+		if oldImages, ok := old.Status.Tags[newTag]; ok {
+			changed, deleted := tagsChanged(oldImages.Items, newImages.Items)
+			if !changed || deleted {
+				continue
+			}
+			changes += UpdateTrackingTags(new, newTag, newImages.Items[0])
+		}
+	}
+	return changes
+}
+
+// tagsChanged returns true if the two lists differ, and if the newer list is empty
+// then deleted is returned true as well.
+func tagsChanged(new, old []TagEvent) (changed bool, deleted bool) {
+	switch {
+	case len(old) == 0 && len(new) == 0:
+		return false, false
+	case len(new) == 0:
+		return true, true
+	case len(old) == 0:
+		return true, false
+	default:
+		return new[0] == old[0], false
+	}
+}
+
 // UpdateTrackingTags sets updatedImage as the most recent TagEvent for all tags
 // in stream.spec.tags that have from.kind = "ImageStreamTag" and the tag in from.name
 // = updatedTag. from.name may be either <tag> or <stream name>:<tag>. For now, only
@@ -315,7 +347,10 @@ func AddTagEventToImageStream(stream *ImageStream, tag string, next TagEvent) bo
 // For example, if stream.spec.tags[latest].from.name = 2.0, whenever an image is pushed
 // to this stream with the tag 2.0, status.tags[latest].items[0] will also be updated
 // to point at the same image that was just pushed for 2.0.
-func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage TagEvent) {
+//
+// Returns the number of tags changed.
+func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage TagEvent) int {
+	updated := 0
 	glog.V(5).Infof("UpdateTrackingTags: stream=%s/%s, updatedTag=%s, updatedImage.dockerImageReference=%s, updatedImage.image=%s", stream.Namespace, stream.Name, updatedTag, updatedImage.DockerImageReference, updatedImage.Image)
 	for specTag, tagRef := range stream.Spec.Tags {
 		glog.V(5).Infof("Examining spec tag %q, tagRef=%#v", specTag, tagRef)
@@ -371,9 +406,12 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 			continue
 		}
 
-		updated := AddTagEventToImageStream(stream, specTag, updatedImage)
-		glog.V(5).Infof("stream updated? %t", updated)
+		if AddTagEventToImageStream(stream, specTag, updatedImage) {
+			glog.V(5).Infof("stream updated")
+			updated++
+		}
 	}
+	return updated
 }
 
 // ResolveImageID returns a sets.String of all the image IDs in stream that start with imageID.
