@@ -206,7 +206,7 @@ func (tc *testCase) verifyResults(t *testing.T) {
 
 func (tc *testCase) runTest(t *testing.T) {
 	testClient := tc.prepareTestClient(t)
-	hpaController := NewHorizontalController(testClient, metrics.NewHeapsterMetricsClient(testClient))
+	hpaController := NewHorizontalController(testClient, testClient.Extensions(), testClient.Extensions(), metrics.NewHeapsterMetricsClient(testClient))
 	err := hpaController.reconcileAutoscalers()
 	assert.Equal(t, nil, err)
 	if tc.verifyEvents {

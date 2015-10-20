@@ -40,23 +40,26 @@ const (
 )
 
 type HorizontalController struct {
-	client        client.Interface
-	metricsClient metrics.MetricsClient
-	eventRecorder record.EventRecorder
+	scaleNamespacer client.ScaleNamespacer
+	hpaNamespacer   client.HorizontalPodAutoscalersNamespacer
+
+	metricsClient    metrics.MetricsClient
+	eventRecorder    record.EventRecorder
 }
 
 var downscaleForbiddenWindow = 5 * time.Minute
 var upscaleForbiddenWindow = 3 * time.Minute
 
-func NewHorizontalController(client client.Interface, metricsClient metrics.MetricsClient) *HorizontalController {
+func NewHorizontalController(evtNamespacer client.EventNamespacer, scaleNamespacer client.ScaleNamespacer, hpaNamespacer client.HorizontalPodAutoscalersNamespacer, metricsClient metrics.MetricsClient) *HorizontalController {
 	broadcaster := record.NewBroadcaster()
-	broadcaster.StartRecordingToSink(client.Events(""))
+	broadcaster.StartRecordingToSink(evtNamespacer.Events(""))
 	recorder := broadcaster.NewRecorder(api.EventSource{Component: "horizontal-pod-autoscaler"})
 
 	return &HorizontalController{
-		client:        client,
-		metricsClient: metricsClient,
-		eventRecorder: recorder,
+		scaleNamespacer: scaleNamespacer,
+		hpaNamespacer:   hpaNamespacer,
+		metricsClient:   metricsClient,
+		eventRecorder:   recorder,
 	}
 }
 
@@ -96,7 +99,7 @@ func (a *HorizontalController) computeReplicasForCPUUtilization(hpa extensions.H
 func (a *HorizontalController) reconcileAutoscaler(hpa extensions.HorizontalPodAutoscaler) error {
 	reference := fmt.Sprintf("%s/%s/%s", hpa.Spec.ScaleRef.Kind, hpa.Spec.ScaleRef.Namespace, hpa.Spec.ScaleRef.Name)
 
-	scale, err := a.client.Extensions().Scales(hpa.Spec.ScaleRef.Namespace).Get(hpa.Spec.ScaleRef.Kind, hpa.Spec.ScaleRef.Name)
+	scale, err := a.scaleNamespacer.Scales(hpa.Spec.ScaleRef.Namespace).Get(hpa.Spec.ScaleRef.Kind, hpa.Spec.ScaleRef.Name)
 	if err != nil {
 		a.eventRecorder.Event(&hpa, "FailedGetScale", err.Error())
 		return fmt.Errorf("failed to query scale subresource for %s: %v", reference, err)
@@ -144,7 +147,7 @@ func (a *HorizontalController) reconcileAutoscaler(hpa extensions.HorizontalPodA
 
 	if rescale {
 		scale.Spec.Replicas = desiredReplicas
-		_, err = a.client.Extensions().Scales(hpa.Namespace).Update(hpa.Spec.ScaleRef.Kind, scale)
+		_, err = a.scaleNamespacer.Scales(hpa.Namespace).Update(hpa.Spec.ScaleRef.Kind, scale)
 		if err != nil {
 			a.eventRecorder.Eventf(&hpa, "FailedRescale", "New size: %d; error: %v", desiredReplicas, err.Error())
 			return fmt.Errorf("failed to rescale %s: %v", reference, err)
@@ -166,7 +169,7 @@ func (a *HorizontalController) reconcileAutoscaler(hpa extensions.HorizontalPodA
 		hpa.Status.LastScaleTime = &now
 	}
 
-	_, err = a.client.Extensions().HorizontalPodAutoscalers(hpa.Namespace).UpdateStatus(&hpa)
+	_, err = a.hpaNamespacer.HorizontalPodAutoscalers(hpa.Namespace).UpdateStatus(&hpa)
 	if err != nil {
 		a.eventRecorder.Event(&hpa, "FailedUpdateStatus", err.Error())
 		return fmt.Errorf("failed to update status for %s: %v", hpa.Name, err)
@@ -176,7 +179,7 @@ func (a *HorizontalController) reconcileAutoscaler(hpa extensions.HorizontalPodA
 
 func (a *HorizontalController) reconcileAutoscalers() error {
 	ns := api.NamespaceAll
-	list, err := a.client.Extensions().HorizontalPodAutoscalers(ns).List(labels.Everything(), fields.Everything())
+	list, err := a.hpaNamespacer.HorizontalPodAutoscalers(ns).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return fmt.Errorf("error listing nodes: %v", err)
 	}
