@@ -80,6 +80,8 @@ type Factory struct {
 	PortsForObject func(object runtime.Object) ([]string, error)
 	// LabelsForObject returns the labels associated with the provided object
 	LabelsForObject func(object runtime.Object) (map[string]string, error)
+	// LogsForObject returns a request for the logs associated with the provided object
+	LogsForObject func(object, options runtime.Object) (*client.Request, error)
 	// Returns a schema that can validate objects stored on disk.
 	Validator func(validate bool, cacheDir string) (validation.Schema, error)
 	// Returns the default namespace to use in cases where no
@@ -209,6 +211,27 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 		},
 		LabelsForObject: func(object runtime.Object) (map[string]string, error) {
 			return meta.NewAccessor().Labels(object)
+		},
+		LogsForObject: func(object, options runtime.Object) (*client.Request, error) {
+			c, err := clients.ClientForVersion("")
+			if err != nil {
+				return nil, err
+			}
+
+			switch t := object.(type) {
+			case *api.Pod:
+				opts, ok := options.(*api.PodLogOptions)
+				if !ok {
+					return nil, errors.New("provided options object is not a PodLogOptions")
+				}
+				return c.PodLogs(t.Namespace).Get(t.Name, opts)
+			default:
+				_, kind, err := api.Scheme.ObjectVersionAndKind(object)
+				if err != nil {
+					return nil, err
+				}
+				return nil, fmt.Errorf("cannot get the logs from %s", kind)
+			}
 		},
 		Scaler: func(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
 			client, err := clients.ClientForVersion(mapping.APIVersion)
