@@ -166,14 +166,17 @@ func GetModifiedConfiguration(info *resource.Info, annotate bool) ([]byte, error
 // UpdateApplyAnnotation gets the modified configuration of the object,
 // without embedding it again, and then sets it on the object as the annotation.
 func UpdateApplyAnnotation(info *resource.Info) error {
-	modified, err := GetModifiedConfiguration(info, false)
-	if err != nil {
-		return err
-	}
-
-	if err := SetOriginalConfiguration(info, modified); err != nil {
-		return err
-	}
-
+	// TODO, we'll probably never accept this implementation, but rather than update callers, this keeps
+	// the upstream carry/diff smaller
 	return nil
+	// modified, err := GetModifiedConfiguration(info, false)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// if err := SetOriginalConfiguration(info, modified); err != nil {
+	// 	return err
+	// }
+
+	// return nil
 }
