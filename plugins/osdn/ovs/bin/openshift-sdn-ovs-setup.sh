@@ -11,22 +11,6 @@ multitenant=$6
 printf 'Container network is "%s"; local host has subnet "%s" and gateway "%s".\n' "${cluster_network_cidr}" "${local_subnet_cidr}" "${local_subnet_gateway}"
 TUN=tun0
 
-function setup_required() {
-    ip=$(echo `ip a s lbr0 2>/dev/null|awk '/inet / {print $2}'`)
-    if [ "$ip" != "${local_subnet_gateway}/${local_subnet_mask_len}" ]; then
-        return 0
-    fi
-    if [ "$multitenant" = "true" ]; then
-	flow_rule='table=3.*NXM_NX_TUN_ID'
-    else
-	flow_rule='table=3.*goto_table:9'
-    fi
-    if ! ovs-ofctl -O OpenFlow13 dump-flows br0 | grep -q $flow_rule; then
-        return 0
-    fi
-    return 1
-}
-
 # Delete the subnet routing entry created because of ip link up on device
 # ip link adds local subnet route entry asynchronously
 # So check for the new route entry every 100 ms upto timeout of 2 secs and
@@ -146,12 +130,5 @@ function setup() {
     delete_local_subnet_route lbr0 || true
     delete_local_subnet_route ${TUN} || true
 }
-
-set +e
-if ! setup_required; then
-    echo "SDN setup not required."
-    exit 140
-fi
-set -e
 
 setup

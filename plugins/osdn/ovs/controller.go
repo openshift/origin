@@ -7,17 +7,18 @@ import (
 	"net"
 	"os/exec"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/openshift/openshift-sdn/pkg/ipcmd"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
+	"github.com/openshift/openshift-sdn/pkg/ovs"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
 	"k8s.io/kubernetes/pkg/util/sysctl"
 )
 
 const (
+	BR  = "br0"
 	LBR = "lbr0"
 	TUN = "tun0"
 )
@@ -28,6 +29,50 @@ type FlowController struct {
 
 func NewFlowController(multitenant bool) *FlowController {
 	return &FlowController{multitenant}
+}
+
+func alreadySetUp(multitenant bool, localSubnetGatewayCIDR string) bool {
+	var found bool
+
+	itx := ipcmd.NewTransaction(LBR)
+	addrs, err := itx.GetAddresses()
+	itx.EndTransaction()
+	if err != nil {
+		return false
+	}
+	found = false
+	for _, addr := range addrs {
+		if addr == localSubnetGatewayCIDR {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return false
+	}
+
+	otx := ovs.NewTransaction(BR)
+	flows, err := otx.DumpFlows()
+	otx.EndTransaction()
+	if err != nil {
+		return false
+	}
+	found = false
+	for _, flow := range flows {
+		if !strings.Contains(flow, "table=3") {
+			continue
+		}
+		if (multitenant && strings.Contains(flow, "NXM_NX_TUN_ID")) ||
+			(!multitenant && strings.Contains(flow, "goto_table:9")) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return false
+	}
+
+	return true
 }
 
 func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
@@ -85,18 +130,12 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 		return err
 	}
 
+	if alreadySetUp(c.multitenant, fmt.Sprintf("%s/%s", localSubnetGateway, localSubnetMaskLength)) {
+		return nil
+	}
 	out, err = exec.Command("openshift-sdn-ovs-setup.sh", localSubnetGateway, localSubnetCIDR, fmt.Sprint(localSubnetMaskLength), clusterNetworkCIDR, servicesNetworkCIDR, fmt.Sprint(c.multitenant)).CombinedOutput()
 	if err != nil {
-		glog.Infof("Output of setup script:\n%s", out)
-		exitErr, ok := err.(*exec.ExitError)
-		if ok {
-			status := exitErr.ProcessState.Sys().(syscall.WaitStatus)
-			if status.Exited() && status.ExitStatus() == 140 {
-				// valid, do nothing, its just a benevolent restart
-				return nil
-			}
-		}
-		glog.Errorf("Error executing setup script: %v\n", err)
+		glog.Errorf("Error executing setup script. \n\tOutput: %s\n\tError: %v\n", out, err)
 		return err
 	} else {
 		glog.V(5).Infof("Output of setup script:\n%s", out)
@@ -106,17 +145,17 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 	// (This has to have been performed in advance for docker-in-docker deployments,
 	// since this will fail there).
 	_, _ = exec.Command("modprobe", "br_netfilter").CombinedOutput()
-	err = sysctl.SetSysctl("net.bridge.bridge-nf-call", 0)
+	err = sysctl.SetSysctl("net/bridge/bridge-nf-call", 0)
 	if err != nil {
 		glog.Warningf("Could not set net.bridge.bridge-nf-call sysctl: %s", err)
 	}
 
 	// Enable IP forwarding for ipv4 packets
-	err = sysctl.SetSysctl("net.ipv4.ip_forward", 1)
+	err = sysctl.SetSysctl("net/ipv4/ip_forward", 1)
 	if err != nil {
 		return fmt.Errorf("Could not enable IPv4 forwarding: %s", err)
 	}
-	err = sysctl.SetSysctl(fmt.Sprintf("net.ipv4.conf.%s.forwarding", TUN), 1)
+	err = sysctl.SetSysctl(fmt.Sprintf("net/ipv4/conf/%s/forwarding", TUN), 1)
 	if err != nil {
 		return fmt.Errorf("Could not enable IPv4 forwarding on %s: %s", TUN, err)
 	}
