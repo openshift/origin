@@ -77,7 +77,7 @@ func TestParseDockerImageReference(t *testing.T) {
 		{
 			From:      "bar:5000/baz",
 			Registry:  "bar:5000",
-			Namespace: "library",
+			Namespace: DockerDefaultNamespace,
 			Name:      "baz",
 		},
 		{
@@ -97,13 +97,13 @@ func TestParseDockerImageReference(t *testing.T) {
 		{
 			From:      "myregistry.io/foo",
 			Registry:  "myregistry.io",
-			Namespace: "library",
+			Namespace: DockerDefaultNamespace,
 			Name:      "foo",
 		},
 		{
 			From:      "localhost/bar",
 			Registry:  "localhost",
-			Namespace: "library",
+			Namespace: DockerDefaultNamespace,
 			Name:      "bar",
 		},
 		// TODO: test cases if ParseDockerImageReference validates segment length and allowed chars
@@ -120,7 +120,7 @@ func TestParseDockerImageReference(t *testing.T) {
 		// 	// namespace/name == 255 chars with implicit namespace
 		// 	From:      fmt.Sprintf("bar:5000/%s:tag", strings.Repeat("b", 247)),
 		// 	Registry:  "bar:5000",
-		// 	Namespace: "library",
+		// 	Namespace: DockerDefaultNamespace,
 		// 	Name:      strings.Repeat("b", 247),
 		// 	Tag:       "tag",
 		// },

@@ -10,8 +10,12 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
-// DockerDefaultNamespace is the value for namespace when a single segment name is provided.
-const DockerDefaultNamespace = "library"
+const (
+	// DockerDefaultNamespace is the value for namespace when a single segment name is provided.
+	DockerDefaultNamespace = "library"
+	// DockerDefaultRegistry is the value for the registry when none was provided.
+	DockerDefaultRegistry = "docker.io"
+)
 
 // TODO remove (base, tag, id)
 func parseRepositoryTag(repos string) (string, string, string) {
@@ -102,10 +106,10 @@ func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 // DockerClientDefaults sets the default values used by the Docker client.
 func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
 	if len(r.Namespace) == 0 {
-		r.Namespace = "library"
+		r.Namespace = DockerDefaultNamespace
 	}
 	if len(r.Registry) == 0 {
-		r.Registry = "docker.io"
+		r.Registry = DockerDefaultRegistry
 	}
 	if len(r.Tag) == 0 {
 		r.Tag = DefaultImageTag

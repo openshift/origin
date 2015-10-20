@@ -198,7 +198,7 @@ func newConnection(url url.URL, allowInsecure, enableV2 bool) *connection {
 // ImageTags returns the tags for the named Docker image repository.
 func (c *connection) ImageTags(namespace, name string) (map[string]string, error) {
 	if len(namespace) == 0 {
-		namespace = "library"
+		namespace = imageapi.DockerDefaultNamespace
 	}
 	if len(name) == 0 {
 		return nil, fmt.Errorf("image name must be specified")
@@ -215,7 +215,7 @@ func (c *connection) ImageTags(namespace, name string) (map[string]string, error
 // ImageByID returns the specified image within the named Docker image repository
 func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) {
 	if len(namespace) == 0 {
-		namespace = "library"
+		namespace = imageapi.DockerDefaultNamespace
 	}
 	if len(name) == 0 {
 		return nil, fmt.Errorf("image name must be specified")
@@ -232,7 +232,7 @@ func (c *connection) ImageByID(namespace, name, imageID string) (*Image, error) 
 // ImageByTag returns the specified image within the named Docker image repository
 func (c *connection) ImageByTag(namespace, name, tag string) (*Image, error) {
 	if len(namespace) == 0 {
-		namespace = "library"
+		namespace = imageapi.DockerDefaultNamespace
 	}
 	if len(name) == 0 {
 		return nil, fmt.Errorf("image name must be specified")
