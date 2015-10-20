@@ -262,7 +262,9 @@ func NegotiateVersion(client *Client, c *Config, version string, clientRegistere
 	}
 	apiVersions, err := client.ServerAPIVersions()
 	if err != nil {
-		return "", fmt.Errorf("couldn't read version from server: %v", err)
+		// This is almost always a connection error, and higher level code should treat this as a generic error,
+		// not a version specific error.
+		return "", err
 	}
 	serverVersions := sets.String{}
 	for _, v := range apiVersions.Versions {
@@ -276,7 +278,7 @@ func NegotiateVersion(client *Client, c *Config, version string, clientRegistere
 	// If server does not support warn, but try to negotiate a lower version.
 	if len(version) != 0 {
 		if !clientVersions.Has(version) {
-			return "", fmt.Errorf("Client does not support API version '%s'. Client supported API versions: %v", version, clientVersions)
+			return "", fmt.Errorf("client does not support API version '%s'. Client supported API versions: %v", version, clientVersions)
 
 		}
 		if serverVersions.Has(version) {
@@ -284,7 +286,7 @@ func NegotiateVersion(client *Client, c *Config, version string, clientRegistere
 		}
 		// If we are using an explicit config version the server does not support, fail.
 		if version == c.Version {
-			return "", fmt.Errorf("Server does not support API version '%s'.", version)
+			return "", fmt.Errorf("server does not support API version '%s'.", version)
 		}
 	}
 
@@ -300,7 +302,7 @@ func NegotiateVersion(client *Client, c *Config, version string, clientRegistere
 			return clientVersion, nil
 		}
 	}
-	return "", fmt.Errorf("Failed to negotiate an api version. Server supports: %v. Client supports: %v.",
+	return "", fmt.Errorf("failed to negotiate an api version. Server supports: %v. Client supports: %v.",
 		serverVersions, clientRegisteredVersions)
 }
 
