@@ -16,11 +16,6 @@
   </dd>
   <dt>Created:</dt>
   <dd><relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></dd>
-  <dt>Labels:</dt>
-  <dd>
-    <span ng-if="!build.metadata.labels">none</span>
-    <span ng-repeat="(labelKey, labelValue) in build.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
-  </dd>
   <dt>Started:</dt>
   <dd>
     <relative-timestamp timestamp="build.status.startTimestamp"></relative-timestamp>
