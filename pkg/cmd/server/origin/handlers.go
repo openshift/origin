@@ -140,7 +140,7 @@ func cacheControlFilter(handler http.Handler, value string) http.Handler {
 // namespacingFilter adds a filter that adds the namespace of the request to the context.  Not all requests will have namespaces,
 // but any that do will have the appropriate value added.
 func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
-	infoResolver := &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
+	infoResolver := &apiserver.RequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, ok := contextMapper.Get(req)
@@ -150,7 +150,7 @@ func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMa
 		}
 
 		if _, exists := kapi.NamespaceFrom(ctx); !exists {
-			if requestInfo, err := infoResolver.GetAPIRequestInfo(req); err == nil {
+			if requestInfo, err := infoResolver.GetRequestInfo(req); err == nil {
 				// only set the namespace if the apiRequestInfo was resolved
 				// keep in mind that GetAPIRequestInfo will fail on non-api requests, so don't fail the entire http request on that
 				// kind of failure.

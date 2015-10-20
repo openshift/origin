@@ -153,8 +153,15 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:           sets.NewString("get"),
-					NonResourceURLs: sets.NewString("/healthz", "/healthz/*", "/version", "/api", "/oapi", "/osapi", "/api/", "/oapi/", "/osapi/"),
+					Verbs: sets.NewString("get"),
+					NonResourceURLs: sets.NewString(
+						"/healthz", "/healthz/*",
+						"/version",
+						"/api", "/api/", "/api/v1", "/api/v1/",
+						"/apis", "/apis/", "/apis/extensions", "/apis/extensions/", "/apis/extensions/v1beta1", "/apis/extensions/v1beta1/",
+						"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
+						"/oapi/", "/oapi", "/oapi/v1", "/oapi/v1/",
+					),
 				},
 			},
 		},

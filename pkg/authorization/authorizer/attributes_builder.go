@@ -10,30 +10,25 @@ import (
 
 type openshiftAuthorizationAttributeBuilder struct {
 	contextMapper kapi.RequestContextMapper
-	infoResolver  *kapiserver.APIRequestInfoResolver
+	infoResolver  *kapiserver.RequestInfoResolver
 }
 
-func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, infoResolver *kapiserver.APIRequestInfoResolver) AuthorizationAttributeBuilder {
+func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, infoResolver *kapiserver.RequestInfoResolver) AuthorizationAttributeBuilder {
 	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoResolver}
 }
 
 func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (AuthorizationAttributes, error) {
-	// any url that starts with an API prefix and is more than one step long is considered to be a resource URL.
-	// That means that /api is non-resource, /api/v1 is resource, /healthz is non-resource, and /swagger/anything is non-resource
-	urlSegments := splitPath(req.URL.Path)
-	isResourceURL := (len(urlSegments) > 1) && a.infoResolver.APIPrefixes.Has(urlSegments[0])
+	requestInfo, err := a.infoResolver.GetRequestInfo(req)
+	if err != nil {
+		return nil, err
+	}
 
-	if !isResourceURL {
+	if !requestInfo.IsResourceRequest {
 		return DefaultAuthorizationAttributes{
 			Verb:           strings.ToLower(req.Method),
 			NonResourceURL: true,
-			URL:            req.URL.Path,
+			URL:            requestInfo.Path,
 		}, nil
-	}
-
-	requestInfo, err := a.infoResolver.GetAPIRequestInfo(req)
-	if err != nil {
-		return nil, err
 	}
 
 	resource := requestInfo.Resource
@@ -48,6 +43,6 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		ResourceName:      requestInfo.Name,
 		RequestAttributes: req,
 		NonResourceURL:    false,
-		URL:               req.URL.Path,
+		URL:               requestInfo.Path,
 	}, nil
 }
