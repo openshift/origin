@@ -695,8 +695,21 @@ pre.clipped {
 }
 
 .k8s-label {
-  white-space: nowrap;
-
+  margin-right: 5px;
+  &:before {
+    content: ' ';
+    white-space: normal;
+  }
+  .label-pair {
+    margin-bottom: 2px;
+  .label {
+    &:first-child {
+      border-radius: 2px 0 0 2px;
+    }
+    &:last-child {
+      border-radius: 0 2px 2px 0;
+    }
+  }
   .label-key {
     background-color: #bee1f4;
     color: #00659c;
@@ -725,13 +738,18 @@ pre.clipped {
       background-color: #00659c;
     }
   }
-
-  + .k8s-label {
-    margin-left: 2px;
-
-    &:before {
-      content: ' ';
-      white-space: normal;
+  }
+}
+@media (max-width: @screen-sm-min) {
+  .k8s-label {
+  // enable label to truncate
+    width: 100%;
+    .label {
+      display: block;
+      min-width: 50px;
+    }
+    .label-pair {
+      width: 100%;
     }
   }
 }
