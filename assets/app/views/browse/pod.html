@@ -30,7 +30,6 @@
                 </pod-metrics>
               </tab>
 
-
               <tab active="selectedTab.logs">
                 <tab-heading>Logs</tab-heading>
                 <log-viewer
@@ -50,6 +49,25 @@
                   <a ng-click="initLogs()" ng-show="canInitAgain">reconnect</a>
                 </div>
               </tab>
+
+              <tab active="selectedTab.terminal"
+                select="terminalTabWasSelected = true"
+                ng-init="containers = pod.status.containerStatuses"
+                ng-if="containersRunning(pod.status.containerStatuses) > 0">
+                <tab-heading>Terminal</tab-heading>
+                <div><span class="fa fa-lg fa-info-circle"></span>
+                  When you navigate away from this pod, any processes running
+                  in these terminals will quit.</div>
+                <div class="pod-container-terminal"
+                  ng-repeat="container in containers | orderBy:'name' track by container.name"
+                  ng-if="container.state.running">
+                  <h3 ng-if="containers.length > 1">{{container.name}}</h3>
+                  <kubernetes-container-terminal pod="pod" container="container.name"
+                    prevent="!terminalTabWasSelected">
+                  </kubernetes-container-terminal>
+                </div>
+	      </tab>
+
             </tabset>
           </div>
         </div>
