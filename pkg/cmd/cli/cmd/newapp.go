@@ -109,9 +109,7 @@ To search templates, image streams, and Docker images that match the arguments p
 
 // NewCmdNewApplication implements the OpenShift cli new-app command
 func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	mapper, typer := f.Object()
-	clientMapper := f.ClientMapperForCommand()
-	config := newcmd.NewAppConfig(typer, mapper, clientMapper)
+	config := newcmd.NewAppConfig()
 
 	cmd := &cobra.Command{
 		Use:        "new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...)",
@@ -120,6 +118,11 @@ func NewCmdNewApplication(fullName string, f *clientcmd.Factory, out io.Writer) 
 		Example:    fmt.Sprintf(newAppExample, fullName),
 		SuggestFor: []string{"app", "application"},
 		Run: func(c *cobra.Command, args []string) {
+			mapper, typer := f.Object()
+			config.SetMapper(mapper)
+			config.SetTyper(typer)
+			config.SetClientMapper(f.ClientMapperForCommand())
+
 			err := RunNewApplication(fullName, f, out, c, args, config)
 			if err == errExit {
 				os.Exit(1)

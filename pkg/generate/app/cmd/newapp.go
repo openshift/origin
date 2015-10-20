@@ -97,8 +97,9 @@ type errlist interface {
 	Errors() []error
 }
 
-// NewAppConfig returns a new AppConfig
-func NewAppConfig(typer runtime.ObjectTyper, mapper meta.RESTMapper, clientMapper resource.ClientMapper) *AppConfig {
+// NewAppConfig returns a new AppConfig, but you must set your typer, mapper, and clientMapper after the command has been run
+// and flags have been parsed.
+func NewAppConfig() *AppConfig {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
@@ -108,11 +109,20 @@ func NewAppConfig(typer runtime.ObjectTyper, mapper meta.RESTMapper, clientMappe
 			Tester:    dockerfile.NewTester(),
 		},
 		dockerSearcher: dockerSearcher,
-		typer:          typer,
-		mapper:         mapper,
-		clientMapper:   clientMapper,
 		refBuilder:     &app.ReferenceBuilder{},
 	}
+}
+
+func (c *AppConfig) SetMapper(mapper meta.RESTMapper) {
+	c.mapper = mapper
+}
+
+func (c *AppConfig) SetTyper(typer runtime.ObjectTyper) {
+	c.typer = typer
+}
+
+func (c *AppConfig) SetClientMapper(clientMapper resource.ClientMapper) {
+	c.clientMapper = clientMapper
 }
 
 func (c *AppConfig) dockerRegistrySearcher() app.Searcher {
