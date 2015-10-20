@@ -8,7 +8,9 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/openshift/openshift-sdn/pkg/ipcmd"
 	"github.com/openshift/openshift-sdn/pkg/netutils"
 	"github.com/openshift/openshift-sdn/plugins/osdn/api"
 
@@ -16,6 +18,7 @@ import (
 )
 
 const (
+	LBR = "lbr0"
 	TUN = "tun0"
 )
 
@@ -27,11 +30,62 @@ func NewFlowController(multitenant bool) *FlowController {
 	return &FlowController{multitenant}
 }
 
+func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
+	const (
+		timeInterval = 100 * time.Millisecond
+		maxIntervals = 20
+	)
+
+	for i := 0; i < maxIntervals; i++ {
+		itx := ipcmd.NewTransaction(device)
+		routes, err := itx.GetRoutes()
+		if err != nil {
+			glog.Errorf("Could not get routes for dev %s: %v", device, err)
+			return
+		}
+		for _, route := range routes {
+			if strings.Contains(route, localSubnetCIDR) {
+				itx.DeleteRoute(localSubnetCIDR)
+				err = itx.EndTransaction()
+				if err != nil {
+					glog.Errorf("Could not delete subnet route %s from dev %s: %v", localSubnetCIDR, device, err)
+				}
+				return
+			}
+		}
+
+		time.Sleep(timeInterval)
+	}
+
+	glog.Errorf("Timed out looking for %s route for dev %s; if it appears later it will not be deleted.", localSubnetCIDR, device)
+}
+
 func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetworkCIDR string, mtu uint) error {
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
-	out, err := exec.Command("openshift-sdn-ovs-setup.sh", localSubnetGateway, localSubnetCIDR, fmt.Sprint(localSubnetMaskLength), clusterNetworkCIDR, servicesNetworkCIDR, fmt.Sprint(mtu), fmt.Sprint(c.multitenant)).CombinedOutput()
+
+	itx := ipcmd.NewTransaction(LBR)
+	itx.SetLink("down")
+	itx.IgnoreError()
+	itx.DeleteLink()
+	itx.IgnoreError()
+	itx.AddLink("type", "bridge")
+	itx.AddAddress(fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength))
+	itx.SetLink("up")
+	err = itx.EndTransaction()
+	if err != nil {
+		glog.Errorf("Failed to configure docker bridge: %v", err)
+		return err
+	}
+	defer deleteLocalSubnetRoute(LBR, localSubnetCIDR)
+	out, err := exec.Command("openshift-sdn-docker-setup.sh", LBR, fmt.Sprint(mtu)).CombinedOutput()
+	if err != nil {
+		glog.Errorf("Failed to configure docker networking: %v\n%s", err, out)
+		return err
+	}
+
+	out, err = exec.Command("openshift-sdn-ovs-setup.sh", localSubnetGateway, localSubnetCIDR, fmt.Sprint(localSubnetMaskLength), clusterNetworkCIDR, servicesNetworkCIDR, fmt.Sprint(c.multitenant)).CombinedOutput()
 	if err != nil {
 		glog.Infof("Output of setup script:\n%s", out)
 		exitErr, ok := err.(*exec.ExitError)

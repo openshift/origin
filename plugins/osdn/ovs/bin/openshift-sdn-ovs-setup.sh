@@ -7,47 +7,9 @@ local_subnet_cidr=$2
 local_subnet_mask_len=$3
 cluster_network_cidr=$4
 service_network_cidr=$5
-mtu=$6
-multitenant=$7
-printf 'Container network is "%s"; local host has subnet "%s", mtu "%d" and gateway "%s".\n' "${cluster_network_cidr}" "${local_subnet_cidr}" "${mtu}" "${local_subnet_gateway}"
+multitenant=$6
+printf 'Container network is "%s"; local host has subnet "%s" and gateway "%s".\n' "${cluster_network_cidr}" "${local_subnet_cidr}" "${local_subnet_gateway}"
 TUN=tun0
-
-function docker_network_config() {
-    if [ -z "${DOCKER_NETWORK_OPTIONS}" ]; then
-	DOCKER_NETWORK_OPTIONS="-b=lbr0 --mtu=${mtu}"
-    fi
-
-    local conf=/run/openshift-sdn/docker-network
-    case "$1" in
-	check)
-	    if ! grep -q -s "DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'" $conf; then
-		return 1
-	    fi
-	    return 0
-	    ;;
-
-	update)
-		mkdir -p $(dirname $conf)
-		cat <<EOF > $conf
-# This file has been modified by openshift-sdn.
-
-DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'
-EOF
-		## linux bridge
-		ip link set lbr0 down || true
-		brctl delbr lbr0 || true
-		brctl addbr lbr0
-		ip addr add ${local_subnet_gateway}/${local_subnet_mask_len} dev lbr0
-		ip link set lbr0 up
-
-		# when using --pid=host to run docker container, systemctl inside it refuses
-		# to work because it detects that it's running in chroot. using dbus instead
-		# of systemctl is just a workaround
-		dbus-send --system --print-reply --reply-timeout=2000 --type=method_call --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager.Reload
-		dbus-send --system --print-reply --reply-timeout=2000 --type=method_call --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1 org.freedesktop.systemd1.Manager.RestartUnit string:'docker.service' string:'replace'
-	    ;;
-    esac
-}
 
 function setup_required() {
     ip=$(echo `ip a s lbr0 2>/dev/null|awk '/inet / {print $2}'`)
@@ -186,10 +148,6 @@ function setup() {
 }
 
 set +e
-if ! docker_network_config check; then
-    docker_network_config update
-fi
-
 if ! setup_required; then
     echo "SDN setup not required."
     exit 140
