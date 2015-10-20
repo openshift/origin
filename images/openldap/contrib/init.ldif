@@ -29,7 +29,7 @@ objectClass: inetOrgPerson
 sn: Smith
 cn: Person2
 displayName: person2smith
-mail: person2mith@example.com 
+mail: person2smith@example.com
 
 dn: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
 objectClass: person
@@ -85,7 +85,6 @@ owner: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
 description: Person3's Group
 member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
 member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
-member: cn=Person0,ou=people,ou=rfc2307,dc=example,dc=com
 
 dn: ou=ad,dc=example,dc=com
 objectClass: organizationalUnit
@@ -118,7 +117,7 @@ objectClass: testPerson
 sn: Smith
 cn: Person2
 displayName: person2smith
-mail: person2mith@example.com 
+mail: person2smith@example.com
 testMemberOf: group1
 testMemberOf: group2
 
@@ -188,7 +187,7 @@ objectClass: testPerson
 sn: Smith
 cn: Person2
 displayName: person2smith
-mail: person2mith@example.com 
+mail: person2smith@example.com
 testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
 testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
 
