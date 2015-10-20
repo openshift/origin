@@ -59,7 +59,7 @@ angular.module("openshiftConsole")
         scope.buildConfig.contextDir = annotations.sampleContextDir || "";
       };
 
-      DataService.get("imagestreams", scope.imageName, scope, {namespace: scope.namespace}).then(function(imageStream){
+      DataService.get("imagestreams", scope.imageName, {namespace: (scope.namespace || $routeParams.project)}).then(function(imageStream){
           scope.imageStream = imageStream;
           var imageName = scope.imageTag;
           DataService.get("imagestreamtags", imageStream.metadata.name + ":" + imageName, {namespace: scope.namespace}).then(function(imageStreamTag){
@@ -108,7 +108,7 @@ angular.module("openshiftConsole")
           _checkDone();
           return;
         }
-        DataService.get(resourceName, resource.metadata.name, scope, {namespace: namespace, errorNotification: false}).then(
+        DataService.get(resourceName, resource.metadata.name, {namespace: (namespace || $routeParams.project)}, {errorNotification: false}).then(
           function (data) {
             successResults.push(data);
             remaining--;
