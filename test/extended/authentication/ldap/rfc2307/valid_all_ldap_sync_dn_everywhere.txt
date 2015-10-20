@@ -28,3 +28,16 @@ users:
 - cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
 - cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
 - cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+apiVersion: v1
+kind: Group
+metadata:
+  annotations:
+    openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    openshift.io/ldap.url: LDAP_SERVICE_IP:389
+  creationTimestamp: null
+  labels:
+    openshift.io/ldap.host: LDAP_SERVICE_IP
+  name: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+users:
+- cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+- cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
