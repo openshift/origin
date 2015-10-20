@@ -48,9 +48,7 @@ You can use '%[1]s status' to check the progress.`
 
 // NewCmdNewBuild implements the OpenShift cli new-build command
 func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
-	mapper, typer := f.Object()
-	clientMapper := f.ClientMapperForCommand()
-	config := newcmd.NewAppConfig(typer, mapper, clientMapper)
+	config := newcmd.NewAppConfig()
 
 	cmd := &cobra.Command{
 		Use:        "new-build (IMAGE | IMAGESTREAM | PATH | URL ...)",
@@ -59,6 +57,11 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 		Example:    fmt.Sprintf(newBuildExample, fullName),
 		SuggestFor: []string{"build", "builds"},
 		Run: func(c *cobra.Command, args []string) {
+			mapper, typer := f.Object()
+			config.SetMapper(mapper)
+			config.SetTyper(typer)
+			config.SetClientMapper(f.ClientMapperForCommand())
+
 			config.AddEnvironmentToBuild = true
 			err := RunNewBuild(fullName, f, out, in, c, args, config)
 			if err == errExit {

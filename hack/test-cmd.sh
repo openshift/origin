@@ -240,6 +240,7 @@ oc get projects
 oc project project-foo
 [ "$(oc config view | grep current-context | grep project-foo/${API_HOST}:${API_PORT}/test-user)" ]
 [ "$(oc whoami | grep 'test-user')" ]
+[ "$(oc whoami --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" | grep 'system:admin')" ]
 [ -n "$(oc whoami -t)" ]
 [ -n "$(oc whoami -c)" ]
 
