@@ -1,12 +1,12 @@
 <li ng-class="{ active: item.isSelected() }">
-  <a ng-href="{{item.href()}}" ng-click="item.click($event);" ng-attr-data-toggle="{{(item.tabs && item.tabs.length > 1) ? 'dropdown-hover' : undefined}}" ng-class="{'dropdown-toggle':(item.tabs && item.tabs.length > 1) }">
+  <a ng-href="{{item.href()}}" ng-click="item.click($event);" ng-attr-data-toggle="{{item.tabs.length ? 'dropdown' : undefined}}" ng-attr-data-hover="{{item.tabs.length ? 'dropdown' : undefined}}" ng-class="{'dropdown-toggle': item.tabs.length}">
     <span class="fa fa-{{item.icon}} fa-fw"></span> {{item.title()}}
   </a> 
-  <div ng-if="item.tabs && item.tabs.length > 1"  class="hover-nav dropdown-menu hidden-xs">
+  <div ng-if="item.tabs.length"  class="hover-nav dropdown-menu hidden-xs">
     <ul class="nav nav-sidenav-secondary" osc-secondary-nav tabs="item.tabs">
     </ul>
   </div>
-  <div ng-if="item.tabs && item.tabs.length > 1"  class="hover-nav visible-xs-block">
+  <div ng-if="item.tabs.length"  class="hover-nav visible-xs-block">
     <ul class="nav nav-sidenav-secondary" osc-secondary-nav tabs="item.tabs">
     </ul>
   </div>

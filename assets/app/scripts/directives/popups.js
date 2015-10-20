@@ -14,8 +14,11 @@ angular.module('openshiftConsole')
             case "tooltip":
               $(element).tooltip();
               break;
-            case "dropdown-hover":
-              $(element).dropdownHover({delay: 200});
+            case "dropdown":
+              if (attrs.hover === "dropdown") {
+                $(element).dropdownHover({delay: 200});
+                $(element).dropdown();
+              }
               break;
           }
         }
