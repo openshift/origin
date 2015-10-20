@@ -69,7 +69,12 @@ type Recycler interface {
 // Create adds a new resource in the storage provider and creates a PersistentVolume for the new resource.
 // Calls to Create should block until complete.
 type Creater interface {
-	Create() (*api.PersistentVolume, error)
+	// Provisions the resource in the underlying resource provider.
+	Provision(*api.PersistentVolume) error
+	// creates a new PersistentVolume to be used as a template before saving.  The provisioner will want to
+	// tweak its properties, assign correct annotations, etc.
+	// this func does *NOT* persist the PV in the API.  That is left to the caller.
+	NewPersistentVolumeTemplate() (*api.PersistentVolume, error)
 }
 
 // Delete removes the resource from the underlying storage provider.  Calls to this method should block until

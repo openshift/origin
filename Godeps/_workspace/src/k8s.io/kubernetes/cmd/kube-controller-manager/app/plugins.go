@@ -17,6 +17,8 @@ limitations under the License.
 package app
 
 import (
+	"strings"
+
 	// This file exists to force the desired plugin implementations to be linked.
 	// This should probably be part of some configuration fed into the build for a
 	// given binary target.
@@ -27,6 +29,9 @@ import (
 	// Volume plugins
 	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/volume"
+	"k8s.io/kubernetes/pkg/volume/aws_ebs"
+	"k8s.io/kubernetes/pkg/volume/cinder"
+	"k8s.io/kubernetes/pkg/volume/gce_pd"
 	"k8s.io/kubernetes/pkg/volume/host_path"
 	"k8s.io/kubernetes/pkg/volume/nfs"
 
@@ -66,7 +71,48 @@ func ProbeRecyclableVolumePlugins(flags VolumeConfigFlags) []volume.VolumePlugin
 	}
 	allPlugins = append(allPlugins, nfs.ProbeVolumePlugins(nfsConfig)...)
 
+	allPlugins = append(allPlugins, aws_ebs.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, gce_pd.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, cinder.ProbeVolumePlugins()...)
+
 	return allPlugins
+}
+
+// NewVolumeProvisioners maps a cloud provider to a specific volume plugin.
+func NewVolumeProvisioners(plugins []volume.VolumePlugin, qosClasses []string) map[string]volume.ProvisionableVolumePlugin {
+	provisioners := map[string]volume.ProvisionableVolumePlugin{}
+	for _, qos := range qosClasses {
+		// the value is "key/value" and requires parsing after the first slash.
+		// values will be volume plugin names, many of which also contain slashes in the name.
+		firstSlash := strings.Index(qos, "/")
+		// 0 cannot be the first slash. there would be no tier name.
+		if firstSlash > 0 {
+			qosClass := qos[0:firstSlash]
+			// add the QoS class to the provisioner map but missing the provisioner.
+			// a suitable plugin should be found and added to the map.
+			// we get to raise an error if the provisioner remains nil
+			provisioners[qosClass] = nil
+			provisioner := qos[(firstSlash + 1):] // needs +1 because we don't want the slash prefix
+			for _, plugin := range plugins {
+				if plugin.Name() == provisioner {
+					if provisonablePlugin, ok := plugin.(volume.ProvisionableVolumePlugin); ok {
+						provisioners[qosClass] = provisonablePlugin
+					}
+				}
+			}
+		}
+	}
+	anyNil := false
+	for qosClass, plugin := range provisioners {
+		if plugin == nil {
+			anyNil = true
+			glog.Warningf("Could not find a ProvisionableVolumePlugin for QoS class %s", qosClass)
+		}
+	}
+	if anyNil {
+		glog.Fatalf("One or more QoS Classes were incorrectly configured and are missing a provisioner")
+	}
+	return provisioners
 }
 
 // attemptToLoadRecycler tries decoding a pod from a filepath for use as a recycler for a volume.
