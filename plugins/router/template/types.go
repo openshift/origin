@@ -33,6 +33,8 @@ type ServiceAliasConfig struct {
 	Status ServiceAliasConfigStatus
 	// Indicates the port the user wishes to expose. If empty, a port will be selected for the service.
 	PreferPort string
+	// AdditionalConfig provide additional configuration parameter per route.
+	AdditionalConfig []string
 }
 
 type ServiceAliasConfigStatus string
@@ -102,3 +104,7 @@ type certificateWriter interface {
 func (s ServiceUnit) TemplateSafeName() string {
 	return strings.Replace(s.Name, "/", "-", -1)
 }
+
+const (
+	AnnotationStrategyHAProxy = "haproxy"
+)

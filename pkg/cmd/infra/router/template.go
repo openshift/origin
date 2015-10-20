@@ -48,6 +48,7 @@ type TemplateRouter struct {
 	ReloadScript       string
 	DefaultCertificate string
 	RouterService      *ktypes.NamespacedName
+	Annotations        string
 }
 
 func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
@@ -55,6 +56,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
+	flag.StringVar(&o.Annotations, "annotations", util.Env("ANNOTATIONS", ""), "Enable an annotation strategy for customizing routes.  Valid values are haproxy or empty")
 }
 
 type RouterStats struct {
@@ -132,6 +134,10 @@ func (o *TemplateRouterOptions) Validate() error {
 	if len(o.ReloadScript) == 0 {
 		return errors.New("reload script must be specified")
 	}
+
+	if len(o.Annotations) > 0 && o.Annotations != templateplugin.AnnotationStrategyHAProxy {
+		return errors.New("invalid annotations value")
+	}
 	return nil
 }
 
@@ -147,6 +153,7 @@ func (o *TemplateRouterOptions) Run() error {
 		StatsPassword:      o.StatsPassword,
 		PeerService:        o.RouterService,
 		IncludeUDP:         o.RouterSelection.IncludeUDP,
+		Annotations:        o.Annotations,
 	}
 
 	templatePlugin, err := templateplugin.NewTemplatePlugin(pluginCfg)

@@ -186,6 +186,9 @@ backend be_edge_http_{{$cfgIdx}}
   option forwardfor
   balance leastconn
   timeout check 5000ms
+  {{ range $addlCfg := $cfg.AdditionalConfig }}
+  {{$addlCfg}}
+  {{ end }}
   http-request set-header X-Forwarded-Host %[req.hdr(host)]
   http-request set-header X-Forwarded-Port %[dst_port]
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
@@ -206,6 +209,9 @@ backend be_tcp_{{$cfgIdx}}
   balance source
   hash-type consistent
   timeout check 5000ms
+  {{ range $addlCfg := $cfg.AdditionalConfig }}
+  {{$addlCfg}}
+  {{ end }}
                 {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
                 {{ end }}
@@ -217,6 +223,9 @@ backend be_secure_{{$cfgIdx}}
   option redispatch
   balance leastconn
   timeout check 5000ms
+  {{ range $addlCfg := $cfg.AdditionalConfig }}
+  {{$addlCfg}}
+  {{ end }}
   cookie OPENSHIFT_REENCRYPT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
                 {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.ID}}

@@ -39,6 +39,7 @@ type TemplatePluginConfig struct {
 	StatsPassword      string
 	IncludeUDP         bool
 	PeerService        *ktypes.NamespacedName
+	Annotations        string
 }
 
 // routerInterface controls the interaction of the plugin with the underlying router implementation
@@ -104,7 +105,9 @@ func NewTemplatePlugin(cfg TemplatePluginConfig) (*TemplatePlugin, error) {
 		statsPassword:      cfg.StatsPassword,
 		statsPort:          cfg.StatsPort,
 		peerEndpointsKey:   peerKey,
+		annotationsFunc:    AnnotationFuncFor(cfg.Annotations),
 	}
+
 	router, err := newTemplateRouter(templateRouterCfg)
 	return newDefaultTemplatePlugin(router, cfg.IncludeUDP), err
 }

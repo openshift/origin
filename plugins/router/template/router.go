@@ -64,6 +64,8 @@ type templateRouter struct {
 	statsPassword string
 	// if the router can expose statistics it should expose them with this port
 	statsPort int
+	// allows routes to provide custom annotations for a router to implement when generating config
+	annotationsFunc AnnotationsFunc
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -77,6 +79,7 @@ type templateRouterCfg struct {
 	statsPort          int
 	peerEndpointsKey   string
 	includeUDP         bool
+	annotationsFunc    AnnotationsFunc
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -130,6 +133,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		statsPort:              cfg.statsPort,
 		peerEndpointsKey:       cfg.peerEndpointsKey,
 		peerEndpoints:          []Endpoint{},
+		annotationsFunc:        cfg.annotationsFunc,
 	}
 	if err := router.writeDefaultCert(); err != nil {
 		return nil, err
@@ -402,6 +406,10 @@ func (r *templateRouter) AddRoute(id string, route *routeapi.Route, host string)
 				config.Certificates[destCertKey] = destCert
 			}
 		}
+	}
+
+	if r.annotationsFunc != nil {
+		config.AdditionalConfig = r.annotationsFunc(route)
 	}
 
 	//create or replace

@@ -158,6 +158,9 @@ type RouterConfig struct {
 	// This is used by some routers to create access access control
 	// boundaries for users and applications.
 	ExternalHostPartitionPath string
+
+	// Enable an annotation strategy for customizing routes.  Valid values are haproxy or empty
+	Annotations string
 }
 
 var errExit = fmt.Errorf("exit")
@@ -222,6 +225,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 	cmd.Flags().StringVar(&cfg.ExternalHostPrivateKey, "external-host-private-key", cfg.ExternalHostPrivateKey, "If the underlying router implementation requires an SSH private key, this is the path to the private key file.")
 	cmd.Flags().BoolVar(&cfg.ExternalHostInsecure, "external-host-insecure", cfg.ExternalHostInsecure, "If the underlying router implementation connects with an external host over a secure connection, this causes the router to skip strict certificate verification with the external host.")
 	cmd.Flags().StringVar(&cfg.ExternalHostPartitionPath, "external-host-partition-path", cfg.ExternalHostPartitionPath, "If the underlying router implementation uses partitions for control boundaries, this is the path to use for that partition.")
+	cmd.Flags().StringVar(&cfg.Annotations, "annotations", cfg.Annotations, "Enable an annotation strategy for customizing routes.  Valid values are haproxy or empty.  It is up to the underlying implementation to allow the annotations.")
 
 	cmd.MarkFlagFilename("credentials", "kubeconfig")
 
@@ -495,6 +499,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			"STATS_PORT":                          strconv.Itoa(cfg.StatsPort),
 			"STATS_USERNAME":                      cfg.StatsUsername,
 			"STATS_PASSWORD":                      cfg.StatsPassword,
+			"ANNOTATIONS":                         cfg.Annotations,
 		}
 
 		updatePercent := int(-25)
