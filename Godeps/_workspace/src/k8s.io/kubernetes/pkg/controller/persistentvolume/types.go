@@ -38,6 +38,12 @@ const (
 	// The value must be the namespace and name of the claim being bound to (i.e, claim.Namespace/claim.Name)
 	// This is an experimental feature and likely to change in the future.
 	provisionedForKey = "volume.experimental.kubernetes.io/provisioned-for"
+	// Name of a tag attached to a real volume in cloud (e.g. AWS EBS or GCE PD)
+	// with namespace of a persistent volume claim used to create this volume.
+	cloudVolumeCreatedForNamespaceTag = "kubernetes.io/created-for/PVC/Namespace"
+	// Name of a tag attached to a real volume in cloud (e.g. AWS EBS or GCE PD)
+	// with name of a persistent volume claim used to create this volume.
+	cloudVolumeCreatedForNameTag = "kubernetes.io/created-for/PVC/Name"
 )
 
 // persistentVolumeOrderedIndex is a cache.Store that keeps persistent volumes indexed by AccessModes and ordered by storage capacity.
