@@ -11,8 +11,6 @@ import (
 const (
 	// BuildAnnotation is an annotation that identifies a Pod as being for a Build
 	BuildAnnotation = "openshift.io/build.name"
-	// DeprecatedBuildLabel is old value of BuildLabel, it'll be removed in OpenShift 3.1.
-	DeprecatedBuildLabel = "build"
 	// BuildNumberAnnotation is an annotation whose value is the sequential number for this Build
 	BuildNumberAnnotation = "openshift.io/build.number"
 	// BuildCloneAnnotation is an annotation whose value is the name of the build this build was cloned from

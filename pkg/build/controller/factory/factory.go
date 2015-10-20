@@ -375,16 +375,6 @@ func listPods(client kclient.Interface) (*kapi.PodList, error) {
 	if err != nil {
 		return nil, err
 	}
-	// FIXME: get builds with old label - remove this when depracated label will be removed
-	selOld, err := labels.Parse(buildapi.DeprecatedBuildLabel)
-	if err != nil {
-		return nil, err
-	}
-	listOld, err := client.Pods(kapi.NamespaceAll).List(selOld, fields.Everything())
-	if err != nil {
-		return nil, err
-	}
-	listNew.Items = mergeWithoutDuplicates(listNew.Items, listOld.Items)
 	return listNew, nil
 }
 
@@ -443,8 +433,8 @@ func (lw *buildDeleteLW) List() (runtime.Object, error) {
 	}
 
 	for _, pod := range podList.Items {
-		buildName, exists := buildutil.GetBuildLabel(&pod)
-		if !exists {
+		buildName := pod.Labels[buildapi.BuildLabel]
+		if len(buildName) == 0 {
 			continue
 		}
 		glog.V(5).Infof("Found build pod %s/%s", pod.Namespace, pod.Name)
@@ -541,7 +531,7 @@ func (lw *buildPodDeleteLW) List() (runtime.Object, error) {
 				pod = nil
 			}
 		} else {
-			if buildName, _ := buildutil.GetBuildLabel(pod); buildName != build.Name {
+			if buildName := pod.Labels[buildapi.BuildLabel]; buildName != build.Name {
 				pod = nil
 			}
 		}
