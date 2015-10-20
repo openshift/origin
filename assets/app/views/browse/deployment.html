@@ -69,11 +69,6 @@
                   <span ng-switch-default>waiting for <duration-until-now timestamp="deployment.metadata.creationTimestamp"></duration-until-now></span>
                 </span>
               </dd>
-              <dt>Labels:</dt>
-              <dd>
-                <span ng-if="!deployment.metadata.labels">none</span>
-                <span ng-repeat="(labelKey, labelValue) in deployment.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
-              </dd>
               <dt>Selectors:</dt>
               <dd>
                 <span ng-if="!deployment.spec.selector">none</span>

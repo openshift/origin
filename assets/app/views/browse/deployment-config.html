@@ -13,10 +13,6 @@
               <dd><relative-timestamp timestamp="deploymentConfig.metadata.creationTimestamp"></relative-timestamp></dd>
           </div>
           <div>
-              <dt>Labels:</dt><dd ng-if="!deploymentConfig.metadata.labels">none</dd>
-              <dd ng-repeat="(labelKey, labelValue) in deploymentConfig.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></dd>
-          </div>
-          <div>
               <dt>Latest Version:</dt>
               <dd>{{deploymentConfig.status.latestVersion}}</dd>
           </div>

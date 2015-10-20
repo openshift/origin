@@ -10,11 +10,6 @@
             <h1>{{service.metadata.name}}</h1>
             <labels labels="service.metadata.labels" clickable="true" kind="services" project-name="{{service.metadata.namespace}}" limit="3"></labels>
             <dl class="dl-horizontal left">
-              <dt>Labels:</dt>
-              <dd>
-                <span ng-if="!service.metadata.labels">none</span>
-                <span ng-repeat="(labelKey, labelValue) in service.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
-              </dd>
               <dt>Selectors:</dt>
               <dd>
                 <span ng-if="!service.spec.selector"><em>none</em></span>
