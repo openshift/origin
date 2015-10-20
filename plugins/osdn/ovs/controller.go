@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/golang/glog"
+	"io/ioutil"
 	"net"
 	"os/exec"
 	"strings"
@@ -132,6 +133,11 @@ func (c *FlowController) Setup(localSubnetCIDR, clusterNetworkCIDR, servicesNetw
 
 	if alreadySetUp(c.multitenant, fmt.Sprintf("%s/%s", localSubnetGateway, localSubnetMaskLength)) {
 		return nil
+	}
+	config := fmt.Sprintf("export OPENSHIFT_CLUSTER_SUBNET=%s", clusterNetworkCIDR)
+	err = ioutil.WriteFile("/run/openshift-sdn/config.env", []byte(config), 0644)
+	if err != nil {
+		return err
 	}
 	out, err = exec.Command("openshift-sdn-ovs-setup.sh", localSubnetGateway, localSubnetCIDR, fmt.Sprint(localSubnetMaskLength), clusterNetworkCIDR, servicesNetworkCIDR, fmt.Sprint(c.multitenant)).CombinedOutput()
 	if err != nil {

@@ -74,7 +74,7 @@ del_ovs_flows() {
 }
 
 add_subnet_route() {
-    source /etc/openshift-sdn/config.env
+    source /run/openshift-sdn/config.env
     local subnet_route="ip route add ${OPENSHIFT_CLUSTER_SUBNET} dev eth0 proto kernel scope link src $ipaddr"
     nsenter -n -t $pid -- $subnet_route
 }

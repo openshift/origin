@@ -35,9 +35,6 @@ function delete_local_subnet_route() {
 }
 
 function setup() {
-    # clear config file
-    rm -f /etc/openshift-sdn/config.env
-
     ## openvswitch
     ovs-vsctl del-br br0 || true
     ovs-vsctl add-br br0 -- set Bridge br0 fail-mode=secure
@@ -122,9 +119,6 @@ function setup() {
     # Cleanup docker0 since docker won't do it
     ip link set docker0 down || true
     brctl delbr docker0 || true
-
-    mkdir -p /etc/openshift-sdn
-    echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_network_cidr}" >> "/etc/openshift-sdn/config.env"
 
     # delete unnecessary routes
     delete_local_subnet_route lbr0 || true
