@@ -762,7 +762,7 @@ Start a shell session in a pod
 
 
 == oc rsync
-Copy local files to a pod
+Copy files between local filesystem and a pod
 
 ====
 
@@ -771,6 +771,9 @@ Copy local files to a pod
 
   # Synchronize a local directory with a pod directory
   $ openshift cli rsync ./local/dir/ POD:/remote/dir
+  
+  # Synchronize a pod directory with a local directory
+  $ openshift cli rsync POD:/remote/dir/ ./local/dir
 ----
 ====
 
