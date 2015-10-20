@@ -19,26 +19,49 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
+var (
+	// enumManifestKindToKeep filters images having DelectionTimestamp unset.
+	enumManifestKindToKeep fields.Selector
+	// enumManifestKindToKeep filters images having DelectionTimestamp set.
+	enumManifestKindToDelete fields.Selector
+	// enumManifestKindToKeep makes Enumerate method return all images found.
+	enumManifestKindAll fields.Selector
+)
+
 func init() {
 	repomw.Register("openshift", repomw.InitFunc(newRepository))
+
+	var err error
+	enumManifestKindToKeep, err = fields.ParseSelector("image.status.phase!=" + imageapi.ImagePurging)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	enumManifestKindToDelete, err = fields.ParseSelector("image.status.phase==" + imageapi.ImagePurging)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	enumManifestKindAll = fields.Everything()
 }
 
 type repository struct {
 	distribution.Repository
 
-	ctx                context.Context
-	registryClient     *client.Client
-	registryAddr       string
-	namespace          string
-	name               string
-	imageLabelSelector labels.Selector
-	imageFieldSelector fields.Selector
+	ctx            context.Context
+	registryClient client.Interface
+	registryAddr   string
+	namespace      string
+	name           string
+	// getNoCheckImageStream prevents Get() function from performing an
+	// existence check on image stream.
+	getNoCheckImageStream bool
+	imageFieldSelector    fields.Selector
 }
 
 // newRepository returns a new repository middleware.
@@ -67,13 +90,46 @@ func newRepository(ctx context.Context, repo distribution.Repository, options ma
 	}, nil
 }
 
-// Manifests returns r, which implements distribution.ManifestService.
+// makeChangeEnumKindOption constructs a manifest service option causing the
+// service to enumerate chosen kind of manifest revisions.
+func makeChangeEnumKindOption(kind fields.Selector) distribution.ManifestServiceOption {
+	return func(manServ distribution.ManifestService) error {
+		repo, ok := manServ.(*repository)
+		if !ok {
+			return fmt.Errorf("unsupported type of manifest service (%T != %T)", manServ, &repository{})
+		}
+		repo.imageFieldSelector = enumManifestKindToKeep
+		return nil
+	}
+}
+
+// makeChangeEnumKindOption constructs a manifest service option causing the
+// service to enumerate chosen kind of manifest revisions.
+func makeGetCheckImageStreamOption(check bool) distribution.ManifestServiceOption {
+	return func(manServ distribution.ManifestService) error {
+		repo, ok := manServ.(*repository)
+		if !ok {
+			return fmt.Errorf("unsupported type of manifest service (%T != %T)", manServ, &repository{})
+		}
+		repo.getNoCheckImageStream = !check
+		return nil
+	}
+}
+
+// Manifests returns manifest service with given options applied.
 func (r *repository) Manifests(ctx context.Context, options ...distribution.ManifestServiceOption) (distribution.ManifestService, error) {
-	if r.ctx != ctx {
+	if r.ctx != ctx && len(options) == 0 {
 		return r, nil
 	}
 	repo := repository(*r)
 	repo.ctx = ctx
+
+	for _, opt := range options {
+		if err := opt(&repo); err != nil {
+			return nil, err
+		}
+	}
+
 	return &repo, nil
 }
 
@@ -128,7 +184,7 @@ func (r *repository) Get(dgst digest.Digest) (*manifest.SignedManifest, error) {
 	return r.manifestFromImage(image)
 }
 
-// Enumerate retrieves digests of manifest revisions in particular namespace
+// Enumerate retrieves digests of manifest revisions in this repository.
 func (r *repository) Enumerate() ([]digest.Digest, error) {
 	images, err := r.getImages()
 	if err != nil {
@@ -273,6 +329,7 @@ func (r *repository) Delete(dgst digest.Digest) error {
 	if err != nil {
 		return err
 	}
+	// TODO: run finalize on image object
 	return manServ.Delete(dgst)
 }
 
@@ -286,7 +343,7 @@ func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 	return r.registryClient.Images().Get(dgst.String())
 }
 
-// getImages retrieves repository's ImageList.
+// getImages retrieves repository's ImageStreamImageList.
 func (r *repository) getImages() (*imageapi.ImageStreamImageList, error) {
 	return r.registryClient.ImageStreamImages(r.namespace).List(labels.Everything(), r.imageFieldSelector)
 }
