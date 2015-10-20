@@ -20,11 +20,14 @@ import (
 )
 
 // PrinterCoverageExceptions is the list of API types that do NOT have corresponding printers
-// If you add something to this list, explain why it doesn't need validation.  waaaa is not a valid
+// If you add something to this list, explain why it doesn't need printing.  waaaa is not a valid
 // reason.
 var PrinterCoverageExceptions = []reflect.Type{
-	reflect.TypeOf(&imageapi.DockerImage{}), // not a top level resource
-	reflect.TypeOf(&buildapi.BuildLog{}),    // just a marker type
+	reflect.TypeOf(&imageapi.DockerImage{}),           // not a top level resource
+	reflect.TypeOf(&buildapi.BuildLog{}),              // just a marker type
+	reflect.TypeOf(&buildapi.BuildLogOptions{}),       // just a marker type
+	reflect.TypeOf(&deployapi.DeploymentLog{}),        // just a marker type
+	reflect.TypeOf(&deployapi.DeploymentLogOptions{}), // just a marker type
 
 	// these resources can't be "GET"ed, so we probably don't need a printer for them
 	reflect.TypeOf(&authorizationapi.SubjectAccessReviewResponse{}),
@@ -41,7 +44,6 @@ var PrinterCoverageExceptions = []reflect.Type{
 var MissingPrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),
 	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
-	reflect.TypeOf(&buildapi.BuildLogOptions{}),
 	reflect.TypeOf(&buildapi.BuildRequest{}),
 	reflect.TypeOf(&projectapi.ProjectRequest{}),
 }

@@ -37,7 +37,6 @@ func describerMap(c *client.Client, kclient kclient.Interface, host string) map[
 	m := map[string]kctl.Describer{
 		"Build":                &BuildDescriber{c, kclient},
 		"BuildConfig":          &BuildConfigDescriber{c, host},
-		"BuildLog":             &BuildLogDescriber{c},
 		"DeploymentConfig":     NewDeploymentConfigDescriber(c, kclient),
 		"Identity":             &IdentityDescriber{c},
 		"Image":                &ImageDescriber{c},
@@ -406,16 +405,6 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 		}
 		return nil
 	})
-}
-
-// BuildLogDescriber generates information about a BuildLog
-type BuildLogDescriber struct {
-	client.Interface
-}
-
-// Describe returns the description of a buildLog
-func (d *BuildLogDescriber) Describe(namespace, name string) (string, error) {
-	return fmt.Sprintf("Name: %s/%s, Labels:", namespace, name), nil
 }
 
 // ImageDescriber generates information about a Image

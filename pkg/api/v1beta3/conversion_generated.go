@@ -1221,9 +1221,6 @@ func autoconvert_api_BuildLog_To_v1beta3_BuildLog(in *buildapi.BuildLog, out *ap
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
-	if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -1856,9 +1853,6 @@ func autoconvert_v1beta3_BuildLog_To_api_BuildLog(in *apiv1beta3.BuildLog, out *
 	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
 		return err
 	}
-	if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -2427,6 +2421,42 @@ func convert_api_DeploymentConfigRollbackSpec_To_v1beta3_DeploymentConfigRollbac
 	return autoconvert_api_DeploymentConfigRollbackSpec_To_v1beta3_DeploymentConfigRollbackSpec(in, out, s)
 }
 
+func autoconvert_api_DeploymentLog_To_v1beta3_DeploymentLog(in *deployapi.DeploymentLog, out *deployapiv1beta3.DeploymentLog, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapi.DeploymentLog))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_api_DeploymentLog_To_v1beta3_DeploymentLog(in *deployapi.DeploymentLog, out *deployapiv1beta3.DeploymentLog, s conversion.Scope) error {
+	return autoconvert_api_DeploymentLog_To_v1beta3_DeploymentLog(in, out, s)
+}
+
+func autoconvert_api_DeploymentLogOptions_To_v1beta3_DeploymentLogOptions(in *deployapi.DeploymentLogOptions, out *deployapiv1beta3.DeploymentLogOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapi.DeploymentLogOptions))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	out.Follow = in.Follow
+	out.NoWait = in.NoWait
+	if in.Version != nil {
+		out.Version = new(int)
+		*out.Version = *in.Version
+	} else {
+		out.Version = nil
+	}
+	return nil
+}
+
+func convert_api_DeploymentLogOptions_To_v1beta3_DeploymentLogOptions(in *deployapi.DeploymentLogOptions, out *deployapiv1beta3.DeploymentLogOptions, s conversion.Scope) error {
+	return autoconvert_api_DeploymentLogOptions_To_v1beta3_DeploymentLogOptions(in, out, s)
+}
+
 func autoconvert_v1beta3_DeploymentConfig_To_api_DeploymentConfig(in *deployapiv1beta3.DeploymentConfig, out *deployapi.DeploymentConfig, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*deployapiv1beta3.DeploymentConfig))(in)
@@ -2502,6 +2532,42 @@ func autoconvert_v1beta3_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRol
 
 func convert_v1beta3_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollbackSpec(in *deployapiv1beta3.DeploymentConfigRollbackSpec, out *deployapi.DeploymentConfigRollbackSpec, s conversion.Scope) error {
 	return autoconvert_v1beta3_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollbackSpec(in, out, s)
+}
+
+func autoconvert_v1beta3_DeploymentLog_To_api_DeploymentLog(in *deployapiv1beta3.DeploymentLog, out *deployapi.DeploymentLog, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapiv1beta3.DeploymentLog))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
+func convert_v1beta3_DeploymentLog_To_api_DeploymentLog(in *deployapiv1beta3.DeploymentLog, out *deployapi.DeploymentLog, s conversion.Scope) error {
+	return autoconvert_v1beta3_DeploymentLog_To_api_DeploymentLog(in, out, s)
+}
+
+func autoconvert_v1beta3_DeploymentLogOptions_To_api_DeploymentLogOptions(in *deployapiv1beta3.DeploymentLogOptions, out *deployapi.DeploymentLogOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*deployapiv1beta3.DeploymentLogOptions))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	out.Follow = in.Follow
+	out.NoWait = in.NoWait
+	if in.Version != nil {
+		out.Version = new(int)
+		*out.Version = *in.Version
+	} else {
+		out.Version = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_DeploymentLogOptions_To_api_DeploymentLogOptions(in *deployapiv1beta3.DeploymentLogOptions, out *deployapi.DeploymentLogOptions, s conversion.Scope) error {
+	return autoconvert_v1beta3_DeploymentLogOptions_To_api_DeploymentLogOptions(in, out, s)
 }
 
 func autoconvert_api_Image_To_v1beta3_Image(in *imageapi.Image, out *imageapiv1beta3.Image, s conversion.Scope) error {
@@ -4904,6 +4970,8 @@ func init() {
 		autoconvert_api_DeploymentConfigRollbackSpec_To_v1beta3_DeploymentConfigRollbackSpec,
 		autoconvert_api_DeploymentConfigRollback_To_v1beta3_DeploymentConfigRollback,
 		autoconvert_api_DeploymentConfig_To_v1beta3_DeploymentConfig,
+		autoconvert_api_DeploymentLogOptions_To_v1beta3_DeploymentLogOptions,
+		autoconvert_api_DeploymentLog_To_v1beta3_DeploymentLog,
 		autoconvert_api_DockerBuildStrategy_To_v1beta3_DockerBuildStrategy,
 		autoconvert_api_EnvVarSource_To_v1beta3_EnvVarSource,
 		autoconvert_api_EnvVar_To_v1beta3_EnvVar,
@@ -5008,6 +5076,8 @@ func init() {
 		autoconvert_v1beta3_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollbackSpec,
 		autoconvert_v1beta3_DeploymentConfigRollback_To_api_DeploymentConfigRollback,
 		autoconvert_v1beta3_DeploymentConfig_To_api_DeploymentConfig,
+		autoconvert_v1beta3_DeploymentLogOptions_To_api_DeploymentLogOptions,
+		autoconvert_v1beta3_DeploymentLog_To_api_DeploymentLog,
 		autoconvert_v1beta3_DockerBuildStrategy_To_api_DockerBuildStrategy,
 		autoconvert_v1beta3_EnvVarSource_To_api_EnvVarSource,
 		autoconvert_v1beta3_EnvVar_To_api_EnvVar,

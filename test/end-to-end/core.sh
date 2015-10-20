@@ -19,6 +19,7 @@ function wait_for_app() {
   echo "[INFO] Waiting for app in namespace $1"
   echo "[INFO] Waiting for database pod to start"
   wait_for_command "oc get -n $1 pods -l name=database | grep -i Running" $((60*TIME_SEC))
+  oc logs dc/database -n $1 --follow
 
   echo "[INFO] Waiting for database service to start"
   wait_for_command "oc get -n $1 services | grep database" $((20*TIME_SEC))
@@ -26,6 +27,7 @@ function wait_for_app() {
 
   echo "[INFO] Waiting for frontend pod to start"
   wait_for_command "oc get -n $1 pods | grep frontend | grep -i Running" $((120*TIME_SEC))
+  oc logs dc/frontend -n $1 --follow
 
   echo "[INFO] Waiting for frontend service to start"
   wait_for_command "oc get -n $1 services | grep frontend" $((20*TIME_SEC))

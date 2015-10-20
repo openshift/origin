@@ -36,13 +36,16 @@ type describeClient struct {
 // If you add something to this list, explain why it doesn't need validation.  waaaa is not a valid
 // reason.
 var DescriberCoverageExceptions = []reflect.Type{
+	reflect.TypeOf(&buildapi.BuildLog{}),                              // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),                       // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildRequest{}),                          // normal users don't ever look at these
+	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),             // normal users don't ever look at these
+	reflect.TypeOf(&deployapi.DeploymentLog{}),                        // normal users don't ever look at these
+	reflect.TypeOf(&deployapi.DeploymentLogOptions{}),                 // normal users don't ever look at these
 	reflect.TypeOf(&imageapi.DockerImage{}),                           // not a top level resource
 	reflect.TypeOf(&oauthapi.OAuthAccessToken{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthAuthorizeToken{}),                   // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthClientAuthorization{}),              // normal users don't ever look at these
-	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),             // normal users don't ever look at these
 	reflect.TypeOf(&projectapi.ProjectRequest{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // not a top level resource
 
@@ -106,7 +109,6 @@ func TestDescribers(t *testing.T) {
 	testDescriberList := []kubectl.Describer{
 		&BuildDescriber{c, fakeKube},
 		&BuildConfigDescriber{c, ""},
-		&BuildLogDescriber{c},
 		&ImageDescriber{c},
 		&ImageStreamDescriber{c},
 		&ImageStreamTagDescriber{c},

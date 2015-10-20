@@ -1,0 +1,1 @@
+A deployment log is a virtual resource used by the OpenShift client tool for retrieving the logs for a deployment.

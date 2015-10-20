@@ -40,6 +40,7 @@ import (
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
+	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
@@ -401,7 +402,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 			LISFn2: imageStreamRegistry.ListImageStreams,
 		},
 	}
-	_, kclient := c.DeploymentConfigControllerClients()
+	configClient, kclient := c.DeploymentConfigClients()
 	deployRollback := &deployrollback.RollbackGenerator{}
 	deployRollbackClient := deployrollback.Client{
 		DCFn: deployConfigRegistry.GetDeploymentConfig,
@@ -439,6 +440,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"deploymentConfigs":         deployConfigStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
+		"deploymentConfigs/log":     deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
 
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
