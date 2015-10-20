@@ -194,7 +194,22 @@ os::cmd::expect_success 'oadm new-project recreated-project --admin="createuser2
 os::cmd::expect_success_and_text "oc describe policybinding ':default' -n recreated-project" 'createuser2'
 echo "new-project: ok"
 
-# Test running a router
+# Test creating an unprivileged router with host networking
+os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
+encoded_json='{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}'
+os::cmd::expect_success "echo '${encoded_json}' | oc create -f - -n default"
+os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG} --service-account=router -n default" 'image:.*-haproxy-router:'
+os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}' --host-network=false --service-account=router -n default"
+os::cmd::expect_success_and_text 'oadm router -n default' 'service exists'
+os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
+os::cmd::expect_success_and_text 'oc get sa router -o yaml -n default' 'name: router'
+echo "router-unprivileged: ok"
+
+# Test deleting the previous router and running a privileged router with manual user creation
+os::cmd::expect_success 'oc delete service router -n default'
+os::cmd::expect_success 'oc delete dc      router -n default'
+os::cmd::expect_success 'oc delete sa      router -n default'
+
 os::cmd::expect_failure_and_text 'oadm router --dry-run' 'does not exist'
 encoded_json='{"kind":"ServiceAccount","apiVersion":"v1","metadata":{"name":"router"}}'
 os::cmd::expect_success "echo '${encoded_json}' | oc create -f - -n default"
@@ -205,6 +220,20 @@ os::cmd::expect_success_and_text "oadm router -o yaml --credentials=${KUBECONFIG
 os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}' --service-account=router -n default"
 os::cmd::expect_success_and_text 'oadm router -n default' 'service exists'
 os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
+os::cmd::expect_success_and_text 'oc get sa router -o yaml -n default' 'name: router'
+echo "router-manual: ok"
+
+# Test deleting a router and recreating it without specifying the router user to allow it to autocreate
+os::cmd::expect_success 'oc delete service router -n default'
+os::cmd::expect_success 'oc delete dc      router -n default'
+os::cmd::expect_success 'oc delete sa      router -n default'
+
+os::cmd::expect_success "oadm router --credentials=${KUBECONFIG} --images='${USE_IMAGES}' -n default"
+os::cmd::expect_success_and_text 'oadm router -n default' 'service exists'
+os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
+os::cmd::expect_success_and_text 'oc get sa router -o yaml -n default' 'name: router'
+echo "router-user: ok"
+
 echo "router: ok"
 
 # Test running a registry

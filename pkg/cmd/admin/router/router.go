@@ -189,9 +189,10 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out io.Writer) 
 		Ports:    defaultPorts,
 		Replicas: 1,
 
-		StatsUsername: "admin",
-		StatsPort:     defaultStatsPort,
-		HostNetwork:   true,
+		ServiceAccount: "router",
+		StatsUsername:  "admin",
+		StatsPort:      1936,
+		HostNetwork:    true,
 	}
 
 	cmd := &cobra.Command{
@@ -490,11 +491,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			return fmt.Errorf("router %q does not exist (no service)", name)
 		}
 
-		if len(cfg.ServiceAccount) == 0 {
-			return fmt.Errorf("router could not be created; you must specify a service account with --service-account")
-		}
-
-		err := validateServiceAccount(kClient, namespace, cfg.ServiceAccount)
+		accountExists, needsSCC, err := validateServiceAccount(kClient, namespace, cfg.ServiceAccount, cfg.HostNetwork)
 		if err != nil {
 			return fmt.Errorf("router could not be created; %v", err)
 		}
@@ -528,7 +525,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 		if len(cfg.StatsPassword) == 0 {
 			cfg.StatsPassword = generateStatsPassword()
-			fmt.Fprintf(out, "password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
+			fmt.Fprintf(os.Stderr, "WARNING: password for stats user %s has been set to %s\n", cfg.StatsUsername, cfg.StatsPassword)
 		}
 
 		env := app.Environment{
@@ -584,7 +581,19 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 			}
 		}
 
-		objects := []runtime.Object{
+		objects := []runtime.Object{}
+
+		if accountExists == false {
+			objects = append(objects,
+				&kapi.ServiceAccount{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: cfg.ServiceAccount,
+					},
+				},
+			)
+		}
+
+		objects = append(objects,
 			&dapi.DeploymentConfig{
 				ObjectMeta: kapi.ObjectMeta{
 					Name:   name,
@@ -616,30 +625,10 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 					},
 				},
 			},
-		}
-
-		if len(secrets) != 0 {
-			serviceAccount, err := kClient.ServiceAccounts(namespace).Get(cfg.ServiceAccount)
-			if err != nil {
-				return fmt.Errorf("error looking up service account %s: %v",
-					cfg.ServiceAccount, err)
-			}
-
-			for _, secret := range secrets {
-				objects = append(objects, secret)
-
-				serviceAccount.Secrets = append(serviceAccount.Secrets,
-					kapi.ObjectReference{Name: secret.Name})
-			}
-
-			_, err = kClient.ServiceAccounts(namespace).Update(serviceAccount)
-			if err != nil {
-				return fmt.Errorf("error adding secret key to service account %s: %v",
-					cfg.ServiceAccount, err)
-			}
-		}
+		)
 
 		objects = app.AddServices(objects, true)
+
 		// TODO: label all created objects with the same label - router=<name>
 		list := &kapi.List{Items: objects}
 
@@ -661,6 +650,17 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 		if errs := bulk.Create(list, namespace); len(errs) != 0 {
 			return errExit
 		}
+
+		if needsSCC {
+			fmt.Fprintf(os.Stderr, "WARNING: Router service account %q is not privileged to open ports on the host IP\n", cfg.ServiceAccount)
+		}
+
+		if sobjects, err := associateSecrets(kClient, secrets, namespace, cfg.ServiceAccount, objects); err != nil {
+			return err
+		} else {
+			objects = sobjects
+		}
+
 		return nil
 	}
 
@@ -680,11 +680,48 @@ func generateStatsPassword() string {
 	return strings.Join(password, "")
 }
 
-func validateServiceAccount(kClient *kclient.Client, ns string, sa string) error {
+// associate the secrets with the account given (within the namespace)
+func associateSecrets(kClient *kclient.Client, secrets []*kapi.Secret, ns string,
+	sa string, objects []runtime.Object) ([]runtime.Object, error) {
+	if len(secrets) != 0 {
+		serviceAccount, err := kClient.ServiceAccounts(ns).Get(sa)
+		if err != nil {
+			return nil, fmt.Errorf("error looking up service account %s: %v", sa, err)
+		}
+
+		for _, secret := range secrets {
+			objects = append(objects, secret)
+
+			serviceAccount.Secrets = append(serviceAccount.Secrets,
+				kapi.ObjectReference{Name: secret.Name})
+		}
+
+		_, err = kClient.ServiceAccounts(ns).Update(serviceAccount)
+		if err != nil {
+			return nil, fmt.Errorf("error adding secret key to service account %s: %v", sa, err)
+		}
+	}
+
+	return objects, nil
+}
+
+// we need to work out when to create the account, and whether it has permission for the host port
+// only check scc when --host-network=true [pending]
+func validateServiceAccount(kClient *kclient.Client, ns string, sa string, hostNetwork bool) (accountExists bool, needsSCC bool, err error) {
+	// see if the account exists
+	if _, err = kClient.ServiceAccounts(ns).Get(sa); err != nil {
+		// if it errored, then the account does not exist
+		return false, hostNetwork, nil
+	}
+
+	if !hostNetwork {
+		return true, false, nil
+	}
+
 	// get cluster sccs
 	sccList, err := kClient.SecurityContextConstraints().List(labels.Everything(), fields.Everything())
 	if err != nil {
-		return fmt.Errorf("unable to validate service account %v", err)
+		return true, false, fmt.Errorf("unable to validate service account %v", err)
 	}
 
 	// get set of sccs applicable to the service account
@@ -692,10 +729,10 @@ func validateServiceAccount(kClient *kclient.Client, ns string, sa string) error
 	for _, scc := range sccList.Items {
 		if admission.ConstraintAppliesTo(&scc, userInfo) {
 			if scc.AllowHostPorts {
-				return nil
+				return true, true, nil
 			}
 		}
 	}
 
-	return fmt.Errorf("unable to validate service account, host ports are forbidden")
+	return true, false, nil
 }
