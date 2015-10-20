@@ -2,7 +2,6 @@
 
 set -ex
 
-lock_file=/var/lock/openshift-sdn.lock
 local_subnet_gateway=$1
 local_subnet_cidr=$2
 local_subnet_mask_len=$3
@@ -12,14 +11,6 @@ mtu=$6
 multitenant=$7
 printf 'Container network is "%s"; local host has subnet "%s", mtu "%d" and gateway "%s".\n' "${cluster_network_cidr}" "${local_subnet_cidr}" "${mtu}" "${local_subnet_gateway}"
 TUN=tun0
-
-# Synchronize code execution with a file lock.
-function lockwrap() {
-    (
-    flock 200
-    "$@"
-    ) 200>${lock_file}
-}
 
 function docker_network_config() {
     if [ -z "${DOCKER_NETWORK_OPTIONS}" ]; then
@@ -210,7 +201,7 @@ function setup() {
 
 set +e
 if ! docker_network_config check; then
-  lockwrap docker_network_config update
+    docker_network_config update
 fi
 
 if ! setup_required; then
@@ -219,4 +210,4 @@ if ! setup_required; then
 fi
 set -e
 
-lockwrap setup
+setup
