@@ -44,6 +44,12 @@
         "dist/angular-patternfly.js"
       ]
     },
+    "bootstrap-hover-dropdown": {
+      "main": [
+        "bootstrap-hover-dropdown.min.js"
+      ],
+      "dependencies": {}
+    },
     "patternfly": {
       "main": [
         "components/bootstrap-combobox/js/bootstrap-combobox.js",
