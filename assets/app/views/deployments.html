@@ -25,6 +25,7 @@
           <tr ng-if="(deploymentConfigDeployments | hashSize) == 0 && deploymentConfigName != ''">
             <td data-title="Name">
               <a ng-if="deploymentConfigs[deploymentConfigName]" href="project/{{projectName}}/browse/deployments/{{deploymentConfigName}}">{{deploymentConfigName}}</a>
+              <span ng-if="deploymentConfigs[deploymentConfigName].status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{deploymentConfigs[deploymentConfigName].status.details.message}}"></span>
             </td>
             <td data-title="Last"><em>No deployments</em></td>
             <td class="hidden-xs">&nbsp;</td>
@@ -34,7 +35,10 @@
           <!-- Deployment config with deployments, or deployments from a deployment config which has since been deleted -->
           <tr ng-repeat="deployment in deploymentConfigDeployments | orderObjectsByDate : true | limitTo : 1" ng-if="deploymentConfigName != ''">
             <td data-title="Name">
-              <a ng-if="deploymentConfigs[deploymentConfigName]" href="project/{{projectName}}/browse/deployments/{{deploymentConfigName}}">{{deploymentConfigName}}</a>
+              <span ng-if="deploymentConfigs[deploymentConfigName]">
+                <a href="project/{{projectName}}/browse/deployments/{{deploymentConfigName}}">{{deploymentConfigName}}</a>
+                <span ng-if="deploymentConfigs[deploymentConfigName].status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{deploymentConfigs[deploymentConfigName].status.details.message}}"></span>
+              </span>
               <span ng-if="deploymentConfigs && !deploymentConfigs[deploymentConfigName] && deploymentConfigName != ''">
                 {{deploymentConfigName}}
                 <span class="pficon pficon-warning-triangle-o" data-toggle="tooltip" data-placement="right" title="This deployment config no longer exists" style="cursor: help;"></span>                    

@@ -79,7 +79,7 @@ angular.module('openshiftConsole')
         $scope.emptyMessage = "No deployments to show";
         var deploymentsByDeploymentConfig = DeploymentsService.associateDeploymentsToDeploymentConfig(deployments.by("metadata.name"));
 
-        $scope.unfilteredDeployments = deploymentsByDeploymentConfig[$routeParams.deploymentconfig];
+        $scope.unfilteredDeployments = deploymentsByDeploymentConfig[$routeParams.deploymentconfig] || {};
         LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
         LabelFilter.setLabelSuggestions($scope.labelSuggestions);
         $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);      
