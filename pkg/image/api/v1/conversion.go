@@ -158,6 +158,14 @@ func convert_v1_ImageStreamMapping_To_api_ImageStreamMapping(in *ImageStreamMapp
 	return s.DefaultConvert(in, out, conversion.SourceToDest)
 }
 
+func convert_api_ImageStreamImage_To_v1_ImageStreamImage(in *newer.ImageStreamImage, out *ImageStreamImage, s conversion.Scope) error {
+	return s.DefaultConvert(in, out, conversion.DestFromSource)
+}
+
+func convert_v1_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamImage, out *newer.ImageStreamImage, s conversion.Scope) error {
+	return s.DefaultConvert(in, out, conversion.SourceToDest)
+}
+
 func convert_api_ImageStreamDeletion_To_v1_ImageStreamDeletion(in *newer.ImageStreamDeletion, out *ImageStreamDeletion, s conversion.Scope) error {
 	return s.DefaultConvert(in, out, conversion.DestFromSource)
 }
@@ -235,10 +243,12 @@ func init() {
 		convert_v1_Image_To_api_Image,
 		convert_api_ImageStatus_To_v1_ImageStatus,
 		convert_v1_ImageStatus_To_api_ImageStatus,
-		convert_v1_ImageStreamSpec_To_api_ImageStreamSpec,
 		convert_api_ImageStreamSpec_To_v1_ImageStreamSpec,
-		convert_v1_ImageStreamStatus_To_api_ImageStreamStatus,
+		convert_v1_ImageStreamSpec_To_api_ImageStreamSpec,
 		convert_api_ImageStreamStatus_To_v1_ImageStreamStatus,
+		convert_v1_ImageStreamStatus_To_api_ImageStreamStatus,
+		convert_api_ImageStreamImage_To_v1_ImageStreamImage,
+		convert_v1_ImageStreamImage_To_api_ImageStreamImage,
 		convert_api_ImageStreamMapping_To_v1_ImageStreamMapping,
 		convert_v1_ImageStreamMapping_To_api_ImageStreamMapping,
 		convert_api_ImageStreamDeletion_To_v1_ImageStreamDeletion,
@@ -255,6 +265,17 @@ func init() {
 			case "name":
 				return "metadata.name", value, nil
 			case "metadata.name", "spec.dockerImageRepository", "status.dockerImageRepository":
+				return label, value, nil
+			default:
+				return "", "", fmt.Errorf("field label not supported: %s", label)
+			}
+		})
+	err = kapi.Scheme.AddFieldLabelConversionFunc("v1", "ImageStreamImage",
+		func(label, value string) (string, string, error) {
+			switch label {
+			case "name":
+				return "image.name", value, nil
+			case "metadata.name", "imagestream.name", "image.name", "image.status.phase":
 				return label, value, nil
 			default:
 				return "", "", fmt.Errorf("field label not supported: %s", label)

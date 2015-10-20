@@ -147,6 +147,14 @@ type ImageStreamTag struct {
 	Image Image
 }
 
+// ImageStreamImageList is a list of image stream image objects.
+type ImageStreamImageList struct {
+	kapi.TypeMeta
+	kapi.ListMeta
+
+	Items []ImageStreamImage
+}
+
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
 	kapi.TypeMeta

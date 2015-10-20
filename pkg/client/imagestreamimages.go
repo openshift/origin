@@ -3,6 +3,9 @@ package client
 import (
 	"fmt"
 
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+
 	"github.com/openshift/origin/pkg/image/api"
 )
 
@@ -14,6 +17,7 @@ type ImageStreamImagesNamespacer interface {
 // ImageStreamImageInterface exposes methods on ImageStreamImage resources.
 type ImageStreamImageInterface interface {
 	Get(name, id string) (*api.ImageStreamImage, error)
+	List(label labels.Selector, field fields.Selector) (*api.ImageStreamImageList, error)
 }
 
 // imageStreamImages implements ImageStreamImagesNamespacer interface
@@ -34,5 +38,17 @@ func newImageStreamImages(c *Client, namespace string) *imageStreamImages {
 func (c *imageStreamImages) Get(name, id string) (result *api.ImageStreamImage, err error) {
 	result = &api.ImageStreamImage{}
 	err = c.r.Get().Namespace(c.ns).Resource("imageStreamImages").Name(fmt.Sprintf("%s@%s", name, id)).Do().Into(result)
+	return
+}
+
+func (c *imageStreamImages) List(label labels.Selector, field fields.Selector) (result *api.ImageStreamImageList, err error) {
+	result = &api.ImageStreamImageList{}
+	err = c.r.Get().
+		Namespace(c.ns).
+		Resource("imageStreamImages").
+		LabelsSelectorParam(label).
+		FieldsSelectorParam(field).
+		Do().
+		Into(result)
 	return
 }

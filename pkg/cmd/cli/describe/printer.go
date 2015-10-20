@@ -71,6 +71,7 @@ func NewHumanReadablePrinter(noHeaders, withNamespace, wide bool, showAll bool, 
 	p.Handler(imageColumns, printImage)
 	p.Handler(imageStreamTagColumns, printImageStreamTag)
 	p.Handler(imageStreamImageColumns, printImageStreamImage)
+	p.Handler(imageStreamImageColumns, printImageStreamImageList)
 	p.Handler(imageColumns, printImageList)
 	p.Handler(imageStreamColumns, printImageStream)
 	p.Handler(imageStreamColumns, printImageStreamList)
@@ -306,6 +307,15 @@ func printImageStreamImage(isi *imageapi.ImageStreamImage, w io.Writer, withName
 	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", isi.Name, isi.Image.DockerImageReference, created, isi.Image.Name)
 	return err
+}
+
+func printImageStreamImageList(isImages *imageapi.ImageStreamImageList, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
+	for _, isi := range isImages.Items {
+		if err := printImageStreamImage(&isi, w, withNamespace, wide, showAll, columnLabels); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func printImageList(images *imageapi.ImageList, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {

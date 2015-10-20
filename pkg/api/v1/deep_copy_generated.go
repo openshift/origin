@@ -1738,6 +1738,30 @@ func deepCopy_v1_ImageStreamImage(in imageapiv1.ImageStreamImage, out *imageapiv
 	return nil
 }
 
+func deepCopy_v1_ImageStreamImageList(in imageapiv1.ImageStreamImageList, out *imageapiv1.ImageStreamImageList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(pkgapiv1.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(pkgapiv1.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]imageapiv1.ImageStreamImage, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_v1_ImageStreamImage(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_v1_ImageStreamList(in imageapiv1.ImageStreamList, out *imageapiv1.ImageStreamList, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -2706,6 +2730,7 @@ func init() {
 		deepCopy_v1_ImageStreamDeletion,
 		deepCopy_v1_ImageStreamDeletionList,
 		deepCopy_v1_ImageStreamImage,
+		deepCopy_v1_ImageStreamImageList,
 		deepCopy_v1_ImageStreamList,
 		deepCopy_v1_ImageStreamMapping,
 		deepCopy_v1_ImageStreamSpec,

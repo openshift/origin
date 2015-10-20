@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -28,4 +30,13 @@ func (c *FakeImageStreamImages) Get(repo, imageID string) (*imageapi.ImageStream
 	}
 
 	return obj.(*imageapi.ImageStreamImage), err
+}
+
+func (c *FakeImageStreamImages) List(label labels.Selector, field fields.Selector) (*imageapi.ImageStreamImageList, error) {
+	obj, err := c.Fake.Invokes(ktestclient.NewListAction("imagestreamimages", c.Namespace, label, field), &imageapi.ImageStreamImageList{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*imageapi.ImageStreamImageList), err
 }

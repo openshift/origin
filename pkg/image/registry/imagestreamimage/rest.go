@@ -5,9 +5,12 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/digest"
-
+	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -101,5 +104,82 @@ func (r *REST) Get(ctx kapi.Context, id string) (runtime.Object, error) {
 		return nil, errors.NewNotFound("imageStreamImage", imageID)
 	default:
 		return nil, errors.NewConflict("imageStreamImage", imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+	}
+}
+
+// NewList returns a new list object
+func (r *REST) NewList() runtime.Object {
+	return &api.ImageStreamImageList{}
+}
+
+func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Selector) (runtime.Object, error) {
+	repos, err := r.imageStreamRegistry.ListImageStreams(ctx, labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	list := api.ImageStreamImageList{}
+	for _, repo := range repos.Items {
+		if repo.Status.Tags == nil {
+			continue
+		}
+
+		for _, history := range repo.Status.Tags {
+			for _, tagging := range history.Items {
+				imageName := tagging.Image
+				image, err := r.imageRegistry.GetImage(ctx, imageName)
+				if err != nil {
+					glog.V(4).Infof("Failed to get image %q of image stream %s: %v", imageName, repo.Name, err)
+					continue
+				}
+				imageWithMetadata, err := api.ImageWithMetadata(*image)
+				if err != nil {
+					glog.V(4).Infof("Failed to get metadata of image %q of image stream %s: %v", imageName, repo.Name, err)
+					continue
+				}
+
+				if d, err := digest.ParseDigest(imageName); err == nil {
+					imageName = d.Hex()
+				}
+				if len(imageName) > 7 {
+					imageName = imageName[:7]
+				}
+
+				isi := api.ImageStreamImage{
+					ObjectMeta: kapi.ObjectMeta{
+						Namespace: repo.Namespace,
+						Name:      fmt.Sprintf("%s@%s", repo.Name, imageName),
+					},
+					Image: *imageWithMetadata,
+				}
+
+				list.Items = append(list.Items, isi)
+			}
+		}
+	}
+
+	return generic.FilterList(&list, MatchImageStreamImage(label, field), generic.DecoratorFunc(nil))
+}
+
+// MatchImageStreamImage returns a generic matcher for a given label and field selector.
+func MatchImageStreamImage(label labels.Selector, field fields.Selector) generic.Matcher {
+	return generic.MatcherFunc(func(obj runtime.Object) (bool, error) {
+		ir, ok := obj.(*api.ImageStreamImage)
+		if !ok {
+			return false, fmt.Errorf("not an ImageStreamImage")
+		}
+		fields := ImageStreamImageToSelectableFields(ir)
+		return label.Matches(labels.Set(ir.Labels)) && field.Matches(fields), nil
+	})
+}
+
+// ImageStreamImageToSelectableFields returns a label set that represents the object.
+func ImageStreamImageToSelectableFields(ir *api.ImageStreamImage) labels.Set {
+	nameParts := strings.Split(ir.Name, "@")
+	return labels.Set{
+		"metadata.name":      ir.Name,
+		"imagestream.name":   nameParts[0],
+		"image.name":         ir.Image.Name,
+		"image.status.phase": ir.Image.Status.Phase,
 	}
 }

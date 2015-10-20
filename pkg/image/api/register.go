@@ -13,6 +13,7 @@ func init() {
 		&ImageStreamMapping{},
 		&ImageStreamTag{},
 		&ImageStreamImage{},
+		&ImageStreamImageList{},
 		&ImageStreamDeletion{},
 		&ImageStreamDeletionList{},
 		&DockerImage{},
@@ -27,5 +28,6 @@ func (*ImageStreamList) IsAnAPIObject()         {}
 func (*ImageStreamMapping) IsAnAPIObject()      {}
 func (*ImageStreamTag) IsAnAPIObject()          {}
 func (*ImageStreamImage) IsAnAPIObject()        {}
+func (*ImageStreamImageList) IsAnAPIObject()    {}
 func (*ImageStreamDeletion) IsAnAPIObject()     {}
 func (*ImageStreamDeletionList) IsAnAPIObject() {}

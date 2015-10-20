@@ -119,6 +119,15 @@ type ImageStreamTag struct {
 	ImageName string `json:"imageName"`
 }
 
+// ImageStreamImageList is a list of image stream image objects.
+type ImageStreamImageList struct {
+	kapi.TypeMeta `json:",inline"`
+	kapi.ListMeta `json:"metadata,omitempty"`
+
+	// Items is a list of images stream images
+	Items []ImageStreamImage `json:"items" description:"list of image stream image objects"`
+}
+
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
 	Image     `json:",inline"`

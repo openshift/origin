@@ -16,6 +16,7 @@ func init() {
 		&ImageStreamMapping{},
 		&ImageStreamTag{},
 		&ImageStreamImage{},
+		&ImageStreamImageList{},
 		&ImageStreamDeletion{},
 		&ImageStreamDeletionList{},
 	)
@@ -25,6 +26,7 @@ func (*Image) IsAnAPIObject()                   {}
 func (*ImageList) IsAnAPIObject()               {}
 func (*ImageStream) IsAnAPIObject()             {}
 func (*ImageStreamList) IsAnAPIObject()         {}
+func (*ImageStreamImageList) IsAnAPIObject()    {}
 func (*ImageStreamMapping) IsAnAPIObject()      {}
 func (*ImageStreamTag) IsAnAPIObject()          {}
 func (*ImageStreamDeletion) IsAnAPIObject()     {}
