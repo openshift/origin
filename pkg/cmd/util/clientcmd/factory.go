@@ -166,6 +166,13 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
 		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, columnLabels), nil
 	}
+	kCanBeExposed := w.Factory.CanBeExposed
+	w.CanBeExposed = func(kind string) error {
+		if kind == "DeploymentConfig" {
+			return nil
+		}
+		return kCanBeExposed(kind)
+	}
 
 	return w
 }
