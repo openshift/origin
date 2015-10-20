@@ -89,13 +89,9 @@ func (Strategy) AllowUnconditionalUpdate() bool {
 // if a default registry exists, the value returned is of the form
 // <default registry>/<namespace>/<stream name>.
 func (s Strategy) dockerImageRepository(stream *api.ImageStream) string {
-	if len(stream.Spec.DockerImageRepository) != 0 {
-		return stream.Spec.DockerImageRepository
-	}
-
 	registry, ok := s.defaultRegistry.DefaultRegistry()
 	if !ok {
-		return ""
+		return stream.Spec.DockerImageRepository
 	}
 
 	if len(stream.Namespace) == 0 {

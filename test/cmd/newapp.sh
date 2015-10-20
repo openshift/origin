@@ -18,7 +18,7 @@ oc create -f examples/image-streams/image-streams-centos7.json
 [ "$(oc new-app mongo -o yaml | grep library/mongo)" ]
 # the local image repository takes precedence over the Docker Hub "mysql" image
 tryuntil oc get imagestreamtags mysql:latest
-[ "$(oc new-app mysql -o yaml | grep mysql-55-centos7)" ]
+[ "$(oc new-app mysql -o yaml | grep mysql)" ]
 
 # check label creation
 oc new-app php mysql -l no-source=php-mysql

@@ -427,7 +427,9 @@ func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullNam
 
 			fmt.Fprintln(out, imageStream.Name)
 			fmt.Fprintf(out, "  Project: %v\n", imageStream.Namespace)
-			fmt.Fprintf(out, "  Tracks:  %v\n", imageStream.Status.DockerImageRepository)
+			if len(imageStream.Spec.DockerImageRepository) > 0 {
+				fmt.Fprintf(out, "  Tracks:  %v\n", imageStream.Spec.DockerImageRepository)
+			}
 			fmt.Fprintf(out, "  Tags:    %v\n", tags)
 			if len(description) > 0 {
 				fmt.Fprintf(out, "  %v\n", description)

@@ -73,6 +73,19 @@ func TestDockerImageRepository(t *testing.T) {
 			},
 			expected: "a/b",
 		},
+		"DockerImageRepository set on stream with default registry": {
+			stream: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Namespace: "foo",
+					Name:      "somerepo",
+				},
+				Spec: api.ImageStreamSpec{
+					DockerImageRepository: "a/b",
+				},
+			},
+			defaultRegistry: "registry:5000",
+			expected:        "registry:5000/foo/somerepo",
+		},
 		"default namespace": {
 			stream: &api.ImageStream{
 				ObjectMeta: kapi.ObjectMeta{
