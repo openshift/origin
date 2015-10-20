@@ -90,7 +90,7 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	// Execute any pre-hook.
 	if params != nil && params.Pre != nil {
 		if err := s.hookExecutor.Execute(params.Pre, to, "prehook"); err != nil {
-			return fmt.Errorf("Pre hook failed: %s", err)
+			return fmt.Errorf("pre hook failed: %s", err)
 		} else {
 			glog.Infof("Pre hook finished")
 		}

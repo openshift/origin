@@ -33,7 +33,7 @@ func (a *testAuthorizer) Authorize(ctx kapi.Context, attributes authorizer.Autho
 		return true, "", nil
 	}
 
-	return false, "", errors.New("Unsupported")
+	return false, "", errors.New("unsupported")
 }
 func (a *testAuthorizer) GetAllowedSubjects(ctx kapi.Context, passedAttributes authorizer.AuthorizationAttributes) (sets.String, sets.String, error) {
 	attributes, ok := passedAttributes.(authorizer.DefaultAuthorizationAttributes)

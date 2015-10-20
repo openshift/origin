@@ -196,7 +196,7 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 
 		if info.IsDir() {
 			if strings.Contains(source, "=") {
-				return nil, errors.New("Cannot give a key name for a directory path.")
+				return nil, errors.New("cannot give a key name for a directory path.")
 			}
 			fileList, err := ioutil.ReadDir(filePath)
 			if err != nil {
@@ -226,7 +226,7 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 	}
 
 	if len(secretData) == 0 {
-		return nil, errors.New("No files selected")
+		return nil, errors.New("no files selected")
 	}
 
 	// if the secret type isn't specified, attempt to auto-detect likely hit
@@ -279,7 +279,7 @@ func parseSource(source string) (keyName, filePath string, err error) {
 	case numSeparators == 1 && strings.HasSuffix(source, "="):
 		return "", "", fmt.Errorf("file path for key name %v missing.", strings.TrimSuffix(source, "="))
 	case numSeparators > 1:
-		return "", "", errors.New("Key names or file paths cannot contain '='.")
+		return "", "", errors.New("key names or file paths cannot contain '='.")
 	default:
 		components := strings.Split(source, "=")
 		return components[0], components[1], nil

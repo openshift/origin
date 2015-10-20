@@ -234,7 +234,7 @@ func TestUpdateCannotChangeRoleRefError(t *testing.T) {
 
 func TestDeleteError(t *testing.T) {
 	bindingRegistry := &test.PolicyBindingRegistry{}
-	bindingRegistry.Err = errors.New("Sample Error")
+	bindingRegistry.Err = errors.New("sample Error")
 
 	storage := NewVirtualStorage(&test.PolicyRegistry{}, bindingRegistry, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{})
 

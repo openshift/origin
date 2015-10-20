@@ -408,13 +408,13 @@ func (f5 *f5LTM) rest_request(verb string, url string, payload io.Reader,
 		}
 		err = decoder.Decode(&errorResult)
 		if err != nil {
-			errorResult.err = fmt.Errorf("Decoder.Decode failed: %v", err)
+			errorResult.err = fmt.Errorf("decoder.Decode failed: %v", err)
 		}
 		return errorResult
 	} else if result != nil {
 		err = decoder.Decode(result)
 		if err != nil {
-			errorResult.err = fmt.Errorf("Decoder.Decode failed: %v", err)
+			errorResult.err = fmt.Errorf("decoder.Decode failed: %v", err)
 			return errorResult
 		}
 	}
@@ -1336,7 +1336,7 @@ func (f5 *f5LTM) DeletePassthroughRoute(routename string) error {
 
 	_, exists := routes[routename]
 	if !exists {
-		return fmt.Errorf("Passthrough route %s does not exist.", routename)
+		return fmt.Errorf("passthrough route %s does not exist.", routename)
 	}
 
 	delete(routes, routename)
@@ -1399,7 +1399,7 @@ func (f5 *f5LTM) buildSshArgs(args ...string) []string {
 func (f5 *f5LTM) AddCert(routename, hostname, cert, privkey,
 	destCACert string) error {
 	if f5.privkey == "" {
-		return fmt.Errorf("Cannot configure TLS for route %s"+
+		return fmt.Errorf("cannot configure TLS for route %s"+
 			" because router was not provided an SSH private key",
 			routename)
 	}

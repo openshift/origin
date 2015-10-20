@@ -95,15 +95,15 @@ func (o *LogoutOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, arg
 
 func (o LogoutOptions) Validate(args []string) error {
 	if len(args) > 0 {
-		return errors.New("No arguments are allowed")
+		return errors.New("no arguments are allowed")
 	}
 
 	if o.StartingKubeConfig == nil {
-		return errors.New("Must have a config file already created")
+		return errors.New("must have a config file already created")
 	}
 
 	if len(o.Config.BearerToken) == 0 {
-		return errors.New("You must have a token in order to logout.")
+		return errors.New("you must have a token in order to logout.")
 	}
 
 	return nil

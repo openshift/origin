@@ -89,7 +89,7 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 	argsLength := len(args)
 	switch {
 	case argsLength > 1:
-		return errors.New("Only one argument is supported (project name or context name).")
+		return errors.New("only one argument is supported (project name or context name).")
 	case argsLength == 1:
 		o.ProjectName = args[0]
 	}

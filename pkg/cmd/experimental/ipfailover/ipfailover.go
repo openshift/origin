@@ -99,7 +99,7 @@ func getConfigurationName(args []string) (string, error) {
 	case 1:
 		name = args[0]
 	default:
-		return "", fmt.Errorf("Please pass zero or one arguments to provide a name for this configuration.")
+		return "", fmt.Errorf("please pass zero or one arguments to provide a name for this configuration.")
 	}
 
 	return name, nil
@@ -115,11 +115,11 @@ func getConfigurator(name string, f *clientcmd.Factory, options *ipfailover.IPFa
 		//  Default.
 	// case <new-type>:  plugin, err = makeNewTypePlugin()
 	default:
-		return nil, fmt.Errorf("No plugins available to handle type %q", options.Type)
+		return nil, fmt.Errorf("no plugins available to handle type %q", options.Type)
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("IPFailoverConfigurator %q plugin error: %v", options.Type, err)
+		return nil, fmt.Errorf("ipFailoverConfigurator %q plugin error: %v", options.Type, err)
 	}
 
 	return ipfailover.NewConfigurator(name, plugin, out), nil
@@ -129,7 +129,7 @@ func getConfigurator(name string, f *clientcmd.Factory, options *ipfailover.IPFa
 func previewConfiguration(c *ipfailover.Configurator, cmd *cobra.Command, out io.Writer) (bool, error) {
 	p, output, err := cmdutil.PrinterForCommand(cmd)
 	if err != nil {
-		return true, fmt.Errorf("Error configuring printer: %v", err)
+		return true, fmt.Errorf("error configuring printer: %v", err)
 	}
 
 	// Check if we are outputting info.
@@ -139,11 +139,11 @@ func previewConfiguration(c *ipfailover.Configurator, cmd *cobra.Command, out io
 
 	configList, err := c.Generate()
 	if err != nil {
-		return true, fmt.Errorf("Error generating config: %v", err)
+		return true, fmt.Errorf("error generating config: %v", err)
 	}
 
 	if err := p.PrintObj(configList, out); err != nil {
-		return true, fmt.Errorf("Unable to print object: %v", err)
+		return true, fmt.Errorf("unable to print object: %v", err)
 	}
 
 	return true, nil

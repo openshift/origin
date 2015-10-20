@@ -330,7 +330,7 @@ func TestCreateUserUpdateError(t *testing.T) {
 		{"GetUser", unassociatedUser.Name},
 		{"UpdateUser", associatedUser},
 	}
-	expectedErr := errors.New("Update error")
+	expectedErr := errors.New("update error")
 
 	mapping := &api.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
@@ -366,7 +366,7 @@ func TestCreateIdentityUpdateError(t *testing.T) {
 	}
 
 	actions, _, identityRegistry, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
-	identityRegistry.UpdateErr = errors.New("Update error")
+	identityRegistry.UpdateErr = errors.New("update error")
 	_, err := rest.Create(kapi.NewContext(), mapping)
 
 	if err == nil {
@@ -592,7 +592,7 @@ func TestUpdateOldUserUpdateError(t *testing.T) {
 		// Old user cleanup
 		{"UpdateUser", unassociatedUser1},
 	}
-	expectedErr := errors.New("Couldn't update old user")
+	expectedErr := errors.New("couldn't update old user")
 
 	mapping := &api.UserIdentityMapping{
 		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
@@ -632,7 +632,7 @@ func TestUpdateUserUpdateError(t *testing.T) {
 		// New user update
 		{"UpdateUser", associatedUser2},
 	}
-	expectedErr := errors.New("Couldn't update new user")
+	expectedErr := errors.New("couldn't update new user")
 
 	mapping := &api.UserIdentityMapping{
 		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
@@ -672,7 +672,7 @@ func TestUpdateIdentityUpdateError(t *testing.T) {
 		// Identity update
 		{"UpdateIdentity", associatedIdentity1User2},
 	}
-	expectedErr := errors.New("Couldn't update identity")
+	expectedErr := errors.New("couldn't update identity")
 
 	mapping := &api.UserIdentityMapping{
 		ObjectMeta: kapi.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
@@ -757,7 +757,7 @@ func TestDeleteUserUpdateError(t *testing.T) {
 		{"GetUser", associatedUser.Name},
 		{"UpdateUser", unassociatedUser},
 	}
-	expectedErr := errors.New("Cannot update user")
+	expectedErr := errors.New("cannot update user")
 
 	actions, userRegistry, _, rest := setupRegistries(associatedIdentity, associatedUser)
 	userRegistry.UpdateErr[associatedUser.Name] = expectedErr
@@ -781,7 +781,7 @@ func TestDeleteIdentityUpdateError(t *testing.T) {
 		{"UpdateUser", unassociatedUser},
 		{"UpdateIdentity", unassociatedIdentity},
 	}
-	expectedErr := errors.New("Cannot update identity")
+	expectedErr := errors.New("cannot update identity")
 
 	actions, _, identityRegistry, rest := setupRegistries(associatedIdentity, associatedUser)
 	identityRegistry.UpdateErr = expectedErr

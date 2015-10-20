@@ -81,7 +81,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 				return true, nil
 			}
 			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
-				return false, fmt.Errorf("The build %q status is %q", name, &list.Items[i].Status.Phase)
+				return false, fmt.Errorf("the build %q status is %q", name, &list.Items[i].Status.Phase)
 			}
 		}
 
@@ -103,7 +103,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 					return true, nil
 				}
 				if name != e.Name || isFailed(e) {
-					return false, fmt.Errorf("The build %q status is %q", name, e.Status.Phase)
+					return false, fmt.Errorf("the build %q status is %q", name, e.Status.Phase)
 				}
 			}
 		}
@@ -157,7 +157,7 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 				return nil
 			}
 			if isFailed(&list.Items[i]) {
-				return fmt.Errorf("The deployment %q status is %q",
+				return fmt.Errorf("the deployment %q status is %q",
 					name, list.Items[i].Annotations[imageapi.DockerImageRepositoryCheckAnnotation])
 			}
 		}
@@ -180,7 +180,7 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 					return nil
 				}
 				if isFailed(e) {
-					return fmt.Errorf("The image stream %q status is %q",
+					return fmt.Errorf("the image stream %q status is %q",
 						name, e.Annotations[imageapi.DockerImageRepositoryCheckAnnotation])
 				}
 			}
@@ -219,7 +219,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 				return nil
 			}
 			if isFailed(&list.Items[i]) {
-				return fmt.Errorf("The deployment %q status is %q",
+				return fmt.Errorf("the deployment %q status is %q",
 					name, list.Items[i].Annotations[deployapi.DeploymentStatusAnnotation])
 			}
 		}
@@ -242,7 +242,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 					return nil
 				}
 				if isFailed(e) {
-					return fmt.Errorf("The deployment %q status is %q",
+					return fmt.Errorf("the deployment %q status is %q",
 						name, e.Annotations[deployapi.DeploymentStatusAnnotation])
 				}
 			}
@@ -320,10 +320,10 @@ func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (s
 	}
 	isTag, ok := imageStream.Status.Tags[tag]
 	if !ok {
-		return "", fmt.Errorf("ImageStream %q does not have tag %q", name, tag)
+		return "", fmt.Errorf("imageStream %q does not have tag %q", name, tag)
 	}
 	if len(isTag.Items) == 0 {
-		return "", fmt.Errorf("ImageStreamTag %q is empty", tag)
+		return "", fmt.Errorf("imageStreamTag %q is empty", tag)
 	}
 	return isTag.Items[0].DockerImageReference, nil
 }

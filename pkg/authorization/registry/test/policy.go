@@ -75,7 +75,7 @@ func (r *PolicyRegistry) GetPolicy(ctx kapi.Context, id string) (*authorizationa
 		}
 	}
 
-	return nil, fmt.Errorf("Policy %v::%v not found", namespace, id)
+	return nil, fmt.Errorf("policy %v::%v not found", namespace, id)
 }
 
 // CreatePolicy creates a new policy.
@@ -89,7 +89,7 @@ func (r *PolicyRegistry) CreatePolicy(ctx kapi.Context, policy *authorizationapi
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
 	if existing, _ := r.GetPolicy(ctx, policy.Name); existing != nil {
-		return fmt.Errorf("Policy %v::%v already exists", namespace, policy.Name)
+		return fmt.Errorf("policy %v::%v already exists", namespace, policy.Name)
 	}
 
 	addPolicy(r.Policies, *policy)
@@ -108,7 +108,7 @@ func (r *PolicyRegistry) UpdatePolicy(ctx kapi.Context, policy *authorizationapi
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
 	if existing, _ := r.GetPolicy(ctx, policy.Name); existing == nil {
-		return fmt.Errorf("Policy %v::%v not found", namespace, policy.Name)
+		return fmt.Errorf("policy %v::%v not found", namespace, policy.Name)
 	}
 
 	addPolicy(r.Policies, *policy)

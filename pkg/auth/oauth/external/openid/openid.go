@@ -65,43 +65,43 @@ func NewProvider(providerName string, transport http.RoundTripper, config Config
 
 	// Validate client id/secret
 	if len(config.ClientID) == 0 {
-		return nil, errors.New("ClientID is required")
+		return nil, errors.New("clientID is required")
 	}
 	if len(config.ClientSecret) == 0 {
-		return nil, errors.New("ClientSecret is required")
+		return nil, errors.New("clientSecret is required")
 	}
 
 	// Validate url presence
 	if len(config.AuthorizeURL) == 0 {
-		return nil, errors.New("Authorize URL is required")
+		return nil, errors.New("authorize URL is required")
 	} else if u, err := url.Parse(config.AuthorizeURL); err != nil {
-		return nil, errors.New("Authorize URL is invalid")
+		return nil, errors.New("authorize URL is invalid")
 	} else if u.Scheme != "https" {
-		return nil, errors.New("Authorize URL must use https scheme")
+		return nil, errors.New("authorize URL must use https scheme")
 	}
 
 	if len(config.TokenURL) == 0 {
-		return nil, errors.New("Token URL is required")
+		return nil, errors.New("token URL is required")
 	} else if u, err := url.Parse(config.TokenURL); err != nil {
-		return nil, errors.New("Token URL is invalid")
+		return nil, errors.New("token URL is invalid")
 	} else if u.Scheme != "https" {
-		return nil, errors.New("Token URL must use https scheme")
+		return nil, errors.New("token URL must use https scheme")
 	}
 
 	if len(config.UserInfoURL) > 0 {
 		if u, err := url.Parse(config.UserInfoURL); err != nil {
-			return nil, errors.New("UserInfo URL is invalid")
+			return nil, errors.New("userInfo URL is invalid")
 		} else if u.Scheme != "https" {
-			return nil, errors.New("UserInfo URL must use https scheme")
+			return nil, errors.New("userInfo URL must use https scheme")
 		}
 	}
 
 	if !sets.NewString(config.Scopes...).Has("openid") {
-		return nil, errors.New("Scopes must include openid")
+		return nil, errors.New("scopes must include openid")
 	}
 
 	if len(config.IDClaims) == 0 {
-		return nil, errors.New("IDClaims must specify at least one claim")
+		return nil, errors.New("idClaims must specify at least one claim")
 	}
 
 	return provider{providerName, transport, config}, nil
@@ -138,7 +138,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	// http://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
 	idToken, ok := data.ResponseData["id_token"].(string)
 	if !ok {
-		return nil, false, fmt.Errorf("No id_token returned in %v", data.ResponseData)
+		return nil, false, fmt.Errorf("no id_token returned in %v", data.ResponseData)
 	}
 
 	// id_token MUST be a valid JWT
@@ -195,7 +195,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 
 	id, _ := getClaimValue(claims, p.IDClaims)
 	if id == "" {
-		return nil, false, fmt.Errorf("Could not retrieve id claim for %#v", p.IDClaims)
+		return nil, false, fmt.Errorf("could not retrieve id claim for %#v", p.IDClaims)
 	}
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, id)
 
@@ -224,13 +224,13 @@ func getClaimValue(data map[string]interface{}, claims []string) (string, error)
 		}
 		stringValue, ok := value.(string)
 		if !ok {
-			return "", fmt.Errorf("Claim %s was not a string type", claim)
+			return "", fmt.Errorf("claim %s was not a string type", claim)
 		}
 		if len(stringValue) > 0 {
 			return stringValue, nil
 		}
 	}
-	return "", errors.New("No value found")
+	return "", errors.New("no value found")
 }
 
 // fetch and decode JSON from the given UserInfo URL
@@ -246,7 +246,7 @@ func fetchUserInfo(url, accessToken string, transport http.RoundTripper) (map[st
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-200 response from UserInfo: %d, WWW-Authenticate=%s", resp.StatusCode, resp.Header.Get("WWW-Authenticate"))
+		return nil, fmt.Errorf("non-200 response from UserInfo: %d, WWW-Authenticate=%s", resp.StatusCode, resp.Header.Get("WWW-Authenticate"))
 	}
 
 	// The UserInfo Claims MUST be returned as the members of a JSON object
@@ -268,7 +268,7 @@ func fetchUserInfo(url, accessToken string, transport http.RoundTripper) (map[st
 func decodeJWT(jwt string) (map[string]interface{}, error) {
 	jwtParts := strings.Split(jwt, ".")
 	if len(jwtParts) != 3 {
-		return nil, fmt.Errorf("Invalid JSON Web Token: expected 3 parts, got %d", len(jwtParts))
+		return nil, fmt.Errorf("invalid JSON Web Token: expected 3 parts, got %d", len(jwtParts))
 	}
 
 	// Re-pad, if needed
@@ -280,14 +280,14 @@ func decodeJWT(jwt string) (map[string]interface{}, error) {
 	// Decode base-64
 	decodedPayload, err := base64.StdEncoding.DecodeString(encodedPayload)
 	if err != nil {
-		return nil, fmt.Errorf("Error decoding payload: %v", err)
+		return nil, fmt.Errorf("error decoding payload: %v", err)
 	}
 
 	// Parse JSON
 	var data map[string]interface{}
 	err = json.Unmarshal([]byte(decodedPayload), &data)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing token: %v", err)
+		return nil, fmt.Errorf("error parsing token: %v", err)
 	}
 
 	return data, nil

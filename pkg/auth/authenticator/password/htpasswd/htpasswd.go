@@ -47,7 +47,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		username = username[:255]
 	}
 	if strings.Contains(username, ":") {
-		return nil, false, errors.New("Usernames may not contain : characters")
+		return nil, false, errors.New("usernames may not contain : characters")
 	}
 	hash, ok := a.usernames[username]
 	if !ok {
@@ -60,7 +60,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 	user, err := a.mapper.UserFor(identity)
 	if err != nil {
-		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
+		return nil, false, fmt.Errorf("error creating or updating mapping for: %#v due to %v", identity, err)
 	}
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 
@@ -140,13 +140,13 @@ func testPassword(password, hash string) (bool, error) {
 		// looks like crypt
 		return testCryptPassword(password, hash)
 	default:
-		return false, errors.New("Unrecognized hash type")
+		return false, errors.New("unrecognized hash type")
 	}
 }
 
 func testSHAPassword(password, hash string) (bool, error) {
 	if len(hash) == 0 {
-		return false, errors.New("Invalid SHA hash")
+		return false, errors.New("invalid SHA hash")
 	}
 	// Compute hash of password
 	shasum := sha1.Sum([]byte(password))
@@ -171,12 +171,12 @@ func testBCryptPassword(password, hash string) (bool, error) {
 func testMD5Password(password, hash string) (bool, error) {
 	parts := strings.Split(hash, "$")
 	if len(parts) != 4 {
-		return false, errors.New("Malformed MD5 hash")
+		return false, errors.New("malformed MD5 hash")
 	}
 
 	salt := parts[2]
 	if len(salt) == 0 {
-		return false, errors.New("Malformed MD5 hash: missing salt")
+		return false, errors.New("malformed MD5 hash: missing salt")
 	}
 	if len(salt) > 8 {
 		salt = salt[:8]
@@ -184,7 +184,7 @@ func testMD5Password(password, hash string) (bool, error) {
 
 	md5hash := parts[3]
 	if len(md5hash) == 0 {
-		return false, errors.New("Malformed MD5 hash: missing hash")
+		return false, errors.New("malformed MD5 hash: missing hash")
 	}
 
 	testhash := string(aprMD5([]byte(password), []byte(salt)))

@@ -64,7 +64,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 
 	user, err := a.mapper.UserFor(identity)
 	if err != nil {
-		return nil, false, fmt.Errorf("Error creating or updating mapping for: %#v due to %v", identity, err)
+		return nil, false, fmt.Errorf("error creating or updating mapping for: %#v due to %v", identity, err)
 	}
 	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
 
@@ -76,7 +76,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 func (a *Authenticator) getIdentity(username, password string) (authapi.UserIdentityInfo, bool, error) {
 	defer func() {
 		if e := recover(); e != nil {
-			util.HandleError(fmt.Errorf("Recovered panic: %v, %s", e, debug.Stack()))
+			util.HandleError(fmt.Errorf("recovered panic: %v, %s", e, debug.Stack()))
 		}
 	}()
 

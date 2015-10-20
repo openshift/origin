@@ -139,7 +139,7 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 	}
 
 	if len(nodeList) == 0 {
-		return nodeList, fmt.Errorf("No nodes found")
+		return nodeList, fmt.Errorf("no nodes found")
 	} else {
 		givenNodeNames := sets.NewString(n.NodeNames...)
 		foundNodeNames := sets.String{}
@@ -148,7 +148,7 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 		}
 		skippedNodeNames := givenNodeNames.Difference(foundNodeNames)
 		if skippedNodeNames.Len() > 0 {
-			return nodeList, fmt.Errorf("Nodes %v not found", strings.Join(skippedNodeNames.List(), ", "))
+			return nodeList, fmt.Errorf("nodes %v not found", strings.Join(skippedNodeNames.List(), ", "))
 		}
 	}
 	return nodeList, nil

@@ -18,7 +18,7 @@ type TokenAuthenticator struct {
 	groupMapper identitymapper.UserToGroupMapper
 }
 
-var ErrExpired = errors.New("Token is expired")
+var ErrExpired = errors.New("token is expired")
 
 func NewTokenAuthenticator(tokens oauthaccesstoken.Registry, users user.Registry, groupMapper identitymapper.UserToGroupMapper) *TokenAuthenticator {
 	return &TokenAuthenticator{

@@ -21,7 +21,7 @@ func CertPoolFromFile(filename string) (*x509.CertPool, error) {
 
 	certs, err := CertificatesFromPEM(pemBlock)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading %s: %s", filename, err)
+		return nil, fmt.Errorf("error reading %s: %s", filename, err)
 	}
 
 	for _, cert := range certs {
@@ -41,7 +41,7 @@ func CertificatesFromFile(file string) ([]*x509.Certificate, error) {
 	}
 	certs, err := CertificatesFromPEM(pemBlock)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading %s: %s", file, err)
+		return nil, fmt.Errorf("error reading %s: %s", file, err)
 	}
 	return certs, nil
 }
@@ -69,7 +69,7 @@ func CertificatesFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 	}
 
 	if !ok {
-		return certs, errors.New("Could not read any certificates")
+		return certs, errors.New("could not read any certificates")
 	}
 	return certs, nil
 }

@@ -107,7 +107,7 @@ func ExpectOpenShiftLabels(labels map[string]string) error {
 
 	for _, label := range ExpectedLabels {
 		if labels[label] == "" {
-			return fmt.Errorf("Builded image doesn't contain proper Docker image labels. Missing %q label", label)
+			return fmt.Errorf("builded image doesn't contain proper Docker image labels. Missing %q label", label)
 		}
 	}
 

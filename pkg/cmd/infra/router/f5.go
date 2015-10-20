@@ -89,19 +89,19 @@ func (o *F5Router) Bind(flag *pflag.FlagSet) {
 // Validate verifies the required F5 flags are present
 func (o *F5Router) Validate() error {
 	if o.Host == "" {
-		return errors.New("F5 host must be specified")
+		return errors.New("f5 host must be specified")
 	}
 
 	if o.Username == "" {
-		return errors.New("F5 username must be specified")
+		return errors.New("f5 username must be specified")
 	}
 
 	if o.Password == "" {
-		return errors.New("F5 password must be specified")
+		return errors.New("f5 password must be specified")
 	}
 
 	if len(o.HttpVserver) == 0 && len(o.HttpsVserver) == 0 {
-		return errors.New("F5 HTTP and HTTPS vservers cannot both be blank")
+		return errors.New("f5 HTTP and HTTPS vservers cannot both be blank")
 	}
 
 	return nil

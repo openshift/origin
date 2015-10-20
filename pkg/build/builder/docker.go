@@ -85,7 +85,7 @@ func (d *DockerBuilder) Build() error {
 		}
 		glog.Infof("Pushing image %s ...", d.build.Status.OutputDockerImageReference)
 		if err := pushImage(d.dockerClient, d.build.Status.OutputDockerImageReference, pushAuthConfig); err != nil {
-			return fmt.Errorf("Failed to push image: %v", err)
+			return fmt.Errorf("failed to push image: %v", err)
 		}
 		glog.Infof("Push successful")
 	}

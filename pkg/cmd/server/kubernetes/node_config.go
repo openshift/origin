@@ -61,7 +61,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	if len(options.DNSIP) > 0 {
 		dnsIP = net.ParseIP(options.DNSIP)
 		if dnsIP == nil {
-			return nil, fmt.Errorf("Invalid DNS IP: %s", options.DNSIP)
+			return nil, fmt.Errorf("invalid DNS IP: %s", options.DNSIP)
 		}
 	}
 
@@ -100,7 +100,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig) (*NodeConfig, error
 	}
 	kubeAddress := net.ParseIP(kubeAddressStr)
 	if kubeAddress == nil {
-		return nil, fmt.Errorf("Invalid DNS IP: %s", kubeAddressStr)
+		return nil, fmt.Errorf("invalid DNS IP: %s", kubeAddressStr)
 	}
 
 	// declare the OpenShift defaults from config

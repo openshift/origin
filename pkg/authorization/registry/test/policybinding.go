@@ -90,7 +90,7 @@ func (r *PolicyBindingRegistry) CreatePolicyBinding(ctx kapi.Context, policyBind
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
 	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name); existing != nil {
-		return fmt.Errorf("PolicyBinding %v::%v already exists", namespace, policyBinding.Name)
+		return fmt.Errorf("policyBinding %v::%v already exists", namespace, policyBinding.Name)
 	}
 
 	addPolicyBinding(r.PolicyBindings, *policyBinding)

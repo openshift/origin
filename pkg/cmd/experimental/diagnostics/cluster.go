@@ -69,7 +69,7 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (*client.Client, *kclient.Client, bool, string, error) {
 	if o.ClientClusterContext != "" { // user has specified cluster context to use
 		if context, exists := rawConfig.Contexts[o.ClientClusterContext]; exists {
-			configErr := fmt.Errorf("Specified '%s' as cluster-admin context, but it was not found in your client configuration.", o.ClientClusterContext)
+			configErr := fmt.Errorf("specified '%s' as cluster-admin context, but it was not found in your client configuration.", o.ClientClusterContext)
 			o.Logger.Error("CED1003", configErr.Error())
 			return nil, nil, false, "", configErr
 		} else if os, kube, found, serverUrl, err := o.makeClusterClients(rawConfig, o.ClientClusterContext, context); found {
@@ -80,7 +80,7 @@ func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (
 	}
 	currentContext, exists := rawConfig.Contexts[rawConfig.CurrentContext]
 	if !exists { // config specified cluster admin context that doesn't exist; complain and quit
-		configErr := fmt.Errorf("Current context '%s' not found in client configuration; will not attempt cluster diagnostics.", rawConfig.CurrentContext)
+		configErr := fmt.Errorf("current context '%s' not found in client configuration; will not attempt cluster diagnostics.", rawConfig.CurrentContext)
 		o.Logger.Error("CED1004", configErr.Error())
 		return nil, nil, false, "", configErr
 	}

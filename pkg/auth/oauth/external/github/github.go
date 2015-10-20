@@ -81,7 +81,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	}
 
 	if userdata.ID == 0 {
-		return nil, false, errors.New("Could not retrieve GitHub id")
+		return nil, false, errors.New("could not retrieve GitHub id")
 	}
 
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, fmt.Sprintf("%d", userdata.ID))

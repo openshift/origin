@@ -142,7 +142,7 @@ func convert_v1_DeploymentTriggerImageChangeParams_To_api_DeploymentTriggerImage
 	case "ImageStreamTag":
 		name, tag, ok := imageapi.SplitImageStreamTag(in.From.Name)
 		if !ok {
-			return fmt.Errorf("ImageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
+			return fmt.Errorf("imageStreamTag object references must be in the form <name>:<tag>: %s", in.From.Name)
 		}
 		out.From.Kind = "ImageStream"
 		out.From.Name = name

@@ -49,7 +49,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 		}
 	}
 
-	return "", fmt.Errorf("Could not get token for %s/%s", namespace, name)
+	return "", fmt.Errorf("could not get token for %s/%s", namespace, name)
 }
 
 // Clients returns an OpenShift and Kubernetes client with the credentials of the named service account

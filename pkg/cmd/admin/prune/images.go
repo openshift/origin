@@ -374,7 +374,7 @@ func getClients(f *clientcmd.Factory, caBundle string) (*client.Client, *kclient
 		}
 		token = clientConfig.BearerToken
 	default:
-		err = errors.New("You must use a client config with a token")
+		err = errors.New("you must use a client config with a token")
 		return nil, nil, nil, err
 	}
 

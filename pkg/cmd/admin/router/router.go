@@ -626,7 +626,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, cfg *
 
 		if output {
 			if err := f.PrintObject(cmd, list, out); err != nil {
-				return fmt.Errorf("Unable to print object: %v", err)
+				return fmt.Errorf("unable to print object: %v", err)
 			}
 			return nil
 		}

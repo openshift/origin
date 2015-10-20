@@ -345,7 +345,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 				// 1. a session success handler (to remember you logged in)
 				// 2. a redirectSuccessHandler (to go back to the "then" param)
 				if c.SessionAuth == nil {
-					return nil, errors.New("SessionAuth is required for password-based login")
+					return nil, errors.New("sessionAuth is required for password-based login")
 				}
 				passwordSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, redirectSuccessHandler{}}
 
@@ -381,7 +381,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 			// 1. a session success handler (to remember you logged in)
 			// 2. a state success handler (to go back to the URL encoded in the state)
 			if c.SessionAuth == nil {
-				return nil, errors.New("SessionAuth is required for OAuth-based login")
+				return nil, errors.New("sessionAuth is required for OAuth-based login")
 			}
 			oauthSuccessHandler := handlers.AuthenticationSuccessHandlers{c.SessionAuth, state}
 
@@ -465,7 +465,7 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 		return openid.NewProvider(identityProvider.Name, transport, config)
 
 	default:
-		return nil, fmt.Errorf("No OAuth provider found that matches %v.  The OAuth server cannot start!", identityProvider)
+		return nil, fmt.Errorf("no OAuth provider found that matches %v.  The OAuth server cannot start!", identityProvider)
 	}
 
 }
@@ -486,7 +486,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 	case (*configapi.LDAPPasswordIdentityProvider):
 		url, err := ldaputil.ParseURL(provider.URL)
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing LDAPPasswordIdentityProvider URL: %v", err)
+			return nil, fmt.Errorf("error parsing LDAPPasswordIdentityProvider URL: %v", err)
 		}
 
 		clientConfig, err := ldaputil.NewLDAPClientConfig(provider.URL,
@@ -508,10 +508,10 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 	case (*configapi.HTPasswdPasswordIdentityProvider):
 		htpasswdFile := provider.File
 		if len(htpasswdFile) == 0 {
-			return nil, fmt.Errorf("HTPasswdFile is required to support htpasswd auth")
+			return nil, fmt.Errorf("htpasswdFile is required to support htpasswd auth")
 		}
 		if htpasswordAuth, err := htpasswd.New(identityProvider.Name, htpasswdFile, identityMapper); err != nil {
-			return nil, fmt.Errorf("Error loading htpasswd file %s: %v", htpasswdFile, err)
+			return nil, fmt.Errorf("error loading htpasswd file %s: %v", htpasswdFile, err)
 		} else {
 			return htpasswordAuth, nil
 		}
@@ -519,28 +519,28 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 	case (*configapi.BasicAuthPasswordIdentityProvider):
 		connectionInfo := provider.RemoteConnectionInfo
 		if len(connectionInfo.URL) == 0 {
-			return nil, fmt.Errorf("URL is required for BasicAuthPasswordIdentityProvider")
+			return nil, fmt.Errorf("url is required for BasicAuthPasswordIdentityProvider")
 		}
 		transport, err := cmdutil.TransportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
 		if err != nil {
-			return nil, fmt.Errorf("Error building BasicAuthPasswordIdentityProvider client: %v", err)
+			return nil, fmt.Errorf("error building BasicAuthPasswordIdentityProvider client: %v", err)
 		}
 		return basicauthpassword.New(identityProvider.Name, connectionInfo.URL, transport, identityMapper), nil
 
 	case (*configapi.KeystonePasswordIdentityProvider):
 		connectionInfo := provider.RemoteConnectionInfo
 		if len(connectionInfo.URL) == 0 {
-			return nil, fmt.Errorf("URL is required for KeystonePasswordIdentityProvider")
+			return nil, fmt.Errorf("url is required for KeystonePasswordIdentityProvider")
 		}
 		transport, err := cmdutil.TransportFor(connectionInfo.CA, connectionInfo.ClientCert.CertFile, connectionInfo.ClientCert.KeyFile)
 		if err != nil {
-			return nil, fmt.Errorf("Error building KeystonePasswordIdentityProvider client: %v", err)
+			return nil, fmt.Errorf("error building KeystonePasswordIdentityProvider client: %v", err)
 		}
 
 		return keystonepassword.New(identityProvider.Name, connectionInfo.URL, transport, provider.DomainName, identityMapper), nil
 
 	default:
-		return nil, fmt.Errorf("No password auth found that matches %v.  The OAuth server cannot start!", identityProvider)
+		return nil, fmt.Errorf("no password auth found that matches %v.  The OAuth server cannot start!", identityProvider)
 	}
 
 }
@@ -579,12 +579,12 @@ func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, e
 				if len(provider.ClientCA) > 0 {
 					caData, err := ioutil.ReadFile(provider.ClientCA)
 					if err != nil {
-						return nil, fmt.Errorf("Error reading %s: %v", provider.ClientCA, err)
+						return nil, fmt.Errorf("error reading %s: %v", provider.ClientCA, err)
 					}
 					opts := x509request.DefaultVerifyOptions()
 					opts.Roots = x509.NewCertPool()
 					if ok := opts.Roots.AppendCertsFromPEM(caData); !ok {
-						return nil, fmt.Errorf("Error loading certs from %s: %v", provider.ClientCA, err)
+						return nil, fmt.Errorf("error loading certs from %s: %v", provider.ClientCA, err)
 					}
 
 					authRequestHandler = x509request.NewVerifier(opts, authRequestHandler)
@@ -612,7 +612,7 @@ type redirectSuccessHandler struct{}
 // AuthenticationSucceeded informs client when authentication was successful
 func (redirectSuccessHandler) AuthenticationSucceeded(user kuser.Info, then string, w http.ResponseWriter, req *http.Request) (bool, error) {
 	if len(then) == 0 {
-		return false, fmt.Errorf("Auth succeeded, but no redirect existed - user=%#v", user)
+		return false, fmt.Errorf("auth succeeded, but no redirect existed - user=%#v", user)
 	}
 
 	http.Redirect(w, req, then, http.StatusFound)

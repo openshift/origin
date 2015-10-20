@@ -140,7 +140,7 @@ func (cfg *Config) bindEnv() error {
 				err = fmt.Errorf("BEARER_TOKEN_FILE %q was empty", value)
 			}
 		} else {
-			err = fmt.Errorf("Error reading BEARER_TOKEN_FILE %q: %v", value, tokenErr)
+			err = fmt.Errorf("error reading BEARER_TOKEN_FILE %q: %v", value, tokenErr)
 		}
 	}
 
@@ -206,12 +206,12 @@ func (cfg *Config) Clients() (osclient.Interface, kclient.Interface, error) {
 
 	kubeClient, err := kclient.New(cfg.KubeConfig())
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to configure Kubernetes client: %v", err)
+		return nil, nil, fmt.Errorf("unable to configure Kubernetes client: %v", err)
 	}
 
 	osClient, err := osclient.New(cfg.OpenShiftConfig())
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to configure Origin client: %v", err)
+		return nil, nil, fmt.Errorf("unable to configure Origin client: %v", err)
 	}
 
 	return osClient, kubeClient, nil

@@ -88,7 +88,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 
 func verifyRequest(req *http.Request) error {
 	if method := req.Method; method != "POST" {
-		return fmt.Errorf("Unsupported HTTP method %s", method)
+		return fmt.Errorf("unsupported HTTP method %s", method)
 	}
 	return nil
 }

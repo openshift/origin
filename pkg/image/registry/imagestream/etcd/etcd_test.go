@@ -920,7 +920,7 @@ func TestEtcdDeleteImageStreamNotFound(t *testing.T) {
 
 func TestEtcdDeleteImageStreamError(t *testing.T) {
 	fakeClient := tools.NewFakeEtcdClient(t)
-	fakeClient.Err = fmt.Errorf("Some error")
+	fakeClient.Err = fmt.Errorf("some error")
 	registry := NewTestEtcd(fakeClient)
 	err := registry.DeleteImageStream(kapi.NewDefaultContext(), "foo")
 	if err == nil {

@@ -52,7 +52,7 @@ func NewTokenAuthenticator(path string) (*TokenAuthenticator, error) {
 func (a *TokenAuthenticator) AuthenticateToken(value string) (user.Info, bool, error) {
 	user, ok := a.tokens[value]
 	if !ok {
-		return nil, false, errors.New("Invalid token")
+		return nil, false, errors.New("invalid token")
 	}
 	return user, true, nil
 }

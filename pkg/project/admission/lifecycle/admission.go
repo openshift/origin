@@ -104,7 +104,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 	}
 
 	if namespace.Status.Phase == kapi.NamespaceTerminating && !e.creatableResources.Has(strings.ToLower(a.GetResource())) {
-		return apierrors.NewForbidden(kind, name, fmt.Errorf("Namespace %s is terminating", a.GetNamespace()))
+		return apierrors.NewForbidden(kind, name, fmt.Errorf("namespace %s is terminating", a.GetNamespace()))
 	}
 
 	// in case of concurrency issues, we will retry this logic

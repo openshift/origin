@@ -28,7 +28,7 @@ func (o DiagnosticsOptions) buildRawConfig() (*clientcmdapi.Config, error) {
 		return nil, configErr
 	}
 	if len(kubeConfig.Contexts) == 0 {
-		return nil, errors.New("No contexts found in config file.")
+		return nil, errors.New("no contexts found in config file.")
 	}
 	return &kubeConfig, nil
 }

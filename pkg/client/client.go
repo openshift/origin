@@ -272,7 +272,7 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	version := config.Version
 	versionInterfaces, err := latest.InterfacesFor(version)
 	if err != nil {
-		return fmt.Errorf("API version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.Versions, ", "))
+		return fmt.Errorf("api version '%s' is not recognized (valid values: %s)", version, strings.Join(latest.Versions, ", "))
 	}
 	if config.Codec == nil {
 		config.Codec = versionInterfaces.Codec

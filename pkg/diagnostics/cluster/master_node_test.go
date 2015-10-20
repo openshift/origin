@@ -17,7 +17,7 @@ func dummyDnsResolver(hostname string) ([]string, error) {
 	}
 	ip, ok := domains[hostname]
 	if !ok {
-		return nil, errors.New("Dummy DNS lookup error")
+		return nil, errors.New("dummy DNS lookup error")
 	}
 
 	return ip, nil
