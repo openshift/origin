@@ -1078,6 +1078,42 @@ func convert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewRespo
 	return autoconvert_v1beta3_SubjectAccessReviewResponse_To_api_SubjectAccessReviewResponse(in, out, s)
 }
 
+func autoconvert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions(in *buildapi.BinaryBuildRequestOptions, out *apiv1beta3.BinaryBuildRequestOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.BinaryBuildRequestOptions))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	if err := convert_api_ObjectMeta_To_v1beta3_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.AsFile = in.AsFile
+	out.Commit = in.Commit
+	out.Message = in.Message
+	out.AuthorName = in.AuthorName
+	out.AuthorEmail = in.AuthorEmail
+	out.CommitterName = in.CommitterName
+	out.CommitterEmail = in.CommitterEmail
+	return nil
+}
+
+func convert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions(in *buildapi.BinaryBuildRequestOptions, out *apiv1beta3.BinaryBuildRequestOptions, s conversion.Scope) error {
+	return autoconvert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions(in, out, s)
+}
+
+func autoconvert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in *buildapi.BinaryBuildSource, out *apiv1beta3.BinaryBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*buildapi.BinaryBuildSource))(in)
+	}
+	out.AsFile = in.AsFile
+	return nil
+}
+
+func convert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in *buildapi.BinaryBuildSource, out *apiv1beta3.BinaryBuildSource, s conversion.Scope) error {
+	return autoconvert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in, out, s)
+}
+
 func autoconvert_api_Build_To_v1beta3_Build(in *buildapi.Build, out *apiv1beta3.Build, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*buildapi.Build))(in)
@@ -1301,6 +1337,14 @@ func autoconvert_api_BuildRequest_To_v1beta3_BuildRequest(in *buildapi.BuildRequ
 	} else {
 		out.From = nil
 	}
+	if in.Binary != nil {
+		out.Binary = new(apiv1beta3.BinaryBuildSource)
+		if err := convert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in.Binary, out.Binary, s); err != nil {
+			return err
+		}
+	} else {
+		out.Binary = nil
+	}
 	if in.LastVersion != nil {
 		out.LastVersion = new(int)
 		*out.LastVersion = *in.LastVersion
@@ -1319,6 +1363,14 @@ func autoconvert_api_BuildSource_To_v1beta3_BuildSource(in *buildapi.BuildSource
 		defaulting.(func(*buildapi.BuildSource))(in)
 	}
 	out.Type = apiv1beta3.BuildSourceType(in.Type)
+	if in.Binary != nil {
+		out.Binary = new(apiv1beta3.BinaryBuildSource)
+		if err := convert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource(in.Binary, out.Binary, s); err != nil {
+			return err
+		}
+	} else {
+		out.Binary = nil
+	}
 	if in.Dockerfile != nil {
 		out.Dockerfile = new(string)
 		*out.Dockerfile = *in.Dockerfile
@@ -1711,6 +1763,42 @@ func convert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in *buildapi.WebHookTr
 	return autoconvert_api_WebHookTrigger_To_v1beta3_WebHookTrigger(in, out, s)
 }
 
+func autoconvert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *apiv1beta3.BinaryBuildRequestOptions, out *buildapi.BinaryBuildRequestOptions, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1beta3.BinaryBuildRequestOptions))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	if err := convert_v1beta3_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	out.AsFile = in.AsFile
+	out.Commit = in.Commit
+	out.Message = in.Message
+	out.AuthorName = in.AuthorName
+	out.AuthorEmail = in.AuthorEmail
+	out.CommitterName = in.CommitterName
+	out.CommitterEmail = in.CommitterEmail
+	return nil
+}
+
+func convert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *apiv1beta3.BinaryBuildRequestOptions, out *buildapi.BinaryBuildRequestOptions, s conversion.Scope) error {
+	return autoconvert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in, out, s)
+}
+
+func autoconvert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in *apiv1beta3.BinaryBuildSource, out *buildapi.BinaryBuildSource, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*apiv1beta3.BinaryBuildSource))(in)
+	}
+	out.AsFile = in.AsFile
+	return nil
+}
+
+func convert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in *apiv1beta3.BinaryBuildSource, out *buildapi.BinaryBuildSource, s conversion.Scope) error {
+	return autoconvert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in, out, s)
+}
+
 func autoconvert_v1beta3_Build_To_api_Build(in *apiv1beta3.Build, out *buildapi.Build, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*apiv1beta3.Build))(in)
@@ -1934,6 +2022,14 @@ func autoconvert_v1beta3_BuildRequest_To_api_BuildRequest(in *apiv1beta3.BuildRe
 	} else {
 		out.From = nil
 	}
+	if in.Binary != nil {
+		out.Binary = new(buildapi.BinaryBuildSource)
+		if err := convert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in.Binary, out.Binary, s); err != nil {
+			return err
+		}
+	} else {
+		out.Binary = nil
+	}
 	if in.LastVersion != nil {
 		out.LastVersion = new(int)
 		*out.LastVersion = *in.LastVersion
@@ -1952,6 +2048,14 @@ func autoconvert_v1beta3_BuildSource_To_api_BuildSource(in *apiv1beta3.BuildSour
 		defaulting.(func(*apiv1beta3.BuildSource))(in)
 	}
 	out.Type = buildapi.BuildSourceType(in.Type)
+	if in.Binary != nil {
+		out.Binary = new(buildapi.BinaryBuildSource)
+		if err := convert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource(in.Binary, out.Binary, s); err != nil {
+			return err
+		}
+	} else {
+		out.Binary = nil
+	}
 	if in.Dockerfile != nil {
 		out.Dockerfile = new(string)
 		*out.Dockerfile = *in.Dockerfile
@@ -4942,6 +5046,8 @@ func convert_v1beta3_ResourceRequirements_To_api_ResourceRequirements(in *pkgapi
 
 func init() {
 	err := pkgapi.Scheme.AddGeneratedConversionFuncs(
+		autoconvert_api_BinaryBuildRequestOptions_To_v1beta3_BinaryBuildRequestOptions,
+		autoconvert_api_BinaryBuildSource_To_v1beta3_BinaryBuildSource,
 		autoconvert_api_BuildConfigList_To_v1beta3_BuildConfigList,
 		autoconvert_api_BuildConfigSpec_To_v1beta3_BuildConfigSpec,
 		autoconvert_api_BuildConfigStatus_To_v1beta3_BuildConfigStatus,
@@ -5048,6 +5154,8 @@ func init() {
 		autoconvert_api_UserList_To_v1beta3_UserList,
 		autoconvert_api_User_To_v1beta3_User,
 		autoconvert_api_WebHookTrigger_To_v1beta3_WebHookTrigger,
+		autoconvert_v1beta3_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions,
+		autoconvert_v1beta3_BinaryBuildSource_To_api_BinaryBuildSource,
 		autoconvert_v1beta3_BuildConfigList_To_api_BuildConfigList,
 		autoconvert_v1beta3_BuildConfigSpec_To_api_BuildConfigSpec,
 		autoconvert_v1beta3_BuildConfigStatus_To_api_BuildConfigStatus,
