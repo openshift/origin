@@ -12,6 +12,7 @@ import (
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
@@ -194,6 +195,14 @@ func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler)
 		glog.Fatalf("Cannot parse the provided ip-tables sync period (%s) : %v", c.IPTablesSyncPeriod, err)
 	}
 
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(c.Client.Events(""))
+	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: c.KubeletConfig.NodeName})
+	nodeRef := &kapi.ObjectReference{
+		Kind: "Node",
+		Name: c.KubeletConfig.NodeName,
+	}
+
 	go util.Forever(func() {
 		dbus := utildbus.New()
 		iptables := iptables.New(kexec.New(), dbus, protocol)
@@ -225,6 +234,7 @@ func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler)
 			endpointsConfig.Channel("api"))
 
 		serviceConfig.RegisterHandler(proxier)
+		recorder.Eventf(nodeRef, "Starting", "Starting kube-proxy.")
 		glog.Infof("Started Kubernetes Proxy on %s", host)
 		select {}
 	}, 5*time.Second)
