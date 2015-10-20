@@ -42,6 +42,7 @@ SKIP_TESTS=(
   kube-ui                 # Not installed by default
   DaemonRestart           # Experimental mode not enabled yet
   "Daemon set"            # Experimental mode not enabled yet
+  Job                     # Not enabled yet
 
   # Need fixing
   "Cluster upgrade"       # panic because createNS not called, refactor framework?
@@ -60,6 +61,7 @@ SKIP_TESTS=(
   "Ask kubelet to report container resource usage" # container resource usage not exposed yet?
   "should provide Internet connection for containers" # DNS inside container failing!!!
   "able to delete 10 pods per node" # Panic because stats port isn't exposed
+  "Kubelet regular resource usage tracking over" # takes too long
 
   "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
 
