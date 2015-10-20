@@ -79,7 +79,7 @@
       <div ng-if="overviewMode == 'tiles'">
 
         <!-- TODO handle multiple services mapping to the same deploymentConfig/deployment/pod -->
-        <section ng-repeat="(serviceId, service) in services" class="components components-group">
+        <section ng-repeat="(serviceId, service) in services" class="components components-group" ng-attr-id="service-{{serviceId}}">
 
           <div class="osc-object components-panel service" ng-init="numPorts = service.spec.ports.length" kind="Service" resource="service">
 
@@ -171,7 +171,8 @@
             We may also want to show them if they are idled down to zero (but only if we can filter old deployments)
             -->
             <div ng-repeat="deployment in deployments | orderObjectsByDate : true track by (deployment | uid)"
-                 ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
+                ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0"
+                class="animate-repeat">
 
               <!-- Make sure deploymentConfigs are loaded before testing if the deployment config is missing. -->
               <overview-deployment
@@ -181,7 +182,8 @@
                 deployment-config-different-service="deploymentConfigs[deploymentConfigId] && !deploymentConfigsByService[serviceId][deploymentConfigId]"
                 images-by-docker-reference="imagesByDockerReference"
                 builds="builds"
-                pods="podsByDeployment[deployment.metadata.name]">
+                pods="podsByDeployment[deployment.metadata.name]"
+                alerts="alerts">
               </overview-deployment>
             </div>
           </div>

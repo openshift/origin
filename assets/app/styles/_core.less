@@ -641,8 +641,13 @@ select:invalid {
   background-color: #f1f1f1;
   color: #666;
 }
+
 .input-number {
   width: 60px;
+}
+
+.deployment .replicas-form input {
+  display: inline-block;
 }
 
 .action-button {
@@ -650,6 +655,12 @@ select:invalid {
   cursor: pointer;
   &:hover {
     color: #000;
+  }
+}
+
+a.action-button {
+  &:hover, &:active, &:focus {
+    text-decoration: none;
   }
 }
 

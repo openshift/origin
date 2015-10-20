@@ -61,14 +61,14 @@
     <div class="component">
       <div class="component-label">Replication Controller: <a class="subtle-link" ng-href="{{rc | navigateResourceURL}}">{{rc.metadata.name}}</a></div>
     </div>
-
     <div class="component meta-data">
       created <relative-timestamp timestamp="rc.metadata.creationTimestamp"></relative-timestamp>
     </div>
   </div>
 
-  <div class="pod-block row">
-    <div class="col-xs-12 col-lg-6">
+  <div row mobile="column" axis="center center" class="pod-block">
+    <!-- Pod template -->
+    <div column grow="2" class="pod-template-column">
       <div class="component-label">Pod Template</div>
       <pod-template
         pod-template="rc.spec.template"
@@ -77,17 +77,41 @@
       </pod-template>
     </div>
 
-    <div class="col-xs-12 col-lg-6">
-      <div class="component-label">
-        <a href="" ng-click="viewPodsForDeployment(rc)">
-          Pods
-          <span ng-if="rc.status.replicas === (rc | desiredReplicas)" class="component-label-details">({{rc.status.replicas}})</span>
-          <span ng-if="rc.status.replicas !== (rc | desiredReplicas)" class="component-label-details">(scaling to {{rc | desiredReplicas}})</span>
-        </a>
-      </div>
+    <!-- Pods donut chart and scaling controls -->
+    <div column>
+      <div axis="center center" row>
+        <!-- spacer -->
+        <div flex class="visible-xs-block"></div>
 
-      <pods pods="pods"></pods>
+        <div column>
+          <pod-status-chart
+              chart-id="rc-{{rc.metadata.name}}-donut-chart"
+              pods="pods"
+              desired="desiredReplicas || rc.spec.replicas || 1"
+              ng-click="viewPodsForDeployment(rc)">
+          </pod-status-chart>
+        </div>
+
+        <div column class="scaling-controls">
+          <!-- spacer -->
+          <div flex></div>
+          <div column>
+            <a href="" ng-click="scaleUp()" title="Scale up">
+              <i class="fa fa-chevron-up"></i>
+              <span class="sr-only">Scale up</span>
+            </a>
+            <a href="" ng-click="scaleDown()" title="Scale down">
+              <i class="fa fa-chevron-down"></i>
+              <span class="sr-only">Scale down</span>
+            </a>
+          </div>
+          <!-- spacer -->
+          <div flex></div>
+        </div>
+
+        <!-- spacer -->
+        <div flex class="visible-xs-block"></div>
+      </div>
     </div>
   </div>
-
 </div>

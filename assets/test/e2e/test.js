@@ -298,7 +298,11 @@ describe('', function() {
         waitForPresence('.component .route', 'www.example.com');
         waitForPresence('.pod-template-build a', '#1');
         waitForPresence('.deployment-trigger', 'from image change');
-        expect(element.all(by.css(".pod-running")).count()).toEqual(3);
+
+        // Check the pod count inside the donut chart for each rc.
+        waitForPresence('#service-database .pod-count', '1');
+        waitForPresence('#service-frontend .pod-count', '2');
+
         // TODO: validate correlated images, builds, source
       });
 
