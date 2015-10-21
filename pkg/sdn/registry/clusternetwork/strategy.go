@@ -42,7 +42,7 @@ func (sdnStrategy) Validate(ctx kapi.Context, obj runtime.Object) fielderrors.Va
 	return validation.ValidateClusterNetwork(obj.(*api.ClusterNetwork))
 }
 
-// AllowCreateOnUpdate is false for sdns
+// AllowCreateOnUpdate is false for sdn
 func (sdnStrategy) AllowCreateOnUpdate() bool {
 	return false
 }
