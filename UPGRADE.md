@@ -34,3 +34,20 @@ At that time, the openshift docker registry image must be upgraded in order to c
 
 1. New fields (`allowHostPID` and `allowHostIPC`) have been added to the default SCCs in Origin 1.0.7.  
 You may set these fields manually or [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints).
+
+1. The `v1beta3` API version is being removed in Origin 1.1 (OSE 3.1).
+Existing `v1beta3` resources stored in etcd will still be readable and
+automatically converted to `v1` by the master on first mutation. Existing
+`v1beta3` resources stored on disk are still readable by the `oc` client
+and will be automatically converted to `v1` for transmission to the master.
+
+  OpenShift master configuration files will need updated to remove `v1beta3`
+references:
+
+  1. The `etcdStorageConfig.openShiftStorageVersion` field value should be `v1`.
+  1. The `etcdStorageConfig.kubernetesStorageVersion` field value should be `v1`.
+  1. The `apiLevels` field should contain only `v1`.
+  1. The `kubernetesMasterConfig.apiLevels` field should contain only `v1`.
+
+  OpenShift clients <= 1.0.4 will need to pass `--api-version=v1` when communicating with
+  a master. (https://github.com/openshift/origin/issues/5254)
