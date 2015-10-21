@@ -22,9 +22,7 @@ type Registry interface {
 	CreateImageStream(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	// UpdateImageStream updates an image stream.
 	UpdateImageStream(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
-	// UpdateImageStreamSpec updates an image stream's spec.
-	UpdateImageStreamSpec(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
-	// UpdateImageStreamStatus updates an image stream's status.
+	// UpdateImageStream updates an image stream's status.
 	UpdateImageStreamStatus(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	// DeleteImageStream deletes an image stream.
 	DeleteImageStream(ctx kapi.Context, id string) (*unversioned.Status, error)
@@ -41,7 +39,6 @@ type Storage interface {
 
 	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
 	Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error)
-	UpdateAll(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -81,14 +78,6 @@ func (s *storage) CreateImageStream(ctx kapi.Context, imageStream *api.ImageStre
 }
 
 func (s *storage) UpdateImageStream(ctx kapi.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
-	obj, _, err := s.UpdateAll(ctx, imageStream)
-	if err != nil {
-		return nil, err
-	}
-	return obj.(*api.ImageStream), nil
-}
-
-func (s *storage) UpdateImageStreamSpec(ctx kapi.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
 	obj, _, err := s.Update(ctx, imageStream)
 	if err != nil {
 		return nil, err
