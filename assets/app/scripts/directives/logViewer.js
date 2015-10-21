@@ -13,6 +13,7 @@ angular.module('openshiftConsole')
           logs: '=',
           loading: '=',
           links: '=',
+          name: '=',
           download: '=',
           start: '=',
           end: '='

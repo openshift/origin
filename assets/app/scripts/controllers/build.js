@@ -111,13 +111,12 @@ angular.module('openshiftConsole')
       }));
 
 
-      (function initLogs() {
+      var runLogs = function() {
         angular.extend($scope, {
           logs: [],
           logsLoading: true,
           canShowDownload: false,
-          canInitAgain: false,
-          initLogs: initLogs
+          canInitAgain: false
         });
 
         var streamer = DataService.createStream('builds/log',$routeParams.build, $scope);
@@ -132,10 +131,12 @@ angular.module('openshiftConsole')
             $scope.logsLoading = false;
           });
         });
-        streamer.onError(function(evt) {
-          Logger.log('WEBSOCKET ERROR', evt);
+        streamer.onError(function() {
           $scope.$apply(function() {
-            $scope.canInitAgain = true;
+            angular.extend($scope, {
+              logsLoading: false,
+              logError: true
+            });
           });
         });
 
@@ -143,8 +144,12 @@ angular.module('openshiftConsole')
         $scope.$on('$destroy', function() {
           streamer.stop();
         });
+      };
 
-      })();
+      angular.extend($scope, {
+        initLogs: _.once(runLogs),
+        runLogs: runLogs
+      });
 
 
     });
