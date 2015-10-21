@@ -7,15 +7,16 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('PodController', function ($scope, $routeParams, DataService, project, $filter, ImageStreamResolver) {
+  .controller('PodController', function ($scope, $routeParams, $timeout, DataService, project, $filter, ImageStreamResolver, MetricsService) {
     $scope.pod = null;
     $scope.imageStreams = {};
     $scope.imagesByDockerReference = {};
     $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
-    $scope.builds = {};     
+    $scope.builds = {};
     $scope.alerts = {};
-    $scope.renderOptions = $scope.renderOptions || {};    
-    $scope.renderOptions.hideFilterWidget = true;    
+    $scope.renderOptions = $scope.renderOptions || {};
+    $scope.renderOptions.hideFilterWidget = true;
+    $scope.terminalTabWasSelected = false;
     $scope.breadcrumbs = [
       {
         title: "Pods",
@@ -33,6 +34,11 @@ angular.module('openshiftConsole')
     }
 
     var watches = [];
+
+    // Check if the metrics service is available so we know when to show the tab.
+    MetricsService.isAvailable().then(function(available) {
+      $scope.metricsAvailable = available;
+    });
 
     project.get($routeParams.project).then(function(resp) {
       angular.extend($scope, {
@@ -54,10 +60,10 @@ angular.module('openshiftConsole')
               $scope.alerts["deleted"] = {
                 type: "warning",
                 message: "This pod has been deleted."
-              }; 
+              };
             }
             $scope.pod = pod;
-          }));          
+          }));
         },
         // failure
         function(e) {
@@ -81,10 +87,58 @@ angular.module('openshiftConsole')
       watches.push(DataService.watch("builds", $scope, function(builds) {
         $scope.builds = builds.by("metadata.name");
         Logger.log("builds (subscribe)", $scope.builds);
-      }));      
+      }));
+
+      (function initLogs() {
+        angular.extend($scope, {
+          logs: [],
+          logsLoading: true,
+          canShowDownload: false,
+          canInitAgain: false,
+          initLogs: initLogs
+        });
+
+        var streamer = DataService.createStream('pods/log',$routeParams.pod, $scope);
+
+        streamer.onMessage(function(msg) {
+          $scope.$apply(function() {
+            $scope.logs.push({text: msg});
+            $scope.canShowDownload = true;
+          });
+        });
+        streamer.onClose(function() {
+          $scope.$apply(function() {
+            $scope.logsLoading = false;
+          });
+        });
+        streamer.onError(function() {
+          $scope.$apply(function() {
+            $scope.canInitAgain = true;
+          });
+        });
+
+        streamer.start();
+        $scope.$on('$destroy', function() {
+          streamer.stop();
+        });
+
+      })();
+
     });
+
+    $scope.containersRunning = function(containerStatuses) {
+      var running = 0;
+      if (containerStatuses) {
+        containerStatuses.forEach(function(v) {
+          if (v.state && v.state.running) {
+            running++;
+          }
+        });
+      }
+      return running;
+    };
 
     $scope.$on('$destroy', function(){
       DataService.unwatchAll(watches);
-    });    
+    });
   });

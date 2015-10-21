@@ -18,7 +18,7 @@ package etcd
 
 import (
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/experimental"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/daemonset"
@@ -37,12 +37,12 @@ type REST struct {
 var daemonPrefix = "/daemonsets"
 
 // NewREST returns a RESTStorage object that will work against DaemonSets.
-func NewREST(s storage.Interface) *REST {
+func NewREST(s storage.Interface) (*REST, *StatusREST) {
 	store := &etcdgeneric.Etcd{
-		NewFunc: func() runtime.Object { return &experimental.DaemonSet{} },
+		NewFunc: func() runtime.Object { return &extensions.DaemonSet{} },
 
 		// NewListFunc returns an object capable of storing results of an etcd list.
-		NewListFunc: func() runtime.Object { return &experimental.DaemonSetList{} },
+		NewListFunc: func() runtime.Object { return &extensions.DaemonSetList{} },
 		// Produces a path that etcd understands, to the root of the resource
 		// by combining the namespace in the context with the given prefix
 		KeyRootFunc: func(ctx api.Context) string {
@@ -55,7 +55,7 @@ func NewREST(s storage.Interface) *REST {
 		},
 		// Retrieve the name field of a daemon set
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*experimental.DaemonSet).Name, nil
+			return obj.(*extensions.DaemonSet).Name, nil
 		},
 		// Used to match objects based on labels/fields for list and watch
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
@@ -71,6 +71,22 @@ func NewREST(s storage.Interface) *REST {
 
 		Storage: s,
 	}
+	statusStore := *store
+	statusStore.UpdateStrategy = daemonset.StatusStrategy
 
-	return &REST{store}
+	return &REST{store}, &StatusREST{store: &statusStore}
+}
+
+// StatusREST implements the REST endpoint for changing the status of a daemonset
+type StatusREST struct {
+	store *etcdgeneric.Etcd
+}
+
+func (r *StatusREST) New() runtime.Object {
+	return &extensions.DaemonSet{}
+}
+
+// Update alters the status subset of an object.
+func (r *StatusREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
 }

@@ -7,91 +7,67 @@
       <div class="row">
         <div class="col-md-12">
           <div class="tile">
-            <h1>Pod {{pod.metadata.name}}</h1>
+            <h1>
+              Pod {{pod.metadata.name}}
+              <span ng-if="pod | isTroubledPod">
+                <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
+              </span>
+            </h1>
+            <labels labels="pod.metadata.labels" clickable="true" kind="pods" project-name="{{pod.metadata.namespace}}" limit="3"></labels>
             <tabset>
               <tab heading="Details" active="selectedTab.details">
-                <dl class="dl-horizontal left">
-                  <dt>Node:</dt>
-                  <dd>{{pod.spec.nodeName || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.nodeName != pod.status.hostIP">({{pod.status.hostIP}})</span></dd>
-                  <dt>Labels:</dt>
-                  <dd>
-                    <span ng-if="!pod.metadata.labels">none</span>
-                    <span ng-repeat="(labelKey, labelValue) in pod.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
-                  </dd>
-                  <dt>Status:</dt>
-                  <dd>
-                    <span ng-switch="pod.status.phase">
-                      <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true"></span>
-                      <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-                      <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true"></span>
-                      <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-                      <span ng-switch-when="Running" class="fa fa-refresh fa-spin" aria-hidden="true"></span>
-                    </span>
-                    {{pod.status.phase}}
-                  </dd>
-                  <dt>IP:</dt>
-                  <dd>{{pod.status.podIP || 'unknown'}}</dd>
-                  <dt>Restart policy:</dt>
-                  <dd>{{pod.spec.restartPolicy || 'Always'}}</dd>
-                </dl>
-                <div ng-if="pod.spec.volumes.length">
-                  <span class="pod-detail-label">Volumes:</span>
-                  <ul>
-                    <li ng-repeat="volume in pod.spec.volumes">
-                      <div>{{volume.name}}</div>
-                      <div ng-if="volume.source.hostPath">
-                        <div>Type: host path</div>
-                        <div>Path: {{volume.source.hostPath.path}}</div>
-                      </div>
-                      <div ng-if="volume.source.emptyDir">Type: empty directory</div>
-                      <!-- TODO fill out GCE persistent disk details -->
-                      <div ng-if="volume.source.gcePersistentDisk">Type: GCE persistent disk</div>
-                      <div ng-if="volume.source.gitRepo">
-                        <div>Type: Git repository</div>
-                        <div>Repository: {{volume.source.gitRepo.repository}}</div>
-                        <div ng-if="volume.source.gitRepo.revision">Revision: {{volume.source.gitRepo.revision}}</div>
-                      </div>
-                    </li>
-                  </ul>
+                <tab-heading>Details</tab-heading>
+                <ng-include src=" 'views/browse/_pod-details.html' "></ng-include>
+              </tab>
+
+              <tab ng-if="metricsAvailable" heading="Metrics" active="selectedTab.metrics">
+                <!-- Use ng-if to remove the pod-metrics directive when the tab is not active so
+                     we don't update in the background. -->
+                <pod-metrics
+                  ng-if="selectedTab.metrics"
+                  pod="pod"
+                  alerts="alerts">
+                </pod-metrics>
+              </tab>
+
+              <tab active="selectedTab.logs">
+                <tab-heading>Logs</tab-heading>
+                <log-viewer
+                  logs="logs"
+                  loading="logsLoading"
+                  start="pod.status.startTime | date : 'short'"
+                  links="true"
+                  download="canShowDownload">
+                  <div row>
+                    <span>Status:&nbsp;&nbsp;</span>
+                    <status-icon status="pod.status.phase"></status-icon>
+                    <span flex>&nbsp;&nbsp;{{pod.status.phase}}</span>
+                  </div>
+                </log-viewer>
+                <div ng-show="!logsLoading" class="text-muted">
+                  connection closed
+                  <a ng-click="initLogs()" ng-show="canInitAgain">reconnect</a>
                 </div>
-                <div>Pod template:</div>
-                <pod-template
-                  pod-template="pod"
-                  images-by-docker-reference="imagesByDockerReference"
-                  builds="builds">
-                </pod-template>
-                <div>Container Statuses:</div>
-                <div ng-if="!pod.status.containerStatuses"><em>none</em></div>
-                <dl ng-repeat="containerStatus in pod.status.containerStatuses | orderBy:'name'" class="dl-horizontal left indent">
-                  <dt>Name:</dt>
-                  <dd>{{containerStatus.name}}</dd>
-                  <dt>State:</dt>
-                  <dd>
-                    <kubernetes-object-describe-container-state container-state="containerStatus.state"></kubernetes-object-describe-container-state>
-                  </dd>
-                  <dt ng-if="!(containerStatus.lastState | isEmptyObj)">Last State</dt>
-                  <dd ng-if="!(containerStatus.lastState | isEmptyObj)">
-                    <kubernetes-object-describe-container-state container-state="containerStatus.lastState"></kubernetes-object-describe-container-state>
-                  </dd>
-                  <dt>Ready:</dt>
-                  <dd>{{containerStatus.ready}}</dd>
-                  <dt>Restart Count:</dt>
-                  <dd>{{containerStatus.restartCount}}</dd>
-                </dl>
-                <annotations annotations="pod.metadata.annotations"></annotations>
               </tab>
 
-              <!--
-              <tab heading="Metrics" active="selectedTab.metrics">
-              Metrics content
-              </tab>
-              -->
+              <tab active="selectedTab.terminal"
+                select="terminalTabWasSelected = true"
+                ng-init="containers = pod.status.containerStatuses"
+                ng-if="containersRunning(pod.status.containerStatuses) > 0">
+                <tab-heading>Terminal</tab-heading>
+                <div><span class="fa fa-lg fa-info-circle"></span>
+                  When you navigate away from this pod, any processes running
+                  in these terminals will quit.</div>
+                <div class="pod-container-terminal"
+                  ng-repeat="container in containers | orderBy:'name' track by container.name"
+                  ng-if="container.state.running">
+                  <h3 ng-if="containers.length > 1">{{container.name}}</h3>
+                  <kubernetes-container-terminal pod="pod" container="container.name"
+                    prevent="!terminalTabWasSelected">
+                  </kubernetes-container-terminal>
+                </div>
+	      </tab>
 
-              <!--
-              <tab heading="Logs" active="selectedTab.logs">
-              Logs content
-              </tab>
-              -->
             </tabset>
           </div>
         </div>

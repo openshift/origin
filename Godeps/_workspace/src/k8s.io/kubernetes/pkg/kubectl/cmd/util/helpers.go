@@ -29,11 +29,12 @@ import (
 	"time"
 
 	"github.com/evanphx/json-patch"
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
 	utilerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -122,7 +123,7 @@ func checkErr(err error, handleErr func(string)) {
 	handleErr(msg)
 }
 
-func statusCausesToAggrError(scs []api.StatusCause) utilerrors.Aggregate {
+func statusCausesToAggrError(scs []unversioned.StatusCause) utilerrors.Aggregate {
 	errs := make([]error, len(scs))
 	for i, sc := range scs {
 		errs[i] = fmt.Errorf("%s: %s", sc.Field, sc.Message)
@@ -260,6 +261,15 @@ func GetFlagInt(cmd *cobra.Command, flag string) int {
 	return i
 }
 
+// Assumes the flag has a default value.
+func GetFlagInt64(cmd *cobra.Command, flag string) int64 {
+	i, err := cmd.Flags().GetInt64(flag)
+	if err != nil {
+		glog.Fatalf("err accessing flag %s for command %s: %v", flag, cmd.Name(), err)
+	}
+	return i
+}
+
 func GetFlagDuration(cmd *cobra.Command, flag string) time.Duration {
 	d, err := cmd.Flags().GetDuration(flag)
 	if err != nil {
@@ -270,7 +280,7 @@ func GetFlagDuration(cmd *cobra.Command, flag string) time.Duration {
 
 func AddValidateFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("validate", false, "If true, use a schema to validate the input before sending it")
-	cmd.Flags().String("schema-cache-dir", "/tmp/kubectl.schema", "If non-empty, load/store cached API schemas in this directory, default is '/tmp/kubectl.schema'")
+	cmd.Flags().String("schema-cache-dir", fmt.Sprintf("~/%s/%s", clientcmd.RecommendedHomeDir, clientcmd.RecommendedSchemaName), fmt.Sprintf("If non-empty, load/store cached API schemas in this directory, default is '$HOME/%s/%s'", clientcmd.RecommendedHomeDir, clientcmd.RecommendedSchemaName))
 }
 
 func ReadConfigDataFromReader(reader io.Reader, source string) ([]byte, error) {
@@ -345,7 +355,7 @@ func Merge(dst runtime.Object, fragment, kind string) (runtime.Object, error) {
 	if !ok {
 		return nil, fmt.Errorf("apiVersion must be a string")
 	}
-	i, err := latest.InterfacesFor(versionString)
+	i, err := latest.GroupOrDie("").InterfacesFor(versionString)
 	if err != nil {
 		return nil, err
 	}
@@ -395,18 +405,23 @@ func DumpReaderToFile(reader io.Reader, filename string) error {
 func UpdateObject(info *resource.Info, updateFn func(runtime.Object) error) (runtime.Object, error) {
 	helper := resource.NewHelper(info.Client, info.Mapping)
 
-	err := updateFn(info.Object)
-	if err != nil {
+	if err := updateFn(info.Object); err != nil {
 		return nil, err
 	}
+
+	// Update the annotation used by kubectl apply
+	if err := kubectl.UpdateApplyAnnotation(info); err != nil {
+		return nil, err
+	}
+
 	data, err := helper.Codec.Encode(info.Object)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = helper.Replace(info.Namespace, info.Name, true, data)
-	if err != nil {
+	if _, err := helper.Replace(info.Namespace, info.Name, true, data); err != nil {
 		return nil, err
 	}
+
 	return info.Object, nil
 }

@@ -3,13 +3,14 @@ package imagestreammapping
 import (
 	"github.com/openshift/origin/pkg/image/api"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // Registry is an interface for things that know how to store ImageStreamMapping objects.
 type Registry interface {
 	// CreateImageStreamMapping creates a new image stream mapping.
-	CreateImageStreamMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*kapi.Status, error)
+	CreateImageStreamMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*unversioned.Status, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -28,10 +29,10 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) CreateImageStreamMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*kapi.Status, error) {
+func (s *storage) CreateImageStreamMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*unversioned.Status, error) {
 	obj, err := s.Create(ctx, mapping)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*kapi.Status), nil
+	return obj.(*unversioned.Status), nil
 }

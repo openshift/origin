@@ -8,6 +8,7 @@ import (
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -49,7 +50,7 @@ func (r *REST) New() runtime.Object {
 }
 
 func (r *REST) NewList() runtime.Object {
-	return &kapi.Status{}
+	return &unversioned.Status{}
 }
 
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
@@ -166,15 +167,15 @@ func (r *REST) List(ctx kapi.Context, label labels.Selector, field fields.Select
 		return nil, err
 	}
 	if accessReviewResponse.Allowed {
-		return &kapi.Status{Status: kapi.StatusSuccess}, nil
+		return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 	}
 
 	forbiddenError, _ := kapierror.NewForbidden("ProjectRequest", "", errors.New("you may not request a new project via this API.")).(*kapierror.StatusError)
 	if len(r.message) > 0 {
 		forbiddenError.ErrStatus.Message = r.message
-		forbiddenError.ErrStatus.Details = &kapi.StatusDetails{
+		forbiddenError.ErrStatus.Details = &unversioned.StatusDetails{
 			Kind: "ProjectRequest",
-			Causes: []kapi.StatusCause{
+			Causes: []unversioned.StatusCause{
 				{Message: r.message},
 			},
 		}

@@ -69,7 +69,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	if err != nil {
 		return err
 	}
-	rcs, err := e.Options.Kclient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
+	rcs, err := e.Options.Kclient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}

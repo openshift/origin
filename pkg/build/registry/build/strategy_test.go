@@ -5,7 +5,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -87,8 +87,8 @@ func TestBuildDecorator(t *testing.T) {
 			Phase: buildapi.BuildPhaseNew,
 		},
 	}
-	now := util.Now()
-	startTime := util.NewTime(now.Time.Add(-1 * time.Minute))
+	now := unversioned.Now()
+	startTime := unversioned.NewTime(now.Time.Add(-1 * time.Minute))
 	build.Status.StartTimestamp = &startTime
 	err := Decorator(build)
 	if err != nil {

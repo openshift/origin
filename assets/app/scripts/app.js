@@ -20,6 +20,7 @@ angular
     'openshiftUI',
     'kubernetesUI',
     'ui.bootstrap',
+    'patternfly.charts',
     'openshiftConsoleTemplates'
   ])
   .constant("mainNavTabs", [])  // even though its not really a "constant", it has to be created as a constant and not a value
@@ -27,17 +28,6 @@ angular
   // configure our tabs and routing
   .config(['mainNavTabs','$routeProvider', 'HawtioNavBuilderProvider', function(tabs, $routeProvider, builder) {
     var template = function() {
-      // TODO - Don't love triggering the show/hide drawer here, would prefer if
-      // we could listen for an event that the nav was being redrawn and
-      // check HawtioNav.selected()
-      if (this.isSelected()) {
-        if (this.tabs && this.tabs.length > 0) {
-          $("body").addClass("show-drawer");
-        }
-        else {
-          $("body").removeClass("show-drawer");
-        }
-      }
       return "<sidebar-nav-item></sidebar-nav-item>";
     };
 
@@ -83,6 +73,7 @@ angular
     tab.icon = "sitemap";
     tabs.push(tab);
 
+
     tab = builder.create()
      .id(builder.join(pluginName, "settings"))
      .title(function () { return "Settings"; })
@@ -127,7 +118,12 @@ angular
         templateUrl: 'views/browse/build-config.html'
       })
       .when('/project/:project/browse/builds/:buildconfig/:build', {
-        templateUrl: 'views/browse/build.html'
+        templateUrl: function(params) {
+          return params.view ?
+                  'views/logs/'+params.view+'_log.html' :
+                  'views/browse/build.html';
+        },
+        controller: 'BuildController'
       })
       // For when a build is missing a buildconfig label
       // Needs to still be prefixed with browse/builds so the secondary nav active state is correct
@@ -160,7 +156,11 @@ angular
         templateUrl: 'views/pods.html'
       })
       .when('/project/:project/browse/pods/:pod', {
-        templateUrl: 'views/browse/pod.html',
+        templateUrl: function(params) {
+          return params.view ?
+                  'views/logs/'+params.view+'_log.html' :
+                  'views/browse/pod.html';
+        },
         controller: 'PodController'
       })
       .when('/project/:project/browse/services', {
@@ -208,7 +208,7 @@ angular
   .constant("AUTH_CFG", angular.extend({}, (window.OPENSHIFT_CONFIG || {}).auth))
   .constant("LOGGING_URL", (window.OPENSHIFT_CONFIG || {}).loggingURL)
   .constant("METRICS_URL", (window.OPENSHIFT_CONFIG || {}).metricsURL)
-  .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG) {
+  .config(function($httpProvider, AuthServiceProvider, RedirectLoginServiceProvider, AUTH_CFG, API_CFG, kubernetesContainerSocketProvider) {
     $httpProvider.interceptors.push('AuthInterceptor');
 
     AuthServiceProvider.LoginService('RedirectLoginService');
@@ -219,6 +219,9 @@ angular
     RedirectLoginServiceProvider.OAuthClientID(AUTH_CFG.oauth_client_id);
     RedirectLoginServiceProvider.OAuthAuthorizeURI(AUTH_CFG.oauth_authorize_uri);
     RedirectLoginServiceProvider.OAuthRedirectURI(URI(AUTH_CFG.oauth_redirect_base).segment("oauth").toString());
+
+    // Configure the container terminal
+    kubernetesContainerSocketProvider.WebSocketFactory = "ContainerWebSocket";
   })
   .config(function($compileProvider){
     $compileProvider.aHrefSanitizationWhitelist(/^\s*(https?|mailto|git):/i);
@@ -228,6 +231,11 @@ angular
       HawtioNav.add(tabs[i]);
     }
   }])
+  .run(function($rootScope, LabelFilter){
+    $rootScope.$on('$locationChangeSuccess', function(event) {
+      LabelFilter.setLabelSelector(new LabelSelector({}, true), true);
+    });
+  })
   .run(function(dateRelativeFilter, durationFilter) {
     // Use setInterval instead of $interval because we're directly manipulating the DOM and don't want scope.$apply overhead
     setInterval(function() {

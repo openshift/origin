@@ -10,7 +10,7 @@
   "apis": [
    {
     "path": "/api/v1/namespaces/{namespace}/bindings",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Binding",
@@ -61,7 +61,7 @@
    },
    {
     "path": "/api/v1/bindings",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Binding",
@@ -104,7 +104,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/componentstatuses",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ComponentStatusList",
@@ -179,7 +179,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/componentstatuses/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ComponentStatus",
@@ -230,7 +230,7 @@
    },
    {
     "path": "/api/v1/componentstatuses",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ComponentStatusList",
@@ -297,7 +297,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/endpoints",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.EndpointsList",
@@ -417,7 +417,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/endpoints",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -492,7 +492,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/endpoints/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Endpoints",
@@ -607,7 +607,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -648,7 +648,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a Endpoints",
       "nickname": "deleteNamespacedEndpoints",
@@ -690,7 +690,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -704,7 +704,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/endpoints/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -787,7 +787,7 @@
    },
    {
     "path": "/api/v1/endpoints",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.EndpointsList",
@@ -891,7 +891,7 @@
    },
    {
     "path": "/api/v1/watch/endpoints",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -958,7 +958,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/events",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.EventList",
@@ -1078,7 +1078,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/events",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -1153,7 +1153,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/events/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Event",
@@ -1268,7 +1268,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -1309,7 +1309,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a Event",
       "nickname": "deleteNamespacedEvent",
@@ -1351,7 +1351,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -1365,7 +1365,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/events/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -1448,7 +1448,7 @@
    },
    {
     "path": "/api/v1/events",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.EventList",
@@ -1552,7 +1552,7 @@
    },
    {
     "path": "/api/v1/watch/events",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -1619,7 +1619,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/limitranges",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.LimitRangeList",
@@ -1739,7 +1739,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/limitranges",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -1814,7 +1814,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/limitranges/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.LimitRange",
@@ -1929,7 +1929,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -1970,7 +1970,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a LimitRange",
       "nickname": "deleteNamespacedLimitRange",
@@ -2012,7 +2012,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -2026,7 +2026,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/limitranges/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -2109,7 +2109,7 @@
    },
    {
     "path": "/api/v1/limitranges",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.LimitRangeList",
@@ -2213,7 +2213,7 @@
    },
    {
     "path": "/api/v1/watch/limitranges",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -2280,7 +2280,7 @@
    },
    {
     "path": "/api/v1/namespaces",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.NamespaceList",
@@ -2384,7 +2384,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -2451,7 +2451,7 @@
    },
    {
     "path": "/api/v1/namespaces/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Namespace",
@@ -2550,7 +2550,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -2583,7 +2583,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a Namespace",
       "nickname": "deleteNamespacedNamespace",
@@ -2617,7 +2617,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -2631,7 +2631,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -2706,7 +2706,7 @@
    },
    {
     "path": "/api/v1/namespaces/{name}/finalize",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Namespace",
@@ -2757,7 +2757,7 @@
    },
    {
     "path": "/api/v1/namespaces/{name}/status",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Namespace",
@@ -2808,7 +2808,7 @@
    },
    {
     "path": "/api/v1/nodes",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.NodeList",
@@ -2912,7 +2912,7 @@
    },
    {
     "path": "/api/v1/watch/nodes",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -2979,7 +2979,7 @@
    },
    {
     "path": "/api/v1/nodes/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Node",
@@ -3078,7 +3078,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -3111,7 +3111,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a Node",
       "nickname": "deleteNamespacedNode",
@@ -3145,7 +3145,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -3159,7 +3159,7 @@
    },
    {
     "path": "/api/v1/watch/nodes/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -3234,7 +3234,7 @@
    },
    {
     "path": "/api/v1/proxy/nodes/{name}/{path:*}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -3253,7 +3253,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -3283,7 +3283,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -3313,7 +3313,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -3343,7 +3343,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -3373,7 +3373,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -3403,7 +3403,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -3420,7 +3420,7 @@
    },
    {
     "path": "/api/v1/proxy/nodes/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -3558,7 +3558,7 @@
    },
    {
     "path": "/api/v1/nodes/{name}/status",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Node",
@@ -3609,7 +3609,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/persistentvolumeclaims",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PersistentVolumeClaimList",
@@ -3729,7 +3729,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/persistentvolumeclaims",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -3804,7 +3804,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/persistentvolumeclaims/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PersistentVolumeClaim",
@@ -3919,7 +3919,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -3960,7 +3960,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a PersistentVolumeClaim",
       "nickname": "deleteNamespacedPersistentVolumeClaim",
@@ -4002,7 +4002,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -4016,7 +4016,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/persistentvolumeclaims/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -4099,7 +4099,7 @@
    },
    {
     "path": "/api/v1/persistentvolumeclaims",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PersistentVolumeClaimList",
@@ -4203,7 +4203,7 @@
    },
    {
     "path": "/api/v1/watch/persistentvolumeclaims",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -4270,7 +4270,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/persistentvolumeclaims/{name}/status",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PersistentVolumeClaim",
@@ -4329,7 +4329,7 @@
    },
    {
     "path": "/api/v1/persistentvolumes",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PersistentVolumeList",
@@ -4433,7 +4433,7 @@
    },
    {
     "path": "/api/v1/watch/persistentvolumes",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -4500,7 +4500,7 @@
    },
    {
     "path": "/api/v1/persistentvolumes/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PersistentVolume",
@@ -4599,7 +4599,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -4632,7 +4632,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a PersistentVolume",
       "nickname": "deleteNamespacedPersistentVolume",
@@ -4666,7 +4666,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -4680,7 +4680,7 @@
    },
    {
     "path": "/api/v1/watch/persistentvolumes/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -4755,7 +4755,7 @@
    },
    {
     "path": "/api/v1/persistentvolumes/{name}/status",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PersistentVolume",
@@ -4806,7 +4806,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PodList",
@@ -4926,7 +4926,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/pods",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -5001,7 +5001,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Pod",
@@ -5116,7 +5116,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -5157,7 +5157,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a Pod",
       "nickname": "deleteNamespacedPod",
@@ -5199,7 +5199,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -5213,7 +5213,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/pods/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -5296,7 +5296,7 @@
    },
    {
     "path": "/api/v1/proxy/namespaces/{namespace}/pods/{name}/{path:*}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -5323,7 +5323,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -5361,7 +5361,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -5399,7 +5399,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -5437,7 +5437,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -5475,7 +5475,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -5513,7 +5513,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -5530,7 +5530,7 @@
    },
    {
     "path": "/api/v1/proxy/namespaces/{namespace}/pods/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -5716,7 +5716,7 @@
    },
    {
     "path": "/api/v1/pods",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PodList",
@@ -5820,7 +5820,7 @@
    },
    {
     "path": "/api/v1/watch/pods",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -5887,7 +5887,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods/{name}/attach",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -6033,7 +6033,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods/{name}/binding",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Binding",
@@ -6092,7 +6092,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods/{name}/exec",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -6141,7 +6141,7 @@
         "allowMultiple": false
        },
        {
-        "type": "",
+        "type": "string",
         "paramType": "query",
         "name": "command",
         "description": "Command is the remote command to execute. argv array. Not executed within a shell.",
@@ -6219,7 +6219,7 @@
         "allowMultiple": false
        },
        {
-        "type": "",
+        "type": "string",
         "paramType": "query",
         "name": "command",
         "description": "Command is the remote command to execute. argv array. Not executed within a shell.",
@@ -6254,7 +6254,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods/{name}/log",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Pod",
@@ -6295,6 +6295,46 @@
         "allowMultiple": false
        },
        {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "sinceSeconds",
+        "description": "A relative time in seconds before the current time from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "sinceTime",
+        "description": "An RFC3339 timestamp from which to show logs. If this value preceeds the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "timestamps",
+        "description": "If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output. Defaults to false.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "tailLines",
+        "description": "If set, the number of lines from the end of the logs to show. If not specified, logs are shown from the creation of the container or sinceSeconds or sinceTime",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "limitBytes",
+        "description": "If set, the number of bytes to read from the server before terminating the log output. This may not display a complete final line of logging, and may return slightly more or slightly less than the specified limit.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "string",
         "paramType": "path",
         "name": "namespace",
@@ -6329,7 +6369,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods/{name}/portforward",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -6395,7 +6435,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods/{name}/proxy",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -6629,7 +6669,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods/{name}/proxy/{path:*}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -6664,7 +6704,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -6710,7 +6750,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -6756,7 +6796,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -6802,7 +6842,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -6848,7 +6888,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -6894,7 +6934,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -6911,7 +6951,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/pods/{name}/status",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Pod",
@@ -6970,7 +7010,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/podtemplates",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PodTemplateList",
@@ -7090,7 +7130,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/podtemplates",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -7165,7 +7205,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/podtemplates/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PodTemplate",
@@ -7280,7 +7320,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -7321,7 +7361,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a PodTemplate",
       "nickname": "deleteNamespacedPodTemplate",
@@ -7363,7 +7403,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -7377,7 +7417,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/podtemplates/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -7460,7 +7500,7 @@
    },
    {
     "path": "/api/v1/podtemplates",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.PodTemplateList",
@@ -7564,7 +7604,7 @@
    },
    {
     "path": "/api/v1/watch/podtemplates",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -7631,7 +7671,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/replicationcontrollers",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ReplicationControllerList",
@@ -7751,7 +7791,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/replicationcontrollers",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -7826,7 +7866,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/replicationcontrollers/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ReplicationController",
@@ -7941,7 +7981,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -7982,7 +8022,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a ReplicationController",
       "nickname": "deleteNamespacedReplicationController",
@@ -8024,7 +8064,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -8038,7 +8078,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/replicationcontrollers/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -8121,7 +8161,7 @@
    },
    {
     "path": "/api/v1/replicationcontrollers",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ReplicationControllerList",
@@ -8225,7 +8265,7 @@
    },
    {
     "path": "/api/v1/watch/replicationcontrollers",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -8291,8 +8331,67 @@
     ]
    },
    {
+    "path": "/api/v1/namespaces/{namespace}/replicationcontrollers/{name}/status",
+    "description": "API at /api/v1",
+    "operations": [
+     {
+      "type": "v1.ReplicationController",
+      "method": "PUT",
+      "summary": "replace status of the specified ReplicationController",
+      "nickname": "replaceNamespacedReplicationControllerStatus",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.ReplicationController",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the ReplicationController",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.ReplicationController"
+       }
+      ],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/api/v1/namespaces/{namespace}/resourcequotas",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ResourceQuotaList",
@@ -8412,7 +8511,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/resourcequotas",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -8487,7 +8586,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/resourcequotas/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ResourceQuota",
@@ -8602,7 +8701,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -8643,7 +8742,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a ResourceQuota",
       "nickname": "deleteNamespacedResourceQuota",
@@ -8685,7 +8784,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -8699,7 +8798,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/resourcequotas/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -8782,7 +8881,7 @@
    },
    {
     "path": "/api/v1/resourcequotas",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ResourceQuotaList",
@@ -8886,7 +8985,7 @@
    },
    {
     "path": "/api/v1/watch/resourcequotas",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -8953,7 +9052,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/resourcequotas/{name}/status",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ResourceQuota",
@@ -9012,7 +9111,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/secrets",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.SecretList",
@@ -9132,7 +9231,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/secrets",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -9207,7 +9306,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/secrets/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Secret",
@@ -9322,7 +9421,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -9363,7 +9462,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a Secret",
       "nickname": "deleteNamespacedSecret",
@@ -9405,7 +9504,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -9419,7 +9518,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/secrets/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -9502,7 +9601,7 @@
    },
    {
     "path": "/api/v1/secrets",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.SecretList",
@@ -9606,7 +9705,7 @@
    },
    {
     "path": "/api/v1/watch/secrets",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -9673,7 +9772,7 @@
    },
    {
     "path": "/api/v1/securitycontextconstraints",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.SecurityContextConstraintsList",
@@ -9777,7 +9876,7 @@
    },
    {
     "path": "/api/v1/watch/securitycontextconstraints",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -9844,7 +9943,7 @@
    },
    {
     "path": "/api/v1/securitycontextconstraints/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.SecurityContextConstraints",
@@ -9943,7 +10042,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -9976,7 +10075,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a SecurityContextConstraints",
       "nickname": "deleteNamespacedSecurityContextConstraints",
@@ -10010,7 +10109,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -10024,7 +10123,7 @@
    },
    {
     "path": "/api/v1/watch/securitycontextconstraints/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -10099,7 +10198,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/serviceaccounts",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ServiceAccountList",
@@ -10219,7 +10318,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/serviceaccounts",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -10294,7 +10393,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/serviceaccounts/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ServiceAccount",
@@ -10409,7 +10508,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -10450,7 +10549,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a ServiceAccount",
       "nickname": "deleteNamespacedServiceAccount",
@@ -10492,7 +10591,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -10506,7 +10605,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/serviceaccounts/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -10589,7 +10688,7 @@
    },
    {
     "path": "/api/v1/serviceaccounts",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ServiceAccountList",
@@ -10693,7 +10792,7 @@
    },
    {
     "path": "/api/v1/watch/serviceaccounts",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -10760,7 +10859,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/services",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ServiceList",
@@ -10880,7 +10979,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/services",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -10955,7 +11054,7 @@
    },
    {
     "path": "/api/v1/namespaces/{namespace}/services/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.Service",
@@ -11070,7 +11169,7 @@
         "allowMultiple": false
        },
        {
-        "type": "api.Patch",
+        "type": "unversioned.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -11111,7 +11210,7 @@
       ]
      },
      {
-      "type": "v1.Status",
+      "type": "unversioned.Status",
       "method": "DELETE",
       "summary": "delete a Service",
       "nickname": "deleteNamespacedService",
@@ -11145,7 +11244,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.Status"
+        "responseModel": "unversioned.Status"
        }
       ],
       "produces": [
@@ -11159,7 +11258,7 @@
    },
    {
     "path": "/api/v1/watch/namespaces/{namespace}/services/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -11242,7 +11341,7 @@
    },
    {
     "path": "/api/v1/proxy/namespaces/{namespace}/services/{name}/{path:*}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -11269,7 +11368,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -11307,7 +11406,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -11345,7 +11444,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -11383,7 +11482,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -11421,7 +11520,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -11459,7 +11558,7 @@
        {
         "type": "string",
         "paramType": "path",
-        "name": "path:*",
+        "name": "path",
         "description": "path to the resource",
         "required": true,
         "allowMultiple": false
@@ -11476,7 +11575,7 @@
    },
    {
     "path": "/api/v1/proxy/namespaces/{namespace}/services/{name}",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "string",
@@ -11662,7 +11761,7 @@
    },
    {
     "path": "/api/v1/services",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "v1.ServiceList",
@@ -11766,7 +11865,7 @@
    },
    {
     "path": "/api/v1/watch/services",
-    "description": "API at /api/v1 version v1",
+    "description": "API at /api/v1",
     "operations": [
      {
       "type": "json.WatchEvent",
@@ -11830,6 +11929,25 @@
       ]
      }
     ]
+   },
+   {
+    "path": "/api/v1",
+    "description": "API at /api/v1",
+    "operations": [
+     {
+      "type": "void",
+      "method": "GET",
+      "summary": "get available resources",
+      "nickname": "getAPIResources",
+      "parameters": [],
+      "produces": [
+       "application/json"
+      ],
+      "consumes": [
+       "application/json"
+      ]
+     }
+    ]
    }
   ],
   "models": {
@@ -11842,11 +11960,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -11957,14 +12075,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -11976,9 +12094,9 @@
      }
     }
    },
-   "v1.ListMeta": {
-    "id": "v1.ListMeta",
-    "description": "ListMeta describes metadata that synthetic resources must have, including lists and various status objects.",
+   "unversioned.ListMeta": {
+    "id": "unversioned.ListMeta",
+    "description": "ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}.",
     "properties": {
      "selfLink": {
       "type": "string",
@@ -11996,11 +12114,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -12050,14 +12168,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -12078,11 +12196,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -12093,7 +12211,7 @@
       "items": {
        "$ref": "v1.EndpointSubset"
       },
-      "description": "The set of all endpoints is the union of all subsets. Sets of addresses and ports that comprise a service."
+      "description": "The set of all endpoints is the union of all subsets. Addresses are placed into subsets according to the IPs they share. A single address with multiple ports, some of which are ready and some of which are not (because they come from different containers) will result in the address being displayed in different subsets for the different ports. No address will appear in both Addresses and NotReadyAddresses in the same subset. Sets of addresses and ports that comprise a service."
      }
     }
    },
@@ -12106,7 +12224,14 @@
       "items": {
        "$ref": "v1.EndpointAddress"
       },
-      "description": "IP addresses which offer the related ports."
+      "description": "IP addresses which offer the related ports that are marked as ready. These endpoints should be considered safe for load balancers and clients to utilize."
+     },
+     "notReadyAddresses": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.EndpointAddress"
+      },
+      "description": "IP addresses which offer the related ports but are not currently marked as ready because they have not yet finished starting, have recently failed a readiness check, or have recently failed a liveness check."
      },
      "ports": {
       "type": "array",
@@ -12169,24 +12294,25 @@
      }
     }
    },
-   "api.Patch": {
-    "id": "api.Patch",
+   "unversioned.Patch": {
+    "id": "unversioned.Patch",
+    "description": "Patch is provided to give a concrete name and type to the Kubernetes PATCH request body.",
     "properties": {}
    },
-   "v1.Status": {
-    "id": "v1.Status",
+   "unversioned.Status": {
+    "id": "unversioned.Status",
     "description": "Status is a return value for calls that don't return other objects.",
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "status": {
@@ -12202,8 +12328,8 @@
       "description": "A machine-readable description of why this operation is in the \"Failure\" status. If this value is empty there is no information available. A Reason clarifies an HTTP status code but does not override it."
      },
      "details": {
-      "$ref": "v1.StatusDetails",
-      "description": "Extended data associated with the reason. Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type."
+      "$ref": "unversioned.StatusDetails",
+      "description": "Extended data associated with the reason.  Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type."
      },
      "code": {
       "type": "integer",
@@ -12212,8 +12338,8 @@
      }
     }
    },
-   "v1.StatusDetails": {
-    "id": "v1.StatusDetails",
+   "unversioned.StatusDetails": {
+    "id": "unversioned.StatusDetails",
     "description": "StatusDetails is a set of additional properties that MAY be set by the server to provide additional information about a response. The Reason field of a Status object defines what attributes will be set. Clients must ignore fields that do not match the defined type of each attribute, and should assume that any attribute may be empty, invalid, or under defined.",
     "properties": {
      "name": {
@@ -12227,7 +12353,7 @@
      "causes": {
       "type": "array",
       "items": {
-       "$ref": "v1.StatusCause"
+       "$ref": "unversioned.StatusCause"
       },
       "description": "The Causes array includes more details associated with the StatusReason failure. Not all StatusReasons may provide detailed causes."
      },
@@ -12238,8 +12364,8 @@
      }
     }
    },
-   "v1.StatusCause": {
-    "id": "v1.StatusCause",
+   "unversioned.StatusCause": {
+    "id": "unversioned.StatusCause",
     "description": "StatusCause provides more information about an api.Status failure, including cases when multiple errors are encountered.",
     "properties": {
      "reason": {
@@ -12248,11 +12374,11 @@
      },
      "message": {
       "type": "string",
-      "description": "A human-readable description of the cause of the error. This field may be presented as-is to a reader."
+      "description": "A human-readable description of the cause of the error.  This field may be presented as-is to a reader."
      },
      "field": {
       "type": "string",
-      "description": "The field of the resource that has caused this error, as named by its JSON serialization. May include dot and postfix notation for nested attributes. Arrays are zero-indexed. Fields may appear more than once in an array of causes due to fields having multiple errors.\n\nExamples:\n  \"name\" - the field \"name\" on the current resource\n  \"items[0].name\" - the field \"name\" on the first array entry in \"items\""
+      "description": "The field of the resource that has caused this error, as named by its JSON serialization. May include dot and postfix notation for nested attributes. Arrays are zero-indexed.  Fields may appear more than once in an array of causes due to fields having multiple errors. Optional.\n\nExamples:\n  \"name\" - the field \"name\" on the current resource\n  \"items[0].name\" - the field \"name\" on the first array entry in \"items\""
      }
     }
    },
@@ -12265,11 +12391,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "gracePeriodSeconds": {
       "type": "integer",
@@ -12287,14 +12413,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -12316,11 +12442,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -12380,14 +12506,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -12405,11 +12531,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -12476,14 +12602,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -12501,11 +12627,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -12557,14 +12683,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -12582,11 +12708,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -12650,9 +12776,13 @@
       },
       "description": "List of addresses reachable to the node. Queried from cloud provider, if available. More info: http://releases.k8s.io/HEAD/docs/admin/node.md#node-addresses"
      },
+     "daemonEndpoints": {
+      "$ref": "v1.NodeDaemonEndpoints",
+      "description": "Endpoints of daemons running on the Node."
+     },
      "nodeInfo": {
       "$ref": "v1.NodeSystemInfo",
-      "description": "NodeSystemInfo is a set of ids/uuids to uniquely identify the node. More info: http://releases.k8s.io/HEAD/docs/admin/node.md#node-info"
+      "description": "Set of ids/uuids to uniquely identify the node. More info: http://releases.k8s.io/HEAD/docs/admin/node.md#node-info"
      }
     }
    },
@@ -12708,6 +12838,30 @@
      }
     }
    },
+   "v1.NodeDaemonEndpoints": {
+    "id": "v1.NodeDaemonEndpoints",
+    "description": "NodeDaemonEndpoints lists ports opened by daemons running on the Node.",
+    "properties": {
+     "kubeletEndpoint": {
+      "$ref": "v1.DaemonEndpoint",
+      "description": "Endpoint on which Kubelet is listening."
+     }
+    }
+   },
+   "v1.DaemonEndpoint": {
+    "id": "v1.DaemonEndpoint",
+    "description": "DaemonEndpoint contains information about a single Daemon endpoint.",
+    "required": [
+     "Port"
+    ],
+    "properties": {
+     "Port": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Port number of the given endpoint."
+     }
+    }
+   },
    "v1.NodeSystemInfo": {
     "id": "v1.NodeSystemInfo",
     "description": "NodeSystemInfo is a set of ids/uuids to uniquely identify the node.",
@@ -12724,35 +12878,35 @@
     "properties": {
      "machineID": {
       "type": "string",
-      "description": "MachineID is the machine-id reported by the node."
+      "description": "Machine ID reported by the node."
      },
      "systemUUID": {
       "type": "string",
-      "description": "SystemUUID is the system-uuid reported by the node."
+      "description": "System UUID reported by the node."
      },
      "bootID": {
       "type": "string",
-      "description": "BootID is the boot-id reported by the node."
+      "description": "Boot ID reported by the node."
      },
      "kernelVersion": {
       "type": "string",
-      "description": "Kernel version reported by the node from 'uname -r' (e.g. 3.16.0-0.bpo.4-amd64)"
+      "description": "Kernel Version reported by the node from 'uname -r' (e.g. 3.16.0-0.bpo.4-amd64)."
      },
      "osImage": {
       "type": "string",
-      "description": "OS image used reported by the node from /etc/os-release (e.g. Debian GNU/Linux 7 (wheezy))"
+      "description": "OS Image reported by the node from /etc/os-release (e.g. Debian GNU/Linux 7 (wheezy))."
      },
      "containerRuntimeVersion": {
       "type": "string",
-      "description": "Container runtime version reported by the node through runtime remote API (e.g. docker://1.5.0)"
+      "description": "ContainerRuntime Version reported by the node through runtime remote API (e.g. docker://1.5.0)."
      },
      "kubeletVersion": {
       "type": "string",
-      "description": "Kubelet version reported by the node."
+      "description": "Kubelet Version reported by the node."
      },
      "kubeProxyVersion": {
       "type": "string",
-      "description": "Kube-proxy version reported by the node."
+      "description": "KubeProxy Version reported by the node."
      }
     }
    },
@@ -12765,14 +12919,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -12790,11 +12944,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -12879,14 +13033,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -12904,11 +13058,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -12942,7 +13096,7 @@
      },
      "hostPath": {
       "$ref": "v1.HostPathVolumeSource",
-      "description": "HostPath represents a directory on the host. Provisioned by a developer or tester. This is useful for development and testing only. On-host storage is not supported in any way. More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#hostpath"
+      "description": "HostPath represents a directory on the host. Provisioned by a developer or tester. This is useful for single-node development and testing only! On-host storage is not supported in any way and WILL NOT WORK in a multi-node cluster. More info: http://releases.k8s.io/HEAD/docs/user-guide/volumes.md#hostpath"
      },
      "glusterfs": {
       "$ref": "v1.GlusterfsVolumeSource",
@@ -12967,6 +13121,14 @@
      "cephfs": {
       "$ref": "v1.CephFSVolumeSource",
       "description": "CephFS represents a Ceph FS mount on the host that shares a pod's lifetime"
+     },
+     "fc": {
+      "$ref": "v1.FCVolumeSource",
+      "description": "FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod."
+     },
+     "flocker": {
+      "$ref": "v1.FlockerVolumeSource",
+      "description": "Flocker represents a Flocker volume attached to a kubelet's host machine and exposed to the pod for its usage. This depends on the Flocker control service being running"
      },
      "accessModes": {
       "type": "array",
@@ -13241,6 +13403,50 @@
      }
     }
    },
+   "v1.FCVolumeSource": {
+    "id": "v1.FCVolumeSource",
+    "description": "A Fibre Channel Disk can only be mounted as read/write once.",
+    "required": [
+     "targetWWNs",
+     "lun",
+     "fsType"
+    ],
+    "properties": {
+     "targetWWNs": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Required: FC target world wide names (WWNs)"
+     },
+     "lun": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Required: FC target lun number"
+     },
+     "fsType": {
+      "type": "string",
+      "description": "Required: Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\", \"ntfs\""
+     },
+     "readOnly": {
+      "type": "boolean",
+      "description": "Optional: Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts."
+     }
+    }
+   },
+   "v1.FlockerVolumeSource": {
+    "id": "v1.FlockerVolumeSource",
+    "description": "FlockerVolumeSource represents a Flocker volume mounted by the Flocker agent.",
+    "required": [
+     "datasetName"
+    ],
+    "properties": {
+     "datasetName": {
+      "type": "string",
+      "description": "Required: the volume name. This is going to be store on metadata -\u003e name on the payload for Flocker"
+     }
+    }
+   },
    "v1.PersistentVolumeStatus": {
     "id": "v1.PersistentVolumeStatus",
     "description": "PersistentVolumeStatus is the current status of a persistent volume.",
@@ -13268,14 +13474,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -13293,11 +13499,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -13384,6 +13590,10 @@
       "type": "boolean",
       "description": "Use the host's ipc namespace. Optional: Default to false."
      },
+     "securityContext": {
+      "$ref": "v1.PodSecurityContext",
+      "description": "SecurityContext holds pod-level security attributes and common container settings"
+     },
      "imagePullSecrets": {
       "type": "array",
       "items": {
@@ -13456,9 +13666,17 @@
       "$ref": "v1.CephFSVolumeSource",
       "description": "CephFS represents a Ceph FS mount on the host that shares a pod's lifetime"
      },
+     "flocker": {
+      "$ref": "v1.FlockerVolumeSource",
+      "description": "Flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running"
+     },
      "downwardAPI": {
       "$ref": "v1.DownwardAPIVolumeSource",
       "description": "DownwardAPI represents downward API about the pod that should populate this volume"
+     },
+     "fc": {
+      "$ref": "v1.FCVolumeSource",
+      "description": "FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod."
      },
      "metadata": {
       "$ref": "v1.MetadataVolumeSource"
@@ -13963,6 +14181,11 @@
      }
     }
    },
+   "v1.PodSecurityContext": {
+    "id": "v1.PodSecurityContext",
+    "description": "PodSecurityContext holds pod-level security attributes and common container settings.",
+    "properties": {}
+   },
    "v1.PodStatus": {
     "id": "v1.PodStatus",
     "description": "PodStatus represents information about the status of a pod. Status may trail the actual state of a system.",
@@ -14022,6 +14245,22 @@
      "status": {
       "type": "string",
       "description": "Status is the status of the condition. Can be True, False, Unknown. More info: http://releases.k8s.io/HEAD/docs/user-guide/pod-states.md#pod-conditions"
+     },
+     "lastProbeTime": {
+      "type": "string",
+      "description": "Last time we probed the condition."
+     },
+     "lastTransitionTime": {
+      "type": "string",
+      "description": "Last time the condition transitioned from one status to another."
+     },
+     "reason": {
+      "type": "string",
+      "description": "Unique, one-word, CamelCase reason for the condition's last transition."
+     },
+     "message": {
+      "type": "string",
+      "description": "Human-readable message indicating details about last transition."
      }
     }
    },
@@ -14161,14 +14400,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -14186,11 +14425,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -14225,14 +14464,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -14250,11 +14489,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -14317,14 +14556,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -14342,11 +14581,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -14395,14 +14634,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -14420,11 +14659,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -14448,14 +14687,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta"
+      "$ref": "unversioned.ListMeta"
      },
      "items": {
       "type": "array",
@@ -14479,11 +14718,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta"
@@ -14644,14 +14883,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -14669,11 +14908,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -14704,14 +14943,14 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ListMeta",
+      "$ref": "unversioned.ListMeta",
       "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "items": {
@@ -14729,11 +14968,11 @@
     "properties": {
      "kind": {
       "type": "string",
-      "description": "A string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
      },
      "apiVersion": {
       "type": "string",
-      "description": "APIVersion defines the version of the schema of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
@@ -14784,7 +15023,14 @@
       "items": {
        "type": "string"
       },
-      "description": "ExternalIPs are used by external load balancers, or can be set by users to handle external traffic that arrives at a node. Externally visible IPs (e.g. load balancers) that should be proxied to this service."
+      "description": "externalIPs is a list of IP addresses for which nodes in the cluster will also accept traffic for this service.  These IPs are not managed by Kubernetes.  The user is responsible for ensuring that traffic arrives at a node with this IP.  A common example is external load-balancers that are not part of the Kubernetes system.  A previous form of this functionality exists as the deprecatedPublicIPs field.  When using this field, callers should also clear the deprecatedPublicIPs field."
+     },
+     "deprecatedPublicIPs": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "deprecatedPublicIPs is deprecated and replaced by the externalIPs field with almost the exact same semantics.  This field is retained in the v1 API for compatibility until at least 8/20/2016.  It will be removed from any new API revisions.  If both deprecatedPublicIPs *and* externalIPs are set, deprecatedPublicIPs is used."
      },
      "sessionAffinity": {
       "type": "string",

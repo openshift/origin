@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
@@ -1243,7 +1244,7 @@ func TestNewAppBuildConfigEnvVars(t *testing.T) {
 func TestEnsureValidUniqueName(t *testing.T) {
 	chars := []byte("abcdefghijk")
 	longBytes := []byte{}
-	for i := 0; i < (util.DNS1123SubdomainMaxLength + 20); i++ {
+	for i := 0; i < (kvalidation.DNS1123SubdomainMaxLength + 20); i++ {
 		longBytes = append(longBytes, chars[i%len(chars)])
 	}
 	longName := string(longBytes)
@@ -1271,9 +1272,9 @@ func TestEnsureValidUniqueName(t *testing.T) {
 		{
 			name:  "long name",
 			input: []string{longName, longName, longName},
-			expected: []string{longName[:util.DNS1123SubdomainMaxLength],
-				namer.GetName(longName[:util.DNS1123SubdomainMaxLength], "1", util.DNS1123SubdomainMaxLength),
-				namer.GetName(longName[:util.DNS1123SubdomainMaxLength], "2", util.DNS1123SubdomainMaxLength),
+			expected: []string{longName[:kvalidation.DNS1123SubdomainMaxLength],
+				namer.GetName(longName[:kvalidation.DNS1123SubdomainMaxLength], "1", kvalidation.DNS1123SubdomainMaxLength),
+				namer.GetName(longName[:kvalidation.DNS1123SubdomainMaxLength], "2", kvalidation.DNS1123SubdomainMaxLength),
 			},
 		},
 	}

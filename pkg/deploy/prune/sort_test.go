@@ -6,13 +6,13 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // TestSort verifies that builds are sorted by most recently created
 func TestSort(t *testing.T) {
-	present := util.Now()
-	past := util.NewTime(present.Time.Add(-1 * time.Minute))
+	present := unversioned.Now()
+	past := unversioned.NewTime(present.Time.Add(-1 * time.Minute))
 	controllers := []*kapi.ReplicationController{
 		{
 			ObjectMeta: kapi.ObjectMeta{

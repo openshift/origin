@@ -12,8 +12,8 @@ angular.module('openshiftConsole')
     $scope.buildConfigName = $routeParams.buildconfig;
     $scope.builds = {};
     $scope.alerts = {};
-    $scope.renderOptions = $scope.renderOptions || {};    
-    $scope.renderOptions.hideFilterWidget = true;    
+    $scope.renderOptions = $scope.renderOptions || {};
+    $scope.renderOptions.hideFilterWidget = true;
     $scope.breadcrumbs = [
       {
         title: "Builds",
@@ -31,6 +31,12 @@ angular.module('openshiftConsole')
     $scope.breadcrumbs.push({
       title: $routeParams.build
     });
+
+    // Check for a ?tab=<name> query param to allow linking directly to a tab.
+    if ($routeParams.tab) {
+      $scope.selectedTab = {};
+      $scope.selectedTab[$routeParams.tab] = true;
+    }
 
     var watches = [];
 
@@ -55,7 +61,7 @@ angular.module('openshiftConsole')
               $scope.alerts["deleted"] = {
                 type: "warning",
                 message: "This build has been deleted."
-              }; 
+              };
             }
             $scope.build = build;
           }));
@@ -101,8 +107,46 @@ angular.module('openshiftConsole')
           if (!$filter('isIncompleteBuild')(build)){
             delete $scope.buildConfigBuildsInProgress[buildConfigName][buildName];
           }
-        }        
+        }
       }));
+
+
+      (function initLogs() {
+        angular.extend($scope, {
+          logs: [],
+          logsLoading: true,
+          canShowDownload: false,
+          canInitAgain: false,
+          initLogs: initLogs
+        });
+
+        var streamer = DataService.createStream('builds/log',$routeParams.build, $scope);
+        streamer.onMessage(function(msg) {
+          $scope.$apply(function() {
+            $scope.logs.push({text: msg});
+            $scope.canShowDownload = true;
+          });
+        });
+        streamer.onClose(function() {
+          $scope.$apply(function() {
+            $scope.logsLoading = false;
+          });
+        });
+        streamer.onError(function(evt) {
+          Logger.log('WEBSOCKET ERROR', evt);
+          $scope.$apply(function() {
+            $scope.canInitAgain = true;
+          });
+        });
+
+        streamer.start();
+        $scope.$on('$destroy', function() {
+          streamer.stop();
+        });
+
+      })();
+
+
     });
 
     $scope.startBuild = function(buildConfigName) {

@@ -24,8 +24,8 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/util"
 )
 
 // rkt pod state.
@@ -143,7 +143,7 @@ func makeContainerStatus(container *kubecontainer.Container, podInfo *podInfo) a
 	var status api.ContainerStatus
 	status.Name = container.Name
 	status.Image = container.Image
-	status.ContainerID = string(container.ID)
+	status.ContainerID = container.ID.String()
 	// TODO(yifan): Add image ID info.
 
 	switch podInfo.state {
@@ -151,7 +151,7 @@ func makeContainerStatus(container *kubecontainer.Container, podInfo *podInfo) a
 		// TODO(yifan): Get StartedAt.
 		status.State = api.ContainerState{
 			Running: &api.ContainerStateRunning{
-				StartedAt: util.Unix(container.Created, 0),
+				StartedAt: unversioned.Unix(container.Created, 0),
 			},
 		}
 	case Embryo, Preparing, Prepared:
@@ -166,7 +166,7 @@ func makeContainerStatus(container *kubecontainer.Container, podInfo *podInfo) a
 		status.State = api.ContainerState{
 			Terminated: &api.ContainerStateTerminated{
 				ExitCode:  exitCode,
-				StartedAt: util.Unix(container.Created, 0),
+				StartedAt: unversioned.Unix(container.Created, 0),
 			},
 		}
 	default:

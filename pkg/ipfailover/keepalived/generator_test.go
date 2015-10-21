@@ -101,7 +101,7 @@ func TestGenerateDeploymentConfig(t *testing.T) {
 		}
 
 		podSpec := controller.Template.Spec
-		if !podSpec.HostNetwork {
+		if !podSpec.SecurityContext.HostNetwork {
 			t.Errorf("Test case for %s got HostNetwork disabled where HostNetwork was expected to be enabled", tc.Name)
 		}
 

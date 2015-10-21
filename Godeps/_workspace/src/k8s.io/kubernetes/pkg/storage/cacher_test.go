@@ -27,6 +27,8 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	apitesting "k8s.io/kubernetes/pkg/api/testing"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -37,6 +39,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
+
+	"golang.org/x/net/context"
 )
 
 func newTestCacher(client tools.EtcdClient) *storage.Cacher {
@@ -55,14 +59,9 @@ func newTestCacher(client tools.EtcdClient) *storage.Cacher {
 }
 
 func makeTestPod(name string) *api.Pod {
-	gracePeriod := int64(30)
 	return &api.Pod{
 		ObjectMeta: api.ObjectMeta{Namespace: "ns", Name: name},
-		Spec: api.PodSpec{
-			TerminationGracePeriodSeconds: &gracePeriod,
-			DNSPolicy:                     api.DNSClusterFirst,
-			RestartPolicy:                 api.RestartPolicyAlways,
-		},
+		Spec:       apitesting.DeepEqualSafePodSpec(),
 	}
 }
 
@@ -74,7 +73,7 @@ func waitForUpToDateCache(cacher *storage.Cacher, resourceVersion uint64) error 
 		}
 		return result == resourceVersion, nil
 	}
-	return wait.Poll(10*time.Millisecond, 100*time.Millisecond, ready)
+	return wait.Poll(10*time.Millisecond, util.ForeverTestTimeout, ready)
 }
 
 func TestListFromMemory(t *testing.T) {
@@ -171,7 +170,7 @@ func TestListFromMemory(t *testing.T) {
 	for _, item := range result.Items {
 		// unset fields that are set by the infrastructure
 		item.ObjectMeta.ResourceVersion = ""
-		item.ObjectMeta.CreationTimestamp = util.Time{}
+		item.ObjectMeta.CreationTimestamp = unversioned.Time{}
 
 		var expected *api.Pod
 		switch item.ObjectMeta.Name {
@@ -253,7 +252,7 @@ func TestWatch(t *testing.T) {
 	}
 
 	// Set up Watch for object "podFoo".
-	watcher, err := cacher.Watch("pods/ns/foo", 2, storage.Everything)
+	watcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", 2, storage.Everything)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -268,7 +267,7 @@ func TestWatch(t *testing.T) {
 			// unset fields that are set by the infrastructure
 			obj := event.Object.(*api.Pod)
 			obj.ObjectMeta.ResourceVersion = ""
-			obj.ObjectMeta.CreationTimestamp = util.Time{}
+			obj.ObjectMeta.CreationTimestamp = unversioned.Time{}
 			if e, a := test.object, obj; !reflect.DeepEqual(e, a) {
 				t.Errorf("expected: %#v, got: %#v", e, a)
 			}
@@ -276,13 +275,13 @@ func TestWatch(t *testing.T) {
 	}
 
 	// Check whether we get too-old error.
-	_, err = cacher.Watch("pods/ns/foo", 1, storage.Everything)
+	_, err = cacher.Watch(context.TODO(), "pods/ns/foo", 1, storage.Everything)
 	if err == nil {
 		t.Errorf("exepcted 'error too old' error")
 	}
 
 	// Now test watch with initial state.
-	initialWatcher, err := cacher.Watch("pods/ns/foo", 2, storage.Everything)
+	initialWatcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", 2, storage.Everything)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -295,7 +294,7 @@ func TestWatch(t *testing.T) {
 			// unset fields that are set by the infrastructure
 			obj := event.Object.(*api.Pod)
 			obj.ObjectMeta.ResourceVersion = ""
-			obj.ObjectMeta.CreationTimestamp = util.Time{}
+			obj.ObjectMeta.CreationTimestamp = unversioned.Time{}
 			if e, a := test.object, obj; !reflect.DeepEqual(e, a) {
 				t.Errorf("expected: %#v, got: %#v", e, a)
 			}
@@ -303,7 +302,7 @@ func TestWatch(t *testing.T) {
 	}
 
 	// Now test watch from "now".
-	nowWatcher, err := cacher.Watch("pods/ns/foo", 0, storage.Everything)
+	nowWatcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", 0, storage.Everything)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -312,7 +311,7 @@ func TestWatch(t *testing.T) {
 		if obj := event.Object.(*api.Pod); event.Type != watch.Added || obj.ResourceVersion != "4" {
 			t.Errorf("unexpected event: %v", event)
 		}
-	case <-time.After(time.Millisecond * 100):
+	case <-time.After(util.ForeverTestTimeout):
 		t.Errorf("timed out waiting for an event")
 	}
 	// Emit a new event and check if it is observed by the watcher.
@@ -453,7 +452,7 @@ func TestFiltering(t *testing.T) {
 		}
 		return selector.Matches(labels.Set(metadata.Labels()))
 	}
-	watcher, err := cacher.Watch("pods/ns/foo", 1, filter)
+	watcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", 1, filter)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -468,7 +467,7 @@ func TestFiltering(t *testing.T) {
 			// unset fields that are set by the infrastructure
 			obj := event.Object.(*api.Pod)
 			obj.ObjectMeta.ResourceVersion = ""
-			obj.ObjectMeta.CreationTimestamp = util.Time{}
+			obj.ObjectMeta.CreationTimestamp = unversioned.Time{}
 			if e, a := test.object, obj; !reflect.DeepEqual(e, a) {
 				t.Errorf("expected: %#v, got: %#v", e, a)
 			}
@@ -488,7 +487,7 @@ func TestStorageError(t *testing.T) {
 	podFoo := makeTestPod("foo")
 
 	// Set up Watch for object "podFoo".
-	watcher, err := cacher.Watch("pods/ns/foo", 1, storage.Everything)
+	watcher, err := cacher.Watch(context.TODO(), "pods/ns/foo", 1, storage.Everything)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

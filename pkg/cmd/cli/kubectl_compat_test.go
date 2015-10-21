@@ -16,7 +16,9 @@ import (
 // MissingCommands is the list of commands we're already missing.
 // NEVER ADD TO THIS LIST
 // TODO kill this list
-var MissingCommands = sets.NewString("namespace", "rolling-update", "cluster-info", "api-versions")
+var MissingCommands = sets.NewString("namespace", "rolling-update", "cluster-info", "api-versions",
+	"apply", // we don't want to support this implementation
+)
 
 // WhitelistedCommands is the list of commands we're never going to have in oc
 // defend each one with a comment

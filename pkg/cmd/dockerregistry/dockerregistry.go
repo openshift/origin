@@ -20,6 +20,7 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/s3"
 	"github.com/docker/distribution/version"
 	gorillahandlers "github.com/gorilla/handlers"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/dockerregistry/server"
 )
 
@@ -101,9 +102,7 @@ func Execute(configFile io.Reader) {
 			context.GetLogger(app).Fatalln(err)
 		}
 	} else {
-		tlsConf := &tls.Config{
-			ClientAuth: tls.NoClientCert,
-		}
+		tlsConf := crypto.SecureTLSConfig(&tls.Config{ClientAuth: tls.NoClientCert})
 
 		if len(config.HTTP.TLS.ClientCAs) != 0 {
 			pool := x509.NewCertPool()

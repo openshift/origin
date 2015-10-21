@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package nodecontroller
+package node
 
 import (
 	"reflect"
@@ -175,10 +175,10 @@ func TestTryOrdering(t *testing.T) {
 		order = append(order, value.Value)
 		return true, 0
 	})
-	if !reflect.DeepEqual(order, []string{"first", "third", "second"}) {
+	if !reflect.DeepEqual(order, []string{"first", "third"}) {
 		t.Fatalf("order was wrong: %v", order)
 	}
-	if count != 4 {
+	if count != 3 {
 		t.Fatalf("unexpected iterations: %d", count)
 	}
 }

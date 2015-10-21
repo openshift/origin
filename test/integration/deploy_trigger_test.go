@@ -145,17 +145,19 @@ func TestTriggers_imageChange(t *testing.T) {
 	}
 	defer imageWatch.Stop()
 
+	updatedImage := "sha256:00000000000000000000000000000001"
+	updatedPullSpec := fmt.Sprintf("registry:8080/openshift/test-image@%s", updatedImage)
 	// Make a function which can create a new tag event for the image stream and
 	// then wait for the stream status to be asynchronously updated.
-	createTagEvent := func(image string) {
+	createTagEvent := func() {
 		mapping := &imageapi.ImageStreamMapping{
 			ObjectMeta: kapi.ObjectMeta{Name: imageStream.Name},
 			Tag:        "latest",
 			Image: imageapi.Image{
 				ObjectMeta: kapi.ObjectMeta{
-					Name: image,
+					Name: updatedImage,
 				},
-				DockerImageReference: fmt.Sprintf("registry:8080/openshift/test-image@%s", image),
+				DockerImageReference: updatedPullSpec,
 			},
 		}
 		if err := openshiftProjectAdminClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
@@ -182,7 +184,7 @@ func TestTriggers_imageChange(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
 
-	createTagEvent("sha256:00000000000000000000000000000001")
+	createTagEvent()
 
 	var newConfig *deployapi.DeploymentConfig
 	t.Log("Waiting for a new deployment config in response to ImageStream update")
@@ -192,13 +194,17 @@ waitForNewConfig:
 		case event := <-configWatch.ResultChan():
 			if event.Type == watchapi.Modified {
 				newConfig = event.Object.(*deployapi.DeploymentConfig)
-				break waitForNewConfig
+				// Multiple updates to the config can be expected (e.g. status
+				// updates), so wait for a significant update (e.g. version).
+				if newConfig.LatestVersion > 0 {
+					if e, a := updatedPullSpec, newConfig.Template.ControllerTemplate.Template.Spec.Containers[0].Image; e != a {
+						t.Fatalf("unexpected image for pod template container 0; expected %q, got %q", e, a)
+					}
+					break waitForNewConfig
+				}
+				t.Log("Still waiting for a new deployment config in response to ImageStream update")
 			}
 		}
-	}
-
-	if e, a := 1, newConfig.LatestVersion; e != a {
-		t.Fatalf("expected config version %d, got %d", e, a)
 	}
 }
 
@@ -310,7 +316,7 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	osMux := http.NewServeMux()
 	openshift.server = httptest.NewServer(osMux)
 
-	kubeClient := kclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: klatest.Version})
+	kubeClient := kclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: klatest.DefaultVersionForLegacyGroup()})
 	osClient := osclient.NewOrDie(&kclient.Config{Host: openshift.server.URL, Version: latest.Version})
 
 	openshift.Client = osClient
@@ -323,13 +329,16 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 
 	handlerContainer := master.NewHandlerContainer(osMux)
 
+	storageDestinations := master.NewStorageDestinations()
+	storageDestinations.AddAPIGroup("", etcdHelper)
+
 	_ = master.New(&master.Config{
-		DatabaseStorage:  etcdHelper,
-		KubeletClient:    kubeletClient,
-		APIPrefix:        "/api",
-		AdmissionControl: admit.NewAlwaysAdmit(),
-		RestfulContainer: handlerContainer,
-		DisableV1:        false,
+		StorageDestinations: storageDestinations,
+		KubeletClient:       kubeletClient,
+		APIPrefix:           "/api",
+		AdmissionControl:    admit.NewAlwaysAdmit(),
+		RestfulContainer:    handlerContainer,
+		DisableV1:           false,
 	})
 
 	interfaces, _ := latest.InterfacesFor(latest.Version)

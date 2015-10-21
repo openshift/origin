@@ -26,18 +26,18 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/emicklei/go-restful"
-	"github.com/stretchr/testify/assert"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	apiutil "k8s.io/kubernetes/pkg/api/util"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apis/experimental"
-	explatest "k8s.io/kubernetes/pkg/apis/experimental/latest"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apiserver"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
@@ -45,10 +45,15 @@ import (
 	"k8s.io/kubernetes/pkg/registry/endpoint"
 	"k8s.io/kubernetes/pkg/registry/namespace"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
+	thirdpartyresourcedatastorage "k8s.io/kubernetes/pkg/registry/thirdpartyresourcedata/etcd"
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
 	"k8s.io/kubernetes/pkg/util"
+
+	"github.com/coreos/go-etcd/etcd"
+	"github.com/emicklei/go-restful"
+	"github.com/stretchr/testify/assert"
 )
 
 // setUp is a convience function for setting up for (most) tests.
@@ -57,9 +62,14 @@ func setUp(t *testing.T) (Master, Config, *assert.Assertions) {
 	config := Config{}
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Machines = []string{"http://machine1:4001", "http://machine2", "http://machine3:4003"}
-	config.DatabaseStorage = etcdstorage.NewEtcdStorage(fakeClient, latest.Codec, etcdtest.PathPrefix())
-	config.ExpDatabaseStorage = etcdstorage.NewEtcdStorage(fakeClient, explatest.Codec, etcdtest.PathPrefix())
-
+	storageVersions := make(map[string]string)
+	storageDestinations := NewStorageDestinations()
+	storageDestinations.AddAPIGroup("", etcdstorage.NewEtcdStorage(fakeClient, testapi.Default.Codec(), etcdtest.PathPrefix()))
+	storageDestinations.AddAPIGroup("extensions", etcdstorage.NewEtcdStorage(fakeClient, testapi.Extensions.Codec(), etcdtest.PathPrefix()))
+	config.StorageDestinations = storageDestinations
+	storageVersions[""] = testapi.Default.Version()
+	storageVersions["extensions"] = testapi.Extensions.GroupAndVersion()
+	config.StorageVersions = storageVersions
 	master.nodeRegistry = registrytest.NewNodeRegistry([]string{"node1", "node2"}, api.NodeResources{})
 
 	return master, config, assert.New(t)
@@ -68,8 +78,6 @@ func setUp(t *testing.T) (Master, Config, *assert.Assertions) {
 // TestNew verifies that the New function returns a Master
 // using the configuration properly.
 func TestNew(t *testing.T) {
-	os.Setenv("ETCD_PREFIX", "thirdparty")
-
 	_, config, assert := setUp(t)
 
 	config.KubeletClient = client.FakeKubeletClient{}
@@ -87,7 +95,7 @@ func TestNew(t *testing.T) {
 	assert.Equal(master.enableSwaggerSupport, config.EnableSwaggerSupport)
 	assert.Equal(master.enableProfiling, config.EnableProfiling)
 	assert.Equal(master.apiPrefix, config.APIPrefix)
-	assert.Equal(master.expAPIPrefix, config.ExpAPIPrefix)
+	assert.Equal(master.apiGroupPrefix, config.APIGroupPrefix)
 	assert.Equal(master.corsAllowedOriginList, config.CorsAllowedOriginList)
 	assert.Equal(master.authenticator, config.Authenticator)
 	assert.Equal(master.authorizer, config.Authorizer)
@@ -118,12 +126,12 @@ func TestNewEtcdStorage(t *testing.T) {
 	assert := assert.New(t)
 	fakeClient := tools.NewFakeEtcdClient(t)
 	// Pass case
-	_, err := NewEtcdStorage(fakeClient, latest.InterfacesFor, latest.Version, etcdtest.PathPrefix())
+	_, err := NewEtcdStorage(fakeClient, latest.GroupOrDie("").InterfacesFor, testapi.Default.Version(), etcdtest.PathPrefix())
 	assert.NoError(err, "Unable to create etcdstorage: %s", err)
 
 	// Fail case
 	errorFunc := func(apiVersion string) (*meta.VersionInterfaces, error) { return nil, errors.New("ERROR") }
-	_, err = NewEtcdStorage(fakeClient, errorFunc, latest.Version, etcdtest.PathPrefix())
+	_, err = NewEtcdStorage(fakeClient, errorFunc, testapi.Default.Version(), etcdtest.PathPrefix())
 	assert.Error(err, "NewEtcdStorage should have failed")
 
 }
@@ -313,16 +321,16 @@ func TestDefaultAPIGroupVersion(t *testing.T) {
 }
 
 // TestExpapi verifies that the unexported exapi creates
-// the an experimental api APIGroupVersion.
+// the an experimental unversioned.APIGroupVersion.
 func TestExpapi(t *testing.T) {
 	master, config, assert := setUp(t)
 
 	expAPIGroup := master.experimental(&config)
-	assert.Equal(expAPIGroup.Root, master.expAPIPrefix)
-	assert.Equal(expAPIGroup.Mapper, explatest.RESTMapper)
-	assert.Equal(expAPIGroup.Codec, explatest.Codec)
-	assert.Equal(expAPIGroup.Linker, explatest.SelfLinker)
-	assert.Equal(expAPIGroup.Version, explatest.Version)
+	assert.Equal(expAPIGroup.Root, master.apiGroupPrefix)
+	assert.Equal(expAPIGroup.Mapper, latest.GroupOrDie("extensions").RESTMapper)
+	assert.Equal(expAPIGroup.Codec, latest.GroupOrDie("extensions").Codec)
+	assert.Equal(expAPIGroup.Linker, latest.GroupOrDie("extensions").SelfLinker)
+	assert.Equal(expAPIGroup.Version, latest.GroupOrDie("extensions").GroupVersion)
 }
 
 // TestGetNodeAddresses verifies that proper results are returned
@@ -356,31 +364,85 @@ func TestGetNodeAddresses(t *testing.T) {
 	assert.Equal([]string{"127.0.0.2", "127.0.0.2"}, addrs)
 }
 
+func TestDiscoveryAtAPIS(t *testing.T) {
+	master, config, assert := setUp(t)
+	master.exp = true
+	// ================= preparation for master.init() ======================
+	portRange := util.PortRange{Base: 10, Size: 10}
+	master.serviceNodePortRange = portRange
+
+	_, ipnet, err := net.ParseCIDR("192.168.1.1/24")
+	if !assert.NoError(err) {
+		t.Errorf("unexpected error: %v", err)
+	}
+	master.serviceClusterIPRange = ipnet
+
+	mh := apiserver.MuxHelper{Mux: http.NewServeMux()}
+	master.muxHelper = &mh
+	master.rootWebService = new(restful.WebService)
+
+	master.handlerContainer = restful.NewContainer()
+
+	master.mux = http.NewServeMux()
+	master.requestContextMapper = api.NewRequestContextMapper()
+	// ======================= end of preparation ===========================
+
+	master.init(&config)
+	server := httptest.NewServer(master.handlerContainer.ServeMux)
+	resp, err := http.Get(server.URL + "/apis")
+	if !assert.NoError(err) {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	assert.Equal(http.StatusOK, resp.StatusCode)
+
+	groupList := unversioned.APIGroupList{}
+	assert.NoError(decodeResponse(resp, &groupList))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectGroupName := "extensions"
+	expectVersions := []unversioned.GroupVersion{
+		{
+			GroupVersion: testapi.Extensions.GroupAndVersion(),
+			Version:      testapi.Extensions.Version(),
+		},
+	}
+	expectPreferredVersion := unversioned.GroupVersion{
+		GroupVersion: config.StorageVersions["extensions"],
+		Version:      apiutil.GetVersion(config.StorageVersions["extensions"]),
+	}
+	assert.Equal(expectGroupName, groupList.Groups[0].Name)
+	assert.Equal(expectVersions, groupList.Groups[0].Versions)
+	assert.Equal(expectPreferredVersion, groupList.Groups[0].PreferredVersion)
+}
+
 var versionsToTest = []string{"v1", "v3"}
 
 type Foo struct {
-	api.TypeMeta   `json:",inline"`
-	api.ObjectMeta `json:"metadata,omitempty" description:"standard object metadata"`
+	unversioned.TypeMeta `json:",inline"`
+	api.ObjectMeta       `json:"metadata,omitempty" description:"standard object metadata"`
 
 	SomeField  string `json:"someField"`
 	OtherField int    `json:"otherField"`
 }
 
 type FooList struct {
-	api.TypeMeta `json:",inline"`
-	api.ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://docs.k8s.io/api-conventions.md#metadata"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty" description:"standard list metadata; see http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"`
 
-	items []Foo `json:"items"`
+	Items []Foo `json:"items"`
 }
 
-func initThirdParty(t *testing.T, version string) (*tools.FakeEtcdClient, *httptest.Server, *assert.Assertions) {
+func initThirdParty(t *testing.T, version string) (*Master, *tools.FakeEtcdClient, *httptest.Server, *assert.Assertions) {
 	master, _, assert := setUp(t)
-
-	api := &experimental.ThirdPartyResource{
+	master.thirdPartyResources = map[string]*thirdpartyresourcedatastorage.REST{}
+	api := &extensions.ThirdPartyResource{
 		ObjectMeta: api.ObjectMeta{
 			Name: "foo.company.com",
 		},
-		Versions: []experimental.APIVersion{
+		Versions: []extensions.APIVersion{
 			{
 				APIGroup: "group",
 				Name:     version,
@@ -391,14 +453,14 @@ func initThirdParty(t *testing.T, version string) (*tools.FakeEtcdClient, *httpt
 
 	fakeClient := tools.NewFakeEtcdClient(t)
 	fakeClient.Machines = []string{"http://machine1:4001", "http://machine2", "http://machine3:4003"}
-	master.thirdPartyStorage = etcdstorage.NewEtcdStorage(fakeClient, explatest.Codec, etcdtest.PathPrefix())
+	master.thirdPartyStorage = etcdstorage.NewEtcdStorage(fakeClient, testapi.Extensions.Codec(), etcdtest.PathPrefix())
 
-	if !assert.NoError(master.InstallThirdPartyAPI(api)) {
+	if !assert.NoError(master.InstallThirdPartyResource(api)) {
 		t.FailNow()
 	}
 
 	server := httptest.NewServer(master.handlerContainer.ServeMux)
-	return fakeClient, server, assert
+	return &master, fakeClient, server, assert
 }
 
 func TestInstallThirdPartyAPIList(t *testing.T) {
@@ -408,27 +470,90 @@ func TestInstallThirdPartyAPIList(t *testing.T) {
 }
 
 func testInstallThirdPartyAPIListVersion(t *testing.T, version string) {
-	fakeClient, server, assert := initThirdParty(t, version)
-	defer server.Close()
-
-	fakeClient.ExpectNotFoundGet(etcdtest.PathPrefix() + "/ThirdPartyResourceData/company.com/foos/default")
-
-	resp, err := http.Get(server.URL + "/thirdparty/company.com/" + version + "/namespaces/default/foos")
-	if !assert.NoError(err) {
-		return
+	tests := []struct {
+		items []Foo
+	}{
+		{},
+		{
+			items: []Foo{},
+		},
+		{
+			items: []Foo{
+				{
+					ObjectMeta: api.ObjectMeta{
+						Name: "test",
+					},
+					TypeMeta: unversioned.TypeMeta{
+						Kind:       "Foo",
+						APIVersion: version,
+					},
+					SomeField:  "test field",
+					OtherField: 10,
+				},
+				{
+					ObjectMeta: api.ObjectMeta{
+						Name: "bar",
+					},
+					TypeMeta: unversioned.TypeMeta{
+						Kind:       "Foo",
+						APIVersion: version,
+					},
+					SomeField:  "test field another",
+					OtherField: 20,
+				},
+			},
+		},
 	}
+	for _, test := range tests {
+		_, fakeClient, server, assert := initThirdParty(t, version)
+		defer server.Close()
 
-	defer resp.Body.Close()
+		if test.items == nil {
+			fakeClient.ExpectNotFoundGet(etcdtest.PathPrefix() + "/ThirdPartyResourceData/company.com/foos/default")
+		} else {
+			setupEtcdList(fakeClient, "/ThirdPartyResourceData/company.com/foos/default", test.items)
+		}
 
-	assert.Equal(http.StatusOK, resp.StatusCode)
+		resp, err := http.Get(server.URL + "/apis/company.com/" + version + "/namespaces/default/foos")
+		if !assert.NoError(err) {
+			return
+		}
+		defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
-	assert.NoError(err)
+		assert.Equal(http.StatusOK, resp.StatusCode)
 
-	list := FooList{}
-	err = json.Unmarshal(data, &list)
-	assert.NoError(err)
+		data, err := ioutil.ReadAll(resp.Body)
+		assert.NoError(err)
 
+		list := FooList{}
+		if err = json.Unmarshal(data, &list); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		if test.items == nil {
+			if len(list.Items) != 0 {
+				t.Errorf("expected no items, saw: %v", list.Items)
+			}
+			continue
+		}
+
+		if len(list.Items) != len(test.items) {
+			t.Errorf("unexpected length: %d vs %d", len(list.Items), len(test.items))
+			continue
+		}
+		for ix := range list.Items {
+			// Copy things that are set dynamically on the server
+			expectedObj := test.items[ix]
+			expectedObj.SelfLink = list.Items[ix].SelfLink
+			expectedObj.Namespace = list.Items[ix].Namespace
+			expectedObj.UID = list.Items[ix].UID
+			expectedObj.CreationTimestamp = list.Items[ix].CreationTimestamp
+
+			if !reflect.DeepEqual(list.Items[ix], expectedObj) {
+				t.Errorf("expected:\n%#v\nsaw:\n%#v\n", expectedObj, list.Items[ix])
+			}
+		}
+	}
 }
 
 func encodeToThirdParty(name string, obj interface{}) ([]byte, error) {
@@ -436,11 +561,11 @@ func encodeToThirdParty(name string, obj interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	thirdPartyData := experimental.ThirdPartyResourceData{
+	thirdPartyData := extensions.ThirdPartyResourceData{
 		ObjectMeta: api.ObjectMeta{Name: name},
 		Data:       serial,
 	}
-	return latest.Codec.Encode(&thirdPartyData)
+	return testapi.Extensions.Codec().Encode(&thirdPartyData)
 }
 
 func storeToEtcd(fakeClient *tools.FakeEtcdClient, path, name string, obj interface{}) error {
@@ -450,6 +575,23 @@ func storeToEtcd(fakeClient *tools.FakeEtcdClient, path, name string, obj interf
 	}
 	_, err = fakeClient.Set(etcdtest.PathPrefix()+path, string(data), 0)
 	return err
+}
+
+func setupEtcdList(fakeClient *tools.FakeEtcdClient, path string, list []Foo) error {
+	resp := tools.EtcdResponseWithError{
+		R: &etcd.Response{
+			Node: &etcd.Node{},
+		},
+	}
+	for _, obj := range list {
+		data, err := encodeToThirdParty(obj.Name, obj)
+		if err != nil {
+			return err
+		}
+		resp.R.Node.Nodes = append(resp.R.Node.Nodes, &etcd.Node{Value: string(data)})
+	}
+	fakeClient.Data[etcdtest.PathPrefix()+path] = resp
+	return nil
 }
 
 func decodeResponse(resp *http.Response, obj interface{}) error {
@@ -473,14 +615,14 @@ func TestInstallThirdPartyAPIGet(t *testing.T) {
 }
 
 func testInstallThirdPartyAPIGetVersion(t *testing.T, version string) {
-	fakeClient, server, assert := initThirdParty(t, version)
+	_, fakeClient, server, assert := initThirdParty(t, version)
 	defer server.Close()
 
 	expectedObj := Foo{
 		ObjectMeta: api.ObjectMeta{
 			Name: "test",
 		},
-		TypeMeta: api.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Foo",
 			APIVersion: version,
 		},
@@ -492,7 +634,7 @@ func testInstallThirdPartyAPIGetVersion(t *testing.T, version string) {
 		return
 	}
 
-	resp, err := http.Get(server.URL + "/thirdparty/company.com/" + version + "/namespaces/default/foos/test")
+	resp, err := http.Get(server.URL + "/apis/company.com/" + version + "/namespaces/default/foos/test")
 	if !assert.NoError(err) {
 		return
 	}
@@ -518,16 +660,16 @@ func TestInstallThirdPartyAPIPost(t *testing.T) {
 }
 
 func testInstallThirdPartyAPIPostForVersion(t *testing.T, version string) {
-	fakeClient, server, assert := initThirdParty(t, version)
+	_, fakeClient, server, assert := initThirdParty(t, version)
 	defer server.Close()
 
 	inputObj := Foo{
 		ObjectMeta: api.ObjectMeta{
 			Name: "test",
 		},
-		TypeMeta: api.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Foo",
-			APIVersion: version,
+			APIVersion: "company.com/" + version,
 		},
 		SomeField:  "test field",
 		OtherField: 10,
@@ -537,8 +679,9 @@ func testInstallThirdPartyAPIPostForVersion(t *testing.T, version string) {
 		return
 	}
 
-	resp, err := http.Post(server.URL+"/thirdparty/company.com/"+version+"/namespaces/default/foos", "application/json", bytes.NewBuffer(data))
+	resp, err := http.Post(server.URL+"/apis/company.com/"+version+"/namespaces/default/foos", "application/json", bytes.NewBuffer(data))
 	if !assert.NoError(err) {
+		t.Errorf("unexpected error: %v", err)
 		return
 	}
 
@@ -562,11 +705,12 @@ func testInstallThirdPartyAPIPostForVersion(t *testing.T, version string) {
 		t.FailNow()
 	}
 
-	obj, err := explatest.Codec.Decode([]byte(etcdResp.Node.Value))
-	assert.NoError(err)
-
-	thirdPartyObj, ok := obj.(*experimental.ThirdPartyResourceData)
-	if !assert.True(ok) {
+	obj, err := testapi.Extensions.Codec().Decode([]byte(etcdResp.Node.Value))
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	thirdPartyObj, ok := obj.(*extensions.ThirdPartyResourceData)
+	if !ok {
 		t.Errorf("unexpected object: %v", obj)
 	}
 	item = Foo{}
@@ -584,7 +728,7 @@ func TestInstallThirdPartyAPIDelete(t *testing.T) {
 }
 
 func testInstallThirdPartyAPIDeleteVersion(t *testing.T, version string) {
-	fakeClient, server, assert := initThirdParty(t, version)
+	_, fakeClient, server, assert := initThirdParty(t, version)
 	defer server.Close()
 
 	expectedObj := Foo{
@@ -592,7 +736,7 @@ func testInstallThirdPartyAPIDeleteVersion(t *testing.T, version string) {
 			Name:      "test",
 			Namespace: "default",
 		},
-		TypeMeta: api.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind: "Foo",
 		},
 		SomeField:  "test field",
@@ -603,7 +747,7 @@ func testInstallThirdPartyAPIDeleteVersion(t *testing.T, version string) {
 		return
 	}
 
-	resp, err := http.Get(server.URL + "/thirdparty/company.com/" + version + "/namespaces/default/foos/test")
+	resp, err := http.Get(server.URL + "/apis/company.com/" + version + "/namespaces/default/foos/test")
 	if !assert.NoError(err) {
 		return
 	}
@@ -620,14 +764,14 @@ func testInstallThirdPartyAPIDeleteVersion(t *testing.T, version string) {
 		t.Errorf("expected:\n%v\nsaw:\n%v\n", expectedObj, item)
 	}
 
-	resp, err = httpDelete(server.URL + "/thirdparty/company.com/" + version + "/namespaces/default/foos/test")
+	resp, err = httpDelete(server.URL + "/apis/company.com/" + version + "/namespaces/default/foos/test")
 	if !assert.NoError(err) {
 		return
 	}
 
 	assert.Equal(http.StatusOK, resp.StatusCode)
 
-	resp, err = http.Get(server.URL + "/thirdparty/company.com/" + version + "/namespaces/default/foos/test")
+	resp, err = http.Get(server.URL + "/apis/company.com/" + version + "/namespaces/default/foos/test")
 	if !assert.NoError(err) {
 		return
 	}
@@ -648,4 +792,89 @@ func httpDelete(url string) (*http.Response, error) {
 	}
 	client := &http.Client{}
 	return client.Do(req)
+}
+
+func TestInstallThirdPartyResourceRemove(t *testing.T) {
+	for _, version := range versionsToTest {
+		testInstallThirdPartyResourceRemove(t, version)
+	}
+}
+
+func testInstallThirdPartyResourceRemove(t *testing.T, version string) {
+	master, fakeClient, server, assert := initThirdParty(t, version)
+	defer server.Close()
+
+	expectedObj := Foo{
+		ObjectMeta: api.ObjectMeta{
+			Name: "test",
+		},
+		TypeMeta: unversioned.TypeMeta{
+			Kind: "Foo",
+		},
+		SomeField:  "test field",
+		OtherField: 10,
+	}
+	if !assert.NoError(storeToEtcd(fakeClient, "/ThirdPartyResourceData/company.com/foos/default/test", "test", expectedObj)) {
+		t.FailNow()
+		return
+	}
+	secondObj := expectedObj
+	secondObj.Name = "bar"
+	if !assert.NoError(storeToEtcd(fakeClient, "/ThirdPartyResourceData/company.com/foos/default/bar", "bar", secondObj)) {
+		t.FailNow()
+		return
+	}
+
+	setupEtcdList(fakeClient, "/ThirdPartyResourceData/company.com/foos/default", []Foo{expectedObj, secondObj})
+
+	resp, err := http.Get(server.URL + "/apis/company.com/" + version + "/namespaces/default/foos/test")
+	if !assert.NoError(err) {
+		t.FailNow()
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("unexpected status: %v", resp)
+	}
+
+	item := Foo{}
+	if err := decodeResponse(resp, &item); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// TODO: validate etcd set things here
+	item.ObjectMeta = expectedObj.ObjectMeta
+
+	if !assert.True(reflect.DeepEqual(item, expectedObj)) {
+		t.Errorf("expected:\n%v\nsaw:\n%v\n", expectedObj, item)
+	}
+
+	path := makeThirdPartyPath("company.com")
+	master.RemoveThirdPartyResource(path)
+
+	resp, err = http.Get(server.URL + "/apis/company.com/" + version + "/namespaces/default/foos/test")
+	if !assert.NoError(err) {
+		return
+	}
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("unexpected status: %v", resp)
+	}
+	expectDeletedKeys := []string{
+		etcdtest.PathPrefix() + "/ThirdPartyResourceData/company.com/foos/default/test",
+		etcdtest.PathPrefix() + "/ThirdPartyResourceData/company.com/foos/default/bar",
+	}
+	if !assert.True(reflect.DeepEqual(fakeClient.DeletedKeys, expectDeletedKeys)) {
+		t.Errorf("unexpected deleted keys: %v", fakeClient.DeletedKeys)
+	}
+	installed := master.ListThirdPartyResources()
+	if len(installed) != 0 {
+		t.Errorf("Resource(s) still installed: %v", installed)
+	}
+	services := master.handlerContainer.RegisteredWebServices()
+	for ix := range services {
+		if strings.HasPrefix(services[ix].RootPath(), "/apis/company.com") {
+			t.Errorf("Web service still installed at %s: %#v", services[ix].RootPath(), services[ix])
+		}
+	}
 }

@@ -47,6 +47,10 @@
     border: 1px solid #ddd;
     position: relative;
     .osc-object-highlight();
+    h2 {
+      // Avoid clipping descenders in routes on overview.
+      line-height: 1.3;
+    }
     .component-label {
       color: @gray-light;
       font-size: @component-label;
@@ -152,9 +156,11 @@
 .pod-template-block {
   border-radius: 3px;
   margin-bottom: 10px;
+  margin-right: 10px;
   .pod-template {
     border: 1px dotted #ddd;
     border-radius: @border-radius-md;
+    max-width: 600px;
     padding: 5px 10px;
     h4 {
       margin: 5px 0;
@@ -165,6 +171,10 @@
   }
 }
 
+.pod-container-terminal {
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
 
 .builds-block {
   margin-left: 5px;
@@ -198,122 +208,107 @@
 }
 
 .pod-block {
-  display: block;
-  .pod-container {
-    .flex-display(@display: flex);
-    .flex-direction(@direction: row);
-    .flex-wrap(@wrap: wrap);
-    .justify-content(@justify: flex-start);
-    &.pod-container-lg {
-      .pod {
-        width: 70px;
-        height: 70px;
-      }
-    }
-    .pod {
-      .osc-object-highlight();
-      max-width: 450px;
-      min-width: 120px;
-      background-size: 20px 20px;
-      border-radius: @border-radius-md;
-      border: 1px solid transparent;
-      padding: 10px;
-      position: relative;
-      margin: 0 10px 10px 0;
-      text-align: center;
-      -webkit-font-smoothing: antialiased;
-
-      &:last-child {
-        // no right margin on the last one so collapse links align properly
-        margin-right: 0;
-      }
-
-      .pod-status-label {
-        &:before, &:after {
-          font-family: 'PatternFlyIcons-webfont';
-          font-weight: normal;
-        }
-      }
-      &.pod-multiple {
-        position: relative;
-        cursor: pointer;
-
-        // we always want pod-multiple to get the hover color, event at mobile
-        &:hover {
-          border-color: @osc-object-hover-color;
-        }
-        
-        .fa-ellipsis-h {
-          position: absolute;
-          right: 5px;
-          bottom: 0;
-          font-size: 14px;
-          color: #333;
-        }
-      }
-      &.pod-pending {
-        background-color: #ececec;
-        .striped(@color: rgba(255,255,255,.45); @angle: 45deg);
-
-        &.pod-multiple {
-          .pod-multiple-box-shadow(#f4f4f4);
-        }
-      }
-      &.pod-failed {
-        background-image: none;
-        .pod-status-label {
-          position: relative;
-          margin-right: -15px;
-          &:after, &:before {
-            position: absolute;
-          }
-          &:after {
-            color: #fff;
-          }
-        }
-      }
-      &.pod-running, &.pod-succeeded {
-        background-color: @pod-running-bg;
-        background-image: none;
-
-        &.pod-multiple {
-          .pod-multiple-box-shadow(#e4f5bc);
-        }
-      }
-      &.pod-failed {
-        background-color: @pod-failed-bg;
-        border: @pod-failed-border;
-        &.pod-multiple {
-          box-shadow: 
-            0px 0px 0 rgba(0, 0, 0, 0),
-            3px 3px 0 #eeecec,
-            4px 4px 0 rgb(201, 8, 19),
-            6px 6px 0 #eeecec,
-            7px 7px 0 rgb(201, 8, 19);        
-        }
-
-        .pod-status-label {
-          &:before {
-            content: @pficon-var-error-circle-o;
-            color: @brand-danger;
-            left: -16px;
-            top: 0;
-          }
-        }
-      }
-      &.pod-warning, &.pod-unknown {
-        background-color: @pod-warning-bg;
-        &.pod-multiple {
-          .pod-multiple-box-shadow(#f9d67a);
-        }
-      }
-      .pod-text {
-        font-family: @font-family-base;
-        font-size: 11px;
+  .scaling-controls {
+    font-size: 24px;
+    margin: 0 10px 10px 0;
+    a {
+      color: #d1d1d1;
+      &:hover, &:active {
+        color: #72767b;
       }
     }
   }
+  // Create a spacer the same width as the scaling controls to line up donuts
+  // that don't have the controls with those that do.
+  .scaling-spacer {
+    width: 34px;
+  }
 }
+
+/*
+ * These pod-container styles are not currently used since we've switched to
+ * the donut chart. Leaving them commented out for now in case we want to show
+ * individual pods in another place in the UI.
+ */
+
+//.pod-container {
+//  .flex-display(@display: flex);
+//  .flex-direction(@direction: row);
+//  .flex-wrap(@wrap: wrap);
+//  .justify-content(@justify: flex-start);
+//  &.pod-container-lg {
+//    .pod {
+//      width: 70px;
+//      height: 70px;
+//    }
+//  }
+//  .pod {
+//    .osc-object-highlight();
+//    max-width: 450px;
+//    min-width: 120px;
+//    background-size: 20px 20px;
+//    border-radius: @border-radius-md;
+//    border: 1px solid transparent;
+//    padding: 10px;
+//    position: relative;
+//    margin: 0 10px 10px 0;
+//    text-align: center;
+//    -webkit-font-smoothing: antialiased;
+//
+//    &:last-child {
+//      // no right margin on the last one so collapse links align properly
+//      margin-right: 0;
+//    }
+//
+//    .pod-status-label {
+//      &:before, &:after {
+//        font-family: 'PatternFlyIcons-webfont';
+//        font-weight: normal;
+//      }
+//    }
+//
+//    &.pod-pending {
+//      background-color: #ececec;
+//      .striped(@color: rgba(255,255,255,.45); @angle: 45deg);
+//    }
+//    &.pod-failed {
+//      background-image: none;
+//      .pod-status-label {
+//        position: relative;
+//        margin-right: -15px;
+//        &:after, &:before {
+//          position: absolute;
+//        }
+//        &:after {
+//          color: #fff;
+//        }
+//      }
+//    }
+//    &.pod-running, &.pod-succeeded {
+//      background-color: @pod-running-bg;
+//      background-image: none;
+//    }
+//    &.pod-failed {
+//      background-color: @pod-failed-bg;
+//      border: @pod-failed-border;
+//      .pod-status-label {
+//        &:before {
+//          content: @pficon-var-error-circle-o;
+//          color: @brand-danger;
+//          left: -16px;
+//          top: 0;
+//        }
+//      }
+//    }
+//    &.pod-warning, &.pod-unknown {
+//      background-color: @pod-warning-bg;
+//    }
+//    .pod-text {
+//      font-family: @font-family-base;
+//      font-size: 11px;
+//    }
+//  }
+//}
 
 .deployment-well {
   &:not(.active) {

@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 	kutil "k8s.io/kubernetes/pkg/util"
 )
@@ -209,8 +210,8 @@ const (
 // state of the DeploymentConfig. Each change to the DeploymentConfig which should result in
 // a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Spec represents a desired deployment state and how to deploy to it.
 	Spec DeploymentConfigSpec `json:"spec" description:"a desired deployment state and how to deploy it"`
@@ -320,8 +321,8 @@ type DeploymentCauseImageTrigger struct {
 
 // DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of deployment configs
 	Items []DeploymentConfig `json:"items" description:"a list of deployment configs"`
@@ -329,7 +330,7 @@ type DeploymentConfigList struct {
 
 // DeploymentConfigRollback provides the input to rollback generation.
 type DeploymentConfigRollback struct {
-	kapi.TypeMeta `json:",inline"`
+	unversioned.TypeMeta `json:",inline"`
 	// Spec defines the options to rollback generation.
 	Spec DeploymentConfigRollbackSpec `json:"spec" description:"options for rollback generation"`
 }
@@ -346,4 +347,26 @@ type DeploymentConfigRollbackSpec struct {
 	IncludeReplicationMeta bool `json:"includeReplicationMeta" description:"whether to include the replica count and replica selector in the rollback"`
 	// IncludeStrategy specifies whether to include the deployment Strategy.
 	IncludeStrategy bool `json:"includeStrategy" description:"whether to include the deployment strategy in the rollback"`
+}
+
+// DeploymentLog represents the logs for a deployment
+type DeploymentLog struct {
+	unversioned.TypeMeta `json:",inline"`
+}
+
+// DeploymentLogOptions is the REST options for a deployment log
+type DeploymentLogOptions struct {
+	unversioned.TypeMeta `json:",inline"`
+
+	// Follow if true indicates that the deployment log should be streamed until
+	// the deployment terminates.
+	Follow bool `json:"follow,omitempty" description:"if true indicates that the log should be streamed; defaults to false"`
+
+	// NoWait if true causes the call to return immediately even if the deployment
+	// is not available yet. Otherwise the server will wait until the deployment has started.
+	// TODO: Fix the tag to 'noWait' in v2
+	NoWait bool `json:"nowait,omitempty" description:"if true indicates that the server should not wait for a log to be available before returning; defaults to false"`
+
+	// Version of the deploymentConfig for which to view logs.
+	Version *int `json:"version,omitempty" description:"the version of the deploymentConfig for which to view logs"`
 }

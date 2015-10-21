@@ -93,7 +93,7 @@ oadm policy reconcile-cluster-roles --additive-only --confirm
 [ "$(oc get clusterroles/basic-user -o json | grep custom-annotation)" ]
 [ "$(oc get clusterroles/basic-user -o json | grep groups)" ]
 oadm policy reconcile-cluster-roles --confirm
-[ ! "$(oc get clusterroles/basic-user -o json | grep groups)" ]
+[ ! "$(oc get clusterroles/basic-user -o yaml | grep groups)" ]
 
 # Ensure a removed binding gets re-added
 oc delete clusterrolebinding/cluster-status-binding

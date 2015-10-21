@@ -5,8 +5,9 @@
     <div ng-if="!loaded">Loading...</div>
     <div class="tile" ng-if="buildConfig">
       <div>
-        <h2>{{buildConfig.metadata.name}}</h2>
-        <dl class="dl-horizontal left indent">
+        <h1>{{buildConfig.metadata.name}}</h1>
+        <labels labels="buildConfig.metadata.labels" clickable="true" kind="builds" title-kind="build configs" project-name="{{buildConfig.metadata.namespace}}" limit="3"></labels>
+        <dl class="dl-horizontal left">
           <div>
             <dt>Build strategy:</dt>
             <dd>{{buildConfig.spec.strategy.type}}</dd>
@@ -49,7 +50,7 @@
         </dl>
         <div>
           <h3>Triggers:</h3>
-          <dl class="dl-horizontal left indent">
+          <dl class="dl-horizontal left">
 
             <div ng-repeat="trigger in buildConfig.spec.triggers">
               <div ng-switch="trigger.type">
@@ -112,7 +113,7 @@
             </div>
           </dl>
 
-          <dl class="dl-horizontal left indent">
+          <dl class="dl-horizontal left">
             <dt>Manual:</dt>
             <dd>
               <span>
@@ -121,7 +122,7 @@
             </dd>
           </dl>
 
-          <dl class="dl-horizontal left indent">
+          <dl class="dl-horizontal left">
             <dt>Manual (CLI):
               <a href="{{'start-build' | helpLink}}" target="_blank">
                 <span class="learn-more-block">Learn more <i class="fa fa-external-link"> </i></span>

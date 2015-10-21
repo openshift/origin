@@ -20,7 +20,12 @@
         </tbody>
         <tbody ng-repeat="pod in pods | orderObjectsByDate : true">
           <tr>
-            <td data-title="Name"><a href="project/{{projectName}}/browse/pods/{{pod.metadata.name}}">{{pod.metadata.name}}</a></td>
+            <td data-title="Name">
+              <a href="project/{{projectName}}/browse/pods/{{pod.metadata.name}}">{{pod.metadata.name}}</a>
+              <span ng-if="pod | isTroubledPod">
+                <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
+              </span>
+            </td>
             <td data-title="Status">
               <div row class="status">
                 <span ng-switch="pod.status.phase" class="status-icon">

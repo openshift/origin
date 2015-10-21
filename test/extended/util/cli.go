@@ -257,7 +257,9 @@ func (c *CLI) Output() (string, error) {
 	if c.verbose {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
 	}
-	out, err := exec.Command(c.execPath, c.finalArgs...).CombinedOutput()
+	cmd := exec.Command(c.execPath, c.finalArgs...)
+	cmd.Stdin = c.stdin
+	out, err := cmd.CombinedOutput()
 	trimmed := strings.TrimSpace(string(out))
 	switch err.(type) {
 	case nil:
@@ -267,6 +269,9 @@ func (c *CLI) Output() (string, error) {
 		}
 		return trimmed, nil
 	case *exec.ExitError:
+		if c.verbose {
+			fmt.Printf("DEBUG: %q\n", trimmed)
+		}
 		return trimmed, err
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
@@ -294,9 +299,6 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 // This function will set the default output to stdout.
 func (c *CLI) Execute() error {
 	out, err := c.Output()
-	if err != nil {
-		FatalErr(fmt.Errorf("%v", err))
-	}
 	if _, err := io.Copy(os.Stdout, strings.NewReader(out+"\n")); err != nil {
 		fmt.Printf("ERROR: Unable to copy the output to stdout")
 	}

@@ -17,16 +17,19 @@ limitations under the License.
 package apiserver
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	gpath "path"
+	"strings"
 	"time"
 
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
@@ -80,6 +83,9 @@ type RequestScope struct {
 // getterFunc performs a get request with the given context and object name. The request
 // may be used to deserialize an options object to pass to the getter.
 type getterFunc func(ctx api.Context, name string, req *restful.Request) (runtime.Object, error)
+
+// MaxPatchConflicts is the maximum number of conflicts retry for during a patch operation before returning failure
+const MaxPatchConflicts = 5
 
 // getResourceHandler is an HTTP handler function for get requests. It delegates to the
 // passed-in getterFunc to perform the actual get.
@@ -173,18 +179,28 @@ func ConnectResource(connecter rest.Connecter, scope RequestScope, admit admissi
 				return
 			}
 		}
-		handler, err := connecter.Connect(ctx, name, opts)
+		handler, err := connecter.Connect(ctx, name, opts, &responder{scope: scope, req: req.Request, w: w})
 		if err != nil {
 			errorJSON(err, scope.Codec, w)
 			return
 		}
 		handler.ServeHTTP(w, req.Request)
-		err = handler.RequestError()
-		if err != nil {
-			errorJSON(err, scope.Codec, w)
-			return
-		}
 	}
+}
+
+// responder implements rest.Responder for assisting a connector in writing objects or errors.
+type responder struct {
+	scope RequestScope
+	req   *http.Request
+	w     http.ResponseWriter
+}
+
+func (r *responder) Object(statusCode int, obj runtime.Object) {
+	write(statusCode, r.scope.APIVersion, r.scope.Codec, obj, r.w, r.req)
+}
+
+func (r *responder) Error(err error) {
+	errorJSON(err, r.scope.Codec, r.w)
 }
 
 // ListResource returns a function that handles retrieving a list of resources from a rest.Storage object.
@@ -321,7 +337,7 @@ func createHandler(r rest.NamedCreater, scope RequestScope, typer runtime.Object
 
 		result, err := finishRequest(timeout, func() (runtime.Object, error) {
 			out, err := r.Create(ctx, name, obj)
-			if status, ok := out.(*api.Status); ok && err == nil && status.Code == 0 {
+			if status, ok := out.(*unversioned.Status); ok && err == nil && status.Code == 0 {
 				status.Code = http.StatusCreated
 			}
 			return out, err
@@ -390,49 +406,26 @@ func PatchResource(r rest.Patcher, scope RequestScope, typer runtime.ObjectTyper
 			}
 		}
 
-		versionedObj, err := converter.ConvertToVersion(obj, scope.APIVersion)
+		versionedObj, err := converter.ConvertToVersion(r.New(), scope.APIVersion)
 		if err != nil {
 			errorJSON(err, scope.Codec, w)
 			return
 		}
 
-		original, err := r.Get(ctx, name)
-		if err != nil {
-			errorJSON(err, scope.Codec, w)
-			return
+		contentType := req.HeaderParameter("Content-Type")
+		// Remove "; charset=" if included in header.
+		if idx := strings.Index(contentType, ";"); idx > 0 {
+			contentType = contentType[:idx]
 		}
+		patchType := api.PatchType(contentType)
 
-		originalObjJS, err := scope.Codec.Encode(original)
-		if err != nil {
-			errorJSON(err, scope.Codec, w)
-			return
-		}
 		patchJS, err := readBody(req.Request)
 		if err != nil {
 			errorJSON(err, scope.Codec, w)
 			return
 		}
-		contentType := req.HeaderParameter("Content-Type")
-		patchedObjJS, err := getPatchedJS(contentType, originalObjJS, patchJS, versionedObj)
-		if err != nil {
-			errorJSON(err, scope.Codec, w)
-			return
-		}
 
-		if err := scope.Codec.DecodeInto(patchedObjJS, obj); err != nil {
-			errorJSON(err, scope.Codec, w)
-			return
-		}
-		if err := checkName(obj, name, namespace, scope.Namer); err != nil {
-			errorJSON(err, scope.Codec, w)
-			return
-		}
-
-		result, err := finishRequest(timeout, func() (runtime.Object, error) {
-			// update should never create as previous get would fail
-			obj, _, err := r.Update(ctx, obj)
-			return obj, err
-		})
+		result, err := patchResource(ctx, timeout, versionedObj, r, name, patchType, patchJS, scope.Namer, scope.Codec)
 		if err != nil {
 			errorJSON(err, scope.Codec, w)
 			return
@@ -445,6 +438,95 @@ func PatchResource(r rest.Patcher, scope RequestScope, typer runtime.ObjectTyper
 
 		write(http.StatusOK, scope.APIVersion, scope.Codec, result, w, req.Request)
 	}
+
+}
+
+// patchResource divides PatchResource for easier unit testing
+func patchResource(ctx api.Context, timeout time.Duration, versionedObj runtime.Object, patcher rest.Patcher, name string, patchType api.PatchType, patchJS []byte, namer ScopeNamer, codec runtime.Codec) (runtime.Object, error) {
+	namespace := api.NamespaceValue(ctx)
+
+	original, err := patcher.Get(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	originalObjJS, err := codec.Encode(original)
+	if err != nil {
+		return nil, err
+	}
+	originalPatchedObjJS, err := getPatchedJS(patchType, originalObjJS, patchJS, versionedObj)
+	if err != nil {
+		return nil, err
+	}
+
+	objToUpdate := patcher.New()
+	if err := codec.DecodeInto(originalPatchedObjJS, objToUpdate); err != nil {
+		return nil, err
+	}
+	if err := checkName(objToUpdate, name, namespace, namer); err != nil {
+		return nil, err
+	}
+
+	return finishRequest(timeout, func() (runtime.Object, error) {
+		// update should never create as previous get would fail
+		updateObject, _, updateErr := patcher.Update(ctx, objToUpdate)
+		for i := 0; i < MaxPatchConflicts && (errors.IsConflict(updateErr)); i++ {
+
+			// on a conflict,
+			// 1. build a strategic merge patch from originalJS and the patchedJS.  Different patch types can
+			//    be specified, but a strategic merge patch should be expressive enough handle them.  Build the
+			//    patch with this type to handle those cases.
+			// 2. build a strategic merge patch from originalJS and the currentJS
+			// 3. ensure no conflicts between the two patches
+			// 4. apply the #1 patch to the currentJS object
+			// 5. retry the update
+			currentObject, err := patcher.Get(ctx, name)
+			if err != nil {
+				return nil, err
+			}
+			currentObjectJS, err := codec.Encode(currentObject)
+			if err != nil {
+				return nil, err
+			}
+
+			currentPatch, err := strategicpatch.CreateStrategicMergePatch(originalObjJS, currentObjectJS, patcher.New())
+			if err != nil {
+				return nil, err
+			}
+			originalPatch, err := strategicpatch.CreateStrategicMergePatch(originalObjJS, originalPatchedObjJS, patcher.New())
+			if err != nil {
+				return nil, err
+			}
+
+			diff1 := make(map[string]interface{})
+			if err := json.Unmarshal(originalPatch, &diff1); err != nil {
+				return nil, err
+			}
+			diff2 := make(map[string]interface{})
+			if err := json.Unmarshal(currentPatch, &diff2); err != nil {
+				return nil, err
+			}
+			hasConflicts, err := strategicpatch.HasConflicts(diff1, diff2)
+			if err != nil {
+				return nil, err
+			}
+			if hasConflicts {
+				return updateObject, updateErr
+			}
+
+			newlyPatchedObjJS, err := getPatchedJS(api.StrategicMergePatchType, currentObjectJS, originalPatch, versionedObj)
+			if err != nil {
+				return nil, err
+			}
+			if err := codec.DecodeInto(newlyPatchedObjJS, objToUpdate); err != nil {
+				return nil, err
+			}
+
+			updateObject, _, updateErr = patcher.Update(ctx, objToUpdate)
+		}
+
+		return updateObject, updateErr
+	})
 }
 
 // UpdateResource returns a function that will handle a resource update
@@ -567,17 +649,17 @@ func DeleteResource(r rest.GracefulDeleter, checkBody bool, scope RequestScope, 
 		// if the rest.Deleter returns a nil object, fill out a status. Callers may return a valid
 		// object with the response.
 		if result == nil {
-			result = &api.Status{
-				Status: api.StatusSuccess,
+			result = &unversioned.Status{
+				Status: unversioned.StatusSuccess,
 				Code:   http.StatusOK,
-				Details: &api.StatusDetails{
+				Details: &unversioned.StatusDetails{
 					Name: name,
 					Kind: scope.Kind,
 				},
 			}
 		} else {
 			// when a non-status response is returned, set the self link
-			if _, ok := result.(*api.Status); !ok {
+			if _, ok := result.(*unversioned.Status); !ok {
 				if err := setSelfLink(result, req, scope.Namer); err != nil {
 					errorJSON(err, scope.Codec, w)
 					return
@@ -636,7 +718,7 @@ func finishRequest(timeout time.Duration, fn resultFunc) (result runtime.Object,
 
 	select {
 	case result = <-ch:
-		if status, ok := result.(*api.Status); ok {
+		if status, ok := result.(*unversioned.Status); ok {
 			return nil, errors.FromObject(status)
 		}
 		return result, nil
@@ -734,8 +816,7 @@ func setListSelfLink(obj runtime.Object, req *restful.Request, namer ScopeNamer)
 
 }
 
-func getPatchedJS(contentType string, originalJS, patchJS []byte, obj runtime.Object) ([]byte, error) {
-	patchType := api.PatchType(contentType)
+func getPatchedJS(patchType api.PatchType, originalJS, patchJS []byte, obj runtime.Object) ([]byte, error) {
 	switch patchType {
 	case api.JSONPatchType:
 		patchObj, err := jsonpatch.DecodePatch(patchJS)
@@ -749,6 +830,6 @@ func getPatchedJS(contentType string, originalJS, patchJS []byte, obj runtime.Ob
 		return strategicpatch.StrategicMergePatchData(originalJS, patchJS, obj)
 	default:
 		// only here as a safety net - go-restful filters content-type
-		return nil, fmt.Errorf("unknown Content-Type header for patch: %s", contentType)
+		return nil, fmt.Errorf("unknown Content-Type header for patch: %v", patchType)
 	}
 }

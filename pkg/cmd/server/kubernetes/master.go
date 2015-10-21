@@ -31,9 +31,8 @@ import (
 )
 
 const (
-	KubeAPIPrefix        = "/api"
-	KubeAPIPrefixV1Beta3 = "/api/v1beta3"
-	KubeAPIPrefixV1      = "/api/v1"
+	KubeAPIPrefix   = "/api"
+	KubeAPIPrefixV1 = "/api/v1"
 )
 
 // InstallAPI starts a Kubernetes master and registers the supported REST APIs
@@ -45,9 +44,6 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	_ = master.New(c.Master)
 
 	messages := []string{}
-	if c.Master.EnableV1Beta3 {
-		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s (deprecated)", KubeAPIPrefixV1Beta3))
-	}
 	if !c.Master.DisableV1 {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1))
 	}
@@ -58,7 +54,7 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 // RunNamespaceController starts the Kubernetes Namespace Manager
 func (c *MasterConfig) RunNamespaceController() {
 	// TODO: Add OR c.ControllerManager.EnableDeploymentController once we have upstream deployments
-	experimentalMode := c.ControllerManager.EnableHorizontalPodAutoscaler
+	experimentalMode := c.ControllerManager.EnableExperimental
 	namespaceController := namespacecontroller.NewNamespaceController(c.KubeClient, experimentalMode, c.ControllerManager.NamespaceSyncPeriod)
 	namespaceController.Run()
 }
@@ -99,13 +95,13 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 
 // RunReplicationController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
-	controllerManager := replicationcontroller.NewReplicationManager(client, replicationcontroller.BurstReplicas)
+	controllerManager := replicationcontroller.NewReplicationManager(client, c.ControllerManager.ResyncPeriod, replicationcontroller.BurstReplicas)
 	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController() {
-	endpoints := endpointcontroller.NewEndpointController(c.KubeClient)
+	endpoints := endpointcontroller.NewEndpointController(c.KubeClient, c.ControllerManager.ResyncPeriod)
 	go endpoints.Run(c.ControllerManager.ConcurrentEndpointSyncs, util.NeverStop)
 
 }
@@ -139,6 +135,7 @@ func (c *MasterConfig) RunNodeController() {
 		s.PodEvictionTimeout,
 
 		util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst),
+		util.NewTokenBucketRateLimiter(s.DeletingPodsQps, s.DeletingPodsBurst), // upstream uses the same ones too
 
 		s.NodeMonitorGracePeriod,
 		s.NodeStartupGracePeriod,

@@ -18,11 +18,14 @@ package e2e
 
 import (
 	"fmt"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/latest"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"os"
 	"path"
+	"time"
+
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -51,12 +54,12 @@ var _ = Describe("hostPath", func() {
 
 	AfterEach(func() {
 		By(fmt.Sprintf("Destroying namespace for this suite %v", namespace.Name))
-		if err := deleteNS(c, namespace.Name); err != nil {
+		if err := deleteNS(c, namespace.Name, 5*time.Minute /* namespace deletion timeout */); err != nil {
 			Failf("Couldn't delete ns %s", err)
 		}
 	})
 
-	It("should give a volume the correct mode", func() {
+	It("should give a volume the correct mode [Conformance]", func() {
 		volumePath := "/test-volume"
 		source := &api.HostPathVolumeSource{
 			Path: "/tmp",
@@ -67,13 +70,13 @@ var _ = Describe("hostPath", func() {
 			fmt.Sprintf("--fs_type=%v", volumePath),
 			fmt.Sprintf("--file_mode=%v", volumePath),
 		}
-		testContainerOutputInNamespace("hostPath mode", c, pod, 0, []string{
+		testContainerOutput("hostPath mode", c, pod, 0, []string{
 			"mode of file \"/test-volume\": dtrwxrwxrwx", // we expect the sticky bit (mode flag t) to be set for the dir
 		},
 			namespace.Name)
 	})
 
-	It("should support r/w", func() {
+	It("should support r/w [Conformance]", func() {
 		volumePath := "/test-volume"
 		filePath := path.Join(volumePath, "test-file")
 		retryDuration := 180
@@ -93,7 +96,7 @@ var _ = Describe("hostPath", func() {
 		}
 		//Read the content of the file with the second container to
 		//verify volumes  being shared properly among continers within the pod.
-		testContainerOutputInNamespace("hostPath r/w", c, pod, 1, []string{
+		testContainerOutput("hostPath r/w", c, pod, 1, []string{
 			"content of file \"/test-volume/test-file\": mount-tester new file",
 		}, namespace.Name,
 		)
@@ -121,9 +124,9 @@ func testPodWithHostVol(path string, source *api.HostPathVolumeSource) *api.Pod 
 	podName := "pod-host-path-test"
 
 	return &api.Pod{
-		TypeMeta: api.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",
-			APIVersion: latest.Version,
+			APIVersion: latest.GroupOrDie("").Version,
 		},
 		ObjectMeta: api.ObjectMeta{
 			Name: podName,

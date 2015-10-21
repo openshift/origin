@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/latest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -183,9 +184,9 @@ func rcByNameContainer(name string, replicas int, image string, labels map[strin
 	// Add "name": name to the labels, overwriting if it exists.
 	labels["name"] = name
 	return &api.ReplicationController{
-		TypeMeta: api.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "ReplicationController",
-			APIVersion: latest.Version,
+			APIVersion: latest.GroupOrDie("").Version,
 		},
 		ObjectMeta: api.ObjectMeta{
 			Name: name,
@@ -225,7 +226,7 @@ func resizeRC(c *client.Client, ns, name string, replicas int) error {
 }
 
 func podsCreated(c *client.Client, ns, name string, replicas int) (*api.PodList, error) {
-	timeout := time.Minute
+	timeout := 2 * time.Minute
 	// List the pods, making sure we observe all the replicas.
 	label := labels.SelectorFromSet(labels.Set(map[string]string{"name": name}))
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(5 * time.Second) {
@@ -319,7 +320,7 @@ func performTemporaryNetworkFailure(c *client.Client, ns, rcName string, replica
 	default:
 		Failf("This test is not supported for provider %s and should be disabled", testContext.Provider)
 	}
-	iptablesRule := fmt.Sprintf("OUTPUT --destination %s --jump DROP", master)
+	iptablesRule := fmt.Sprintf("OUTPUT --destination %s --jump REJECT", master)
 	defer func() {
 		// This code will execute even if setting the iptables rule failed.
 		// It is on purpose because we may have an error even if the new rule
@@ -345,7 +346,7 @@ func performTemporaryNetworkFailure(c *client.Client, ns, rcName string, replica
 			}
 		})
 		if err != nil {
-			Failf("Failed to remove the iptable DROP rule. Manual intervention is "+
+			Failf("Failed to remove the iptable REJECT rule. Manual intervention is "+
 				"required on node %s: remove rule %s, if exists", node.Name, iptablesRule)
 		}
 	}()
@@ -383,31 +384,17 @@ func performTemporaryNetworkFailure(c *client.Client, ns, rcName string, replica
 }
 
 var _ = Describe("Nodes", func() {
+	framework := Framework{BaseName: "resize-nodes"}
 	var c *client.Client
 	var ns string
 
 	BeforeEach(func() {
-		var err error
-		c, err = loadClient()
-		expectNoError(err)
-		testingNs, err := createTestingNS("resize-nodes", c)
-		ns = testingNs.Name
-		Expect(err).NotTo(HaveOccurred())
+		framework.beforeEach()
+		c = framework.Client
+		ns = framework.Namespace.Name
 	})
 
-	AfterEach(func() {
-		By("checking whether all nodes are healthy")
-		if err := allNodesReady(c, time.Minute); err != nil {
-			Failf("Not all nodes are ready: %v", err)
-		}
-		By(fmt.Sprintf("destroying namespace for this suite %s", ns))
-		if err := deleteNS(c, ns); err != nil {
-			Failf("Couldn't delete namespace '%s', %v", ns, err)
-		}
-		if err := deleteTestingNS(c); err != nil {
-			Failf("Couldn't delete testing namespaces '%s', %v", ns, err)
-		}
-	})
+	AfterEach(framework.afterEach)
 
 	Describe("Resize", func() {
 		var skipped bool

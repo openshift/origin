@@ -7,7 +7,7 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -122,9 +122,9 @@ func TestPerDeploymentConfigResolver(t *testing.T) {
 		}
 	}
 
-	now := util.Now()
+	now := unversioned.Now()
 	for i := range deployments {
-		creationTimestamp := util.NewTime(now.Time.Add(-1 * time.Duration(i) * time.Hour))
+		creationTimestamp := unversioned.NewTime(now.Time.Add(-1 * time.Duration(i) * time.Hour))
 		deployments[i].CreationTimestamp = creationTimestamp
 	}
 

@@ -6,11 +6,11 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -35,7 +35,7 @@ var Decorator = func(obj runtime.Object) error {
 	} else {
 		completionTimestamp := build.Status.CompletionTimestamp
 		if completionTimestamp == nil {
-			dummy := util.Now()
+			dummy := unversioned.Now()
 			completionTimestamp = &dummy
 		}
 		build.Status.Duration = completionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)

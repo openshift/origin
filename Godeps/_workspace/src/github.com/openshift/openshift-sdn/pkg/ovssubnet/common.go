@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/kube"
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/multitenant"
 
+	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
 )
@@ -702,7 +703,8 @@ func SetupIptables(fw *firewalld.Interface, clusterNetworkCIDR string) error {
 			}
 		}
 	} else {
-		ipt := iptables.New(kexec.New(), iptables.ProtocolIpv4)
+		dbus := utildbus.New()
+		ipt := iptables.New(kexec.New(), dbus, iptables.ProtocolIpv4)
 
 		_, err := ipt.EnsureRule(iptables.Append, iptables.TableNAT, iptables.ChainPostrouting, "-s", clusterNetworkCIDR, "!", "-d", clusterNetworkCIDR, "-j", "MASQUERADE")
 		if err != nil {

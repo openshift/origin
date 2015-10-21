@@ -109,7 +109,7 @@ func NewCommandAdmin(name, fullName string, out io.Writer) *cobra.Command {
 	}
 
 	if name == fullName {
-		cmds.AddCommand(version.NewVersionCommand(fullName))
+		cmds.AddCommand(version.NewVersionCommand(fullName, false))
 	}
 
 	cmds.AddCommand(cmd.NewCmdOptions(out))

@@ -28,7 +28,9 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	apitesting "k8s.io/kubernetes/pkg/api/testing"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/fake"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 )
@@ -60,14 +62,14 @@ func TestHelperDelete(t *testing.T) {
 		{
 			Resp: &http.Response{
 				StatusCode: http.StatusNotFound,
-				Body:       objBody(&api.Status{Status: api.StatusFailure}),
+				Body:       objBody(&unversioned.Status{Status: unversioned.StatusFailure}),
 			},
 			Err: true,
 		},
 		{
 			Resp: &http.Response{
 				StatusCode: http.StatusOK,
-				Body:       objBody(&api.Status{Status: api.StatusSuccess}),
+				Body:       objBody(&unversioned.Status{Status: unversioned.StatusSuccess}),
 			},
 			Req: func(req *http.Request) bool {
 				if req.Method != "DELETE" {
@@ -92,7 +94,7 @@ func TestHelperDelete(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		client := &client.FakeRESTClient{
+		client := &fake.RESTClient{
 			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,
@@ -128,10 +130,9 @@ func TestHelperCreate(t *testing.T) {
 		return true
 	}
 
-	grace := int64(30)
 	tests := []struct {
 		Resp     *http.Response
-		RespFunc client.HTTPClientFunc
+		RespFunc fake.HTTPClientFunc
 		HttpErr  error
 		Modify   bool
 		Object   runtime.Object
@@ -147,14 +148,14 @@ func TestHelperCreate(t *testing.T) {
 		{
 			Resp: &http.Response{
 				StatusCode: http.StatusNotFound,
-				Body:       objBody(&api.Status{Status: api.StatusFailure}),
+				Body:       objBody(&unversioned.Status{Status: unversioned.StatusFailure}),
 			},
 			Err: true,
 		},
 		{
 			Resp: &http.Response{
 				StatusCode: http.StatusOK,
-				Body:       objBody(&api.Status{Status: api.StatusSuccess}),
+				Body:       objBody(&unversioned.Status{Status: unversioned.StatusSuccess}),
 			},
 			Object:       &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
 			ExpectObject: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
@@ -164,7 +165,7 @@ func TestHelperCreate(t *testing.T) {
 			Modify:       false,
 			Object:       &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"}},
 			ExpectObject: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"}},
-			Resp:         &http.Response{StatusCode: http.StatusOK, Body: objBody(&api.Status{Status: api.StatusSuccess})},
+			Resp:         &http.Response{StatusCode: http.StatusOK, Body: objBody(&unversioned.Status{Status: unversioned.StatusSuccess})},
 			Req:          expectPost,
 		},
 		{
@@ -172,18 +173,14 @@ func TestHelperCreate(t *testing.T) {
 			Object: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"}},
 			ExpectObject: &api.Pod{
 				ObjectMeta: api.ObjectMeta{Name: "foo"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
-			Resp: &http.Response{StatusCode: http.StatusOK, Body: objBody(&api.Status{Status: api.StatusSuccess})},
+			Resp: &http.Response{StatusCode: http.StatusOK, Body: objBody(&unversioned.Status{Status: unversioned.StatusSuccess})},
 			Req:  expectPost,
 		},
 	}
 	for i, test := range tests {
-		client := &client.FakeRESTClient{
+		client := &fake.RESTClient{
 			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,
@@ -241,7 +238,7 @@ func TestHelperGet(t *testing.T) {
 		{
 			Resp: &http.Response{
 				StatusCode: http.StatusNotFound,
-				Body:       objBody(&api.Status{Status: api.StatusFailure}),
+				Body:       objBody(&unversioned.Status{Status: unversioned.StatusFailure}),
 			},
 			Err: true,
 		},
@@ -269,7 +266,7 @@ func TestHelperGet(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		client := &client.FakeRESTClient{
+		client := &fake.RESTClient{
 			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,
@@ -308,7 +305,7 @@ func TestHelperList(t *testing.T) {
 		{
 			Resp: &http.Response{
 				StatusCode: http.StatusNotFound,
-				Body:       objBody(&api.Status{Status: api.StatusFailure}),
+				Body:       objBody(&unversioned.Status{Status: unversioned.StatusFailure}),
 			},
 			Err: true,
 		},
@@ -331,7 +328,7 @@ func TestHelperList(t *testing.T) {
 					t.Errorf("url doesn't contain name: %#v", req.URL)
 					return false
 				}
-				if req.URL.Query().Get(api.LabelSelectorQueryParam(testapi.Default.Version())) != labels.SelectorFromSet(labels.Set{"foo": "baz"}).String() {
+				if req.URL.Query().Get(unversioned.LabelSelectorQueryParam(testapi.Default.Version())) != labels.SelectorFromSet(labels.Set{"foo": "baz"}).String() {
 					t.Errorf("url doesn't contain query parameters: %#v", req.URL)
 					return false
 				}
@@ -340,7 +337,7 @@ func TestHelperList(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		client := &client.FakeRESTClient{
+		client := &fake.RESTClient{
 			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,
@@ -383,10 +380,9 @@ func TestHelperReplace(t *testing.T) {
 		return true
 	}
 
-	grace := int64(30)
 	tests := []struct {
 		Resp      *http.Response
-		RespFunc  client.HTTPClientFunc
+		RespFunc  fake.HTTPClientFunc
 		HttpErr   error
 		Overwrite bool
 		Object    runtime.Object
@@ -403,7 +399,7 @@ func TestHelperReplace(t *testing.T) {
 			Object: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
 			Resp: &http.Response{
 				StatusCode: http.StatusNotFound,
-				Body:       objBody(&api.Status{Status: api.StatusFailure}),
+				Body:       objBody(&unversioned.Status{Status: unversioned.StatusFailure}),
 			},
 			Err: true,
 		},
@@ -412,7 +408,7 @@ func TestHelperReplace(t *testing.T) {
 			ExpectObject: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
 			Resp: &http.Response{
 				StatusCode: http.StatusOK,
-				Body:       objBody(&api.Status{Status: api.StatusSuccess}),
+				Body:       objBody(&unversioned.Status{Status: unversioned.StatusSuccess}),
 			},
 			Req: expectPut,
 		},
@@ -420,16 +416,12 @@ func TestHelperReplace(t *testing.T) {
 			Object: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo"}},
 			ExpectObject: &api.Pod{
 				ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"},
-				Spec: api.PodSpec{
-					RestartPolicy:                 api.RestartPolicyAlways,
-					DNSPolicy:                     api.DNSClusterFirst,
-					TerminationGracePeriodSeconds: &grace,
-				},
+				Spec:       apitesting.DeepEqualSafePodSpec(),
 			},
 			Overwrite: true,
 			RespFunc: func(req *http.Request) (*http.Response, error) {
 				if req.Method == "PUT" {
-					return &http.Response{StatusCode: http.StatusOK, Body: objBody(&api.Status{Status: api.StatusSuccess})}, nil
+					return &http.Response{StatusCode: http.StatusOK, Body: objBody(&unversioned.Status{Status: unversioned.StatusSuccess})}, nil
 				}
 				return &http.Response{StatusCode: http.StatusOK, Body: objBody(&api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"}})}, nil
 			},
@@ -438,12 +430,12 @@ func TestHelperReplace(t *testing.T) {
 		{
 			Object:       &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"}},
 			ExpectObject: &api.Pod{ObjectMeta: api.ObjectMeta{Name: "foo", ResourceVersion: "10"}},
-			Resp:         &http.Response{StatusCode: http.StatusOK, Body: objBody(&api.Status{Status: api.StatusSuccess})},
+			Resp:         &http.Response{StatusCode: http.StatusOK, Body: objBody(&unversioned.Status{Status: unversioned.StatusSuccess})},
 			Req:          expectPut,
 		},
 	}
 	for i, test := range tests {
-		client := &client.FakeRESTClient{
+		client := &fake.RESTClient{
 			Codec: testapi.Default.Codec(),
 			Resp:  test.Resp,
 			Err:   test.HttpErr,

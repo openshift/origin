@@ -23,6 +23,7 @@ import (
 
 	api "k8s.io/kubernetes/pkg/api"
 	resource "k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 	runtime "k8s.io/kubernetes/pkg/runtime"
 	util "k8s.io/kubernetes/pkg/util"
@@ -1036,7 +1037,7 @@ func deepCopy_v1beta3_ObjectMeta(in ObjectMeta, out *ObjectMeta, c *conversion.C
 		return err
 	}
 	if in.DeletionTimestamp != nil {
-		out.DeletionTimestamp = new(util.Time)
+		out.DeletionTimestamp = new(unversioned.Time)
 		if err := deepCopy_util_Time(*in.DeletionTimestamp, out.DeletionTimestamp, c); err != nil {
 			return err
 		}
@@ -1475,7 +1476,7 @@ func deepCopy_v1beta3_PodStatus(in PodStatus, out *PodStatus, c *conversion.Clon
 	out.HostIP = in.HostIP
 	out.PodIP = in.PodIP
 	if in.StartTime != nil {
-		out.StartTime = new(util.Time)
+		out.StartTime = new(unversioned.Time)
 		if err := deepCopy_util_Time(*in.StartTime, out.StartTime, c); err != nil {
 			return err
 		}
@@ -2379,7 +2380,7 @@ func deepCopy_util_IntOrString(in util.IntOrString, out *util.IntOrString, c *co
 	return nil
 }
 
-func deepCopy_util_Time(in util.Time, out *util.Time, c *conversion.Cloner) error {
+func deepCopy_util_Time(in unversioned.Time, out *unversioned.Time, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.Time); err != nil {
 		return err
 	} else {

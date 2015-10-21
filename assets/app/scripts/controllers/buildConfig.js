@@ -7,12 +7,12 @@
  * Controller of the openshiftConsole
  */
 angular.module('openshiftConsole')
-  .controller('BuildConfigController', function ($scope, $routeParams, DataService, project, BuildsService, $filter) {
+  .controller('BuildConfigController', function ($scope, $routeParams, DataService, project, BuildsService, $filter, LabelFilter) {
     $scope.buildConfig = null;
     $scope.builds = {};
+    $scope.unfilteredBuilds = {};
+    $scope.labelSuggestions = {};
     $scope.alerts = {};
-    $scope.renderOptions = $scope.renderOptions || {};    
-    $scope.renderOptions.hideFilterWidget = true;    
     $scope.breadcrumbs = [
       {
         title: "Builds",
@@ -60,16 +60,20 @@ angular.module('openshiftConsole')
       );
 
       watches.push(DataService.watch("builds", $scope, function(builds, action, build) {
-        $scope.builds = {};
         $scope.emptyMessage = "No builds to show";
         // TODO we should send the ?labelSelector=buildconfig=<name> on the API request
         // to only load the buildconfig's builds, but this requires some DataService changes
         var allBuilds = builds.by("metadata.name");
         angular.forEach(allBuilds, function(build, name) {
           if (build.metadata.labels && build.metadata.labels.buildconfig === $routeParams.buildconfig) {
-            $scope.builds[name] = build;
+            $scope.unfilteredBuilds[name] = build;
           }
         });
+        LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredBuilds, $scope.labelSuggestions);
+        LabelFilter.setLabelSuggestions($scope.labelSuggestions);
+        $scope.builds = LabelFilter.getLabelSelector().select($scope.unfilteredBuilds);      
+        updateFilterWarning();
+
 
         var buildConfigName;
         var buildName;
@@ -95,6 +99,26 @@ angular.module('openshiftConsole')
         }        
       }));
     });
+
+    function updateFilterWarning() {
+      if (!LabelFilter.getLabelSelector().isEmpty() && $.isEmptyObject($scope.builds) && !$.isEmptyObject($scope.unfilteredBuilds)) {
+        $scope.alerts["builds"] = {
+          type: "warning",
+          details: "The active filters are hiding all builds."
+        };
+      }
+      else {
+        delete $scope.alerts["builds"];
+      }
+    }
+
+    LabelFilter.onActiveFiltersChanged(function(labelSelector) {
+      // trigger a digest loop
+      $scope.$apply(function() {
+        $scope.builds = labelSelector.select($scope.unfilteredBuilds);
+        updateFilterWarning();
+      });
+    });    
 
     $scope.startBuild = function(buildConfigName) {
       BuildsService.startBuild(buildConfigName, $scope);

@@ -48,15 +48,7 @@ func EnsureDockerRepositoryNode(g osgraph.MutableUniqueGraph, name, tag string) 
 		if len(tag) != 0 {
 			ref.Tag = tag
 		}
-		if len(ref.Tag) == 0 {
-			ref.Tag = imageapi.DefaultImageTag
-		}
-		if len(ref.Registry) == 0 {
-			ref.Registry = "docker.io"
-		}
-		if len(ref.Namespace) == 0 {
-			ref.Namespace = imageapi.DockerDefaultNamespace
-		}
+		ref = ref.DockerClientDefaults()
 	} else {
 		ref = imageapi.DockerImageReference{Name: name}
 	}

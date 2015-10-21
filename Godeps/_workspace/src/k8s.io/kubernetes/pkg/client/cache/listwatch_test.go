@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/util"
@@ -54,17 +55,17 @@ func buildLocation(resourcePath string, query url.Values) string {
 }
 
 func TestListWatchesCanList(t *testing.T) {
-	fieldSelectorQueryParamName := api.FieldSelectorQueryParam(testapi.Default.Version())
+	fieldSelectorQueryParamName := unversioned.FieldSelectorQueryParam(testapi.Default.Version())
 	table := []struct {
 		location      string
 		resource      string
 		namespace     string
 		fieldSelector fields.Selector
 	}{
-		// Minion
+		// Node
 		{
-			location:      testapi.Default.ResourcePath("minions", api.NamespaceAll, ""),
-			resource:      "minions",
+			location:      testapi.Default.ResourcePath("nodes", api.NamespaceAll, ""),
+			resource:      "nodes",
 			namespace:     api.NamespaceAll,
 			fieldSelector: parseSelectorOrDie(""),
 		},
@@ -104,7 +105,7 @@ func TestListWatchesCanList(t *testing.T) {
 }
 
 func TestListWatchesCanWatch(t *testing.T) {
-	fieldSelectorQueryParamName := api.FieldSelectorQueryParam(testapi.Default.Version())
+	fieldSelectorQueryParamName := unversioned.FieldSelectorQueryParam(testapi.Default.Version())
 	table := []struct {
 		rv            string
 		location      string
@@ -112,22 +113,22 @@ func TestListWatchesCanWatch(t *testing.T) {
 		namespace     string
 		fieldSelector fields.Selector
 	}{
-		// Minion
+		// Node
 		{
 			location: buildLocation(
-				testapi.Default.ResourcePathWithPrefix("watch", "minions", api.NamespaceAll, ""),
+				testapi.Default.ResourcePathWithPrefix("watch", "nodes", api.NamespaceAll, ""),
 				buildQueryValues(url.Values{"resourceVersion": []string{""}})),
 			rv:            "",
-			resource:      "minions",
+			resource:      "nodes",
 			namespace:     api.NamespaceAll,
 			fieldSelector: parseSelectorOrDie(""),
 		},
 		{
 			location: buildLocation(
-				testapi.Default.ResourcePathWithPrefix("watch", "minions", api.NamespaceAll, ""),
+				testapi.Default.ResourcePathWithPrefix("watch", "nodes", api.NamespaceAll, ""),
 				buildQueryValues(url.Values{"resourceVersion": []string{"42"}})),
 			rv:            "42",
-			resource:      "minions",
+			resource:      "nodes",
 			namespace:     api.NamespaceAll,
 			fieldSelector: parseSelectorOrDie(""),
 		},

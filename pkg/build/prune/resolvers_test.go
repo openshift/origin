@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -126,9 +126,9 @@ func TestPerBuildConfigResolver(t *testing.T) {
 		}
 	}
 
-	now := util.Now()
+	now := unversioned.Now()
 	for i := range builds {
-		creationTimestamp := util.NewTime(now.Time.Add(-1 * time.Duration(i) * time.Hour))
+		creationTimestamp := unversioned.NewTime(now.Time.Add(-1 * time.Duration(i) * time.Hour))
 		builds[i].CreationTimestamp = creationTimestamp
 	}
 

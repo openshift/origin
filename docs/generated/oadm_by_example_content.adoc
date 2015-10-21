@@ -92,7 +92,7 @@ Sets a user entry in kubeconfig
 
 
 == oadm config view
-displays Merged kubeconfig settings or a specified kubeconfig file.
+Displays merged kubeconfig settings or a specified kubeconfig file.
 
 ====
 

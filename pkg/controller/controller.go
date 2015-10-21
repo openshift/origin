@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	kutil "k8s.io/kubernetes/pkg/util"
 )
@@ -107,7 +108,7 @@ type Retry struct {
 	Count int
 
 	// StartTimestamp is retry start timestamp
-	StartTimestamp kutil.Time
+	StartTimestamp unversioned.Time
 }
 
 // ReQueue is a queue that allows an object to be requeued
@@ -134,7 +135,7 @@ func (r *QueueRetryManager) Retry(resource interface{}, err error) {
 	id, _ := r.keyFunc(resource)
 
 	if _, exists := r.retries[id]; !exists {
-		r.retries[id] = Retry{0, kutil.Now()}
+		r.retries[id] = Retry{0, unversioned.Now()}
 	}
 	tries := r.retries[id]
 

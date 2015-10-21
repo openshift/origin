@@ -165,6 +165,11 @@ func (c *Fake) DeploymentConfigs(namespace string) client.DeploymentConfigInterf
 	return &FakeDeploymentConfigs{Fake: c, Namespace: namespace}
 }
 
+// DeploymentLogs provides a fake REST client for DeploymentLogs
+func (c *Fake) DeploymentLogs(namespace string) client.DeploymentLogInterface {
+	return &FakeDeploymentLogs{Fake: c, Namespace: namespace}
+}
+
 // Routes provides a fake REST client for Routes
 func (c *Fake) Routes(namespace string) client.RouteInterface {
 	return &FakeRoutes{Fake: c, Namespace: namespace}

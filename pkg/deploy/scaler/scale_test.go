@@ -66,7 +66,6 @@ func TestScale(t *testing.T) {
 			kc:              ktestclient.NewSimpleFake(mkDeploymentList(1)),
 			expected: []ktestclient.Action{
 				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
-				ktestclient.NewGetAction("deploymentconfigs", "default", "foo"),
 			},
 			kexpected: []ktestclient.Action{
 				ktestclient.NewGetAction("replicationcontrollers", "default", "config-1"),
@@ -96,7 +95,7 @@ func TestScale(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		scaler := DeploymentConfigScaler{NewScalerClient(test.oc, test.kc)}
+		scaler := NewDeploymentConfigScaler(test.oc, test.kc)
 		got := scaler.Scale(test.namespace, test.name, test.count, test.preconditions, test.retry, test.waitForReplicas)
 		if got != test.expectedErr {
 			t.Errorf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, got)

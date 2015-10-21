@@ -5,8 +5,8 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -55,8 +55,8 @@ type FilterPredicate func(item *kapi.ReplicationController) bool
 
 // NewFilterBeforePredicate is a function that returns true if the build was created before the current time minus specified duration
 func NewFilterBeforePredicate(d time.Duration) FilterPredicate {
-	now := util.Now()
-	before := util.NewTime(now.Time.Add(-1 * d))
+	now := unversioned.Now()
+	before := unversioned.NewTime(now.Time.Add(-1 * d))
 	return func(item *kapi.ReplicationController) bool {
 		return item.CreationTimestamp.Before(before)
 	}

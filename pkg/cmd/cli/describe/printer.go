@@ -8,9 +8,9 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kctl "k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -321,7 +321,7 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, withNamespace, 
 	tags := ""
 	const numOfTagsShown = 3
 
-	var latest util.Time
+	var latest unversioned.Time
 	for _, list := range stream.Status.Tags {
 		if len(list.Items) > 0 {
 			if list.Items[0].Created.After(latest.Time) {
@@ -348,7 +348,11 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, withNamespace, 
 			return err
 		}
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.Name, stream.Status.DockerImageRepository, tags, latestTime)
+	repo := stream.Spec.DockerImageRepository
+	if len(repo) == 0 {
+		repo = stream.Status.DockerImageRepository
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", stream.Name, repo, tags, latestTime)
 	return err
 }
 

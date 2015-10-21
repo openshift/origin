@@ -1,0 +1,11 @@
+<span ng-switch="status" class="hide-ng-leave">
+  <span ng-switch-when="Complete" class="fa fa-check text-success" aria-hidden="true"></span>
+  <span ng-switch-when="Error" class="fa fa-times text-danger" aria-hidden="true"></span>
+  <span ng-switch-when="Cancelled" class="fa fa-ban text-warning" aria-hidden="true"></span>
+  <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true"></span>
+  <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
+  <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true"></span>
+  <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
+  <span ng-switch-when="Running" class="fa fa-refresh fa-spin" aria-hidden="true"></span>
+  <span ng-switch-default class="fa fa-refresh fa-spin" aria-hidden="true"></span>
+</span>

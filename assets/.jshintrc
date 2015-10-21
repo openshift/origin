@@ -20,6 +20,7 @@
   "unused": true,
   "globals": {
     "angular": false,
+    "d3": false,
     "hawtioPluginLoader": false,
     "HawtioCore": false,
     "Logger" : false,

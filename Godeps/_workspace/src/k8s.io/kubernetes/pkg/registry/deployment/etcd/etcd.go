@@ -17,8 +17,12 @@ limitations under the License.
 package etcd
 
 import (
+	"fmt"
+
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/experimental"
+	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/deployment"
@@ -28,6 +32,22 @@ import (
 	"k8s.io/kubernetes/pkg/storage"
 )
 
+// DeploymentStorage includes dummy storage for Deployments and for Scale subresource.
+type DeploymentStorage struct {
+	Deployment *REST
+	Scale      *ScaleREST
+}
+
+func NewStorage(s storage.Interface) DeploymentStorage {
+	deploymentRest := NewREST(s)
+	deploymentRegistry := deployment.NewRegistry(deploymentRest)
+
+	return DeploymentStorage{
+		Deployment: deploymentRest,
+		Scale:      &ScaleREST{registry: &deploymentRegistry},
+	}
+}
+
 type REST struct {
 	*etcdgeneric.Etcd
 }
@@ -36,9 +56,9 @@ type REST struct {
 func NewREST(s storage.Interface) *REST {
 	prefix := "/deployments"
 	store := &etcdgeneric.Etcd{
-		NewFunc: func() runtime.Object { return &experimental.Deployment{} },
+		NewFunc: func() runtime.Object { return &extensions.Deployment{} },
 		// NewListFunc returns an object capable of storing results of an etcd list.
-		NewListFunc: func() runtime.Object { return &experimental.DeploymentList{} },
+		NewListFunc: func() runtime.Object { return &extensions.DeploymentList{} },
 		// Produces a path that etcd understands, to the root of the resource
 		// by combining the namespace in the context with the given prefix.
 		KeyRootFunc: func(ctx api.Context) string {
@@ -51,7 +71,7 @@ func NewREST(s storage.Interface) *REST {
 		},
 		// Retrieve the name field of a deployment.
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*experimental.Deployment).Name, nil
+			return obj.(*extensions.Deployment).Name, nil
 		},
 		// Used to match objects based on labels/fields for list.
 		PredicateFunc: func(label labels.Selector, field fields.Selector) generic.Matcher {
@@ -68,4 +88,70 @@ func NewREST(s storage.Interface) *REST {
 		Storage: s,
 	}
 	return &REST{store}
+}
+
+type ScaleREST struct {
+	registry *deployment.Registry
+}
+
+// ScaleREST implements Patcher
+var _ = rest.Patcher(&ScaleREST{})
+
+// New creates a new Scale object
+func (r *ScaleREST) New() runtime.Object {
+	return &extensions.Scale{}
+}
+
+func (r *ScaleREST) Get(ctx api.Context, name string) (runtime.Object, error) {
+	deployment, err := (*r.registry).GetDeployment(ctx, name)
+	if err != nil {
+		return nil, errors.NewNotFound("scale", name)
+	}
+	return &extensions.Scale{
+		ObjectMeta: api.ObjectMeta{
+			Name:              name,
+			Namespace:         deployment.Namespace,
+			CreationTimestamp: deployment.CreationTimestamp,
+		},
+		Spec: extensions.ScaleSpec{
+			Replicas: deployment.Spec.Replicas,
+		},
+		Status: extensions.ScaleStatus{
+			Replicas: deployment.Status.Replicas,
+			Selector: deployment.Spec.Selector,
+		},
+	}, nil
+}
+
+func (r *ScaleREST) Update(ctx api.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	if obj == nil {
+		return nil, false, errors.NewBadRequest(fmt.Sprintf("nil update passed to Scale"))
+	}
+	scale, ok := obj.(*extensions.Scale)
+	if !ok {
+		return nil, false, errors.NewBadRequest(fmt.Sprintf("wrong object passed to Scale update: %v", obj))
+	}
+	deployment, err := (*r.registry).GetDeployment(ctx, scale.Name)
+	if err != nil {
+		return nil, false, errors.NewNotFound("scale", scale.Name)
+	}
+	deployment.Spec.Replicas = scale.Spec.Replicas
+	deployment, err = (*r.registry).UpdateDeployment(ctx, deployment)
+	if err != nil {
+		return nil, false, errors.NewConflict("scale", scale.Name, err)
+	}
+	return &extensions.Scale{
+		ObjectMeta: api.ObjectMeta{
+			Name:              deployment.Name,
+			Namespace:         deployment.Namespace,
+			CreationTimestamp: deployment.CreationTimestamp,
+		},
+		Spec: extensions.ScaleSpec{
+			Replicas: deployment.Spec.Replicas,
+		},
+		Status: extensions.ScaleStatus{
+			Replicas: deployment.Status.Replicas,
+			Selector: deployment.Spec.Selector,
+		},
+	}, false, nil
 }

@@ -14,9 +14,11 @@
     <meta name="msapplication-TileImage" content="images/mstile-144x144.png">
     <!-- build:css(.) styles/vendor.css -->
     <!-- bower:css -->
+    <link rel="stylesheet" href="bower_components/angular-patternfly/styles/angular-patternfly.css" />
     <link rel="stylesheet" href="bower_components/messenger/build/css/messenger-theme-flat.css" />
     <link rel="stylesheet" href="bower_components/kubernetes-label-selector/labelFilter.css" />
     <link rel="stylesheet" href="bower_components/kubernetes-topology-graph/dist/topology-graph.css" />
+    <link rel="stylesheet" href="bower_components/kubernetes-container-terminal/dist/container-terminal.css" />
     <link rel="stylesheet" href="bower_components/layout.attrs/dist/layout.attrs.css" />
     <!-- endbower -->
     <!-- endbuild -->
@@ -43,13 +45,13 @@
           <div id="header-logo"></div>
         </a>
       </div>
-      <div class="collapse navbar-collapse navbar-collapse-1">  
+      <div class="collapse navbar-collapse navbar-collapse-1">
         <ul class="nav navbar-nav navbar-utility">
           <li>
             <a href="http://docs.openshift.com/enterprise/3.0/welcome/index.html">
             <span class="fa fa-files-o fa-fw"></span> Documentation</a>
           </li>
-          <li class="dropdown" ng-if="user">
+          <li ng-cloak ng-if="user" class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
               <span class="pficon pficon-user"></span>
               <span class="username">{{user.fullName || user.metadata.name}}</span> <b class="caret"></b>
@@ -98,6 +100,7 @@
     <script src="bower_components/angular-touch/angular-touch.js"></script>
     <script src="bower_components/angular-route/angular-route.js"></script>
     <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+    <script src="bower_components/angular-patternfly/dist/angular-patternfly.js"></script>
     <script src="bower_components/uri.js/src/URI.js"></script>
     <script src="bower_components/uri.js/src/URITemplate.js"></script>
     <script src="bower_components/uri.js/src/jquery.URI.js"></script>
@@ -108,6 +111,7 @@
     <script src="bower_components/patternfly/components/bootstrap/dist/js/bootstrap.js"></script>
     <script src="bower_components/patternfly/components/bootstrap-select/dist/js/bootstrap-select.js"></script>
     <script src="bower_components/patternfly/components/bootstrap-treeview/dist/bootstrap-treeview.min.js"></script>
+    <script src="bower_components/patternfly/components/c3/c3.min.js"></script>
     <script src="bower_components/js-logger/src/logger.js"></script>
     <script src="bower_components/hawtio-core/hawtio-core.js"></script>
     <script src="bower_components/lodash/lodash.js"></script>
@@ -123,14 +127,17 @@
     <script src="bower_components/kubernetes-label-selector/labelFilter.js"></script>
     <script src="bower_components/d3/d3.js"></script>
     <script src="bower_components/kubernetes-topology-graph/dist/topology-graph.js"></script>
+    <script src="bower_components/term.js/src/term.js"></script>
+    <script src="bower_components/kubernetes-container-terminal/dist/container-terminal.js"></script>
     <script src="bower_components/kubernetes-object-describer/dist/object-describer.js"></script>
     <script src="bower_components/openshift-object-describer/dist/object-describer.js"></script>
+    <script src="bower_components/bootstrap-hover-dropdown/bootstrap-hover-dropdown.min.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
 
     <!-- This needs to be loaded before scripts.js -->
     <script src="scripts/templates.js"></script>
-    
+
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
         <script src="scripts/app.js"></script>
         <script src="scripts/services/logger.js"></script>
@@ -153,6 +160,7 @@
         <script src="scripts/services/builds.js"></script>
         <script src="scripts/services/deployments.js"></script>
         <script src="scripts/services/imagestreams.js"></script>
+        <script src="scripts/services/metrics.js"></script>
         <script src="scripts/controllers/projects.js"></script>
         <script src="scripts/controllers/project.js"></script>
         <script src="scripts/controllers/pods.js"></script>
@@ -166,7 +174,7 @@
         <script src="scripts/controllers/image.js"></script>
         <script src="scripts/controllers/deployments.js"></script>
         <script src="scripts/controllers/deploymentConfig.js"></script>
-        <script src="scripts/controllers/deployment.js"></script>        
+        <script src="scripts/controllers/deployment.js"></script>
         <script src="scripts/controllers/services.js"></script>
         <script src="scripts/controllers/service.js"></script>
         <script src="scripts/controllers/routes.js"></script>
@@ -180,7 +188,6 @@
         <script src="scripts/controllers/util/oauth.js"></script>
         <script src="scripts/controllers/util/error.js"></script>
         <script src="scripts/controllers/util/logout.js"></script>
-        <script src="scripts/controllers/catalog/images.js"></script>
         <script src="scripts/controllers/create.js"></script>
         <script src="scripts/controllers/createProject.js"></script>
         <script src="scripts/controllers/modals/deleteModal.js"></script>
@@ -192,6 +199,7 @@
         <script src="scripts/directives/oscKeyValues.js"></script>
         <script src="scripts/directives/oscRouting.js"></script>
         <script src="scripts/directives/resources.js"></script>
+        <script src="scripts/directives/overviewDeployment.js"></script>
         <script src="scripts/directives/nav.js"></script>
         <script src="scripts/directives/alerts.js"></script>
         <script src="scripts/directives/popups.js"></script>
@@ -202,10 +210,16 @@
         <script src="scripts/directives/truncate.js"></script>
         <script src="scripts/directives/catalog.js"></script>
         <script src="scripts/directives/oscObjectDescriber.js"></script>
+        <script src="scripts/directives/metrics.js"></script>
+		<script src="scripts/directives/logViewer.js"></script>
+        <script src="scripts/directives/statusIcon.js"></script>
+		<script src="scripts/directives/podStatusChart.js"></script>
         <script src="scripts/filters/date.js"></script>
         <script src="scripts/filters/resources.js"></script>
         <script src="scripts/filters/util.js"></script>
         <script src="scripts/extensions/javaLink.js"></script>
+        <script src="scripts/directives/affix.js"></script>
+        <script src="scripts/services/logLinks.js"></script>
         <!-- endbuild -->
 
     <!-- Load any extensions last. -->

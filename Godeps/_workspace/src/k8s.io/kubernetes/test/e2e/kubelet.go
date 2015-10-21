@@ -37,7 +37,6 @@ const (
 	pollInterval = 1 * time.Second
 	// Interval to poll /stats/container on a node
 	containerStatsPollingInterval = 5 * time.Second
-	resourceCollectionTime        = 1 * time.Minute
 )
 
 // getPodMatches returns a set of pod names on the given node that matches the
@@ -103,7 +102,7 @@ var _ = Describe("kubelet", func() {
 		for _, node := range nodes.Items {
 			nodeNames.Insert(node.Name)
 		}
-		resourceMonitor = newResourceMonitor(framework.Client, targetContainers, containerStatsPollingInterval)
+		resourceMonitor = newResourceMonitor(framework.Client, targetContainers(), containerStatsPollingInterval)
 		resourceMonitor.Start()
 	})
 
@@ -131,7 +130,7 @@ var _ = Describe("kubelet", func() {
 					Client:    framework.Client,
 					Name:      rcName,
 					Namespace: framework.Namespace.Name,
-					Image:     "gcr.io/google_containers/pause:go",
+					Image:     "beta.gcr.io/google_containers/pause:2.0",
 					Replicas:  totalPods,
 				})).NotTo(HaveOccurred())
 				// Perform a sanity check so that we know all desired pods are
@@ -159,17 +158,5 @@ var _ = Describe("kubelet", func() {
 				resourceMonitor.LogCPUSummary()
 			})
 		}
-	})
-
-	Describe("Monitor resource usage on node", func() {
-		It("Ask kubelet to report container resource usage", func() {
-			// TODO: After gathering some numbers, we should set a resource
-			// limit for each container and fail the test if the usage exceeds
-			// the preset limit.
-			By(fmt.Sprintf("Waiting %v to collect resource usage on node", resourceCollectionTime))
-			time.Sleep(resourceCollectionTime)
-			resourceMonitor.LogLatest()
-			resourceMonitor.LogCPUSummary()
-		})
 	})
 })

@@ -50,22 +50,35 @@ describe("DataService", function(){
       [{resource:'buildconfigs/instantiate',             name:"mycfg",      namespace:"foo"}, "http://localhost:8443/oapi/v1/namespaces/foo/buildconfigs/mycfg/instantiate"],
       [{resource:'buildconfigs/webhooks/123/github',     name:"mycfg",      namespace:"foo"}, "http://localhost:8443/oapi/v1/namespaces/foo/buildconfigs/mycfg/webhooks/123/github"],
       [{resource:'buildconfigs/webhooks/123?234/github', name:"mycfg",      namespace:"foo"}, "http://localhost:8443/oapi/v1/namespaces/foo/buildconfigs/mycfg/webhooks/123%3F234/github"],
+      // Subresources aren't lowercased
+      [{resource:'buildconfigs/webhooks/Aa1/github',     name:"mycfg",      namespace:"foo"}, "http://localhost:8443/oapi/v1/namespaces/foo/buildconfigs/mycfg/webhooks/Aa1/github"],
 
-      // Watch
-      [{resource:'pods', namespace:"foo", isWebsocket:true                     }, "ws://localhost:8443/api/v1/watch/namespaces/foo/pods"],
-      [{resource:'pods', namespace:"foo", isWebsocket:true, resourceVersion:"5"}, "ws://localhost:8443/api/v1/watch/namespaces/foo/pods?resourceVersion=5"],
+
+
+      // Plain websocket
+      [{resource:'pods', namespace:"foo", isWebsocket:true      }, "ws://localhost:8443/api/v1/namespaces/foo/pods"],
+
+      // Watch resource
+      [{resource:'pods', namespace:"foo", isWebsocket:true, watch: true                       }, "ws://localhost:8443/api/v1/namespaces/foo/pods?watch=true"],
+      [{resource:'pods', namespace:"foo", isWebsocket:true, watch: true, resourceVersion:"5"  }, "ws://localhost:8443/api/v1/namespaces/foo/pods?watch=true&resourceVersion=5"],
+
+      // Follow log
+      [{resource:'pods/log', namespace:"foo", isWebsocket:true, follow: true                       }, "ws://localhost:8443/api/v1/namespaces/foo/pods?follow=true"],
+      [{resource:'builds/log', namespace:"foo", isWebsocket:true, follow: true                     }, "ws://localhost:8443/oapi/v1/namespaces/foo/builds?follow=true"],
+
+
 
       // Namespaced subresource with params
       [{resource:'pods/proxy', name:"mypod", namespace:"myns", myparam1:"myvalue"}, "http://localhost:8443/api/v1/namespaces/myns/pods/mypod/proxy?myparam1=myvalue"],
 
       // Different API versions
-      [{resource:'builds',apiVersion:'v1beta3'}, "http://localhost:8443/osapi/v1beta3/builds"],
+      [{resource:'builds',apiVersion:'v1beta3'}, null],
       [{resource:'builds',apiVersion:'v1'     }, "http://localhost:8443/oapi/v1/builds"],
-      [{resource:'builds',apiVersion:'unknown'}, "http://localhost:8443/oapi/unknown/builds"],
+      [{resource:'builds',apiVersion:'unknown'}, null],
 
-      [{resource:'pods',  apiVersion:'v1beta3'}, "http://localhost:8443/api/v1beta3/pods"],
+      [{resource:'pods',  apiVersion:'v1beta3'}, null],
       [{resource:'pods',  apiVersion:'v1'     }, "http://localhost:8443/api/v1/pods"],
-      [{resource:'pods',  apiVersion:'unknown'}, "http://localhost:8443/api/unknown/pods"]
+      [{resource:'pods',  apiVersion:'unknown'}, null]
     ];
 
     angular.forEach(tc, function(item) {

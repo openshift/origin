@@ -25,7 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/unversioned/testclient"
-	"k8s.io/kubernetes/pkg/controller/resourcequota"
+	resourcequotacontroller "k8s.io/kubernetes/pkg/controller/resourcequota"
 )
 
 func getResourceList(cpu, memory string) api.ResourceList {
@@ -122,6 +122,14 @@ func TestIncrementUsagePodResources(t *testing.T) {
 		{
 			testName:      "memory-not-allowed",
 			existing:      validPod("a", 1, getResourceRequirements(getResourceList("", "100Mi"), getResourceList("", ""))),
+			input:         validPod("b", 1, getResourceRequirements(getResourceList("", "450Mi"), getResourceList("", ""))),
+			resourceName:  api.ResourceMemory,
+			hard:          resource.MustParse("500Mi"),
+			expectedError: true,
+		},
+		{
+			testName:      "memory-not-allowed-with-different-format",
+			existing:      validPod("a", 1, getResourceRequirements(getResourceList("", "100M"), getResourceList("", ""))),
 			input:         validPod("b", 1, getResourceRequirements(getResourceList("", "450Mi"), getResourceList("", ""))),
 			resourceName:  api.ResourceMemory,
 			hard:          resource.MustParse("500Mi"),

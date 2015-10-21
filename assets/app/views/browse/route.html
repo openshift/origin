@@ -7,14 +7,9 @@
       <div class="row">
         <div class="col-md-12">
           <div class="tile">
+            <h1>{{route.metadata.name}}</h1>
+            <labels labels="route.metadata.labels" clickable="true" kind="routes" project-name="{{route.metadata.namespace}}" limit="3"></labels>
             <dl class="dl-horizontal left">
-              <dt>Name:</dt>
-              <dd>{{route.metadata.name}}</dd>
-              <dt>Labels:</dt>
-              <dd>
-                <span ng-if="!route.metadata.labels">none</span>
-                <span ng-repeat="(labelKey, labelValue) in route.metadata.labels">{{labelKey}}={{labelValue}}<span ng-show="!$last">, </span></span>
-              </dd>
               <dt>Hostname:</dt>
               <dd>
                 <span ng-if="(route | isWebRoute)">
@@ -33,7 +28,7 @@
               <dd>
                 <span>{{route.spec.to.kind}}: </span>
                 <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
-                <span ng-if="route.spec.to.kind == 'Service'"><a href="project/{{projectName}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></span>
+                <span ng-if="route.spec.to.kind == 'Service'"><a href="project/{{route.metadata.namespace}}/browse/services/{{route.spec.to.name}}">{{route.spec.to.name}}</a></span>
               </dd>
               <dt>Port:</dt>
               <dd>

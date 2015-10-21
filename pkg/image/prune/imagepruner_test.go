@@ -11,9 +11,9 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktc "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -48,7 +48,7 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 	)
 
 	if ageInMinutes >= 0 {
-		image.CreationTimestamp = util.NewTime(util.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
+		image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
 
 	return image
@@ -127,7 +127,7 @@ func agedPod(namespace, name string, phase kapi.PodPhase, ageInMinutes int64, co
 	}
 
 	if ageInMinutes >= 0 {
-		pod.CreationTimestamp = util.NewTime(util.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
+		pod.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
 
 	return pod
@@ -169,7 +169,7 @@ func agedStream(registry, namespace, name string, ageInMinutes int64, tags map[s
 	}
 
 	if ageInMinutes >= 0 {
-		stream.CreationTimestamp = util.NewTime(util.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
+		stream.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
 
 	return stream

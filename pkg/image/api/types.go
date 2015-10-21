@@ -2,13 +2,13 @@ package api
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // ImageList is a list of Image objects.
 type ImageList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	Items []Image
 }
@@ -31,7 +31,7 @@ const (
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// The string that can be used to pull this image.
@@ -46,8 +46,8 @@ type Image struct {
 
 // ImageStreamList is a list of ImageStream objects.
 type ImageStreamList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	Items []ImageStream
 }
@@ -56,7 +56,7 @@ type ImageStreamList struct {
 // when images are tagged in a stream, and an optional reference to a Docker image
 // repository on a registry.
 type ImageStream struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// Spec describes the desired state of this stream
@@ -99,7 +99,7 @@ type TagEventList struct {
 // TagEvent is used by ImageRepositoryStatus to keep a historical record of images associated with a tag.
 type TagEvent struct {
 	// When the TagEvent was created
-	Created util.Time
+	Created unversioned.Time
 	// The string that can be used to pull this image
 	DockerImageReference string
 	// The image
@@ -109,7 +109,7 @@ type TagEvent struct {
 // ImageStreamMapping represents a mapping from a single tag to a Docker image as
 // well as the reference to the Docker image repository the image came from.
 type ImageStreamMapping struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// The Docker image repository the specified image is located in
@@ -122,7 +122,7 @@ type ImageStreamMapping struct {
 }
 
 type ImageStreamTag struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// The Image associated with the ImageStream and tag.
@@ -131,7 +131,7 @@ type ImageStreamTag struct {
 
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// The Image associated with the ImageStream and image name.

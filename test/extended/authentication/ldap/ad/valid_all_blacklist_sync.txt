@@ -10,5 +10,5 @@ metadata:
   name: group2
 users:
 - person1smith@example.com
-- 'person2mith@example.com '
+- person2smith@example.com
 - person3smith@example.com
