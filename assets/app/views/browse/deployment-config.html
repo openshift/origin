@@ -5,7 +5,10 @@
     <div ng-if="!loaded">Loading...</div>
     <div class="tile" ng-if="deploymentConfig">
       <div> 
-        <h1>{{deploymentConfig.metadata.name}}</h1>
+        <h1>
+          {{deploymentConfig.metadata.name}}
+          <span ng-if="deploymentConfig.status.details.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{deploymentConfig.status.details.message}}"></span>
+        </h1>
         <labels labels="deploymentConfig.metadata.labels" clickable="true" kind="deployments" title-kind="deployment configs" project-name="{{deploymentConfig.metadata.namespace}}" limit="3"></labels>
         <dl class="dl-horizontal left">
           <div>
