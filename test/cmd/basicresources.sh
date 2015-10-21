@@ -75,6 +75,10 @@ oc expose svc/external
 [ "$(oc get route external | grep 'external=service')" ]
 oc delete route external
 oc delete svc external
+# Expose multiport service and verify we set a port in the route
+oc create -f test/fixtures/multiport-service.yaml
+oc expose svc/frontend --name route-with-set-port
+os::util::get_object_assert 'route route-with-set-port' "{{.spec.port.targetPort}}" '5432'
 echo "expose: ok"
 
 oc delete all --all
