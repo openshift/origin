@@ -77,6 +77,19 @@ oadm policy remove-cluster-role-from-group cluster-admin system:unauthenticated
 oadm policy add-cluster-role-to-user cluster-admin system:no-user
 oadm policy remove-cluster-role-from-user cluster-admin system:no-user
 
+oadm policy add-scc-to-user privileged fake-user
+oc get scc/privileged -o yaml | grep fake-user
+oadm policy add-scc-to-user privileged -z fake-sa
+oc get scc/privileged -o yaml | grep "system:serviceaccount:cmd-admin:fake-sa"
+oadm policy add-scc-to-group privileged fake-group
+oc get scc/privileged -o yaml | grep fake-group
+oadm policy remove-scc-from-user privileged fake-user
+[ ! "$(oc get scc/privileged -o yaml | grep fake-user)" ]
+oadm policy remove-scc-from-user privileged -z fake-sa
+[ ! "$(oc get scc/privileged -o yaml | grep 'system:serviceaccount:cmd-admin:fake-sa')" ]
+oadm policy remove-scc-from-group privileged fake-group
+[ ! "$(oadm policy add-scc-to-group privileged fake-group)" ]
+
 oc delete clusterrole/cluster-status
 [ ! "$(oc get clusterrole/cluster-status)" ]
 oadm policy reconcile-cluster-roles
