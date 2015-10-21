@@ -412,7 +412,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		if err := helper.Get(kapi.NewDefaultContext(), "/imagestreams/default/test", updatedRepo, false); err != nil {
 			t.Fatalf("%s: error retrieving updated repo: %s", name, err)
 		}
-		expected := map[string]api.TagReference{
+		expectedStreamSpec := map[string]api.TagReference{
 			"another": {
 				From: &kapi.ObjectReference{
 					Kind: "ImageStreamTag",
@@ -420,8 +420,39 @@ func TestDeleteImageStreamTag(t *testing.T) {
 				},
 			},
 		}
-		if e, a := expected, updatedRepo.Spec.Tags; !reflect.DeepEqual(e, a) {
-			t.Errorf("%s: tags: expected %v, got %v", name, e, a)
+		expectedStreamStatus := map[string]api.TagEventList{
+			"another": {
+				Items: []api.TagEvent{
+					{
+						DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+						Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+					},
+				},
+			},
+			"foo": {
+				Items: []api.TagEvent{
+					{
+						DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+						Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+					},
+				},
+			},
+			"bar": {
+				Items: []api.TagEvent{
+					{
+						DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+						Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
+					},
+				},
+			},
 		}
+
+		if e, a := expectedStreamStatus, updatedRepo.Status.Tags; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: stream status: expected\n%v\ngot\n%v\n", name, e, a)
+		}
+		if e, a := expectedStreamSpec, updatedRepo.Spec.Tags; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: stream spec: expected\n%v\ngot\n%v\n", name, e, a)
+		}
+
 	}
 }
