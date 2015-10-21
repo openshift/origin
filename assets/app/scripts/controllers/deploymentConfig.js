@@ -93,15 +93,14 @@ angular.module('openshiftConsole')
         }
         if (!action) {
           // Loading of the page that will create deploymentConfigDeploymentsInProgress structure, which will associate running deployment to his deploymentConfig.
-          $scope.deploymentConfigDeploymentsInProgress = DeploymentsService.associateRunningDeploymentToDeploymentConfig($scope.deploymentsByDeploymentConfig);
+          $scope.deploymentConfigDeploymentsInProgress = DeploymentsService.associateRunningDeploymentToDeploymentConfig(deploymentsByDeploymentConfig);
         } else if (action === 'ADDED' || (action === 'MODIFIED' && ['New', 'Pending', 'Running'].indexOf($filter('deploymentStatus')(deployment)) > -1)) {
           // When new deployment id instantiated/cloned, or in case of a retry, associate him to his deploymentConfig and add him into deploymentConfigDeploymentsInProgress structure.
           $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] = $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] || {};
           $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName] = deployment;
         } else if (action === 'MODIFIED') {
           // After the deployment ends remove him from the deploymentConfigDeploymentsInProgress structure.
-          var status = $filter('deploymentStatus')(deployment);
-          if (status === "Complete" || status === "Failed"){
+          if (!$filter('deploymentIsInProgress')(deployment)){
             delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
           }
         }
