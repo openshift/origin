@@ -18,7 +18,7 @@ func CreateSampleImageStream(namespace string) *imageapi.ImageStream {
 		fmt.Printf("ERROR: Unable to read: %v", err)
 		return nil
 	}
-	latest.Codec.DecodeInto(jsonData, &stream)
+	latest.CodecForLegacyGroup().DecodeInto(jsonData, &stream)
 
 	client, _ := GetClusterAdminClient(KubeConfigPath())
 	result, err := client.ImageStreams(namespace).Create(&stream)
@@ -44,7 +44,7 @@ func GetBuildFixture(filename string) *buildapi.Build {
 		fmt.Printf("ERROR: Unable to read %s: %v", filename, err)
 		return nil
 	}
-	latest.Codec.DecodeInto(jsonData, &build)
+	latest.CodecForLegacyGroup().DecodeInto(jsonData, &build)
 	return &build
 }
 
@@ -55,6 +55,6 @@ func GetSecretFixture(filename string) *kapi.Secret {
 		fmt.Printf("ERROR: Unable to read %s: %v", filename, err)
 		return nil
 	}
-	latest.Codec.DecodeInto(jsonData, &secret)
+	latest.CodecForLegacyGroup().DecodeInto(jsonData, &secret)
 	return &secret
 }

@@ -1,14 +1,15 @@
 package v1beta3
 
 import (
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
 )
 
 // ProjectList is a list of Project objects.
 type ProjectList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Project `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []Project `json:"items"`
 }
 
 const (
@@ -29,8 +30,8 @@ type ProjectStatus struct {
 
 // Project is a logical top-level container for a set of origin resources
 type Project struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Spec defines the behavior of the Namespace.
 	Spec ProjectSpec `json:"spec,omitempty" description:"spec defines the behavior of the Project"`
@@ -40,10 +41,10 @@ type Project struct {
 }
 
 type ProjectRequest struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
-	DisplayName     string `json:"displayName,omitempty"`
-	Description     string `json:"description,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
+	DisplayName          string `json:"displayName,omitempty"`
+	Description          string `json:"description,omitempty"`
 }
 
 // These constants represent annotations keys affixed to projects

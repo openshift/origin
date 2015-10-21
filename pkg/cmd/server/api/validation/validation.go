@@ -12,9 +12,9 @@ import (
 	"github.com/spf13/pflag"
 
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
-	kutil "k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
+	kuval "k8s.io/kubernetes/pkg/util/validation"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -127,7 +127,7 @@ func ValidateNamedCertificates(fieldName string, namedCertificates []api.NamedCe
 			// validate names as domain names or *.*.foo.com domain names
 			validDNSName := true
 			for _, s := range strings.Split(name, ".") {
-				if s != "*" && !kutil.IsDNS1123Label(s) {
+				if s != "*" && !kuval.IsDNS1123Label(s) {
 					validDNSName = false
 				}
 			}

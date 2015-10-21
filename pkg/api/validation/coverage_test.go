@@ -9,6 +9,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -16,6 +17,8 @@ import (
 // If you add something to this list, explain why it doesn't need validation.  waaaa is not a valid
 // reason.
 var KnownValidationExceptions = []reflect.Type{
+	reflect.TypeOf(&buildapi.BuildLog{}),                              // masks calls to a build subresource
+	reflect.TypeOf(&deployapi.DeploymentLog{}),                        // masks calls to a deploymentConfig subresource
 	reflect.TypeOf(&imageapi.ImageStreamImage{}),                      // this object is only returned, never accepted
 	reflect.TypeOf(&imageapi.ImageStreamTag{}),                        // this object is only returned, never accepted
 	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // only an api type for runtime.EmbeddedObject, never accepted
@@ -27,7 +30,6 @@ var KnownValidationExceptions = []reflect.Type{
 // You should never add to this list
 var MissingValidationExceptions = []reflect.Type{
 	reflect.TypeOf(&buildapi.BuildLogOptions{}), // TODO, looks like this one should have validation
-	reflect.TypeOf(&buildapi.BuildLog{}),        // TODO, I have no idea what this is doing
 	reflect.TypeOf(&imageapi.DockerImage{}),     // TODO, I think this type is ok to skip validation (internal), but needs review
 }
 

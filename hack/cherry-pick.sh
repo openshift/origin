@@ -16,6 +16,7 @@ cd "${OS_ROOT}"
 
 repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
 package="${UPSTREAM_PACKAGE:-pkg/api}"
+UPSTREAM_REPO_LOCATION="${UPSTREAM_REPO_LOCATION:-../../../${repo}}"
 
 if [[ "$#" -ne 1 ]]; then
   echo "You must supply a pull request by number or a Git range in the upstream ${repo} project" 1>&2
@@ -24,9 +25,8 @@ fi
 os::build::require_clean_tree # Origin tree must be clean
 
 patch="${TMPDIR:-/tmp}/patch"
-relativedir="../../../${repo}"
-if [[ ! -d "${relativedir}" ]]; then
-  echo "Expected ${relativedir} to exist" 1>&2
+if [[ ! -d "${UPSTREAM_REPO_LOCATION}" ]]; then
+  echo "Expected ${UPSTREAM_REPO_LOCATION} to exist" 1>&2
   exit 1
 fi
 
@@ -34,7 +34,7 @@ if [[ -z "${NO_REBASE-}" ]]; then
   lastrev="$(go run ${OS_ROOT}/hack/version.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
 fi
 
-pushd "${relativedir}" > /dev/null
+pushd "${UPSTREAM_REPO_LOCATION}" > /dev/null
 os::build::require_clean_tree
 git fetch
 

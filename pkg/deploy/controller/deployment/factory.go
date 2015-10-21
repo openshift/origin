@@ -40,7 +40,7 @@ func (factory *DeploymentControllerFactory) Create() controller.RunnableControll
 		// TODO: Investigate specifying annotation field selectors to fetch only 'deployments'
 		// Currently field selectors are not supported for replication controllers
 		ListFunc: func() (runtime.Object, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
+			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 		},
 		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
 			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)

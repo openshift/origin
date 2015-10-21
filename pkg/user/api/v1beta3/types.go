@@ -1,13 +1,16 @@
 package v1beta3
 
-import kapi "k8s.io/kubernetes/pkg/api/v1beta3"
+import (
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	kapi "k8s.io/kubernetes/pkg/api/v1beta3"
+)
 
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
 type User struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	FullName string `json:"fullName,omitempty"`
 
@@ -17,14 +20,14 @@ type User struct {
 }
 
 type UserList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []User `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []User `json:"items"`
 }
 
 type Identity struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// ProviderName is the source of identity information
 	ProviderName string `json:"providerName"`
@@ -40,14 +43,14 @@ type Identity struct {
 }
 
 type IdentityList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Identity `json:"items"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []Identity `json:"items"`
 }
 
 type UserIdentityMapping struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	Identity kapi.ObjectReference `json:"identity,omitempty"`
 	User     kapi.ObjectReference `json:"user,omitempty"`
@@ -55,17 +58,17 @@ type UserIdentityMapping struct {
 
 // Group represents a referenceable set of Users
 type Group struct {
-	kapi.TypeMeta   `json:",inline"`
-	kapi.ObjectMeta `json:"metadata,omitempty"`
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
 
 	// Users is the list of users in this group.
 	Users []string `json:"users" description:"list of users in this group"`
 }
 
 type GroupList struct {
-	kapi.TypeMeta `json:",inline"`
-	kapi.ListMeta `json:"metadata,omitempty"`
-	Items         []Group `json:"items" description:"list of groups"`
+	unversioned.TypeMeta `json:",inline"`
+	unversioned.ListMeta `json:"metadata,omitempty"`
+	Items                []Group `json:"items" description:"list of groups"`
 }
 
 func (*GroupList) IsAnAPIObject()           {}

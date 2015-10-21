@@ -6,10 +6,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
@@ -89,12 +89,12 @@ func (m *VirtualStorage) Delete(ctx kapi.Context, name string, options *kapi.Del
 	}
 
 	delete(policy.Roles, name)
-	policy.LastModified = util.Now()
+	policy.LastModified = unversioned.Now()
 
 	if err := m.PolicyStorage.UpdatePolicy(ctx, policy); err != nil {
 		return nil, err
 	}
-	return &kapi.Status{Status: kapi.StatusSuccess}, nil
+	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 }
 
 func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
@@ -114,7 +114,7 @@ func (m *VirtualStorage) Create(ctx kapi.Context, obj runtime.Object) (runtime.O
 
 	role.ResourceVersion = policy.ResourceVersion
 	policy.Roles[role.Name] = role
-	policy.LastModified = util.Now()
+	policy.LastModified = unversioned.Now()
 
 	if err := m.PolicyStorage.UpdatePolicy(ctx, policy); err != nil {
 		return nil, err
@@ -152,7 +152,7 @@ func (m *VirtualStorage) Update(ctx kapi.Context, obj runtime.Object) (runtime.O
 
 	role.ResourceVersion = policy.ResourceVersion
 	policy.Roles[role.Name] = role
-	policy.LastModified = util.Now()
+	policy.LastModified = unversioned.Now()
 
 	if err := m.PolicyStorage.UpdatePolicy(ctx, policy); err != nil {
 		return nil, false, err
@@ -193,8 +193,8 @@ func NewEmptyPolicy(namespace string) *authorizationapi.Policy {
 	policy := &authorizationapi.Policy{}
 	policy.Name = authorizationapi.PolicyName
 	policy.Namespace = namespace
-	policy.CreationTimestamp = util.Now()
-	policy.LastModified = util.Now()
+	policy.CreationTimestamp = unversioned.Now()
+	policy.LastModified = unversioned.Now()
 	policy.Roles = make(map[string]*authorizationapi.Role)
 
 	return policy

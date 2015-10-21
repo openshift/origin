@@ -9,6 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 
@@ -59,8 +60,8 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if allowed.Status != kapi.StatusSuccess {
-		t.Fatalf("expected %v, got %v", kapi.StatusSuccess, allowed.Status)
+	if allowed.Status != unversioned.StatusSuccess {
+		t.Fatalf("expected %v, got %v", unversioned.StatusSuccess, allowed.Status)
 	}
 
 	requestProject := oc.NewProjectOptions{

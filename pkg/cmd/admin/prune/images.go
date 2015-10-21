@@ -112,7 +112,7 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, args []string, out i
 		return err
 	}
 
-	allRCs, err := kClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
+	allRCs, err := kClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return err
 	}

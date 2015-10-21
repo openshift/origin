@@ -18,6 +18,7 @@ package v1beta3
 
 import (
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
@@ -128,7 +129,7 @@ type ObjectMeta struct {
 	// CreationTimestamp is a timestamp representing the server time when this object was
 	// created. It is not guaranteed to be set in happens-before order across separate operations.
 	// Clients may not set this value. It is represented in RFC3339 form and is in UTC.
-	CreationTimestamp util.Time `json:"creationTimestamp,omitempty" description:"RFC 3339 date and time at which the object was created; populated by the system, read-only; null for lists"`
+	CreationTimestamp unversioned.Time `json:"creationTimestamp,omitempty" description:"RFC 3339 date and time at which the object was created; populated by the system, read-only; null for lists"`
 
 	// DeletionTimestamp is the time after which this resource will be deleted. This
 	// field is set by the server when a graceful deletion is requested by the user, and is not
@@ -139,7 +140,7 @@ type ObjectMeta struct {
 	// a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination
 	// signal to the containers in the pod. Once the resource is deleted in the API, the Kubelet
 	// will send a hard termination signal to the container.
-	DeletionTimestamp *util.Time `json:"deletionTimestamp,omitempty" description:"RFC 3339 date and time at which the object will be deleted; populated by the system when a graceful deletion is requested, read-only; if not set, graceful deletion of the object has not been requested"`
+	DeletionTimestamp *unversioned.Time `json:"deletionTimestamp,omitempty" description:"RFC 3339 date and time at which the object will be deleted; populated by the system when a graceful deletion is requested, read-only; if not set, graceful deletion of the object has not been requested"`
 
 	// Number of seconds allowed for this object to gracefully terminate before
 	// it will be removed from the system. Only set when deletionTimestamp is also set.
@@ -213,8 +214,14 @@ type VolumeSource struct {
 	Cinder *CinderVolumeSource `json:"cinder,omitempty"`
 	// CephFS represents a Ceph FS mount on the host that shares a pod's lifetime
 	CephFS *CephFSVolumeSource `json:"cephfs,omitempty" description:"Ceph filesystem that will be mounted on the host machine"`
+	// Flocker represents a Flocker volume attached to a kubelet's host machine. This depends on the Flocker control service being running
+	Flocker *FlockerVolumeSource `json:"flocker,omitempty"`
+
 	// DownwardAPI represents metadata about the pod that should populate this volume
-	DownwardAPI *DownwardAPIVolumeSource `json:"downwardAPI,omitempty"`
+	DownwardAPI *DownwardAPIVolumeSource `json:"downwardAPI,omitempty" description: "Metadata volume containing information about the pod"`
+	// FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod.
+	FC *FCVolumeSource `json:"fc,omitempty"`
+
 	// Metadata represents metadata about the pod that should populate this volume
 	// NOTE: Deprecated in favor of DownwardAPI
 	Metadata *MetadataVolumeSource `json:"metadata,omitempty" description: "Metadata volume containing information about the pod"`
@@ -255,6 +262,10 @@ type PersistentVolumeSource struct {
 	// Cinder represents a cinder volume attached and mounted on kubelets host machine
 	// More info: http://releases.k8s.io/HEAD/examples/mysql-cinder-pd/README.md
 	Cinder *CinderVolumeSource `json:"cinder,omitempty"`
+	// FC represents a Fibre Channel resource that is attached to a kubelet's host machine and then exposed to the pod.
+	FC *FCVolumeSource `json:"fc,omitempty"`
+	// Flocker represents a Flocker volume attached to a kubelet's host machine and exposed to the pod for its usage. This depends on the Flocker control service being running
+	Flocker *FlockerVolumeSource `json:"flocker,omitempty"`
 }
 
 type PersistentVolume struct {
@@ -428,22 +439,6 @@ type DownwardAPIVolumeFile struct {
 	FieldRef ObjectFieldSelector `json:"fieldRef"`
 }
 
-// MetadataVolumeSource represents a volume containing metadata about a pod.
-// NOTE: Deprecated in favor of DownwardAPIVolumeSource
-type MetadataVolumeSource struct {
-	// Items is a list of metadata file name
-	Items []MetadataFile `json:"items,omitempty" description:"list of metadata files"`
-}
-
-// MetadataFile expresses information about a file holding pod metadata.
-// NOTE: Deprecated in favor of DownwardAPIVolumeFile
-type MetadataFile struct {
-	// Required: Name is the name of the file
-	Name string `json:"name" description:"the name of the file to be created"`
-	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
-	FieldRef ObjectFieldSelector `json:"fieldRef" description:"selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"`
-}
-
 // StorageMedium defines ways that storage can be allocated to a volume.
 type StorageMedium string
 
@@ -502,6 +497,12 @@ type CephFSVolumeSource struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty"  description:"Ceph fs to be mounted with read-only permissions"`
+}
+
+// FlockerVolumeSource represents a Flocker volume mounted by the Flocker agent.
+type FlockerVolumeSource struct {
+	// Required: the volume name. This is going to be store on metadata -> name on the payload for Flocker
+	DatasetName string `json:"datasetName"`
 }
 
 const (
@@ -609,6 +610,22 @@ type ISCSIVolumeSource struct {
 	// Optional: Defaults to false (read/write). ReadOnly here will force
 	// the ReadOnly setting in VolumeMounts.
 	ReadOnly bool `json:"readOnly,omitempty" description:"read-only if true, read-write otherwise (false or unspecified)"`
+}
+
+// A Fibre Channel Disk can only be mounted as read/write once.
+type FCVolumeSource struct {
+	// Required: FC target world wide names (WWNs)
+	TargetWWNs []string `json:"targetWWNs"`
+	// Required: FC target lun number
+	Lun *int `json:"lun"`
+	// Required: Filesystem type to mount.
+	// Must be a filesystem type supported by the host operating system.
+	// Ex. "ext4", "xfs", "ntfs"
+	// TODO: how do we prevent errors in the filesystem from compromising the machine
+	FSType string `json:"fsType"`
+	// Optional: Defaults to false (read/write). ReadOnly here will force
+	// the ReadOnly setting in VolumeMounts.
+	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
 // ContainerPort represents a network port in a single container.
@@ -842,17 +859,17 @@ type ContainerStateWaiting struct {
 }
 
 type ContainerStateRunning struct {
-	StartedAt util.Time `json:"startedAt,omitempty" description:"time at which the container was last (re-)started"`
+	StartedAt unversioned.Time `json:"startedAt,omitempty" description:"time at which the container was last (re-)started"`
 }
 
 type ContainerStateTerminated struct {
-	ExitCode    int       `json:"exitCode" description:"exit status from the last termination of the container"`
-	Signal      int       `json:"signal,omitempty" description:"signal from the last termination of the container"`
-	Reason      string    `json:"reason,omitempty" description:"(brief) reason from the last termination of the container"`
-	Message     string    `json:"message,omitempty" description:"message regarding the last termination of the container"`
-	StartedAt   util.Time `json:"startedAt,omitempty" description:"time at which previous execution of the container started"`
-	FinishedAt  util.Time `json:"finishedAt,omitempty" description:"time at which the container last terminated"`
-	ContainerID string    `json:"containerID,omitempty" description:"container's ID in the format 'docker://<container_id>'"`
+	ExitCode    int              `json:"exitCode" description:"exit status from the last termination of the container"`
+	Signal      int              `json:"signal,omitempty" description:"signal from the last termination of the container"`
+	Reason      string           `json:"reason,omitempty" description:"(brief) reason from the last termination of the container"`
+	Message     string           `json:"message,omitempty" description:"message regarding the last termination of the container"`
+	StartedAt   unversioned.Time `json:"startedAt,omitempty" description:"time at which previous execution of the container started"`
+	FinishedAt  unversioned.Time `json:"finishedAt,omitempty" description:"time at which the container last terminated"`
+	ContainerID string           `json:"containerID,omitempty" description:"container's ID in the format 'docker://<container_id>'"`
 }
 
 // ContainerState holds a possible state of container.
@@ -1004,7 +1021,7 @@ type PodStatus struct {
 	HostIP string `json:"hostIP,omitempty" description:"IP address of the host to which the pod is assigned; empty if not yet scheduled"`
 	PodIP  string `json:"podIP,omitempty" description:"IP address allocated to the pod; routable at least within the cluster; empty if not yet allocated"`
 
-	StartTime *util.Time `json:"startTime,omitempty" description:"RFC 3339 date and time at which the object was acknowledged by the Kubelet.  This is before the Kubelet pulled the container image(s) for the pod."`
+	StartTime *unversioned.Time `json:"startTime,omitempty" description:"RFC 3339 date and time at which the object was acknowledged by the Kubelet.  This is before the Kubelet pulled the container image(s) for the pod."`
 
 	// The list has one entry per container in the manifest. Each entry is currently the output
 	// of `docker inspect`.
@@ -1419,8 +1436,8 @@ const (
 type NodeCondition struct {
 	Type               NodeConditionType `json:"type" description:"type of node condition, currently only Ready"`
 	Status             ConditionStatus   `json:"status" description:"status of the condition, one of True, False, Unknown"`
-	LastHeartbeatTime  util.Time         `json:"lastHeartbeatTime,omitempty" description:"last time we got an update on a given condition"`
-	LastTransitionTime util.Time         `json:"lastTransitionTime,omitempty" description:"last time the condition transit from one status to another"`
+	LastHeartbeatTime  unversioned.Time  `json:"lastHeartbeatTime,omitempty" description:"last time we got an update on a given condition"`
+	LastTransitionTime unversioned.Time  `json:"lastTransitionTime,omitempty" description:"last time the condition transit from one status to another"`
 	Reason             string            `json:"reason,omitempty" description:"(brief) reason for the condition's last transition"`
 	Message            string            `json:"message,omitempty" description:"human readable message indicating details about last transition"`
 }
@@ -1819,10 +1836,10 @@ type Event struct {
 	Source EventSource `json:"source,omitempty" description:"component reporting this event"`
 
 	// The time at which the event was first recorded. (Time of server receipt is in TypeMeta.)
-	FirstTimestamp util.Time `json:"firstTimestamp,omitempty" description:"the time at which the event was first recorded"`
+	FirstTimestamp unversioned.Time `json:"firstTimestamp,omitempty" description:"the time at which the event was first recorded"`
 
 	// The time at which the most recent occurance of this event was recorded.
-	LastTimestamp util.Time `json:"lastTimestamp,omitempty" description:"the time at which the most recent occurance of this event was recorded"`
+	LastTimestamp unversioned.Time `json:"lastTimestamp,omitempty" description:"the time at which the most recent occurance of this event was recorded"`
 
 	// The number of times this event has occurred.
 	Count int `json:"count,omitempty" description:"the number of times this event has occurred"`
@@ -2216,4 +2233,20 @@ type SecurityContextConstraintsList struct {
 	ListMeta `json:"metadata,omitempty"`
 
 	Items []SecurityContextConstraints `json:"items"`
+}
+
+// MetadataVolumeSource represents a volume containing metadata about a pod.
+// NOTE: Deprecated in favor of DownwardAPIVolumeSource
+type MetadataVolumeSource struct {
+	// Items is a list of metadata file name
+	Items []MetadataFile `json:"items,omitempty" description:"list of metadata files"`
+}
+
+// MetadataFile expresses information about a file holding pod metadata.
+// NOTE: Deprecated in favor of DownwardAPIVolumeFile
+type MetadataFile struct {
+	// Required: Name is the name of the file
+	Name string `json:"name" description:"the name of the file to be created"`
+	// Required: Selects a field of the pod: only annotations, labels, name and namespace are supported.
+	FieldRef ObjectFieldSelector `json:"fieldRef" description:"selects a field of the pod. Supported fields: metadata.annotations, metadata.labels, metadata.name, metadata.namespace"`
 }

@@ -16,9 +16,7 @@ limitations under the License.
 
 package gce_cloud
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestGetRegion(t *testing.T) {
 	gce := &GCECloud{
@@ -34,34 +32,6 @@ func TestGetRegion(t *testing.T) {
 	}
 	if zone.Region != "us-central1" {
 		t.Errorf("Unexpected region: %s", zone.Region)
-	}
-}
-
-func TestGetHostTag(t *testing.T) {
-	tests := []struct {
-		host     string
-		expected string
-	}{
-		{
-			host:     "kubernetes-minion-559o",
-			expected: "kubernetes-minion",
-		},
-		{
-			host:     "gke-test-ea6e8c80-node-8ytk",
-			expected: "gke-test-ea6e8c80-node",
-		},
-		{
-			host:     "kubernetes-minion-559o.c.PROJECT_NAME.internal",
-			expected: "kubernetes-minion",
-		},
-	}
-
-	gce := &GCECloud{}
-	for _, test := range tests {
-		hostTag := gce.computeHostTag(test.host)
-		if hostTag != test.expected {
-			t.Errorf("expected: %s, saw: %s for %s", test.expected, hostTag, test.host)
-		}
 	}
 }
 

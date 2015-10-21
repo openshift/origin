@@ -35,10 +35,12 @@ import (
 
 	cadvisorApi "github.com/google/cadvisor/info/v1"
 	"k8s.io/kubernetes/pkg/api"
+	apierrs "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/httpstream"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
@@ -58,7 +60,7 @@ type fakeKubelet struct {
 	execFunc                           func(pod string, uid types.UID, container string, cmd []string, in io.Reader, out, err io.WriteCloser, tty bool) error
 	attachFunc                         func(pod string, uid types.UID, container string, in io.Reader, out, err io.WriteCloser, tty bool) error
 	portForwardFunc                    func(name string, uid types.UID, port uint16, stream io.ReadWriteCloser) error
-	containerLogsFunc                  func(podFullName, containerName, tail string, follow, pervious bool, stdout, stderr io.Writer) error
+	containerLogsFunc                  func(podFullName, containerName string, logOptions *api.PodLogOptions, stdout, stderr io.Writer) error
 	streamingConnectionIdleTimeoutFunc func() time.Duration
 	hostnameFunc                       func() string
 	resyncInterval                     time.Duration
@@ -105,8 +107,8 @@ func (fk *fakeKubelet) ServeLogs(w http.ResponseWriter, req *http.Request) {
 	fk.logFunc(w, req)
 }
 
-func (fk *fakeKubelet) GetKubeletContainerLogs(podFullName, containerName, tail string, follow, previous bool, stdout, stderr io.Writer) error {
-	return fk.containerLogsFunc(podFullName, containerName, tail, follow, previous, stdout, stderr)
+func (fk *fakeKubelet) GetKubeletContainerLogs(podFullName, containerName string, logOptions *api.PodLogOptions, stdout, stderr io.Writer) error {
+	return fk.containerLogsFunc(podFullName, containerName, logOptions, stdout, stderr)
 }
 
 func (fk *fakeKubelet) GetHostname() string {
@@ -209,7 +211,7 @@ func readResp(resp *http.Response) (string, error) {
 // A helper function to return the correct pod name.
 func getPodName(name, namespace string) string {
 	if namespace == "" {
-		namespace = NamespaceDefault
+		namespace = kubetypes.NamespaceDefault
 	}
 	return name + "_" + namespace
 }
@@ -768,22 +770,16 @@ func setPodByNameFunc(fw *serverTestFramework, namespace, pod, container string)
 	}
 }
 
-func setGetContainerLogsFunc(fw *serverTestFramework, t *testing.T, expectedPodName, expectedContainerName, expectedTail string, expectedFollow, expectedPrevious bool, output string) {
-	fw.fakeKubelet.containerLogsFunc = func(podFullName, containerName, tail string, follow, previous bool, stdout, stderr io.Writer) error {
+func setGetContainerLogsFunc(fw *serverTestFramework, t *testing.T, expectedPodName, expectedContainerName string, expectedLogOptions *api.PodLogOptions, output string) {
+	fw.fakeKubelet.containerLogsFunc = func(podFullName, containerName string, logOptions *api.PodLogOptions, stdout, stderr io.Writer) error {
 		if podFullName != expectedPodName {
 			t.Errorf("expected %s, got %s", expectedPodName, podFullName)
 		}
 		if containerName != expectedContainerName {
 			t.Errorf("expected %s, got %s", expectedContainerName, containerName)
 		}
-		if tail != expectedTail {
-			t.Errorf("expected %s, got %s", expectedTail, tail)
-		}
-		if follow != expectedFollow {
-			t.Errorf("expected %t, got %t", expectedFollow, follow)
-		}
-		if previous != expectedPrevious {
-			t.Errorf("expected %t, got %t", expectedPrevious, previous)
+		if !reflect.DeepEqual(expectedLogOptions, logOptions) {
+			t.Errorf("expected %#v, got %#v", expectedLogOptions, logOptions)
 		}
 
 		io.WriteString(stdout, output)
@@ -791,6 +787,7 @@ func setGetContainerLogsFunc(fw *serverTestFramework, t *testing.T, expectedPodN
 	}
 }
 
+// TODO: I really want to be a table driven test
 func TestContainerLogs(t *testing.T) {
 	fw := newServerTest()
 	output := "foo bar"
@@ -798,11 +795,8 @@ func TestContainerLogs(t *testing.T) {
 	podName := "foo"
 	expectedPodName := getPodName(podName, podNamespace)
 	expectedContainerName := "baz"
-	expectedTail := ""
-	expectedFollow := false
-	expectedPrevious := false
 	setPodByNameFunc(fw, podNamespace, podName, expectedContainerName)
-	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, expectedTail, expectedFollow, expectedPrevious, output)
+	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, &api.PodLogOptions{}, output)
 	resp, err := http.Get(fw.testHTTPServer.URL + "/containerLogs/" + podNamespace + "/" + podName + "/" + expectedContainerName)
 	if err != nil {
 		t.Errorf("Got error GETing: %v", err)
@@ -819,6 +813,32 @@ func TestContainerLogs(t *testing.T) {
 	}
 }
 
+func TestContainerLogsWithLimitBytes(t *testing.T) {
+	fw := newServerTest()
+	output := "foo bar"
+	podNamespace := "other"
+	podName := "foo"
+	expectedPodName := getPodName(podName, podNamespace)
+	expectedContainerName := "baz"
+	bytes := int64(3)
+	setPodByNameFunc(fw, podNamespace, podName, expectedContainerName)
+	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, &api.PodLogOptions{LimitBytes: &bytes}, output)
+	resp, err := http.Get(fw.testHTTPServer.URL + "/containerLogs/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?limitBytes=3")
+	if err != nil {
+		t.Errorf("Got error GETing: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading container logs: %v", err)
+	}
+	result := string(body)
+	if result != output[:bytes] {
+		t.Errorf("Expected: '%v', got: '%v'", output[:bytes], result)
+	}
+}
+
 func TestContainerLogsWithTail(t *testing.T) {
 	fw := newServerTest()
 	output := "foo bar"
@@ -826,11 +846,35 @@ func TestContainerLogsWithTail(t *testing.T) {
 	podName := "foo"
 	expectedPodName := getPodName(podName, podNamespace)
 	expectedContainerName := "baz"
-	expectedTail := "5"
-	expectedFollow := false
-	expectedPrevious := false
+	expectedTail := int64(5)
 	setPodByNameFunc(fw, podNamespace, podName, expectedContainerName)
-	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, expectedTail, expectedFollow, expectedPrevious, output)
+	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, &api.PodLogOptions{TailLines: &expectedTail}, output)
+	resp, err := http.Get(fw.testHTTPServer.URL + "/containerLogs/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?tailLines=5")
+	if err != nil {
+		t.Errorf("Got error GETing: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading container logs: %v", err)
+	}
+	result := string(body)
+	if result != output {
+		t.Errorf("Expected: '%v', got: '%v'", output, result)
+	}
+}
+
+func TestContainerLogsWithLegacyTail(t *testing.T) {
+	fw := newServerTest()
+	output := "foo bar"
+	podNamespace := "other"
+	podName := "foo"
+	expectedPodName := getPodName(podName, podNamespace)
+	expectedContainerName := "baz"
+	expectedTail := int64(5)
+	setPodByNameFunc(fw, podNamespace, podName, expectedContainerName)
+	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, &api.PodLogOptions{TailLines: &expectedTail}, output)
 	resp, err := http.Get(fw.testHTTPServer.URL + "/containerLogs/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?tail=5")
 	if err != nil {
 		t.Errorf("Got error GETing: %v", err)
@@ -847,6 +891,50 @@ func TestContainerLogsWithTail(t *testing.T) {
 	}
 }
 
+func TestContainerLogsWithTailAll(t *testing.T) {
+	fw := newServerTest()
+	output := "foo bar"
+	podNamespace := "other"
+	podName := "foo"
+	expectedPodName := getPodName(podName, podNamespace)
+	expectedContainerName := "baz"
+	setPodByNameFunc(fw, podNamespace, podName, expectedContainerName)
+	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, &api.PodLogOptions{}, output)
+	resp, err := http.Get(fw.testHTTPServer.URL + "/containerLogs/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?tail=all")
+	if err != nil {
+		t.Errorf("Got error GETing: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading container logs: %v", err)
+	}
+	result := string(body)
+	if result != output {
+		t.Errorf("Expected: '%v', got: '%v'", output, result)
+	}
+}
+
+func TestContainerLogsWithInvalidTail(t *testing.T) {
+	fw := newServerTest()
+	output := "foo bar"
+	podNamespace := "other"
+	podName := "foo"
+	expectedPodName := getPodName(podName, podNamespace)
+	expectedContainerName := "baz"
+	setPodByNameFunc(fw, podNamespace, podName, expectedContainerName)
+	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, &api.PodLogOptions{}, output)
+	resp, err := http.Get(fw.testHTTPServer.URL + "/containerLogs/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?tail=-1")
+	if err != nil {
+		t.Errorf("Got error GETing: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != apierrs.StatusUnprocessableEntity {
+		t.Errorf("Unexpected non-error reading container logs: %#v", resp)
+	}
+}
+
 func TestContainerLogsWithFollow(t *testing.T) {
 	fw := newServerTest()
 	output := "foo bar"
@@ -854,11 +942,8 @@ func TestContainerLogsWithFollow(t *testing.T) {
 	podName := "foo"
 	expectedPodName := getPodName(podName, podNamespace)
 	expectedContainerName := "baz"
-	expectedTail := ""
-	expectedFollow := true
-	expectedPrevious := false
 	setPodByNameFunc(fw, podNamespace, podName, expectedContainerName)
-	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, expectedTail, expectedFollow, expectedPrevious, output)
+	setGetContainerLogsFunc(fw, t, expectedPodName, expectedContainerName, &api.PodLogOptions{Follow: true}, output)
 	resp, err := http.Get(fw.testHTTPServer.URL + "/containerLogs/" + podNamespace + "/" + podName + "/" + expectedContainerName + "?follow=1")
 	if err != nil {
 		t.Errorf("Got error GETing: %v", err)
@@ -1550,5 +1635,223 @@ func TestServePortForward(t *testing.T) {
 		}
 
 		<-portForwardFuncDone
+	}
+}
+
+type fakeHttpStream struct {
+	headers http.Header
+	id      uint32
+}
+
+func newFakeHttpStream() *fakeHttpStream {
+	return &fakeHttpStream{
+		headers: make(http.Header),
+	}
+}
+
+var _ httpstream.Stream = &fakeHttpStream{}
+
+func (s *fakeHttpStream) Read(data []byte) (int, error) {
+	return 0, nil
+}
+
+func (s *fakeHttpStream) Write(data []byte) (int, error) {
+	return 0, nil
+}
+
+func (s *fakeHttpStream) Close() error {
+	return nil
+}
+
+func (s *fakeHttpStream) Reset() error {
+	return nil
+}
+
+func (s *fakeHttpStream) Headers() http.Header {
+	return s.headers
+}
+
+func (s *fakeHttpStream) Identifier() uint32 {
+	return s.id
+}
+
+func TestPortForwardStreamReceived(t *testing.T) {
+	tests := map[string]struct {
+		port          string
+		streamType    string
+		expectedError string
+	}{
+		"missing port": {
+			expectedError: `"port" header is required`,
+		},
+		"unable to parse port": {
+			port:          "abc",
+			expectedError: `unable to parse "abc" as a port: strconv.ParseUint: parsing "abc": invalid syntax`,
+		},
+		"negative port": {
+			port:          "-1",
+			expectedError: `unable to parse "-1" as a port: strconv.ParseUint: parsing "-1": invalid syntax`,
+		},
+		"missing stream type": {
+			port:          "80",
+			expectedError: `"streamType" header is required`,
+		},
+		"valid port with error stream": {
+			port:       "80",
+			streamType: "error",
+		},
+		"valid port with data stream": {
+			port:       "80",
+			streamType: "data",
+		},
+		"invalid stream type": {
+			port:          "80",
+			streamType:    "foo",
+			expectedError: `invalid stream type "foo"`,
+		},
+	}
+	for name, test := range tests {
+		streams := make(chan httpstream.Stream, 1)
+		f := portForwardStreamReceived(streams)
+		stream := newFakeHttpStream()
+		if len(test.port) > 0 {
+			stream.headers.Set("port", test.port)
+		}
+		if len(test.streamType) > 0 {
+			stream.headers.Set("streamType", test.streamType)
+		}
+		err := f(stream)
+		if len(test.expectedError) > 0 {
+			if err == nil {
+				t.Errorf("%s: expected err=%q, but it was nil", name, test.expectedError)
+			}
+			if e, a := test.expectedError, err.Error(); e != a {
+				t.Errorf("%s: expected err=%q, got %q", name, e, a)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("%s: unexpected error %v", name, err)
+			continue
+		}
+		if s := <-streams; s != stream {
+			t.Errorf("%s: expected stream %#v, got %#v", name, stream, s)
+		}
+	}
+}
+
+func TestGetStreamPair(t *testing.T) {
+	timeout := make(chan time.Time)
+
+	h := &portForwardStreamHandler{
+		streamPairs: make(map[string]*portForwardStreamPair),
+	}
+
+	// test adding a new entry
+	p, created := h.getStreamPair("1")
+	if p == nil {
+		t.Fatalf("unexpected nil pair")
+	}
+	if !created {
+		t.Fatal("expected created=true")
+	}
+	if p.dataStream != nil {
+		t.Errorf("unexpected non-nil data stream")
+	}
+	if p.errorStream != nil {
+		t.Errorf("unexpected non-nil error stream")
+	}
+
+	// start the monitor for this pair
+	monitorDone := make(chan struct{})
+	go func() {
+		h.monitorStreamPair(p, timeout)
+		close(monitorDone)
+	}()
+
+	if !h.hasStreamPair("1") {
+		t.Fatal("This should still be true")
+	}
+
+	// make sure we can retrieve an existing entry
+	p2, created := h.getStreamPair("1")
+	if created {
+		t.Fatal("expected created=false")
+	}
+	if p != p2 {
+		t.Fatalf("retrieving an existing pair: expected %#v, got %#v", p, p2)
+	}
+
+	// removed via complete
+	dataStream := newFakeHttpStream()
+	dataStream.headers.Set(api.StreamType, api.StreamTypeData)
+	complete, err := p.add(dataStream)
+	if err != nil {
+		t.Fatalf("unexpected error adding data stream to pair: %v", err)
+	}
+	if complete {
+		t.Fatalf("unexpected complete")
+	}
+
+	errorStream := newFakeHttpStream()
+	errorStream.headers.Set(api.StreamType, api.StreamTypeError)
+	complete, err = p.add(errorStream)
+	if err != nil {
+		t.Fatalf("unexpected error adding error stream to pair: %v", err)
+	}
+	if !complete {
+		t.Fatal("unexpected incomplete")
+	}
+
+	// make sure monitorStreamPair completed
+	<-monitorDone
+
+	// make sure the pair was removed
+	if h.hasStreamPair("1") {
+		t.Fatal("expected removal of pair after both data and error streams received")
+	}
+
+	// removed via timeout
+	p, created = h.getStreamPair("2")
+	if !created {
+		t.Fatal("expected created=true")
+	}
+	if p == nil {
+		t.Fatal("expected p not to be nil")
+	}
+	monitorDone = make(chan struct{})
+	go func() {
+		h.monitorStreamPair(p, timeout)
+		close(monitorDone)
+	}()
+	// cause the timeout
+	close(timeout)
+	// make sure monitorStreamPair completed
+	<-monitorDone
+	if h.hasStreamPair("2") {
+		t.Fatal("expected stream pair to be removed")
+	}
+}
+
+func TestRequestID(t *testing.T) {
+	h := &portForwardStreamHandler{}
+
+	s := newFakeHttpStream()
+	s.headers.Set(api.StreamType, api.StreamTypeError)
+	s.id = 1
+	if e, a := "1", h.requestID(s); e != a {
+		t.Errorf("expected %q, got %q", e, a)
+	}
+
+	s.headers.Set(api.StreamType, api.StreamTypeData)
+	s.id = 3
+	if e, a := "1", h.requestID(s); e != a {
+		t.Errorf("expected %q, got %q", e, a)
+	}
+
+	s.id = 7
+	s.headers.Set(api.PortForwardRequestIDHeader, "2")
+	if e, a := "2", h.requestID(s); e != a {
+		t.Errorf("expected %q, got %q", e, a)
 	}
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -28,14 +29,17 @@ import (
 )
 
 const (
-	consumptionTimeInSeconds = 30
-	sleepTime                = 30 * time.Second
-	requestSizeInMillicores  = 100
-	port                     = 80
-	targetPort               = 8080
-	timeoutRC                = 120 * time.Second
-	image                    = "gcr.io/google_containers/resource_consumer:alpha"
-	rcIsNil                  = "ERROR: replicationController = nil"
+	dynamicConsumptionTimeInSeconds = 30
+	staticConsumptionTimeInSeconds  = 3600
+	dynamicRequestSizeInMillicores  = 100
+	dynamicRequestSizeInMegabytes   = 100
+	port                            = 80
+	targetPort                      = 8080
+	timeoutRC                       = 120 * time.Second
+	startServiceTimeout             = time.Minute
+	startServiceInterval            = 5 * time.Second
+	resourceConsumerImage           = "gcr.io/google_containers/resource_consumer:beta"
+	rcIsNil                         = "ERROR: replicationController = nil"
 )
 
 /*
@@ -47,62 +51,137 @@ rc.ConsumeCPU(300)
 // ... check your assumption here
 */
 type ResourceConsumer struct {
-	name      string
-	framework *Framework
-	channel   chan int
-	stop      chan int
+	name                     string
+	framework                *Framework
+	cpu                      chan int
+	mem                      chan int
+	stopCPU                  chan int
+	stopMem                  chan int
+	consumptionTimeInSeconds int
+	sleepTime                time.Duration
+	requestSizeInMillicores  int
+	requestSizeInMegabytes   int
 }
 
-// NewResourceConsumer creates new ResourceConsumer
-// cpu argument is in millicores
-func NewResourceConsumer(name string, replicas int, cpu int, framework *Framework) *ResourceConsumer {
-	runServiceAndRCForResourceConsumer(framework.Client, framework.Namespace.Name, name, replicas)
+func NewDynamicResourceConsumer(name string, replicas, initCPU, initMemory int, cpuLimit, memLimit int64, framework *Framework) *ResourceConsumer {
+	return newResourceConsumer(name, replicas, initCPU, initMemory, dynamicConsumptionTimeInSeconds, dynamicRequestSizeInMillicores, dynamicRequestSizeInMegabytes, cpuLimit, memLimit, framework)
+}
+
+func NewStaticResourceConsumer(name string, replicas, initCPU, initMemory int, cpuLimit, memLimit int64, framework *Framework) *ResourceConsumer {
+	return newResourceConsumer(name, replicas, initCPU, initMemory, staticConsumptionTimeInSeconds, initCPU/replicas, initMemory/replicas, cpuLimit, memLimit, framework)
+}
+
+/*
+NewResourceConsumer creates new ResourceConsumer
+initCPU argument is in millicores
+initMemory argument is in megabytes
+memLimit argument is in megabytes, memLimit is a maximum amount of memory that can be consumed by a single pod
+cpuLimit argument is in millicores, cpuLimit is a maximum amount of cpu that can be consumed by a single pod
+*/
+func newResourceConsumer(name string, replicas, initCPU, initMemory, consumptionTimeInSeconds, requestSizeInMillicores, requestSizeInMegabytes int, cpuLimit, memLimit int64, framework *Framework) *ResourceConsumer {
+	runServiceAndRCForResourceConsumer(framework.Client, framework.Namespace.Name, name, replicas, cpuLimit, memLimit)
 	rc := &ResourceConsumer{
-		name:      name,
-		framework: framework,
-		channel:   make(chan int),
-		stop:      make(chan int),
+		name:                     name,
+		framework:                framework,
+		cpu:                      make(chan int),
+		mem:                      make(chan int),
+		stopCPU:                  make(chan int),
+		stopMem:                  make(chan int),
+		consumptionTimeInSeconds: consumptionTimeInSeconds,
+		sleepTime:                time.Duration(consumptionTimeInSeconds) * time.Second,
+		requestSizeInMillicores:  requestSizeInMillicores,
+		requestSizeInMegabytes:   requestSizeInMegabytes,
 	}
 	go rc.makeConsumeCPURequests()
-	rc.ConsumeCPU(cpu)
+	rc.ConsumeCPU(initCPU)
+	go rc.makeConsumeMemRequests()
+	rc.ConsumeMem(initMemory)
 	return rc
 }
 
 // ConsumeCPU consumes given number of CPU
 func (rc *ResourceConsumer) ConsumeCPU(millicores int) {
-	rc.channel <- millicores
+	Logf("RC %s: consume %v millicores in total", rc.name, millicores)
+	rc.cpu <- millicores
+}
+
+// ConsumeMem consumes given number of Mem
+func (rc *ResourceConsumer) ConsumeMem(megabytes int) {
+	Logf("RC %s: consume %v MB in total", rc.name, megabytes)
+	rc.mem <- megabytes
 }
 
 func (rc *ResourceConsumer) makeConsumeCPURequests() {
 	defer GinkgoRecover()
 	var count int
 	var rest int
+	sleepTime := time.Duration(0)
 	for {
 		select {
-		case millicores := <-rc.channel:
-			count = millicores / requestSizeInMillicores
-			rest = millicores - count*requestSizeInMillicores
+		case millicores := <-rc.cpu:
+			Logf("RC %s: consume %v millicores in total", rc.name, millicores)
+			if rc.requestSizeInMillicores != 0 {
+				count = millicores / rc.requestSizeInMillicores
+			}
+			rest = millicores - count*rc.requestSizeInMillicores
 		case <-time.After(sleepTime):
+			Logf("RC %s: sending %v requests to consume %v millicores each and 1 request to consume %v millicores", rc.name, count, rc.requestSizeInMillicores, rest)
 			if count > 0 {
-				rc.sendConsumeCPUrequests(count, requestSizeInMillicores, consumptionTimeInSeconds)
+				rc.sendConsumeCPURequests(count, rc.requestSizeInMillicores, rc.consumptionTimeInSeconds)
 			}
 			if rest > 0 {
-				go rc.sendOneConsumeCPUrequest(rest, consumptionTimeInSeconds)
+				go rc.sendOneConsumeCPURequest(rest, rc.consumptionTimeInSeconds)
 			}
-		case <-rc.stop:
+			sleepTime = rc.sleepTime
+		case <-rc.stopCPU:
 			return
 		}
 	}
 }
 
-func (rc *ResourceConsumer) sendConsumeCPUrequests(requests, millicores, durationSec int) {
-	for i := 0; i < requests; i++ {
-		go rc.sendOneConsumeCPUrequest(millicores, durationSec)
+func (rc *ResourceConsumer) makeConsumeMemRequests() {
+	defer GinkgoRecover()
+	var count int
+	var rest int
+	sleepTime := time.Duration(0)
+	for {
+		select {
+		case megabytes := <-rc.mem:
+			Logf("RC %s: consume %v MB in total", rc.name, megabytes)
+			if rc.requestSizeInMegabytes != 0 {
+				count = megabytes / rc.requestSizeInMegabytes
+			}
+			rest = megabytes - count*rc.requestSizeInMegabytes
+		case <-time.After(sleepTime):
+			Logf("RC %s: sending %v requests to consume %v MB each and 1 request to consume %v MB", rc.name, count, rc.requestSizeInMegabytes, rest)
+			if count > 0 {
+				rc.sendConsumeMemRequests(count, rc.requestSizeInMegabytes, rc.consumptionTimeInSeconds)
+			}
+			if rest > 0 {
+				go rc.sendOneConsumeMemRequest(rest, rc.consumptionTimeInSeconds)
+			}
+			sleepTime = rc.sleepTime
+		case <-rc.stopMem:
+			return
+		}
 	}
 }
 
-// sendOneConsumeCPUrequest sends POST request for cpu consumption
-func (rc *ResourceConsumer) sendOneConsumeCPUrequest(millicores int, durationSec int) {
+func (rc *ResourceConsumer) sendConsumeCPURequests(requests, millicores, durationSec int) {
+	for i := 0; i < requests; i++ {
+		go rc.sendOneConsumeCPURequest(millicores, durationSec)
+	}
+}
+
+func (rc *ResourceConsumer) sendConsumeMemRequests(requests, megabytes, durationSec int) {
+	for i := 0; i < requests; i++ {
+		go rc.sendOneConsumeMemRequest(megabytes, durationSec)
+	}
+}
+
+// sendOneConsumeCPURequest sends POST request for cpu consumption
+func (rc *ResourceConsumer) sendOneConsumeCPURequest(millicores int, durationSec int) {
+	defer GinkgoRecover()
 	_, err := rc.framework.Client.Post().
 		Prefix("proxy").
 		Namespace(rc.framework.Namespace.Name).
@@ -111,8 +190,22 @@ func (rc *ResourceConsumer) sendOneConsumeCPUrequest(millicores int, durationSec
 		Suffix("ConsumeCPU").
 		Param("millicores", strconv.Itoa(millicores)).
 		Param("durationSec", strconv.Itoa(durationSec)).
-		Do().
-		Raw()
+		DoRaw()
+	expectNoError(err)
+}
+
+// sendOneConsumeMemRequest sends POST request for memory consumption
+func (rc *ResourceConsumer) sendOneConsumeMemRequest(megabytes int, durationSec int) {
+	defer GinkgoRecover()
+	_, err := rc.framework.Client.Post().
+		Prefix("proxy").
+		Namespace(rc.framework.Namespace.Name).
+		Resource("services").
+		Name(rc.name).
+		Suffix("ConsumeMem").
+		Param("megabytes", strconv.Itoa(megabytes)).
+		Param("durationSec", strconv.Itoa(durationSec)).
+		DoRaw()
 	expectNoError(err)
 }
 
@@ -139,13 +232,17 @@ func (rc *ResourceConsumer) WaitForReplicas(desiredReplicas int) {
 }
 
 func (rc *ResourceConsumer) CleanUp() {
-	rc.stop <- 0
+	By(fmt.Sprintf("Removing consuming RC %s", rc.name))
+	rc.stopCPU <- 0
+	rc.stopMem <- 0
+	// Wait some time to ensure all child goroutines are finished.
+	time.Sleep(10 * time.Second)
 	expectNoError(DeleteRC(rc.framework.Client, rc.framework.Namespace.Name, rc.name))
 	expectNoError(rc.framework.Client.Services(rc.framework.Namespace.Name).Delete(rc.name))
-	expectNoError(rc.framework.Client.Experimental().HorizontalPodAutoscalers(rc.framework.Namespace.Name).Delete(rc.name, api.NewDeleteOptions(0)))
 }
 
-func runServiceAndRCForResourceConsumer(c *client.Client, ns, name string, replicas int) {
+func runServiceAndRCForResourceConsumer(c *client.Client, ns, name string, replicas int, cpuLimitMillis, memLimitMb int64) {
+	By(fmt.Sprintf("Running consuming RC %s with %v replicas", name, replicas))
 	_, err := c.Services(ns).Create(&api.Service{
 		ObjectMeta: api.ObjectMeta{
 			Name: name,
@@ -163,12 +260,19 @@ func runServiceAndRCForResourceConsumer(c *client.Client, ns, name string, repli
 	})
 	expectNoError(err)
 	config := RCConfig{
-		Client:    c,
-		Image:     image,
-		Name:      name,
-		Namespace: ns,
-		Timeout:   timeoutRC,
-		Replicas:  replicas,
+		Client:     c,
+		Image:      resourceConsumerImage,
+		Name:       name,
+		Namespace:  ns,
+		Timeout:    timeoutRC,
+		Replicas:   replicas,
+		CpuRequest: cpuLimitMillis,
+		CpuLimit:   cpuLimitMillis,
+		MemRequest: memLimitMb * 1024 * 1024, // MemLimit is in bytes
+		MemLimit:   memLimitMb * 1024 * 1024,
 	}
 	expectNoError(RunRC(config))
+	// Make sure endpoints are propagated.
+	// TODO(piosz): replace sleep with endpoints watch.
+	time.Sleep(10 * time.Second)
 }

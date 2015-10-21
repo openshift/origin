@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
@@ -546,10 +547,10 @@ func GetBootstrapPolicy() *authorizationapi.ClusterPolicy {
 	policy := &authorizationapi.ClusterPolicy{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              authorizationapi.PolicyName,
-			CreationTimestamp: util.Now(),
+			CreationTimestamp: unversioned.Now(),
 			UID:               util.NewUUID(),
 		},
-		LastModified: util.Now(),
+		LastModified: unversioned.Now(),
 		Roles:        make(map[string]*authorizationapi.ClusterRole),
 	}
 
@@ -565,10 +566,10 @@ func GetBootstrapPolicyBinding() *authorizationapi.ClusterPolicyBinding {
 	policyBinding := &authorizationapi.ClusterPolicyBinding{
 		ObjectMeta: kapi.ObjectMeta{
 			Name:              ":Default",
-			CreationTimestamp: util.Now(),
+			CreationTimestamp: unversioned.Now(),
 			UID:               util.NewUUID(),
 		},
-		LastModified: util.Now(),
+		LastModified: unversioned.Now(),
 		RoleBindings: make(map[string]*authorizationapi.ClusterRoleBinding),
 	}
 

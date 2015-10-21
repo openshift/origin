@@ -65,6 +65,10 @@ oc rollback rc/database-1 -o=yaml
 echo "rollback: ok"
 
 oc get dc/database
+oc expose dc/database --name=fromdc
+# should be a service
+oc get svc/fromdc
+oc delete svc/fromdc
 oc stop dc/database
 [ ! "$(oc get dc/database)" ]
 [ ! "$(oc get rc/database-1)" ]

@@ -23,9 +23,9 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util"
 )
 
 func TestEventSearch(t *testing.T) {
@@ -34,12 +34,12 @@ func TestEventSearch(t *testing.T) {
 			Method: "GET",
 			Path:   testapi.Default.ResourcePath("events", "baz", ""),
 			Query: url.Values{
-				api.FieldSelectorQueryParam(testapi.Default.Version()): []string{
+				unversioned.FieldSelectorQueryParam(testapi.Default.Version()): []string{
 					getInvolvedObjectNameFieldLabel(testapi.Default.Version()) + "=foo,",
 					"involvedObject.namespace=baz,",
 					"involvedObject.kind=Pod",
 				},
-				api.LabelSelectorQueryParam(testapi.Default.Version()): []string{},
+				unversioned.LabelSelectorQueryParam(testapi.Default.Version()): []string{},
 			},
 		},
 		Response: Response{StatusCode: 200, Body: &api.EventList{}},
@@ -65,7 +65,7 @@ func TestEventCreate(t *testing.T) {
 		APIVersion:      "apiv1",
 		ResourceVersion: "1",
 	}
-	timeStamp := util.Now()
+	timeStamp := unversioned.Now()
 	event := &api.Event{
 		ObjectMeta: api.ObjectMeta{
 			Namespace: api.NamespaceDefault,
@@ -104,7 +104,7 @@ func TestEventGet(t *testing.T) {
 		APIVersion:      "apiv1",
 		ResourceVersion: "1",
 	}
-	timeStamp := util.Now()
+	timeStamp := unversioned.Now()
 	event := &api.Event{
 		ObjectMeta: api.ObjectMeta{
 			Namespace: "other",
@@ -144,7 +144,7 @@ func TestEventList(t *testing.T) {
 		APIVersion:      "apiv1",
 		ResourceVersion: "1",
 	}
-	timeStamp := util.Now()
+	timeStamp := unversioned.Now()
 	eventList := &api.EventList{
 		Items: []api.Event{
 			{

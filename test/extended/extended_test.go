@@ -5,7 +5,6 @@ import (
 
 	flag "github.com/spf13/pflag"
 
-	_ "github.com/openshift/origin/test/extended/authentication"
 	_ "github.com/openshift/origin/test/extended/builds"
 	_ "github.com/openshift/origin/test/extended/cli"
 	_ "github.com/openshift/origin/test/extended/images"

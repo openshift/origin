@@ -101,6 +101,7 @@ func TestValidateFailures(t *testing.T) {
 	defaultPod := func() *api.Pod {
 		return &api.Pod{
 			Spec: api.PodSpec{
+				SecurityContext: &api.PodSecurityContext{},
 				Containers: []api.Container{
 					{
 						SecurityContext: &api.SecurityContext{
@@ -158,13 +159,13 @@ func TestValidateFailures(t *testing.T) {
 	}
 
 	failHostNetworkPod := defaultPod()
-	failHostNetworkPod.Spec.HostNetwork = true
+	failHostNetworkPod.Spec.SecurityContext.HostNetwork = true
 
 	failHostPIDPod := defaultPod()
-	failHostPIDPod.Spec.HostPID = true
+	failHostPIDPod.Spec.SecurityContext.HostPID = true
 
 	failHostIPCPod := defaultPod()
-	failHostIPCPod.Spec.HostIPC = true
+	failHostIPCPod.Spec.SecurityContext.HostIPC = true
 
 	failHostPortPod := defaultPod()
 	failHostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
@@ -256,6 +257,7 @@ func TestValidateSuccess(t *testing.T) {
 	defaultPod := func() *api.Pod {
 		return &api.Pod{
 			Spec: api.PodSpec{
+				SecurityContext: &api.PodSecurityContext{},
 				Containers: []api.Container{
 					{
 						SecurityContext: &api.SecurityContext{
@@ -320,17 +322,17 @@ func TestValidateSuccess(t *testing.T) {
 	hostNetworkSCC := defaultSCC()
 	hostNetworkSCC.AllowHostNetwork = true
 	hostNetworkPod := defaultPod()
-	hostNetworkPod.Spec.HostNetwork = true
+	hostNetworkPod.Spec.SecurityContext.HostNetwork = true
 
 	hostPIDSCC := defaultSCC()
 	hostPIDSCC.AllowHostPID = true
 	hostPIDPod := defaultPod()
-	hostPIDPod.Spec.HostPID = true
+	hostPIDPod.Spec.SecurityContext.HostPID = true
 
 	hostIPCSCC := defaultSCC()
 	hostIPCSCC.AllowHostIPC = true
 	hostIPCPod := defaultPod()
-	hostIPCPod.Spec.HostIPC = true
+	hostIPCPod.Spec.SecurityContext.HostIPC = true
 
 	hostPortSCC := defaultSCC()
 	hostPortSCC.AllowHostPorts = true

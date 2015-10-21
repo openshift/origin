@@ -24,6 +24,7 @@ type Interface interface {
 	ImageStreamTagsNamespacer
 	ImageStreamImagesNamespacer
 	DeploymentConfigsNamespacer
+	DeploymentLogsNamespacer
 	RoutesNamespacer
 	HostSubnetsInterface
 	NetNamespacesInterface
@@ -96,6 +97,11 @@ func (c *Client) ImageStreamImages(namespace string) ImageStreamImageInterface {
 // DeploymentConfigs provides a REST client for DeploymentConfig
 func (c *Client) DeploymentConfigs(namespace string) DeploymentConfigInterface {
 	return newDeploymentConfigs(c, namespace)
+}
+
+// DeploymentLogs provides a REST client for DeploymentLog
+func (c *Client) DeploymentLogs(namespace string) DeploymentLogInterface {
+	return newDeploymentLogs(c, namespace)
 }
 
 // Routes provides a REST client for Route
@@ -258,16 +264,10 @@ func SetOpenShiftDefaults(config *kclient.Config) error {
 	}
 	if config.Version == "" {
 		// Clients default to the preferred code API version
-		// TODO: implement version negotiation (highest version supported by server)
 		config.Version = latest.Version
 	}
 	if config.Prefix == "" {
-		switch config.Version {
-		case "v1beta3":
-			config.Prefix = "/osapi"
-		default:
-			config.Prefix = "/oapi"
-		}
+		config.Prefix = "/oapi"
 	}
 	version := config.Version
 	versionInterfaces, err := latest.InterfacesFor(version)

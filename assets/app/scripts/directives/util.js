@@ -24,6 +24,23 @@ angular.module('openshiftConsole')
       }
     };
   })
+  .directive('focusWhen', function($timeout) {
+    return {
+      restrict: 'A',
+      scope: {
+        trigger: '@focusWhen'
+      },
+      link: function(scope, element) {
+        scope.$watch('trigger', function(value) {
+          if (value) {
+            $timeout(function() {
+              $(element).focus();
+            });
+          }
+        });
+      }
+    };
+  })
   .directive('tileClick', function() {
     return {
       restrict: 'AC',

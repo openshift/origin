@@ -2,8 +2,8 @@ package api
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kruntime "k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -74,7 +74,7 @@ var (
 	GroupsToResources = map[string][]string{
 		BuildGroupName:       {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone", "buildconfigs/webhooks"},
 		ImageGroupName:       {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages"},
-		DeploymentGroupName:  {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks"},
+		DeploymentGroupName:  {"deployments", "deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks", "deploymentconfigs/log"},
 		SDNGroupName:         {"clusternetworks", "hostsubnets", "netnamespaces"},
 		TemplateGroupName:    {"templates", "templateconfigs", "processedtemplates"},
 		UserGroupName:        {"identities", "users", "useridentitymappings", "groups"},
@@ -93,7 +93,7 @@ var (
 		KubeInternalsGroupName: {"minions", "nodes", "bindings", "events", "namespaces"},
 		KubeExposedGroupName:   {"pods", "replicationcontrollers", "serviceaccounts", "services", "endpoints", "persistentvolumeclaims", "pods/log"},
 		KubeAllGroupName:       {KubeInternalsGroupName, KubeExposedGroupName, QuotaGroupName},
-		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status"},
+		KubeStatusGroupName:    {"pods/status", "resourcequotas/status", "namespaces/status", "replicationcontrollers/status"},
 
 		OpenshiftEscalatingViewableGroupName: {"oauthauthorizetokens", "oauthaccesstokens"},
 		KubeEscalatingViewableGroupName:      {"secrets"},
@@ -135,12 +135,12 @@ type PolicyRule struct {
 
 // IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
 type IsPersonalSubjectAccessReview struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 }
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// Rules holds all the PolicyRules for this Role
@@ -151,7 +151,7 @@ type Role struct {
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given
 // namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 type RoleBinding struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// Subjects hold object references of to authorize with this rule
@@ -166,11 +166,11 @@ type RoleBinding struct {
 // Policy is a object that holds all the Roles for a particular namespace.  There is at most
 // one Policy document per namespace.
 type Policy struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the Policy was created, updated, or deleted
-	LastModified util.Time
+	LastModified unversioned.Time
 
 	// Roles holds all the Roles held by this Policy, mapped by Role.Name
 	Roles map[string]*Role
@@ -179,11 +179,11 @@ type Policy struct {
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
 type PolicyBinding struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
-	LastModified util.Time
+	LastModified unversioned.Time
 
 	// PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference
@@ -193,7 +193,7 @@ type PolicyBinding struct {
 
 // ResourceAccessReviewResponse describes who can perform the action
 type ResourceAccessReviewResponse struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 
 	// Namespace is the namespace used for the access review
 	Namespace string
@@ -206,7 +206,7 @@ type ResourceAccessReviewResponse struct {
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
 // action specified by spec
 type ResourceAccessReview struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 
 	// Action describes the action being tested
 	Action AuthorizationAttributes
@@ -214,7 +214,7 @@ type ResourceAccessReview struct {
 
 // SubjectAccessReviewResponse describes whether or not a user or group can perform an action
 type SubjectAccessReviewResponse struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 
 	// Namespace is the namespace used for the access review
 	Namespace string
@@ -226,7 +226,7 @@ type SubjectAccessReviewResponse struct {
 
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
 type SubjectAccessReview struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 
 	// Action describes the action being tested
 	Action AuthorizationAttributes
@@ -238,7 +238,7 @@ type SubjectAccessReview struct {
 
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
 type LocalResourceAccessReview struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 
 	// Action describes the action being tested
 	Action AuthorizationAttributes
@@ -246,7 +246,7 @@ type LocalResourceAccessReview struct {
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
 type LocalSubjectAccessReview struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 
 	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
 	Action AuthorizationAttributes
@@ -271,8 +271,8 @@ type AuthorizationAttributes struct {
 
 // PolicyList is a collection of Policies
 type PolicyList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of policies
 	Items []Policy
@@ -280,8 +280,8 @@ type PolicyList struct {
 
 // PolicyBindingList is a collection of PolicyBindings
 type PolicyBindingList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of policyBindings
 	Items []PolicyBinding
@@ -289,8 +289,8 @@ type PolicyBindingList struct {
 
 // RoleBindingList is a collection of RoleBindings
 type RoleBindingList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of roleBindings
 	Items []RoleBinding
@@ -298,8 +298,8 @@ type RoleBindingList struct {
 
 // RoleList is a collection of Roles
 type RoleList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of roles
 	Items []Role
@@ -307,7 +307,7 @@ type RoleList struct {
 
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
 type ClusterRole struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// Rules holds all the PolicyRules for this ClusterRole
@@ -318,7 +318,7 @@ type ClusterRole struct {
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given
 // namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 type ClusterRoleBinding struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// Subjects hold object references of to authorize with this rule
@@ -333,11 +333,11 @@ type ClusterRoleBinding struct {
 // ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
 // one ClusterPolicy document per namespace.
 type ClusterPolicy struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
-	LastModified util.Time
+	LastModified unversioned.Time
 
 	// Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by Role.Name
 	Roles map[string]*ClusterRole
@@ -346,11 +346,11 @@ type ClusterPolicy struct {
 // ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace
 type ClusterPolicyBinding struct {
-	kapi.TypeMeta
+	unversioned.TypeMeta
 	kapi.ObjectMeta
 
 	// LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
-	LastModified util.Time
+	LastModified unversioned.Time
 
 	// ClusterPolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
 	PolicyRef kapi.ObjectReference
@@ -360,8 +360,8 @@ type ClusterPolicyBinding struct {
 
 // ClusterPolicyList is a collection of ClusterPolicies
 type ClusterPolicyList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of ClusterPolicies
 	Items []ClusterPolicy
@@ -369,8 +369,8 @@ type ClusterPolicyList struct {
 
 // ClusterPolicyBindingList is a collection of ClusterPolicyBindings
 type ClusterPolicyBindingList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of ClusterPolicyBindings
 	Items []ClusterPolicyBinding
@@ -378,8 +378,8 @@ type ClusterPolicyBindingList struct {
 
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
 type ClusterRoleBindingList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of ClusterRoleBindings
 	Items []ClusterRoleBinding
@@ -387,8 +387,8 @@ type ClusterRoleBindingList struct {
 
 // ClusterRoleList is a collection of ClusterRoles
 type ClusterRoleList struct {
-	kapi.TypeMeta
-	kapi.ListMeta
+	unversioned.TypeMeta
+	unversioned.ListMeta
 
 	// Items is a list of ClusterRoles
 	Items []ClusterRole

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/validation"
 
 	"github.com/openshift/origin/pkg/route/api"
 	rac "github.com/openshift/origin/pkg/route/controller/allocation"
@@ -150,7 +150,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		case tc.empty:
 			continue
 		}
-		if !util.IsDNS1123Subdomain(name) {
+		if !validation.IsDNS1123Subdomain(name) {
 			t.Errorf("Test case %s got %s - invalid DNS name.", tc.name, name)
 		}
 	}
@@ -244,7 +244,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		case tc.empty:
 			continue
 		}
-		if !util.IsDNS1123Subdomain(name) {
+		if !validation.IsDNS1123Subdomain(name) {
 			t.Errorf("Test case %s got %s - invalid DNS name.", tc.name, name)
 		}
 	}

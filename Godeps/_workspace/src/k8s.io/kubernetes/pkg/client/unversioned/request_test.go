@@ -18,7 +18,6 @@ package unversioned
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"io"
@@ -34,8 +33,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/latest"
 	"k8s.io/kubernetes/pkg/api/testapi"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
@@ -158,6 +157,22 @@ func TestRequestParam(t *testing.T) {
 	}
 }
 
+func TestRequestVersionedParams(t *testing.T) {
+	r := (&Request{}).Param("foo", "a")
+	if !api.Semantic.DeepDerivative(r.params, url.Values{"foo": []string{"a"}}) {
+		t.Errorf("should have set a param: %#v", r)
+	}
+	r.VersionedParams(&api.PodLogOptions{Follow: true, Container: "bar"}, api.Scheme)
+
+	if !api.Semantic.DeepDerivative(r.params, url.Values{
+		"foo":       []string{"a"},
+		"container": []string{"bar"},
+		"follow":    []string{"1"},
+	}) {
+		t.Errorf("should have set a param: %#v", r)
+	}
+}
+
 func TestRequestURI(t *testing.T) {
 	r := (&Request{}).Param("foo", "a")
 	r.Prefix("other")
@@ -193,7 +208,7 @@ func TestRequestBody(t *testing.T) {
 	}
 
 	// test unencodable api object
-	r = (&Request{codec: latest.Codec}).Body(&NotAnAPIObject{})
+	r = (&Request{codec: testapi.Default.Codec()}).Body(&NotAnAPIObject{})
 	if r.err == nil || r.body != nil {
 		t.Errorf("should have set err and left body nil: %#v", r)
 	}
@@ -356,7 +371,7 @@ func TestTransformUnstructuredError(t *testing.T) {
 
 	for _, testCase := range testCases {
 		r := &Request{
-			codec:        latest.Codec,
+			codec:        testapi.Default.Codec(),
 			resourceName: testCase.Name,
 			resource:     testCase.Resource,
 		}
@@ -437,9 +452,9 @@ func TestRequestWatch(t *testing.T) {
 				client: clientFunc(func(req *http.Request) (*http.Response, error) {
 					return &http.Response{
 						StatusCode: http.StatusUnauthorized,
-						Body: ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(testapi.Default.Codec(), &api.Status{
-							Status: api.StatusFailure,
-							Reason: api.StatusReasonUnauthorized,
+						Body: ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(testapi.Default.Codec(), &unversioned.Status{
+							Status: unversioned.StatusFailure,
+							Reason: unversioned.StatusReasonUnauthorized,
 						})))),
 					}, nil
 				}),
@@ -537,13 +552,13 @@ func TestRequestStream(t *testing.T) {
 				client: clientFunc(func(req *http.Request) (*http.Response, error) {
 					return &http.Response{
 						StatusCode: http.StatusUnauthorized,
-						Body: ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(testapi.Default.Codec(), &api.Status{
-							Status: api.StatusFailure,
-							Reason: api.StatusReasonUnauthorized,
+						Body: ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(testapi.Default.Codec(), &unversioned.Status{
+							Status: unversioned.StatusFailure,
+							Reason: unversioned.StatusReasonUnauthorized,
 						})))),
 					}, nil
 				}),
-				codec:   latest.Codec,
+				codec:   testapi.Default.Codec(),
 				baseURL: &url.URL{},
 			},
 			Err: true,
@@ -593,88 +608,6 @@ func (f *fakeUpgradeRoundTripper) RoundTrip(req *http.Request) (*http.Response, 
 
 func (f *fakeUpgradeRoundTripper) NewConnection(resp *http.Response) (httpstream.Connection, error) {
 	return f.conn, nil
-}
-
-func TestRequestUpgrade(t *testing.T) {
-	uri, _ := url.Parse("http://localhost/")
-	testCases := []struct {
-		Request          *Request
-		Config           *Config
-		RoundTripper     *fakeUpgradeRoundTripper
-		Err              bool
-		AuthBasicHeader  bool
-		AuthBearerHeader bool
-	}{
-		{
-			Request: &Request{err: errors.New("bail")},
-			Err:     true,
-		},
-		{
-			Request: &Request{},
-			Config: &Config{
-				TLSClientConfig: TLSClientConfig{
-					CAFile: "foo",
-				},
-				Insecure: true,
-			},
-			Err: true,
-		},
-		{
-			Request: &Request{},
-			Config: &Config{
-				Username:    "u",
-				Password:    "p",
-				BearerToken: "b",
-			},
-			Err: true,
-		},
-		{
-			Request: NewRequest(nil, "", uri, testapi.Default.Version(), testapi.Default.Codec()),
-			Config: &Config{
-				Username: "u",
-				Password: "p",
-			},
-			AuthBasicHeader: true,
-			Err:             false,
-		},
-		{
-			Request: NewRequest(nil, "", uri, testapi.Default.Version(), testapi.Default.Codec()),
-			Config: &Config{
-				BearerToken: "b",
-			},
-			AuthBearerHeader: true,
-			Err:              false,
-		},
-	}
-	for i, testCase := range testCases {
-		r := testCase.Request
-		rt := &fakeUpgradeRoundTripper{}
-		expectedConn := &fakeUpgradeConnection{}
-		conn, err := r.Upgrade(testCase.Config, func(config *tls.Config) httpstream.UpgradeRoundTripper {
-			rt.conn = expectedConn
-			return rt
-		})
-		_ = conn
-		hasErr := err != nil
-		if hasErr != testCase.Err {
-			t.Errorf("%d: expected %t, got %t: %v", i, testCase.Err, hasErr, r.err)
-		}
-		if testCase.Err {
-			continue
-		}
-
-		if testCase.AuthBasicHeader && !strings.Contains(rt.req.Header.Get("Authorization"), "Basic") {
-			t.Errorf("%d: expected basic auth header, got: %s", i, rt.req.Header.Get("Authorization"))
-		}
-
-		if testCase.AuthBearerHeader && !strings.Contains(rt.req.Header.Get("Authorization"), "Bearer") {
-			t.Errorf("%d: expected bearer auth header, got: %s", i, rt.req.Header.Get("Authorization"))
-		}
-
-		if e, a := expectedConn, conn; e != a {
-			t.Errorf("%d: conn: expected %#v, got %#v", i, e, a)
-		}
-	}
 }
 
 func TestRequestDo(t *testing.T) {
@@ -844,7 +777,7 @@ func TestDoRequestNewWayReader(t *testing.T) {
 	}
 	tmpStr := string(reqBodyExpected)
 	requestURL := testapi.Default.ResourcePathWithPrefix("foo", "bar", "", "baz")
-	requestURL += "?" + api.LabelSelectorQueryParam(testapi.Default.Version()) + "=name%3Dfoo&timeout=1s"
+	requestURL += "?" + unversioned.LabelSelectorQueryParam(testapi.Default.Version()) + "=name%3Dfoo&timeout=1s"
 	fakeHandler.ValidateRequest(t, requestURL, "POST", &tmpStr)
 	if fakeHandler.RequestReceived.Header["Authorization"] == nil {
 		t.Errorf("Request is missing authorization header: %#v", *fakeHandler.RequestReceived)
@@ -886,7 +819,7 @@ func TestDoRequestNewWayObj(t *testing.T) {
 	}
 	tmpStr := string(reqBodyExpected)
 	requestURL := testapi.Default.ResourcePath("foo", "", "bar/baz")
-	requestURL += "?" + api.LabelSelectorQueryParam(testapi.Default.Version()) + "=name%3Dfoo&timeout=1s"
+	requestURL += "?" + unversioned.LabelSelectorQueryParam(testapi.Default.Version()) + "=name%3Dfoo&timeout=1s"
 	fakeHandler.ValidateRequest(t, requestURL, "POST", &tmpStr)
 	if fakeHandler.RequestReceived.Header["Authorization"] == nil {
 		t.Errorf("Request is missing authorization header: %#v", *fakeHandler.RequestReceived)
@@ -1185,7 +1118,7 @@ func TestWatch(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		flusher.Flush()
 
-		encoder := watchjson.NewEncoder(w, latest.Codec)
+		encoder := watchjson.NewEncoder(w, testapi.Default.Codec())
 		for _, item := range table {
 			if err := encoder.Encode(&watch.Event{Type: item.t, Object: item.obj}); err != nil {
 				panic(err)

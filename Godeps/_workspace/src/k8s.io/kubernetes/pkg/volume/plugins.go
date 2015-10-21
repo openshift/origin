@@ -26,20 +26,28 @@ import (
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/kubernetes/pkg/util/io"
 	"k8s.io/kubernetes/pkg/util/mount"
+	"k8s.io/kubernetes/pkg/util/validation"
 )
 
 // VolumeOptions contains option information about a volume.
-//
-// Currently, this struct containers only a single field for the
-// rootcontext of the volume.  This is a temporary measure in order
-// to set the rootContext of tmpfs mounts correctly; it will be replaced
-// and expanded on by future SecurityContext work.
 type VolumeOptions struct {
 	// The rootcontext to use when performing mounts for a volume.
+	// This is a temporary measure in order to set the rootContext of tmpfs mounts correctly.
+	// it will be replaced and expanded on by future SecurityContext work.
 	RootContext string
+
+	// The attributes below are required by volume.Creater
+	// perhaps CreaterVolumeOptions struct?
+
+	// CapacityMB is the size in MB of a volume.
+	CapacityMB int
+	// AccessModes of a volume
+	AccessModes []api.PersistentVolumeAccessMode
+	// Reclamation policy for a persistent volume
+	PersistentVolumeReclaimPolicy api.PersistentVolumeReclaimPolicy
 }
 
 // VolumePlugin is an interface to volume plugins that can be used on a
@@ -64,12 +72,12 @@ type VolumePlugin interface {
 	// Ownership of the spec pointer in *not* transferred.
 	// - spec: The api.Volume spec
 	// - pod: The enclosing pod
-	NewBuilder(spec *Spec, podRef *api.Pod, opts VolumeOptions, mounter mount.Interface) (Builder, error)
+	NewBuilder(spec *Spec, podRef *api.Pod, opts VolumeOptions) (Builder, error)
 
 	// NewCleaner creates a new volume.Cleaner from recoverable state.
 	// - name: The volume name, as per the api.Volume spec.
 	// - podUID: The UID of the enclosing pod
-	NewCleaner(name string, podUID types.UID, mounter mount.Interface) (Cleaner, error)
+	NewCleaner(name string, podUID types.UID) (Cleaner, error)
 }
 
 // PersistentVolumePlugin is an extended interface of VolumePlugin and is used
@@ -87,6 +95,23 @@ type RecyclableVolumePlugin interface {
 	// NewRecycler creates a new volume.Recycler which knows how to reclaim this resource
 	// after the volume's release from a PersistentVolumeClaim
 	NewRecycler(spec *Spec) (Recycler, error)
+}
+
+// DeletableVolumePlugin is an extended interface of VolumePlugin and is used by persistent volumes that want
+// to be deleted from the cluster after their release from a PersistentVolumeClaim.
+type DeletableVolumePlugin interface {
+	VolumePlugin
+	// NewDeleter creates a new volume.Deleter which knows how to delete this resource
+	// in accordance with the underlying storage provider after the volume's release from a claim
+	NewDeleter(spec *Spec) (Deleter, error)
+}
+
+// CreatableVolumePlugin is an extended interface of VolumePlugin and is used to create volumes for the cluster.
+type CreatableVolumePlugin interface {
+	VolumePlugin
+	// NewCreater creates a new volume.Creater which knows how to create PersistentVolumes in accordance with
+	// the plugin's underlying storage provider
+	NewCreater(options VolumeOptions) (Creater, error)
 }
 
 // VolumeHost is an interface that plugins can use to access the kubelet.
@@ -116,15 +141,21 @@ type VolumeHost interface {
 	// the provided spec.  This is used to implement volume plugins which
 	// "wrap" other plugins.  For example, the "secret" volume is
 	// implemented in terms of the "emptyDir" volume.
-	NewWrapperBuilder(spec *Spec, pod *api.Pod, opts VolumeOptions, mounter mount.Interface) (Builder, error)
+	NewWrapperBuilder(spec *Spec, pod *api.Pod, opts VolumeOptions) (Builder, error)
 
 	// NewWrapperCleaner finds an appropriate plugin with which to handle
 	// the provided spec.  See comments on NewWrapperBuilder for more
 	// context.
-	NewWrapperCleaner(spec *Spec, podUID types.UID, mounter mount.Interface) (Cleaner, error)
+	NewWrapperCleaner(spec *Spec, podUID types.UID) (Cleaner, error)
 
-	//Get cloud provider from kubelet
+	// Get cloud provider from kubelet.
 	GetCloudProvider() cloudprovider.Interface
+
+	// Get mounter interface.
+	GetMounter() mount.Interface
+
+	// Get writer interface for writing data to disk.
+	GetWriter() io.Writer
 }
 
 // VolumePluginMgr tracks registered plugins.
@@ -217,7 +248,7 @@ func (pm *VolumePluginMgr) InitPlugins(plugins []VolumePlugin, host VolumeHost) 
 	allErrs := []error{}
 	for _, plugin := range plugins {
 		name := plugin.Name()
-		if !util.IsQualifiedName(name) {
+		if !validation.IsQualifiedName(name) {
 			allErrs = append(allErrs, fmt.Errorf("volume plugin has invalid name: %#v", plugin))
 			continue
 		}
@@ -314,6 +345,32 @@ func (pm *VolumePluginMgr) FindRecyclablePluginBySpec(spec *Spec) (RecyclableVol
 		return recyclableVolumePlugin, nil
 	}
 	return nil, fmt.Errorf("no recyclable volume plugin matched")
+}
+
+// FindDeletablePluginByName fetches a persistent volume plugin by name.  If no plugin
+// is found, returns error.
+func (pm *VolumePluginMgr) FindDeletablePluginBySpec(spec *Spec) (DeletableVolumePlugin, error) {
+	volumePlugin, err := pm.FindPluginBySpec(spec)
+	if err != nil {
+		return nil, err
+	}
+	if deletableVolumePlugin, ok := volumePlugin.(DeletableVolumePlugin); ok {
+		return deletableVolumePlugin, nil
+	}
+	return nil, fmt.Errorf("no deletable volume plugin matched")
+}
+
+// FindCreatablePluginBySpec fetches a persistent volume plugin by name.  If no plugin
+// is found, returns error.
+func (pm *VolumePluginMgr) FindCreatablePluginBySpec(spec *Spec) (CreatableVolumePlugin, error) {
+	volumePlugin, err := pm.FindPluginBySpec(spec)
+	if err != nil {
+		return nil, err
+	}
+	if creatableVolumePlugin, ok := volumePlugin.(CreatableVolumePlugin); ok {
+		return creatableVolumePlugin, nil
+	}
+	return nil, fmt.Errorf("no creatable volume plugin matched")
 }
 
 // NewPersistentVolumeRecyclerPodTemplate creates a template for a recycler pod.  By default, a recycler pod simply runs

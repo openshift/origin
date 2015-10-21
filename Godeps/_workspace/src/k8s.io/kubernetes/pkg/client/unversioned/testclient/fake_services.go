@@ -40,8 +40,8 @@ func (c *FakeServices) Get(name string) (*api.Service, error) {
 	return obj.(*api.Service), err
 }
 
-func (c *FakeServices) List(label labels.Selector) (*api.ServiceList, error) {
-	obj, err := c.Fake.Invokes(NewListAction("services", c.Namespace, label, nil), &api.ServiceList{})
+func (c *FakeServices) List(label labels.Selector, field fields.Selector) (*api.ServiceList, error) {
+	obj, err := c.Fake.Invokes(NewListAction("services", c.Namespace, label, field), &api.ServiceList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -77,6 +77,5 @@ func (c *FakeServices) Watch(label labels.Selector, field fields.Selector, resou
 }
 
 func (c *FakeServices) ProxyGet(name, path string, params map[string]string) unversioned.ResponseWrapper {
-	c.Fake.Invokes(NewProxyGetAction("services", c.Namespace, name, path, params), nil)
-	return nil
+	return c.Fake.InvokesProxy(NewProxyGetAction("services", c.Namespace, name, path, params))
 }

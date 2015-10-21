@@ -88,7 +88,7 @@ type MasterConfig struct {
 	ControllerPlug      plug.Plug
 	ControllerPlugStart func()
 
-	// a function that returns the appropriate image to use for a named component
+	// ImageFor is a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
 
 	EtcdHelper storage.Interface
@@ -127,6 +127,8 @@ type MasterConfig struct {
 	ReplicationControllerServiceAccount string
 }
 
+// BuildMasterConfig builds and returns the OpenShift master configuration based on the
+// provided options
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	client, err := etcd.EtcdClient(options.EtcdClientInfo)
 	if err != nil {
@@ -252,7 +254,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig, client *etcdcl
 		tokenGetter = serviceaccount.NewGetterFromClient(kubeClient)
 	} else {
 		// When we're running in-process, go straight to etcd (using the KubernetesStorageVersion/KubernetesStoragePrefix, since service accounts are kubernetes objects)
-		ketcdHelper, err := master.NewEtcdStorage(client, kapilatest.InterfacesFor, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		ketcdHelper, err := master.NewEtcdStorage(client, kapilatest.InterfacesForLegacyGroup, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
 		if err != nil {
 			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
 		}
@@ -334,7 +336,7 @@ func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectReques
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), RestMapper: latest.RESTMapper})
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")})
 	return authorizationAttributeBuilder
 }
 
@@ -432,7 +434,7 @@ func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// DeploymentControllerClients returns the deployment controller client object
+// DeploymentControllerClients returns the deployment controller client objects
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient.Client) {
 	osClient, kClient, err := c.GetServiceAccountClients(c.DeploymentControllerServiceAccount)
 	if err != nil {
@@ -441,25 +443,47 @@ func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, *kclient
 	return osClient, kClient
 }
 
+// DeployerPodControllerClients returns the deployer pod controller client objects
 func (c *MasterConfig) DeployerPodControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
+
+// DeploymentConfigClients returns deploymentConfig and deployment client objects
+func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, *kclient.Client) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
+}
+
+// DeploymentConfigControllerClients returns the deploymentConfig controller client objects
 func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
+
+// DeploymentConfigChangeControllerClients returns the deploymentConfig config change controller client objects
 func (c *MasterConfig) DeploymentConfigChangeControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
+
+// DeploymentImageChangeTriggerControllerClient returns the deploymentConfig image change controller client object
 func (c *MasterConfig) DeploymentImageChangeTriggerControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
+// DeploymentLogClient returns the deployment log client object
+func (c *MasterConfig) DeploymentLogClient() *kclient.Client {
+	return c.PrivilegedLoopbackKubernetesClient
+}
+
+// SecurityAllocationControllerClient returns the security allocation controller client object
 func (c *MasterConfig) SecurityAllocationControllerClient() *kclient.Client {
 	return c.PrivilegedLoopbackKubernetesClient
 }
+
+// SDNControllerClients returns the SDN controller client objects
 func (c *MasterConfig) SDNControllerClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
+
+// RouteAllocatorClients returns the route allocator client objects
 func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, *kclient.Client) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
@@ -476,7 +500,7 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, *kc
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClient
 }
 
-// AdmissionControlClient returns a client to be used for admission control.
+// admissionControlClient returns a client to be used for admission control.
 // TODO: Refactor admission control to allow more than one client to be passed in to plugins
 func admissionControlClient(kClient *kclient.Client, osClient *osclient.Client) kclient.Interface {
 	type kc struct{ *kclient.Client }

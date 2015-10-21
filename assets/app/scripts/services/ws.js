@@ -36,10 +36,11 @@ angular.module('openshiftConsole')
       authLogger.log("$ws (pre-intercept)", config.url.toString());
       var serverRequest = function(config) {
         authLogger.log("$ws (post-intercept)", config.url.toString());
-        var ws = new WebSocket(config.url);
+        var ws = new WebSocket(config.url, config.protocols);
         if (config.onclose)   { ws.onclose   = config.onclose;   }
         if (config.onmessage) { ws.onmessage = config.onmessage; }
         if (config.onopen)    { ws.onopen    = config.onopen;    }
+        if (config.onerror)   { ws.onerror    = config.onerror;  }
         return ws;
       };
 
@@ -74,5 +75,17 @@ angular.module('openshiftConsole')
     };
 
     return $ws;
+  };
+})
+
+/* A WebSocket factory for kubernetesContainerTerminal */
+.factory("ContainerWebSocket", function(API_CFG, $ws) {
+  return function AuthWebSocket(url, protocols) {
+    var scheme;
+    if (url.indexOf("/") === 0) {
+      scheme = window.location.protocol === "http:" ? "ws://" : "wss://";
+      url = scheme + API_CFG.openshift.hostPort + url;
+    }
+    return $ws({ url: url, method: "WATCH", protocols: protocols, auth: {} });
   };
 });

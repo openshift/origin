@@ -461,7 +461,7 @@ func runCmd(command string, args ...string) (string, string, error) {
 func validate(f Framework, svcNameWant, rcNameWant string, ingress api.LoadBalancerIngress, podsWant int) error {
 	Logf("Beginning cluster validation")
 	// Verify RC.
-	rcs, err := f.Client.ReplicationControllers(f.Namespace.Name).List(labels.Everything())
+	rcs, err := f.Client.ReplicationControllers(f.Namespace.Name).List(labels.Everything(), fields.Everything())
 	if err != nil {
 		return fmt.Errorf("error listing RCs: %v", err)
 	}
@@ -522,8 +522,8 @@ func migTemplate() (string, error) {
 		// An `instance-groups managed describe` call outputs what we want to stdout.
 		output, _, err := retryCmd("gcloud", "compute", "instance-groups", "managed",
 			fmt.Sprintf("--project=%s", testContext.CloudConfig.ProjectID),
-			fmt.Sprintf("--zone=%s", testContext.CloudConfig.Zone),
 			"describe",
+			fmt.Sprintf("--zone=%s", testContext.CloudConfig.Zone),
 			testContext.CloudConfig.NodeInstanceGroup)
 		if err != nil {
 			errLast = fmt.Errorf("gcloud compute instance-groups managed describe call failed with err: %v", err)

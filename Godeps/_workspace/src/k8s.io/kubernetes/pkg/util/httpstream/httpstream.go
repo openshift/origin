@@ -37,6 +37,11 @@ type NewStreamHandler func(Stream) error
 // performs no other logic.
 func NoOpNewStreamHandler(stream Stream) error { return nil }
 
+// Dialer knows how to open a streaming connection to a server.
+type Dialer interface {
+	Dial() (Connection, error)
+}
+
 // UpgradeRoundTripper is a type of http.RoundTripper that is able to upgrade
 // HTTP requests to support multiplexed bidirectional streams. After RoundTrip()
 // is invoked, if the upgrade is successful, clients may retrieve the upgraded
@@ -78,6 +83,8 @@ type Stream interface {
 	Reset() error
 	// Headers returns the headers used to create the stream.
 	Headers() http.Header
+	// Identifier returns the stream's ID.
+	Identifier() uint32
 }
 
 // IsUpgradeRequest returns true if the given request is a connection upgrade request

@@ -432,7 +432,7 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	json, err := klatest.Codec.Encode(node)
+	json, err := klatest.CodecForLegacyGroup().Encode(node)
 	if err != nil {
 		return err
 	}

@@ -15,7 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/conversion"
 	"k8s.io/kubernetes/pkg/runtime"
-	kutil "k8s.io/kubernetes/pkg/util"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -371,7 +371,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 
 		// Create volume mounts with names based on container name
 		maxDigits := len(fmt.Sprintf("%d", len(r.Info.Config.Volumes)))
-		baseName := namer.GetName(container.Name, volumeNameInfix, kutil.LabelValueMaxLength-maxDigits-1)
+		baseName := namer.GetName(container.Name, volumeNameInfix, kvalidation.LabelValueMaxLength-maxDigits-1)
 		i := 1
 		for volume := range r.Info.Config.Volumes {
 			r.HasEmptyDir = true

@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/assets/java"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/version"
 
@@ -85,12 +86,10 @@ func (c *AssetConfig) Run() {
 			if err != nil {
 				glog.Fatal(err)
 			}
-			server.TLSConfig = &tls.Config{
-				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-				MinVersion: tls.VersionTLS10,
+			server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
 				// Set SNI certificate func
 				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-			}
+			})
 			glog.Infof("Web console listening at https://%s", c.Options.ServingInfo.BindAddress)
 			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
 		} else {
@@ -163,7 +162,9 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 
 	versions := sets.NewString()
 	versions.Insert(latest.Versions...)
-	versions.Insert(klatest.Versions...)
+	versions.Insert(klatest.VersionsForLegacyGroup()...)
+	deadOriginVersions := sets.NewString(configapi.DeadOpenShiftAPILevels...)
+	deadKubernetesVersions := sets.NewString(configapi.DeadKubernetesAPILevels...)
 	for _, version := range versions.List() {
 		for kind, t := range api.Scheme.KnownTypes(version) {
 			if strings.Contains(t.PkgPath(), "kubernetes/pkg/expapi") {
@@ -174,9 +175,13 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 			}
 			resource, _ := meta.KindToResource(kind, false)
 			if latest.OriginKind(kind, version) {
-				originResources.Insert(resource)
+				if !deadOriginVersions.Has(version) {
+					originResources.Insert(resource)
+				}
 			} else {
-				k8sResources.Insert(resource)
+				if !deadKubernetesVersions.Has(version) {
+					k8sResources.Insert(resource)
+				}
 			}
 		}
 	}
@@ -195,7 +200,6 @@ func (c *AssetConfig) addHandlers(mux *http.ServeMux) error {
 	config := assets.WebConsoleConfig{
 		MasterAddr:          masterURL.Host,
 		MasterPrefix:        OpenShiftAPIPrefix,
-		MasterLegacyPrefix:  LegacyOpenShiftAPIPrefix,
 		MasterResources:     originResources.List(),
 		KubernetesAddr:      masterURL.Host,
 		KubernetesPrefix:    KubernetesAPIPrefix,

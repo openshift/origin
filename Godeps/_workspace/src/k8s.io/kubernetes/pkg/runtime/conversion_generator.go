@@ -44,6 +44,7 @@ func NewConversionGenerator(scheme *conversion.Scheme, targetPkg string) Convers
 		scheme:        scheme,
 		targetPkg:     targetPkg,
 		convertibles:  make(map[reflect.Type]reflect.Type),
+		overridden:    make(map[reflect.Type]bool),
 		pkgOverwrites: make(map[string]string),
 		imports:       make(map[string]string),
 		shortImports:  make(map[string]string),
@@ -60,6 +61,7 @@ type conversionGenerator struct {
 	scheme       *conversion.Scheme
 	targetPkg    string
 	convertibles map[reflect.Type]reflect.Type
+	overridden   map[reflect.Type]bool
 	// If pkgOverwrites is set for a given package name, that package name
 	// will be replaced while writing conversion function. If empty, package
 	// name will be omitted.
@@ -165,9 +167,10 @@ func (g *conversionGenerator) generateConversionsBetween(inType, outType reflect
 		if !existingConversion && (inErr != nil || outErr != nil) {
 			return inErr
 		}
-		if !existingConversion {
-			g.convertibles[inType] = outType
+		if existingConversion {
+			g.overridden[inType] = true
 		}
+		g.convertibles[inType] = outType
 		return nil
 	default:
 		// All simple types should be handled correctly with default conversion.
@@ -368,7 +371,7 @@ func (g *conversionGenerator) RegisterConversionFunctions(w io.Writer, pkg strin
 	// Write conversion function names alphabetically ordered.
 	var names []string
 	for inType, outType := range g.convertibles {
-		names = append(names, g.conversionFunctionName(inType, outType))
+		names = append(names, g.generatedFunctionName(inType, outType))
 	}
 	sort.Strings(names)
 
@@ -482,6 +485,10 @@ func (g *conversionGenerator) conversionFunctionName(inType, outType reflect.Typ
 	return funcName
 }
 
+func (g *conversionGenerator) generatedFunctionName(inType, outType reflect.Type) string {
+	return "auto" + g.conversionFunctionName(inType, outType)
+}
+
 func (g *conversionGenerator) writeHeader(b *buffer, name, inType, outType string, indent int) {
 	format := "func %s(in *%s, out *%s, s conversion.Scope) error {\n"
 	stmt := fmt.Sprintf(format, name, inType, outType)
@@ -572,7 +579,7 @@ func (g *conversionGenerator) writeConversionForSlice(b *buffer, inField, outFie
 	}
 	if !assigned {
 		assignStmt := ""
-		if g.existsDedicatedConversionFunction(inField.Type.Elem(), outField.Type.Elem()) {
+		if g.existsDedicatedConversionFunction(inField.Type.Elem(), outField.Type.Elem()) && !g.isCustomRegisteredConversionFunction(inField.Type.Elem(), outField.Type.Elem()) {
 			assignFormat := "if err := %s(&in.%s[i], &out.%s[i], s); err != nil {\n"
 			funcName := g.conversionFunctionName(inField.Type.Elem(), outField.Type.Elem())
 			assignStmt = fmt.Sprintf(assignFormat, funcName, inField.Name, outField.Name)
@@ -632,7 +639,7 @@ func (g *conversionGenerator) writeConversionForPtr(b *buffer, inField, outField
 	ifStmt := fmt.Sprintf(ifFormat, inField.Name)
 	b.addLine(ifStmt, indent)
 	assignStmt := ""
-	if g.existsDedicatedConversionFunction(inField.Type.Elem(), outField.Type.Elem()) {
+	if g.existsDedicatedConversionFunction(inField.Type.Elem(), outField.Type.Elem()) && !g.isCustomRegisteredConversionFunction(inField.Type.Elem(), outField.Type.Elem()) {
 		newFormat := "out.%s = new(%s)\n"
 		newStmt := fmt.Sprintf(newFormat, outField.Name, g.typeName(outField.Type.Elem()))
 		b.addLine(newStmt, indent+1)
@@ -654,10 +661,28 @@ func (g *conversionGenerator) writeConversionForPtr(b *buffer, inField, outField
 	return nil
 }
 
+func (g *conversionGenerator) canTryConversion(b *buffer, inType reflect.Type, inField, outField reflect.StructField, indent int) (bool, error) {
+	if inField.Type.Kind() != outField.Type.Kind() {
+		if !g.overridden[inType] {
+			return false, fmt.Errorf("input %s.%s (%s) does not match output (%s) and conversion is not overridden", inType, inField.Name, inField.Type.Kind(), outField.Type.Kind())
+		}
+		b.addLine(fmt.Sprintf("// in.%s has no peer in out\n", inField.Name), indent)
+		return false, nil
+	}
+	return true, nil
+}
+
 func (g *conversionGenerator) writeConversionForStruct(b *buffer, inType, outType reflect.Type, indent int) error {
 	for i := 0; i < inType.NumField(); i++ {
 		inField := inType.Field(i)
-		outField, _ := outType.FieldByName(inField.Name)
+		outField, found := outType.FieldByName(inField.Name)
+		if !found {
+			if !g.overridden[inType] {
+				return fmt.Errorf("input %s.%s has no peer in output %s and conversion is not overridden", inType, inField.Name, outType)
+			}
+			b.addLine(fmt.Sprintf("// in.%s has no peer in out\n", inField.Name), indent)
+			continue
+		}
 
 		existsConversion := g.scheme.Converter().HasConversionFunc(inField.Type, outField.Type)
 		if existsConversion && !g.existsDedicatedConversionFunction(inField.Type, outField.Type) {
@@ -672,16 +697,31 @@ func (g *conversionGenerator) writeConversionForStruct(b *buffer, inType, outTyp
 
 		switch inField.Type.Kind() {
 		case reflect.Map:
+			if try, err := g.canTryConversion(b, inType, inField, outField, indent); err != nil {
+				return err
+			} else if !try {
+				continue
+			}
 			if err := g.writeConversionForMap(b, inField, outField, indent); err != nil {
 				return err
 			}
 			continue
 		case reflect.Ptr:
+			if try, err := g.canTryConversion(b, inType, inField, outField, indent); err != nil {
+				return err
+			} else if !try {
+				continue
+			}
 			if err := g.writeConversionForPtr(b, inField, outField, indent); err != nil {
 				return err
 			}
 			continue
 		case reflect.Slice:
+			if try, err := g.canTryConversion(b, inType, inField, outField, indent); err != nil {
+				return err
+			} else if !try {
+				continue
+			}
 			if err := g.writeConversionForSlice(b, inField, outField, indent); err != nil {
 				return err
 			}
@@ -705,7 +745,7 @@ func (g *conversionGenerator) writeConversionForStruct(b *buffer, inType, outTyp
 		}
 
 		assignStmt := ""
-		if g.existsDedicatedConversionFunction(inField.Type, outField.Type) {
+		if g.existsDedicatedConversionFunction(inField.Type, outField.Type) && !g.isCustomRegisteredConversionFunction(inField.Type, outField.Type) {
 			assignFormat := "if err := %s(&in.%s, &out.%s, s); err != nil {\n"
 			funcName := g.conversionFunctionName(inField.Type, outField.Type)
 			assignStmt = fmt.Sprintf(assignFormat, funcName, inField.Name, outField.Name)
@@ -721,8 +761,9 @@ func (g *conversionGenerator) writeConversionForStruct(b *buffer, inType, outTyp
 }
 
 func (g *conversionGenerator) writeConversionForType(b *buffer, inType, outType reflect.Type, indent int) error {
-	funcName := g.conversionFunctionName(inType, outType)
-	g.writeHeader(b, funcName, g.typeName(inType), g.typeName(outType), indent)
+	// Always emit the auto-generated name.
+	autoFuncName := g.generatedFunctionName(inType, outType)
+	g.writeHeader(b, autoFuncName, g.typeName(inType), g.typeName(outType), indent)
 	if err := g.writeDefaultingFunc(b, inType, indent+1); err != nil {
 		return err
 	}
@@ -736,6 +777,15 @@ func (g *conversionGenerator) writeConversionForType(b *buffer, inType, outType 
 	}
 	g.writeFooter(b, indent)
 	b.addLine("\n", 0)
+
+	if !g.overridden[inType] {
+		// Also emit the "user-facing" name.
+		userFuncName := g.conversionFunctionName(inType, outType)
+		g.writeHeader(b, userFuncName, g.typeName(inType), g.typeName(outType), indent)
+		b.addLine(fmt.Sprintf("return %s(in, out, s)\n", autoFuncName), indent+1)
+		b.addLine("}\n\n", 0)
+	}
+
 	return nil
 }
 
@@ -788,6 +838,10 @@ func (g *conversionGenerator) existsDedicatedConversionFunction(inType, outType 
 	if g.assumePrivateConversions {
 		return false
 	}
+	return g.scheme.Converter().HasConversionFunc(inType, outType)
+}
+
+func (g *conversionGenerator) isCustomRegisteredConversionFunction(inType, outType reflect.Type) bool {
 	return g.scheme.Converter().HasConversionFunc(inType, outType)
 }
 

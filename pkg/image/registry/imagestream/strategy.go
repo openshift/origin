@@ -7,12 +7,12 @@ import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -89,13 +89,9 @@ func (Strategy) AllowUnconditionalUpdate() bool {
 // if a default registry exists, the value returned is of the form
 // <default registry>/<namespace>/<stream name>.
 func (s Strategy) dockerImageRepository(stream *api.ImageStream) string {
-	if len(stream.Spec.DockerImageRepository) != 0 {
-		return stream.Spec.DockerImageRepository
-	}
-
 	registry, ok := s.defaultRegistry.DefaultRegistry()
 	if !ok {
-		return ""
+		return stream.Spec.DockerImageRepository
 	}
 
 	if len(stream.Namespace) == 0 {
@@ -218,7 +214,7 @@ func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, ta
 	switch tagRef.From.Kind {
 	case "DockerImage":
 		return &api.TagEvent{
-			Created:              util.Now(),
+			Created:              unversioned.Now(),
 			DockerImageReference: tagRef.From.Name,
 		}, nil
 
@@ -233,7 +229,7 @@ func tagReferenceToTagEvent(stream *api.ImageStream, tagRef api.TagReference, ta
 		case 1:
 			ref.ID = resolvedIDs.List()[0]
 			return &api.TagEvent{
-				Created:              util.Now(),
+				Created:              unversioned.Now(),
 				DockerImageReference: ref.String(),
 				Image:                ref.ID,
 			}, nil

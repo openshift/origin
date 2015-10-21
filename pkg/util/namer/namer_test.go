@@ -4,14 +4,14 @@ import (
 	"math/rand"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/util"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 )
 
 func TestGetName(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
-		shortName := randSeq(rand.Intn(util.DNS1123SubdomainMaxLength-1) + 1)
-		longName := randSeq(util.DNS1123SubdomainMaxLength + rand.Intn(100))
+		shortName := randSeq(rand.Intn(kvalidation.DNS1123SubdomainMaxLength-1) + 1)
+		longName := randSeq(kvalidation.DNS1123SubdomainMaxLength + rand.Intn(100))
 
 		tests := []struct {
 			base, suffix, expected string
@@ -24,7 +24,7 @@ func TestGetName(t *testing.T) {
 			{
 				base:     longName,
 				suffix:   "deploy",
-				expected: longName[:util.DNS1123SubdomainMaxLength-16] + "-" + hash(longName) + "-deploy",
+				expected: longName[:kvalidation.DNS1123SubdomainMaxLength-16] + "-" + hash(longName) + "-deploy",
 			},
 			{
 				base:     shortName,
@@ -49,12 +49,12 @@ func TestGetName(t *testing.T) {
 			{
 				base:     longName,
 				suffix:   "",
-				expected: longName[:util.DNS1123SubdomainMaxLength-10] + "-" + hash(longName) + "-",
+				expected: longName[:kvalidation.DNS1123SubdomainMaxLength-10] + "-" + hash(longName) + "-",
 			},
 		}
 
 		for _, test := range tests {
-			result := GetName(test.base, test.suffix, util.DNS1123SubdomainMaxLength)
+			result := GetName(test.base, test.suffix, kvalidation.DNS1123SubdomainMaxLength)
 			if result != test.expected {
 				t.Errorf("Got unexpected result. Expected: %s Got: %s", test.expected, result)
 			}
@@ -64,14 +64,14 @@ func TestGetName(t *testing.T) {
 
 func TestGetNameIsDifferent(t *testing.T) {
 	shortName := randSeq(32)
-	deployerName := GetName(shortName, "deploy", util.DNS1123SubdomainMaxLength)
-	builderName := GetName(shortName, "build", util.DNS1123SubdomainMaxLength)
+	deployerName := GetName(shortName, "deploy", kvalidation.DNS1123SubdomainMaxLength)
+	builderName := GetName(shortName, "build", kvalidation.DNS1123SubdomainMaxLength)
 	if deployerName == builderName {
 		t.Errorf("Expecting names to be different: %s\n", deployerName)
 	}
-	longName := randSeq(util.DNS1123SubdomainMaxLength + 10)
-	deployerName = GetName(longName, "deploy", util.DNS1123SubdomainMaxLength)
-	builderName = GetName(longName, "build", util.DNS1123SubdomainMaxLength)
+	longName := randSeq(kvalidation.DNS1123SubdomainMaxLength + 10)
+	deployerName = GetName(longName, "deploy", kvalidation.DNS1123SubdomainMaxLength)
+	builderName = GetName(longName, "build", kvalidation.DNS1123SubdomainMaxLength)
 	if deployerName == builderName {
 		t.Errorf("Expecting names to be different: %s\n", deployerName)
 	}

@@ -20,6 +20,7 @@ import (
 	"golang.org/x/net/websocket"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1beta3"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/watch"
@@ -431,7 +432,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 		t.Fatalf("Couldn't get http endpoint: %v", err)
 	}
 
-	now := util.Now()
+	now := unversioned.Now()
 
 	//create path based route
 	endpointEvent := &watch.Event{
@@ -488,7 +489,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 		Type: watch.Added,
 		Object: &routeapi.Route{
 			ObjectMeta: kapi.ObjectMeta{
-				CreationTimestamp: util.Time{Time: now.Add(time.Hour)},
+				CreationTimestamp: unversioned.Time{Time: now.Add(time.Hour)},
 				Name:              "path",
 				Namespace:         "alt",
 			},
@@ -572,7 +573,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 		Type: watch.Added,
 		Object: &routeapi.Route{
 			ObjectMeta: kapi.ObjectMeta{
-				CreationTimestamp: util.Time{Time: now.Add(time.Hour)},
+				CreationTimestamp: unversioned.Time{Time: now.Add(time.Hour)},
 				Name:              "host",
 				Namespace:         "alt",
 			},
@@ -598,7 +599,7 @@ func TestRouterPathSpecificity(t *testing.T) {
 		Type: watch.Added,
 		Object: &routeapi.Route{
 			ObjectMeta: kapi.ObjectMeta{
-				CreationTimestamp: util.Time{Time: now.Add(-time.Hour)},
+				CreationTimestamp: unversioned.Time{Time: now.Add(-time.Hour)},
 				Name:              "host",
 				Namespace:         "alt",
 			},

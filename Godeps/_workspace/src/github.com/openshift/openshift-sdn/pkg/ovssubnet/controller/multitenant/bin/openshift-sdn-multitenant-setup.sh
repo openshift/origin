@@ -87,6 +87,9 @@ function setup_required() {
     if ! docker_network_config check; then
         return 0
     fi
+    if ! ovs-ofctl -O OpenFlow13 dump-flows br0 | grep -q NXM_NX_TUN_IPV4; then
+        return 0
+    fi
     return 1
 }
 

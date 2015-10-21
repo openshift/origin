@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/errors"
+	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -96,8 +97,9 @@ type errlist interface {
 	Errors() []error
 }
 
-// NewAppConfig returns a new AppConfig
-func NewAppConfig(typer runtime.ObjectTyper, mapper meta.RESTMapper, clientMapper resource.ClientMapper) *AppConfig {
+// NewAppConfig returns a new AppConfig, but you must set your typer, mapper, and clientMapper after the command has been run
+// and flags have been parsed.
+func NewAppConfig() *AppConfig {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(),
 	}
@@ -107,11 +109,20 @@ func NewAppConfig(typer runtime.ObjectTyper, mapper meta.RESTMapper, clientMappe
 			Tester:    dockerfile.NewTester(),
 		},
 		dockerSearcher: dockerSearcher,
-		typer:          typer,
-		mapper:         mapper,
-		clientMapper:   clientMapper,
 		refBuilder:     &app.ReferenceBuilder{},
 	}
+}
+
+func (c *AppConfig) SetMapper(mapper meta.RESTMapper) {
+	c.mapper = mapper
+}
+
+func (c *AppConfig) SetTyper(typer runtime.ObjectTyper) {
+	c.typer = typer
+}
+
+func (c *AppConfig) SetClientMapper(clientMapper resource.ClientMapper) {
+	c.clientMapper = clientMapper
 }
 
 func (c *AppConfig) dockerRegistrySearcher() app.Searcher {
@@ -469,9 +480,9 @@ func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 	if len(name) < 2 {
 		return "", fmt.Errorf("invalid name: %s", name)
 	}
-	if len(name) > util.DNS1123SubdomainMaxLength {
-		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, util.DNS1123SubdomainMaxLength)
-		name = name[:util.DNS1123SubdomainMaxLength]
+	if len(name) > kvalidation.DNS1123SubdomainMaxLength {
+		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, kvalidation.DNS1123SubdomainMaxLength)
+		name = name[:kvalidation.DNS1123SubdomainMaxLength]
 	}
 
 	// Make all names lowercase
@@ -484,7 +495,7 @@ func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 	}
 	count++
 	names[name] = count
-	newName := namer.GetName(name, strconv.Itoa(count), util.DNS1123SubdomainMaxLength)
+	newName := namer.GetName(name, strconv.Itoa(count), kvalidation.DNS1123SubdomainMaxLength)
 	return newName, nil
 }
 

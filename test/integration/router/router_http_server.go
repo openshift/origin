@@ -181,8 +181,6 @@ func (s *TestHttpService) startMaster() error {
 	for _, version := range apis {
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/endpoints", version), s.handleEndpointList)
 		masterServer.HandleFunc(fmt.Sprintf("/api/%s/watch/endpoints", version), s.handleEndpointWatch)
-		masterServer.HandleFunc(fmt.Sprintf("/osapi/%s/routes", version), s.handleRouteList)
-		masterServer.HandleFunc(fmt.Sprintf("/osapi/%s/watch/routes", version), s.handleRouteWatch)
 		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/routes", version), s.handleRouteList)
 		masterServer.HandleFunc(fmt.Sprintf("/oapi/%s/watch/routes", version), s.handleRouteWatch)
 	}

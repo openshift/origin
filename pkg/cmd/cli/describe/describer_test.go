@@ -7,10 +7,10 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/labels"
-	kutil "k8s.io/kubernetes/pkg/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -36,13 +36,16 @@ type describeClient struct {
 // If you add something to this list, explain why it doesn't need validation.  waaaa is not a valid
 // reason.
 var DescriberCoverageExceptions = []reflect.Type{
+	reflect.TypeOf(&buildapi.BuildLog{}),                              // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),                       // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildRequest{}),                          // normal users don't ever look at these
+	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),             // normal users don't ever look at these
+	reflect.TypeOf(&deployapi.DeploymentLog{}),                        // normal users don't ever look at these
+	reflect.TypeOf(&deployapi.DeploymentLogOptions{}),                 // normal users don't ever look at these
 	reflect.TypeOf(&imageapi.DockerImage{}),                           // not a top level resource
 	reflect.TypeOf(&oauthapi.OAuthAccessToken{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthAuthorizeToken{}),                   // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthClientAuthorization{}),              // normal users don't ever look at these
-	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),             // normal users don't ever look at these
 	reflect.TypeOf(&projectapi.ProjectRequest{}),                      // normal users don't ever look at these
 	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // not a top level resource
 
@@ -106,7 +109,6 @@ func TestDescribers(t *testing.T) {
 	testDescriberList := []kubectl.Describer{
 		&BuildDescriber{c, fakeKube},
 		&BuildConfigDescriber{c, ""},
-		&BuildLogDescriber{c},
 		&ImageDescriber{c},
 		&ImageStreamDescriber{c},
 		&ImageStreamTagDescriber{c},
@@ -215,11 +217,11 @@ func TestDescribeBuildDuration(t *testing.T) {
 		output string
 	}
 
-	creation := kutil.Date(2015, time.April, 9, 6, 0, 0, 0, time.Local)
+	creation := unversioned.Date(2015, time.April, 9, 6, 0, 0, 0, time.Local)
 	// now a minute ago
-	minuteAgo := kutil.Unix(kutil.Now().Rfc3339Copy().Time.Unix()-60, 0)
-	start := kutil.Date(2015, time.April, 9, 6, 1, 0, 0, time.Local)
-	completion := kutil.Date(2015, time.April, 9, 6, 2, 0, 0, time.Local)
+	minuteAgo := unversioned.Unix(unversioned.Now().Rfc3339Copy().Time.Unix()-60, 0)
+	start := unversioned.Date(2015, time.April, 9, 6, 1, 0, 0, time.Local)
+	completion := unversioned.Date(2015, time.April, 9, 6, 2, 0, 0, time.Local)
 	duration := completion.Rfc3339Copy().Time.Sub(start.Rfc3339Copy().Time)
 	zeroDuration := time.Duration(0)
 

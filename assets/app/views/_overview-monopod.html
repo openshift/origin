@@ -17,17 +17,26 @@
       created <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp>
     </div>
 
-  </div>               
+  </div>
 
-  <div class="pod-block row">
-    <div class="col-xs-12 col-lg-6">  
+  <div row mobile="column" axis="center center" class="pod-block">
+    <div column grow="2">
       <div class="component-label">Containers</div>
       <pod-template pod-template="pod"></pod-template>
     </div>
-
-    <div class="col-xs-12 col-lg-6">
-      <div class="component-label">Status</div>
-      <pods pods="[pod]"></pods>
+    <div row>
+      <!-- spacer -->
+      <div flex class="visible-xs-block"></div>
+      <div column>
+        <div column>
+          <pod-status-chart pods="[pod]"></pod-status-chart>
+        </div>
+        <!-- Add a spacer equal to the width of the scaling controls on
+             replication controllers so that everything aligns. -->
+      </div>
+      <div class="scaling-spacer hidden-xs"></div>
+      <!-- spacer -->
+      <div flex class="visible-xs-block"></div>
     </div>
   </div>
 </div>

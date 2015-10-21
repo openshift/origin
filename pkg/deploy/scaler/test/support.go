@@ -20,6 +20,6 @@ func (t *FakeScaler) Scale(namespace, name string, newSize uint, preconditions *
 	return nil
 }
 
-func (t *FakeScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint) (string, error) {
-	return "error", fmt.Errorf("unexpected call to ScaleSimple")
+func (t *FakeScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint) error {
+	return fmt.Errorf("unexpected call to ScaleSimple")
 }

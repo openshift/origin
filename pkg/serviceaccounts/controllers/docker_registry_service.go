@@ -45,7 +45,7 @@ func NewDockerRegistryServiceController(cl client.Interface, options DockerRegis
 	_, e.serviceController = framework.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func() (runtime.Object, error) {
-				return e.client.Services(options.RegistryNamespace).List(labels.Everything())
+				return e.client.Services(options.RegistryNamespace).List(labels.Everything(), fields.Everything())
 			},
 			WatchFunc: func(rv string) (watch.Interface, error) {
 				return e.client.Services(options.RegistryNamespace).Watch(labels.Everything(), fields.Everything(), rv)

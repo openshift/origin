@@ -134,7 +134,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{Namespace: "default", Name: "somerepo"},
 	}
 
-	fakeEtcdClient.Data["/imagestreams/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/somerepo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, initialRepo),
@@ -150,7 +150,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 	}
 
 	image := &api.Image{}
-	if err := helper.Get("/images/imageID1", image, false); err != nil {
+	if err := helper.Get(kapi.NewDefaultContext(), "/images/imageID1", image, false); err != nil {
 		t.Errorf("Unexpected error retrieving image: %#v", err)
 	}
 	if e, a := mapping.Image.DockerImageReference, image.DockerImageReference; e != a {
@@ -161,7 +161,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 	}
 
 	repo := &api.ImageStream{}
-	if err := helper.Get("/imagestreams/default/somerepo", repo, false); err != nil {
+	if err := helper.Get(kapi.NewDefaultContext(), "/imagestreams/default/somerepo", repo, false); err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
 	if e, a := "imageID1", repo.Status.Tags["latest"].Items[0].Image; e != a {
@@ -214,7 +214,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 	}
 
 	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.Data["/imagestreams/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -226,7 +226,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/imagestreams/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/somerepo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
@@ -234,7 +234,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/images/default/"+imageID] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images/default/"+imageID)] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, existingImage),
@@ -293,7 +293,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 	}
 
 	fakeEtcdClient, _, storage := setup(t)
-	fakeEtcdClient.Data["/imagestreams/default"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Nodes: []*etcd.Node{
@@ -305,7 +305,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/imagestreams/default/somerepo"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/somerepo")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, existingRepo),
@@ -313,7 +313,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 			},
 		},
 	}
-	fakeEtcdClient.Data["/images/default/existingImage"] = tools.EtcdResponseWithError{
+	fakeEtcdClient.Data[etcdtest.AddPrefix("/images/default/existingImage")] = tools.EtcdResponseWithError{
 		R: &etcd.Response{
 			Node: &etcd.Node{
 				Value:         runtime.EncodeOrDie(latest.Codec, existingImage),
@@ -387,7 +387,7 @@ func TestTrackingTags(t *testing.T) {
 		},
 	}
 
-	if err := etcdHelper.Create("/imagestreams/default/stream", &stream, nil, 0); err != nil {
+	if err := etcdHelper.Create(kapi.NewDefaultContext(), "/imagestreams/default/stream", &stream, nil, 0); err != nil {
 		t.Fatalf("Unable to create stream: %v", err)
 	}
 
@@ -412,7 +412,7 @@ func TestTrackingTags(t *testing.T) {
 		t.Fatalf("Unexpected error creating mapping: %v", err)
 	}
 
-	if err := etcdHelper.Get("/imagestreams/default/stream", &stream, false); err != nil {
+	if err := etcdHelper.Get(kapi.NewDefaultContext(), "/imagestreams/default/stream", &stream, false); err != nil {
 		t.Fatalf("error extracting updated stream: %v", err)
 	}
 

@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
@@ -57,26 +58,37 @@ func VarSubOnFile(srcFile, destFile, varToSub, val string) error {
 	return err
 }
 
-// WaitForABuild waits for a Build object to match either isOK or isFailed conditions
+// WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
 func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*buildapi.Build) bool) error {
-	for {
+	// wait 2 minutes for build to exist
+	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+		if _, err := c.Get(name); err != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return err
+	}
+	// wait longer for the build to run to completion
+	return wait.Poll(5*time.Second, 20*time.Minute, func() (bool, error) {
 		list, err := c.List(labels.Everything(), fields.Set{"name": name}.AsSelector())
 		if err != nil {
-			return err
+			return false, err
 		}
 		for i := range list.Items {
 			if name == list.Items[i].Name && isOK(&list.Items[i]) {
-				return nil
+				return true, nil
 			}
 			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
-				return fmt.Errorf("The build %q status is %q", name, &list.Items[i].Status.Phase)
+				return false, fmt.Errorf("The build %q status is %q", name, &list.Items[i].Status.Phase)
 			}
 		}
 
 		rv := list.ResourceVersion
 		w, err := c.Watch(labels.Everything(), fields.Set{"name": name}.AsSelector(), rv)
 		if err != nil {
-			return err
+			return false, err
 		}
 		defer w.Stop()
 
@@ -84,18 +96,18 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed func(*bu
 			val, ok := <-w.ResultChan()
 			if !ok {
 				// reget and re-watch
-				break
+				return false, nil
 			}
 			if e, ok := val.Object.(*buildapi.Build); ok {
 				if name == e.Name && isOK(e) {
-					return nil
+					return true, nil
 				}
 				if name != e.Name || isFailed(e) {
-					return fmt.Errorf("The build %q status is %q", name, e.Status.Phase)
+					return false, fmt.Errorf("The build %q status is %q", name, e.Status.Phase)
 				}
 			}
 		}
-	}
+	})
 }
 
 // CheckBuildSuccessFunc returns true if the build succeeded
@@ -198,7 +210,7 @@ func WaitForADeployment(client kclient.ReplicationControllerInterface,
 			return fmt.Errorf("unexpected error generating label selector: %v", err)
 		}
 
-		list, err := client.List(labels.LabelSelector{*requirement})
+		list, err := client.List(labels.LabelSelector{*requirement}, fields.Everything())
 		if err != nil {
 			return err
 		}
@@ -320,7 +332,7 @@ func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (s
 func GetPodForContainer(container kapi.Container) *kapi.Pod {
 	name := namer.GetPodName("test-pod", string(kutil.NewUUID()))
 	return &kapi.Pod{
-		TypeMeta: kapi.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
@@ -338,7 +350,7 @@ func GetPodForContainer(container kapi.Container) *kapi.Pod {
 // CreatePersistentVolume creates a HostPath Persistent Volume.
 func CreatePersistentVolume(name, capacity, hostPath string) *kapi.PersistentVolume {
 	return &kapi.PersistentVolume{
-		TypeMeta: kapi.TypeMeta{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "PersistentVolume",
 			APIVersion: "v1",
 		},

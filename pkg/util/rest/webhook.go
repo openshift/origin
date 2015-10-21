@@ -21,6 +21,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
@@ -68,16 +69,17 @@ func NewHTTPWebHook(handler http.Handler, allowGet bool) *WebHook {
 
 // New() responds with the status object.
 func (h *WebHook) New() runtime.Object {
-	return &api.Status{}
+	return &unversioned.Status{}
 }
 
 // Connect responds to connections with a ConnectHandler
-func (h *WebHook) Connect(ctx api.Context, name string, options runtime.Object) (rest.ConnectHandler, error) {
+func (h *WebHook) Connect(ctx api.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
 	return &WebHookHandler{
-		handler: h.h,
-		ctx:     ctx,
-		name:    name,
-		options: options.(*api.PodProxyOptions),
+		handler:   h.h,
+		ctx:       ctx,
+		name:      name,
+		options:   options.(*api.PodProxyOptions),
+		responder: responder,
 	}, nil
 }
 
@@ -96,22 +98,19 @@ func (h *WebHook) ConnectMethods() []string {
 
 // WebHookHandler responds to web hook requests from the master.
 type WebHookHandler struct {
-	handler HookHandler
-	ctx     api.Context
-	name    string
-	options *api.PodProxyOptions
-	err     error
+	handler   HookHandler
+	ctx       api.Context
+	name      string
+	options   *api.PodProxyOptions
+	responder rest.Responder
 }
 
-var _ rest.ConnectHandler = &WebHookHandler{}
+var _ http.Handler = &WebHookHandler{}
 
 func (h *WebHookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.err = h.handler.ServeHTTP(w, r, h.ctx, h.name, h.options.Path)
-	if h.err == nil {
-		w.WriteHeader(http.StatusOK)
+	if err := h.handler.ServeHTTP(w, r, h.ctx, h.name, h.options.Path); err != nil {
+		h.responder.Error(err)
+		return
 	}
-}
-
-func (h *WebHookHandler) RequestError() error {
-	return h.err
+	w.WriteHeader(http.StatusOK)
 }

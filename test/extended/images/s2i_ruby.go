@@ -14,7 +14,7 @@ var _ = g.Describe("images: s2i: ruby", func() {
 	defer g.GinkgoRecover()
 	var (
 		railsTemplate = "https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json"
-		oc            = exutil.NewCLI("s2i-php", exutil.KubeConfigPath())
+		oc            = exutil.NewCLI("s2i-ruby", exutil.KubeConfigPath())
 		modifyCommand = []string{"sed", "-ie", `s%render :file => 'public/index.html'%%`, "app/controllers/welcome_controller.rb"}
 		removeCommand = []string{"rm", "-f", "public/index.html"}
 		dcName        = "rails-postgresql-example-1"

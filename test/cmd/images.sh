@@ -115,6 +115,9 @@ oc tag mysql:latest tagtest:zzz tagtest2:zzz
 oc tag mysql:latest tagtest3:latest tagtest4:latest
 [ "$(oc get is/tagtest3 --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
 [ "$(oc get is/tagtest4 --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
-
 oc delete is/tagtest is/tagtest2 is/tagtest3 is/tagtest4
+
+oc create -f test/fixtures/test-stream.yaml
+[ "$(oc tag test-stream:latest -d | grep "Deleted")" ]
+oc delete is/test-stream
 echo "tag: ok"

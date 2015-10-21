@@ -32,7 +32,11 @@
         <span ng-switch-when="Cancelled">was cancelled.</span>
         <span ng-switch-default>is {{build.status.phase | lowercase}}.
           <span ng-if="trigger.imageChangeParams.automatic">
-            A new deployment will be created automatically once the build completes.
+            A new deployment will be created automatically once the build completes.&nbsp;&nbsp;
+            <a
+              href="/project/{{build.metadata.namespace}}/browse/builds/{{build.metadata.labels.buildconfig}}/{{build.metadata.name}}?tab=logs">
+              View Log
+            </a>
           </span>
         </span>
       </span>
@@ -40,3 +44,6 @@
     </div>
   </div>
 </div>
+
+
+

@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/conversion"
 )
 
@@ -506,9 +507,10 @@ func convert_v1beta3_PodSpec_To_api_PodSpec(in *PodSpec, out *api.PodSpec, s con
 	}
 	out.ServiceAccountName = in.ServiceAccount
 	out.NodeName = in.Host
-	out.HostNetwork = in.HostNetwork
-	out.HostPID = in.HostPID
-	out.HostIPC = in.HostIPC
+	out.SecurityContext = &api.PodSecurityContext{}
+	out.SecurityContext.HostNetwork = in.HostNetwork
+	out.SecurityContext.HostPID = in.HostPID
+	out.SecurityContext.HostIPC = in.HostIPC
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]api.LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -570,9 +572,11 @@ func convert_api_PodSpec_To_v1beta3_PodSpec(in *api.PodSpec, out *PodSpec, s con
 	}
 	out.ServiceAccount = in.ServiceAccountName
 	out.Host = in.NodeName
-	out.HostNetwork = in.HostNetwork
-	out.HostPID = in.HostPID
-	out.HostIPC = in.HostIPC
+	if in.SecurityContext != nil {
+		out.HostNetwork = in.SecurityContext.HostNetwork
+		out.HostPID = in.SecurityContext.HostPID
+		out.HostIPC = in.SecurityContext.HostIPC
+	}
 	if in.ImagePullSecrets != nil {
 		out.ImagePullSecrets = make([]LocalObjectReference, len(in.ImagePullSecrets))
 		for i := range in.ImagePullSecrets {
@@ -684,14 +688,14 @@ func convert_v1beta3_ContainerStateTerminated_To_api_ContainerStateTerminated(in
 	return nil
 }
 
-func convert_v1beta3_StatusDetails_To_api_StatusDetails(in *StatusDetails, out *api.StatusDetails, s conversion.Scope) error {
+func convert_v1beta3_StatusDetails_To_api_StatusDetails(in *StatusDetails, out *unversioned.StatusDetails, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*StatusDetails))(in)
 	}
 	out.Name = in.ID
 	out.Kind = in.Kind
 	if in.Causes != nil {
-		out.Causes = make([]api.StatusCause, len(in.Causes))
+		out.Causes = make([]unversioned.StatusCause, len(in.Causes))
 		for i := range in.Causes {
 			if err := convert_v1beta3_StatusCause_To_api_StatusCause(&in.Causes[i], &out.Causes[i], s); err != nil {
 				return err
@@ -704,9 +708,9 @@ func convert_v1beta3_StatusDetails_To_api_StatusDetails(in *StatusDetails, out *
 	return nil
 }
 
-func convert_api_StatusDetails_To_v1beta3_StatusDetails(in *api.StatusDetails, out *StatusDetails, s conversion.Scope) error {
+func convert_api_StatusDetails_To_v1beta3_StatusDetails(in *unversioned.StatusDetails, out *StatusDetails, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.StatusDetails))(in)
+		defaulting.(func(*unversioned.StatusDetails))(in)
 	}
 	out.ID = in.Name
 	out.Kind = in.Kind
@@ -724,19 +728,19 @@ func convert_api_StatusDetails_To_v1beta3_StatusDetails(in *api.StatusDetails, o
 	return nil
 }
 
-func convert_v1beta3_StatusCause_To_api_StatusCause(in *StatusCause, out *api.StatusCause, s conversion.Scope) error {
+func convert_v1beta3_StatusCause_To_api_StatusCause(in *StatusCause, out *unversioned.StatusCause, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*StatusCause))(in)
 	}
-	out.Type = api.CauseType(in.Type)
+	out.Type = unversioned.CauseType(in.Type)
 	out.Message = in.Message
 	out.Field = in.Field
 	return nil
 }
 
-func convert_api_StatusCause_To_v1beta3_StatusCause(in *api.StatusCause, out *StatusCause, s conversion.Scope) error {
+func convert_api_StatusCause_To_v1beta3_StatusCause(in *unversioned.StatusCause, out *StatusCause, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.StatusCause))(in)
+		defaulting.(func(*unversioned.StatusCause))(in)
 	}
 	out.Type = CauseType(in.Type)
 	out.Message = in.Message

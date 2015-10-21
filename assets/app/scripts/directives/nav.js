@@ -127,4 +127,13 @@ angular.module('openshiftConsole')
         });
       }
     };
-  }]);
+  }])
+  .directive('oscSecondaryNav', function() {
+    return {
+      restrict: 'A',
+      scope: {
+        tabs: '='
+      },
+      templateUrl: 'views/directives/osc-secondary-nav.html'
+    };
+  });

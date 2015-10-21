@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/fields"
 	kubectl "k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -308,7 +309,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 // version will be returned.
 func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int) (*kapi.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
-	deployments, err := o.kc.ReplicationControllers(config.Namespace).List(deployutil.ConfigSelector(config.Name))
+	deployments, err := o.kc.ReplicationControllers(config.Namespace).List(deployutil.ConfigSelector(config.Name), fields.Everything())
 	if err != nil {
 		return nil, err
 	}

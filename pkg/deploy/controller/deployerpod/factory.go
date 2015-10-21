@@ -27,7 +27,7 @@ type DeployerPodControllerFactory struct {
 func (factory *DeployerPodControllerFactory) Create() controller.RunnableController {
 	deploymentLW := &deployutil.ListWatcherImpl{
 		ListFunc: func() (runtime.Object, error) {
-			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything())
+			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).List(labels.Everything(), fields.Everything())
 		},
 		WatchFunc: func(resourceVersion string) (watch.Interface, error) {
 			return factory.KubeClient.ReplicationControllers(kapi.NamespaceAll).Watch(labels.Everything(), fields.Everything(), resourceVersion)
@@ -69,7 +69,7 @@ func (factory *DeployerPodControllerFactory) Create() controller.RunnableControl
 				return factory.KubeClient.ReplicationControllers(namespace).Update(deployment)
 			},
 			listDeploymentsForConfigFunc: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-				return factory.KubeClient.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName))
+				return factory.KubeClient.ReplicationControllers(namespace).List(deployutil.ConfigSelector(configName), fields.Everything())
 			},
 		},
 		deployerPodsFor: func(namespace, name string) (*kapi.PodList, error) {

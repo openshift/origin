@@ -153,7 +153,7 @@ Sets a user entry in kubeconfig
 
 
 == oc config view
-displays Merged kubeconfig settings or a specified kubeconfig file.
+Displays merged kubeconfig settings or a specified kubeconfig file.
 
 ====
 
@@ -164,6 +164,27 @@ displays Merged kubeconfig settings or a specified kubeconfig file.
   
   # Get the password for the e2e user
   $ openshift cli config view -o template --template='{{range .users}}{{ if eq .name "e2e" }}{{ index .user.password }}{{end}}{{end}}'
+----
+====
+
+
+== oc convert
+Convert config files between different API versions
+
+====
+
+[options="nowrap"]
+----
+# Convert 'pod.yaml' to latest version and print to stdout.
+$ openshift cli convert -f pod.yaml
+
+# Convert the live state of the resource specified by 'pod.yaml' to the latest version
+# and print to stdout in json format.
+$ openshift cli convert -f pod.yaml --local -o json
+
+# Convert all files under current directory to latest version and create them all.
+$ openshift cli convert -f . | kubectl create -f -
+
 ----
 ====
 
@@ -321,6 +342,22 @@ Execute a command in a container.
 ====
 
 
+== oc explain
+Documentation of resources.
+
+====
+
+[options="nowrap"]
+----
+# Get the documentation of the resource and its fields
+$ openshift cli explain pods
+
+# Get the documentation of a specific field of a resource
+$ openshift cli explain pods.spec.containers
+----
+====
+
+
 == oc export
 Export resources so they can be used elsewhere
 
@@ -465,14 +502,17 @@ Print the logs for a resource.
 
 [options="nowrap"]
 ----
-  # Returns snapshot of ruby-container logs from pod 123456-7890.
-  $ openshift cli logs 123456-7890 -c ruby-container
+  # Returns snapshot of ruby-container logs from pod backend.
+  $ openshift cli logs backend -c ruby-container
 
-  # Starts streaming of ruby-container logs from pod 123456-7890.
-  $ openshift cli logs -f 123456-7890 -c ruby-container
+  # Starts streaming of ruby-container logs from pod backend.
+  $ openshift cli logs -f pod/backend -c ruby-container
 
-  # Starts streaming the logs of the most recent build of the openldap BuildConfig.
+  # Starts streaming the logs of the most recent build of the openldap buildConfig.
   $ openshift cli logs -f bc/openldap
+
+  # Starts streaming the logs of the latest deployment of the mysql deploymentConfig
+  $ openshift cli logs -f dc/mysql
 ----
 ====
 
@@ -946,14 +986,17 @@ Tag existing images into image streams
 
 [options="nowrap"]
 ----
-  # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip':
+  # Tag the current image for the image stream 'openshift/ruby' and tag '2.0' into the image stream 'yourproject/ruby with tag 'tip'.
   $ openshift cli tag openshift/ruby:2.0 yourproject/ruby:tip
 
-  # Tag a specific image:
+  # Tag a specific image.
   $ openshift cli tag openshift/ruby@sha256:6b646fa6bf5e5e4c7fa41056c27910e679c03ebe7f93e361e6515a9da7e258cc yourproject/ruby:tip
 
-  # Tag an external Docker image:
+  # Tag an external Docker image.
   $ openshift cli tag --source=docker openshift/origin:latest yourproject/ruby:tip
+
+  # Remove the specified spec tag from an image stream.
+  $ openshift cli tag openshift/origin:latest -d
 ----
 ====
 

@@ -100,6 +100,36 @@ func NewUpdateAction(resource, namespace string, object runtime.Object) UpdateAc
 	return action
 }
 
+func NewRootPatchAction(resource string, object runtime.Object) PatchActionImpl {
+	action := PatchActionImpl{}
+	action.Verb = "patch"
+	action.Resource = resource
+	action.Object = object
+
+	return action
+}
+
+func NewPatchAction(resource, namespace string, object runtime.Object) PatchActionImpl {
+	action := PatchActionImpl{}
+	action.Verb = "patch"
+	action.Resource = resource
+	action.Namespace = namespace
+	action.Object = object
+
+	return action
+}
+
+func NewUpdateSubresourceAction(resource, subresource, namespace string, object runtime.Object) UpdateActionImpl {
+	action := UpdateActionImpl{}
+	action.Verb = "update"
+	action.Resource = resource
+	action.Subresource = subresource
+	action.Namespace = namespace
+	action.Object = object
+
+	return action
+}
+
 func NewRootDeleteAction(resource, name string) DeleteActionImpl {
 	action := DeleteActionImpl{}
 	action.Verb = "delete"
@@ -275,6 +305,15 @@ type UpdateActionImpl struct {
 }
 
 func (a UpdateActionImpl) GetObject() runtime.Object {
+	return a.Object
+}
+
+type PatchActionImpl struct {
+	ActionImpl
+	Object runtime.Object
+}
+
+func (a PatchActionImpl) GetObject() runtime.Object {
 	return a.Object
 }
 

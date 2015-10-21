@@ -12,11 +12,13 @@ import (
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	proxy "k8s.io/kubernetes/pkg/proxy/userspace"
 	"k8s.io/kubernetes/pkg/util"
+	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
 
@@ -140,7 +142,7 @@ func (c *NodeConfig) RunKubelet() {
 	c.KubeletConfig.RootDirectory = c.VolumeDir
 
 	// hook for overriding the cadvisor interface for integration tests
-	c.KubeletConfig.CadvisorInterface = defaultCadvisorInterface
+	c.KubeletConfig.CAdvisorInterface = defaultCadvisorInterface
 
 	go func() {
 		glog.Fatal(c.KubeletServer.Run(c.KubeletConfig))
@@ -193,8 +195,18 @@ func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler)
 		glog.Fatalf("Cannot parse the provided ip-tables sync period (%s) : %v", c.IPTablesSyncPeriod, err)
 	}
 
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(c.Client.Events(""))
+	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: c.KubeletConfig.NodeName})
+	nodeRef := &kapi.ObjectReference{
+		Kind: "Node",
+		Name: c.KubeletConfig.NodeName,
+	}
+
 	go util.Forever(func() {
-		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables.New(kexec.New(), protocol), util.PortRange{}, syncPeriod)
+		dbus := utildbus.New()
+		iptables := iptables.New(kexec.New(), dbus, protocol)
+		proxier, err := proxy.NewProxier(loadBalancer, ip, iptables, util.PortRange{}, syncPeriod)
 		if err != nil {
 			switch {
 			// conflicting use of iptables, retry
@@ -222,6 +234,7 @@ func (c *NodeConfig) RunProxy(endpointsFilterer FilteringEndpointsConfigHandler)
 			endpointsConfig.Channel("api"))
 
 		serviceConfig.RegisterHandler(proxier)
+		recorder.Eventf(nodeRef, "Starting", "Starting kube-proxy.")
 		glog.Infof("Started Kubernetes Proxy on %s", host)
 		select {}
 	}, 5*time.Second)

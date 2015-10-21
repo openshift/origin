@@ -4,9 +4,8 @@
     <alerts alerts="alerts"></alerts>
     <div ng-if="!loaded">Loading...</div>
     <div class="tile" ng-if="imageStream">
-      <h2>
-        {{imageStream.metadata.name}}
-      </h2>
+      <h1>{{imageStream.metadata.name}}</h1>
+      <labels labels="imageStream.metadata.labels" clickable="true" kind="images" project-name="{{imageStream.metadata.namespace}}" limit="3"></labels>
       <dl class="dl-horizontal left">
         <dt ng-if-start="imageStream.spec.dockerImageRepository">Follows docker repo:</dt>
         <dd ng-if-end>{{imageStream.spec.dockerImageRepository}}</dd>

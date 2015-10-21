@@ -35,10 +35,12 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/generator"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
+	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
@@ -234,16 +236,14 @@ func (c *MasterConfig) serve(handler http.Handler, extra []string) {
 			if err != nil {
 				glog.Fatal(err)
 			}
-			server.TLSConfig = &tls.Config{
-				// Change default from SSLv3 to TLSv1.0 (because of POODLE vulnerability)
-				MinVersion: tls.VersionTLS10,
+			server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
 				// Populate PeerCertificates in requests, but don't reject connections without certificates
 				// This allows certificates to be validated by authenticators, while still allowing other auth types
 				ClientAuth: tls.RequestClientCert,
 				ClientCAs:  c.ClientCAs,
 				// Set SNI certificate func
 				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-			}
+			})
 			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
 		} else {
 			glog.Fatal(server.ListenAndServe())
@@ -274,14 +274,6 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 	legacyAPIVersions := []string{}
 	currentAPIVersions := []string{}
 
-	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1Beta3) {
-		if err := c.api_v1beta3(storage).InstallREST(container); err != nil {
-			glog.Fatalf("Unable to initialize v1beta3 API: %v", err)
-		}
-		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s", OpenShiftAPIPrefixV1Beta3))
-		legacyAPIVersions = append(legacyAPIVersions, OpenShiftAPIV1Beta3)
-	}
-
 	if configapi.HasOpenShiftAPILevel(c.Options, OpenShiftAPIV1) {
 		if err := c.api_v1(storage).InstallREST(container); err != nil {
 			glog.Fatalf("Unable to initialize v1 API: %v", err)
@@ -307,6 +299,10 @@ func (c *MasterConfig) InstallProtectedAPI(container *restful.Container) []strin
 		container.Add(root)
 	}
 
+	// The old API prefix must continue to return 200 (with an empty versions
+	// list) for backwards compatibility, even though we won't service any other
+	// requests through the route. Take care when considering whether to delete
+	// this route.
 	initAPIVersionRoute(root, LegacyOpenShiftAPIPrefix, legacyAPIVersions...)
 	initAPIVersionRoute(root, OpenShiftAPIPrefix, currentAPIVersions...)
 
@@ -406,7 +402,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 			LISFn2: imageStreamRegistry.ListImageStreams,
 		},
 	}
-	_, kclient := c.DeploymentConfigControllerClients()
+	configClient, kclient := c.DeploymentConfigClients()
 	deployRollback := &deployrollback.RollbackGenerator{}
 	deployRollbackClient := deployrollback.Client{
 		DCFn: deployConfigRegistry.GetDeploymentConfig,
@@ -444,6 +440,7 @@ func (c *MasterConfig) GetRestStorage() map[string]rest.Storage {
 		"deploymentConfigs":         deployConfigStorage,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, c.EtcdHelper.Codec()),
 		"deploymentConfigRollbacks": deployrollback.NewREST(deployRollbackClient, c.EtcdHelper.Codec()),
+		"deploymentConfigs/log":     deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), kubeletClient),
 
 		"processedTemplates": templateregistry.NewREST(),
 		"templates":          templateetcd.NewREST(c.EtcdHelper),
@@ -502,10 +499,6 @@ func (c *MasterConfig) InstallUnprotectedAPI(container *restful.Container) []str
 
 // initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(root *restful.WebService, prefix string, versions ...string) {
-	if len(versions) == 0 {
-		return
-	}
-
 	versionHandler := apiserver.APIVersionHandler(versions...)
 	root.Route(root.GET(prefix).To(versionHandler).
 		Doc("list supported server API versions").

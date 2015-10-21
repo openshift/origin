@@ -3,6 +3,7 @@ package imagestream
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -24,7 +25,7 @@ type Registry interface {
 	// UpdateImageStream updates an image stream's status.
 	UpdateImageStreamStatus(ctx kapi.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	// DeleteImageStream deletes an image stream.
-	DeleteImageStream(ctx kapi.Context, id string) (*kapi.Status, error)
+	DeleteImageStream(ctx kapi.Context, id string) (*unversioned.Status, error)
 	// WatchImageStreams watches for new/changed/deleted image streams.
 	WatchImageStreams(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error)
 }
@@ -92,12 +93,12 @@ func (s *storage) UpdateImageStreamStatus(ctx kapi.Context, imageStream *api.Ima
 	return obj.(*api.ImageStream), nil
 }
 
-func (s *storage) DeleteImageStream(ctx kapi.Context, imageStreamID string) (*kapi.Status, error) {
+func (s *storage) DeleteImageStream(ctx kapi.Context, imageStreamID string) (*unversioned.Status, error) {
 	obj, err := s.Delete(ctx, imageStreamID, nil)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*kapi.Status), nil
+	return obj.(*unversioned.Status), nil
 }
 
 func (s *storage) WatchImageStreams(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {

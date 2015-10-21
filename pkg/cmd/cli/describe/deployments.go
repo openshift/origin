@@ -101,7 +101,7 @@ func NewDeploymentConfigDescriber(client client.Interface, kclient kclient.Inter
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(selector)
+				return kclient.ReplicationControllers(namespace).List(selector, fields.Everything())
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 				return kclient.Pods(namespace).List(selector, fields.Everything())
@@ -212,7 +212,7 @@ func printStrategy(strategy deployapi.DeploymentStrategy, w *tabwriter.Writer) {
 
 func printHook(prefix string, hook *deployapi.LifecycleHook, w io.Writer) {
 	if hook.ExecNewPod != nil {
-		fmt.Fprintf(w, "\t  %s hook (pod type, failure policy: %s)\n", prefix, hook.FailurePolicy)
+		fmt.Fprintf(w, "\t  %s hook (pod type, failure policy: %s):\n", prefix, hook.FailurePolicy)
 		fmt.Fprintf(w, "\t    Container:\t%s\n", hook.ExecNewPod.ContainerName)
 		fmt.Fprintf(w, "\t    Command:\t%v\n", strings.Join(hook.ExecNewPod.Command, " "))
 		fmt.Fprintf(w, "\t    Env:\t%s\n", formatLabels(convertEnv(hook.ExecNewPod.Env)))
@@ -324,7 +324,7 @@ func NewLatestDeploymentsDescriber(client client.Interface, kclient kclient.Inte
 				return kclient.ReplicationControllers(namespace).Get(name)
 			},
 			listDeploymentsFunc: func(namespace string, selector labels.Selector) (*kapi.ReplicationControllerList, error) {
-				return kclient.ReplicationControllers(namespace).List(selector)
+				return kclient.ReplicationControllers(namespace).List(selector, fields.Everything())
 			},
 			listPodsFunc: func(namespace string, selector labels.Selector) (*kapi.PodList, error) {
 				return kclient.Pods(namespace).List(selector, fields.Everything())

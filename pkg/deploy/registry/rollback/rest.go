@@ -33,12 +33,17 @@ type Client struct {
 	DCFn func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
 }
 
+// GetDeployment returns the deploymentConfig with the provided context and name
 func (c Client) GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
 	return c.DCFn(ctx, name)
 }
+
+// GetDeployment returns the deployment with the provided context and name
 func (c Client) GetDeployment(ctx kapi.Context, name string) (*kapi.ReplicationController, error) {
 	return c.RCFn(ctx, name)
 }
+
+// GenerateRollback generates a new deploymentConfig by merging a pair of deploymentConfigs
 func (c Client) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 	return c.GRFn(from, to, spec)
 }
@@ -51,6 +56,7 @@ func NewREST(generator GeneratorClient, codec runtime.Codec) *REST {
 	}
 }
 
+// New creates an empty DeploymentConfigRollback resource
 func (s *REST) New() runtime.Object {
 	return &deployapi.DeploymentConfigRollback{}
 }

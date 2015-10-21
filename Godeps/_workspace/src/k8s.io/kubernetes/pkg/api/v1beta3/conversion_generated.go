@@ -23,6 +23,7 @@ import (
 
 	api "k8s.io/kubernetes/pkg/api"
 	resource "k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	conversion "k8s.io/kubernetes/pkg/conversion"
 )
 
@@ -733,9 +734,9 @@ func convert_api_List_To_v1beta3_List(in *api.List, out *List, s conversion.Scop
 	return nil
 }
 
-func convert_api_ListMeta_To_v1beta3_ListMeta(in *api.ListMeta, out *ListMeta, s conversion.Scope) error {
+func convert_api_ListMeta_To_v1beta3_ListMeta(in *unversioned.ListMeta, out *ListMeta, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.ListMeta))(in)
+		defaulting.(func(*unversioned.ListMeta))(in)
 	}
 	out.SelfLink = in.SelfLink
 	out.ResourceVersion = in.ResourceVersion
@@ -2181,9 +2182,9 @@ func convert_api_ServiceStatus_To_v1beta3_ServiceStatus(in *api.ServiceStatus, o
 	return nil
 }
 
-func convert_api_Status_To_v1beta3_Status(in *api.Status, out *Status, s conversion.Scope) error {
+func convert_api_Status_To_v1beta3_Status(in *unversioned.Status, out *Status, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.Status))(in)
+		defaulting.(func(*unversioned.Status))(in)
 	}
 	if err := convert_api_TypeMeta_To_v1beta3_TypeMeta(&in.TypeMeta, &out.TypeMeta, s); err != nil {
 		return err
@@ -2216,9 +2217,9 @@ func convert_api_TCPSocketAction_To_v1beta3_TCPSocketAction(in *api.TCPSocketAct
 	return nil
 }
 
-func convert_api_TypeMeta_To_v1beta3_TypeMeta(in *api.TypeMeta, out *TypeMeta, s conversion.Scope) error {
+func convert_api_TypeMeta_To_v1beta3_TypeMeta(in *unversioned.TypeMeta, out *TypeMeta, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*api.TypeMeta))(in)
+		defaulting.(func(*unversioned.TypeMeta))(in)
 	}
 	out.Kind = in.Kind
 	out.APIVersion = in.APIVersion
@@ -2953,7 +2954,7 @@ func convert_v1beta3_List_To_api_List(in *List, out *api.List, s conversion.Scop
 	return nil
 }
 
-func convert_v1beta3_ListMeta_To_api_ListMeta(in *ListMeta, out *api.ListMeta, s conversion.Scope) error {
+func convert_v1beta3_ListMeta_To_api_ListMeta(in *ListMeta, out *unversioned.ListMeta, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*ListMeta))(in)
 	}
@@ -4401,7 +4402,7 @@ func convert_v1beta3_ServiceStatus_To_api_ServiceStatus(in *ServiceStatus, out *
 	return nil
 }
 
-func convert_v1beta3_Status_To_api_Status(in *Status, out *api.Status, s conversion.Scope) error {
+func convert_v1beta3_Status_To_api_Status(in *Status, out *unversioned.Status, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*Status))(in)
 	}
@@ -4413,9 +4414,9 @@ func convert_v1beta3_Status_To_api_Status(in *Status, out *api.Status, s convers
 	}
 	out.Status = in.Status
 	out.Message = in.Message
-	out.Reason = api.StatusReason(in.Reason)
+	out.Reason = unversioned.StatusReason(in.Reason)
 	if in.Details != nil {
-		out.Details = new(api.StatusDetails)
+		out.Details = new(unversioned.StatusDetails)
 		if err := convert_v1beta3_StatusDetails_To_api_StatusDetails(in.Details, out.Details, s); err != nil {
 			return err
 		}
@@ -4436,7 +4437,7 @@ func convert_v1beta3_TCPSocketAction_To_api_TCPSocketAction(in *TCPSocketAction,
 	return nil
 }
 
-func convert_v1beta3_TypeMeta_To_api_TypeMeta(in *TypeMeta, out *api.TypeMeta, s conversion.Scope) error {
+func convert_v1beta3_TypeMeta_To_api_TypeMeta(in *TypeMeta, out *unversioned.TypeMeta, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*TypeMeta))(in)
 	}

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"reflect"
 	"testing"
 
@@ -29,15 +30,18 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/testapi"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/unversioned/fake"
 )
 
 type fakeRemoteExecutor struct {
-	req     *client.Request
+	method  string
+	url     *url.URL
 	execErr error
 }
 
-func (f *fakeRemoteExecutor) Execute(req *client.Request, config *client.Config, command []string, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
-	f.req = req
+func (f *fakeRemoteExecutor) Execute(method string, url *url.URL, config *client.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool) error {
+	f.method = method
+	f.url = url
 	return f.execErr
 }
 
@@ -97,9 +101,9 @@ func TestPodAndContainer(t *testing.T) {
 	}
 	for _, test := range tests {
 		f, tf, codec := NewAPIFactory()
-		tf.Client = &client.FakeRESTClient{
+		tf.Client = &fake.RESTClient{
 			Codec:  codec,
-			Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) { return nil, nil }),
+			Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) { return nil, nil }),
 		}
 		tf.Namespace = "test"
 		tf.ClientConfig = &client.Config{}
@@ -153,9 +157,9 @@ func TestExec(t *testing.T) {
 	}
 	for _, test := range tests {
 		f, tf, codec := NewAPIFactory()
-		tf.Client = &client.FakeRESTClient{
+		tf.Client = &fake.RESTClient{
 			Codec: codec,
-			Client: client.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
+			Client: fake.HTTPClientFunc(func(req *http.Request) (*http.Response, error) {
 				switch p, m := req.URL.Path, req.Method; {
 				case p == test.podPath && m == "GET":
 					body := objBody(codec, test.pod)
@@ -197,9 +201,15 @@ func TestExec(t *testing.T) {
 			t.Errorf("%s: Unexpected error: %v", test.name, err)
 			continue
 		}
-		if !test.execErr && ex.req.URL().Path != test.execPath {
+		if test.execErr {
+			continue
+		}
+		if ex.url.Path != test.execPath {
 			t.Errorf("%s: Did not get expected path for exec request", test.name)
 			continue
+		}
+		if ex.method != "POST" {
+			t.Errorf("%s: Did not get method for exec request: %s", test.name, ex.method)
 		}
 	}
 }

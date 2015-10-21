@@ -43,6 +43,11 @@ oc create -f test/integration/fixtures/test-service.json
 oc delete services frontend
 echo "services: ok"
 
+oc create -f test/fixtures/mixed-api-versions.yaml
+oc get    -f test/fixtures/mixed-api-versions.yaml -o yaml > /dev/null
+oc delete -f test/fixtures/mixed-api-versions.yaml
+echo "list version conversion: ok"
+
 oc get nodes
 (
   # subshell so we can unset kubeconfig

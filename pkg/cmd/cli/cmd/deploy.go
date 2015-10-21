@@ -27,6 +27,7 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
+// DeployOptions holds all the options for the `deploy` command
 type DeployOptions struct {
 	out             io.Writer
 	osClient        client.Interface
@@ -243,7 +244,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) 
 	deployment, err := o.kubeClient.ReplicationControllers(config.Namespace).Get(deploymentName)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return fmt.Errorf("Unable to find the latest deployment (#%d).\nYou can start a new deployment using the --latest option.", config.LatestVersion)
+			return fmt.Errorf("unable to find the latest deployment (#%d).\nYou can start a new deployment using the --latest option.", config.LatestVersion)
 		}
 		return err
 	}
@@ -284,7 +285,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig, out io.Writer) 
 
 // cancel cancels any deployment process in progress for config.
 func (o DeployOptions) cancel(config *deployapi.DeploymentConfig, out io.Writer) error {
-	deployments, err := o.kubeClient.ReplicationControllers(config.Namespace).List(deployutil.ConfigSelector(config.Name))
+	deployments, err := o.kubeClient.ReplicationControllers(config.Namespace).List(deployutil.ConfigSelector(config.Name), fields.Everything())
 	if err != nil {
 		return err
 	}
