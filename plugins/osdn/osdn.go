@@ -405,7 +405,7 @@ func (oi *OsdnRegistryInterface) getServices(namespace string) ([]osdnapi.Servic
 
 	oServList := make([]osdnapi.Service, 0, len(kServList.Items))
 	for _, kService := range kServList.Items {
-		if kService.Spec.ClusterIP == "None" {
+		if !kapi.IsServiceIPSet(&kService) {
 			continue
 		}
 		for _, port := range kService.Spec.Ports {
@@ -427,7 +427,7 @@ func (oi *OsdnRegistryInterface) WatchServices(receiver chan<- *osdnapi.ServiceE
 		kServ := obj.(*kapi.Service)
 
 		// Ignore headless services
-		if kServ.Spec.ClusterIP == "None" {
+		if !kapi.IsServiceIPSet(kServ) {
 			continue
 		}
 
