@@ -224,9 +224,7 @@ function start() {
       "${SCRIPT_ROOT}/provision-node.sh ${args} ${name}"
   done
 
-  echo "Disabling scheduling for the sdn node"
-  ${DOCKER_CMD} exec "${master_cid}" bash -cl \
-    "osadm manage-node ${SDN_NODE_NAME} --schedulable=false > /dev/null"
+  os::dind::disable-sdn-node "${master_cid}" "${SDN_NODE_NAME}"
 }
 
 function stop() {
