@@ -4,13 +4,13 @@
 # The standard name for this image is openshift/dind
 #
 
-FROM fedora:22
+FROM fedora:21
 
-RUN dnf -y update && dnf -y install supervisor git golang hg tar make \
+RUN yum -y update && yum -y install supervisor git golang hg tar make \
   hostname bind-utils iproute iputils which procps-ng \
   # Node-specific packages
   docker openvswitch bridge-utils ethtool \
-  && dnf clean all
+  && yum clean all
 
 ENV DIND_COMMIT e253b43366abf618475237e15633c43dc2ad40e6
 RUN curl -fL "https://raw.githubusercontent.com/jpetazzo/dind/${DIND_COMMIT}/wrapdocker" \
