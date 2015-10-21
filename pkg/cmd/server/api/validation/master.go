@@ -432,7 +432,24 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig) Validati
 		}
 	}
 
-	validationResults.Append(ValidateAPILevels(config.APILevels, api.KnownKubernetesAPILevels, api.DeadKubernetesAPILevels, "apiLevels"))
+	for group, versions := range config.DisabledAPIGroupVersions {
+		name := "disabledAPIGroupVersions[" + group + "]"
+		if !api.KnownKubeAPIGroups.Has(group) {
+			validationResults.AddWarnings(fielderrors.NewFieldValueNotSupported(name, group, api.KnownKubeAPIGroups.List()))
+			continue
+		}
+
+		allowedVersions := sets.NewString(api.KubeAPIGroupsToAllowedVersions[group]...)
+		for i, version := range versions {
+			if version == "*" {
+				continue
+			}
+
+			if !allowedVersions.Has(version) {
+				validationResults.AddWarnings(fielderrors.NewFieldValueNotSupported(fmt.Sprintf("%s[%d]", name, i), version, allowedVersions.List()))
+			}
+		}
+	}
 
 	validationResults.AddErrors(ValidateAPIServerExtendedArguments(config.APIServerArguments).Prefix("apiServerArguments")...)
 	validationResults.AddErrors(ValidateControllerExtendedArguments(config.ControllerArguments).Prefix("controllerArguments")...)

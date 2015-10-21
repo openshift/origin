@@ -693,6 +693,9 @@ type EtcdConfig struct {
 type KubernetesMasterConfig struct {
 	// APILevels is a list of API levels that should be enabled on startup: v1beta3 and v1 as examples
 	APILevels []string `json:"apiLevels"`
+	// DisabledAPIGroupVersions is a map of groups to the versions (or *) that should be disabled.
+	DisabledAPIGroupVersions map[string][]string `json:"disabledAPIGroupVersions"`
+
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string `json:"masterIP"`
 	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer,
