@@ -47,6 +47,10 @@
     border: 1px solid #ddd;
     position: relative;
     .osc-object-highlight();
+    h2 {
+      // Avoid clipping descenders in routes on overview.
+      line-height: 1.3;
+    }
     .component-label {
       color: @gray-light;
       font-size: @component-label;
