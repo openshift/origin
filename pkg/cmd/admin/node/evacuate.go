@@ -12,19 +12,38 @@ import (
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
+const (
+	flagGracePeriod = "grace-period"
+	flagDryRun      = "dry-run"
+	flagForce       = "force"
+)
+
 type EvacuateOptions struct {
 	Options *NodeOptions
 
 	// Optional params
-	DryRun bool
-	Force  bool
+	DryRun      bool
+	Force       bool
+	GracePeriod int64
+}
+
+// NewEvacuateOptions creates a new EvacuateOptions with default values.
+func NewEvacuateOptions(nodeOptions *NodeOptions) *EvacuateOptions {
+	return &EvacuateOptions{
+		Options:     nodeOptions,
+		DryRun:      false,
+		Force:       false,
+		GracePeriod: 30,
+	}
 }
 
 func (e *EvacuateOptions) AddFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
-	flags.BoolVar(&e.DryRun, "dry-run", false, "Show pods that will be migrated. Optional param for --evacuate")
-	flags.BoolVar(&e.Force, "force", false, "Delete pods not backed by replication controller. Optional param for --evacuate")
+	flags.BoolVar(&e.DryRun, flagDryRun, e.DryRun, "Show pods that will be migrated. Optional param for --evacuate")
+	flags.BoolVar(&e.Force, flagForce, e.Force, "Delete pods not backed by replication controller. Optional param for --evacuate")
+	flags.Int64Var(&e.GracePeriod, flagGracePeriod, e.GracePeriod, "Grace period (seconds) for pods being deleted. Optional param for --evacuate")
+
 }
 
 func (e *EvacuateOptions) Run() error {
@@ -82,9 +101,7 @@ func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
 	errList := []error{}
 	firstPod := true
 	numPodsWithNoRC := 0
-	// grace = 0 implies delete the pod immediately
-	grace := int64(0)
-	deleteOptions := &kapi.DeleteOptions{GracePeriodSeconds: &grace}
+	deleteOptions := e.makeDeleteOptions()
 
 	for _, pod := range pods.Items {
 		foundrc := false
@@ -128,4 +145,9 @@ Suggested options:
 		return kerrors.NewAggregate(errList)
 	}
 	return nil
+}
+
+// makeDeleteOptions creates the delete options that will be used for pod evacuation.
+func (e *EvacuateOptions) makeDeleteOptions() *kapi.DeleteOptions {
+	return &kapi.DeleteOptions{GracePeriodSeconds: &e.GracePeriod}
 }
