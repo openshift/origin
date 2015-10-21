@@ -14,12 +14,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 7a28ecb805fe49d7716ff4fedf637979267d1838
+%global commit 3c156a36e6bcfdff031354785ac51b501a6df429
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.900-384-g7a28ecb -X github.com/openshift/origin/pkg/version.commitFromGit 7a28ecb -X k8s.io/kubernetes/pkg/version.gitCommit 86b4e77 -X k8s.io/kubernetes/pkg/version.gitVersion v1.1.0-alpha.1-653-g86b4e77
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.901-200-g3c156a3 -X github.com/openshift/origin/pkg/version.commitFromGit 3c156a3 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
 }
 
 %if "%{dist}" == ".el7aos"
@@ -33,7 +33,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.0.2.901
+Version:        3.0.2.902
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -390,6 +390,164 @@ fi
 
 
 %changelog
+* Wed Oct 21 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.902
+- Revert "Support deleting image stream status tags" (ccoleman@redhat.com)
+- bump(github.com/openshift/openshift-sdn):
+  699716b85d1ac5b2f3e48969bbdbbb2a1266e9d0 (danw@redhat.com)
+- Adjust line-height of route link to avoid clipping (spadgett@redhat.com)
+- Support deleting image stream status tags (kargakis@tuta.io)
+- tag: Support deleting a tag with -d (mkargaki@redhat.com)
+- Bump K8s label selector to next version (sgoodwin@redhat.com)
+- Add a container terminal to the pod details page (stefw@redhat.com)
+- Remove old labels rendering from individual pages since its duplicate info
+  (jforrest@redhat.com)
+- Remove duplicate bootstrap.js from dependencies (spadgett@redhat.com)
+- updated LDIF and tests (skuznets@redhat.com)
+- Bug 1273350 - make click open the secondary nav instead of navigating
+  (jforrest@redhat.com)
+- Update label key/value pairs truncate at <769. Fixes
+  https://github.com/openshift/origin/issues/5181 (sgoodwin@redhat.com)
+- remove the deprecated build label on pods (bparees@redhat.com)
+- UPSTREAM: 15621: Correctly handle empty source (ccoleman@redhat.com)
+- UPSTREAM: 15953: Return unmodified error from negotiate (ccoleman@redhat.com)
+- Fix exposing deployment configs (mkargaki@redhat.com)
+- Remove code duplication (rhcarvalho@gmail.com)
+- Fix patternfly CSS ordering (spadgett@redhat.com)
+- Initial impl of viewing logs in web console (admin@benjaminapetersen.me)
+- This commit implements birthcry for openshift proxy. This also addresses
+  rhbz: https://bugzilla.redhat.com/show_bug.cgi?id=1270474
+  (avagarwa@redhat.com)
+- Bug 1271989 - error when navigating to resources in diff projects
+  (jforrest@redhat.com)
+- fix --config flag (deads@redhat.com)
+- client side changes for deployment logs (mkargaki@redhat.com)
+- server side changes for deployment logs (mkargaki@redhat.com)
+- api changes for deployment logs (mkargaki@redhat.com)
+- Disable new upstream e2e tests (ccoleman@redhat.com)
+- Remove authentication from import (ccoleman@redhat.com)
+- Web console scaling (spadgett@redhat.com)
+- Bug 1268891 - pods not always grouped when service selector should cover
+  template of a dc/deployment (jforrest@redhat.com)
+- ImageStream status.dockerImageRepository should always be local
+  (ccoleman@redhat.com)
+- remove kubectl apply from oc (deads@redhat.com)
+- UPSTREAM: <drop>: disable kubectl apply until there's an impl
+  (deads@redhat.com)
+- Add ng-cloak to navbar to reduce flicker on load (spadgett@redhat.com)
+- Disable v1beta3 in REST API (ironcladlou@gmail.com)
+- help unit tests compile (maszulik@redhat.com)
+- refactors (deads@redhat.com)
+- UPSTREAM: openshift-sdn(TODO): update for iptables.New call
+  (deads@redhat.com)
+- UPSTREAM: openshift-sdn(TODO): handle boring upstream refactors
+  (deads@redhat.com)
+- UPSTREAM: 12221: Allow custom namespace creation in e2e framework
+  (deads@redhat.com)
+- UPSTREAM: 15807: Platform-specific setRLimit implementations
+  (jliggitt@redhat.com)
+- UPSTREAM: TODO: expose ResyncPeriod function (deads@redhat.com)
+- UPSTREAM: 15451 <partial>: Add our types to kubectl get error
+  (ccoleman@redhat.com)
+- UPSTREAM: 14496: deep-copies: Structs cannot be nil (mkargaki@redhat.com)
+- UPSTREAM: 11827: allow permissive SA secret ref limitting (deads@redhat.com)
+- UPSTREAM: 12498: Re-add timeouts for kubelet which is not in the upstream PR.
+  (deads@redhat.com)
+- UPSTREAM: 15232: refactor logs to be composeable (deads@redhat.com)
+- UPSTREAM: 8890: Allowing ActiveDeadlineSeconds to be updated for a pod
+  (deads@redhat.com)
+- UPSTREAM: <drop>: tweak generator to handle conversions in other packages
+  (deads@redhat.com)
+- UPSTREAM: <drop>: make test pass with old codec (deads@redhat.com)
+- UPSTREAM: <drop>: add back flag types to reduce noise during this rebase
+  (deads@redhat.com)
+- UPSTREAM: <none>: Hack date-time format on *util.Time (ccoleman@redhat.com)
+- UPSTREAM: <none>: Suppress aggressive output of warning (ccoleman@redhat.com)
+- UPSTREAM: <carry>: v1beta3 (deads@redhat.com)
+- UPSTREAM: <carry>: support pointing oc exec to old openshift server
+  (deads@redhat.com)
+- UPSTREAM: <carry>: Back n forth downward/metadata conversions
+  (deads@redhat.com)
+- UPSTREAM: <carry>: Disable --validate by default (mkargaki@redhat.com)
+- UPSTREAM: <carry>: update describer for dockercfg secrets (deads@redhat.com)
+- UPSTREAM: <carry>: reallow the ability to post across namespaces in api
+  (pweil@redhat.com)
+- UPSTREAM: <carry>: helper methods paralleling old latest fields
+  (deads@redhat.com)
+- UPSTREAM: <carry>: Add deprecated fields to migrate 1.0.0 k8s v1 data
+  (jliggitt@redhat.com)
+- UPSTREAM: <carry>: SCC (deads@redhat.com)
+- UPSTREAM: <carry>: Allow pod start to be delayed in Kubelet
+  (ccoleman@redhat.com)
+- UPSTREAM: <carry>: Disable UIs for Kubernetes and etcd (deads@redhat.com)
+- bump(k8s.io/kubernetes): 4c8e6f47ec23f390978e651232b375f5f9cde3c7
+  (deads@redhat.com)
+- bump(github.com/coreos/go-etcd): de3514f25635bbfb024fdaf2a8d5f67378492675
+  (deads@redhat.com)
+- bump(github.com/ghodss/yaml): 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+  (deads@redhat.com)
+- bump(github.com/fsouza/go-dockerclient):
+  1399676f53e6ccf46e0bf00751b21bed329bc60e (deads@redhat.com)
+- bump(github.com/prometheus/client_golang):
+  3b78d7a77f51ccbc364d4bc170920153022cfd08 (deads@redhat.com)
+- Change api version in example apps (jhadvig@redhat.com)
+- Bug 1270185 - service link on route details page missing project name
+  (jforrest@redhat.com)
+- make cherry-pick.sh easier to work with (deads@redhat.com)
+- Minor deployment describer formatting fix (ironcladlou@gmail.com)
+- Fix deployment config minor ui changes. (sgoodwin@redhat.com)
+- Several fixes to the pods page (jforrest@redhat.com)
+- test/cmd/export.sh shouldn't dump everything to STDOUT (ccoleman@redhat.com)
+- Use the privileged SCC for all kube e2e tests (ccoleman@redhat.com)
+- Preserve case of subresources when normalizing URLs (jliggitt@redhat.com)
+- Output less info on hack/test-cmd.sh failures (ccoleman@redhat.com)
+- Disable potentially insecure TLS cipher suites by default
+  (ccoleman@redhat.com)
+- Raw sed should not be used in hack/* scripts for Macs (ccoleman@redhat.com)
+- Show container metrics in UI (spadgett@redhat.com)
+- Fix provisions to be overrides (dmcphers@redhat.com)
+- bump(github.com/openshift/openshift-sdn)
+  62ec906f6563828364474ef117371ea2ad804dc8 (danw@redhat.com)
+- UPSTREAM: Fix non-multitenant pod routing (sdodson@redhat.com)
+- Make image trigger test more reliable (ironcladlou@gmail.com)
+- [RPMS] atomic-openshift services use openshift bin (sdodson@redhat.com)
+- [RPMS] fix rpm build related to sdn restructure (sdodson@redhat.com)
+- Fix fuzzing versions in serialization tests (pmorie@gmail.com)
+- Show labels on all individual pages. Add label filtering to build config and
+  deployment config pages. (jforrest@redhat.com)
+- Provide initialized cloud provider in Kubelet config. (jsafrane@redhat.com)
+- Fixes to the warning returned by the dc controller (mkargaki@redhat.com)
+- Fix govet error (jliggitt@redhat.com)
+- adding keystone IdP (sseago@redhat.com)
+- Bug 1259260 - when searching docker registry, should not exit in case of no
+  matches (ffranz@redhat.com)
+- Fix asset config warning (jliggitt@redhat.com)
+- Configurable identity mapper strategies (jliggitt@redhat.com)
+- Bump proxy resync from 30s to 10m (agoldste@redhat.com)
+- Convert secondary nav to a hover menu (sgoodwin@redhat.com)
+- remove useless ginkgo test for LDAP (skuznets@redhat.com)
+- Sample app readme update (jhadvig@redhat.com)
+- Fix s2i build with environment file extended test (mfojtik@redhat.com)
+- Return error instead of generating arbitrary names (rhcarvalho@gmail.com)
+- Replace local constant with constant from Kube (rhcarvalho@gmail.com)
+- Godoc formatting (rhcarvalho@gmail.com)
+- Print etcd version when calling openshift version (mfojtik@redhat.com)
+- Use cmdutil.PrintSuccess() to display bulk output (ccoleman@redhat.com)
+- Add SNI support (jliggitt@redhat.com)
+- make ldap sync job accept group/foo whitelists (deads@redhat.com)
+- move bash_completion.d/oc to clients package (tdawson@redhat.com)
+- Add a cluster diagnostic to check if master is also running as a node.
+  (dgoodwin@redhat.com)
+- Update the hacking guide (mkargaki@redhat.com)
+- add examples for rpm-based installs (jeder@redhat.com)
+- Add fibre channel guide (hchen@redhat.com)
+- Add Cinder Persistent Volume guide (jsafrane@redhat.com)
+- Move NFS documentation to a subchapter. (jsafrane@redhat.com)
+- Add environment values to oc new-app help for mysql
+  (nakayamakenjiro@gmail.com)
+- Update oadm router and registry help message (nakayamakenjiro@gmail.com)
+- Enable cpu cfs quota by default (decarr@redhat.com)
+- Gluster Docs (screeley@redhat.com)
+
 * Wed Oct 14 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.901
 - Build transport for etcd directly (jliggitt@redhat.com)
 - Remove volume dir chcon from e2e-docker (agoldste@redhat.com)
