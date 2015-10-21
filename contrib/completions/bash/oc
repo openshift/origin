@@ -565,6 +565,8 @@ _oc_tag()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--delete")
+    flags+=("-d")
     flags+=("--source=")
 
     must_have_one_flag=()
