@@ -96,11 +96,14 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 			build := obj.(*buildapi.Build)
 			err := buildController.HandleBuild(build)
 			if err != nil {
-				build.Status.Message = err.Error()
-				if err := buildController.BuildUpdater.Update(build.Namespace, build); err != nil {
-					glog.V(2).Infof("Failed to update status message of Build %s/%s: %v", build.Namespace, build.Name, err)
+				// Update the build status message only if it changed.
+				if msg := err.Error(); build.Status.Message != msg {
+					build.Status.Message = msg
+					if err := buildController.BuildUpdater.Update(build.Namespace, build); err != nil {
+						glog.V(2).Infof("Failed to update status message of Build %s/%s: %v", build.Namespace, build.Name, err)
+					}
+					buildController.Recorder.Eventf(build, "HandleBuildError", "Build %s/%s has error: %v", build.Namespace, build.Name, err)
 				}
-				buildController.Recorder.Eventf(build, "HandleBuildError", "Build %s/%s has error: %v", build.Namespace, build.Name, err)
 			}
 			return err
 		},
