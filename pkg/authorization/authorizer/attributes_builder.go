@@ -38,6 +38,7 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 
 	return DefaultAuthorizationAttributes{
 		Verb:              requestInfo.Verb,
+		APIGroup:          requestInfo.APIGroup,
 		APIVersion:        requestInfo.APIVersion,
 		Resource:          resource,
 		ResourceName:      requestInfo.Name,

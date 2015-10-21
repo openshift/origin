@@ -498,6 +498,7 @@ func HasOpenShiftAPILevel(config MasterConfig, apiLevel string) bool {
 	return apiLevelSet.Has(apiLevel)
 }
 
+// GetEnabledAPIVersionsForGroup returns the list of API Versions that are enabled for that group
 func GetEnabledAPIVersionsForGroup(config KubernetesMasterConfig, apiGroup string) []string {
 	allowedVersions := KubeAPIGroupsToAllowedVersions[apiGroup]
 	blacklist := sets.NewString(config.DisabledAPIGroupVersions[apiGroup]...)
