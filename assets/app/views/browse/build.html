@@ -7,7 +7,10 @@
       <div class="row">
         <div class="col-md-12">
           <div class="tile">
-            <h1>{{build.metadata.name}}</h1>
+            <h1>
+              {{build.metadata.name}}
+              <small class="meta">created <relative-timestamp timestamp="build.metadata.creationTimestamp"></relative-timestamp></small>
+            </h1>
             <labels ng-if="buildConfigName" labels="build.metadata.labels" clickable="true" kind="builds" title-kind="builds for build config {{buildConfigName}}" project-name="{{build.metadata.namespace}}" limit="3" navigate-url="project/{{build.metadata.namespace}}/browse/builds/{{buildConfigName}}"></labels>
             <labels ng-if="!buildConfigName" labels="build.metadata.labels" limit="3"></labels>
 
