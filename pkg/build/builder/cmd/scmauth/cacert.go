@@ -22,17 +22,17 @@ type CACert struct {
 }
 
 // Setup creates a .gitconfig fragment that points to the given ca.crt
-func (s CACert) Setup(baseDir string) error {
+func (s CACert) Setup(baseDir string) (*url.URL, error) {
 	if strings.ToLower(s.SourceURL.Scheme) != "https" {
-		return nil
+		return nil, nil
 	}
 	gitconfig, err := ioutil.TempFile("", "ca.crt.")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer gitconfig.Close()
 	gitconfig.WriteString(fmt.Sprintf(CACertConfig, filepath.Join(baseDir, CACertName)))
-	return ensureGitConfigIncludes(gitconfig.Name())
+	return nil, ensureGitConfigIncludes(gitconfig.Name())
 }
 
 // Name returns the name of this auth method.
