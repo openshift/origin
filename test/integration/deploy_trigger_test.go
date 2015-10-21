@@ -363,8 +363,8 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
 	//imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 
-	deployConfigStorage := deployconfigetcd.NewStorage(etcdHelper)
-	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
+	deployConfigStorage := deployconfigetcd.NewStorage(etcdHelper, kubeClient)
+	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage.DeploymentConfig)
 
 	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
 		Client: deployconfiggenerator.Client{
@@ -380,7 +380,7 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 		"imageStreamImages":         imageStreamImageStorage,
 		"imageStreamMappings":       imageStreamMappingStorage,
 		"imageStreamTags":           imageStreamTagStorage,
-		"deploymentConfigs":         deployConfigStorage,
+		"deploymentConfigs":         deployConfigStorage.DeploymentConfig,
 		"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, latest.Codec),
 	}
 	for k, v := range storage {
