@@ -2,6 +2,7 @@ package tar
 
 import (
 	"archive/tar"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -19,6 +20,7 @@ type fileDesc struct {
 	mode         os.FileMode
 	content      string
 	shouldSkip   bool
+	target       string
 }
 
 type linkDesc struct {
@@ -129,16 +131,20 @@ func TestCreateTarStreamIncludeParentDir(t *testing.T) {
 	}
 	modificationDate := time.Date(2011, time.March, 5, 23, 30, 1, 0, time.UTC)
 	testFiles := []fileDesc{
-		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false},
-		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false},
-		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false},
-		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true},
+		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false, ""},
+		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false, ""},
+		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
+		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true, ""},
 	}
 	if err := createTestFiles(tempDir, testFiles); err != nil {
 		t.Fatalf("Cannot create test files: %v", err)
 	}
 	th := New()
 	tarFile, err := ioutil.TempFile("", "testtarout")
+	if err != nil {
+		t.Fatalf("Unable to create temporary file %v", err)
+	}
+	defer os.Remove(tarFile.Name())
 	err = th.CreateTarStream(tempDir, true, tarFile)
 	if err != nil {
 		t.Fatalf("Unable to create tar file %v", err)
@@ -160,10 +166,10 @@ func TestCreateTar(t *testing.T) {
 	}
 	modificationDate := time.Date(2011, time.March, 5, 23, 30, 1, 0, time.UTC)
 	testFiles := []fileDesc{
-		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false},
-		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false},
-		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false},
-		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true},
+		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false, ""},
+		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false, ""},
+		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
+		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true, ""},
 	}
 	if err := createTestFiles(tempDir, testFiles); err != nil {
 		t.Fatalf("Cannot create test files: %v", err)
@@ -179,29 +185,67 @@ func TestCreateTar(t *testing.T) {
 	}
 
 	tarFile, err := th.CreateTarFile("", tempDir)
+	defer os.Remove(tarFile)
 	if err != nil {
 		t.Fatalf("Unable to create new tar upload file: %v", err)
 	}
 	verifyTarFile(t, tarFile, testFiles, testLinks)
 }
 
-func createTestTar(files []fileDesc, writer io.Writer) {
+func createTestTar(files []fileDesc, writer io.Writer) error {
 	tw := tar.NewWriter(writer)
+	defer tw.Close()
 	for _, fd := range files {
-		contentBytes := []byte(fd.content)
-		hdr := &tar.Header{
-			Name:       fd.name,
-			Mode:       int64(fd.mode),
-			Size:       int64(len(contentBytes)),
-			Typeflag:   tar.TypeReg,
-			AccessTime: time.Now(),
-			ModTime:    fd.modifiedDate,
-			ChangeTime: fd.modifiedDate,
+		if isSymLink(fd.mode) {
+			if err := addSymLink(tw, &fd); err != nil {
+				msg := "unable to add symbolic link %q (points to %q) to archive: %v"
+				return fmt.Errorf(msg, fd.name, fd.target, err)
+			}
+			continue
 		}
-		tw.WriteHeader(hdr)
-		tw.Write(contentBytes)
+		if err := addRegularFile(tw, &fd); err != nil {
+			return fmt.Errorf("unable to add file %q to archive: %v", fd.name, err)
+		}
 	}
-	tw.Close()
+	return nil
+}
+
+func addRegularFile(tw *tar.Writer, fd *fileDesc) error {
+	contentBytes := []byte(fd.content)
+	hdr := &tar.Header{
+		Name:       fd.name,
+		Mode:       int64(fd.mode),
+		Size:       int64(len(contentBytes)),
+		Typeflag:   tar.TypeReg,
+		AccessTime: time.Now(),
+		ModTime:    fd.modifiedDate,
+		ChangeTime: fd.modifiedDate,
+	}
+	if err := tw.WriteHeader(hdr); err != nil {
+		return err
+	}
+	_, err := tw.Write(contentBytes)
+	return err
+}
+
+func addSymLink(tw *tar.Writer, fd *fileDesc) error {
+	if len(fd.target) == 0 {
+		return fmt.Errorf("link %q must point to somewhere, but target wasn't defined", fd.name)
+	}
+
+	hdr := &tar.Header{
+		Name:     fd.name,
+		Linkname: fd.target,
+		Mode:     int64(fd.mode & os.ModePerm),
+		Typeflag: tar.TypeSymlink,
+		ModTime:  fd.modifiedDate,
+	}
+
+	return tw.WriteHeader(hdr)
+}
+
+func isSymLink(mode os.FileMode) bool {
+	return mode&os.ModeSymlink == os.ModeSymlink
 }
 
 func verifyDirectory(t *testing.T, dir string, files []fileDesc) {
@@ -214,41 +258,53 @@ func verifyDirectory(t *testing.T, dir string, files []fileDesc) {
 			relpath := path[len(dir)+1:]
 			if fd, ok := filesToVerify[relpath]; ok {
 				if info.Mode() != fd.mode {
-					t.Errorf("File mode is not equal for %s. Expected: %v, Actual: %v\n",
+					t.Errorf("File mode is not equal for %q. Expected: %v, Actual: %v\n",
 						relpath, fd.mode, info.Mode())
 				}
-				if info.ModTime().UTC() != fd.modifiedDate {
-					t.Errorf("File modified date is not equal for %s. Expected: %v, Actual: %v\n",
+				// TODO: check modification time for symlinks when extractLink() will support it
+				if info.ModTime().UTC() != fd.modifiedDate && !isSymLink(fd.mode) {
+					t.Errorf("File modified date is not equal for %q. Expected: %v, Actual: %v\n",
 						relpath, fd.modifiedDate, info.ModTime())
 				}
 				contentBytes, err := ioutil.ReadFile(path)
 				if err != nil {
-					t.Errorf("Error reading file %s: %v", path, err)
+					t.Errorf("Error reading file %q: %v", path, err)
 					return err
 				}
 				content := string(contentBytes)
 				if content != fd.content {
-					t.Errorf("File content is not equal for %s. Expected: %s, Actual: %s\n",
+					t.Errorf("File content is not equal for %q. Expected: %s, Actual: %s\n",
 						relpath, fd.content, content)
 				}
+				if isSymLink(fd.mode) {
+					target, err := os.Readlink(path)
+					if err != nil {
+						t.Errorf("Error reading symlink %q: %v", path, err)
+						return err
+					}
+					if target != fd.target {
+						msg := "Symbolic link %q points to wrong path. Expected: %s, Actual: %s\n"
+						t.Errorf(msg, fd.name, fd.target, target)
+					}
+				}
 			} else {
-				t.Errorf("Unexpected file found: %s", relpath)
+				t.Errorf("Unexpected file found: %q", relpath)
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		t.Fatalf("Error walking directory %s: %v", dir, err)
+		t.Fatalf("Error walking directory %q: %v", dir, err)
 	}
 }
 
 func TestExtractTarStream(t *testing.T) {
 	modificationDate := time.Date(2011, time.March, 5, 23, 30, 1, 0, time.UTC)
 	testFiles := []fileDesc{
-		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false},
-		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false},
-		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false},
-		{"dir01/symlink", modificationDate, 0777, "", false},
+		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false, ""},
+		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false, ""},
+		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
+		{"dir01/symlink", modificationDate, os.ModeSymlink | 0777, "Test3 file content", false, "../dir01/dir03/test3.txt"},
 	}
 	reader, writer := io.Pipe()
 	destDir, err := ioutil.TempDir("", "testExtract")
@@ -262,7 +318,9 @@ func TestExtractTarStream(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		createTestTar(testFiles, writer)
+		if err := createTestTar(testFiles, writer); err != nil {
+			t.Fatal(err)
+		}
 		writer.Close()
 	}()
 	go func() {
