@@ -77,22 +77,45 @@ fi
 
 KUBE_TIMEOUT=${KUBE_TIMEOUT:--timeout 60s}
 
-if [ "${1-}" != "" ]; then
-  if [[ "${1}" == *"/..." ]]; then
+# Declare and set arrays to null string. We need to always keep the first
+# element to be the null string, otherwise the variable is considered unset.
+# When using, slice it to ignore the first element: ${varname[@]:1}.
+declare -a test_flags= test_packages=
+
+if [ $# -gt 1 ]; then
+  for arg in "$@"; do
+    # "." might be used in "-bench ." test flag
+    if [ "$arg" = '.' ]; then
+      test_flags[${#test_flags[@]}]="${arg}"
+
     # if the package name ends with /... they are intending a recursive test
-    test_packages=$(find_test_dirs "${1:0:(-4)}")
-  else
-    test_packages="$OS_GO_PACKAGE/$1"
-  fi
-elif [ -n "$TEST_KUBE" ]; then
-  test_packages=`find_test_dirs "."; special_upstream_test_dirs; find_upstream_test_dirs`
+    elif [[ "$arg" == *"/..." ]]; then
+      test_packages+=( $(find_test_dirs "${arg:0:(-4)}") )
+
+    # if arg starts with "github.com/openshift/origin/", append to test_packages
+    elif [ -z "${arg/#"${OS_GO_PACKAGE}/"*/}" ]; then
+      test_packages[${#test_packages[@]}]="${arg}"
+
+    # if arg is a directory, e.g., "pkg/build/api", prefix it with
+    # "github.com/openshift/origin/" and append to test_packages
+    elif [ -d "$arg" ]; then
+      test_packages[${#test_packages[@]}]="$OS_GO_PACKAGE/$arg"
+
+    # default: use argument as test flag
+    else
+      test_flags[${#test_flags[@]}]="${arg}"
+    fi
+  done
 else
-  test_packages=`find_test_dirs "."; special_upstream_test_dirs`
+  if [ -n "$TEST_KUBE" ]; then
+    test_packages+=( `find_test_dirs "."; special_upstream_test_dirs; find_upstream_test_dirs` )
+  else
+    test_packages+=( `find_test_dirs "."; special_upstream_test_dirs` )
+  fi
 fi
 
 if [ -n "$PRINT_PACKAGES" ]; then
-  for package in $test_packages
-  do
+  for package in ${test_packages[@]:1}; do
     echo $package
   done
 
@@ -103,13 +126,11 @@ export OPENSHIFT_ON_PANIC=crash
 
 if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
   # Iterate over packages to run coverage
-  test_packages=( $test_packages )
-  for test_package in "${test_packages[@]}"
-  do
+  for test_package in "${test_packages[@]:1}"; do
     mkdir -p "$OUTPUT_COVERAGE/$test_package"
     KUBE_COVER_PROFILE="-coverprofile=$OUTPUT_COVERAGE/$test_package/profile.out"
 
-    go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "$test_package" "${@:2}"
+    go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "$KUBE_COVER_PROFILE" "${test_flags[@]:1}" "$test_package"
   done
 
   echo 'mode: atomic' > ${OUTPUT_COVERAGE}/profiles.out
@@ -118,7 +139,7 @@ if [[ -n "${KUBE_COVER}" && -n "${OUTPUT_COVERAGE}" ]]; then
 
   rm -rf $OUTPUT_COVERAGE/$OS_GO_PACKAGE
 else
-  nice go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${@:2}" $test_packages
+  nice go test $KUBE_RACE $KUBE_TIMEOUT $KUBE_COVER "${test_flags[@]:1}" "${test_packages[@]:1}"
 fi
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
