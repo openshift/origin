@@ -6,6 +6,11 @@ import (
 	"testing"
 
 	"github.com/coreos/go-etcd/etcd"
+	"github.com/openshift/origin/pkg/api/latest"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	"github.com/openshift/origin/pkg/image/api"
+	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -17,12 +22,6 @@ import (
 	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
 	"k8s.io/kubernetes/pkg/tools"
 	"k8s.io/kubernetes/pkg/tools/etcdtest"
-
-	"github.com/openshift/origin/pkg/api/latest"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
-	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/registry/imagestream"
 )
 
 var (
@@ -499,111 +498,6 @@ func TestUpdateImageStreamSpecTagsFromSet(t *testing.T) {
 	}
 }
 
-func TestUpdateImageStreamTags(t *testing.T) {
-	fakeEtcdClient, helper := newHelper(t)
-	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/test")] = tools.EtcdResponseWithError{
-		R: &etcd.Response{
-			Node: &etcd.Node{
-				Value: runtime.EncodeOrDie(latest.Codec, &api.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "default"},
-					Spec: api.ImageStreamSpec{
-						Tags: map[string]api.TagReference{
-							"another": {
-								From: &kapi.ObjectReference{
-									Kind: "ImageStreamTag",
-									Name: "test:another",
-								},
-							},
-							api.DefaultImageTag: {
-								From: &kapi.ObjectReference{
-									Kind: "ImageStreamTag",
-									Name: "test:latest",
-								},
-							},
-						},
-					},
-					Status: api.ImageStreamStatus{
-						DockerImageRepository: "registry.default.local/default/test",
-						Tags: map[string]api.TagEventList{
-							api.DefaultImageTag: {
-								Items: []api.TagEvent{
-									{
-										DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
-										Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
-									},
-								},
-							},
-						},
-					},
-				}),
-				ModifiedIndex: 1,
-			},
-		},
-	}
-
-	storage, _ := NewREST(helper, noDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
-
-	stream := &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
-			Namespace:       "default",
-			Name:            "test",
-			ResourceVersion: "1",
-		},
-		Spec: api.ImageStreamSpec{
-			Tags: map[string]api.TagReference{
-				"another": {
-					From: &kapi.ObjectReference{
-						Kind: "ImageStreamTag",
-						Name: "test:another",
-					},
-				},
-				api.DefaultImageTag: {
-					From: &kapi.ObjectReference{
-						Kind: "ImageStreamTag",
-						Name: "test:latest",
-					},
-				},
-			},
-		},
-		Status: api.ImageStreamStatus{
-			DockerImageRepository: "registry.default.local/default/test",
-			Tags: map[string]api.TagEventList{
-				api.DefaultImageTag: {
-					Items: []api.TagEvent{
-						{
-							DockerImageReference: "registry.default.local/default/test@sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
-							Image:                "sha256:381151ac5b7f775e8371e489f3479b84a4c004c90ceddb2ad80b6877215a892f",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	delete(stream.Spec.Tags, api.DefaultImageTag)
-	delete(stream.Status.Tags, api.DefaultImageTag)
-
-	ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
-
-	obj, created, err := storage.UpdateAll(ctx, stream)
-	if err != nil {
-		t.Fatalf("Unexpected non-nil error: %#v", err)
-	}
-	if created {
-		t.Fatal("Unexpected stream creation")
-	}
-	updated, ok := obj.(*api.ImageStream)
-	if !ok {
-		t.Errorf("Expected image stream, got %#v", obj)
-	}
-	if _, ok := updated.Spec.Tags[api.DefaultImageTag]; ok {
-		t.Errorf("Expected deleted spec tag: %s", api.DefaultImageTag)
-	}
-	if _, ok := updated.Status.Tags[api.DefaultImageTag]; ok {
-		t.Errorf("Expected deleted status tag: %s", api.DefaultImageTag)
-	}
-}
-
 func TestDeleteImageStream(t *testing.T) {
 	fakeEtcdClient, helper := newHelper(t)
 	fakeEtcdClient.Data[etcdtest.AddPrefix("/imagestreams/default/foo")] = tools.EtcdResponseWithError{
@@ -891,7 +785,7 @@ func TestEtcdUpdateImageStream(t *testing.T) {
 
 	resp, _ := fakeClient.Set(makeTestDefaultImageStreamsKey("foo"), runtime.EncodeOrDie(latest.Codec, &api.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "foo"}}), 0)
 	registry := NewTestEtcd(fakeClient)
-	err := registry.UpdateImageStreamSpec(kapi.NewDefaultContext(), &api.ImageStream{
+	err := registry.UpdateImageStream(kapi.NewDefaultContext(), &api.ImageStream{
 		ObjectMeta:            kapi.ObjectMeta{Name: "foo", ResourceVersion: strconv.FormatUint(resp.Node.ModifiedIndex, 10)},
 		DockerImageRepository: "some/stream",
 	})

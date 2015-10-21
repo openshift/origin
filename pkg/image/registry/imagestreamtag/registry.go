@@ -1,11 +1,10 @@
 package imagestreamtag
 
 import (
+	"github.com/openshift/origin/pkg/image/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-
-	"github.com/openshift/origin/pkg/image/api"
 )
 
 // Registry is an interface for things that know how to store ImageStreamTag objects.

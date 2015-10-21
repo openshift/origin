@@ -91,17 +91,6 @@ func (r *REST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, boo
 	return r.store.Update(ctx, obj)
 }
 
-// UpdateAll updates both the image stream specification and status.
-func (r *REST) UpdateAll(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
-	oldStrategy := r.store.UpdateStrategy
-	r.store.UpdateStrategy = imagestream.NewAllStrategy(oldStrategy.(imagestream.Strategy))
-	defer func() {
-		r.store.UpdateStrategy = oldStrategy
-	}()
-
-	return r.store.Update(ctx, obj)
-}
-
 // Delete deletes an existing image stream specified by its ID.
 func (r *REST) Delete(ctx kapi.Context, name string, options *kapi.DeleteOptions) (runtime.Object, error) {
 	return r.store.Delete(ctx, name, options)

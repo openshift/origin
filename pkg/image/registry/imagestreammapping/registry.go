@@ -2,7 +2,6 @@ package imagestreammapping
 
 import (
 	"github.com/openshift/origin/pkg/image/api"
-
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -30,7 +29,6 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-// CreateImageStreamMapping will create an image stream mapping.
 func (s *storage) CreateImageStreamMapping(ctx kapi.Context, mapping *api.ImageStreamMapping) (*unversioned.Status, error) {
 	obj, err := s.Create(ctx, mapping)
 	if err != nil {

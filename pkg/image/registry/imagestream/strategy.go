@@ -413,26 +413,3 @@ type DefaultRegistryFunc func() (string, bool)
 func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
 	return fn()
 }
-
-// AllStrategy implements behavior for updating both the spec and status
-// of an image stream
-type AllStrategy struct {
-	Strategy
-}
-
-// NewAllStrategy creates an update strategy around an existing stream
-// strategy.
-func NewAllStrategy(strategy Strategy) AllStrategy {
-	return AllStrategy{strategy}
-}
-
-func (AllStrategy) PrepareForUpdate(obj, old runtime.Object) {
-}
-
-func (AllStrategy) AllowUnconditionalUpdate() bool {
-	return false
-}
-
-func (AllStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
-	return validation.ValidateImageStreamUpdate(obj.(*api.ImageStream), old.(*api.ImageStream))
-}
