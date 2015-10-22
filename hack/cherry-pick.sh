@@ -36,9 +36,11 @@ fi
 
 pushd "${UPSTREAM_REPO_LOCATION}" > /dev/null
 os::build::require_clean_tree
-git fetch
 
-selector="$(os::build::commit_range $1 origin/master)"
+remote="${UPSTREAM_REMOTE:-origin}"
+git fetch ${remote}
+
+selector="$(os::build::commit_range $1 ${remote}/master)"
 
 if [[ -z "${NO_REBASE-}" ]]; then
   echo "++ Generating patch for ${selector} onto ${lastrev} ..." 2>&1
