@@ -22,6 +22,9 @@
 %global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 0 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v0.0.1 -X github.com/openshift/origin/pkg/version.commitFromGit 86b5e46 -X k8s.io/kubernetes/pkg/version.gitCommit 6241a21 -X k8s.io/kubernetes/pkg/version.gitVersion v0.11.0-330-g6241a21
 }
 
+# Make building clients for other architectures optional
+%global make_redistributable 1
+
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
 %global product_name Atomic OpenShift
@@ -92,6 +95,7 @@ Obsoletes:      openshift-clients < 1.0.6
 %description clients
 %{summary}
 
+%if 0%{?make_redistributable}
 %package clients-redistributable
 Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
 BuildRequires:  golang-pkg-darwin-amd64
@@ -100,6 +104,7 @@ Obsoletes:      openshift-clients-redistributable < 1.0.6
 
 %description clients-redistributable
 %{summary}
+%endif
 
 %package dockerregistry
 Summary:        Docker Registry v2 for %{product_name}
@@ -156,9 +161,11 @@ do
         go install -ldflags "%{ldflags}" %{import_path}/cmd/${cmd}
 done
 
+%if 0%{?make_redistributable}
 # Build clients for other platforms
 GOOS=windows GOARCH=386 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
 GOOS=darwin GOARCH=amd64 go install -ldflags "%{ldflags}" %{import_path}/cmd/oc
+%endif
 
 #Build our pod
 pushd images/pod/
@@ -176,11 +183,13 @@ do
   install -p -m 755 _build/bin/${bin} %{buildroot}%{_bindir}/${bin}
 done
 
+%if 0%{?make_redistributable}
 # Install client executable for windows and mac
 install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
 install -p -m 755 _build/bin/oc %{buildroot}%{_datadir}/%{name}/linux/oc
 install -p -m 755 _build/bin/darwin_amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
 install -p -m 755 _build/bin/windows_386/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
+%endif
 
 #Install pod
 install -p -m 755 images/pod/pod %{buildroot}%{_bindir}/
@@ -376,10 +385,12 @@ fi
 %{_bindir}/kubectl
 %{_sysconfdir}/bash_completion.d/oc
 
+%if 0%{?make_redistributable}
 %files clients-redistributable
 %{_datadir}/%{name}/linux/oc
 %{_datadir}/%{name}/macosx/oc
 %{_datadir}/%{name}/windows/oc.exe
+%endif
 
 %files dockerregistry
 %defattr(-,root,root,-)
