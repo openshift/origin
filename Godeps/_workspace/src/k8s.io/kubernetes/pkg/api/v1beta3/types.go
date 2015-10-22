@@ -2083,7 +2083,7 @@ type SecurityContext struct {
 	// RunAsNonRoot indicates that the container should be run as a non-root user.  If the RunAsUser
 	// field is not explicitly set then the kubelet may check the image for a specified user or
 	// perform defaulting to specify a user.
-	RunAsNonRoot bool `json:"runAsNonRoot,omitempty" description:"indicates the container be must run as a non-root user either by specifying the runAsUser or in the image specification"`
+	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty" description:"indicates the container be must run as a non-root user either by specifying the runAsUser or in the image specification"`
 }
 
 // SELinuxOptions are the labels to be applied to the container.
