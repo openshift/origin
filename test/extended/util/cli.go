@@ -203,7 +203,6 @@ func (c *CLI) setOutput(out io.Writer) *CLI {
 // This function also override the default 'stdout' to redirect all output
 // to a buffer and prepare the global flags such as namespace and config path.
 func (c *CLI) Run(verb string) *CLI {
-
 	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
 		execPath:        c.execPath,
@@ -259,19 +258,15 @@ func (c *CLI) Output() (string, error) {
 	}
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
+	e2e.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
 	out, err := cmd.CombinedOutput()
 	trimmed := strings.TrimSpace(string(out))
 	switch err.(type) {
 	case nil:
 		c.stdout = bytes.NewBuffer(out)
-		if c.verbose {
-			fmt.Printf("DEBUG: %q\n", trimmed)
-		}
 		return trimmed, nil
 	case *exec.ExitError:
-		if c.verbose {
-			fmt.Printf("DEBUG: %q\n", trimmed)
-		}
+		e2e.Logf("Error running %v:\n%s", cmd, trimmed)
 		return trimmed, err
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))

@@ -138,7 +138,7 @@ var masterPush = func(_ string) error {
 	return err
 }
 
-var nodeUpgrade = func(f Framework, replicas int, v string) error {
+var nodeUpgrade = func(f *Framework, replicas int, v string) error {
 	// Perform the upgrade.
 	var err error
 	switch testContext.Provider {
@@ -196,7 +196,7 @@ var _ = Describe("Skipped", func() {
 		svcName, replicas := "baz", 2
 		var rcName, ip, v string
 		var ingress api.LoadBalancerIngress
-		f := Framework{BaseName: "cluster-upgrade"}
+		f := NewFramework("cluster-upgrade")
 		var w *WebserverTest
 
 		BeforeEach(func() {
@@ -391,7 +391,7 @@ func checkMasterVersion(c *client.Client, want string) error {
 	return nil
 }
 
-func testNodeUpgrade(f Framework, nUp func(f Framework, n int, v string) error, replicas int, v string) {
+func testNodeUpgrade(f *Framework, nUp func(f *Framework, n int, v string) error, replicas int, v string) {
 	Logf("Starting node upgrade")
 	expectNoError(nUp(f, replicas, v))
 	Logf("Node upgrade complete")
@@ -458,7 +458,7 @@ func runCmd(command string, args ...string) (string, string, error) {
 	return stdout, stderr, nil
 }
 
-func validate(f Framework, svcNameWant, rcNameWant string, ingress api.LoadBalancerIngress, podsWant int) error {
+func validate(f *Framework, svcNameWant, rcNameWant string, ingress api.LoadBalancerIngress, podsWant int) error {
 	Logf("Beginning cluster validation")
 	// Verify RC.
 	rcs, err := f.Client.ReplicationControllers(f.Namespace.Name).List(labels.Everything(), fields.Everything())

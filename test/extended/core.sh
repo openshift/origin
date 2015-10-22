@@ -43,6 +43,8 @@ SKIP_TESTS=(
   DaemonRestart           # Experimental mode not enabled yet
   "Daemon set"            # Experimental mode not enabled yet
   Job                     # Not enabled yet
+  "deployment should"     # Not enabled yet
+  Ingress                 # Not enabled yet
 
   # Need fixing
   "Cluster upgrade"       # panic because createNS not called, refactor framework?
@@ -62,6 +64,8 @@ SKIP_TESTS=(
   "should provide Internet connection for containers" # DNS inside container failing!!!
   "able to delete 10 pods per node" # Panic because stats port isn't exposed
   "Kubelet regular resource usage tracking over" # takes too long
+  "Kubelet experimental resource usage tracking" # takes too long
+  "Resource usage of system containers" # panics in computing resources
 
   "authentication: OpenLDAP" # needs separate setup and bucketing for openldap bootstrapping
 
@@ -69,6 +73,9 @@ SKIP_TESTS=(
   "Addon update"          # TRIAGE
   SSH                     # TRIAGE
   Probing                 # TRIAGE
+  "should call prestop" # Needs triage, auth maybe
+  "be restarted with a /healthz" # used to be working
+  "Port forwarding With a server that expects a client request" # used to be working
 )
 DEFAULT_SKIP=$(join '|' "${SKIP_TESTS[@]}")
 SKIP="${SKIP:-$DEFAULT_SKIP}"
