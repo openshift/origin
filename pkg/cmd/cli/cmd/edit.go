@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api/errors"
@@ -19,11 +20,14 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/editor"
+	fileutil "github.com/openshift/origin/pkg/util/file"
 	"github.com/openshift/origin/pkg/util/jsonmerge"
 )
 
 // EditOptions is a struct that contains all variables needed for cli edit command.
 type EditOptions struct {
+	windowsLineEndings bool
+
 	out       io.Writer
 	printer   kubectl.ResourcePrinter
 	namespace string
@@ -50,7 +54,8 @@ be previously saved versions of resources.
 
 The files to edit will be output in the default API version, or a version specified
 by --output-version. The default format is YAML - if you would like to edit in JSON
-pass -o json.
+pass -o json. The flag --windows-line-endings can be used to force Windows line endings,
+otherwise the default for your operating system will be used.
 
 In the event an error occurs while updating, a temporary file will be created on disk
 that contains your unapplied changes. The most common error when updating a resource
@@ -94,6 +99,7 @@ func NewCmdEdit(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 	kubectl.AddJsonFilenameFlag(cmd, &options.filenames, usage)
 	cmd.Flags().StringP("output", "o", "yaml", "Output format. One of: yaml|json.")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
+	cmd.Flags().BoolVar(&options.windowsLineEndings, "windows-line-endings", runtime.GOOS == "windows", "Use Windows line-endings (default Unix line-endings)")
 
 	return cmd
 }
@@ -162,12 +168,17 @@ func (o *EditOptions) RunEdit() error {
 
 		// generate the file to edit
 		buf := &bytes.Buffer{}
-		if _, err := results.header.WriteTo(buf); err != nil {
+		var w io.Writer = buf
+		if o.windowsLineEndings {
+			w = fileutil.NewCRLFWriter(w)
+		}
+		if _, err := results.header.WriteTo(w); err != nil {
 			return preservedFile(err, results.file, o.out)
 		}
-		if err := o.printer.PrintObj(obj, buf); err != nil {
+		if err := o.printer.PrintObj(obj, w); err != nil {
 			return preservedFile(err, results.file, o.out)
 		}
+
 		original := buf.Bytes()
 
 		// launch the editor
