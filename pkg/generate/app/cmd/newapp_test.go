@@ -1265,6 +1265,11 @@ func TestEnsureValidUniqueName(t *testing.T) {
 			expected: []string{"one", "one-1", "two"},
 		},
 		{
+			name:     "non-standard characters",
+			input:    []string{"Emby.One", "test-_test", "_-_", "@-MyRepo"},
+			expected: []string{"embyone", "test-test", "", "myrepo"},
+		},
+		{
 			name:        "short name",
 			input:       []string{"t"},
 			expectError: true,

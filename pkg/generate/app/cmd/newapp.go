@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -43,6 +44,9 @@ const (
 // ErrNoDockerfileDetected is the error returned when the requested build strategy is Docker
 // and no Dockerfile is detected in the repository.
 var ErrNoDockerfileDetected = fmt.Errorf("No Dockerfile was found in the repository and the requested build strategy is 'docker'")
+
+// the opposite of kvalidation.DNS1123LabelFmt
+var invalidNameCharactersRegexp = regexp.MustCompile("[^-a-z0-9]")
 
 // AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
@@ -587,13 +591,20 @@ func ensureValidUniqueName(names map[string]int, name string) (string, error) {
 	if len(name) < 2 {
 		return "", fmt.Errorf("invalid name: %s", name)
 	}
+
+	// Make all names lowercase
+	name = strings.ToLower(name)
+
+	// Remove everything except [-0-9a-z]
+	name = invalidNameCharactersRegexp.ReplaceAllString(name, "")
+
+	// Remove leading hyphen(s) that may be introduced by the previous step
+	name = strings.TrimLeft(name, "-")
+
 	if len(name) > kvalidation.DNS1123SubdomainMaxLength {
 		glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, kvalidation.DNS1123SubdomainMaxLength)
 		name = name[:kvalidation.DNS1123SubdomainMaxLength]
 	}
-
-	// Make all names lowercase
-	name = strings.ToLower(name)
 
 	count, existing := names[name]
 	if !existing {
