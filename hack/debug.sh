@@ -50,6 +50,7 @@ do_master () {
     echo_and_eval ip route show >& $logmaster/routes
     echo_and_eval iptables-save >& $logmaster/iptables
     echo_and_eval cat /etc/hosts >& $logmaster/hosts
+    echo_and_eval cat /etc/resolv.conf >& $logmaster/resolv.conf
     echo_and_eval oc get nodes -o json >& $logmaster/nodes
     echo_and_eval oc get pods --all-namespaces -o json >& $logmaster/pods
     echo_and_eval oc get services --all-namespaces -o json >& $logmaster/services
@@ -265,7 +266,8 @@ do_node () {
     echo_and_eval ip addr show >& $lognode/addresses
     echo_and_eval ip route show >& $lognode/routes
     echo_and_eval iptables-save >& $lognode/iptables
-    echo_and_eval cat /etc/hosts >& $logmaster/hosts
+    echo_and_eval cat /etc/hosts >& $lognode/hosts
+    echo_and_eval cat /etc/resolv.conf >& $lognode/resolv.conf
     echo_and_eval brctl show >& $lognode/bridges
     echo_and_eval ovs-ofctl -O OpenFlow13 dump-flows br0 >& $lognode/flows
     echo_and_eval ovs-ofctl -O OpenFlow13 show br0 >& $lognode/ovs-show
