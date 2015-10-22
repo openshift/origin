@@ -886,10 +886,6 @@
 			"Rev": "ea47fc708ee3e20177f3ca3716217c4ab75942cb"
 		},
 		{
-			"ImportPath": "golang.org/x/net/spdy",
-			"Rev": "ea47fc708ee3e20177f3ca3716217c4ab75942cb"
-		},
-		{
 			"ImportPath": "golang.org/x/net/trace",
 			"Rev": "ea47fc708ee3e20177f3ca3716217c4ab75942cb"
 		},
