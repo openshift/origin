@@ -135,7 +135,7 @@ func (r DockerImageReference) DaemonMinimal() DockerImageReference {
 	}
 	switch r.Registry {
 	case "index.docker.io", "docker.io":
-		r.Registry = ""
+		r.Registry = "docker.io"
 	}
 	return r.Minimal()
 }

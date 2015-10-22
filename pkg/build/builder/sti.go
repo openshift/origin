@@ -108,7 +108,7 @@ func (s *STIBuilder) Build() error {
 	}
 
 	// if there is no output target, set one up so the docker build logic
-	// (which requires a tag) will s2ill work, but we won't push it at the end.
+	// (which requires a tag) will still work, but we won't push it at the end.
 	if s.build.Spec.Output.To == nil || len(s.build.Spec.Output.To.Name) == 0 {
 		s.build.Spec.Output.To = &kapi.ObjectReference{
 			Kind: "DockerImage",

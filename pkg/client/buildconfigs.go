@@ -122,7 +122,8 @@ func (c *buildConfigs) Instantiate(request *buildapi.BuildRequest) (result *buil
 	return
 }
 
-// Instantiate instantiates a new build from build config returning new object or an error
+// InstantiateBinary instantiates a new build from a build config, given a structured request and an input stream,
+// and returns the created build or an error.
 func (c *buildConfigs) InstantiateBinary(request *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error) {
 	result = &buildapi.Build{}
 	err = c.r.Post().

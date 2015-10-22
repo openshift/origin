@@ -579,6 +579,8 @@ type BinaryBuildRequestOptions struct {
 
 	AsFile string
 
+	// TODO: support structs in query arguments in the future (inline and nested fields)
+
 	// Commit is the value identifying a specific commit
 	Commit string
 

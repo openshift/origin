@@ -44,8 +44,8 @@ In addition, you can pass a file, directory, or source code repository with the 
 and override the current build source settings. When using --from-repo, the --commit flag can be
 used to control which branch, tag, or commit is sent to the server. If you pass --from-file, the
 file is placed in the root of an empty directory with the same filename. Note that builds
-triggered from binary input will not preserve the source on the server, so a rebuild is not
-automatic.
+triggered from binary input will not preserve the source on the server, so rebuilds triggered by
+base image changes will use the source specified on the build config.
 `
 
 	startBuildExample = `  # Starts build from build config "hello-world"
@@ -92,7 +92,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out i
 
 	cmd.Flags().String("from-file", "", "A file use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source.")
 	cmd.Flags().String("from-dir", "", "A directory to archive and use as the binary input for a build.")
-	cmd.Flags().String("from-repo", "", "A source code repository to use as the binary input for a build.")
+	cmd.Flags().String("from-repo", "", "The path to a local source code repository to use as the binary input for a build.")
 	cmd.Flags().String("commit", "", "Specify the source code commit identifier the build should use; requires a build based on a Git repository")
 
 	cmd.Flags().Var(&webhooks, "list-webhooks", "List the webhooks for the specified build config or build; accepts 'all', 'generic', or 'github'")
@@ -444,6 +444,7 @@ func isArchive(r *bufio.Reader) bool {
 		}
 	}
 	switch {
+	// Unified TAR files have this magic number
 	case len(data) > 257+5 && bytes.Equal(data[257:257+5], []byte{0x75, 0x73, 0x74, 0x61, 0x72}):
 		return true
 	default:
