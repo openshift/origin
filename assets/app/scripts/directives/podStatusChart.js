@@ -64,7 +64,7 @@ angular.module('openshiftConsole')
         };
 
         var updateCenterText = function() {
-          var donutChartTitle = element[0].querySelector('text.c3-chart-arcs-title'),
+          var donutChartTitle = d3.select(element[0]).select('text.c3-chart-arcs-title'),
             total = hashSizeFilter($scope.pods),
             smallText;
           if (!donutChartTitle) {
@@ -77,11 +77,11 @@ angular.module('openshiftConsole')
           } else {
             smallText = "scaling to " + $scope.desired + "...";
           }
-          // Use the same classes as patternfly so they're consistent with the
-          // donut charts for limits on the pod metrics tab.
-          donutChartTitle.innerHTML =
-            '<tspan dy="0" x="0" class="pod-count donut-title-big-pf">' + total + '</tspan>' +
-            '<tspan dy="20" x="0" class="donut-title-small-pf">' + smallText + '</tspan>';
+
+          // Replace donut title content.
+          donutChartTitle.html('');
+          donutChartTitle.insert('tspan').text(total).classed('pod-count donut-title-big-pf', true).attr('dy', 0).attr('x', 0);
+          donutChartTitle.insert('tspan').text(smallText).classed('donut-title-small-pf', true).attr('dy', 20).attr('x', 0);
         };
 
         var updateChart = function() {
