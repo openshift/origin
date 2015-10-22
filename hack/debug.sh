@@ -245,9 +245,12 @@ do_pod_service_connectivity_check () {
 }
 
 do_node () {
-    config=$(systemctl show -p ExecStart $aos_node_service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
+    config=$(ps wwaux | grep -v grep | sed -ne 's/.*openshift.*--config=\([^ ]*\.yaml\).*/\1/p')
     if [ -z "$config" ]; then
-	die "Could not find node-config.yaml from systemctl status"
+	config=$(systemctl show -p ExecStart $aos_node_service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
+    fi
+    if [ -z "$config" ]; then
+	die "Could not find node-config.yaml from 'ps' or 'systemctl show'"
     fi
     node=$(sed -ne 's/^nodeName: //p' $config)
     if [ -z "$node" ]; then
