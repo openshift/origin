@@ -8,7 +8,7 @@
         <div class="col-md-12">
           <div class="tile">
             <h1>
-              Pod {{pod.metadata.name}}
+              {{pod.metadata.name}}
               <span ng-if="pod | isTroubledPod">
                 <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
               </span>
