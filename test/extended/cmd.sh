@@ -29,6 +29,7 @@ function join { local IFS="$1"; shift; echo "$*"; }
 
 function cleanup()
 {
+	docker rmi test/scratchimage
 	out=$?
 	cleanup_openshift
 	echo "[INFO] Exiting"
@@ -51,7 +52,8 @@ oc login -u system:admin -n default
 
 echo "[INFO] Running newapp extended tests"
 
-# ensure a local-only image gets a docker image(not imagestream) reference created.
+# create a local-only docker image for testing
+# image is removed in cleanup()
 tmp=$(mktemp -d)
 pushd $tmp
 cat <<-EOF >> Dockerfile
@@ -61,5 +63,10 @@ EOF
 docker build -t test/scratchimage .
 popd
 rm -rf $tmp
-[ "$(oc new-app  test/scratchimage~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml |& tr '\n' ' ' | grep -E "from:\s+kind:\s+DockerImage\s+name:\s+test/scratchimage:latest\s+")" ]
-docker rmi test/scratchimage
+
+# ensure a local-only image gets a docker image(not imagestream) reference created.
+[ "$(oc new-app test/scratchimage~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml |& tr '\n' ' ' | grep -E "from:\s+kind:\s+DockerImage\s+name:\s+test/scratchimage:latest\s+")" ]
+# error due to partial match
+[ "$(oc new-app test/scratchimage2 -o yaml |& tr '\n' ' ' 2>&1 | grep -E "partial match")" ]
+# success with exact match	
+[ "$(oc new-app test/scratchimage -o yaml)" ]
