@@ -279,8 +279,8 @@ func TestValidateImageStream(t *testing.T) {
 				},
 			},
 			expected: fielderrors.ValidationErrorList{
-				fielderrors.NewFieldRequired("status.tags[tag].Items[0].dockerImageReference"),
-				fielderrors.NewFieldRequired("status.tags[tag].Items[2].dockerImageReference"),
+				fielderrors.NewFieldRequired("status.tags[tag].items[0].dockerImageReference"),
+				fielderrors.NewFieldRequired("status.tags[tag].items[2].dockerImageReference"),
 			},
 		},
 		"valid": {

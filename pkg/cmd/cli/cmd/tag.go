@@ -24,6 +24,7 @@ type TagOptions struct {
 	osClient client.Interface
 
 	deleteTag bool
+	aliasTag  bool
 
 	ref            imageapi.DockerImageReference
 	sourceKind     string
@@ -64,15 +65,14 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 		Example: fmt.Sprintf(tagExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(opts.Complete(f, cmd, args, out))
-
 			cmdutil.CheckErr(opts.Validate())
-
 			cmdutil.CheckErr(opts.RunTag())
 		},
 	}
 
 	cmd.Flags().StringVar(&opts.sourceKind, "source", opts.sourceKind, "Optional hint for the source type; valid values are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
-	cmd.Flags().BoolVarP(&opts.deleteTag, "delete", "d", opts.deleteTag, "Delete the provided spec tag if it already exists")
+	cmd.Flags().BoolVarP(&opts.deleteTag, "delete", "d", opts.deleteTag, "Delete the provided spec tags")
+	cmd.Flags().BoolVar(&opts.aliasTag, "alias", false, "Should the destination tag be updated whenever the source tag changes. Defaults to false.")
 
 	return cmd
 }
@@ -119,7 +119,7 @@ func determineSourceKind(f *clientcmd.Factory, input string) string {
 // Complete completes all the required options for the tag command.
 func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) < 2 && (len(args) < 1 && !o.deleteTag) {
-		return cmdutil.UsageError(cmd, "you must specify a source and at least one destination or a destination and -d")
+		return cmdutil.UsageError(cmd, "you must specify a source and at least one destination or one or more tags to delete")
 	}
 
 	// Setup writer.
@@ -143,53 +143,85 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 		source := args[0]
 		glog.V(3).Infof("Using %q as a source tag", source)
 
-		original := o.sourceKind
-		if len(o.sourceKind) > 0 {
-			o.sourceKind = determineSourceKind(f, o.sourceKind)
+		sourceKind := o.sourceKind
+		if len(sourceKind) > 0 {
+			sourceKind = determineSourceKind(f, sourceKind)
 		}
-		if len(o.sourceKind) > 0 {
+		if len(sourceKind) > 0 {
 			validSources := sets.NewString("imagestreamtag", "istag", "imagestreamimage", "isimage", "docker", "dockerimage")
-			if !validSources.Has(strings.ToLower(o.sourceKind)) {
-				cmdutil.CheckErr(cmdutil.UsageError(cmd, "invalid source %q; valid values are %v", original, strings.Join(validSources.List(), ", ")))
+			if !validSources.Has(strings.ToLower(sourceKind)) {
+				cmdutil.CheckErr(cmdutil.UsageError(cmd, "invalid source %q; valid values are %v", o.sourceKind, strings.Join(validSources.List(), ", ")))
 			}
 		}
 
-		o.ref, err = imageapi.ParseDockerImageReference(source)
+		ref, err := imageapi.ParseDockerImageReference(source)
 		if err != nil {
 			return fmt.Errorf("invalid SOURCE: %v", err)
 		}
-		switch o.sourceKind {
+		switch sourceKind {
 		case "ImageStreamTag", "ImageStreamImage":
-			if len(o.ref.Registry) > 0 {
+			if len(ref.Registry) > 0 {
 				return fmt.Errorf("server in SOURCE is only allowed when providing a Docker image")
 			}
-			if o.ref.Namespace == imageapi.DockerDefaultNamespace {
-				o.ref.Namespace = defaultNamespace
+			if ref.Namespace == imageapi.DockerDefaultNamespace {
+				ref.Namespace = defaultNamespace
 			}
-			if o.sourceKind == "ImageStreamTag" {
-				if len(o.ref.Tag) == 0 {
+			if sourceKind == "ImageStreamTag" {
+				if len(ref.Tag) == 0 {
 					return fmt.Errorf("--source=ImageStreamTag requires a valid <name>:<tag> in SOURCE")
 				}
 			} else {
-				if len(o.ref.ID) == 0 {
+				if len(ref.ID) == 0 {
 					return fmt.Errorf("--source=ImageStreamImage requires a valid <name>@<id> in SOURCE")
 				}
 			}
 		case "":
-			if len(o.ref.ID) > 0 {
-				o.sourceKind = "ImageStreamImage"
+			if len(ref.Registry) > 0 {
+				sourceKind = "DockerImage"
 				break
 			}
-			if len(o.ref.Tag) > 0 {
-				o.sourceKind = "ImageStreamTag"
+			if len(ref.ID) > 0 {
+				sourceKind = "ImageStreamImage"
 				break
 			}
-			o.sourceKind = "DockerImage"
+			if len(ref.Tag) > 0 {
+				sourceKind = "ImageStreamTag"
+				break
+			}
+			sourceKind = "DockerImage"
 		}
 
-		// We are done with the source tag, drop it.
-		args = args[1:]
+		// if we are not aliasing the tag, specify the exact value to copy
+		if sourceKind == "ImageStreamTag" && !o.aliasTag {
+			srcNamespace := ref.Namespace
+			if len(srcNamespace) == 0 {
+				srcNamespace = defaultNamespace
+			}
+			is, err := o.osClient.ImageStreams(srcNamespace).Get(ref.Name)
+			if err != nil {
+				return err
+			}
+			event := imageapi.LatestTaggedImage(is, ref.Tag)
+			if event == nil {
+				return fmt.Errorf("%q is not currently pointing to an image, cannot use it as the source of a tag", args[0])
+			}
+			if len(event.Image) == 0 {
+				imageRef, err := imageapi.ParseDockerImageReference(event.DockerImageReference)
+				if err != nil {
+					return fmt.Errorf("the image stream tag %q has an invalid pull spec and cannot be used to tag: %v", args[0], err)
+				}
+				ref = imageRef
+				sourceKind = "DockerImage"
+			} else {
+				ref.ID = event.Image
+				ref.Tag = ""
+				sourceKind = "ImageStreamImage"
+			}
+		}
 
+		args = args[1:]
+		o.sourceKind = sourceKind
+		o.ref = ref
 		glog.V(3).Infof("Source tag %s %#v", o.sourceKind, o.ref)
 	}
 
@@ -215,6 +247,10 @@ func (o TagOptions) Validate() error {
 	}
 	if o.out == nil {
 		return errors.New("a writer interface is required")
+	}
+
+	if o.deleteTag && o.aliasTag {
+		return errors.New("--alias and --delete may not both be specified")
 	}
 
 	// Validate source tag based on --delete usage.
