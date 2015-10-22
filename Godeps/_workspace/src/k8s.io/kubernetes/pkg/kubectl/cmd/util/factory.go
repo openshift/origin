@@ -135,6 +135,9 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) *Factory {
 		},
 		RESTClient: func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 			group, err := api.RESTMapper.GroupForResource(mapping.Resource)
+			if err != nil {
+				return nil, err
+			}
 			client, err := clients.ClientForVersion(mapping.APIVersion)
 			if err != nil {
 				return nil, err
