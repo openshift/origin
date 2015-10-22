@@ -450,20 +450,19 @@ func startAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	oc.RunProjectCache()
 
 	unprotectedInstallers := []origin.APIInstaller{}
-
 	if oc.Options.OAuthConfig != nil {
-		authConfig, err := origin.BuildAuthConfig(oc.Options)
-		if err != nil {
-			return err
+		authConfig, buildErr := origin.BuildAuthConfig(oc.Options)
+		if buildErr != nil {
+			return buildErr
 		}
 		unprotectedInstallers = append(unprotectedInstallers, authConfig)
 	}
 
 	var standaloneAssetConfig *origin.AssetConfig
 	if oc.WebConsoleEnabled() {
-		config, err := origin.BuildAssetConfig(*oc.Options.AssetConfig)
-		if err != nil {
-			return err
+		config, buildErr := origin.BuildAssetConfig(*oc.Options.AssetConfig)
+		if buildErr != nil {
+			return buildErr
 		}
 
 		if oc.Options.AssetConfig.ServingInfo.BindAddress == oc.Options.ServingInfo.BindAddress {

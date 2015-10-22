@@ -16,9 +16,9 @@ func TestRegistryClientConnect(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, s := range []string{"index.docker.io", "https://docker.io", "https://index.docker.io"} {
-		otherConn, err := c.Connect(s, false)
-		if err != nil {
-			t.Errorf("%s: can't connect: %v", s, err)
+		otherConn, connErr := c.Connect(s, false)
+		if connErr != nil {
+			t.Errorf("%s: can't connect: %v", s, connErr)
 			continue
 		}
 		if !reflect.DeepEqual(otherConn, conn) {
@@ -98,7 +98,7 @@ func TestRegistryClientImage(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if _, err := conn.ImageByTag("openshift", "origin-not-found", "latest"); !dockerregistry.IsRepositoryNotFound(err) && !dockerregistry.IsTagNotFound(err) {
+		if _, err = conn.ImageByTag("openshift", "origin-not-found", "latest"); !dockerregistry.IsRepositoryNotFound(err) && !dockerregistry.IsTagNotFound(err) {
 			t.Errorf("V2=%t: unexpected error: %v", v2, err)
 		}
 

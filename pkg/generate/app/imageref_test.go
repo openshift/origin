@@ -80,8 +80,8 @@ func TestFromDockerfile(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer os.Remove(df.Name())
-	if _, err := df.Write([]byte(dockerFile)); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+	if _, writeErr := df.Write([]byte(dockerFile)); writeErr != nil {
+		t.Fatalf("Unexpected error: %v", writeErr)
 	}
 	df.Close()
 	pwd, err := os.Getwd()

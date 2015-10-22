@@ -370,13 +370,13 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	// if a claim should be created, generate the info we'll add to the flow
 	if v.Add && v.AddOpts.CreateClaim {
 		claim := v.AddOpts.createClaim()
-		m, err := v.Mapper.RESTMapping("PersistentVolumeClaim")
-		if err != nil {
-			return err
+		m, mappingErr := v.Mapper.RESTMapping("PersistentVolumeClaim")
+		if mappingErr != nil {
+			return mappingErr
 		}
-		client, err := mapper.ClientForMapping(m)
-		if err != nil {
-			return err
+		client, clientErr := mapper.ClientForMapping(m)
+		if clientErr != nil {
+			return clientErr
 		}
 		info := &resource.Info{
 			Mapping:   m,

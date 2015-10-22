@@ -130,9 +130,9 @@ func (e Editor) LaunchTempFile(prefix, suffix string, r io.Reader) ([]byte, stri
 	}
 	defer f.Close()
 	path := f.Name()
-	if _, err := io.Copy(f, r); err != nil {
+	if _, copyErr := io.Copy(f, r); copyErr != nil {
 		os.Remove(path)
-		return nil, path, err
+		return nil, path, copyErr
 	}
 	f.Close()
 	if err := e.Launch(path); err != nil {

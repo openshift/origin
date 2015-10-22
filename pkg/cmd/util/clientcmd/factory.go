@@ -83,11 +83,11 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 	kRESTClient := w.Factory.RESTClient
 	w.RESTClient = func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		if latest.OriginKind(mapping.Kind, mapping.APIVersion) {
-			client, err := clients.ClientForVersion(mapping.APIVersion)
-			if err != nil {
-				return nil, err
+			versionedClient, clientErr := clients.ClientForVersion(mapping.APIVersion)
+			if clientErr != nil {
+				return nil, clientErr
 			}
-			return client.RESTClient, nil
+			return versionedClient.RESTClient, nil
 		}
 		return kRESTClient(mapping)
 	}

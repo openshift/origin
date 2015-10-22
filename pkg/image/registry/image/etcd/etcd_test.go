@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coreos/go-etcd/etcd"
+
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
@@ -24,7 +26,6 @@ import (
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/registry/image"
 )
 
 // This copy and paste is not pure ignorance.  This is that we can be sure that the key is getting made as we
@@ -77,7 +78,7 @@ func newStorage(t *testing.T) (*REST, *tools.FakeEtcdClient) {
 func TestStorage(t *testing.T) {
 	_, helper := newHelper(t)
 	storage := NewREST(helper)
-	image.NewRegistry(storage)
+	imageregistry.NewRegistry(storage)
 }
 
 func validNewImage() *api.Image {
@@ -524,7 +525,7 @@ func TestStrategyPrepareMethods(t *testing.T) {
 	_, helper := newHelper(t)
 	storage := NewREST(helper)
 	img := validNewImage()
-	strategy := fakeStrategy{image.Strategy}
+	strategy := fakeStrategy{imageregistry.Strategy}
 
 	storage.store.CreateStrategy = strategy
 

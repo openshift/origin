@@ -839,9 +839,9 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	accept := app.NewAcceptFirst()
 	warned := make(map[string]struct{})
 	for _, p := range pipelines {
-		accepted, err := p.Objects(accept, acceptors)
-		if err != nil {
-			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
+		accepted, objectErr := p.Objects(accept, acceptors)
+		if objectErr != nil {
+			return nil, fmt.Errorf("can't setup %q: %v", p.From, objectErr)
 		}
 		if p.Image != nil && p.Image.HasEmptyDir {
 			if _, ok := warned[p.Image.Name]; !ok {

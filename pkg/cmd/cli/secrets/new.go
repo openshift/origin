@@ -198,9 +198,9 @@ func (o *CreateSecretOptions) BundleSecret() (*kapi.Secret, error) {
 			if strings.Contains(source, "=") {
 				return nil, errors.New("Cannot give a key name for a directory path.")
 			}
-			fileList, err := ioutil.ReadDir(filePath)
-			if err != nil {
-				return nil, fmt.Errorf("error listing files in %s: %v", filePath, err)
+			fileList, readErr := ioutil.ReadDir(filePath)
+			if readErr != nil {
+				return nil, fmt.Errorf("error listing files in %s: %v", filePath, readErr)
 			}
 
 			for _, item := range fileList {

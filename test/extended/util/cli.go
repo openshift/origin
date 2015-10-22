@@ -299,7 +299,7 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 // This function will set the default output to stdout.
 func (c *CLI) Execute() error {
 	out, err := c.Output()
-	if _, err := io.Copy(os.Stdout, strings.NewReader(out+"\n")); err != nil {
+	if _, copyErr := io.Copy(os.Stdout, strings.NewReader(out+"\n")); copyErr != nil {
 		fmt.Printf("ERROR: Unable to copy the output to stdout")
 	}
 	os.Stdout.Sync()

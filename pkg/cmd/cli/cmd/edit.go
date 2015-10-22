@@ -252,13 +252,13 @@ func (o *EditOptions) RunEdit() error {
 			if err != nil {
 				return err
 			}
-			data, err := info.Mapping.Codec.Encode(info.Object)
-			if err != nil {
-				return err
+			data, encodeErr := info.Mapping.Codec.Encode(info.Object)
+			if encodeErr != nil {
+				return encodeErr
 			}
-			updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, data)
-			if err != nil {
-				fmt.Fprintln(o.out, results.AddError(err, info))
+			updated, replaceErr := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, data)
+			if replaceErr != nil {
+				fmt.Fprintln(o.out, results.AddError(replaceErr, info))
 				return nil
 			}
 			info.Refresh(updated, true)
@@ -428,7 +428,7 @@ func applyPatch(delta *jsonmerge.Delta, info *resource.Info, version string) err
 // their updates were preserved.
 func preservedFile(err error, path string, out io.Writer) error {
 	if len(path) > 0 {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
+		if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
 			fmt.Fprintf(out, "A copy of your changes has been stored to %q\n", path)
 		}
 	}

@@ -223,9 +223,9 @@ func (o *RollbackOptions) Run() error {
 	// If this is a dry run, print and exit.
 	if o.DryRun {
 		describer := describe.NewDeploymentConfigDescriberForConfig(o.oc, o.kc, newConfig)
-		description, err := describer.Describe(newConfig.Namespace, newConfig.Name)
-		if err != nil {
-			return err
+		description, describeErr := describer.Describe(newConfig.Namespace, newConfig.Name)
+		if describeErr != nil {
+			return describeErr
 		}
 		o.out.Write([]byte(description))
 		return nil

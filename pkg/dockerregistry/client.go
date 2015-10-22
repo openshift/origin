@@ -12,8 +12,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kutil "k8s.io/kubernetes/pkg/util"
 
@@ -533,9 +534,9 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 			// repo
 			return nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 		}
-		token, err := c.authenticateV2(resp.Header.Get("WWW-Authenticate"))
-		if err != nil {
-			return nil, fmt.Errorf("error getting image for %s:%s: %v", repo.name, tag, err)
+		token, authErr := c.authenticateV2(resp.Header.Get("WWW-Authenticate"))
+		if authErr != nil {
+			return nil, fmt.Errorf("error getting image for %s:%s: %v", repo.name, tag, authErr)
 		}
 		repo.token = token
 		return repo.getTaggedImage(c, tag, userTag)
@@ -670,7 +671,7 @@ func (repo *v1repository) getImage(c *connection, image, userTag string) (*Image
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
 		delete(c.cached, repo.name)
-		if body, err := ioutil.ReadAll(resp.Body); err == nil {
+		if body, readErr := ioutil.ReadAll(resp.Body); readErr == nil {
 			glog.V(6).Infof("unable to fetch image %s: %#v\n%s", req.URL, resp, string(body))
 		}
 		return nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)
