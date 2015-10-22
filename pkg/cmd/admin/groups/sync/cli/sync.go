@@ -10,7 +10,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
 	kerrs "k8s.io/kubernetes/pkg/util/errors"
@@ -27,8 +26,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
-	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 )
 
 const (
@@ -102,6 +101,9 @@ type SyncOptions struct {
 
 	// Out is the writer to write output to
 	Out io.Writer
+
+	// MutationOutputOptions allows us to correctly output the mutations we make to objects in etcd
+	MutationOutputOptions mutation.MutationOutputOptions
 }
 
 // CreateErrorHandler creates an error handler for the LDAP sync job
@@ -144,6 +146,8 @@ func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 			if err := options.Complete(typeArg, whitelistFile, blacklistFile, configFile, args, f); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
+
+			options.MutationOutputOptions = mutation.NewMutationOutputOptions(f.Factory, c, options.Out)
 
 			if err := options.Validate(); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
@@ -357,6 +361,7 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 
 		Out: o.Out,
 		Err: os.Stderr,
+		MutationOutputOptions: o.MutationOutputOptions,
 	}
 
 	switch o.Source {
@@ -394,26 +399,7 @@ func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 		return err
 	}
 
-	// Now we run the Syncer and report any errors
-	openshiftGroups, syncErrors := syncer.Sync()
-	if o.Confirm {
-		return kerrs.NewAggregate(syncErrors)
-	}
-
-	list := &kapi.List{}
-	for _, item := range openshiftGroups {
-		list.Items = append(list.Items, item)
-	}
-	list.Items, err = ocmdutil.ConvertItemsForDisplayFromDefaultCommand(cmd, list.Items)
-	if err != nil {
-		return err
-	}
-
-	if err := f.Factory.PrintObject(cmd, list, o.Out); err != nil {
-		return err
-	}
-
-	return kerrs.NewAggregate(syncErrors)
+	return kerrs.NewAggregate(syncer.Sync())
 }
 
 func buildSyncBuilder(clientConfig ldapclient.Config, syncConfig *api.LDAPSyncConfig, errorHandler syncerror.Handler) (SyncBuilder, error) {

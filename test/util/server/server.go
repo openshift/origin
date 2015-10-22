@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -424,6 +425,8 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig kclient.Co
 		ProjectName: projectName,
 		AdminRole:   bootstrappolicy.AdminRoleName,
 		AdminUser:   adminUser,
+
+		MutationOutputOptions: mutation.NewFakeOptions(),
 	}
 
 	if err := newProjectOptions.Run(false); err != nil {

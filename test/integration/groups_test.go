@@ -8,6 +8,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	groupscmd "github.com/openshift/origin/pkg/cmd/admin/groups"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
@@ -182,7 +183,12 @@ func TestGroupCommands(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	newGroup := &groupscmd.NewGroupOptions{clusterAdminClient.Groups(), "group1", []string{"first", "second", "third", "first"}}
+	newGroup := &groupscmd.NewGroupOptions{
+		GroupClient: clusterAdminClient.Groups(),
+		Group:       "group1",
+		Users:       []string{"first", "second", "third", "first"},
+		MutationOutputOptions: mutation.NewFakeOptions(),
+	}
 	if err := newGroup.AddGroup(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -14,13 +14,14 @@ import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 // GroupSyncer runs a Sync job on Groups
 type GroupSyncer interface {
 	// Sync syncs groups in OpenShift with records from an external source
-	Sync() (groupsAffected []*userapi.Group, errors []error)
+	Sync() (errors []error)
 }
 
 // LDAPGroupSyncer sync Groups with records on an external LDAP server
@@ -43,13 +44,15 @@ type LDAPGroupSyncer struct {
 	// Out is used to provide output while the sync job is happening
 	Out io.Writer
 	Err io.Writer
+
+	// MutationOutputOptions allows us to correctly output the mutations we make to objects in etcd
+	MutationOutputOptions mutation.MutationOutputOptions
 }
 
 var _ GroupSyncer = &LDAPGroupSyncer{}
 
 // Sync allows the LDAPGroupSyncer to be a GroupSyncer
-func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
-	openshiftGroups := []*userapi.Group{}
+func (s *LDAPGroupSyncer) Sync() []error {
 	var errors []error
 
 	// determine what to sync
@@ -57,7 +60,7 @@ func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
 	ldapGroupUIDs, err := s.GroupLister.ListGroups()
 	if err != nil {
 		errors = append(errors, err)
-		return nil, errors
+		return errors
 	}
 	glog.V(1).Infof("Sync ldapGroupUIDs %v", ldapGroupUIDs)
 
@@ -88,19 +91,29 @@ func (s *LDAPGroupSyncer) Sync() ([]*userapi.Group, []error) {
 			errors = append(errors, err)
 			continue
 		}
-		openshiftGroups = append(openshiftGroups, openshiftGroup)
 
 		if !s.DryRun {
-			fmt.Fprintf(s.Out, "group/%s\n", openshiftGroup.Name)
 			if err := s.updateOpenShiftGroup(openshiftGroup); err != nil {
 				fmt.Fprintf(s.Err, "Error updating OpenShift group %q for LDAP group %q: %v.\n", openshiftGroup.Name, ldapGroupUID, err)
 				errors = append(errors, err)
 				continue
 			}
 		}
+
+		// The entire sync operation is not atomic, so we need to output what we do when we do it, so if we encounter
+		// a failure on another group the work we have already done is accounted for.
+		if s.DryRun {
+			if err := s.MutationOutputOptions.PrintSuccess(openshiftGroup, "would be updated"); err != nil {
+				errors = append(errors, err)
+			}
+		} else {
+			if err := s.MutationOutputOptions.PrintSuccess(openshiftGroup, "updated"); err != nil {
+				errors = append(errors, err)
+			}
+		}
 	}
 
-	return openshiftGroups, errors
+	return errors
 }
 
 // determineUsers determines the OpenShift Users that correspond to a list of LDAP member entries

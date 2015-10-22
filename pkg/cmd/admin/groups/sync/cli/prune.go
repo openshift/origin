@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 )
 
 const (
@@ -70,6 +71,9 @@ type PruneOptions struct {
 
 	// Out is the writer to write output to
 	Out io.Writer
+
+	// MutationOutputOptions allows us to correctly output the mutations we make to objects in etcd
+	MutationOutputOptions mutation.MutationOutputOptions
 }
 
 func NewPruneOptions() *PruneOptions {
@@ -96,6 +100,8 @@ func NewCmdPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *co
 			if err := options.Complete(whitelistFile, blacklistFile, configFile, args, f); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
 			}
+
+			options.MutationOutputOptions = mutation.NewMutationOutputOptions(f.Factory, c, options.Out)
 
 			if err := options.Validate(); err != nil {
 				cmdutil.CheckErr(cmdutil.UsageError(c, err.Error()))
@@ -188,6 +194,7 @@ func (o *PruneOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
 
 		Out: o.Out,
 		Err: os.Stderr,
+		MutationOutputOptions: o.MutationOutputOptions,
 	}
 
 	listerMapper, err := getOpenShiftGroupListerMapper(clientConfig.Host(), o)

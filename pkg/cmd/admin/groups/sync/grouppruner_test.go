@@ -12,6 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
+	"github.com/openshift/origin/pkg/cmd/util/mutation"
 )
 
 func TestGoodPrune(t *testing.T) {
@@ -121,6 +122,7 @@ func newTestPruner() (*LDAPGroupPruner, *testclient.Fake) {
 		Host:            newTestHost(),
 		Out:             ioutil.Discard,
 		Err:             ioutil.Discard,
+		MutationOutputOptions: mutation.NewFakeOptions(),
 	}, tc
 
 }
