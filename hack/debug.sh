@@ -435,7 +435,7 @@ run_self_via_ssh () {
 	fi
     fi
 
-    ssh root@$host $extra_env $logdir/debug.sh $args
+    ssh root@$host $extra_env /bin/bash $logdir/debug.sh $args
 }
 
 do_master_and_nodes ()
