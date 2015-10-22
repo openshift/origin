@@ -133,9 +133,9 @@ get_port_for_addr () {
 
 get_vnid_for_addr () {
     addr=$1
-    # On multitenant, the sed will match and output, eg "xd1", which we prefix with "0"
-    # to get "0xd1". On non-multitenant, the sed won't match, and outputs nothing, which
-    # we prefix with "0" to get "0". So either way, $base_pod_vnid is correct.
+    # On multitenant, the sed will match, and output something like "xd1", which we prefix
+    # with "0" to get "0xd1". On non-multitenant, the sed won't match, and outputs nothing,
+    # which we prefix with "0" to get "0". So either way, $base_pod_vnid is correct.
     echo 0$(sed -ne "s/.*reg0=0\(x[^,]*\),.*nw_dst=${addr}.*/\1/p" $lognode/flows | head -1)
 }
 
@@ -239,6 +239,10 @@ do_pod_service_connectivity_check () {
     echo_and_eval ovs-appctl ofproto/trace br0 "in_port=2,${service_proto},nw_src=${service_addr},nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
     echo ""
 
+    # In bash, redirecting to /dev/tcp/HOST/PORT or /dev/udp/HOST/PORT opens a connection
+    # to that HOST:PORT. Use this to test connectivity to the service; we can't use ping
+    # like in the pod connectivity check because only connections to the correct port
+    # get redirected by the iptables rules.
     if nsenter -n -t $base_pod_pid -- timeout 1 bash -c "echo -n '' > /dev/${service_proto}/${service_addr}/${service_port} 2>/dev/null"; then
 	echo "connect ${service_addr}:${service_port}  ->  success"
     else
@@ -295,7 +299,7 @@ do_node () {
 
 	pid=$(docker inspect -f '{{.State.Pid}}' $pod_id)
 	if [ -z "$pid" ]; then
-	    echo "$node:$pod_name: could not find pid of ($pod)"
+	    echo "$node:$pod_name: could not find pid of $pod"
 	    continue
 	fi
 
