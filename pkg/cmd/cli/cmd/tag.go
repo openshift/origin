@@ -303,8 +303,7 @@ func (o TagOptions) RunTag() error {
 		} else {
 			// The user wants to delete a spec tag.
 			if _, ok := target.Spec.Tags[destTag]; !ok {
-				glog.V(4).Infof("Destination tag %s/%s does not exist", o.destNamespace[i], destNameAndTag)
-				return nil
+				return fmt.Errorf("destination tag %s/%s does not exist.\n", o.destNamespace[i], destNameAndTag)
 			}
 			delete(target.Spec.Tags, destTag)
 			msg = fmt.Sprintf("Deleted tag %s/%s.", o.destNamespace[i], destNameAndTag)
