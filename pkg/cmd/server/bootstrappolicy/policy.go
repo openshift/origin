@@ -273,7 +273,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				// BuildController.Recorder (EventBroadcaster)
 				{
-					Verbs:     sets.NewString("create", "update"),
+					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
 			},
@@ -300,7 +300,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				// DeploymentController.recorder (EventBroadcaster)
 				{
-					Verbs:     sets.NewString("create", "update"),
+					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
 			},
@@ -337,7 +337,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				// ReplicationManager.podControl.recorder
 				{
-					Verbs:     sets.NewString("create", "update"),
+					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
 			},
@@ -473,7 +473,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				{
 					// TODO: restrict to the bound node as creator once supported
-					Verbs:     sets.NewString("create", "update"),
+					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
 
