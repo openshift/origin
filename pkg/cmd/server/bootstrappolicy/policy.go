@@ -9,7 +9,7 @@ import (
 )
 
 func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Role {
-	return []authorizationapi.Role{
+	roles := []authorizationapi.Role{
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name:      OpenshiftSharedResourceViewRoleName,
@@ -28,9 +28,20 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 			},
 		},
 	}
+
+	// we don't want to expose the resourcegroups externally because it makes it very difficult for customers to learn from
+	// our default roles and hard for them to reason about what power they are granting their users
+	for i := range roles {
+		for j := range roles[i].Rules {
+			roles[i].Rules[j].Resources = authorizationapi.ExpandResources(roles[i].Rules[j].Resources)
+		}
+	}
+
+	return roles
+
 }
 func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
-	return []authorizationapi.ClusterRole{
+	roles := []authorizationapi.ClusterRole{
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: ClusterAdminRoleName,
@@ -638,6 +649,16 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 		},
 	}
+
+	// we don't want to expose the resourcegroups externally because it makes it very difficult for customers to learn from
+	// our default roles and hard for them to reason about what power they are granting their users
+	for i := range roles {
+		for j := range roles[i].Rules {
+			roles[i].Rules[j].Resources = authorizationapi.ExpandResources(roles[i].Rules[j].Resources)
+		}
+	}
+
+	return roles
 }
 
 func GetBootstrapOpenshiftRoleBindings(openshiftNamespace string) []authorizationapi.RoleBinding {
