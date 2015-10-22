@@ -14970,13 +14970,18 @@
    "v1.BuildConfigStatus": {
     "id": "v1.BuildConfigStatus",
     "required": [
-     "lastVersion"
+     "lastVersion",
+     "canDelete"
     ],
     "properties": {
      "lastVersion": {
       "type": "integer",
       "format": "int32",
       "description": "used to inform about number of last triggered build"
+     },
+     "canDelete": {
+      "type": "boolean",
+      "description": "used to indicate the build config can be deleted by the system"
      }
     }
    },

@@ -796,6 +796,7 @@ func deepCopy_v1_BuildConfigSpec(in apiv1.BuildConfigSpec, out *apiv1.BuildConfi
 
 func deepCopy_v1_BuildConfigStatus(in apiv1.BuildConfigStatus, out *apiv1.BuildConfigStatus, c *conversion.Cloner) error {
 	out.LastVersion = in.LastVersion
+	out.CanDelete = in.CanDelete
 	return nil
 }
 
