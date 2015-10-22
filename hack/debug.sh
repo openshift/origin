@@ -29,6 +29,11 @@ try_eval () {
     return $status
 }
 
+# The environment may contain sensitive information like passwords or private keys
+filter_env () {
+    awk '/"env": \[$/ { indent = index($0, "\""); skipping = 1; next } !skipping { print; } skipping { if (index($0, "]") == indent) skipping = 0; }'
+}
+
 do_master () {
     if ! nodes=$(oc get nodes --template '{{range .items}}{{.spec.externalID}} {{end}}'); then
 	if [ -z "$KUBECONFIG" -o ! -f "$KUBECONFIG" ]; then
@@ -52,7 +57,7 @@ do_master () {
     echo_and_eval cat /etc/hosts >& $logmaster/hosts
     echo_and_eval cat /etc/resolv.conf >& $logmaster/resolv.conf
     echo_and_eval oc get nodes -o json >& $logmaster/nodes
-    echo_and_eval oc get pods --all-namespaces -o json >& $logmaster/pods
+    echo_and_eval oc get pods --all-namespaces -o json | filter_env >& $logmaster/pods
     echo_and_eval oc get services --all-namespaces -o json >& $logmaster/services
 
     for node in $nodes; do
