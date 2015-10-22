@@ -540,8 +540,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunReplicationController(rcClient)
 		kc.RunEndpointController()
 		kc.RunNamespaceController()
-		kc.RunPersistentVolumeClaimBinder()
-		kc.RunPersistentVolumeClaimRecycler(oc.ImageFor("deployer"))
+		kc.RunPersistentVolumeController(oc.ImageFor("deployer"))
 
 		glog.Infof("Started Kubernetes Controllers")
 	}
