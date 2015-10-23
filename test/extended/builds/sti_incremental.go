@@ -2,7 +2,6 @@ package builds
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -55,17 +54,12 @@ var _ = g.Describe("builds: s2i incremental build with push and pull to authenti
 			imageName, err := exutil.GetDockerImageReference(oc.REST().ImageStreams(oc.Namespace()), "internal-image", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("writing the pod definition to a file")
-			outputPath := filepath.Join(exutil.TestContext.OutputDir, oc.Namespace()+"-sample-pod.json")
+			g.By("creating a pod for the new image")
 			pod := exutil.GetPodForContainer(kapi.Container{
 				Image: imageName,
 				Name:  "test",
 			})
 			_, err = oc.KubeREST().Pods(oc.Namespace()).Create(pod)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By(fmt.Sprintf("calling oc create -f %q", outputPath))
-			err = oc.Run("create").Args("-f", outputPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod to be running")
