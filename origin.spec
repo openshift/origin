@@ -11,6 +11,9 @@
 %global tuned_version  2.3
 # openvswitch_version is the version of openvswitch requires by packages
 %global openvswitch_version 2.3.1
+# this is the version we obsolete up to. The packaging changed for Origin
+# 1.0.6 and OSE 3.1 such that 'openshift' package names were no longer used.
+%global package_refector_version 3.0.2.900
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
@@ -44,7 +47,7 @@ BuildRequires:  systemd
 BuildRequires:  golang >= 1.4
 Requires:       %{name}-clients = %{version}-%{release}
 Requires:       iptables
-Obsoletes:      openshift < 1.0.6
+Obsoletes:      openshift < %{package_refector_version}
 
 %description
 %{summary}
@@ -55,7 +58,7 @@ Requires:       %{name} = %{version}-%{release}
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
-Obsoletes:      openshift-master < 1.0.6
+Obsoletes:      openshift-master < %{package_refector_version}
 
 %description master
 %{summary}
@@ -72,7 +75,7 @@ Requires:       ethtool
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
-Obsoletes:      openshift-node < 1.0.6
+Obsoletes:      openshift-node < %{package_refector_version}
 
 %description node
 %{summary}
@@ -80,14 +83,14 @@ Obsoletes:      openshift-node < 1.0.6
 %package -n tuned-profiles-%{name}-node
 Summary:        Tuned profiles for %{product_name} Node hosts
 Requires:       tuned >= %{tuned_version}
-Obsoletes:      tuned-profiles-openshift-node < 1.0.6
+Obsoletes:      tuned-profiles-openshift-node < %{package_refector_version}
 
 %description -n tuned-profiles-%{name}-node
 %{summary}
 
 %package clients
 Summary:        %{product_name} Client binaries for Linux
-Obsoletes:      openshift-clients < 1.0.6
+Obsoletes:      openshift-clients < %{package_refector_version}
 
 %description clients
 %{summary}
@@ -96,7 +99,7 @@ Obsoletes:      openshift-clients < 1.0.6
 Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
 BuildRequires:  golang-pkg-darwin-amd64
 BuildRequires:  golang-pkg-windows-386
-Obsoletes:      openshift-clients-redistributable < 1.0.6
+Obsoletes:      openshift-clients-redistributable < %{package_refector_version}
 
 %description clients-redistributable
 %{summary}
@@ -121,7 +124,7 @@ Requires:         openvswitch >= %{openvswitch_version}
 Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         ethtool
-Obsoletes:        openshift-sdn-ovs < 1.0.6
+Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 
 %description sdn-ovs
 %{summary}
