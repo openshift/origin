@@ -6,7 +6,7 @@
 %global sdn_import_path github.com/openshift/openshift-sdn/pkg
 
 # docker_version is the version of docker requires by packages
-%global docker_version 1.6.2
+%global docker_version 1.8.2
 # tuned_version is the version of tuned requires by packages
 %global tuned_version  2.3
 # openvswitch_version is the version of openvswitch requires by packages
