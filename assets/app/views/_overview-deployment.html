@@ -67,25 +67,14 @@
   </div>
 
   <div row mobile="column" axis="center center" class="pod-block">
-    <!-- Pod template -->
-    <div column grow="2" class="pod-template-column">
-      <div class="component-label">Pod Template</div>
-      <pod-template
-        pod-template="rc.spec.template"
-        images-by-docker-reference="imagesByDockerReference"
-        builds="builds">
-      </pod-template>
-    </div>
-
     <!-- Pods donut chart and scaling controls -->
-    <div column>
-      <div axis="center center" row>
+    <div column class="overview-pods" axis="center center">
+      <div row>
         <!-- spacer -->
         <div flex class="visible-xs-block"></div>
 
         <div column>
           <pod-status-chart
-              chart-id="rc-{{rc.metadata.name}}-donut-chart"
               pods="pods"
               desired="desiredReplicas || rc.spec.replicas || 1"
               ng-click="viewPodsForDeployment(rc)">
@@ -116,6 +105,19 @@
         <!-- spacer -->
         <div flex class="visible-xs-block"></div>
       </div>
+    </div>
+
+    <!-- Pod template -->
+    <div column grow="2" class="pod-template-column">
+      <!-- spacer -->
+      <div flex></div>
+      <pod-template
+        pod-template="rc.spec.template"
+        images-by-docker-reference="imagesByDockerReference"
+        builds="builds">
+      </pod-template>
+      <!-- spacer -->
+      <div flex></div>
     </div>
   </div>
 </div>
