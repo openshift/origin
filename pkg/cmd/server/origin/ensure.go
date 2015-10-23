@@ -50,7 +50,10 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 	}
 
 	// Ensure service accounts exist
-	serviceAccounts := []string{c.BuildControllerServiceAccount, c.DeploymentControllerServiceAccount, c.ReplicationControllerServiceAccount}
+	serviceAccounts := []string{
+		c.BuildControllerServiceAccount, c.DeploymentControllerServiceAccount, c.ReplicationControllerServiceAccount,
+		c.JobControllerServiceAccount, c.HPAControllerServiceAccount,
+	}
 	for _, serviceAccountName := range serviceAccounts {
 		_, err := c.KubeClient().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: serviceAccountName}})
 		if err != nil && !kapierror.IsAlreadyExists(err) {
@@ -63,6 +66,8 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 		bootstrappolicy.BuildControllerRoleName:       {{Namespace: ns, Name: c.BuildControllerServiceAccount, Kind: "ServiceAccount"}},
 		bootstrappolicy.DeploymentControllerRoleName:  {{Namespace: ns, Name: c.DeploymentControllerServiceAccount, Kind: "ServiceAccount"}},
 		bootstrappolicy.ReplicationControllerRoleName: {{Namespace: ns, Name: c.ReplicationControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.JobControllerRoleName:         {{Namespace: ns, Name: c.JobControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.HPAControllerRoleName:         {{Namespace: ns, Name: c.HPAControllerServiceAccount, Kind: "ServiceAccount"}},
 	}
 	roleAccessor := policy.NewClusterRoleBindingAccessor(c.ServiceAccountRoleBindingClient())
 	for clusterRole, subjects := range clusterRolesToSubjects {
