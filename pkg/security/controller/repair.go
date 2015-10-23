@@ -81,6 +81,8 @@ func (c *Repair) RunOnce() error {
 		}
 		switch err := uids.Allocate(block); err {
 		case nil:
+		case uidallocator.ErrNotInRange, uidallocator.ErrAllocated:
+			continue
 		case uidallocator.ErrFull:
 			// TODO: send event
 			return fmt.Errorf("the UID range %s is full; you must widen the range in order to allocate more UIDs", c.uidRange)
