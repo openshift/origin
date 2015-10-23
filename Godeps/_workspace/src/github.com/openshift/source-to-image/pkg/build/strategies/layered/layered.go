@@ -27,7 +27,7 @@ type Layered struct {
 	scripts build.ScriptsHandler
 }
 
-func New(config *api.Config, scripts build.ScriptsHandler) (*Layered, error) {
+func New(config *api.Config, scripts build.ScriptsHandler, overrides build.Overrides) (*Layered, error) {
 	d, err := docker.New(config.DockerConfig, config.PullAuthentication)
 	if err != nil {
 		return nil, err
@@ -82,6 +82,7 @@ func (b *Layered) CreateDockerfile(config *api.Config) error {
 	return nil
 }
 
+// TODO: this should stop generating a file, and instead stream the tar.
 func (b *Layered) SourceTar(config *api.Config) (io.ReadCloser, error) {
 	uploadDir := filepath.Join(config.WorkingDir, "upload")
 	tarFileName, err := b.tar.CreateTarFile(b.config.WorkingDir, uploadDir)
