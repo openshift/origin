@@ -290,7 +290,10 @@ func (oi *OsdnRegistryInterface) WriteNetworkConfig(network string, subnetLength
 
 func (oi *OsdnRegistryInterface) GetClusterNetworkCIDR() (string, error) {
 	cn, err := oi.oClient.ClusterNetwork().Get("default")
-	return cn.Network, err
+	if err != nil {
+		return "", err
+	}
+	return cn.Network, nil
 }
 
 func (oi *OsdnRegistryInterface) GetServicesNetworkCIDR() (string, error) {
