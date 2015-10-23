@@ -113,7 +113,6 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 				Argument:    fmt.Sprintf("--docker-image=%q", match.Value),
 				Name:        match.Value,
 				Description: descriptionFor(dockerImage, match.Value, ref.Registry, ""),
-				Builder:     IsBuilderImage(dockerImage),
 				Score:       match.Score,
 				Image:       dockerImage,
 				ImageTag:    ref.Tag,
@@ -148,7 +147,6 @@ func (r MissingImageSearcher) Search(terms ...string) (ComponentMatches, error) 
 		componentMatches = append(componentMatches, &ComponentMatch{
 			Value:     term,
 			Score:     0.0,
-			Builder:   true,
 			LocalOnly: true,
 		})
 		glog.V(4).Infof("Added missing match for %v", term)
@@ -212,7 +210,6 @@ func (r DockerRegistrySearcher) Search(terms ...string) (ComponentMatches, error
 			Argument:    fmt.Sprintf("--docker-image=%q", term),
 			Name:        term,
 			Description: descriptionFor(dockerImage, term, ref.Registry, ref.Tag),
-			Builder:     IsBuilderImage(dockerImage),
 			Score:       0,
 			Image:       dockerImage,
 			ImageTag:    ref.Tag,

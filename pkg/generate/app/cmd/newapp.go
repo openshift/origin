@@ -27,12 +27,15 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/template"
+	outil "github.com/openshift/origin/pkg/util"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
 const (
 	GeneratedByNamespace = "openshift.io/generated-by"
+	GeneratedForJob      = "openshift.io/generated-job"
+	GeneratedForJobFor   = "openshift.io/generated-job.for"
 	GeneratedByNewApp    = "OpenShiftNewApp"
 	GeneratedByNewBuild  = "OpenShiftNewBuild"
 )
@@ -66,6 +69,12 @@ type AppConfig struct {
 	BinaryBuild        bool
 	AllowMissingImages bool
 
+	SkipGeneration        bool
+	AllowGenerationErrors bool
+
+	AllowSecretUse bool
+	SecretAccessor app.SecretAccessor
+
 	AsSearch bool
 	AsList   bool
 
@@ -98,6 +107,34 @@ type UsageError interface {
 // TODO: replace with upstream converting [1]error to error
 type errlist interface {
 	Errors() []error
+}
+
+type ErrRequiresExplicitAccess struct {
+	Match app.ComponentMatch
+}
+
+func (e ErrRequiresExplicitAccess) Error() string {
+	return fmt.Sprintf("the component %q is requesting access to run with your security credentials and install components - you must explicitly grant that access to continue", e.Match.String())
+}
+
+// ErrNoInputs is returned when no inputs are specified
+var ErrNoInputs = fmt.Errorf("no inputs provided")
+
+// AppResult contains the results of an application
+type AppResult struct {
+	List *kapi.List
+
+	Name      string
+	HasSource bool
+	Namespace string
+
+	GeneratedJobs bool
+}
+
+// QueryResult contains the results of a query (search or list)
+type QueryResult struct {
+	Matches app.ComponentMatches
+	List    *kapi.List
 }
 
 // NewAppConfig returns a new AppConfig, but you must set your typer, mapper, and clientMapper after the command has been run
@@ -423,6 +460,16 @@ func (c *AppConfig) inferBuildTypes(components app.ComponentReferences) error {
 	errs := []error{}
 	for _, ref := range components {
 		input := ref.Input()
+
+		// identify whether the input is a builder and whether generation is requested
+		input.ResolvedMatch.Builder = app.IsBuilderMatch(input.ResolvedMatch)
+		generatorInput, err := app.GeneratorInputFromMatch(input.ResolvedMatch)
+		if err != nil && !c.AllowGenerationErrors {
+			errs = append(errs, err)
+			continue
+		}
+		input.ResolvedMatch.GeneratorInput = generatorInput
+
 		// if the strategy is explicitly Docker, all repos should assume docker
 		if c.Strategy == "docker" && input.Uses != nil {
 			input.Uses.BuildWithDocker()
@@ -682,23 +729,68 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, environme
 	return objects, nil
 }
 
-// ErrNoInputs is returned when no inputs are specified
-var ErrNoInputs = fmt.Errorf("no inputs provided")
+// installComponents attempts to create pods to run installable images identified by the user. If an image
+// is installable, we check whether it requires access to the user token. If so, the caller must have
+// explicitly granted that access (because the token may be the user's).
+func (c *AppConfig) installComponents(components app.ComponentReferences) ([]runtime.Object, string, error) {
+	if c.SkipGeneration {
+		return nil, "", nil
+	}
 
-// AppResult contains the results of an application
-type AppResult struct {
-	List *kapi.List
+	jobs := components.InstallableComponentRefs()
+	switch {
+	case len(jobs) > 1:
+		return nil, "", fmt.Errorf("only one installable component may be provided: %s", jobs.HumanString(", "))
+	case len(jobs) == 0:
+		return nil, "", nil
+	}
 
-	Name       string
-	BuildNames []string
-	HasSource  bool
-	Namespace  string
-}
+	job := jobs[0]
+	if len(components) > 1 {
+		return nil, "", fmt.Errorf("%q is installable and may not be specified with other components", job.Input().Value)
+	}
+	input := job.Input()
 
-// QueryResult contains the results of a query (search or list)
-type QueryResult struct {
-	Matches app.ComponentMatches
-	List    *kapi.List
+	imageRef, err := app.InputImageFromMatch(input.ResolvedMatch)
+	if err != nil {
+		return nil, "", fmt.Errorf("can't include %q: %v", input, err)
+	}
+	glog.V(4).Infof("Resolved match for installer %#v", input.ResolvedMatch)
+
+	imageRef.AsImageStream = false
+	imageRef.AsResolvedImage = true
+	name := c.Name
+	if len(name) == 0 {
+		var ok bool
+		name, ok = imageRef.SuggestName()
+		if !ok {
+			return nil, "", fmt.Errorf("can't suggest a valid name, please specify a name with --name")
+		}
+	}
+	imageRef.ObjectName = name
+	glog.V(4).Infof("Proposed installable image %#v", imageRef)
+
+	generatorInput := input.ResolvedMatch.GeneratorInput
+	if generatorInput.Token != nil && !c.AllowSecretUse || c.SecretAccessor == nil {
+		return nil, "", ErrRequiresExplicitAccess{*input.ResolvedMatch}
+	}
+
+	pod, secret, err := imageRef.InstallablePod(generatorInput, c.SecretAccessor)
+	if err != nil {
+		return nil, "", err
+	}
+	objects := []runtime.Object{pod}
+	if secret != nil {
+		objects = append(objects, secret)
+	}
+	for i := range objects {
+		outil.AddObjectAnnotations(objects[i], map[string]string{
+			GeneratedForJob:    "true",
+			GeneratedForJobFor: input.String(),
+		})
+	}
+
+	return objects, name, nil
 }
 
 // RunAll executes the provided config to generate all objects.
@@ -889,11 +981,27 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 		}
 	}
 
-	if len(components.ImageComponentRefs()) > 1 && len(c.Name) > 0 {
+	imageRefs := components.ImageComponentRefs()
+	if len(imageRefs) > 1 && len(c.Name) > 0 {
 		return nil, fmt.Errorf("only one component or source repository can be used when specifying a name")
 	}
 
-	pipelines, err := c.buildPipelines(components.ImageComponentRefs(), app.Environment(environment))
+	// identify if there are installable components in the input provided by the user
+	installables, name, err := c.installComponents(components)
+	if err != nil {
+		return nil, err
+	}
+	if len(installables) > 0 {
+		return &AppResult{
+			List:      &kapi.List{Items: installables},
+			Name:      name,
+			Namespace: c.originNamespace,
+
+			GeneratedJobs: true,
+		}, nil
+	}
+
+	pipelines, err := c.buildPipelines(imageRefs, app.Environment(environment))
 	if err != nil {
 		return nil, err
 	}
@@ -907,9 +1015,10 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 			return nil, fmt.Errorf("can't setup %q: %v", p.From, err)
 		}
 		if p.Image != nil && p.Image.HasEmptyDir {
-			if _, ok := warned[p.Image.Name]; !ok {
-				fmt.Fprintf(c.ErrOut, "WARNING: Image %q uses an EmptyDir volume. Data in EmptyDir volumes is not persisted across deployments.\n", p.Image.Name)
-				warned[p.Image.Name] = struct{}{}
+			spec := p.Image.PullSpec()
+			if _, ok := warned[spec]; ok {
+				fmt.Fprintf(c.ErrOut, "WARNING: Image %q uses an empty directory volume. Data in these volumes is not persisted across deployments.\n", p.Image.Reference.Name)
+				warned[spec] = struct{}{}
 			}
 		}
 		objects = append(objects, accepted...)
@@ -923,15 +1032,7 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	}
 	objects = append(objects, templateObjects...)
 
-	buildNames := []string{}
-	for _, obj := range objects {
-		switch t := obj.(type) {
-		case *buildapi.BuildConfig:
-			buildNames = append(buildNames, t.Name)
-		}
-	}
-
-	name := c.Name
+	name = c.Name
 	if len(name) == 0 {
 		for _, pipeline := range pipelines {
 			if pipeline.Deployment != nil {
@@ -942,11 +1043,10 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	}
 
 	return &AppResult{
-		List:       &kapi.List{Items: objects},
-		Name:       name,
-		BuildNames: buildNames,
-		HasSource:  len(repositories) != 0,
-		Namespace:  c.originNamespace,
+		List:      &kapi.List{Items: objects},
+		Name:      name,
+		HasSource: len(repositories) != 0,
+		Namespace: c.originNamespace,
 	}, nil
 }
 

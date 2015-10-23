@@ -93,13 +93,24 @@ func (r ComponentReferences) TemplateComponentRefs() (refs ComponentReferences) 
 	})
 }
 
+// InstallableComponentRefs returns the list of component references to templates
+func (r ComponentReferences) InstallableComponentRefs() (refs ComponentReferences) {
+	return r.filter(func(ref ComponentReference) bool {
+		return ref.Input() != nil && ref.Input().ResolvedMatch != nil && ref.Input().ResolvedMatch.GeneratorInput.Job
+	})
+}
+
 func (r ComponentReferences) String() string {
+	return r.HumanString(",")
+}
+
+func (r ComponentReferences) HumanString(separator string) string {
 	components := []string{}
 	for _, ref := range r {
 		components = append(components, ref.Input().Value)
 	}
 
-	return strings.Join(components, ",")
+	return strings.Join(components, separator)
 }
 
 // GroupedComponentReferences is a set of components that can be grouped
@@ -126,6 +137,14 @@ func (r ComponentReferences) Group() (refs []ComponentReferences) {
 		refs[len(refs)-1] = append(refs[len(refs)-1], ref)
 	}
 	return
+}
+
+// GeneratorJobReference is a reference that should be treated as a job execution,
+// not a direct app creation.
+type GeneratorJobReference struct {
+	Ref   ComponentReference
+	Input GeneratorInput
+	Err   error
 }
 
 // ReferenceBuilder is used for building all the necessary object references
