@@ -72,6 +72,18 @@
         </div>
       </div> 
 
+      <div row ng-if="detailed" ng-repeat="mount in container.volumeMounts" class="icon-row">
+        <div>
+          <span aria-hidden="true" class="fa fa-database"></span>
+        </div>
+        <div flex>
+          Mount:
+          <span>
+            {{mount.name}}&#8201;&#8594;&#8201;{{mount.mountPath}}
+          </span>
+        </div>
+      </div>
+
       <div hawtio-extension name="container-links"></div>
 
     </div>

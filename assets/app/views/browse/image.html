@@ -4,15 +4,20 @@
     <alerts alerts="alerts"></alerts>
     <div ng-if="!loaded">Loading...</div>
     <div class="tile" ng-if="imageStream">
-      <h1>{{imageStream.metadata.name}}</h1>
+      <h1>
+        {{imageStream.metadata.name}}
+        <small class="meta">created <relative-timestamp timestamp="imageStream.metadata.creationTimestamp"></relative-timestamp></small>
+      </h1>
       <labels labels="imageStream.metadata.labels" clickable="true" kind="images" project-name="{{imageStream.metadata.namespace}}" limit="3"></labels>
-      <dl class="dl-horizontal left">
-        <dt ng-if-start="imageStream.spec.dockerImageRepository">Follows docker repo:</dt>
-        <dd ng-if-end>{{imageStream.spec.dockerImageRepository}}</dd>
-        <dt>Docker pull spec:</dt>
-        <dd>{{imageStream.status.dockerImageRepository}}</dd>
-      </dl>
-      <annotations annotations="imageStream.metadata.annotations"></annotations>
+      <div class="resource-details">
+        <dl class="dl-horizontal left">
+          <dt ng-if-start="imageStream.spec.dockerImageRepository">Follows docker repo:</dt>
+          <dd ng-if-end>{{imageStream.spec.dockerImageRepository}}</dd>
+          <dt>Docker pull spec:</dt>
+          <dd>{{imageStream.status.dockerImageRepository}}</dd>
+        </dl>
+        <annotations annotations="imageStream.metadata.annotations"></annotations>
+      </div>
     </div>
     <div class="table-responsive">
       <table class="table table-bordered">
