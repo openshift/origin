@@ -530,6 +530,14 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
+		_, jobClient, err := oc.GetServiceAccountClients(oc.JobControllerServiceAccount)
+		if err != nil {
+			glog.Fatalf("Could not get client for job controller: %v", err)
+		}
+		_, hpaKClient, err := oc.GetServiceAccountClients(oc.HPAControllerServiceAccount)
+		if err != nil {
+			glog.Fatalf("Could not get client for HPA controller: %v", err)
+		}
 
 		// called by admission control
 		kc.RunResourceQuotaManager()
@@ -538,6 +546,8 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		kc.RunNodeController()
 		kc.RunScheduler()
 		kc.RunReplicationController(rcClient)
+		kc.RunJobController(jobClient)
+		kc.RunHPAController(hpaKClient)
 		kc.RunEndpointController()
 		kc.RunNamespaceController()
 		kc.RunPersistentVolumeClaimBinder()

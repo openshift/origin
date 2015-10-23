@@ -359,6 +359,18 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: JobControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: HPAControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: OAuthTokenDeleterRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{

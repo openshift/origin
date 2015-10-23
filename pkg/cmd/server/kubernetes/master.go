@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
+	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
 	volumeclaimbinder "k8s.io/kubernetes/pkg/controller/persistentvolume"
@@ -103,6 +104,17 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
 	controllerManager := replicationcontroller.NewReplicationManager(client, c.ControllerManager.ResyncPeriod, replicationcontroller.BurstReplicas)
 	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
+}
+
+// RunJobController starts the Kubernetes job controller sync loop
+func (c *MasterConfig) RunJobController(client *client.Client) {
+	controller := jobcontroller.NewJobController(client, c.ControllerManager.ResyncPeriod)
+	go controller.Run(c.ControllerManager.ConcurrentJobSyncs, util.NeverStop)
+}
+
+// RunHPAController starts the Kubernetes hpa controller sync loop
+func (c *MasterConfig) RunHPAController(client *client.Client) {
+	// TDO fix stub
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
