@@ -252,6 +252,10 @@ func (c *Fake) Pods(namespace string) client.PodInterface {
 	return &FakePods{Fake: c, Namespace: namespace}
 }
 
+func (c *Fake) PodLogs(namespace string) client.PodLogsInterface {
+	return &FakePodLogs{Fake: c, Namespace: namespace}
+}
+
 func (c *Fake) PodTemplates(namespace string) client.PodTemplateInterface {
 	return &FakePodTemplates{Fake: c, Namespace: namespace}
 }

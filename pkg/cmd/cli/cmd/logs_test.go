@@ -8,12 +8,15 @@ import (
 	"github.com/spf13/pflag"
 
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 // TestFlagParity makes sure that our copied flags don't slip during rebases
 func TestFlagParity(t *testing.T) {
 	kubeCmd := kcmd.NewCmdLog(nil, ioutil.Discard)
-	originCmd := NewCmdLogs("", nil, ioutil.Discard)
+	f := clientcmd.NewFactory(nil)
+	originCmd := NewCmdLogs("", f, ioutil.Discard)
 
 	kubeCmd.LocalFlags().VisitAll(func(kubeFlag *pflag.Flag) {
 		originFlag := originCmd.LocalFlags().Lookup(kubeFlag.Name)
