@@ -127,6 +127,7 @@ kubernetesMasterConfig:
   apiLevels: null
   apiServerArguments: null
   controllerArguments: null
+  disabledAPIGroupVersions: null
   masterCount: 0
   masterIP: ""
   podEvictionTimeout: ""

@@ -30,6 +30,8 @@ const (
 )
 
 const (
+	APIGroupExtensions = "extensions"
+
 	// ResourceGroupPrefix is the prefix for indicating that a resource entry is actually a group of resources.  The groups are defined in code and indicate resources that are commonly permissioned together
 	ResourceGroupPrefix = "resourcegroup"
 	BuildGroupName      = ResourceGroupPrefix + ":builds"

@@ -99,6 +99,9 @@ func forbidden(reason string, attributes authorizer.AuthorizationAttributes, w h
 	if attributes != nil {
 		apiVersion = attributes.GetAPIVersion()
 		kind = attributes.GetResource()
+		if len(attributes.GetAPIGroup()) > 0 {
+			kind = attributes.GetAPIGroup() + "." + kind
+		}
 		name = attributes.GetResourceName()
 	}
 
@@ -140,7 +143,7 @@ func cacheControlFilter(handler http.Handler, value string) http.Handler {
 // namespacingFilter adds a filter that adds the namespace of the request to the context.  Not all requests will have namespaces,
 // but any that do will have the appropriate value added.
 func namespacingFilter(handler http.Handler, contextMapper kapi.RequestContextMapper) http.Handler {
-	infoResolver := &apiserver.RequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
+	infoResolver := &apiserver.RequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx, ok := contextMapper.Get(req)

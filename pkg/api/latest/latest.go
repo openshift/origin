@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"k8s.io/kubernetes/pkg/api"
-	klatest "k8s.io/kubernetes/pkg/api/latest"
 	kmeta "k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -96,11 +95,7 @@ func OriginKind(kind, apiVersion string) bool {
 func init() {
 	// this keeps us consistent with old code.  We can decide if we want to expand our RESTMapper to cover
 	// api.RESTMapper, which is different than what you'd get from latest.
-	kubeAPIGroup, err := klatest.Group("")
-	if err != nil {
-		panic(err)
-	}
-	kubeMapper := kubeAPIGroup.RESTMapper
+	kubeMapper := api.RESTMapper
 
 	// list of versions we support on the server, in preferred order
 	versions := []string{"v1", "v1beta3"}

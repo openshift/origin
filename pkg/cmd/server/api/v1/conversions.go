@@ -2,16 +2,17 @@ package v1
 
 import (
 	"k8s.io/kubernetes/pkg/conversion"
+	"k8s.io/kubernetes/pkg/util/sets"
 
-	newer "github.com/openshift/origin/pkg/cmd/server/api"
+	internal "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func init() {
-	err := newer.Scheme.AddDefaultingFuncs(
+	err := internal.Scheme.AddDefaultingFuncs(
 		func(obj *MasterConfig) {
 			if len(obj.APILevels) == 0 {
-				obj.APILevels = newer.DefaultOpenShiftAPILevels
+				obj.APILevels = internal.DefaultOpenShiftAPILevels
 			}
 			if len(obj.Controllers) == 0 {
 				obj.Controllers = ControllersAll
@@ -53,7 +54,7 @@ func init() {
 				obj.MasterCount = 1
 			}
 			if len(obj.APILevels) == 0 {
-				obj.APILevels = newer.DefaultKubernetesAPILevels
+				obj.APILevels = internal.DefaultKubernetesAPILevels
 			}
 			if len(obj.ServicesNodePortRange) == 0 {
 				obj.ServicesNodePortRange = "30000-32767"
@@ -96,7 +97,7 @@ func init() {
 				obj.KubernetesStoragePrefix = "kubernetes.io"
 			}
 			if len(obj.OpenShiftStorageVersion) == 0 {
-				obj.OpenShiftStorageVersion = newer.DefaultOpenShiftStorageVersionLevel
+				obj.OpenShiftStorageVersion = internal.DefaultOpenShiftStorageVersionLevel
 			}
 			if len(obj.OpenShiftStoragePrefix) == 0 {
 				obj.OpenShiftStoragePrefix = "openshift.io"
@@ -141,14 +142,49 @@ func init() {
 		// If one of the conversion functions is malformed, detect it immediately.
 		panic(err)
 	}
-	err = newer.Scheme.AddConversionFuncs(
-		func(in *NodeConfig, out *newer.NodeConfig, s conversion.Scope) error {
+	err = internal.Scheme.AddConversionFuncs(
+		func(in *NodeConfig, out *internal.NodeConfig, s conversion.Scope) error {
 			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 		},
-		func(in *newer.NodeConfig, out *NodeConfig, s conversion.Scope) error {
+		func(in *internal.NodeConfig, out *NodeConfig, s conversion.Scope) error {
 			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
 		},
-		func(in *ServingInfo, out *newer.ServingInfo, s conversion.Scope) error {
+		func(in *KubernetesMasterConfig, out *internal.KubernetesMasterConfig, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+
+			if out.DisabledAPIGroupVersions == nil {
+				out.DisabledAPIGroupVersions = map[string][]string{}
+			}
+
+			// the APILevels (whitelist) needs to be converted into an internal blacklist
+			if len(in.APILevels) == 0 {
+				out.DisabledAPIGroupVersions[internal.APIGroupKube] = []string{"*"}
+
+			} else {
+				availableLevels := internal.KubeAPIGroupsToAllowedVersions[internal.APIGroupKube]
+				whitelistedLevels := sets.NewString(in.APILevels...)
+				blacklistedLevels := []string{}
+
+				for _, curr := range availableLevels {
+					if !whitelistedLevels.Has(curr) {
+						blacklistedLevels = append(blacklistedLevels, curr)
+					}
+				}
+
+				if len(blacklistedLevels) > 0 {
+					out.DisabledAPIGroupVersions[internal.APIGroupKube] = blacklistedLevels
+				}
+			}
+
+			return nil
+		},
+		func(in *internal.KubernetesMasterConfig, out *KubernetesMasterConfig, s conversion.Scope) error {
+			// internal doesn't have all fields: APILevels
+			return s.DefaultConvert(in, out, conversion.IgnoreMissingFields)
+		},
+		func(in *ServingInfo, out *internal.ServingInfo, s conversion.Scope) error {
 			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 				return err
 			}
@@ -156,7 +192,7 @@ func init() {
 			out.ServerCert.KeyFile = in.KeyFile
 			return nil
 		},
-		func(in *newer.ServingInfo, out *ServingInfo, s conversion.Scope) error {
+		func(in *internal.ServingInfo, out *ServingInfo, s conversion.Scope) error {
 			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 				return err
 			}
@@ -164,42 +200,42 @@ func init() {
 			out.KeyFile = in.ServerCert.KeyFile
 			return nil
 		},
-		func(in *RemoteConnectionInfo, out *newer.RemoteConnectionInfo, s conversion.Scope) error {
+		func(in *RemoteConnectionInfo, out *internal.RemoteConnectionInfo, s conversion.Scope) error {
 			out.URL = in.URL
 			out.CA = in.CA
 			out.ClientCert.CertFile = in.CertFile
 			out.ClientCert.KeyFile = in.KeyFile
 			return nil
 		},
-		func(in *newer.RemoteConnectionInfo, out *RemoteConnectionInfo, s conversion.Scope) error {
+		func(in *internal.RemoteConnectionInfo, out *RemoteConnectionInfo, s conversion.Scope) error {
 			out.URL = in.URL
 			out.CA = in.CA
 			out.CertFile = in.ClientCert.CertFile
 			out.KeyFile = in.ClientCert.KeyFile
 			return nil
 		},
-		func(in *EtcdConnectionInfo, out *newer.EtcdConnectionInfo, s conversion.Scope) error {
+		func(in *EtcdConnectionInfo, out *internal.EtcdConnectionInfo, s conversion.Scope) error {
 			out.URLs = in.URLs
 			out.CA = in.CA
 			out.ClientCert.CertFile = in.CertFile
 			out.ClientCert.KeyFile = in.KeyFile
 			return nil
 		},
-		func(in *newer.EtcdConnectionInfo, out *EtcdConnectionInfo, s conversion.Scope) error {
+		func(in *internal.EtcdConnectionInfo, out *EtcdConnectionInfo, s conversion.Scope) error {
 			out.URLs = in.URLs
 			out.CA = in.CA
 			out.CertFile = in.ClientCert.CertFile
 			out.KeyFile = in.ClientCert.KeyFile
 			return nil
 		},
-		func(in *KubeletConnectionInfo, out *newer.KubeletConnectionInfo, s conversion.Scope) error {
+		func(in *KubeletConnectionInfo, out *internal.KubeletConnectionInfo, s conversion.Scope) error {
 			out.Port = in.Port
 			out.CA = in.CA
 			out.ClientCert.CertFile = in.CertFile
 			out.ClientCert.KeyFile = in.KeyFile
 			return nil
 		},
-		func(in *newer.KubeletConnectionInfo, out *KubeletConnectionInfo, s conversion.Scope) error {
+		func(in *internal.KubeletConnectionInfo, out *KubeletConnectionInfo, s conversion.Scope) error {
 			out.Port = in.Port
 			out.CA = in.CA
 			out.CertFile = in.ClientCert.CertFile
