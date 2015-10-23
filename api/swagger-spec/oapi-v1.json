@@ -1655,9 +1655,65 @@
         "allowMultiple": false
        },
        {
+        "type": "string",
+        "paramType": "query",
+        "name": "container",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "boolean",
         "paramType": "query",
         "name": "follow",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "previous",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "sinceSeconds",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "sinceTime",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "timestamps",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "tailLines",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "limitBytes",
         "description": "",
         "required": false,
         "allowMultiple": false
@@ -4323,9 +4379,65 @@
         "allowMultiple": false
        },
        {
+        "type": "string",
+        "paramType": "query",
+        "name": "container",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
         "type": "boolean",
         "paramType": "query",
         "name": "follow",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "previous",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "sinceSeconds",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "sinceTime",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "timestamps",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "tailLines",
+        "description": "",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "*int64",
+        "paramType": "query",
+        "name": "limitBytes",
         "description": "",
         "required": false,
         "allowMultiple": false

@@ -97,17 +97,23 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 
 	// TODO: podLogOptions should be included in our own logOptions objects.
 	switch resource {
-	case "build":
+	case "build", "buildconfig":
 		o.Options = &buildapi.BuildLogOptions{
-			Follow: podLogOptions.Follow,
-		}
-	case "buildconfig":
-		o.Options = &buildapi.BuildLogOptions{
-			Follow: podLogOptions.Follow,
+			Follow:       podLogOptions.Follow,
+			SinceSeconds: podLogOptions.SinceSeconds,
+			SinceTime:    podLogOptions.SinceTime,
+			Timestamps:   podLogOptions.Timestamps,
+			TailLines:    podLogOptions.TailLines,
+			LimitBytes:   podLogOptions.LimitBytes,
 		}
 	case "deploymentconfig":
 		o.Options = &deployapi.DeploymentLogOptions{
-			Follow: podLogOptions.Follow,
+			Follow:       podLogOptions.Follow,
+			SinceSeconds: podLogOptions.SinceSeconds,
+			SinceTime:    podLogOptions.SinceTime,
+			Timestamps:   podLogOptions.Timestamps,
+			TailLines:    podLogOptions.TailLines,
+			LimitBytes:   podLogOptions.LimitBytes,
 		}
 	default:
 		o.Options = nil
