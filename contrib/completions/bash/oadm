@@ -417,6 +417,70 @@ _oadm_policy_reconcile-cluster-role-bindings()
     must_have_one_noun=()
 }
 
+_oadm_policy_add-scc-to-user()
+{
+    last_command="oadm_policy_add-scc-to-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--serviceaccount=")
+    two_word_flags+=("-z")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_policy_add-scc-to-group()
+{
+    last_command="oadm_policy_add-scc-to-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_policy_remove-scc-from-user()
+{
+    last_command="oadm_policy_remove-scc-from-user"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--serviceaccount=")
+    two_word_flags+=("-z")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
+_oadm_policy_remove-scc-from-group()
+{
+    last_command="oadm_policy_remove-scc-from-group"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+}
+
 _oadm_policy()
 {
     last_command="oadm_policy"
@@ -434,6 +498,10 @@ _oadm_policy()
     commands+=("remove-cluster-role-from-group")
     commands+=("reconcile-cluster-roles")
     commands+=("reconcile-cluster-role-bindings")
+    commands+=("add-scc-to-user")
+    commands+=("add-scc-to-group")
+    commands+=("remove-scc-from-user")
+    commands+=("remove-scc-from-group")
 
     flags=()
     two_word_flags=()
