@@ -38,7 +38,7 @@ angular.module('openshiftConsole')
           }
 
           // Replace donut title content.
-          donutChartTitle.html('');
+          donutChartTitle.selectAll('*').remove();
           donutChartTitle.insert('tspan').text(total).classed('pod-count donut-title-big-pf', true).attr('dy', 0).attr('x', 0);
           donutChartTitle.insert('tspan').text(smallText).classed('donut-title-small-pf', true).attr('dy', 20).attr('x', 0);
         }
