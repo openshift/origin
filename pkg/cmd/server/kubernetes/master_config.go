@@ -54,10 +54,6 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	if err != nil {
 		return nil, err
 	}
-	databaseStorage, err := master.NewEtcdStorage(etcdClient, kapilatest.InterfacesForLegacyGroup, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
-	if err != nil {
-		return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
-	}
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 	kubeletClient, err := kclient.NewKubeletClient(kubeletClientConfig)
@@ -159,12 +155,25 @@ func BuildKubernetesMasterConfig(options configapi.MasterConfig, requestContextM
 	enabledKubeVersions := configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, configapi.APIGroupKube)
 	enabledKubeVersionSet := sets.NewString(enabledKubeVersions...)
 	if len(enabledKubeVersions) > 0 {
+		databaseStorage, err := master.NewEtcdStorage(etcdClient, kapilatest.InterfacesForLegacyGroup, options.EtcdStorageConfig.KubernetesStorageVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		if err != nil {
+			return nil, fmt.Errorf("Error setting up Kubernetes server storage: %v", err)
+		}
 		storageDestinations.AddAPIGroup(configapi.APIGroupKube, databaseStorage)
 		storageVersions[configapi.APIGroupKube] = options.EtcdStorageConfig.KubernetesStorageVersion
 	}
 
 	enabledExtensionsVersions := configapi.GetEnabledAPIVersionsForGroup(*options.KubernetesMasterConfig, configapi.APIGroupExtensions)
 	if len(enabledExtensionsVersions) > 0 {
+		groupMeta, err := kapilatest.Group(configapi.APIGroupExtensions)
+		if err != nil {
+			return nil, fmt.Errorf("Error setting up Kubernetes extensions server storage: %v", err)
+		}
+		// TODO expose storage version options for api groups
+		databaseStorage, err := master.NewEtcdStorage(etcdClient, groupMeta.InterfacesFor, groupMeta.GroupVersion, options.EtcdStorageConfig.KubernetesStoragePrefix)
+		if err != nil {
+			return nil, fmt.Errorf("Error setting up Kubernetes extensions server storage: %v", err)
+		}
 		storageDestinations.AddAPIGroup(configapi.APIGroupExtensions, databaseStorage)
 		storageVersions[configapi.APIGroupExtensions] = enabledExtensionsVersions[0]
 	}
