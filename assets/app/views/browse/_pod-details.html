@@ -1,64 +1,101 @@
-<dl class="dl-horizontal left">
-  <dt>Node:</dt>
-  <dd>{{pod.spec.nodeName || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.nodeName != pod.status.hostIP">({{pod.status.hostIP}})</span></dd>
-  <dt>Status:</dt>
-  <dd>
-    <span ng-switch="pod.status.phase">
-      <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true"></span>
-      <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
-      <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true"></span>
-      <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
-      <span ng-switch-when="Running" class="fa fa-refresh fa-spin" aria-hidden="true"></span>
-    </span>
-    {{pod.status.phase}}
-  </dd>
-  <dt>IP:</dt>
-  <dd>{{pod.status.podIP || 'unknown'}}</dd>
-  <dt>Restart policy:</dt>
-  <dd>{{pod.spec.restartPolicy || 'Always'}}</dd>
-</dl>
-<div ng-if="pod.spec.volumes.length">
-  <span class="pod-detail-label">Volumes:</span>
-  <ul>
-    <li ng-repeat="volume in pod.spec.volumes">
-      <div>{{volume.name}}</div>
-      <div ng-if="volume.source.hostPath">
-        <div>Type: host path</div>
-        <div>Path: {{volume.source.hostPath.path}}</div>
+<div class="resource-details">
+  <div class="row">
+    <div class="col-lg-6">
+      <h3>Status</h3>
+      <dl class="dl-horizontal left">
+        <dt>Phase:</dt>
+        <dd>
+          <span ng-switch="pod.status.phase">
+            <span ng-switch-when="Succeeded" class="fa fa-check text-success" aria-hidden="true"></span>
+            <span ng-switch-when="Failed" class="fa fa-times text-danger" aria-hidden="true"></span>
+            <span ng-switch-when="Terminated" class="fa fa-times text-danger" aria-hidden="true"></span>
+            <span ng-switch-when="Pending" class="spinner spinner-xs spinner-inline" aria-hidden="true"></span>
+            <span ng-switch-when="Running" class="fa fa-refresh" aria-hidden="true"></span>
+          </span>
+          {{pod.status.phase}}
+        </dd>
+        <dt>IP:</dt>
+        <dd>{{pod.status.podIP || 'unknown'}}</dd>
+        <dt>Node:</dt>
+        <dd>{{pod.spec.nodeName || 'unknown'}} <span ng-if="pod.status.hostIP && pod.spec.nodeName != pod.status.hostIP">({{pod.status.hostIP}})</span></dd>
+        <dt>Restart policy:</dt>
+        <dd>{{pod.spec.restartPolicy || 'Always'}}</dd>
+      </dl>
+      <div ng-repeat="containerStatus in pod.status.containerStatuses | orderBy:'name'" >
+        <h4>Container {{containerStatus.name}}</h4>
+        <dl class="dl-horizontal left">
+          <dt>State:</dt>
+          <dd>
+            <kubernetes-object-describe-container-state container-state="containerStatus.state"></kubernetes-object-describe-container-state>
+          </dd>
+          <dt ng-if="!(containerStatus.lastState | isEmptyObj)">Last State</dt>
+          <dd ng-if="!(containerStatus.lastState | isEmptyObj)">
+            <kubernetes-object-describe-container-state container-state="containerStatus.lastState"></kubernetes-object-describe-container-state>
+          </dd>
+          <dt>Ready:</dt>
+          <dd>{{containerStatus.ready}}</dd>
+          <dt>Restart Count:</dt>
+          <dd>{{containerStatus.restartCount}}</dd>
+        </dl>
       </div>
-      <div ng-if="volume.source.emptyDir">Type: empty directory</div>
-      <!-- TODO fill out GCE persistent disk details -->
-      <div ng-if="volume.source.gcePersistentDisk">Type: GCE persistent disk</div>
-      <div ng-if="volume.source.gitRepo">
-        <div>Type: Git repository</div>
-        <div>Repository: {{volume.source.gitRepo.repository}}</div>
-        <div ng-if="volume.source.gitRepo.revision">Revision: {{volume.source.gitRepo.revision}}</div>
+    </div>
+    <div class="col-lg-6">
+      <h3>Template</h3>
+      <pod-template
+        pod-template="pod"
+        images-by-docker-reference="imagesByDockerReference"
+        builds="builds"
+        detailed="true">
+      </pod-template>
+      <div ng-if="pod.spec.volumes.length">
+        <h3 style="margin-top: 20px;">Volumes</h3>
+        <div ng-repeat="volume in pod.spec.volumes">
+          <h4>{{volume.name}}</h4>
+          <dl class="dl-horizontal left">
+            <div ng-if="volume.secret">
+              <dt>Type:</dt>
+              <dd>secret</dd>
+              <dt>Secret name:</dt>
+              <dd>{{volume.secret.secretName}}</dd>
+            </div>
+            <div ng-if="volume.persistentVolumeClaim">
+              <dt>Type:</dt>
+              <dd>persistent volume claim</dd>
+              <dt>Claim name:</dt>
+              <dd>{{volume.persistentVolumeClaim.claimName}}</dd>
+              <dt>Mode:</dt>
+              <dd>
+                <span ng-if="volume.persistentVolumeClaim.readOnly">read-only</span>
+                <span ng-if="!volume.persistentVolumeClaim.readOnly">read-write</span>
+              </dd>
+            </div>
+            <div ng-if="volume.hostPath">
+              <dt>Type:</dt>
+              <dd>host path</dd>
+              <dt>Path:</dt>
+              <dd>{{volume.hostPath.path}}</dd>
+            </div>
+            <div ng-if="volume.emptyDir">
+              <dt>Type:</dt>
+              <dd>empty dir</dd>
+              <dt>Medium:</dt>
+              <dd>
+                <span ng-if="!volume.emptyDir.medium">node's default</span>
+                <span ng-if="volume.emptyDir.medium">{{volume.emptyDir.medium}}</span>
+              </dd>
+            </div>
+            <div ng-if="volume.gitRepo">
+              <dt>Type:</dt>
+              <dd>git repo</dd>
+              <dt>Repository:</dt>
+              <dd>{{volume.gitRepo.repository}}</dd>
+              <dt ng-if-start="volume.gitRepo.revision">Revision:</dt>
+              <dd ng-if-end>{{volume.gitRepo.revision}}</dd>
+            </div>
+          </dl>
+        </div>    
       </div>
-    </li>
-  </ul>
+    </div>
+  </div>
+  <annotations annotations="pod.metadata.annotations"></annotations>
 </div>
-<div>Pod template:</div>
-<pod-template
-  pod-template="pod"
-  images-by-docker-reference="imagesByDockerReference"
-  builds="builds">
-</pod-template>
-<div>Container Statuses:</div>
-<div ng-if="!pod.status.containerStatuses"><em>none</em></div>
-<dl ng-repeat="containerStatus in pod.status.containerStatuses | orderBy:'name'" class="dl-horizontal left indent">
-  <dt>Name:</dt>
-  <dd>{{containerStatus.name}}</dd>
-  <dt>State:</dt>
-  <dd>
-    <kubernetes-object-describe-container-state container-state="containerStatus.state"></kubernetes-object-describe-container-state>
-  </dd>
-  <dt ng-if="!(containerStatus.lastState | isEmptyObj)">Last State</dt>
-  <dd ng-if="!(containerStatus.lastState | isEmptyObj)">
-    <kubernetes-object-describe-container-state container-state="containerStatus.lastState"></kubernetes-object-describe-container-state>
-  </dd>
-  <dt>Ready:</dt>
-  <dd>{{containerStatus.ready}}</dd>
-  <dt>Restart Count:</dt>
-  <dd>{{containerStatus.restartCount}}</dd>
-</dl>
-<annotations annotations="pod.metadata.annotations"></annotations>

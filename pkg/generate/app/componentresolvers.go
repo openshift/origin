@@ -117,6 +117,9 @@ func (r WeightedResolvers) Resolve(value string) (*ComponentMatch, error) {
 			candidates = append(candidates, inexact...)
 		case err != nil:
 			errs = append(errs, err)
+			if matchErr, ok := err.(ErrMultipleMatches); ok {
+				candidates = append(candidates, matchErr.Matches...)
+			}
 		}
 	}
 	if len(errs) != 0 {

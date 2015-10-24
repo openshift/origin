@@ -49,7 +49,7 @@ var schedulable, evacuate, listpods bool
 func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, out io.Writer) *cobra.Command {
 	opts := &NodeOptions{}
 	schedulableOp := &SchedulableOptions{Options: opts}
-	evacuateOp := &EvacuateOptions{Options: opts}
+	evacuateOp := NewEvacuateOptions(opts)
 	listpodsOp := &ListPodsOptions{Options: opts}
 
 	cmd := &cobra.Command{

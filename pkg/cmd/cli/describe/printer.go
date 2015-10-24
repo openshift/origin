@@ -208,7 +208,11 @@ func printBuild(build *buildapi.Build, w io.Writer, withNamespace, wide, showAll
 		created = fmt.Sprintf("%s ago", formatRelativeTime(build.Status.StartTimestamp.Time))
 	}
 	from := describeSourceShort(build.Spec)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Spec.Strategy.Type), from, build.Status.Phase, created)
+	status := string(build.Status.Phase)
+	if len(build.Status.Reason) > 0 {
+		status = fmt.Sprintf("%s (%s)", status, build.Status.Reason)
+	}
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Spec.Strategy.Type), from, status, created)
 	return err
 }
 

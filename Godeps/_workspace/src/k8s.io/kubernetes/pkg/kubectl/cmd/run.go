@@ -238,9 +238,9 @@ func Run(f *cmdutil.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer, cmd *cob
 		// TODO: this should be abstracted into Factory to support other types
 		switch t := obj.(type) {
 		case *api.ReplicationController:
-			return handleAttachReplicationController(client, t, opts)
+			return handleAttachReplicationController(f, client, t, opts)
 		case *api.Pod:
-			return handleAttachPod(client, t, opts)
+			return handleAttachPod(f, client, t, opts)
 		default:
 			return fmt.Errorf("cannot attach to %s: not implemented", kind)
 		}
@@ -282,7 +282,7 @@ func waitForPodRunning(c *client.Client, pod *api.Pod, out io.Writer) (status ap
 	}
 }
 
-func handleAttachReplicationController(c *client.Client, controller *api.ReplicationController, opts *AttachOptions) error {
+func handleAttachReplicationController(f *cmdutil.Factory, c *client.Client, controller *api.ReplicationController, opts *AttachOptions) error {
 	var pods *api.PodList
 	for pods == nil || len(pods.Items) == 0 {
 		var err error
@@ -295,23 +295,43 @@ func handleAttachReplicationController(c *client.Client, controller *api.Replica
 		}
 	}
 	pod := &pods.Items[0]
-	return handleAttachPod(c, pod, opts)
+	return handleAttachPod(f, c, pod, opts)
 }
 
-func handleAttachPod(c *client.Client, pod *api.Pod, opts *AttachOptions) error {
+func handleAttachPod(f *cmdutil.Factory, c *client.Client, pod *api.Pod, opts *AttachOptions) error {
 	status, err := waitForPodRunning(c, pod, opts.Out)
 	if err != nil {
 		return err
 	}
 	if status == api.PodSucceeded || status == api.PodFailed {
-		return handleLog(c, pod.Namespace, pod.Name, &api.PodLogOptions{Container: opts.GetContainerName(pod)}, opts.Out)
+		req, err := f.LogsForObject(pod, &api.PodLogOptions{Container: opts.GetContainerName(pod)})
+		if err != nil {
+			return err
+		}
+		readCloser, err := req.Stream()
+		if err != nil {
+			return err
+		}
+		defer readCloser.Close()
+		_, err = io.Copy(opts.Out, readCloser)
+		return err
 	}
 	opts.Client = c
 	opts.PodName = pod.Name
 	opts.Namespace = pod.Namespace
 	if err := opts.Run(); err != nil {
 		fmt.Fprintf(opts.Out, "Error attaching, falling back to logs: %v\n", err)
-		return handleLog(c, pod.Namespace, pod.Name, &api.PodLogOptions{Container: opts.GetContainerName(pod)}, opts.Out)
+		req, err := f.LogsForObject(pod, &api.PodLogOptions{Container: opts.GetContainerName(pod)})
+		if err != nil {
+			return err
+		}
+		readCloser, err := req.Stream()
+		if err != nil {
+			return err
+		}
+		defer readCloser.Close()
+		_, err = io.Copy(opts.Out, readCloser)
+		return err
 	}
 	return nil
 }

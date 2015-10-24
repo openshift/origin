@@ -2,6 +2,8 @@ package file
 
 import (
 	"bufio"
+	"bytes"
+	"io"
 	"os"
 )
 
@@ -19,4 +21,37 @@ func ReadLines(fileName string) ([]string, error) {
 		lines = append(lines, scanner.Text())
 	}
 	return lines, scanner.Err()
+}
+
+type crlfWriter struct {
+	io.Writer
+}
+
+func NewCRLFWriter(w io.Writer) io.Writer {
+	return crlfWriter{w}
+}
+
+func (w crlfWriter) Write(b []byte) (n int, err error) {
+	for i, written := 0, 0; ; {
+		next := bytes.Index(b[i:], []byte("\n"))
+		if next == -1 {
+			n, err := w.Writer.Write(b[i:])
+			return written + n, err
+		}
+		next = next + i
+		n, err := w.Writer.Write(b[i:next])
+		if err != nil {
+			return written + n, err
+		}
+		written += n
+		n, err = w.Writer.Write([]byte("\r\n"))
+		if err != nil {
+			if n > 1 {
+				n = 1
+			}
+			return written + n, err
+		}
+		written += 1
+		i = next + 1
+	}
 }

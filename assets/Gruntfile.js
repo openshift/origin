@@ -210,7 +210,7 @@ module.exports = function (grunt) {
       },
       production: {
         files: {
-          'dist/css/main.css': '<%= yeoman.app %>/styles/main.less'
+          'dist/styles/main.css': '<%= yeoman.app %>/styles/main.less'
         },
         options: {
           cleancss: true,

@@ -125,6 +125,10 @@ type MasterConfig struct {
 	DeploymentControllerServiceAccount string
 	// ReplicationControllerServiceAccount is the name of the service account in the infra namespace to use to run the replication controller
 	ReplicationControllerServiceAccount string
+	// JobControllerServiceAccount is the name of the service account in the infra namespace to use to run the job controller
+	JobControllerServiceAccount string
+	// HPAControllerServiceAccount is the name of the service account in the infra namespace to use to run the hpa controller
+	HPAControllerServiceAccount string
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
@@ -216,6 +220,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		BuildControllerServiceAccount:       bootstrappolicy.InfraBuildControllerServiceAccountName,
 		DeploymentControllerServiceAccount:  bootstrappolicy.InfraDeploymentControllerServiceAccountName,
 		ReplicationControllerServiceAccount: bootstrappolicy.InfraReplicationControllerServiceAccountName,
+		JobControllerServiceAccount:         bootstrappolicy.InfraJobControllerServiceAccountName,
+		HPAControllerServiceAccount:         bootstrappolicy.InfraHPAControllerServiceAccountName,
 	}
 
 	return config, nil
@@ -336,7 +342,7 @@ func newAuthorizer(policyClient policyclient.ReadOnlyPolicyClient, projectReques
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.APIRequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")})
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, &apiserver.RequestInfoResolver{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")})
 	return authorizationAttributeBuilder
 }
 

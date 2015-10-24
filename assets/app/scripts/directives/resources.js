@@ -16,7 +16,8 @@ angular.module('openshiftConsole')
       scope: {
         podTemplate: '=',
         imagesByDockerReference: '=',
-        builds: '='
+        builds: '=',
+        detailed: '=?'
       },
       templateUrl: 'views/_pod-template.html'
     };

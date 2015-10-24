@@ -39,7 +39,9 @@ func New(providerName string, file string, mapper authapi.UserIdentityMapper) (a
 }
 
 func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
-	a.loadIfNeeded()
+	if err := a.loadIfNeeded(); err != nil {
+		return nil, false, err
+	}
 
 	if len(username) > 255 {
 		username = username[:255]
@@ -112,8 +114,13 @@ func (a *Authenticator) loadIfNeeded() error {
 	}
 	if a.fileInfo == nil || a.fileInfo.ModTime() != info.ModTime() {
 		glog.V(4).Infof("Loading htpasswd file %s...", a.file)
+		loadingErr := a.load()
+		if loadingErr != nil {
+			return err
+		}
+
 		a.fileInfo = info
-		return a.load()
+		return nil
 	}
 	return nil
 }

@@ -43,6 +43,7 @@ Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.4
 Requires:       %{name}-clients = %{version}-%{release}
+Requires:       iptables
 Obsoletes:      openshift < 1.0.6
 
 %description

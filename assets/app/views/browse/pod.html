@@ -8,10 +8,11 @@
         <div class="col-md-12">
           <div class="tile">
             <h1>
-              Pod {{pod.metadata.name}}
+              {{pod.metadata.name}}
               <span ng-if="pod | isTroubledPod">
                 <pod-warnings pod="pod" style="vertical-align: middle;"></pod-warnings>
               </span>
+              <small class="meta">created <relative-timestamp timestamp="pod.metadata.creationTimestamp"></relative-timestamp></small>
             </h1>
             <labels labels="pod.metadata.labels" clickable="true" kind="pods" project-name="{{pod.metadata.namespace}}" limit="3"></labels>
             <tabset>

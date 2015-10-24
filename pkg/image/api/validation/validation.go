@@ -92,7 +92,7 @@ func ValidateImageStream(stream *api.ImageStream) fielderrors.ValidationErrorLis
 	for tag, history := range stream.Status.Tags {
 		for i, tagEvent := range history.Items {
 			if len(tagEvent.DockerImageReference) == 0 {
-				result = append(result, fielderrors.NewFieldRequired(fmt.Sprintf("status.tags[%s].Items[%d].dockerImageReference", tag, i)))
+				result = append(result, fielderrors.NewFieldRequired(fmt.Sprintf("status.tags[%s].items[%d].dockerImageReference", tag, i)))
 			}
 		}
 	}

@@ -11,6 +11,10 @@ angular.module('openshiftConsole')
     $scope.deploymentConfig = null;
     $scope.deployments = {};
     $scope.unfilteredDeployments = {};
+    $scope.imageStreams = {};
+    $scope.imagesByDockerReference = {};
+    $scope.imageStreamImageRefByDockerReference = {}; // lets us determine if a particular container's docker image reference belongs to an imageStream
+    $scope.builds = {};         
     $scope.labelSuggestions = {};    
     // TODO we should add this back in and show the pod template on this page
     //$scope.podTemplates = {};
@@ -42,6 +46,7 @@ angular.module('openshiftConsole')
         function(deploymentConfig) {
           $scope.loaded = true;
           $scope.deploymentConfig = deploymentConfig;
+          ImageStreamResolver.fetchReferencedImageStreamImages([deploymentConfig.spec.template], $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
 
           // If we found the item successfully, watch for changes on it
           watches.push(DataService.watchObject("deploymentconfigs", $routeParams.deploymentconfig, $scope, function(deploymentConfig, action) {
@@ -52,6 +57,7 @@ angular.module('openshiftConsole')
               }; 
             }
             $scope.deploymentConfig = deploymentConfig;
+            ImageStreamResolver.fetchReferencedImageStreamImages([deploymentConfig.spec.template], $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
           }));          
         },
         // failure
@@ -79,7 +85,7 @@ angular.module('openshiftConsole')
         $scope.emptyMessage = "No deployments to show";
         var deploymentsByDeploymentConfig = DeploymentsService.associateDeploymentsToDeploymentConfig(deployments.by("metadata.name"));
 
-        $scope.unfilteredDeployments = deploymentsByDeploymentConfig[$routeParams.deploymentconfig];
+        $scope.unfilteredDeployments = deploymentsByDeploymentConfig[$routeParams.deploymentconfig] || {};
         LabelFilter.addLabelSuggestionsFromResources($scope.unfilteredDeployments, $scope.labelSuggestions);
         LabelFilter.setLabelSuggestions($scope.labelSuggestions);
         $scope.deployments = LabelFilter.getLabelSelector().select($scope.unfilteredDeployments);      
@@ -93,15 +99,14 @@ angular.module('openshiftConsole')
         }
         if (!action) {
           // Loading of the page that will create deploymentConfigDeploymentsInProgress structure, which will associate running deployment to his deploymentConfig.
-          $scope.deploymentConfigDeploymentsInProgress = DeploymentsService.associateRunningDeploymentToDeploymentConfig($scope.deploymentsByDeploymentConfig);
+          $scope.deploymentConfigDeploymentsInProgress = DeploymentsService.associateRunningDeploymentToDeploymentConfig(deploymentsByDeploymentConfig);
         } else if (action === 'ADDED' || (action === 'MODIFIED' && ['New', 'Pending', 'Running'].indexOf($filter('deploymentStatus')(deployment)) > -1)) {
           // When new deployment id instantiated/cloned, or in case of a retry, associate him to his deploymentConfig and add him into deploymentConfigDeploymentsInProgress structure.
           $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] = $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName] || {};
           $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName] = deployment;
         } else if (action === 'MODIFIED') {
           // After the deployment ends remove him from the deploymentConfigDeploymentsInProgress structure.
-          var status = $filter('deploymentStatus')(deployment);
-          if (status === "Complete" || status === "Failed"){
+          if (!$filter('deploymentIsInProgress')(deployment)){
             delete $scope.deploymentConfigDeploymentsInProgress[deploymentConfigName][deploymentName];
           }
         }
@@ -119,19 +124,20 @@ angular.module('openshiftConsole')
         }        
       }));
 
-      // TODO we should add this back in and show the pod template on this page
-      // // Sets up subscription for imageStreams
-      // watches.push(DataService.watch("imagestreams", $scope, function(imageStreams) {
-      //   $scope.imageStreams = imageStreams.by("metadata.name");
-      //   ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
-      //   ImageStreamResolver.fetchReferencedImageStreamImages($scope.podTemplates, $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
-      //   Logger.log("imagestreams (subscribe)", $scope.imageStreams);
-      // }));
+      watches.push(DataService.watch("imagestreams", $scope, function(imageStreams) {
+        $scope.imageStreams = imageStreams.by("metadata.name");
+        ImageStreamResolver.buildDockerRefMapForImageStreams($scope.imageStreams, $scope.imageStreamImageRefByDockerReference);
+        // If the dep config has been loaded already
+        if ($scope.deploymentConfig) {
+          ImageStreamResolver.fetchReferencedImageStreamImages([$scope.deploymentConfig.spec.template], $scope.imagesByDockerReference, $scope.imageStreamImageRefByDockerReference, $scope);
+        }
+        Logger.log("imagestreams (subscribe)", $scope.imageStreams);
+      }));
 
-      // watches.push(DataService.watch("builds", $scope, function(builds) {
-      //   $scope.builds = builds.by("metadata.name");
-      //   Logger.log("builds (subscribe)", $scope.builds);
-      // }));
+      watches.push(DataService.watch("builds", $scope, function(builds) {
+        $scope.builds = builds.by("metadata.name");
+        Logger.log("builds (subscribe)", $scope.builds);
+      }));
     });
 
     function updateFilterWarning() {

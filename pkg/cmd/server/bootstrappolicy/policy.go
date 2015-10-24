@@ -83,7 +83,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
-					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
+					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.PermissionGrantingGroupName, authorizationapi.KubeExposedGroupName, "projects", "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource, "deploymentconfigs/scale"),
+				},
+				{
+					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
+					Resources: sets.NewString("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
 				},
 				{
 					Verbs:     sets.NewString("get", "list", "watch"),
@@ -103,7 +108,12 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
-					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource),
+					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeExposedGroupName, "secrets", "pods/attach", "pods/proxy", "pods/exec", "pods/portforward", authorizationapi.DockerBuildResource, authorizationapi.SourceBuildResource, authorizationapi.CustomBuildResource, "deploymentconfigs/scale"),
+				},
+				{
+					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					Verbs:     sets.NewString("get", "list", "watch", "create", "update", "patch", "delete"),
+					Resources: sets.NewString("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale"),
 				},
 				{
 					Verbs:     sets.NewString("get", "list", "watch"),
@@ -124,6 +134,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				{
 					Verbs:     sets.NewString("get", "list", "watch"),
 					Resources: sets.NewString(authorizationapi.OpenshiftExposedGroupName, authorizationapi.KubeAllGroupName, authorizationapi.OpenshiftStatusGroupName, authorizationapi.KubeStatusGroupName, "projects"),
+				},
+				{
+					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					Verbs:     sets.NewString("get", "list", "watch"),
+					Resources: sets.NewString("jobs", "horizontalpodautoscalers"),
 				},
 			},
 		},
@@ -153,8 +168,15 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:           sets.NewString("get"),
-					NonResourceURLs: sets.NewString("/healthz", "/healthz/*", "/version", "/api", "/oapi", "/osapi", "/api/", "/oapi/", "/osapi/"),
+					Verbs: sets.NewString("get"),
+					NonResourceURLs: sets.NewString(
+						"/healthz", "/healthz/*",
+						"/version",
+						"/api", "/api/", "/api/v1", "/api/v1/",
+						"/apis", "/apis/", "/apis/extensions", "/apis/extensions/", "/apis/extensions/v1beta1", "/apis/extensions/v1beta1/",
+						"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
+						"/oapi/", "/oapi", "/oapi/v1", "/oapi/v1/",
+					),
 				},
 			},
 		},
@@ -266,7 +288,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				// BuildController.Recorder (EventBroadcaster)
 				{
-					Verbs:     sets.NewString("create", "update"),
+					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
 			},
@@ -293,7 +315,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				// DeploymentController.recorder (EventBroadcaster)
 				{
-					Verbs:     sets.NewString("create", "update"),
+					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
 			},
@@ -330,10 +352,22 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				// ReplicationManager.podControl.recorder
 				{
-					Verbs:     sets.NewString("create", "update"),
+					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
 			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: JobControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: HPAControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
@@ -466,7 +500,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				{
 					// TODO: restrict to the bound node as creator once supported
-					Verbs:     sets.NewString("create", "update"),
+					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},
 

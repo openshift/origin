@@ -18,6 +18,9 @@ import (
 
 const (
 	// sorry, blame Git
+	// TODO: on Windows rely on 'start' to launch the editor associated
+	// with the given file type. If we can't because of the need of
+	// blocking, use a script with 'ftype' and 'assoc' to detect it.
 	defaultEditor = "vi"
 	windowsEditor = "notepad"
 	defaultShell  = "/bin/bash"
@@ -131,6 +134,7 @@ func (e Editor) LaunchTempFile(prefix, suffix string, r io.Reader) ([]byte, stri
 		os.Remove(path)
 		return nil, path, err
 	}
+	f.Close()
 	if err := e.Launch(path); err != nil {
 		return nil, path, err
 	}
