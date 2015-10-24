@@ -62,3 +62,9 @@ type SourceHandler interface {
 type LayeredDockerBuilder interface {
 	Builder
 }
+
+// Overrides are interfaces that may be passed into build strategies to
+// alter the behavior of a strategy.
+type Overrides struct {
+	Downloader Downloader
+}

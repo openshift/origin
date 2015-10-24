@@ -3,6 +3,7 @@ package sti
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/build"
 	stierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/ignore"
+	"github.com/openshift/source-to-image/pkg/scm/file"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 	"github.com/openshift/source-to-image/pkg/test"
 )
@@ -24,6 +26,7 @@ type FakeSTI struct {
 	ExistsError            error
 	BuildRequest           *api.Config
 	BuildResult            *api.Result
+	DownloadError          error
 	SaveArtifactsCalled    bool
 	SaveArtifactsError     error
 	FetchSourceCalled      bool
@@ -103,8 +106,8 @@ func (f *FakeSTI) fetchSource() error {
 	return f.FetchSourceError
 }
 
-func (f *FakeSTI) Download(*api.Config) error {
-	return nil
+func (f *FakeSTI) Download(*api.Config) (*api.SourceInfo, error) {
+	return nil, f.DownloadError
 }
 
 func (f *FakeSTI) Execute(command string, r *api.Config) error {
@@ -129,6 +132,41 @@ type FakeDockerBuild struct {
 func (f *FakeDockerBuild) Build(*api.Config) (*api.Result, error) {
 	f.LayeredBuildCalled = true
 	return nil, f.LayeredBuildError
+}
+
+func TestDefaultSource(t *testing.T) {
+	config := &api.Config{
+		Source:       "file://.",
+		DockerConfig: &api.DockerConfig{Endpoint: "unix:///var/run/docker.sock"},
+	}
+	sti, err := New(config, build.Overrides{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.Source == "" {
+		t.Errorf("Config.Source not set: %v", config.Source)
+	}
+	if _, ok := sti.source.(*file.File); !ok || sti.source == nil {
+		t.Errorf("Source interface not set: %#v", sti.source)
+	}
+}
+
+func TestOverrides(t *testing.T) {
+	fd := &FakeSTI{}
+	sti, err := New(
+		&api.Config{
+			DockerConfig: &api.DockerConfig{Endpoint: "unix:///var/run/docker.sock"},
+		},
+		build.Overrides{
+			Downloader: fd,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sti.source != fd {
+		t.Errorf("Override of downloader not set: %#v", sti)
+	}
 }
 
 func TestBuild(t *testing.T) {
@@ -681,7 +719,8 @@ func TestExecuteOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error returned: %v", err)
 	}
-	if th.CreateTarBase != "/working-dir" {
+	th = rh.tar.(*test.FakeTar).Copy()
+	if th.CreateTarBase != "" {
 		t.Errorf("Unexpected tar base directory: %s", th.CreateTarBase)
 	}
 	if th.CreateTarDir != "/working-dir/upload" {
@@ -691,26 +730,26 @@ func TestExecuteOK(t *testing.T) {
 	if !ok {
 		t.Fatalf("Unable to convert %v to FakeFilesystem", rh.fs)
 	}
-	if fh.OpenFile != "/working-dir/test.tar" {
-		t.Errorf("Unexpected file opened: %s", fh.OpenFile)
+	if fh.OpenFile != "" {
+		t.Fatalf("Unexpected file opened: %s", fh.OpenFile)
 	}
-	if !fh.OpenFileResult.CloseCalled {
-		t.Errorf("Tar file was not closed.")
+	if fh.OpenFileResult != nil {
+		t.Errorf("Tar file was opened.")
 	}
 	ro := fd.RunContainerOpts
 
 	if ro.Image != rh.config.BuilderImage {
 		t.Errorf("Unexpected Image passed to RunContainer")
 	}
-	if ro.Stdin != fh.OpenFileResult {
-		t.Errorf("Unexpected input stream: %#v", fd.RunContainerOpts.Stdin)
+	if _, ok := ro.Stdin.(*io.PipeReader); !ok {
+		t.Errorf("Unexpected input stream: %#v", ro.Stdin)
 	}
 	if !ro.PullImage {
 		t.Errorf("PullImage is not true for RunContainer")
 	}
 	if ro.Command != "test-command" {
 		t.Errorf("Unexpected command passed to RunContainer: %s",
-			fd.RunContainerOpts.Command)
+			ro.Command)
 	}
 	if pe.PostExecuteContainerID != "1234" {
 		t.Errorf("PostExecutor not called with expected ID: %s",
@@ -725,17 +764,15 @@ func TestExecuteErrorCreateTarFile(t *testing.T) {
 	rh := newFakeSTI(&FakeSTI{})
 	rh.tar.(*test.FakeTar).CreateTarError = errors.New("CreateTarError")
 	err := rh.Execute("test-command", rh.config)
-	if err == nil || err.Error() != "CreateTarError" {
+	if err != nil {
 		t.Errorf("An error was expected for CreateTarFile, but got different: %v", err)
 	}
-}
-
-func TestExecuteErrorOpenTarFile(t *testing.T) {
-	rh := newFakeSTI(&FakeSTI{})
-	rh.fs.(*test.FakeFileSystem).OpenError = errors.New("OpenTarError")
-	err := rh.Execute("test-command", rh.config)
-	if err == nil || err.Error() != "OpenTarError" {
-		t.Errorf("An error was expected for OpenTarFile, but got different: %v", err)
+	ro := rh.docker.(*test.FakeDocker).RunContainerOpts
+	if ro.Stdin == nil {
+		t.Fatalf("Stream not passed to Docker interface")
+	}
+	if _, err := ro.Stdin.Read(make([]byte, 5)); err == nil || err.Error() != "CreateTarError" {
+		t.Errorf("An error was expected for CreateTarFile, but got different: %#v", ro)
 	}
 }
 

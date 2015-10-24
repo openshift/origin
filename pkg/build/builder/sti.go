@@ -92,17 +92,18 @@ func (s *STIBuilder) Build() error {
 	tag := s.build.Spec.Output.To.Name
 
 	config := &stiapi.Config{
-		BuilderImage:   s.build.Spec.Strategy.SourceStrategy.From.Name,
-		DockerConfig:   &stiapi.DockerConfig{Endpoint: s.dockerSocket},
-		Source:         s.build.Spec.Source.Git.URI,
-		ContextDir:     s.build.Spec.Source.ContextDir,
-		DockerCfgPath:  os.Getenv(dockercfg.PullAuthType),
-		Tag:            tag,
-		ScriptsURL:     s.build.Spec.Strategy.SourceStrategy.Scripts,
-		Environment:    buildEnvVars(s.build),
-		LabelNamespace: api.DefaultDockerLabelNamespace,
-		Incremental:    s.build.Spec.Strategy.SourceStrategy.Incremental,
-		ForcePull:      s.build.Spec.Strategy.SourceStrategy.ForcePull,
+		BuilderImage:      s.build.Spec.Strategy.SourceStrategy.From.Name,
+		DockerConfig:      &stiapi.DockerConfig{Endpoint: s.dockerSocket},
+		Source:            s.build.Spec.Source.Git.URI,
+		ContextDir:        s.build.Spec.Source.ContextDir,
+		DockerCfgPath:     os.Getenv(dockercfg.PullAuthType),
+		Tag:               tag,
+		ScriptsURL:        s.build.Spec.Strategy.SourceStrategy.Scripts,
+		Environment:       buildEnvVars(s.build),
+		LabelNamespace:    api.DefaultDockerLabelNamespace,
+		Incremental:       s.build.Spec.Strategy.SourceStrategy.Incremental,
+		ForcePull:         s.build.Spec.Strategy.SourceStrategy.ForcePull,
+		DockerNetworkMode: getDockerNetworkMode(),
 	}
 	if s.build.Spec.Revision != nil && s.build.Spec.Revision.Git != nil &&
 		s.build.Spec.Revision.Git.Commit != "" {
