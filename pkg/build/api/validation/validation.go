@@ -3,6 +3,8 @@ package validation
 import (
 	"fmt"
 	"net/url"
+	"path"
+	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -150,23 +152,63 @@ func validateSource(input *buildapi.BuildSource) fielderrors.ValidationErrorList
 			allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
 		}
 		if input.Dockerfile != nil {
-			allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfile", "", "may not be set when type is Git"))
+			allErrs = append(allErrs, validateDockerfile(*input.Dockerfile)...)
+		}
+		if input.Binary != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("binary", "", "may not be set when type is Git"))
+		}
+	case buildapi.BuildSourceBinary:
+		if input.Binary == nil {
+			allErrs = append(allErrs, fielderrors.NewFieldRequired("binary"))
+		} else {
+			allErrs = append(allErrs, validateBinarySource(input.Binary).Prefix("binary")...)
+		}
+		if input.Dockerfile != nil {
+			allErrs = append(allErrs, validateDockerfile(*input.Dockerfile)...)
+		}
+		if input.Git != nil {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("git", "", "may not be set when type is Binary"))
 		}
 	case buildapi.BuildSourceDockerfile:
 		if input.Dockerfile == nil {
 			allErrs = append(allErrs, fielderrors.NewFieldRequired("dockerfile"))
 		} else {
-			if len(*input.Dockerfile) > maxDockerfileLengthBytes {
-				allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfile", "", fmt.Sprintf("must be smaller than %d bytes", maxDockerfileLengthBytes)))
-			}
+			allErrs = append(allErrs, validateDockerfile(*input.Dockerfile)...)
 		}
-		if input.Git != nil {
+		switch {
+		case input.Git != nil && input.Binary != nil:
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("git", "", "may not be set when binary is also set"))
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("binary", "", "may not be set when git is also set"))
+		case input.Git != nil:
 			allErrs = append(allErrs, validateGitSource(input.Git).Prefix("git")...)
+		case input.Binary != nil:
+			allErrs = append(allErrs, validateBinarySource(input.Binary).Prefix("binary")...)
 		}
 	case "":
 		allErrs = append(allErrs, fielderrors.NewFieldRequired("type"))
 	}
 	allErrs = append(allErrs, validateSecretRef(input.SourceSecret).Prefix("sourceSecret")...)
+
+	if len(input.ContextDir) != 0 {
+		cleaned := path.Clean(input.ContextDir)
+		if strings.HasPrefix(cleaned, "..") {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("contextDir", input.ContextDir, "context dir must not be a relative path"))
+		} else {
+			if cleaned == "." {
+				cleaned = ""
+			}
+			input.ContextDir = cleaned
+		}
+	}
+
+	return allErrs
+}
+
+func validateDockerfile(dockerfile string) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if len(dockerfile) > maxDockerfileLengthBytes {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("dockerfile", "", fmt.Sprintf("must be smaller than %d bytes", maxDockerfileLengthBytes)))
+	}
 	return allErrs
 }
 
@@ -193,6 +235,19 @@ func validateGitSource(git *buildapi.GitBuildSource) fielderrors.ValidationError
 	}
 	if len(git.HTTPSProxy) != 0 && !isValidURL(git.HTTPSProxy) {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("httpsproxy", git.HTTPSProxy, "proxy is not a valid url"))
+	}
+	return allErrs
+}
+
+func validateBinarySource(source *buildapi.BinaryBuildSource) fielderrors.ValidationErrorList {
+	allErrs := fielderrors.ValidationErrorList{}
+	if len(source.AsFile) != 0 {
+		cleaned := strings.TrimPrefix(path.Clean(source.AsFile), "/")
+		if len(cleaned) == 0 || cleaned == "." || strings.HasPrefix(cleaned, "..") || strings.Contains(cleaned, "/") || strings.Contains(cleaned, "\\") {
+			allErrs = append(allErrs, fielderrors.NewFieldInvalid("asFile", source.AsFile, "file name may not contain slashes or relative path segments and must be a valid POSIX filename"))
+		} else {
+			source.AsFile = cleaned
+		}
 	}
 	return allErrs
 }

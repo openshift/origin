@@ -272,6 +272,7 @@ func convert_v1beta3_Container_To_api_Container(in *Container, out *api.Containe
 	}
 
 	out.Stdin = in.Stdin
+	out.StdinOnce = in.StdinOnce
 	out.TTY = in.TTY
 	return nil
 }
@@ -366,6 +367,7 @@ func convert_api_Container_To_v1beta3_Container(in *api.Container, out *Containe
 	}
 
 	out.Stdin = in.Stdin
+	out.StdinOnce = in.StdinOnce
 	out.TTY = in.TTY
 	return nil
 }

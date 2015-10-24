@@ -67,8 +67,13 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
 	pod.Spec.Containers[0].Resources = build.Spec.Resources
+
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
+	}
+	if build.Spec.Source.Binary != nil {
+		pod.Spec.Containers[0].Stdin = true
+		pod.Spec.Containers[0].StdinOnce = true
 	}
 
 	setupDockerSocket(pod)

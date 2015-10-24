@@ -5,12 +5,35 @@ import (
 
 	knewer "k8s.io/kubernetes/pkg/api"
 	kolder "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/conversion/queryparams"
 
 	newer "github.com/openshift/origin/pkg/build/api"
 	older "github.com/openshift/origin/pkg/build/api/v1"
 )
 
 var Convert = knewer.Scheme.Convert
+
+func TestBinaryBuildRequestOptions(t *testing.T) {
+	r := &newer.BinaryBuildRequestOptions{
+		AsFile: "Dockerfile",
+		Commit: "abcdef",
+	}
+	versioned, err := knewer.Scheme.ConvertToVersion(r, "v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	params, err := queryparams.Convert(versioned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded := &older.BinaryBuildRequestOptions{}
+	if err := knewer.Scheme.Convert(&params, decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Commit != "abcdef" || decoded.AsFile != "Dockerfile" {
+		t.Errorf("unexpected decoded object: %#v", decoded)
+	}
+}
 
 func TestBuildConfigConversion(t *testing.T) {
 	buildConfigs := []*older.BuildConfig{

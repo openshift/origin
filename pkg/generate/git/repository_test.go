@@ -1,6 +1,7 @@
 package git
 
 import (
+	"io"
 	"testing"
 )
 
@@ -101,7 +102,7 @@ func TestCheckout(t *testing.T) {
 }
 
 func makeExecFunc(output string, err error) execGitFunc {
-	return func(dir string, args ...string) (out string, errout string, resultErr error) {
+	return func(w io.Writer, dir string, args ...string) (out string, errout string, resultErr error) {
 		out = output
 		resultErr = err
 		return

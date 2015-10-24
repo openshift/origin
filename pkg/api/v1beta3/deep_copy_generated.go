@@ -695,6 +695,32 @@ func deepCopy_v1beta3_SubjectAccessReviewResponse(in v1beta3.SubjectAccessReview
 	return nil
 }
 
+func deepCopy_v1beta3_BinaryBuildRequestOptions(in apiv1beta3.BinaryBuildRequestOptions, out *apiv1beta3.BinaryBuildRequestOptions, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ObjectMeta); err != nil {
+		return err
+	} else {
+		out.ObjectMeta = newVal.(pkgapiv1beta3.ObjectMeta)
+	}
+	out.AsFile = in.AsFile
+	out.Commit = in.Commit
+	out.Message = in.Message
+	out.AuthorName = in.AuthorName
+	out.AuthorEmail = in.AuthorEmail
+	out.CommitterName = in.CommitterName
+	out.CommitterEmail = in.CommitterEmail
+	return nil
+}
+
+func deepCopy_v1beta3_BinaryBuildSource(in apiv1beta3.BinaryBuildSource, out *apiv1beta3.BinaryBuildSource, c *conversion.Cloner) error {
+	out.AsFile = in.AsFile
+	return nil
+}
+
 func deepCopy_v1beta3_Build(in apiv1beta3.Build, out *apiv1beta3.Build, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
 		return err
@@ -884,6 +910,14 @@ func deepCopy_v1beta3_BuildRequest(in apiv1beta3.BuildRequest, out *apiv1beta3.B
 	} else {
 		out.From = nil
 	}
+	if in.Binary != nil {
+		out.Binary = new(apiv1beta3.BinaryBuildSource)
+		if err := deepCopy_v1beta3_BinaryBuildSource(*in.Binary, out.Binary, c); err != nil {
+			return err
+		}
+	} else {
+		out.Binary = nil
+	}
 	if in.LastVersion != nil {
 		out.LastVersion = new(int)
 		*out.LastVersion = *in.LastVersion
@@ -895,6 +929,14 @@ func deepCopy_v1beta3_BuildRequest(in apiv1beta3.BuildRequest, out *apiv1beta3.B
 
 func deepCopy_v1beta3_BuildSource(in apiv1beta3.BuildSource, out *apiv1beta3.BuildSource, c *conversion.Cloner) error {
 	out.Type = in.Type
+	if in.Binary != nil {
+		out.Binary = new(apiv1beta3.BinaryBuildSource)
+		if err := deepCopy_v1beta3_BinaryBuildSource(*in.Binary, out.Binary, c); err != nil {
+			return err
+		}
+	} else {
+		out.Binary = nil
+	}
 	if in.Dockerfile != nil {
 		out.Dockerfile = new(string)
 		*out.Dockerfile = *in.Dockerfile
@@ -2616,6 +2658,8 @@ func init() {
 		deepCopy_v1beta3_RoleList,
 		deepCopy_v1beta3_SubjectAccessReview,
 		deepCopy_v1beta3_SubjectAccessReviewResponse,
+		deepCopy_v1beta3_BinaryBuildRequestOptions,
+		deepCopy_v1beta3_BinaryBuildSource,
 		deepCopy_v1beta3_Build,
 		deepCopy_v1beta3_BuildConfig,
 		deepCopy_v1beta3_BuildConfigList,

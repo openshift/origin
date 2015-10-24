@@ -21,10 +21,7 @@ type builder interface {
 	Build() error
 }
 
-type factoryFunc func(
-	client bld.DockerClient,
-	dockerSocket string,
-	build *api.Build) builder
+type factoryFunc func(client bld.DockerClient, dockerSocket string, build *api.Build) builder
 
 // run is responsible for preparing environment for actual build.
 // It accepts factoryFunc and an ordered array of SCMAuths.
@@ -40,13 +37,17 @@ func run(builderFactory factoryFunc) {
 		glog.Fatalf("Unable to parse build: %v", err)
 	}
 	if build.Spec.Source.SourceSecret != nil {
-		sourceURL, err := git.ParseRepository(build.Spec.Source.Git.URI)
-		if err != nil {
-			glog.Fatalf("Cannot parse build URL: %s", build.Spec.Source.Git.URI)
-		}
-		scmAuths := auths(sourceURL)
-		if err := setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths); err != nil {
-			glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
+		if build.Spec.Source.Git != nil {
+			// TODO: this should be refactored to let each source type manage which secrets
+			//   it accepts
+			sourceURL, err := git.ParseRepository(build.Spec.Source.Git.URI)
+			if err != nil {
+				glog.Fatalf("Cannot parse build URL: %s", build.Spec.Source.Git.URI)
+			}
+			scmAuths := auths(sourceURL)
+			if err := setupSourceSecret(build.Spec.Source.SourceSecret.Name, scmAuths); err != nil {
+				glog.Fatalf("Cannot setup secret file for accessing private repository: %v", err)
+			}
 		}
 	}
 	b := builderFactory(client, endpoint, &build)
