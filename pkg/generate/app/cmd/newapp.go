@@ -100,16 +100,12 @@ type errlist interface {
 // NewAppConfig returns a new AppConfig, but you must set your typer, mapper, and clientMapper after the command has been run
 // and flags have been parsed.
 func NewAppConfig() *AppConfig {
-	dockerSearcher := app.DockerRegistrySearcher{
-		Client: dockerregistry.NewClient(),
-	}
 	return &AppConfig{
 		detector: app.SourceRepositoryEnumerator{
 			Detectors: source.DefaultDetectors,
 			Tester:    dockerfile.NewTester(),
 		},
-		dockerSearcher: dockerSearcher,
-		refBuilder:     &app.ReferenceBuilder{},
+		refBuilder: &app.ReferenceBuilder{},
 	}
 }
 
