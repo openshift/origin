@@ -46,7 +46,7 @@ add_ovs_port() {
 }
 
 del_ovs_port() {
-    ovs-vsctl --if-exists del-port $veth_host
+    ovs-vsctl del-port $veth_host
 }
 
 add_ovs_flows() {
