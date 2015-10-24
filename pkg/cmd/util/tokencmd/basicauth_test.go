@@ -124,6 +124,33 @@ Username: Password: `,
 				},
 			},
 		},
+
+		"non-interactive challenge with reader defaults": {
+			Handler: &BasicChallengeHandler{
+				Host:     "myhost",
+				Reader:   bytes.NewBufferString(""),
+				Username: "myuser",
+				Password: "mypassword",
+			},
+			Challenges: []Challenge{
+				{
+					Headers:           basicChallenge,
+					ExpectedCanHandle: true,
+					ExpectedHeaders:   http.Header{AUTHORIZATION: []string{getBasicHeader("myuser", "mypassword")}},
+					ExpectedHandled:   true,
+					ExpectedErr:       nil,
+					ExpectedPrompt:    "",
+				},
+				{
+					Headers:           basicChallenge,
+					ExpectedCanHandle: true,
+					ExpectedHeaders:   nil,
+					ExpectedHandled:   false,
+					ExpectedErr:       nil,
+					ExpectedPrompt:    "",
+				},
+			},
+		},
 	}
 
 	for k, tc := range testCases {
