@@ -14,12 +14,12 @@
 # %commit and %ldflags are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3c156a36e6bcfdff031354785ac51b501a6df429
+%global commit 496e4f8c4b3c78ea99daad0692f996641df7e59c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # ldflags from hack/common.sh os::build:ldflags
 %{!?ldflags:
-%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.901-200-g3c156a3 -X github.com/openshift/origin/pkg/version.commitFromGit 3c156a3 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
+%global ldflags -X github.com/openshift/origin/pkg/version.majorFromGit 3 -X github.com/openshift/origin/pkg/version.minorFromGit 0+ -X github.com/openshift/origin/pkg/version.versionFromGit v3.0.2.902-98-g496e4f8 -X github.com/openshift/origin/pkg/version.commitFromGit 496e4f8 -X k8s.io/kubernetes/pkg/version.gitCommit 4c8e6f4 -X k8s.io/kubernetes/pkg/version.gitVersion v1.2.0-alpha.1-1107-g4c8e6f4
 }
 
 %if "%{dist}" == ".el7aos"
@@ -33,7 +33,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.0.2.902
+Version:        3.0.2.903
 Release:        0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -43,6 +43,7 @@ Source0:        https://%{import_path}/archive/%{commit}/%{name}-%{version}.tar.
 BuildRequires:  systemd
 BuildRequires:  golang >= 1.4
 Requires:       %{name}-clients = %{version}-%{release}
+Requires:       iptables
 Obsoletes:      openshift < 1.0.6
 
 %description
@@ -390,6 +391,71 @@ fi
 
 
 %changelog
+* Fri Oct 23 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.903
+- Revert "bump(github.com/openshift/openshift-sdn):
+  699716b85d1ac5b2f3e48969bbdbbb2a1266e9d0" (sdodson@redhat.com)
+- More cleanup of the individual pages, use the extra space better
+  (jforrest@redhat.com)
+- don't attempt to call create on files that don't exist (bparees@redhat.com)
+- Use remove() rather than html('') to empty SVG element (spadgett@redhat.com)
+- enable storage interface functions (deads@redhat.com)
+- Retry ISM save upon conflicting IS error (maszulik@redhat.com)
+- assets: Update topology-graph widget (stefw@redhat.com)
+- logs: Re-use from upstream (mkargaki@redhat.com)
+- assets: Use $evalAsync when updating topology widget (stefw@redhat.com)
+- Handle data gaps when calculating CPU usage in UI (spadgett@redhat.com)
+- add SA and role for job and hpa controllers (deads@redhat.com)
+- UPSTREAM: 16067: Provide a RetryOnConflict helper for client libraries
+  (maszulik@redhat.com)
+- UPSTREAM: 10707: logs: Use resource builder (mkargaki@redhat.com)
+- Update pod status chart styles (spadgett@redhat.com)
+- rework how allow-missing-images resolves (bparees@redhat.com)
+- bump(github.com/docker/spdystream): 43bffc4 (agoldste@redhat.com)
+- Remove unused godep (agoldste@redhat.com)
+- Increase height of metrics utilization sparkline (spadgett@redhat.com)
+- Disable a known broken test (ccoleman@redhat.com)
+- UID repair should not fail when out of range allocation (ccoleman@redhat.com)
+- Add v1beta3 removal notes to UPGRADE.md (ironcladlou@gmail.com)
+- Add iptables to origin image (sdodson@redhat.com)
+- policy changes for extensions (deads@redhat.com)
+- enable extensions (deads@redhat.com)
+- UPSTREAM: 7f6f85bd7b47db239868bcd868ae3472373a4f05: fixes attach broken
+  during the refactor (ffranz@redhat.com)
+- UPSTREAM: 16042: fix missing error handling (deads@redhat.com)
+- UPSTREAM: 16084: Use NewFramework in all tests (ccoleman@redhat.com)
+- e2e: Verify service account token and log cli errors (ccoleman@redhat.com)
+- add commands for managing SCCs (deads@redhat.com)
+- Allow patching events (jliggitt@redhat.com)
+- Fix problems with overview donut chart on IE (spadgett@redhat.com)
+- Bug 1274200: Prompt by default when deleting a non-existent tag
+  (mkargaki@redhat.com)
+- correct htpasswd error handling: (deads@redhat.com)
+- Set build.status.reason on error (rhcarvalho@gmail.com)
+- Fixes several issues with tabbed output (ffranz@redhat.com)
+- Referenced tags should get updated on a direct tag (ccoleman@redhat.com)
+- oc tag should take an explicit reference to ImageStreamImage
+  (ccoleman@redhat.com)
+- Add back a fix for the libvirt dev_cluster case (danw@redhat.com)
+- Completions (ccoleman@redhat.com)
+- Fixes 'oc edit' file blocking on windows (ffranz@redhat.com)
+- On Windows, use CRLF line endings in oc edit (ccoleman@redhat.com)
+- Add iptables requirement to openshift package (sdodson@redhat.com)
+- Remove extra copy of main.css from bindata (jforrest@redhat.com)
+- add grace period for evacuate (pweil@redhat.com)
+- Remove "Pod" prefix from header on browse pod page (spadgett@redhat.com)
+- Only try to update build if status message changed (rhcarvalho@gmail.com)
+- Show status details for a DC in both the deployments table and DC pages
+  (jforrest@redhat.com)
+- Bug 1273787 - start deployment btn doesnt get enabled after dep finishes
+  (jforrest@redhat.com)
+- UPSTREAM: Proxy: do not send X-Forwarded-Host or X-Forwarded-Proto with an
+  empty value (cewong@redhat.com)
+- handle new non-resource urls (deads@redhat.com)
+- UPSTREAM: 15958: add nonResourceURL detection (deads@redhat.com)
+- expose: Set route port (mkargaki@redhat.com)
+- UPSTREAM: 15461: expose: Enable exposing multiport objects
+  (mkargaki@redhat.com)
+
 * Wed Oct 21 2015 Scott Dodson <sdodson@redhat.com> 3.0.2.902
 - Revert "Support deleting image stream status tags" (ccoleman@redhat.com)
 - bump(github.com/openshift/openshift-sdn):

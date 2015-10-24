@@ -48,7 +48,7 @@ const (
 )
 
 var _ = Describe("Daemon set", func() {
-	f := &Framework{BaseName: "daemonsets"}
+	f := NewFramework("daemonsets")
 
 	image := "gcr.io/google_containers/serve_hostname:1.1"
 	dsName := "daemon-set"

@@ -15,6 +15,8 @@ const (
 	InfraBuildControllerServiceAccountName       = "build-controller"
 	InfraReplicationControllerServiceAccountName = "replication-controller"
 	InfraDeploymentControllerServiceAccountName  = "deployment-controller"
+	InfraJobControllerServiceAccountName         = "job-controller"
+	InfraHPAControllerServiceAccountName         = "hpa-controller"
 
 	MasterUnqualifiedUsername   = "openshift-master"
 	RouterUnqualifiedUsername   = "openshift-router"
@@ -65,6 +67,8 @@ const (
 	BuildControllerRoleName       = "system:build-controller"
 	ReplicationControllerRoleName = "system:replication-controller"
 	DeploymentControllerRoleName  = "system:deployment-controller"
+	JobControllerRoleName         = "system:job-controller"
+	HPAControllerRoleName         = "system:hpa-controller"
 
 	ImagePullerRoleName       = "system:image-puller"
 	ImageBuilderRoleName      = "system:image-builder"

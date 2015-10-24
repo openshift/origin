@@ -208,20 +208,19 @@
 }
 
 .pod-block {
-  .scaling-controls {
-    font-size: 24px;
-    margin: 0 10px 10px 0;
-    a {
-      color: #d1d1d1;
-      &:hover, &:active {
-        color: #72767b;
+  .overview-pods {
+    margin-right: 10px;
+    min-width: 190px;
+    .scaling-controls {
+      font-size: 24px;
+      a {
+        color: #d1d1d1;
+        &:hover, &:active {
+          color: #72767b;
+          text-decoration: none;
+        }
       }
     }
-  }
-  // Create a spacer the same width as the scaling controls to line up donuts
-  // that don't have the controls with those that do.
-  .scaling-spacer {
-    width: 34px;
   }
 }
 

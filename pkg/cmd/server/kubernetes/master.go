@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/record"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	endpointcontroller "k8s.io/kubernetes/pkg/controller/endpoint"
+	jobcontroller "k8s.io/kubernetes/pkg/controller/job"
 	namespacecontroller "k8s.io/kubernetes/pkg/controller/namespace"
 	nodecontroller "k8s.io/kubernetes/pkg/controller/node"
 	volumeclaimbinder "k8s.io/kubernetes/pkg/controller/persistentvolume"
@@ -31,8 +32,10 @@ import (
 )
 
 const (
-	KubeAPIPrefix   = "/api"
-	KubeAPIPrefixV1 = "/api/v1"
+	KubeAPIPrefix                  = "/api"
+	KubeAPIPrefixV1                = KubeAPIPrefix + "/v1"
+	KubeAPIGroupPrefix             = "/apis"
+	KubeAPIExtensionsPrefixV1beta1 = KubeAPIGroupPrefix + "/extensions/v1beta1"
 )
 
 // InstallAPI starts a Kubernetes master and registers the supported REST APIs
@@ -46,6 +49,10 @@ func (c *MasterConfig) InstallAPI(container *restful.Container) []string {
 	messages := []string{}
 	if !c.Master.DisableV1 {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", KubeAPIPrefixV1))
+	}
+
+	if c.Master.EnableExp {
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API Extensions at %%s%s", KubeAPIExtensionsPrefixV1beta1))
 	}
 
 	return messages
@@ -97,6 +104,17 @@ func (c *MasterConfig) RunPersistentVolumeClaimRecycler(recyclerImageName string
 func (c *MasterConfig) RunReplicationController(client *client.Client) {
 	controllerManager := replicationcontroller.NewReplicationManager(client, c.ControllerManager.ResyncPeriod, replicationcontroller.BurstReplicas)
 	go controllerManager.Run(c.ControllerManager.ConcurrentRCSyncs, util.NeverStop)
+}
+
+// RunJobController starts the Kubernetes job controller sync loop
+func (c *MasterConfig) RunJobController(client *client.Client) {
+	controller := jobcontroller.NewJobController(client, c.ControllerManager.ResyncPeriod)
+	go controller.Run(c.ControllerManager.ConcurrentJobSyncs, util.NeverStop)
+}
+
+// RunHPAController starts the Kubernetes hpa controller sync loop
+func (c *MasterConfig) RunHPAController(client *client.Client) {
+	// TDO fix stub
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop

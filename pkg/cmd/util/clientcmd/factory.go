@@ -1,7 +1,9 @@
 package clientcmd
 
 import (
+	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/spf13/pflag"
@@ -9,12 +11,15 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -162,6 +167,45 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 		default:
 			return kPortsForObjectFunc(object)
 		}
+	}
+	kLogsForObjectFunc := w.Factory.LogsForObject
+	w.LogsForObject = func(object, options runtime.Object) (*kclient.Request, error) {
+		oc, _, err := w.Clients()
+		if err != nil {
+			return nil, err
+		}
+
+		switch t := object.(type) {
+		case *deployapi.DeploymentConfig:
+			dopts, ok := options.(*deployapi.DeploymentLogOptions)
+			if !ok {
+				return nil, errors.New("provided options object is not a DeploymentLogOptions")
+			}
+			return oc.DeploymentLogs(t.Namespace).Get(t.Name, *dopts), nil
+		case *buildapi.Build:
+			bopts, ok := options.(*buildapi.BuildLogOptions)
+			if !ok {
+				return nil, errors.New("provided options object is not a BuildLogOptions")
+			}
+			return oc.BuildLogs(t.Namespace).Get(t.Name, *bopts), nil
+		case *buildapi.BuildConfig:
+			bopts, ok := options.(*buildapi.BuildLogOptions)
+			if !ok {
+				return nil, errors.New("provided options object is not a BuildLogOptions")
+			}
+			buildsForBCSelector := labels.SelectorFromSet(map[string]string{buildapi.BuildConfigLabel: t.Name})
+			builds, err := oc.Builds(t.Namespace).List(buildsForBCSelector, fields.Everything())
+			if err != nil {
+				return nil, err
+			}
+			if len(builds.Items) == 0 {
+				return nil, fmt.Errorf("no builds found for %s", t.Name)
+			}
+			sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds.Items)))
+			return oc.BuildLogs(t.Namespace).Get(builds.Items[0].Name, *bopts), nil
+		default:
+		}
+		return kLogsForObjectFunc(object, options)
 	}
 	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
 		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, columnLabels), nil

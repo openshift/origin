@@ -1,6 +1,8 @@
 package api
 
 import (
+	"reflect"
+
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -13,6 +15,8 @@ const (
 	FeatureBuilder    = `Builder`
 	FeatureS2I        = `S2IBuilder`
 	FeatureWebConsole = `WebConsole`
+
+	AllVersions = "*"
 )
 
 var (
@@ -37,6 +41,14 @@ var (
 	// DeadOpenShiftStorageVersionLevels are storage versions which shouldn't be
 	// exposed externally.
 	DeadOpenShiftStorageVersionLevels = []string{"v1beta1", "v1beta3"}
+
+	APIGroupKube                   = ""
+	APIGroupExtensions             = "extensions"
+	KubeAPIGroupsToAllowedVersions = map[string][]string{
+		APIGroupKube:       {"v1"},
+		APIGroupExtensions: {"v1beta1"},
+	}
+	KnownKubeAPIGroups = sets.KeySet(reflect.ValueOf(KubeAPIGroupsToAllowedVersions))
 
 	// FeatureAliases maps deprecated names of feature flag to their canonical
 	// names. Aliases must be lower-cased for O(1) lookup.
@@ -732,8 +744,9 @@ type EtcdConfig struct {
 }
 
 type KubernetesMasterConfig struct {
-	// APILevels is a list of API levels that should be enabled on startup: v1beta3 and v1 as examples
-	APILevels []string
+	// DisabledAPIGroupVersions is a map of groups to the versions (or *) that should be disabled.
+	DisabledAPIGroupVersions map[string][]string
+
 	// MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.
 	MasterIP string
 	// MasterCount is the number of expected masters that should be running. This value defaults to 1 and may be set to a positive integer,

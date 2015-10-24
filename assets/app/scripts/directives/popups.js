@@ -5,13 +5,34 @@ angular.module('openshiftConsole')
   .directive('toggle', function() {
     return {
       restrict: 'A',
+      scope: {
+        dynamicContent: '@?'
+      },
       link: function($scope, element, attrs) {
         if (attrs) {
           switch(attrs.toggle) {
             case "popover":
+              // If dynamic-content attr is set at all, even if it hasn't evaluated to a value
+              if (attrs.dynamicContent || attrs.dynamicContent === "") {
+                $scope.$watch('dynamicContent', function() {
+                  $(element)
+                    .attr("data-content", $scope.dynamicContent)
+                    .popover("destroy")
+                    .popover();                
+                });                  
+              }
               $(element).popover();
               break;
             case "tooltip":
+              // If dynamic-content attr is set at all, even if it hasn't evaluated to a value
+              if (attrs.dynamicContent || attrs.dynamicContent === "") {
+                $scope.$watch('dynamicContent', function() {
+                  $(element)
+                    .attr("title", $scope.dynamicContent)
+                    .tooltip("destroy")
+                    .tooltip();                
+                });                  
+              }
               $(element).tooltip();
               break;
             case "dropdown":

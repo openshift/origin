@@ -958,6 +958,7 @@ func deepCopy_v1beta3_BuildSpec(in apiv1beta3.BuildSpec, out *apiv1beta3.BuildSp
 func deepCopy_v1beta3_BuildStatus(in apiv1beta3.BuildStatus, out *apiv1beta3.BuildStatus, c *conversion.Cloner) error {
 	out.Phase = in.Phase
 	out.Cancelled = in.Cancelled
+	out.Reason = in.Reason
 	out.Message = in.Message
 	if in.StartTimestamp != nil {
 		if newVal, err := c.DeepCopy(in.StartTimestamp); err != nil {

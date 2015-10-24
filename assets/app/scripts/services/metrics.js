@@ -31,16 +31,17 @@ angular.module("openshiftConsole")
 
     // Convert cumulative CPU usage in nanoseconds to millicores.
     function millicoresUsed(point, lastValue) {
-      if (lastValue) {
-        var timeInMillis = point.end - point.start;
-        // Find the usage for just this bucket by comparing it to the last value.
-        // Values are in nanoseconds. Calculate usage in millis.
-        var usageInMillis = (point.value - lastValue) / 1000000;
-        // Convert to millicores.
-        return (usageInMillis / timeInMillis) * 1000;
+      // Is there a gap in the data?
+      if (!lastValue || !point.value) {
+        return 0;
       }
 
-      return 0;
+      var timeInMillis = point.end - point.start;
+      // Find the usage for just this bucket by comparing it to the last value.
+      // Values are in nanoseconds. Calculate usage in millis.
+      var usageInMillis = (point.value - lastValue) / 1000000;
+      // Convert to millicores.
+      return (usageInMillis / timeInMillis) * 1000;
     }
 
     function normalize(data, metric) {

@@ -176,7 +176,11 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		if streamRefNamespace != stream.Namespace || tagRefStreamName != stream.Name {
 			obj, err := s.ImageStreamGetter.Get(kapi.WithNamespace(kapi.NewContext(), streamRefNamespace), tagRefStreamName)
 			if err != nil {
-				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, fmt.Sprintf("error retrieving ImageStream %s/%s: %v", streamRefNamespace, tagRefStreamName, err)))
+				if kerrors.IsNotFound(err) {
+					errs = append(errs, fielderrors.NewFieldNotFound(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name))
+				} else {
+					errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from.name", tag), tagRef.From.Name, fmt.Sprintf("unable to retrieve image stream: %v", err)))
+				}
 				continue
 			}
 
@@ -195,6 +199,10 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		}
 
 		api.AddTagEventToImageStream(stream, tag, *event)
+	}
+
+	if old != nil {
+		api.UpdateChangedTrackingTags(stream, old)
 	}
 
 	// use a consistent timestamp on creation
@@ -315,7 +323,7 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 			Groups: sets.NewString(user.GetGroups()...),
 		}
 		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
-		glog.V(1).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
+		glog.V(4).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
 		resp, err := v.subjectAccessReviewClient.CreateSubjectAccessReview(ctx, &subjectAccessReview)
 		if err != nil || resp == nil || (resp != nil && !resp.Allowed) {
 			errors = append(errors, fielderrors.NewFieldForbidden(fmt.Sprintf("spec.tags[%s].from", tag), fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)))

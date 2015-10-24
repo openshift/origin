@@ -230,7 +230,12 @@ func (c *AppConfig) addReferenceBuilderComponents(b *app.ReferenceBuilder) {
 		input.Argument = fmt.Sprintf("--docker-image=%q", input.From)
 		input.Searcher = c.dockerSearcher
 		if c.dockerSearcher != nil {
-			input.Resolver = app.UniqueExactOrInexactMatchResolver{Searcher: c.dockerSearcher}
+			resolver := app.PerfectMatchWeightedResolver{}
+			resolver = append(resolver, app.WeightedResolver{Searcher: c.dockerSearcher, Weight: 0.0})
+			if c.AllowMissingImages {
+				resolver = append(resolver, app.WeightedResolver{Searcher: app.MissingImageSearcher{}, Weight: 100.0})
+			}
+			input.Resolver = resolver
 		}
 		return input
 	})
@@ -275,6 +280,9 @@ func (c *AppConfig) addReferenceBuilderComponents(b *app.ReferenceBuilder) {
 		if c.dockerSearcher != nil {
 			resolver = append(resolver, app.WeightedResolver{Searcher: c.dockerSearcher, Weight: 2.0})
 			searcher = append(searcher, app.WeightedSearcher{Searcher: c.dockerSearcher, Weight: 1.0})
+		}
+		if c.AllowMissingImages {
+			resolver = append(resolver, app.WeightedResolver{Searcher: app.MissingImageSearcher{}, Weight: 100.0})
 		}
 		input.Resolver = resolver
 		input.Searcher = searcher

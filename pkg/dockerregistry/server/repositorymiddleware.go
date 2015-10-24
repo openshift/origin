@@ -19,6 +19,7 @@ import (
 	"golang.org/x/net/context"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 func init() {
@@ -203,7 +204,9 @@ func (r *repository) Put(ctx context.Context, manifest *manifest.SignedManifest)
 		}
 
 		// try to create the ISM again
-		if err := r.registryClient.ImageStreamMappings(r.namespace).Create(&ism); err != nil {
+		if err := unversioned.RetryOnConflict(unversioned.DefaultRetry, func() error {
+			return r.registryClient.ImageStreamMappings(r.namespace).Create(&ism)
+		}); err != nil {
 			log.Errorf("Error creating image stream mapping: %s", err)
 			return err
 		}

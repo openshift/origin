@@ -127,26 +127,34 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 		}
 
 		componentMatches = append(componentMatches, termMatches...)
-
-		// if we didn't find it remotely or locally, but the user chose to
-		// allow missing images, create an exact match for the value they
-		// provided.
-		if len(componentMatches) == 0 && r.AllowMissingImages {
-			componentMatches = append(componentMatches, &ComponentMatch{
-				Value:     term,
-				Score:     0.0,
-				Builder:   true,
-				LocalOnly: true,
-			})
-			glog.V(4).Infof("Appended missing match %v", term)
-
-		}
 	}
 
 	if len(errs) != 0 {
 		return nil, utilerrors.NewAggregate(errs)
 	}
 
+	return componentMatches, nil
+}
+
+// MissingImageSearcher always returns an exact match for the item being searched for.
+// It should be used with very high weight(weak priority) as a result of last resort when the
+// user has indicated they want to allow missing images(not found in the docker registry
+// or locally) to be used anyway.
+type MissingImageSearcher struct {
+}
+
+// Search always returns an exact match for the search terms.
+func (r MissingImageSearcher) Search(terms ...string) (ComponentMatches, error) {
+	componentMatches := ComponentMatches{}
+	for _, term := range terms {
+		componentMatches = append(componentMatches, &ComponentMatch{
+			Value:     term,
+			Score:     0.0,
+			Builder:   true,
+			LocalOnly: true,
+		})
+		glog.V(4).Infof("Added missing match for %v", term)
+	}
 	return componentMatches, nil
 }
 

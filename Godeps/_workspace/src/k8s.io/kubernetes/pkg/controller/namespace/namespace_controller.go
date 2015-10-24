@@ -31,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
@@ -218,26 +219,26 @@ func deleteAllContent(kubeClient client.Interface, experimentalMode bool, namesp
 	return estimate, nil
 }
 
+// maxRetriesOnConflict is set to prevent infinite loops that block the progress of a controller
+const maxRetriesOnConflict = 10
+
 // updateNamespaceFunc is a function that makes an update to a namespace
 type updateNamespaceFunc func(kubeClient client.Interface, namespace *api.Namespace) (*api.Namespace, error)
 
 // retryOnConflictError retries the specified fn if there was a conflict error
-// TODO RetryOnConflict should be a generic concept in client code
 func retryOnConflictError(kubeClient client.Interface, namespace *api.Namespace, fn updateNamespaceFunc) (result *api.Namespace, err error) {
-	latestNamespace := namespace
-	for {
-		result, err = fn(kubeClient, latestNamespace)
-		if err == nil {
-			return result, nil
+	result = namespace
+	err = client.RetryOnConflict(wait.Backoff{Steps: maxRetriesOnConflict}, func() error {
+		if result == nil {
+			if result, err = kubeClient.Namespaces().Get(namespace.Name); err != nil {
+				return err
+			}
 		}
-		if !errors.IsConflict(err) {
-			return nil, err
+		if result, err = fn(kubeClient, result); err != nil {
+			result = nil
 		}
-		latestNamespace, err = kubeClient.Namespaces().Get(latestNamespace.Name)
-		if err != nil {
-			return nil, err
-		}
-	}
+		return err
+	})
 	return
 }
 

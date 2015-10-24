@@ -502,9 +502,10 @@ angular.module('openshiftConsole')
         }
       });
 
-      $scope.topologyItems = topologyItems;
-      $scope.topologyRelations = topologyRelations;
-      $scope.$digest();
+      $scope.$evalAsync(function() {
+        $scope.topologyItems = topologyItems;
+        $scope.topologyRelations = topologyRelations;
+      });
     }
 
     function updateTopologyLater() {
