@@ -3,10 +3,11 @@ package templaterouter
 import (
 	"bytes"
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/golang/glog"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -56,7 +57,7 @@ func (cm *simpleCertificateManager) WriteCertificatesForConfig(config *ServiceAl
 		return nil
 	}
 	if config.Status == ServiceAliasConfigStatusSaved {
-		glog.V(4).Infof("skipping certificate write for %s%s since it's status is already %s", config.Host, config.Path, ServiceAliasConfigStatusSaved)
+		glog.V(4).Infof("skipping certificate write for %s%s since its status is already %s", config.Host, config.Path, ServiceAliasConfigStatusSaved)
 		return nil
 	}
 	if len(config.Certificates) > 0 {
