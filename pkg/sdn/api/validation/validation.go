@@ -15,19 +15,26 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) fielderrors.Valid
 	allErrs := fielderrors.ValidationErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&clusterNet.ObjectMeta, false, oapi.MinimalNameRequirements).Prefix("metadata")...)
 
-	_, ipnet, err := net.ParseCIDR(clusterNet.Network)
+	clusterIP, clusterIPNet, err := net.ParseCIDR(clusterNet.Network)
 	if err != nil {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("network", clusterNet.Network, err.Error()))
 	} else {
-		ones, bitSize := ipnet.Mask.Size()
+		ones, bitSize := clusterIPNet.Mask.Size()
 		if (bitSize - ones) <= clusterNet.HostSubnetLength {
 			allErrs = append(allErrs, fielderrors.NewFieldInvalid("hostSubnetLength", clusterNet.HostSubnetLength, "subnet length is greater than cluster Mask"))
 		}
 	}
 
-	_, _, err = net.ParseCIDR(clusterNet.ServiceNetwork)
+	serviceIP, serviceIPNet, err := net.ParseCIDR(clusterNet.ServiceNetwork)
 	if err != nil {
 		allErrs = append(allErrs, fielderrors.NewFieldInvalid("serviceNetwork", clusterNet.ServiceNetwork, err.Error()))
+	}
+
+	if (clusterIPNet != nil) && (serviceIP != nil) && clusterIPNet.Contains(serviceIP) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("serviceNetwork", clusterNet.ServiceNetwork, "service network overlaps with cluster network"))
+	}
+	if (serviceIPNet != nil) && (clusterIP != nil) && serviceIPNet.Contains(clusterIP) {
+		allErrs = append(allErrs, fielderrors.NewFieldInvalid("network", clusterNet.Network, "cluster network overlaps with service network"))
 	}
 
 	return allErrs
