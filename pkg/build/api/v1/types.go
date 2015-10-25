@@ -125,16 +125,27 @@ type BuildSourceType string
 
 // Valid values for BuildSourceType.
 const (
-	// BuildSourceGit is a Git SCM.
+	//BuildSourceGit instructs a build to use a Git source control repository as the build input.
 	BuildSourceGit BuildSourceType = "Git"
-	// BuildSourceDockerfile is an embedded Dockerfile.
+	// BuildSourceDockerfile uses a Dockerfile as the start of a build
 	BuildSourceDockerfile BuildSourceType = "Dockerfile"
+	// BuildSourceBinary indicates the build will accept a Binary file as input.
+	BuildSourceBinary BuildSourceType = "Binary"
 )
 
 // BuildSource is the SCM used for the build.
 type BuildSource struct {
-	// Type of build input system.
-	Type BuildSourceType `json:"type" description:"type of source control management system"`
+	// Type of build input to accept
+	Type BuildSourceType `json:"type" description:"type of build input to accept"`
+
+	// Binary builds accept a binary as their input. The binary is generally assumed to be a tar,
+	// gzipped tar, or zip file depending on the strategy. For Docker builds, this is the build
+	// context and an optional Dockerfile may be specified to override any Dockerfile in the
+	// build context. For Source builds, this is assumed to be an archive as described above. For
+	// Source and Docker builds, if binary.asFile is set the build will receive a directory with
+	// a single file. contextDir may be used when an archive is provided. Custom builds will
+	// receive this binary as input on STDIN.
+	Binary *BinaryBuildSource `json:"binary,omitempty" description:"the binary will be provided by the builder as an archive or file to be placed within the input directory; allows Dockerfile to be optionally set; may not be set with git source type also set"`
 
 	// Dockerfile is the raw contents of a Dockerfile which should be built. When this option is
 	// specified, the FROM may be modified based on your strategy base image and additional ENV
@@ -158,6 +169,16 @@ type BuildSource struct {
 	// data's key represent the authentication method to be used and value is
 	// the base64 encoded credentials. Supported auth methods are: ssh-privatekey.
 	SourceSecret *kapi.LocalObjectReference `json:"sourceSecret,omitempty" description:"supported auth methods are: ssh-privatekey"`
+}
+
+type BinaryBuildSource struct {
+	// AsFile indicates that the provided binary input should be considered a single file
+	// within the build input. For example, specifying "webapp.war" would place the provided
+	// binary as `/webapp.war` for the builder. If left empty, the Docker and Source build
+	// strategies assume this file is a zip, tar, or tar.gz file and extract it as the source.
+	// The custom strategy receives this binary as standard input. This filename may not
+	// contain slashes or be '..' or '.'.
+	AsFile string `json:"asFile,omitempty" description:"indicate the provided binary should be considered a single file placed within the root of the input; must be a valid filename with no path segments"`
 }
 
 // SourceRevision is the revision or commit information from the source for the build
@@ -472,10 +493,40 @@ type BuildRequest struct {
 	// From is the reference to the ImageStreamTag that triggered the build.
 	From *kapi.ObjectReference `json:"from,omitempty" description:"ImageStreamTag that triggered this build"`
 
+	// Binary indicates a request to build from a binary provided to the builder
+	Binary *BinaryBuildSource `json:"binary,omitempty" description:"the binary will be provided by the builder as an archive or file to be placed within the input directory; allows Dockerfile to be optionally set; may not be set with git source type also set"`
+
 	// LastVersion (optional) is the LastVersion of the BuildConfig that was used
 	// to generate the build. If the BuildConfig in the generator doesn't match, a build will
 	// not be generated.
 	LastVersion *int `json:"lastVersion,omitempty" description:"LastVersion of the BuildConfig that triggered this build"`
+}
+
+type BinaryBuildRequestOptions struct {
+	unversioned.TypeMeta `json:",inline"`
+	kapi.ObjectMeta      `json:"metadata,omitempty"`
+
+	AsFile string `json:"asFile,omitempty" description:"If set, the binary should be created as a file within the source rather than extracted as an archive"`
+
+	// TODO: Improve map[string][]string conversion so we can handled nested objects
+
+	// Commit is the value identifying a specific commit
+	Commit string `json:"revision.commit,omitempty" description:"string identifying a specific commit"`
+
+	// Message is the description of a specific commit
+	Message string `json:"revision.message,omitempty" description:"description of a specific commit"`
+
+	// AuthorName of the source control user
+	AuthorName string `json:"revision.authorName,omitempty" description:"name of the user who authored the commit"`
+
+	// AuthorEmail of the source control user
+	AuthorEmail string `json:"revision.authorEmail,omitempty" description:"e-mail of the user who authored the commit"`
+
+	// CommitterName of the source control user
+	CommitterName string `json:"revision.committerName,omitempty" description:"name of the user who added the commit"`
+
+	// CommitterEmail of the source control user
+	CommitterEmail string `json:"revision.committerEmail,omitempty" description:"e-mail of the user who added the commit"`
 }
 
 // BuildLogOptions is the REST options for a build log

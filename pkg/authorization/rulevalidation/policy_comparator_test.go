@@ -82,7 +82,7 @@ func TestResourceGroupCoveringEnumerated(t *testing.T) {
 func TestEnumeratedCoveringResourceGroup(t *testing.T) {
 	escalationTest{
 		ownerRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "builds/log", "builds/clone", "buildconfigs/webhooks")},
+			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/log", "builds/clone", "buildconfigs/webhooks")},
 		},
 		servantRules: []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("resourcegroup:builds")},
@@ -108,6 +108,8 @@ func TestEnumeratedMissingPartOfResourceGroup(t *testing.T) {
 			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildlogs")},
 			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildconfigs/instantiate")},
 			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildconfigs/instantiate")},
+			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildconfigs/instantiatebinary")},
+			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildconfigs/instantiatebinary")},
 			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds/log")},
 			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds/log")},
 			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds/clone")},

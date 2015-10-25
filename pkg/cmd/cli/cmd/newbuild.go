@@ -34,7 +34,7 @@ You can use '%[1]s status' to check the progress.`
   $ %[1]s new-build . --docker-image=repo/langimage
 
   # Create a NodeJS build config based on the provided [image]~[source code] combination
-  $ %[1]s new-build openshift/nodejs-010-centos7~https://bitbucket.com/user/nodejs-app
+  $ %[1]s new-build openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
 
   # Create a build config from a remote repository using its beta2 branch
   $ %[1]s new-build https://github.com/openshift/ruby-hello-world#beta2

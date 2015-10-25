@@ -38,6 +38,7 @@ type describeClient struct {
 var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&buildapi.BuildLog{}),                              // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildLogOptions{}),                       // normal users don't ever look at these
+	reflect.TypeOf(&buildapi.BinaryBuildRequestOptions{}),             // normal users don't ever look at these
 	reflect.TypeOf(&buildapi.BuildRequest{}),                          // normal users don't ever look at these
 	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),             // normal users don't ever look at these
 	reflect.TypeOf(&deployapi.DeploymentLog{}),                        // normal users don't ever look at these

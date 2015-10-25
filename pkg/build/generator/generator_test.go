@@ -572,7 +572,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	generator := mockBuildGenerator()
 
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, revision)
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, revision, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -679,7 +679,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 			},
 		}}
 
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -757,7 +757,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 			},
 		}}
 
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -835,7 +835,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 			},
 		}}
 
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -960,7 +960,7 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -994,7 +994,7 @@ func TestSubstituteImageCustomAllMismatch(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1013,7 +1013,7 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1041,7 +1041,7 @@ func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1069,7 +1069,7 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
 	generator := mockBuildGenerator()
-	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil)
+	build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -1415,7 +1415,7 @@ func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 		output := mockOutputWithImageName(imageName)
 		generator := mockBuildGenerator()
 		bc := mocks.MockBuildConfig(source, strategy, output)
-		build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, revision)
+		build, err := generator.generateBuildFromConfig(kapi.NewContext(), bc, revision, nil)
 
 		if build.Spec.Output.PushSecret == nil {
 			t.Errorf("Expected PushSecret for image '%s' to be set, got nil", imageName)

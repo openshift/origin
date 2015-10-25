@@ -98,6 +98,11 @@ func TestWaitForBuild(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:        "New -> Pending -> Cancelled",
+			status:      []api.BuildPhase{api.BuildPhaseNew, api.BuildPhasePending, api.BuildPhaseCancelled},
+			expectError: true,
+		},
+		{
 			name:        "New -> Pending -> Error",
 			status:      []api.BuildPhase{api.BuildPhaseNew, api.BuildPhasePending, api.BuildPhaseError},
 			expectError: true,
@@ -117,15 +122,18 @@ func TestWaitForBuild(t *testing.T) {
 	for _, tt := range tests {
 		build := mockBuild(api.BuildPhasePending, "running")
 		ch := make(chan watch.Event)
-		registry := &buildRegistryWithWatch{
-			BuildRegistry: &test.BuildRegistry{},
-			Watch: &fakeWatch{
+		watcher := &buildWatcher{
+			Build: build,
+			Watcher: &fakeWatch{
 				Channel: ch,
 			},
 		}
 		storage := REST{
-			BuildRegistry: registry,
-			Timeout:       defaultTimeout,
+			Getter:         watcher,
+			Watcher:        watcher,
+			PodGetter:      &testPodGetter{},
+			ConnectionInfo: &kclient.HTTPKubeletClient{Config: &kclient.KubeletConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
+			Timeout:        defaultTimeout,
 		}
 		go func() {
 			for _, status := range tt.status {
@@ -135,7 +143,7 @@ func TestWaitForBuild(t *testing.T) {
 				}
 			}
 		}()
-		err := storage.waitForBuild(ctx, build)
+		_, err := storage.Get(ctx, build.Name, &api.BuildLogOptions{})
 		if tt.expectError && err == nil {
 			t.Errorf("%s: Expected an error but got nil from waitFromBuild", tt.name)
 		}
@@ -149,29 +157,37 @@ func TestWaitForBuildTimeout(t *testing.T) {
 	ctx := kapi.NewDefaultContext()
 	build := mockBuild(api.BuildPhasePending, "running")
 	ch := make(chan watch.Event)
-	registry := &buildRegistryWithWatch{
-		BuildRegistry: &test.BuildRegistry{},
-		Watch: &fakeWatch{
+	watcher := &buildWatcher{
+		Build: build,
+		Watcher: &fakeWatch{
 			Channel: ch,
 		},
 	}
 	storage := REST{
-		BuildRegistry: registry,
-		Timeout:       100 * time.Millisecond,
+		Getter:         watcher,
+		Watcher:        watcher,
+		PodGetter:      &testPodGetter{},
+		ConnectionInfo: &kclient.HTTPKubeletClient{Config: &kclient.KubeletConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
+		Timeout:        100 * time.Millisecond,
 	}
-	err := storage.waitForBuild(ctx, build)
+	_, err := storage.Get(ctx, build.Name, &api.BuildLogOptions{})
 	if err == nil || !strings.Contains(err.Error(), "timed out") {
 		t.Errorf("Unexpected error result from waitForBuild: %v\n", err)
 	}
 }
 
-type buildRegistryWithWatch struct {
-	*test.BuildRegistry
-	Watch watch.Interface
+type buildWatcher struct {
+	Build   *api.Build
+	Watcher watch.Interface
+	Err     error
 }
 
-func (r *buildRegistryWithWatch) WatchBuilds(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
-	return r.Watch, r.Err
+func (r *buildWatcher) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+	return r.Build, nil
+}
+
+func (r *buildWatcher) Watch(ctx kapi.Context, label labels.Selector, field fields.Selector, resourceVersion string) (watch.Interface, error) {
+	return r.Watcher, r.Err
 }
 
 type fakeWatch struct {
@@ -188,15 +204,15 @@ func (w *fakeWatch) ResultChan() <-chan watch.Event {
 
 func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx kapi.Context) (string, error) {
 	expectedBuild := mockBuild(BuildPhase, podPhase)
-	buildRegistry := test.BuildRegistry{Build: expectedBuild}
+	internal := &test.BuildStorage{Build: expectedBuild}
 
-	storage := REST{
-		BuildRegistry:  &buildRegistry,
+	storage := &REST{
+		Getter:         internal,
 		PodGetter:      &testPodGetter{},
 		ConnectionInfo: &kclient.HTTPKubeletClient{Config: &kclient.KubeletConfig{EnableHttps: true, Port: 12345}, Client: &http.Client{}},
 		Timeout:        defaultTimeout,
 	}
-	getter := rest.GetterWithOptions(&storage)
+	getter := rest.GetterWithOptions(storage)
 	obj, err := getter.Get(ctx, "foo-build", &api.BuildLogOptions{NoWait: true})
 	if err != nil {
 		return "", err

@@ -11,6 +11,7 @@ json.watchevent
 patch.object
 runtime.rawextension
 v1.awselasticblockstorevolumesource
+v1.binarybuildsource
 v1.binding
 v1.build
 v1.buildconfiglist

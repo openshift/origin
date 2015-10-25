@@ -44,8 +44,8 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	testutil "github.com/openshift/origin/test/util"
 
-	buildclonestorage "github.com/openshift/origin/pkg/build/registry/clone/generator"
-	buildinstantiatestorage "github.com/openshift/origin/pkg/build/registry/instantiate/generator"
+	buildclonestorage "github.com/openshift/origin/pkg/build/registry/buildclone"
+	buildinstantiatestorage "github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
 )
 
 func init() {

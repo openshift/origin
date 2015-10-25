@@ -539,29 +539,141 @@ func TestValidateBuildRequest(t *testing.T) {
 }
 
 func TestValidateSource(t *testing.T) {
-	errorCases := map[string]*buildapi.BuildSource{
-		string(fielderrors.ValidationErrorTypeRequired) + "git.uri": {
-			Type: buildapi.BuildSourceGit,
-			Git: &buildapi.GitBuildSource{
-				URI: "",
+	dockerfile := "FROM something"
+	validGitURL := "https://github.com/some/server.git"
+	errorCases := []struct {
+		t        fielderrors.ValidationErrorType
+		path     string
+		source   *buildapi.BuildSource
+		ok       bool
+		multiple bool
+	}{
+		{
+			t:    fielderrors.ValidationErrorTypeRequired,
+			path: "git.uri",
+			source: &buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "",
+				},
 			},
 		},
-		string(fielderrors.ValidationErrorTypeInvalid) + "git.uri": {
-			Type: buildapi.BuildSourceGit,
-			Git: &buildapi.GitBuildSource{
-				URI: "::",
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "git.uri",
+			source: &buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: "::",
+				},
 			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "contextDir",
+			source: &buildapi.BuildSource{
+				Type:       buildapi.BuildSourceDockerfile,
+				Dockerfile: &dockerfile,
+				ContextDir: "../file",
+			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "git",
+			source: &buildapi.BuildSource{
+				Type:       buildapi.BuildSourceDockerfile,
+				Dockerfile: &dockerfile,
+				Git:        &buildapi.GitBuildSource{},
+				Binary:     &buildapi.BinaryBuildSource{},
+			},
+			multiple: true,
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "binary",
+			source: &buildapi.BuildSource{
+				Type: buildapi.BuildSourceGit,
+				Git: &buildapi.GitBuildSource{
+					URI: validGitURL,
+				},
+				Binary: &buildapi.BinaryBuildSource{},
+			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "git",
+			source: &buildapi.BuildSource{
+				Type:   buildapi.BuildSourceBinary,
+				Git:    &buildapi.GitBuildSource{},
+				Binary: &buildapi.BinaryBuildSource{},
+			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeRequired,
+			path: "binary",
+			source: &buildapi.BuildSource{
+				Type: buildapi.BuildSourceBinary,
+			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "binary.asFile",
+			source: &buildapi.BuildSource{
+				Type:   buildapi.BuildSourceBinary,
+				Binary: &buildapi.BinaryBuildSource{AsFile: "/a/path"},
+			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "binary.asFile",
+			source: &buildapi.BuildSource{
+				Type:   buildapi.BuildSourceBinary,
+				Binary: &buildapi.BinaryBuildSource{AsFile: "/"},
+			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "binary.asFile",
+			source: &buildapi.BuildSource{
+				Type:   buildapi.BuildSourceBinary,
+				Binary: &buildapi.BinaryBuildSource{AsFile: "a\\b"},
+			},
+		},
+		{
+			t:    fielderrors.ValidationErrorTypeInvalid,
+			path: "binary.asFile",
+			source: &buildapi.BuildSource{
+				Type:   buildapi.BuildSourceBinary,
+				Binary: &buildapi.BinaryBuildSource{AsFile: "/././file"},
+			},
+			ok: true,
 		},
 	}
-	for desc, config := range errorCases {
-		errors := validateSource(config)
-		if len(errors) != 1 {
-			t.Errorf("%s: Unexpected validation result: %v", desc, errors)
+	for i, tc := range errorCases {
+		errors := validateSource(tc.source)
+		switch len(errors) {
+		case 0:
+			if !tc.ok {
+				t.Errorf("%d: Unexpected validation result: %v", i, errors)
+			}
+			continue
+		case 1:
+			if tc.ok || tc.multiple {
+				t.Errorf("%d: Unexpected validation result: %v", i, errors)
+				continue
+			}
+		default:
+			if tc.ok || !tc.multiple {
+				t.Errorf("%d: Unexpected validation result: %v", i, errors)
+				continue
+			}
 		}
 		err := errors[0].(*fielderrors.ValidationError)
-		errDesc := string(err.Type) + err.Field
-		if desc != errDesc {
-			t.Errorf("Unexpected validation result for %s: expected %s, got %s", err.Field, desc, errDesc)
+		if err.Type != tc.t {
+			t.Errorf("%d: Unexpected error type: %s", i, err.Type)
+		}
+		if err.Field != tc.path {
+			t.Errorf("%d: Unexpected error path: %s", i, err.Field)
 		}
 	}
 }
@@ -569,7 +681,7 @@ func TestValidateSource(t *testing.T) {
 func TestValidateBuildSpec(t *testing.T) {
 	zero := int64(0)
 	longString := strings.Repeat("1234567890", 100*61)
-	shortString := "FROM foo"
+	//shortString := "FROM foo"
 	errorCases := []struct {
 		err string
 		*buildapi.BuildSpec
@@ -894,7 +1006,7 @@ func TestValidateBuildSpec(t *testing.T) {
 			&buildapi.BuildSpec{
 				Source: buildapi.BuildSource{
 					Type:       buildapi.BuildSourceGit,
-					Dockerfile: &shortString,
+					Dockerfile: &longString,
 					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},

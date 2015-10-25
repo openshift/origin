@@ -180,7 +180,7 @@ func (g *BuildGenerator) Instantiate(ctx kapi.Context, request *buildapi.BuildRe
 		return nil, err
 	}
 
-	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision)
+	newBuild, err := g.generateBuildFromConfig(ctx, bc, request.Revision, request.Binary)
 	if err != nil {
 		return nil, err
 	}
@@ -300,9 +300,10 @@ func (g *BuildGenerator) createBuild(ctx kapi.Context, build *buildapi.Build) (*
 
 // generateBuildFromConfig generates a build definition based on the current imageid
 // from any ImageStream that is associated to the BuildConfig by From reference in
-// the Strategy, or uses the Image field of the Strategy.
+// the Strategy, or uses the Image field of the Strategy. If binary is provided, override
+// the current build strategy with a binary artifact for this specific build.
 // Takes a BuildConfig to base the build on, and an optional SourceRevision to build.
-func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.BuildConfig, revision *buildapi.SourceRevision) (*buildapi.Build, error) {
+func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.BuildConfig, revision *buildapi.SourceRevision, binary *buildapi.BinaryBuildSource) (*buildapi.Build, error) {
 	serviceAccount := bc.Spec.ServiceAccount
 	if len(serviceAccount) == 0 {
 		serviceAccount = g.DefaultServiceAccountName
@@ -335,6 +336,15 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx kapi.Context, bc *buildapi.
 				Namespace: bc.Namespace,
 			},
 		},
+	}
+
+	if binary != nil {
+		build.Spec.Source.Git = nil
+		build.Spec.Source.Binary = binary
+		build.Spec.Source.Type = buildapi.BuildSourceBinary
+		if build.Spec.Source.Dockerfile != nil && binary.AsFile == "Dockerfile" {
+			build.Spec.Source.Dockerfile = nil
+		}
 	}
 
 	build.Name = getNextBuildName(bc)
