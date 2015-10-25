@@ -91,6 +91,10 @@ func newSTIBuilder(client DockerClient, dockerSocket string, build *api.Build,
 func (s *STIBuilder) Build() error {
 	var push bool
 
+	contextDir := filepath.Clean(s.build.Spec.Source.ContextDir)
+	if contextDir == "." || contextDir == "/" {
+		contextDir = ""
+	}
 	buildDir, err := ioutil.TempDir("", "s2i-build")
 	if err != nil {
 		return err
@@ -99,12 +103,19 @@ func (s *STIBuilder) Build() error {
 	if err := os.MkdirAll(srcDir, os.ModePerm); err != nil {
 		return err
 	}
+	tmpDir := filepath.Join(buildDir, "tmp")
+	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
+		return err
+	}
 
 	download := &downloader{
 		s:       s,
-		dir:     srcDir,
 		in:      os.Stdin,
 		timeout: urlCheckTimeout,
+
+		dir:        srcDir,
+		contextDir: contextDir,
+		tmpDir:     tmpDir,
 	}
 
 	// if there is no output target, set one up so the docker build logic
@@ -235,17 +246,41 @@ func (s *STIBuilder) Build() error {
 
 type downloader struct {
 	s       *STIBuilder
-	dir     string
 	in      io.Reader
 	timeout time.Duration
+
+	dir        string
+	contextDir string
+	tmpDir     string
 }
 
 func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error) {
-	if err := fetchSource(d.dir, d.s.build, d.timeout, d.in, d.s.git); err != nil {
+	var targetDir string
+	if len(d.contextDir) > 0 {
+		targetDir = d.tmpDir
+	} else {
+		targetDir = d.dir
+	}
+
+	// fetch source
+	if err := fetchSource(targetDir, d.s.build, d.timeout, d.in, d.s.git); err != nil {
 		return nil, err
 	}
 	// TODO: allow source info to be overriden by build
-	sourceInfo := d.s.git.GetInfo(d.dir)
+	sourceInfo := d.s.git.GetInfo(targetDir)
+	sourceInfo.ContextDir = config.ContextDir
+
+	// if a context dir is provided, move the context dir contents into the src location
+	if len(d.contextDir) > 0 {
+		srcDir := filepath.Join(targetDir, d.contextDir)
+		if err := os.Remove(d.dir); err != nil {
+			return nil, err
+		}
+		if err := os.Rename(srcDir, d.dir); err != nil {
+			return nil, err
+		}
+	}
+
 	return sourceInfo, nil
 }
 
