@@ -88,7 +88,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 		t.Fatalf("could not add role to service account")
 	}
 
-	// Give the policy cache a second to catch it's breath
+	// Give the policy cache a second to catch its breath
 	time.Sleep(time.Second)
 
 	// Make sure the service account now has access
@@ -175,7 +175,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 		t.Fatalf("could not add role to service account")
 	}
 
-	// Give the policy cache a second to catch it's breath
+	// Give the policy cache a second to catch its breath
 	time.Sleep(time.Second)
 
 	// Make sure the service account now has access to cluster2
