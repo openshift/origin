@@ -4,79 +4,108 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/url"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/golang/glog"
-	stiapi "github.com/openshift/source-to-image/pkg/api"
+
+	kapi "k8s.io/kubernetes/pkg/api"
+
+	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/api/describe"
 	"github.com/openshift/source-to-image/pkg/api/validation"
-	"github.com/openshift/source-to-image/pkg/build"
-	sti "github.com/openshift/source-to-image/pkg/build/strategies"
-	kapi "k8s.io/kubernetes/pkg/api"
+	s2ibuild "github.com/openshift/source-to-image/pkg/build"
+	s2i "github.com/openshift/source-to-image/pkg/build/strategies"
+	"github.com/openshift/source-to-image/pkg/scm/git"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 )
 
-// stiBuilderFactory is the internal interface to decouple S2I-specific code from Origin builder code
-type stiBuilderFactory interface {
+// builderFactory is the internal interface to decouple S2I-specific code from Origin builder code
+type builderFactory interface {
 	// Create S2I Builder based on S2I configuration
-	GetStrategy(config *stiapi.Config) (build.Builder, error)
+	Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, error)
 }
 
-// stiConfigValidator is the interval interface to decouple S2I-specific code from Origin builder code
-type stiConfigValidator interface {
+// validator is the interval interface to decouple S2I-specific code from Origin builder code
+type validator interface {
 	// Perform validation of S2I configuration, returns slice of validation errors
-	ValidateConfig(config *stiapi.Config) []validation.ValidationError
+	ValidateConfig(config *s2iapi.Config) []validation.ValidationError
 }
 
 // runtimeBuilderFactory is the default implementation of stiBuilderFactory
 type runtimeBuilderFactory struct{}
 
+// Builder delegates execution to S2I-specific code
+func (_ runtimeBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, error) {
+	return s2i.Strategy(config, overrides)
+}
+
 // runtimeConfigValidator is the default implementation of stiConfigValidator
 type runtimeConfigValidator struct{}
 
-// GetStrategy delegates execution to S2I-specific code
-func (_ runtimeBuilderFactory) GetStrategy(config *stiapi.Config) (build.Builder, error) {
-	return sti.GetStrategy(config)
-}
-
 // ValidateConfig delegates execution to S2I-specific code
-func (_ runtimeConfigValidator) ValidateConfig(config *stiapi.Config) []validation.ValidationError {
+func (_ runtimeConfigValidator) ValidateConfig(config *s2iapi.Config) []validation.ValidationError {
 	return validation.ValidateConfig(config)
 }
 
 // STIBuilder performs an STI build given the build object
 type STIBuilder struct {
-	dockerClient    DockerClient
-	dockerSocket    string
-	build           *api.Build
-	builderFactory  stiBuilderFactory
-	configValidator stiConfigValidator
+	builder   builderFactory
+	validator validator
+	git       git.Git
+
+	dockerClient DockerClient
+	dockerSocket string
+	build        *api.Build
 }
 
 // NewSTIBuilder creates a new STIBuilder instance
 func NewSTIBuilder(client DockerClient, dockerSocket string, build *api.Build) *STIBuilder {
-	// delegate to internal implementation passing default implementation of stiBuilderFactory and stiConfigValidator
+	// delegate to internal implementation passing default implementation of builderFactory and validator
 	return newSTIBuilder(client, dockerSocket, build, runtimeBuilderFactory{}, runtimeConfigValidator{})
+
 }
 
 // newSTIBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
 func newSTIBuilder(client DockerClient, dockerSocket string, build *api.Build,
-	builderFactory stiBuilderFactory, configValidator stiConfigValidator) *STIBuilder {
+	builder builderFactory, validator validator) *STIBuilder {
 	// just create instance
 	return &STIBuilder{
-		dockerClient:    client,
-		dockerSocket:    dockerSocket,
-		build:           build,
-		builderFactory:  builderFactory,
-		configValidator: configValidator,
+		builder:   builder,
+		validator: validator,
+		git:       git.New(),
+
+		dockerClient: client,
+		dockerSocket: dockerSocket,
+		build:        build,
 	}
 }
 
 // Build executes STI build based on configured builder, S2I builder factory and S2I config validator
 func (s *STIBuilder) Build() error {
 	var push bool
+
+	buildDir, err := ioutil.TempDir("", "s2i-build")
+	if err != nil {
+		return err
+	}
+	srcDir := filepath.Join(buildDir, s2iapi.Source)
+	if err := os.MkdirAll(srcDir, os.ModePerm); err != nil {
+		return err
+	}
+
+	download := &downloader{
+		s:       s,
+		dir:     srcDir,
+		in:      os.Stdin,
+		timeout: urlCheckTimeout,
+	}
 
 	// if there is no output target, set one up so the docker build logic
 	// (which requires a tag) will still work, but we won't push it at the end.
@@ -89,26 +118,42 @@ func (s *STIBuilder) Build() error {
 	} else {
 		push = true
 	}
-	tag := s.build.Spec.Output.To.Name
 
-	config := &stiapi.Config{
-		BuilderImage:   s.build.Spec.Strategy.SourceStrategy.From.Name,
-		DockerConfig:   &stiapi.DockerConfig{Endpoint: s.dockerSocket},
-		Source:         s.build.Spec.Source.Git.URI,
-		ContextDir:     s.build.Spec.Source.ContextDir,
-		DockerCfgPath:  os.Getenv(dockercfg.PullAuthType),
-		Tag:            tag,
-		ScriptsURL:     s.build.Spec.Strategy.SourceStrategy.Scripts,
-		Environment:    buildEnvVars(s.build),
-		LabelNamespace: api.DefaultDockerLabelNamespace,
-		Incremental:    s.build.Spec.Strategy.SourceStrategy.Incremental,
-		ForcePull:      s.build.Spec.Strategy.SourceStrategy.ForcePull,
-	}
+	tag := s.build.Spec.Output.To.Name
+	git := s.build.Spec.Source.Git
+
+	var ref string
 	if s.build.Spec.Revision != nil && s.build.Spec.Revision.Git != nil &&
-		s.build.Spec.Revision.Git.Commit != "" {
-		config.Ref = s.build.Spec.Revision.Git.Commit
-	} else if s.build.Spec.Source.Git.Ref != "" {
-		config.Ref = s.build.Spec.Source.Git.Ref
+		len(s.build.Spec.Revision.Git.Commit) != 0 {
+		ref = s.build.Spec.Revision.Git.Commit
+	} else if git != nil && len(git.Ref) != 0 {
+		ref = git.Ref
+	}
+
+	sourceURI := &url.URL{
+		Scheme:   "file",
+		Path:     srcDir,
+		Fragment: ref,
+	}
+
+	config := &s2iapi.Config{
+		WorkingDir:     buildDir,
+		DockerConfig:   &s2iapi.DockerConfig{Endpoint: s.dockerSocket},
+		DockerCfgPath:  os.Getenv(dockercfg.PullAuthType),
+		LabelNamespace: api.DefaultDockerLabelNamespace,
+
+		ScriptsURL: s.build.Spec.Strategy.SourceStrategy.Scripts,
+
+		BuilderImage: s.build.Spec.Strategy.SourceStrategy.From.Name,
+		Incremental:  s.build.Spec.Strategy.SourceStrategy.Incremental,
+		ForcePull:    s.build.Spec.Strategy.SourceStrategy.ForcePull,
+
+		Environment:       buildEnvVars(s.build),
+		DockerNetworkMode: getDockerNetworkMode(),
+
+		Source:     sourceURI.String(),
+		Tag:        tag,
+		ContextDir: s.build.Spec.Source.ContextDir,
 	}
 
 	allowedUIDs := os.Getenv("ALLOWED_UIDS")
@@ -120,7 +165,7 @@ func (s *STIBuilder) Build() error {
 		}
 	}
 
-	if errs := s.configValidator.ValidateConfig(config); len(errs) != 0 {
+	if errs := s.validator.ValidateConfig(config); len(errs) != 0 {
 		var buffer bytes.Buffer
 		for _, ve := range errs {
 			buffer.WriteString(ve.Error())
@@ -135,7 +180,7 @@ func (s *STIBuilder) Build() error {
 	config.IncrementalAuthentication, _ = dockercfg.NewHelper().GetDockerAuth(tag, dockercfg.PushAuthType)
 
 	glog.V(2).Infof("Creating a new S2I builder with build config: %#v\n", describe.DescribeConfig(config))
-	builder, err := s.builderFactory.GetStrategy(config)
+	builder, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: download})
 	if err != nil {
 		return err
 	}
@@ -143,7 +188,10 @@ func (s *STIBuilder) Build() error {
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
 
 	// Set the HTTP and HTTPS proxies to be used by the S2I build.
-	originalProxies := setHTTPProxy(s.build.Spec.Source.Git.HTTPProxy, s.build.Spec.Source.Git.HTTPSProxy)
+	var originalProxies map[string]string
+	if git != nil {
+		originalProxies = setHTTPProxy(git.HTTPProxy, git.HTTPSProxy)
+	}
 
 	if _, err = builder.Build(config); err != nil {
 		return err
@@ -185,9 +233,25 @@ func (s *STIBuilder) Build() error {
 	return nil
 }
 
+type downloader struct {
+	s       *STIBuilder
+	dir     string
+	in      io.Reader
+	timeout time.Duration
+}
+
+func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error) {
+	if err := fetchSource(d.dir, d.s.build, d.timeout, d.in, d.s.git); err != nil {
+		return nil, err
+	}
+	// TODO: allow source info to be overriden by build
+	sourceInfo := d.s.git.GetInfo(d.dir)
+	return sourceInfo, nil
+}
+
 // buildEnvVars returns a map with build metadata to be inserted into Docker
 // images produced by build. It transforms the output from buildInfo into the
-// input format expected by stiapi.Config.Environment.
+// input format expected by s2iapi.Config.Environment.
 // Note that using a map has at least two downsides:
 // 1. The order of metadata KeyValue pairs is lost;
 // 2. In case of repeated Keys, the last Value takes precedence right here,

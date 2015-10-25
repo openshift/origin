@@ -257,6 +257,7 @@ func deepCopy_v1beta3_Container(in Container, out *Container, c *conversion.Clon
 		out.SecurityContext = nil
 	}
 	out.Stdin = in.Stdin
+	out.StdinOnce = in.StdinOnce
 	out.TTY = in.TTY
 	return nil
 }

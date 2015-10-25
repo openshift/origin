@@ -217,6 +217,13 @@ func describeBuildSpec(p buildapi.BuildSpec, out *tabwriter.Writer) {
 			formatString(out, "Message", rev.Message)
 		}
 	}
+	if p.Source.Binary != nil {
+		if len(p.Source.Binary.AsFile) > 0 {
+			formatString(out, "Binary", fmt.Sprintf("provided as file %q on build", p.Source.Binary.AsFile))
+		} else {
+			formatString(out, "Binary", "provided on build")
+		}
+	}
 
 	switch p.Strategy.Type {
 	case buildapi.DockerBuildStrategyType:

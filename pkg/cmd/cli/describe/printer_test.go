@@ -36,6 +36,10 @@ var PrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&authorizationapi.ResourceAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalSubjectAccessReview{}),
 	reflect.TypeOf(&authorizationapi.LocalResourceAccessReview{}),
+	reflect.TypeOf(&buildapi.BuildLog{}),
+	reflect.TypeOf(&buildapi.BinaryBuildRequestOptions{}),
+	reflect.TypeOf(&buildapi.BuildRequest{}),
+	reflect.TypeOf(&buildapi.BuildLogOptions{}),
 }
 
 // MissingPrinterCoverageExceptions is the list of types that were missing printer methods when I started
@@ -44,7 +48,6 @@ var PrinterCoverageExceptions = []reflect.Type{
 var MissingPrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&deployapi.DeploymentConfigRollback{}),
 	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
-	reflect.TypeOf(&buildapi.BuildRequest{}),
 	reflect.TypeOf(&projectapi.ProjectRequest{}),
 }
 

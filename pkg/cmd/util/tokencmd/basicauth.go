@@ -42,8 +42,8 @@ func (c *BasicChallengeHandler) HandleChallenge(headers http.Header) (http.Heade
 		glog.V(2).Info("already prompted for challenge, won't prompt again")
 		return nil, false, nil
 	}
-	if c.Reader == nil && c.handled {
-		glog.V(2).Info("already handled basic challenge, no reader to alter inputs")
+	if c.handled {
+		glog.V(2).Info("already handled basic challenge")
 		return nil, false, nil
 	}
 

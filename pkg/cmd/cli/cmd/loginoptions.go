@@ -222,8 +222,9 @@ func (o *LoginOptions) gatherAuthInfo() error {
 		}
 	}
 
-	// if a username was provided try to make use of it
-	if o.usernameProvided() {
+	// if a username was provided try to make use of it, but if a password were provided we force a token
+	// request which will return a proper response code for that given password
+	if o.usernameProvided() && !o.passwordProvided() {
 		// search all valid contexts with matching server stanzas to see if we have a matching user stanza
 		kubeconfig := *o.StartingKubeConfig
 		matchingClusters := getMatchingClusters(*clientConfig, kubeconfig)
@@ -425,6 +426,10 @@ func (o LoginOptions) whoAmI() (*api.User, error) {
 
 func (o *LoginOptions) usernameProvided() bool {
 	return len(o.Username) > 0
+}
+
+func (o *LoginOptions) passwordProvided() bool {
+	return len(o.Password) > 0
 }
 
 func (o *LoginOptions) serverProvided() bool {

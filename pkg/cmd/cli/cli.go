@@ -79,7 +79,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 		{
 			Message: "Build and Deploy Commands:",
 			Commands: []*cobra.Command{
-				cmd.NewCmdStartBuild(fullName, f, out),
+				cmd.NewCmdStartBuild(fullName, f, in, out),
 				cmd.NewCmdBuildLogs(fullName, f, out),
 				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),

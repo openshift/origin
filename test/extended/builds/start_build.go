@@ -17,8 +17,10 @@ import (
 var _ = g.Describe("builds: parallel: oc start-build", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture = exutil.FixturePath("..", "extended", "fixtures", "test-build.json")
-		oc           = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
+		buildFixture      = exutil.FixturePath("..", "extended", "fixtures", "test-build.json")
+		exampleDockerfile = exutil.FixturePath("..", "extended", "fixtures", "test-build-app", "Dockerfile")
+		exampleBuild      = exutil.FixturePath("..", "extended", "fixtures", "test-build-app")
+		oc                = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
 	)
 
 	g.JustBeforeEach(func() {
@@ -38,7 +40,6 @@ var _ = g.Describe("builds: parallel: oc start-build", func() {
 			build, err := oc.REST().Builds(oc.Namespace()).Get(out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
-
 		})
 
 		g.It("should start a build and wait for the build to fail", func() {
@@ -48,6 +49,50 @@ var _ = g.Describe("builds: parallel: oc start-build", func() {
 				Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).Should(o.ContainSubstring(`status is "Failed"`))
+		})
+	})
+
+	g.Describe("binary builds", func() {
+		g.It("should accept --from-file as input", func() {
+			g.By("starting the build with a Dockerfile")
+			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", fmt.Sprintf("--from-file=%s", exampleDockerfile)).Output()
+			g.By(fmt.Sprintf("verifying the build %q status", out))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Uploading file"))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(out).To(o.ContainSubstring("Successfully built"))
+
+			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
+		})
+
+		g.It("should accept --from-dir as input", func() {
+			g.By("starting the build with a directory")
+			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", fmt.Sprintf("--from-dir=%s", exampleBuild)).Output()
+			g.By(fmt.Sprintf("verifying the build %q status", out))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Uploading directory"))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(out).To(o.ContainSubstring("Successfully built"))
+
+			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
+		})
+
+		g.It("should accept --from-repo as input", func() {
+			g.By("starting the build with a Git repository")
+			out, err := oc.Run("start-build").Args("sample-build", "--follow", "--wait", fmt.Sprintf("--from-repo=%s", exampleBuild)).Output()
+			g.By(fmt.Sprintf("verifying the build %q status", out))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("Uploading Git repository"))
+			o.Expect(out).To(o.ContainSubstring("as binary input for the build ..."))
+			o.Expect(out).To(o.ContainSubstring("Successfully built"))
+
+			build, err := oc.REST().Builds(oc.Namespace()).Get("sample-build-1")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Phase).Should(o.BeEquivalentTo(buildapi.BuildPhaseComplete))
 		})
 	})
 

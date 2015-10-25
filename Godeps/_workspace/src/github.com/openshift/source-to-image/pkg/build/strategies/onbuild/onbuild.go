@@ -38,7 +38,7 @@ type onBuildSourceHandler struct {
 }
 
 // New returns a new instance of OnBuild builder
-func New(config *api.Config) (*OnBuild, error) {
+func New(config *api.Config, overrides build.Overrides) (*OnBuild, error) {
 	dockerHandler, err := docker.New(config.DockerConfig, config.PullAuthentication)
 	if err != nil {
 		return nil, err
@@ -50,15 +50,25 @@ func New(config *api.Config) (*OnBuild, error) {
 		tar:    tar.New(),
 	}
 	// Use STI Prepare() and download the 'run' script optionally.
-	s, err := sti.New(config)
+	s, err := sti.New(config, overrides)
 	s.SetScripts([]string{}, []string{api.Assemble, api.Run})
-	downloader, sourceUrl, err := scm.DownloaderForSource(config.Source)
-	if err != nil {
-		return nil, err
-	}
-	config.Source = sourceUrl
 
-	b.source = onBuildSourceHandler{downloader, s, &ignore.DockerIgnorer{}}
+	downloader := overrides.Downloader
+	if downloader == nil {
+		d, sourceURL, err := scm.DownloaderForSource(config.Source)
+		if err != nil {
+			return nil, err
+		}
+		downloader = d
+		config.Source = sourceURL
+	}
+
+	b.source = onBuildSourceHandler{
+		Downloader: downloader,
+		Preparer:   s,
+		Ignorer:    &ignore.DockerIgnorer{},
+	}
+
 	b.garbage = &build.DefaultCleaner{b.fs, b.docker}
 	return b, nil
 }

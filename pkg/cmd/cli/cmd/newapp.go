@@ -248,6 +248,8 @@ func setupAppConfig(f *clientcmd.Factory, out io.Writer, c *cobra.Command, args 
 	if err == nil {
 		if err = dockerClient.Ping(); err == nil {
 			config.SetDockerClient(dockerClient)
+		} else {
+			glog.V(4).Infof("Docker client did not respond to a ping: %v", err)
 		}
 	}
 	if err != nil {

@@ -75,7 +75,7 @@ SKIP_TESTS=(
   Probing                 # TRIAGE
   "should call prestop" # Needs triage, auth maybe
   "be restarted with a /healthz" # used to be working
-  "Port forwarding With a server that expects a client request" # used to be working
+  "Port forwarding With a server that expects" # used to be working
 )
 DEFAULT_SKIP=$(join '|' "${SKIP_TESTS[@]}")
 SKIP="${SKIP:-$DEFAULT_SKIP}"

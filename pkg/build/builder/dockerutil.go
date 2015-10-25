@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -83,20 +84,22 @@ func removeImage(client DockerClient, name string) error {
 
 // buildImage invokes a docker build on a particular directory
 func buildImage(client DockerClient, dir string, noCache bool, tag string, tar tar.Tar, pullAuth *docker.AuthConfigurations, forcePull bool) error {
-	tarFile, err := tar.CreateTarFile("", dir)
-	if err != nil {
-		return err
-	}
-	tarStream, err := os.Open(tarFile)
-	if err != nil {
-		return err
-	}
-	defer tarStream.Close()
+	// TODO: be able to pass a stream directly to the Docker build to avoid the double temp hit
+	r, w := io.Pipe()
+	go func() {
+		defer util.HandleCrash()
+		defer w.Close()
+		if err := tar.CreateTarStream(dir, false, w); err != nil {
+			w.CloseWithError(err)
+		}
+	}()
+	defer w.Close()
+	glog.V(5).Infof("Invoking Docker build to create %q", tag)
 	opts := docker.BuildImageOptions{
 		Name:           tag,
 		RmTmpContainer: true,
 		OutputStream:   os.Stdout,
-		InputStream:    tarStream,
+		InputStream:    r,
 		NoCache:        noCache,
 		Pull:           forcePull,
 	}

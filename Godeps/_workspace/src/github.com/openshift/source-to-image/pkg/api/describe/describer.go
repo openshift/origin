@@ -54,6 +54,9 @@ func DescribeConfig(config *api.Config) string {
 		if len(config.WorkingDir) > 0 {
 			fmt.Fprintf(out, "Workdir:\t%s\n", config.WorkingDir)
 		}
+		if config.DockerNetworkMode != "" {
+			fmt.Fprintf(out, "Docker NetworkMode:\t%s\n", config.DockerNetworkMode)
+		}
 		fmt.Fprintf(out, "Docker Endpoint:\t%s\n", config.DockerConfig.Endpoint)
 
 		if _, err := os.Open(config.DockerCfgPath); err == nil {

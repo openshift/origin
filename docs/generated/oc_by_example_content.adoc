@@ -580,7 +580,7 @@ Create a new build configuration
   $ openshift cli new-build . --docker-image=repo/langimage
 
   # Create a NodeJS build config based on the provided [image]~[source code] combination
-  $ openshift cli new-build openshift/nodejs-010-centos7~https://bitbucket.com/user/nodejs-app
+  $ openshift cli new-build openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
 
   # Create a build config from a remote repository using its beta2 branch
   $ openshift cli new-build https://github.com/openshift/ruby-hello-world#beta2
@@ -920,26 +920,31 @@ Create a new secret for SSH authentication
 
 
 == oc start-build
-Starts a new build
+Start a new build
 
 ====
 
 [options="nowrap"]
 ----
-  # Starts build from BuildConfig matching the name "3bd2ug53b"
-  $ openshift cli start-build sample-build
+  # Starts build from build config "hello-world"
+  $ openshift cli start-build hello-world
 
-  # Starts build from build matching the name "sample-build-1"
-  $ openshift cli start-build --from-build=sample-build-1
+  # Starts build from a previous build "hello-world-1"
+  $ openshift cli start-build --from-build=hello-world-1
 
-  # Starts build from BuildConfig matching the name "sample-build" and watches
-	# the logs until the build completes or fails
-  $ openshift cli start-build sample-build --follow
+  # Use the contents of a directory as build input
+  $ openshift cli start-build hello-world --from-dir=src/
 
-  # Starts build from BuildConfig matching the name "sample-build" and wait until
-	# the build completes. It exits with a non-zero return code if the build
-	# fails. 
-  $ openshift cli start-build sample-build --wait
+  # Send the contents of a Git repository to the server from tag 'v2'
+  $ openshift cli start-build hello-world --from-repo=../hello-world --commit=v2
+
+  # Start a new build for build config "hello-world" and watch the logs until the build
+  # completes or fails.
+  $ openshift cli start-build hello-world --follow
+
+  # Start a new build for build config "hello-world" and wait until the build completes. It
+  # exits with a non-zero return code if the build fails.
+  $ openshift cli start-build hello-world --wait
 ----
 ====
 

@@ -111,6 +111,7 @@ type RunContainerOptions struct {
 	OnStart         func() error
 	PostExec        PostExecutor
 	TargetImage     bool
+	NetworkMode     string
 }
 
 // CommitContainerOptions are options passed in to the CommitContainer method
@@ -509,8 +510,11 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) (err error) {
 	glog.V(2).Infof("Creating container using config: %+v", config)
 	ccopts := docker.CreateContainerOptions{Name: "", Config: &config}
 	if opts.TargetImage {
-		ccopts.HostConfig = &docker.HostConfig{PublishAllPorts: true}
+		ccopts.HostConfig = &docker.HostConfig{PublishAllPorts: true, NetworkMode: opts.NetworkMode}
+	} else if opts.NetworkMode != "" {
+		ccopts.HostConfig = &docker.HostConfig{NetworkMode: opts.NetworkMode}
 	}
+
 	container, err := d.client.CreateContainer(ccopts)
 	if err != nil {
 		return err

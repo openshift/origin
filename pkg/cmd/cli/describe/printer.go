@@ -3,6 +3,7 @@ package describe
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -26,7 +27,7 @@ import (
 )
 
 var (
-	buildColumns            = []string{"NAME", "TYPE", "FROM", "STATUS", "STARTED"}
+	buildColumns            = []string{"NAME", "TYPE", "FROM", "STATUS", "STARTED", "DURATION"}
 	buildConfigColumns      = []string{"NAME", "TYPE", "FROM", "LATEST"}
 	imageColumns            = []string{"NAME", "DOCKER REF"}
 	imageStreamTagColumns   = []string{"NAME", "DOCKER REF", "UPDATED", "IMAGENAME"}
@@ -207,18 +208,27 @@ func printBuild(build *buildapi.Build, w io.Writer, withNamespace, wide, showAll
 	if build.Status.StartTimestamp != nil {
 		created = fmt.Sprintf("%s ago", formatRelativeTime(build.Status.StartTimestamp.Time))
 	}
+	var duration string
+	if build.Status.Duration > 0 {
+		duration = build.Status.Duration.String()
+	}
 	from := describeSourceShort(build.Spec)
 	status := string(build.Status.Phase)
 	if len(build.Status.Reason) > 0 {
 		status = fmt.Sprintf("%s (%s)", status, build.Status.Reason)
 	}
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Spec.Strategy.Type), from, status, created)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", build.Name, describeStrategy(build.Spec.Strategy.Type), from, status, created, duration)
 	return err
 }
 
 func describeSourceShort(spec buildapi.BuildSpec) string {
 	var from string
 	switch source := spec.Source; {
+	case source.Binary != nil:
+		from = "Binary"
+		if rev := describeSourceGitRevision(spec); len(rev) != 0 {
+			from = fmt.Sprintf("%s@%s", from, rev)
+		}
 	case source.Dockerfile != nil && source.Git != nil:
 		from = "Dockerfile,Git"
 		if rev := describeSourceGitRevision(spec); len(rev) != 0 {
@@ -237,6 +247,8 @@ func describeSourceShort(spec buildapi.BuildSpec) string {
 	return from
 }
 
+var nonCommitRev = regexp.MustCompile("[^a-fA-F0-9]")
+
 func describeSourceGitRevision(spec buildapi.BuildSpec) string {
 	var rev string
 	if spec.Revision != nil && spec.Revision.Git != nil {
@@ -244,6 +256,10 @@ func describeSourceGitRevision(spec buildapi.BuildSpec) string {
 	}
 	if len(rev) == 0 && spec.Source.Git != nil {
 		rev = spec.Source.Git.Ref
+	}
+	// if this appears to be a full Git commit hash, shorten it to 7 characters for brevity
+	if !nonCommitRev.MatchString(rev) && len(rev) > 20 {
+		rev = rev[:7]
 	}
 	return rev
 }

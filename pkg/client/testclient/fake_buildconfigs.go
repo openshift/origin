@@ -2,6 +2,7 @@ package testclient
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 
 	ktestclient "k8s.io/kubernetes/pkg/client/unversioned/testclient"
@@ -79,6 +80,17 @@ func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTrigge
 func (c *FakeBuildConfigs) Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
 	action := ktestclient.NewCreateAction("buildconfigs", c.Namespace, request)
 	action.Subresource = "instantiate"
+	obj, err := c.Fake.Invokes(action, &buildapi.Build{})
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*buildapi.Build), err
+}
+
+func (c *FakeBuildConfigs) InstantiateBinary(request *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error) {
+	action := ktestclient.NewCreateAction("buildconfigs", c.Namespace, request)
+	action.Subresource = "instantiatebinary"
 	obj, err := c.Fake.Invokes(action, &buildapi.Build{})
 	if obj == nil {
 		return nil, err

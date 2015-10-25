@@ -1,4 +1,4 @@
-package generator
+package buildclone
 
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -7,7 +7,6 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/generator"
-	"github.com/openshift/origin/pkg/build/registry/clone"
 )
 
 // NewStorage creates a new storage object for build generation
@@ -28,7 +27,7 @@ func (s *CloneREST) New() runtime.Object {
 
 // Create instantiates a new build from an existing build
 func (s *CloneREST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
-	if err := rest.BeforeCreate(clone.Strategy, ctx, obj); err != nil {
+	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
 

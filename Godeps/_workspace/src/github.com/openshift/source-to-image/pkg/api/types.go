@@ -45,6 +45,10 @@ type Config struct {
 	// previous image from private repositories
 	IncrementalAuthentication docker.AuthConfiguration
 
+	// DockerNetworkMode is used to set the docker network setting to --net=container:<id>
+	// when the builder is invoked from a container.
+	DockerNetworkMode DockerNetworkMode
+
 	// PreserveWorkingDir describes if working directory should be left after processing.
 	PreserveWorkingDir bool
 
@@ -207,4 +211,22 @@ type SourceInfo struct {
 type CloneConfig struct {
 	Recursive bool
 	Quiet     bool
+}
+
+// DockerNetworkMode specifies the network mode setting for the docker container
+type DockerNetworkMode string
+
+const (
+	// DockerNetworkModeHost places the container in the default (host) network namespace.
+	DockerNetworkModeHost DockerNetworkMode = "host"
+	// DockerNetworkModeBridge instructs docker to create a network namespace for this container connected to the docker0 bridge via a veth-pair.
+	DockerNetworkModeBridge DockerNetworkMode = "bridge"
+	// DockerNetworkModeContainerPrefix is the string prefix used by NewDockerNetworkModeContainer.
+	DockerNetworkModeContainerPrefix string = "container:"
+)
+
+// NewDockerNetworkModeContainer creates a DockerNetworkMode value which instructs docker to place the container in the network namespace of an existing container.
+// It can be used, for instance, to place the s2i container in the network namespace of the infrastructure container of a k8s pod.
+func NewDockerNetworkModeContainer(id string) DockerNetworkMode {
+	return DockerNetworkMode(DockerNetworkModeContainerPrefix + id)
 }
