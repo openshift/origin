@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
+	sc "k8s.io/kubernetes/pkg/securitycontext"
 	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/watch"
@@ -164,24 +165,46 @@ func assignSecurityContext(provider scc.SecurityContextConstraintsProvider, pod 
 
 	errs := fielderrors.ValidationErrorList{}
 
-	for i, c := range pod.Spec.Containers {
-		sc, err := provider.CreateSecurityContext(pod, &c)
+	psc, err := provider.CreatePodSecurityContext(pod)
+	if err != nil {
+		errs = append(errs, fielderrors.NewFieldInvalid("spec.securityContext", pod.Spec.SecurityContext, err.Error()))
+	}
+
+	// save the original PSC and validate the generated PSC.  Leave the generated PSC
+	// set for container generation/validation.  We will reset to original post container
+	// validation.
+	originalPSC := pod.Spec.SecurityContext
+	pod.Spec.SecurityContext = psc
+	errs = append(errs, provider.ValidatePodSecurityContext(pod).Prefix("spec.securityContext")...)
+
+	// Note: this is not changing the original container, we will set container SCs later so long
+	// as all containers validated under the same SCC.
+	for i, containerCopy := range pod.Spec.Containers {
+		// We will determine the effective security context for the container and validate against that
+		// since that is how the sc provider will eventually apply settings in the runtime.
+		// This results in an SC that is based on the Pod's PSC with the set fields from the container
+		// overriding pod level settings.
+		containerCopy.SecurityContext = sc.DetermineEffectiveSecurityContext(pod, &containerCopy)
+
+		sc, err := provider.CreateContainerSecurityContext(pod, &containerCopy)
 		if err != nil {
 			errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.containers[%d].securityContext", i), "", err.Error()))
 			continue
 		}
 		generatedSCs[i] = sc
 
-		c.SecurityContext = sc
-		errs = append(errs, provider.ValidateSecurityContext(pod, &c).Prefix(fmt.Sprintf("spec.containers[%d].securityContext", i))...)
+		containerCopy.SecurityContext = sc
+		errs = append(errs, provider.ValidateContainerSecurityContext(pod, &containerCopy).Prefix(fmt.Sprintf("spec.containers[%d].securityContext", i))...)
 	}
 
 	if len(errs) > 0 {
+		// ensure psc is not mutated if there are errors
+		pod.Spec.SecurityContext = originalPSC
 		return errs
 	}
 
 	// if we've reached this code then we've generated and validated an SC for every container in the
-	// pod so let's apply what we generated
+	// pod so let's apply what we generated.  Note: the psc is already applied.
 	for i, sc := range generatedSCs {
 		pod.Spec.Containers[i].SecurityContext = sc
 	}
@@ -205,51 +228,63 @@ func (c *constraint) createProvidersFromConstraints(ns string, sccs []*kapi.Secu
 		var err error
 		resolveUIDRange := requiresPreAllocatedUIDRange(constraint)
 		resolveSELinuxLevel := requiresPreAllocatedSELinuxLevel(constraint)
+		resolveFSGroup := requiresPreallocatedFSGroup(constraint)
+		resolveSupplementalGroups := requiresPreallocatedSupplementalGroups(constraint)
+		requiresNamespaceAllocations := resolveUIDRange || resolveSELinuxLevel || resolveFSGroup || resolveSupplementalGroups
 
-		if resolveUIDRange || resolveSELinuxLevel {
-			var min, max *int64
-			var level string
-
+		if requiresNamespaceAllocations {
 			// Ensure we have the namespace
-			if namespace, err = c.getNamespace(ns, namespace); err != nil {
+			namespace, err = c.getNamespace(ns, namespace)
+			if err != nil {
 				errs = append(errs, fmt.Errorf("error fetching namespace %s required to preallocate values for %s: %v", ns, constraint.Name, err))
 				continue
 			}
+		}
 
-			// Resolve the values from the namespace
-			if resolveUIDRange {
-				if min, max, err = getPreallocatedUIDRange(namespace); err != nil {
-					errs = append(errs, fmt.Errorf("unable to find pre-allocated uid annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
-					continue
-				}
+		// Make a copy of the constraint so we don't mutate the store's cache
+		var constraintCopy kapi.SecurityContextConstraints = *constraint
+		constraint = &constraintCopy
+
+		// Resolve the values from the namespace
+		if resolveUIDRange {
+			constraint.RunAsUser.UIDRangeMin, constraint.RunAsUser.UIDRangeMax, err = getPreallocatedUIDRange(namespace)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("unable to find pre-allocated uid annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
+				continue
 			}
-			if resolveSELinuxLevel {
-				if level, err = getPreallocatedLevel(namespace); err != nil {
-					errs = append(errs, fmt.Errorf("unable to find pre-allocated mcs annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
-					continue
-				}
+		}
+		if resolveSELinuxLevel {
+			var level string
+			if level, err = getPreallocatedLevel(namespace); err != nil {
+				errs = append(errs, fmt.Errorf("unable to find pre-allocated mcs annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
+				continue
 			}
 
-			// Make a copy of the constraint so we don't mutate the store's cache
-			var constraintCopy kapi.SecurityContextConstraints = *constraint
-			constraint = &constraintCopy
-			if resolveSELinuxLevel && constraint.SELinuxContext.SELinuxOptions != nil {
-				// Make a copy of the SELinuxOptions so we don't mutate the store's cache
+			// SELinuxOptions is a pointer, if we are resolving and it is already initialized
+			// we need to make a copy of it so we don't manipulate the store's cache.
+			if constraint.SELinuxContext.SELinuxOptions != nil {
 				var seLinuxOptionsCopy kapi.SELinuxOptions = *constraint.SELinuxContext.SELinuxOptions
 				constraint.SELinuxContext.SELinuxOptions = &seLinuxOptionsCopy
+			} else {
+				constraint.SELinuxContext.SELinuxOptions = &kapi.SELinuxOptions{}
 			}
-
-			// Set the resolved values
-			if resolveUIDRange {
-				constraint.RunAsUser.UIDRangeMin = min
-				constraint.RunAsUser.UIDRangeMax = max
+			constraint.SELinuxContext.SELinuxOptions.Level = level
+		}
+		if resolveFSGroup {
+			fsGroup, err := getPreallocatedFSGroup(namespace)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
+				continue
 			}
-			if resolveSELinuxLevel {
-				if constraint.SELinuxContext.SELinuxOptions == nil {
-					constraint.SELinuxContext.SELinuxOptions = &kapi.SELinuxOptions{}
-				}
-				constraint.SELinuxContext.SELinuxOptions.Level = level
+			constraint.FSGroup.Ranges = fsGroup
+		}
+		if resolveSupplementalGroups {
+			supplementalGroups, err := getPreallocatedSupplementalGroups(namespace)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err))
+				continue
 			}
+			constraint.SupplementalGroups.Ranges = supplementalGroups
 		}
 
 		// Create the provider
@@ -315,7 +350,7 @@ func constraintSupportsGroup(group string, constraintGroups []string) bool {
 	return false
 }
 
-// getPreallocatedUIDRange retrieves the annotated value from the service account, splits it to make
+// getPreallocatedUIDRange retrieves the annotated value from the namespace, splits it to make
 // the min/max and formats the data into the necessary types for the strategy options.
 func getPreallocatedUIDRange(ns *kapi.Namespace) (*int64, *int64, error) {
 	annotationVal, ok := ns.Annotations[allocator.UIDRangeAnnotation]
@@ -336,7 +371,7 @@ func getPreallocatedUIDRange(ns *kapi.Namespace) (*int64, *int64, error) {
 	return &min, &max, nil
 }
 
-// getPreallocatedLevel gets the annotated value from the service account.
+// getPreallocatedLevel gets the annotated value from the namespace.
 func getPreallocatedLevel(ns *kapi.Namespace) (string, error) {
 	level, ok := ns.Annotations[allocator.MCSAnnotation]
 	if !ok {
@@ -347,6 +382,87 @@ func getPreallocatedLevel(ns *kapi.Namespace) (string, error) {
 	}
 	glog.V(4).Infof("got preallocated value for level: %s for selinux options in namespace %s", level, ns.Name)
 	return level, nil
+}
+
+// getSupplementalGroupsAnnotation provides a backwards compatible way to get supplemental groups
+// annotations from a namespace by looking for SupplementalGroupsAnnotation and falling back to
+// UIDRangeAnnotation if it is not found.
+func getSupplementalGroupsAnnotation(ns *kapi.Namespace) (string, error) {
+	groups, ok := ns.Annotations[allocator.SupplementalGroupsAnnotation]
+	if !ok {
+		glog.V(4).Infof("unable to find supplemental group annotation %s falling back to %s", allocator.SupplementalGroupsAnnotation, allocator.UIDRangeAnnotation)
+
+		groups, ok = ns.Annotations[allocator.UIDRangeAnnotation]
+		if !ok {
+			return "", fmt.Errorf("unable to find supplemental group or uid annotation for namespace %s", ns.Name)
+		}
+	}
+
+	if len(groups) == 0 {
+		return "", fmt.Errorf("unable to find groups using %s and %s annotations", allocator.SupplementalGroupsAnnotation, allocator.UIDRangeAnnotation)
+	}
+	return groups, nil
+}
+
+// getPreallocatedFSGroup gets the annotated value from the namespace.
+func getPreallocatedFSGroup(ns *kapi.Namespace) ([]kapi.IDRange, error) {
+	groups, err := getSupplementalGroupsAnnotation(ns)
+	if err != nil {
+		return nil, err
+	}
+	glog.V(4).Infof("got preallocated value for groups: %s in namespace %s", groups, ns.Name)
+
+	blocks, err := parseSupplementalGroupAnnotation(groups)
+	if err != nil {
+		return nil, err
+	}
+	return []kapi.IDRange{
+		{
+			Min: int64(blocks[0].Start),
+			Max: int64(blocks[0].Start),
+		},
+	}, nil
+}
+
+// getPreallocatedSupplementalGroups gets the annotated value from the namespace.
+func getPreallocatedSupplementalGroups(ns *kapi.Namespace) ([]kapi.IDRange, error) {
+	groups, err := getSupplementalGroupsAnnotation(ns)
+	if err != nil {
+		return nil, err
+	}
+	glog.V(4).Infof("got preallocated value for groups: %s in namespace %s", groups, ns.Name)
+
+	blocks, err := parseSupplementalGroupAnnotation(groups)
+	if err != nil {
+		return nil, err
+	}
+
+	idRanges := []kapi.IDRange{}
+	for _, block := range blocks {
+		rng := kapi.IDRange{
+			Min: int64(block.Start),
+			Max: int64(block.End),
+		}
+		idRanges = append(idRanges, rng)
+	}
+	return idRanges, nil
+}
+
+// parseSupplementalGroupAnnotation parses the group annotation into blocks.
+func parseSupplementalGroupAnnotation(groups string) ([]uid.Block, error) {
+	blocks := []uid.Block{}
+	segments := strings.Split(groups, ",")
+	for _, segment := range segments {
+		block, err := uid.ParseBlock(segment)
+		if err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, block)
+	}
+	if len(blocks) == 0 {
+		return nil, fmt.Errorf("no blocks parsed from annotation %s", groups)
+	}
+	return blocks, nil
 }
 
 // requiresPreAllocatedUIDRange returns true if the strategy is must run in range and the min or max
@@ -367,6 +483,24 @@ func requiresPreAllocatedSELinuxLevel(constraint *kapi.SecurityContextConstraint
 		return true
 	}
 	return constraint.SELinuxContext.SELinuxOptions.Level == ""
+}
+
+// requiresPreAllocatedSELinuxLevel returns true if the strategy is must run as and there is no
+// range specified.
+func requiresPreallocatedSupplementalGroups(constraint *kapi.SecurityContextConstraints) bool {
+	if constraint.SupplementalGroups.Type != kapi.SupplementalGroupsStrategyMustRunAs {
+		return false
+	}
+	return len(constraint.SupplementalGroups.Ranges) == 0
+}
+
+// requiresPreallocatedFSGroup returns true if the strategy is must run as and there is no
+// range specified.
+func requiresPreallocatedFSGroup(constraint *kapi.SecurityContextConstraints) bool {
+	if constraint.FSGroup.Type != kapi.FSGroupStrategyMustRunAs {
+		return false
+	}
+	return len(constraint.FSGroup.Ranges) == 0
 }
 
 // deduplicateSecurityContextConstraints ensures we have a unique slice of constraints.

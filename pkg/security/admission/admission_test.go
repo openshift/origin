@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 
 	allocator "github.com/openshift/origin/pkg/security"
+	"github.com/openshift/origin/pkg/security/uid"
 )
 
 func NewTestAdmission(store cache.Store, kclient client.Interface) kadmission.Interface {
@@ -31,11 +32,16 @@ func TestAdmit(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				allocator.UIDRangeAnnotation: "1/3",
-				allocator.MCSAnnotation:      "s0:c1,c0",
+				allocator.UIDRangeAnnotation:           "1/3",
+				allocator.MCSAnnotation:                "s0:c1,c0",
+				allocator.SupplementalGroupsAnnotation: "2/3",
 			},
 		},
 	}
+
+	// used for cases where things are preallocated
+	defaultGroup := int64(2)
+
 	serviceAccount := &kapi.ServiceAccount{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "default",
@@ -55,6 +61,12 @@ func TestAdmit(t *testing.T) {
 		SELinuxContext: kapi.SELinuxContextStrategyOptions{
 			Type: kapi.SELinuxStrategyMustRunAs,
 		},
+		FSGroup: kapi.FSGroupStrategyOptions{
+			Type: kapi.FSGroupStrategyMustRunAs,
+		},
+		SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+			Type: kapi.SupplementalGroupsStrategyMustRunAs,
+		},
 		Groups: []string{"system:serviceaccounts"},
 	}
 	// create scc that has specific requirements that shouldn't match but is permissioned to
@@ -72,6 +84,18 @@ func TestAdmit(t *testing.T) {
 			Type: kapi.SELinuxStrategyMustRunAs,
 			SELinuxOptions: &kapi.SELinuxOptions{
 				Level: "s9:z0,z1",
+			},
+		},
+		FSGroup: kapi.FSGroupStrategyOptions{
+			Type: kapi.FSGroupStrategyMustRunAs,
+			Ranges: []kapi.IDRange{
+				{Min: 999, Max: 999},
+			},
+		},
+		SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+			Type: kapi.SupplementalGroupsStrategyMustRunAs,
+			Ranges: []kapi.IDRange{
+				{Min: 999, Max: 999},
 			},
 		},
 		Groups: []string{"system:serviceaccounts"},
@@ -125,6 +149,23 @@ func TestAdmit(t *testing.T) {
 		Level: "s0:c1,c0",
 	}
 
+	// specifies an FSGroup in the range of preallocated sup group annotation
+	specifyFSGroupInRange := goodPod()
+	// group in the range of a preallocated fs group which, by default is a single digit range
+	// based on the first value of the ns annotation.
+	goodFSGroup := int64(2)
+	specifyFSGroupInRange.Spec.SecurityContext.FSGroup = &goodFSGroup
+
+	// specifies a sup group in the range of preallocated sup group annotation
+	specifySupGroup := goodPod()
+	// group is not the default but still in the range
+	specifySupGroup.Spec.SecurityContext.SupplementalGroups = []int64{3}
+
+	specifyPodLevelSELinux := goodPod()
+	specifyPodLevelSELinux.Spec.SecurityContext.SELinuxOptions = &kapi.SELinuxOptions{
+		Level: "s0:c1,c0",
+	}
+
 	requestsHostNetwork := goodPod()
 	requestsHostNetwork.Spec.SecurityContext.HostNetwork = true
 
@@ -137,12 +178,29 @@ func TestAdmit(t *testing.T) {
 	requestsHostPorts := goodPod()
 	requestsHostPorts.Spec.Containers[0].Ports = []kapi.ContainerPort{{HostPort: 1}}
 
+	requestsSupplementalGroup := goodPod()
+	requestsSupplementalGroup.Spec.SecurityContext.SupplementalGroups = []int64{1}
+
+	requestsFSGroup := goodPod()
+	fsGroup := int64(1)
+	requestsFSGroup.Spec.SecurityContext.FSGroup = &fsGroup
+
+	requestsPodLevelMCS := goodPod()
+	requestsPodLevelMCS.Spec.SecurityContext.SELinuxOptions = &kapi.SELinuxOptions{
+		User:  "user",
+		Type:  "type",
+		Role:  "role",
+		Level: "level",
+	}
+
 	testCases := map[string]struct {
-		pod           *kapi.Pod
-		shouldAdmit   bool
-		expectedUID   int64
-		expectedLevel string
-		expectedPriv  bool
+		pod               *kapi.Pod
+		shouldAdmit       bool
+		expectedUID       int64
+		expectedLevel     string
+		expectedFSGroup   int64
+		expectedSupGroups []int64
+		expectedPriv      bool
 	}{
 		"uidNotInRange": {
 			pod:         uidNotInRange,
@@ -157,16 +215,44 @@ func TestAdmit(t *testing.T) {
 			shouldAdmit: false,
 		},
 		"specifyUIDInRange": {
-			pod:           specifyUIDInRange,
-			shouldAdmit:   true,
-			expectedUID:   *specifyUIDInRange.Spec.Containers[0].SecurityContext.RunAsUser,
-			expectedLevel: "s0:c1,c0",
+			pod:               specifyUIDInRange,
+			shouldAdmit:       true,
+			expectedUID:       *specifyUIDInRange.Spec.Containers[0].SecurityContext.RunAsUser,
+			expectedLevel:     "s0:c1,c0",
+			expectedFSGroup:   defaultGroup,
+			expectedSupGroups: []int64{defaultGroup},
 		},
 		"specifyLabels": {
-			pod:           specifyLabels,
-			shouldAdmit:   true,
-			expectedUID:   1,
-			expectedLevel: specifyLabels.Spec.Containers[0].SecurityContext.SELinuxOptions.Level,
+			pod:               specifyLabels,
+			shouldAdmit:       true,
+			expectedUID:       1,
+			expectedLevel:     specifyLabels.Spec.Containers[0].SecurityContext.SELinuxOptions.Level,
+			expectedFSGroup:   defaultGroup,
+			expectedSupGroups: []int64{defaultGroup},
+		},
+		"specifyFSGroup": {
+			pod:               specifyFSGroupInRange,
+			shouldAdmit:       true,
+			expectedUID:       1,
+			expectedLevel:     "s0:c1,c0",
+			expectedFSGroup:   *specifyFSGroupInRange.Spec.SecurityContext.FSGroup,
+			expectedSupGroups: []int64{defaultGroup},
+		},
+		"specifySupGroup": {
+			pod:               specifySupGroup,
+			shouldAdmit:       true,
+			expectedUID:       1,
+			expectedLevel:     "s0:c1,c0",
+			expectedFSGroup:   defaultGroup,
+			expectedSupGroups: []int64{specifySupGroup.Spec.SecurityContext.SupplementalGroups[0]},
+		},
+		"specifyPodLevelSELinuxLevel": {
+			pod:               specifyPodLevelSELinux,
+			shouldAdmit:       true,
+			expectedUID:       1,
+			expectedLevel:     "s0:c1,c0",
+			expectedFSGroup:   defaultGroup,
+			expectedSupGroups: []int64{defaultGroup},
 		},
 		"requestsHostNetwork": {
 			pod:         requestsHostNetwork,
@@ -182,6 +268,18 @@ func TestAdmit(t *testing.T) {
 		},
 		"requestsHostIPC": {
 			pod:         requestsHostIPC,
+			shouldAdmit: false,
+		},
+		"requestsSupplementalGroup": {
+			pod:         requestsSupplementalGroup,
+			shouldAdmit: false,
+		},
+		"requestsFSGroup": {
+			pod:         requestsFSGroup,
+			shouldAdmit: false,
+		},
+		"requestsPodLevelMCS": {
+			pod:         requestsPodLevelMCS,
 			shouldAdmit: false,
 		},
 	}
@@ -205,11 +303,29 @@ func TestAdmit(t *testing.T) {
 			if validatedSCC != saSCC.Name {
 				t.Errorf("%s should have validated against %s but found %s", k, saSCC.Name, validatedSCC)
 			}
+
+			// ensure anything we expected to be defaulted on the container level is set
 			if *v.pod.Spec.Containers[0].SecurityContext.RunAsUser != v.expectedUID {
 				t.Errorf("%s expected UID %d but found %d", k, v.expectedUID, *v.pod.Spec.Containers[0].SecurityContext.RunAsUser)
 			}
 			if v.pod.Spec.Containers[0].SecurityContext.SELinuxOptions.Level != v.expectedLevel {
 				t.Errorf("%s expected Level %s but found %s", k, v.expectedLevel, v.pod.Spec.Containers[0].SecurityContext.SELinuxOptions.Level)
+			}
+
+			// ensure anything we expected to be defaulted on the pod level is set
+			if v.pod.Spec.SecurityContext.SELinuxOptions.Level != v.expectedLevel {
+				t.Errorf("%s expected pod level SELinux Level %s but found %s", k, v.expectedLevel, v.pod.Spec.SecurityContext.SELinuxOptions.Level)
+			}
+			if *v.pod.Spec.SecurityContext.FSGroup != v.expectedFSGroup {
+				t.Errorf("%s expected fsgroup %d but found %d", k, v.expectedFSGroup, *v.pod.Spec.SecurityContext.FSGroup)
+			}
+			if len(v.pod.Spec.SecurityContext.SupplementalGroups) != len(v.expectedSupGroups) {
+				t.Errorf("%s found unexpected supplemental groups.  Expected: %v, actual %v", k, v.expectedSupGroups, v.pod.Spec.SecurityContext.SupplementalGroups)
+			}
+			for _, g := range v.expectedSupGroups {
+				if !hasSupGroup(g, v.pod.Spec.SecurityContext.SupplementalGroups) {
+					t.Errorf("%s expected sup group %d", k, g)
+				}
 			}
 		}
 	}
@@ -230,6 +346,12 @@ func TestAdmit(t *testing.T) {
 		},
 		SELinuxContext: kapi.SELinuxContextStrategyOptions{
 			Type: kapi.SELinuxStrategyRunAsAny,
+		},
+		FSGroup: kapi.FSGroupStrategyOptions{
+			Type: kapi.FSGroupStrategyRunAsAny,
+		},
+		SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+			Type: kapi.SupplementalGroupsStrategyRunAsAny,
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
@@ -253,10 +375,20 @@ func TestAdmit(t *testing.T) {
 	}
 }
 
+func hasSupGroup(group int64, groups []int64) bool {
+	for _, g := range groups {
+		if g == group {
+			return true
+		}
+	}
+	return false
+}
+
 func TestAssignSecurityContext(t *testing.T) {
 	// set up test data
 	// scc that will deny privileged container requests and has a default value for a field (uid)
 	var uid int64 = 9999
+	fsGroup := int64(1)
 	scc := &kapi.SecurityContextConstraints{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test scc",
@@ -267,6 +399,17 @@ func TestAssignSecurityContext(t *testing.T) {
 		RunAsUser: kapi.RunAsUserStrategyOptions{
 			Type: kapi.RunAsUserStrategyMustRunAs,
 			UID:  &uid,
+		},
+
+		// require allocation for a field in the psc as well to test changes/no changes
+		FSGroup: kapi.FSGroupStrategyOptions{
+			Type: kapi.FSGroupStrategyMustRunAs,
+			Ranges: []kapi.IDRange{
+				{Min: fsGroup, Max: fsGroup},
+			},
+		},
+		SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+			Type: kapi.SupplementalGroupsStrategyRunAsAny,
 		},
 	}
 	provider, err := kscc.NewSimpleProvider(scc)
@@ -291,7 +434,7 @@ func TestAssignSecurityContext(t *testing.T) {
 		shouldValidate bool
 		expectedUID    *int64
 	}{
-		"container SC is not changed when invalid": {
+		"pod and container SC is not changed when invalid": {
 			pod: &kapi.Pod{
 				Spec: kapi.PodSpec{
 					SecurityContext: &kapi.PodSecurityContext{},
@@ -333,16 +476,23 @@ func TestAssignSecurityContext(t *testing.T) {
 		}
 
 		// if we shouldn't have validated ensure that uid is not set on the containers
+		// and ensure the psc does not have fsgroup set
 		if !v.shouldValidate {
+			if v.pod.Spec.SecurityContext.FSGroup != nil {
+				t.Errorf("%s had a non-nil FSGroup %d.  FSGroup should not be set on test cases that don't validate", k, *v.pod.Spec.SecurityContext.FSGroup)
+			}
 			for _, c := range v.pod.Spec.Containers {
 				if c.SecurityContext.RunAsUser != nil {
-					t.Errorf("%s had non-nil UID %d.  UID should not be set on test cases that dont' validate", k, *c.SecurityContext.RunAsUser)
+					t.Errorf("%s had non-nil UID %d.  UID should not be set on test cases that don't validate", k, *c.SecurityContext.RunAsUser)
 				}
 			}
 		}
 
 		// if we validated then the pod sc should be updated now with the defaults from the SCC
 		if v.shouldValidate {
+			if *v.pod.Spec.SecurityContext.FSGroup != fsGroup {
+				t.Errorf("%s expected fsgroup to be defaulted but found %v", k, v.pod.Spec.SecurityContext.FSGroup)
+			}
 			for _, c := range v.pod.Spec.Containers {
 				if *c.SecurityContext.RunAsUser != uid {
 					t.Errorf("%s expected uid to be defaulted to %d but found %v", k, uid, c.SecurityContext.RunAsUser)
@@ -357,8 +507,9 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				allocator.UIDRangeAnnotation: "1/3",
-				allocator.MCSAnnotation:      "s0:c1,c0",
+				allocator.UIDRangeAnnotation:           "1/3",
+				allocator.MCSAnnotation:                "s0:c1,c0",
+				allocator.SupplementalGroupsAnnotation: "1/3",
 			},
 		},
 	}
@@ -366,7 +517,8 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
-				allocator.MCSAnnotation: "s0:c1,c0",
+				allocator.MCSAnnotation:                "s0:c1,c0",
+				allocator.SupplementalGroupsAnnotation: "1/3",
 			},
 		},
 	}
@@ -374,7 +526,29 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
+				allocator.UIDRangeAnnotation:           "1/3",
+				allocator.SupplementalGroupsAnnotation: "1/3",
+			},
+		},
+	}
+
+	namespaceNoSupplementalGroupsFallbackToUID := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
 				allocator.UIDRangeAnnotation: "1/3",
+				allocator.MCSAnnotation:      "s0:c1,c0",
+			},
+		},
+	}
+
+	namespaceBadSupGroups := &kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{
+			Name: "default",
+			Annotations: map[string]string{
+				allocator.UIDRangeAnnotation:           "1/3",
+				allocator.MCSAnnotation:                "s0:c1,c0",
+				allocator.SupplementalGroupsAnnotation: "",
 			},
 		},
 	}
@@ -397,6 +571,12 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 					RunAsUser: kapi.RunAsUserStrategyOptions{
 						Type: kapi.RunAsUserStrategyRunAsAny,
 					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
 				}
 			},
 			namespace: namespaceValid,
@@ -414,6 +594,12 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 					RunAsUser: kapi.RunAsUserStrategyOptions{
 						Type: kapi.RunAsUserStrategyMustRunAsRange,
 					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyMustRunAs,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyMustRunAs,
+					},
 				}
 			},
 			namespace: namespaceValid,
@@ -429,6 +615,12 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 					},
 					RunAsUser: kapi.RunAsUserStrategyOptions{
 						Type: kapi.RunAsUserStrategyMustRunAsRange,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
 					},
 				}
 			},
@@ -447,10 +639,61 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 					RunAsUser: kapi.RunAsUserStrategyOptions{
 						Type: kapi.RunAsUserStrategyMustRunAsRange,
 					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
+					},
 				}
 			},
 			namespace:   namespaceNoMCS,
 			expectedErr: "unable to find pre-allocated mcs annotation",
+		},
+		"pre-allocated group falls back to UID annotation": {
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "pre-allocated no sup group annotation",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyRunAsAny,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyMustRunAs,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyMustRunAs,
+					},
+				}
+			},
+			namespace: namespaceNoSupplementalGroupsFallbackToUID,
+		},
+		"pre-allocated group bad value fails": {
+			scc: func() *kapi.SecurityContextConstraints {
+				return &kapi.SecurityContextConstraints{
+					ObjectMeta: kapi.ObjectMeta{
+						Name: "pre-allocated no sup group annotation",
+					},
+					SELinuxContext: kapi.SELinuxContextStrategyOptions{
+						Type: kapi.SELinuxStrategyRunAsAny,
+					},
+					RunAsUser: kapi.RunAsUserStrategyOptions{
+						Type: kapi.RunAsUserStrategyRunAsAny,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyMustRunAs,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyMustRunAs,
+					},
+				}
+			},
+			namespace:   namespaceBadSupGroups,
+			expectedErr: "unable to find pre-allocated group annotation",
 		},
 		"bad scc strategy options": {
 			scc: func() *kapi.SecurityContextConstraints {
@@ -463,6 +706,12 @@ func TestCreateProvidersFromConstraints(t *testing.T) {
 					},
 					RunAsUser: kapi.RunAsUserStrategyOptions{
 						Type: kapi.RunAsUserStrategyMustRunAs,
+					},
+					FSGroup: kapi.FSGroupStrategyOptions{
+						Type: kapi.FSGroupStrategyRunAsAny,
+					},
+					SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+						Type: kapi.SupplementalGroupsStrategyRunAsAny,
 					},
 				}
 			},
@@ -721,4 +970,316 @@ func TestDeduplicateSecurityContextConstraints(t *testing.T) {
 		}
 	}
 
+}
+
+func TestRequiresPreallocatedSupplementalGroups(t *testing.T) {
+	testCases := map[string]struct {
+		scc      *kapi.SecurityContextConstraints
+		requires bool
+	}{
+		"must run as": {
+			scc: &kapi.SecurityContextConstraints{
+				SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+					Type: kapi.SupplementalGroupsStrategyMustRunAs,
+				},
+			},
+			requires: true,
+		},
+		"must with range specified": {
+			scc: &kapi.SecurityContextConstraints{
+				SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+					Type: kapi.SupplementalGroupsStrategyMustRunAs,
+					Ranges: []kapi.IDRange{
+						{Min: 1, Max: 1},
+					},
+				},
+			},
+		},
+		"run as any": {
+			scc: &kapi.SecurityContextConstraints{
+				SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
+					Type: kapi.SupplementalGroupsStrategyRunAsAny,
+				},
+			},
+		},
+	}
+	for k, v := range testCases {
+		result := requiresPreallocatedSupplementalGroups(v.scc)
+		if result != v.requires {
+			t.Errorf("%s expected result %t but got %t", k, v.requires, result)
+		}
+	}
+}
+
+func TestRequiresPreallocatedFSGroup(t *testing.T) {
+	testCases := map[string]struct {
+		scc      *kapi.SecurityContextConstraints
+		requires bool
+	}{
+		"must run as": {
+			scc: &kapi.SecurityContextConstraints{
+				FSGroup: kapi.FSGroupStrategyOptions{
+					Type: kapi.FSGroupStrategyMustRunAs,
+				},
+			},
+			requires: true,
+		},
+		"must with range specified": {
+			scc: &kapi.SecurityContextConstraints{
+				FSGroup: kapi.FSGroupStrategyOptions{
+					Type: kapi.FSGroupStrategyMustRunAs,
+					Ranges: []kapi.IDRange{
+						{Min: 1, Max: 1},
+					},
+				},
+			},
+		},
+		"run as any": {
+			scc: &kapi.SecurityContextConstraints{
+				FSGroup: kapi.FSGroupStrategyOptions{
+					Type: kapi.FSGroupStrategyRunAsAny,
+				},
+			},
+		},
+	}
+	for k, v := range testCases {
+		result := requiresPreallocatedFSGroup(v.scc)
+		if result != v.requires {
+			t.Errorf("%s expected result %t but got %t", k, v.requires, result)
+		}
+	}
+}
+
+func TestParseSupplementalGroupAnnotation(t *testing.T) {
+	tests := map[string]struct {
+		groups     string
+		expected   []uid.Block
+		shouldFail bool
+	}{
+		"single block slash": {
+			groups: "1/5",
+			expected: []uid.Block{
+				{Start: 1, End: 5},
+			},
+		},
+		"single block dash": {
+			groups: "1-5",
+			expected: []uid.Block{
+				{Start: 1, End: 5},
+			},
+		},
+		"multiple blocks": {
+			groups: "1/5,6/5,11/5",
+			expected: []uid.Block{
+				{Start: 1, End: 5},
+				{Start: 6, End: 10},
+				{Start: 11, End: 15},
+			},
+		},
+		"dash format": {
+			groups: "1-5,6-10,11-15",
+			expected: []uid.Block{
+				{Start: 1, End: 5},
+				{Start: 6, End: 10},
+				{Start: 11, End: 15},
+			},
+		},
+		"no blocks": {
+			groups:     "",
+			shouldFail: true,
+		},
+	}
+	for k, v := range tests {
+		blocks, err := parseSupplementalGroupAnnotation(v.groups)
+
+		if v.shouldFail && err == nil {
+			t.Errorf("%s was expected to fail but received no error and blocks %v", k, blocks)
+			continue
+		}
+
+		if !v.shouldFail && err != nil {
+			t.Errorf("%s had an unexpected error %v", k, err)
+			continue
+		}
+
+		if len(blocks) != len(v.expected) {
+			t.Errorf("%s received unexpected number of blocks expected: %v, actual %v", k, v.expected, blocks)
+		}
+
+		for _, b := range v.expected {
+			if !hasBlock(b, blocks) {
+				t.Errorf("%s was missing block %v", k, b)
+			}
+		}
+	}
+}
+
+func hasBlock(block uid.Block, blocks []uid.Block) bool {
+	for _, b := range blocks {
+		if b.Start == block.Start && b.End == block.End {
+			return true
+		}
+	}
+	return false
+}
+
+func TestGetPreallocatedFSGroup(t *testing.T) {
+	ns := func() *kapi.Namespace {
+		return &kapi.Namespace{
+			ObjectMeta: kapi.ObjectMeta{
+				Annotations: map[string]string{},
+			},
+		}
+	}
+
+	fallbackNS := ns()
+	fallbackNS.Annotations[allocator.UIDRangeAnnotation] = "1/5"
+
+	emptyAnnotationNS := ns()
+	emptyAnnotationNS.Annotations[allocator.SupplementalGroupsAnnotation] = ""
+
+	badBlockNS := ns()
+	badBlockNS.Annotations[allocator.SupplementalGroupsAnnotation] = "foo"
+
+	goodNS := ns()
+	goodNS.Annotations[allocator.SupplementalGroupsAnnotation] = "1/5"
+
+	tests := map[string]struct {
+		ns         *kapi.Namespace
+		expected   []kapi.IDRange
+		shouldFail bool
+	}{
+		"fall back to uid if sup group doesn't exist": {
+			ns: fallbackNS,
+			expected: []kapi.IDRange{
+				{Min: 1, Max: 1},
+			},
+		},
+		"no annotation": {
+			ns:         ns(),
+			shouldFail: true,
+		},
+		"empty annotation": {
+			ns:         emptyAnnotationNS,
+			shouldFail: true,
+		},
+		"bad block": {
+			ns:         badBlockNS,
+			shouldFail: true,
+		},
+		"good sup group annotation": {
+			ns: goodNS,
+			expected: []kapi.IDRange{
+				{Min: 1, Max: 1},
+			},
+		},
+	}
+
+	for k, v := range tests {
+		ranges, err := getPreallocatedFSGroup(v.ns)
+		if v.shouldFail && err == nil {
+			t.Errorf("%s was expected to fail but received no error and ranges %v", k, ranges)
+			continue
+		}
+
+		if !v.shouldFail && err != nil {
+			t.Errorf("%s had an unexpected error %v", k, err)
+			continue
+		}
+
+		if len(ranges) != len(v.expected) {
+			t.Errorf("%s received unexpected number of ranges expected: %v, actual %v", k, v.expected, ranges)
+		}
+
+		for _, r := range v.expected {
+			if !hasRange(r, ranges) {
+				t.Errorf("%s was missing range %v", k, r)
+			}
+		}
+	}
+}
+
+func TestGetPreallocatedSupplementalGroups(t *testing.T) {
+	ns := func() *kapi.Namespace {
+		return &kapi.Namespace{
+			ObjectMeta: kapi.ObjectMeta{
+				Annotations: map[string]string{},
+			},
+		}
+	}
+
+	fallbackNS := ns()
+	fallbackNS.Annotations[allocator.UIDRangeAnnotation] = "1/5"
+
+	emptyAnnotationNS := ns()
+	emptyAnnotationNS.Annotations[allocator.SupplementalGroupsAnnotation] = ""
+
+	badBlockNS := ns()
+	badBlockNS.Annotations[allocator.SupplementalGroupsAnnotation] = "foo"
+
+	goodNS := ns()
+	goodNS.Annotations[allocator.SupplementalGroupsAnnotation] = "1/5"
+
+	tests := map[string]struct {
+		ns         *kapi.Namespace
+		expected   []kapi.IDRange
+		shouldFail bool
+	}{
+		"fall back to uid if sup group doesn't exist": {
+			ns: fallbackNS,
+			expected: []kapi.IDRange{
+				{Min: 1, Max: 5},
+			},
+		},
+		"no annotation": {
+			ns:         ns(),
+			shouldFail: true,
+		},
+		"empty annotation": {
+			ns:         emptyAnnotationNS,
+			shouldFail: true,
+		},
+		"bad block": {
+			ns:         badBlockNS,
+			shouldFail: true,
+		},
+		"good sup group annotation": {
+			ns: goodNS,
+			expected: []kapi.IDRange{
+				{Min: 1, Max: 5},
+			},
+		},
+	}
+
+	for k, v := range tests {
+		ranges, err := getPreallocatedSupplementalGroups(v.ns)
+		if v.shouldFail && err == nil {
+			t.Errorf("%s was expected to fail but received no error and ranges %v", k, ranges)
+			continue
+		}
+
+		if !v.shouldFail && err != nil {
+			t.Errorf("%s had an unexpected error %v", k, err)
+			continue
+		}
+
+		if len(ranges) != len(v.expected) {
+			t.Errorf("%s received unexpected number of ranges expected: %v, actual %v", k, v.expected, ranges)
+		}
+
+		for _, r := range v.expected {
+			if !hasRange(r, ranges) {
+				t.Errorf("%s was missing range %v", k, r)
+			}
+		}
+	}
+}
+
+func hasRange(rng kapi.IDRange, ranges []kapi.IDRange) bool {
+	for _, r := range ranges {
+		if r.Min == rng.Min && r.Max == rng.Max {
+			return true
+		}
+	}
+	return false
 }

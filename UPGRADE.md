@@ -32,8 +32,26 @@ At that time, the openshift docker registry image must be upgraded in order to c
 
 1. The `volume.metadata` field is deprecated as of Origin 1.0.6 in favor of `volume.downwardAPI`.
 
-1. New fields (`allowHostPID` and `allowHostIPC`) have been added to the default SCCs in Origin 1.0.7.  
-You may set these fields manually or [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints).
+1. New fields (`fsGroup`, `supplementalGroups`, `allowHostPID` and `allowHostIPC`) have been added 
+to the default SCCs in Origin 1.0.7.  These allow you to control groups for persistent volumes,
+supplemental groups for the container, and usage of the host PID/IPC namespaces.  The fields will 
+default as follows for existing SCCs:
+
+  1.  allowHostPID - defaults to false.  You may wish to change this to true on any privileged SCCs or 
+  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints) 
+  which will set this field to true for the privileged SCC and false for the restricted SCC.
+  1.  allowHostIPC - defaults to false.  You may wish to change this to true on any privileged SCCs or 
+  [reset your default SCCs](https://docs.openshift.org/latest/admin_guide/manage_scc.html#updating-the-default-security-context-constraints) 
+  which will set this field to true for the privileged SCC and false for the restricted SCC.
+  1.  fsGroup - if the strategy type is unset this field will default based on the runAsUser strategy.
+  If runAsUser is set to RunAsAny this field will also be set to RunAsAny.  If the strategy type is
+  any other value this field will default to MustRunAs and look to the namespace for [annotation 
+  configuration](https://docs.openshift.org/latest/architecture/additional_concepts/authorization.html#understanding-pre-allocated-values-and-security-context-constraints).
+  1.  supplementalGroups - if the strategy type is unset this field will default based on the runAsUser strategy.
+  If runAsUser is set to RunAsAny this field will also be set to RunAsAny.  If the strategy type is
+  any other value this field will default to MustRunAs and look to the namespace for [annotation 
+  configuration](https://docs.openshift.org/latest/architecture/additional_concepts/authorization.html#understanding-pre-allocated-values-and-security-context-constraints).    
+   
 
 1. The `v1beta3` API version is being removed in Origin 1.1 (OSE 3.1).
 Existing `v1beta3` resources stored in etcd will still be readable and
