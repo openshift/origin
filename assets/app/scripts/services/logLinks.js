@@ -50,10 +50,28 @@ angular.module('openshiftConsole')
         newTab(params);
       };
 
-      // Not currently used.
-      // new tab: path/to/current?view=textonly
-      var textOnlyLink = function() {
-        newTab({view: 'textonly'});
+      // broken up for readability:
+      var template = new URITemplate([
+        "/#/discover?",
+        "_g=(",
+          "time:(from:now-7y%2Fy,mode:relative,to:now)",
+        ")",
+        "&_a=(",
+          "columns:!(_source),",
+          "index:'{namespace}.*',",
+          "query:(",
+            "query_string:(",
+              "analyze_wildcard:!t,",
+              "query:'kubernetes_pod_name: {podname} %26%26 kubernetes_namespace_name: {namespace}'",
+            ")",
+          "),",
+          "sort:!(time,desc)",
+        ")",
+        "&console_back_link={backlink}"
+      ].join(''));
+
+      var archiveUri = function(opts) {
+        return template.expand(opts);
       };
 
       return {
@@ -62,7 +80,7 @@ angular.module('openshiftConsole')
         scrollTo: scrollTo,
         newTab: newTab,
         chromelessLink: chromelessLink,
-        textOnlyLink: textOnlyLink
+        archiveUri: archiveUri
       };
     }
   ]);

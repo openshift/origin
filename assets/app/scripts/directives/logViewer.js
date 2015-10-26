@@ -2,10 +2,14 @@
 
 angular.module('openshiftConsole')
   .directive('logViewer', [
+    '$sce',
+    '$timeout',
+    '$window',
+    'AuthService',
+    'APIDiscovery',
     'DataService',
     'logLinks',
-    '$timeout',
-    function(DataService, logLinks, $timeout) {
+    function($sce, $timeout, $window, AuthService, APIDiscovery, DataService, logLinks) {
 
       // Create a template for each log line that we clone below.
       var logLineTemplate = $('<div row class="log-line"/>');
@@ -224,6 +228,35 @@ angular.module('openshiftConsole')
               goChromeless: logLinks.chromelessLink,
               restartLogs: streamLogs
             });
+
+            APIDiscovery
+              .getLoggingURL()
+              .then(function(url) {
+                // TODO: update lodash for _.get, would rather do this:
+                //var projectName = _.get($scope.context, 'project', 'metadata', 'name');
+                var projectName = $scope.context &&
+                                  $scope.context.project &&
+                                  $scope.context.project.metadata &&
+                                  $scope.context.project.metadata.name;
+
+                var hasComponents = projectName && $scope.name && url;
+                if(!hasComponents) {
+                  return;
+                }
+
+                angular.extend($scope, {
+                  canViewArchive: true,
+                  kibanaAuthUrl: $sce.trustAsResourceUrl(url+'/auth/token'),
+                  access_token: AuthService.UserStore().getToken(),
+                  // The archive URL violates angular's built in same origin policy.
+                  // Need to explicitly tell it to trust this location or it will throw errors.
+                  archiveLocation: $sce.trustAsResourceUrl(logLinks.archiveUri({
+                    namespace: projectName,
+                    podname: $scope.name,
+                    backlink: $window.location.href
+                  }))
+                });
+              });
           }
         ]
       };

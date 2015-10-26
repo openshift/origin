@@ -2,6 +2,18 @@
     <span>Current log from {{start}}&nbsp;</span>
     <span ng-if="end">to {{end}}</span>
   </div>
+
+  <div row main-axis="end" ng-if="canViewArchive">
+    <form
+      ng-if="canViewArchive"
+      action="{{kibanaAuthUrl}}"
+      method="POST" target="_blank">
+      <input type="hidden" name="redirect" value="{{archiveLocation}}">
+      <input type="hidden" name="access_token" value="{{access_token}}">
+      <button class="btn btn-sm btn-primary">View Archive</button>
+    </form>
+  </div>
+
   <div ng-if="largeLog" class="log-size-warning">
     <span class="pficon pficon-info" aria-hidden="true"></span>
     Only the previous {{options.tailLines || 1000}} log lines and new log
