@@ -2232,7 +2232,7 @@ const (
 	// container must run as a particular gid.
 	SupplementalGroupsStrategyMustRunAs SupplementalGroupsStrategyType = "MustRunAs"
 	// container may make requests for any gid.
-	SupplementalGroupsrStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
+	SupplementalGroupsStrategyRunAsAny SupplementalGroupsStrategyType = "RunAsAny"
 )
 
 // SecurityContextConstraintsList is a list of SecurityContextConstraints objects
