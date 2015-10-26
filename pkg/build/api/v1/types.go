@@ -561,6 +561,9 @@ type BuildLogOptions struct {
 	// is not available yet. Otherwise the server will wait until the build has started.
 	// TODO: Fix the tag to 'noWait' in v2
 	NoWait bool `json:"nowait,omitempty" description:"if true indicates that the server should not wait for a log to be available before returning; defaults to false"`
+
+	// Version of the build for which to view logs.
+	Version *int64 `json:"version,omitempty" description:"the version of the build for which to view logs"`
 }
 
 // SecretSpec specifies a secret to be included in a build pod and its corresponding mount point

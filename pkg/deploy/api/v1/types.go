@@ -391,6 +391,6 @@ type DeploymentLogOptions struct {
 	// TODO: Fix the tag to 'noWait' in v2
 	NoWait bool `json:"nowait,omitempty" description:"if true indicates that the server should not wait for a log to be available before returning; defaults to false"`
 
-	// Version of the deploymentConfig for which to view logs.
-	Version *int `json:"version,omitempty" description:"the version of the deploymentConfig for which to view logs"`
+	// Version of the deployment for which to view logs.
+	Version *int64 `json:"version,omitempty" description:"the version of the deployment for which to view logs"`
 }
