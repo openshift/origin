@@ -2840,6 +2840,33 @@ func autoconvert_api_ImageStreamTag_To_v1beta3_ImageStreamTag(in *imageapi.Image
 	return nil
 }
 
+func autoconvert_api_ImageStreamTagList_To_v1beta3_ImageStreamTagList(in *imageapi.ImageStreamTagList, out *imageapiv1beta3.ImageStreamTagList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapi.ImageStreamTagList))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]imageapiv1beta3.ImageStreamTag, len(in.Items))
+		for i := range in.Items {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func convert_api_ImageStreamTagList_To_v1beta3_ImageStreamTagList(in *imageapi.ImageStreamTagList, out *imageapiv1beta3.ImageStreamTagList, s conversion.Scope) error {
+	return autoconvert_api_ImageStreamTagList_To_v1beta3_ImageStreamTagList(in, out, s)
+}
+
 func autoconvert_v1beta3_Image_To_api_Image(in *imageapiv1beta3.Image, out *imageapi.Image, s conversion.Scope) error {
 	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
 		defaulting.(func(*imageapiv1beta3.Image))(in)
@@ -2991,6 +3018,33 @@ func autoconvert_v1beta3_ImageStreamTag_To_api_ImageStreamTag(in *imageapiv1beta
 	}
 	// in.ImageName has no peer in out
 	return nil
+}
+
+func autoconvert_v1beta3_ImageStreamTagList_To_api_ImageStreamTagList(in *imageapiv1beta3.ImageStreamTagList, out *imageapi.ImageStreamTagList, s conversion.Scope) error {
+	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
+		defaulting.(func(*imageapiv1beta3.ImageStreamTagList))(in)
+	}
+	if err := s.Convert(&in.TypeMeta, &out.TypeMeta, 0); err != nil {
+		return err
+	}
+	if err := s.Convert(&in.ListMeta, &out.ListMeta, 0); err != nil {
+		return err
+	}
+	if in.Items != nil {
+		out.Items = make([]imageapi.ImageStreamTag, len(in.Items))
+		for i := range in.Items {
+			if err := s.Convert(&in.Items[i], &out.Items[i], 0); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
+func convert_v1beta3_ImageStreamTagList_To_api_ImageStreamTagList(in *imageapiv1beta3.ImageStreamTagList, out *imageapi.ImageStreamTagList, s conversion.Scope) error {
+	return autoconvert_v1beta3_ImageStreamTagList_To_api_ImageStreamTagList(in, out, s)
 }
 
 func autoconvert_api_OAuthAccessToken_To_v1beta3_OAuthAccessToken(in *oauthapi.OAuthAccessToken, out *oauthapiv1beta3.OAuthAccessToken, s conversion.Scope) error {
@@ -5098,6 +5152,7 @@ func init() {
 		autoconvert_api_ImageStreamMapping_To_v1beta3_ImageStreamMapping,
 		autoconvert_api_ImageStreamSpec_To_v1beta3_ImageStreamSpec,
 		autoconvert_api_ImageStreamStatus_To_v1beta3_ImageStreamStatus,
+		autoconvert_api_ImageStreamTagList_To_v1beta3_ImageStreamTagList,
 		autoconvert_api_ImageStreamTag_To_v1beta3_ImageStreamTag,
 		autoconvert_api_ImageStream_To_v1beta3_ImageStream,
 		autoconvert_api_Image_To_v1beta3_Image,
@@ -5206,6 +5261,7 @@ func init() {
 		autoconvert_v1beta3_ImageStreamMapping_To_api_ImageStreamMapping,
 		autoconvert_v1beta3_ImageStreamSpec_To_api_ImageStreamSpec,
 		autoconvert_v1beta3_ImageStreamStatus_To_api_ImageStreamStatus,
+		autoconvert_v1beta3_ImageStreamTagList_To_api_ImageStreamTagList,
 		autoconvert_v1beta3_ImageStreamTag_To_api_ImageStreamTag,
 		autoconvert_v1beta3_ImageStream_To_api_ImageStream,
 		autoconvert_v1beta3_Image_To_api_Image,

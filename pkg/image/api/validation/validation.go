@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/docker/distribution/registry/api/v2"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
 
@@ -145,5 +146,31 @@ func ValidateImageStreamMapping(mapping *api.ImageStreamMapping) fielderrors.Val
 	if errs := ValidateImage(&mapping.Image).Prefix("image"); len(errs) != 0 {
 		result = append(result, errs...)
 	}
+	return result
+}
+
+// ValidateImageStreamTag is essentially a no-op.  We don't allow direct creation of istags
+func ValidateImageStreamTag(ist *api.ImageStreamTag) fielderrors.ValidationErrorList {
+	result := fielderrors.ValidationErrorList{}
+	result = append(result, validation.ValidateObjectMeta(&ist.ObjectMeta, true, oapi.MinimalNameRequirements).Prefix("metadata")...)
+
+	return result
+}
+
+// ValidateImageStreamTagUpdate ensures that only the annotations of the IST have changed
+func ValidateImageStreamTagUpdate(newIST, oldIST *api.ImageStreamTag) fielderrors.ValidationErrorList {
+	result := fielderrors.ValidationErrorList{}
+
+	result = append(result, validation.ValidateObjectMetaUpdate(&newIST.ObjectMeta, &oldIST.ObjectMeta).Prefix("metadata")...)
+
+	// ensure that only annotations have changed
+	newISTCopy := *newIST
+	oldISTCopy := *oldIST
+	newISTCopy.Annotations = nil
+	oldISTCopy.Annotations = nil
+	if !kapi.Semantic.Equalities.DeepEqual(&newISTCopy, &oldISTCopy) {
+		result = append(result, fielderrors.NewFieldInvalid("metadata", "", "may not update fields other than metadata.annotations"))
+	}
+
 	return result
 }

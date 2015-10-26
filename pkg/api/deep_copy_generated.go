@@ -1930,6 +1930,30 @@ func deepCopy_api_ImageStreamTag(in imageapi.ImageStreamTag, out *imageapi.Image
 	return nil
 }
 
+func deepCopy_api_ImageStreamTagList(in imageapi.ImageStreamTagList, out *imageapi.ImageStreamTagList, c *conversion.Cloner) error {
+	if newVal, err := c.DeepCopy(in.TypeMeta); err != nil {
+		return err
+	} else {
+		out.TypeMeta = newVal.(unversioned.TypeMeta)
+	}
+	if newVal, err := c.DeepCopy(in.ListMeta); err != nil {
+		return err
+	} else {
+		out.ListMeta = newVal.(unversioned.ListMeta)
+	}
+	if in.Items != nil {
+		out.Items = make([]imageapi.ImageStreamTag, len(in.Items))
+		for i := range in.Items {
+			if err := deepCopy_api_ImageStreamTag(in.Items[i], &out.Items[i], c); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
+	return nil
+}
+
 func deepCopy_api_TagEvent(in imageapi.TagEvent, out *imageapi.TagEvent, c *conversion.Cloner) error {
 	if newVal, err := c.DeepCopy(in.Created); err != nil {
 		return err
@@ -2813,6 +2837,7 @@ func init() {
 		deepCopy_api_ImageStreamSpec,
 		deepCopy_api_ImageStreamStatus,
 		deepCopy_api_ImageStreamTag,
+		deepCopy_api_ImageStreamTagList,
 		deepCopy_api_TagEvent,
 		deepCopy_api_TagEventList,
 		deepCopy_api_TagReference,
