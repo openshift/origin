@@ -91,11 +91,11 @@ func (r *REST) Get(ctx kapi.Context, name string, opts runtime.Object) (runtime.
 	switch {
 	case deployLogOpts.Version == nil:
 		// Latest
-	case *deployLogOpts.Version <= 0 || *deployLogOpts.Version > config.LatestVersion:
+	case *deployLogOpts.Version <= 0 || int(*deployLogOpts.Version) > config.LatestVersion:
 		// Invalid version
 		return nil, errors.NewBadRequest(fmt.Sprintf("invalid version for deploymentConfig %q: %d", config.Name, *deployLogOpts.Version))
 	default:
-		desiredVersion = *deployLogOpts.Version
+		desiredVersion = int(*deployLogOpts.Version)
 	}
 
 	// Get desired deployment

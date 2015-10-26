@@ -508,11 +508,16 @@ Print the logs for a resource.
   # Starts streaming of ruby-container logs from pod backend.
   $ openshift cli logs -f pod/backend -c ruby-container
 
-  # Starts streaming the logs of the most recent build of the openldap buildConfig.
+  # Starts streaming the logs of the most recent build of the openldap build config.
   $ openshift cli logs -f bc/openldap
 
-  # Starts streaming the logs of the latest deployment of the mysql deploymentConfig
+  # Starts streaming the logs of the latest deployment of the mysql deployment config.
   $ openshift cli logs -f dc/mysql
+
+  # Get the logs of the first deployment for the mysql deployment config. Note that logs
+  # from older deployments may not exist either because the deployment was successful
+  # or due to deployment pruning or manual deletion of the deployment.
+  $ openshift cli logs --version=1 dc/mysql
 ----
 ====
 

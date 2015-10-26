@@ -137,6 +137,14 @@ oc login -u e2e-user
 oc project test
 oc whoami
 
+echo "[INFO] Streaming the logs from a deployment twice..."
+oc create -f test/fixtures/failing-dc.yaml
+tryuntil oc get rc/failing-dc-1
+oc logs -f dc/failing-dc
+wait_for_command "oc get rc/failing-dc-1 --template={{.metadata.annotations}} | grep openshift.io/deployment.phase:Failed" $((20*TIME_SEC))
+oc deploy failing-dc --latest
+oc logs --version=1 dc/failing-dc
+
 echo "[INFO] Applying STI application config"
 oc create -f "${STI_CONFIG_FILE}"
 

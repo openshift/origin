@@ -1301,6 +1301,12 @@ func autoconvert_api_BuildLogOptions_To_v1beta3_BuildLogOptions(in *buildapi.Bui
 		out.LimitBytes = nil
 	}
 	out.NoWait = in.NoWait
+	if in.Version != nil {
+		out.Version = new(int64)
+		*out.Version = *in.Version
+	} else {
+		out.Version = nil
+	}
 	return nil
 }
 
@@ -2014,6 +2020,12 @@ func autoconvert_v1beta3_BuildLogOptions_To_api_BuildLogOptions(in *apiv1beta3.B
 		out.LimitBytes = nil
 	}
 	out.NoWait = in.NoWait
+	if in.Version != nil {
+		out.Version = new(int64)
+		*out.Version = *in.Version
+	} else {
+		out.Version = nil
+	}
 	return nil
 }
 
@@ -2635,7 +2647,7 @@ func autoconvert_api_DeploymentLogOptions_To_v1beta3_DeploymentLogOptions(in *de
 	}
 	out.NoWait = in.NoWait
 	if in.Version != nil {
-		out.Version = new(int)
+		out.Version = new(int64)
 		*out.Version = *in.Version
 	} else {
 		out.Version = nil
@@ -2776,7 +2788,7 @@ func autoconvert_v1beta3_DeploymentLogOptions_To_api_DeploymentLogOptions(in *de
 	}
 	out.NoWait = in.NoWait
 	if in.Version != nil {
-		out.Version = new(int)
+		out.Version = new(int64)
 		*out.Version = *in.Version
 	} else {
 		out.Version = nil

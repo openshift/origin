@@ -846,6 +846,12 @@ func deepCopy_api_BuildLogOptions(in buildapi.BuildLogOptions, out *buildapi.Bui
 		out.LimitBytes = nil
 	}
 	out.NoWait = in.NoWait
+	if in.Version != nil {
+		out.Version = new(int64)
+		*out.Version = *in.Version
+	} else {
+		out.Version = nil
+	}
 	return nil
 }
 
@@ -1465,7 +1471,7 @@ func deepCopy_api_DeploymentLogOptions(in deployapi.DeploymentLogOptions, out *d
 	}
 	out.NoWait = in.NoWait
 	if in.Version != nil {
-		out.Version = new(int)
+		out.Version = new(int64)
 		*out.Version = *in.Version
 	} else {
 		out.Version = nil

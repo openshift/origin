@@ -31,11 +31,16 @@ If the pod has only one container, the container name is optional.`
   # Starts streaming of ruby-container logs from pod backend.
   $ %[1]s logs -f pod/backend -c ruby-container
 
-  # Starts streaming the logs of the most recent build of the openldap buildConfig.
+  # Starts streaming the logs of the most recent build of the openldap build config.
   $ %[1]s logs -f bc/openldap
 
-  # Starts streaming the logs of the latest deployment of the mysql deploymentConfig
-  $ %[1]s logs -f dc/mysql`
+  # Starts streaming the logs of the latest deployment of the mysql deployment config.
+  $ %[1]s logs -f dc/mysql
+
+  # Get the logs of the first deployment for the mysql deployment config. Note that logs
+  # from older deployments may not exist either because the deployment was successful
+  # or due to deployment pruning or manual deletion of the deployment.
+  $ %[1]s logs --version=1 dc/mysql`
 )
 
 // OpenShiftLogsOptions holds all the necessary options for running oc logs.
@@ -63,6 +68,7 @@ func NewCmdLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Com
 		}
 		cmdutil.CheckErr(o.RunLog())
 	}
+	cmd.Flags().Int64("version", 0, "View the logs of a particular build or deployment by version if greater than zero")
 
 	return cmd
 }
@@ -93,12 +99,14 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 	if len(infos) != 1 {
 		return errors.New("expected a resource")
 	}
+
+	version := cmdutil.GetFlagInt64(cmd, "version")
 	_, resource := meta.KindToResource(infos[0].Mapping.Kind, false)
 
 	// TODO: podLogOptions should be included in our own logOptions objects.
 	switch resource {
 	case "build", "buildconfig":
-		o.Options = &buildapi.BuildLogOptions{
+		bopts := &buildapi.BuildLogOptions{
 			Follow:       podLogOptions.Follow,
 			SinceSeconds: podLogOptions.SinceSeconds,
 			SinceTime:    podLogOptions.SinceTime,
@@ -106,8 +114,12 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 			TailLines:    podLogOptions.TailLines,
 			LimitBytes:   podLogOptions.LimitBytes,
 		}
+		if version != 0 {
+			bopts.Version = &version
+		}
+		o.Options = bopts
 	case "deploymentconfig":
-		o.Options = &deployapi.DeploymentLogOptions{
+		dopts := &deployapi.DeploymentLogOptions{
 			Follow:       podLogOptions.Follow,
 			SinceSeconds: podLogOptions.SinceSeconds,
 			SinceTime:    podLogOptions.SinceTime,
@@ -115,6 +127,10 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, out io.Writer, cmd
 			TailLines:    podLogOptions.TailLines,
 			LimitBytes:   podLogOptions.LimitBytes,
 		}
+		if version != 0 {
+			dopts.Version = &version
+		}
+		o.Options = dopts
 	default:
 		o.Options = nil
 	}

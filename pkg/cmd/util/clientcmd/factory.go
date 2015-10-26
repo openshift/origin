@@ -22,6 +22,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -190,6 +191,10 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if !ok {
 				return nil, errors.New("provided options object is not a BuildLogOptions")
 			}
+			if bopts.Version != nil {
+				// should --version work with builds at all?
+				return nil, errors.New("cannot specify a version and a build")
+			}
 			return oc.BuildLogs(t.Namespace).Get(t.Name, *bopts), nil
 		case *buildapi.BuildConfig:
 			bopts, ok := options.(*buildapi.BuildLogOptions)
@@ -204,11 +209,16 @@ func NewFactory(clientConfig kclientcmd.ClientConfig) *Factory {
 			if len(builds.Items) == 0 {
 				return nil, fmt.Errorf("no builds found for %s", t.Name)
 			}
+			if bopts.Version != nil {
+				// If a version has been specified, try to get the logs from that build.
+				desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
+				return oc.BuildLogs(t.Namespace).Get(desired, *bopts), nil
+			}
 			sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds.Items)))
 			return oc.BuildLogs(t.Namespace).Get(builds.Items[0].Name, *bopts), nil
 		default:
+			return kLogsForObjectFunc(object, options)
 		}
-		return kLogsForObjectFunc(object, options)
 	}
 	w.Printer = func(mapping *meta.RESTMapping, noHeaders, withNamespace, wide bool, showAll bool, columnLabels []string) (kubectl.ResourcePrinter, error) {
 		return describe.NewHumanReadablePrinter(noHeaders, withNamespace, wide, showAll, columnLabels), nil

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -73,4 +74,10 @@ func NameFromImageStream(namespace string, ref *kapi.ObjectReference, tag string
 // IsBuildComplete returns whether the provided build is complete or not
 func IsBuildComplete(build *buildapi.Build) bool {
 	return build.Status.Phase != buildapi.BuildPhaseRunning && build.Status.Phase != buildapi.BuildPhasePending && build.Status.Phase != buildapi.BuildPhaseNew
+}
+
+// BuildNameForConfigVersion returns the name of the version-th build
+// for the config that has the provided name
+func BuildNameForConfigVersion(name string, version int) string {
+	return fmt.Sprintf("%s-%d", name, version)
 }

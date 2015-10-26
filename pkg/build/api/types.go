@@ -640,6 +640,9 @@ type BuildLogOptions struct {
 	// NoWait if true causes the call to return immediately even if the build
 	// is not available yet. Otherwise the server will wait until the build has started.
 	NoWait bool
+
+	// Version of the build for which to view logs.
+	Version *int64
 }
 
 // SecretSpec specifies a secret to be included in a build pod and its corresponding mount point

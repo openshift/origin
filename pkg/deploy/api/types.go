@@ -399,6 +399,6 @@ type DeploymentLogOptions struct {
 	// is not available yet. Otherwise the server will wait until the deployment has started.
 	NoWait bool
 
-	// Version of the deploymentConfig for which to view logs.
-	Version *int
+	// Version of the deployment for which to view logs.
+	Version *int64
 }
