@@ -41,6 +41,12 @@ func validNewSecurityContextConstraints(name string) *api.SecurityContextConstra
 		RunAsUser: api.RunAsUserStrategyOptions{
 			Type: api.RunAsUserStrategyRunAsAny,
 		},
+		FSGroup: api.FSGroupStrategyOptions{
+			Type: api.FSGroupStrategyRunAsAny,
+		},
+		SupplementalGroups: api.SupplementalGroupsStrategyOptions{
+			Type: api.SupplementalGroupsStrategyRunAsAny,
+		},
 	}
 }
 

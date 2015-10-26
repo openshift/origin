@@ -381,7 +381,7 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 			scc.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
 			seLinuxTypes := []api.SELinuxContextStrategyType{api.SELinuxStrategyRunAsAny, api.SELinuxStrategyMustRunAs}
 			scc.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
-			supGroupTypes := []api.SupplementalGroupsStrategyType{api.SupplementalGroupsStrategyMustRunAs, api.SupplementalGroupsStrategyMustRunAs}
+			supGroupTypes := []api.SupplementalGroupsStrategyType{api.SupplementalGroupsStrategyMustRunAs, api.SupplementalGroupsStrategyRunAsAny}
 			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
 			fsGroupTypes := []api.FSGroupStrategyType{api.FSGroupStrategyMustRunAs, api.FSGroupStrategyRunAsAny}
 			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]

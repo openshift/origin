@@ -407,7 +407,7 @@ var thirdPartyResourceColumns = []string{"NAME", "DESCRIPTION", "VERSION(S)"}
 var horizontalPodAutoscalerColumns = []string{"NAME", "REFERENCE", "TARGET", "CURRENT", "MINPODS", "MAXPODS", "AGE"}
 var withNamespacePrefixColumns = []string{"NAMESPACE"} // TODO(erictune): print cluster name too.
 var deploymentColumns = []string{"NAME", "UPDATEDREPLICAS", "AGE"}
-var securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "HOSTDIR", "SELINUX", "RUNASUSER"}
+var securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "HOSTDIR", "SELINUX", "RUNASUSER", "FSGROUP", "SUPGROUP"}
 
 // addDefaultHandlers adds print handlers for default Kubernetes types.
 func (h *HumanReadablePrinter) addDefaultHandlers() {
@@ -1428,9 +1428,9 @@ func printHorizontalPodAutoscalerList(list *extensions.HorizontalPodAutoscalerLi
 }
 
 func printSecurityContextConstraints(item *api.SecurityContextConstraints, w io.Writer, withNamespace, wide, showAll bool, columnLabels []string) error {
-	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%t\t%s\t%s\t%s\t%s\n", item.Name, item.AllowPrivilegedContainer,
 		item.AllowedCapabilities, item.AllowHostDirVolumePlugin, item.SELinuxContext.Type,
-		item.RunAsUser.Type)
+		item.RunAsUser.Type, item.FSGroup.Type, item.SupplementalGroups.Type)
 	return err
 }
 
