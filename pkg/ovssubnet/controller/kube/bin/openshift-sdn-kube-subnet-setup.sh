@@ -93,6 +93,28 @@ function setup_required() {
     return 1
 }
 
+# Delete the subnet routing entry created because of ip link up on device
+# ip link adds local subnet route entry asynchronously
+# So check for the new route entry every 100 ms upto timeout of 2 secs and
+# delete the route entry.
+function delete_local_subnet_route() {
+    local device=$1
+    local time_interval=0.1  # 100 milli secs
+    local max_intervals=20   # timeout: 2 secs
+    local num_intervals=0
+    local cmd="ip route | grep -q '${local_subnet_cidr} dev ${device}'"
+
+    until $(eval $cmd) || [ $num_intervals -ge $max_intervals ]; do
+        sleep $time_interval
+        num_intervals=$((num_intervals + 1))
+    done
+
+    if [ $num_intervals -ge $max_intervals ]; then
+        echo "Warning: ${local_subnet_cidr} route not found for dev ${device}" >&2
+    fi
+    ip route del ${local_subnet_cidr} dev ${device} proto kernel scope link || true
+}
+
 function setup() {
     # clear config file
     rm -f /etc/openshift-sdn/config.env
@@ -139,11 +161,12 @@ function setup() {
     sysctl -w net.ipv4.ip_forward=1
     sysctl -w net.ipv4.conf.${TUN}.forwarding=1
 
-    # delete the subnet routing entry created because of lbr0
-    ip route del ${local_subnet_cidr} dev lbr0 proto kernel scope link src ${local_subnet_gateway} || true
-
     mkdir -p /etc/openshift-sdn
     echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_network_cidr}" >> "/etc/openshift-sdn/config.env"
+
+    # delete unnecessary routes
+    delete_local_subnet_route lbr0
+    delete_local_subnet_route ${TUN}
 }
 
 set +e
