@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('overviewDeployment', function($location, $timeout, $filter, LabelFilter, DeploymentsService) {
+  .directive('overviewDeployment', function($location, $timeout, $filter, LabelFilter, DeploymentsService, hashSizeFilter) {
     return {
       restrict: 'E',
       scope: {
@@ -51,6 +51,10 @@ angular.module('openshiftConsole')
         }, 500);
 
         $scope.viewPodsForDeployment = function(deployment) {
+          if (hashSizeFilter($scope.pods) === 0) {
+            return;
+          }
+
           $location.url("/project/" + deployment.metadata.namespace + "/browse/pods");
           $timeout(function() {
             LabelFilter.setLabelSelector(new LabelSelector(deployment.spec.selector, true));
@@ -58,24 +62,31 @@ angular.module('openshiftConsole')
         };
 
         $scope.scaleUp = function() {
-          if (!$scope.desiredReplicas) {
-            $scope.desiredReplicas = $scope.rc.spec.replicas;
-          }
+          $scope.desiredReplicas = $scope.getDesiredReplicas();
           $scope.desiredReplicas++;
           scale();
         };
 
         $scope.scaleDown = function() {
-          if (!$scope.desiredReplicas) {
-            $scope.desiredReplicas = $scope.rc.spec.replicas;
-          }
-
+          $scope.desiredReplicas = $scope.getDesiredReplicas();
           if ($scope.desiredReplicas > 0) {
             $scope.desiredReplicas--;
             scale();
           }
         };
+
+        $scope.getDesiredReplicas = function() {
+          // If not null or undefined, use $scope.desiredReplicas.
+          if (angular.isDefined($scope.desiredReplicas) && $scope.desiredReplicas !== null) {
+            return $scope.desiredReplicas;
+          }
+
+          if ($scope.rc && $scope.rc.spec && angular.isDefined($scope.rc.spec.replicas)) {
+            return $scope.rc.spec.replicas;
+          }
+
+          return 1;
+        };
       }
     };
   });
-

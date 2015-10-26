@@ -48,10 +48,11 @@ angular.module('openshiftConsole')
           type: "donut",
           bindto: '#' + $scope.chartId,
           donut: {
-            width: 10,
+            expand: false,
             label: {
               show: false
-            }
+            },
+            width: 10
           },
           size: {
             height: 150,
@@ -63,7 +64,13 @@ angular.module('openshiftConsole')
           onrendered: updateCenterText,
           tooltip: {
             format: {
-              value: function(value) {
+              value: function(value, ratio, id) {
+                // Disable the tooltip for empty donuts.
+                if (id === "Empty") {
+                  return undefined;
+                }
+
+                // Show the count rather than a percentage.
                 return value;
               }
             },
@@ -78,27 +85,42 @@ angular.module('openshiftConsole')
             // Keep groups in our order.
             order: null,
             colors: {
-             Running: "#00b9e4",
-             Warning: "#f9d67a",
-             Failed: "#d9534f",
-             Pending: "#e8e8e8",
-             Succeeded: "#3f9c35",
-             Unknown: "#f9d67a"
+              // Dummy group for an empty chart. Gray outline added in CSS.
+              Empty: "#ffffff",
+              Running: "#00b9e4",
+              Warning: "#f9d67a",
+              Failed: "#d9534f",
+              Pending: "#e8e8e8",
+              Succeeded: "#3f9c35",
+              Unknown: "#f9d67a"
+            },
+            selection: {
+              enabled: false
             }
           }
         };
 
         function updateChart(countByPhase) {
-          var columns = [];
+          var data = {
+            columns: []
+          };
           angular.forEach(phases, function(phase) {
-            columns.push([phase, countByPhase[phase] || 0]);
+            data.columns.push([phase, countByPhase[phase] || 0]);
           });
 
+          if (hashSizeFilter(countByPhase) === 0) {
+            // Add a dummy group to draw an arc, which we style in CSS.
+            data.columns.push(["Empty", 1]);
+          } else {
+            // Unload the dummy group if present when there's real data.
+            data.unload = "Empty";
+          }
+
           if (!chart) {
-            config.data.columns = columns;
+            config.data.columns = data.columns;
             chart = c3.generate(config);
           } else {
-            chart.load({ columns: columns });
+            chart.load(data);
           }
         }
 
@@ -124,6 +146,13 @@ angular.module('openshiftConsole')
 
         $scope.$watch(countPodPhases, updateChart, true);
         $scope.$watch('desired', updateCenterText);
+
+        $scope.$on('destroy', function() {
+          if (chart) {
+            // http://c3js.org/reference.html#api-destroy
+            chart = chart.destroy();
+          }
+        });
       }
     };
   });
