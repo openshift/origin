@@ -2,9 +2,6 @@ package flatsdn
 
 import (
 	"github.com/golang/glog"
-	"strings"
-
-	"k8s.io/kubernetes/pkg/util/exec"
 
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet"
 	"github.com/openshift/openshift-sdn/plugins/osdn"
@@ -15,14 +12,7 @@ func NetworkPluginName() string {
 }
 
 func Master(registry *osdn.Registry, clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) {
-	// get hostname from the gateway
-	output, err := exec.New().Command("uname", "-n").CombinedOutput()
-	if err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
-	}
-	host := strings.TrimSpace(string(output))
-
-	kc, err := ovssubnet.NewKubeController(registry, host, "", nil)
+	kc, err := ovssubnet.NewKubeController(registry, "", "", nil)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}

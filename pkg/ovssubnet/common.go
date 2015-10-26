@@ -71,6 +71,14 @@ func NewMultitenantController(registry *osdn.Registry, hostname string, selfIP s
 }
 
 func NewController(registry *osdn.Registry, hostname string, selfIP string, ready chan struct{}) (*OvsController, error) {
+	if hostname == "" {
+		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
+		if err != nil {
+			return nil, err
+		}
+		hostname = strings.TrimSpace(string(output))
+	}
+
 	if selfIP == "" {
 		var err error
 		selfIP, err = netutils.GetNodeIP(hostname)
