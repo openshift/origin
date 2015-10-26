@@ -290,7 +290,10 @@ func (oi *OsdnRegistryInterface) WriteNetworkConfig(network string, subnetLength
 
 func (oi *OsdnRegistryInterface) GetClusterNetworkCIDR() (string, error) {
 	cn, err := oi.oClient.ClusterNetwork().Get("default")
-	return cn.Network, err
+	if err != nil {
+		return "", err
+	}
+	return cn.Network, nil
 }
 
 func (oi *OsdnRegistryInterface) GetServicesNetworkCIDR() (string, error) {
@@ -405,7 +408,7 @@ func (oi *OsdnRegistryInterface) getServices(namespace string) ([]osdnapi.Servic
 
 	oServList := make([]osdnapi.Service, 0, len(kServList.Items))
 	for _, kService := range kServList.Items {
-		if kService.Spec.ClusterIP == "None" {
+		if !kapi.IsServiceIPSet(&kService) {
 			continue
 		}
 		for _, port := range kService.Spec.Ports {
@@ -427,7 +430,7 @@ func (oi *OsdnRegistryInterface) WatchServices(receiver chan<- *osdnapi.ServiceE
 		kServ := obj.(*kapi.Service)
 
 		// Ignore headless services
-		if kServ.Spec.ClusterIP == "None" {
+		if !kapi.IsServiceIPSet(kServ) {
 			continue
 		}
 
