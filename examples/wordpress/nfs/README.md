@@ -11,12 +11,12 @@ Create two NFS exports, each of which will become a Persistent Volume in the clu
 ```
 # the directories in this example can grow unbounded
 # use disk partitions of specific sizes to enforce storage quotas
-mkdir /home/data/pv0001
-mkdir /home/data/pv0002
+mkdir -p /home/data/pv0001
+mkdir -p /home/data/pv0002
 
 # data written to NFS by a pod gets squashed by NFS and is owned by 'nfsnobody'
 # we'll make our export directories owned by the same user
-chown -R /home/data nfsnobody:nfsnobody
+chown -R nfsnobody:nfsnobody /home/data
 
 # security needs to be permissive currently, but the export will soon be restricted 
 # to the same UID/GID that wrote the data
