@@ -74,7 +74,7 @@ echo 2>&1
 set +e
 git apply --reject "${patch}"
 if [[ $? -ne 0 ]]; then
-  echo "++ Not all patches applied, merge *.req into your files or rerun with REBASE=1"
+  echo "++ Not all patches applied, merge *.rej into your files or rerun with REBASE=1"
   exit 1
 fi
 
