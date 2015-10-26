@@ -85,24 +85,41 @@ os::util::init-certs() {
   popd > /dev/null
 }
 
-# Set up the KUBECONFIG environment variable for use by oc
-os::util::set-oc-env() {
-  local config_root=$1
-  local target=$2
+os::util::set-os-env() {
+  local origin_root=$1
+  local config_root=$2
 
-  if [ "${config_root}" = "/" ]; then
-    config_root=""
+  # Set up the KUBECONFIG environment variable for use by oc.
+  #
+  # Target .bashrc since docker exec doesn't invoke .bash_profile and
+  # .bash_profile loads .bashrc anyway.
+  local file_target=".bashrc"
+
+  local vagrant_target="/home/vagrant/${file_target}"
+  if [ -d $(dirname "${vagrant_target}") ]; then
+    os::util::set-bash-env "${origin_root}" "${config_root}" \
+"${vagrant_target}"
   fi
+  os::util::set-bash-env "${origin_root}" "${config_root}" \
+"/root/${file_target}"
+}
+
+os::util::set-bash-env() {
+  local origin_root=$1
+  local config_root=$2
+  local target=$3
 
   local path="${config_root}/openshift.local.config/master/admin.kubeconfig"
   local config_line="export KUBECONFIG=${path}"
   if ! grep -q "${config_line}" "${target}" &> /dev/null; then
     echo "export KUBECONFIG=${path}" >> "${target}"
+    echo "cd ${origin_root}" >> "${target}"
   fi
 }
 
 os::util::get-network-plugin() {
   local plugin=$1
+  local dind_management_script=${2:-false}
 
   local subnet_plugin="redhat/openshift-ovs-subnet"
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
@@ -110,13 +127,97 @@ os::util::get-network-plugin() {
 
   if [ "${plugin}" != "${subnet_plugin}" ] && \
      [ "${plugin}" != "${multitenant_plugin}" ]; then
-    if [ "${plugin}" != "" ]; then
+    # Disable output when being called from the dind management script
+    # since it may be doing something other than launching a cluster.
+    if [ "${dind_management_script}" = "false" ]; then
+      if [ "${plugin}" != "" ]; then
         >&2 echo "Invalid network plugin: ${plugin}"
+      fi
+      >&2 echo "Using default network plugin: ${default_plugin}"
     fi
-    >&2 echo "Using default network plugin: ${default_plugin}"
     plugin="${default_plugin}"
   fi
   echo "${plugin}"
+}
+
+os::util::base-provision() {
+  os::util::fixup-net-udev
+
+  os::util::setup-hosts-file "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES NODE_IPS
+
+  os::util::install-pkgs
+}
+
+os::util::fixup-net-udev() {
+  if [ "${FIXUP_NET_UDEV}" == "true" ]; then
+    NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
+    rm -f ${NETWORK_CONF_PATH}ifcfg-enp*
+    if [[ -f "${NETWORK_CONF_PATH}ifcfg-eth1" ]]; then
+      sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
+      if ! grep -q "NAME=" ${NETWORK_CONF_PATH}ifcfg-eth1; then
+        echo "NAME=openshift" >> ${NETWORK_CONF_PATH}ifcfg-eth1
+      fi
+      nmcli con reload
+      nmcli dev disconnect eth1
+      nmcli con up "openshift"
+    fi
+  fi
+}
+
+os::util::install-pkgs() {
+  # Only install packages if not deploying to a container.  A
+  # container is expected to have installed packages as part of image
+  # creation.
+  if [ ! -f /.dockerinit ]; then
+    yum update -y
+    yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which ethtool
+
+    systemctl enable docker
+    systemctl start docker
+  fi
+}
+
+os::util::start-os-service() {
+  local unit_name=$1
+  local description=$2
+  local exec_start=$3
+  local work_dir=${4:-${CONFIG_ROOT}/}
+
+  # TODO(marun) Should the daemons be sharing a working directory?
+
+  cat <<EOF > "/usr/lib/systemd/system/${unit_name}.service"
+[Unit]
+Description=${description}
+Requires=network.target
+After=docker.target network.target
+
+[Service]
+ExecStart=${exec_start}
+WorkingDirectory=${work_dir}
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  systemctl daemon-reload
+  systemctl enable "${unit_name}.service"
+  systemctl start "${unit_name}.service"
+}
+
+os::util::start-node-service() {
+  local node_name=$1
+
+  # Copy over the certificates directory so that each node has a copy.
+  cp -r "${CONFIG_ROOT}/openshift.local.config" /
+  if [ -d /home/vagrant ]; then
+    chown -R vagrant.vagrant /openshift.local.config
+  fi
+
+  cmd="/usr/bin/openshift start node --loglevel=${LOG_LEVEL} \
+--config=/openshift.local.config/node-${node_name}/node-config.yaml"
+  os::util::start-os-service "openshift-node" "OpenShift Node" "${cmd}" /
 }
 
 os::util::wait-for-condition() {
@@ -147,4 +248,31 @@ os::util::wait-for-condition() {
   if [ "${counter}" != "0" ]; then
     echo -e '\nDone'
   fi
+}
+
+os::util::is-sdn-node-registered() {
+  local master_cid=$1
+  local node_name=$2
+
+  ${DOCKER_CMD} exec -t "${master_cid}" bash -ci \
+    "oc get nodes ${node_name} &> /dev/null"
+}
+
+os::util::disable-sdn-node() {
+  local master_cid=$1
+  local node_name=$2
+
+  local sdn_msg="for sdn node to register with the master"
+  local start_msg="Waiting ${sdn_msg}"
+  local error_msg="[ERROR] Timeout waiting ${sdn_msg}"
+  local condition="os::util::is-sdn-node-registered ${master_cid} ${node_name}"
+  local timeout=30
+  os::util::wait-for-condition "${start_msg}" "${error_msg}" "${condition}" \
+    "${timeout}"
+
+  echo "Disabling scheduling for the sdn node"
+  # Disable scheduling outside of the master provision script to give
+  # the node time to register itself to the master.
+  ${DOCKER_CMD} exec -t "${master_cid}" bash -ci \
+    "osadm manage-node ${node_name} --schedulable=false > /dev/null"
 }

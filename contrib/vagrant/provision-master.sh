@@ -1,72 +1,38 @@
 #!/bin/bash
 
-set -ex
 source $(dirname $0)/provision-config.sh
 
-FIXUP_NET_UDEV=$5
+os::util::base-provision
 
-NETWORK_PLUGIN=$(os::util::get-network-plugin ${6:-""})
+echo "Building and installing openshift"
+${ORIGIN_ROOT}/hack/build-go.sh
+os::util::install-cmds "${ORIGIN_ROOT}"
+${ORIGIN_ROOT}/hack/install-etcd.sh
+os::util::install-sdn "${ORIGIN_ROOT}"
 
-if [ "${FIXUP_NET_UDEV}" == "true" ]; then
-  NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
-  rm -f ${NETWORK_CONF_PATH}ifcfg-enp*
-  if [[ -f "${NETWORK_CONF_PATH}ifcfg-eth1" ]]; then
-    sed -i 's/^NM_CONTROLLED=no/#NM_CONTROLLED=no/' ${NETWORK_CONF_PATH}ifcfg-eth1
-    if ! grep -q "NAME=" ${NETWORK_CONF_PATH}ifcfg-eth1; then
-      echo "NAME=openshift" >> ${NETWORK_CONF_PATH}ifcfg-eth1
-    fi
-    nmcli con reload
-    nmcli dev disconnect eth1
-    nmcli con up "openshift"
-  fi
-fi
+# Running an openshift node on the master ensures connectivity between
+# the openshift service and pods.  This supports kube API calls that
+# query a service and require that the endpoints of the service be
+# reachable from the master.
+#
+# TODO(marun) This is required for connectivity with openshift-sdn,
+# but may not make sense for other plugins.
+NODE_NAMES+=(${SDN_NODE_NAME})
+NODE_IPS+=(127.0.0.1)
+# Force the addition of a hosts entry for the sdn node.
+os::util::add-to-hosts-file "${MASTER_IP}" "${SDN_NODE_NAME}" 1
 
-# Setup hosts file to ensure name resolution to each member of the cluster
-minion_ip_array=(${MINION_IPS//,/ })
-os::util::setup-hosts-file "${MASTER_NAME}" "${MASTER_IP}" MINION_NAMES \
-  minion_ip_array
+os::util::init-certs "${CONFIG_ROOT}" "${NETWORK_PLUGIN}" "${MASTER_NAME}" \
+  "${MASTER_IP}" NODE_NAMES NODE_IPS
 
-# Install the required packages
-yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which
+echo "Launching openshift daemons"
+NODE_LIST=$(os::util::join , ${NODE_NAMES[@]})
+cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
+ --master=https://${MASTER_IP}:8443 --nodes=${NODE_LIST} \
+ --network-plugin=${NETWORK_PLUGIN}"
+os::util::start-os-service "openshift-master" "OpenShift Master" "${cmd}"
+os::util::start-node-service "${SDN_NODE_NAME}"
 
-# Build openshift
-echo "Building openshift"
-pushd "${ORIGIN_ROOT}"
-  ./hack/build-go.sh
-  os::util::install-cmds "${ORIGIN_ROOT}"
-  ./hack/install-etcd.sh
-popd
+# TODO(marun) Need to disable scheduling on sdn daemon
 
-os::util::init-certs "${ORIGIN_ROOT}" "${NETWORK_PLUGIN}" "${MASTER_NAME}" \
-  "${MASTER_IP}" MINION_NAMES minion_ip_array
-
-# Start docker
-systemctl enable docker.service
-systemctl start docker.service
-
-# Create systemd service
-node_list=$(os::util::join , ${MINION_NAMES[@]})
-cat <<EOF > /usr/lib/systemd/system/openshift-master.service
-[Unit]
-Description=OpenShift Master
-Requires=docker.service network.service
-After=network.service
-
-[Service]
-ExecStart=/usr/bin/openshift start master --master=https://${MASTER_IP}:8443 --nodes=${node_list} --network-plugin=${NETWORK_PLUGIN}
-WorkingDirectory=${ORIGIN_ROOT}/
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Start the service
-systemctl daemon-reload
-systemctl start openshift-master.service
-
-# setup SDN
-$(dirname $0)/provision-sdn.sh
-
-# Set up the KUBECONFIG environment variable for use by oc
-os::util::set-oc-env "${ORIGIN_ROOT}" "/root/.bash_profile"
-os::util::set-oc-env "${ORIGIN_ROOT}" "/home/vagrant/.bash_profile"
+os::util::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
