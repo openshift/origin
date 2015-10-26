@@ -1388,6 +1388,33 @@ func deepCopy_v1beta3_PodLogOptions(in PodLogOptions, out *PodLogOptions, c *con
 	out.Container = in.Container
 	out.Follow = in.Follow
 	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		out.SinceTime = new(unversioned.Time)
+		if err := deepCopy_util_Time(*in.SinceTime, out.SinceTime, c); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	return nil
 }
 

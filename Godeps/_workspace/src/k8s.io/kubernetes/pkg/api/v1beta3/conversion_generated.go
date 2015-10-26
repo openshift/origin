@@ -1428,6 +1428,32 @@ func convert_api_PodLogOptions_To_v1beta3_PodLogOptions(in *api.PodLogOptions, o
 	out.Container = in.Container
 	out.Follow = in.Follow
 	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	return nil
 }
 
@@ -3648,6 +3674,32 @@ func convert_v1beta3_PodLogOptions_To_api_PodLogOptions(in *PodLogOptions, out *
 	out.Container = in.Container
 	out.Follow = in.Follow
 	out.Previous = in.Previous
+	if in.SinceSeconds != nil {
+		out.SinceSeconds = new(int64)
+		*out.SinceSeconds = *in.SinceSeconds
+	} else {
+		out.SinceSeconds = nil
+	}
+	if in.SinceTime != nil {
+		if err := s.Convert(&in.SinceTime, &out.SinceTime, 0); err != nil {
+			return err
+		}
+	} else {
+		out.SinceTime = nil
+	}
+	out.Timestamps = in.Timestamps
+	if in.TailLines != nil {
+		out.TailLines = new(int64)
+		*out.TailLines = *in.TailLines
+	} else {
+		out.TailLines = nil
+	}
+	if in.LimitBytes != nil {
+		out.LimitBytes = new(int64)
+		*out.LimitBytes = *in.LimitBytes
+	} else {
+		out.LimitBytes = nil
+	}
 	return nil
 }
 
