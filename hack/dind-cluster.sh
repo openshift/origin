@@ -59,44 +59,26 @@
 #
 #     hack/dind-cluster.sh test-net-e2e
 #
-# Bash Aliases
-# ------------
-#
-# The following bash aliases are available in the cluster containers:
-#
-# oc-create-hello - create the 'hello' example app
-# oc-less-log - invoke 'less' on the openshift daemon log (will target
-#               the master or node log depending on the type of node)
-# oc-tail-log - invoke tail on the openshift daemon log
-#
-# Process Management
-# ------------------
-#
-# Due to docker-in-docker conflicting with systemd when running in a
-# container, supervisord is used instead.  The 'supervisorctl' command
-# is the equivalent of 'systemctl' and logs for managed processes can
-# be found in /var/log/supervisor.
-#
-# Loopback Devices
-# ----------------
-#
-# Due to the way docker-in-docker daemons interact with loopback
-# devices, it is important to invoke 'dind-cluster.sh stop' on a
-# running cluster instead of manually stopping the containers.  This
-# ensures that the containerized docker daemons are gracefully
-# shutdown and allowed to release their loopback devices before
-# container shutdown.  If the daemons are not stopped before container
-# shutdown, the associated loopback devices will be effectively
-# unusable ('leaked') until a subsequent host reboot.  If enough
-# loopback devices are leaked, cluster boot may not be possible since
-# each openshift node running in a container depends on a docker
-# daemon requiring 2 loopback devices.
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-source $(dirname "${BASH_SOURCE}")/dind/init.sh
+DIND_MANAGEMENT_SCRIPT=true
+
+source $(dirname "${BASH_SOURCE}")/../contrib/vagrant/provision-config.sh
+
+DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
+
+# Override the default CONFIG_ROOT path with one that is
+# cluster-specific.
+CONFIG_ROOT=${OS_DIND_CONFIG_ROOT:-/tmp/openshift-dind-cluster/${INSTANCE_PREFIX}}
+
+DEPLOYED_CONFIG_ROOT="/config"
+
+DEPLOYED_ROOT="/data"
+
+SCRIPT_ROOT="${DEPLOYED_ROOT}/contrib/vagrant"
 
 function check-selinux() {
   if [ "$(getenforce)" = "Enforcing" ]; then
@@ -141,45 +123,15 @@ function get-docker-ip() {
   ${DOCKER_CMD} inspect --format '{{ .NetworkSettings.IPAddress }}' "${cid}"
 }
 
-# Ensure sufficient available loopback devices to support the
-# indicated number of dind nodes.  Since it's not possible to create
-# device nodes inside a container, this function needs to be called
-# before launching a container that will run dind.
-function ensure-loopback-for-dind() {
-  local node_count=$1
-
-  # Ensure extra loopback devices to minimize the potential for
-  # contention.  Sometimes docker restarts during deployment don't
-  # properly release the devices.
-  local extra_loopback=4
-  local loopback_per_node=2
-  local required_free_loopback=$(( ( ${node_count} * ${loopback_per_node} ) + \
-    ${extra_loopback} ))
-
-  # Find the maximum index of existing loopback devices.
-  local max_index=$(losetup | grep '/dev/loop' | tail -n 1 |
-    sed -e 's|^/dev/loop\([0-9]\{1,\}\).*|\1|')
-  if [ -z "${max_index}" ]; then
-    max_index=0
-  fi
-
-  local requested_max_index=$(( ${max_index} + ${required_free_loopback} - 1))
-  for i in $(eval echo "{${max_index}..${requested_max_index}}"); do
-    if [ ! -e "/dev/loop${i}" ]; then
-      sudo mknod "/dev/loop${i}" b 7 "${i}"
-    fi
-  done
-}
-
 function start() {
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
 
+  # TODO(marun) - perform these operations in a container for boot2docker compat
   echo "Ensuring compatible host configuration"
   sudo modprobe openvswitch
   sudo modprobe br_netfilter || true
   sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
-  ensure-loopback-for-dind "${NUM_NODES}"
   mkdir -p "${CONFIG_ROOT}"
 
   build-images
@@ -205,10 +157,12 @@ function start() {
   node_ips=$(os::util::join , ${node_ips[@]})
 
   ## Provision containers
-  local args="${master_ip} ${NUM_NODES} ${node_ips} ${INSTANCE_PREFIX}"
+  echo "Configured network plugin: ${NETWORK_PLUGIN}"
+  local args="${master_ip} ${NODE_COUNT} ${node_ips} ${INSTANCE_PREFIX} \
+-n '${NETWORK_PLUGIN}'"
   echo "Provisioning ${MASTER_NAME}"
   ${DOCKER_CMD} exec -t "${master_cid}" bash -c \
-    "${SCRIPT_ROOT}/provision-master.sh ${args} ${MASTER_NAME} ${NETWORK_PLUGIN}"
+    "${SCRIPT_ROOT}/provision-master.sh ${args} -c ${DEPLOYED_CONFIG_ROOT}"
 
   # Ensure that all users (e.g. outside the container) have read-write
   # access to the openshift configuration.  Security shouldn't be a
@@ -222,14 +176,16 @@ function start() {
     local name="${NODE_NAMES[$i]}"
     echo "Provisioning ${name}"
     ${DOCKER_CMD} exec "${cid}" bash -c \
-      "${SCRIPT_ROOT}/provision-node.sh ${args} ${name}"
+      "${SCRIPT_ROOT}/provision-node.sh ${args} -i ${i} -c \
+${DEPLOYED_CONFIG_ROOT}"
   done
 
-  os::dind::disable-sdn-node "${master_cid}" "${SDN_NODE_NAME}"
+  os::util::disable-sdn-node "${master_cid}" "${SDN_NODE_NAME}"
 }
 
 function stop() {
   echo "Cleaning up docker-in-docker containers"
+
   local master_cid=$(${DOCKER_CMD} ps -qa --filter "name=${MASTER_NAME}")
   if [[ "${master_cid}" ]]; then
     ${DOCKER_CMD} rm -f "${master_cid}"
@@ -239,16 +195,6 @@ function stop() {
   if [[ "${node_cids}" ]]; then
     node_cids=(${node_cids//\n/ })
     for cid in "${node_cids[@]}"; do
-      # Ensure that the nested docker daemon is stopped before attempting
-      # container removal so associated loopback devices are properly
-      # released.
-      #
-      # See: https://github.com/jpetazzo/dind/issues/19
-      #
-      local is_running=$(${DOCKER_CMD} inspect -f {{.State.Running}} "${cid}")
-      if [ "${is_running}" = "true" ]; then
-        ${DOCKER_CMD} exec -t "${cid}" "${SCRIPT_ROOT}/kill-docker.sh"
-      fi
       ${DOCKER_CMD} rm -f "${cid}"
     done
   fi
@@ -314,8 +260,7 @@ case "${1:-""}" in
     test-net-e2e
     ;;
   config-host)
-    os::util::set-oc-env "${CONFIG_ROOT}" "/home/vagrant/.bashrc"
-    os::util::set-oc-env "${CONFIG_ROOT}" "/root/.bashrc"
+    os::util::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
     ;;
   *)
     echo "Usage: $0 {start|stop|restart|build-images|test-net-e2e|config-host}"

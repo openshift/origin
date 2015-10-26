@@ -104,6 +104,7 @@ function test-osdn-plugin() {
     TEST_FAILURES=$((TEST_FAILURES + 1))
   fi
 
+  # TODO(marun) Need to dump logs from systemd
   os::log::info "Saving daemon logs"
   copy-container-files "/var/log/supervisor" "${LOG_DIR}/${name}"
 
