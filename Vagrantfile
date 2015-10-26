@@ -229,7 +229,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.vm.box     = vagrant_openshift_config['libvirt']['box_name']
       override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
-      if dev_cluster
+      if ! single_vm_cluster
         # Work around https://github.com/pradels/vagrant-libvirt/issues/419
         override.vm.synced_folder ".", "/vagrant", type: 'nfs'
       end
