@@ -46,7 +46,7 @@ if [[ -z "${NO_REBASE-}" ]]; then
     git branch -d last_upstream_branch
   fi
   git checkout -b last_upstream_branch "${lastrev}"
-  git diff -p --raw "${selector}" > "${patch}"
+  git diff -p --raw --binary "${selector}" > "${patch}"
   if ! git apply -3 "${patch}"; then
     git rerere # record pre state
     echo 2>&1
@@ -57,14 +57,14 @@ if [[ -z "${NO_REBASE-}" ]]; then
   # stage any new files
   git add . > /dev/null
   # construct a new patch
-  git diff --cached -p --raw --{src,dst}-prefix=a/Godeps/_workspace/src/${repo}/ > "${patch}"
+  git diff --cached -p --raw --binary --{src,dst}-prefix=a/Godeps/_workspace/src/${repo}/ > "${patch}"
   # cleanup the current state
   git reset HEAD --hard > /dev/null
   git checkout master > /dev/null
   git branch -d last_upstream_branch > /dev/null
 else
   echo "++ Generating patch for ${selector} without rebasing ..." 2>&1
-  git diff -p --raw --{src,dst}-prefix=a/Godeps/_workspace/src/${repo}/ "${selector}" > "${patch}"
+  git diff -p --raw --binary --{src,dst}-prefix=a/Godeps/_workspace/src/${repo}/ "${selector}" > "${patch}"
 fi
 
 popd > /dev/null
