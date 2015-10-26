@@ -82,20 +82,6 @@ oc delete template ruby-helloworld-sample
 oc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
 oc delete all -l app=ruby
 
-if `hash docker > /dev/null 2>&1`; then
-	# ensure a local-only image gets a docker image(not imagestream) reference created.
-	tmp=$(mktemp -d)
-	pushd $tmp
-	cat <<-EOF >> Dockerfile
-		FROM scratch
-		EXPOSE 80
-	EOF
-	docker build -t test/scratchimage .
-	popd
-	rm -rf $tmp
-	[ "$(oc new-app  test/scratchimage~https://github.com/openshift/ruby-hello-world.git --strategy=docker -o yaml |& tr '\n' ' ' | grep -E "from:\s+kind:\s+DockerImage\s+name:\s+test/scratchimage:latest\s+")" ]
-fi
-
 # do not allow use of non-existent image (should fail)
 [ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep "no image or template matched")" ]
 # allow use of non-existent image (should succeed)
