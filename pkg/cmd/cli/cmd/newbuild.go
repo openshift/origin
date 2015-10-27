@@ -81,6 +81,7 @@ func NewCmdNewBuild(fullName string, f *clientcmd.Factory, in io.Reader, out io.
 	cmd.Flags().BoolVar(&config.OutputDocker, "to-docker", false, "Have the build output push to a Docker repository.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
 	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
+	cmd.Flags().StringVar(&config.ContextDir, "context-dir", "", "Context directory to be used for the build.")
 	cmdutil.AddPrinterFlags(cmd)
 
 	return cmd

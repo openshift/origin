@@ -2278,6 +2278,7 @@ _openshift_cli_new-build()
 
     flags+=("--allow-missing-images")
     flags+=("--code=")
+    flags+=("--context-dir=")
     flags+=("--docker-image=")
     flags+=("--dockerfile=")
     two_word_flags+=("-D")
