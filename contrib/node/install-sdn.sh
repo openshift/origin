@@ -1,6 +1,6 @@
 #!/bin/bash
 
-os::util::install-sdn() {
+os::provision::install-sdn() {
   local default_target="/usr"
 
   local deployed_root=$1

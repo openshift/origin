@@ -58,7 +58,7 @@ NODE_IPS=(${NODE_IPS//,/ })
 if [ "${CONFIG_ROOT}" = "/" ]; then
   CONFIG_ROOT=""
 fi
-NETWORK_PLUGIN=$(os::util::get-network-plugin "${NETWORK_PLUGIN}" \
+NETWORK_PLUGIN=$(os::provision::get-network-plugin "${NETWORK_PLUGIN}" \
   "${DIND_MANAGEMENT_SCRIPT:-false}")
 MASTER_NAME="${INSTANCE_PREFIX}-master"
 NODE_PREFIX="${INSTANCE_PREFIX}-node-"
