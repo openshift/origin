@@ -53,11 +53,10 @@
                         <span ng-if="!portMapping.nodePort" class="text-muted">none</span>
                       </td>
                       <td role="presentation" class="text-muted">&#8594;</td>
-                      <td><span ng-if="service.spec.clusterIP && service.spec.clusterIP !== 'None'">
-                          <span class="hidden-xs">{{service.spec.clusterIP}}:</span></span>{{portMapping.port}}
+                      <td>{{portMapping.port}}/{{portMapping.protocol}}
                           <span ng-if="portMapping.name">({{portMapping.name}})</span></td>
                       <td role="presentation" class="text-muted">&#8594;</td>
-                      <td>{{portMapping.targetPort}}&nbsp;({{portMapping.protocol}})</td>
+                      <td>{{portMapping.targetPort}}</td>
                     </tr>
                   </tbody>
                 </table>
