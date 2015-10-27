@@ -76,11 +76,9 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 				return nil, err
 			}
 
-			if len(ref.Registry) == 0 {
-				ref.Registry = "local Docker"
-			}
 			if len(ref.Tag) == 0 {
 				ref.Tag = imageapi.DefaultImageTag
+				term = fmt.Sprintf("%s:%s", term, imageapi.DefaultImageTag)
 			}
 			for _, image := range images {
 				if tags := matchTag(image, term, ref.Registry, ref.Namespace, ref.Name, ref.Tag); len(tags) > 0 {
@@ -249,12 +247,10 @@ func descriptionFor(image *imageapi.DockerImage, value, from string, tag string)
 }
 
 func matchTag(image docker.APIImages, value, registry, namespace, name, tag string) []*ComponentMatch {
-	if len(tag) == 0 {
-		tag = imageapi.DefaultImageTag
-	}
 	matches := []*ComponentMatch{}
 	for _, s := range image.RepoTags {
 		if value == s {
+			glog.V(4).Infof("exact match on %q", s)
 			matches = append(matches, &ComponentMatch{
 				Value: s,
 				Score: 0.0,

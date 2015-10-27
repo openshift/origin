@@ -394,12 +394,13 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 			errs = append(errs, err)
 			continue
 		}
-		switch input := ref.Input(); {
-		case !input.ExpectToBuild && input.ResolvedMatch.Builder:
+		input := ref.Input()
+		if !input.ExpectToBuild && input.ResolvedMatch.Builder {
 			if c.Strategy != "docker" {
-				glog.Infof("Image %q is a builder, so a repository will be expected unless you also specify --strategy=docker", input)
 				input.ExpectToBuild = true
 			}
+		}
+		switch {
 		case input.ExpectToBuild && input.ResolvedMatch.IsTemplate():
 			// TODO: harder - break the template pieces and check if source code can be attached (look for a build config, build image, etc)
 			errs = append(errs, fmt.Errorf("template with source code explicitly attached is not supported - you must either specify the template and source code separately or attach an image to the source code using the '[image]~[code]' form"))
@@ -409,6 +410,9 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 				errs = append(errs, fmt.Errorf("the resolved match %q for component %q cannot build source code - check whether this is the image you want to use, then use --strategy=source to build using source or --strategy=docker to treat this as a Docker base image and set up a layered Docker build", input.ResolvedMatch.Name, ref))
 				continue
 			}
+		case input.ResolvedMatch.Score != 0.0:
+			errs = append(errs, fmt.Errorf("component %q had only a partial match of %q - if this is the value you want to use, specify it explicitly", input.From, input.ResolvedMatch.Name))
+			continue
 		}
 	}
 	return errors.NewAggregate(errs)
@@ -817,8 +821,8 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	}
 	components = append(components, sourceComponents...)
 
-	glog.V(4).Infof("Code %v", repositories)
-	glog.V(4).Infof("Components %v", components)
+	glog.V(4).Infof("Code [%v]", repositories)
+	glog.V(4).Infof("Components [%v]", components)
 
 	if len(repositories) == 0 && len(components) == 0 {
 		return nil, ErrNoInputs
