@@ -31,7 +31,7 @@
             <td data-title="Routes to">
               <span>{{route.spec.to.kind}}: </span>
               <span ng-if="route.spec.to.kind != 'Service'">{{route.spec.to.name}}</span>
-              <span ng-if="route.spec.to.kind == 'Service'"><a ng-href="{{route.spec.to.name | navigateResourceURL : 'Service': route.metadata.namespace}}">{{route.spec.to.name}}</a></span>
+              <span ng-if="route.spec.to.kind == 'Service'"><a ng-href="{{route.spec.to.name | navigateResourceURL : 'Service': route.metadata.namespace}}">{{route.spec.to.name}}</a><span ng-if="route.spec.port.targetPort"> on port {{route.spec.port.targetPort}}</span></span>
             </td>
             <td data-title="Age"><relative-timestamp timestamp="route.metadata.creationTimestamp" drop-suffix="true"></relative-timestamp></td>
           </tr>
