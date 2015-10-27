@@ -5,15 +5,21 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 )
+
+// maxRetriesOnConflict is the maximum retry count for Create calls which
+// result in resource conflicts.
+const maxRetriesOnConflict = 10
 
 // REST implements the RESTStorage interface in terms of an image registry and
 // image stream registry. It only supports the Create method and is used
@@ -61,7 +67,11 @@ func (s imageStreamMappingStrategy) Validate(ctx kapi.Context, obj runtime.Objec
 	return validation.ValidateImageStreamMapping(mapping)
 }
 
-// Create registers a new image (if it doesn't exist) and updates the specified ImageStream's tags.
+// Create registers a new image (if it doesn't exist) and updates the
+// specified ImageStream's tags. If attempts to update the ImageStream fail
+// with a resource conflict, the update will be retried if the newer
+// ImageStream has no tag diffs from the previous state. If tag diffs are
+// detected, the conflict error is returned.
 func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
@@ -90,18 +100,52 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		Image:                image.Name,
 	}
 
-	if !api.AddTagEventToImageStream(stream, tag, next) {
-		// nothing actually changed
-		return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
+	var result *unversioned.Status
+	var updateConflictErr error
+	retryErr := client.RetryOnConflict(wait.Backoff{Steps: maxRetriesOnConflict}, func() error {
+		lastEvent := api.LatestTaggedImage(stream, tag)
+		if !api.AddTagEventToImageStream(stream, tag, next) {
+			// nothing actually changed
+			result = &unversioned.Status{Status: unversioned.StatusSuccess}
+			return nil
+		}
+		api.UpdateTrackingTags(stream, tag, next)
+
+		_, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream)
+		if err != nil {
+			if !errors.IsConflict(err) {
+				return err
+			}
+			// If the update conflicts, get the latest stream and check for tag
+			// updates. If the latest tag hasn't changed, retry.
+			latestStream, findLatestErr := s.findStreamForMapping(ctx, mapping)
+			if findLatestErr != nil {
+				return findLatestErr
+			}
+			newerEvent := api.LatestTaggedImage(latestStream, tag)
+			if lastEvent == nil || kapi.Semantic.DeepEqual(lastEvent, newerEvent) {
+				// The tag hasn't changed, so try again with the updated stream.
+				stream = latestStream
+				return err
+			}
+			// The tag changed, so return the conflict error back to the client.
+			// This is a little indirect but is necessary because we can't just
+			// return the conflict error from the retry function (since it would
+			// trigger a retry).
+			updateConflictErr = err
+			return nil
+		}
+		result = &unversioned.Status{Status: unversioned.StatusSuccess}
+		return nil
+	})
+
+	if updateConflictErr != nil {
+		return nil, updateConflictErr
 	}
-
-	api.UpdateTrackingTags(stream, tag, next)
-
-	if _, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream); err != nil {
-		return nil, err
+	if retryErr != nil {
+		return nil, retryErr
 	}
-
-	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
+	return result, nil
 }
 
 // findStreamForMapping retrieves an ImageStream whose DockerImageRepository matches dockerRepo.
