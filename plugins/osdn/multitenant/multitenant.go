@@ -18,7 +18,6 @@ func Master(registry *osdn.Registry, clusterNetworkCIDR string, clusterBitsPerSu
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
-	kc.AdminNamespaces = append(kc.AdminNamespaces, "default")
 	err = kc.StartMaster(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR)
 	if err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
