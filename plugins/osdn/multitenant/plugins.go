@@ -13,14 +13,12 @@ import (
 )
 
 const (
-	initCmd     = "init"
 	setUpCmd    = "setup"
 	tearDownCmd = "teardown"
 	statusCmd   = "status"
 )
 
 type MultitenantPlugin struct {
-	host          knetwork.Host
 	OvsController *ovssubnet.OvsController
 }
 
@@ -33,7 +31,6 @@ func (plugin *MultitenantPlugin) getExecutable() string {
 }
 
 func (plugin *MultitenantPlugin) Init(host knetwork.Host) error {
-	plugin.host = host
 	return nil
 }
 
