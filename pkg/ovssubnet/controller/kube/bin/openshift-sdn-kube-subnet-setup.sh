@@ -91,9 +91,10 @@ function delete_local_subnet_route() {
     done
 
     if [ $num_intervals -ge $max_intervals ]; then
-        echo "Warning: ${local_subnet_cidr} route not found for dev ${device}" >&2
+        echo "Error: ${local_subnet_cidr} route not found for dev ${device}" >&2
+        return 1
     fi
-    ip route del ${local_subnet_cidr} dev ${device} proto kernel scope link || true
+    ip route del ${local_subnet_cidr} dev ${device} proto kernel scope link
 }
 
 function setup() {
@@ -147,7 +148,7 @@ function setup() {
 
     # delete unnecessary routes
     delete_local_subnet_route lbr0
-    delete_local_subnet_route ${TUN}
+    delete_local_subnet_route ${TUN} || true
 }
 
 set +e
