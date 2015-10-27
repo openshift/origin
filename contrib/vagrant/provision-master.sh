@@ -34,7 +34,7 @@ cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
  --master=https://${MASTER_IP}:8443 --nodes=${NODE_LIST} \
  --network-plugin=${NETWORK_PLUGIN}"
 os::provision::start-os-service "openshift-master" "OpenShift Master" "${cmd}"
-os::provision::start-node-service "${SDN_NODE_NAME}"
+os::provision::start-node-service "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
 
 # Disable scheduling for the sdn node - it's purpose is only to ensure
 # pod network connectivity on the master.

@@ -109,6 +109,13 @@ os::provision::get-admin-config() {
     echo "${config_root}/openshift.local.config/master/admin.kubeconfig"
 }
 
+os::provision::get-node-config() {
+    local config_root=$1
+    local node_name=$2
+
+    echo "${config_root}/openshift.local.config/node-${node_name}/node-config.yaml"
+}
+
 os::provision::set-bash-env() {
   local origin_root=$1
   local config_root=$2
@@ -217,11 +224,15 @@ os::provision::fixup-net-udev() {
   fi
 }
 
+os::provision::in-container() {
+  test -f /.dockerinit
+}
+
 os::provision::install-pkgs() {
   # Only install packages if not deploying to a container.  A
   # container is expected to have installed packages as part of image
   # creation.
-  if [ ! -f /.dockerinit ]; then
+  if ! os::provision::in-container; then
     yum update -y
     yum install -y docker-io git golang e2fsprogs hg net-tools bridge-utils which ethtool
   fi
@@ -256,27 +267,30 @@ systemctl start "${unit_name}.service"
 }
 
 os::provision::start-node-service() {
-  local node_name=$1
+  local config_root=$1
+  local node_name=$2
 
   # Copy over the certificates directory so that each node has a copy.
-  cp -r "${CONFIG_ROOT}/openshift.local.config" /
+  cp -r "${config_root}/openshift.local.config" /
   if [ -d /home/vagrant ]; then
     chown -R vagrant.vagrant /openshift.local.config
   fi
 
   cmd="/usr/bin/openshift start node --loglevel=${LOG_LEVEL} \
---config=/openshift.local.config/node-${node_name}/node-config.yaml"
+--config=$(os::provision::get-node-config ${config_root} ${node_name})"
   os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" /
 }
 
+OS_WAIT_FOREVER=-1
 os::provision::wait-for-condition() {
-  local start_msg=$1
-  local error_msg=$2
+  local msg=$1
   # condition should be a string that can be eval'd.  When eval'd, it
   # should not output anything to stderr or stdout.
-  local condition=$3
-  local timeout=${4:-30}
-  local sleep_interval=${5:-1}
+  local condition=$2
+  local timeout=${3:-30}
+
+  local start_msg="Waiting for ${msg}"
+  local error_msg="[ERROR] Timeout waiting for ${msg}"
 
   local counter=0
   while ! $(${condition}); do
@@ -284,9 +298,12 @@ os::provision::wait-for-condition() {
       echo "${start_msg}"
     fi
 
-    if [[ "${counter}" -lt "${timeout}" ]]; then
+    if [[ "${counter}" < "${timeout}" ]] || \
+       [[ "${timeout}" = "${OS_WAIT_FOREVER}" ]]; then
       counter=$((counter + 1))
-      echo -n '.'
+      if [ "${timeout}" != "${OS_WAIT_FOREVER}" ]; then
+        echo -n '.'
+      fi
       sleep 1
     else
       echo -e "\n${error_msg}"
@@ -295,7 +312,9 @@ os::provision::wait-for-condition() {
   done
 
   if [ "${counter}" != "0" ]; then
-    echo -e '\nDone'
+    if [ "${timeout}" != "${OS_WAIT_FOREVER}" ]; then
+      echo -e '\nDone'
+    fi
   fi
 }
 
@@ -311,14 +330,22 @@ os::provision::disable-sdn-node() {
 
   export KUBECONFIG=$(os::provision::get-admin-config "${config_root}")
 
-  local sdn_msg="for sdn node to register with the master"
-  local start_msg="Waiting ${sdn_msg}"
-  local error_msg="[ERROR] Timeout waiting ${sdn_msg}"
+  local msg="sdn node to register with the master"
   local condition="os::provision::is-sdn-node-registered ${node_name}"
-  local timeout=30
-  os::provision::wait-for-condition "${start_msg}" "${error_msg}" \
-    "${condition}" "${timeout}"
+  os::provision::wait-for-condition "${msg}" "${condition}"
 
   echo "Disabling scheduling for the sdn node"
   osadm manage-node "${node_name}" --schedulable=false > /dev/null
+}
+
+os::provision::wait-for-node-config() {
+  local config_root=$1
+  local node_name=$2
+
+  local msg="node configuration file"
+  local config_file=$(os::provision::get-node-config "${config_root}" \
+    "${node_name}")
+  local condition="test -f ${config_file}"
+  os::provision::wait-for-condition "${msg}" "${condition}" \
+    "${OS_WAIT_FOREVER}"
 }
