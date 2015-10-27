@@ -423,3 +423,26 @@ type DefaultRegistryFunc func() (string, bool)
 func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
 	return fn()
 }
+
+// InternalStrategy implements behavior for updating both the spec and status
+// of an image stream
+type InternalStrategy struct {
+	Strategy
+}
+
+// NewInternalStrategy creates an update strategy around an existing stream
+// strategy.
+func NewInternalStrategy(strategy Strategy) InternalStrategy {
+	return InternalStrategy{strategy}
+}
+
+func (InternalStrategy) PrepareForUpdate(obj, old runtime.Object) {
+}
+
+func (InternalStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
+func (InternalStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+	return validation.ValidateImageStreamUpdate(obj.(*api.ImageStream), old.(*api.ImageStream))
+}

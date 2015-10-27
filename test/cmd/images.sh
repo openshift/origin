@@ -120,7 +120,18 @@ oc tag mysql:latest tagtest3:latest tagtest4:latest --alias
 [ "$(oc get is/tagtest4 --template='{{(index .spec.tags 0).from.kind}}')" == "ImageStreamTag" ]
 oc delete is/tagtest is/tagtest2 is/tagtest3 is/tagtest4
 
+# test deleting a spec tag using oc tag
 oc create -f test/fixtures/test-stream.yaml
 [ "$(oc tag test-stream:latest -d | grep "Deleted")" ]
 oc delete is/test-stream
 echo "tag: ok"
+
+# test deleting a tag using oc delete
+os::util::get_object_assert 'is perl' "{{(index .spec.tags 0).name}}" '5.16'
+os::util::get_object_assert 'is perl' "{{(index .status.tags 0).tag}}" '5.16'
+oc delete istag/perl:5.16
+[ ! "$(oc get is/perl --template={{.spec.tags}} | grep '5.16')" ]
+[ ! "$(oc get is/perl --template={{.status.tags}} | grep '5.16')" ]
+oc delete all --all
+
+echo "delete istag: ok"

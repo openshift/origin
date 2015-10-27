@@ -346,14 +346,14 @@ func NewTestDeployOpenshift(t *testing.T) *testDeployOpenshift {
 	imageStorage := imageetcd.NewREST(etcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
 
-	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(
+	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(
 		etcdHelper,
 		imagestream.DefaultRegistryFunc(func() (string, bool) {
 			return "registry:3000", true
 		}),
 		&fakeSubjectAccessReviewRegistry{},
 	)
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry)
 
