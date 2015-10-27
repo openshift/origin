@@ -2,7 +2,7 @@
 
 angular.module("openshiftConsole")
 
-  .service("ApplicationGenerator", function(DataService){
+  .service("ApplicationGenerator", function(DataService, Logger, $parse){
     var oApiVersion = DataService.oApiVersion;
     var k8sApiVersion = DataService.k8sApiVersion;
 
@@ -18,24 +18,41 @@ angular.module("openshiftConsole")
         return s4()+s4()+s4()+s4();
       };
 
-    /**
-    * Find the 'first' port of exposed ports.
-    * @param            ports  list of ports (e.g {containerPort: 80, protocol: "tcp"})
-    * @return {string} The port/protocol pair of the lowest container port
-    */
-    scope._getFirstPort = function(ports){
-      var first = "None";
-      ports.forEach(function(port){
-        if(first === "None"){
-            first = port;
-          }else{
-            if(port.containerPort < first.containerPort){
-              first = port;
-            }
+    scope.parsePorts = function(image) {
+      //map ports to k8s structure
+      var parsePortsFromSpec = function(portSpec){
+        var ports = [];
+        angular.forEach(portSpec, function(value, key){
+          var parts = key.split("/");
+          if(parts.length === 1){
+            parts.push("tcp");
           }
-        }
-      );
-      return first;
+
+          var containerPort = parseInt(parts[0], 10);
+          if (isNaN(containerPort)) {
+            Logger.warn("Container port " + parts[0] + " is not a number for image " + $parse("metadata.name")(image));
+          } else {
+            ports.push({
+              containerPort: containerPort,
+              protocol: parts[1].toUpperCase()
+            });
+          }
+        });
+
+        // Since the exposed ports in Docker image metadata are not in any
+        // order, sort the ports from lowest to highest.
+        ports.sort(function(left, right) {
+          return left.containerPort - right.containerPort;
+        });
+
+        return ports;
+      };
+
+      var specPorts =
+        $parse('dockerImageMetadata.Config.ExposedPorts')(image) ||
+        $parse('dockerImageMetadata.ContainerConfig.ExposedPorts')(image) ||
+        [];
+      return parsePortsFromSpec(specPorts);
     };
 
     /**
@@ -44,27 +61,7 @@ angular.module("openshiftConsole")
      * @returns Hash of resource definitions
      */
     scope.generate = function(input){
-      //map ports to k8s structure
-      var parsePorts = function(portSpec){
-        var ports = [];
-        angular.forEach(portSpec, function(value, key){
-          var parts = key.split("/");
-          if(parts.length === 1){
-            parts.push("tcp");
-          }
-
-          ports.push(
-            {
-              containerPort: parseInt(parts[0]),
-              protocol: parts[1].toUpperCase()
-            });
-        });
-        return ports;
-      };
-      var ports = input.image.dockerImageMetadata.Config ? parsePorts(input.image.dockerImageMetadata.Config.ExposedPorts) : [];
-      if(ports.length === 0 && input.image.dockerImageMetadata.ContainerConfig){
-        ports = parsePorts(input.image.dockerImageMetadata.ContainerConfig.ExposedPorts);
-      }
+      var ports = scope.parsePorts(input.image);
 
       //augment labels
       input.labels.app = input.name;
@@ -85,10 +82,16 @@ angular.module("openshiftConsole")
       var resources = {
         imageStream: scope._generateImageStream(input),
         buildConfig: scope._generateBuildConfig(input, imageSpec, input.labels),
-        deploymentConfig: scope._generateDeploymentConfig(input, imageSpec, ports, input.labels),
-        service: scope._generateService(input, input.name, scope._getFirstPort(ports))
+        deploymentConfig: scope._generateDeploymentConfig(input, imageSpec, ports, input.labels)
       };
-      resources.route = scope._generateRoute(input, input.name, resources.service.metadata.name);
+
+      var service = scope._generateService(input, input.name, ports);
+      if (service) {
+        resources.service = service;
+        // Only attempt to generate a route if there is a service.
+        resources.route = scope._generateRoute(input, input.name, resources.service.metadata.name);
+      }
+
       return resources;
     };
 
@@ -96,7 +99,8 @@ angular.module("openshiftConsole")
       if(!input.routing.include) {
         return null;
       }
-      return {
+
+      var route = {
         kind: "Route",
         apiVersion: oApiVersion,
         metadata: {
@@ -111,6 +115,14 @@ angular.module("openshiftConsole")
           }
         }
       };
+
+      if (input.routing.targetPort) {
+        route.spec.port = {
+          targetPort: input.routing.targetPort.containerPort
+        };
+      }
+
+      return route;
     };
 
     scope._generateDeploymentConfig = function(input, imageSpec, ports){
@@ -270,10 +282,11 @@ angular.module("openshiftConsole")
       };
     };
 
-    scope._generateService  = function(input, serviceName, port){
-      if(port === 'None') {
+    scope._generateService  = function(input, serviceName, ports){
+      if (!ports || !ports.length) {
         return null;
       }
+
       var service = {
         kind: "Service",
         apiVersion: k8sApiVersion,
@@ -285,19 +298,21 @@ angular.module("openshiftConsole")
         spec: {
           selector: {
             deploymentconfig: input.name
-          }
+          },
+          ports: []
         }
       };
-      //TODO add in when server supports headless services without a port spec
-//      if(port === 'None'){
-//        service.spec.clusterIP = 'None';
-//      }else{
-        service.spec.ports = [{
+
+      angular.forEach(ports, function(port) {
+        service.spec.ports.push({
           port: port.containerPort,
           targetPort: port.containerPort,
-          protocol: port.protocol
-        }];
-//      }
+          protocol: port.protocol,
+          // Use the same naming convention as CLI new-app.
+          name: (port.containerPort + '-' + port.protocol).toLowerCase()
+        });
+      });
+
       return service;
     };
 
