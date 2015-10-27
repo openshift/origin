@@ -303,7 +303,9 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out io.Writer, cmd *cobra.Comman
 			continue
 		}
 		info.Refresh(obj, true)
-		fmt.Fprintf(out, "%s/%s\n", info.Mapping.Resource, info.Name)
+
+		shortOutput := cmdutil.GetFlagString(cmd, "output") == "name"
+		cmdutil.PrintSuccess(mapper, shortOutput, out, info.Mapping.Resource, info.Name, "updated")
 	}
 	if failed {
 		return errExit

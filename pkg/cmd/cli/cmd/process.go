@@ -67,7 +67,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.
 	cmd.Flags().BoolP("parameters", "", false, "Do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
 
-	cmd.Flags().StringP("output", "o", "json", "Output format. One of: describe|json|yaml|template|templatefile.")
+	cmd.Flags().StringP("output", "o", "json", "Output format. One of: describe|json|yaml|name|template|templatefile.")
 	cmd.Flags().Bool("raw", false, "If true output the processed template instead of the template's objects. Implied by -o describe")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=template or -o=templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
