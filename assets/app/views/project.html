@@ -212,7 +212,7 @@
           <div ng-repeat="(deploymentId, deployment) in deploymentsByServiceByDeploymentConfig[''][deploymentConfigId] track by (deployment | uid)"
                ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
 
-            <div ng-if="deploymentConfigs[deploymentConfigId] && deploymentConfigsByService[''][deploymentConfigId]">
+            <div class="builds-no-service" ng-if="deploymentConfigs[deploymentConfigId] && deploymentConfigsByService[''][deploymentConfigId]">
               <!--
               Pods in deployments created from this deployment config will not be routed to by any service.
               Show things related to triggers that are about to create stuff, like builds.
