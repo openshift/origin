@@ -29,6 +29,11 @@ try_eval () {
     return $status
 }
 
+# The environment may contain sensitive information like passwords or private keys
+filter_env () {
+    awk '/"env": \[$/ { indent = index($0, "\""); skipping = 1; next } !skipping { print; } skipping { if (index($0, "]") == indent) skipping = 0; }'
+}
+
 do_master () {
     if ! nodes=$(oc get nodes --template '{{range .items}}{{.spec.externalID}} {{end}}'); then
 	if [ -z "$KUBECONFIG" -o ! -f "$KUBECONFIG" ]; then
@@ -50,8 +55,9 @@ do_master () {
     echo_and_eval ip route show >& $logmaster/routes
     echo_and_eval iptables-save >& $logmaster/iptables
     echo_and_eval cat /etc/hosts >& $logmaster/hosts
+    echo_and_eval cat /etc/resolv.conf >& $logmaster/resolv.conf
     echo_and_eval oc get nodes -o json >& $logmaster/nodes
-    echo_and_eval oc get pods --all-namespaces -o json >& $logmaster/pods
+    echo_and_eval oc get pods --all-namespaces -o json | filter_env >& $logmaster/pods
     echo_and_eval oc get services --all-namespaces -o json >& $logmaster/services
 
     for node in $nodes; do
@@ -81,7 +87,7 @@ do_master () {
 
 # Returns a list of pods in the form "minion-1:mypod:namespace:10.1.0.2:e4f1d61b"
 get_pods () {
-    if ! pods=$(oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}'); then
+    if ! pods=$(oc get pods --all-namespaces --template '{{range .items}}{{if .status.containerStatuses}}{{if not .spec.hostNetwork}}{{.spec.nodeName}}:{{.metadata.name}}:{{.metadata.namespace}}:{{.status.podIP}}:{{printf "%.21s" (index .status.containerStatuses 0).containerID}} {{end}}{{end}}{{end}}'); then
 	die "Could not get list of pods"
     fi
     echo $pods | sed -e 's/docker:\/\///g'
@@ -127,9 +133,9 @@ get_port_for_addr () {
 
 get_vnid_for_addr () {
     addr=$1
-    # On multitenant, the sed will match and output, eg "xd1", which we prefix with "0"
-    # to get "0xd1". On non-multitenant, the sed won't match, and outputs nothing, which
-    # we prefix with "0" to get "0". So either way, $base_pod_vnid is correct.
+    # On multitenant, the sed will match, and output something like "xd1", which we prefix
+    # with "0" to get "0xd1". On non-multitenant, the sed won't match, and outputs nothing,
+    # which we prefix with "0" to get "0". So either way, $base_pod_vnid is correct.
     echo 0$(sed -ne "s/.*reg0=0\(x[^,]*\),.*nw_dst=${addr}.*/\1/p" $lognode/flows | head -1)
 }
 
@@ -233,6 +239,10 @@ do_pod_service_connectivity_check () {
     echo_and_eval ovs-appctl ofproto/trace br0 "in_port=2,${service_proto},nw_src=${service_addr},nw_dst=${base_pod_addr},dl_dst=${base_pod_ether}"
     echo ""
 
+    # In bash, redirecting to /dev/tcp/HOST/PORT or /dev/udp/HOST/PORT opens a connection
+    # to that HOST:PORT. Use this to test connectivity to the service; we can't use ping
+    # like in the pod connectivity check because only connections to the correct port
+    # get redirected by the iptables rules.
     if nsenter -n -t $base_pod_pid -- timeout 1 bash -c "echo -n '' > /dev/${service_proto}/${service_addr}/${service_port} 2>/dev/null"; then
 	echo "connect ${service_addr}:${service_port}  ->  success"
     else
@@ -244,9 +254,12 @@ do_pod_service_connectivity_check () {
 }
 
 do_node () {
-    config=$(systemctl show -p ExecStart $aos_node_service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
+    config=$(ps wwaux | grep -v grep | sed -ne 's/.*openshift.*--config=\([^ ]*\.yaml\).*/\1/p')
     if [ -z "$config" ]; then
-	die "Could not find node-config.yaml from systemctl status"
+	config=$(systemctl show -p ExecStart $aos_node_service | sed -ne 's/.*--config=\([^ ]*\).*/\1/p')
+    fi
+    if [ -z "$config" ]; then
+	die "Could not find node-config.yaml from 'ps' or 'systemctl show'"
     fi
     node=$(sed -ne 's/^nodeName: //p' $config)
     if [ -z "$node" ]; then
@@ -265,7 +278,8 @@ do_node () {
     echo_and_eval ip addr show >& $lognode/addresses
     echo_and_eval ip route show >& $lognode/routes
     echo_and_eval iptables-save >& $lognode/iptables
-    echo_and_eval cat /etc/hosts >& $logmaster/hosts
+    echo_and_eval cat /etc/hosts >& $lognode/hosts
+    echo_and_eval cat /etc/resolv.conf >& $lognode/resolv.conf
     echo_and_eval brctl show >& $lognode/bridges
     echo_and_eval ovs-ofctl -O OpenFlow13 dump-flows br0 >& $lognode/flows
     echo_and_eval ovs-ofctl -O OpenFlow13 show br0 >& $lognode/ovs-show
@@ -285,7 +299,7 @@ do_node () {
 
 	pid=$(docker inspect -f '{{.State.Pid}}' $pod_id)
 	if [ -z "$pid" ]; then
-	    echo "$node:$pod_name: could not find pid of ($pod)"
+	    echo "$node:$pod_name: could not find pid of $pod"
 	    continue
 	fi
 
@@ -435,7 +449,7 @@ run_self_via_ssh () {
 	fi
     fi
 
-    ssh root@$host $extra_env $logdir/debug.sh $args
+    ssh root@$host $extra_env /bin/bash $logdir/debug.sh $args
 }
 
 do_master_and_nodes ()
