@@ -229,10 +229,9 @@ exec:
 
         $ docker exec -ti openshift-master bash
 
-While it is possible to manage the OpenShift daemon in the containers
-(supervisorctl {start,stop,restart} [daemon name]), dind cluster
-management is fast enough that the suggested approach is to manage at
-the cluster level instead.
+While it is possible to manage the OpenShift daemon in the containers,
+dind cluster management is fast enough that the suggested approach is
+to manage at the cluster level instead.
 
 Invoking the dind-cluster.sh script without arguments will provide a
 usage message:
@@ -250,8 +249,8 @@ as part of the dind cluster deployment initiated by 'start' or
 'restart'.
 
 By default the cluster will consist of a master and 2 nodes.  The
-NUM_MINIONS environment variable can be used to override the default
-of 2 nodes.
+OPENSHIFT_NUM_MINIONS environment variable can be used to override the
+default of 2 nodes.
 
 Containers are torn down on stop and restart, but the root of the
 origin repo is mounted to /data in each container to allow for a
