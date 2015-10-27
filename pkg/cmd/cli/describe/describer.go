@@ -377,7 +377,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	buildList, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.BuildConfigLabel: name}), fields.Everything())
+	buildList, err := d.Builds(namespace).List(labels.SelectorFromSet(labels.Set{buildapi.DeprecatedBuildConfigLabel: name}), fields.Everything())
 	if err != nil {
 		return "", err
 	}

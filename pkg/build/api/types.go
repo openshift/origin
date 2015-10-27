@@ -401,9 +401,14 @@ type BuildOutput struct {
 	PushSecret *kapi.LocalObjectReference
 }
 
-// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
-// on which the Build is based.
-const BuildConfigLabel = "buildconfig"
+const (
+	// BuildConfigLabel is the key of a Build label whose value is the ID of a BuildConfig
+	// on which the Build is based.
+	BuildConfigLabel = "openshift.io/build-config.name"
+	// DeprecatedBuildConfigLabel was used as BuildConfigLabel before adding namespaces.
+	// We keep it for backward compatibility.
+	DeprecatedBuildConfigLabel = "buildconfig"
+)
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
