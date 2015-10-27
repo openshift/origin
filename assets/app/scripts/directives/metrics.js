@@ -208,36 +208,48 @@ angular.module('openshiftConsole')
         function update() {
           var pod = scope.pod,
               container = scope.options.selectedContainer,
-              end = Date.now(),
-              start = end - scope.options.timeRange.value * 60 * 1000;
+              start = Date.now() - scope.options.timeRange.value * 60 * 1000;
 
           if (!pod || !container) {
             return;
           }
 
+          // Leave the end time off to use the server's current time as the end
+          // time. This prevents an issue where the donut chart shows 0 for
+          // current usage if the client clock is ahead of the server clock.
           angular.forEach(scope.metrics, function(metric) {
             MetricsService.get({
               pod: pod,
               containerName: container.name,
               metric: metric.id,
-              start: start,
-              end: end
+              start: start
             }).then(
               // success
-              function(data) {
-                updateChart(data, metric);
+              function(response) {
+                updateChart(response.data, metric);
               },
               // failure
-              function() {
-                scope.alerts["load"] = {
+              function(response) {
+                var alert = {
                   type: "error",
                   message: "Error fetching " + metric.id + " for container " + container.name + "."
                 };
-              }).finally(function() {
-                // Even on errors mark metrics as loaded to replace the
-                // "Loading..." message with "No metrics to display."
-                scope.loaded = true;
-              });
+
+                if (response.data && response.data.errorMsg) {
+                  alert.details = response.data.errorMsg;
+                } else if (response.status === 0) {
+                  alert.details = "Could not connect to metrics service.";
+                } else {
+                  alert.details = response.statusText || "Status code " + response.status;
+                }
+
+                scope.alerts["metrics"] = alert;
+              }
+            ).finally(function() {
+              // Even on errors mark metrics as loaded to replace the
+              // "Loading..." message with "No metrics to display."
+              scope.loaded = true;
+            });
           });
         }
 
