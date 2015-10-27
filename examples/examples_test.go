@@ -97,14 +97,16 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"ldapserver-service":             &kapi.Service{},
 		},
 		"../test/integration/fixtures": {
-			"test-deployment-config":    &deployapi.DeploymentConfig{},
-			"test-image":                &imageapi.Image{},
-			"test-image-stream":         &imageapi.ImageStream{},
-			"test-image-stream-mapping": nil, // skip &imageapi.ImageStreamMapping{},
-			"test-route":                &routeapi.Route{},
-			"test-service":              &kapi.Service{},
-			"test-buildcli":             &kapi.List{},
-			"test-buildcli-beta2":       &kapi.List{},
+			// TODO fix this test to  handle json and yaml
+			"project-request-template-with-quota": nil, // skip a yaml file
+			"test-deployment-config":              &deployapi.DeploymentConfig{},
+			"test-image":                          &imageapi.Image{},
+			"test-image-stream":                   &imageapi.ImageStream{},
+			"test-image-stream-mapping":           nil, // skip &imageapi.ImageStreamMapping{},
+			"test-route":                          &routeapi.Route{},
+			"test-service":                        &kapi.Service{},
+			"test-buildcli":                       &kapi.List{},
+			"test-buildcli-beta2":                 &kapi.List{},
 		},
 		"../test/templates/fixtures": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation

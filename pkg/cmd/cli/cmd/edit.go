@@ -252,11 +252,7 @@ func (o *EditOptions) RunEdit() error {
 			if err != nil {
 				return err
 			}
-			data, err := info.Mapping.Codec.Encode(info.Object)
-			if err != nil {
-				return err
-			}
-			updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, data)
+			updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, info.Object)
 			if err != nil {
 				fmt.Fprintln(o.out, results.AddError(err, info))
 				return nil
@@ -415,7 +411,11 @@ func applyPatch(delta *jsonmerge.Delta, info *resource.Info, version string) err
 	if err != nil {
 		return patchError{err}
 	}
-	updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, merged)
+	mergedObj, err := info.Mapping.Codec.Decode(merged)
+	if err != nil {
+		return patchError{err}
+	}
+	updated, err := resource.NewHelper(info.Client, info.Mapping).Replace(info.Namespace, info.Name, false, mergedObj)
 	if err != nil {
 		return err
 	}
