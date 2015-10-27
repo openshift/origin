@@ -23,7 +23,7 @@ type REST struct {
 
 // NewREST returns a new REST.
 func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry) *REST {
-	return &REST{imageRegistry, imageStreamRegistry}
+	return &REST{imageRegistry: imageRegistry, imageStreamRegistry: imageStreamRegistry}
 }
 
 // New is only implemented to make REST implement RESTStorage
@@ -113,20 +113,26 @@ func (r *REST) Delete(ctx kapi.Context, id string) (runtime.Object, error) {
 		return nil, err
 	}
 
-	if stream.Spec.Tags == nil {
+	notFound := true
+
+	// Try to delete the status tag
+	if _, ok := stream.Status.Tags[tag]; ok {
+		delete(stream.Status.Tags, tag)
+		notFound = false
+	}
+
+	// Try to delete the spec tag
+	if _, ok := stream.Spec.Tags[tag]; ok {
+		delete(stream.Spec.Tags, tag)
+		notFound = false
+	}
+
+	if notFound {
 		return nil, errors.NewNotFound("imageStreamTag", tag)
 	}
 
-	_, ok := stream.Spec.Tags[tag]
-	if !ok {
-		return nil, errors.NewNotFound("imageStreamTag", tag)
-	}
-
-	delete(stream.Spec.Tags, tag)
-
-	_, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream)
-	if err != nil {
-		return nil, fmt.Errorf("Error removing tag from image stream: %s", err)
+	if _, err = r.imageStreamRegistry.UpdateImageStream(ctx, stream); err != nil {
+		return nil, fmt.Errorf("cannot remove tag from image stream: %v", err)
 	}
 
 	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil

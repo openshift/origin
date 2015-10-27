@@ -194,7 +194,7 @@ function start_os_master {
 	date
 }
 # ensure_iptables_or_die tests if the testing machine has iptables available
-# and in PATH. Also test whether current user has sudo privileges.	
+# and in PATH. Also test whether current user has sudo privileges.
 function ensure_iptables_or_die {
 	if [[ -z "$(which iptables)" ]]; then
 		echo "IPTables not found - the end-to-end test requires a system with iptables for Kubernetes services."
@@ -215,10 +215,17 @@ function ensure_iptables_or_die {
 	set -e
 }
 
-# tryuntil loops up to 60 seconds to redo this action
+# tryuntil loops, retrying an action until it succeeds a 90
 function tryuntil {
-	timeout=$(($(date +%s) + 60))
-	until eval "${@}" || [[ $(date +%s) -gt $timeout ]]; do :; done
+	timeout=$(($(date +%s) + 90))
+	while [ 1 ]; do
+		if eval "${@}"; then
+			return 0
+		fi
+		if [[ $(date +%s) -gt $timeout ]]; then
+			return 1
+		fi
+	done
 }
 
 # wait_for_command executes a command and waits for it to

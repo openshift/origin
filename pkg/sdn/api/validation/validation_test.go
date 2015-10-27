@@ -56,6 +56,26 @@ func TestValidateClusterNetwork(t *testing.T) {
 			},
 			expectedErrors: 1,
 		},
+		{
+			name: "Service network overlaps with cluster network",
+			cn: &api.ClusterNetwork{
+				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				Network:          "10.20.0.0/16",
+				HostSubnetLength: 8,
+				ServiceNetwork:   "10.20.1.0/24",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Cluster network overlaps with service network",
+			cn: &api.ClusterNetwork{
+				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				Network:          "10.20.0.0/16",
+				HostSubnetLength: 8,
+				ServiceNetwork:   "10.0.0.0/8",
+			},
+			expectedErrors: 1,
+		},
 	}
 
 	for _, tc := range tests {

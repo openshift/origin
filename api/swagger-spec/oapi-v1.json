@@ -16842,6 +16842,10 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "a reference to an image stream tag or image stream this tag should track"
+     },
+     "reference": {
+      "type": "boolean",
+      "description": "if true consider this tag a reference only and do not attempt to import metadata about the image"
      }
     }
    },

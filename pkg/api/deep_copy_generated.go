@@ -1973,6 +1973,7 @@ func deepCopy_api_TagReference(in imageapi.TagReference, out *imageapi.TagRefere
 	} else {
 		out.From = nil
 	}
+	out.Reference = in.Reference
 	return nil
 }
 

@@ -28,7 +28,7 @@ type DeploymentConfigScaler struct {
 
 // Scale updates a replication controller created by the DeploymentConfig with the provided namespace/name,
 // to a new size, with optional precondition check (if preconditions is not nil),optional retries (if retry
-//  is not nil), and then optionally waits for it's replica count to reach the new value (if wait is not nil).
+//  is not nil), and then optionally waits for its replica count to reach the new value (if wait is not nil).
 func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint, preconditions *kubectl.ScalePrecondition, retry, waitForReplicas *kubectl.RetryParams) error {
 	if preconditions == nil {
 		preconditions = &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}

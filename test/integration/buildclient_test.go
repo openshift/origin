@@ -227,14 +227,14 @@ func NewTestBuildOpenshift(t *testing.T) *testBuildOpenshift {
 	imageStorage := imageetcd.NewREST(etcdHelper)
 	imageRegistry := image.NewRegistry(imageStorage)
 
-	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(
+	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(
 		etcdHelper,
 		imagestream.DefaultRegistryFunc(func() (string, bool) {
 			return "registry:3000", true
 		}),
 		&fakeSubjectAccessReviewRegistry{},
 	)
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)

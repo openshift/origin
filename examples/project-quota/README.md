@@ -12,7 +12,7 @@ any pod in the system will be able to consume as much CPU and memory on the node
 An author of a pod may set explicit resource limits per container in the pod in order to control
 memory usage dedicated to its containers on a node.
 
-The following is an example of a pod that has a single container.  This container sets it's resource
+The following is an example of a pod that has a single container.  This container sets its resource
 limit for cpu to 100m and memory as 6Mi.  This means that the container will get 100 millicores of
 a core on the Node.  In effect, if the node had a single core, this pod could be scheduled 10 times
 at most to a single host.
@@ -321,8 +321,8 @@ Objects:
     Route route-edge
     ImageStream origin-ruby-sample
     ImageStream ruby-20-centos7
-        
-        
+
+
     Service database
 ```
 
@@ -399,7 +399,7 @@ Output to:    origin-ruby-sample:latest
 Output Spec:    <none>
 Events:
   FirstSeen       LastSeen      Count From      SubobjectPath Reason    Message
-  Tue, 19 May 2015 20:55:47 +0000 Tue, 19 May 2015 20:56:01 +0000 2 {build-controller }     failedCreate  Error creating: Pod "ruby-sample-build-5" is forbidden: Limited to 750Mi memory 
+  Tue, 19 May 2015 20:55:47 +0000 Tue, 19 May 2015 20:56:01 +0000 2 {build-controller }     failedCreate  Error creating: Pod "ruby-sample-build-5" is forbidden: Limited to 750Mi memory
 ```
 
 Note the event that was published from the build controller to denote that there is no more quota

@@ -153,12 +153,14 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) fielderrors.Validati
 		}
 
 		if tagRef.From.Kind == "DockerImage" && len(tagRef.From.Name) > 0 {
-			event, err := tagReferenceToTagEvent(stream, tagRef, "")
-			if err != nil {
-				errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from", tag), tagRef.From, err.Error()))
-				continue
+			if tagRef.Reference {
+				event, err := tagReferenceToTagEvent(stream, tagRef, "")
+				if err != nil {
+					errs = append(errs, fielderrors.NewFieldInvalid(fmt.Sprintf("spec.tags[%s].from", tag), tagRef.From, err.Error()))
+					continue
+				}
+				api.AddTagEventToImageStream(stream, tag, *event)
 			}
-			api.AddTagEventToImageStream(stream, tag, *event)
 			continue
 		}
 
@@ -420,4 +422,27 @@ type DefaultRegistryFunc func() (string, bool)
 // DefaultRegistry implements the DefaultRegistry interface for a function.
 func (fn DefaultRegistryFunc) DefaultRegistry() (string, bool) {
 	return fn()
+}
+
+// InternalStrategy implements behavior for updating both the spec and status
+// of an image stream
+type InternalStrategy struct {
+	Strategy
+}
+
+// NewInternalStrategy creates an update strategy around an existing stream
+// strategy.
+func NewInternalStrategy(strategy Strategy) InternalStrategy {
+	return InternalStrategy{strategy}
+}
+
+func (InternalStrategy) PrepareForUpdate(obj, old runtime.Object) {
+}
+
+func (InternalStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
+func (InternalStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fielderrors.ValidationErrorList {
+	return validation.ValidateImageStreamUpdate(obj.(*api.ImageStream), old.(*api.ImageStream))
 }

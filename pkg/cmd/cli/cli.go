@@ -14,6 +14,7 @@ import (
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
 	"github.com/openshift/origin/pkg/cmd/cli/secrets"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -111,7 +112,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdExplain(fullName, f, out),
 				cmd.NewCmdLogs(fullName, f, out),
 				cmd.NewCmdRsh(cmd.RshRecommendedName, fullName, f, in, out, errout),
-				cmd.NewCmdRsync(cmd.RsyncRecommendedName, fullName, f, out, errout),
+				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, out, errout),
 				cmd.NewCmdExec(fullName, f, in, out, errout),
 				cmd.NewCmdPortForward(fullName, f),
 				cmd.NewCmdProxy(fullName, f, out),

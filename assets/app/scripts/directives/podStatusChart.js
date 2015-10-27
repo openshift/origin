@@ -43,7 +43,6 @@ angular.module('openshiftConsole')
           donutChartTitle.insert('tspan').text(smallText).classed('donut-title-small-pf', true).attr('dy', 20).attr('x', 0);
         }
 
-
         // c3.js config for the pods donut chart
         config = {
           type: "donut",
@@ -76,8 +75,6 @@ angular.module('openshiftConsole')
           data: {
             type: "donut",
             groups: [ phases ],
-            // Start with an empty chart and call chart.load() when we have data.
-            columns: ['Running', 0],
             // Keep groups in our order.
             order: null,
             colors: {
@@ -91,8 +88,21 @@ angular.module('openshiftConsole')
           }
         };
 
-        function updateChart() {
+        function updateChart(countByPhase) {
           var columns = [];
+          angular.forEach(phases, function(phase) {
+            columns.push([phase, countByPhase[phase] || 0]);
+          });
+
+          if (!chart) {
+            config.data.columns = columns;
+            chart = c3.generate(config);
+          } else {
+            chart.load({ columns: columns });
+          }
+        }
+
+        function countPodPhases() {
           var countByPhase = {};
           var incrementCount = function(phase) {
             countByPhase[phase] = (countByPhase[phase] || 0) + 1;
@@ -109,18 +119,11 @@ angular.module('openshiftConsole')
             }
           });
 
-          angular.forEach(phases, function(phase) {
-            columns.push([phase, countByPhase[phase] || 0]);
-          });
-
-          chart.load({ columns: columns });
+          return countByPhase;
         }
 
-        $timeout(function() {
-          chart = c3.generate(config);
-          $scope.$watch('pods', updateChart, true);
-          $scope.$watch('desired', updateCenterText);
-        }, 0, false);
+        $scope.$watch(countPodPhases, updateChart, true);
+        $scope.$watch('desired', updateCenterText);
       }
     };
   });

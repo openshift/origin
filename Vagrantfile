@@ -173,10 +173,21 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       config.vm.synced_folder ".", "/vagrant", disabled: true
       unless vagrant_openshift_config['no_synced_folders']
-        config.vm.synced_folder sync_from, sync_to,
-          rsync__args: %w(--verbose --archive --delete),
-          type: vagrant_openshift_config['sync_folders_type'],
-          nfs_udp: false # has issues when using NFS from within a docker container
+        if folders = vagrant_openshift_config["sync_folders"]
+          (folders || {}).each do |src, dest|
+            config.vm.synced_folder src, dest["to"],
+              rsync__args: %w(--verbose --archive --delete),
+              rsync__exclude: dest["exclude"],
+              type: vagrant_openshift_config['sync_folders_type'],
+              nfs_udp: false # has issues when using NFS from within a docker container
+          end
+        else
+          config.vm.synced_folder sync_from, sync_to,
+            rsync__args: %w(--verbose --archive --delete),
+            rsync__exclude: vagrant_openshift_config["sync_folders_rsync_exclude"],
+            type: vagrant_openshift_config['sync_folders_type'],
+            nfs_udp: false # has issues when using NFS from within a docker container
+        end
       end
 
       if vagrant_openshift_config['private_network_ip']

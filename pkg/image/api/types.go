@@ -79,6 +79,8 @@ type TagReference struct {
 	Annotations map[string]string
 	// Optional; if specified, a reference to another image that this tag should point to. Valid values are ImageStreamTag, ImageStreamImage, and DockerImage.
 	From *kapi.ObjectReference
+	// Reference states if the tag will be imported. Default value is false, which means the tag will be imported.
+	Reference bool
 }
 
 // ImageStreamStatus contains information about the state of this image stream.
