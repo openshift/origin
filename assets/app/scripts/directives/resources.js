@@ -1,13 +1,19 @@
 'use strict';
 
 angular.module('openshiftConsole')
-  .directive('overviewMonopod', function() {
+  .directive('overviewMonopod', function(Navigate, $location) {
     return {
       restrict: 'E',
       scope: {
         pod: '='
       },
-      templateUrl: 'views/_overview-monopod.html'
+      templateUrl: 'views/_overview-monopod.html',
+      link: function(scope) {
+        scope.viewPod = function() {
+          var url = Navigate.resourceURL(scope.pod, "Pod", scope.pod.metadata.namespace);
+          $location.url(url);
+        };
+      }
     };
   })
   .directive('podTemplate', function() {
