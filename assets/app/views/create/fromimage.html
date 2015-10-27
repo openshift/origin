@@ -99,12 +99,14 @@
                     </div>
                     <div class="help-block">Optional subdirectory for the application source code, used as the context directory for the build.</div> </div>
 
+                  <!-- Only show routing options if the image has exposed ports. -->
                   <osc-form-section
                     header="Routing"
                     about-title="Routing"
                     about="Routing is a way to make your application publicly visible. Otherwise you may only be able to access your application by its IP address, if allowed by the system administrator."
                     expand="true"
                     can-toggle="false"
+                    ng-if="routing.portOptions.length"
                     >
                     <div ng-hide="$parent.expand">
                       <div>
@@ -121,6 +123,18 @@
                               <i class="pficon pficon-help" data-toggle="tooltip" data-placement="right" data-original-title="Additional routes with alternative configuration options (security, TLS termination, etc) can be added using the oc command."></i>
                             </span>
                         </label>
+
+                      </div>
+                      <div class="form-group">
+                        <label for="routeTargetPort">Target port:</label>
+                        <span ng-if="routing.portOptions.length === 1">{{routing.portOptions[0].containerPort}}/{{routing.portOptions[0].protocol}}</span>
+                        <select
+                            id="routeTargetPort"
+                            ng-if="routing.portOptions.length > 1"
+                            ng-model="routing.targetPort"
+                            ng-options="(portSpec.containerPort + '/' + portSpec.protocol) for portSpec in routing.portOptions"
+                            ng-disabled="!routing.include">
+                        </select>
                       </div>
                     </div>
                   </osc-form-section>
