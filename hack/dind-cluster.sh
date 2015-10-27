@@ -153,7 +153,7 @@ function start() {
     node_cids+=( "${cid}" )
     node_ips+=( $(get-docker-ip "${cid}") )
   done
-  node_ips=$(os::util::join , ${node_ips[@]})
+  node_ips=$(os::provision::join , ${node_ips[@]})
 
   ## Provision containers
   echo "Configured network plugin: ${NETWORK_PLUGIN}"
@@ -179,7 +179,7 @@ function start() {
 ${DEPLOYED_CONFIG_ROOT}"
   done
 
-  os::util::disable-sdn-node "${master_cid}" "${SDN_NODE_NAME}"
+  os::provision::disable-sdn-node "${master_cid}" "${SDN_NODE_NAME}"
 }
 
 function stop() {
@@ -259,7 +259,7 @@ case "${1:-""}" in
     test-net-e2e
     ;;
   config-host)
-    os::util::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
+    os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
     ;;
   *)
     echo "Usage: $0 {start|stop|restart|build-images|test-net-e2e|config-host}"

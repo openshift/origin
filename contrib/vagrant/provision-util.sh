@@ -1,19 +1,19 @@
 #!/bin/bash
 
-os::util::join() {
+os::provision::join() {
   local IFS="$1"
 
   shift
   echo "$*"
 }
 
-os::util::install-cmds() {
+os::provision::install-cmds() {
   local deployed_root=$1
 
   cp ${deployed_root}/_output/local/bin/linux/amd64/{openshift,oc,osadm} /usr/bin
 }
 
-os::util::add-to-hosts-file() {
+os::provision::add-to-hosts-file() {
   local ip=$1
   local name=$2
   local force=${3:-0}
@@ -25,22 +25,22 @@ os::util::add-to-hosts-file() {
   fi
 }
 
-os::util::setup-hosts-file() {
+os::provision::setup-hosts-file() {
   local master_name=$1
   local master_ip=$2
   local -n node_names=$3
   local -n node_ips=$4
 
   # Setup hosts file to support ping by hostname to master
-  os::util::add-to-hosts-file "${master_ip}" "${master_name}"
+  os::provision::add-to-hosts-file "${master_ip}" "${master_name}"
 
   # Setup hosts file to support ping by hostname to each node in the cluster
   for (( i=0; i < ${#node_names[@]}; i++ )); do
-    os::util::add-to-hosts-file "${node_ips[$i]}" "${node_names[$i]}"
+    os::provision::add-to-hosts-file "${node_ips[$i]}" "${node_names[$i]}"
   done
 }
 
-os::util::init-certs() {
+os::provision::init-certs() {
   local config_root=$1
   local network_plugin=$2
   local master_name=$3
@@ -84,7 +84,7 @@ os::util::init-certs() {
   popd > /dev/null
 }
 
-os::util::set-os-env() {
+os::provision::set-os-env() {
   local origin_root=$1
   local config_root=$2
 
@@ -96,14 +96,14 @@ os::util::set-os-env() {
 
   local vagrant_target="/home/vagrant/${file_target}"
   if [ -d $(dirname "${vagrant_target}") ]; then
-    os::util::set-bash-env "${origin_root}" "${config_root}" \
+    os::provision::set-bash-env "${origin_root}" "${config_root}" \
 "${vagrant_target}"
   fi
-  os::util::set-bash-env "${origin_root}" "${config_root}" \
+  os::provision::set-bash-env "${origin_root}" "${config_root}" \
 "/root/${file_target}"
 }
 
-os::util::set-bash-env() {
+os::provision::set-bash-env() {
   local origin_root=$1
   local config_root=$2
   local target=$3
@@ -116,7 +116,7 @@ os::util::set-bash-env() {
   fi
 }
 
-os::util::get-network-plugin() {
+os::provision::get-network-plugin() {
   local plugin=$1
   local dind_management_script=${2:-false}
 
@@ -139,7 +139,7 @@ os::util::get-network-plugin() {
   echo "${plugin}"
 }
 
-os::util::install-sdn() {
+os::provision::install-sdn() {
   local deployed_root=$1
 
   # The subnet plugin is discovered via the kube network plugin path.
@@ -186,15 +186,16 @@ EOF
   systemctl start openvswitch
 }
 
-os::util::base-provision() {
-  os::util::fixup-net-udev
+os::provision::base-provision() {
+  os::provision::fixup-net-udev
 
-  os::util::setup-hosts-file "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES NODE_IPS
+  os::provision::setup-hosts-file "${MASTER_NAME}" "${MASTER_IP}" NODE_NAMES \
+    NODE_IPS
 
-  os::util::install-pkgs
+  os::provision::install-pkgs
 }
 
-os::util::fixup-net-udev() {
+os::provision::fixup-net-udev() {
   if [ "${FIXUP_NET_UDEV}" == "true" ]; then
     NETWORK_CONF_PATH=/etc/sysconfig/network-scripts/
     rm -f ${NETWORK_CONF_PATH}ifcfg-enp*
@@ -210,7 +211,7 @@ os::util::fixup-net-udev() {
   fi
 }
 
-os::util::install-pkgs() {
+os::provision::install-pkgs() {
   # Only install packages if not deploying to a container.  A
   # container is expected to have installed packages as part of image
   # creation.
@@ -220,7 +221,7 @@ os::util::install-pkgs() {
   fi
 }
 
-os::util::start-os-service() {
+os::provision::start-os-service() {
   local unit_name=$1
   local description=$2
   local exec_start=$3
@@ -250,7 +251,7 @@ systemctl start "${unit_name}.service"
 
 }
 
-os::util::start-node-service() {
+os::provision::start-node-service() {
   local node_name=$1
 
   # Copy over the certificates directory so that each node has a copy.
@@ -261,10 +262,10 @@ os::util::start-node-service() {
 
   cmd="/usr/bin/openshift start node --loglevel=${LOG_LEVEL} \
 --config=/openshift.local.config/node-${node_name}/node-config.yaml"
-  os::util::start-os-service "openshift-node" "OpenShift Node" "${cmd}" /
+  os::provision::start-os-service "openshift-node" "OpenShift Node" "${cmd}" /
 }
 
-os::util::wait-for-condition() {
+os::provision::wait-for-condition() {
   local start_msg=$1
   local error_msg=$2
   # condition should be a string that can be eval'd.  When eval'd, it
@@ -294,7 +295,7 @@ os::util::wait-for-condition() {
   fi
 }
 
-os::util::is-sdn-node-registered() {
+os::provision::is-sdn-node-registered() {
   local master_cid=$1
   local node_name=$2
 
@@ -302,17 +303,18 @@ os::util::is-sdn-node-registered() {
     "oc get nodes ${node_name} &> /dev/null"
 }
 
-os::util::disable-sdn-node() {
+os::provision::disable-sdn-node() {
   local master_cid=$1
   local node_name=$2
 
   local sdn_msg="for sdn node to register with the master"
   local start_msg="Waiting ${sdn_msg}"
   local error_msg="[ERROR] Timeout waiting ${sdn_msg}"
-  local condition="os::util::is-sdn-node-registered ${master_cid} ${node_name}"
+  local condition="os::provision::is-sdn-node-registered ${master_cid} \
+${node_name}"
   local timeout=30
-  os::util::wait-for-condition "${start_msg}" "${error_msg}" "${condition}" \
-    "${timeout}"
+  os::provision::wait-for-condition "${start_msg}" "${error_msg}" \
+    "${condition}" "${timeout}"
 
   echo "Disabling scheduling for the sdn node"
   # Disable scheduling outside of the master provision script to give
