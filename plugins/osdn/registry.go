@@ -296,6 +296,14 @@ func (registry *Registry) GetClusterNetworkCIDR() (string, error) {
 	return cn.Network, nil
 }
 
+func (registry *Registry) GetHostSubnetLength() (int, error) {
+	cn, err := registry.oClient.ClusterNetwork().Get("default")
+	if err != nil {
+		return -1, err
+	}
+	return cn.HostSubnetLength, nil
+}
+
 func (registry *Registry) GetServicesNetworkCIDR() (string, error) {
 	cn, err := registry.oClient.ClusterNetwork().Get("default")
 	return cn.ServiceNetwork, err
