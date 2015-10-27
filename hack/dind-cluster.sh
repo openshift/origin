@@ -199,7 +199,7 @@ function stop() {
     done
   fi
 
-  echo "Clearing configuration to avoid conflict with a future cluster"
+  echo "Cleaning up cluster configuration"
   # The container will have created configuration as root
   sudo rm -rf ${CONFIG_ROOT}/openshift.local.*
 
