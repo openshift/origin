@@ -729,98 +729,6 @@
     ]
    },
    {
-    "path": "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/instantiatebinary",
-    "description": "OpenShift REST API, version v1",
-    "operations": [
-     {
-      "type": "string",
-      "method": "POST",
-      "summary": "connect POST requests to instantiatebinary of BinaryBuildRequestOptions",
-      "nickname": "connectPostNamespacedBinaryBuildRequestOptionsInstantiatebinary",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "asFile",
-        "description": "",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "revision.commit",
-        "description": "",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "revision.message",
-        "description": "",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "revision.authorName",
-        "description": "",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "revision.authorEmail",
-        "description": "",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "revision.committerName",
-        "description": "",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "revision.committerEmail",
-        "description": "",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "path",
-        "name": "namespace",
-        "description": "object name and auth scope, such as for teams and projects",
-        "required": true,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "path",
-        "name": "name",
-        "description": "name of the BinaryBuildRequestOptions",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "produces": [
-       "*/*"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     }
-    ]
-   },
-   {
     "path": "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/webhooks",
     "description": "OpenShift REST API, version v1",
     "operations": [
@@ -14101,11 +14009,7 @@
     "properties": {
      "type": {
       "type": "string",
-      "description": "type of build input to accept"
-     },
-     "binary": {
-      "$ref": "v1.BinaryBuildSource",
-      "description": "the binary will be provided by the builder as an archive or file to be placed within the input directory; allows Dockerfile to be optionally set; may not be set with git source type also set"
+      "description": "type of source control management system"
      },
      "dockerfile": {
       "type": "string",
@@ -14122,15 +14026,6 @@
      "sourceSecret": {
       "$ref": "v1.LocalObjectReference",
       "description": "supported auth methods are: ssh-privatekey"
-     }
-    }
-   },
-   "v1.BinaryBuildSource": {
-    "id": "v1.BinaryBuildSource",
-    "properties": {
-     "asFile": {
-      "type": "string",
-      "description": "indicate the provided binary should be considered a single file placed within the root of the input; must be a valid filename with no path segments"
      }
     }
    },
@@ -14599,10 +14494,6 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "ImageStreamTag that triggered this build"
-     },
-     "binary": {
-      "$ref": "v1.BinaryBuildSource",
-      "description": "the binary will be provided by the builder as an archive or file to be placed within the input directory; allows Dockerfile to be optionally set; may not be set with git source type also set"
      },
      "lastVersion": {
       "type": "integer",
@@ -15317,6 +15208,12 @@
       "type": "string",
       "description": "a Docker image which can carry out a deployment"
      },
+     "labels": {
+      "type": "any"
+     },
+     "annotations": {
+      "type": "any"
+     },
      "environment": {
       "type": "array",
       "items": {
@@ -15375,6 +15272,12 @@
        "type": "string"
       },
       "description": "the hook command and its arguments"
+     },
+     "labels": {
+      "type": "any"
+     },
+     "annotations": {
+      "type": "any"
      },
      "env": {
       "type": "array",
@@ -16147,11 +16050,7 @@
      },
      "stdin": {
       "type": "boolean",
-      "description": "Whether this container should allocate a buffer for stdin in the container runtime. If this is not set, reads from stdin in the container will always result in EOF. Default is false."
-     },
-     "stdinOnce": {
-      "type": "boolean",
-      "description": "Whether the container runtime should close the stdin channel after it has been opened by a single attach. When stdin is true the stdin stream will remain open across multiple attach sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the first client attaches to stdin, and then remains open and accepts data until the client disconnects, at which time stdin is closed and remains closed until the container is restarted. If this flag is false, a container processes that reads from stdin will never receive an EOF. Default is false"
+      "description": "Whether this container should allocate a buffer for stdin in the container runtime. Default is false."
      },
      "tty": {
       "type": "boolean",
@@ -16842,10 +16741,6 @@
      "from": {
       "$ref": "v1.ObjectReference",
       "description": "a reference to an image stream tag or image stream this tag should track"
-     },
-     "reference": {
-      "type": "boolean",
-      "description": "if true consider this tag a reference only and do not attempt to import metadata about the image"
      }
     }
    },

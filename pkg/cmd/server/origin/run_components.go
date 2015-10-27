@@ -1,6 +1,7 @@
 package origin
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"path"
@@ -41,6 +42,7 @@ import (
 	"github.com/openshift/openshift-sdn/plugins/osdn/multitenant"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	kubeserver "github.com/openshift/origin/pkg/cmd/server/kubernetes"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 )
 
@@ -144,6 +146,7 @@ func (c *MasterConfig) RunDNSServer() {
 	if err != nil {
 		glog.Fatalf("Could not start DNS: %v", err)
 	}
+	config.Domain = c.Options.DNSConfig.Domain + "."
 	switch c.Options.DNSConfig.BindNetwork {
 	case "tcp":
 		config.BindNetwork = "ip"
@@ -265,9 +268,15 @@ func (c *MasterConfig) RunDeploymentController() {
 	if err != nil {
 		glog.Fatalf("Unable to initialize deployment controller: %v", err)
 	}
+
+	port, err := kubeserver.GetKubernetesMasterPort(c.Options)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	master := fmt.Sprintf("https://kubernetes.default.svc:%d", port)
 	// TODO eliminate these environment variables once service accounts provide a kubeconfig that includes all of this info
 	env := clientcmd.EnvVars(
-		kclientConfig.Host,
+		master,
 		kclientConfig.CAData,
 		kclientConfig.Insecure,
 		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),

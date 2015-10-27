@@ -348,6 +348,8 @@ type MasterClients struct {
 }
 
 type DNSConfig struct {
+	// Domain is the DNS zone served by the embedded DNS resolver.
+	Domain string `json:"domain"`
 	// BindAddress is the ip:port to serve DNS on
 	BindAddress string `json:"bindAddress"`
 	// BindNetwork is the type of network to bind to - defaults to "tcp4", accepts "tcp",
