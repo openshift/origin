@@ -1178,7 +1178,7 @@ _oc_rsync()
     flags+=("--delete")
     flags+=("--quiet")
     flags+=("-q")
-    flags+=("--use-tar")
+    flags+=("--strategy=")
 
     must_have_one_flag=()
     must_have_one_noun=()

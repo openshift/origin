@@ -37,8 +37,8 @@ func setup(t *testing.T) (*tools.FakeEtcdClient, kstorage.Interface, *REST) {
 	helper := etcdstorage.NewEtcdStorage(fakeEtcdClient, latest.Codec, etcdtest.PathPrefix())
 	imageStorage := imageetcd.NewREST(helper)
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageStreamStorage, imageStreamStatus := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus)
+	imageStreamStorage, imageStreamStatus, internalStorage := imagestreametcd.NewREST(helper, testDefaultRegistry, &fakeSubjectAccessReviewRegistry{})
+	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 	storage := NewREST(imageRegistry, imageStreamRegistry)
 	return fakeEtcdClient, helper, storage
 }

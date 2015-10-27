@@ -20,7 +20,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST) {
+func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry) (*REST, *StatusREST, *InternalREST) {
 	prefix := "/imagestreams"
 	store := etcdgeneric.Etcd{
 		NewFunc:     func() runtime.Object { return &api.ImageStream{} },
@@ -47,13 +47,16 @@ func NewREST(s storage.Interface, defaultRegistry imagestream.DefaultRegistry, s
 	statusStore := store
 	statusStore.UpdateStrategy = imagestream.NewStatusStrategy(strategy)
 
+	internalStore := store
+	internalStore.UpdateStrategy = imagestream.NewInternalStrategy(strategy)
+
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
 	rest.store = &store
 
-	return rest, &StatusREST{store: &statusStore}
+	return rest, &StatusREST{store: &statusStore}, &InternalREST{store: &internalStore}
 }
 
 // New returns a new object
@@ -107,5 +110,19 @@ func (r *StatusREST) New() runtime.Object {
 
 // Update alters the status subset of an object.
 func (r *StatusREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, obj)
+}
+
+// InternalREST implements the REST endpoint for changing both the spec and status of an image stream.
+type InternalREST struct {
+	store *etcdgeneric.Etcd
+}
+
+func (r *InternalREST) New() runtime.Object {
+	return &api.ImageStream{}
+}
+
+// Update alters both the spec and status of the object.
+func (r *InternalREST) Update(ctx kapi.Context, obj runtime.Object) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, obj)
 }

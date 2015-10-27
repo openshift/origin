@@ -106,7 +106,7 @@ angular.module("openshiftConsole")
               template = metricsURL + templateByMetric[config.metric],
               buckets = 60,
               start,
-              end = config.end;
+              end = config.end || Date.now();
 
           reqURL = URI.expand(template, {
             podUID: config.pod.metadata.uid,
@@ -117,7 +117,15 @@ angular.module("openshiftConsole")
           // Request an earlier start time and one extra bucket since we throw
           // the first data point away calculating CPU usage.
           // See normalize().
-          start = config.start - (end - config.start) / buckets;
+          start = Math.floor(config.start - (end - config.start) / buckets);
+          var params = {
+            buckets: buckets + 1,
+            start: start
+          };
+
+          if (config.end) {
+            params.end = config.end;
+          }
 
           return $http.get(reqURL, {
             auth: {},
@@ -125,13 +133,11 @@ angular.module("openshiftConsole")
               Accept: 'application/json',
               'Hawkular-Tenant': config.pod.metadata.namespace
             },
-            params: {
-              buckets: buckets + 1,
-              start: start,
-              end: end
-            }
+            params: params
           }).then(function(response) {
-            return normalize(response.data, config.metric);
+            return angular.extend({
+              data: normalize(response.data, config.metric)
+            }, response);
           });
         });
       }

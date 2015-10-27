@@ -544,16 +544,18 @@ os::build::require_clean_tree() {
 # used to determine the common range with the second argument. If the first argument
 # is not an integer, it is assumed to be a Git commit range and output directly.
 os::build::commit_range() {
+  local remote
+  remote="${UPSTREAM_REMOTE:-origin}"
   if [[ "$1" =~ ^-?[0-9]+$ ]]; then
     local target
-    target="$(git rev-parse origin/pr/$1)"
+    target="$(git rev-parse ${remote}/pr/$1)"
     if [[ $? -ne 0 ]]; then
-      echo "Branch does not exist, or you have not configured origin/pr/* style branches from GitHub" 1>&2
+      echo "Branch does not exist, or you have not configured ${remote}/pr/* style branches from GitHub" 1>&2
       exit 1
     fi
 
     local base
-    base="$(git merge-base origin/pr/$1 $2)"
+    base="$(git merge-base ${remote}/pr/$1 $2)"
     if [[ $? -ne 0 ]]; then
       echo "Branch has no common commits with $2" 1>&2
       exit 1

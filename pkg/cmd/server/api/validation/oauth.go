@@ -357,7 +357,7 @@ func ValidateSessionSecrets(config *api.SessionSecrets) fielderrors.ValidationEr
 			// Don't output current value in error message... we don't want it logged
 			allErrs = append(allErrs,
 				fielderrors.NewFieldInvalid(
-					fmt.Sprintf("secrets[%d].authentpsecretsication", i),
+					fmt.Sprintf("secrets[%d].authentication", i),
 					strings.Repeat("*", len(secret.Authentication)),
 					"must be at least 32 characters long",
 				),

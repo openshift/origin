@@ -332,6 +332,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
 				{
+					// TODO: audit/remove those, 1.0 controllers needed get, update
 					Verbs:     sets.NewString("get", "update"),
 					Resources: sets.NewString("replicationcontrollers"),
 				},
@@ -361,7 +362,35 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			ObjectMeta: kapi.ObjectMeta{
 				Name: JobControllerRoleName,
 			},
-			Rules: []authorizationapi.PolicyRule{},
+			Rules: []authorizationapi.PolicyRule{
+				// JobController.jobController.ListWatch
+				{
+					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("jobs"),
+				},
+				// JobController.syncJob() -> updateJobStatus()
+				{
+					APIGroups: []string{authorizationapi.APIGroupExtensions},
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("jobs/status"),
+				},
+				// JobController.podController.ListWatch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("pods"),
+				},
+				// JobController.podControl (RealPodControl)
+				{
+					Verbs:     sets.NewString("create", "delete"),
+					Resources: sets.NewString("pods"),
+				},
+				// JobController.podControl.recorder
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
+				},
+			},
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
