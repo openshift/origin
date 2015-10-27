@@ -62,6 +62,12 @@ func (d dockerfileContents) Contents() string {
 
 // IsPossibleSourceRepository checks whether the provided string is a source repository or not
 func IsPossibleSourceRepository(s string) bool {
+	if strings.Contains(s, "~") {
+		segs := strings.SplitN(s, "~", 2)
+		if len(segs[1]) != 0 {
+			s = segs[1]
+		}
+	}
 	return IsRemoteRepository(s) || isDirectory(s)
 }
 
@@ -72,12 +78,13 @@ func IsRemoteRepository(s string) bool {
 
 // SourceRepository represents a code repository that may be the target of a build.
 type SourceRepository struct {
-	location   string
-	url        url.URL
-	localDir   string
-	remoteURL  *url.URL
-	contextDir string
-	info       *SourceRepositoryInfo
+	location       string
+	url            url.URL
+	localDir       string
+	remoteURL      *url.URL
+	contextDir     string
+	info           *SourceRepositoryInfo
+	requestedImage string
 
 	usedBy           []ComponentReference
 	buildWithDocker  bool
@@ -86,15 +93,16 @@ type SourceRepository struct {
 
 // NewSourceRepository creates a reference to a local or remote source code repository from
 // a URL or path.
-func NewSourceRepository(s string) (*SourceRepository, error) {
+func NewSourceRepository(s, requestedImage string) (*SourceRepository, error) {
 	location, err := git.ParseRepository(s)
 	if err != nil {
 		return nil, err
 	}
 
 	return &SourceRepository{
-		location: s,
-		url:      *location,
+		location:       s,
+		url:            *location,
+		requestedImage: requestedImage,
 	}, nil
 }
 
@@ -112,6 +120,11 @@ func NewSourceRepositoryForDockerfile(contents string) (*SourceRepository, error
 			Dockerfile: dockerfile,
 		},
 	}, nil
+}
+
+// UsedBy sets up which component uses the source repository
+func (r *SourceRepository) RequestedImage() string {
+	return r.requestedImage
 }
 
 // UsedBy sets up which component uses the source repository

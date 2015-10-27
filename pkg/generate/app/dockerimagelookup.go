@@ -77,7 +77,8 @@ func (r DockerClientSearcher) Search(terms ...string) (ComponentMatches, error) 
 			}
 
 			if len(ref.Registry) == 0 {
-				ref.Registry = "local Docker"
+				//ref.Registry = "local Docker"
+
 			}
 			if len(ref.Tag) == 0 {
 				ref.Tag = imageapi.DefaultImageTag
@@ -285,7 +286,7 @@ func matchTag(image docker.APIImages, value, registry, namespace, name, tag stri
 			continue
 		}
 		match.Score = match.Score / 4.0
-		glog.V(4).Infof("partial match on %q with %f", s, match.Score)
+		glog.V(4).Infof("%q partially matches registry=%s namespace=%s name=%s tag=%s with score %f", s, registry, namespace, name, tag, match.Score)
 		match.Value = s
 		match.Meta = map[string]string{"registry": registry}
 		matches = append(matches, match)
