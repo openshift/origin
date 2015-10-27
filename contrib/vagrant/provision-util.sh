@@ -103,15 +103,21 @@ os::provision::set-os-env() {
 "/root/${file_target}"
 }
 
+os::provision::get-admin-config() {
+    local config_root=$1
+
+    echo "${config_root}/openshift.local.config/master/admin.kubeconfig"
+}
+
 os::provision::set-bash-env() {
   local origin_root=$1
   local config_root=$2
   local target=$3
 
-  local path="${config_root}/openshift.local.config/master/admin.kubeconfig"
+  local path=$(os::provision::get-admin-config "${config_root}")
   local config_line="export KUBECONFIG=${path}"
   if ! grep -q "${config_line}" "${target}" &> /dev/null; then
-    echo "export KUBECONFIG=${path}" >> "${target}"
+    echo "${config_line}" >> "${target}"
     echo "cd ${origin_root}" >> "${target}"
   fi
 }
@@ -227,8 +233,6 @@ os::provision::start-os-service() {
   local exec_start=$3
   local work_dir=${4:-${CONFIG_ROOT}/}
 
-  # TODO(marun) Should the daemons be sharing a working directory?
-
   cat <<EOF > "/usr/lib/systemd/system/${unit_name}.service"
 [Unit]
 Description=${description}
@@ -296,29 +300,25 @@ os::provision::wait-for-condition() {
 }
 
 os::provision::is-sdn-node-registered() {
-  local master_cid=$1
-  local node_name=$2
+  local node_name=$1
 
-  ${DOCKER_CMD} exec -t "${master_cid}" bash -ci \
-    "oc get nodes ${node_name} &> /dev/null"
+  oc get nodes "${node_name}" &> /dev/null
 }
 
 os::provision::disable-sdn-node() {
-  local master_cid=$1
+  local config_root=$1
   local node_name=$2
+
+  export KUBECONFIG=$(os::provision::get-admin-config "${config_root}")
 
   local sdn_msg="for sdn node to register with the master"
   local start_msg="Waiting ${sdn_msg}"
   local error_msg="[ERROR] Timeout waiting ${sdn_msg}"
-  local condition="os::provision::is-sdn-node-registered ${master_cid} \
-${node_name}"
+  local condition="os::provision::is-sdn-node-registered ${node_name}"
   local timeout=30
   os::provision::wait-for-condition "${start_msg}" "${error_msg}" \
     "${condition}" "${timeout}"
 
   echo "Disabling scheduling for the sdn node"
-  # Disable scheduling outside of the master provision script to give
-  # the node time to register itself to the master.
-  ${DOCKER_CMD} exec -t "${master_cid}" bash -ci \
-    "osadm manage-node ${node_name} --schedulable=false > /dev/null"
+  osadm manage-node "${node_name}" --schedulable=false > /dev/null
 }

@@ -178,8 +178,6 @@ function start() {
       "${SCRIPT_ROOT}/provision-node.sh ${args} -i ${i} -c \
 ${DEPLOYED_CONFIG_ROOT}"
   done
-
-  os::provision::disable-sdn-node "${master_cid}" "${SDN_NODE_NAME}"
 }
 
 function stop() {

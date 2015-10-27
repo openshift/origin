@@ -36,6 +36,8 @@ cmd="/usr/bin/openshift start master --loglevel=${LOG_LEVEL} \
 os::provision::start-os-service "openshift-master" "OpenShift Master" "${cmd}"
 os::provision::start-node-service "${SDN_NODE_NAME}"
 
-# TODO(marun) Need to disable scheduling on sdn daemon
+# Disable scheduling for the sdn node - it's purpose is only to ensure
+# pod network connectivity on the master.
+os::provision::disable-sdn-node "${CONFIG_ROOT}" "${SDN_NODE_NAME}"
 
 os::provision::set-os-env "${ORIGIN_ROOT}" "${CONFIG_ROOT}"
