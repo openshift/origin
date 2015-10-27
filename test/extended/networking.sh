@@ -12,6 +12,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -o xtrace
 
 OS_ROOT=$(dirname "${BASH_SOURCE}")/../..
 source "${OS_ROOT}/hack/util.sh"
