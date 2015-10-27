@@ -14,9 +14,9 @@ source ${ORIGIN_ROOT}/contrib/vagrant/provision-util.sh
 
 # Passed as arguments to provisioning script
 MASTER_IP=${1:-""}
-NODE_COUNT=${2:-2}
+NODE_COUNT=${2:-${OPENSHIFT_NUM_MINIONS:-2}}
 NODE_IPS=${3:-""}
-INSTANCE_PREFIX=${4:-${OS_INSTANCE_PREFIX:-openshift}}
+INSTANCE_PREFIX=${4:-${OPENSHIFT_INSTANCE_PREFIX:-openshift}}
 
 # Set defaults for optional arguments
 FIXUP_NET_UDEV=false

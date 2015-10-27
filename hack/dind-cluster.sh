@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # WARNING: The script modifies the host on which it is run.  It loads
-# the openvwitch and br_netfilter modules, sets
-# net.bridge.bridge-nf-call-iptables=0, and creates 2 loopback devices
-# for each non-master node.  Consider creating dind clusters in a VM
-# if this modification is undesirable:
+# the openvwitch and br_netfilter modules and sets
+# net.bridge.bridge-nf-call-iptables=0.  Consider creating dind
+# clusters in a VM if this modification is undesirable:
 #
 #   OPENSHIFT_DIND_DEV_CLUSTER=1 vagrant up'
 #
@@ -20,7 +19,7 @@
 # Dependencies
 # ------------
 #
-# This script has been tested on Fedora 22, but should work on any
+# This script has been tested on Fedora 21, but should work on any
 # release.  Docker is assumed to be installed.  At this time,
 # boot2docker is not supported.
 #
@@ -44,11 +43,11 @@
 # command would ensure configuration was stored at
 # /tmp/openshift-dind/cluster/my-cluster:
 #
-#    OS_INSTANCE_PREFIX=my-cluster hack/dind-cluster.sh [command]
+#    OPENSHIFT_INSTANCE_PREFIX=my-cluster hack/dind-cluster.sh [command]
 #
 # It is also possible to specify an entirely different configuration path:
 #
-#    OS_DIND_CONFIG_ROOT=[path] hack/dind-cluster.sh [command]
+#    OPENSHIFT_CONFIG_ROOT=[path] hack/dind-cluster.sh [command]
 #
 # Running Tests
 # -------------
@@ -72,7 +71,7 @@ DOCKER_CMD=${DOCKER_CMD:-"sudo docker"}
 
 # Override the default CONFIG_ROOT path with one that is
 # cluster-specific.
-CONFIG_ROOT=${OS_DIND_CONFIG_ROOT:-/tmp/openshift-dind-cluster/${INSTANCE_PREFIX}}
+CONFIG_ROOT=${OPENSHIFT_CONFIG_ROOT:-/tmp/openshift-dind-cluster/${INSTANCE_PREFIX}}
 
 DEPLOYED_CONFIG_ROOT="/config"
 
@@ -87,10 +86,10 @@ function check-selinux() {
   fi
 }
 
-IMAGE_REPO="${OS_DIND_IMAGE_REPO:-}"
-IMAGE_TAG="${OS_DIND_IMAGE_TAG:-}"
+IMAGE_REPO="${OPENSHIFT_DIND_IMAGE_REPO:-}"
+IMAGE_TAG="${OPENSHIFT_DIND_IMAGE_TAG:-}"
 DIND_IMAGE="${IMAGE_REPO}openshift/dind${IMAGE_TAG}"
-BUILD_IMAGES="${OS_DIND_BUILD_IMAGES:-1}"
+BUILD_IMAGES="${OPENSHIFT_DIND_BUILD_IMAGES:-1}"
 
 function build-image() {
   local build_root=$1

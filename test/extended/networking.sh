@@ -76,14 +76,14 @@ function test-osdn-plugin() {
   os::log::info "Targeting ${name} plugin: ${plugin}"
   os::log::info "Launching a docker-in-docker cluster for the ${name} plugin"
   export OPENSHIFT_SDN="${plugin}"
-  export OS_DIND_CONFIG_ROOT="${BASETMPDIR}/${name}"
+  export OPENSHIFT_CONFIG_ROOT="${BASETMPDIR}/${name}"
   # Images have already been built
   export OS_DIND_BUILD_IMAGES=0
   DIND_CLEANUP_REQUIRED=1
   ${CLUSTER_CMD} start
 
   os::log::info "Saving cluster configuration"
-  save-artifacts "${name}" "${OS_DIND_CONFIG_ROOT}"
+  save-artifacts "${name}" "${OPENSHIFT_CONFIG_ROOT}"
 
   os::log::info "Running networking e2e tests against the ${name} plugin"
   local log_dir="${LOG_DIR}/${name}"
@@ -94,7 +94,7 @@ function test-osdn-plugin() {
   # plugin.
   set +e
 
-  os::util::run-net-extended-tests "${OS_DIND_CONFIG_ROOT}" \
+  os::util::run-net-extended-tests "${OPENSHIFT_CONFIG_ROOT}" \
     "${NETWORKING_E2E_FOCUS}" "${NETWORKING_E2E_SKIP}" "${log_dir}/test.log"
   local exit_status=$?
 
@@ -111,7 +111,7 @@ function test-osdn-plugin() {
   os::log::info "Shutting down docker-in-docker cluster for the ${name} plugin"
   ${CLUSTER_CMD} stop
   DIND_CLEANUP_REQUIRED=0
-  rmdir "${OS_DIND_CONFIG_ROOT}"
+  rmdir "${OPENSHIFT_CONFIG_ROOT}"
 }
 
 ensure_ginkgo_or_die
