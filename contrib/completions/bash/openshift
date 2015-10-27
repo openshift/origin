@@ -2277,6 +2277,7 @@ _openshift_cli_new-build()
     flags_completion=()
 
     flags+=("--allow-missing-images")
+    flags+=("--binary")
     flags+=("--code=")
     flags+=("--docker-image=")
     flags+=("--dockerfile=")
