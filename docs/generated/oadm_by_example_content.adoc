@@ -217,18 +217,18 @@ Join project network
 ====
 
 
-== oadm pod-network unisolate-projects
-UnIsolate project network
+== oadm pod-network make-projects-global
+Make project network global
 
 ====
 
 [options="nowrap"]
 ----
 	# Allow project p1 to access all pods in the cluster and vice versa
-	$ openshift admin pod-network unisolate-projects <p1>
+	$ openshift admin pod-network make-projects-global <p1>
 
 	# Allow all projects with label name=share to access all pods in the cluster and vice versa
-	$ openshift admin pod-network unisolate-projects --selector='name=share'
+	$ openshift admin pod-network make-projects-global --selector='name=share'
 ----
 ====
 
