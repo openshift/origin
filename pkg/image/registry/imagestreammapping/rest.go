@@ -5,7 +5,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/fielderrors"
@@ -100,52 +99,39 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		Image:                image.Name,
 	}
 
-	var result *unversioned.Status
-	var updateConflictErr error
-	retryErr := client.RetryOnConflict(wait.Backoff{Steps: maxRetriesOnConflict}, func() error {
+	err = wait.ExponentialBackoff(wait.Backoff{Steps: maxRetriesOnConflict}, func() (bool, error) {
 		lastEvent := api.LatestTaggedImage(stream, tag)
 		if !api.AddTagEventToImageStream(stream, tag, next) {
 			// nothing actually changed
-			result = &unversioned.Status{Status: unversioned.StatusSuccess}
-			return nil
+			return true, nil
 		}
 		api.UpdateTrackingTags(stream, tag, next)
-
 		_, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream)
-		if err != nil {
-			if !errors.IsConflict(err) {
-				return err
-			}
-			// If the update conflicts, get the latest stream and check for tag
-			// updates. If the latest tag hasn't changed, retry.
-			latestStream, findLatestErr := s.findStreamForMapping(ctx, mapping)
-			if findLatestErr != nil {
-				return findLatestErr
-			}
-			newerEvent := api.LatestTaggedImage(latestStream, tag)
-			if lastEvent == nil || kapi.Semantic.DeepEqual(lastEvent, newerEvent) {
-				// The tag hasn't changed, so try again with the updated stream.
-				stream = latestStream
-				return err
-			}
-			// The tag changed, so return the conflict error back to the client.
-			// This is a little indirect but is necessary because we can't just
-			// return the conflict error from the retry function (since it would
-			// trigger a retry).
-			updateConflictErr = err
-			return nil
+		if err == nil {
+			return true, nil
 		}
-		result = &unversioned.Status{Status: unversioned.StatusSuccess}
-		return nil
+		if !errors.IsConflict(err) {
+			return false, err
+		}
+		// If the update conflicts, get the latest stream and check for tag
+		// updates. If the latest tag hasn't changed, retry.
+		latestStream, findLatestErr := s.findStreamForMapping(ctx, mapping)
+		if findLatestErr != nil {
+			return false, findLatestErr
+		}
+		newerEvent := api.LatestTaggedImage(latestStream, tag)
+		if lastEvent == nil || kapi.Semantic.DeepEqual(lastEvent, newerEvent) {
+			// The tag hasn't changed, so try again with the updated stream.
+			stream = latestStream
+			return false, nil
+		}
+		// The tag changed, so return the conflict error back to the client.
+		return false, err
 	})
-
-	if updateConflictErr != nil {
-		return nil, updateConflictErr
+	if err != nil {
+		return nil, err
 	}
-	if retryErr != nil {
-		return nil, retryErr
-	}
-	return result, nil
+	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
 }
 
 // findStreamForMapping retrieves an ImageStream whose DockerImageRepository matches dockerRepo.
