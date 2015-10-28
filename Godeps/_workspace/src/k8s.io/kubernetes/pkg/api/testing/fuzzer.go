@@ -299,12 +299,12 @@ func FuzzerFor(t *testing.T, version string, src rand.Source) *fuzz.Fuzzer {
 		},
 		func(sc *api.SecurityContext, c fuzz.Continue) {
 			c.FuzzNoCustom(sc) // fuzz self without calling this function again
-			if c.RandBool() {
+			if c.RandBool() || version == "v1beta3" {
 				priv := c.RandBool()
 				sc.Privileged = &priv
 			}
 
-			if c.RandBool() {
+			if c.RandBool() || version == "v1beta3" {
 				sc.Capabilities = &api.Capabilities{
 					Add:  make([]api.Capability, 0),
 					Drop: make([]api.Capability, 0),
