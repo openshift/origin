@@ -1,16 +1,16 @@
-<div>
+<div flex>
   <a
     name="logTop"
     id="logTop"></a>
 
-  <div class="log-view">
+  <div flex class="log-view">
     <div
       ng-show="logs.length > 25"
       class="log-scroll log-scroll-top"
       affix
-      offset-top="285"
+      offset-top="445"
       offset-bottom="90">
-      <a ng-click="scrollBottom()">
+      <a href="" ng-click="scrollBottom()">
         Go to end of log
       </a>
     </div>
@@ -42,12 +42,14 @@
         {{::logLine.text}}
         </span>
       </div>
-      <div class="spinner spinner-inverse" ng-show="loading"></div>
+      <div layout row main-axis="center">
+        <ellipsis-loader ng-show="loading"></ellipsis-loader>
+      </div>
     </div>
     <div
       ng-show="logs.length > 25"
       class="log-scroll log-scroll-bottom">
-      <a ng-click="scrollTop()">Go to start of log</a>
+      <a href="" ng-click="scrollTop()">Go to start of log</a>
     </div>
   </div>
   <a
