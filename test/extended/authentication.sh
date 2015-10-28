@@ -14,8 +14,6 @@ source "${OS_ROOT}/hack/common.sh"
 os::log::install_errexit
 cd "${OS_ROOT}"
 
-ensure_iptables_or_die
-
 os::build::setup_env
 
 export TMPDIR="${TMPDIR:-"/tmp"}"
@@ -39,6 +37,7 @@ trap "cleanup" EXIT
 
 echo "[INFO] Starting server"
 
+ensure_iptables_or_die
 setup_env_vars
 reset_tmp_dir
 configure_os_server
