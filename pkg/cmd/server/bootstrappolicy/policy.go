@@ -418,6 +418,58 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: kapi.ObjectMeta{
+				Name: PersistentVolumeControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// PersistentVolumeBinder.volumeController.ListWatch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("persistentvolumes"),
+				},
+				// PersistentVolumeBinder.syncVolume()
+				{
+					Verbs:     sets.NewString("get", "update", "create", "delete"),
+					Resources: sets.NewString("persistentvolumes"),
+				},
+				// PersistentVolumeBinder.syncVolume()
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("persistentvolumes/status"),
+				},
+				// PersistentVolumeBinder.claimController.ListWatch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("persistentvolumeclaims"),
+				},
+				// PersistentVolumeBinder.syncClaim()
+				{
+					Verbs:     sets.NewString("get", "update"),
+					Resources: sets.NewString("persistentvolumeclaims"),
+				},
+				// PersistentVolumeBinder.syncClaim()
+				{
+					Verbs:     sets.NewString("update"),
+					Resources: sets.NewString("persistentvolumeclaims/status"),
+				},
+				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("pods"),
+				},
+				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("get", "create", "delete"),
+					Resources: sets.NewString("pods"),
+				},
+				// PersistentVolumeRecycler.reclaimVolume() -> handleRecycle()
+				{
+					Verbs:     sets.NewString("create", "update", "patch"),
+					Resources: sets.NewString("events"),
+				},
+			},
+		},
+		{
+			ObjectMeta: kapi.ObjectMeta{
 				Name: HPAControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{

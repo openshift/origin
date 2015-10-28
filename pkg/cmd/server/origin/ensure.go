@@ -57,7 +57,7 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 	// Ensure service accounts exist
 	serviceAccounts := []string{
 		c.BuildControllerServiceAccount, c.DeploymentControllerServiceAccount, c.ReplicationControllerServiceAccount,
-		c.JobControllerServiceAccount, c.HPAControllerServiceAccount,
+		c.JobControllerServiceAccount, c.HPAControllerServiceAccount, c.PersistentVolumeControllerServiceAccount,
 	}
 	for _, serviceAccountName := range serviceAccounts {
 		_, err := c.KubeClient().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: serviceAccountName}})
@@ -68,11 +68,12 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 
 	// Ensure service account cluster role bindings exist
 	clusterRolesToSubjects := map[string][]kapi.ObjectReference{
-		bootstrappolicy.BuildControllerRoleName:       {{Namespace: ns, Name: c.BuildControllerServiceAccount, Kind: "ServiceAccount"}},
-		bootstrappolicy.DeploymentControllerRoleName:  {{Namespace: ns, Name: c.DeploymentControllerServiceAccount, Kind: "ServiceAccount"}},
-		bootstrappolicy.ReplicationControllerRoleName: {{Namespace: ns, Name: c.ReplicationControllerServiceAccount, Kind: "ServiceAccount"}},
-		bootstrappolicy.JobControllerRoleName:         {{Namespace: ns, Name: c.JobControllerServiceAccount, Kind: "ServiceAccount"}},
-		bootstrappolicy.HPAControllerRoleName:         {{Namespace: ns, Name: c.HPAControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.BuildControllerRoleName:            {{Namespace: ns, Name: c.BuildControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.DeploymentControllerRoleName:       {{Namespace: ns, Name: c.DeploymentControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.ReplicationControllerRoleName:      {{Namespace: ns, Name: c.ReplicationControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.JobControllerRoleName:              {{Namespace: ns, Name: c.JobControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.HPAControllerRoleName:              {{Namespace: ns, Name: c.HPAControllerServiceAccount, Kind: "ServiceAccount"}},
+		bootstrappolicy.PersistentVolumeControllerRoleName: {{Namespace: ns, Name: c.PersistentVolumeControllerServiceAccount, Kind: "ServiceAccount"}},
 	}
 	roleAccessor := policy.NewClusterRoleBindingAccessor(c.ServiceAccountRoleBindingClient())
 	for clusterRole, subjects := range clusterRolesToSubjects {
@@ -170,6 +171,10 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 	buildControllerUsername := serviceaccount.MakeUsername(ns, c.BuildControllerServiceAccount)
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess()
 	bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintPrivileged] = append(bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintPrivileged], buildControllerUsername)
+
+	// add the pv controller to the HostMount SCC access. Recyclers created by the controller are admin tasks performed by the controller.
+	pvControllerUsername := serviceaccount.MakeUsername(ns, c.PersistentVolumeControllerServiceAccount)
+	bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintHostMount] = append(bootstrapSCCUsers[bootstrappolicy.SecurityContextConstraintHostMount], pvControllerUsername)
 
 	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
 		_, err = c.KubeClient().SecurityContextConstraints().Create(&scc)
