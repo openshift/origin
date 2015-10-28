@@ -164,6 +164,7 @@
               <span ng-if="!(build | annotation : 'buildNumber')">
                 <a ng-href="project/{{build.metadata.namespace}}/browse/builds/{{buildConfig.metadata.name}}/{{build.metadata.name}}">{{build.metadata.name}}</a>
               </span>
+              <span ng-if="build.status.message" class="pficon pficon-warning-triangle-o" style="cursor: help;" data-toggle="popover" data-placement="right" data-trigger="hover" dynamic-content="{{build.status.message}}"></span>
             </td>
             <td data-title="Status">
               <div row class="status">

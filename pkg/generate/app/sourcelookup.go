@@ -82,6 +82,7 @@ type SourceRepository struct {
 	usedBy           []ComponentReference
 	buildWithDocker  bool
 	ignoreRepository bool
+	binary           bool
 }
 
 // NewSourceRepository creates a reference to a local or remote source code repository from
@@ -112,6 +113,15 @@ func NewSourceRepositoryForDockerfile(contents string) (*SourceRepository, error
 			Dockerfile: dockerfile,
 		},
 	}, nil
+}
+
+// NewBinarySourceRepository creates a source repository that is configured for binary
+// input.
+func NewBinarySourceRepository() *SourceRepository {
+	return &SourceRepository{
+		binary:           true,
+		ignoreRepository: true,
+	}
 }
 
 // UsedBy sets up which component uses the source repository
@@ -345,22 +355,22 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		Base:          image,
 		IsDockerBuild: repo.IsDockerBuild(),
 	}
-	var source *SourceRef
-	switch {
-	case repo.ignoreRepository && repo.Info() != nil && repo.Info().Dockerfile != nil:
-		source = &SourceRef{
-			DockerfileContents: repo.Info().Dockerfile.Contents(),
-		}
-	default:
+	source := &SourceRef{
+		Binary: repo.binary,
+	}
+
+	if repo.ignoreRepository && repo.Info() != nil && repo.Info().Dockerfile != nil {
+		source.DockerfileContents = repo.Info().Dockerfile.Contents()
+	}
+	if !repo.ignoreRepository {
 		remoteURL, err := repo.RemoteURL()
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot obtain remote URL for repository at %s", repo.location)
 		}
-		source = &SourceRef{
-			URL:        remoteURL,
-			Ref:        remoteURL.Fragment,
-			ContextDir: repo.ContextDir(),
-		}
+		source.URL = remoteURL
+		source.Ref = remoteURL.Fragment
+		source.ContextDir = repo.ContextDir()
 	}
+
 	return strategy, source, nil
 }

@@ -5,8 +5,9 @@ angular.module('openshiftConsole')
     '$anchorScroll',
     '$document',
     '$location',
+    '$timeout',
     '$window',
-    function($anchorScroll, $document, $location, $window) {
+    function($anchorScroll, $document, $location, $timeout, $window) {
       // TODO (bpeterse): a lot of these functions are generic and could be moved/renamed to
       // a navigation oriented service.
       var doc = $document[0];
@@ -30,8 +31,11 @@ angular.module('openshiftConsole')
         a.download = (filename || 'download') + '.txt';
         doc.body.appendChild(a);
         a.click();
-        revokeObjectURL()(a.href);
-        doc.body.removeChild(a);
+        // limit the resource lifespan & destroy
+        $timeout(function() {
+          revokeObjectURL()(a.href);
+          doc.body.removeChild(a);
+        }, 5000);
       };
 
       var scrollTop = function() {

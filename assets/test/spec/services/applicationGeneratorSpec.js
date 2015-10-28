@@ -22,7 +22,11 @@ describe("ApplicationGenerator", function(){
     input = {
       name: "ruby-hello-world",
       routing: {
-        include: true
+        include: true,
+        targetPort: {
+          containerPort: 80,
+          protocol: "TCP"
+        }
       },
       buildConfig: {
         sourceUrl: "https://github.com/openshift/ruby-hello-world.git",
@@ -108,7 +112,7 @@ describe("ApplicationGenerator", function(){
   describe("#_generateService", function(){
 
     it("should not generate a service if no ports are exposed", function(){
-      var service = ApplicationGenerator._generateService(input, "theServiceName", "None");
+      var service = ApplicationGenerator._generateService(input, "theServiceName", []);
       expect(service).toEqual(null);
     });
 
@@ -169,6 +173,9 @@ describe("ApplicationGenerator", function(){
           to: {
             kind: "Service",
             name: "theServiceName"
+          },
+          port: {
+            targetPort: 80
           }
         }
       });
@@ -286,7 +293,13 @@ describe("ApplicationGenerator", function(){
                 "ports": [{
                   "port": 80,
                   "targetPort" : 80,
-                  "protocol": "TCP"
+                  "protocol": "TCP",
+                  "name": "80-tcp"
+                }, {
+                  "port": 443,
+                  "targetPort" : 443,
+                  "protocol": "TCP",
+                  "name": "443-tcp"
                 }],
                 "selector": {
                     "deploymentconfig": "ruby-hello-world"
@@ -352,11 +365,11 @@ describe("ApplicationGenerator", function(){
                     "name": "ruby-hello-world",
                     "ports": [
                       {
-                        "containerPort": 443,
+                        "containerPort": 80,
                         "protocol": "TCP"
                       },
                       {
-                        "containerPort": 80,
+                        "containerPort": 443,
                         "protocol": "TCP"
                       }
                     ],
@@ -401,7 +414,7 @@ describe("ApplicationGenerator", function(){
       resources = ApplicationGenerator.generate(input);
     });
 
-    it("should use the first port found from the config block for the service ports", function(){
+    it("should create service ports for all exposed ports", function(){
         expect(resources.service).toEqual(
         {
             "kind": "Service",
@@ -421,7 +434,13 @@ describe("ApplicationGenerator", function(){
                 "ports": [{
                   "port": 777,
                   "targetPort" : 777,
-                  "protocol": "TCP"
+                  "protocol": "TCP",
+                  "name": "777-tcp"
+                }, {
+                  "port": 999,
+                  "targetPort" : 999,
+                  "protocol": "TCP",
+                  "name": "999-tcp"
                 }],
                 "selector": {
                     "deploymentconfig": "ruby-hello-world"
@@ -429,6 +448,22 @@ describe("ApplicationGenerator", function(){
             }
         }
       );
+    });
+  });
+
+  describe("generating applications from image with no exposed ports", function(){
+    var resources;
+    beforeEach(function(){
+      input.image.dockerImageMetadata = {};
+      resources = ApplicationGenerator.generate(input);
+    });
+
+    it("should not create a service or route", function(){
+      expect(resources.service).toBeUndefined();
+      expect(resources.route).toBeUndefined();
+      expect(resources.imageStream).toBeDefined();
+      expect(resources.buildConfig).toBeDefined();
+      expect(resources.deploymentConfig).toBeDefined();
     });
   });
 });

@@ -335,7 +335,7 @@ func (o TagOptions) RunTag() error {
 			}
 
 			target.Spec.Tags[destTag] = targetRef
-			msg = fmt.Sprintf("Tag %s set up to track tag %s/%s.", o.ref, o.destNamespace[i], destNameAndTag)
+			msg = fmt.Sprintf("Tag %s set up to track tag %s/%s.", o.ref.Exact(), o.destNamespace[i], destNameAndTag)
 		} else {
 			// The user wants to delete a spec tag.
 			if _, ok := target.Spec.Tags[destTag]; !ok {
