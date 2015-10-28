@@ -21,7 +21,7 @@
                 <ng-include src=" 'views/browse/_build-details.html' "></ng-include>
               </tab>
 
-              <tab active="selectedTab.logs">
+              <tab active="selectedTab.logs" select="initLogs()">
                 <tab-heading>Logs</tab-heading>
                 <log-viewer
                   logs="logs"
@@ -29,6 +29,7 @@
                   start="build.status.startTimestamp | date : 'short'"
                   end="build.status.completionTimestamp | date : 'short'"
                   links="true"
+                  name="build.metadata.name"
                   download="canShowDownload">
                   <div row>
                     <span>Status:&nbsp;&nbsp;</span>
@@ -36,9 +37,13 @@
                     <span flex>&nbsp;&nbsp;{{build.status.phase}}</span>
                   </div>
                 </log-viewer>
-                <div ng-show="!logsLoading" class="text-muted">
-                  connection closed.
-                  <a ng-click="initLogs()" ng-show="canInitAgain">reconnect</a>
+                <!-- TODO: this should probably get moved up into the directive -->
+                <div ng-if="!logsLoading" class="text-muted">
+                  Log complete
+                </div>
+                <div ng-if="logError" class="text-muted">
+                  Log error
+                  <a ng-click="runLogs()">reconnect?</a>
                 </div>
               </tab>
             </tabset>
