@@ -57,10 +57,13 @@ type AppConfig struct {
 
 	Dockerfile string
 
-	Name               string
-	Strategy           string
-	InsecureRegistry   bool
-	OutputDocker       bool
+	Name             string
+	Strategy         string
+	InsecureRegistry bool
+	OutputDocker     bool
+
+	ExpectToBuild      bool
+	BinaryBuild        bool
 	AllowMissingImages bool
 
 	AsSearch bool
@@ -197,11 +200,12 @@ func (c *AppConfig) AddArguments(args []string) []string {
 // individualSourceRepositories collects the list of SourceRepositories specified in the
 // command line that are not associated with a builder using a '~'.
 func (c *AppConfig) individualSourceRepositories() (app.SourceRepositories, error) {
-	first := true
 	for _, s := range c.SourceRepositories {
-		if repo, ok := c.refBuilder.AddSourceRepository(s); ok && first {
+		if repo, ok := c.refBuilder.AddSourceRepository(s); ok {
 			repo.SetContextDir(c.ContextDir)
-			first = false
+			if c.Strategy == "docker" {
+				repo.BuildWithDocker()
+			}
 		}
 	}
 	if len(c.Dockerfile) > 0 {
@@ -305,6 +309,10 @@ func (c *AppConfig) validate() (app.ComponentReferences, app.SourceRepositories,
 		errs = append(errs, fmt.Errorf("when --strategy is specified you must provide at least one source code location"))
 	}
 
+	if c.BinaryBuild && (len(repos) > 0 || refs.HasSource()) {
+		errs = append(errs, fmt.Errorf("specifying binary builds and source repositories at the same time is not allowed"))
+	}
+
 	env, duplicateEnv, envErrs := cmdutil.ParseEnvironmentArguments(c.Environment)
 	for _, s := range duplicateEnv {
 		glog.V(1).Infof("The environment variable %q was overwritten", s)
@@ -394,26 +402,6 @@ func (c *AppConfig) resolve(components app.ComponentReferences) error {
 			errs = append(errs, err)
 			continue
 		}
-		input := ref.Input()
-		if !input.ExpectToBuild && input.ResolvedMatch.Builder {
-			if c.Strategy != "docker" {
-				input.ExpectToBuild = true
-			}
-		}
-		switch {
-		case input.ExpectToBuild && input.ResolvedMatch.IsTemplate():
-			// TODO: harder - break the template pieces and check if source code can be attached (look for a build config, build image, etc)
-			errs = append(errs, fmt.Errorf("template with source code explicitly attached is not supported - you must either specify the template and source code separately or attach an image to the source code using the '[image]~[code]' form"))
-			continue
-		case input.ExpectToBuild && !input.ResolvedMatch.Builder && !input.Uses.IsDockerBuild():
-			if len(c.Strategy) == 0 {
-				errs = append(errs, fmt.Errorf("the resolved match %q for component %q cannot build source code - check whether this is the image you want to use, then use --strategy=source to build using source or --strategy=docker to treat this as a Docker base image and set up a layered Docker build", input.ResolvedMatch.Name, ref))
-				continue
-			}
-		case input.ResolvedMatch.Score != 0.0:
-			errs = append(errs, fmt.Errorf("component %q had only a partial match of %q - if this is the value you want to use, specify it explicitly", input.From, input.ResolvedMatch.Name))
-			continue
-		}
 	}
 	return errors.NewAggregate(errs)
 }
@@ -427,6 +415,40 @@ func (c *AppConfig) search(components app.ComponentReferences) error {
 			continue
 		}
 	}
+	return errors.NewAggregate(errs)
+}
+
+// inferBuildTypes infers build status and mismatches between source and docker builders
+func (c *AppConfig) inferBuildTypes(components app.ComponentReferences) error {
+	errs := []error{}
+	for _, ref := range components {
+		input := ref.Input()
+		// if the strategy is explicitly Docker, all repos should assume docker
+		if c.Strategy == "docker" && input.Uses != nil {
+			input.Uses.BuildWithDocker()
+		}
+
+		// if we are expecting build inputs, or get a build input when strategy is not docker, expect to build
+		if c.ExpectToBuild || (input.ResolvedMatch.Builder && c.Strategy != "docker") {
+			input.ExpectToBuild = true
+		}
+
+		switch {
+		case input.ExpectToBuild && input.ResolvedMatch.IsTemplate():
+			// TODO: harder - break the template pieces and check if source code can be attached (look for a build config, build image, etc)
+			errs = append(errs, fmt.Errorf("template with source code explicitly attached is not supported - you must either specify the template and source code separately or attach an image to the source code using the '[image]~[code]' form"))
+			continue
+		case input.ExpectToBuild && !input.ResolvedMatch.Builder && input.Uses != nil && !input.Uses.IsDockerBuild():
+			if len(c.Strategy) == 0 {
+				errs = append(errs, fmt.Errorf("the resolved match %q for component %q cannot build source code - check whether this is the image you want to use, then use --strategy=source to build using source or --strategy=docker to treat this as a Docker base image and set up a layered Docker build", input.ResolvedMatch.Name, ref))
+				continue
+			}
+		case input.ResolvedMatch.Score != 0.0:
+			errs = append(errs, fmt.Errorf("component %q had only a partial match of %q - if this is the value you want to use, specify it explicitly", input.From, input.ResolvedMatch.Name))
+			continue
+		}
+	}
+
 	return errors.NewAggregate(errs)
 }
 
@@ -455,10 +477,33 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 				repositories[0].UsedBy(component)
 			}
 		default:
-			for _, component := range components {
-				component.Input().ExpectToBuild = false
+			switch {
+			case c.BinaryBuild && c.ExpectToBuild:
+				// create new "fake" binary repos for any component that doesn't already have a repo
+				// TODO: source repository should possibly be refactored to be an interface or a type that better reflects
+				//   the different types of inputs
+				for _, component := range components {
+					input := component.Input()
+					if input.Uses != nil {
+						continue
+					}
+					repo := app.NewBinarySourceRepository()
+					if c.Strategy == "docker" || len(c.Strategy) == 0 {
+						repo.BuildWithDocker()
+					}
+					input.Use(repo)
+					repo.UsedBy(input)
+					input.ExpectToBuild = true
+				}
+			case c.ExpectToBuild:
+				return fmt.Errorf("you must specify at least one source repository URL, provide a Dockerfile, or indicate you wish to use binary builds")
+			default:
+				for _, component := range components {
+					component.Input().ExpectToBuild = false
+				}
 			}
 		}
+		glog.V(4).Infof("ensureHasSource: %#v", components[0])
 	}
 	return nil
 }
@@ -512,24 +557,25 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 	pipelines := app.PipelineGroup{}
 	names := map[string]int{}
 	for _, group := range components.Group() {
-		glog.V(2).Infof("found group: %#v", group)
+		glog.V(4).Infof("found group: %#v", group)
 		common := app.PipelineGroup{}
 		for _, ref := range group {
 			var pipeline *app.Pipeline
 			var name string
 			if ref.Input().ExpectToBuild {
-				glog.V(2).Infof("will use %q as the base image for a source build of %q", ref, ref.Input().Uses)
+				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, ref.Input().Uses)
 				input, err := app.InputImageFromMatch(ref.Input().ResolvedMatch)
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
 				if !input.AsImageStream {
-					glog.Warningf("Could not find an ImageStream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", ref.Input().ResolvedMatch.Value)
+					glog.Warningf("Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed.", ref.Input().ResolvedMatch.Value)
 				}
 				strategy, source, err := app.StrategyAndSourceForRepository(ref.Input().Uses, input)
 				if err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
+
 				// Override resource names from the cli
 				name = c.Name
 				if len(name) == 0 {
@@ -546,7 +592,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				}
 
 				// Append any exposed ports from Dockerfile to input image
-				if ref.Input().Uses.IsDockerBuild() {
+				if ref.Input().Uses.IsDockerBuild() && ref.Input().Uses.Info() != nil {
 					node := ref.Input().Uses.Info().Dockerfile.AST()
 					ports := dockerfileutil.LastExposedPorts(node)
 					if len(ports) > 0 {
@@ -564,8 +610,9 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				if pipeline, err = app.NewBuildPipeline(ref.Input().String(), input, c.OutputDocker, strategy, c.GetBuildEnvironment(environment), source); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", ref.Input(), err)
 				}
+
 			} else {
-				glog.V(2).Infof("will include %q", ref)
+				glog.V(4).Infof("will include %q", ref)
 				input, err := app.InputImageFromMatch(ref.Input().ResolvedMatch)
 				if err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
@@ -587,6 +634,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, fmt.Errorf("can't include %q: %v", ref.Input(), err)
 				}
 			}
+
 			if err := pipeline.NeedsDeployment(environment, c.Labels, name); err != nil {
 				return nil, fmt.Errorf("can't set up a deployment for %q: %v", ref.Input(), err)
 			}
@@ -802,7 +850,12 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if err := c.resolve(components); err != nil {
+		return nil, err
+	}
+
+	if err := c.inferBuildTypes(components); err != nil {
 		return nil, err
 	}
 
@@ -810,11 +863,13 @@ func (c *AppConfig) run(acceptors app.Acceptors) (*AppResult, error) {
 	if err := c.ensureHasSource(components.NeedsSource(), repositories.NotUsed()); err != nil {
 		return nil, err
 	}
+
 	// For source repos that are not yet coupled with a component, create components
 	sourceComponents, err := c.componentsForRepos(repositories.NotUsed())
 	if err != nil {
 		return nil, err
 	}
+
 	// resolve the source repo components
 	if err := c.resolve(sourceComponents); err != nil {
 		return nil, err

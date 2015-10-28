@@ -67,6 +67,11 @@ func (r ComponentReferences) filter(filterFunc func(ref ComponentReference) bool
 	return refs
 }
 
+// HasSource returns true if there is more than one component that has a repo associated
+func (r ComponentReferences) HasSource() bool {
+	return len(r.filter(func(ref ComponentReference) bool { return ref.Input().Uses != nil })) > 0
+}
+
 // NeedsSource returns all the components that need source code in order to build
 func (r ComponentReferences) NeedsSource() (refs ComponentReferences) {
 	return r.filter(func(ref ComponentReference) bool {

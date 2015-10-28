@@ -469,6 +469,7 @@ _oc_new-build()
     flags_completion=()
 
     flags+=("--allow-missing-images")
+    flags+=("--binary")
     flags+=("--code=")
     flags+=("--context-dir=")
     flags+=("--docker-image=")

@@ -104,6 +104,8 @@ type SourceRef struct {
 	ContextDir string
 
 	DockerfileContents string
+
+	Binary bool
 }
 
 func urlWithoutRef(url url.URL) string {
@@ -138,22 +140,23 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 			},
 		},
 	}
-	var source *buildapi.BuildSource
-	switch {
-	case r.URL != nil:
-		source = &buildapi.BuildSource{
-			Type: buildapi.BuildSourceGit,
-			Git: &buildapi.GitBuildSource{
-				URI: urlWithoutRef(*r.URL),
-				Ref: r.Ref,
-			},
-			ContextDir: r.ContextDir,
+	source := &buildapi.BuildSource{}
+
+	if len(r.DockerfileContents) != 0 {
+		source.Type = buildapi.BuildSourceDockerfile
+		source.Dockerfile = &r.DockerfileContents
+	}
+	if r.URL != nil {
+		source.Type = buildapi.BuildSourceGit
+		source.Git = &buildapi.GitBuildSource{
+			URI: urlWithoutRef(*r.URL),
+			Ref: r.Ref,
 		}
-	case len(r.DockerfileContents) != 0:
-		source = &buildapi.BuildSource{
-			Type:       buildapi.BuildSourceDockerfile,
-			Dockerfile: &r.DockerfileContents,
-		}
+		source.ContextDir = r.ContextDir
+	}
+	if r.Binary {
+		source.Type = buildapi.BuildSourceBinary
+		source.Binary = &buildapi.BinaryBuildSource{}
 	}
 	return source, triggers
 }
@@ -405,9 +408,9 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 		return nil, fmt.Errorf("unable to suggest a name for this BuildConfig from %q", r.Source.URL)
 	}
 	var source *buildapi.BuildSource
-	sourceTriggers := []buildapi.BuildTriggerPolicy{}
+	triggers := []buildapi.BuildTriggerPolicy{}
 	if r.Source != nil {
-		source, sourceTriggers = r.Source.BuildSource()
+		source, triggers = r.Source.BuildSource()
 	}
 	if source == nil {
 		source = &buildapi.BuildSource{}
@@ -421,12 +424,14 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	configChangeTrigger := buildapi.BuildTriggerPolicy{
-		Type: buildapi.ConfigChangeBuildTriggerType,
-	}
 
-	triggers := append(sourceTriggers, configChangeTrigger)
-	triggers = append(triggers, strategyTriggers...)
+	if source.Binary == nil {
+		configChangeTrigger := buildapi.BuildTriggerPolicy{
+			Type: buildapi.ConfigChangeBuildTriggerType,
+		}
+		triggers = append(triggers, configChangeTrigger)
+		triggers = append(triggers, strategyTriggers...)
+	}
 
 	return &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
