@@ -7,6 +7,34 @@ os::provision::join() {
   echo "$*"
 }
 
+os::provision::build-origin() {
+  local origin_root=$1
+  local skip_build=$2
+
+  # This optimization is intended for devcluster use so hard-coding the
+  # arch in the path should be ok.
+  if [ -f "${origin_root}/_output/local/bin/linux/amd64/oc" ] &&
+     [ "${skip_build}" = "true" ]; then
+    echo "WARNING: Skipping openshift build due to OPENSHIFT_SKIP_BUILD=true"
+  else
+    echo "Building openshift"
+    ${origin_root}/hack/build-go.sh
+  fi
+}
+
+os::provision::build-etcd() {
+  local origin_root=$1
+  local skip_build=$2
+
+  if [ -f "${origin_root}/_tools/etcd/bin/etcd" ] &&
+     [ "${skip_build}" = "true" ]; then
+    echo "WARNING: Skipping etcd build due to OPENSHIFT_SKIP_BUILD=true"
+  else
+    echo "Building etcd"
+    ${origin_root}/hack/install-etcd.sh
+  fi
+}
+
 os::provision::install-cmds() {
   local deployed_root=$1
 
