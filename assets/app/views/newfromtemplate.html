@@ -13,25 +13,27 @@
               <span class="fa fa-cubes"></span>
             </div>
             <div class="col-md-9">
-              <osc-image-summary resource="template"></osc-image-summary>
-              <div ng-if="templateImages.length" class="images">
-                <h2>Images</h2>
-                <ul class="list-unstyled" ng-repeat="image in templateImages">
-                  <li>
-                    <i class="pficon pficon-image"></i>
-                    <span class="name">{{ image.name }}</span>
-                  </li>
-                </ul>
-              </div>
-              <form name="templateForm">
-                <template-options parameters="template.parameters" expand="true" can-toggle="false"></template-options>
-                <label-editor labels="template.labels" expand="true" can-toggle="false"></label-editor>
-                <alerts alerts="alerts"></alerts>
-                <div class="buttons gutter-top-bottom">
-                  <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()" ng-disabled="templateForm.$invalid">Create</button>
-                  <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
+              <fieldset ng-disabled="disableInputs">
+                <osc-image-summary resource="template"></osc-image-summary>
+                <div ng-if="templateImages.length" class="images">
+                  <h2>Images</h2>
+                  <ul class="list-unstyled" ng-repeat="image in templateImages">
+                    <li>
+                      <i class="pficon pficon-image"></i>
+                      <span class="name">{{ image.name }}</span>
+                    </li>
+                  </ul>
                 </div>
-              </form>
+                <form name="templateForm">
+                  <template-options parameters="template.parameters" expand="true" can-toggle="false"></template-options>
+                  <label-editor labels="template.labels" expand="true" can-toggle="false"></label-editor>
+                  <alerts alerts="alerts"></alerts>
+                  <div class="buttons gutter-top-bottom">
+                    <button class="btn btn-primary btn-lg" ng-click="createFromTemplate()" ng-disabled="templateForm.$invalid || disableInputs">Create</button>
+                    <a class="btn btn-default btn-lg" href="{{projectName | projectOverviewURL}}">Cancel</a>
+                  </div>
+                </form>
+              </fieldset>
             </div>
           </div>
           <div ng-hide="template">

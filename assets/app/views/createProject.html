@@ -3,65 +3,67 @@
     <div class="col-md-12">
       <h1>New Project</h1>
       <form name="createProjectForm">
-        <div class="form-group">
-          <label for="name" class="required">Name</label>
-          <span ng-class="{'has-error': (createProjectForm.name.$error.pattern && createProjectForm.name.$touched) || nameTaken}">
+        <fieldset ng-disabled="disableInputs">
+          <div class="form-group">
+            <label for="name" class="required">Name</label>
+            <span ng-class="{'has-error': (createProjectForm.name.$error.pattern && createProjectForm.name.$touched) || nameTaken}">
+              <input class="form-control input-lg"
+                  name="name"
+                  id="name"
+                  placeholder="my-project"
+                  type="text"
+                  required
+                  take-focus
+                  minlength="2"
+                  maxlength="63"
+                  pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+                  aria-describedby="nameHelp"
+                  ng-model="name"
+                  ng-model-options="{ updateOn: 'default blur' }"
+                  ng-change="nameTaken = false">
+            </span>
+            <div>
+              <span class="help-block">A unique name for the project.</span>
+            </div>
+            <div class="has-error">
+              <span id="nameHelp" class="help-block" ng-if="createProjectForm.name.$error.pattern && createProjectForm.name.$touched">
+                Project names may only contain lower-case letters, numbers, and dashes.
+                They may not start or end with a dash.</span>
+            </div>
+            <div class="has-error">
+              <span class="help-block" ng-if="nameTaken">This name is already
+                  in use. Please choose a different name.</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="displayName">Display Name</label>
             <input class="form-control input-lg"
-                name="name"
-                id="name"
-                placeholder="my-project"
+                name="displayName"
+                id="displayName"
+                placeholder="My Project"
                 type="text"
-                required
-                take-focus
-                minlength="2"
-                maxlength="63"
-                pattern="[a-z0-9]([-a-z0-9]*[a-z0-9])?"
-                aria-describedby="nameHelp"
-                ng-model="name"
-                ng-model-options="{ updateOn: 'default blur' }"
-                ng-change="nameTaken = false">
-          </span>
-          <div>
-            <span class="help-block">A unique name for the project.</span>
+                ng-model="displayName">
           </div>
-          <div class="has-error">
-            <span id="nameHelp" class="help-block" ng-if="createProjectForm.name.$error.pattern && createProjectForm.name.$touched">
-              Project names may only contain lower-case letters, numbers, and dashes.
-              They may not start or end with a dash.</span>
+
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea class="form-control input-lg"
+                name="description"
+                id="description"
+                placeholder="A short description."
+                ng-model="description"></textarea>
           </div>
-          <div class="has-error">
-            <span class="help-block" ng-if="nameTaken">This name is already
-                in use. Please choose a different name.</span>
+
+          <div class="button-group">
+            <button type="submit"
+                class="btn btn-primary btn-lg"
+                ng-click="createProject()"
+                ng-disabled="createProjectForm.$invalid || nameTaken || disableInputs"
+                value="">Create</button>
+            <a class="btn btn-default btn-lg" href="#" back>Cancel</a>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label for="displayName">Display Name</label>
-          <input class="form-control input-lg"
-              name="displayName"
-              id="displayName"
-              placeholder="My Project"
-              type="text"
-              ng-model="displayName">
-        </div>
-
-        <div class="form-group">
-          <label for="description">Description</label>
-          <textarea class="form-control input-lg"
-              name="description"
-              id="description"
-              placeholder="A short description."
-              ng-model="description"></textarea>
-        </div>
-
-        <div class="button-group">
-          <button type="submit"
-              class="btn btn-primary btn-lg"
-              ng-click="createProject()"
-              ng-disabled="createProjectForm.$invalid || nameTaken"
-              value="">Create</button>
-          <a class="btn btn-default btn-lg" href="#" back>Cancel</a>
-        </div>
+        </fieldset>
       </form>
     </div>
   </div>

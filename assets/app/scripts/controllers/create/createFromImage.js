@@ -193,6 +193,7 @@ angular.module("openshiftConsole")
 
     var elseShowWarning = function(){
       $scope.nameTaken = true;
+      $scope.disableInputs = false;
     };
 
     $scope.projectDisplayName = function() {
@@ -200,6 +201,7 @@ angular.module("openshiftConsole")
     };
 
     $scope.createApp = function(){
+      $scope.disableInputs = true;
       var resourceMap = ApplicationGenerator.generate($scope);
       //init tasks
       var resources = [];

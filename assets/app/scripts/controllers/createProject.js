@@ -13,6 +13,7 @@ angular.module('openshiftConsole')
     AuthService.withUser();
 
     $scope.createProject = function() {
+      $scope.disableInputs = true;
       if ($scope.createProjectForm.$valid) {
         DataService.create('projectrequests', null, {
           apiVersion: "v1",
@@ -26,6 +27,7 @@ angular.module('openshiftConsole')
           // Take the user directly to the create page to add content.
           $location.path("project/" + encodeURIComponent(data.metadata.name) + "/create");
         }, function(result) { // Failure
+          $scope.disableInputs = false;
           var data = result.data || {};
           if (data.reason === 'AlreadyExists') {
             $scope.nameTaken = true;
