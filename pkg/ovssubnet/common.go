@@ -452,7 +452,9 @@ func (oc *OvsController) StartNode(mtu uint) error {
 			if !found {
 				return fmt.Errorf("Error fetching Net ID for namespace: %s", svc.Namespace)
 			}
-			oc.flowController.AddServiceOFRules(netid, svc.IP, svc.Protocol, svc.Port)
+			for _, port := range svc.Ports {
+				oc.flowController.AddServiceOFRules(netid, svc.IP, port.Protocol, port.Port)
+			}
 		}
 
 		_, err = oc.watchAndGetResource("Pod")
@@ -486,8 +488,10 @@ func (oc *OvsController) updatePodNetwork(namespace string, netID, oldNetID uint
 		return err
 	}
 	for _, svc := range services {
-		oc.flowController.DelServiceOFRules(oldNetID, svc.IP, svc.Protocol, svc.Port)
-		oc.flowController.AddServiceOFRules(netID, svc.IP, svc.Protocol, svc.Port)
+		for _, port := range svc.Ports {
+			oc.flowController.DelServiceOFRules(oldNetID, svc.IP, port.Protocol, port.Port)
+			oc.flowController.AddServiceOFRules(netID, svc.IP, port.Protocol, port.Port)
+		}
 	}
 	return nil
 }
@@ -595,11 +599,13 @@ func (oc *OvsController) watchServices(ready chan<- bool, start <-chan string) {
 			if !found {
 				log.Errorf("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
 			}
-			switch ev.Type {
-			case api.Added:
-				oc.flowController.AddServiceOFRules(netid, ev.Service.IP, ev.Service.Protocol, ev.Service.Port)
-			case api.Deleted:
-				oc.flowController.DelServiceOFRules(netid, ev.Service.IP, ev.Service.Protocol, ev.Service.Port)
+			for _, port := range ev.Service.Ports {
+				switch ev.Type {
+				case api.Added:
+					oc.flowController.AddServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
+				case api.Deleted:
+					oc.flowController.DelServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
+				}
 			}
 		case <-oc.sig:
 			log.Error("Signal received. Stopping watching of services.")

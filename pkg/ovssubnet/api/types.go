@@ -83,12 +83,16 @@ const (
 	UDP ServiceProtocol = "UDP"
 )
 
+type ServicePort struct {
+	Protocol  ServiceProtocol
+	Port      uint
+}
+
 type Service struct {
 	Name      string
 	Namespace string
 	IP        string
-	Protocol  ServiceProtocol
-	Port      uint
+	Ports     []ServicePort
 }
 
 type ServiceEvent struct {
