@@ -2,7 +2,6 @@ package generator
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -68,10 +67,8 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 	if !found || len(portString) == 0 {
 		portString = strings.Split(params["ports"], ",")[0]
 	}
-
-	port, err := strconv.ParseInt(portString, 10, 0)
-	if err != nil {
-		return nil, err
+	if len(portString) == 0 {
+		return nil, fmt.Errorf("exposed service does not have any target ports specified")
 	}
 
 	return &api.Route{
@@ -85,10 +82,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 				Name: params["default-name"],
 			},
 			Port: &api.RoutePort{
-				TargetPort: util.IntOrString{
-					Kind:   util.IntstrInt,
-					IntVal: int(port),
-				},
+				TargetPort: util.NewIntOrStringFromString(portString),
 			},
 		},
 	}, nil
