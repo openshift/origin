@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	kapierror "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/client/unversioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -166,8 +167,9 @@ func setupBuildStrategyTest(t *testing.T) (clusterAdminClient, projectAdminClien
 	imageStreamMapping.Tag = "latest"
 	imageStreamMapping.Image.Name = "image-id"
 	imageStreamMapping.Image.DockerImageReference = "test/builderimage:latest"
-	err = clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(imageStreamMapping)
-	if err != nil {
+	if err = unversioned.RetryOnConflict(unversioned.DefaultRetry, func() error {
+		return clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(imageStreamMapping)
+	}); err != nil {
 		t.Fatalf("Couldn't create ImageStreamMapping: %v", err)
 	}
 
