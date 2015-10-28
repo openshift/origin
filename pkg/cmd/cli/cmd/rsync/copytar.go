@@ -1,11 +1,13 @@
 package rsync
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -17,6 +19,12 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
+// tarStrategy implements the tar copy strategy.
+// The tar strategy consists of creating a tar of the file contents to copy
+// and then streaming them to/from the container to the destination to a tar
+// command waiting for STDIN input. If the --delete flag is specified, the
+// contents of the destination directory are first cleared before the copy.
+// The tar strategy requires that the remote container contain the tar command.
 type tarStrategy struct {
 	Quiet          bool
 	Delete         bool
@@ -94,8 +102,13 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 		}
 	} else {
 		glog.V(4).Infof("Creating local tar file %s from remote path %s", tmp.Name(), source.Path)
-		err = tarRemote(r.RemoteExecutor, source.Path, tmp, errOut)
+		errBuf := &bytes.Buffer{}
+		err = tarRemote(r.RemoteExecutor, source.Path, tmp, errBuf)
 		if err != nil {
+			if checkTar(r.RemoteExecutor) != nil {
+				return strategySetupError("tar not available in container")
+			}
+			io.Copy(errOut, errBuf)
 			return fmt.Errorf("error creating remote tar of source directory: %v", err)
 		}
 	}
@@ -113,10 +126,17 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 	// Extract tar
 	if destination.Local() {
 		glog.V(4).Infof("Untarring temp file %s to local directory %s", tmp.Name(), destination.Path)
-		err = untarLocal(r.Tar, destination.Path, tmp)
+		err = untarLocal(r.Tar, destination.Path, tmp, r.Quiet, out)
 	} else {
 		glog.V(4).Infof("Untarring temp file %s to remote directory %s", tmp.Name(), destination.Path)
-		err = untarRemote(r.RemoteExecutor, destination.Path, r.Quiet, tmp, out, errOut)
+		errBuf := &bytes.Buffer{}
+		err = untarRemote(r.RemoteExecutor, destination.Path, r.Quiet, tmp, out, errBuf)
+		if err != nil {
+			if checkTar(r.RemoteExecutor) != nil {
+				return strategySetupError("tar not available in container")
+			}
+			io.Copy(errOut, errBuf)
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("error extracting tar at destination directory: %v", err)
@@ -144,7 +164,12 @@ func (r *tarStrategy) String() string {
 
 func tarRemote(exec executor, sourceDir string, out, errOut io.Writer) error {
 	glog.V(4).Infof("Tarring %s remotely", sourceDir)
-	cmd := []string{"tar", "-C", sourceDir, "-c", "."}
+	var cmd []string
+	if strings.HasSuffix(sourceDir, "/") {
+		cmd = []string{"tar", "-C", sourceDir, "-c", "."}
+	} else {
+		cmd = []string{"tar", "-C", path.Dir(sourceDir), "-c", path.Base(sourceDir)}
+	}
 	glog.V(4).Infof("Remote tar command: %s", strings.Join(cmd, " "))
 	return exec.Execute(cmd, nil, out, errOut)
 }
@@ -162,9 +187,12 @@ func tarLocal(tar tar.Tar, sourceDir string, w io.Writer) error {
 	return tar.CreateTarStream(sourceDir, includeParent, w)
 }
 
-func untarLocal(tar tar.Tar, destinationDir string, r io.Reader) error {
+func untarLocal(tar tar.Tar, destinationDir string, r io.Reader, quiet bool, logger io.Writer) error {
 	glog.V(4).Infof("Extracting tar locally to %s", destinationDir)
-	return tar.ExtractTarStream(destinationDir, r)
+	if quiet {
+		return tar.ExtractTarStream(destinationDir, r)
+	}
+	return tar.ExtractTarStreamWithLogging(destinationDir, r, logger)
 }
 
 func untarRemote(exec executor, destinationDir string, quiet bool, in io.Reader, out, errOut io.Writer) error {
