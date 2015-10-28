@@ -91,6 +91,8 @@
         @media (min-width: @screen-sm-min) {
           // assign flex properties when >768 for proper layout then .component divs will stack at mobile by default
           .flex(@columns: 1);
+          // needed to enable truncation on Safari
+          width: 100%;
         }
         h2,h3 {
           margin: 0 0 5px;
