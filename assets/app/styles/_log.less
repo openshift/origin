@@ -6,29 +6,45 @@
 }
 .log-view {
   background-color: @log-bg-color;
+  font-family: @font-family-monospace;
   min-height: 60px;
   padding: 0;
   position: relative;
   pre, pre code {
     background-color: transparent;
     border: 0;
-    color: #98C1C8;
     margin-bottom: 0;
     overflow: visible;
     padding: 0 10px;
   }
   .log-scroll {
-    text-align:right;
+    background-color: @log-bg-color;
+    border: 1px solid lighten(@log-bg-color, 10%);
+    display: inline-block;
+    &:hover {
+      border-color: lighten(@log-bg-color, 15%);
+    }
     a {
-      padding-right:10px;
+      display: inline-block;
+      font-family: @font-family-base;
+      font-size: @font-size-base - 1;
+      padding: 4px 10px;
     }
-    a:hover {
+    a:hover,a:focus {
+      background-color: darken(@log-bg-color, 10%);
       color: @link-hover-color-bright;
+      text-decoration: none;
     }
+  }
+  .log-scroll-top {
+    position: absolute;
+    right: 0;
+    border-right: 0;
+    border-top: 0;
   }
   .log-scroll-top.affix {
     position: fixed;
-    right: 30px;
+    right: 40px;
     top: 0;
   }
   .log-scroll-top.affix-top {
@@ -41,21 +57,27 @@
   }
   .log-scroll-bottom {
     position: absolute;
+    border-bottom: 0;
+    border-right: 0;
     bottom: 0;
     right: 0;
   }
   .log-view-output {
     font-size: 12px;
-    padding: 20px 0 20px;
+    padding: 30px 0 30px;
     &:before {
       content: '';
       display: block;
       height: 100%;
       width: 1px;
-      background-color: lighten(@log-bg-color, 5%);
+      background-color: lighten(@log-bg-color, 10%);
       top: 0;
       left: 60px;
       position: absolute;
+    }
+    .ellipsis-loader {
+      // Give space between log output and loader
+      margin-top: 30px;
     }
   }
 }
@@ -70,17 +92,15 @@
   }
 }
 .log-line {
-    color: #98C1C8;
-}
-.log-line.even {}
-.log-line.odd {}
-.log-line:hover {
-  background-color: lighten(@log-bg-color, 3%);
-  color: 000;
+  color: lighten(@log-bg-color, 62%);
+  &:hover {
+    background-color: lighten(@log-bg-color, 8%);
+    color: lighten(@log-bg-color, 80%);
+  }
 }
 .log-line-number {
   &:hover, &:focus {
-    background-color: lighten(@log-bg-color, 8%);
+    background-color: lighten(@log-bg-color, 13%);
     color: @link-hover-color-bright;
   }
   span {
@@ -95,7 +115,7 @@
   margin-top: -1px;
   .log-view {
     .log-scroll-top.affix {
-      right: 10px;
+      right: 0;
     }
   }
 }

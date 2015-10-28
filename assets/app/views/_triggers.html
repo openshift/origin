@@ -32,14 +32,15 @@
         <span ng-switch-when="Cancelled">was cancelled.</span>
         <span ng-switch-default>is {{build.status.phase | lowercase}}.
           <span ng-if="trigger.imageChangeParams.automatic">
-            A new deployment will be created automatically once the build completes.&nbsp;&nbsp;
-            <a
-              href="/project/{{build.metadata.namespace}}/browse/builds/{{build.metadata.labels.buildconfig}}/{{build.metadata.name}}?tab=logs">
-              View Log
-            </a>
+            A new deployment will be created automatically once the build completes.
           </span>
         </span>
       </span>
+      <a
+        ng-if="!!['New', 'Pending'].indexOf(build.status.phase)"
+        ng-href="project/{{build.metadata.namespace}}/browse/builds/{{build.metadata.labels.buildconfig}}/{{build.metadata.name}}?tab=logs">
+        View Log
+      </a>
       <a ng-hide="build | isIncompleteBuild" style="margin-left: 5px;" href="" ng-click="hideBuild(build)">Dismiss</a>
     </div>
   </div>

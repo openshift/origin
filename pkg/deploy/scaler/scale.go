@@ -39,7 +39,7 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 	}
 	cond := kubectl.ScaleCondition(scaler, preconditions, namespace, name, newSize)
 	if err := wait.Poll(retry.Interval, retry.Timeout, cond); err != nil {
-		if scaleErr := err.(kubectl.ControllerScaleError); kerrors.IsNotFound(scaleErr.ActualError) {
+		if scaleErr, ok := err.(kubectl.ControllerScaleError); ok && kerrors.IsNotFound(scaleErr.ActualError) {
 			glog.Infof("No deployment found for dc/%s. Scaling the deployment configuration template...", name)
 			dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name)
 			if err != nil {

@@ -124,8 +124,7 @@
                   <span ng-repeat="portMapping in service.spec.ports | orderBy:'port' | limitTo:2" class="nowrap">
                     <!-- Group port mappings and allow multiple mappings to stack if needed -->
                     <span class="port-mappings">
-                      {{portMapping.port}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}
-                      ({{portMapping.protocol}})<span ng-if="$index < (numPorts - 1)">, </span></span>
+                      {{portMapping.port}}/{{portMapping.protocol}}&#8201;&#8594;&#8201;{{portMapping.targetPort}}<span ng-if="$index < (numPorts - 1)">, </span></span>
                   </span>
                   <span ng-if="numPorts > 2" ng-init="numRemaining = numPorts - 2">
                     and {{numRemaining}} {{numRemaining == 1 ? "other" : "others"}}
@@ -212,7 +211,7 @@
           <div ng-repeat="(deploymentId, deployment) in deploymentsByServiceByDeploymentConfig[''][deploymentConfigId] track by (deployment | uid)"
                ng-if="(podsByDeployment[deployment.metadata.name] | hashSize) > 0">
 
-            <div ng-if="deploymentConfigs[deploymentConfigId] && deploymentConfigsByService[''][deploymentConfigId]">
+            <div class="builds-no-service" ng-if="deploymentConfigs[deploymentConfigId] && deploymentConfigsByService[''][deploymentConfigId]">
               <!--
               Pods in deployments created from this deployment config will not be routed to by any service.
               Show things related to triggers that are about to create stuff, like builds.

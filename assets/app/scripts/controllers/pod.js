@@ -89,16 +89,22 @@ angular.module('openshiftConsole')
         Logger.log("builds (subscribe)", $scope.builds);
       }));
 
-      (function initLogs() {
+      // maintaining one streamer reference & ensuring its closed before we open a new,
+      // since the user can (potentially) swap between multiple containers
+      var streamer;
+      var runLogs = function() {
         angular.extend($scope, {
           logs: [],
           logsLoading: true,
           canShowDownload: false,
           canInitAgain: false,
-          initLogs: initLogs
+          options: {
+            container: $scope.pod.spec.containers[0].name
+          }
         });
 
-        var streamer = DataService.createStream('pods/log',$routeParams.pod, $scope);
+        // TODO: clean up service / $scope stuff...
+        streamer = DataService.createStream('pods/log',$routeParams.pod, $scope, $scope.options);
 
         streamer.onMessage(function(msg) {
           $scope.$apply(function() {
@@ -113,7 +119,10 @@ angular.module('openshiftConsole')
         });
         streamer.onError(function() {
           $scope.$apply(function() {
-            $scope.canInitAgain = true;
+            angular.extend($scope, {
+              logsLoading: false,
+              logError: true
+            });
           });
         });
 
@@ -121,8 +130,20 @@ angular.module('openshiftConsole')
         $scope.$on('$destroy', function() {
           streamer.stop();
         });
+      };
 
-      })();
+      angular.extend($scope, {
+        initLogs: _.once(runLogs),
+        restartLogs: _.flow(function() {
+          streamer.stop();
+        }, runLogs)
+      });
+
+      $scope.selectContainer = function(container) {
+        $scope.options.container = container.name;
+        $scope.restartLogs();
+      };
+
 
     });
 

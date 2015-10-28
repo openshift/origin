@@ -67,7 +67,7 @@
         <div flex>
           Ports:
           <span ng-repeat="port in container.ports | orderBy: 'containerPort'">
-            <span class="nowrap">{{port.containerPort}}&thinsp;({{port.protocol}})<span ng-if="port.hostPort">&thinsp;<span class="port-icon">&#8594;</span>&thinsp;{{port.hostPort}}</span></span><span ng-if="!$last">, </span>
+            <span class="nowrap">{{port.containerPort}}/{{port.protocol}}<span ng-if="port.name">&thinsp;({{port.name}})</span><span ng-if="port.hostPort">&thinsp;<span class="port-icon">&#8594;</span>&thinsp;{{port.hostPort}}</span></span><span ng-if="!$last">, </span>
           </span>
         </div>
       </div> 

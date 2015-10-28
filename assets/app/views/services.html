@@ -32,9 +32,9 @@
             </td>
             <td data-title="Ports">
               <span ng-if="!service.spec.ports.length"><em>none</em></span>
-              <span ng-repeat="portMapping in service.spec.ports | limitTo: 4">{{portMapping.port}} ({{portMapping.protocol}})<span ng-if="!$last">,
+              <span ng-repeat="portMapping in service.spec.ports | limitTo: 4">{{portMapping.port}}/{{portMapping.protocol}}<span ng-if="!$last">,
               </span></span><span ng-if="service.spec.ports.length === 5">,
-                {{service.spec.ports[4].port}} ({{service.spec.ports[4].protocol}})</span><span ng-if="service.spec.ports.length > 5">,
+                {{service.spec.ports[4].port}}/{{service.spec.ports[4].protocol}}</span><span ng-if="service.spec.ports.length > 5">,
                 and {{service.spec.ports.length - 4}} others</span>
             </td>
             <td data-title="Selector">

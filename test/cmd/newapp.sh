@@ -82,6 +82,12 @@ oc delete template ruby-helloworld-sample
 oc new-app https://github.com/openshift/ruby-hello-world -l app=ruby
 oc delete all -l app=ruby
 
+# check new-build
+[ "$(oc new-build mysql -o yaml 2>&1 | grep -F 'you must specify at least one source repository URL')" ]
+[ "$(oc new-build mysql --binary -o yaml | grep -F 'type: Binary')" ]
+[ "$(oc new-build mysql https://github.com/openshift/ruby-hello-world --strategy=docker -o yaml | grep -F 'type: Docker')" ]
+[ "$(oc new-build mysql https://github.com/openshift/ruby-hello-world --binary 2>&1 | grep -F 'specifying binary builds and source repositories at the same time is not allowed')" ]
+
 # do not allow use of non-existent image (should fail)
 [ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep "no image or template matched")" ]
 # allow use of non-existent image (should succeed)

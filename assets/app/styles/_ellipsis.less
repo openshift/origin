@@ -1,0 +1,126 @@
+// Ellipsis Loader
+// --------------------------------------------------
+
+@ellipsis-color : #797f86;
+
+/**
+ * Mixins
+ */
+.dimensions(@w, @h) {
+    width: @w;
+    height: @h;
+}
+
+.position(@x, @y) {
+    top: @y;
+    left: @x;
+}
+
+.border-radius(@args) {
+    -webkit-border-radius: @args;
+    border-radius: @args;
+    background-clip: padding-box;
+}
+
+.opacity(@factor) {
+    @iefactor: @factor*100;
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=@{iefactor})";
+    filter: ~"alpha(opacity=(@{iefactor}))";
+    opacity: @factor;
+}
+
+.box-shadow(@args) {
+    -webkit-box-shadow: @args;
+    box-shadow: @args;
+}
+
+.animation(@args) {
+    -webkit-animation: @args;
+    -moz-animation: @args;
+    -ms-animation: @args;
+    -o-animation: @args;
+    animation: @args;
+}
+
+
+/**
+* 3-dot animation
+*/
+.ellipsis-loader {
+    display: inline-block;
+    position: relative;
+    vertical-align: middle;
+    div {
+        position: absolute;
+        &:before, &:after {
+            content: "";
+            position: absolute;
+        }
+    }
+    // Properties for this particular animation
+    &.dots {
+        .dimensions(48px, 16px);
+        div {
+            &:before {
+                .position(-15px, 0);
+                .dimensions(6px, 6px);
+                background-color: @ellipsis-color;
+                .border-radius(5px);
+                .animation(~"growDot 1.25s linear 0s infinite");
+            }
+            .position(21px, 5px);
+            .dimensions(6px, 6px);
+            background-color:@ellipsis-color;
+            .border-radius(5px);
+            .animation(~"growDot 1.25s linear .2s infinite");
+            &:after {
+                .position(15px, 0);
+                .dimensions(6px, 6px);
+                background-color: @ellipsis-color;
+                .border-radius(5px);
+                .animation(~"growDot 1.25s linear .4s infinite");
+            }
+        }
+    }
+}
+
+/**
+ * Animation frames
+ */
+@-webkit-keyframes growDot {
+  0% {
+      .opacity(0.7);
+      .box-shadow(0px 0px 0px 0px @ellipsis-color);
+  }
+  25% {
+      .opacity(1.0);
+      .box-shadow(0px 0px 0px 2px @ellipsis-color);
+  }
+  50% {
+      .opacity(0.7);
+      .box-shadow(0px 0px 0px 0px @ellipsis-color);
+  }
+  100% {
+      .opacity(0.6);
+      .box-shadow(0px 0px 0px 0px @ellipsis-color);
+  }
+}
+
+@keyframes growDot {
+  0% {
+      .opacity(0.7);
+      .box-shadow(0px 0px 0px 0px @ellipsis-color);
+  }
+  25% {
+      .opacity(1.0);
+      .box-shadow(0px 0px 0px 2px @ellipsis-color);
+  }
+  50% {
+      .opacity(0.7);
+      .box-shadow(0px 0px 0px 0px @ellipsis-color);
+  }
+  100% {
+      .opacity(0.6);
+      .box-shadow(0px 0px 0px 0px @ellipsis-color);
+  }
+}

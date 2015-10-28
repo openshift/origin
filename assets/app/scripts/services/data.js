@@ -385,7 +385,7 @@ function b64_to_utf8( str ) {
 }
 
 // TODO (bpeterse): Create a new Streamer service & get this out of DataService.
-DataService.prototype.createStream = function(kind, name, context, isRaw) {
+DataService.prototype.createStream = function(kind, name, context, opts, isRaw) {
   var getNamespace = this._getNamespace.bind(this);
   var urlForResource = this._urlForResource.bind(this);
   kind = this.kindToResource(kind) ?
@@ -404,7 +404,7 @@ DataService.prototype.createStream = function(kind, name, context, isRaw) {
      return getNamespace(kind, context, {})
                 .then(function(params) {
                   return  $ws({
-                            url: urlForResource(kind, name, null, context, true, _.extend(params, {follow: true})),
+                            url: urlForResource(kind, name, null, context, true, _.extend(params, opts, {follow: true})),
                             auth: {},
                             onopen: function(evt) {
                               _.each(openQueue, function(fn) {
