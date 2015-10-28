@@ -38,6 +38,7 @@ type OvsController struct {
 	VNIDMap         map[string]uint
 	netIDManager    *netutils.NetIDAllocator
 	AdminNamespaces []string
+	services        map[string]api.Service
 }
 
 type FlowController interface {
@@ -87,6 +88,7 @@ func NewController(sub api.SubnetRegistry, hostname string, selfIP string, ready
 		sig:             make(chan struct{}),
 		ready:           ready,
 		AdminNamespaces: make([]string, 0),
+		services:        make(map[string]api.Service),
 	}, nil
 }
 
@@ -452,6 +454,7 @@ func (oc *OvsController) StartNode(mtu uint) error {
 			if !found {
 				return fmt.Errorf("Error fetching Net ID for namespace: %s", svc.Namespace)
 			}
+			oc.services[svc.UID] = svc
 			for _, port := range svc.Ports {
 				oc.flowController.AddServiceOFRules(netid, svc.IP, port.Protocol, port.Port)
 			}
@@ -599,12 +602,39 @@ func (oc *OvsController) watchServices(ready chan<- bool, start <-chan string) {
 			if !found {
 				log.Errorf("Error fetching Net ID for namespace: %s, skipped serviceEvent: %v", ev.Service.Namespace, ev)
 			}
-			for _, port := range ev.Service.Ports {
-				switch ev.Type {
-				case api.Added:
+			switch ev.Type {
+			case api.Added:
+				oc.services[ev.Service.UID] = ev.Service
+				for _, port := range ev.Service.Ports {
 					oc.flowController.AddServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
-				case api.Deleted:
+				}
+			case api.Deleted:
+				delete(oc.services, ev.Service.UID)
+				for _, port := range ev.Service.Ports {
 					oc.flowController.DelServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
+				}
+			case api.Modified:
+				oldsvc, exists := oc.services[ev.Service.UID]
+				if exists && len(oldsvc.Ports) == len(ev.Service.Ports) {
+					same := true
+					for i := range oldsvc.Ports {
+						if oldsvc.Ports[i].Protocol != ev.Service.Ports[i].Protocol || oldsvc.Ports[i].Port != ev.Service.Ports[i].Port {
+							same = false
+							break
+						}
+					}
+					if same {
+						continue
+					}
+				}
+				if exists {
+					for _, port := range oldsvc.Ports {
+						oc.flowController.DelServiceOFRules(netid, oldsvc.IP, port.Protocol, port.Port)
+					}
+				}
+				oc.services[ev.Service.UID] = ev.Service
+				for _, port := range ev.Service.Ports {
+					oc.flowController.AddServiceOFRules(netid, ev.Service.IP, port.Protocol, port.Port)
 				}
 			}
 		case <-oc.sig:

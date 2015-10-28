@@ -440,7 +440,8 @@ func (oi *OsdnRegistryInterface) WatchServices(receiver chan<- *osdnapi.ServiceE
 			oServ := newSDNService(kServ)
 			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Deleted, Service: oServ}
 		case watch.Modified:
-			// Ignore, we don't need to update SDN in case of service updates
+			oServ := newSDNService(kServ)
+			receiver <- &osdnapi.ServiceEvent{Type: osdnapi.Modified, Service: oServ}
 		}
 	}
 }
@@ -454,6 +455,7 @@ func newSDNService(kServ *kapi.Service) osdnapi.Service {
 	return osdnapi.Service{
 		Name:      kServ.ObjectMeta.Name,
 		Namespace: kServ.ObjectMeta.Namespace,
+		UID:       string(kServ.ObjectMeta.UID),
 		IP:        kServ.Spec.ClusterIP,
 		Ports:     ports,
 	}
