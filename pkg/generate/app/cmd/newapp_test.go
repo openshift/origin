@@ -362,7 +362,7 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				})},
-			expectedErr: `no image or template matched "mysql:invalid`,
+			expectedErr: `no match for "mysql:invalid`,
 		},
 		{
 			name: "Successful mysql builder",

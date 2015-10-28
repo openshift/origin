@@ -89,7 +89,7 @@ oc delete all -l app=ruby
 [ "$(oc new-build mysql https://github.com/openshift/ruby-hello-world --binary 2>&1 | grep -F 'specifying binary builds and source repositories at the same time is not allowed')" ]
 
 # do not allow use of non-existent image (should fail)
-[ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep "no image or template matched")" ]
+[ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml 2>&1 | grep "no match for")" ]
 # allow use of non-existent image (should succeed)
 [ "$(oc new-app  openshift/bogusImage https://github.com/openshift/ruby-hello-world.git -o yaml --allow-missing-images)" ]
 

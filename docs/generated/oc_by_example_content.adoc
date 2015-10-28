@@ -576,7 +576,9 @@ Create a new build configuration
 
 [options="nowrap"]
 ----
-  # Create a build config based on the source code in the current git repository (with a public remote) and a Docker image
+
+  # Create a build config based on the source code in the current git repository (with a public
+  # remote) and a Docker image
   $ openshift cli new-build . --docker-image=repo/langimage
 
   # Create a NodeJS build config based on the provided [image]~[source code] combination
@@ -588,8 +590,8 @@ Create a new build configuration
   # Create a build config using a Dockerfile specified as an argument
   $ openshift cli new-build -D $'FROM centos:7\nRUN yum install -y httpd'
 
-  # Create a build config from a remote repository and add custom environment variables into resulting image
-  $ openshift cli new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development
+  # Create a build config from a remote repository and add custom environment variables
+  $ openshift cli new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development
 ----
 ====
 

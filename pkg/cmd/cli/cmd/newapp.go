@@ -490,18 +490,36 @@ func handleRunError(c *cobra.Command, err error, fullName string) error {
 			err = errs.Errors()[0]
 		}
 	}
-	if e, ok := err.(newcmd.ErrRequiresExplicitAccess); ok {
-		return fmt.Errorf("installing %q requires that you grant the image access to run with your credentials; if you trust the provided image, include the flag --grant-install-rights", e.Match.Value)
+	switch t := err.(type) {
+	case newcmd.ErrRequiresExplicitAccess:
+		return fmt.Errorf("installing %q requires that you grant the image access to run with your credentials; if you trust the provided image, include the flag --grant-install-rights", t.Match.Value)
+	case newapp.ErrNoMatch:
+		return fmt.Errorf(`%[1]v
+
+The '%[2]s' command will match arguments to the following types:
+
+  1. Images tagged into image streams in the current project or the 'openshift' project
+     - if you don't specify a tag, we'll add ':latest'
+  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
+  3. Templates in the current project or the 'openshift' project
+  4. Git repository URLs or local paths that point to Git repositories
+
+--allow-missing-images can be used to point to an image that does not exist yet
+or is only on the local system.
+
+See '%[2]s' for examples.
+`, t, c.Name())
 	}
-	if err == errNoTokenAvailable {
+	switch err {
+	case errNoTokenAvailable:
 		// TODO: improve by allowing token generation
 		return fmt.Errorf("to install components you must be logged in with an OAuth token (instead of only a certificate)")
-	}
-	if err == newcmd.ErrNoInputs {
+	case newcmd.ErrNoInputs:
 		// TODO: suggest things to the user
 		return cmdutil.UsageError(c, newAppNoInput, fullName)
+	default:
+		return err
 	}
-	return err
 }
 
 func printHumanReadableQueryResult(r *newcmd.QueryResult, out io.Writer, fullName string) error {

@@ -14,9 +14,9 @@ type ErrNoMatch struct {
 
 func (e ErrNoMatch) Error() string {
 	if len(e.qualifier) != 0 {
-		return fmt.Sprintf("no image or template matched %q: %s, specify allow-missing-images to use this image name.", e.value, e.qualifier)
+		return fmt.Sprintf("no match for %q: %s, specify --allow-missing-images to use this image name.", e.value, e.qualifier)
 	}
-	return fmt.Sprintf("no image or template matched %q, specify --allow-missing-images to use this image name.", e.value)
+	return fmt.Sprintf("no match for %q, specify --allow-missing-images to use this image name.", e.value)
 }
 
 // UsageError is the usage error message returned when no match is found.

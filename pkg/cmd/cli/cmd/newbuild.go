@@ -12,6 +12,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	newapp "github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 )
 
@@ -30,7 +31,9 @@ remote repository that the server can see.
 Once the build configuration is created a new build will be automatically triggered.
 You can use '%[1]s status' to check the progress.`
 
-	newBuildExample = `  # Create a build config based on the source code in the current git repository (with a public remote) and a Docker image
+	newBuildExample = `
+  # Create a build config based on the source code in the current git repository (with a public
+  # remote) and a Docker image
   $ %[1]s new-build . --docker-image=repo/langimage
 
   # Create a NodeJS build config based on the provided [image]~[source code] combination
@@ -42,8 +45,25 @@ You can use '%[1]s status' to check the progress.`
   # Create a build config using a Dockerfile specified as an argument
   $ %[1]s new-build -D $'FROM centos:7\nRUN yum install -y httpd'
 
-  # Create a build config from a remote repository and add custom environment variables into resulting image
-  $ %[1]s new-build https://github.com/openshift/ruby-hello-world --env=RACK_ENV=development`
+  # Create a build config from a remote repository and add custom environment variables
+  $ %[1]s new-build https://github.com/openshift/ruby-hello-world RACK_ENV=development`
+
+	newBuildNoInput = `You must specify one or more images, image streams, or source code locations to create a build.
+
+To build from an existing image stream tag or Docker image, provide the name of the image and
+the source code location:
+
+  $ %[1]s new-build openshift/nodejs-010-centos7~https://github.com/openshift/nodejs-ex.git
+
+If you only specify the source repository location (local or remote), the command will look at
+the repo to determine the type, and then look for a matching image on your server or on the
+default Docker registry.
+
+  $ %[1]s new-build https://github.com/openshift/nodejs-ex.git
+
+will look for an image called "nodejs" in your current project, the 'openshift' project, or
+on the Docker Hub.
+`
 )
 
 // NewCmdNewBuild implements the OpenShift cli new-build command
@@ -110,16 +130,7 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	}
 	result, err := config.RunBuilds()
 	if err != nil {
-		if errs, ok := err.(errors.Aggregate); ok {
-			if len(errs.Errors()) == 1 {
-				err = errs.Errors()[0]
-			}
-		}
-		if err == newcmd.ErrNoInputs {
-			// TODO: suggest things to the user
-			return cmdutil.UsageError(c, "You must specify one or more images, image streams and source code locations to create a build configuration.")
-		}
-		return err
+		return handleBuildError(c, err, fullName)
 	}
 	if err := setLabels(config.Labels, result); err != nil {
 		return err
@@ -145,4 +156,39 @@ func RunNewBuild(fullName string, f *clientcmd.Factory, out io.Writer, in io.Rea
 	}
 
 	return nil
+}
+
+func handleBuildError(c *cobra.Command, err error, fullName string) error {
+	if err == nil {
+		return nil
+	}
+	if errs, ok := err.(errors.Aggregate); ok {
+		if len(errs.Errors()) == 1 {
+			err = errs.Errors()[0]
+		}
+	}
+	switch t := err.(type) {
+	case newapp.ErrNoMatch:
+		return fmt.Errorf(`%[1]v
+
+The '%[2]s' command will match arguments to the following types:
+
+  1. Images tagged into image streams in the current project or the 'openshift' project
+     - if you don't specify a tag, we'll add ':latest'
+  2. Images in the Docker Hub, on remote registries, or on the local Docker engine
+  3. Git repository URLs or local paths that point to Git repositories
+
+--allow-missing-images can be used to point to an image that does not exist yet
+or is only on the local system.
+
+See '%[2]s' for examples.
+`, t, c.Name())
+	}
+	switch err {
+	case newcmd.ErrNoInputs:
+		// TODO: suggest things to the user
+		return cmdutil.UsageError(c, newBuildNoInput, fullName)
+	default:
+		return err
+	}
 }

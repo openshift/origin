@@ -554,7 +554,6 @@ func (c *AppConfig) ensureHasSource(components app.ComponentReferences, reposito
 				}
 			}
 		}
-		glog.V(4).Infof("ensureHasSource: %#v", components[0])
 	}
 	return nil
 }
