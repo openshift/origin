@@ -133,7 +133,11 @@ function start() {
   sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
   mkdir -p "${CONFIG_ROOT}"
 
-  build-images
+  if [ "${SKIP_BUILD}" = "true" ]; then
+    echo "WARNING: Skipping image build due to OPENSHIFT_SKIP_BUILD=true"
+  else
+    build-images
+  fi
 
   ## Create containers
   echo "Launching containers"
@@ -159,6 +163,9 @@ function start() {
   echo "Configured network plugin: ${NETWORK_PLUGIN}"
   local args="${master_ip} ${NODE_COUNT} ${node_ips} ${INSTANCE_PREFIX} \
 -n '${NETWORK_PLUGIN}'"
+  if [ "${SKIP_BUILD}" = "true" ]; then
+      args="${args} -s"
+  fi
   echo "Provisioning ${MASTER_NAME}"
   ${DOCKER_CMD} exec -t "${master_cid}" bash -c \
     "${SCRIPT_ROOT}/provision-master.sh ${args} -c ${DEPLOYED_CONFIG_ROOT}"

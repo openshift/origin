@@ -23,11 +23,12 @@ FIXUP_NET_UDEV=false
 NETWORK_PLUGIN=${OPENSHIFT_NETWORK_PLUGIN:-""}
 NODE_INDEX=0
 CONFIG_ROOT=${ORIGIN_ROOT}
+SKIP_BUILD=${OPENSHIFT_SKIP_BUILD:-false}
 
 # Parse optional arguments
 # Skip the positional arguments
 OPTIND=5
-while getopts ":i:n:c:f" opt; do
+while getopts ":i:n:c:fs" opt; do
   case $opt in
     f)
       FIXUP_NET_UDEV=true
@@ -40,6 +41,9 @@ while getopts ":i:n:c:f" opt; do
       ;;
     c)
       CONFIG_ROOT=${OPTARG}
+      ;;
+    s)
+      SKIP_BUILD=true
       ;;
     \?)
       echo "Invalid option: -${OPTARG}" >&2

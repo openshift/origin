@@ -4,10 +4,11 @@ source $(dirname $0)/provision-config.sh
 
 os::provision::base-provision
 
-echo "Building and installing openshift"
-${ORIGIN_ROOT}/hack/build-go.sh
+os::provision::build-origin "${ORIGIN_ROOT}" "${SKIP_BUILD}"
+os::provision::build-etcd "${ORIGIN_ROOT}" "${SKIP_BUILD}"
+
+echo "Installing openshift"
 os::provision::install-cmds "${ORIGIN_ROOT}"
-${ORIGIN_ROOT}/hack/install-etcd.sh
 os::provision::install-sdn "${ORIGIN_ROOT}"
 
 # Running an openshift node on the master ensures connectivity between
