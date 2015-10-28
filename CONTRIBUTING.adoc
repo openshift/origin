@@ -196,6 +196,117 @@ Follow these steps to ensure that virtual box interfaces are unmanaged:
 
     $ sudo nmcli con reload
 
+=== Develop and test using a docker-in-docker cluster
+
+It's possible to run an OpenShift multinode cluster on a single host
+via docker-in-docker (dind).  Cluster creation is cheaper since each
+node is a container instead of a VM.  This was implemented primarily
+to support multinode network testing, but may prove useful for other
+use cases.
+
+To run a dind cluster in a VM, follow steps 1-3 of the Vagrant
+instructions and then execute the following:
+
+        $ export OPENSHIFT_DIND_DEV_CLUSTER=true
+        $ vagrant up
+
+Bringing up the VM for the first time will take a while due to the
+overhead of package installation, building docker images, and building
+openshift.  Assuming the 'vagrant up' command completes without error,
+a dind OpenShift cluster should now be running on the VM.  To access
+the cluster, login to the VM:
+
+        $ vagrant ssh
+
+Once on the VM, the 'oc' and 'openshift' commands can be used to
+interact with the cluster:
+
+        $ oc get nodes
+
+It's also possible to login to the participating containers
+(openshift-master, openshift-node-1, openshift-node-2, etc) via docker
+exec:
+
+        $ docker exec -ti openshift-master bash
+
+While it is possible to manage the OpenShift daemon in the containers
+(supervisorctl {start,stop,restart} [daemon name]), dind cluster
+management is fast enough that the suggested approach is to manage at
+the cluster level instead.
+
+Invoking the dind-cluster.sh script without arguments will provide a
+usage message:
+
+        Usage: hack/dind-cluster.sh {start|stop|restart|...}
+
+Additional documentation of how a dind cluster is managed can be found
+at the top of the dind-cluster.sh script.
+
+Attempting to start a cluster when one is already running will result
+in an error message from docker indicating that the named containers
+already exist.  To redeploy a cluster after making changes, use the
+'start' and 'stop' or 'restart' commands.  OpenShift is always built
+as part of the dind cluster deployment initiated by 'start' or
+'restart'.
+
+By default the cluster will consist of a master and 2 nodes.  The
+NUM_MINIONS environment variable can be used to override the default
+of 2 nodes.
+
+Containers are torn down on stop and restart, but the root of the
+origin repo is mounted to /data in each container to allow for a
+persistent installation target.
+
+While it is possible to run a dind cluster on any host (not just a
+vagrant VM), it is recommended to consider the warnings at the top of
+the dind-cluster.sh script.
+
+==== Testing networking with docker-in-docker
+
+It's possible to run networking tests against a running
+docker-in-docker cluster (i.e. 'hack/dind-cluster.sh start' has
+already been invoked):
+
+        $ hack/dind-cluster.sh test-net-e2e
+
+Since a cluster can only be configured with a single network plugin at
+a time, this method of invoking the networking tests will only
+validate the active plugin.  It is possible to target all plugins via
+the following command:
+
+        $ test/extended/networking.sh
+
+networking.sh creates a new dind cluster for each networking plugin,
+runs the tests against that cluster, and then tears down the cluster.
+The test dind clusters are isolated from any user-created clusters,
+and test output and artifacts of the most recent test run are retained
+in /tmp/openshift-extended-tests/networking.
+
+Whether using dind-cluster.sh or networking.sh to run tests, it's
+possible to override the default test regexes via the
+NETWORKING_E2E_FOCUS and NETWORKING_E2E_SKIP environment variables.
+These variables set the '-focus' and '-skip' arguments supplied to the
+https://github.com/onsi/ginkgo[ginkgo] test runner.
+
+==== Running Kubernetes e2e tests
+
+It's possible to target the Kubernetes e2e tests against a running
+OpenShift cluster.  From the root of an origin repo:
+
+        $ pushd ..
+        $ git clone http://github.com/kubernetes/kubernetes/
+        $ pushd kubernetes/build
+        $ ./run hack/build-go.sh
+        $ popd && popd
+        $ export KUBE_ROOT=../kubernetes
+        $ hack/test-kube-e2e.sh --ginkgo.focus="[regex]"
+
+The previous sequence of commands will target a vagrant-based
+OpenShift cluster whose configuration is stored in the default
+location in the origin repo.  To target a dind cluster, an additional
+environment variable needs to be set before invoking test-kube-e2e.sh:
+
+        $ export OS_CONF_ROOT=/tmp/openshift-dind-cluster/openshift
 
 == Development: What's on the Menu?
 Right now you can see what's happening with OpenShift development at:

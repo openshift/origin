@@ -53,7 +53,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "num_minions"       => ENV['OPENSHIFT_NUM_MINIONS'] || 2,
     "rebuild_yum_cache" => false,
     "cpus"              => ENV['OPENSHIFT_NUM_CPUS'] || 2,
-    "memory"            => ENV['OPENSHIFT_MEMORY'] || 2048,
+    "memory"            => ENV['OPENSHIFT_MEMORY'] || 2560,
     "fixup_net_udev"    => ENV['OPENSHIFT_FIXUP_NET_UDEV'] || true,
     "sync_folders_type" => nil,
     "master_ip"         => ENV['OPENSHIFT_MASTER_IP'] || "10.245.2.2",
@@ -110,12 +110,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   dind_dev_cluster = vagrant_openshift_config['dind_dev_cluster']
   dev_cluster = vagrant_openshift_config['dev_cluster'] || ENV['OPENSHIFT_DEV_CLUSTER']
+  single_vm_cluster = ! (dind_dev_cluster or dev_cluster)
   if dind_dev_cluster
     config.vm.define "#{VM_NAME_PREFIX}dind-host" do |config|
       config.vm.box = kube_box[kube_os]["name"]
       config.vm.box_url = kube_box[kube_os]["box_url"]
-      config.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-full.sh"
-      config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh start"
+      config.vm.provision "shell", inline: "/vagrant/contrib/vagrant/provision-dind.sh"
+      config.vm.provision "shell", inline: "/vagrant/hack/dind-cluster.sh config-host"
+      config.vm.provision "shell", privileged: false, inline: "/vagrant/hack/dind-cluster.sh restart"
       config.vm.hostname = "openshift-dind-host"
       config.vm.synced_folder ".", "/vagrant", type: vagrant_openshift_config['sync_folders_type']
     end
@@ -227,7 +229,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       override.vm.box     = vagrant_openshift_config['libvirt']['box_name']
       override.vm.box_url = vagrant_openshift_config['libvirt']['box_url']
       override.ssh.insert_key = vagrant_openshift_config['insert_key']
-      if dev_cluster
+      if ! single_vm_cluster
         # Work around https://github.com/pradels/vagrant-libvirt/issues/419
         override.vm.synced_folder ".", "/vagrant", type: 'nfs'
       end
@@ -247,7 +249,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.vmx["memsize"]    = vagrant_openshift_config['memory'].to_s
       v.vmx["numvcpus"]   = vagrant_openshift_config['cpus'].to_s
       v.gui               = false
-      override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh"
+      if single_vm_cluster
+        override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh"
+      end
     end if vagrant_openshift_config['vmware']
 
     # ###############################
@@ -275,7 +279,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       os.image        = voc['image']          || creds['OSImage']    || /Fedora/         # Regex or String
       os.ssh_username = user = voc['ssh_user']|| creds['OSSshUser']  || "root"           # login for the VM instance
       os.server_name  = ENV['OS_HOSTNAME']    || vagrant_openshift_config['instance_name'] # name for the instance created
-      override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: user
+      if single_vm_cluster
+        override.vm.provision "setup", type: "shell", path: "contrib/vagrant/provision-full.sh", args: user
+      end
 
       # floating ip usually needed for accessing machines
       floating_ip     = creds['OSFloatingIP'] || ENV['OS_FLOATING_IP']
