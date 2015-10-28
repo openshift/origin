@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/openshift-sdn/pkg/ovssubnet/controller/multitenant"
 
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
 )
@@ -94,6 +95,56 @@ func (oc *OvsController) isMultitenant() bool {
 	return is_mt
 }
 
+func (oc *OvsController) validateClusterNetwork(networkCIDR string, subnetsInUse []string) error {
+	_, clusterIPNet, err := net.ParseCIDR(networkCIDR)
+	if err != nil {
+		return fmt.Errorf("Failed to parse network address: %s", networkCIDR)
+	}
+
+	errList := []error{}
+	for _, netStr := range subnetsInUse {
+		subnetIP, _, err := net.ParseCIDR(netStr)
+		if err != nil {
+			errList = append(errList, fmt.Errorf("Failed to parse network address: %s", netStr))
+			continue
+		}
+		if !clusterIPNet.Contains(subnetIP) {
+			errList = append(errList, fmt.Errorf("Error: Existing node subnet: %s is not part of cluster network: %s", netStr, networkCIDR))
+		}
+	}
+	return kerrors.NewAggregate(errList)
+}
+
+func (oc *OvsController) validateServiceNetwork(networkCIDR string) error {
+	_, serviceIPNet, err := net.ParseCIDR(networkCIDR)
+	if err != nil {
+		return fmt.Errorf("Failed to parse network address: %s", networkCIDR)
+	}
+
+	services, _, err := oc.subnetRegistry.GetServices()
+	if err != nil {
+		return err
+	}
+	errList := []error{}
+	for _, svc := range services {
+		if !serviceIPNet.Contains(net.ParseIP(svc.IP)) {
+			errList = append(errList, fmt.Errorf("Error: Existing service with IP: %s is not part of service network: %s", svc.IP, networkCIDR))
+		}
+	}
+	return kerrors.NewAggregate(errList)
+}
+
+func (oc *OvsController) validateNetworkConfig(clusterNetworkCIDR, serviceNetworkCIDR string, subnetsInUse []string) error {
+	errList := []error{}
+	if err := oc.validateClusterNetwork(clusterNetworkCIDR, subnetsInUse); err != nil {
+		errList = append(errList, err)
+	}
+	if err := oc.validateServiceNetwork(serviceNetworkCIDR); err != nil {
+		errList = append(errList, err)
+	}
+	return kerrors.NewAggregate(errList)
+}
+
 func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSubnet uint, serviceNetworkCIDR string) error {
 	subrange := make([]string, 0)
 	subnets, _, err := oc.subnetRegistry.GetSubnets()
@@ -103,6 +154,16 @@ func (oc *OvsController) StartMaster(clusterNetworkCIDR string, clusterBitsPerSu
 	}
 	for _, sub := range subnets {
 		subrange = append(subrange, sub.SubnetCIDR)
+	}
+
+	// Any mismatch in cluster/service network is handled by WriteNetworkConfig
+	// For any new cluster/service network, ensure existing node subnets belong
+	// to the given cluster network and service IPs belong to the given service network
+	if _, err = oc.subnetRegistry.GetClusterNetworkCIDR(); err != nil {
+		err = oc.validateNetworkConfig(clusterNetworkCIDR, serviceNetworkCIDR, subrange)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = oc.subnetRegistry.WriteNetworkConfig(clusterNetworkCIDR, clusterBitsPerSubnet, serviceNetworkCIDR)

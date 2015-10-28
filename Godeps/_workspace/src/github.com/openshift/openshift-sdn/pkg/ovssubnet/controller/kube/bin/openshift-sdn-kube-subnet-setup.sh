@@ -25,39 +25,18 @@ function docker_network_config() {
 	DOCKER_NETWORK_OPTIONS="-b=lbr0 --mtu=${mtu}"
     fi
 
+    local conf=/run/openshift-sdn/docker-network
     case "$1" in
 	check)
-	    if [ -f /.dockerinit ]; then
-		# Assume supervisord-managed docker for docker-in-docker deployments
-		conf=/etc/supervisord.conf
-		if ! grep -q -s "DOCKER_DAEMON_ARGS=\"${DOCKER_NETWORK_OPTIONS}\"" $conf; then
-		    return 1
-		fi
-	    else
-		# Otherwise assume systemd-managed docker
-		conf=/run/openshift-sdn/docker-network
-		if ! grep -q -s "DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'" $conf; then
-		    return 1
-		fi
+	    if ! grep -q -s "DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'" $conf; then
+		return 1
 	    fi
 	    return 0
 	    ;;
 
 	update)
-	    if [ -f /.dockerinit ]; then
-		conf=/etc/supervisord.conf
-		if [ ! -f $conf ]; then
-		    echo "Running in docker but /etc/supervisord.conf not found." >&2
-		    exit 1
-		fi
-
-		echo "Docker networking options have changed; manual restart required." >&2
-		sed -i.bak -e \
-		    "s+\(DOCKER_DAEMON_ARGS=\)\"\"+\1\"${DOCKER_NETWORK_OPTIONS}\"+" \
-		    $conf
-	    else
-		mkdir -p /run/openshift-sdn
-		cat <<EOF > /run/openshift-sdn/docker-network
+		mkdir -p $(dirname $conf)
+		cat <<EOF > $conf
 # This file has been modified by openshift-sdn.
 
 DOCKER_NETWORK_OPTIONS='${DOCKER_NETWORK_OPTIONS}'
@@ -66,6 +45,8 @@ EOF
 		systemctl daemon-reload
 		systemctl restart docker.service
 
+
+	    if [ ! -f /.dockerinit ]; then
 		# disable iptables for lbr0
 		# for kernel version 3.18+, module br_netfilter needs to be loaded upfront
 		# for older ones, br_netfilter may not exist, but is covered by bridge (bridge-utils)
@@ -91,6 +72,29 @@ function setup_required() {
         return 0
     fi
     return 1
+}
+
+# Delete the subnet routing entry created because of ip link up on device
+# ip link adds local subnet route entry asynchronously
+# So check for the new route entry every 100 ms upto timeout of 2 secs and
+# delete the route entry.
+function delete_local_subnet_route() {
+    local device=$1
+    local time_interval=0.1  # 100 milli secs
+    local max_intervals=20   # timeout: 2 secs
+    local num_intervals=0
+    local cmd="ip route | grep -q '${local_subnet_cidr} dev ${device}'"
+
+    until $(eval $cmd) || [ $num_intervals -ge $max_intervals ]; do
+        sleep $time_interval
+        num_intervals=$((num_intervals + 1))
+    done
+
+    if [ $num_intervals -ge $max_intervals ]; then
+        echo "Error: ${local_subnet_cidr} route not found for dev ${device}" >&2
+        return 1
+    fi
+    ip route del ${local_subnet_cidr} dev ${device} proto kernel scope link
 }
 
 function setup() {
@@ -139,11 +143,12 @@ function setup() {
     sysctl -w net.ipv4.ip_forward=1
     sysctl -w net.ipv4.conf.${TUN}.forwarding=1
 
-    # delete the subnet routing entry created because of lbr0
-    ip route del ${local_subnet_cidr} dev lbr0 proto kernel scope link src ${local_subnet_gateway} || true
-
     mkdir -p /etc/openshift-sdn
     echo "export OPENSHIFT_CLUSTER_SUBNET=${cluster_network_cidr}" >> "/etc/openshift-sdn/config.env"
+
+    # delete unnecessary routes
+    delete_local_subnet_route lbr0
+    delete_local_subnet_route ${TUN} || true
 }
 
 set +e
