@@ -37,6 +37,10 @@ const (
 	GeneratedByNewBuild  = "OpenShiftNewBuild"
 )
 
+// ErrNoDockerfileDetected is the error returned when the requested build strategy is Docker
+// and no Dockerfile is detected in the repository.
+var ErrNoDockerfileDetected = fmt.Errorf("No Dockerfile was found in the repository and the requested build strategy is 'docker'")
+
 // AppConfig contains all the necessary configuration for an application
 type AppConfig struct {
 	SourceRepositories util.StringList
@@ -469,7 +473,11 @@ func (c *AppConfig) detectSource(repositories []*app.SourceRepository) error {
 	for _, repo := range repositories {
 		err := repo.Detect(c.detector)
 		if err != nil {
-			errs = append(errs, err)
+			if c.Strategy == "docker" && err == app.ErrNoLanguageDetected {
+				errs = append(errs, ErrNoDockerfileDetected)
+			} else {
+				errs = append(errs, err)
+			}
 			continue
 		}
 	}
