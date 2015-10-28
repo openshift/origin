@@ -82,7 +82,7 @@ do_master () {
 	try_eval ping -c1 -W2 $node
     done
 
-    oc get nodes --template '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}}:{{.address}} {{end}}{{end}}{{end}}' | tr ' :' '\012 ' > $logmaster/node-ips
+    oc get nodes --template '{{range .items}}{{$name := .metadata.name}}{{range .status.addresses}}{{if eq .type "InternalIP"}}{{$name}} {{.address}}{{"\n"}}{{end}}{{end}}{{end}}' > $logmaster/node-ips
 }
 
 # Returns a list of pods in the form "minion-1:mypod:namespace:10.1.0.2:e4f1d61b"
