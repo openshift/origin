@@ -97,14 +97,14 @@ get_pods () {
 # "minion-1:mypod:namespace:10.1.0.2:e4f1d61b", split into pieces
 split_podspec () {
     prefix=$1
-    spec=$(eval echo \${$prefix})
+    spec=${!prefix}
 
     array=(${spec//:/ })
-    eval ${prefix}_node=${array[0]}
-    eval ${prefix}_name=${array[1]}
-    eval ${prefix}_ns=${array[2]}
-    eval ${prefix}_addr=${array[3]}
-    eval ${prefix}_id=${array[4]}
+    eval ${prefix}_node="${array[0]}"
+    eval ${prefix}_name="${array[1]}"
+    eval ${prefix}_ns="${array[2]}"
+    eval ${prefix}_addr="${array[3]}"
+    eval ${prefix}_id="${array[4]}"
 }
 
 # Returns a list of services in the form "myservice:namespace:172.30.0.99:tcp:5454"
@@ -116,14 +116,14 @@ get_services () {
 # "myservice:namespace:172.30.0.99:tcp:5454", split into pieces
 split_servicespec () {
     prefix=$1
-    spec=$(eval echo \${$prefix})
+    spec=${!prefix}
 
     array=(${spec//:/ })
-    eval ${prefix}_name=${array[0]}
-    eval ${prefix}_ns=${array[1]}
-    eval ${prefix}_addr=${array[2]}
-    eval ${prefix}_proto=${array[3]}
-    eval ${prefix}_port=${array[4]}
+    eval ${prefix}_name="${array[0]}"
+    eval ${prefix}_ns="${array[1]}"
+    eval ${prefix}_addr="${array[2]}"
+    eval ${prefix}_proto="${array[3]}"
+    eval ${prefix}_port="${array[4]}"
 }
 
 get_port_for_addr () {
