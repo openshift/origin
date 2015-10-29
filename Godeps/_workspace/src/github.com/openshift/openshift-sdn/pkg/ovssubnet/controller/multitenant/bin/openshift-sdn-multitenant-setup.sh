@@ -137,6 +137,7 @@ function setup() {
     # Table 3; incoming from container; filled in by openshift-ovs-multitenant
 
     # Table 4; services; mostly filled in by multitenant.go
+    ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=200, reg0=0, ip, nw_dst=${service_network_cidr}, actions=output:2"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=100, ip, nw_dst=${service_network_cidr}, actions=drop"
     ovs-ofctl -O OpenFlow13 add-flow br0 "table=4, priority=0, actions=goto_table:5"
 

@@ -1661,9 +1661,9 @@ _openshift_admin_pod-network_join-projects()
     must_have_one_noun=()
 }
 
-_openshift_admin_pod-network_unisolate-projects()
+_openshift_admin_pod-network_make-projects-global()
 {
-    last_command="openshift_admin_pod-network_unisolate-projects"
+    last_command="openshift_admin_pod-network_make-projects-global"
     commands=()
 
     flags=()
@@ -1682,7 +1682,7 @@ _openshift_admin_pod-network()
     last_command="openshift_admin_pod-network"
     commands=()
     commands+=("join-projects")
-    commands+=("unisolate-projects")
+    commands+=("make-projects-global")
 
     flags=()
     two_word_flags=()

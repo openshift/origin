@@ -15,33 +15,33 @@ import (
 )
 
 const (
-	UnIsolateProjectsNetworkCommandName = "unisolate-projects"
+	MakeGlobalProjectsNetworkCommandName = "make-projects-global"
 
-	unIsolateProjectsNetworkLong = `
-UnIsolate project network
+	makeGlobalProjectsNetworkLong = `
+Make project network global
 
 Allows projects to access all pods in the cluster and vice versa when using the %[1]s network plugin.`
 
-	unIsolateProjectsNetworkExample = `	# Allow project p1 to access all pods in the cluster and vice versa
+	makeGlobalProjectsNetworkExample = `	# Allow project p1 to access all pods in the cluster and vice versa
 	$ %[1]s <p1>
 
 	# Allow all projects with label name=share to access all pods in the cluster and vice versa
 	$ %[1]s --selector='name=share'`
 )
 
-type UnIsolateOptions struct {
+type MakeGlobalOptions struct {
 	Options *ProjectOptions
 }
 
-func NewCmdUnIsolateProjectsNetwork(commandName, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
 	opts := &ProjectOptions{}
-	unIsolateOp := &UnIsolateOptions{Options: opts}
+	makeGlobalOp := &MakeGlobalOptions{Options: opts}
 
 	cmd := &cobra.Command{
 		Use:     commandName,
-		Short:   "UnIsolate project network",
-		Long:    fmt.Sprintf(unIsolateProjectsNetworkLong, multitenant.NetworkPluginName()),
-		Example: fmt.Sprintf(unIsolateProjectsNetworkExample, fullName),
+		Short:   "Make project network global",
+		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, multitenant.NetworkPluginName()),
+		Example: fmt.Sprintf(makeGlobalProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := opts.Complete(f, c, args, out); err != nil {
 				kcmdutil.CheckErr(err)
@@ -51,7 +51,7 @@ func NewCmdUnIsolateProjectsNetwork(commandName, fullName string, f *clientcmd.F
 				kcmdutil.CheckErr(kcmdutil.UsageError(c, err.Error()))
 			}
 
-			err := unIsolateOp.Run()
+			err := makeGlobalOp.Run()
 			kcmdutil.CheckErr(err)
 		},
 	}
@@ -63,15 +63,15 @@ func NewCmdUnIsolateProjectsNetwork(commandName, fullName string, f *clientcmd.F
 	return cmd
 }
 
-func (u *UnIsolateOptions) Run() error {
-	projects, err := u.Options.GetProjects()
+func (m *MakeGlobalOptions) Run() error {
+	projects, err := m.Options.GetProjects()
 	if err != nil {
 		return err
 	}
 
 	errList := []error{}
 	for _, project := range projects {
-		err = u.Options.CreateOrUpdateNetNamespace(project.ObjectMeta.Name, ovssubnet.AdminVNID)
+		err = m.Options.CreateOrUpdateNetNamespace(project.ObjectMeta.Name, ovssubnet.AdminVNID)
 		if err != nil {
 			errList = append(errList, fmt.Errorf("Removing network isolation for project '%s' failed, error: %v", project.ObjectMeta.Name, err))
 		}
