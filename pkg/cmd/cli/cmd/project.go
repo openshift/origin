@@ -32,6 +32,9 @@ type ProjectOptions struct {
 	ProjectName  string
 	ProjectOnly  bool
 	DisplayShort bool
+
+	// SkipAccessValidation means that if a specific name is requested, don't bother checking for access to the project
+	SkipAccessValidation bool
 }
 
 const (
@@ -177,40 +180,43 @@ func (o ProjectOptions) RunProject() error {
 		config.CurrentContext = argument
 
 	} else {
-		project, err := o.Client.Projects().Get(argument)
-		if err != nil {
-			if isNotFound, isForbidden := kapierrors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
-				var msg string
-				if isForbidden {
-					msg = fmt.Sprintf("You are not a member of project %q.", argument)
-				} else {
-					msg = fmt.Sprintf("A project named %q does not exist on %q.", argument, clientCfg.Host)
-				}
+		if !o.SkipAccessValidation {
+			_, err := o.Client.Projects().Get(argument)
+			if err != nil {
+				if isNotFound, isForbidden := kapierrors.IsNotFound(err), clientcmd.IsForbidden(err); isNotFound || isForbidden {
+					var msg string
+					if isForbidden {
+						msg = fmt.Sprintf("You are not a member of project %q.", argument)
+					} else {
+						msg = fmt.Sprintf("A project named %q does not exist on %q.", argument, clientCfg.Host)
+					}
 
-				projects, err := getProjects(o.Client)
-				if err == nil {
-					switch len(projects) {
-					case 0:
-						msg += "\nYou are not a member of any projects. You can request a project to be created with the 'new-project' command."
-					case 1:
-						msg += fmt.Sprintf("\nYou have one project on this server: %s", api.DisplayNameAndNameForProject(&projects[0]))
-					default:
-						msg += "\nYour projects are:"
-						for _, project := range projects {
-							msg += fmt.Sprintf("\n* %s", api.DisplayNameAndNameForProject(&project))
+					projects, err := getProjects(o.Client)
+					if err == nil {
+						switch len(projects) {
+						case 0:
+							msg += "\nYou are not a member of any projects. You can request a project to be created with the 'new-project' command."
+						case 1:
+							msg += fmt.Sprintf("\nYou have one project on this server: %s", api.DisplayNameAndNameForProject(&projects[0]))
+						default:
+							msg += "\nYour projects are:"
+							for _, project := range projects {
+								msg += fmt.Sprintf("\n* %s", api.DisplayNameAndNameForProject(&project))
+							}
 						}
 					}
-				}
 
-				if hasMultipleServers(config) {
-					msg += "\nTo see projects on another server, pass '--server=<server>'."
+					if hasMultipleServers(config) {
+						msg += "\nTo see projects on another server, pass '--server=<server>'."
+					}
+					return errors.New(msg)
 				}
-				return errors.New(msg)
+				return err
 			}
-			return err
 		}
+		projectName := argument
 
-		kubeconfig, err := cliconfig.CreateConfig(project.Name, o.ClientConfig)
+		kubeconfig, err := cliconfig.CreateConfig(projectName, o.ClientConfig)
 		if err != nil {
 			return err
 		}
@@ -221,7 +227,7 @@ func (o ProjectOptions) RunProject() error {
 		}
 		config = *merged
 
-		namespaceInUse = project.Name
+		namespaceInUse = projectName
 		contextInUse = merged.CurrentContext
 		contextNameIsGenerated = true
 	}

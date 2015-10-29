@@ -114,6 +114,7 @@ func (o *NewProjectOptions) Run() error {
 	if o.ProjectOptions != nil {
 		o.ProjectOptions.ProjectName = project.Name
 		o.ProjectOptions.ProjectOnly = true
+		o.ProjectOptions.SkipAccessValidation = true
 
 		if err := o.ProjectOptions.RunProject(); err != nil {
 			return err
